@@ -156,6 +156,8 @@ Functional
    deepinv.physics.functional.conv_transpose2d
    deepinv.physics.functional.conv2d_fft
    deepinv.physics.functional.conv_transpose2d_fft
+   deepinv.physics.functional.conv3d
+   deepinv.physics.functional.conv_transpose3d
    deepinv.physics.functional.conv3d_fft
    deepinv.physics.functional.conv_transpose3d_fft
    deepinv.physics.functional.product_convolution2d
