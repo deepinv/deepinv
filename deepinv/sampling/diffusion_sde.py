@@ -1,7 +1,8 @@
+from __future__ import annotations
 import torch
 from torch import Tensor
 import torch.nn as nn
-from typing import Callable, Union, Optional
+from typing import Callable
 import numpy as np
 from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor, Denoiser
@@ -32,7 +33,7 @@ class _WrapperDenoiserMinusOneOne(nn.Module):
 
 class BaseSDE(nn.Module):
     r"""
-    Base class for Stochastic Differential Equation (SDE):min_num_steps
+    Base class for Stochastic Differential Equation (SDE):
 
     .. math::
         d x_{t} = f(x_t, t) dt + g(t) d w_{t}
@@ -96,7 +97,7 @@ class BaseSDE(nn.Module):
             return solution.sample
 
     def discretize(
-        self, x: Tensor, t: Union[Tensor, float], *args, **kwargs
+        self, x: Tensor, t: Tensor | float, *args, **kwargs
     ) -> tuple[Tensor, Tensor]:
         r"""
         Discretize the SDE at the given time step.
@@ -111,7 +112,7 @@ class BaseSDE(nn.Module):
         return self.drift(x, t, *args, **kwargs), self.diffusion(t)
 
     def sample_init(
-        self, shape: Union[list, tuple, torch.Size], rng: torch.Generator = None
+        self, shape: list | tuple | torch.Size, rng: torch.Generator = None
     ) -> Tensor:
         r"""
         Sample from the end-time distribution of the forward diffusion.
@@ -194,7 +195,7 @@ class DiffusionSDE(BaseSDE):
         )
         self.minus_one_one = minus_one_one
 
-    def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
+    def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
         r"""
         Approximating the score function :math:`\nabla \log p_t` by the denoiser.
 
@@ -208,13 +209,13 @@ class DiffusionSDE(BaseSDE):
         """
         raise NotImplementedError
 
-    def _handle_time_step(self, t: Union[Tensor, float]) -> Tensor:
+    def _handle_time_step(self, t: Tensor | float) -> Tensor:
         t = torch.as_tensor(t, device=self.device, dtype=self.dtype)
         return t
 
     def sigma_t(
         self,
-        t: Union[Tensor, float],
+        t: Tensor | float,
     ) -> Tensor:
         r"""
         The :math:`\sigma(t)` of the condition distribution :math:`p(x_t \vert x_0) \sim \mathcal{N}(s(t)x_0, s(t)^2 \sigma_t^2 \mathrm{Id})`.
@@ -226,7 +227,7 @@ class DiffusionSDE(BaseSDE):
         """
         raise NotImplementedError
 
-    def scale_t(self, t: Union[Tensor, float]) -> Tensor:
+    def scale_t(self, t: Tensor | float) -> Tensor:
         r"""
         The scale :math:`s(t)` of the condition distribution :math:`p(x_t \vert x_0) \sim \mathcal{N}(s(t)x_0, s(t)^2 \sigma_t^2 \mathrm{Id})`.
 
@@ -336,14 +337,14 @@ class VarianceExplodingDiffusion(DiffusionSDE):
             * self.sigma_max
         )
 
-    def sigma_t(self, t: Union[Tensor, float]) -> Tensor:
+    def sigma_t(self, t: Tensor | float) -> Tensor:
         t = self._handle_time_step(t)
         return self.sigma_min * (self.sigma_max / self.sigma_min) ** t
 
-    def scale_t(self, t: Union[Tensor, float]) -> Tensor:
+    def scale_t(self, t: Tensor | float) -> Tensor:
         return torch.ones_like(self._handle_time_step(t))
 
-    def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
+    def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
         std = self.sigma_t(t)
         denoised = self.denoiser(
             x.to(torch.float32), self.sigma_t(t).to(torch.float32), *args, **kwargs
@@ -446,19 +447,19 @@ class VariancePreservingDiffusion(DiffusionSDE):
         """
         return torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype)
 
-    def _beta_t(self, t: Union[Tensor, float]) -> Tensor:
+    def _beta_t(self, t: Tensor | float) -> Tensor:
         t = self._handle_time_step(t)
         return self.beta_min + t * self.beta_d
 
-    def sigma_t(self, t: Union[Tensor, float]) -> Tensor:
+    def sigma_t(self, t: Tensor | float) -> Tensor:
         t = self._handle_time_step(t)
         return torch.sqrt(torch.exp(0.5 * t**2 * self.beta_d + t * self.beta_min) - 1.0)
 
-    def scale_t(self, t: Union[Tensor, float]) -> Tensor:
+    def scale_t(self, t: Tensor | float) -> Tensor:
         t = self._handle_time_step(t)
         return 1 / torch.sqrt(torch.exp(0.5 * t**2 * self.beta_d + t * self.beta_min))
 
-    def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
+    def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
         sigma = self.sigma_t(t)
         scale = self.scale_t(t)
 
@@ -512,7 +513,7 @@ class PosteriorDiffusion(Reconstructor):
 
     def __init__(
         self,
-        data_fidelity: Optional[NoisyDataFidelity] = None,
+        data_fidelity: NoisyDataFidelity | None = None,
         denoiser: Denoiser = None,
         sde: DiffusionSDE = None,
         solver: BaseSDESolver = None,
@@ -528,6 +529,7 @@ class PosteriorDiffusion(Reconstructor):
         super().__init__(device=device)
         self.data_fidelity = data_fidelity
         self.sde = sde
+        self.minus_one_one = minus_one_one
         assert (
             denoiser is not None or sde.denoiser is not None
         ), "A denoiser must be specified."
@@ -574,7 +576,7 @@ class PosteriorDiffusion(Reconstructor):
         self,
         y: Tensor,
         physics: Physics,
-        x_init: Optional[Tensor] = None,
+        x_init: Tensor | None = None,
         seed: int = None,
         timesteps: Tensor = None,
         get_trajectory: bool = False,
@@ -607,7 +609,8 @@ class PosteriorDiffusion(Reconstructor):
                 x_init = self.sde.sample_init(y.shape, rng=self.solver.rng)
             else:
                 raise ValueError("Either `x_init` or `physics` must be specified.")
-
+        if self.minus_one_one and y is not None:
+            y = (y - 0.5) * 2  # Scale y to [-1, 1]
         solution = self.solver.sample(
             self.posterior,
             x_init,
@@ -619,17 +622,23 @@ class PosteriorDiffusion(Reconstructor):
             *args,
             **kwargs,
         )
+
+        # Scale the output back to [0, 1]
+        sample = solution.sample
+        if self.minus_one_one:
+            sample = (sample.clamp_(-1, 1) + 1) / 2
+
         if get_trajectory:
-            return solution.sample, solution.trajectory
+            return sample, solution.trajectory
         else:
-            return solution.sample
+            return sample
 
     def score(
         self,
         y: Tensor,
         physics: Physics,
         x: Tensor,
-        t: Union[Tensor, float],
+        t: Tensor | float,
         *args,
         **kwargs,
     ) -> Tensor:

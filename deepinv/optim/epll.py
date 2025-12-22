@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch.nn as nn
 import torch
 from deepinv.utils import patch_extractor
@@ -5,7 +6,11 @@ from deepinv.optim.utils import conjugate_gradient
 from deepinv.models.utils import get_weights_url
 from deepinv.optim.utils import GaussianMixtureModel
 from deepinv.models.base import Denoiser
-from typing import Union
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.physics import LinearPhysics
 
 
 class EPLL(nn.Module):
@@ -32,17 +37,17 @@ class EPLL(nn.Module):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int patch_size: patch size.
     :param int channels: number of color channels (e.g. 1 for gray-valued images and 3 for RGB images)
-    :param str device: defines device (``cpu`` or ``cuda``)
+    :param str, torch.device device: defines device (``cpu`` or ``cuda``)
     """
 
     def __init__(
         self,
-        GMM=None,
-        n_components=200,
-        pretrained="download",
-        patch_size=6,
-        channels=1,
-        device="cpu",
+        GMM: GaussianMixtureModel = None,
+        n_components: int = 200,
+        pretrained: str | None = "download",
+        patch_size: int = 6,
+        channels: int = 1,
+        device: str | torch.device = "cpu",
     ):
         super(EPLL, self).__init__()
         if GMM is None:
@@ -85,9 +90,9 @@ class EPLL(nn.Module):
 
     def forward(
         self,
-        y,
-        physics,
-        sigma: Union[float, torch.Tensor] = None,
+        y: torch.Tensor,
+        physics: LinearPhysics,
+        sigma: float | torch.Tensor = None,
         x_init: torch.Tensor = None,
         betas: list[float] = None,
         batch_size: int = -1,
@@ -150,7 +155,7 @@ class EPLL(nn.Module):
                 )
             return x
 
-    def negative_log_likelihood(self, x):
+    def negative_log_likelihood(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Takes patches and returns the negative log likelihood of the GMM for each patch.
 
@@ -160,7 +165,15 @@ class EPLL(nn.Module):
         logpz = self.GMM(x.view(B * n_patches, -1))
         return logpz.view(B, n_patches)
 
-    def _reconstruction_step(self, Aty, x, sigma_sq, beta, physics, batch_size):
+    def _reconstruction_step(
+        self,
+        Aty: torch.Tensor,
+        x: torch.Tensor,
+        sigma_sq: float | torch.Tensor,
+        beta: float,
+        physics: LinearPhysics,
+        batch_size: int,
+    ):
         # precomputations for GMM with covariance regularization
         self.GMM.set_cov_reg(1.0 / beta)
         N, M = x.shape[2:4]

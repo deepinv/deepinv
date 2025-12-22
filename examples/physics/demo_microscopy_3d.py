@@ -8,13 +8,9 @@ fluorescence microscopes.
 
 """
 
+# %%
 import torch
-
 import deepinv as dinv
-from deepinv.utils.plotting import plot, plot_ortho3D
-from deepinv.utils.demo import load_np_url
-import numpy as np
-
 
 # First, let's load some test images.
 
@@ -25,11 +21,15 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
 
-volume_data = load_np_url(
-    "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
+volume_data = (
+    dinv.utils.load_np_url(
+        "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
+    )
+    .flip(0)
+    .unsqueeze(0)
+    .unsqueeze(0)
 )
-volume_data = np.copy(volume_data[::-1, ...])
-volume_data = torch.from_numpy(volume_data).unsqueeze(0).unsqueeze(0)
+
 x = volume_data / volume_data.max()
 x = x.to(device)
 b, c, d, h, w = x.size()
@@ -48,7 +48,7 @@ filter_0 = torch.rand(1, 1, 3, 11, 8, device=device)
 physics = dinv.physics.Blur(filter_0, device=device, padding="circular")
 y = physics(x)
 
-plot_ortho3D(
+dinv.utils.plot_ortho3D(
     [x, filter_0, y],
     titles=["signal", "filter", "measurement"],
     suptitle="3D convolution",
@@ -98,7 +98,7 @@ diffraction_generator = DiffractionBlurGenerator3D(
 # For optician physicists: ``fc`` is the cutoff frequency, which should be below 0.25
 # to respect Shannon's sampling theorem,  ``kb`` is the wave number, used for propagation
 # in depth. Letting ``NA`` denote the numerical aperture, ``NI`` denote the index
-# of refraction of the immersion medium and lambda denote the emission wavelength,
+# of refraction of the immersion medium and `lambda` denote the emission wavelength,
 # the quantities are related through:
 # `fc = (NA/lambda) * pixel_size`.
 # `kb = (NI/lambda) * pixel_size`.
@@ -113,12 +113,12 @@ blurs = diffraction_generator.step(batch_size=3)
 # their pupil function and Zernike coefficients:
 print(blurs.keys())
 
-plot_ortho3D(
+dinv.utils.plot_ortho3D(
     [f[None] for f in blurs["filter"]],
     suptitle="Examples of randomly generated diffraction blurs",
 )
 
-plot(
+dinv.utils.plot(
     [
         f
         for f in torch.angle(blurs["pupil"][:, None])
@@ -131,15 +131,19 @@ print(blurs["coeff"])
 
 
 # %%
+# We provide a helper property to get the list of Zernike polynomials used in the decomposition:
+zernike_polynomials = diffraction_generator.zernike_polynomials
+print("Zernike polynomials used: \n", "\n ".join(zernike_polynomials))
+
 # It is also possible to directly specify the Zernike decomposition.
 # For instance, if the pupil is null, the PSF is the Airy pattern.
 n_zernike = len(
-    diffraction_generator.list_param
+    zernike_polynomials
 )  # number of Zernike coefficients in the decomposition
 blurs = diffraction_generator.step(
     batch_size=3, coeff=torch.zeros(3, n_zernike, device=device)
 )
-plot_ortho3D(
+dinv.utils.plot_ortho3D(
     [f for f in blurs["filter"][:, None]],
     suptitle="Airy pattern",
 )
@@ -152,7 +156,7 @@ diffraction_generator = DiffractionBlurGenerator3D(
     fc=1 / 8,
     kb=0.25,
     stepz_pixel=2,
-    list_param=["Z5", "Z6"],
+    zernike_index=(5, 6),
     device=device,
     dtype=dtype,
 )
@@ -204,12 +208,12 @@ blur_coll = generator.generator_coll.step(
 )
 psf_coll = blur_coll["filter"]
 # plot generated PSFs
-plot_ortho3D(
+dinv.utils.plot_ortho3D(
     [psf[None] for psf in psf_coll],
     suptitle="PSFs of Widefield microscope (collection only)",
 )
 
-plot_ortho3D(
+dinv.utils.plot_ortho3D(
     [psf[None] for psf in psf_confocal],
     suptitle="Corresponding PSFs of Confocal microscope",
 )

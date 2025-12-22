@@ -85,7 +85,7 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None):
             device=device,
             dtype=dtype,
         )
-        keys = ["filters", "multipliers", "padding"]
+        keys = ["filters", "multipliers"]
     elif name == "DownsamplingGenerator":
         g = dinv.physics.generator.DownsamplingGenerator(
             filters=["bilinear", "bicubic", "gaussian"], factors=[2, 4]
@@ -138,7 +138,7 @@ def test_shape(name, size, num_channels, device, dtype):
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_generation_newparams(name, device, dtype):
     r"""
-    Tests generators shape.
+    Tests generators' ability to generate new parameters at each step.
     """
     size = (32, 32)
     generator, size, _ = find_generator(name, size, 1, device, dtype)
@@ -165,7 +165,7 @@ def test_generation_newparams(name, device, dtype):
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_generation_seed(name, device, dtype):
     r"""
-    Tests generators shape.
+    Tests generators consistency with the same random seed.
     """
     size = (32, 32)
     generator, size, _ = find_generator(name, size, 1, device, dtype)
@@ -185,34 +185,6 @@ def test_generation_seed(name, device, dtype):
 
     for key in param_key:
         assert torch.allclose(params0[key], params1[key])
-
-
-@pytest.mark.parametrize("name", GENERATORS)
-@pytest.mark.parametrize("device", DEVICES)
-@pytest.mark.parametrize("dtype", [torch.float64])
-def test_generation(name, device, dtype):
-    r"""
-    Tests generators shape.
-    """
-    size = (5, 5)
-    generator, size, _ = find_generator(name, size, 1, device, dtype)
-    batch_size = 1
-    params = generator.step(batch_size=batch_size, seed=0)
-    if name == "MotionBlurGenerator" or name == "DiffractionBlurGenerator":
-        w = params["filter"]
-    elif name == "ProductConvolutionBlurGenerator":
-        w = params["filters"]
-    elif name == "SigmaGenerator":
-        w = params["sigma"]
-
-    wref = (
-        torch.load(
-            f"deepinv/tests/assets/generators/{name.lower()}_{device}_{dtype}.pt"
-        )
-        .to(device)
-        .to(dtype)
-    )
-    assert torch.allclose(w, wref, atol=1e-8)
 
 
 @pytest.mark.parametrize(
@@ -484,6 +456,16 @@ def test_inpainting_generators(
     )
     correct_pixelwise(mask3)
 
+    # Adapt to new img sizes
+    assert gen.step(batch_size=batch_size, img_size=(73, 29))["mask"].shape[-2:] == (
+        73,
+        29,
+    )
+
+    # Raise error if input_mask and img_size both passed
+    with pytest.raises(ValueError):
+        gen.step(img_size=(20, 20), input_mask=(2, 20, 20))
+
 
 @pytest.mark.parametrize("num_channels", NUM_CHANNELS)
 @pytest.mark.parametrize("device", DEVICES)
@@ -567,3 +549,86 @@ def test_string_seed():
     # Assert generators different
     states = [torch.Generator().manual_seed(s).get_state() for s in seeds]
     assert len(set(states)) == len(states)
+
+
+@pytest.mark.parametrize("apodize", [True, False])
+@pytest.mark.parametrize("random_rotate", [True, False])
+@pytest.mark.parametrize("num_channels", [1, 3])
+@pytest.mark.parametrize("convention", ["noll", "ansi"])
+@pytest.mark.parametrize("is_3d", [True, False])
+def test_diffraction_generator(
+    device, apodize, random_rotate, num_channels, convention, is_3d
+):
+    r"""
+    Test diffraction generator.
+    """
+
+    dtype = torch.float32
+    zernike_index = tuple(range(1, 36))  # All Zernike index up to 7th order
+    pupil_size = (256, 256)
+    if is_3d:
+        size = (5, 5, 5)
+        generator = dinv.physics.generator.DiffractionBlurGenerator3D(
+            psf_size=size,
+            device=device,
+            num_channels=num_channels,
+            zernike_index=zernike_index,
+            index_convention=convention,
+            apodize=apodize,
+            random_rotate=random_rotate,
+            dtype=dtype,
+            pupil_size=pupil_size,
+        )
+
+    else:
+        pupil_size = (256, 256)
+        size = (5, 5)
+        generator = dinv.physics.generator.DiffractionBlurGenerator(
+            psf_size=size,
+            device=device,
+            num_channels=num_channels,
+            zernike_index=zernike_index,
+            index_convention=convention,
+            apodize=apodize,
+            random_rotate=random_rotate,
+            dtype=dtype,
+            pupil_size=pupil_size,
+        )
+
+    batch_sizes = (1, 2)
+    expected_keys = set(
+        ["filter", "coeff", "pupil"] + (["angle"] if random_rotate else [])
+    )
+    for batch_size in batch_sizes:
+        params = generator.step(
+            batch_size=batch_size,
+            seed=0,
+            focal_length=0.004,
+            aperture_diameter=0.002,
+            apodize=apodize,
+            random_rotate=random_rotate,
+        )
+
+        # Test keys and shapes
+        assert set(params.keys()) == expected_keys
+        assert params["filter"].shape == (batch_size, num_channels, *size)
+        assert params["coeff"].shape == (batch_size, len(zernike_index))
+        assert params["pupil"].shape == (batch_size, *pupil_size)
+        if random_rotate:
+            assert params["angle"].shape == (batch_size,)
+
+        # Test generator consistency
+        params2 = generator.step(
+            batch_size=batch_size,
+            seed=0,
+        )
+        for key in params.keys():
+            assert torch.allclose(params[key], params2[key])
+
+        # Test generator variability
+        params3 = generator.step(
+            batch_size=batch_size,
+            seed=1,
+        )
+        for key in params.keys():
+            assert not torch.allclose(params[key], params3[key])

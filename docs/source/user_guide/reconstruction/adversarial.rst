@@ -91,3 +91,5 @@ The :class:`deep image prior <deepinv.models.DeepImagePrior>` uses an untrained 
 The choice of the architecture of :math:`R` is crucial for the success of the method: we provide the
 :class:`deepinv.models.ConvDecoder` architecture, which is based on a convolutional decoder network,
 and has shown good inductive bias for image reconstruction tasks.
+
+For single-image Poisson denoising specifically, :class:`Poisson2Sparse <deepinv.models.Poisson2Sparse>` can be used in conjunction with :class:`ConvLista <deepinv.models.ConvLista>`.

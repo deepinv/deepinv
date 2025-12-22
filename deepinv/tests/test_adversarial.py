@@ -162,28 +162,36 @@ def test_discrim_training(discrim_name, loss_name, imsize, device, rng, tmp_path
 
             assert Dx2 == Dx0
 
-
-def choose_adversarial_combo(combo_name, imsize, device, dataset, domain):
-    unet = dinv.models.UNet(
+def build_unet(imsize, device):
+    return dinv.models.UNet(
         in_channels=imsize[0],
         out_channels=imsize[0],
         scales=2,
         circular_padding=True,
         batch_norm=False,
+        dim=len(imsize) - 1,
     ).to(device)
 
-    csgm_generator = dinv.models.CSGMGenerator(
-        dinv.models.DCGANGenerator(nz=10, ngf=8, nc=imsize[0]),
+
+def build_csgm_generator(imsize, device):
+    return dinv.models.CSGMGenerator(
+        dinv.models.DCGANGenerator(nz=10, ngf=4, nc=imsize[0], dim=len(imsize) - 1),
         inf_max_iter=100,
         inf_tol=0.001,
     ).to(device)
+
+
+
+def choose_adversarial_combo(combo_name, imsize, device, dataset, domain):
+    unet = build_unet(imsize, device)
+    csgm_generator = build_csgm_generator(imsize, device)
 
     # For multi operator losses
     dataloader = DataLoader(dataset[0], batch_size=1, shuffle=True)
     physics_generator = BernoulliSplittingMaskGenerator(
         imsize, 0.5, device=device, rng=torch.Generator(device).manual_seed(42)
     )
-
+    
     if combo_name == "DeblurGAN":
         model = unet
         D = dinv.models.PatchGANDiscriminator(
@@ -286,3 +294,32 @@ def test_discriminator_metric(device):
     assert metric(torch.tensor([0.0]), real=True).item() == 1.0
     assert metric(torch.tensor([0.0]), real=False).item() == 0.0
     assert metric(torch.tensor([1.0]), real=False).item() == 1.0
+
+
+@pytest.mark.parametrize("test_shape", [(3, 64, 64), (3, 64, 64, 64)])
+def test_adversarial_nets(test_shape):
+    # We simply test if all nets function on the forward pass and produce correct shapes
+
+    dim = len(test_shape) - 1
+
+    generator = dinv.models.DCGANGenerator(output_size=64, nz=4, ngf=16, dim=str(dim))
+    latent = torch.randn([1, 4, *tuple(1 for i in range(dim))])
+    out = generator(latent)
+    assert out.shape[1:] == test_shape
+
+    discriminator = dinv.models.DCGANDiscriminator(ndf=8, dim=dim)
+    batch = torch.randn([1] + list(test_shape))
+    out = discriminator(batch)
+    assert out.shape == tuple([1, 1] + [1] * dim)
+
+    discriminator = dinv.models.ESRGANDiscriminator(
+        img_size=test_shape, filters=(8, 8, 8), dim=dim
+    )
+    batch = torch.randn([1] + list(test_shape))
+    out = discriminator(batch)
+    assert out.shape == tuple([1] + list(discriminator.output_shape))
+
+    discriminator = dinv.models.PatchGANDiscriminator(ndf=2, dim=dim)
+    batch = torch.randn([1] + list(test_shape))
+    out = discriminator(batch)
+    assert out.shape == tuple([1, 1] + [11 for i in range(dim)])

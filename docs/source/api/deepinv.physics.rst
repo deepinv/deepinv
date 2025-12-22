@@ -59,6 +59,7 @@ Operators
    deepinv.physics.Haze
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
+   deepinv.physics.SpatialUnwrapping
    deepinv.physics.StructuredRandomPhaseRetrieval
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
@@ -87,6 +88,7 @@ Generators
    deepinv.physics.generator.DiffractionBlurGenerator3D
    deepinv.physics.generator.ProductConvolutionBlurGenerator
    deepinv.physics.generator.ConfocalBlurGenerator3D
+   deepinv.physics.generator.Zernike
    deepinv.physics.generator.BaseMaskGenerator
    deepinv.physics.generator.GaussianMaskGenerator
    deepinv.physics.generator.RandomMaskGenerator
@@ -121,11 +123,13 @@ Noise distributions
    deepinv.physics.LogPoissonNoise
    deepinv.physics.PoissonNoise
    deepinv.physics.PoissonGaussianNoise
+   deepinv.physics.LaplaceNoise
    deepinv.physics.UniformNoise
    deepinv.physics.UniformGaussianNoise
    deepinv.physics.GammaNoise
    deepinv.physics.SaltPepperNoise
    deepinv.physics.FisherTippettNoise
+   deepinv.physics.RicianNoise
    deepinv.physics.generator.SigmaGenerator
    deepinv.physics.generator.GainGenerator
 
@@ -152,6 +156,8 @@ Functional
    deepinv.physics.functional.conv_transpose2d
    deepinv.physics.functional.conv2d_fft
    deepinv.physics.functional.conv_transpose2d_fft
+   deepinv.physics.functional.conv3d
+   deepinv.physics.functional.conv_transpose3d
    deepinv.physics.functional.conv3d_fft
    deepinv.physics.functional.conv_transpose3d_fft
    deepinv.physics.functional.product_convolution2d
@@ -160,7 +166,12 @@ Functional
    deepinv.physics.functional.histogramdd
    deepinv.physics.functional.histogram
    deepinv.physics.functional.dst1
+   deepinv.physics.functional.dct
+   deepinv.physics.functional.idct
+   deepinv.physics.functional.dct_2d
+   deepinv.physics.functional.idct_2d
    deepinv.physics.functional.imresize_matlab
+   deepinv.physics.functional.random_choice
 
 
 .. autosummary::

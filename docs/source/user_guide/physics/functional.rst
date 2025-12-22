@@ -48,6 +48,12 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
    * - :func:`deepinv.physics.functional.conv_transpose2d_fft`
      - Computes the 2D transposed convolution with FFT, efficiently implementing upsampling or deconvolution.
 
+   * - :func:`deepinv.physics.functional.conv3d`
+     - Performs 3D convolution.
+
+   * - :func:`deepinv.physics.functional.conv_transpose3d`
+     - Computes the 3D transposed convolution
+
    * - :func:`deepinv.physics.functional.conv3d_fft`
      - Performs 3D convolution using FFT, suitable for volumetric data processing in applications like medical imaging.
 
@@ -69,6 +75,18 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
    * - :func:`deepinv.physics.functional.IRadon`
      - Computes the inverse Radon transform, reconstructing an image from projection data as in CT scan reconstruction.
   
+   * - :func:`deepinv.physics.functional.dct`
+     - Computes the 1D Discrete Cosine Transform (DCT), commonly used in signal processing and data compression.
+
+   * - :func:`deepinv.physics.functional.idct`
+     - Computes the inverse 1D Discrete Cosine Transform (IDCT), reconstructing the original signal from its DCT coefficients.
+    
+   * - :func:`deepinv.physics.functional.dct_2d`
+     - Computes the 2D Discrete Cosine Transform (DCT), commonly used in image compression and signal processing.
+  
+   * - :func:`deepinv.physics.functional.idct_2d`
+     - Computes the inverse 2D Discrete Cosine Transform (IDCT), reconstructing the original image from its DCT coefficients.
+    
    * - :func:`deepinv.physics.functional.XrayTransform`
      - X-ray Transform operator with ``astra-toolbox`` backend. Computes forward projection and backprojection used in CT reconstruction.
 

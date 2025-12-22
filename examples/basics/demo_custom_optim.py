@@ -19,7 +19,7 @@ and :math:`\lambda` is a regularization parameter. In this example, we demonstra
 
 1. How to define your own iterative algorithm
 2. How to package it as a :class:`reconstructor model <deepinv.models.Reconstructor>`
-3. How to use predefined algorithms using :class:`optim builder <deepinv.optim.optim_builder>`
+3. How to use define new optimization algorithm as a subclass of :class:`BaseOptim <deepinv.optim.BaseOptim>`
 
 1. Defining your own iterative algorithm
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -27,6 +27,7 @@ and :math:`\lambda` is a regularization parameter. In this example, we demonstra
 
 import deepinv as dinv
 import torch
+from deepinv.optim import PGD
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
@@ -80,7 +81,7 @@ prior = dinv.optim.TVPrior()  # Prior term
 lambd = 0.05  # Regularization parameter
 
 # Compute the squared norm of the operator A
-norm_A2 = physics.compute_norm(y, tol=1e-4, verbose=False).item()
+norm_A2 = physics.compute_sqnorm(y, tol=1e-4, verbose=False).item()
 stepsize = 1.9 / norm_A2  # stepsize for the PGD algorithm
 
 # PGD algorithm
@@ -159,7 +160,7 @@ dinv.utils.plot(
 # 2. Package your algorithm as a Reconstructor
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# The iterative algorithm we defined above can be packaged as a :class:`Reconstructor <deepinv.optim.BaseOptim>`.
+# The iterative algorithm we defined above can be packaged as a :class:`Reconstructor <deepinv.models.Reconstructor>`.
 # This allows you to :class:`test it <deepinv.test>` on different physics and datasets, and to use it in a more flexible way,
 # including unfolding it and learning some of its parameters.
 
@@ -209,41 +210,29 @@ dinv.utils.plot(
 )
 
 # %%
-# 3. Using a predefined optimization algorithm with `optim_builder`
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 3. Using a predefined optimization algorithm
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# The library also lets you define :ref:`standard optimization algorithms <optim_iterators>`
-# as standard :class:`Reconstructors <deepinv.models.Reconstructor>` in one line of code using the :class:`deepinv.optim.optim_builder` function.
+# The library also comes with common optimization algorithms (PGD, ADMM, PGD, HQS, FISTA, Primal-Dual, etc.)
+# already implemented as a :class:`Reconstructors <deepinv.models.Reconstructor>`.
+# They can be instanciated in one line of code.
 # For example, the above PnP algorithm can be defined as follows:
 #
 # .. seealso::
-#     See :ref:`the optimization examples <sphx_glr_auto_examples_optimization_demo_TV_minimisation.py>` for more examples of using `optim_builder`.
+#     For more examples with other predefined algorithms, see the :ref:`ADMM example <sphx_glr_auto_examples_optimization_demo_custom_prior.py>` and the :ref:`DRS example <sphx_glr_auto_examples_optimization_demo_wavelet_prior.py>`.
 
 prior = dinv.optim.PnP(denoiser=denoiser)  # prior with prox via denoising step
 
 
-def custom_init(y: torch.Tensor, physics: dinv.physics.Physics) -> torch.Tensor:
-    """
-    Custom initialization function for the optimization algorithm.
-    The function should return a dictionary with the key "est" containing a tuple
-    with the initial guess (the TV solution in this case)
-    and the dual variables (None in this case).
-    """
-    primal = tv_algo(y, physics)
-    dual = None  #  No dual variables in this case
-    return {"est": (primal, dual)}
-
-
-model = dinv.optim.optim_builder(
-    iteration="PGD",
+model = PGD(
     prior=prior,
     data_fidelity=data_fidelity,
-    params_algo={"stepsize": stepsize, "g_param": 0.05},
+    stepsize=stepsize,
+    sigma_denoiser=0.05,
     max_iter=max_iter,
-    custom_init=custom_init,
 )
 
-x_hat = model(y, physics)
+x_hat = model(y, physics, init=tv_algo(y, physics))
 
 dinv.utils.plot(
     {
@@ -263,3 +252,4 @@ dinv.utils.plot(
 # * Check out diffusion and MCMC iterative algorithms in the :ref:`sampling user guide <sampling>`.
 # * Check out more :ref:`iterative algorithms examples <sphx_glr_auto_examples_optimization>`.
 # * Check out how to try the algorithm on a whole dataset by following the :ref:`bring your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>` tutorial.
+# * Check out how to train your plug-and-play algorithm by unfolding its iterations in the :ref:`vanilla unfolded <sphx_glr_auto_examples_unfolded_demo_vanilla_unfolded.py>` tutorial.

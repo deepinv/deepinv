@@ -22,6 +22,18 @@ Base Class
    :nosignatures:
 
    deepinv.optim.BaseOptim
+   deepinv.optim.BacktrackingConfig
+   deepinv.optim.AndersonAccelerationConfig
+   deepinv.optim.DEQConfig
+   deepinv.optim.GD
+   deepinv.optim.PGD
+   deepinv.optim.FISTA
+   deepinv.optim.ADMM
+   deepinv.optim.DRS
+   deepinv.optim.HQS
+   deepinv.optim.MD
+   deepinv.optim.PMD
+   deepinv.optim.PDCP
 
 
 Potentials
@@ -53,6 +65,7 @@ Data Fidelity
    deepinv.optim.LogPoissonLikelihood
    deepinv.optim.AmplitudeLoss
    deepinv.optim.ZeroFidelity
+   deepinv.optim.ItohFidelity
 
 
 Priors
@@ -68,6 +81,7 @@ Priors
    deepinv.optim.PnP
    deepinv.optim.RED
    deepinv.optim.ScorePrior
+   deepinv.optim.ZeroPrior
    deepinv.optim.Tikhonov
    deepinv.optim.L1Prior
    deepinv.optim.WaveletPrior
@@ -124,7 +138,7 @@ Distance
 
 Iterators
 ---------
-.. userguide:: optim-iterators
+.. userguide:: optim_iterators
 
 .. autosummary::
    :toctree: stubs
@@ -143,6 +157,7 @@ Iterators
    deepinv.optim.optim_iterators.DRSIteration
    deepinv.optim.optim_iterators.HQSIteration
    deepinv.optim.optim_iterators.MDIteration
+   deepinv.optim.optim_iterators.PMDIteration
    deepinv.optim.optim_iterators.SMIteration
 
 

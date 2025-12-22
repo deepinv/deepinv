@@ -8,9 +8,11 @@ import pytest
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
-from torchvision.transforms import ToTensor
+from torchvision.transforms import ToTensor, CenterCrop
+from deepinv.loss import Metric
 import numpy as np
 
+import deepinv as dinv
 from deepinv.datasets import (
     DIV2K,
     Urban100HR,
@@ -33,14 +35,15 @@ from deepinv.datasets import (
     TensorDataset,
     ImageFolder,
     SKMTEASliceDataset,
+    RandomPatchSampler,
 )
 from deepinv.datasets.utils import (
     download_archive,
-    loadmat,
     Crop,
     Rescale,
     ToComplex,
 )
+from deepinv.utils.io import load_mat
 from deepinv.datasets.base import check_dataset
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
@@ -124,8 +127,15 @@ def check_dataset_format(
                     online_measurements=True,
                     save_path=None,
                     compare_no_learning=False,
-                    metrics=[],
+                    metrics=None,
                 ).setup_train(train=True)
+
+                class DummyMetric(Metric):
+                    def __init__(self):
+                        super().__init__("dummy")
+
+                    def forward(self, x_net, x, **kwargs):
+                        return torch.tensor(0.0, device=x.device)
 
                 # We must switch any physics calculations as the data being checked here can be arbitrary
                 # e.g. ints, which is currently not supported by PyTorch https://github.com/pytorch/pytorch/issues/58734
@@ -135,7 +145,7 @@ def check_dataset_format(
                     physics,
                     online_measurements=True,
                     compare_no_learning=False,
-                    metrics=[],
+                    metrics=DummyMetric(),
                 )
 
             except ValueError as e:
@@ -221,6 +231,46 @@ def test_hdfdataset(physgen):
     check_dataset_format(dataset, length=1, dtype=tuple, allow_non_tensor=False)
     dataset.close()
     assert dataset.hd5 is None
+
+
+def test_generate_dataset():
+    tmp_data_dir = "set14"
+    # Dataset returns PIL images, no cropping so different sizes
+    ds = Set14HR(tmp_data_dir, download=True)
+
+    physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=0.1))
+    with pytest.raises(
+        RuntimeError,
+        match="generate_dataset expects dataset to return elements of same shape",
+    ):
+        _ = generate_dataset(
+            train_dataset=ds,
+            batch_size=4,
+            physics=physics,
+            device="cpu",
+            save_dir="measurements",
+        )
+    # Test that no error is raised when we add crop
+    ds = Set14HR(tmp_data_dir, transform=CenterCrop(32))
+    hdf_path = generate_dataset(
+        train_dataset=ds,
+        batch_size=1,
+        physics=physics,
+        device="cpu",
+        save_dir="measurements",
+        dataset_filename="generate_dataset_test",
+    )
+    from torchvision.transforms import ToTensor
+
+    hdf_ds = HDF5Dataset(hdf_path)
+    for sample_hdf, sample in zip(hdf_ds, ds):
+        sample = ToTensor()(sample)
+        assert sample_hdf[0].equal(
+            sample
+        ), "Ground-truth from HDF5 does not match original dataset, despite going through the same preprocessing."
+    hdf_ds.hd5.close()
+    shutil.rmtree(tmp_data_dir)
+    os.remove(hdf_path)
 
 
 def test_tensordataset():
@@ -664,7 +714,7 @@ def mock_lidc_idri():
             patch.object(pd, "read_csv", return_value=dummy_df),
             patch.object(os, "listdir", return_value=["Slice1.dcm", "Slice2.dcm"]),
             # We use patch instead of patch.object to avoid cluttering the namespace.
-            patch("deepinv.datasets.lidc_idri.dcmread", return_value=dummy_dicom),
+            patch("pydicom.dcmread", return_value=dummy_dicom),
         ):
             yield "/dummy"
     else:
@@ -734,7 +784,7 @@ def test_load_nbu_dataset(download_nbu):
         download_nbu,
         x_path="nbu/gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
-        loader=lambda f: loadmat(f)["imgMS"],
+        loader=lambda f: load_mat(f)["imgMS"],
     )
     check_dataset_format(dataset, length=5, dtype=Tensor, shape=(4, 256, 256))
 
@@ -742,7 +792,7 @@ def test_load_nbu_dataset(download_nbu):
         download_nbu,
         y_path="nbu/gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
-        loader=lambda f: loadmat(f)["imgMS"],
+        loader=lambda f: load_mat(f)["imgMS"],
     )
     check_dataset_format(dataset, length=5, dtype=tuple, allow_non_tensor=True)
     x, y = dataset[0]
@@ -896,7 +946,7 @@ def test_FastMRISliceDataset(download_fastmri):
     assert physics_estim.adjointness_test(x0) < 1e-3
     assert (
         torch.abs(
-            physics.compute_norm(x0, max_iter=1000, tol=1e-6, verbose=False) - 1.0
+            physics.compute_sqnorm(x0, max_iter=1000, tol=1e-6, verbose=False) - 1.0
         )
         < 1e-3
     )
@@ -1090,3 +1140,172 @@ def test_SKMTEASliceDataset(download_SKMTEA, device):
         )
         == 1
     )
+
+
+@pytest.fixture
+def make_data(tmp_path, request):
+    """Minimal synthetic datasets for 3D (.npy/.b2nd/.nii.gz), 2D+channels (C,H,W & H,W,C), and >3D no-channels (H,W,D,T)."""
+    pytest.importorskip(
+        "nibabel",
+        reason="This test requires nibabel. It should be "
+        "installed with `pip install nibabel`",
+    )
+    pytest.importorskip(
+        "blosc2",
+        reason="This test requires blosc2. It should be "
+        "installed with `pip install blosc2`",
+    )
+    import nibabel as nib
+    import blosc2
+
+    root = tmp_path
+    cases = []
+
+    # 3D volumes
+    shape3d = (40, 40, 40)
+    fmt = getattr(request, "param")
+    dx = root / f"{fmt.strip('.').replace('.','_')}_x"
+    dy = root / f"{fmt.strip('.').replace('.','_')}_y"
+    dx.mkdir()
+    dy.mkdir()
+    for i in range(2):
+        vol = np.random.normal(size=shape3d)
+        if fmt == ".npy":
+            np.save(dx / f"{i}.npy", vol)
+            np.save(dy / f"{i}.npy", vol)
+        elif fmt == ".b2nd":
+            blosc2.asarray(np.ascontiguousarray(vol), urlpath=str(dx / f"{i}.b2nd"))
+            blosc2.asarray(np.ascontiguousarray(vol), urlpath=str(dy / f"{i}.b2nd"))
+        elif fmt == ".nii.gz":
+            nib.save(nib.Nifti1Image(vol, np.eye(4)), str(dx / f"{i}.nii.gz"))
+            nib.save(nib.Nifti1Image(vol, np.eye(4)), str(dy / f"{i}.nii.gz"))
+        elif fmt == ".pt":
+            torch.save(torch.from_numpy(vol), str(dx / f"{i}.pt"))
+            torch.save(torch.from_numpy(vol), str(dy / f"{i}.pt"))
+        else:  # pragma: no cover
+            raise ValueError(f"Unsupported fmt: {fmt}")
+    if fmt == ".pt":
+
+        def torch_loader(path, **args):
+            return torch.load(path)
+
+    cases.append(
+        dict(
+            name=f"3d-{fmt}",
+            x=str(dx),
+            y=str(dy),
+            fmt=fmt,
+            ch_axis=None,
+            patch=(32, 32, 32),
+            expected=(1, 32, 32, 32),
+            loader=torch_loader if fmt == ".pt" else None,
+        )
+    )
+
+    if fmt == ".npy":
+        # 2D with channels
+        C = 3
+        # (C,H,W)
+        d0x = root / "npy_2d_ch0_x"
+        d0y = root / "npy_2d_ch0_y"
+        d0x.mkdir()
+        d0y.mkdir()
+        # (H,W,C)
+        dmx = root / "npy_2d_chm1_x"
+        dmy = root / "npy_2d_chm1_y"
+        dmx.mkdir()
+        dmy.mkdir()
+        for i in range(2):
+            np.save(d0x / f"{i}.npy", np.random.normal(size=(C, 48, 48)))
+            np.save(d0y / f"{i}.npy", np.random.normal(size=(C, 48, 48)))
+            np.save(dmx / f"{i}.npy", np.random.normal(size=(48, 48, C)))
+            np.save(dmy / f"{i}.npy", np.random.normal(size=(48, 48, C)))
+
+        cases += [
+            dict(
+                name="2d-ch0",
+                x=str(d0x),
+                y=str(d0y),
+                fmt=".npy",
+                ch_axis=0,
+                patch=(16, 16),
+                expected=(3, 16, 16),
+            ),
+            dict(
+                name="2d-chm1",
+                x=str(dmx),
+                y=str(dmy),
+                fmt=".npy",
+                ch_axis=-1,
+                patch=(16, 16),
+                expected=(3, 16, 16),
+            ),
+        ]
+
+        # (H, D, W, T) (or general 4D case)
+        d4x = root / "npy_4d_noch_x"
+        d4y = root / "npy_4d_noch_y"
+        d4x.mkdir()
+        d4y.mkdir()
+        for i in range(2):
+            np.save(d4x / f"{i}.npy", np.random.normal(size=(36, 36, 20, 4)))
+            np.save(d4y / f"{i}.npy", np.random.normal(size=(36, 36, 20, 4)))
+        cases.append(
+            dict(
+                name="4d-noch",
+                x=str(d4x),
+                y=str(d4y),
+                fmt=".npy",
+                ch_axis=None,
+                patch=(12, 12, 10, 2),
+                expected=(1, 12, 12, 10, 2),
+            )
+        )
+    yield cases
+
+
+@pytest.mark.parametrize(
+    "make_data", [".npy", ".b2nd", ".nii.gz", ".pt"], indirect=True
+)
+def test_RandomPatchSampler(make_data):
+    # (i) formats on 3D, (ii) 2D&channels, (iii) 4D no-channels
+    for c in make_data:
+        # x-only
+        ds = RandomPatchSampler(
+            x_dir=c["x"],
+            patch_size=c["patch"],
+            file_format=c["fmt"],
+            ch_axis=c["ch_axis"],
+            loader=c.get("loader", None),
+        )
+        assert len(ds) == 2
+        x = next(iter(ds))
+        assert (
+            x.shape == (1,) + tuple(c["patch"])
+            if c["ch_axis"] is None
+            else (c["expected"])
+        )
+        ds = RandomPatchSampler(
+            x_dir=c["x"],
+            y_dir=c["y"],
+            patch_size=c["patch"],
+            file_format=c["fmt"],
+            ch_axis=c["ch_axis"],
+            loader=c.get("loader", None),
+        )
+        x, y = next(iter(ds))
+        assert x.shape == c["expected"]
+        assert y.shape == c["expected"]
+
+    # check if x is nan behaviour happens
+    c0 = make_data[0]
+    ds = RandomPatchSampler(
+        y_dir=c0["y"],
+        patch_size=c0["patch"],
+        file_format=c0["fmt"],
+        ch_axis=c0["ch_axis"],
+        loader=c0.get("loader", None),
+    )
+    assert len(ds) == 2
+    x, y = next(iter(ds))
+    assert math.isnan(x)

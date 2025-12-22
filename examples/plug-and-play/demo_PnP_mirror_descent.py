@@ -22,9 +22,9 @@ from pathlib import Path
 import torch
 from deepinv.optim.data_fidelity import PoissonLikelihood
 from deepinv.optim.prior import RED
-from deepinv.optim import optim_builder
+from deepinv.optim import MD
 from deepinv.optim.bregman import BurgEntropy
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 from deepinv.utils.plotting import plot, plot_curves
 
 # %%
@@ -77,23 +77,17 @@ prior = RED(denoiser=dinv.models.DnCNN(depth=20, pretrained="download").to(devic
 max_iter = 200  # number of iterations
 stepsize = 1.0  # stepsize of the algorithm
 sigma_denoiser = 0.05  # noise level parameter of the Gaussian denoiser
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary. In particular, this is here that we define the bregman potential used in the mirror descent algorithm.
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-}
-
-# Logging parameters
-verbose = True
+verbose = True  # Logging parameters
 
 # Define the unfolded trainable model.
-model = optim_builder(
-    iteration="MD",
+model = MD(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    sigma_denoiser=sigma_denoiser,
     early_stop=True,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
     bregman_potential=BurgEntropy(),
 )
 

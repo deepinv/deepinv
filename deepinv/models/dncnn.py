@@ -1,7 +1,7 @@
+from __future__ import annotations
 import torch.nn as nn
 import torch
-from .utils import get_weights_url
-import math
+from .utils import get_weights_url, conv_nd, fix_dim
 from .base import Denoiser
 
 
@@ -27,43 +27,50 @@ class DnCNN(Denoiser):
         It is possible to download weights trained via the regularization method in :footcite:t:`pesquet2021learning`, using ``pretrained='download_lipschitz'``.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param str device: gpu or cpu.
+    :param torch.device, str device: Device to put the model on.
+    :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
     """
 
     def __init__(
         self,
-        in_channels=3,
-        out_channels=3,
-        depth=20,
-        bias=True,
-        nf=64,
-        pretrained="download",
-        device="cpu",
+        in_channels: int = 3,
+        out_channels: int = 3,
+        depth: int = 20,
+        bias: bool = True,
+        nf: int = 64,
+        pretrained: str | None = "download",
+        device: torch.device | str = "cpu",
+        dim: int | str = 2,
     ):
         super(DnCNN, self).__init__()
 
+        dim = fix_dim(dim)
+
+        conv = conv_nd(dim)
+
         self.depth = depth
 
-        self.in_conv = nn.Conv2d(
+        self.in_conv = conv(
             in_channels, nf, kernel_size=3, stride=1, padding=1, bias=bias
         )
         self.conv_list = nn.ModuleList(
             [
-                nn.Conv2d(nf, nf, kernel_size=3, stride=1, padding=1, bias=bias)
+                conv(nf, nf, kernel_size=3, stride=1, padding=1, bias=bias)
                 for _ in range(self.depth - 2)
             ]
         )
-        self.out_conv = nn.Conv2d(
+        self.out_conv = conv(
             nf, out_channels, kernel_size=3, stride=1, padding=1, bias=bias
         )
 
         self.nl_list = nn.ModuleList([nn.ReLU() for _ in range(self.depth - 1)])
 
-        # if pretrain and ckpt_path is not None:
-        #    self.load_state_dict(torch.load(ckpt_path, map_location=lambda storage, loc: storage), strict=True)
-
         if pretrained is not None:
             if pretrained.startswith("download"):
+                if dim == 3:  # pragma: no cover
+                    raise RuntimeError(
+                        "No pretrained weights are available for download for 3D DnCNN."
+                    )
                 name = ""
                 if bias and depth == 20:
                     if pretrained == "download_lipschitz":
@@ -95,12 +102,15 @@ class DnCNN(Denoiser):
         if device is not None:
             self.to(device)
 
-    def forward(self, x, sigma=None):
+    def forward(self, x: torch.Tensor, sigma=None) -> torch.Tensor:
         r"""
         Run the denoiser on noisy image. The noise level is not used in this denoiser.
 
         :param torch.Tensor x: noisy image
         :param float sigma: noise level (not used)
+
+        .. note::
+            The argument ``sigma`` is included for compatibility with the base class :class:`Denoiser <deepinv.models.base.Denoiser>` but is not used in this model.
         """
         x1 = self.in_conv(x)
         x1 = self.nl_list[0](x1)
@@ -116,10 +126,3 @@ def weights_init_kaiming(m):
     classname = m.__class__.__name__
     if classname.find("Conv") != -1:
         nn.init.kaiming_normal_(m.weight.data, a=0, mode="fan_in")
-    elif classname.find("Linear") != -1:
-        nn.init.kaiming_normal_(m.weight.data, a=0, mode="fan_in")
-    elif classname.find("BatchNorm") != -1:
-        m.weight.data.normal_(mean=0, std=math.sqrt(2.0 / 9.0 / 64.0)).clamp_(
-            -0.025, 0.025
-        )
-        nn.init.constant(m.bias.data, 0.0)

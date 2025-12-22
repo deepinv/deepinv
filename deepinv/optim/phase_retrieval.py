@@ -1,7 +1,12 @@
+from __future__ import annotations
 import torch
+from typing import TYPE_CHECKING, Callable
+
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
 
 
-def default_preprocessing(y, physics):
+def default_preprocessing(y: torch.Tensor, physics: Physics) -> torch.Tensor:
     r"""
     Default preprocessing function for spectral methods.
 
@@ -76,7 +81,7 @@ def correct_global_phase(
     return x_recon
 
 
-def cosine_similarity(a: torch.Tensor, b: torch.Tensor):
+def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     r"""
     Compute the cosine similarity between two images.
 
@@ -102,10 +107,12 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor):
 def spectral_methods(
     y: torch.Tensor,
     physics,
-    x=None,
-    n_iter=50,
-    preprocessing=default_preprocessing,
-    lamb=10.0,
+    x: torch.Tensor = None,
+    n_iter: int = 50,
+    preprocessing: Callable[
+        [torch.Tensor, torch.Tensor], torch.Tensor
+    ] = default_preprocessing,
+    lamb: float = 10.0,
     x_true=None,
     log: bool = False,
     log_metric=cosine_similarity,
@@ -151,11 +158,8 @@ def spectral_methods(
     """
     if x is None:
         # always use randn for initial guess, never use rand!
-        x = torch.randn(
-            (y.shape[0],) + physics.img_size,
-            dtype=physics.dtype,
-            device=physics.device,
-        )
+        x = physics.A_adjoint(y)
+        x = torch.randn_like(x)
 
     if log is True:
         metrics = []
@@ -192,7 +196,9 @@ def spectral_methods(
         return x
 
 
-def spectral_methods_wrapper(y, physics, n_iter=5000, **kwargs):
+def spectral_methods_wrapper(
+    y: torch.Tensor, physics: Physics, n_iter: int = 5000, **kwargs
+) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
     r"""
     Wrapper for spectral methods.
 

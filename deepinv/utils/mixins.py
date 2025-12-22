@@ -245,7 +245,9 @@ class MRIMixin:
         return cropped
 
     @staticmethod
-    def rss(x: Tensor, multicoil: bool = True, three_d: bool = False) -> Tensor:
+    def rss(
+        x: Tensor, multicoil: bool = True, mag: bool = True, three_d: bool = False
+    ) -> Tensor:
         r"""Perform root-sum-square reconstruction on multicoil data, defined as
 
         .. math::
@@ -259,6 +261,8 @@ class MRIMixin:
             real and imaginary channels
         :param bool multicoil: if ``True``, assume ``x`` is of shape (B,2,N,...),
             and reduce over coil dimension N too.
+        :param bool mag: if `False`, do not reduce over the complex dimension. Rarely used.
+        :param bool three_d: used only for validating input shape, set to `True` if input is 3D data.
         """
         assert (
             x.shape[1] == 2 and not x.is_complex()
@@ -270,8 +274,16 @@ class MRIMixin:
             len(x.shape) == 4 + mc_dim + th_dim
         ), "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
 
-        ss = x.pow(2).sum(dim=1, keepdim=True)
-        return ss.sum(dim=2).sqrt() if multicoil else ss.sqrt()
+        ss = x.pow(2)
+
+        if mag:
+            ss = ss.sum(dim=1, keepdim=True)
+
+        if multicoil:
+            ss = ss.sum(dim=2)
+
+        return ss.sqrt()
+
 
 
 class MultiOperatorMixin:

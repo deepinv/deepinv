@@ -31,6 +31,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Inpainting`
        | :class:`deepinv.physics.Demosaicing`
        | :class:`deepinv.physics.Decolorize`
+       | :class:`deepinv.physics.SpatialUnwrapping`
      -
        | :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
        | :class:`GaussianSplittingMaskGenerator <deepinv.physics.generator.GaussianSplittingMaskGenerator>`
@@ -54,6 +55,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`ConfocalBlurGenerator3D <deepinv.physics.generator.ConfocalBlurGenerator3D>`
        | :class:`gaussian_blur <deepinv.physics.blur.gaussian_blur>`, :class:`sinc_filter <deepinv.physics.blur.sinc_filter>`
        | :class:`bilinear_filter <deepinv.physics.blur.bilinear_filter>`, :class:`bicubic_filter <deepinv.physics.blur.bicubic_filter>`
+       | :class:`Zernike <deepinv.physics.generator.Zernike>` 
 
    * - Magnetic Resonance Imaging (MRI)
      -
@@ -165,6 +167,9 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
    * - :class:`deepinv.physics.PoissonGaussianNoise`
      - :math:`y = \gamma z + \epsilon`, :math:`z\sim\mathcal{P}(\frac{z}{\gamma})`, :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`
 
+   * - :class:`deepinv.physics.LaplaceNoise`
+     - :math:`y\sim\text{Laplace}(z, b)`
+
    * - :class:`deepinv.physics.LogPoissonNoise`
      - :math:`y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu z) N_0)}{N_0})`
 
@@ -179,3 +184,6 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
      
    * - :class:`deepinv.physics.FisherTippettNoise`
      - :math:`p(y\vert x) = \frac{\ell^{\ell}}{\Gamma(\ell)}\mathrm{e}^{\ell(y-x)}\mathrm{e}^{-\ell\mathrm{e}^{(y-x)}}`
+
+   * - :class:`deepinv.physics.RicianNoise`
+     - :math:`y = \sqrt{(x + \sigma \epsilon_1)^2 + (\sigma \epsilon_2)^2}`, :math:`\epsilon_1\sim\mathcal{N}(0,I)`, :math:`\epsilon_2\sim\mathcal{N}(0,I)`

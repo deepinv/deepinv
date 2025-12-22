@@ -1,6 +1,6 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
-from typing import Union
 from hashlib import sha256
 
 
@@ -102,7 +102,7 @@ class PhysicsGenerator(nn.Module):
 
         return self.step_func(batch_size, seed, **kwargs)
 
-    def rng_manual_seed(self, seed: Union[int, str] = None):
+    def rng_manual_seed(self, seed: int | str = None):
         r"""
         Sets the seed for the random number generator.
 
@@ -144,10 +144,11 @@ class PhysicsGenerator(nn.Module):
 
         return PhysicsGenerator(step=step)
 
-    def average(self, n: int = 2000, batch_size: int = 1) -> dict:
+    def average(self, n: int = 2000, batch_size: int = 1, **kwargs) -> dict:
         """Calculate average of physics generator.
         :param int n: number of samples to average over, defaults to 2000
         :param int n: number of samples to compute in parallel, higher means faster but more costly memory-wise, defaults to 1
+        :param kwargs: kwargs to pass to `step` method.
         :returns: A dictionary with the new parameters, that is ``{param_name: param_value}``.
         """
         assert n > 0, "n must be positive"
@@ -157,7 +158,7 @@ class PhysicsGenerator(nn.Module):
         n_processed = 0
         while n_processed < n:
             n_batch = min(n - n_processed, batch_size)
-            params = self.step(batch_size=n_batch)
+            params = self.step(batch_size=n_batch, **kwargs)
             n_processed += n_batch
             params_partial_sum = {
                 k: v.sum(0, keepdim=True) for (k, v) in params.items()
@@ -170,7 +171,8 @@ class PhysicsGenerator(nn.Module):
                     params.keys()
                 ), "Different calls to PhysicsGenerator.step resulted in dictionaries with different keys"
                 for k in keys:
-                    params_sum[k] += params_partial_sum[k]
+                    if params_partial_sum[k] is not None:
+                        params_sum[k] += params_partial_sum[k]
         params_avg = {k: v / n for (k, v) in params_sum.items()}
         return params_avg
 

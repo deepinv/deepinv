@@ -1,13 +1,13 @@
 from __future__ import annotations
 from contextlib import nullcontext, contextmanager
-from typing import Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union
 from pathlib import Path
+
 import torch.nn as nn
 import torch
 from torch import Tensor
 from deepinv.loss.loss import Loss
 from deepinv.utils import AverageMeter
-
 
 if TYPE_CHECKING:
     from deepinv.physics.forward import Physics
@@ -36,7 +36,7 @@ class DiscriminatorMetric:
 
     def __init__(
         self,
-        metric: Optional[nn.Module] = None,
+        metric: nn.Module | None = None,
         real_label: float = 1.0,
         fake_label: float = 0.0,
         no_grad: bool = False,
