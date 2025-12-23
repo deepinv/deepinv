@@ -8,18 +8,23 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
-
-- Add Cosine Similarity to the metrics (:gh:`944` by `Avithal Lautman`_)
+- Add multi-operator unsup adversarial loss (:gh:`409` by `Andrew Wang`_)
+- Add SkipConvDiscriminator and Real-ESRGAN discrimiantor (:gh:`409` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
-- - (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.  
+
+- (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.  
+- Adversarial losses can be cleanly trained in normal Trainer (:gh:`409` by `Andrew Wang`_)
+- Deprecate adversarial trainer (:gh:`409` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
 - Implement/extend functional for 2D/3D convolution with spatial and FFT (:func:`deepinv.physics.functional.conv3d` and  :func:`deepinv.physics.functional.conv_transpose3d`), support all padding modes with equivalent outputs (:gh:`825` by `Minh Hai Nguyen`_)
 - Fix ZeroPrior :class:`deepinv.optim.ZeroPrior` (:gh:`1001` by `Victor Sechaud`_)
+- Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
+- Add Cosine Similarity to the metrics (:gh:`944` by `Avithal Lautman`_)
+- Fix UAIR loss (:gh:`409` by `Andrew Wang`_)
 
 v0.3.7
 ------

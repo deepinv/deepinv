@@ -140,7 +140,7 @@ class VarNetBlock(nn.Module):
         :param torch.Tensor tensor_in: input tensor, either images ``x`` or kspaces ``y`` depending on ``self.estimate_x``.
         :param MRI physics: forward physics including updated mask
         :param torch.Tensor y: input kspace measurements.
-        :param Optional[torch.Tensor] coil_maps: if ``sensitivity_model is not None``, this will contain coil map estimates for E2E-VarNet. Otherwise, it will be ``None``.
+        :param torch.Tensor, None coil_maps: if ``sensitivity_model is not None``, this will contain coil map estimates for E2E-VarNet. Otherwise, it will be ``None``.
         :return: ``(tensor_out, physics, y, coil_maps)``, where tensor_out is either images ``x`` or kspaces ``y``.
         """
         tensor_in, physics, y, coil_maps = args_in

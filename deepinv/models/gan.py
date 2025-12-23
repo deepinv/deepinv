@@ -1,16 +1,19 @@
 from __future__ import annotations
+from math import prod
+
 import numpy as np
 from tqdm import tqdm
 
+import torch
 import torch.nn as nn
 from torch import Tensor
-from torch import rand
-import torch
 from torch.optim import Adam
-from deepinv.physics import Physics
-from deepinv.loss import MCLoss
-from .base import Reconstructor
-from .utils import fix_dim, conv_nd, batchnorm_nd, conv_transpose_nd
+from torch.nn import functional as F
+
+from deepinv.physics.forward import Physics
+from deepinv.loss.mc import MCLoss
+from deepinv.models.base import Reconstructor
+from deepinv.models.utils import fix_dim, conv_nd, batchnorm_nd, conv_transpose_nd
 from deepinv.utils.decorators import _deprecated_alias
 
 
@@ -22,7 +25,7 @@ class PatchGANDiscriminator(nn.Module):
 
     Implementation adapted from :footcite:t:`kupyn2018deblurgan`.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param int input_nc: number of input channels, defaults to 3
     :param int ndf: hidden layer size, defaults to 64
@@ -30,6 +33,8 @@ class PatchGANDiscriminator(nn.Module):
     :param bool use_sigmoid: use sigmoid activation at end, defaults to False
     :param bool batch_norm: whether to use batch norm layers, defaults to True
     :param bool bias: whether to use bias in conv layers, defaults to True
+    :param bool original: use exact network from original paper. If `False`, modify network
+        to reduce spatial dims further.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
     """
 
@@ -41,6 +46,7 @@ class PatchGANDiscriminator(nn.Module):
         use_sigmoid: bool = False,
         batch_norm: bool = True,
         bias: bool = True,
+        original: bool = True,
         dim: str | int = 2,
     ):
         super().__init__()
@@ -51,6 +57,7 @@ class PatchGANDiscriminator(nn.Module):
 
         kw = 4  # kernel width
         padw = int(np.ceil((kw - 1) / 2))
+        padw -= 1 if not original else 0
         sequence = [
             conv(input_nc, ndf, kernel_size=kw, stride=2, padding=padw),
             nn.LeakyReLU(0.2, True),
@@ -74,20 +81,21 @@ class PatchGANDiscriminator(nn.Module):
                 nn.LeakyReLU(0.2, True),
             ]
 
-        nf_mult_prev = nf_mult
-        nf_mult = min(2**n_layers, 8)
-        sequence += [
-            conv(
-                ndf * nf_mult_prev,
-                ndf * nf_mult,
-                kernel_size=kw,
-                stride=1,
-                padding=padw,
-                bias=bias,
-            ),
-            batchnorm_nd(dim)(ndf * nf_mult) if batch_norm else nn.Identity(),
-            nn.LeakyReLU(0.2, True),
-        ]
+        if original:
+            nf_mult_prev = nf_mult
+            nf_mult = min(2**n_layers, 8)
+            sequence += [
+                conv(
+                    ndf * nf_mult_prev,
+                    ndf * nf_mult,
+                    kernel_size=kw,
+                    stride=1,
+                    padding=padw,
+                    bias=bias,
+                ),
+                batchnorm_nd(dim)(ndf * nf_mult) if batch_norm else nn.Identity(),
+                nn.LeakyReLU(0.2, True),
+            ]
 
         sequence += [conv(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]
 
@@ -111,18 +119,21 @@ class ESRGANDiscriminator(nn.Module):
     The ESRGAN discriminator model was originally proposed by :footcite:t:`wang2018esrgan`. Implementation taken from
     https://github.com/edongdongchen/EI/blob/main/models/discriminator.py.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param tuple img_size: shape of input image
+    :param bool batch_norm: whether to have batchnorm layers.
     :param tuple filter: Width (number of filters) at each stage. This can also be used to control the number of stages (or also: the output shape relative to input shapes). Defaults to (64, 128, 256, 512)
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
-
-
     """
 
     @_deprecated_alias(input_shape="img_size")
     def __init__(
-        self, img_size: tuple, filters: tuple = (64, 128, 256, 512), dim: str | int = 2
+        self,
+        img_size: tuple,
+        batch_norm: bool = True,
+        filters: tuple = (64, 128, 256, 512),
+        dim: str | int = 2,
     ):
         super().__init__()
 
@@ -140,13 +151,14 @@ class ESRGANDiscriminator(nn.Module):
             layers.append(
                 conv(in_filters, out_filters, kernel_size=3, stride=1, padding=1)
             )
-            if not first_block:
+            if not first_block and batch_norm:
                 layers.append(batchnorm(out_filters))
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             layers.append(
                 conv(out_filters, out_filters, kernel_size=3, stride=2, padding=1)
             )
-            layers.append(batchnorm(out_filters))
+            if batch_norm:
+                layers.append(batchnorm(out_filters))
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             return layers
 
@@ -177,7 +189,7 @@ class DCGANDiscriminator(nn.Module):
     The DCGAN discriminator model was originally proposed by :footcite:t:`radford2015unsupervised`. Implementation taken from
     https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param int ndf: hidden layer size, defaults to 64
     :param int nc: number of input channels, defaults to 3
@@ -227,7 +239,7 @@ class DCGANGenerator(nn.Module):
 
     Implementation taken from https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param int output_size: desired square size of output image. Choose from 64 or 128, defaults to 64
     :param int nz: latent dimension, defaults to 100
@@ -305,7 +317,7 @@ class CSGMGenerator(Reconstructor):
 
     This generator can be overridden for more advanced optimisation algorithms by overriding ``optimize_z``.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for how to use this for adversarial training.
 
     .. note::
 
@@ -347,7 +359,7 @@ class CSGMGenerator(Reconstructor):
         :param bool requires_grad: whether to require gradient, defaults to True.
         """
         return (
-            rand(
+            torch.rand(
                 1,
                 self.backbone_generator.nz,
                 1,
@@ -370,14 +382,16 @@ class CSGMGenerator(Reconstructor):
         :param Physics physics: forward model
         :return: optimized latent z
         """
-        z = nn.Parameter(z)
+        z = nn.Parameter(z, requires_grad=True)
         optimizer = Adam([z], lr=self.inf_lr)
         err_prev = 999
 
         pbar = tqdm(range(self.inf_max_iter), disable=(not self.inf_progress_bar))
         for i in pbar:
-            x_hat = self.backbone_generator(z)
-            error = self.inf_loss(y=y, x_net=x_hat, physics=physics)
+            with torch.enable_grad():
+                x_hat = self.backbone_generator(z)
+                error = self.inf_loss(y=y, x_net=x_hat, physics=physics)
+
             optimizer.zero_grad()
             error.backward()
             optimizer.step()
@@ -408,3 +422,150 @@ class CSGMGenerator(Reconstructor):
             z = self.optimize_z(z, y, physics)
 
         return self.backbone_generator(z)
+
+
+class SkipConvDiscriminator(nn.Module):
+    """Simple residual convolution discriminator architecture.
+
+    Architecture taken from :footcite:t:`cole2021fast`.
+
+    Consists of convolutional blocks with skip connections with a final dense layer followed by sigmoid.
+    It receives an image as input and outputs a scalar value (between 0 and 1 if sigmoid is used).
+
+    :param tuple img_size: tuple of ints of input image size
+    :param int d_dim: hidden dimension
+    :param int d_blocks: number of conv blocks
+    :param int in_channels: number of input channels
+    :param bool use_sigmoid: use sigmoid activation at output.
+    """
+
+    def __init__(
+        self,
+        img_size: tuple[int, int] = (320, 320),
+        d_dim: int = 128,
+        d_blocks: int = 4,
+        in_channels: int = 2,
+        use_sigmoid: bool = True,
+    ):
+        super().__init__()
+
+        def conv_block(c_in, c_out):
+            return nn.Sequential(
+                nn.Conv2d(c_in, c_out, kernel_size=3, padding=1, bias=False),
+                nn.LeakyReLU(),
+            )
+
+        self.initial_conv = conv_block(in_channels, d_dim)
+
+        self.blocks = nn.ModuleList()
+        for _ in range(d_blocks):
+            self.blocks.append(conv_block(d_dim, d_dim))
+            self.blocks.append(conv_block(d_dim, d_dim))
+
+        self.flatten = nn.Flatten()
+        self.final = nn.Linear(d_dim * prod(img_size), 1)
+        self.sigmoid = nn.Sigmoid()
+        self.use_sigmoid = use_sigmoid
+
+    def forward(self, x: Tensor) -> Tensor:
+        r"""Forward pass of discriminator model.
+
+        :param torch.Tensor x: input image
+        """
+        x = self.initial_conv(x)
+
+        for i in range(0, len(self.blocks), 2):
+            x1 = self.blocks[i](x)
+            x2 = x1 + self.blocks[i + 1](x)
+            x = x2
+
+        y = self.final(self.flatten(x))
+        return self.sigmoid(y).squeeze() if self.use_sigmoid else y.squeeze()
+
+
+class UNetDiscriminatorSN(nn.Module):
+    """U-Net discriminator with spectral normalization.
+
+    Discriminator proposed in Real-ESRGAN :footcite:t:`wang2021realesrgan` for superresolution problems.
+
+    Implementation and pretrained weights taken from https://github.com/xinntao/Real-ESRGAN.
+
+    :param int num_in_ch: Channel number of inputs. Default: 3.
+    :param int num_feat: Channel number of base intermediate features. Default: 64.
+    :param bool skip_connection: Whether to use skip connections between U-Net. Default: `True`.
+    :param int, None pretrained_factor: if not `None`, loads pretrained weights with given factor, must be `2` or `4`. Default: `None`.
+    """
+
+    def __init__(
+        self,
+        num_in_ch=3,
+        num_feat=64,
+        skip_connection=True,
+        pretrained_factor: int | None = None,
+        device="cpu",
+    ):
+        super(UNetDiscriminatorSN, self).__init__()
+        self.skip_connection = skip_connection
+        norm = nn.utils.spectral_norm
+        # the first convolution
+        self.conv0 = nn.Conv2d(num_in_ch, num_feat, kernel_size=3, stride=1, padding=1)
+        # downsample
+        self.conv1 = norm(nn.Conv2d(num_feat, num_feat * 2, 4, 2, 1, bias=False))
+        self.conv2 = norm(nn.Conv2d(num_feat * 2, num_feat * 4, 4, 2, 1, bias=False))
+        self.conv3 = norm(nn.Conv2d(num_feat * 4, num_feat * 8, 4, 2, 1, bias=False))
+        # upsample
+        self.conv4 = norm(nn.Conv2d(num_feat * 8, num_feat * 4, 3, 1, 1, bias=False))
+        self.conv5 = norm(nn.Conv2d(num_feat * 4, num_feat * 2, 3, 1, 1, bias=False))
+        self.conv6 = norm(nn.Conv2d(num_feat * 2, num_feat, 3, 1, 1, bias=False))
+        # extra convolutions
+        self.conv7 = norm(nn.Conv2d(num_feat, num_feat, 3, 1, 1, bias=False))
+        self.conv8 = norm(nn.Conv2d(num_feat, num_feat, 3, 1, 1, bias=False))
+        self.conv9 = nn.Conv2d(num_feat, 1, 3, 1, 1)
+
+        if pretrained_factor is not None:  # pragma: no cover
+            if pretrained_factor == 2:
+                url = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.3/RealESRGAN_x2plus_netD.pth"
+            elif pretrained_factor == 4:
+                url = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.3/RealESRGAN_x4plus_netD.pth"
+            else:
+                raise ValueError(
+                    f"Unsupported pretrained_factor={pretrained_factor}. Use 2 or 4."
+                )
+
+            state_dict = torch.hub.load_state_dict_from_url(
+                url, map_location=device, weights_only=True
+            )
+            self.load_state_dict(state_dict["params"], strict=True)
+
+        self.to(device)
+
+    def forward(self, x):
+        # downsample
+        x0 = F.leaky_relu(self.conv0(x), negative_slope=0.2, inplace=True)
+        x1 = F.leaky_relu(self.conv1(x0), negative_slope=0.2, inplace=True)
+        x2 = F.leaky_relu(self.conv2(x1), negative_slope=0.2, inplace=True)
+        x3 = F.leaky_relu(self.conv3(x2), negative_slope=0.2, inplace=True)
+
+        # upsample
+        x3 = F.interpolate(x3, scale_factor=2, mode="bilinear", align_corners=False)
+        x4 = F.leaky_relu(self.conv4(x3), negative_slope=0.2, inplace=True)
+
+        if self.skip_connection:
+            x4 = x4 + x2
+        x4 = F.interpolate(x4, scale_factor=2, mode="bilinear", align_corners=False)
+        x5 = F.leaky_relu(self.conv5(x4), negative_slope=0.2, inplace=True)
+
+        if self.skip_connection:
+            x5 = x5 + x1
+        x5 = F.interpolate(x5, scale_factor=2, mode="bilinear", align_corners=False)
+        x6 = F.leaky_relu(self.conv6(x5), negative_slope=0.2, inplace=True)
+
+        if self.skip_connection:
+            x6 = x6 + x0
+
+        # extra convolutions
+        out = F.leaky_relu(self.conv7(x6), negative_slope=0.2, inplace=True)
+        out = F.leaky_relu(self.conv8(out), negative_slope=0.2, inplace=True)
+        out = self.conv9(out)
+
+        return out

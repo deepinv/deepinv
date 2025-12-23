@@ -3,14 +3,14 @@
 Adversarial Networks
 ====================
 There are two types of adversarial networks for imaging: conditional and unconditional.
-See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples.
-Adversarial training can be done using the :class:`deepinv.training.AdversarialTrainer` class,
-which is a subclass of :class:`deepinv.Trainer`.
+See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for examples.
+Adversarial training can be done directly using :class:`deepinv.Trainer`. Note that
+any reconstruction network may be used as a generator.
 
 Conditional GAN
 ---------------
 Conditional generative adversarial networks (cGANs) aim to learn a reconstruction
-network :math:`\hat{x}=R(y,A,z)`, which maps the measurements :math:`y` to the signal :math:`x`,
+network :math:`\hat{x}=\inverse{y,A,z}`, which maps the measurements :math:`y` to the signal :math:`x`,
 possibly conditioned on a random variable :math:`z` and the forward operator :math:`A`,
 which strikes a good trade-off between distortion :math:`\|x-\hat{x}\|^2` and perception (how close
 are the distribution of reconstructed and clean images :math:`p_{\hat{x}}` and :math:`p_x`).
@@ -48,11 +48,15 @@ The discriminator network :math:`D` can be implemented with one of the following
      - Enhanced Super-Resolution GAN discriminator model
    * - :class:`PatchGANDiscriminator <deepinv.models.PatchGANDiscriminator>`
      - PatchGAN discriminator model
+   * - :class:`SkipConvDiscriminator <deepinv.models.SkipConvDiscriminator>`
+     - Simple convolutional discriminator with skip connections
+   * - :class:`UNetDiscriminatorSN <deepinv.models.UNetDiscriminatorSN>`
+     - Discriminator used in Real-ESRGAN
 
 
 Unconditional GAN
 -----------------
-Unconditional generative adversarial networks train a generator network :math:`\hat{x}=G(z)` to map
+Unconditional generative adversarial networks train a generator network :math:`\hat{x}=\inverse{z}` to map
 a simple distribution :math:`p_z` (e.g., Gaussian) to the signal distribution :math:`p_x`.
 The generator is trained with an adversarial loss:
 
@@ -61,7 +65,7 @@ The generator is trained with an adversarial loss:
 See the list of available adversarial losses in :ref:`adversarial-losses`, including CSGM and AmbientGAN training.
 
 Once the generator is trained, we can solve inverse problems by looking for a latent :math:`z` that
-matches the observed measurements :math:`\forw{R(z)}\approx y`:
+matches the observed measurements :math:`\forw{\inverse{z}}\approx y`:
 
 .. math:: \hat x = \inverse{\hat z}\quad\text{s.t.}\quad\hat z=\operatorname*{argmin}_z \lVert \forw{\inverse{z}}-y\rVert _2^2
 
