@@ -278,7 +278,8 @@ class MultiOperatorUnsupAdversarialLoss(UnsupAdversarialLoss, MultiOperatorMixin
 
         Simple example (assuming a pretrained discriminator):
 
-        >>> y, x_net = torch.randn(2, 1, 2, 64, 64) # B,C,H,W
+        >>> y = torch.randn(1, 2, 64, 64) # B,C,H,W
+        >>> x_net = torch.randn(1, 2, 64, 64) # B,C,H,W
         >>>
         >>> from deepinv.models import SkipConvDiscriminator
         >>> from deepinv.physics import MRI
