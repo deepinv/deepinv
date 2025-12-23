@@ -58,7 +58,7 @@ class NIQE(Metric):
 
     Calculates the no-reference metric :math:`\text{NIQE}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
 
-    This metric was introduced by :cite:t:`saad2012blind`, and
+    This metric was introduced by :footcite:t:`saad2012blind`, and
     relies on a natural scene statistics model of video DCT coefficients, as well as a temporal model of motion coherency.
 
     Lower values indicate better perceptual quality.
@@ -111,7 +111,7 @@ class BlurStrength(Metric):
 
     Returns a value in (0, 1) for each image in the batch, where 0 indicates a very sharp image and 1 indicates a very blurry image.
 
-    The metric has been introduced in :cite:t:`crete2007blur`.
+    The metric has been introduced in :footcite:t:`crete2007blur`.
 
     :param int h_size: size of the uniform blur filter. Default: 11.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
@@ -257,14 +257,14 @@ class SharpnessIndex(Metric):
 
     Higher values indicate sharper images.
 
-    The metric is used to introduced by :cite:t:`blanchet2012sharpness`.
-    We use the fast implementation presented by :cite:t:`leclaire2015sharpness`.
+    The metric is used to introduced by :footcite:t:`blanchet2012sharpness`.
+    We use the fast implementation presented by :footcite:t:`leclaire2015sharpness`.
 
     Adapted from MATLAB implementation in https://helios2.mi.parisdescartes.fr/~moisan/sharpness/.
 
 
     Default mode computing the periodic component and dequantizing should be used, unless you want to work on very
-    specific images that are naturally periodic or not quantized (see :cite:t:`leclaire2015sharpness`).
+    specific images that are naturally periodic or not quantized (see :footcite:t:`leclaire2015sharpness`).
 
     :param bool periodic_component: if `True` (default), compute the periodic component of the image before computing the metric.
     :param bool dequantize: if `True` (default), perform image dequantization by (1/2, 1/2) translation in Fourier domain before computing the metric.

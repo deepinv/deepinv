@@ -23,7 +23,7 @@ Training alternates between generator :math:`\inverse{\cdot}` and discriminator
 unsupervised), this may be defined on the measurements :math:`y`
 instead.
 
-These examples can also be easily extended to train more complicated GANs such as CycleGAN.
+These examples can also be easily extended to train more complicated GANs such as CycleGAN :footcite:`zhu2017unpaired`.
 
 """
 

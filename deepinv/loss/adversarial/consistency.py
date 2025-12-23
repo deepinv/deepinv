@@ -239,7 +239,7 @@ class MultiOperatorUnsupAdversarialLoss(UnsupAdversarialLoss, MultiOperatorMixin
 
     Extends unsupervised adversarial loss by sampling new physics ("multi-operator") and new data every iteration.
 
-    Proposed in `Fast Unsupervised MRI Reconstruction Without Fully-Sampled Ground Truth Data Using Generative Adversarial Networks <https://openaccess.thecvf.com/content/ICCV2021W/LCI/html/Cole_Fast_Unsupervised_MRI_Reconstruction_Without_Fully-Sampled_Ground_Truth_Data_Using_ICCVW_2021_paper.html>`_.
+    Proposed in :footcite:t:`cole2021fast`.
     The loss is constructed as follows, to be minimised by generator (and maximised by discriminator:
 
     :math:`\mathcal{L}_\text{adv}(\tilde{y},\hat y;D)=\mathbb{E}_{\tilde{y}\sim p_{\tilde{y}}}\left[q(D(\tilde{y}))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`

@@ -93,11 +93,13 @@ dinv.utils.plot(
 #     fine-tune on either an external dataset of image pairs or use a self-supervised loss.
 #     See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for other adversarial losses available.
 
+dataset = dinv.datasets.TensorDataset(x=x, y=y)
+
 trainer = dinv.Trainer(
     model=model,
     physics=physics,
     optimizer=torch.optim.Adam(model.parameters(), lr=1e-4),
-    train_dataloader=torch.utils.data.DataLoader(dinv.datasets.TensorDataset(x=x, y=y)),
+    train_dataloader=torch.utils.data.DataLoader(dataset),
     epochs=10,
     losses=loss,
     device="cpu",
