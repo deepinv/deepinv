@@ -33,6 +33,7 @@ New Features
 - Add :class:`kernel estimation network <deepinv.models.KernelIdentificationNetwork>` for blind deconvolution (:gh:`971` by `Julian Tachella`_)
 - Add blind inverse problems section to reconstruction user guide (:gh:`971` by `Julian Tachella`_)
 - Add :class:`deepinv.loss.metric.BlurStrength` and :class:`deepinv.loss.metric.SharpnessIndex` no-reference metrics for blind deblurring (:gh:`971` by `Julian Tachella`_)
+- New option to initialize 3D networks (DRUNet, DnCNN, DScCP) from pretrained 2D weights (:gh:`958` by `Romain Vo`_)
 
 Changed
 ^^^^^^^
@@ -49,7 +50,7 @@ Fixed
 - Fixed :class:`deepinv.physics.Ptychography` `A_dagger` initialization bug (:gh:`946` by `Julian Tachella`_)
 - Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
 - `generate_dataset` received a general refactor, now supports PIL image datasets and doesn't break when validation dataset returns `TensorList` (:gh:`948` by `Vicky De Ridder`_)
-- test_physics.test_tomography correctly implements the pseudo-inverse test (:gh: `930` by `Romain Vo`_)
+- test_physics.test_tomography correctly implements the pseudo-inverse test (:gh:`930` by `Romain Vo`_)
 
 
 
