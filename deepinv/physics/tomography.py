@@ -202,6 +202,7 @@ class Tomography(LinearPhysics):
                     device=self.device,
                 )[None],
                 squared=False,
+                verbose=False,
             )
             self.register_buffer("operator_norm", operator_norm)
             self.normalize = True
