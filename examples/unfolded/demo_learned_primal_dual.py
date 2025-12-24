@@ -53,6 +53,7 @@ physics = dinv.physics.Tomography(
     angles=30,
     circle=False,
     device=device,
+    adjoint_via_backprop=False,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
     normalize=True,
 )
