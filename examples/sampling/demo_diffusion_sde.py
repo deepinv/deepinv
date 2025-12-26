@@ -59,6 +59,8 @@ from deepinv.models import NCSNpp
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 dtype = torch.float64
+
+
 figsize = 2.5
 gif_frequency = 10  # Increase this value to save the GIF saving time
 # %%
@@ -67,6 +69,7 @@ from deepinv.sampling import (
     DPSDataFidelity,
     EulerSolver,
     VarianceExplodingDiffusion,
+    VariancePreservingDiffusion
 )
 from deepinv.optim import ZeroFidelity
 
@@ -263,11 +266,10 @@ except FileNotFoundError:
 # .. math::
 #     f(x_t, t) = -\frac{1}{2} \beta(t)x_t \qquad \mbox{ and } \qquad g(t) = \beta(t)  \qquad \mbox{ with } \beta(t) = \beta_{\mathrm{min}}  + t \left( \beta_{\mathrm{max}} - \beta_{\mathrm{min}} \right).
 
-from deepinv.sampling import VariancePreservingDiffusion
 
 del trajectory
-# denoiser = NCSNpp(pretrained="download", model_type='ddpm').to(device)
-sde = VariancePreservingDiffusion(alpha=0.0, device=device, dtype=dtype)
+sde = VariancePreservingDiffusion(alpha = 0.1, device=device, dtype=dtype)
+
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
     denoiser=denoiser,

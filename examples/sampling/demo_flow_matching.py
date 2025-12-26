@@ -13,15 +13,15 @@ Sampling is done by solving the following ordinary differential equation (ODE) d
 The velocity field :math:`v_\theta(x,t)` has been trained to approximate the conditional expectation:
 
 .. math::
-    v_\theta(x_t,t) \approx \mathbb{E}_{x_0 \sim p_0, x_1 \sim p_1}\Big[ \frac{d}{dt} x_t | x_t = a_t x_0 + b_t x_1 \Big]
+    v_\theta(x_t,t) \approx \mathbb{E}_{x_0 \sim p_0, x_1 \sim p_1}\Big[ \frac{d}{dt} x_t | x_t = a(t) x_0 + b(t) x_1 \Big]
 
-where :math:`a_t` and :math:`b_t` are interpolation coefficients such that :math:`x_t` interpolates between :math:`x_0` and :math:`x_1`.
+where :math:`a(t)` and :math:`b(t)` are interpolation coefficients such that :math:`x_t` interpolates between :math:`x_0` and :math:`x_1`.
 When the reference distribution :math:`p_0` is the standard Gaussian, the velocity field can be expressed as a function of a Gaussian denoiser :math:`D(x, \sigma)` as follows:
 
 .. math::
-    v_\theta(x_t,t) = - \frac{\dot{b}_t}{b_t} x_t + \frac{1}{2}\frac{a_t \dot{b}_t - \dot{a}_t b_t}{a_t b_t} \left(D\left(\frac{x_t}{a_t}, \frac{b_t}{a_t} \right) - x_t\right)
+    v_\theta(x_t,t) = - \frac{b'(t)}{b(t)} x_t + \frac{1}{2}\frac{a(t) b'(t) - a'(t) b(t)}{a(t) b(t)} \left(D\left(\frac{x_t}{a(t)}, \frac{b(t)}{a(t)} \right) - x_t\right)
 
-The most common choice of time schedulers is the linear schedule :math:`a_t = 1 - t` and :math:`b_t = t`.
+The most common choice of time schedulers is the linear schedule :math:`a(t) = 1 - t` and :math:`b(t) = t`.
 
 In this demo, we will show how to :
 
@@ -34,7 +34,7 @@ In this demo, we will show how to :
 
     *  Perform posterior sampling using Flow-Matching combined with a DPS data fidelity term (see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more details)
 
-    *  Explore different choices of time schedulers :math:`a_t` and :math:`b_t`.
+    *  Explore different choices of time schedulers :math:`a(t)` and :math:`b(t)`.
 
 """
 
@@ -53,6 +53,7 @@ from deepinv.models import MMSE, NCSNpp
 import os
 import shutil
 from pathlib import Path
+from deepinv.models.wrapper import DiffusersDenoiserWrapper
 
 # %% Define the closed-form MMSE denoiser
 # -----------------------------
@@ -62,8 +63,15 @@ from pathlib import Path
 # When using this closed-form MMSE denoiser, the sampling is guaranteed to output an image of the dataset.
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-num_workers = 0 if device.type == "cpu" else 8
 dtype = torch.float64
+
+device = torch.device(
+    "cuda" if torch.cuda.is_available()
+    else "mps" if torch.backends.mps.is_available()
+    else "cpu"
+)
+dtype = torch.float32
+
 figsize = 2.5
 
 # We use the closed-form MMSE denoiser defined using as atoms the testset of MNIST.
@@ -72,11 +80,11 @@ dataset = datasets.MNIST(
     root=".", train=False, download=True, transform=transforms.ToTensor()
 )
 dataloader = torch.utils.data.DataLoader(
-    dataset, batch_size=512, shuffle=False, num_workers=num_workers
+    dataset, batch_size=512, shuffle=False
 )
 # Since the MNIST dataset is relatively small, we can also load it entirely in memory as a tensor
 tensors = torch.cat([data[0] for data in iter(dataloader)]).to(device)
-denoiser = MMSE(dataloader=tensors.clone(), device=device, dtype=torch.float32)
+denoiser = MMSE(dataloader=tensors.clone(), device=device, dtype=dtype)
 
 
 # %% Define the Flow-Matching ODE and perform unconditional generation
@@ -87,11 +95,12 @@ denoiser = MMSE(dataloader=tensors.clone(), device=device, dtype=torch.float32)
 
 num_steps = 20
 
-rng = torch.Generator(device).manual_seed(42)
+rng = torch.Generator(device).manual_seed(1)
 timesteps = torch.linspace(0.99, 0.0, num_steps)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
-sde = FlowMatching(denoiser=denoiser, solver=solver, device=device)
+sde = FlowMatching(denoiser=denoiser, solver=solver, device=device, dtype=dtype)
 
+'''
 sample, trajectory = sde(
     x_init=(1, 1, 28, 28),
     seed=42,
@@ -99,12 +108,12 @@ sample, trajectory = sde(
 )
 
 
-dinv.utils.plot(
-    sample,
-    titles="Unconditional FM generation",
-    save_fn="FM_sample.png",
-    figsize=(figsize, figsize),
-)
+# dinv.utils.plot(
+#     sample,
+#     titles="Unconditional FM generation",
+#     save_fn="FM_sample.png",
+#     figsize=(figsize, figsize),
+# )
 
 dinv.utils.save_videos(
     trajectory.cpu(),
@@ -143,7 +152,7 @@ except FileNotFoundError:
 #       :class: custom-gif
 #       :ignore_missing: true
 
-
+'''
 # %% Perform posterior sampling
 # -----------------------------------------------------------------------
 #
@@ -151,7 +160,7 @@ except FileNotFoundError:
 # In order not to replicate training image data, we now use a pretrained deep denoiser, here the NCSNpp denoiser  :footcite:t:`song2020score`, with pretrained weights from :footcite:t:`karras2022elucidating`.
 # We consider the inpainting problem, where we have a masked image and we want to recover the original image.
 # We use DPS :class:`deepinv.sampling.DPSDataFidelity` as data fidelity term (see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more details).
-# Note that, again, due to the division by :math:`a_t` in the velocity field, initialization close to t=1 causes instability.
+# Note that due to the division by :math:`a(t)` in the velocity field, initialization close to t=1 causes instability.
 
 x = dinv.utils.load_example(
     "celeba_example.jpg",
@@ -167,17 +176,22 @@ physics = dinv.physics.Inpainting(
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=0.1),
 )
+# filter = dinv.physics.blur.gaussian_blur((5, 5))
+# physics = dinv.physics.BlurFFT(x.shape[1:], filter=filter, device=device)
 y = physics(x)
 
-weight = 3
-denoiser = NCSNpp(pretrained="download").to(device)
+weight = 0.5
+denoiser = NCSNpp(pretrained="download", type = 'ddpm').to(device)
+# denoiser = DiffusersDenoiserWrapper(
+#     mode_id="google/ddpm-ema-celebahq-256", device=device
+# )
 dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=weight)
 
-num_steps = 100
-# Due to the division by :math:`a_t = 1-T` in the velocity field, initialization close to t=1 causes instability.
-timesteps = torch.linspace(0.85, 0.0, num_steps)
+num_steps = 250
+
+timesteps = torch.linspace(0.99, 0.001, num_steps)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
-sde = FlowMatching(denoiser=denoiser, solver=solver, device=device)
+sde = FlowMatching(alpha = 1., denoiser=denoiser, solver=solver, device=device, dtype=dtype, T = 0.99)
 
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
@@ -185,12 +199,12 @@ model = PosteriorDiffusion(
     solver=solver,
     dtype=dtype,
     device=device,
-    verbose=True,
+    verbose=True
 )
 
-seed_1 = 1
+seed_1 = 2
 
-
+'''
 x_hat, trajectory = model(
     y,
     physics,
@@ -229,7 +243,7 @@ except FileNotFoundError:
 #       :srcset: /auto_examples/images/FM_posterior.png
 #       :class: custom-img
 #       :ignore_missing: true
-
+'''
 
 # %% Explore different time schedulers for Flow-Matching
 # ----------------------------------------------------------------
@@ -243,19 +257,21 @@ a_prime_t = lambda t: -np.pi / 2 * torch.sin(np.pi / 2 * t)
 b_t = lambda t: torch.sin(np.pi / 2 * t)
 b_prime_t = lambda t: np.pi / 2 * torch.cos(np.pi / 2 * t)
 
-num_steps = 10
-timesteps = torch.linspace(0.85, 0.0, num_steps)
+
+dps_fidelity = dinv.optim.ZeroFidelity()
+num_steps = 50
+timesteps = torch.linspace(0.99, 0.001, num_steps)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
-sde = FlowMatching(denoiser=denoiser, solver=solver, device=device)
 
 sde = FlowMatching(
-    a_t=a_t,
-    a_prime_t=a_prime_t,
-    b_t=b_t,
-    b_prime_t=b_prime_t,
+    # a_t=a_t,
+    # a_prime_t=a_prime_t,
+    # b_t=b_t,
+    # b_prime_t=b_prime_t,
     denoiser=denoiser,
     solver=solver,
     device=device,
+    dtype=dtype
 )
 
 model = PosteriorDiffusion(
