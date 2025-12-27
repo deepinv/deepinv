@@ -66,7 +66,6 @@ class Tomography(LinearPhysics):
         these artifacts are corrected by cutting off the outer two pixels of the FBP and recovering them by interpolating the remaining image. This option
         only makes sense if ``circle`` is set to ``False``. Hence it will be ignored if ``circle`` is True.
     :param bool normalize: If ``True`` :func:`A <deepinv.physics.Tomography.A>` and :func:`A_adjoint <deepinv.physics.Tomography.A_adjoint>` are normalized so that the operator has unit norm. (default: ``True``)
-    :param int channels: Number of channels of the input image. Default is 1 (grayscale image). If greater than 1, the same tomography operator is applied to each channel independently.
     :param bool fan_beam: If ``True``, use fan beam geometry, if ``False`` use parallel beam
     :param dict[str, int | float] fan_parameters: Only used if fan_beam is ``True``. Contains the parameters defining the scanning geometry. The dict should contain the keys:
 
@@ -126,7 +125,6 @@ class Tomography(LinearPhysics):
         adjoint_via_backprop: bool = True,
         fbp_interpolate_boundary: bool = False,
         normalize: bool | None = None,
-        channels: int = 1,
         fan_beam: bool = False,
         fan_parameters: dict[str, int | float] = None,
         device: torch.device | str = torch.device("cpu"),
@@ -149,12 +147,11 @@ class Tomography(LinearPhysics):
             )
 
         self.register_buffer("theta", theta)
-        self.channels = channels
         self.fan_beam = fan_beam
         self.adjoint_via_backprop = adjoint_via_backprop
         if fan_beam or adjoint_via_backprop:
             self._auto_grad_adjoint_fn = None
-            self._auto_grad_adjoint_input_shape = (1, channels, img_width, img_width)
+            self._auto_grad_adjoint_input_shape = (1, 1, img_width, img_width)
         if circle and fbp_interpolate_boundary:
             # interpolate boundary does not make sense if circle is True
             warn(
@@ -197,7 +194,7 @@ class Tomography(LinearPhysics):
         if normalize:
             operator_norm = self.compute_norm(
                 torch.randn(
-                    (channels, img_width, img_width),
+                    (1, img_width, img_width),
                     generator=torch.Generator(self.device).manual_seed(0),
                     device=self.device,
                 )[None],
@@ -293,17 +290,14 @@ class Tomography(LinearPhysics):
         """
         if self.fan_beam or self.adjoint_via_backprop:
             # lazy implementation for the adjoint
-            # NOTE: the adjoint is defined the first time this function is called.
-            # If normalize=True, the adjoint will be defined without normalization,
-            # in the compute_norm function, and thus we still need to apply normalization afterwards.
             if (
                 self._auto_grad_adjoint_fn is None
                 or self._auto_grad_adjoint_input_shape
-                != (y.size(0), self.channels, self.img_width, self.img_width)
+                != (y.size(0), y.size(1), self.img_width, self.img_width)
             ):
                 self._auto_grad_adjoint_fn = adjoint_function(
                     self.A,
-                    (y.shape[0], self.channels, self.img_width, self.img_width),
+                    (y.shape[0], y.size(1), self.img_width, self.img_width),
                     device=self.device,
                     dtype=self.dtype,
                 )
@@ -318,8 +312,8 @@ class Tomography(LinearPhysics):
         else:
             output = ApplyRadon.apply(y, self.radon, self.iradon, True)
 
-        if self.normalize:
-            output = output / self.operator_norm
+            if self.normalize:
+                output = output / self.operator_norm
 
         return output
 

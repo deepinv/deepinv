@@ -117,8 +117,8 @@ physics = dinv.physics.Tomography(
     img_width=img_size[-1],
     angles=40,
     device=device,
-    channels=3,
     noise_model=dinv.physics.PoissonGaussianNoise(gain=0.001, sigma=0.001),
+    normalize=True,
 )
 
 y = physics(x)
