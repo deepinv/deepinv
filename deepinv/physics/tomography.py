@@ -312,8 +312,9 @@ class Tomography(LinearPhysics):
         else:
             output = ApplyRadon.apply(y, self.radon, self.iradon, True)
 
-            if self.normalize:
-                output = output / self.operator_norm
+        if self.normalize and not self.adjoint_via_backprop:
+            # NOTE: if adjoint_via_backprop = True, the normalization is already done in A.
+            output = output / self.operator_norm
 
         return output
 

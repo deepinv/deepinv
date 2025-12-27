@@ -1359,7 +1359,6 @@ def test_tomography(
         angles=imsize[-1],
         device=device,
         circle=circle,
-        channels=channels,
         fan_beam=fan_beam,
         normalize=normalize,
         adjoint_via_backprop=adjoint_via_backprop,
