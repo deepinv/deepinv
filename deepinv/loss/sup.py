@@ -39,7 +39,7 @@ class SupLoss(Loss):
         self.name = "supervised"
         self.metric = metric
 
-    def forward(self, x_net, x, **kwargs):
+    def forward(self, x_net: Tensor, x: Tensor, **kwargs) -> Tensor:
         r"""
         Computes the loss.
 
@@ -90,7 +90,7 @@ class ReducedResolutionLoss(SupLoss):
         super().__init__(metric=metric)
         self.physics = physics
 
-    def forward(self, x_net: Tensor, y: Tensor, *args, **kwargs):
+    def forward(self, x_net: Tensor, y: Tensor, *args, **kwargs) -> Tensor:
         r"""
         Computes the reduced resolution loss.
 
@@ -121,7 +121,7 @@ class ReducedResolutionLoss(SupLoss):
             self.model = model
             self.physics = physics
 
-        def forward(self, y: Tensor, physics: Physics, **kwargs):
+        def forward(self, y: Tensor, physics: Physics, **kwargs) -> Tensor:
             if self.training:
                 phys = self.physics if self.physics is not None else physics
                 try:

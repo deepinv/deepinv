@@ -1,7 +1,7 @@
 import torch
 
 
-def norm(a):
+def norm(a: torch.Tensor) -> torch.Tensor:
     """Computes the L2 norm i.e. root sum of squares"""
     return torch.linalg.vector_norm(a, dim=(-1, -2), keepdim=True)
 
@@ -11,7 +11,7 @@ def cal_psnr(
     b: torch.Tensor,
     max_pixel: float = 1.0,
     min_pixel: float = 0.0,
-):
+) -> torch.Tensor:
     r"""
     Computes the peak signal-to-noise ratio (PSNR).
 
@@ -53,11 +53,11 @@ def signal_noise_ratio(x_hat: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
     return 20 * torch.log10(sqrt_snr)
 
 
-def cal_mse(a, b):
+def cal_mse(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """Computes the mean squared error (MSE)"""
     return (a - b).abs().pow(2).mean(dim=tuple(range(1, a.ndim)), keepdim=False)
 
 
-def cal_mae(a, b):
+def cal_mae(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """Computes the mean absolute error (MAE)"""
     return (a - b).abs().mean(dim=tuple(range(1, a.ndim)), keepdim=False)
