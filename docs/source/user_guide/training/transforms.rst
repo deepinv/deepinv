@@ -125,6 +125,8 @@ Note these require installing the library ``kornia``.
    * - :class:`deepinv.transform.CPABDiffeomorphism`
      - A continuous piecewise affine transformation allowing for smooth and invertible deformations across an image.
 
+   * - :func:`deepinv.transform.rotate_via_shear`
+     - A rotation implemented via shear operations for reduced interpolation artifacts.
 
 Video transforms
 ----------------

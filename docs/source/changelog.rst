@@ -8,11 +8,31 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
+
+- Add Cosine Similarity to the metrics (:gh:`944` by `Avithal Lautman`_)
+
+Changed
+^^^^^^^
+- - (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.  
+
+Fixed
+^^^^^
+- Implement/extend functional for 2D/3D convolution with spatial and FFT (:func:`deepinv.physics.functional.conv3d` and  :func:`deepinv.physics.functional.conv_transpose3d`), support all padding modes with equivalent outputs (:gh:`825` by `Minh Hai Nguyen`_)
+- Fix ZeroPrior :class:`deepinv.optim.ZeroPrior` (:gh:`1001` by `Victor Sechaud`_)
+
+v0.3.7
+------
+New Features
+^^^^^^^^^^^^
 - Add :class:`deepinv.physics.LaplaceNoise` model (:gh:`921` by `Brayan Monroy`_)
 - New way to create optimization models. Standard optimization algorithms (and their unfolded versions) can be created using their class name directly instead of using the `optim_builder` (or `unfolded_builder`) function. (:gh:`592` by `Samuel Hurault`_)
 - New ``vmin`` and ``vmax`` arguments in :func:`deepinv.utils.plot` to set custom clipping bounds when using ``rescale_mode='clip'`` (:gh:`967` by `Thibaut Modrzyk`_)
 - Added :func:`deepinv.utils.dirac_comb` and :func:`deepinv.utils.dirac_comb_like` (:gh:`946` by `Julian Tachella`_)
 - Added `testmon <https://www.testmon.org/>`_ and conditional run of sphinx-gallery examples to CI to speed up tests (:gh:`966` by `Julian Tachella`_)
+- Add :class:`kernel estimation network <deepinv.models.KernelIdentificationNetwork>` for blind deconvolution (:gh:`971` by `Julian Tachella`_)
+- Add blind inverse problems section to reconstruction user guide (:gh:`971` by `Julian Tachella`_)
+- Add :class:`deepinv.loss.metric.BlurStrength` and :class:`deepinv.loss.metric.SharpnessIndex` no-reference metrics for blind deblurring (:gh:`971` by `Julian Tachella`_)
 
 Changed
 ^^^^^^^
@@ -21,6 +41,7 @@ Changed
 - Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
 - (Breaking) `Tomography` physics uses the true adjoint by default. `Tomography` and `TomographyWithAstra` implement the pseudo-inverse as the solution of a least-squares problem, with the option to use `fbp`. (:gh:`930` by `Romain Vo`_)
 - Add a check in `deepinv.datasets.FMD` to avoid unnecessary downloads (:gh:`962` by `Jérémy Scanvic`_)
+- Trainer checkpoint loading verbose (:gh:`982` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
@@ -31,6 +52,8 @@ Fixed
 - test_physics.test_tomography correctly implements the pseudo-inverse test (:gh: `930` by `Romain Vo`_)
 - :class:`deepinv.physics.Tomography` now correctly handles multi-channel data (:gh:`960` by `Julian Tachella`_)
 
+
+
 v0.3.6
 ------
 New Features
@@ -40,7 +63,11 @@ New Features
 - Add support for complex dtypes in :class:`deepinv.models.WaveletDenoiser`, :class:`deepinv.models.WaveletDictDenoiser` and :class:`deepinv.optim.WaveletPrior` (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
 - Add `Open in Colab` button to examples (:gh:`907` by `Minh Hai Nguyen`_)
+- Better diffraction blur generator with higher Zernike orders, rotation and apodization (:gh:`826` by `Minh Hai Nguyen`_)
+- Rotation transform via shear operations :func:`deepinv.transform.rotate.rotate_via_shear` for reduced interpolation artifacts (:gh:`826` by `Minh Hai Nguyen`_)
+- Zernike polynomials interface :class:`deepinv.physics.generator.Zernike` for any (n, m) order (:gh:`826` by `Minh Hai Nguyen`_)
 - Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (:gh:`893` by `Minh Hai Nguyen`_)
+
 
 Changed
 ^^^^^^^
@@ -59,6 +86,7 @@ Fixed
 - Fix unhandled import error in CBSD68 if datasets is not installed (:gh:`868` by `Johannes Hertrich`_)
 - Add support for complex signals in PSNR (:gh:`738` by `Jérémy Scanvic`_)
 - Add a warning in SwinIR when upsampling parameters are inconsistent (:gh:`909` by `Jérémy Scanvic`_)
+- Fix formula error in Zernike polynomials, extend to higher order (:gh:`826` by `Minh Hai Nguyen`_)
 - Fix scaling of measurement and samples in posterior sampling with diffusion SDEs (:gh:`893` by `Minh Hai Nguyen`_)
 
 
@@ -528,3 +556,5 @@ Changed
 .. _Chaithya G R: https://github.com/chaithyagr
 .. _Alexander Skorikov: https://github.com/askorikov
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
+.. _Avithal Lautman: https://github.com/avithal
+.. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire

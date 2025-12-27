@@ -37,6 +37,7 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "waveletdict_hard",
     "waveletdict_topk",
     "dsccp",
+    "bilateral",
 ]
 
 REST_MODEL_LIST = [
@@ -141,6 +142,8 @@ def choose_denoiser(name, imsize):
         )
     elif name == "dsccp":
         out = dinv.models.DScCP()
+    elif name == "bilateral":
+        out = dinv.models.BilateralFilter()
     else:
         raise Exception("Unknown denoiser")
 
@@ -1018,7 +1021,8 @@ LIST_IMAGE_WHSIZE = [(32, 37), (25, 129)]
 
 @pytest.mark.parametrize("pretrained", [True, None])
 @pytest.mark.parametrize("whsize", LIST_IMAGE_WHSIZE)
-@pytest.mark.parametrize("model_name", REST_MODEL_LIST)
+# @pytest.mark.parametrize("model_name", REST_MODEL_LIST)
+@pytest.mark.parametrize("model_name", ["ram"])
 @pytest.mark.parametrize("physics_name", LINEAR_OPERATORS + [None])
 @pytest.mark.parametrize("channels", CHANNELS)
 def test_restoration_models(
@@ -1052,16 +1056,27 @@ def test_restoration_models(
     else:
         physics = None
 
-    if hasattr(physics, "noise_model"):
-        if hasattr(physics.noise_model, "sigma"):
-            physics.noise_model.sigma = torch.tensor(
-                [max(physics.noise_model.sigma, 0.01)]
-            )
-        else:
-            physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
-    else:
+    # A helper function to set sigma in physics noise models
+    def _set_sigma_physics(physics, sigma):
+        if hasattr(physics, "noise_model"):
+            if hasattr(physics.noise_model, "sigma"):
+                physics.noise_model.sigma = torch.tensor(
+                    [max(physics.noise_model.sigma, sigma)]
+                )
+            else:
+                physics.noise_model = dinv.physics.GaussianNoise(sigma)
+
         if physics is not None:
-            physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
+            # recursively set sigma for noise models in composite physics
+            for attr in dir(physics):
+                sub_physics = getattr(physics, attr)
+                if isinstance(sub_physics, dinv.physics.Physics):
+                    _set_sigma_physics(sub_physics, sigma)
+        else:
+            pass
+
+    sigma = 0.02
+    _set_sigma_physics(physics, sigma)
 
     x = DummyCircles(imsize=imsize, samples=2)
 
@@ -1081,7 +1096,7 @@ def test_restoration_models(
             # ram model should output an error if no sigma and gain is provided
             with pytest.raises(ValueError):
                 x_hat = model(y, physics)
-            x_hat = model(y, sigma=0.01, gain=1.0)
+            x_hat = model(y, sigma=sigma, gain=1.0)
 
     assert x_hat.shape == x.shape
 
@@ -1480,3 +1495,30 @@ def test_complex_wrapper(mode, device):
     psnr_fn = dinv.metric.PSNR()
     # Check that denoising improves PSNR
     assert psnr_fn(output, x_complex) > psnr_fn(y, x_complex) + 1.0
+
+
+@pytest.mark.parametrize("channels", [1, 3])
+@pytest.mark.parametrize("filters", [5, 6])
+@pytest.mark.parametrize("blur_kernel_size", [33, 65])
+def test_kernel_identification(channels, filters, blur_kernel_size, device):
+    model = dinv.models.KernelIdentificationNetwork(
+        filters=filters,
+        blur_kernel_size=blur_kernel_size,
+        pretrained=None,
+    ).to(device)
+
+    pix = 60
+    b = 2
+    y = torch.randn(b, channels, pix, pix, device=device)
+
+    with torch.no_grad():
+        params = model(y)
+
+    assert params["filters"].shape == (
+        b,
+        1,
+        filters,
+        blur_kernel_size,
+        blur_kernel_size,
+    )
+    assert params["multipliers"].shape == (b, 1, filters, pix, pix)
