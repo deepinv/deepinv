@@ -202,7 +202,7 @@ class SSIM(Metric):
         self.min_pixel = min_pixel
         self.lower_better = False
 
-    def invert_metric(self, m):
+    def invert_metric(self, m: Tensor) -> Tensor:
         return 1.0 - m
 
     def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
@@ -479,7 +479,7 @@ class QNR(Metric):
         )  # Wang-Bovik
         self.lower_better = False
 
-    def invert_metric(self, m):
+    def invert_metric(self, m: Tensor) -> Tensor:
         return 1.0 - m
 
     def D_lambda(self, hrms: Tensor, lrms: Tensor) -> float:
@@ -988,5 +988,5 @@ class CosineSimilarity(Metric):
         # our Metric base class applies reduction afterward
         return sim
 
-    def invert_metric(self, m):
+    def invert_metric(self, m: Tensor) -> Tensor:
         return 1.0 - m
