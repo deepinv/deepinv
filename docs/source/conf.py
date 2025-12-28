@@ -11,14 +11,14 @@ import doctest
 from importlib.metadata import metadata as importlib_metadata
 from docutils import nodes
 from docutils.parsers.rst import Directive
-from docutils.parsers.rst import roles
 from sphinx.util import logging
 from sphinx.addnodes import pending_xref
 from sphinx_gallery import gen_rst
-from sphinx.util.nodes import make_refnode
 from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
 from sphinx_gallery.directives import ImageSg
 from deepinv.utils.plotting import set_default_plot_fontsize
+from sphinx.ext.autodoc import cut_lines
+from sphinx.domains.python import PyXRefRole
 import torch
 
 logger = logging.getLogger(__name__)
@@ -169,10 +169,6 @@ def _noindex_viewcode(app, pagename, templatename, context, doctree):
         context["metatags"] = (
             context.get("metatags", "") + '\n<meta name="robots" content="noindex">\n'
         )
-
-
-from sphinx.ext.autodoc import cut_lines
-from sphinx.domains.python import PyXRefRole
 
 
 class ShortClassRole(PyXRefRole):

@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 from sphinx.application import Sphinx
 import subprocess
 
@@ -7,6 +6,8 @@ benchmark_mapping = {}
 
 
 def generate_rst_from_parquet(parquet_path, output_dir, benchmark_name):
+    import pandas as pd
+
     df = pd.read_parquet(parquet_path)
     dataset = df.attrs.get("dataset", "Unknown")
     physics = df.attrs.get("physics", "Unknown")
