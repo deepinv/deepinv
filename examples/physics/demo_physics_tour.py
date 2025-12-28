@@ -109,8 +109,8 @@ plot([x, physics.A_dagger(y)], titles=["signal", "linear inverse"])
 # Here we take 40 views of an image of size 64x64, and consider mixed Poisson-Gaussian noise.
 #
 # .. note::
-#    The filtered backprojection (FBP) can be computed using the method :func:`physics.Tomography.fbp` of the physics object.
-#    This does not coincide with the linear pseudo-inverse, computed with :func:`physics.Tomography.A_dagger`
+#    The filtered backprojection (FBP) can be computed using the method :meth:`physics.Tomography.fbp` of the physics object.
+#    This does not coincide with the linear pseudo-inverse, computed with :meth:`physics.Tomography.A_dagger`
 #
 
 physics = dinv.physics.Tomography(
