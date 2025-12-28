@@ -207,7 +207,12 @@ noise_model = LogPoissonNoise(mu=mu, N0=N0)
 data_fidelity = LogPoissonLikelihood(mu=mu, N0=N0)
 angles = torch.linspace(20, 160, steps=num_angles, device=device)
 physics = Tomography(
-    img_width=img_size, angles=angles, device=device, noise_model=noise_model
+    img_width=img_size,
+    angles=angles,
+    device=device,
+    noise_model=noise_model,
+    normalize=False,
+    adjoint_via_backprop=False,
 )
 observation = physics(test_imgs)
 fbp = physics.A_dagger(observation)
