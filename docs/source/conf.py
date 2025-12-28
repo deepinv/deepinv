@@ -17,7 +17,6 @@ from sphinx_gallery import gen_rst
 from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
 from sphinx_gallery.directives import ImageSg
 from deepinv.utils.plotting import set_default_plot_fontsize
-from sphinx.ext.autodoc import cut_lines
 from sphinx.domains.python import PyXRefRole
 import torch
 
