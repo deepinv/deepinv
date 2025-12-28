@@ -15,7 +15,7 @@ For the reconstruction, we minimize the variational problem
     \underset{x}{\arg\min} \quad \datafid{x}{y} + \lambda g(x).
     \end{equation*}
 
-Here, the regularizier :math:`g` is explicitly defined as
+Here, the regularizer :math:`g` is explicitly defined as
 
 .. math::
     \begin{equation*}
@@ -244,7 +244,7 @@ def minimize_variational_problem(prior, lam):
 # Run and plot
 # -----------------------------------------------
 # Finally, we run the reconstruction loop for both priors and plot the results.
-# The regularization parameter is roughly choosen by a grid search but not fine-tuned
+# The regularization parameter is roughly chosen by a grid search but not fine-tuned
 
 lam_patchnr = 120.0
 lam_epll = 120.0
