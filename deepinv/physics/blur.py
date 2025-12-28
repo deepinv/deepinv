@@ -84,17 +84,13 @@ class Downsampling(LinearPhysics):
             img_size=self.imsize, filter=filter, factor=factor, device=device
         )
         self.factor = filter_parameters["factor"]
-        if filter is not None:
-            self.register_buffer("filter", filter_parameters["filter"])
-            # Used for prox_l2 computation when `use_fft=True` and `padding='circular'`
-            self.register_buffer("Fh", filter_parameters["Fh"])
-            self.register_buffer("Fhc", filter_parameters["Fhc"])
-            self.register_buffer("Fh2", filter_parameters["Fh2"])
-        else:
-            self.filter = None
-            self.Fh = None
-            self.Fhc = None
-            self.Fh2 = None
+
+        self.register_buffer("filter", filter_parameters["filter"])
+        
+        # Used for prox_l2 computation when `use_fft=True` and `padding='circular'`
+        self.register_buffer("Fh", filter_parameters["Fh"])
+        self.register_buffer("Fhc", filter_parameters["Fhc"])
+        self.register_buffer("Fh2", filter_parameters["Fh2"])
 
         self.to(device)
 
@@ -454,10 +450,8 @@ class Blur(LinearPhysics):
         assert (
             isinstance(filter, Tensor) or filter is None
         ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
-        if filter is not None:
-            self.register_buffer("filter", filter)
-        else:
-            self.filter = None
+        
+        self.register_buffer("filter", filter)
         self.to(device)
 
     def A(self, x: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
@@ -552,14 +546,9 @@ class BlurFFT(DecomposablePhysics):
         filter_parameters = self.get_filter_parameters(
             img_size=img_size, filter=filter, device=device
         )
-        if filter is not None:
-            self.register_buffer("filter", filter_parameters["filter"])
-            self.register_buffer("angle", filter_parameters["angle"])
-            self.register_buffer("mask", filter_parameters["mask"])
-        else:
-            self.filter = None
-            self.angle = None
-            self.mask = None
+        self.register_buffer("filter", filter_parameters["filter"])
+        self.register_buffer("angle", filter_parameters["angle"])
+        self.register_buffer("mask", filter_parameters["mask"])
 
         self.to(device)
 
@@ -686,18 +675,9 @@ class SpaceVaryingBlur(LinearPhysics):
     ):
         super().__init__(device=device, **kwargs)
 
-        if filters is not None and isinstance(filters, Tensor):
-            self.register_buffer("filters", filters.to(device))
-        else:
-            self.filters = None
-
-        if multipliers is not None and isinstance(filters, Tensor):
-            self.register_buffer("multipliers", multipliers.to(device))
-        else:
-            self.multipliers = None
-
-        if padding is not None:
-            self.padding = padding
+        self.register_buffer("filters", filters)
+        self.register_buffer("multipliers", multipliers)
+        self.padding = padding
 
         self.to(device)
 
