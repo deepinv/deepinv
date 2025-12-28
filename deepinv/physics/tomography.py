@@ -201,6 +201,7 @@ class Tomography(LinearPhysics):
                 squared=False,
                 verbose=False,
             )
+            # NOTE: we need to reset the A_adjoint via backprop to account for the added normalization in A
             self._auto_grad_adjoint_fn = None
             self.register_buffer("operator_norm", operator_norm)
             self.normalize = True
