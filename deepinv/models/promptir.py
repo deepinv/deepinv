@@ -2,6 +2,7 @@
 PromptIR Model
 Code borrowed from Potlapalli et al., at: https://github.com/va1shn9v/PromptIR
 """
+
 from __future__ import annotations
 
 import torch
