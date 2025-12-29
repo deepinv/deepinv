@@ -17,6 +17,24 @@ def conjugate_gradient(
     init=None,
     verbose: bool = False,
 ):
+    r"""
+    Standard conjugate gradient algorithm.
+
+    It solves the linear system :math:`Ax=b`, where :math:`A` is a (square) linear operator and :math:`b` is a tensor.
+
+    For more details see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
+
+    :param Callable A: Linear operator as a callable function, has to be square!
+    :param torch.Tensor b: input tensor of shape (B, ...)
+    :param int max_iter: maximum number of CG iterations
+    :param float tol: absolute tolerance for stopping the CG algorithm.
+    :param float eps: a small value for numerical stability
+    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param torch.Tensor init: Optional initial guess.
+    :param bool verbose: Output progress information in the console.
+    :return: :class:`torch.Tensor` :math:`x` of shape (B, ...) verifying :math:`Ax=b`.
+
+    """
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
     if parallel_dim is None:
