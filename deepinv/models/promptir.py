@@ -8,7 +8,6 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from einops import rearrange
 
 from .utils import get_weights_url
 from .restormer import Downsample, Upsample, TransformerBlock, OverlapPatchEmbed
