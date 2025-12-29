@@ -68,5 +68,5 @@ from .distance import (
     LogPoissonLikelihoodDistance,
     ZeroDistance,
 )
-
+from .least_squares import least_squares
 from . import utils
