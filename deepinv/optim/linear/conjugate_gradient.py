@@ -8,6 +8,61 @@ import warnings
 
 
 def conjugate_gradient(
+    A,
+    b,
+    max_iter: int = 1e2,
+    tol: float = 1e-5,
+    eps: float = 1e-8,
+    parallel_dim: None | int | list[int] = 0,
+    init=None,
+    verbose: bool = False,
+):
+    if isinstance(parallel_dim, int):
+        parallel_dim = [parallel_dim]
+    if parallel_dim is None:
+        parallel_dim = []
+
+    dim = [i for i in range(b.ndim) if i not in parallel_dim]
+
+    if init is None:
+        x = torch.zeros_like(b)
+    else:
+        x = init
+
+    r = b - A(x)
+    p = r
+    rsold = dot(r, r, dim=dim).real
+    b_norm_sq = dot(b, b, dim=dim).real
+    # handles case b=0
+    b_norm_sq = torch.where(b_norm_sq > 0, b_norm_sq, torch.ones_like(b_norm_sq))
+    tol = b_norm_sq * (tol**2)
+
+    for i in range(int(max_iter)):
+        Ap = A(p)
+        alpha = rsold / (dot(p, Ap, dim=dim) + eps)
+        x = x + p * alpha
+        r = r - Ap * alpha
+        rsnew = dot(r, r, dim=dim).real
+        if torch.all(rsnew < tol):
+            if verbose:
+                print("CG Converged at iteration", i + 1)
+            break
+        p = r + p * (rsnew / (rsold + eps))
+        rsold = rsnew
+
+        # safeguard to avoid accumulating numerical errors in the computation of r
+        # only applied every 50 iterations to limit computational overhead
+        if i > 0 and i % 50 == 0:
+            r = b - A(x)
+            rsold = dot(r, r, dim=dim).real
+    else:
+        if verbose:
+            print("CG did not converge")
+
+    return x
+
+
+def conjugate_gradient_new(
     A: Callable,
     b: Tensor,
     max_iter: int = 1e2,
@@ -68,14 +123,12 @@ def conjugate_gradient(
         Ap = A(p)
         pAp = dot(p, Ap, dim=dim).real
 
-        # only update alpha for active dimensions
+        # only update alpha for active batches
         alpha = res_old / pAp * active
 
         x = x + p * alpha
         r = r - Ap * alpha
         res_new = dot(r, r, dim=dim).real
-
-        beta = res_new / res_old
 
         active = res_new >= tol_sq
 
@@ -84,7 +137,7 @@ def conjugate_gradient(
                 print("CG Converged at iteration", iteration + 1)
             break
 
-        beta = beta * active
+        beta = res_new / res_old * active
         p = r + p * beta
         res_old = res_new
 

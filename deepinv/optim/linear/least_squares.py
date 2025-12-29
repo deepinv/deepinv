@@ -77,7 +77,7 @@ def least_squares(
     :param float tol: relative tolerance for stopping the algorithm.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param kwargs: Keyword arguments to be passed to the solver.
-    :return: (class:`torch.Tensor`) :math:`x` of shape (B, ...).
+    :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...).
     """
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]

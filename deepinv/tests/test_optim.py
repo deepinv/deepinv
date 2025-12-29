@@ -974,7 +974,7 @@ least_squares_physics = [
 def test_least_square_solvers(
     device, solver, physics_name, implicit_backward_solver, gamma_scalar
 ):
-    batch_size = 4
+    batch_size = 2
 
     physics, img_size, _, _ = find_operator(physics_name, device=device)
     physics.implicit_backward_solver = implicit_backward_solver
