@@ -1336,6 +1336,7 @@ def test_reset_noise(device):
 @pytest.mark.parametrize("adjoint_via_backprop", [True, False])
 @pytest.mark.parametrize("fbp_interpolate_boundary", [True, False])
 @pytest.mark.parametrize("fbp_pseudo_inverse", [True, False])
+@pytest.mark.parametrize("channels", [1, 2])
 def test_tomography(
     normalize,
     parallel_computation,
@@ -1344,6 +1345,7 @@ def test_tomography(
     adjoint_via_backprop,
     fbp_interpolate_boundary,
     fbp_pseudo_inverse,
+    channels,
     device,
 ):
     r"""
@@ -1351,7 +1353,7 @@ def test_tomography(
 
     :param device: (torch.device) cpu or cuda:x
     """
-    imsize = (1, 16, 16)
+    imsize = (channels, 16, 16)
     physics = dinv.physics.Tomography(
         img_width=imsize[-1],
         angles=imsize[-1],
