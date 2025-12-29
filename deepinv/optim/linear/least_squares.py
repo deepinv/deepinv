@@ -406,7 +406,7 @@ def least_squares_implicit_backward(
 
     :param deepinv.physics.LinearPhysics physics: physics operator :class:`deepinv.physics.LinearPhysics`.
     :param torch.Tensor y: input tensor of shape (B, ...)
-    :param torch.Tensor z: input tensor of shape (B, ...). Default is `None`, which corresponds to a zero tensor.
+    :param torch.Tensor, float, int, None  z: input tensor of shape (B, ...). Default is `None`, which corresponds to a zero tensor.
     :param None, torch.Tensor init: Optional initial guess, only used for the forward pass. Default is `None`, which corresponds to a zero initialization.
     :param None, float, torch.Tensor gamma: regularization parameter :math:`\gamma > 0`. Default is `None`. Can be batched (shape (B, ...)) or a scalar.
     :param kwargs: additional arguments to be passed to the least squares solver.
@@ -417,6 +417,8 @@ def least_squares_implicit_backward(
     if z is None:
         # To get correct shape
         z = zeros_like(physics.A_adjoint(y))
+    elif isinstance(z, float) or isinstance(z, int):
+        z = torch.full_like(physics.A_adjoint(y), fill_value=float(z))
     if init is None:
         init = zeros_like(z)
 
