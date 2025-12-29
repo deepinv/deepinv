@@ -125,6 +125,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.EPLLDenoiser(channels=imsize[0])
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
+    elif name == "restormer":
+        out = dinv.models.PromptIR(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "ncsnpp":
         out = dinv.models.NCSNpp(
             in_channels=imsize[0],
