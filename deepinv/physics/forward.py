@@ -600,6 +600,7 @@ class LinearPhysics(Physics):
         max_iter: int = 100,
         tol: float = 1e-3,
         verbose: bool = True,
+        rng: torch.Generator | None = None,
         **kwargs,
     ) -> torch.Tensor:
         r"""
@@ -617,7 +618,9 @@ class LinearPhysics(Physics):
 
         :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
         """
-        x = torch.randn_like(x0)
+        if rng is None:
+            rng = torch.Generator(x0.device)
+        x = torch.randn(x0.shape, device=x0.device, dtype=x0.dtype, generator=rng)
         x /= torch.linalg.vector_norm(x)
         zold = torch.zeros_like(x)
         for it in range(max_iter):
@@ -706,6 +709,11 @@ class LinearPhysics(Physics):
         :param torch.Tensor y: measurements tensor
         :param torch.Tensor z: signal tensor
         :param float gamma: hyperparameter of the proximal operator
+        :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.utils.least_squares` for details
+        :param int max_iter: maximum number of iterations for iterative solvers
+        :param float tol: tolerance for iterative solvers
+        :param bool verbose: whether to print information during the solver execution
+        :param int scale: scale at which to apply the physics operator
         :return: (:class:`torch.Tensor`) estimated signal tensor
 
         """
@@ -1162,6 +1170,7 @@ class DecomposablePhysics(LinearPhysics):
                 isinstance(gamma, torch.Tensor) and gamma.dim() < self.mask.dim()
             ):  # may be the case when mask is fft related
                 gamma = gamma[(...,) + (None,) * (self.mask.dim() - gamma.dim())]
+                gamma = gamma.to(device=self.mask.device, dtype=self.mask.real.dtype)
             scaling = torch.conj(self.mask) * self.mask + 1 / gamma
         x = self.V(self.V_adjoint(b) / scaling)
         return x
@@ -1178,10 +1187,9 @@ class DecomposablePhysics(LinearPhysics):
 
         # avoid division by singular value = 0
         if not isinstance(self.mask, float):
-            mask = torch.zeros_like(self.mask)
-            mask[self.mask > 1e-5] = 1 / self.mask[self.mask > 1e-5]
+            mask = torch.where(self.mask > 1e-5, self.mask.reciprocal(), 0.0)
         else:
-            mask = 1 / self.mask
+            mask = 0.0 if self.mask <= 1e-5 else 1.0 / self.mask
 
         return self.V(self.U_adjoint(y) * mask)
 

@@ -5,11 +5,12 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
-from .utils import get_weights_url
+from .utils import get_weights_url, conv_nd, avgpool_nd
 from abc import abstractmethod
 import numpy as np
 from .base import Denoiser
 from deepinv.utils.compat import zip_strict
+import math
 import math
 
 
@@ -58,11 +59,11 @@ class DiffUNet(Denoiser):
 
     def __init__(
         self,
-        in_channels=3,
-        out_channels=3,
-        large_model=False,
-        use_fp16=False,
-        pretrained="download",
+        in_channels: int = 3,
+        out_channels: int = 3,
+        large_model: bool = False,
+        use_fp16: bool = False,
+        pretrained: str = "download",
     ):
         super().__init__()
 
@@ -117,9 +118,9 @@ class DiffUNet(Denoiser):
 
         time_embed_dim = model_channels * 4
         self.time_embed = nn.Sequential(
-            linear(model_channels, time_embed_dim),
+            nn.Linear(model_channels, time_embed_dim),
             nn.SiLU(),
-            linear(time_embed_dim, time_embed_dim),
+            nn.Linear(time_embed_dim, time_embed_dim),
         )
 
         if self.num_classes is not None:
@@ -127,7 +128,7 @@ class DiffUNet(Denoiser):
 
         ch = input_ch = int(channel_mult[0] * model_channels)
         self.input_blocks = nn.ModuleList(
-            [TimestepEmbedSequential(conv_nd(dims, in_channels, ch, 3, padding=1))]
+            [TimestepEmbedSequential(conv_nd(dims)(in_channels, ch, 3, padding=1))]
         )
         self._feature_size = ch
         input_block_chans = [ch]
@@ -260,7 +261,7 @@ class DiffUNet(Denoiser):
         self.out = nn.Sequential(
             normalization(ch),
             nn.SiLU(),
-            zero_module(conv_nd(dims, input_ch, out_channels, 3, padding=1)),
+            zero_module(conv_nd(dims)(input_ch, out_channels, 3, padding=1)),
         )
 
         if pretrained is not None:
@@ -499,7 +500,7 @@ class DiffUNet(Denoiser):
             a mean shift by correction by :math:`0.5 - \sqrt{\alpha_t} 0.5`.
 
         :param torch.Tensor x: an `(N, C, ...)` Tensor of inputs.
-        :param torch.Tensor sigma: a 1-D batch of noise levels.
+        :param float, torch.Tensor sigma: a 1-D batch of noise levels.
         :param torch.Tensor y: an (N) Tensor of labels, if class-conditional. Default=None.
         :return: an `(N, C, ...)` Tensor of outputs.
         """
@@ -533,7 +534,7 @@ class TimestepBlock(nn.Module):
     """
 
     @abstractmethod
-    def forward(self, x, emb):
+    def forward(self, x: torch.Tensor, emb: torch.Tensor) -> torch.Tensor:
         """
         Apply the module to `x` given `emb` timestep embeddings.
         """
@@ -545,7 +546,7 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
     support it as an extra input.
     """
 
-    def forward(self, x, emb):
+    def forward(self, x: torch.Tensor, emb: torch.Tensor) -> torch.Tensor:
         for layer in self:
             if isinstance(layer, TimestepBlock):
                 x = layer(x, emb)
@@ -571,7 +572,7 @@ class Upsample(nn.Module):
         self.use_conv = use_conv
         self.dims = dims
         if use_conv:
-            self.conv = conv_nd(dims, self.channels, self.out_channels, 3, padding=1)
+            self.conv = conv_nd(dims)(self.channels, self.out_channels, 3, padding=1)
 
     def forward(self, x):
         assert x.shape[1] == self.channels
@@ -604,12 +605,12 @@ class Downsample(nn.Module):
         self.dims = dims
         stride = 2 if dims != 3 else (1, 2, 2)
         if use_conv:
-            self.op = conv_nd(
-                dims, self.channels, self.out_channels, 3, stride=stride, padding=1
+            self.op = conv_nd(dims)(
+                self.channels, self.out_channels, 3, stride=stride, padding=1
             )
         else:
             assert self.channels == self.out_channels
-            self.op = avg_pool_nd(dims, kernel_size=stride, stride=stride)
+            self.op = avgpool_nd(dims)(kernel_size=stride, stride=stride)
 
     def forward(self, x):
         assert x.shape[1] == self.channels
@@ -655,10 +656,11 @@ class ResBlock(TimestepBlock):
         self.use_checkpoint = use_checkpoint
         self.use_scale_shift_norm = use_scale_shift_norm
 
+        conv = conv_nd(dims)
         self.in_layers = nn.Sequential(
             normalization(channels),
             nn.SiLU(),
-            conv_nd(dims, channels, self.out_channels, 3, padding=1),
+            conv(channels, self.out_channels, 3, padding=1),
         )
 
         self.updown = up or down
@@ -674,7 +676,7 @@ class ResBlock(TimestepBlock):
 
         self.emb_layers = nn.Sequential(
             nn.SiLU(),
-            linear(
+            nn.Linear(
                 emb_channels,
                 2 * self.out_channels if use_scale_shift_norm else self.out_channels,
             ),
@@ -683,19 +685,15 @@ class ResBlock(TimestepBlock):
             normalization(self.out_channels),
             nn.SiLU(),
             nn.Dropout(p=dropout),
-            zero_module(
-                conv_nd(dims, self.out_channels, self.out_channels, 3, padding=1)
-            ),
+            zero_module(conv(self.out_channels, self.out_channels, 3, padding=1)),
         )
 
         if self.out_channels == channels:
             self.skip_connection = nn.Identity()
         elif use_conv:
-            self.skip_connection = conv_nd(
-                dims, channels, self.out_channels, 3, padding=1
-            )
+            self.skip_connection = conv(channels, self.out_channels, 3, padding=1)
         else:
-            self.skip_connection = conv_nd(dims, channels, self.out_channels, 1)
+            self.skip_connection = conv(channels, self.out_channels, 1)
 
     def forward(self, x, emb):
         """
@@ -762,7 +760,8 @@ class AttentionBlock(nn.Module):
             self.num_heads = channels // num_head_channels
         self.use_checkpoint = use_checkpoint
         self.norm = normalization(channels)
-        self.qkv = conv_nd(1, channels, channels * 3, 1)
+        conv = conv_nd(1)
+        self.qkv = conv(channels, channels * 3, 1)
         if use_new_attention_order:
             # split qkv before split heads
             self.attention = QKVAttention(self.num_heads)
@@ -770,7 +769,7 @@ class AttentionBlock(nn.Module):
             # split heads before split qkv
             self.attention = QKVAttentionLegacy(self.num_heads)
 
-        self.proj_out = zero_module(conv_nd(1, channels, channels, 1))
+        self.proj_out = zero_module(conv(channels, channels, 1))
 
     def forward(self, x):
         if not self.use_checkpoint:
@@ -865,6 +864,7 @@ class QKVAttention(nn.Module):
         bs, width, length = qkv.shape
         assert width % (3 * self.n_heads) == 0
         ch = width // (3 * self.n_heads)
+
         q, k, v = qkv.chunk(3, dim=1)
 
         q = q.view(bs, self.n_heads, ch, length).transpose(-2, -1)  # [B, H, T, C]
@@ -888,39 +888,6 @@ Various utilities for neural networks.
 class GroupNorm32(nn.GroupNorm):
     def forward(self, x):
         return super().forward(x.float()).type(x.dtype)
-
-
-def conv_nd(dims, *args, **kwargs):
-    """
-    Create a 1D, 2D, or 3D convolution module.
-    """
-    if dims == 1:
-        return nn.Conv1d(*args, **kwargs)
-    elif dims == 2:
-        return nn.Conv2d(*args, **kwargs)
-    elif dims == 3:
-        return nn.Conv3d(*args, **kwargs)
-    raise ValueError(f"unsupported dimensions: {dims}")
-
-
-def linear(*args, **kwargs):
-    """
-    Create a linear module.
-    """
-    return nn.Linear(*args, **kwargs)
-
-
-def avg_pool_nd(dims, *args, **kwargs):
-    """
-    Create a 1D, 2D, or 3D average pooling module.
-    """
-    if dims == 1:
-        return nn.AvgPool1d(*args, **kwargs)
-    elif dims == 2:
-        return nn.AvgPool2d(*args, **kwargs)
-    elif dims == 3:
-        return nn.AvgPool3d(*args, **kwargs)
-    raise ValueError(f"unsupported dimensions: {dims}")
 
 
 def update_ema(target_params, source_params, rate=0.99):

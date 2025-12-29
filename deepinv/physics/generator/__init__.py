@@ -24,3 +24,4 @@ from .inpainting import (
     MultiplicativeSplittingMaskGenerator,
 )
 from .downsampling import DownsamplingGenerator
+from .zernike import Zernike

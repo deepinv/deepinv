@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.10"
-version = "0.3.6"
+version = "0.3.7"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -56,6 +56,7 @@ test = [
     "pytest-cov",
     "pytest-xdist",
     "coverage",
+    "pytest-testmon",
 ]
 
 doc = [
@@ -93,6 +94,7 @@ denoisers = [
     "spyrit>=3.0.0; platform_system=='Linux'",
     "diffusers", 
     "transformers",
+    "numba>=0.60.0",
 ]
 
 # optional dependencies for specific datasets
@@ -128,7 +130,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-branch = true
+branch = false
 omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 
 [tool.coverage.report]

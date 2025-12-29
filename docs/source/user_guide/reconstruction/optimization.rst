@@ -169,6 +169,9 @@ priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play
    * - :class:`deepinv.optim.ScorePrior`
      - :math:`\nabla \reg{x}=\left(x-\operatorname{D}_{\sigma}(x)\right)/\sigma^2`
      - No
+   * - :class:`deepinv.optim.ZeroPrior`
+     - :math:`\regname(x) = 0`
+     - Yes
    * - :class:`deepinv.optim.Tikhonov`
      - :math:`\reg{x}=\|x\|_2^2`
      - Yes
