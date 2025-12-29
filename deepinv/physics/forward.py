@@ -765,7 +765,7 @@ class LinearPhysics(Physics):
         This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
         :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :param str solver: least squares solver to use. Choose between 'CG', 'lsqr' and 'BiCGStab'. See :func:`deepinv.optim.utils.least_squares` for more details.
+        :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.utils.least_squares` for more details.
         :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.
 
         """
