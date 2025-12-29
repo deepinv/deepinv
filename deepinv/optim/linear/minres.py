@@ -18,9 +18,7 @@ def minres(
     """
     Minimal Residual Method for solving symmetric equations.
 
-    Solves :math:`Ax=b` with :math:`A` symmetric using the MINRES algorithm:
-
-    Christopher C. Paige, Michael A. Saunders (1975). "Solution of sparse indefinite systems of linear equations". SIAM Journal on Numerical Analysis. 12 (4): 617–629.
+    Solves :math:`Ax=b` with :math:`A` symmetric using the MINRES algorithm in :cite:t:`paige1975solution`
 
     The method assumes that :math:`A` is hermite.
     For more details see: https://en.wikipedia.org/wiki/Minimal_residual_method
@@ -151,7 +149,7 @@ def minres(
         solution_norm = torch.linalg.vector_norm(solution, dim=dim, ord=2).unsqueeze(-1)
         if (search_update_norm / solution_norm).max().item() < tol:
             if verbose:
-                print("MINRES converged at iteration", i)
+                print("MINRES converged at iteration", i + 1)
             flag = False
             break
 

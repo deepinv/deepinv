@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch.linalg import vector_norm
 import warnings
 
-from deepinv.optim.least_squares import (
+from deepinv.optim.linear import (
     least_squares,
     bicgstab,
     conjugate_gradient,

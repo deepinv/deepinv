@@ -20,9 +20,7 @@ def bicgstab(
     """
     Biconjugate gradient stabilized algorithm.
 
-    Solves :math:`Ax=b` with :math:`A` squared using the BiCGSTAB algorithm:
-
-    Van der Vorst, H. A. (1992). "Bi-CGSTAB: A Fast and Smoothly Converging Variant of Bi-CG for the Solution of Nonsymmetric Linear Systems". SIAM J. Sci. Stat. Comput. 13 (2): 631–644.
+    Solves :math:`Ax=b` with :math:`A` squared using the BiCGSTAB algorithm in :cite:t:`van1992bi`.
 
     For more details see: http://en.wikipedia.org/wiki/Biconjugate_gradient_stabilized_method
 
@@ -108,33 +106,3 @@ def bicgstab(
         print("BiCGSTAB did not converge")
 
     return x
-
-
-def _sym_ortho(a: Tensor, b: Tensor) -> tuple[Tensor, ...]:
-    """
-    Stable implementation of Givens rotation.
-
-    Adapted from https://github.com/scipy/scipy/blob/v1.15.1/scipy/sparse/linalg/_isolve/lsqr.py
-
-    The routine '_sym_ortho' was added for numerical stability. This is
-    recommended by S.-C. Choi in "Iterative Methods for Singular Linear Equations and Least-Squares
-    Problems".  It removes the unpleasant potential of
-    ``1/eps`` in some important places.
-
-    """
-    a, b = torch.broadcast_tensors(a, b)
-    if torch.any(b == 0):
-        return torch.sign(a), 0, a.abs()
-    elif torch.any(a == 0):
-        return 0, torch.sign(b), b.abs()
-    elif torch.any(b.abs() > a.abs()):
-        tau = a / b
-        s = torch.sign(b) / torch.sqrt(1 + tau * tau)
-        c = s * tau
-        r = b / s
-    else:
-        tau = b / a
-        c = torch.sign(a) / torch.sqrt(1 + tau * tau)
-        s = c * tau
-        r = a / c
-    return c, s, r

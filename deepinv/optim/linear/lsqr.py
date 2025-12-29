@@ -1,7 +1,8 @@
 import torch
 from torch import Tensor
 from typing import Callable
-from deepinv.utils import TensorList
+from deepinv.utils import TensorList, zeros_like
+from deepinv.utils.compat import zip_strict
 
 
 def lsqr(
@@ -23,9 +24,7 @@ def lsqr(
     Code adapted from SciPy's implementation of LSQR: https://github.com/scipy/scipy/blob/v1.15.1/scipy/sparse/linalg/_isolve/lsqr.py
 
     The function solves the linear system :math:`\min_x \|Ax-b\|^2 + \eta \|x-x_0\|^2` in the least squares sense
-    using the LSQR algorithm from
-
-    Paige, C. C. and M. A. Saunders, "LSQR: An Algorithm for Sparse Linear Equations And Sparse Least Squares," ACM Trans. Math. Soft., Vol.8, 1982, pp. 43-71.
+    using the LSQR algorithm of :cite:t:`paige1982lsqr`.
 
     :param Callable A: Linear operator as a callable function.
     :param Callable AT: Adjoint operator as a callable function.
@@ -230,3 +229,33 @@ def lsqr(
         print("LSQR did not converge")
 
     return x, acond.sqrt()
+
+
+def _sym_ortho(a: Tensor, b: Tensor) -> tuple[Tensor, ...]:
+    """
+    Stable implementation of Givens rotation.
+
+    Adapted from https://github.com/scipy/scipy/blob/v1.15.1/scipy/sparse/linalg/_isolve/lsqr.py
+
+    The routine '_sym_ortho' was added for numerical stability. This is
+    recommended by S.-C. Choi in "Iterative Methods for Singular Linear Equations and Least-Squares
+    Problems".  It removes the unpleasant potential of
+    ``1/eps`` in some important places.
+
+    """
+    a, b = torch.broadcast_tensors(a, b)
+    if torch.any(b == 0):
+        return torch.sign(a), 0, a.abs()
+    elif torch.any(a == 0):
+        return 0, torch.sign(b), b.abs()
+    elif torch.any(b.abs() > a.abs()):
+        tau = a / b
+        s = torch.sign(b) / torch.sqrt(1 + tau * tau)
+        c = s * tau
+        r = b / s
+    else:
+        tau = b / a
+        c = torch.sign(a) / torch.sqrt(1 + tau * tau)
+        s = c * tau
+        r = a / c
+    return c, s, r

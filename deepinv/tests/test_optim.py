@@ -1020,7 +1020,8 @@ DTYPES = [torch.float32, torch.complex64]
 
 @pytest.mark.parametrize("solver", solvers)
 @pytest.mark.parametrize("dtype", DTYPES)
-def test_linear_system(device, solver, dtype, rng):
+@pytest.mark.parametrize("zero_input", [False, True])
+def test_linear_system(device, solver, dtype, rng, zero_input):
     # test the solution of linear systems with random matrices
     batch_size = 2
     mat = torch.randn((32, 32), dtype=dtype, device=device, generator=rng)
@@ -1034,25 +1035,32 @@ def test_linear_system(device, solver, dtype, rng):
     if solver == "BiCGStab" and torch.is_complex(mat):
         # bicgstab currently doesn't work for complex-valued systems
         return
-    b = torch.randn((batch_size, 32), dtype=dtype, device=device, generator=rng)
+
+    if zero_input:
+        b = torch.zeros((batch_size, 32), dtype=dtype, device=device)
+    else:
+        b = torch.randn((batch_size, 32), dtype=dtype, device=device, generator=rng)
 
     A = lambda x: (mat @ x.T).T
     AT = lambda x: (mat.adjoint() @ x.T).T
 
     tol = 1e-5
     if solver == "CG":
-        x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol, max_iter=1000)
+        x = dinv.optim.linear.conjugate_gradient(A, b, tol=tol, max_iter=1000)
     elif solver == "minres":
-        x = dinv.optim.utils.minres(A, b, tol=tol, max_iter=1000)
+        x = dinv.optim.linear.minres(A, b, tol=tol, max_iter=1000)
     elif solver == "BiCGStab":
-        x = dinv.optim.utils.bicgstab(A, b, tol=tol, max_iter=1000)
+        x = dinv.optim.linear.bicgstab(A, b, tol=tol, max_iter=1000)
     elif solver == "lsqr":
-        x = dinv.optim.utils.lsqr(A, AT, b, tol=tol, max_iter=1000)[0]
+        x = dinv.optim.linear.lsqr(A, AT, b, tol=tol, max_iter=1000)[0]
     else:
         raise ValueError("Solver not found")
 
-    error = (A(x) - b).abs().pow(2).sum()
-    assert error < tol * b.abs().pow(2).sum()
+    if zero_input:
+        assert torch.allclose(x, torch.zeros_like(x), atol=1e-8)
+    else:
+        error = (A(x) - b).abs().pow(2).sum()
+        assert error < tol * b.abs().pow(2).sum()
 
 
 def test_condition_number(device):
