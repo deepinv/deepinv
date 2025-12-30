@@ -707,7 +707,7 @@ class LinearPhysics(Physics):
             \underset{x}{\arg\min} \; \frac{\gamma}{2}\|Ax-y\|^2 + \frac{1}{2}\|x-z\|^2
 
         :param torch.Tensor y: measurements tensor
-        :param torch.Tensor, float, int None z: signal tensor
+        :param torch.Tensor, float, int, None z: signal tensor
         :param float gamma: hyperparameter of the proximal operator
         :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.utils.least_squares` for details
         :param int max_iter: maximum number of iterations for iterative solvers
