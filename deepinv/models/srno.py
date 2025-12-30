@@ -261,7 +261,22 @@ class SRNO(Reconstructor):
     It relies on two possible encoders, either RDN or EDSR, followed by Galerkin attention layers to process the
     features and finally a decoder to output the high-resolution image.
 
+    |sep|
+
+    :Example:
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> scale = 5.8
+    >>> x = dinv.utils.load_example("butterfly.png", img_size=(128, 128))
+    >>> physics = dinv.physics.Downsampling(img_size=x.shape[1:], filter='bilinear', factor=scale, padding='constant')
+    >>> model = dinv.models.SRNO(encoder_type='rdn', pretrained='download', device='cpu')
+    >>> y = physics(x)  # downsample for faster testing
+    >>> out = model(y, physics=physics)  # can either provide physics
+    >>> out = model(y, scale=scale)  # or scale
+
     :param str encoder_type: Type of encoder to use, either 'rdn' or 'edsr'.
+    :param int in_channels: Number of input channels. Default is 3 for RGB images.
     :param int encoder_n_feats: Number of features in the encoder.
     :param int width: Width of the Galerkin attention layers.
     :param int blocks: Number of Galerkin attention blocks.
@@ -272,6 +287,7 @@ class SRNO(Reconstructor):
     def __init__(
         self,
         encoder_type="rdn",
+        in_channels: int = 3,
         encoder_n_feats: int = 64,
         width: int = 256,
         blocks: int = 16,
@@ -289,6 +305,7 @@ class SRNO(Reconstructor):
                 RDNconfig="B",
                 scale=2,
                 no_upsampling=True,
+                n_colors=in_channels,
             )
         elif encoder_type == "edsr":
             encoder = EDSR(
@@ -298,6 +315,7 @@ class SRNO(Reconstructor):
                 scale=2,
                 no_upsampling=True,
                 rgb_range=1,
+                n_colors=in_channels,
             )
         else:
             raise NotImplementedError
