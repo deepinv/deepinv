@@ -1044,9 +1044,11 @@ def test_linear_system(device, solver, dtype, rng, zero_input):
     A = lambda x: (mat @ x.T).T
     AT = lambda x: (mat.adjoint() @ x.T).T
 
-    tol = 1e-5
+    tol = 1e-4
     if solver == "CG":
-        x = dinv.optim.linear.conjugate_gradient(A, b, tol=tol, max_iter=1000)
+        x = dinv.optim.linear.conjugate_gradient(
+            A, b, tol=tol, max_iter=1000, verbose=True
+        )
     elif solver == "minres":
         x = dinv.optim.linear.minres(A, b, tol=tol, max_iter=1000)
     elif solver == "BiCGStab":

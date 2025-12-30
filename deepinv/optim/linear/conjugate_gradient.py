@@ -49,7 +49,7 @@ def conjugate_gradient(
 
     r = b - A(x)
     p = r
-    rsold = dot(r, r, dim=dim).real
+    res_old = dot(r, r, dim=dim).real
     b_norm_sq = dot(b, b, dim=dim).real
     # handles case b=0
     b_norm_sq = torch.where(b_norm_sq > 0, b_norm_sq, torch.ones_like(b_norm_sq))
@@ -57,22 +57,22 @@ def conjugate_gradient(
 
     for i in range(int(max_iter)):
         Ap = A(p)
-        alpha = rsold / (dot(p, Ap, dim=dim) + eps)
+        alpha = res_old / (dot(p, Ap, dim=dim) + eps)
         x = x + p * alpha
         r = r - Ap * alpha
-        rsnew = dot(r, r, dim=dim).real
-        if torch.all(rsnew < tol):
+        res_new = dot(r, r, dim=dim).real
+        if torch.all(res_new < tol):
             if verbose:
                 print("CG Converged at iteration", i + 1)
             break
-        p = r + p * (rsnew / (rsold + eps))
-        rsold = rsnew
+        p = r + p * (res_new / (res_old + eps))
+        res_old = res_new
 
         # safeguard to avoid accumulating numerical errors in the computation of r
-        # only applied every 50 iterations to limit computational overhead
-        if i > 0 and i % 50 == 0:
+        # only applied every 100 iterations to limit computational overhead
+        if i > 0 and i % 100 == 0:
             r = b - A(x)
-            rsold = dot(r, r, dim=dim).real
+            res_old = dot(r, r, dim=dim).real
     else:
         if verbose:
             print("CG did not converge")
