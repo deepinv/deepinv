@@ -146,10 +146,9 @@ dinv.test(model, DataLoader(dataset2), physics, plot_images=True, device=device)
 # %%
 # Even if the dataset doesn't have ground truth:
 #
-# Here reference-metrics such as PSNR will give NaN due to lack of ground truth, but
-# no-reference metrics can be used.
+# Here only no-reference metrics can be used.
 
-metrics = [dinv.metric.PSNR(), dinv.metric.NIQE(device=device)]
+metrics = [dinv.metric.NIQE(device=device)]
 
 dinv.test(
     model,

@@ -3,7 +3,9 @@
 DeepInverse: a Python library for imaging with deep learning
 =============================================================
 
-|Test Status| |GPU Test Status| |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab| |youtube| |paper|
+|pip install| |stars| |discord| |colab| |youtube| |paper|
+
+|Test Status| |GPU Test Status| |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov|
 
 .. toctree::
    :maxdepth: 3
@@ -146,11 +148,11 @@ unfolded, deep equilibrium models
     :target: https://github.com/psf/black
 .. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml
-.. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg
+.. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg?branch=main&event=push
    :target: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
-.. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml/badge.svg
+.. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml/badge.svg?branch=main&event=push
    :target: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml
 .. |Python Version| image:: https://img.shields.io/badge/python-3.10%2B-blue
    :target: https://www.python.org/downloads/release/python-3100/
@@ -166,3 +168,5 @@ unfolded, deep equilibrium models
    :target: https://www.youtube.com/@deepinv
 .. |paper| image:: https://joss.theoj.org/papers/10.21105/joss.08923/status.svg
    :target: https://doi.org/10.21105/joss.08923
+.. |stars| image:: https://img.shields.io/github/stars/deepinv/deepinv?style=flat&label=%E2%AD%90%20Star%20us%20on%20GitHub
+   :target: https://github.com/deepinv/deepinv

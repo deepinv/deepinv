@@ -38,7 +38,7 @@ from .prior import (
     PatchPrior,
     WaveletPrior,
     PatchNR,
-    Zero,
+    ZeroPrior,
     L12Prior,
 )
 from .optim_iterators import (

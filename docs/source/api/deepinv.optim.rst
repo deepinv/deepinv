@@ -81,6 +81,7 @@ Priors
    deepinv.optim.PnP
    deepinv.optim.RED
    deepinv.optim.ScorePrior
+   deepinv.optim.ZeroPrior
    deepinv.optim.Tikhonov
    deepinv.optim.L1Prior
    deepinv.optim.WaveletPrior

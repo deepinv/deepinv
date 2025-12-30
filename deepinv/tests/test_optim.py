@@ -360,45 +360,36 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             return ths * torch.linalg.vector_norm(x.view(x.shape[0], -1), dim=-1, ord=1)
 
         prior = Prior(g=prior_g)  # The prior term
+        rng = torch.Generator(x.device).manual_seed(123)
+        lipschitz_const = physics.compute_sqnorm(x, tol=1e-4, rng=rng).item()
 
         if (
             name_algo == "CP"
         ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
-            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+            stepsize = 1.9 / lipschitz_const
             sigma = 1.0
+        elif name_algo == "FISTA":
+            stepsize = 0.9 / lipschitz_const
+            sigma = None
         else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
-            stepsize = 0.9 / physics.compute_sqnorm(x, tol=1e-4).item()
+            stepsize = 1.9 / lipschitz_const
             sigma = None
 
         lambda_reg = 0.9
         max_iter = 1000
-        if name_algo in ("GD", "MD"):
-            optimalgo = getattr(dinv.optim, name_algo)(
-                prior=prior,
-                data_fidelity=data_fidelity,
-                max_iter=max_iter,
-                crit_conv="residual",
-                thres_conv=1e-11,
-                verbose=True,
-                stepsize=stepsize,
-                lambda_reg=lambda_reg,
-                g_param=sigma,
-                early_stop=True,
-            )
-        else:
-            optimalgo = getattr(dinv.optim, name_algo)(
-                prior=prior,
-                data_fidelity=data_fidelity,
-                max_iter=max_iter,
-                crit_conv="residual",
-                thres_conv=1e-11,
-                verbose=True,
-                stepsize=stepsize,
-                lambda_reg=lambda_reg,
-                g_param=sigma,
-                early_stop=True,
-                g_first=g_first,
-            )
+        optimalgo = getattr(dinv.optim, name_algo)(
+            prior=prior,
+            data_fidelity=data_fidelity,
+            max_iter=max_iter,
+            crit_conv="residual",
+            thres_conv=1e-11,
+            verbose=True,
+            stepsize=stepsize,
+            lambda_reg=lambda_reg,
+            g_param=sigma,
+            early_stop=True,
+            g_first=g_first,
+        )
 
         # Run the optimization algorithm
         x = optimalgo(y, physics)
@@ -573,6 +564,9 @@ def get_prior(prior_name, device="cpu"):
             prior = dinv.optim.prior.WaveletPrior(
                 wv=["db1", "db4", "db8"], level=3, device=device
             )
+    elif prior_name == "ZeroPrior":
+        prior = dinv.optim.prior.ZeroPrior()
+
     return prior
 
 
@@ -588,6 +582,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "TVPrior",
         "WaveletPrior",
         "WaveletDictPrior",
+        "ZeroPrior",
     ]:
         # 1. Generate a dummy dataset
         dataloader = DataLoader(
@@ -613,7 +608,8 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
         # here the prior model is common for all iterations
         prior = get_prior(prior_name, device=device)
-
+        if prior_name == "ZeroPrior" and pnp_algo == "FISTA":
+            max_iter = 4000
         if pnp_algo == "PDCP":
             stepsize_dual = 1.0
             x_init = physics.A_adjoint(y)
