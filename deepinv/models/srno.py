@@ -1,8 +1,12 @@
 # code borrowed from https://github.com/2y7c3/Super-Resolution-Neural-Operator
+from __future__ import annotations
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from deepinv.models.base import Reconstructor
+from deepinv.models.utils import get_weights_url
 
 
 def make_coord(shape, ranges=None, flatten=True):
@@ -57,7 +61,10 @@ class ResBlock(nn.Module):
 
 
 class EDSR(nn.Module):
-    """EDSR encoder (baseline version)"""
+    """EDSR encoder (baseline version)
+
+    Note: in the original EDSR implementation, a MeanShift layer is used, but this is not used in SRNO.
+    """
 
     def __init__(
         self,
@@ -246,19 +253,32 @@ class SimpleAttention(nn.Module):
         return bias
 
 
-class SRNO(nn.Module):
-    """
-    TODO Super-Resolution Neural Operator with EDSR encoder
+class SRNO(Reconstructor):
+    r"""
+    Super-Resolution Neural Operator model.
 
-    Architecture:
-    - Encoder: EDSR-baseline (16 residual blocks, 64 features)
-    - Processing: Two Galerkin attention layers (256 width, 16 heads)
-    - Decoder: Two 1x1 convolutions
+    SRNO is a super-resolution model that was proposed in :footcite:t:`wei2023super`. It relies on two possible encoders, either RDN or EDSR, followed by Galerkin attention layers to process the features and finally a decoder to output the high-resolution image.
+
+    :param str encoder_type: Type of encoder to use, either 'rdn' or 'edsr'.
+    :param int encoder_n_feats: Number of features in the encoder.
+    :param int width: Width of the Galerkin attention layers.
+    :param int blocks: Number of Galerkin attention blocks.
+    :param str pretrained: Path to pretrained weights or 'download' to fetch from URL.
+    :param torch.device | str device: device to load the model on.
     """
 
-    def __init__(self, encoder_type="rdn", encoder_n_feats=64, width=256, blocks=16):
+    def __init__(
+        self,
+        encoder_type="rdn",
+        encoder_n_feats: int = 64,
+        width: int = 256,
+        blocks: int = 16,
+        pretrained: str = None,
+        device: torch.device | str = "cpu",
+    ):
         super().__init__()
         self.width = width
+        self.encoder_type = encoder_type
 
         if encoder_type == "rdn":
             encoder = RDN(
@@ -292,6 +312,24 @@ class SRNO(nn.Module):
         # Output layers
         self.fc1 = nn.Conv2d(self.width, 256, 1)
         self.fc2 = nn.Conv2d(256, 3, 1)
+
+        self.device = device
+        if pretrained is not None:
+            self.load_pretrained(pretrained)
+
+    def load_pretrained(self, checkpoint_path):
+
+        # Load checkpoint
+        if checkpoint_path == "download":
+            name = "srno_" + self.encoder_type + ".ckpt"
+            url = get_weights_url(model_name="srno", file_name=name)
+            checkpoint = torch.hub.load_state_dict_from_url(
+                url, map_location=lambda storage, loc: storage, file_name=name
+            )
+        else:
+            checkpoint = torch.load(checkpoint_path, map_location=self.device)
+
+        self.load_state_dict(checkpoint, strict=True)
 
     def gen_feat(self, inp):
         """Generate features from input using encoder"""
@@ -404,75 +442,56 @@ class SRNO(nn.Module):
         )
         return ret
 
-    def forward(self, inp, coord, cell):
+    def forward_srno(self, inp, coord, cell):
         """
         Forward pass
 
-        Args:
-            inp: Input image, shape (B, 3, H_lr, W_lr), normalized to [-1, 1]
-            coord: Target coordinates, shape (B, H_hr, W_hr, 2), range [-1, 1]
-            cell: Cell size, shape (B, 2)
-
-        Returns:
-            Super-resolved image, shape (B, 3, H_hr, W_hr)
+        :param torch.Tensor inp: Input image, shape (B, 3, H_lr, W_lr), normalized to [-1, 1]
+        :param torch.Tensor coord: Target coordinates, shape (B, H_hr, W_hr, 2), range [-1, 1]
+        :param torch.Tensor cell: Cell size, shape (B, 2)
+        :return: High-resolution output image, shape (B, 3, H_hr, W_hr), normalized to [-1, 1]
         """
         self.gen_feat(inp)
         return self.query_rgb(coord, cell)
 
+    def forward(self, y, physics=None, scale=None):
+        r"""
+        Forward pass of SRNO model.
 
-def load_model(checkpoint_path, device="cuda", encoder_type="auto"):
-    """
-    Load SRNO model from checkpoint
+        :param torch.Tensor y: Low-resolution input image of shape (B, C, H_lr, W_lr) with values in [0, 1].
+        :param physics: (optional) Physics operator with 'factor' attribute indicating the upscaling factor.
+        :param int scale: (optional) Upscaling factor.
+        :return: High-resolution output image of shape (B, C, H_hr, W_hr) with values in [0, 1].
+        """
 
-    Args:
-        checkpoint_path: Path to .pth checkpoint file
-        device: Device to load model on
-        encoder_type: 'edsr', 'rdn', or 'auto' to detect from checkpoint
-    """
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+        # check that either physics or scale is provided
+        assert (physics is not None) or (
+            scale is not None
+        ), "Provide either physics or scale."
+        # provide either physics or scale but not both
+        if physics is not None and scale is not None:
+            raise ValueError("Provide either physics or scale but not both.")
 
-    # Extract model config from checkpoint
-    model_spec = checkpoint["model"]
-    state_dict = model_spec["sd"]
+        if physics is not None and scale is None:
+            assert hasattr(
+                physics, "factor"
+            ), "Physics must have 'factor' attribute, e.g. Downsampling physics."
+            scale = int(physics.factor)
 
-    # Auto-detect encoder type from state dict keys
-    if encoder_type == "auto":
-        if any("RDBs" in key for key in state_dict.keys()):
-            encoder_type = "rdn"
-            print("Detected RDN encoder")
-        else:
-            encoder_type = "edsr"
-            print("Detected EDSR encoder")
+        batch_size, _, h_lr, w_lr = y.shape
+        h_hr, w_hr = int(h_lr * scale), int(w_lr * scale)
 
-    # Determine encoder output dimension from state dict
-    if encoder_type == "rdn":
-        # For RDN, check GFF output
-        encoder_out_dim = state_dict["encoder.GFF.0.weight"].shape[0]
-    else:
-        # For EDSR, check body output
-        encoder_out_dim = state_dict["encoder.body.16.weight"].shape[0]
+        # Create coordinate grid
+        coord = make_coord((h_hr, w_hr), flatten=False).to(self.device)
+        coord = coord.unsqueeze(0).expand(batch_size, -1, -1, -1)
 
-    # Determine width from conv00 output
-    width = state_dict["conv00.weight"].shape[0]
+        # Create cell size
+        cell = torch.ones(batch_size, 2).to(self.device)
+        cell[:, 0] = cell[:, 0] * scale / h_hr
+        cell[:, 1] = cell[:, 1] * scale / w_hr
 
-    # Determine blocks (heads) - default to 16
-    blocks = 16
+        y = (y - 0.5) * 2  # normalize to [-1, 1]
+        out = self.forward_srno(y, coord, cell)
+        out = (out + 1) / 2  # denormalize to [0, 1]
 
-    print(
-        f"Model config: encoder_out_dim={encoder_out_dim}, width={width}, blocks={blocks}"
-    )
-
-    # Create model
-    model = SRNO(
-        encoder_type=encoder_type,
-        encoder_n_feats=encoder_out_dim,
-        width=width,
-        blocks=blocks,
-    )
-
-    # Load weights
-    model.load_state_dict(state_dict)
-    model = model.to(device)
-    model.eval()
-
-    return model
+        return out
