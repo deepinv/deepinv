@@ -257,7 +257,9 @@ class SRNO(Reconstructor):
     r"""
     Super-Resolution Neural Operator model.
 
-    SRNO is a super-resolution model that was proposed in :footcite:t:`wei2023super`. It relies on two possible encoders, either RDN or EDSR, followed by Galerkin attention layers to process the features and finally a decoder to output the high-resolution image.
+    SRNO is a super-resolution model that was proposed in :footcite:t:`wei2023super`.
+    It relies on two possible encoders, either RDN or EDSR, followed by Galerkin attention layers to process the
+    features and finally a decoder to output the high-resolution image.
 
     :param str encoder_type: Type of encoder to use, either 'rdn' or 'edsr'.
     :param int encoder_n_feats: Number of features in the encoder.
