@@ -724,10 +724,10 @@ class LinearPhysics(Physics):
         if solver is not None:
             self.solver = solver
 
-        if z is None:
-            z = torch.zeros_like(self.A_adjoint(y))
-        elif isinstance(z, float) or isinstance(z, int):
-            z = torch.full_like(self.A_adjoint(y), fill_value=float(z))
+        if z is None or isinstance(z, float) or isinstance(z, int):
+            z = torch.full_like(
+                self.A_adjoint(y), fill_value=0.0 if z is None else float(z)
+            )
 
         if not self.implicit_backward_solver:
             return least_squares(
