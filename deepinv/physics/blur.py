@@ -80,8 +80,9 @@ class Downsampling(LinearPhysics):
         self.imsize_dynamic = (3, 128, 128)  # placeholder
         self.padding = padding
 
+        imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
         filter_parameters = self.get_filter_parameters(
-            img_size=self.imsize, filter=filter, factor=factor, device=device
+            img_size=imsize, filter=filter, factor=factor, device=device
         )
         self.factor = filter_parameters["factor"]
 
@@ -185,8 +186,16 @@ class Downsampling(LinearPhysics):
 
         """
         self.imsize_dynamic = x.shape[-3:]
+        imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
+        
+        filter_parameters = self.get_filter_parameters(
+            img_size=imsize,
+            filter=filter,
+            factor=self.factor if factor is None else factor,
+            device=x.device,
+        )
 
-        self.update_parameters(filter=filter, factor=factor, device=x.device, **kwargs)
+        self.update_parameters(**filter_parameters)
 
         if self.filter is not None:
             x = conv2d(x, self.filter, padding=self.padding)
@@ -215,8 +224,6 @@ class Downsampling(LinearPhysics):
             If `factor` is passed, `filter` must also be passed as a `str` or `Tensor`, in order to update the filter to the new factor.
 
         """
-        self.update_parameters(filter=filter, factor=factor, device=y.device, **kwargs)
-
         self.imsize_dynamic = (
             y.shape[-3],
             y.shape[-2] * self.factor,
@@ -224,6 +231,15 @@ class Downsampling(LinearPhysics):
         )
 
         imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
+
+        filter_parameters = self.get_filter_parameters(
+            img_size=imsize,
+            filter=filter,
+            factor=self.factor if factor is None else factor,
+            device=y.device,
+        )
+
+        self.update_parameters(**filter_parameters)
 
         if self.filter is not None and self.padding == "valid":
             imsize = (
@@ -301,36 +317,6 @@ class Downsampling(LinearPhysics):
             raise ValueError(
                 f"Factor must be an integer, got {factor} of type {type(factor)}."
             )
-
-    def update_parameters(
-        self,
-        filter: Tensor | str | list[str] = None,
-        factor: int | float | Tensor = None,
-        device: torch.device | str = "cpu",
-        **kwargs,
-    ):
-        r"""
-        Updates the current filter and/or factor.
-
-        :param torch.Tensor, str, list[str] filter: New filter to be applied to the input image.
-        :param int, float, torch.Tensor factor: New downsampling factor to be applied to the input image.
-        :param torch.device, str device: If needed, device where the filter tensor will be created.
-        """
-        if factor is not None and filter is None and self.filter is not None:
-            warn(
-                "Updating factor but not filter. Filter will not be valid for new factor. Pass filter string or new filter to resolve this."
-            )
-
-        filter_parameters = self.get_filter_parameters(
-            img_size=self.imsize,
-            filter=filter,
-            factor=self.factor if factor is None else factor,
-            device=device,
-        )
-        if factor is not None:
-            self.factor = filter_parameters.pop("factor")
-
-        super().update_parameters(**filter_parameters, **kwargs)
 
 
 class Upsampling(Downsampling):
