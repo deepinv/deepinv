@@ -13,8 +13,8 @@ class ULAIterator(SamplingIterator):
     r"""
     Projected Plug-and-Play Unadjusted Langevin Algorithm.
 
-    The algorithm, introduced by :cite:t:`laumont2022bayesian` runs the following markov chain iteration
-    (Algorithm 2 from :cite:p:`laumont2022bayesian`):
+    The algorithm, introduced by :footcite:t:`laumont2022bayesian` runs the following markov chain iteration
+    (Algorithm 2 from :footcite:p:`laumont2022bayesian`):
 
     .. math::
 

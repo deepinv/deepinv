@@ -79,13 +79,11 @@ Adversarial Learning
    :nosignatures:
 
     deepinv.loss.adversarial.DiscriminatorMetric
-    deepinv.loss.adversarial.GeneratorLoss
-    deepinv.loss.adversarial.DiscriminatorLoss
-    deepinv.loss.adversarial.SupAdversarialGeneratorLoss
-    deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss
-    deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss
-    deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss
-    deepinv.loss.adversarial.UAIRGeneratorLoss
+    deepinv.loss.adversarial.AdversarialLoss
+    deepinv.loss.adversarial.SupAdversarialLoss
+    deepinv.loss.adversarial.UnsupAdversarialLoss
+    deepinv.loss.adversarial.MultiOperatorUnsupAdversarialLoss
+    deepinv.loss.adversarial.UAIRLoss
 
 Network Regularization
 ----------------------

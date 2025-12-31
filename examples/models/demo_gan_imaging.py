@@ -1,31 +1,29 @@
 r"""
-Imaging inverse problems with adversarial networks
-==================================================
+Training GANs with adversarial losses for imaging
+=================================================
 
-This example shows you how to train various networks using adversarial
-training for deblurring problems. We demonstrate running training and
-inference using a conditional GAN (i.e. DeblurGAN), CSGM, AmbientGAN and
-UAIR implemented in the library, and how to simply train
-your own GAN by using :class:`deepinv.training.AdversarialTrainer`. These
-examples can also be easily extended to train more complicated GANs such
-as CycleGAN.
+This example shows you how to train various generative adversarial networks using adversarial
+learning for solving imaging inverse problems, in this case, deblurring.
 
-This example is based on the papers DeblurGAN :footcite:p:`kupyn2018deblurgan`,
-Compressed Sensing using Generative Models (CSGM) :footcite:p:`bora2017compressed`,
-AmbiantGAN :footcite:p:`bora2018ambientgan`, and Unsupervised Adversarial Image Reconstruction (UAIR) :footcite:p:`pajot2019unsupervised`.
+We demonstrate running training and inference with the following setups:
+DeblurGAN :footcite:p:`kupyn2018deblurgan`, Compressed Sensing using Generative Models (CSGM) :footcite:p:`bora2017compressed`,
+AmbiantGAN :footcite:p:`bora2018ambientgan`, Unsupervised Adversarial Image Reconstruction (UAIR) :footcite:p:`pajot2019unsupervised`,
+and :footcite:t:`cole2021fast`.
 
-Adversarial networks are characterized by the addition of an adversarial
-loss :math:`\mathcal{L}_\text{adv}` to the standard reconstruction loss:
+Adversarial networks are characterized by the addition of an adversarial loss :math:`\mathcal{L}_\text{adv}` to the standard reconstruction loss:
 
 .. math:: \mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]
 
 where :math:`D(\cdot)` is the discriminator model, :math:`x` is the
-reference image, :math:`\hat x` is the estimated reconstruction,
-:math:`q(\cdot)` is a quality function (e.g :math:`q(x)=x` for WGAN).
-Training alternates between generator :math:`G` and discriminator
+reference image, the reconstruction :math:`\hat x=\inverse{z}` for unconditional models (where :math:`z` are random latents) and
+:math:`\hat x=\inverse{y,z}` for conditional models,
+:math:`q(\cdot)` is a quality function (e.g :math:`q(x)=x` for WGAN) which can be set via :class:`deepinv.loss.adversarial.DiscriminatorMetric`.
+Training alternates between generator :math:`\inverse{\cdot}` and discriminator
 :math:`D` in a minimax game. When there are no ground truths (i.e.
 unsupervised), this may be defined on the measurements :math:`y`
 instead.
+
+These examples can also be easily extended to train more complicated GANs such as CycleGAN :footcite:`zhu2017unpaired`.
 
 """
 
@@ -103,6 +101,8 @@ test_dataloader = DataLoader(
 # these can be replaced with any architecture e.g transformers, unrolled
 # etc. Further discriminator models are in :ref:`adversarial models <adversarial>`.
 #
+# To train the discriminator, we also must provide an optimizer for it.
+#
 
 
 def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4, device=device):
@@ -118,16 +118,10 @@ def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4, device=device):
     if D is None:
         D = dinv.models.PatchGANDiscriminator(n_layers=2, batch_norm=False).to(device)
 
-    optimizer = dinv.training.adversarial.AdversarialOptimizer(
-        torch.optim.Adam(model.parameters(), lr=lr_g, weight_decay=1e-8),
-        torch.optim.Adam(D.parameters(), lr=lr_d, weight_decay=1e-8),
-    )
-    scheduler = dinv.training.adversarial.AdversarialScheduler(
-        torch.optim.lr_scheduler.StepLR(optimizer.G, step_size=5, gamma=0.9),
-        torch.optim.lr_scheduler.StepLR(optimizer.D, step_size=5, gamma=0.9),
-    )
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr_g, weight_decay=1e-8)
+    optimizer_D = torch.optim.Adam(D.parameters(), lr=lr_d, weight_decay=1e-8)
 
-    return model, D, optimizer, scheduler
+    return model, D, optimizer, optimizer_D
 
 
 # %%
@@ -141,7 +135,7 @@ def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4, device=device):
 #
 # **Conditional GAN** forward pass:
 #
-# .. math:: \hat x = G(y)
+# .. math:: \hat x = \inverse{y}
 #
 # **Conditional GAN** loss:
 #
@@ -151,7 +145,7 @@ def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4, device=device):
 # pixel-wise MSE or VGG Perceptual Loss.
 #
 
-G, D, optimizer, scheduler = get_models()
+model, D, optimizer, optimizer_D = get_models()
 
 
 # %%
@@ -159,52 +153,54 @@ G, D, optimizer, scheduler = get_models()
 # MSE for the supervised pixel-wise metric for simplicity but this can be
 # easily replaced with a perceptual loss if desired.
 #
+# .. hint::
+#     To change the flavour of the GAN to WGAN, vanilla etc., pass in `metric` to `DiscriminatorMetric`.
+#
+# .. note::
+#     The discriminator `D` is trained inside the loss by passing in `optimizer_D`. You can load a pretrained
+#     discriminator using `loss.load_model`, and you can freeze the discriminator by omitting `optimizer_D`.
+#
 
-loss_g = [
+metric_gan = adversarial.DiscriminatorMetric(device=device)
+
+loss = [
     dinv.loss.SupLoss(metric=torch.nn.MSELoss()),
-    adversarial.SupAdversarialGeneratorLoss(device=device),
+    adversarial.SupAdversarialLoss(
+        weight_adv=0.1,
+        D=D,
+        optimizer_D=optimizer_D,
+        metric_gan=metric_gan,
+        device=device,
+    ),
 ]
-loss_d = adversarial.SupAdversarialDiscriminatorLoss(device=device)
 
 
 # %%
-# We are now ready to train the networks using :class:`deepinv.training.AdversarialTrainer`.
-# We load the pretrained models that were trained in the exact same way after 50 epochs,
-# and fine-tune the model for 1 epoch for a quick demo.
-# You can find the pretrained models on HuggingFace https://huggingface.co/deepinv/adversarial-demo.
-# To train from scratch, simply comment out the model loading code and increase the number of epochs.
+# We are now ready to train the networks using the usual :class:`deepinv.Trainer`.
+#
+# .. warning::
+#     GAN training is notoriously challenging and unstable, and training a well-trained GAN is beyond the scope of this example.
+#     We demonstrate training 1 epoch for speed. Increase the number of epochs, the size/diversity of the dataset, and tune the
+#     learning rates to produce better results.
 #
 
-ckpt = torch.hub.load_state_dict_from_url(
-    dinv.models.utils.get_weights_url("adversarial-demo", "deblurgan_model.pth"),
-    map_location=lambda s, _: s,
-)
-
-G.load_state_dict(ckpt["state_dict"])
-D.load_state_dict(ckpt["state_dict_D"])
-optimizer.load_state_dict(ckpt["optimizer"])
-
-trainer = dinv.training.AdversarialTrainer(
-    model=G,
-    D=D,
+trainer = dinv.Trainer(
+    model=model,
     physics=physics,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
     epochs=1,
-    losses=loss_g,
-    losses_d=loss_d,
+    losses=loss,
     optimizer=optimizer,
-    scheduler=scheduler,
     verbose=True,
     show_progress_bar=False,
     save_path=None,
     device=device,
 )
 
-G = trainer.train()
+model = trainer.train()
 
 # %%
-# Test the trained model and plot the results. We compare to the pseudo-inverse as a baseline.
+# Test the trained model and plot the results.
 #
 
 trainer.plot_images = True
@@ -222,54 +218,44 @@ trainer.test(test_dataloader)
 #
 # **UAIR** forward pass:
 #
-# .. math:: \hat x = G(y),
+# .. math:: \hat x = \inverse{y},
 #
 # **UAIR** loss:
 #
-# .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert \forw{\inverse{\hat y}}- \hat y\rVert^2_2,\quad\hat y=\forw{\hat x}.
+# .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lambda\lVert \forw{\inverse{\hat y}}- \hat y\rVert^2_2,\quad\hat y=\forw{\hat x}.
 #
-# We next load the models and construct losses as defined above.
+# where :math:`\lambda` is a hyperparameter. We load the models and construct losses as defined above.
 
-G, D, optimizer, scheduler = get_models(
-    lr_g=1e-4, lr_d=4e-4
-)  # learning rates from original paper
+model, D, optimizer, optimizer_D = get_models(lr_g=1e-4, lr_d=4e-4)
 
-loss_g = adversarial.UAIRGeneratorLoss(device=device)
-loss_d = adversarial.UnsupAdversarialDiscriminatorLoss(device=device)
+loss = adversarial.UAIRLoss(
+    D=D, optimizer_D=optimizer_D, physics_generator=blur_generator, device=device
+)
 
 
 # %%
-# We are now ready to train the networks using :class:`deepinv.training.AdversarialTrainer`.
-# Like above, we load a pretrained model trained in the exact same way for 50 epochs,
-# and fine-tune here for a quick demo with 1 epoch.
+# We are now ready to train the networks using the usual :class:`deepinv.Trainer`.
+#
+# .. warning::
+#     GAN training is notoriously challenging and unstable, and training a well-trained GAN is beyond the scope of this example.
+#     We demonstrate training 1 epoch for speed. Increase the number of epochs, the size/diversity of the dataset, and tune the
+#     learning rates to produce better results.
 #
 
-ckpt = torch.hub.load_state_dict_from_url(
-    dinv.models.utils.get_weights_url("adversarial-demo", "uair_model.pth"),
-    map_location=lambda s, _: s,
-)
-
-G.load_state_dict(ckpt["state_dict"])
-D.load_state_dict(ckpt["state_dict_D"])
-optimizer.load_state_dict(ckpt["optimizer"])
-
-trainer = dinv.training.AdversarialTrainer(
-    model=G,
-    D=D,
+trainer = dinv.Trainer(
+    model=model,
     physics=physics,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
     epochs=1,
-    losses=loss_g,
-    losses_d=loss_d,
+    losses=loss,
     optimizer=optimizer,
-    scheduler=scheduler,
     verbose=True,
     show_progress_bar=False,
     save_path=None,
     device=device,
 )
-G = trainer.train()
+
+model = trainer.train()
 
 # %%
 # Test the trained model and plot the results:
@@ -310,67 +296,56 @@ trainer.test(test_dataloader)
 #
 # We next load the models and construct losses as defined above.
 
-G = dinv.models.CSGMGenerator(
+model = dinv.models.CSGMGenerator(
     dinv.models.DCGANGenerator(output_size=128, nz=100, ngf=32), inf_tol=1e-2
 ).to(device)
 D = dinv.models.DCGANDiscriminator(ndf=32).to(device)
-_, _, optimizer, scheduler = get_models(
-    model=G, D=D, lr_g=2e-4, lr_d=2e-4
-)  # learning rates from original paper
+
+_, _, optimizer, optimizer_D = get_models(model=model, D=D, lr_g=2e-4, lr_d=2e-4)
 
 # For AmbientGAN:
-loss_g = adversarial.UnsupAdversarialGeneratorLoss(device=device)
-loss_d = adversarial.UnsupAdversarialDiscriminatorLoss(device=device)
+loss = adversarial.UnsupAdversarialLoss(D=D, optimizer_D=optimizer_D, device=device)
 
 # For CSGM:
-loss_g = adversarial.SupAdversarialGeneratorLoss(device=device)
-loss_d = adversarial.SupAdversarialDiscriminatorLoss(device=device)
+loss = adversarial.SupAdversarialLoss(D=D, optimizer_D=optimizer_D, device=device)
 
 
 # %%
-# As before, we can now train our models. Since inference is very
-# slow for CSGM/AmbientGAN as it requires an optimisation, we only do one
-# evaluation at the end. Note the train PSNR is meaningless as this
-# generative model is trained on random latents.
-# Like above, we load a pretrained model trained in the exact same way for 50 epochs,
-# and fine-tune here for a quick demo with 1 epoch.
+# As before, we can now train our models.
+#
+# .. warning::
+#     GAN training is notoriously challenging and unstable, and training a well-trained GAN is beyond the scope of this example.
+#     We demonstrate training 1 epoch for speed. Increase the number of epochs, the size/diversity of the dataset, and tune the
+#     learning rates to produce better results.
+#
+# Note the train PSNR is meaningless as this generative model is trained on random latents.
 #
 
-ckpt = torch.hub.load_state_dict_from_url(
-    dinv.models.utils.get_weights_url("adversarial-demo", "csgm_model.pth"),
-    map_location=lambda s, _: s,
-)
-
-G.load_state_dict(ckpt["state_dict"])
-D.load_state_dict(ckpt["state_dict_D"])
-optimizer.load_state_dict(ckpt["optimizer"])
-
-trainer = dinv.training.AdversarialTrainer(
-    model=G,
-    D=D,
+trainer = dinv.Trainer(
+    model=model,
     physics=physics,
     train_dataloader=train_dataloader,
     epochs=1,
-    losses=loss_g,
-    losses_d=loss_d,
+    losses=loss,
     optimizer=optimizer,
-    scheduler=scheduler,
     verbose=True,
     show_progress_bar=False,
     save_path=None,
     device=device,
 )
-G = trainer.train()
+
+model = trainer.train()
 
 
 # %%
-# Eventually, we run evaluation of the generative model by running test-time optimisation
+# Evaluate the generative model by running test-time optimisation
 # using test measurements. Note that we do not get great results as CSGM /
 # AmbientGAN relies on large datasets of diverse samples, and we run the
 # optimisation to a relatively high tolerance for speed. Improve the results by
 # running the optimisation for longer.
 #
 
+trainer.plot_images = True
 trainer.test(test_dataloader)
 
 # %%

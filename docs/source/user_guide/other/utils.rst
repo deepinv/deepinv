@@ -183,3 +183,6 @@ such as temporal or MRI functionality.
 
    * - :class:`deepinv.utils.TimeMixin`
      - Methods for expanding and flattening time dimension for dynamic/video data.
+
+   * - :class:`deepinv.utils.MultiOperatorMixin`
+     - Generate new physics for multi-operator losses.
