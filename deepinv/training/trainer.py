@@ -1,4 +1,3 @@
-# Python standard modules
 from __future__ import annotations
 from dataclasses import dataclass, field
 from logging import getLogger
@@ -6,12 +5,10 @@ from pathlib import Path
 import inspect
 import warnings
 
-# Third-party modules
 from tqdm import tqdm
 import numpy as np
 import torch
 
-# DeepInv modules
 from deepinv.datasets.base import check_dataset
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
