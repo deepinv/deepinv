@@ -46,7 +46,7 @@ class Denoiser(torch.nn.Module):
 
     @staticmethod
     def _handle_sigma(
-        sigma: float | torch.Tensor,
+        sigma: float | torch.Tensor | list[float],
         batch_size: int = None,
         ndim: int = None,
         device: torch.device = None,

@@ -110,6 +110,8 @@ jobs:
         run: |
           # Run doctest with sphinx, to get the extra IGNORE_OUTPUT primitive
           # using plot_gallery=0 to avoid building examples
+          export TQDM_DISABLE=1
+          export HF_HUB_DISABLE_PROGRESS_BARS=1
           uv run sphinx-build -M doctest docs/source docs/build -D plot_gallery=0 -v
 
       - name: Notebook generation

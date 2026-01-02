@@ -497,7 +497,7 @@ class Trainer:
         if torch.isnan(x).all():
             raise ValueError("Online measurements can't be used if x is all NaN.")
 
-        x = x.to(self.device)
+        x = x.to(self.device, non_blocking=self.non_blocking_transfers)
         physics = self.physics[g]
 
         if self.physics_generator is not None:
@@ -562,14 +562,18 @@ class Trainer:
         if torch.isnan(x).all() and x.ndim <= 1:
             x = None  # Batch of NaNs -> no ground truth in deepinv convention
         else:
-            x = x.to(self.device)
+            x = x.to(self.device, non_blocking=self.non_blocking_transfers)
 
-        y = y.to(self.device)
+        y = y.to(self.device, non_blocking=self.non_blocking_transfers)
         physics = self.physics[g]
 
         if params is not None:
             params = {
-                k: (p.to(self.device) if isinstance(p, torch.Tensor) else p)
+                k: (
+                    p.to(self.device, non_blocking=self.non_blocking_transfers)
+                    if isinstance(p, torch.Tensor)
+                    else p
+                )
                 for k, p in params.items()
             }
             physics.update(**params)
@@ -1223,6 +1227,7 @@ class Trainer:
                     phase="train",
                     last_batch=(i == batches - 1),
                 )
+
                 if train_ite + 1 > self.max_batch_steps:
                     stop_flag = True
 

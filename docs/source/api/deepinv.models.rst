@@ -27,6 +27,7 @@ Classical Denoisers
    :nosignatures:
 
    deepinv.models.BM3D
+   deepinv.models.BilateralFilter
    deepinv.models.MedianFilter
    deepinv.models.TVDenoiser
    deepinv.models.TGVDenoiser
@@ -127,3 +128,15 @@ Adversarial Networks
    deepinv.models.DCGANGenerator
    deepinv.models.DCGANDiscriminator
    deepinv.models.CSGMGenerator
+
+
+Identification Models
+---------------------
+.. userguide:: blind
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.KernelIdentificationNetwork

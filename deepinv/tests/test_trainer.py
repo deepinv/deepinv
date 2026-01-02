@@ -656,6 +656,9 @@ def test_dataloader_formats(
         img_size=imsize, split_ratio=0.9, rng=rng, device=device
     )
 
+    # full reference if ground truth available, otherwise no reference metric
+    metrics = dinv.metric.PSNR() if ground_truth else dinv.metric.BlurStrength()
+
     trainer = dinv.Trainer(
         model=model,
         losses=losses,
@@ -663,7 +666,7 @@ def test_dataloader_formats(
         epochs=1,
         physics=physics,
         physics_generator=generator2,
-        metrics=dinv.metric.PSNR(),
+        metrics=metrics,
         online_measurements=online_measurements,
         train_dataloader=dataloader,
         optimizer=optimizer,
@@ -871,8 +874,9 @@ def test_loss_logging(
 # epoch 2, and so on. Then, we run the trainer while capturing the standard
 # output to get the reported values for the gradient norms and compare them
 # to the expected values.
-def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, logger, caplog):
-    train_data, eval_data = dummy_dataset, dummy_dataset
+@pytest.mark.parametrize("grad_clip", [None, 0.5])
+def test_gradient_norm(dummy_dataset, imsize, device, tmpdir, grad_clip):
+    train_data = dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
@@ -938,9 +942,21 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, logger, caplo
             float(re.search(r"gradient_norm:\s*([0-9.]+)", m).group(1)) for m in msgs
         ]
 
-        expected = torch.tensor([float(e) for e in range(1, trainer.epochs + 1)])
-        got = torch.tensor(gradient_norms)
-        assert torch.allclose(got, expected, atol=1e-2)
+    if grad_clip is None:
+        gradient_norms = re.findall(r"gradient_norm=(\d+(\.\d+)?)", stdout_value)
+        gradient_norms = [float(norm[0]) for norm in gradient_norms]
+        gradient_norms = torch.tensor(gradient_norms)
+        expected_gradient_norms = [
+            float(epoch) for epoch in range(1, trainer.epochs + 1)
+        ]
+        expected_gradient_norms = torch.tensor(expected_gradient_norms)
+        assert torch.allclose(gradient_norms, expected_gradient_norms, atol=1e-2)
+    else:
+        grads = [
+            p.grad.detach().flatten() for p in model.parameters() if p.grad is not None
+        ]
+        assert len(grads) > 0
+        assert torch.linalg.vector_norm(torch.cat(grads), ord=2) <= grad_clip + 1e-1
 
 
 # Test output directory collision detection
@@ -1117,3 +1133,15 @@ def test_trained_model_not_used_for_no_learning_metrics(
 
         assert math.isclose(metrics["PSNR"], model_performance)
         assert math.isclose(metrics["PSNR no learning"], learning_free_performance)
+
+        y_hat = physics.A(x_net)
+
+        ### Train Generator
+        if train:
+            loss_total = 0
+            for l in losses:
+                loss = l(
+                    x=x,
+                    x_net=x_net,
+                    y=y,
+            
