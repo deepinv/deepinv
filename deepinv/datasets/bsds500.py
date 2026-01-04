@@ -69,7 +69,7 @@ class BSDS500(ImageDataset):
             )
             download_sum = calculate_md5(fpath=zip_path)
             if not download_sum == checksum:
-                return ValueError(
+                raise ValueError(
                     "Verification of the dataset failed (unexpected md5 checksum of the downloaded zip-file)"
                 )
             extract_zipfile(zip_path, self.base_path)
