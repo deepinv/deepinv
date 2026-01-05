@@ -71,11 +71,11 @@ def device_config(request):
     """
     Parameterized fixture for device configuration.
 
-    Returns:
-        dict with keys:
-            - device_mode: "cpu_single", "cpu_multi", "gpu_single", or "gpu_multi"
-            - world_size: number of processes to spawn
-            - skip_reason: reason to skip if device not available
+    :param request: pytest request object.
+    :return: Dictionary with keys:
+        - device_mode: "cpu_single", "cpu_multi", "gpu_single", or "gpu_multi"
+        - world_size: number of processes to spawn
+        - skip_reason: reason to skip if device not available
     """
     mode = request.param
 
@@ -136,6 +136,13 @@ def _worker(rank, world_size, test_func, test_args, result_queue, dist_config):
     Worker function that runs in each process - must be at module level for pickling.
 
     Supports both CPU (Gloo) and GPU (NCCL) backends automatically.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param Callable test_func: Test function to execute.
+    :param dict test_args: Arguments to pass to the test function.
+    :param Queue result_queue: Queue to store results.
+    :param dict dist_config: Distributed configuration dictionary.
     """
     # Set environment variables for this rank
     os.environ["RANK"] = str(rank)
@@ -195,17 +202,12 @@ def run_distributed_test(
 
     Automatically handles both CPU (Gloo) and GPU (NCCL) configurations.
 
-    Args:
-        test_func: picklable callable(rank: int, world_size: int, args: dict) -> Any
-        device_config: device configuration from fixture
-        test_args: optional dict passed to test_func on each rank
-        timeout_per_rank: timeout budget per rank in seconds
-
-    Returns:
-        List of per-rank results ordered by rank.
-
-    Raises:
-        RuntimeError if any rank fails, times out, or does not report a result.
+    :param Callable test_func: Picklable callable with signature (rank: int, world_size: int, args: dict) -> Any.
+    :param dict device_config: Device configuration from fixture.
+    :param dict | None test_args: Optional dict passed to test_func on each rank. Default is `None`.
+    :param float timeout_per_rank: Timeout budget per rank in seconds. Default is `12.0`.
+    :return: List of per-rank results ordered by rank.
+    :raises RuntimeError: If any rank fails, times out, or does not report a result.
     """
     # Check if we should skip this test
     if device_config.get("skip_reason"):
@@ -306,7 +308,11 @@ def run_distributed_test(
 
 
 class SimpleDenoiser(Denoiser):
-    """Simple test denoiser that scales the input."""
+    """
+    Simple test denoiser that scales the input.
+
+    :param float scale: Scaling factor to apply to input. Default is `0.9`.
+    """
 
     def __init__(self, scale=0.9):
         super().__init__()
@@ -317,7 +323,13 @@ class SimpleDenoiser(Denoiser):
 
 
 def create_test_physics_list(device, num_operators=3):
-    """Create simple test physics operators as a list."""
+    """
+    Create simple test physics operators as a list.
+
+    :param torch.device device: Device to create operators on.
+    :param int num_operators: Number of operators to create. Default is `3`.
+    :return: List of physics operators.
+    """
     physics_list = []
     for i in range(num_operators):
         kernel = gaussian_blur(sigma=1.0 + i * 0.5, device=str(device))
@@ -331,13 +343,10 @@ def create_physics_specification(spec_type, device, num_operators):
     """
     Create physics specification based on type.
 
-    Args:
-        spec_type: "physics_list", "stacked_physics", or "callable_factory"
-        device: torch device
-        num_operators: number of operators
-
-    Returns:
-        tuple: (physics_spec, needs_num_operators_param)
+    :param str spec_type: Type of specification ("physics_list", "stacked_physics", or "callable_factory").
+    :param torch.device device: Device to create operators on.
+    :param int num_operators: Number of operators to create.
+    :return: Tuple of (physics_spec, needs_num_operators_param).
     """
     if spec_type == "physics_list":
         physics_list = create_test_physics_list(device, num_operators)
@@ -368,21 +377,14 @@ def create_drunet_denoiser(
     """Create a DRUNet denoiser appropriate for the given ground truth shape.
 
     Automatically detects whether to use:
+
     - Grayscale (1 channel) or color (3 channels) based on channel dimension
     - 2D or 3D based on number of spatial dimensions
 
-    Parameters
-    ----------
-    num_channels : int
-    device : str or torch.device, optional
-        Device to load the model on. Default: 'cpu'.
-    dtype : torch.dtype, optional
-        Data type for the model. Default: torch.float32.
-
-    Returns
-    -------
-    DRUNet
-        Configured DRUNet denoiser model.
+    :param int num_channels: Number of input channels (1 for grayscale, 3 for color). Default is `1`.
+    :param str | torch.device device: Device to load the model on. Default is `'cpu'`.
+    :param torch.dtype dtype: Data type for the model. Default is `torch.float32`.
+    :return: Configured DRUNet denoiser model.
     """
 
     # Determine if grayscale or color
@@ -405,12 +407,10 @@ def create_denoiser(spec_type, device, num_channels=1) -> Denoiser:
     """
     Create denoiser based on specification type.
 
-    Args:
-        spec_type: "simple" or "callable_factory"
-        device: torch device
-
-    Returns:
-        denoiser or denoiser factory
+    :param str spec_type: Type of denoiser ("simple" or "drunet").
+    :param torch.device device: Device to create denoiser on.
+    :param int num_channels: Number of input channels. Default is `1`.
+    :return: Denoiser instance or denoiser factory.
     """
     if spec_type == "simple":
         return SimpleDenoiser(scale=0.9).to(device)
@@ -473,7 +473,13 @@ def _test_multiprocess_physics_worker(rank, world_size, args):
     "physics_spec", ["physics_list", "stacked_physics", "callable_factory"]
 )
 def test_distribute_physics(device_config, gather_strategy, physics_spec):
-    """Test physics distribution in multi-process mode."""
+    """
+    Test physics distribution in multi-process mode.
+
+    :param dict device_config: Device configuration from fixture.
+    :param str gather_strategy: Gather strategy to use.
+    :param str physics_spec: Physics specification type.
+    """
     # Skip naive strategy with multi-GPU (NCCL doesn't support all_gather_object)
     if gather_strategy == "naive" and device_config["device_mode"] == "gpu":
         pytest.skip("Naive gather strategy not supported with NCCL backend")
@@ -501,7 +507,14 @@ def test_distribute_physics(device_config, gather_strategy, physics_spec):
 
 
 def _test_multiprocess_processor_worker(rank, world_size, args):
-    """Worker for multi-process processor tests."""
+    """
+    Worker for multi-process processor tests.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Test result tensor.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         processor = create_denoiser(args["denoiser_spec"], ctx.device, num_channels=3)
 
@@ -511,7 +524,7 @@ def _test_multiprocess_processor_worker(rank, world_size, args):
             type_object="denoiser",
             tiling_strategy=args["tiling_strategy"],
             patch_size=args["patch_size"],
-            receptive_field_size=args["receptive_field_size"],
+            overlap=args["overlap"],
         )
 
         x = torch.randn(1, 3, 16, 16, device=ctx.device)
@@ -532,7 +545,7 @@ def test_distribute_processor(device_config, tiling_strategy, denoiser_spec):
         "device_mode": device_config["device_mode"],
         "tiling_strategy": tiling_strategy,
         "patch_size": 8,
-        "receptive_field_size": 2,
+        "overlap": 2,
         "denoiser_spec": denoiser_spec,
     }
 
@@ -551,6 +564,14 @@ def test_distribute_processor(device_config, tiling_strategy, denoiser_spec):
 
 
 def _test_data_fidelity_worker(rank, world_size, args):
+    """
+    Worker for data fidelity tests.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Test result tensor.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         num_operators = 3
         physics_list = create_test_physics_list(ctx.device, num_operators)
@@ -596,7 +617,11 @@ def _test_data_fidelity_worker(rank, world_size, args):
 
 
 def test_distribute_data_fidelity(device_config):
-    """Test data fidelity distribution."""
+    """
+    Test data fidelity distribution.
+
+    :param dict device_config: Device configuration from fixture.
+    """
     test_args = {
         "device_mode": device_config["device_mode"],
     }
@@ -610,6 +635,14 @@ def test_distribute_data_fidelity(device_config):
 
 
 def _test_compute_norm_worker(rank, world_size, args):
+    """
+    Worker for compute_norm tests.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(
@@ -625,7 +658,12 @@ def _test_compute_norm_worker(rank, world_size, args):
 
 
 def test_compute_norm(device_config, gather_strategy):
-    """Test compute_norm."""
+    """
+    Test compute_norm operation in distributed setting.
+
+    :param dict device_config: Device configuration from fixture.
+    :param str gather_strategy: Gather strategy to use.
+    """
     # Skip naive strategy with multi-GPU (NCCL doesn't support all_gather_object)
     if gather_strategy == "naive" and device_config["device_mode"] == "gpu_multi":
         pytest.skip("Naive gather strategy not supported with NCCL backend (gpu_multi)")
@@ -639,6 +677,14 @@ def test_compute_norm(device_config, gather_strategy):
 
 
 def _test_a_dagger_worker(rank, world_size, args):
+    """
+    Worker for A_dagger tests.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(physics_list, ctx=ctx)
@@ -653,7 +699,11 @@ def _test_a_dagger_worker(rank, world_size, args):
 
 
 def test_a_dagger(device_config):
-    """Test A_dagger."""
+    """
+    Test A_dagger (pseudo-inverse) operation in distributed setting.
+
+    :param dict device_config: Device configuration from fixture.
+    """
     test_args = {
         "device_mode": device_config["device_mode"],
     }
@@ -667,6 +717,14 @@ def test_a_dagger(device_config):
 
 
 def _test_reduce_false_worker(rank, world_size, args):
+    """
+    Worker for testing operations with reduce=False parameter.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(physics_list, ctx=ctx)
@@ -685,7 +743,13 @@ def _test_reduce_false_worker(rank, world_size, args):
 
 
 def test_reduce_false_operations(device_config):
-    """Test operations with reduce=False parameter."""
+    """
+    Test operations with reduce=False parameter.
+
+    Verifies that operations return local results without global reduction.
+
+    :param dict device_config: Device configuration from fixture.
+    """
     test_args = {"device_mode": device_config["device_mode"]}
     results = run_distributed_test(_test_reduce_false_worker, device_config, test_args)
     assert all(r == "success" for r in results)
@@ -697,7 +761,14 @@ def test_reduce_false_operations(device_config):
 
 
 def _test_consistency_worker(rank, world_size, args):
-    """Worker for consistency test between single and multiprocess."""
+    """
+    Worker for consistency test between single and multiprocess.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Test result tensor.
+    """
     with DistributedContext(device_mode="cpu") as ctx:
         physics_list = create_test_physics_list(ctx.device, 4)
         distributed_physics = distribute(physics_list, ctx=ctx)
@@ -714,7 +785,11 @@ def _test_consistency_worker(rank, world_size, args):
 
 
 def test_consistency_single_vs_multiprocess(device_config):
-    """Verify that single-process and multi-process give same results."""
+    """
+    Verify that single-process and multi-process give same results.
+
+    :param dict device_config: Device configuration from fixture.
+    """
     # This test only makes sense for CPU where we can compare easily
     if device_config["device_mode"] != "cpu" or device_config["world_size"] < 2:
         pytest.skip("Test requires CPU multi-process configuration")
@@ -744,6 +819,16 @@ def test_consistency_single_vs_multiprocess(device_config):
 
 
 def _test_empty_local_set_worker(rank, world_size, args):
+    """
+    Worker for testing empty local set handling.
+
+    Tests the edge case where some ranks have no operators to process.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         # Test with fewer operators than ranks - this creates the edge case
         # where rank 1 (or higher ranks) will have 0 operators
@@ -764,7 +849,11 @@ def _test_empty_local_set_worker(rank, world_size, args):
 
 
 def test_empty_local_set(device_config):
-    """Test handling when some ranks have no operators to process."""
+    """
+    Test handling when some ranks have no operators to process.
+
+    :param dict device_config: Device configuration from fixture.
+    """
     test_args = {"device_mode": device_config["device_mode"]}
     results = run_distributed_test(
         _test_empty_local_set_worker, device_config, test_args
@@ -773,7 +862,9 @@ def test_empty_local_set(device_config):
 
 
 def test_gather_strategy_validation():
-    """Test that invalid gather strategies are rejected."""
+    """
+    Test that invalid gather strategies are rejected.
+    """
     with DistributedContext(device_mode="cpu") as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
 
@@ -782,7 +873,9 @@ def test_gather_strategy_validation():
 
 
 def test_distribute_auto_type_detection():
-    """Test automatic type detection in distribute()."""
+    """
+    Test automatic type detection in distribute().
+    """
     with DistributedContext(device_mode="cpu") as ctx:
         # Physics list
         physics_list = create_test_physics_list(ctx.device, 3)
@@ -801,6 +894,16 @@ def test_distribute_auto_type_detection():
 
 
 def _test_adjoint_operations_worker(rank, world_size, args):
+    """
+    Worker for adjoint operations tests.
+
+    Tests A_adjoint, A_vjp, A_adjoint_A, and A_A_adjoint operations.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(
@@ -852,7 +955,13 @@ def _test_adjoint_operations_worker(rank, world_size, args):
 
 @pytest.mark.parametrize("reduction", ["sum", "mean"])
 def test_adjoint_operations(device_config, gather_strategy, reduction):
-    """Test A_adjoint, A_vjp, A_adjoint_A, A_A_adjoint operations."""
+    """
+    Test A_adjoint, A_vjp, A_adjoint_A, A_A_adjoint operations.
+
+    :param dict device_config: Device configuration from fixture.
+    :param str gather_strategy: Gather strategy to use.
+    :param str reduction: Reduction mode ('sum' or 'mean').
+    """
     # Skip naive strategy with multi-GPU (NCCL doesn't support all_gather_object)
     if gather_strategy == "naive" and device_config["device_mode"] == "gpu":
         pytest.skip("Naive gather strategy not supported with NCCL backend (gpu_multi)")
@@ -877,6 +986,14 @@ def test_adjoint_operations(device_config, gather_strategy, reduction):
 
 
 def _test_compute_norm_local_vs_global_worker(rank, world_size, args):
+    """
+    Worker for compute_norm tests with local_only parameter.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(physics_list, ctx=ctx)
@@ -893,7 +1010,12 @@ def _test_compute_norm_local_vs_global_worker(rank, world_size, args):
 
 @pytest.mark.parametrize("local_only", [True, False])
 def test_compute_norm_local_vs_global(device_config, local_only):
-    """Test compute_norm with local_only parameter."""
+    """
+    Test compute_norm with local_only parameter.
+
+    :param dict device_config: Device configuration from fixture.
+    :param bool local_only: Whether to compute norm locally only.
+    """
 
     test_args = {
         "device_mode": device_config["device_mode"],
@@ -906,6 +1028,14 @@ def test_compute_norm_local_vs_global(device_config, local_only):
 
 
 def _test_a_dagger_local_vs_global_worker(rank, world_size, args):
+    """
+    Worker for A_dagger tests with local_only parameter.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(physics_list, ctx=ctx)
@@ -921,7 +1051,12 @@ def _test_a_dagger_local_vs_global_worker(rank, world_size, args):
 
 @pytest.mark.parametrize("local_only", [True, False])
 def test_a_dagger_local_vs_global(device_config, local_only):
-    """Test A_dagger with local_only parameter."""
+    """
+    Test A_dagger with local_only parameter.
+
+    :param dict device_config: Device configuration from fixture.
+    :param bool local_only: Whether to compute A_dagger locally only.
+    """
 
     test_args = {
         "device_mode": device_config["device_mode"],
@@ -939,7 +1074,14 @@ def test_a_dagger_local_vs_global(device_config, local_only):
 
 
 def _test_distributed_context_device_modes_worker(rank, world_size, args):
-    """Worker for testing DistributedContext with different device modes."""
+    """
+    Worker for testing DistributedContext with different device modes.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     device_mode = args["device_mode"]
     with DistributedContext(device_mode=device_mode) as ctx:
         if device_mode == "cpu":
@@ -952,7 +1094,11 @@ def _test_distributed_context_device_modes_worker(rank, world_size, args):
 
 
 def test_distributed_context_device_modes(device_config):
-    """Test DistributedContext with different device modes."""
+    """
+    Test DistributedContext with different device modes.
+
+    :param dict device_config: Device configuration from fixture.
+    """
     test_args = {"device_mode": device_config["device_mode"]}
     results = run_distributed_test(
         _test_distributed_context_device_modes_worker, device_config, test_args
@@ -961,7 +1107,14 @@ def test_distributed_context_device_modes(device_config):
 
 
 def _test_distributed_context_local_indices_worker(rank, world_size, args):
-    """Worker for testing local_indices sharding."""
+    """
+    Worker for testing local_indices sharding.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Dictionary containing rank, indices, and number of indices.
+    """
     with DistributedContext(device_mode=args["device_mode"]) as ctx:
         total_items = 10
         indices = ctx.local_indices(total_items)
@@ -973,7 +1126,11 @@ def _test_distributed_context_local_indices_worker(rank, world_size, args):
 
 
 def test_distributed_context_local_indices(device_config):
-    """Test local_indices sharding across ranks."""
+    """
+    Test local_indices sharding across ranks.
+
+    :param dict device_config: Device configuration from fixture.
+    """
     test_args = {"device_mode": device_config["device_mode"]}
     results = run_distributed_test(
         _test_distributed_context_local_indices_worker, device_config, test_args
@@ -993,7 +1150,14 @@ def test_distributed_context_local_indices(device_config):
 
 
 def _test_distributed_context_collectives_worker(rank, world_size, args):
-    """Worker for testing collective operations."""
+    """
+    Worker for testing collective operations.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     with DistributedContext(device_mode=args["device_mode"]) as ctx:
         # Test all_reduce_ with sum
         t = torch.tensor([float(rank + 1), 2.0, 3.0], device=ctx.device)
@@ -1028,7 +1192,11 @@ def _test_distributed_context_collectives_worker(rank, world_size, args):
 
 
 def test_distributed_context_collectives(device_config):
-    """Test collective operations (all_reduce, broadcast, barrier) across ranks."""
+    """
+    Test collective operations (all_reduce, broadcast, barrier) across ranks.
+
+    :param dict device_config: Device configuration from fixture.
+    """
     test_args = {"device_mode": device_config["device_mode"]}
     results = run_distributed_test(
         _test_distributed_context_collectives_worker, device_config, test_args
@@ -1042,6 +1210,14 @@ def test_distributed_context_collectives(device_config):
 
 
 def _test_processor_different_patch_sizes_worker(rank, world_size, args):
+    """
+    Worker for testing processor with different patch sizes.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         processor = create_denoiser(args["denoiser_spec"], ctx.device, num_channels=3)
 
@@ -1052,7 +1228,7 @@ def _test_processor_different_patch_sizes_worker(rank, world_size, args):
                 type_object="denoiser",
                 tiling_strategy="overlap_tiling",
                 patch_size=patch_size,
-                receptive_field_size=2,
+                overlap=2,
             )
 
             x = torch.randn(1, 3, 16, 16, device=ctx.device)
@@ -1068,7 +1244,12 @@ def _test_processor_different_patch_sizes_worker(rank, world_size, args):
 
 @pytest.mark.parametrize("denoiser_spec", ["simple"])
 def test_processor_different_patch_sizes(device_config, denoiser_spec):
-    """Test processor distribution with varying patch sizes."""
+    """
+    Test processor distribution with varying patch sizes.
+
+    :param dict device_config: Device configuration from fixture.
+    :param str denoiser_spec: Denoiser specification type.
+    """
     test_args = {
         "device_mode": device_config["device_mode"],
         "denoiser_spec": denoiser_spec,
@@ -1080,6 +1261,14 @@ def test_processor_different_patch_sizes(device_config, denoiser_spec):
 
 
 def _test_processor_max_batch_size_worker(rank, world_size, args):
+    """
+    Worker for testing processor with different max batch sizes.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         processor = create_denoiser(args["denoiser_spec"], ctx.device, num_channels=3)
 
@@ -1094,7 +1283,7 @@ def _test_processor_max_batch_size_worker(rank, world_size, args):
                 type_object="denoiser",
                 tiling_strategy="overlap_tiling",
                 patch_size=8,
-                receptive_field_size=2,
+                overlap=2,
                 max_batch_size=max_batch,
             )
             result = distributed_processor(x, sigma=0.1)
@@ -1108,7 +1297,12 @@ def _test_processor_max_batch_size_worker(rank, world_size, args):
 
 @pytest.mark.parametrize("denoiser_spec", ["simple"])
 def test_processor_max_batch_size(device_config, denoiser_spec):
-    """Test processor with different max_batch_size settings."""
+    """
+    Test processor with different max_batch_size settings.
+
+    :param dict device_config: Device configuration from fixture.
+    :param str denoiser_spec: Denoiser specification type.
+    """
     test_args = {
         "device_mode": device_config["device_mode"],
         "denoiser_spec": denoiser_spec,
@@ -1120,6 +1314,14 @@ def test_processor_max_batch_size(device_config, denoiser_spec):
 
 
 def _test_processor_3d_worker(rank, world_size, args):
+    """
+    Worker for testing processor with 3D volumes.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         processor = create_denoiser(args["denoiser_spec"], ctx.device, num_channels=1)
 
@@ -1129,7 +1331,7 @@ def _test_processor_3d_worker(rank, world_size, args):
             type_object="denoiser",
             tiling_strategy="overlap_tiling",
             patch_size=8,
-            receptive_field_size=2,
+            overlap=2,
         )
 
         # Test with 3D input
@@ -1142,7 +1344,12 @@ def _test_processor_3d_worker(rank, world_size, args):
 
 @pytest.mark.parametrize("denoiser_spec", ["simple"])
 def test_processor_3d(device_config, denoiser_spec):
-    """Test processor with 3D volumes."""
+    """
+    Test processor with 3D volumes.
+
+    :param dict device_config: Device configuration from fixture.
+    :param str denoiser_spec: Denoiser specification type.
+    """
     test_args = {
         "device_mode": device_config["device_mode"],
         "denoiser_spec": denoiser_spec,
@@ -1157,6 +1364,14 @@ def test_processor_3d(device_config, denoiser_spec):
 
 
 def _test_data_fidelity_vs_stacked_worker(rank, world_size, args):
+    """
+    Worker for comparing distributed data fidelity with stacked version.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         num_operators = 3
         physics_list = create_test_physics_list(ctx.device, num_operators)
@@ -1192,7 +1407,11 @@ def _test_data_fidelity_vs_stacked_worker(rank, world_size, args):
 
 
 def test_data_fidelity_vs_stacked(device_config):
-    """Compare DistributedDataFidelity with StackedPhysicsDataFidelity."""
+    """
+    Compare DistributedDataFidelity with StackedPhysicsDataFidelity.
+
+    :param dict device_config: Device configuration from fixture.
+    """
     test_args = {"device_mode": device_config["device_mode"]}
     results = run_distributed_test(
         _test_data_fidelity_vs_stacked_worker, device_config, test_args
@@ -1201,6 +1420,14 @@ def test_data_fidelity_vs_stacked(device_config):
 
 
 def _test_data_fidelity_different_fidelities_worker(rank, world_size, args):
+    """
+    Worker for testing different data fidelity types.
+
+    :param int rank: Rank of the current process.
+    :param int world_size: Total number of processes.
+    :param dict args: Test arguments dictionary.
+    :return: Success status string.
+    """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         num_operators = 3
         physics_list = create_test_physics_list(ctx.device, num_operators)
@@ -1225,7 +1452,11 @@ def _test_data_fidelity_different_fidelities_worker(rank, world_size, args):
 
 
 def test_data_fidelity_different_fidelities(device_config):
-    """Test with different data fidelity types (L1, L2)."""
+    """
+    Test with different data fidelity types (L1, L2).
+
+    :param dict device_config: Device configuration from fixture.
+    """
     test_args = {"device_mode": device_config["device_mode"]}
     results = run_distributed_test(
         _test_data_fidelity_different_fidelities_worker, device_config, test_args
@@ -1317,7 +1548,7 @@ def _test_reduce_false_processor_worker(rank, world_size, args):
             type_object="denoiser",
             tiling_strategy="overlap_tiling",
             patch_size=8,
-            receptive_field_size=2,
+            overlap=2,
         )
 
         x = torch.randn(1, 3, 16, 16, device=ctx.device)

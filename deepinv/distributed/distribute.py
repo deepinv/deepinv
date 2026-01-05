@@ -102,7 +102,7 @@ def _distribute_processor(
     dtype: torch.dtype | None = torch.float32,
     tiling_strategy: str | DistributedSignalStrategy | None = None,
     patch_size: int = 256,
-    receptive_field_size: int = 64,
+    overlap: int = 64,
     tiling_dims: int | tuple[int, ...] | None = None,
     max_batch_size: int | None = None,
     gather_strategy: str = "concatenated",
@@ -116,7 +116,7 @@ def _distribute_processor(
     :param torch.dtype | None dtype: data type for distributed object. Default is `torch.float32`.
     :param str | DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal. Options are `'basic'`, `'overlap_tiling'`, or a custom strategy instance. Default is `None` (which defaults to `'overlap_tiling'`).
     :param int patch_size: size of patches for tiling strategies. Default is `256`.
-    :param int receptive_field_size: receptive field size for overlap in tiling strategies. Default is `64`.
+    :param int overlap: receptive field size for overlap in tiling strategies. Default is `64`.
     :param int | tuple[int, ...] | None tiling_dims: dimensions to tile over.
         Can be one of the following:
             - If ``None`` (default), tiles the last N-2 dimensions of your input tensor, i.e. for a tensor of shape (B, C, H, W), tiles over (H, W).
@@ -136,7 +136,7 @@ def _distribute_processor(
         strategy=tiling_strategy,
         strategy_kwargs={
             "patch_size": patch_size,
-            "receptive_field_size": receptive_field_size,
+            "overlap": overlap,
             "tiling_dims": tiling_dims,
         },
         max_batch_size=max_batch_size,
@@ -224,7 +224,7 @@ def distribute(
     tiling_strategy: str | DistributedSignalStrategy | None = "overlap_tiling",
     tiling_dims: int | tuple[int, ...] | None = None,
     patch_size: int = 256,
-    receptive_field_size: int = 64,
+    overlap: int = 64,
     max_batch_size: int | None = None,
     **kwargs,
 ) -> (
@@ -275,7 +275,7 @@ def distribute(
 
     :param int patch_size: size of patches for tiling strategies (for Denoiser).
         Can be an int (same size for all tiled dims) or a tuple (per-dimension size). Default is `256`.
-    :param int receptive_field_size: receptive field size for overlap in tiling strategies (for Denoiser).
+    :param int overlap: receptive field size for overlap in tiling strategies (for Denoiser).
         Can be an int (same size for all tiled dims) or a tuple (per-dimension size). Default is `64`.
     :param int | None max_batch_size: maximum number of patches to process in a single batch (for Denoiser). If `None`, all patches are batched together. Set to `1` for sequential processing. Default is `None`.
     :param kwargs: additional keyword arguments for specific distributed classes.
@@ -359,7 +359,7 @@ def distribute(
             gather_strategy=gather_strategy,
             tiling_strategy=tiling_strategy,
             patch_size=patch_size,
-            receptive_field_size=receptive_field_size,
+            overlap=overlap,
             tiling_dims=tiling_dims,
             max_batch_size=max_batch_size,
             **kwargs,

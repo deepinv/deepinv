@@ -1,23 +1,33 @@
 """
 Distributed Denoiser with Image Tiling
-=======================================
+------------------------------------------------
 
-This example demonstrates how to distribute a denoiser across multiple processes
-using image tiling for large-scale image processing.
+In many imaging problems, the data to be processed can be very large, making it challenging to fit the
+denoising process into the memory of a single device. For instance, medical imaging or satellite imagery
+often involves processing gigapixel images that cannot be processed as a whole.
+
+The distributed framework enables you to parallelize the denoising of large images across multiple devices
+using image tiling. Each device processes different image patches independently, and the results are merged
+to produce the final denoised image.
+
+This example demonstrates how to use the :func:`deepinv.distributed.distribute` function to create a
+distributed denoiser that automatically handles patch extraction, processing, and merging.
 
 **Usage:**
 
 .. code-block:: bash
 
     # Single process
-    python examples/distrib/demo_denoiser_distributed.py
+    python examples/distributed/demo_denoiser_distributed.py
 
-    # Multi-process with torchrun (2 processes)
-    python -m torch.distributed.run --nproc_per_node=2 examples/distrib/demo_denoiser_distributed.py
+.. code-block:: bash
+
+    # Multi-process with torchrun (2 GPUs/processes)
+    python -m torch.distributed.run --nproc_per_node=2 examples/distributed/demo_denoiser_distributed.py
 
 **Key Features:**
 
-- Distribute denoising across multiple processes using image tiling
+- Distribute denoising across processes/devices using image tiling
 - Automatic patch extraction and reassembly
 - Memory-efficient processing of large images
 
@@ -27,14 +37,18 @@ using image tiling for large-scale image processing.
 2. Add noise to create a noisy observation
 3. Initialize distributed context
 4. Configure tiling parameters
-5. Distribute denoiser with dinv.distributed.distribute()
+5. Distribute denoiser with :func:`deepinv.distributed.distribute`
 6. Apply distributed denoising
 7. Visualize results and compute metrics
+
+Import modules and define noisy image generation
+---------------------------------------------------------
+We start by importing `torch` and the modules of deepinv that we use in this example. We also define a function that generates noisy images to evaluate the distributed framework.
+
 """
 
 # %%
 import torch
-import torch.nn.functional as F
 from deepinv.models import DRUNet
 from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot
@@ -44,7 +58,6 @@ from deepinv.loss.metric import PSNR
 from deepinv.distributed import DistributedContext, distribute
 
 
-# %%
 def create_noisy_image(device, img_size=1024, noise_sigma=0.1, seed=42):
     """
     Create a noisy test image.
@@ -56,22 +69,13 @@ def create_noisy_image(device, img_size=1024, noise_sigma=0.1, seed=42):
     :returns: Tuple of (clean_image, noisy_image, noise_sigma)
     """
     # Load example image in original size
-    img = load_example("CBSD_0010.png", grayscale=False, device=device)
-
-    # Resize image so that max dimension equals img_size
-    _, _, h, w = img.shape
-    max_dim = max(h, w)
-
-    if max_dim != img_size:
-        scale_factor = img_size / max_dim
-        new_h = int(h * scale_factor)
-        new_w = int(w * scale_factor)
-
-        clean_image = F.interpolate(
-            img, size=(new_h, new_w), mode="bicubic", align_corners=False
-        )
-    else:
-        clean_image = img
+    clean_image = load_example(
+        "CBSD_0010.png",
+        grayscale=False,
+        device=device,
+        img_size=img_size,
+        resize_mode="resize",
+    )
 
     # Set seed for reproducible noise
     torch.manual_seed(seed)
@@ -86,21 +90,20 @@ def create_noisy_image(device, img_size=1024, noise_sigma=0.1, seed=42):
     return clean_image, noisy_image, noise_sigma
 
 
-"""Run distributed denoiser demonstration."""
 # %%
-# ============================================================================
-# CONFIGURATION
-# ============================================================================
+# ------------------------------------
+# Configuration of parallel denoising
+# ------------------------------------
 
 img_size = 512  # Large image for demonstrating tiling
 noise_sigma = 0.1
 patch_size = 256  # Size of each patch
-receptive_field_size = 64  # Overlap for smooth boundaries
+overlap = 64  # Overlap for smooth boundaries
 
 # %%
-# ============================================================================
-# DISTRIBUTED CONTEXT
-# ============================================================================
+# ---------------------------------------------
+# Define distributed context and run algorithm
+# ---------------------------------------------
 
 # Initialize distributed context (handles single and multi-process automatically)
 with DistributedContext(seed=42) as ctx:
@@ -112,9 +115,9 @@ with DistributedContext(seed=42) as ctx:
         print(f"\nRunning on {ctx.world_size} process(es)")
         print(f"   Device: {ctx.device}")
 
-    # ============================================================================
-    # STEP 1: Create test image with noise
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 1: Create test image with noise
+    # ---------------------------------------------------------------------------
 
     clean_image, noisy_image, sigma = create_noisy_image(
         ctx.device, img_size=img_size, noise_sigma=noise_sigma
@@ -130,9 +133,9 @@ with DistributedContext(seed=42) as ctx:
         print(f"   Noise sigma: {sigma}")
         print(f"   Input PSNR: {input_psnr:.2f} dB")
 
-    # ============================================================================
-    # STEP 2: Load denoiser model
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 2: Load denoiser model
+    # ---------------------------------------------------------------------------
 
     if ctx.rank == 0:
         print(f"\nLoading DRUNet denoiser...")
@@ -142,29 +145,29 @@ with DistributedContext(seed=42) as ctx:
     if ctx.rank == 0:
         print(f"   Denoiser loaded")
 
-    # ============================================================================
-    # STEP 3: Distribute denoiser with tiling configuration
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 3: Distribute denoiser with tiling configuration
+    # ---------------------------------------------------------------------------
 
     if ctx.rank == 0:
         print(f"\nConfiguring distributed denoiser")
         print(f"   Patch size: {patch_size}x{patch_size}")
-        print(f"   Receptive field radius: {receptive_field_size}")
+        print(f"   Receptive field radius: {overlap}")
         print(f"   Tiling strategy: overlap_tiling")
 
     distributed_denoiser = distribute(
         denoiser,
         ctx,
         patch_size=patch_size,
-        receptive_field_size=receptive_field_size,
+        overlap=overlap,
     )
 
     if ctx.rank == 0:
         print(f"   Distributed denoiser created")
 
-    # ============================================================================
-    # STEP 4: Apply distributed denoising
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 4: Apply distributed denoising
+    # ---------------------------------------------------------------------------
 
     if ctx.rank == 0:
         print(f"\nApplying distributed denoising...")
@@ -203,9 +206,9 @@ with DistributedContext(seed=42) as ctx:
         ), f"Max difference too large: {max_diff:.4f} (tolerance: {tolerance_max})"
         print(f"   Results are very close (within tolerance)!")
 
-    # ============================================================================
-    # STEP 5: Compute metrics and visualize results (only on rank 0)
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 5: Compute metrics and visualize results (only on rank 0)
+    # ---------------------------------------------------------------------------
 
     if ctx.rank == 0:
         # Compute output PSNR

@@ -1,41 +1,63 @@
 """
 Distributed Physics Operators
-==============================
+------------------------------------------------
 
-This example demonstrates how to distribute multiple physics operators across multiple processes
-for parallel computation of forward and adjoint operations.
+Many large-scale imaging problems involve operators that can be naturally decomposed as a stack of
+multiple sub-operators:
+
+.. math::
+
+          A(x) = \begin{bmatrix} A_1(x) \\ \vdots \\ A_N(x) \end{bmatrix}
+
+where each sub-operator :math:`A_i` is computationally expensive. Examples include multi-coil MRI,
+radio interferometry with multiple antennas, or multi-sensor imaging systems where each sensor provides
+a different measurement.
+
+The distributed framework enables you to parallelize the computation of these operators across multiple
+devices. Each device handles a subset of the sub-operators independently, and the results are automatically
+assembled. This is particularly useful when the forward operator :math:`A`, its adjoint :math:`A^{\top}`,
+or composition :math:`A^{\top}A` is computationally intensive.
+
+This example demonstrates how to use :func:`deepinv.distributed.distribute` to distribute stacked physics
+operators across multiple processes/devices for parallel computation.
 
 **Usage:**
 
 .. code-block:: bash
 
     # Single process
-    python examples/distrib/demo_physics_distributed.py
+    python examples/distributed/demo_physics_distributed.py
+
+.. code-block:: bash
 
     # Multi-process with torchrun (2 processes)
-    python -m torch.distributed.run --nproc_per_node=2 examples/distrib/demo_physics_distributed.py
+    python -m torch.distributed.run --nproc_per_node=2 examples/distributed/demo_physics_distributed.py
 
 **Key Features:**
 
-- Distribute multiple operators across processes
-- Parallel forward operations (A)
-- Parallel adjoint operations (A^T)
-- Parallel composition (A^T A)
+- Distribute multiple operators across processes/devices
+- Parallel forward operations :math:`A`
+- Parallel adjoint operations :math:`A^{\top}`
+- Parallel composition :math:`A^{\top} A`
 - Automatic result assembly from distributed processes
 
 **Key Steps:**
 
 1. Create multiple physics operators with different blur kernels
-2. Stack them using dinv.physics.stack()
+2. Stack them using :func:`deepinv.physics.stack`
 3. Initialize distributed context
-4. Distribute physics with dinv.distributed.distribute()
+4. Distribute physics with :func:`deepinv.distributed.distribute`
 5. Apply forward, adjoint, and composition operations
 6. Visualize results
+
+Import modules and define noisy image generation
+---------------------------------------------------------
+We start by importing `torch` and the modules of deepinv that we use in this example. We also define a function that generates noisy images to evaluate the distributed framework.
+
 """
 
 # %%
 import torch
-import torch.nn.functional as F
 from deepinv.physics import Blur, stack
 from deepinv.physics.blur import gaussian_blur
 from deepinv.utils.demo import load_example
@@ -45,7 +67,6 @@ from deepinv.utils.plotting import plot
 from deepinv.distributed import DistributedContext, distribute
 
 
-# %%
 def create_stacked_physics(device, img_size=1024):
     """
     Create stacked physics operators with different Gaussian blur kernels.
@@ -55,24 +76,13 @@ def create_stacked_physics(device, img_size=1024):
     :returns: Tuple of (stacked_physics, clean_image)
     """
     # Load example image
-    img = load_example(
-        "CBSD_0010.png", grayscale=False, device=device, img_size=img_size
+    clean_image = load_example(
+        "CBSD_0010.png",
+        grayscale=False,
+        device=device,
+        img_size=img_size,
+        resize_mode="resize",
     )
-
-    # Resize image so that max dimension equals img_size
-    _, _, h, w = img.shape
-    max_dim = max(h, w)
-
-    if max_dim != img_size:
-        scale_factor = img_size / max_dim
-        new_h = int(h * scale_factor)
-        new_w = int(w * scale_factor)
-
-        clean_image = F.interpolate(
-            img, size=(new_h, new_w), mode="bicubic", align_corners=False
-        )
-    else:
-        clean_image = img
 
     # Create different Gaussian blur kernels
     kernels = [
@@ -99,19 +109,18 @@ def create_stacked_physics(device, img_size=1024):
     return stacked_physics, clean_image
 
 
-"""Run distributed physics demonstration."""
 # %%
-# ============================================================================
-# CONFIGURATION
-# ============================================================================
+# ------------------------------------
+# Configuration of parallel physics
+# ------------------------------------
 
 img_size = 512
 
 
 # %%
-# ============================================================================
-# DISTRIBUTED CONTEXT
-# ============================================================================
+# ---------------------------------------------
+# Define distributed context and run algorithm
+# ---------------------------------------------
 
 # Initialize distributed context (handles single and multi-process automatically)
 with DistributedContext(seed=42) as ctx:
@@ -123,9 +132,9 @@ with DistributedContext(seed=42) as ctx:
         print(f"\nRunning on {ctx.world_size} process(es)")
         print(f"   Device: {ctx.device}")
 
-    # ============================================================================
-    # STEP 1: Create stacked physics operators
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 1: Create stacked physics operators
+    # ---------------------------------------------------------------------------
 
     stacked_physics, clean_image = create_stacked_physics(ctx.device, img_size=img_size)
 
@@ -136,9 +145,9 @@ with DistributedContext(seed=42) as ctx:
             f"   Operator types: {[type(p).__name__ for p in stacked_physics.physics_list]}"
         )
 
-    # ============================================================================
-    # STEP 2: Distribute physics across processes
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 2: Distribute physics across processes
+    # ---------------------------------------------------------------------------
 
     distributed_physics = distribute(stacked_physics, ctx)
 
@@ -148,9 +157,9 @@ with DistributedContext(seed=42) as ctx:
             f"   Local operators on this rank: {len(distributed_physics.local_indexes)}"
         )
 
-    # ============================================================================
-    # STEP 3: Test forward operation (A)
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 3: Test forward operation (A)
+    # ---------------------------------------------------------------------------
 
     if ctx.rank == 0:
         print(f"\n Testing forward operation (A)...")
@@ -186,9 +195,9 @@ with DistributedContext(seed=42) as ctx:
         ), f"Distributed forward operation differs from non-distributed: max diff = {max_diff}"
         print(f"   Results match exactly!")
 
-    # ============================================================================
-    # STEP 4: Test adjoint operation (A^T)
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 4: Test adjoint operation (A^T)
+    # ---------------------------------------------------------------------------
 
     if ctx.rank == 0:
         print(f"\nTesting adjoint operation (A^T)...")
@@ -214,9 +223,9 @@ with DistributedContext(seed=42) as ctx:
         ), f"Distributed adjoint differs from non-distributed: max diff = {diff.max().item()}"
         print(f"   Results match exactly!")
 
-    # ============================================================================
-    # STEP 5: Test composition (A^T A)
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 5: Test composition (A^T A)
+    # ---------------------------------------------------------------------------
 
     if ctx.rank == 0:
         print(f"\nTesting composition (A^T A)...")
@@ -241,9 +250,9 @@ with DistributedContext(seed=42) as ctx:
         ), f"Distributed A^T A differs from non-distributed: max diff = {diff.max().item()}"
         print(f"   Results match exactly!")
 
-    # ============================================================================
-    # STEP 6: Visualize results (only on rank 0)
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 6: Visualize results (only on rank 0)
+    # ---------------------------------------------------------------------------
 
     if ctx.rank == 0:
         print(f"\nVisualizing results...")

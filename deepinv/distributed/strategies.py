@@ -302,7 +302,7 @@ class OverlapTilingStrategy(DistributedSignalStrategy):
         -   If `int`, tiles only that dimension.
         -   If `tuple`, tiles specified dimensions.
     :param int | tuple[int, ...] patch_size: size of each patch, supports non-cuboid patch size.
-    :param int | tuple[int, ...] receptive_field_size: padding radius around each patch, supports non-cuboid receptive field size.
+    :param int | tuple[int, ...] overlap: padding radius around each patch, supports non-cuboid receptive field size.
     :param int | tuple[int, ...] | None stride: stride between patches. Default to the same value as `patch_size` for non-overlapping patches.
     :param str pad_mode: padding mode for edge patches.
     """
@@ -312,14 +312,14 @@ class OverlapTilingStrategy(DistributedSignalStrategy):
         img_size: Sequence[int],
         tiling_dims: int | tuple[int, ...] | None = None,
         patch_size: int | tuple[int, ...] = 256,
-        receptive_field_size: int | tuple[int, ...] = 32,
+        overlap: int | tuple[int, ...] = 32,
         stride: int | tuple[int, ...] | None = None,
         pad_mode: str = "reflect",
         **kwargs,
     ):
         super().__init__(img_size)
         self.patch_size = patch_size
-        self.receptive_field_size = receptive_field_size
+        self.overlap = overlap
         self.stride = stride
         self.pad_mode = pad_mode
         self.tiling_dims = tiling_dims
@@ -343,7 +343,7 @@ class OverlapTilingStrategy(DistributedSignalStrategy):
             self.tiling_dims, tuple
         ), "tiling_dims must be a tuple at this point"
 
-        # Normalize patch_size and receptive_field_size to tuples
+        # Normalize patch_size and overlap to tuples
         ndim_tiled = len(self.tiling_dims)
 
         def to_tuple(val):
@@ -352,7 +352,7 @@ class OverlapTilingStrategy(DistributedSignalStrategy):
             return val
 
         p_sizes = to_tuple(self.patch_size)
-        rf_sizes = to_tuple(self.receptive_field_size)
+        rf_sizes = to_tuple(self.overlap)
 
         # Check dimensions
         shape = self.img_size
@@ -392,16 +392,16 @@ class OverlapTilingStrategy(DistributedSignalStrategy):
                 if isinstance(self.patch_size, tuple)
                 else new_p_sizes[0]
             )
-            self.receptive_field_size = (
+            self.overlap = (
                 tuple(new_rf_sizes)
-                if isinstance(self.receptive_field_size, tuple)
+                if isinstance(self.overlap, tuple)
                 else new_rf_sizes[0]
             )
 
         self._global_slices, self._metadata = tiling_splitting_strategy(
             self.img_size,
             patch_size=self.patch_size,
-            receptive_field_size=self.receptive_field_size,
+            overlap=self.overlap,
             stride=self.stride,
             tiling_dims=self.tiling_dims,
             pad_mode=self.pad_mode,

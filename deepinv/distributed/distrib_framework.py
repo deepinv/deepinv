@@ -236,6 +236,7 @@ class DistributedContext:
 
         :param torch.Tensor tensor: tensor to broadcast (modified in-place).
         :param int src: source rank to broadcast from. Default is `0`.
+
         :return: the broadcasted tensor.
         """
 
@@ -1154,7 +1155,7 @@ class DistributedProcessing:
         and reduction. Either a strategy name (``'basic'``, ``'overlap_tiling'``) or a custom strategy instance.
         Default is ``'overlap_tiling'`` which handles overlapping patches with smooth blending.
     :param dict | None strategy_kwargs: additional keyword arguments passed to the strategy constructor
-        when using string strategy names. Examples: ``patch_size``, ``receptive_field_size``, ``tiling_dims``. Default is `None`.
+        when using string strategy names. Examples: ``patch_size``, ``overlap``, ``tiling_dims``. Default is `None`.
     :param int | None max_batch_size: maximum number of patches to process in a single batch.
         If ``None``, all local patches are batched together. Set to ``1`` for sequential processing
         (useful for memory-constrained scenarios). Higher values increase throughput but require more memory. Default is `None`.

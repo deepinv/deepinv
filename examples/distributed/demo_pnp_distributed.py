@@ -1,42 +1,63 @@
 """
 Distributed Plug-and-Play (PnP) Reconstruction
-==============================================
+------------------------------------------------
 
-This example demonstrates how to use the distributed framework for PnP reconstruction
-using the distribute() API. The framework automatically distributes multiple physics
-operators and a denoiser across multiple processes.
+Many large-scale imaging problems involve operators that can be naturally decomposed as a stack of
+multiple sub-operators:
+
+.. math::
+
+          A(x) = \begin{bmatrix} A_1(x) \\ \vdots \\ A_N(x) \end{bmatrix}
+
+where each sub-operator :math:`A_i` is computationally expensive. Examples include multi-coil MRI,
+radio interferometry, or multi-sensor imaging systems. Additionally, the images being reconstructed
+can be very large, making it challenging to fit the entire reconstruction process into a single device's memory.
+
+The distributed framework enables you to parallelize both the physics computations (distributing operators
+across devices) and the denoising step (using image tiling for large images). This allows you to solve
+large-scale inverse problems that would otherwise be difficult to solve on a single device.
+
+This example demonstrates how to implement a distributed Plug-and-Play (PnP) reconstruction algorithm
+where both the stacked physics operators and the denoiser are distributed across multiple processes using
+:func:`deepinv.distributed.distribute`.
 
 **Usage:**
 
 .. code-block:: bash
 
     # Single process
-    python examples/distrib/demo_pnp_distributed.py
+    python examples/distributed/demo_pnp_distributed.py
+
+.. code-block:: bash
 
     # Multi-process with torchrun (2 processes)
-    python -m torch.distributed.run --nproc_per_node=2 examples/distrib/demo_pnp_distributed.py
+    python -m torch.distributed.run --nproc_per_node=2 examples/distributed/demo_pnp_distributed.py
 
 **Key Features:**
 
-- Distribute multiple physics operators across processes
+- Distribute multiple physics operators across processes/devices
 - Distribute denoiser with image tiling
 - PnP algorithm with distributed components
-- L2 data fidelity gradient computed using data_fidelity.grad()
+- :math:`\ell_2` data fidelity gradient computed using :math:`deepinv.distributed.DistributedDataFidelity.grad`
 
 **Key Steps:**
 
 1. Create stacked physics operators and measurements with reproducible noise
 2. Initialize distributed context
-3. Distribute physics with dinv.distributed.distribute()
+3. Distribute physics with :func:`deepinv.distributed.distribute`
 4. Distribute denoiser with tiling configuration
-5. Create PnP prior and L2 data fidelity
-6. Run PnP iterations using data_fidelity.grad() for gradient computation
+5. Create PnP prior and :math:`\ell_2` data fidelity
+6. Run PnP iterations using :math:`deepinv.distributed.DistributedDataFidelity.grad` for gradient computation
 7. Visualize results and track convergence
+
+Import modules and define noisy image generation
+---------------------------------------------------------
+We start by importing `torch` and the modules of deepinv that we use in this example. We also define a function that generates noisy images to evaluate the distributed framework.
+
 """
 
 # %%
 import torch
-import torch.nn.functional as F
 from deepinv.physics import GaussianNoise, stack
 from deepinv.physics.blur import Blur, gaussian_blur
 from deepinv.utils.demo import load_example
@@ -50,7 +71,6 @@ from deepinv.models import DRUNet
 from deepinv.distributed import DistributedContext, distribute
 
 
-# %%
 def create_physics_and_measurements(device, img_size=1024, seed=42):
     """
     Create stacked physics operators and measurements using example images.
@@ -62,22 +82,13 @@ def create_physics_and_measurements(device, img_size=1024, seed=42):
     :returns: Tuple of (stacked_physics, measurements, clean_image)
     """
     # Load example image in original size
-    img = load_example("CBSD_0010.png", grayscale=False, device=device)
-
-    # Resize image so that max dimension equals img_size
-    _, _, h, w = img.shape
-    max_dim = max(h, w)
-
-    if max_dim != img_size:
-        scale_factor = img_size / max_dim
-        new_h = int(h * scale_factor)
-        new_w = int(w * scale_factor)
-
-        clean_image = F.interpolate(
-            img, size=(new_h, new_w), mode="bicubic", align_corners=False
-        )
-    else:
-        clean_image = img
+    clean_image = load_example(
+        "CBSD_0010.png",
+        grayscale=False,
+        device=device,
+        img_size=img_size,
+        resize_mode="resize",
+    )
 
     # Create different Gaussian blur kernels
     kernels = [
@@ -115,23 +126,22 @@ def create_physics_and_measurements(device, img_size=1024, seed=42):
     return stacked_physics, measurements, clean_image
 
 
-"""Run distributed PnP reconstruction."""
 # %%
-# ============================================================================
-# CONFIGURATION
-# ============================================================================
+# ------------------------------------
+# Configuration of parallel pnp
+# ------------------------------------
 
 num_iterations = 20
 step_size = 0.5
 denoiser_sigma = 0.05
 img_size = 512
 patch_size = 256
-receptive_field_size = 64
+overlap = 64
 
 # %%
-# ============================================================================
-# DISTRIBUTED CONTEXT
-# ============================================================================
+# ---------------------------------------------
+# Define distributed context and run algorithm
+# ---------------------------------------------
 
 # Initialize distributed context (handles single and multi-process automatically)
 with DistributedContext(seed=42) as ctx:
@@ -191,7 +201,7 @@ with DistributedContext(seed=42) as ctx:
     if ctx.rank == 0:
         print(f"\n Loading and distributing denoiser...")
         print(f"   Patch size: {patch_size}x{patch_size}")
-        print(f"   Receptive field radius: {receptive_field_size}")
+        print(f"   Receptive field radius: {overlap}")
 
     denoiser = DRUNet(pretrained="download").to(ctx.device)
 
@@ -199,7 +209,7 @@ with DistributedContext(seed=42) as ctx:
         denoiser,
         ctx,
         patch_size=patch_size,
-        receptive_field_size=receptive_field_size,
+        overlap=overlap,
     )
 
     if ctx.rank == 0:

@@ -38,7 +38,7 @@ def tiling_splitting_strategy(
     img_size: Sequence[int],
     *,
     patch_size: int | tuple[int, ...],
-    receptive_field_size: int | tuple[int, ...] = 0,
+    overlap: int | tuple[int, ...] = 0,
     stride: int | tuple[int, ...] | None = None,
     tiling_dims: int | tuple[int, ...] | None = None,
     pad_mode: str = "reflect",
@@ -54,7 +54,7 @@ def tiling_splitting_strategy(
 
     :param Sequence[int] img_size: shape of the input signal tensor.
     :param int | tuple[int, ...] patch_size: size of each patch (inner size).
-    :param int | tuple[int, ...] receptive_field_size: padding radius around each patch for receptive field (halo).
+    :param int | tuple[int, ...] overlap: padding radius around each patch for receptive field (halo).
     :param int | tuple[int, ...] | None stride: stride between patches. If `None`, uses patch_size.
     :param int | tuple[int, ...] | None tiling_dims: dimensions to tile.
         -   If `None`, defaults to last N dimensions where N is `len(patch_size)` if `patch_size` is `tuple`, else `2`.
@@ -91,7 +91,7 @@ def tiling_splitting_strategy(
         return tuple(val)
 
     p_sizes = to_tuple(patch_size, "patch_size")
-    rf_sizes = to_tuple(receptive_field_size, "receptive_field_size")
+    rf_sizes = to_tuple(overlap, "overlap")
 
     if stride is None:
         strides = p_sizes
@@ -206,7 +206,7 @@ def tiling_splitting_strategy(
         "window_shape": tuple(p + 2 * rf for p, rf in zip(p_sizes, rf_sizes)),
         "inner_patch_size": p_sizes,
         "grid_shape": tuple(len(s) for s in dim_starts),
-        "receptive_field_size": rf_sizes if len(set(rf_sizes)) > 1 else rf_sizes[0],
+        "overlap": rf_sizes if len(set(rf_sizes)) > 1 else rf_sizes[0],
         "stride": strides,
     }
     return global_slices, metadata
