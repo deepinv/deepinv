@@ -1133,15 +1133,3 @@ def test_trained_model_not_used_for_no_learning_metrics(
 
         assert math.isclose(metrics["PSNR"], model_performance)
         assert math.isclose(metrics["PSNR no learning"], learning_free_performance)
-
-        y_hat = physics.A(x_net)
-
-        ### Train Generator
-        if train:
-            loss_total = 0
-            for l in losses:
-                loss = l(
-                    x=x,
-                    x_net=x_net,
-                    y=y,
-            
