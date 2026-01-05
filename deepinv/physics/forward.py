@@ -707,7 +707,7 @@ class LinearPhysics(Physics):
             \underset{x}{\arg\min} \; \frac{\gamma}{2}\|Ax-y\|^2 + \frac{1}{2}\|x-z\|^2
 
         :param torch.Tensor y: measurements tensor
-        :param torch.Tensor z: signal tensor
+        :param torch.Tensor, float, int, None z: signal tensor
         :param float gamma: hyperparameter of the proximal operator
         :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.utils.least_squares` for details
         :param int max_iter: maximum number of iterations for iterative solvers
@@ -723,6 +723,11 @@ class LinearPhysics(Physics):
             self.tol = tol
         if solver is not None:
             self.solver = solver
+
+        if z is None or isinstance(z, float) or isinstance(z, int):
+            z = torch.full_like(
+                self.A_adjoint(y), fill_value=0.0 if z is None else float(z)
+            )
 
         if not self.implicit_backward_solver:
             return least_squares(
@@ -765,7 +770,7 @@ class LinearPhysics(Physics):
         This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
         :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :param str solver: least squares solver to use. Choose between 'CG', 'lsqr' and 'BiCGStab'. See :func:`deepinv.optim.utils.least_squares` for more details.
+        :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.utils.least_squares` for more details.
         :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.
 
         """
