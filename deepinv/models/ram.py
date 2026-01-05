@@ -5,6 +5,7 @@ from pathlib import Path
 from warnings import warn
 import torch
 import torch.nn as nn
+from torch import Tensor
 
 import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
