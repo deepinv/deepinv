@@ -28,6 +28,13 @@ class WaveletNoiseEstimator(nn.Module):
     """
 
     def __init__(self):
+        try:
+            import pywt
+            import ptwt
+        except ImportError:  # pragma: no cover
+            raise RuntimeError(
+                "WaveletNoiseEstimator requires the Pytorch Wavelets package. Please install it (pip install ptwt)"
+            )
         super(WaveletNoiseEstimator, self).__init__()
 
     @staticmethod
