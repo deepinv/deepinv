@@ -140,3 +140,5 @@ Identification Models
    :nosignatures:
 
    deepinv.models.KernelIdentificationNetwork
+   deepinv.models.WaveletNoiseEstimator
+   deepinv.models.PatchCovarianceNoiseEstimator
