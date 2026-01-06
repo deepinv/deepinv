@@ -52,7 +52,7 @@ class MAE(Metric):
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         return cal_mae(x_net, x)
 
 
@@ -90,7 +90,7 @@ class MSE(Metric):
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         return cal_mse(x_net, x)
 
 
@@ -126,13 +126,13 @@ class NMSE(MSE):
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def __init__(self, method="l2", **kwargs):
+    def __init__(self, method: str = "l2", **kwargs):
         super().__init__(**kwargs)
         self.method = method
         if self.method not in ("l2",):
             raise ValueError("method must be l2.")
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         if self.method == "l2":
             norm = cal_mse(x, 0)
         return cal_mse(x_net, x) / norm
@@ -177,9 +177,9 @@ class SSIM(Metric):
 
     def __init__(
         self,
-        multiscale=False,
-        max_pixel=1.0,
-        min_pixel=0.0,
+        multiscale: bool = False,
+        max_pixel: float = 1.0,
+        min_pixel: float = 0.0,
         torchmetric_kwargs: dict = None,
         **kwargs,
     ):
@@ -202,10 +202,10 @@ class SSIM(Metric):
         self.min_pixel = min_pixel
         self.lower_better = False
 
-    def invert_metric(self, m):
+    def invert_metric(self, m: Tensor) -> Tensor:
         return 1.0 - m
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         max_pixel = (
             self.max_pixel
             if self.max_pixel is not None
@@ -280,13 +280,13 @@ class PSNR(Metric):
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def __init__(self, max_pixel=1, min_pixel=0, **kwargs):
+    def __init__(self, max_pixel: float = 1, min_pixel: float = 0, **kwargs):
         super().__init__(**kwargs)
         self.max_pixel = max_pixel
         self.min_pixel = min_pixel
         self.lower_better = False
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         max_pixel = (
             self.max_pixel
             if self.max_pixel is not None
@@ -323,7 +323,7 @@ class SNR(Metric):
         super().__init__(**kwargs)
         self.lower_better = False
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         return signal_noise_ratio(x_net, x)
 
 
@@ -358,13 +358,13 @@ class L1L2(Metric):
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def __init__(self, alpha=0.5, **kwargs):
+    def __init__(self, alpha: float = 0.5, **kwargs):
         super().__init__(**kwargs)
         self.alpha = alpha
         self.l1 = MAE().metric
         self.l2 = MSE().metric
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         l1 = self.l1(x_net, x)
         l2 = self.l2(x_net, x)
         return self.alpha * l1 + (1 - self.alpha) * l2
@@ -408,12 +408,12 @@ class LpNorm(Metric):
 
     """
 
-    def __init__(self, p=2, onesided=False, **kwargs):
+    def __init__(self, p: int = 2, onesided: bool = False, **kwargs):
         super().__init__(**kwargs)
         self.p = p
         self.onesided = onesided
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         if self.onesided:
             diff = torch.maximum(x_net, x)
         else:
@@ -479,7 +479,7 @@ class QNR(Metric):
         )  # Wang-Bovik
         self.lower_better = False
 
-    def invert_metric(self, m):
+    def invert_metric(self, m: Tensor) -> Tensor:
         return 1.0 - m
 
     def D_lambda(self, hrms: Tensor, lrms: Tensor) -> float:
@@ -584,7 +584,7 @@ class SpectralAngleMapper(Metric):
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         from torchmetrics.functional.image import spectral_angle_mapper
 
         return spectral_angle_mapper(x_net, x, reduction="none").mean(
@@ -975,7 +975,7 @@ class CosineSimilarity(Metric):
         self.cos = torch.nn.functional.cosine_similarity
         self.lower_better = False
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         # flatten everything except batch dimension
         # cosine_similarity requires feature dimension last
         B = x.shape[0]
@@ -988,5 +988,5 @@ class CosineSimilarity(Metric):
         # our Metric base class applies reduction afterward
         return sim
 
-    def invert_metric(self, m):
+    def invert_metric(self, m: Tensor) -> Tensor:
         return 1.0 - m
