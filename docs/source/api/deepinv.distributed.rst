@@ -6,33 +6,7 @@ multiple devices and processes. The core function :func:`~deepinv.distributed.di
 wraps your objects (stacked physics, denoisers, data fidelity) into their
 distributed counterparts, handling all the boilerplate for you.
 
-**Main Components:**
-
-   - :func:`~deepinv.distributed.distribute`: Universal distributor for DeepInverse objects
-   - :class:`~deepinv.distributed.DistributedContext`: Manages distributed execution environment
-
-Simply pass your DeepInverse object and a :class:`~deepinv.distributed.DistributedContext` to the
-:func:`~deepinv.distributed.distribute` function. It automatically detects the object type and returns
-the appropriate distributed wrapper:
-
-   - **Stacked Physics or list of Physics** are turned to :class:`~deepinv.distributed.DistributedStackedPhysics` or :class:`~deepinv.distributed.DistributedStackedLinearPhysics`
-   - **Denoisers** are turned to :class:`~deepinv.distributed.DistributedProcessing` (with spatial tiling)
-   - **Data fidelity** are turned to :class:`~deepinv.distributed.DistributedDataFidelity`
-
-**Key Benefits:**
-
-   - **Automatic Type Detection**: The API figures out what you're distributing
-   - **Production Ready**: Handles multi-GPU, multi-node setups automatically
-   - **Seamless Integration**: Works naturally with DeepInverse optimization algorithms
-
-The returned objects work seamlessly with DeepInverse's optimization algorithms and
-provide both local operations and automatic global reduction when needed.
-
-**The distributed framework is designed for:**
-
-   - **Multi-operator problems**: Parallel processing of multiple physics operators
-   - **Large images**: Spatial tiling for images or volumes too large for single-device memory
-   - **Acceleration**: Leveraging multiple devices for faster reconstruction
+See the :ref:`user guide on distributed reconstruction<distributed>` for more information.
 
 Main API
 --------
