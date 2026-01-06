@@ -1522,3 +1522,33 @@ def test_kernel_identification(channels, filters, blur_kernel_size, device):
         blur_kernel_size,
     )
     assert params["multipliers"].shape == (b, 1, filters, pix, pix)
+
+
+@pytest.mark.parametrize("model_name", ["wavelets", "pca"])
+@pytest.mark.parametrize("mode", ["image", "synthetic"])
+@pytest.mark.parametrize("channels", [1, 2, 3])
+@pytest.mark.parametrize("sigma", [0.1, 0.5, 0.01])
+def test_noise_estimators(model_name, mode, channels, sigma, device, rng):
+    if model_name == "pca":
+        model = dinv.models.PatchCovarianceNoiseEstimator().to(device)
+    elif model_name == "wavelets":
+        model = dinv.models.WaveletNoiseEstimator().to(device)
+    else:
+        raise NotImplementedError
+
+    if mode == "image":
+        x = dinv.utils.load_example("butterfly.png").to(device)
+        x = x[:, :channels, :, :]
+    else:
+        x = torch.zeros((1, channels, 256, 256))
+
+    y = x + sigma * torch.randn_like(x).to(device)
+
+    sigma_est = model(y)
+
+    if mode == "synthetic":
+        assert (sigma_est - sigma).abs() / sigma < 5e-2  # 5 % error
+    elif mode == "image":
+        assert (
+            sigma_est - sigma
+        ) < sigma + 0.01  # error less than 2 * sigma + quantization std

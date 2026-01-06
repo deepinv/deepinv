@@ -60,6 +60,33 @@ def test_pad(model, L, modulo=16):
     return E
 
 
+def patchify(im, pch_size, stride=1):
+    r"""
+    Patchifying images in pch_size patches.
+
+    :param torch.Tensor im: input image
+    :param (int, int) pch_size: patch size
+    :param int stride: stride
+    """
+    pch_H = pch_W = pch_size
+    stride_H = stride_W = stride
+
+    B, C, H, W = im.shape
+    num_H = (H - pch_H) // stride_H + 1
+    num_W = (W - pch_W) // stride_W + 1
+    num_pch = num_H * num_W
+
+    # Use unfold to extract patches
+    patches = im.unfold(2, pch_H, stride_H).unfold(
+        3, pch_W, stride_W
+    )  # B x C x num_H x num_W x pch_H x pch_W
+
+    # Rearrange and reshape to match the desired output
+    patches = patches.permute(0, 1, 4, 5, 2, 3).reshape(B, C, pch_H, pch_W, num_pch)
+
+    return patches
+
+
 def test_onesplit(model, L, refield=32, sf=1):
     """
     Changes the size of the image to fit the model's expected image size.
