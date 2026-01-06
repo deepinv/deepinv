@@ -17,6 +17,8 @@ class WaveletNoiseEstimator(nn.Module):
 
     This estimator was proposed in :footcite:t:`donoho1994ideal`.
 
+    |sep|
+
     :Examples:
 
         >>> import torch
@@ -63,7 +65,10 @@ class PatchCovarianceNoiseEstimator(nn.Module):
 
     This method was initially proposed in :footcite:t:`chen2015efficient`.
 
+    |sep|
+
     :Examples:
+
     >>> import torch
     >>> from deepinv.models import PatchCovarianceNoiseEstimator
     >>> # set seed

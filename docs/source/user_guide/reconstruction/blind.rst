@@ -52,10 +52,11 @@ The library provides the following parameter estimation models/algorithms:
      - (non-learned)
      - :class:`GaussianNoise <deepinv.physics.GaussianNoise>`
      - `sigma`
+     -
 
    * - :class:`Patch <deepinv.physics.PatchCovarianceNoiseEstimator>`
      - C=1, 2, 3
      - (non-learned)
      - :class:`GaussianNoise <deepinv.physics.GaussianNoise>`
      - `sigma`
-
+     -
