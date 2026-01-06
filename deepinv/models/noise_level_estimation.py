@@ -1,8 +1,12 @@
 import torch
 import torch.nn as nn
 
-import pywt
-import ptwt
+try:
+    import pywt
+    import ptwt
+except ImportError:
+    pywt = None
+    ptwt = None
 
 from deepinv.models.utils import patchify
 
@@ -28,12 +32,10 @@ class WaveletNoiseEstimator(nn.Module):
     """
 
     def __init__(self):
-        try:
-            import pywt
-            import ptwt
-        except ImportError:  # pragma: no cover
+        if ptwt is None:
             raise RuntimeError(
-                "WaveletNoiseEstimator requires the Pytorch Wavelets package. Please install it (pip install ptwt)"
+                "WaveletDenoiser requires the Pytorch Wavelets package. "
+                "Please install it (pip install ptwt)"
             )
         super(WaveletNoiseEstimator, self).__init__()
 

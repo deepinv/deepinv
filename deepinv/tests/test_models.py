@@ -1536,6 +1536,14 @@ def test_noise_estimators(model_name, mode, channels, sigma, device, rng):
     else:
         raise NotImplementedError
 
+    if model_name == "wavelets":
+        pytest.importorskip(
+            "ptwt",
+            reason="This test requires pytorch_wavelets. It should be "
+            "installed with `pip install "
+            "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+        )
+
     if mode == "image":
         x = dinv.utils.load_example("butterfly.png").to(device)
         x = x[:, :channels, :, :]
