@@ -212,7 +212,7 @@ class LeastSquaresSolver(torch.autograd.Function):
 
     .. note::
 
-        This function uses a :func:`least squares <deepinv.optim.utils.least_squares>` solver under the hood, which supports various solvers such as Conjugate Gradient (CG), BiCGStab, LSQR, and MinRes (see :func:`deepinv.optim.linear.least_squares` for more details).
+        This function uses a :func:`least squares <deepinv.optim.linear.least_squares>` solver under the hood, which supports various solvers such as Conjugate Gradient (CG), BiCGStab, LSQR, and MinRes (see :func:`deepinv.optim.linear.least_squares` for more details).
 
     The backward pass computes the gradients with respect to the inputs using implicit differentiation.
     """
