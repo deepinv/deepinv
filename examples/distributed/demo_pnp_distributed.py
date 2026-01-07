@@ -153,9 +153,9 @@ with DistributedContext(seed=42) as ctx:
         print(f"\nRunning on {ctx.world_size} process(es)")
         print(f"   Device: {ctx.device}")
 
-    # ============================================================================
-    # STEP 1: Create stacked physics operators and measurements
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 1: Create stacked physics operators and measurements
+    # ---------------------------------------------------------------------------
 
     stacked_physics, measurements, clean_image = create_physics_and_measurements(
         ctx.device, img_size=img_size
@@ -166,9 +166,9 @@ with DistributedContext(seed=42) as ctx:
         print(f"   Image shape: {clean_image.shape}")
         print(f"   Measurements type: {type(measurements).__name__}")
 
-    # ============================================================================
-    # STEP 2: Distribute physics operators
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 2: Distribute physics operators
+    # ---------------------------------------------------------------------------
 
     if ctx.rank == 0:
         print(f"\n🔧 Distributing physics operators...")
@@ -181,9 +181,9 @@ with DistributedContext(seed=42) as ctx:
             f"   Local operators on this rank: {len(distributed_physics.local_indexes)}"
         )
 
-    # ============================================================================
-    # STEP 3: Create L2 data fidelity
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 3: Create L2 data fidelity
+    # ---------------------------------------------------------------------------
 
     data_fidelity = L2()
 
@@ -194,9 +194,9 @@ with DistributedContext(seed=42) as ctx:
     if ctx.rank == 0:
         print(f"\nCreated L2 data fidelity")
 
-    # ============================================================================
-    # STEP 4: Distribute denoiser with tiling
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 4: Distribute denoiser with tiling
+    # ---------------------------------------------------------------------------
 
     if ctx.rank == 0:
         print(f"\n Loading and distributing denoiser...")
@@ -215,18 +215,18 @@ with DistributedContext(seed=42) as ctx:
     if ctx.rank == 0:
         print(f"   Distributed denoiser created")
 
-    # ============================================================================
-    # STEP 5: Create PnP prior with distributed denoiser
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 5: Create PnP prior with distributed denoiser
+    # ---------------------------------------------------------------------------
 
     prior = PnP(denoiser=distributed_denoiser)
 
     if ctx.rank == 0:
         print(f"\nCreated PnP prior with distributed denoiser")
 
-    # ============================================================================
-    # STEP 6: Run distributed PnP algorithm
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 6: Run distributed PnP algorithm
+    # ---------------------------------------------------------------------------
 
     if ctx.rank == 0:
         print(f"\nRunning PnP reconstruction ({num_iterations} iterations)...")
@@ -260,9 +260,9 @@ with DistributedContext(seed=42) as ctx:
                         f"   Iteration {it+1}/{num_iterations}, PSNR: {psnr_val:.2f} dB"
                     )
 
-    # ============================================================================
-    # STEP 7: Compare with non-distributed PnP (only on rank 0)
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 7: Compare with non-distributed PnP (only on rank 0)
+    # ---------------------------------------------------------------------------
 
     if ctx.rank == 0:
         print(f"\nComparing with non-distributed PnP reconstruction...")
@@ -298,9 +298,9 @@ with DistributedContext(seed=42) as ctx:
         ), f"PSNR difference too large: {abs(psnr_dist - psnr_ref):.2f} dB"
         print(f"   Results match well!")
 
-    # ============================================================================
-    # STEP 8: Visualize results (only on rank 0)
-    # ============================================================================
+    # ---------------------------------------------------------------------------
+    # Step 8: Visualize results (only on rank 0)
+    # ---------------------------------------------------------------------------
 
     if ctx.rank == 0:
         print(f"\nReconstruction completed!")
