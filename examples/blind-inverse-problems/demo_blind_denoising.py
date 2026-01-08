@@ -205,7 +205,7 @@ plt.show()
 # ~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # Finally, we can also use blind denoising models that are trained to denoise images without knowing the noise level.
-# For instance, we can use the SCUNet model from :footcite:t:`zhang2019scunet`.
+# For instance, we can use the SCUNet model from :footcite:t:`zhang2023practical`.
 
 blind_denoiser = dinv.models.SCUNet()
 
