@@ -202,7 +202,7 @@ class LeastSquaresSolver(torch.autograd.Function):
     r"""
     Custom autograd function for the least squares solver to enable O(1) memory backward propagation using implicit differentiation.
 
-    The forward pass solves the following problem using :func:`deepinv.optim.utils.least_squares`:
+    The forward pass solves the following problem using :func:`deepinv.optim.linear.least_squares`:
 
     .. math::
 
@@ -212,7 +212,7 @@ class LeastSquaresSolver(torch.autograd.Function):
 
     .. note::
 
-        This function uses a :func:`least squares <deepinv.optim.utils.least_squares>` solver under the hood, which supports various solvers such as Conjugate Gradient (CG), BiCGStab, LSQR, and MinRes (see :func:`deepinv.optim.utils.least_squares` for more details).
+        This function uses a :func:`least squares <deepinv.optim.linear.least_squares>` solver under the hood, which supports various solvers such as Conjugate Gradient (CG), BiCGStab, LSQR, and MinRes (see :func:`deepinv.optim.linear.least_squares` for more details).
 
     The backward pass computes the gradients with respect to the inputs using implicit differentiation.
     """
@@ -353,7 +353,7 @@ def least_squares_implicit_backward(
 ) -> Tensor:
     r"""
     Least squares solver with O(1) memory backward propagation using implicit differentiation.
-    The function is similar to :func:`deepinv.optim.utils.least_squares` for the forward pass, but uses implicit differentiation for the backward pass, which reduces memory consumption to O(1) in the number of iterations.
+    The function is similar to :func:`deepinv.optim.linear.least_squares` for the forward pass, but uses implicit differentiation for the backward pass, which reduces memory consumption to O(1) in the number of iterations.
 
     This function supports backpropagation with respect to the inputs :math:`y`, :math:`z` and :math:`\gamma` and also with respect to the parameters of the physics operator :math:`A_\theta` if they require gradients. See :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constant_memory.py` and the notes below for more details.
 
@@ -382,7 +382,7 @@ def least_squares_implicit_backward(
 
     .. note::
 
-        This function only supports first-order gradients. Higher-order gradients are not supported. If you need higher-order gradients, please use :func:`deepinv.optim.utils.least_squares` instead but be aware that it requires storing all intermediate iterates, which can be memory-intensive.
+        This function only supports first-order gradients. Higher-order gradients are not supported. If you need higher-order gradients, please use :func:`deepinv.optim.linear.least_squares` instead but be aware that it requires storing all intermediate iterates, which can be memory-intensive.
 
     .. note::
 
