@@ -134,7 +134,7 @@ dinv.utils.plot(
 
 # %%
 # Which noise level estimator is best?
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # This will depend on several parameters, e.g. image size, content and noise level.
 # Above, the patch covariance estimator provides the best results. We can investigate the performance on the above image
