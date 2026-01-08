@@ -47,14 +47,14 @@ The library provides the following parameter estimation models/algorithms:
      - `coil_maps`
      - :ref:`MRI coil map estimation <sphx_glr_auto_examples_physics_demo_mri_tour.py>`.
 
-   * - :class:`WaveletNoiseEstimator <deepinv.physics.WaveletNoiseEstimator>`
+   * - :class:`WaveletNoiseEstimator <deepinv.models.WaveletNoiseEstimator>`
      - C=1, 2, 3
      - (non-learned)
      - :class:`GaussianNoise <deepinv.physics.GaussianNoise>`
      - `sigma`
      -
 
-   * - :class:`Patch <deepinv.physics.PatchCovarianceNoiseEstimator>`
+   * - :class:`Patch <deepinv.models.PatchCovarianceNoiseEstimator>`
      - C=1, 2, 3
      - (non-learned)
      - :class:`GaussianNoise <deepinv.physics.GaussianNoise>`
