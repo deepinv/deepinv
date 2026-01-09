@@ -169,6 +169,9 @@ priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play
    * - :class:`deepinv.optim.ScorePrior`
      - :math:`\nabla \reg{x}=\left(x-\operatorname{D}_{\sigma}(x)\right)/\sigma^2`
      - No
+   * - :class:`deepinv.optim.ZeroPrior`
+     - :math:`\regname(x) = 0`
+     - Yes
    * - :class:`deepinv.optim.Tikhonov`
      - :math:`\reg{x}=\|x\|_2^2`
      - Yes
@@ -409,5 +412,4 @@ Utils
 -----
 We provide some useful routines for optimization algorithms.
 
-- :class:`deepinv.optim.utils.conjugate_gradient` implements the conjugate gradient algorithm for solving linear systems.
-- :class:`deepinv.optim.utils.gradient_descent` implements the gradient descent algorithm.
+- :func:`deepinv.optim.utils.gradient_descent` implements the gradient descent algorithm.

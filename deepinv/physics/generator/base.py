@@ -174,7 +174,8 @@ class PhysicsGenerator(nn.Module):
                     params.keys()
                 ), "Different calls to PhysicsGenerator.step resulted in dictionaries with different keys"
                 for k in keys:
-                    params_sum[k] += params_partial_sum[k]
+                    if params_partial_sum[k] is not None:
+                        params_sum[k] += params_partial_sum[k]
         params_avg = {k: v / n for (k, v) in params_sum.items()}
         return params_avg
 

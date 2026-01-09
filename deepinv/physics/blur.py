@@ -9,7 +9,7 @@ from deepinv.physics.forward import LinearPhysics, DecomposablePhysics, adjoint_
 from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
-    filter_fft_2d,
+    filter_fft,
     product_convolution2d,
     product_convolution2d_adjoint,
     conv3d_fft,
@@ -149,7 +149,7 @@ class Downsampling(LinearPhysics):
                 filter = sinc_filter(factor, length=4 * factor, device=device)
 
             # `Fh` is initialized on `filter.device`
-            Fh = filter_fft_2d(filter, img_size, real_fft=False)
+            Fh = filter_fft(filter, img_size, real_fft=False)
             Fhc = torch.conj(Fh)
             Fh2 = Fhc * Fh
 
@@ -491,10 +491,11 @@ class BlurFFT(DecomposablePhysics):
 
 
 
-    :param tuple img_size: Input image size in the form (C, H, W).
-    :param torch.Tensor filter: torch.Tensor of size (1, c, h, w) containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
+    :param tuple img_size: Input image size in the form `(C, H, W)`.
+    :param torch.Tensor filter: torch.Tensor of size `(1, c, h, w)` containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
         :func:`deepinv.physics.blur.gaussian_blur`.
-    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to BlurFFT's device.
+    :param torch.device, str device: Device this physics lives on. If `filter` is modified via `physics.update_parameters()`, it will be automatically casted to BlurFFT's device.
+    :param str, torch.dtype dtype: data type of the tensors. Default is ``torch.float32``.
 
     |sep|
 
@@ -521,6 +522,7 @@ class BlurFFT(DecomposablePhysics):
         img_size: tuple[int, ...],
         filter: Tensor | None = None,
         device: str | torch.device = "cpu",
+        dtype: str | torch.dtype = torch.float32,
         **kwargs,
     ):
         super().__init__(device=device, **kwargs)
@@ -588,14 +590,14 @@ class BlurFFT(DecomposablePhysics):
             filter = filter.to(device)
             if img_size[0] > filter.shape[1]:
                 filter = filter.expand(-1, img_size[0], -1, -1)
-            mask = filter_fft_2d(filter, img_size)
+            mask = filter_fft(filter, img_size, dims=(-2, -1), real_fft=True)
             angle = torch.angle(mask)
             mask = torch.abs(mask).unsqueeze(-1)
             mask = torch.cat([mask, mask], dim=-1)
 
             parameters = {
                 "filter": filter,
-                "angle": torch.exp(-1.0j * angle),
+                "angle": torch.exp(-1.0j * angle), # phase: e^{i*angle}
                 "mask": mask,
             }
         else:

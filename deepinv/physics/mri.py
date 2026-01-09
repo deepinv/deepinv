@@ -327,7 +327,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         r"""
         Computes least squares solution to the MRI inverse problem, as proposed in `SENSE: Sensitivity encoding for fast MRI <https://doi.org/10.1002/(SICI)1522-2594(199911)42:5%3C952::AID-MRM16%3E3.0.CO;2-S>`_.
 
-        By default uses conjugate gradient solver. Overwrite default solver arguments by passing `kwargs`. See :func:`deepinv.optim.utils.least_squares` for details.
+        By default uses conjugate gradient solver. Overwrite default solver arguments by passing `kwargs`. See :func:`deepinv.optim.linear.least_squares` for details.
 
         The MRI mask or coil sensitivity maps are updated if passed as inputs to the function.
 

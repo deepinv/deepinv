@@ -13,17 +13,17 @@ class TVLoss(Loss):
     :param float weight: scalar weight for the TV loss.
     """
 
-    def __init__(self, weight=1.0):
+    def __init__(self, weight: float = 1.0):
         super(TVLoss, self).__init__()
         self.tv_loss_weight = weight
         self.name = "tv"
 
-    def forward(self, x_net, **kwargs):
+    def forward(self, x_net: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Computes the TV loss.
 
         :param torch.Tensor x_net: reconstructed image.
-        :return: torch.nn.Tensor loss of size (batch_size,)
+        :return: torch.Tensor loss of size (batch_size,)
         """
         batch_size = x_net.size()[0]
         h_x = x_net.size()[2]
@@ -43,5 +43,5 @@ class TVLoss(Loss):
         return self.tv_loss_weight * 2 * (h_tv / count_h + w_tv / count_w)
 
     @staticmethod
-    def tensor_size(t):
+    def tensor_size(t: torch.Tensor) -> int:
         return t.size()[1] * t.size()[2] * t.size()[3]
