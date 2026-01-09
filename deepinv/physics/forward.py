@@ -254,10 +254,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         """
         if kwargs:
             for key, value in kwargs.items():
-                if (
-                    value is not None
-                    and hasattr(self, key)
-                ):
+                if value is not None and hasattr(self, key):
 
                     if isinstance(value, torch.Tensor):
                         # Move `value` to the buffer's device before updating

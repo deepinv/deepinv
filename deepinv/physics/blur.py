@@ -87,7 +87,7 @@ class Downsampling(LinearPhysics):
         self.factor = filter_parameters["factor"]
 
         self.register_buffer("filter", filter_parameters["filter"])
-        
+
         # Used for prox_l2 computation when `use_fft=True` and `padding='circular'`
         self.register_buffer("Fh", filter_parameters["Fh"])
         self.register_buffer("Fhc", filter_parameters["Fhc"])
@@ -187,7 +187,7 @@ class Downsampling(LinearPhysics):
         """
         self.imsize_dynamic = x.shape[-3:]
         imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
-        
+
         filter_parameters = self.get_filter_parameters(
             img_size=imsize,
             filter=filter,
@@ -436,7 +436,7 @@ class Blur(LinearPhysics):
         assert (
             isinstance(filter, Tensor) or filter is None
         ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
-        
+
         self.register_buffer("filter", filter)
         self.to(device)
 
@@ -597,7 +597,7 @@ class BlurFFT(DecomposablePhysics):
 
             parameters = {
                 "filter": filter,
-                "angle": torch.exp(-1.0j * angle), # phase: e^{i*angle}
+                "angle": torch.exp(-1.0j * angle),  # phase: e^{i*angle}
                 "mask": mask,
             }
         else:
