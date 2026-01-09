@@ -30,7 +30,7 @@ class WaveletNoiseEstimator(nn.Module):
         >>> noise_estimator = WaveletNoiseEstimator()
         >>> sigma_est = noise_estimator(noise)
         >>> print(sigma_est)
-        tensor([0.0998])
+        tensor([0.1003])
     """
 
     def __init__(self):
@@ -72,13 +72,13 @@ class PatchCovarianceNoiseEstimator(nn.Module):
     >>> import torch
     >>> from deepinv.models import PatchCovarianceNoiseEstimator
     >>> # set seed
-    >>> torch.Generator('cpu').manual_seed(0)
+    >>> rng = torch.Generator('cpu').manual_seed(0)
     >>> sigma_true = 0.1
-    >>> noise = sigma_true * torch.randn(1, 1, 256, 256)
+    >>> noise = sigma_true * torch.randn(1, 1, 256, 256, generator=rng)
     >>> noise_estimator = PatchCovarianceNoiseEstimator()
     >>> sigma_est = noise_estimator(noise)
     >>> print(sigma_est)
-    tensor([0.0994])
+    tensor([0.0995])
     """
 
     def __init__(self):

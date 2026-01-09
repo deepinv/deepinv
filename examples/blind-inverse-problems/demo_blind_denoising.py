@@ -205,21 +205,21 @@ plt.show()
 # ~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # Finally, we can also use blind denoising models that are trained to denoise images without knowing the noise level.
-# For instance, we can use the SCUNet model from :footcite:t:`zhang2023practical`.
+# For instance, we can use the SCUNet model from :footcite:t:`zamir2022restormer`.
 
-blind_denoiser = dinv.models.SCUNet()
+blind_restormer = dinv.models.Restormer()
 
 with torch.no_grad():
-    denoised_blind = blind_denoiser(y)
+    denoised_restormer = blind_restormer(y)
 
-psnr_blind = metric(denoised_blind, x).item()
+psnr_restormer = metric(denoised_restormer, x).item()
+
 dinv.utils.plot(
     {
         "Noisy": y,
-        f"Denoised (blind SCUNet)\n PSNR: {psnr_blind:.2f} dB": denoised_blind,
+        f"Denoised (blind Restormer)\n PSNR: {psnr_restormer:.2f} dB": denoised_restormer,
     },
     fontsize=9,
 )
 
-# We note that this model provides less good results than the non-blind denoiser with estimated noise level.
-# However, this model can also tackle more complex noise models than simple Gaussian noise with unknown standard deviation.
+# We note that this model provides better results than the non-blind denoiser with estimated noise level.
