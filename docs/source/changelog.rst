@@ -9,12 +9,14 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
-
-- Add Cosine Similarity to the metrics (:gh:`944` by `Avithal Lautman`_)
+- Add :class:`deepinv.loss.metric.CosineSimilarity` to the metrics (:gh:`944` by `Avithal Lautman`_)
 
 Changed
 ^^^^^^^
-- - (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.  
+- (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.
+- Refactor folder structure of least-squares solvers (:gh:`1011` by `Julian Tachella`_)
+- Removed `eps` parameter from :func:`deepinv.optim.linear.conjugate_gradient` (:gh:`1011` by `Julian Tachella`_)
+
 
 Fixed
 ^^^^^
@@ -152,7 +154,7 @@ Fixed
 - NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
 - Fix the condition for break in compute_norm (:gh:`699` by `Quentin Barthélemy`_)
 - Python 3.9 backward compatibility and zip_strict (:gh:`707` by `Andrew Wang`_)
-- Fix numerical instability of :func:`deepinv.optim.utils.bicgstab` solver (:gh:`739` by `Minh Hai Nguyen`_)
+- Fix numerical instability of :func:`deepinv.optim.linear.bicgstab` solver (:gh:`739` by `Minh Hai Nguyen`_)
 
 
 v0.3.3
@@ -169,7 +171,7 @@ New Features
 Changed
 ^^^^^^^
 - Rename the normalizing function `deepinv.utils.rescale_img` to :func:`deepinv.utils.normalize_signal` (:gh:`641` by `Jérémy Scanvic`_)
-- Changed default linear solver from `CG` to :func:`deepinv.optim.utils.lsqr` (:gh:`658` by `Julian Tachella`_)
+- Changed default linear solver from `CG` to :func:`deepinv.optim.linear.lsqr` (:gh:`658` by `Julian Tachella`_)
 - Added positive clipping by default and gain minimum in :class:`deepinv.physics.PoissonGaussianNoise` (:gh:`658` by `Julian Tachella`_).
 
 Fixed

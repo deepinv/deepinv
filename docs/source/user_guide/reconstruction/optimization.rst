@@ -412,5 +412,4 @@ Utils
 -----
 We provide some useful routines for optimization algorithms.
 
-- :class:`deepinv.optim.utils.conjugate_gradient` implements the conjugate gradient algorithm for solving linear systems.
-- :class:`deepinv.optim.utils.gradient_descent` implements the gradient descent algorithm.
+- :func:`deepinv.optim.utils.gradient_descent` implements the gradient descent algorithm.
