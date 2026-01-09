@@ -72,7 +72,7 @@ class PatchCovarianceNoiseEstimator(nn.Module):
     >>> import torch
     >>> from deepinv.models import PatchCovarianceNoiseEstimator
     >>> # set seed
-    >>> torch.Generator(device).manual_seed(0)
+    >>> torch.Generator('cpu').manual_seed(0)
     >>> sigma_true = 0.1
     >>> noise = sigma_true * torch.randn(1, 1, 256, 256)
     >>> noise_estimator = PatchCovarianceNoiseEstimator()
