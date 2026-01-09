@@ -191,7 +191,7 @@ class Downsampling(LinearPhysics):
         filter_parameters = self.get_filter_parameters(
             img_size=imsize,
             filter=filter,
-            factor=self.factor if factor is None else factor,
+            factor=factor,
             device=x.device,
         )
 
@@ -235,7 +235,7 @@ class Downsampling(LinearPhysics):
         filter_parameters = self.get_filter_parameters(
             img_size=imsize,
             filter=filter,
-            factor=self.factor if factor is None else factor,
+            factor=factor,
             device=y.device,
         )
 
