@@ -520,9 +520,9 @@ class VBLExzOptimizer(LatentOptimizer):
             clip_grad_norm=clip_grad_norm,
         )
 
-        assert isinstance(self.prior, VAE) or isinstance(self.prior, MbtCAE), (
-            "VBLE-xz algorithm only supported for VAE and MbtCAE priors."
-        )
+        assert isinstance(self.prior, VAE) or isinstance(
+            self.prior, MbtCAE
+        ), "VBLE-xz algorithm only supported for VAE and MbtCAE priors."
 
         self.optimized_param_class = VBLExzParameters
 
