@@ -215,7 +215,7 @@ class Radon(nn.Module):
     ):
         super().__init__()
         self.circle = circle
-        theta = theta if theta is not None else torch.arange(180).to(device)
+        theta = theta if theta is not None else torch.arange(180, device=device)
         self.register_buffer("theta", theta, persistent=False)
         self.dtype = dtype
         self.parallel_computation = parallel_computation
@@ -368,7 +368,7 @@ class IRadon(nn.Module):
     ):
         super().__init__()
         self.circle = circle
-        theta = theta if theta is not None else torch.arange(180).to(device)
+        theta = theta if theta is not None else torch.arange(180, device=device)
         self.register_buffer("theta", theta, persistent=False)
         self.out_size = out_size
         self.in_size = in_size

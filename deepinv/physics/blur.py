@@ -587,7 +587,7 @@ class BlurFFT(DecomposablePhysics):
         if filter is not None and isinstance(filter, Tensor):
             filter = filter.to(device)
             if img_size[0] > filter.shape[1]:
-                filter = filter.repeat(1, img_size[0], 1, 1)
+                filter = filter.expand(-1, img_size[0], -1, -1)
             mask = filter_fft_2d(filter, img_size)
             angle = torch.angle(mask)
             mask = torch.abs(mask).unsqueeze(-1)
