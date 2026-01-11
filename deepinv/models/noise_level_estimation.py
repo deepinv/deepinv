@@ -109,9 +109,9 @@ class PatchCovarianceNoiseEstimator(nn.Module):
 
         noise_level = None
         for ii in range(-1, -d - 1, -1):
-            tau = sig_value[..., :ii].mean()
-            if torch.sum(sig_value[..., :ii] > tau) == torch.sum(
-                sig_value[..., :ii] < tau
+            tau = sig_value[..., :ii].mean(dim=-1)
+            if torch.sum(sig_value[..., :ii] > tau.unsqueeze(-1)) == torch.sum(
+                sig_value[..., :ii] < tau.unsqueeze(-1)
             ):
                 noise_level = torch.sqrt(tau)
                 return noise_level
