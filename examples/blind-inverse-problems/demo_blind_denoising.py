@@ -1,6 +1,6 @@
 r"""
 Blind denoising with noise level estimation
-========================================
+===========================================
 
 This example focuses on blind image Gaussian denoising, i.e. the problem
 
