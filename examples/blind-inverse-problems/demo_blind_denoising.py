@@ -1,5 +1,5 @@
 r"""
-Blind denoising & noise level estimation
+Blind denoising with noise level estimation
 ========================================
 
 This example focuses on blind image Gaussian denoising, i.e. the problem
@@ -172,8 +172,7 @@ for sigma in list_sigmas:
     )
     estimate_errors["patch_cov std"].append(sigma_patch_cov.std().item())
 
-# next, plot the results in semilogx with error bars
-
+# plot results
 import matplotlib.pyplot as plt
 
 plt.figure()
