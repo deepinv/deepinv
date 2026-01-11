@@ -102,7 +102,7 @@ print("Patch covariance-based noise level estimate: ", sigma_patch_cov.item())
 
 # %%
 # Blind denoising with estimated noise level
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # Once we have estimated the noise level, we can use general denoising models available in the library.
 # Here, we use the DRUNet model from :footcite:t:`zhang2021plug` that can handle a range of noise levels.
