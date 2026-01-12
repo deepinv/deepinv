@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from typing import Callable
+
 import torch
 import torch.nn as nn
 
 from deepinv.models.base import Denoiser
-from deepinv.models.utils import batchnorm_nd, conv_nd, conv_transpose_nd
+from deepinv.models.utils import batchnorm_nd, conv_nd, conv_transpose_nd, fix_dim
 
 HALF_LOG_TWO_PI = 0.91894
 
@@ -50,8 +52,11 @@ class VAE(Denoiser):
         pretrained: str = "download",
         gamma: float = 0.1,
         learn_gamma: bool = True,
+        dim: str | int = 2,
     ):
         super().__init__()
+
+        dim = fix_dim(dim)
 
         self.encoder = Encoder(
             in_channels,
@@ -60,6 +65,7 @@ class VAE(Denoiser):
             fully_conv_bottleneck,
             use_batchnorm,
             img_size,
+            dim=dim,
         )
         self.decoder = Decoder(
             in_channels,
@@ -70,6 +76,7 @@ class VAE(Denoiser):
             img_size,
             gamma=gamma,
             learn_gamma=learn_gamma,
+            dim=dim,
         )
         if decode_mean_only:
             self.variance_decoder = None
@@ -89,6 +96,7 @@ class VAE(Denoiser):
                 and latent_dim == 64
                 and fully_conv_bottleneck
                 and use_batchnorm
+                and dim == 2
             ):
                 url = "https://huggingface.co/MaudBqrd/VBLEModels/resolve/main/deepinv_vae_M-64_celeba_std-diagonal.pth.tar?download=true"
                 state_dict = torch.hub.load_state_dict_from_url(
@@ -99,6 +107,7 @@ class VAE(Denoiser):
                 and latent_dim == 64
                 and fully_conv_bottleneck
                 and use_batchnorm
+                and dim == 2
             ):
                 url = "https://huggingface.co/MaudBqrd/VBLEModels/resolve/main/deepinv_vae_M-64_celeba-wb_std-diagonal.pth.tar?download=true"
                 state_dict = torch.hub.load_state_dict_from_url(
@@ -190,8 +199,7 @@ class VAE(Denoiser):
 
         :returns: (torch.Tensor) Computed KL divergence loss.
         """
-        _, _, H, W = out_dict["x_rec"].shape
-        num_pixels = H * W
+        num_pixels = torch.prod(torch.tensor(out_dict["x_rec"].shape[2:])).item()
 
         BS = out_dict["mu_q_z"].shape[0]
 
@@ -238,13 +246,13 @@ class Encoder(nn.Module):
         fully_conv_bottleneck: bool = False,
         use_batchnorm: bool = False,
         img_size: int | None = None,
-        activation: callable = nn.LeakyReLU,
+        activation: Callable[[torch.Tensor], torch.Tensor] = nn.LeakyReLU,
+        dim: int = 2,
     ):
         super().__init__()
 
         self.fully_conv_bottleneck = fully_conv_bottleneck
 
-        dim = 2
         conv = conv_nd(dim)
         batchnorm = batchnorm_nd(dim)
 
@@ -312,16 +320,16 @@ class Decoder(nn.Module):
         fully_conv_bottleneck: bool = False,
         use_batchnorm: bool = False,
         img_size: int | None = None,
-        activation: callable = nn.LeakyReLU,
-        last_activation: callable | None = None,
+        activation: Callable[[torch.Tensor], torch.Tensor] = nn.LeakyReLU,
+        last_activation: Callable[[torch.Tensor], torch.Tensor] | None = None,
         gamma: float = 0.1,
         learn_gamma: bool = False,
+        dim: int = 2,
     ):
         super().__init__()
 
         self.fully_conv_bottleneck = fully_conv_bottleneck
         self.learn_gamma = learn_gamma
-        dim = 2
 
         conv_transpose = conv_transpose_nd(dim)
         batchnorm = batchnorm_nd(dim)
