@@ -81,6 +81,7 @@ Priors
    deepinv.optim.PnP
    deepinv.optim.RED
    deepinv.optim.ScorePrior
+   deepinv.optim.ZeroPrior
    deepinv.optim.Tikhonov
    deepinv.optim.L1Prior
    deepinv.optim.WaveletPrior
@@ -160,6 +161,22 @@ Iterators
    deepinv.optim.optim_iterators.SMIteration
 
 
+Linear Solvers
+--------------
+.. userguide:: least_squares
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+    deepinv.optim.linear.least_squares
+    deepinv.optim.linear.least_squares_implicit_backward
+    deepinv.optim.linear.lsqr
+    deepinv.optim.linear.bicgstab
+    deepinv.optim.linear.minres
+    deepinv.optim.linear.conjugate_gradient
+
 Utils
 -----
 .. userguide:: optim-utils
@@ -169,12 +186,6 @@ Utils
    :template: myfunc_template.rst
    :nosignatures:
 
-    deepinv.optim.utils.least_squares
-    deepinv.optim.utils.least_squares_implicit_backward
-    deepinv.optim.utils.lsqr
-    deepinv.optim.utils.bicgstab
-    deepinv.optim.utils.minres
-    deepinv.optim.utils.conjugate_gradient
     deepinv.optim.utils.gradient_descent
     deepinv.optim.phase_retrieval.correct_global_phase
     deepinv.optim.phase_retrieval.spectral_methods

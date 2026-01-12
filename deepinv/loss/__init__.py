@@ -36,6 +36,7 @@ from .metric import (
     cal_mse,
     cal_psnr,
     cal_mae,
+    CosineSimilarity,
 )
 
 from .augmentation import AugmentConsistencyLoss
