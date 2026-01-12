@@ -15,7 +15,7 @@ For the reconstruction, we minimize the variational problem
     \underset{x}{\arg\min} \quad \datafid{x}{y} + \lambda g(x).
     \end{equation*}
 
-Here, the regularizier :math:`g` is explicitly defined as
+Here, the regularizer :math:`g` is explicitly defined as
 
 .. math::
     \begin{equation*}
@@ -207,7 +207,12 @@ noise_model = LogPoissonNoise(mu=mu, N0=N0)
 data_fidelity = LogPoissonLikelihood(mu=mu, N0=N0)
 angles = torch.linspace(20, 160, steps=num_angles, device=device)
 physics = Tomography(
-    img_width=img_size, angles=angles, device=device, noise_model=noise_model
+    img_width=img_size,
+    angles=angles,
+    device=device,
+    noise_model=noise_model,
+    normalize=False,
+    adjoint_via_backprop=False,
 )
 observation = physics(test_imgs)
 fbp = physics.A_dagger(observation)
@@ -239,7 +244,7 @@ def minimize_variational_problem(prior, lam):
 # Run and plot
 # -----------------------------------------------
 # Finally, we run the reconstruction loop for both priors and plot the results.
-# The regularization parameter is roughly choosen by a grid search but not fine-tuned
+# The regularization parameter is roughly chosen by a grid search but not fine-tuned
 
 lam_patchnr = 120.0
 lam_epll = 120.0

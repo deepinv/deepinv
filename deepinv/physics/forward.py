@@ -207,7 +207,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
             x^* \in \underset{x}{\arg\min} \quad \|\forw{x}-y\|^2.
 
         :param str solver: solver to use. If the physics are non-linear, the only available solver is `'gradient_descent'`.
-            For linear operators, the options are `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'` (see :func:`deepinv.optim.utils.least_squares` for more details).
+            For linear operators, the options are `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'` (see :func:`deepinv.optim.linear.least_squares` for more details).
         :param int max_iter: maximum number of iterations for the solver.
         :param float tol: relative tolerance for the solver, stopping when :math:`\|A(x) - y\| < \text{tol} \|y\|`.
         """
@@ -355,8 +355,8 @@ class LinearPhysics(Physics):
         is used for computing it, and this parameter fixes the maximum number of conjugate gradient iterations.
     :param float tol: If the operator does not have a closed form pseudoinverse, a least squares algorithm
         is used for computing it, and this parameter fixes the relative tolerance of the least squares algorithm.
-    :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.utils.least_squares` for more details.
-    :param bool implicit_backward_solver: If `True`, uses implicit differentiation for computing gradients through the :meth:`deepinv.physics.LinearPhysics.A_dagger` and :meth:`deepinv.physics.LinearPhysics.prox_l2`, using :func:`deepinv.optim.utils.least_squares_implicit_backward` instead of :func:`deepinv.optim.utils.least_squares`. This can significantly reduce memory consumption, especially when using many iterations. If `False`, uses the standard autograd mechanism, which can be memory-intensive. Default is `True`.
+    :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.linear.least_squares` for more details.
+    :param bool implicit_backward_solver: If `True`, uses implicit differentiation for computing gradients through the :meth:`deepinv.physics.LinearPhysics.A_dagger` and :meth:`deepinv.physics.LinearPhysics.prox_l2`, using :func:`deepinv.optim.linear.least_squares_implicit_backward` instead of :func:`deepinv.optim.linear.least_squares`. This can significantly reduce memory consumption, especially when using many iterations. If `False`, uses the standard autograd mechanism, which can be memory-intensive. Default is `True`.
 
     |sep|
 
@@ -674,7 +674,7 @@ class LinearPhysics(Physics):
         r"""
         Computes an approximation of the condition number of the linear operator :math:`A`.
 
-        Uses the LSQR algorithm, see :func:`deepinv.optim.utils.lsqr` for more details.
+        Uses the LSQR algorithm, see :func:`deepinv.optim.linear.lsqr` for more details.
 
         :param torch.Tensor x: Any input tensor (e.g. random)
         :param int max_iter: maximum number of iterations
@@ -707,9 +707,9 @@ class LinearPhysics(Physics):
             \underset{x}{\arg\min} \; \frac{\gamma}{2}\|Ax-y\|^2 + \frac{1}{2}\|x-z\|^2
 
         :param torch.Tensor y: measurements tensor
-        :param torch.Tensor z: signal tensor
+        :param torch.Tensor, float, int, None z: signal tensor
         :param float gamma: hyperparameter of the proximal operator
-        :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.utils.least_squares` for details
+        :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.linear.least_squares` for details
         :param int max_iter: maximum number of iterations for iterative solvers
         :param float tol: tolerance for iterative solvers
         :param bool verbose: whether to print information during the solver execution
@@ -723,6 +723,11 @@ class LinearPhysics(Physics):
             self.tol = tol
         if solver is not None:
             self.solver = solver
+
+        if z is None or isinstance(z, float) or isinstance(z, int):
+            z = torch.full_like(
+                self.A_adjoint(y), fill_value=0.0 if z is None else float(z)
+            )
 
         if not self.implicit_backward_solver:
             return least_squares(
@@ -765,7 +770,7 @@ class LinearPhysics(Physics):
         This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
         :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :param str solver: least squares solver to use. Choose between 'CG', 'lsqr' and 'BiCGStab'. See :func:`deepinv.optim.utils.least_squares` for more details.
+        :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.linear.least_squares` for more details.
         :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.
 
         """
@@ -1172,6 +1177,7 @@ class DecomposablePhysics(LinearPhysics):
                 isinstance(gamma, torch.Tensor) and gamma.dim() < self.mask.dim()
             ):  # may be the case when mask is fft related
                 gamma = gamma[(...,) + (None,) * (self.mask.dim() - gamma.dim())]
+                gamma = gamma.to(device=self.mask.device, dtype=self.mask.real.dtype)
             scaling = torch.conj(self.mask) * self.mask + 1 / gamma
         x = self.V(self.V_adjoint(b) / scaling)
         return x
@@ -1188,10 +1194,9 @@ class DecomposablePhysics(LinearPhysics):
 
         # avoid division by singular value = 0
         if not isinstance(self.mask, float):
-            mask = torch.zeros_like(self.mask)
-            mask[self.mask > 1e-5] = 1 / self.mask[self.mask > 1e-5]
+            mask = torch.where(self.mask > 1e-5, self.mask.reciprocal(), 0.0)
         else:
-            mask = 1 / self.mask
+            mask = 0.0 if self.mask <= 1e-5 else 1.0 / self.mask
 
         return self.V(self.U_adjoint(y) * mask)
 

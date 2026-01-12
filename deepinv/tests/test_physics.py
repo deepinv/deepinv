@@ -1251,14 +1251,27 @@ def test_noise_domain(device):
     assert y1[0, 2, 2, 2] == 0
 
 
-def test_blur(device):
+@pytest.mark.parametrize(
+    "img_size", [(1, 64, 64), (3, 65, 65), (1, 64, 65), (3, 65, 64)]
+)
+@pytest.mark.parametrize("filter_size", [(1, 5, 5), (1, 6, 6), (1, 6, 5)])
+@pytest.mark.parametrize("filter_type", ["random", "directional"])
+def test_blur(img_size, filter_size, filter_type, device):
     r"""
     Test that :class:`deepinv.physics.Blur` with `padding="circular"` and :class:`deepinv.physics.BlurFFT` compute the same circular blur.
     """
     torch.manual_seed(0)
-    x = torch.randn((3, 128, 128), device=device).unsqueeze(0)
-    h = torch.ones((1, 1, 5, 5)) / 25.0
+    x = torch.randn(*img_size, device=device).unsqueeze(0)
+    if filter_type == "random":
+        h = torch.rand(*filter_size, device=device).unsqueeze(0)
+    elif filter_type == "directional":
+        # create a directional filter
+        h = torch.zeros(*filter_size, device=device).unsqueeze(0)
+        diag_len = min(filter_size[-2], filter_size[-1])
+        idx = torch.arange(diag_len, device=device)
+        h[..., idx, idx] = 1.0
 
+    h = h / h.sum(dim=[-2, -1], keepdim=True)  # normalize filter
     physics_blur = dinv.physics.Blur(
         filter=h,
         device=device,
@@ -1266,7 +1279,7 @@ def test_blur(device):
     )
 
     physics_blurfft = dinv.physics.BlurFFT(
-        img_size=(1, x.shape[-2], x.shape[-1]),
+        img_size=img_size,
         filter=h,
         device=device,
     )
@@ -1280,11 +1293,8 @@ def test_blur(device):
     assert y1.shape == y2.shape
     assert back1.shape == back2.shape
 
-    error_A = (y1 - y2).flatten().abs().max()
-    error_At = (back1 - back2).flatten().abs().max()
-
-    assert error_A < 1e-6
-    assert error_At < 1e-6
+    assert torch.allclose(y1, y2, atol=1e-5)
+    assert torch.allclose(back1, back2, atol=1e-5)
 
 
 def test_reset_noise(device):
@@ -1326,6 +1336,7 @@ def test_reset_noise(device):
 @pytest.mark.parametrize("adjoint_via_backprop", [True, False])
 @pytest.mark.parametrize("fbp_interpolate_boundary", [True, False])
 @pytest.mark.parametrize("fbp_pseudo_inverse", [True, False])
+@pytest.mark.parametrize("channels", [1, 2])
 def test_tomography(
     normalize,
     parallel_computation,
@@ -1334,6 +1345,7 @@ def test_tomography(
     adjoint_via_backprop,
     fbp_interpolate_boundary,
     fbp_pseudo_inverse,
+    channels,
     device,
 ):
     r"""
@@ -1341,7 +1353,7 @@ def test_tomography(
 
     :param device: (torch.device) cpu or cuda:x
     """
-    imsize = (1, 16, 16)
+    imsize = (channels, 16, 16)
     physics = dinv.physics.Tomography(
         img_width=imsize[-1],
         angles=imsize[-1],
