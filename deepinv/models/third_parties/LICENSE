@@ -1,0 +1,60 @@
+LICENSE for third-party models used in DeepInverse
+
+===============================================================================
+PromptIR License Information
+===============================================================================
+
+The file promptir.py in deepinv/models/third_parties/ contains code from the
+PromptIR repository https://github.com/va1shn9v/PromptIR/tree/main
+
+Title: PromptIR: Prompting for All-in-One Blind Image Restoration
+Authors: Vaishnav Potlapalli, Syed Waqas Zamir, Salman Khan, Fahad Shahbaz Khan
+Source: https://github.com/va1shn9v/PromptIR
+Publication: NeurIPS 2023
+
+
+## ACADEMIC PUBLIC LICENSE
+
+### Permissions
+:heavy_check_mark: Non-Commercial use
+:heavy_check_mark: Modification
+:heavy_check_mark: Distribution
+:heavy_check_mark: Private use
+
+### Limitations
+:x: Commercial Use
+:x: Liability
+:x: Warranty
+
+### Conditions
+:information_source: License and copyright notice
+:information_source: Same License
+
+PromptIR is free for use in noncommercial settings: at academic institutions for teaching and research use, and at non-profit research organizations.
+You can use PromptIR in your research, academic work, non-commercial work, projects and personal work. We only ask you to credit us appropriately.
+
+You have the right to use the software, to distribute copies, to receive source code, to change the software and distribute your modifications or the modified software.
+If you distribute verbatim or modified copies of this software, they must be distributed under this license.
+This license guarantees that you're safe when using PromptIR in your work, for teaching or research.
+This license guarantees that PromptIR will remain available free of charge for nonprofit use.
+You can modify PromptIR to your purposes, and you can also share your modifications.
+
+If you would like to use PromptIR in commercial settings, contact us so we can discuss options.
+Send an email to vaishnav.potlapalli@mbzuai.ac.ae or pvaishnav2718@gmail.com
+
+Citation
+
+If you use PromptIR, please cite:
+
+@inproceedings{potlapalli2023promptir,
+  title={PromptIR: Prompting for All-in-One Image Restoration},
+  author={Potlapalli, Vaishnav and Zamir, Syed Waqas and Khan, Salman and Khan, Fahad},
+  booktitle={Thirty-seventh Conference on Neural Information Processing Systems},
+  year={2023}
+}
+
+Copyright (c) 2023 Vaishnav Potlapalli, Syed Waqas Zamir, Salman Khan, 
+Fahad Shahbaz Khan
+
+All rights reserved.
+

@@ -9,8 +9,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .utils import get_weights_url
-from .restormer import Downsample, Upsample, TransformerBlock, OverlapPatchEmbed
+from deepinv.models.utils import get_weights_url
+from deepinv.models.restormer import (
+    Downsample,
+    Upsample,
+    TransformerBlock,
+    OverlapPatchEmbed,
+)
 
 
 class PromptGenBlock(nn.Module):
