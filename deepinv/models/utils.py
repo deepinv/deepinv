@@ -1,10 +1,14 @@
 from __future__ import annotations
-import torch
-import torch.nn as nn
 import numpy as np
-import torch.nn.functional as F
+
+import torch
 from torch import Tensor
+
+import torch.nn as nn
+import torch.nn.functional as F
+
 from torch.nn import Linear, GroupNorm
+
 from itertools import chain
 
 
@@ -60,13 +64,16 @@ def test_pad(model, L, modulo=16):
     return E
 
 
-def patchify(im, pch_size, stride=1):
+def patchify(
+    im: torch.Tensor, pch_size: tuple[int, int], stride: int = 1
+) -> torch.Tensor:
     r"""
     Patchifying images in pch_size patches.
 
     :param torch.Tensor im: input image
     :param (int, int) pch_size: patch size
     :param int stride: stride
+    :return: (:class:`torch.Tensor`) patched image of shape (B, C, pch_H, pch_W, num_pch)
     """
     pch_H = pch_W = pch_size
     stride_H = stride_W = stride

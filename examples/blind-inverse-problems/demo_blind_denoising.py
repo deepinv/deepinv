@@ -6,7 +6,7 @@ This example focuses on blind image Gaussian denoising, i.e. the problem
 
 .. math::
 
-    y = x + \sigma n \quad n \sim \mathcal{N}(0, 1)
+    y = x + \sigma n \quad n \sim \mathcal{N}(0, I)
 
 where :math:`\sigma` is unknown. In this example, we first propose to estimate the noise level with different approaches,
 and then show general restoration models available in the library.
@@ -35,7 +35,7 @@ y = x + sigma_true * torch.randn_like(x)
 # A naive approach
 # ~~~~~~~~~~~~~~~~
 #
-# A first naive approach to estimate :math:`sigma` consists in taking a patch of the image, removing the mean, and using
+# A first naive approach to estimate :math:`\sigma` consists in taking a patch of the image, removing the mean, and using
 # the standard deviation of the resulting patch as an estimate of the noise level.
 
 p = 50
@@ -191,7 +191,6 @@ plt.errorbar(
     fmt="-o",
 )
 plt.xscale("log")
-# plt.yscale('log')
 plt.xlabel("True noise level sigma")
 plt.ylabel("Absolute estimation error")
 plt.title("Noise level estimation error vs true noise level")
@@ -204,7 +203,8 @@ plt.show()
 # ~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # Finally, we can also use blind denoising models that are trained to denoise images without knowing the noise level.
-# For instance, we can use the SCUNet model from :footcite:t:`zamir2022restormer`.
+# For instance, we can use the Restormer model from :footcite:t:`zamir2022restormer`. We note that this model provides
+# better results than the non-blind denoiser with estimated noise level.
 
 blind_restormer = dinv.models.Restormer()
 
@@ -220,5 +220,3 @@ dinv.utils.plot(
     },
     fontsize=9,
 )
-
-# We note that this model provides better results than the non-blind denoiser with estimated noise level.

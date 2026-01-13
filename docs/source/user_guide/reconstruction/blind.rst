@@ -52,11 +52,11 @@ The library provides the following parameter estimation models/algorithms:
      - (non-learned)
      - :class:`GaussianNoise <deepinv.physics.GaussianNoise>`
      - `sigma`
-     -
+     - :ref:`noise level estimation <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_denoising.py>`.
 
    * - :class:`Patch <deepinv.models.PatchCovarianceNoiseEstimator>`
      - C=1, 2, 3
      - (non-learned)
      - :class:`GaussianNoise <deepinv.physics.GaussianNoise>`
      - `sigma`
-     -
+     - :ref:`noise level estimation <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_denoising.py>`.

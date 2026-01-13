@@ -42,19 +42,25 @@ class WaveletNoiseEstimator(nn.Module):
         super(WaveletNoiseEstimator, self).__init__()
 
     @staticmethod
-    def estimate_noise(im):
+    def estimate_noise(im: torch.Tensor) -> torch.Tensor:
+        r"""
+        Estimates noise level in image im.
+
+        :param torch.Tensor im: input image
+        :return: (:class:`torch.Tensor`) estimated noise level
+        """
         dec = ptwt.wavedec2(im, pywt.Wavelet("db8"), level=1)
         l_coeffs = [dec[1][_].reshape(dec[1][_].shape[0], -1) for _ in range(3)]
         batched_coeffs = torch.hstack(l_coeffs)
         med = torch.median(batched_coeffs.abs(), dim=-1).values
         return med / 0.6745
 
-    def forward(self, im):
+    def forward(self, im: torch.Tensor) -> torch.Tensor:
         r"""
         Forward pass.
 
         :param torch.Tensor im: input image
-        :return: estimated noise level
+        :return: (:class: `torch.Tensor`) estimated noise level
         """
         return self.estimate_noise(im)
 
@@ -85,12 +91,13 @@ class PatchCovarianceNoiseEstimator(nn.Module):
         super(PatchCovarianceNoiseEstimator, self).__init__()
 
     @staticmethod
-    def estimate_noise(im, pch_size=8):
+    def estimate_noise(im: torch.Tensor, pch_size=8) -> torch.Tensor:
         """
         Estimates noise level in image im.
 
         :param torch.Tensor im: input image
         :param (int, int) pch_size: patch size
+        :return: (:class:`torch.Tensor`) estimated noise level
         """
         # image to patch
         pch = patchify(
@@ -119,11 +126,11 @@ class PatchCovarianceNoiseEstimator(nn.Module):
         if noise_level is None:
             raise ValueError("Noise level estimation failed.")
 
-    def forward(self, im):
+    def forward(self, im: torch.Tensor) -> torch.Tensor:
         r"""
         Forward pass.
 
         :param torch.Tensor im: input image
-        :return: estimated noise level
+        :return: (:class:`torch.Tensor`) estimated noise level
         """
         return self.estimate_noise(im)
