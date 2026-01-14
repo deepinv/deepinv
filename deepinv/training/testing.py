@@ -18,6 +18,7 @@ def test(
     show_progress_bar=True,
     compare_no_learning=True,
     no_learning_method="A_adjoint",
+    timing_warmup=1,
     **kwargs,
 ):
     r"""
@@ -52,8 +53,9 @@ def test(
     :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``,
         ``'A_adjoint'``, ``'prox_l2'``, or ``'y'``. Default is ``'A_adjoint'``. The user can modify the no-learning method
         by overwriting the :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method
+    :param int timing_warmup: Number of initial iterations to exclude from timing measurements.
     :returns: A dictionary with the metrics computed on the test set, where the keys are the metric names, and include
-        the average and standard deviation of the metric.
+        the average and standard deviation of the metric and timing information. Timings correspond to average inference time per batch in seconds.
     """
     if metrics is None:
         metrics = PSNR()
@@ -78,5 +80,8 @@ def test(
         **kwargs,
     )
     return trainer.test(
-        test_dataloader, save_path=save_folder, compare_no_learning=compare_no_learning
+        test_dataloader,
+        save_path=save_folder,
+        compare_no_learning=compare_no_learning,
+        timing_warmup=timing_warmup,
     )

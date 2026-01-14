@@ -115,7 +115,10 @@ training = [
     "mlflow",
 ]
 
-
+benchmarks = [
+    "benchopt",
+    "huggingface_hub",
+]
 
 #####################################################################
 # Pytest configuration and coverage reporting

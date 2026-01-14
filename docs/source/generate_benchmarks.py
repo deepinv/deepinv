@@ -2,9 +2,11 @@ import os
 from sphinx.application import Sphinx
 from huggingface_hub import snapshot_download
 import pandas as pd
+from pathlib import Path
 
 # global variable storing benchmark mappings to be used in class templates
 benchmark_mapping = {}
+
 
 def generate_benchmarks(app):
     r"""
@@ -21,9 +23,7 @@ def generate_benchmarks(app):
 
     # Load the dataset from Hugging Face and save it to disk
     snapshot_download(
-        repo_id="deepinv/benchmarks",
-        repo_type="dataset",
-        local_dir=benchmarks_root
+        repo_id="deepinv/benchmarks", repo_type="dataset", local_dir=benchmarks_root
     )
 
     # Recursively find all results.parquet files
@@ -68,6 +68,7 @@ def generate_benchmarks(app):
             benchmark_mapping[noise].append(benchmark_name)
 
     generate_main_rst(benchmark_info, source_dir)
+
 
 def process_parquet_file(parquet_path):
     r"""
@@ -137,10 +138,15 @@ def process_parquet_file(parquet_path):
     lines.append("")
 
     # Add link to 'model' column if exists
-    if "solver_name" in df.columns and "file" in df.columns:
+    if "solver_name" in df.columns and "file_solver" in df.columns:
+        url = (
+            "https://github.com/deepinv/benchmarks/tree/main/"
+            + str(Path(parquet_path).parent.name)
+            + "/"
+        )
         for i, row in df.iterrows():
             model_name = row["solver_name"]
-            file_link = row["solver_file"]
+            file_link = url + row["file_solver"]
             link_cell = f"`{model_name} <{file_link}>`_"
             df.at[i, "solver_name"] = link_cell  # Update the DataFrame directly
 
@@ -153,7 +159,7 @@ def process_parquet_file(parquet_path):
     std_cols = [col for col in metric_cols if col.endswith("_std")]
     mean_cols = [col for col in metric_cols if col not in std_cols]
 
-    kept_cells = ["solver_name", "objective_runtime"] + mean_cols + std_cols
+    kept_cells = ["solver_name"] + mean_cols + std_cols
 
     # Filter the dataframe to keep only these columns
     df = df[df.columns.intersection(kept_cells)]
@@ -249,8 +255,6 @@ and then running:
 
     with open(benchmarks_rst_path, "w") as f:
         f.write(benchmarks_content)
-
-
 
 
 def add_benchmark_section(app, what, name, obj, options, lines):

@@ -19,6 +19,7 @@ from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 import inspect
+import time
 
 
 @dataclass
@@ -813,6 +814,7 @@ class Trainer:
         if self._model_accepts_update_parameters:
             kwargs["update_parameters"] = True
 
+        start_time = time.time()
         if train:
             self.model.train()
             return self.model(y, physics, **kwargs)
@@ -829,6 +831,12 @@ class Trainer:
                     )
                 else:
                     x_net = self.model(y, physics, **kwargs)
+
+            if not train:
+                if self.timing_warmup > 0:
+                    self.timing_meter.update(time.time() - start_time)
+                else:
+                    self.timing_warmup -= 1
 
             return x_net
 
@@ -1507,6 +1515,7 @@ class Trainer:
         compare_no_learning: bool = True,
         log_raw_metrics: bool = False,
         metrics: Metric | list[Metric] | None = None,
+        timing_warmup: int = 1,
     ) -> dict:
         r"""
         Test the model, compute metrics and plot images.
@@ -1522,7 +1531,8 @@ class Trainer:
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
         :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If
             ``None``, uses the metrics provided during Trainer initialization.
-        :returns: dict of metrics results with means and stds.
+        :param int timing_warmup: Number of initial batches to skip for timing (to avoid measuring any warmup overhead).
+        :returns: dict of metrics and timings results with means and stds. Timings correspond to average inference time per batch in seconds.
         """
         if metrics is not None:
             self.metrics = metrics
@@ -1541,8 +1551,10 @@ class Trainer:
         self.mlflow_vis = False
         self.mlflow_setup = {}
         self.log_train_batch = False
-        self.setup_train(train=False)
+        self.timing_meter = AverageMeter("Time per batch", ":.2e")
+        self.timing_warmup = timing_warmup
 
+        self.setup_train(train=False)
         self.save_folder_im = save_path
 
         self.reset_metrics()
@@ -1605,6 +1617,10 @@ class Trainer:
                 out[name + "_vals"] = l.vals
             if self.verbose:
                 print(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
+
+        # add runtime info
+        out["runtime"] = self.timing_meter.avg
+        out["runtime_std"] = self.timing_meter.std
 
         return out
 
