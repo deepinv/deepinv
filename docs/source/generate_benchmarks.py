@@ -1,13 +1,82 @@
 import os
 from sphinx.application import Sphinx
-import subprocess
-import shutil
+from huggingface_hub import snapshot_download
+import pandas as pd
 
+# global variable storing benchmark mappings to be used in class templates
 benchmark_mapping = {}
 
+def generate_benchmarks(app):
+    r"""
+    Generate RST files for benchmarks from parquet results files.
 
-def process_parquet_file(parquet_path, benchmark_name):
-    import pandas as pd
+    This function downloads benchmarks from the Hugging Face repository https://huggingface.co/datasets/deepinv/benchmarks
+    and generates one rst file for each results.parquet file found in the repository.
+    It additionally generates a main benchmarks.rst file listing all benchmarks.
+
+    :param Sphinx app: The Sphinx application object.
+    """
+    # Define the root directory of the benchmarks repository
+    benchmarks_root = os.path.join(os.path.dirname(__file__), "deepinv-benchmarks")
+
+    # Load the dataset from Hugging Face and save it to disk
+    snapshot_download(
+        repo_id="deepinv/benchmarks",
+        repo_type="dataset",
+        local_dir=benchmarks_root
+    )
+
+    # Recursively find all results.parquet files
+    parquet_files = []
+    for root, dirs, files in os.walk(benchmarks_root):
+        for file in files:
+            if file == "results.parquet":
+                parquet_files.append((root, os.path.join(root, file)))
+
+    if not parquet_files:
+        raise FileNotFoundError(
+            "No results.parquet files found in the benchmarks repository."
+        )
+
+    # Define the output directory for RST files
+    source_dir = os.path.dirname(__file__)
+    output_dir = os.path.join(source_dir, "auto_benchmarks")
+
+    benchmark_info = []
+    # process each parquet file
+    for folder, parquet_file in parquet_files:
+        dataset, physics, noise, benchmark_name = generate_rst_from_parquet(
+            parquet_file, output_dir
+        )
+        benchmark_info.append((benchmark_name, dataset, physics, noise))
+
+        # We save mappings for classes used in dataset, physics, and noise
+        # to later be included in the docstrings of these classes (see source/_templates/myclass_template.rst)
+        if dataset not in benchmark_mapping:
+            benchmark_mapping[dataset] = [benchmark_name]
+        else:
+            benchmark_mapping[dataset].append(benchmark_name)
+
+        if physics not in benchmark_mapping:
+            benchmark_mapping[physics] = [benchmark_name]
+        else:
+            benchmark_mapping[physics].append(benchmark_name)
+
+        if noise not in benchmark_mapping:
+            benchmark_mapping[noise] = [benchmark_name]
+        else:
+            benchmark_mapping[noise].append(benchmark_name)
+
+    generate_main_rst(benchmark_info, source_dir)
+
+def process_parquet_file(parquet_path):
+    r"""
+    Process a parquet benchmark results file and generate RST lines.
+
+    :param str, Path parquet_path: Path to the results.parquet file.
+    :return: Tuple containing the RST lines, dataset name, physics name, and noise model name.
+    :rtype: tuple[list[str], str, str, str]
+    """
 
     df = pd.read_parquet(parquet_path)
 
@@ -21,12 +90,15 @@ def process_parquet_file(parquet_path, benchmark_name):
     )
     noise = df["p_dataset_noise"][0] if "p_dataset_noise" in df.columns else "Unknown"
 
+    benchmark_name = str(df["objective_name"][0])
+    benchmark_link = benchmark_name.replace(" ", "_").replace("-", "_").lower()
+
     lines = [
         ".. |plusminus| unicode:: U+00B1 .. plus-minus sign",
         f"""
-.. _{benchmark_name.replace('-', '_').replace(' ', '_')}:
+.. _{benchmark_link}:
 
-{benchmark_name.replace('-', ' ').replace('_', ' ')}
+{benchmark_name}
 {'=' * len(benchmark_name)}
 
 
@@ -68,8 +140,8 @@ def process_parquet_file(parquet_path, benchmark_name):
     if "solver_name" in df.columns and "file" in df.columns:
         for i, row in df.iterrows():
             model_name = row["solver_name"]
-            # file_link = row["file"]
-            link_cell = f"`{model_name}"  # f"`{model_name} <{file_link}>`_"
+            file_link = row["solver_file"]
+            link_cell = f"`{model_name} <{file_link}>`_"
             df.at[i, "solver_name"] = link_cell  # Update the DataFrame directly
 
     # extract metrics
@@ -113,21 +185,35 @@ def process_parquet_file(parquet_path, benchmark_name):
                 row_cells.append(str(val))
         lines.append("   * - " + "\n     - ".join(row_cells))
 
-    return lines, dataset, physics, noise
+    return lines, dataset, physics, noise, benchmark_link
 
 
-def generate_rst_from_parquet(parquet_path, output_dir, benchmark_name):
+def generate_rst_from_parquet(parquet_path, output_dir):
+    r"""
+    Generate an .rst file from a parquet benchmark results file.
+
+    :param str, Path parquet_path: Path to the results.parquet file.
+    :param str, Path output_dir: Directory where the rst file will be saved.
+    :return: Tuple containing dataset, physics, and noise model names.
+    :rtype: tuple[str, str, str]
+    """
     # Write rst
-    lines, dataset, physics, noise = process_parquet_file(parquet_path, benchmark_name)
+    lines, dataset, physics, noise, benchmark_link = process_parquet_file(parquet_path)
     os.makedirs(output_dir, exist_ok=True)
-    rst_path = os.path.join(output_dir, f"{benchmark_name}.rst")
+    rst_path = os.path.join(output_dir, f"{benchmark_link}.rst")
     with open(rst_path, "w") as f:
         f.write("\n".join(lines))
 
-    return dataset, physics, noise
+    return dataset, physics, noise, benchmark_link
 
 
 def generate_main_rst(benchmark_info, output_dir):
+    r"""
+    Generate the main benchmarks.rst file listing all benchmarks.
+
+    :param list[tuple] benchmark_info: List of tuples containing (benchmark_name, dataset, physics, noise).
+    :param str, Path output_dir: Directory where the benchmarks.rst file will be saved.
+    """
     benchmarks_rst_path = os.path.join(output_dir, "benchmarks.rst")
     benchmarks_content = """Benchmarks
 =================
@@ -155,7 +241,7 @@ and then running:
       - Noise Model
 """
     for name, dataset, physics, noise in benchmark_info:
-        benchmarks_content += f"    * - :ref:`{name.replace('-', '_').replace(' ', '_')}`\n      - :sclass:`deepinv.datasets.{dataset}`\n      - :sclass:`deepinv.physics.{physics}`\n      - :sclass:`deepinv.physics.{noise}`\n"
+        benchmarks_content += f"    * - :ref:`{name}`\n      - :sclass:`deepinv.datasets.{dataset}`\n      - :sclass:`deepinv.physics.{physics}`\n      - :sclass:`deepinv.physics.{noise}`\n"
 
     benchmarks_content += "\n.. toctree::\n   :maxdepth: 2\n   :hidden:\n\n"
     for name, _, _, _ in benchmark_info:
@@ -165,99 +251,22 @@ and then running:
         f.write(benchmarks_content)
 
 
-def on_rm_error(func, path, exc_info):
-    """
-    Error handler for shutil.rmtree.
-    On Windows, some files in .git are read-only. This changes
-    permissions and retries the removal.
-    """
-    import stat
-
-    os.chmod(path, stat.S_IWRITE)
-    func(path)
-
-
-def on_builder_inited(app):
-    # Define the root directory of the benchmarks repository
-    benchmarks_root = os.path.join(os.path.dirname(__file__), "deepinv-benchmarks")
-
-    # Clone the repository if it doesn't exist
-    if not os.path.exists(benchmarks_root):
-        print("Cloning deepinv/benchmarks repository...")
-        try:
-            subprocess.run(
-                [
-                    "git",
-                    "clone",
-                    "https://github.com/deepinv/benchmarks",
-                    benchmarks_root,
-                ],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-            print("Repository cloned successfully.")
-
-            git_dir = os.path.join(benchmarks_root, ".git")
-            if os.path.exists(git_dir):
-                print("Stripping Git metadata...")
-                # Use the error handler to ensure Windows compatibility
-                shutil.rmtree(git_dir, onerror=on_rm_error)
-                print("Successfully converted to a standard directory.")
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to clone repository: {e.stderr}")
-            raise
-
-    # Recursively find all results.parquet files
-    parquet_files = []
-    for root, dirs, files in os.walk(benchmarks_root):
-        for file in files:
-            if file == "results.parquet":
-                parquet_files.append((root, os.path.join(root, file)))
-
-    if not parquet_files:
-        raise FileNotFoundError(
-            "No results.parquet files found in the benchmarks repository."
-        )
-
-    # Define the output directory for RST files
-    source_dir = os.path.dirname(__file__)
-    output_dir = os.path.join(source_dir, "auto_benchmarks")
-
-    benchmark_info = []
-    for folder, parquet_file in parquet_files:
-        parent_folder_path = os.path.dirname(folder)
-        benchmark_name = os.path.basename(parent_folder_path)
-        try:
-            dataset, physics, noise = generate_rst_from_parquet(
-                parquet_file, output_dir, benchmark_name
-            )
-            benchmark_info.append((benchmark_name, dataset, physics, noise))
-
-            # Add mapping for dataset and physics
-            if dataset not in benchmark_mapping:
-                benchmark_mapping[dataset] = [benchmark_name]
-            else:
-                benchmark_mapping[dataset].append(benchmark_name)
-
-            if physics not in benchmark_mapping:
-                benchmark_mapping[physics] = [benchmark_name]
-            else:
-                benchmark_mapping[physics].append(benchmark_name)
-
-            if noise not in benchmark_mapping:
-                benchmark_mapping[noise] = [benchmark_name]
-            else:
-                benchmark_mapping[noise].append(benchmark_name)
-
-        except Exception as e:
-            print(f"Failed to process {parquet_file}: {str(e)}")
-
-    generate_main_rst(benchmark_info, source_dir)
 
 
 def add_benchmark_section(app, what, name, obj, options, lines):
+    r"""
+    Event handler for the 'autodoc-process-docstring' Sphinx event.
+
+    This function adds a section to the docstring of classes that lists
+    the benchmarks in which they are used.
+
+    :param Sphinx app: The Sphinx application object.
+    :param str what: The type of the object being documented (e.g., "class").
+    :param str name: The fully qualified name of the object being documented.
+    :param object obj: The object being documented.
+    :param dict options: The options given to the directive.
+    :param list[str] lines: The lines of the docstring to be modified.
+    """
     if what != "class":
         return
 
@@ -286,6 +295,12 @@ def add_benchmark_section(app, what, name, obj, options, lines):
 
 
 def setup(app: Sphinx):
-    app.connect("builder-inited", on_builder_inited)
+    r"""
+    Sphinx extension setup function.
+
+    :param Sphinx app: The Sphinx application object.
+    :return: A dictionary with the extension version.
+    """
+    app.connect("builder-inited", generate_benchmarks)
     app.connect("autodoc-process-docstring", add_benchmark_section)
     return {"version": "1.0"}
