@@ -40,7 +40,7 @@ class RunLogger(ABC):
         pass
 
     @abstractmethod
-    def setLevel(self, level: str) -> None:
+    def set_level(self, level: str) -> None:
         """
         Set the logging level.
 
@@ -207,7 +207,7 @@ class WandbLogger(RunLogger):
         # Start Wandb run
         self.wandb_run = wandb.init(**wandb_setup)
 
-    def setLevel(self, level: str) -> None:
+    def set_level(self, level: str) -> None:
         """
         Set the logging level.
         """
@@ -375,7 +375,7 @@ class LocalLogger(RunLogger):
 
         self.stdout_logger.info(f"Log directory initialized: {self.run_log_dir}")
 
-    def setLevel(self, level: str) -> None:
+    def set_level(self, level: str) -> None:
         """
         Set the logging level.
         """
