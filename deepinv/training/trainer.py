@@ -823,19 +823,18 @@ class Trainer:
                     metric.detach().cpu().numpy()
                 )  # track the current metric per img (img are from several batches)
 
-    def _process_gradients(self) -> None:
+    def _clip_gradients(self) -> None:
         """Clip gradients and optionally compute the gradient norm."""
-        if self.grad_clip is not None:
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
 
-        if self.log_grad:
-            grads = [
-                param.grad.detach().flatten()
-                for param in self.model.parameters()
-                if param.grad is not None
-            ]
-            return torch.cat(grads).norm().item()
-        return None
+    def _compute_grad_norm(self) -> None:
+        """Compute the gradient norm."""
+        grads = [
+            param.grad.detach().flatten()
+            for param in self.model.parameters()
+            if param.grad is not None
+        ]
+        return torch.cat(grads).norm().item()
 
     def step(
         self,
@@ -931,9 +930,10 @@ class Trainer:
                     loss_logs = {}
                     loss_logs["Loss"] = loss_cur.item()
 
-                    grad_norm_on_cpu = self._process_gradients()
-                    if grad_norm_on_cpu is not None:
-                        loss_logs["gradient_norm"] = grad_norm_on_cpu
+                    if self.grad_clip is not None:
+                        self._clip_gradients()
+                    if self.log_grad:
+                        loss_logs["gradient_norm"] = self._compute_grad_norm()
 
                     # Optimizer step
                     self.optimizer.step()
@@ -981,9 +981,10 @@ class Trainer:
                 loss_logs["Step " + "Total Loss"] = loss_multi_dataset_step
 
                 # Process gradients
-                grad_norm_on_cpu = self._process_gradients()
-                if grad_norm_on_cpu is not None:
-                    loss_logs["Step " + "Gradient Norm"] = grad_norm_on_cpu
+                if self.grad_clip is not None:
+                    self._clip_gradients()
+                if self.log_grad:
+                    loss_logs["Step " + "Gradient Norm"] = self._compute_grad_norm()
 
                 # Optimizer step
                 self.optimizer.step()
