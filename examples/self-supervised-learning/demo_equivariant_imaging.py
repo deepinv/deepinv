@@ -185,6 +185,7 @@ trainer = dinv.Trainer(
     losses=losses,
     optimizer=optimizer,
     train_dataloader=train_dataloader,
+    val_dataloader=test_dataloader,
     log_images=True,
     device=device,
     loggers=LocalLogger(log_dir=str(CKPT_DIR / operation)),
