@@ -226,6 +226,10 @@ def generate_main_rst(benchmark_info, output_dir):
 
 This section provides benchmark results for various datasets and physics models.
 
+.. note::
+
+    Benchmarks are defined on the https://github.com/deepinv/benchmarks repository.
+    To contribute a new benchmark or add your model to an existing benchmark, please refer to this repository.
 
 You can try your model on one of the benchmarks, making sure that it receives `(y, physics)` as input and outputs the reconstructed image as `x`,
 and then running:
