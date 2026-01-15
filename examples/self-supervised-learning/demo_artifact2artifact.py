@@ -237,6 +237,7 @@ trainer = dinv.Trainer(
     loggers=None,
     verbose=True,
     show_progress_bar=False,
+    compute_losses_on="val",
 )
 
 model = trainer.train()
