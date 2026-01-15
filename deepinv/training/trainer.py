@@ -474,6 +474,10 @@ class Trainer:
             self.eval_metrics_history[l.__class__.__name__] = []
             self.train_metrics_history[l.__class__.__name__] = []
 
+        # timings
+        self.timing_meter = AverageMeter("Time per batch", ":.2e")
+        self.timing_warmup = 1
+
         # gradient clipping
         if train and self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
@@ -1551,10 +1555,8 @@ class Trainer:
         self.mlflow_vis = False
         self.mlflow_setup = {}
         self.log_train_batch = False
-        self.timing_meter = AverageMeter("Time per batch", ":.2e")
-        self.timing_warmup = timing_warmup
-
         self.setup_train(train=False)
+        self.timing_warmup = timing_warmup
         self.save_folder_im = save_path
 
         self.reset_metrics()

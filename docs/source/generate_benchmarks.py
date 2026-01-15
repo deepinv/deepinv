@@ -1,7 +1,6 @@
 import os
 from sphinx.application import Sphinx
 from huggingface_hub import snapshot_download
-import pandas as pd
 from pathlib import Path
 
 # global variable storing benchmark mappings to be used in class templates
@@ -78,6 +77,7 @@ def process_parquet_file(parquet_path):
     :return: Tuple containing the RST lines, dataset name, physics name, and noise model name.
     :rtype: tuple[list[str], str, str, str]
     """
+    import pandas as pd
 
     df = pd.read_parquet(parquet_path)
 
