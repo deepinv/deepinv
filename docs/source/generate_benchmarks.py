@@ -221,7 +221,9 @@ def generate_main_rst(benchmark_info, output_dir):
     :param str, Path output_dir: Directory where the benchmarks.rst file will be saved.
     """
     benchmarks_rst_path = os.path.join(output_dir, "benchmarks.rst")
-    benchmarks_content = """Benchmarks
+    benchmarks_content = """.. _benchmarks:
+
+Benchmarks
 =================
 
 This section provides benchmark results for various datasets and physics models.
@@ -236,9 +238,9 @@ and then running:
 
 .. code-block:: python
 
-    from deepinv.auto_benchmarks import run_benchmark
-    model = dinv.models.RAM() # replace with your model
-    results = run_benchmark("benchmark_name", model)
+    from deepinv.benchmarks import run_benchmark
+    my_solver = lambda y, physics: ...  # your solver here
+    results = run_benchmark(my_solver, "benchmark_name")
 
 
 .. list-table::

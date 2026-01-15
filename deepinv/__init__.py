@@ -59,6 +59,10 @@ from deepinv import training
 
 __all__ += ["training"]
 
+from deepinv import benchmarks
+
+__all__ += ["benchmarks"]
+
 from deepinv.training import train, test, Trainer
 
 from deepinv.utils import io as io
