@@ -1218,7 +1218,7 @@ class Trainer:
             "eval_metrics": self.eval_metrics_history,
             "optimizer": self.optimizer.state_dict() if self.optimizer else None,
             "scheduler": self.scheduler.state_dict() if self.scheduler else None,
-            "eval_batch_runtime" : self.timing_meter.avg,
+            "eval_batch_runtime": self.timing_meter.avg,
         }
         if self.wandb_vis:
             import wandb
