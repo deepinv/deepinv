@@ -59,7 +59,7 @@ from deepinv import training
 
 __all__ += ["training"]
 
-from deepinv.training import train, test, Trainer
+from deepinv.training import test, Trainer
 
 from deepinv.utils import io as io
 

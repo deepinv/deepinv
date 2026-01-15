@@ -229,16 +229,15 @@ trainer = dinv.Trainer(
     losses=loss,
     optimizer=optimizer,
     train_dataloader=train_dataloader,
-    compute_eval_losses=True,  # use self-supervised loss for evaluation
-    early_stop_on_losses=True,  # stop using self-supervised eval loss
     metrics=None,
     eval_dataloader=test_dataloader,
     early_stop=2,  # early stop using the self-supervised loss on the test set
     online_measurements=True,
     device=device,
-    save_path=None,
+    loggers=None,
     verbose=True,
     show_progress_bar=False,
+    compute_losses_on="val",
 )
 
 model = trainer.train()
@@ -252,7 +251,7 @@ model = trainer.train()
 # and we compute the PSNR between the denoised images and the clean ground truth images.
 #
 
-trainer.plot_images = True
+trainer.log_images = True
 trainer.test(test_dataloader, metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()])
 
 # %%

@@ -178,7 +178,7 @@ test(
     physics=p,
     device=device,
     plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation / dataset_name,
+    loggers=dinv.training.run_logger.LocalLogger(log_dir=save_folder),
     plot_convergence_metrics=plot_convergence_metrics,
     verbose=True,
 )

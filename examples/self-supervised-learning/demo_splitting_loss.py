@@ -162,13 +162,8 @@ trainer = dinv.Trainer(
     optimizer=optimizer,
     device=device,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
-    metrics=None,  # no supervised metrics
-    early_stop=2,  # we can use early stopping as we have a validation loss
-    compute_eval_losses=True,  # use self-supervised loss for evaluation
-    early_stop_on_losses=True,  # stop using self-supervised eval loss
-    plot_images=False,
-    save_path=None,
+    log_images=False,
+    loggers=None,
     verbose=True,
     show_progress_bar=False,
     no_learning_method="A_dagger",  # use pseudo-inverse as no-learning baseline
@@ -183,7 +178,7 @@ model = trainer.train()
 # trained model improves on the no-learning reconstruction by ~7dB.
 #
 
-trainer.plot_images = True
+trainer.log_images = True
 trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 

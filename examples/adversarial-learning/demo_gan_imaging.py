@@ -189,7 +189,7 @@ trainer = dinv.training.AdversarialTrainer(
     D=D,
     physics=physics,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+    val_dataloader=test_dataloader,
     epochs=1,
     losses=loss_g,
     losses_d=loss_d,
@@ -197,7 +197,7 @@ trainer = dinv.training.AdversarialTrainer(
     scheduler=scheduler,
     verbose=True,
     show_progress_bar=False,
-    save_path=None,
+    loggers=None,
     device=device,
 )
 
@@ -207,7 +207,7 @@ G = trainer.train()
 # Test the trained model and plot the results. We compare to the pseudo-inverse as a baseline.
 #
 
-trainer.plot_images = True
+trainer.log_images = True
 trainer.test(test_dataloader)
 
 
@@ -258,7 +258,7 @@ trainer = dinv.training.AdversarialTrainer(
     D=D,
     physics=physics,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+    val_dataloader=test_dataloader,
     epochs=1,
     losses=loss_g,
     losses_d=loss_d,
@@ -266,7 +266,7 @@ trainer = dinv.training.AdversarialTrainer(
     scheduler=scheduler,
     verbose=True,
     show_progress_bar=False,
-    save_path=None,
+    loggers=None,
     device=device,
 )
 G = trainer.train()
@@ -275,7 +275,7 @@ G = trainer.train()
 # Test the trained model and plot the results:
 #
 
-trainer.plot_images = True
+trainer.log_images = True
 trainer.test(test_dataloader)
 
 
@@ -357,7 +357,7 @@ trainer = dinv.training.AdversarialTrainer(
     scheduler=scheduler,
     verbose=True,
     show_progress_bar=False,
-    save_path=None,
+    loggers=None,
     device=device,
 )
 G = trainer.train()

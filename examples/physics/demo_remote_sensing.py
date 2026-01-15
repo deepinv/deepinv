@@ -32,6 +32,7 @@ which includes data from several satellites such as WorldView satellites.
 # %%
 import deepinv as dinv
 import torch
+from deepinv.training import LocalLogger
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
@@ -197,15 +198,16 @@ trainer = dinv.Trainer(
     train_dataloader=DataLoader(dataset),
     epochs=1,
     online_measurements=True,
-    plot_images=False,
+    log_images=False,
     compare_no_learning=True,
     no_learning_method="A_dagger",
     show_progress_bar=False,
     device=device,
+    loggers=[LocalLogger(log_dir="logs/pansharpen")],  # optional logging
 )
 
 trainer.train()
-trainer.test(DataLoader(dataset))
+trainer.test(DataLoader(dataset), loggers=LocalLogger(log_dir="logs/pansharpen/test"))
 
 # %%
 # Plot sample results:

@@ -1,0 +1,422 @@
+from __future__ import annotations
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from datetime import datetime
+from logging import getLogger
+from pathlib import Path
+from typing import Any
+import json
+import logging
+import os
+import platform
+
+from torchvision.utils import save_image
+import torch
+
+
+def get_timestamp() -> str:
+    """Get current timestamp string.
+
+    :return str: timestamp, with separators determined by system.
+    """
+    # ":" is not allowed on Windows filenames
+    sep = "_" if platform.system() == "Windows" else ":"
+    return datetime.now().strftime(f"%y-%m-%d-%H{sep}%M{sep}%S")
+
+
+@dataclass
+class RunLogger(ABC):
+    """
+    Abstract base class for logging training runs.
+    """
+
+    @abstractmethod
+    def init_logger(self, hyperparams: dict[str, Any] | None = None) -> None:
+        """
+        Start a new training run.
+
+        :param dict hyperparams: Dictionary of hyperparameters to log.
+        """
+        pass
+
+    @abstractmethod
+    def set_level(self, level: str) -> None:
+        """
+        Set the logging level.
+
+        :param str level: Logging level (e.g., 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL').
+        """
+        pass
+
+    @abstractmethod
+    def log_scalars(
+        self,
+        scalars: dict[str, float],
+        step: int,
+        epoch: int | None = None,
+        phase: str = "train",
+        kind: str = "metric",
+    ) -> None:
+        """
+        Log scalar values for the current step/epoch.
+
+        :param dict scalars: Dictionary of current scalar values.
+        :param int step: Current training step.
+        :param int epoch: Current training epoch.
+        :param str phase: Training phase ('train', 'val', 'test').
+        :param str kind: Type of scalar being logged ('loss', 'metric', etc.).
+        """
+        pass
+
+    @abstractmethod
+    def log_images(
+        self,
+        images: dict[str, torch.Tensor],
+        epoch: int,
+        step: int | None = None,
+        phase: str = "train",
+    ) -> None:
+        """
+        Log images for visualization.
+
+        :param images: Dictionary of images to log.
+        :param int step: Current training step.
+        :param int epoch: Current training epoch.
+        :param str phase: Training phase ('train', 'val', 'test').
+        """
+        pass
+
+    @abstractmethod
+    def load_from_checkpoint(self, checkpoint_dict: dict[str, Any]) -> None:
+        """
+        Resume the logger by restoring from a training checkpoint.
+
+        :param dict checkpoint_dict: Contains model weights, optimizer states, LR scheduler, etc.
+        """
+        pass
+
+    @abstractmethod
+    def prepare_checkpoint(self, checkpoint_dict: dict) -> dict:
+        """
+        Add logger specific information in training checkpoint.
+
+        :param dict checkpoint_dict: Contains model weights, optimizer states, LR scheduler, etc.
+        """
+        pass
+
+    @abstractmethod
+    def finish_run(self) -> None:
+        """
+        Finalize and close the training run.
+        """
+        pass
+
+
+class WandbLogger(RunLogger):
+    """
+    TODO
+    """
+
+    def __init__(
+        self,
+        log_dir: str = "logs",
+        project_name: str = "default_project",
+        run_name: str | None = None,
+        logging_mode: str = "online",
+        resume_id: str = None,
+    ) -> None:
+        """
+        TODO
+        """
+        self.proj_name = project_name
+        if run_name is None:
+            run_name = get_timestamp()
+        self.run_name = run_name
+        self.logging_mode = logging_mode
+        self.resume_id = resume_id
+
+        self.run_log_dir = Path(log_dir) / Path(self.project_name) / self.run_name
+
+    @classmethod
+    def get_wandb_setup(
+        cls,
+        wandb_save_dir: str,
+        wandb_proj_name: str,
+        wandb_run_name: str,
+        wandb_hp_config: dict[str, Any],
+        wandb_logging_mode: str = "online",
+        wandb_resume_id: str = None,
+    ) -> dict[str, Any]:
+        """
+        TODO
+        """
+
+        if (
+            wandb_resume_id is not None and wandb_logging_mode == "offline"
+        ):  # https://github.com/wandb/wandb/issues/2423
+            raise ValueError("Cannot resume wandb run with `wandb_logs_mode=offline`.")
+
+        if wandb_resume_id is not None:  # setting to resume a wandb run
+            wandb_setup = {
+                "dir": wandb_save_dir,
+                "mode": wandb_logging_mode,
+                "project": wandb_proj_name,
+                "id": wandb_resume_id,
+                "resume": "must",
+            }
+        else:  # setting to create a new wandb run
+            wandb_setup = {
+                "dir": wandb_save_dir,
+                "mode": wandb_logging_mode,
+                "project": wandb_proj_name,
+                "name": wandb_run_name,
+                "config": wandb_hp_config,
+            }
+        return wandb_setup
+
+    def init_logger(self, hyperparams: dict[str, Any] | None = None) -> None:
+        """ """
+        import wandb
+
+        # Get a dict that contains wandb settings and experiment metadata, necessary to launch a Wandb run
+        wandb_setup = self.get_wandb_setup(
+            wandb_save_dir=self.run_log_dir,
+            wandb_proj_name=self.proj_name,
+            wandb_run_name=self.run_name,
+            wandb_hp_config=hyperparams,
+            wandb_logging_mode=self.logging_mode,
+            wandb_resume_id=self.resume_id,
+        )
+
+        # Start Wandb run
+        self.wandb_run = wandb.init(**wandb_setup)
+
+    def set_level(self, level: str) -> None:
+        """
+        Set the logging level.
+        """
+        # Wandb does not have a direct method to set logging level like standard loggers.
+        # However, you can control the verbosity of the output using the `wandb.settings` module.
+        import wandb
+
+        if level.upper() == "DEBUG":
+            wandb.settings().set("verbose", True)
+        elif level.upper() in ["INFO", "WARNING", "ERROR", "CRITICAL"]:
+            wandb.settings().set("verbose", False)
+        else:
+            raise ValueError(f"Unsupported logging level: {level}")
+
+    def log_scalars(
+        self,
+        scalars: dict[str, float],
+        step: int,
+        epoch: int | None = None,
+        phase: str = "train",
+        kind: str = "metric",
+    ) -> None:
+        """
+        Log scalar values for the current step/epoch.
+        """
+        # {scalar_name_1: scalar_value_1, ...} -> {phase/kind/scalar_name_1: scalar_value_1, ...}
+        logs = {
+            f"{phase}/{kind}s/{scalar_name}": scalar_value
+            for scalar_name, scalar_value in scalars.items()
+        }
+
+        # default x-axis is the current training step
+        self.wandb_run.log(logs, step=step)
+
+    def log_images(
+        self,
+        images: dict[str, torch.Tensor],
+        epoch: int,
+        step: int | None = None,
+        phase: str = "train",
+    ) -> None:
+        """
+        TODO
+
+        Wandb expects NumPy array or PIL image.
+        """
+        step = None
+        import wandb
+
+        # process images
+        for name_img, img in images.items():
+            shape = img.shape
+            if len(shape) == 2:
+                wandb_images = wandb.Image(img.numpy())
+
+                # log images
+                self.wandb_run.log(
+                    {f"{phase} samples: {name_img}": wandb_images}, step=epoch
+                )
+            elif len(shape) == 3:
+                wandb_images = wandb.Image(img.permute(1, 2, 0).numpy())
+
+                # log images
+                self.wandb_run.log(
+                    {f"{phase} samples: {name_img}": wandb_images}, step=epoch
+                )
+            elif len(shape) == 4:
+                for j in range(len(img)):
+                    wandb_images = wandb.Image(img[j].permute(1, 2, 0).numpy())
+
+                    # log images
+                    self.wandb_run.log(
+                        {f"{phase} samples: {name_img}_{j}": wandb_images}, step=epoch
+                    )
+
+    def load_from_checkpoint(self, checkpoint_dict: dict[str, Any]) -> None:
+        """
+        Get from checkpoint the resume_id.
+        """
+        if "resume_id" in checkpoint_dict:
+            self.resume_id = checkpoint_dict["resume_id"]
+
+    def prepare_checkpoint(self, checkpoint_dict: dict) -> dict:
+        """
+        Add the resume_id to the checkpoint.
+        """
+        if checkpoint_dict is None:
+            checkpoint_dict = {}
+
+        checkpoint_dict["wandb_id"] = self.wandb_run.id
+        return checkpoint_dict
+
+    def finish_run(self) -> None:
+        """
+        TODO
+        """
+        self.wandb_run.finish()
+
+
+class LocalLogger(RunLogger):
+    """
+    Concrete implementation of RunLogger that logs to local files.
+
+    TODO
+    """
+
+    def __init__(
+        self,
+        log_dir: str = "logs",
+        project_name: str = "default_project",
+        run_name: str | None = None,
+    ) -> None:
+        self.project_name = project_name
+        if run_name is None:
+            run_name = get_timestamp()
+        self.run_name = run_name
+
+        self.run_log_dir = Path(log_dir) / Path(self.project_name) / self.run_name
+        self.loss_dir = self.run_log_dir / "losses"
+        self.metrics_dir = self.run_log_dir / "metrics"
+        self.images_dir = self.run_log_dir / "images"
+
+        self.stdout_logger = getLogger("stdout_logger")
+        self.stdout_logger.setLevel("INFO")
+
+    def init_logger(self, hyperparams: dict[str, Any] | None = None) -> None:
+        os.makedirs(self.run_log_dir, exist_ok=True)
+        os.makedirs(self.loss_dir, exist_ok=True)
+        os.makedirs(self.metrics_dir, exist_ok=True)
+        os.makedirs(self.images_dir, exist_ok=True)
+
+        # Save hyperparameters
+        if hyperparams:
+            with open(self.run_log_dir / "hyperparams.json", "w") as f:
+                json.dump(hyperparams, f, indent=4)
+
+        # Setup logging to file
+        fh = logging.FileHandler(self.run_log_dir / "training.log")
+        fh.setLevel("INFO")
+        self.stdout_logger.addHandler(fh)
+
+        self.img_counter = 0  # Initialize image counter ???
+
+        self.stdout_logger.info(f"Log directory initialized: {self.run_log_dir}")
+
+    def set_level(self, level: str) -> None:
+        """
+        Set the logging level.
+        """
+        self.stdout_logger.setLevel(level)
+
+    def log_scalars(
+        self,
+        scalars: dict[str, float],
+        step: int,
+        epoch: int | None = None,
+        phase: str = "train",
+        kind: str = "metric",
+    ) -> None:
+        # Human readable logging
+        scalar_str = "| ".join(
+            [f"{name}: {value:.6f}" for name, value in scalars.items()]
+        )
+        self.stdout_logger.info(
+            f"{phase} - epoch: {epoch} | step: {step} | {kind}s: {scalar_str}"
+        )
+
+        # JSON logging
+        log_dir = self.loss_dir if kind == "loss" else self.metrics_dir
+        log_file = log_dir / f"{kind}s.json"
+
+        if log_file.exists():
+            try:
+                with open(log_file, "r") as f:
+                    all_logs = json.load(f)
+            except json.JSONDecodeError:
+                all_logs = {}
+        else:
+            all_logs = {}
+
+        if phase not in all_logs:
+            all_logs[phase] = []
+
+        entry = {
+            "epoch": epoch,
+            "step": step,
+            f"{kind}s": {name: float(value) for name, value in scalars.items()},
+        }
+
+        all_logs[phase].append(entry)
+
+        with open(log_file, "w") as f:
+            json.dump(all_logs, f, indent=2)
+
+    def log_images(
+        self,
+        images: dict[str, torch.Tensor],
+        epoch: int = 0,
+        step: int | None = None,
+        phase: str = "train",
+    ) -> None:
+        dir_path = self.images_dir / phase / f"epoch_{epoch}"
+        if step is not None:
+            dir_path = dir_path / f"step_{step}"
+        os.makedirs(dir_path, exist_ok=True)
+
+        for k, (name, img) in enumerate(images.items()):
+            for i in range(img.size(0)):
+                img_name = f"{dir_path}/{name}_{k}_{self.img_counter + i}.png"
+                save_image(img[i], img_name)
+
+    def load_from_checkpoint(self, checkpoint_dict: dict[str, Any]):
+        """
+        Do nothing.
+        """
+        pass
+
+    def prepare_checkpoint(self, checkpoint_dict: dict) -> dict:
+        if checkpoint_dict is None:
+            checkpoint_dict = {}
+        return checkpoint_dict
+
+    def finish_run(self):
+        self.stdout_logger.info(f"Run finished: {self.run_name}")
+        handlers = self.stdout_logger.handlers[:]
+        for handler in handlers:
+            handler.close()
+            self.stdout_logger.removeHandler(handler)

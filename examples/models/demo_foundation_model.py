@@ -262,19 +262,15 @@ max_epochs = 20
 trainer = dinv.Trainer(
     model=model,
     physics=physics_train,
-    eval_interval=5,
-    ckp_interval=max_epochs - 1,
-    metrics=None,
-    compute_eval_losses=True,  # use self-supervised loss for evaluation
-    early_stop_on_losses=True,  # stop using self-supervised eval loss
-    early_stop=2,  # early stop after 2 evals without improvement
+    ckpt_interval=max_epochs - 1,
+    metrics=losses[0],
+    early_stop=True,
     device=device,
     losses=losses,
     epochs=max_epochs,
     optimizer=torch.optim.Adam(model.parameters(), lr=5e-5),
     train_dataloader=train_dataloader,
-    eval_dataloader=eval_dataloader,
-    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
+    val_dataloader=eval_dataloader,
 )
 
 finetuned_model = trainer.train()

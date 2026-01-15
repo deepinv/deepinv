@@ -2,6 +2,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import tqdm
+
 if TYPE_CHECKING:
     from torch.optim import Optimizer
     from torch.optim.lr_scheduler import LRScheduler
@@ -12,8 +14,9 @@ import torch
 from torch.nn import Module
 
 from deepinv.training.trainer import Trainer
-from deepinv.loss import Loss
+from deepinv.loss import Loss, BaseLossScheduler
 from deepinv.utils import AverageMeter
+from deepinv.physics import Physics
 
 
 class AdversarialOptimizer:
@@ -82,6 +85,18 @@ class AdversarialScheduler:
         r"""Performs a step on both generator and discriminator schedulers."""
         self.scheduler_g.step()
         self.scheduler_d.step()
+
+    def state_dict(self):
+        r"""Returns the state of both schedulers as a dictionary."""
+        return {
+            "scheduler_g": self.scheduler_g.state_dict(),
+            "scheduler_d": self.scheduler_d.state_dict(),
+        }
+
+    def load_state_dict(self, state_dict):
+        r"""Loads the state of both schedulers from a dictionary."""
+        self.scheduler_g.load_state_dict(state_dict["scheduler_g"])
+        self.scheduler_d.load_state_dict(state_dict["scheduler_d"])
 
 
 @dataclass
@@ -153,75 +168,151 @@ class AdversarialTrainer(Trainer):
     :param int step_ratio_D: every iteration, train D this many times, allowing for imbalanced generator/discriminator training. Defaults to 1.
     """
 
+    ## Special optimizer for Adversarial Training
     optimizer: AdversarialOptimizer
-    losses_d: Loss | list[Loss] = None
+
+    ## Discriminator settings
+    losses_d: Loss | BaseLossScheduler | list[Loss] | list[BaseLossScheduler] = None
     D: Module = None
     step_ratio_D: int = 1
 
-    def setup_train(self, **kwargs):
+    def setup_run(self) -> None:
         r"""
         After usual Trainer setup, setup losses for discriminator too.
         """
-        super().setup_train(**kwargs)
+        # resume state from a training checkpoint
+        self.epoch_start = 0
+        self.load_ckpt(self.ckpt_pretrained)
+
+        super()._setup_data()
+        self._setup_logging()
 
         if self.optimizer_step_multi_dataset:
             warnings.warn(
-                "optimizer_step_multi_dataset parameter of Trainer is should be set to `False` when using adversarial trainer. Automatically setting it to `False`."
+                "optimizer_step_multi_dataset parameter of Trainer should be set to `False` when using adversarial trainer. Automatically setting it to `False`."
             )
             self.optimizer_step_multi_dataset = False
 
-        if not isinstance(self.losses_d, (list, tuple)):
+    def _setup_logging(self) -> None:
+        r"""
+        Set up the monitoring before running an experience..
+        """
+        super()._setup_logging()
+
+        # losses processing for discriminator
+        if not isinstance(self.losses_d, list):
             self.losses_d = [self.losses_d]
 
-        self.logs_losses_train += [
-            AverageMeter("Training discrim loss " + l.name, ":.2e")
-            for l in self.losses_d
-        ]
-
-        self.logs_losses_eval += [
-            AverageMeter("Validation discrim loss " + l.name, ":.2e")
-            for l in self.losses_d
-        ]
-
-        if self.ckpt_pretrained is not None:
-            checkpoint = torch.load(self.ckpt_pretrained)
-            self.D.load_state_dict(checkpoint["state_dict_D"])
-
-        if self.check_grad:
-            self.check_grad_val_D = AverageMeter(
-                "Gradient norm for discriminator", ":.2e"
+        # add discriminator losses computed during an epoch
+        for l in self.losses_d:
+            self.meters_losses_train[l.__class__.__name__] = AverageMeter(
+                "Training discrim loss " + l.__class__.__name__, ":.2e"
+            )
+            self.meters_losses_val[l.__class__.__name__] = AverageMeter(
+                "Validation discrim loss " + l.__class__.__name__, ":.2e"
             )
 
-    def compute_loss(
-        self, physics, x, y, train=True, epoch: int = None, step: int = True
-    ):
+    def save_ckpt(self, epoch: int, name: str | None = None) -> None:
         r"""
-        Compute losses and perform backward passes for both generator and discriminator networks.
+        Save necessary information to resume training, notably discrimator.
 
-        :param deepinv.physics.Physics physics: Current physics operator.
+        :param int epoch: Current epoch.
+        :param str name: Name of the checkpoint file.
+        """
+        state = {
+            "epoch": epoch,
+            "state_dict": self.model.state_dict(),
+            "state_dict_D": self.D.state_dict(),
+            "optimizer": self.optimizer.state_dict() if self.optimizer else None,
+            "scheduler": self.scheduler.state_dict() if self.scheduler else None,
+            "loss": self.train_loss_history,
+            "val_metrics": self.val_metrics_history_per_epoch,
+        }
+
+        for logger in self.loggers:
+            logger.log_checkpoint(epoch=epoch, state=state, name=name)
+
+    def load_ckpt(
+        self,
+        ckpt_pretrained: str | None = None,
+    ) -> None:
+        """Load model from checkpoint, notably discrimator.
+
+        :param str ckpt_pretrained: Path to the checkpoint file.
+        """
+        if ckpt_pretrained is not None:
+            self.ckpt_pretrained = ckpt_pretrained
+
+        # Early return if no checkpoint to load
+        if self.ckpt_pretrained is None:
+            return
+
+        # Load checkpoint from file
+        checkpoint = torch.load(
+            self.ckpt_pretrained, map_location=self.device, weights_only=False
+        )
+
+        self.epoch_start = checkpoint["epoch"] + 1
+        self.model.load_state_dict(checkpoint["state_dict"], strict=True)
+        self.D.load_state_dict(checkpoint["state_dict_D"], strict=True)
+        self.train_loss_history = checkpoint["loss"]
+        self.val_metrics_history_per_epoch = checkpoint["val_metrics"]
+
+        # Optimizer and Scheduler may be None
+        if self.optimizer is not None:
+            self.optimizer.load_state_dict(checkpoint["optimizer"])
+        if self.scheduler is not None:
+            self.scheduler.load_state_dict(checkpoint["scheduler"])
+
+        for logger in self.loggers:
+            logger.load_from_checkpoint(checkpoint)
+
+    def apply_grad_clip_D(self) -> float | None:
+        r"""
+        Check the discriminator's gradient norm and perform gradient clipping if necessary.
+
+        Analogous to ``check_clip_grad`` for generator.
+        """
+        if self.grad_clip is not None:
+            torch.nn.utils.clip_grad_norm_(self.D.parameters(), self.grad_clip)
+
+        if self.log_grad:
+            grads = [
+                param.grad.detach().flatten()
+                for param in self.D.parameters()
+                if param.grad is not None
+            ]
+            return torch.cat(grads).norm().item()
+        return None
+
+    def _compute_loss(
+        self,
+        losses: list[Loss] | list[BaseLossScheduler],
+        x: torch.Tensor,
+        x_net: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        train=True,
+        epoch: int = None,
+    ) -> torch.Tensor:
+        r"""
+        Compute losses for a given set of loss functions.
+
+        :param list losses: List of loss functions to compute.
         :param torch.Tensor x: Ground truth.
+        :param torch.Tensor x_net: Network reconstruction.
         :param torch.Tensor y: Measurement.
+        :param deepinv.physics.Physics physics: Current physics operator.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param int epoch: current epoch.
-        :param bool step: If ``True``, perform an optimization step on all datasets before optimizer step.
-        :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and
-            the logs (for printing the training progress).
+        :returns: Total loss value.
         """
-        logs = {}
-
-        if train and step:  # remove gradient
-            self.optimizer.G.zero_grad(set_to_none=True)
-
-        # Evaluate reconstruction network
-        x_net = self.model_inference(y=y, physics=physics)
-
-        # Compute reconstructed measurement
         y_hat = physics.A(x_net)
 
         ### Train Generator
-        if train or self.compute_eval_losses:
+        if train:
             loss_total = 0
-            for k, l in enumerate(self.losses):
+            for l in losses:
                 loss = l(
                     x=x,
                     x_net=x_net,
@@ -232,92 +323,228 @@ class AdversarialTrainer(Trainer):
                     D=self.D,
                     epoch=epoch,
                 )
-                loss_total = loss_total + loss.mean()
-                if len(self.losses) > 1 and self.verbose_individual_losses:
-                    current_log = (
-                        self.logs_losses_train[k] if train else self.logs_losses_eval[k]
+                loss_total += loss.mean()
+
+                if len(losses) > 1:
+                    meter = (
+                        self.meters_losses_train[l.__class__.__name__]
+                        if train
+                        else self.meters_losses_val[l.__class__.__name__]
                     )
-                    current_log.update(loss.detach().cpu().numpy())
-                    cur_loss = current_log.avg
-                    logs[l.__class__.__name__] = cur_loss
+                    meter.update(loss.detach().cpu().numpy())
 
-            current_log = (
-                self.logs_total_loss_train if train else self.logs_total_loss_eval
-            )
-            current_log.update(loss_total.item())
+            meter = self.meter_total_loss_train if train else self.meter_total_loss_val
+            meter.update(loss_total.item())
 
-            logs[f"TotalLoss"] = current_log.avg
+        return loss_total
+
+    def compute_generator_loss(
+        self,
+        x: torch.Tensor,
+        x_net: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        train=True,
+        epoch: int = None,
+    ) -> torch.Tensor:
+        r"""
+        Compute losses for the generator network.
+
+        :param torch.Tensor x: Ground truth.
+        :param torch.Tensor x_net: Network reconstruction.
+        :param torch.Tensor y: Measurement.
+        :param deepinv.physics.Physics physics: Current physics operator.
+        :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
+        :param int epoch: current epoch.
+        :returns: Total generator loss.
+        """
+        return self._compute_loss(self.losses, x, x_net, y, physics, train, epoch)
+
+    def compute_discriminator_loss(
+        self,
+        x: torch.Tensor,
+        x_net: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        train=True,
+        epoch: int = None,
+    ) -> torch.Tensor:
+        r"""
+        Compute losses for the discriminator network.
+
+        :param torch.Tensor x: Ground truth.
+        :param torch.Tensor x_net: Network reconstruction.
+        :param torch.Tensor y: Measurement.
+        :param deepinv.physics.Physics physics: Current physics operator.
+        :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
+        :param int epoch: current epoch.
+        :returns: Total discriminator loss.
+        """
+        return self._compute_loss(self.losses_d, x, x_net, y, physics, train, epoch)
+
+    def step(
+        self,
+        epoch: int,
+        progress_bar: tqdm,
+        train_ite: int = None,
+        phase: str = "train",
+        last_batch: bool = False,
+    ) -> None:
+        r"""
+        Train/Eval a batch.
+
+        It performs the forward pass, the backward pass, and the evaluation at each iteration
+        for both generator and discriminator networks.
+
+        :param int epoch: Current epoch.
+        :param progress_bar: `tqdm <https://tqdm.github.io/docs/tqdm/>`_ progress bar.
+        :param int train_ite: train iteration, only needed for logging if ``Trainer.log_train_batch=True``
+        :param str phase: Training phase ('train', 'val', 'test').
+        :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
+        """
+        if phase == "train":
+            training_step = True
         else:
-            loss_total = 0
+            training_step = False
 
-        if train:
-            loss_total.backward(retain_graph=True)  # Backward the total generator loss
+        ### Train Generator
 
-            norm = self.check_clip_grad()  # Optional gradient clipping
-            if norm is not None:
-                logs["gradient_norm"] = self.check_grad_val.avg
+        # Zero grad
+        if training_step:
+            self.optimizer.zero_grad()
 
-            if step:
-                self.optimizer.G.step()
+        # Get either online or offline samples
+        x, y, physics_cur = self.get_samples(
+            (
+                self.current_train_iterators
+                if training_step
+                else self.current_val_iterators
+            ),
+            0,
+        )
+
+        # Evaluate reconstruction network
+        x_net = self.model_inference(y=y, physics=physics_cur, x=x, train=training_step)
+
+        # Compute the loss for the batch
+        loss_generator_cur = self.compute_generator_loss(
+            x=x,
+            x_net=x_net,
+            y=y,
+            physics=physics_cur,
+            train=training_step,
+            epoch=epoch,
+        )
+
+        if training_step:
+            # Backward
+            loss_generator_cur.backward(
+                retain_graph=True
+            )  # keep the activations for later use
+
+            # Logging
+            loss_logs = {}
+            loss_logs["Loss Generator"] = loss_generator_cur.item()
+
+            # Gradient clipping
+            grad_norm = self.apply_grad_clip()
+            if self.log_grad:
+                loss_logs["gradient_norm"] = grad_norm
+
+            # Optimizer step
+            self.optimizer.G.step()
+
+            # Update the progress bar
+            progress_bar.set_postfix(loss_logs)
 
         ### Train Discriminator
         for _ in range(self.step_ratio_D):
-            if train or self.compute_eval_losses:
+            if training_step:
+                self.optimizer.D.zero_grad()
 
-                self.optimizer.D.zero_grad(set_to_none=True)
+            # Compute the discriminator loss for the batch
+            loss_discriminator_cur = self.compute_discriminator_loss(
+                x,
+                x_net,
+                y,
+                physics_cur,
+                train=training_step,
+                epoch=epoch,
+            )
 
-                loss_total_d = 0
-                for k, l in enumerate(self.losses_d):
-                    loss = l(
-                        x=x,
-                        x_net=x_net,
-                        y=y,
-                        y_hat=y_hat,
-                        physics=physics,
-                        model=self.model,
-                        D=self.D,
-                        epoch=epoch,
-                    )
-                    loss_total_d += loss.mean()
-                    if len(self.losses_d) > 1 and self.verbose_individual_losses:
-                        current_log = (
-                            self.logs_losses_train[k + len(self.losses)]
-                            if train
-                            else self.logs_losses_eval[k + len(self.losses)]
-                        )
-                        current_log.update(loss.detach().cpu().numpy())
-                        cur_loss = current_log.avg
-                        logs[l.__class__.__name__] = cur_loss
+            # Backward + Optimizer
+            if training_step:
+                # Backward
+                loss_discriminator_cur.backward()
 
-            if train:
-                loss_total_d.backward()
+                # Logging
+                loss_logs = {}
+                loss_logs["Loss Discriminator"] = loss_discriminator_cur.item()
 
-                norm = self.check_clip_grad_D()
-                if norm is not None:
-                    logs["gradient_norm_D"] = self.check_grad_val_D.avg
+                # Gradient clipping
+                grad_norm = self.apply_grad_clip_D()
+                if self.log_grad:
+                    loss_logs["gradient_norm_D"] = grad_norm
 
+                # Optimizer step
                 self.optimizer.D.step()
 
-        return loss_total, x_net, logs
+                # Update the progress bar
+                progress_bar.set_postfix(loss_logs)
 
-    def check_clip_grad_D(self):
-        r"""Check the discriminator's gradient norm and perform gradient clipping if necessary.
+        # Compute the metrics for the batch
+        x_net = x_net.detach()  # detach the network output for metrics and plotting
+        self.compute_metrics(x, x_net, y, physics_cur, train=training_step, epoch=epoch)
 
-        Analogous to ``check_clip_grad`` for generator.
-        """
-        if self.grad_clip is not None:
-            torch.nn.utils.clip_grad_norm_(self.D.parameters(), self.grad_clip)
+        # Log images of last batch for each dataset
+        if last_batch:
+            self.save_images(
+                epoch,
+                physics_cur,
+                x,
+                y,
+                x_net,
+                train=training_step,
+            )
 
-        if self.check_grad:
-            grads = [
-                param.grad.detach().flatten()
-                for param in self.D.parameters()
-                if param.grad is not None
-            ]
-            norm_grads = torch.cat(grads).norm()
-            self.check_grad_val_D.update(norm_grads.item())
-            return norm_grads.item()
+        # Log epoch losses and metrics
+        if last_batch:
+            ## Losses
+            epoch_loss_logs = {}
 
-    def save_model(self, epoch, eval_psnr=None):
-        r"""Save discriminator model parameters alongside other models."""
-        super().save_model(epoch, eval_psnr, {"state_dict_D": self.D.state_dict()})
+            # Add individual losses over an epoch
+            if len(self.losses) > 1:
+                for l in self.losses:
+                    meter = (
+                        self.meters_losses_train[l.__class__.__name__]
+                        if training_step
+                        else self.meters_losses_val[l.__class__.__name__]
+                    )
+                    epoch_loss_logs[l.__class__.__name__] = meter.avg
+
+            # Add total loss over an epoch
+            meter = (
+                self.meter_total_loss_train
+                if training_step
+                else self.meter_total_loss_val
+            )
+            epoch_loss_logs["Total_Loss"] = meter.avg
+
+            ## Metrics
+            epoch_metrics_logs = {}
+            for m in self.metrics:
+                meter = (
+                    self.meters_metrics_train[m.__class__.__name__]
+                    if training_step
+                    else self.meters_metrics_val[m.__class__.__name__]
+                )
+                epoch_metrics_logs[m.__class__.__name__] = meter.avg
+
+            ## Logging
+            for logger in self.loggers:
+                logger.log_scalars(
+                    epoch_loss_logs, step=epoch, phase=phase, kind="loss"
+                )
+                logger.log_scalars(
+                    epoch_metrics_logs, step=epoch, phase=phase, kind="metric"
+                )
