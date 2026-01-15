@@ -49,38 +49,22 @@ class RunLogger(ABC):
         pass
 
     @abstractmethod
-    def log_losses(
+    def log_scalars(
         self,
-        losses: dict[str, float],
+        scalars: dict[str, float],
         step: int,
         epoch: int | None = None,
         phase: str = "train",
+        kind: str = "metric",
     ) -> None:
         """
-        Log loss values for the current step/epoch.
+        Log scalar values for the current step/epoch.
 
-        :param dict losses: Dictionary of current losses values.
+        :param dict scalars: Dictionary of current scalar values.
         :param int step: Current training step.
         :param int epoch: Current training epoch.
         :param str phase: Training phase ('train', 'val', 'test').
-        """
-        pass
-
-    @abstractmethod
-    def log_metrics(
-        self,
-        metrics: dict[str, float],
-        step: int,
-        epoch: int | None = None,
-        phase: str = "train",
-    ) -> None:
-        """
-        Log metrics for the current step/epoch.
-
-        :param dict metrics: Dictionary of current metrics values.
-        :param int step: Current training step.
-        :param int epoch: Current training epoch.
-        :param str phase: Training phase ('train', 'val', 'test').
+        :param str kind: Type of scalar being logged ('loss', 'metric', etc.).
         """
         pass
 
@@ -222,43 +206,21 @@ class WandbLogger(RunLogger):
         else:
             raise ValueError(f"Unsupported logging level: {level}")
 
-    def log_losses(
+    def log_scalars(
         self,
-        losses: dict[str, Any],
+        scalars: dict[str, float],
         step: int,
         epoch: int | None = None,
         phase: str = "train",
+        kind: str = "metric",
     ) -> None:
         """
-        TODO
+        Log scalar values for the current step/epoch.
         """
-        epoch = None
-
-        # {loss_name_1: loss_value_1, ...} -> {phase/loss_name_1: loss_value_1, ...}
+        # {scalar_name_1: scalar_value_1, ...} -> {phase/kind/scalar_name_1: scalar_value_1, ...}
         logs = {
-            f"{phase}/{loss_name}": loss_value
-            for loss_name, loss_value in losses.items()
-        }
-
-        # default x-axis is the current training step
-        self.wandb_run.log(logs, step=step)
-
-    def log_metrics(
-        self,
-        metrics: dict[str, Any],
-        step: int,
-        epoch: int | None = None,
-        phase: str = "train",
-    ) -> None:
-        """
-        TODO
-        """
-        epoch = None
-
-        # {loss_name_1: loss_value_1, ...} -> {phase/loss_name_1: loss_value_1, ...}
-        logs = {
-            f"{phase}/{metric_name}": metric_value
-            for metric_name, metric_value in metrics.items()
+            f"{phase}/{kind}s/{scalar_name}": scalar_value
+            for scalar_name, scalar_value in scalars.items()
         }
 
         # default x-axis is the current training step
@@ -381,22 +343,25 @@ class LocalLogger(RunLogger):
         """
         self.stdout_logger.setLevel(level)
 
-    def log_losses(
+    def log_scalars(
         self,
-        losses: dict[str, float],
+        scalars: dict[str, float],
         step: int,
         epoch: int | None = None,
         phase: str = "train",
+        kind: str = "metric",
     ) -> None:
-
         # Human readable logging
-        loss_str = "| ".join([f"{name}: {value:.6f}" for name, value in losses.items()])
+        scalar_str = "| ".join(
+            [f"{name}: {value:.6f}" for name, value in scalars.items()]
+        )
         self.stdout_logger.info(
-            f"{phase} - epoch: {epoch} | step: {step} | losses: {loss_str}"
+            f"{phase} - epoch: {epoch} | step: {step} | {kind}s: {scalar_str}"
         )
 
         # JSON logging
-        log_file = self.loss_dir / "losses.json"
+        log_dir = self.loss_dir if kind == "loss" else self.metrics_dir
+        log_file = log_dir / f"{kind}s.json"
 
         if log_file.exists():
             try:
@@ -413,49 +378,7 @@ class LocalLogger(RunLogger):
         entry = {
             "epoch": epoch,
             "step": step,
-            "losses": {name: float(value) for name, value in losses.items()},
-        }
-
-        # Add the new entry to the list
-        all_logs[phase].append(entry)
-
-        with open(log_file, "w") as f:
-            json.dump(all_logs, f, indent=2)
-
-    def log_metrics(
-        self,
-        metrics: dict[str, float],
-        step: int,
-        epoch: int | None = None,
-        phase: str = "train",
-    ) -> None:
-        # Human readable logging
-        metric_str = "| ".join(
-            [f"{name}: {value:.6f}" for name, value in metrics.items()]
-        )
-        self.stdout_logger.info(
-            f"{phase} - epoch: {epoch} | step: {step} | metrics: {metric_str}"
-        )
-
-        # JSON logging
-        log_file = self.metrics_dir / "metrics.json"
-
-        if log_file.exists():
-            try:
-                with open(log_file, "r") as f:
-                    all_logs = json.load(f)
-            except json.JSONDecodeError:
-                all_logs = {}
-        else:
-            all_logs = {}
-
-        if phase not in all_logs:
-            all_logs[phase] = []
-
-        entry = {
-            "epoch": epoch,
-            "step": step,
-            "metrics": {name: float(value) for name, value in metrics.items()},
+            f"{kind}s": {name: float(value) for name, value in scalars.items()},
         }
 
         all_logs[phase].append(entry)

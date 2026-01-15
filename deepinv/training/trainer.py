@@ -993,7 +993,9 @@ class Trainer:
 
                 # Track loss value used for an update and its gradient norm
                 for logger in self.loggers:
-                    logger.log_losses(loss_logs, step=train_ite, phase=phase)
+                    logger.log_scalars(
+                        loss_logs, step=train_ite, phase=phase, kind="loss"
+                    )
 
     def save_images(
         self,
@@ -1146,11 +1148,17 @@ class Trainer:
         ## Logging
         for logger in self.loggers:
             if phase in self.compute_losses_on:
-                logger.log_losses(epoch_loss_logs, step=epoch, phase=phase)
+                logger.log_scalars(
+                    epoch_loss_logs, step=epoch, phase=phase, kind="loss"
+                )
             if phase in self.compute_metrics_on:
-                logger.log_metrics(epoch_metrics_logs, step=epoch, phase=phase)
+                logger.log_scalars(
+                    epoch_metrics_logs, step=epoch, phase=phase, kind="metric"
+                )
             if phase in self.compute_comparison_on:
-                logger.log_metrics(epoch_comparison_logs, step=epoch, phase=phase)
+                logger.log_scalars(
+                    epoch_comparison_logs, step=epoch, phase=phase, kind="metric"
+                )
 
         self.train_logger.info(f"Epoch Losses and Metrics are logged.")
 

@@ -542,5 +542,9 @@ class AdversarialTrainer(Trainer):
 
             ## Logging
             for logger in self.loggers:
-                logger.log_losses(epoch_loss_logs, step=epoch, phase=phase)
-                logger.log_metrics(epoch_metrics_logs, step=epoch, phase=phase)
+                logger.log_scalars(
+                    epoch_loss_logs, step=epoch, phase=phase, kind="loss"
+                )
+                logger.log_scalars(
+                    epoch_metrics_logs, step=epoch, phase=phase, kind="metric"
+                )

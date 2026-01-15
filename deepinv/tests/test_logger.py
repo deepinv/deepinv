@@ -36,15 +36,22 @@ def test_localrunner_start_run(
 
 @pytest.mark.parametrize("epoch", [None, 1])
 @pytest.mark.parametrize("phase", ["train", "val"])
-def test_localrunner_log_losses(epoch, phase, tmpdir):
+def test_localrunner_log_scalars_with_losses(epoch, phase, tmpdir):
     logger = LocalLogger(
         log_dir=tmpdir, project_name="test_project", run_name="test_run"
     )
     logger.init_logger()
     logger.stdout_logger.setLevel("CRITICAL")
     losses_dict = {"loss1": 0.5, "loss2": 0.3, "total_loss": 0.8}
-    logger.log_losses(losses=losses_dict, step=1, epoch=epoch, phase=phase)
-    logger.log_losses(losses=losses_dict, step=2, epoch=epoch, phase=phase)
+    logger.log_scalars(
+        scalars=losses_dict, step=1, epoch=epoch, phase=phase, kind="loss"
+    )
+    logger.log_scalars(
+        scalars=losses_dict, step=2, epoch=epoch, phase=phase, kind="loss"
+    )
+    logger.log_scalars(
+        scalars=losses_dict, step=2, epoch=epoch, phase=phase, kind="loss"
+    )
 
     # Get the log file path for the losses
     log_dir = tmpdir / "test_project" / "test_run"
@@ -61,15 +68,19 @@ def test_localrunner_log_losses(epoch, phase, tmpdir):
 
 @pytest.mark.parametrize("epoch", [None, 1])
 @pytest.mark.parametrize("phase", ["train", "val"])
-def test_localrunner_log_metrics(epoch, phase, tmpdir):
+def test_localrunner_log_scalars_with_metrics(epoch, phase, tmpdir):
     logger = LocalLogger(
         log_dir=tmpdir, project_name="test_project", run_name="test_run"
     )
     logger.init_logger()
     logger.stdout_logger.setLevel("CRITICAL")
     metrics_dict = {"psnr": 25.0, "ssim": 0.85}
-    logger.log_metrics(metrics=metrics_dict, step=1, epoch=epoch, phase=phase)
-    logger.log_metrics(metrics=metrics_dict, step=2, epoch=epoch, phase=phase)
+    logger.log_scalars(
+        scalars=metrics_dict, step=1, epoch=epoch, phase=phase, kind="metric"
+    )
+    logger.log_scalars(
+        scalars=metrics_dict, step=2, epoch=epoch, phase=phase, kind="metric"
+    )
 
     # Get the log file path for the metrics
     log_dir = tmpdir / "test_project" / "test_run"
