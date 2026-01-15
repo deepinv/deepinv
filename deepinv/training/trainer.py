@@ -209,6 +209,7 @@ class Trainer:
     - `eval_metrics`: metric history on eval set
     - `optimizer`: optimizer state dictionary, or ``None`` if not used
     - `scheduler`: learning rate scheduler state dictionary, or ``None`` if not used
+    - `eval_batch_runtime`: average evaluation batch timings
 
     |sep|
 
@@ -1195,10 +1196,10 @@ class Trainer:
         r"""
         Save the model.
 
-        It saves the model every ``ckp_interval`` epochs.
+        It saves the model every ``ckp_interval`` epochs in ``save_path/filename``.
 
+        :param str filename: checkpoint filename.
         :param int epoch: Current epoch.
-        :param None, float eval_metrics: Evaluation metrics across epochs.
         :param dict state: custom objects to save with model
         """
         if state is None:
@@ -1217,6 +1218,7 @@ class Trainer:
             "eval_metrics": self.eval_metrics_history,
             "optimizer": self.optimizer.state_dict() if self.optimizer else None,
             "scheduler": self.scheduler.state_dict() if self.scheduler else None,
+            "eval_batch_runtime" : self.timing_meter.avg,
         }
         if self.wandb_vis:
             import wandb
