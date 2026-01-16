@@ -7,6 +7,7 @@ from types import MappingProxyType
 import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
+from deepinv.optim.optim_iterators.richardson_lucy import RichardsonLucyIteration
 from deepinv.optim.prior import Zero, Prior
 from deepinv.optim.data_fidelity import DataFidelity, ZeroFidelity
 from deepinv.optim.bregman import Bregman
@@ -2230,5 +2231,46 @@ class PDCP(BaseOptim):
             custom_metrics=custom_metrics,
             unfold=unfold,
             trainable_params=trainable_params,
+            **kwargs,
+        )
+
+
+class RichardsonLucy(BaseOptim):
+    r"""Richardson-Lucy (RL) optimization module."""
+
+    def __init__(
+        self,
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        stepsize: float = 1.0,
+        g_param: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        g_first: bool = False,
+        params_algo: dict[str, float] = None,
+        **kwargs,
+    ):
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
+        super(RichardsonLucy, self).__init__(
+            RichardsonLucyIteration(g_first=g_first),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             **kwargs,
         )
