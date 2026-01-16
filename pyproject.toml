@@ -116,10 +116,6 @@ training = [
     "mlflow",
 ]
 
-benchmarks = [
-    "benchopt",
-]
-
 #####################################################################
 # Pytest configuration and coverage reporting
 
