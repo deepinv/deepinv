@@ -231,14 +231,20 @@ This section provides benchmark results for various datasets and physics models.
 .. note::
 
     Benchmarks are defined on the https://github.com/deepinv/benchmarks repository.
-    To contribute a new benchmark or add your model to an existing benchmark, please refer to this repository.
+    To contribute a new benchmark or add your solver to an existing benchmark, please refer to this repository.
 
-You can try your model on one of the benchmarks, making sure that it receives `(y, physics)` as input and outputs the reconstructed image as `x`,
-and then running:
+You can try your solver on one of the benchmarks, make sure that it receives `(y, physics)` as input and outputs the reconstructed image as `x`,
+then install (or upgrade) the `deepinv_bench` package and run the benchmark as follows:
+    
+.. code-block:: bash
+
+   pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/benchmarks.git#egg=deepinv_bench
+
+Once installed, you can run the benchmark with the following code:
 
 .. code-block:: python
 
-    from deepinv.benchmarks import run_benchmark
+    from deepinv_bench import run_benchmark
     my_solver = lambda y, physics: ...  # your solver here
     results = run_benchmark(my_solver, "benchmark_name")
 
