@@ -5,20 +5,25 @@
 
 # This is necessary for now but should not be in future version of sphinx_gallery
 # as a simple list of paths will be enough.
-from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
-from sphinx_gallery.directives import ImageSg
 import sys
 import os
-from sphinx.util import logging
 import doctest
 from importlib.metadata import metadata as importlib_metadata
+from docutils import nodes
+from docutils.parsers.rst import Directive
+from sphinx.util import logging
+from sphinx.addnodes import pending_xref
+from sphinx_gallery import gen_rst
+from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
+from sphinx_gallery.directives import ImageSg
+from deepinv.utils.plotting import set_default_plot_fontsize
+import torch
 
 logger = logging.getLogger(__name__)
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
 
-from deepinv.utils.plotting import set_default_plot_fontsize
 
 set_default_plot_fontsize(12)
 
@@ -91,10 +96,6 @@ html_copy_source = True
 sitemap_url_scheme = "{link}"
 
 ####  userguide directive ###
-from docutils import nodes
-from docutils.parsers.rst import Directive
-from sphinx.addnodes import pending_xref
-
 default_role = "code"  # default role for single backticks
 
 
@@ -244,7 +245,6 @@ if os.environ.get("SPHINX_DOCTEST") == "1":
 
 add_module_names = True  # include the module path in the function name
 
-from sphinx_gallery import gen_rst
 
 gen_rst.EXAMPLE_HEADER = """
 .. DO NOT EDIT.
@@ -308,12 +308,21 @@ class MySortKey(_SortKey):
             return ExampleTitleSortKey(self.src_dir)(filename)
 
 
+# List of files that require a GPU to run
+gpu_dependent_files = [".*demo_astra_tomography.py"]
+# Create the ignore pattern based on GPU availability
+ignore_pattern = (
+    rf"__init__\.py|".join(gpu_dependent_files)
+    if not torch.cuda.is_available()
+    else r"__init__\.py"
+)
+
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
     "filename_pattern": "/demo_",
     "run_stale_examples": False,
-    "ignore_pattern": r"__init__\.py",
+    "ignore_pattern": ignore_pattern,
     "reference_url": {
         # The module you locally document uses None
         "sphinx_gallery": None
@@ -336,6 +345,7 @@ sphinx_gallery_conf = {
             "../../examples/plug-and-play",
             "../../examples/sampling",
             "../../examples/unfolded",
+            "../../examples/blind-inverse-problems",
             "../../examples/self-supervised-learning",
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
@@ -412,8 +422,9 @@ html_theme_options = {
         ],
     },
     "announcement": (
-        "🎉 We are part of "
-        "<a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse'> official PyTorch ecosystem!</a> 🎉"
+        "🎉 We are part of the "
+        "<a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>"
+        "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates."
     ),
     "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
 }

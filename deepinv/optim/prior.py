@@ -32,46 +32,44 @@ class Prior(Potential):
     :param Callable g: Prior function :math:`g(x)`.
     """
 
-    def __init__(self, g=None):
-        super().__init__(fn=g)
+    def __init__(self, g=None, *args, **kwargs):
+        super().__init__(*args, fn=g, **kwargs)
         self.explicit_prior = False if self._fn is None else True
 
 
-class Zero(Prior):
+class ZeroPrior(Prior):
     r"""
     Zero prior :math:`\reg{x} = 0`.
     """
 
     def __init__(self):
         super().__init__()
-
-        def forward(x, *args, **kwargs):
-            return torch.tensor(0.0)
-
-        self._g = forward
         self.explicit_prior = True
 
     def fn(self, x, *args, **kwargs):
         r"""
-        Computes the zero prior :math:`\reg(x) = 0` at :math:`x`.
+        Computes the zero prior :math:`\reg{x} = 0` at :math:`x`.
 
-        It returns a tensor of zeros of the same shape as :math:`x`.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
         """
-        return torch.zeros_like(x)
+        return torch.zeros(x.shape[0], device=x.device)
 
     def grad(self, x, *args, **kwargs):
         r"""
-        Computes the gradient of the zero prior :math:`\reg(x) = 0` at :math:`x`.
+        Computes the gradient of the zero prior :math:`\reg{x} = 0` at :math:`x`.
 
-        It returns a tensor of zeros of the same shape as :math:`x`.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) gradient at :math:`x`.
         """
         return torch.zeros_like(x)
 
     def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
         r"""
-        Computes the proximal operator of the zero prior :math:`\reg(x) = 0` at :math:`x`.
+        Computes the proximal operator of the zero prior :math:`\reg{x} = 0` at :math:`x`.
 
-        It returns the identity :math:`x`.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
         return x
 
@@ -95,7 +93,7 @@ class PnP(Prior):
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float sigma_denoiser: noise level parameter of the denoiser.
-        :return: (torch.tensor) proximity operator at :math:`x`.
+        :return: (torch.Tensor) proximity operator at :math:`x`.
         """
         return self.denoiser(x, sigma_denoiser)
 
@@ -408,15 +406,23 @@ class WaveletPrior(Prior):
         else:
             return list_norm
 
-    def prox(self, x, *args, gamma=1.0, **kwargs):
+    def prox(self, x, *args, ths=0.1, gamma=1.0, **kwargs):
         r"""Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.
         Only detail coefficients are thresholded.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float gamma: stepsize of the proximity operator.
+        :param int, float, torch.Tensor ths: thresholding parameter :math:`\gamma`.
+            If `ths` is a tensor, it should be of shape
+            ``(B,)`` (same coefficent for all levels), ``(B, n_levels-1)`` (one coefficient per level),
+            or ``(B, n_levels-1, 3)`` (one coefficient per subband and per level). `B` should be the same as the batch size of the input or `1`.
+            If ``non_linearity`` equals ``"soft"`` or ``"hard"``, ``ths`` serves as a (soft or hard)
+            thresholding parameter for the wavelet coefficients. If ``non_linearity`` equals ``"topk"``,
+            ``ths`` can indicate the number of wavelet coefficients
+            that are kept (if ``int``) or the proportion of coefficients that are kept (if ``float``).
+        :param float gamma: proximal operator stepsize.
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
-        out = self.WaveletDenoiser(x, ths=gamma)
+        out = self.WaveletDenoiser(x, ths=ths * gamma)
         if self.clamp_min is not None:
             out = torch.clamp(out, min=self.clamp_min)
         if self.clamp_max is not None:

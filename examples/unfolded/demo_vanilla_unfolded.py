@@ -7,12 +7,14 @@ The DnCNN denoiser and the algorithm parameters (stepsize, regularization parame
 For simplicity, we show how to train the algorithm on a  small dataset. For optimal results, use a larger dataset.
 """
 
+# %%
 import deepinv as dinv
 import torch
+from deepinv.models.utils import get_weights_url
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import unfolded_builder
+from deepinv.optim import DRS
 from torchvision import transforms
 from deepinv.utils import get_data_home
 from deepinv.datasets import BSDS500
@@ -102,7 +104,6 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # %%
 # Define the unfolded PnP algorithm.
 # ----------------------------------------------------------------------------------------
-# We use the helper function :func:`deepinv.unfolded.unfolded_builder` to define the Unfolded architecture.
 # The chosen algorithm is here DRS (Douglas-Rachford Splitting).
 # Note that if the prior (resp. a parameter) is initialized with a list of length max_iter,
 # then a distinct model (resp. parameter) is trained for each iteration.
@@ -116,7 +117,7 @@ data_fidelity = L2()
 
 # Set up the trainable denoising prior
 # Here the prior model is common for all iterations
-prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
+prior = PnP(denoiser=dinv.models.DnCNN(depth=20, pretrained="download").to(device))
 
 # The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
 stepsize = [1.0] * max_iter  # stepsize of the algorithm
@@ -124,27 +125,25 @@ sigma_denoiser = [
     1.0
 ] * max_iter  # noise level parameter of the denoiser (not used by DnCNN)
 beta = 1.0  # relaxation parameter of the Douglas-Rachford splitting
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-    "beta": beta,
-}
 trainable_params = [
     "stepsize",
     "beta",
-]  # define which parameters from 'params_algo' are trainable
+    "sigma_denoiser",
+]  # define which parameters are trainable
 
 # Logging parameters
 verbose = True
 
 # Define the unfolded trainable model.
-model = unfolded_builder(
-    iteration="DRS",
-    params_algo=params_algo.copy(),
+model = DRS(
+    stepsize=stepsize,
+    sigma_denoiser=sigma_denoiser,
+    beta=beta,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
+    unfold=True,
 )
 
 # %%
@@ -154,14 +153,23 @@ model = unfolded_builder(
 
 
 # training parameters
-epochs = 5 if torch.cuda.is_available() else 2
+epochs = 5 if torch.cuda.is_available() else 1
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
 test_batch_size = 3
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
+
+# If working on CPU, start with a pretrained model to reduce training time
+if not torch.cuda.is_available():
+    file_name = "demo_vanilla_unfolded.pth"
+    url = get_weights_url(model_name="demo", file_name=file_name)
+    ckpt = torch.hub.load_state_dict_from_url(
+        url, map_location=lambda storage, loc: storage, file_name=file_name
+    )
+    model.load_state_dict(ckpt["state_dict"])
+    optimizer.load_state_dict(ckpt["optimizer"])
 
 # choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
@@ -184,7 +192,6 @@ trainer = dinv.Trainer(
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     epochs=epochs,
-    scheduler=scheduler,
     losses=losses,
     optimizer=optimizer,
     device=device,

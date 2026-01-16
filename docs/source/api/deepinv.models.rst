@@ -27,6 +27,7 @@ Classical Denoisers
    :nosignatures:
 
    deepinv.models.BM3D
+   deepinv.models.BilateralFilter
    deepinv.models.MedianFilter
    deepinv.models.TVDenoiser
    deepinv.models.TGVDenoiser
@@ -86,6 +87,17 @@ Model Utils
 
    deepinv.models.complex.to_complex_denoiser
 
+Wrappers 
+--------
+.. userguide:: model-wrappers
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.DiffusersDenoiserWrapper
+   deepinv.models.ComplexDenoiserWrapper
 
 Deep Image Prior
 ----------------
@@ -98,6 +110,8 @@ Deep Image Prior
 
    deepinv.models.DeepImagePrior
    deepinv.models.ConvDecoder
+   deepinv.models.Poisson2Sparse
+   deepinv.models.ConvLista
 
 
 Adversarial Networks
@@ -114,3 +128,15 @@ Adversarial Networks
    deepinv.models.DCGANGenerator
    deepinv.models.DCGANDiscriminator
    deepinv.models.CSGMGenerator
+
+
+Identification Models
+---------------------
+.. userguide:: blind
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.KernelIdentificationNetwork

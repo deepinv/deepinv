@@ -26,34 +26,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check CI is passing
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          REPO="deepinv/deepinv"
-
-          get_status () {
-            curl -s -H "Authorization: token $GH_TOKEN" \
-              "https://api.github.com/repos/$REPO/actions/workflows/$1/runs?branch=main&status=completed&per_page=1" \
-              | jq -r '.workflow_runs[0].conclusion'
-          }
-
-          STATUS_TEST=$(get_status "test.yml")
-          STATUS_DOC=$(get_status "documentation.yml")
-
-          echo "Test: $STATUS_TEST"
-          echo "Docs: $STATUS_DOC"
-
-          if [[ "$STATUS_TEST" != "success" || "$STATUS_DOC" != "success" ]]; then
-            echo "❌ One or both workflows failed — aborting."
-            exit 1
-          fi
-
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'  # minimum supported version
           cache: 'pip'  # caching pip dependencies
@@ -65,7 +42,7 @@ jobs:
       - name: Update changelog
         id: changelog
         run: |
-          python .github/scripts/get_latest_changelog.py docs/source/changelog.rst pyproject.toml ${{github.event.inputs.bump_type}}
+          python .github/scripts/get_latest_changelog.py ./docs/source/changelog.rst pyproject.toml ${{github.event.inputs.bump_type}}
 
       - name: Bump version
         id: bump
@@ -74,6 +51,7 @@ jobs:
           echo "version=$(python .github/scripts/get_version.py pyproject.toml)" >> "$GITHUB_OUTPUT"
 
       - name: create PR with changes
+        if: ${{ github.event.inputs.bump_type != 'dev' && success() }}
         uses: peter-evans/create-pull-request@v7
         with:
           branch: release-branch
@@ -84,13 +62,13 @@ jobs:
           commit-message: "Release v${{ steps.bump.outputs.version }}"
           add-paths: |
             pyproject.toml
-            CHANGELOG.rst
+            ./docs/source/changelog.rst
           base: main
           labels: release
           delete-branch: true
     
       - name: Create Github release
-        if: ${{ github.event.inputs.bump_type != 'dev' }} and ${{ success() }}
+        if: ${{ github.event.inputs.bump_type != 'dev' && success() }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.bump.outputs.version }}

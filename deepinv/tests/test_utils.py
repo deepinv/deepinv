@@ -40,17 +40,16 @@ def tensorlist():
 @pytest.fixture
 def model():
     physics = deepinv.physics.Denoising()
-    model = deepinv.optim.optimizers.optim_builder(
-        iteration="PGD",
+    model = deepinv.optim.PGD(
         prior=deepinv.optim.prior.TVPrior(n_it_max=20),
         data_fidelity=deepinv.optim.data_fidelity.L2(),
+        stepsize=1.0,
+        lambda_reg=1e-2,
         early_stop=True,
         max_iter=10,
         verbose=False,
-        params_algo={"stepsize": 1.0, "lambda": 1e-2},
     )
     x = torch.randn(1, 1, 64, 64, generator=torch.Generator().manual_seed(0))
-    # NOTE: It is needed for attribute params_algo to be initialized.
     _ = model(x, physics=physics)
     yield model
 
@@ -199,6 +198,20 @@ def test_dirac_like(shape, length, device):
             assert torch.allclose(
                 xi, yi
             ), "Convolution with Dirac delta should return the original tensor."
+
+
+@pytest.mark.parametrize("shape", [(1, 1, 8, 8), (1, 1, 9, 9)])
+def test_dirac_comb(device, shape):
+    x = torch.randn(shape, device=device)
+    step = 4
+    x1 = deepinv.utils.dirac_comb(shape, step=step, device=device)
+    x2 = deepinv.utils.dirac_comb_like(x, step=step)
+    assert torch.allclose(x1, x2), "dirac_comb and dirac_comb_like outputs differ."
+
+    assert x1.device == device
+    assert x1.sum() == (
+        math.ceil(shape[-2] / step) * math.ceil(shape[-1] / step)
+    ), "Sum of dirac comb should equal the number of non-zero elements."
 
 
 @pytest.mark.parametrize("C", [1, 3])

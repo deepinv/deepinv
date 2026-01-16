@@ -84,6 +84,14 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         Introduction and summary of reconstruction algorithms.
 
     .. grid-item-card::
+        :link: least_squares
+        :link-type: ref
+
+        :octicon:`square` **Pseudoinverse**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Simplest reconstruction without priors or training.
+
+    .. grid-item-card::
         :link: pretrained-models
         :link-type: ref
 
@@ -149,12 +157,21 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Conditional, unconditional GANs and deep image prior.
 
+    .. grid-item-card::
+        :link: blind
+        :link-type: ref
+
+        :octicon:`diamond` **Blind Inverse Problems**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Reconstruction with misspecified physics and/or noise level.
+
 .. toctree::
    :maxdepth: 2
    :hidden:
    :caption: Reconstruction Methods
 
    user_guide/reconstruction/introduction
+   user_guide/reconstruction/least-squares
    user_guide/reconstruction/pretrained-models
    user_guide/reconstruction/denoisers
    user_guide/reconstruction/deep-reconstructors
@@ -163,6 +180,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
    user_guide/reconstruction/sampling
    user_guide/reconstruction/unfolded
    user_guide/reconstruction/adversarial
+   user_guide/reconstruction/blind
 
 
 Training, Testing and Utilities

@@ -145,6 +145,9 @@ underlined in the table below by (D) in the tensor size which accounts for depth
    * - :class:`deepinv.models.BM3D`
      - Patch-based denoiser
      - C=1 or C=3, any H, W.
+   * - :class:`deepinv.models.BilateralFilter`
+     - Distance and range kernel-based filter
+     - Any C, H, W
    * - :class:`deepinv.models.MedianFilter`
      - Non-learned filter
      - Any C, H, W
@@ -192,3 +195,21 @@ using :class:`deepinv.models.TimeAveragingNet`.
 
 To adapt any existing network to take dynamic data as independent time-slices, :class:`deepinv.models.TimeAgnosticNet`
 creates a time-agnostic wrapper that flattens the time dimension into the batch dimension.
+
+.. _model-wrappers:
+
+Wrappers
+~~~~~~~~
+We provide wrappers to use models from other libraries as DeepInv denoisers.
+
+Model from HuggingFace Diffusers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Any diffusion model from the `HuggingFace Diffusers library <https://huggingface.co/docs/diffusers/index>`_ can be wrapped as a DeepInv denoiser
+using the :class:`deepinv.models.DiffusersDenoiserWrapper` class. A model can be instantiated as simply as follows:
+
+    >>> from deepinv.models import DiffusersDenoiserWrapper
+    >>> denoiser = DiffusersDenoiserWrapper(mode_id="google/ddpm-ema-celebahq-256")  # doctest: +IGNORE_RESULT
+
+It can be used as any other DeepInv denoiser ``denoised_image = denoiser(noisy_image, sigma)``. It also supports conditional denoising as long as the underlying model does. 
+This wrapper allows you to leverage state-of-the-art diffusion models for other inverse problems beyond image generation, in particular for posterior sampling. 
+See :ref:`this example <sphx_glr_auto_examples_sampling_demo_diffusers.py>` for more details.

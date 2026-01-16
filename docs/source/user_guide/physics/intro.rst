@@ -111,7 +111,7 @@ One can also differentiate the parameter as:
 	>>> print(theta_2.grad.shape)
 	torch.Size([1, 1, 3, 3])
 
-and optimize the parameter :math:`\theta`, as show in this example: :ref:`sphx_glr_auto_examples_physics_demo_optimizing_physics_parameter.py`
+and optimize the parameter :math:`\theta`, as shown in this example: :ref:`sphx_glr_auto_examples_blind-inverse-problems_demo_optimizing_physics_parameter.py`
 
 .. _physics_generators:
 
@@ -233,7 +233,7 @@ Physics Wrappers
 
 Some wrappers are provided to adapt existing operators to a new problem.
 
-For example, given an operator :math:`A \column \mathbb{R}^N\to\mathbb{R}^M` and an image :math:`x\in\mathbb{R}^P` with :math:`P\neq N`, we need to resize the image to the operator's input size.
+For example, given an operator :math:`A: \mathbb{R}^N\to\mathbb{R}^M` and an image :math:`x\in\mathbb{R}^P` with :math:`P\neq N`, we need to resize the image to the operator's input size.
 This can be done with the :class:`deepinv.physics.LinearPhysicsMultiScaler` class:
 
 .. doctest::

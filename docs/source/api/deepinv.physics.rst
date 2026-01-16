@@ -88,6 +88,7 @@ Generators
    deepinv.physics.generator.DiffractionBlurGenerator3D
    deepinv.physics.generator.ProductConvolutionBlurGenerator
    deepinv.physics.generator.ConfocalBlurGenerator3D
+   deepinv.physics.generator.Zernike
    deepinv.physics.generator.BaseMaskGenerator
    deepinv.physics.generator.GaussianMaskGenerator
    deepinv.physics.generator.RandomMaskGenerator
@@ -122,6 +123,7 @@ Noise distributions
    deepinv.physics.LogPoissonNoise
    deepinv.physics.PoissonNoise
    deepinv.physics.PoissonGaussianNoise
+   deepinv.physics.LaplaceNoise
    deepinv.physics.UniformNoise
    deepinv.physics.UniformGaussianNoise
    deepinv.physics.GammaNoise
@@ -154,6 +156,8 @@ Functional
    deepinv.physics.functional.conv_transpose2d
    deepinv.physics.functional.conv2d_fft
    deepinv.physics.functional.conv_transpose2d_fft
+   deepinv.physics.functional.conv3d
+   deepinv.physics.functional.conv_transpose3d
    deepinv.physics.functional.conv3d_fft
    deepinv.physics.functional.conv_transpose3d_fft
    deepinv.physics.functional.product_convolution2d
