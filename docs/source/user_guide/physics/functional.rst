@@ -98,3 +98,6 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
 
    * - :func:`deepinv.physics.functional.imresize_matlab`
      - MATLAB bicubic imresize function implemented in PyTorch.
+
+   * - :func:`deepinv.physics.functional.power_method`
+     - Implements the power method to compute the largest singular value of a linear operator defined by forward and adjoint functions.
