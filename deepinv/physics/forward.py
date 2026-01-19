@@ -208,7 +208,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
             x^* \in \underset{x}{\arg\min} \quad \|\forw{x}-y\|^2.
 
         :param str solver: solver to use. If the physics are non-linear, the only available solver is `'gradient_descent'`.
-            For linear operators, the options are `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'` (see :func:`deepinv.optim.utils.least_squares` for more details).
+            For linear operators, the options are `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'` (see :func:`deepinv.optim.linear.least_squares` for more details).
         :param int max_iter: maximum number of iterations for the solver.
         :param float tol: relative tolerance for the solver, stopping when :math:`\|A(x) - y\| < \text{tol} \|y\|`.
         """
@@ -321,7 +321,6 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     traversal_queue.append(neighbor)
 
         return copy.deepcopy(self, memo=memo)
-
 
     def compute_norm(self, x, verbose=True):
         r"""

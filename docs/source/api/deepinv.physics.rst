@@ -63,6 +63,7 @@ Operators
    deepinv.physics.StructuredRandomPhaseRetrieval
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
+   deepinv.physics.Scattering
 
 
 Generators
@@ -107,6 +108,7 @@ Generators
    deepinv.physics.blur.sinc_filter
    deepinv.physics.phase_retrieval.build_probe
    deepinv.physics.phase_retrieval.generate_shifts
+   deepinv.physics.scattering.circular_sensors
 
 Noise distributions
 -------------------

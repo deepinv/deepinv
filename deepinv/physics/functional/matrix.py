@@ -1,7 +1,15 @@
 import torch
 import warnings
 
-def power_method(operator, x0 : torch.Tensor, max_iter : int = 100, tol : float = 1e-6, verbose : bool = False, **kwargs):
+
+def power_method(
+    operator,
+    x0: torch.Tensor,
+    max_iter: int = 100,
+    tol: float = 1e-6,
+    verbose: bool = False,
+    **kwargs,
+):
     r"""
     Runs the power iteration method to estimate the largest singular value of a linear operator.
 

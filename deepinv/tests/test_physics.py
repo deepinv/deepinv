@@ -87,6 +87,7 @@ NONLINEAR_OPERATORS = [
     "lidar",
     "spatial_unwrapping_round",
     "spatial_unwrapping_floor",
+    "scattering",
 ]
 
 PHASE_RETRIEVAL_OPERATORS = [
@@ -533,6 +534,21 @@ def find_nonlinear_operator(name, device):
         )
         p = dinv.physics.Haze()
 
+    elif name == "scattering":
+        dtype = torch.complex128
+        transmitters, receivers = dinv.physics.scattering.circular_sensors(
+            8, radius=1.0, device=device
+        )
+        p = dinv.physics.Scattering(
+            img_width=32,
+            device=device,
+            background_wavenumber=5 * (2 * torch.pi),
+            wave_type="plane_wave",
+            transmitters=transmitters,
+            receivers=receivers,
+            verbose=False,
+        )
+        x = torch.rand(1, 1, 32, 32, dtype=dtype, device=device) * 0.1  # low contrast
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
@@ -2299,6 +2315,76 @@ def test_downsampling_default_filter_depreciation():
         match="deprecated",
     ):
         _ = dinv.physics.Downsampling()
+
+
+@pytest.mark.parametrize("wavenumber", [21.55])
+@pytest.mark.parametrize("contrast", [0.1, 1.0])
+@pytest.mark.parametrize("wave_type", ["circular_wave", "plane_wave"])
+def test_scattering_mie(device, wavenumber, contrast, wave_type):
+    r"""
+    This test uses the closed-form Mie theory solution for computing the total
+    field of a single cylinder to validate our Scattering physics implementation.
+
+    See https://opg.optica.org/oe/viewmedia.cfm?uri=oe-25-18-21786&html=true for more details.
+
+    We limit the number of tests, since this is a rather long test
+    """
+    wavenumber = torch.tensor([wavenumber])
+    cylinder_contrast = contrast
+    cylinder_radius = 0.25
+    pixels = 64
+    dtype = torch.complex128
+    angles = 4
+    radius_tx = 1.0
+    n_coeffs = 55
+
+    total_field_mie, incident_field_mie = dinv.physics.scattering.mie_theory(
+        wavenumber,
+        cylinder_radius,
+        cylinder_contrast,
+        pixels,
+        wave_type=wave_type,
+        angles=torch.linspace(0, 2 * torch.pi, angles + 1, device=device)[:-1],
+        dtype=dtype,
+        device=device,
+        n_coeffs=n_coeffs,
+        transmitter_radius=radius_tx,
+    )
+
+    transmitters, receivers = dinv.physics.scattering.circular_sensors(
+        angles, radius=radius_tx, device=device
+    )
+
+    physics = dinv.physics.Scattering(
+        img_width=pixels,
+        device=device,
+        background_wavenumber=wavenumber,
+        wave_type=wave_type,
+        transmitters=transmitters,
+        receivers=receivers,
+        verbose=True,
+    )
+
+    # create cylinder contrast
+    x = torch.zeros((pixels, pixels), device=device, dtype=dtype)
+    yy, xx = torch.meshgrid(
+        torch.linspace(-0.5, 0.5, pixels, device=device),
+        torch.linspace(-0.5, 0.5, pixels, device=device),
+        indexing="ij",
+    )
+    r = torch.sqrt(xx**2 + yy**2)
+    x[r <= cylinder_radius] = cylinder_contrast
+    x = x.unsqueeze(0).unsqueeze(0)
+
+    total_field = physics.compute_total_field(x)
+    incident_field = physics.incident_field
+
+    assert (
+        incident_field - incident_field_mie
+    ).abs().mean() < 1e-3, "theoretical and empirical incident fields do not match"
+    assert (
+        total_field - total_field_mie
+    ).abs().mean() < 1e-1, "theoretical and empirical total fields do not match"
 
 
 @pytest.mark.parametrize("seed", [0])
