@@ -1262,7 +1262,7 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
 
     """
     x = torch.ones(input_size, device=device, dtype=dtype)
-    (_, vjpfunc) = torch.func.vjp(A, x)
+    _, vjpfunc = torch.func.vjp(A, x)
     batches = x.size()[0]
 
     # NOTE: In certain cases A(x) can't be automatically differentiated

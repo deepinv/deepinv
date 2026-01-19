@@ -152,8 +152,6 @@ class Scattering(Physics):
                 receivers.unsqueeze(1).expand(2, num_transmitters, -1).contiguous()
             )
 
-        self.receivers = receivers
-        self.transmitters = transmitters
         self.box_length = box_length
         self.pixel_area = (box_length / img_width) ** 2
         self.wave_type = wave_type
@@ -168,6 +166,8 @@ class Scattering(Physics):
         # incident field
         self.total_field = None
         self.img_width = img_width
+        self.register_buffer("transmitters", transmitters)
+        self.register_buffer("receivers", receivers)
         self.update_parameters(receivers=self.receivers, transmitters=self.transmitters)
 
     @dataclass
@@ -213,7 +213,6 @@ class Scattering(Physics):
             self.transmitters = transmitters.to(self.device).to(self.dtype)
             # recompute the incident field
             self.generate_incident_field()
-            self.register_buffer("transmitters", self.transmitters)
 
         if receivers is not None:
             receivers = receivers.to(self.device).to(self.dtype)
@@ -227,7 +226,6 @@ class Scattering(Physics):
                 )
 
             self.receivers = receivers
-            self.register_buffer("receivers", self.receivers)
             # recompute the output linear operator
             self.born_operator = BornOperator(
                 total_field=self.incident_field,
