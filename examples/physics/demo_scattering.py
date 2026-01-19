@@ -27,8 +27,8 @@ the problem can be reformulated in the **Lippmann-Schwinger** integral equation 
 .. math::
 
     \begin{align*}
-        u_i &= g * \left(x \circ (u_i+v_i)\right) \\
-        y_i &= G_s \left(x \circ (u_i+v_i)\right)
+        u_i &= g * \left( x \circ (u_i+v_i) \right) \\
+        y_i &= G_s \left( x \circ (u_i+v_i) \right)
     \end{align*}
 
 where :math:`g(\mathbf{r}) = k_b^2 \frac{i}{4} H_0^1(k_b\|\mathbf{r}\|)` is Green's function in 2D (normalized by :math:`k_b^2`),
@@ -56,8 +56,10 @@ import deepinv as dinv
 import torch
 from matplotlib import pyplot as plt
 
-img_width = 64
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
+img_width = 32
+
 x = dinv.utils.load_example(
     "SheppLogan.png",
     img_size=img_width,
@@ -66,7 +68,9 @@ x = dinv.utils.load_example(
     grayscale=True,
 )
 
-contrast = 0.5
+contrast = (
+    0.5 if device != "cpu" else 0.1
+)  # reduce contrast for CPU for faster convergence
 x = x * contrast
 
 psnr = dinv.metric.PSNR(max_pixel=contrast)
@@ -97,11 +101,11 @@ psnr = dinv.metric.PSNR(max_pixel=contrast)
 # may fail to converge. In that case, one can try to increase the number of iterations, or change the solver.
 #
 
-sensors = 64
+sensors = 32
 transmitters, receivers = dinv.physics.scattering.circular_sensors(
     sensors, radius=1, device=device
 )
-wavenumber = 10 * (2 * torch.pi)
+wavenumber = 5 * (2 * torch.pi)
 
 config = dinv.physics.Scattering.SolverConfig(
     max_iter=200, tol=1e-5, solver="lsqr", adjoint_state=True
@@ -136,6 +140,13 @@ plt.scatter(
 )
 plt.scatter(
     receivers[0, 0, :].cpu(), receivers[1, 0, :].cpu(), c="b", label="Receivers"
+)
+# draw square of length1
+plt.plot(
+    [-0.5, 0.5, 0.5, -0.5, -0.5],
+    [-0.5, -0.5, 0.5, 0.5, -0.5],
+    c="k",
+    label="box object is located",
 )
 plt.legend()
 plt.title("First transmitter and associated receiver positions")
@@ -241,29 +252,35 @@ dinv.utils.plot(
 #
 # We now compare the Born approximation reconstruction with a gradient descent reconstruction
 # for different normalized wavenumbers (i.e. different resolutions).
+#
+# ... note::
+#
+#    This example requires a GPU to run in a reasonable time.
 
-imgs = [x.detach().cpu()]
-titles = ["ground truth"]
+if device != "cpu":
 
-wavenumbers = [2, 10, 15]
-for wavenumber in wavenumbers:
-    physics = dinv.physics.Scattering(
-        img_width=img_width,
-        device=device,
-        background_wavenumber=wavenumber * (2 * torch.pi),
-        transmitters=transmitters,
-        receivers=receivers,
-    )
-    physics.normalize(x)
-    y = physics(x)
+    imgs = [x.detach().cpu()]
+    titles = ["ground truth"]
 
-    x_gd = gd_solver(y, physics)
+    wavenumbers = [1, 5, 7]
+    for wavenumber in wavenumbers:
+        physics = dinv.physics.Scattering(
+            img_width=img_width,
+            device=device,
+            background_wavenumber=wavenumber * (2 * torch.pi),
+            transmitters=transmitters,
+            receivers=receivers,
+        )
+        physics.normalize(x)
+        y = physics(x)
 
-    metric = psnr(x_gd, x)
-    titles = titles + [f"wavenumber={wavenumber} \n PSNR={metric.item():.2f}dB"]
-    imgs = imgs + [x_gd.detach().cpu()]
+        x_gd = gd_solver(y, physics)
 
-dinv.utils.plot(imgs, titles=titles, figsize=(10, 3))
+        metric = psnr(x_gd, x)
+        titles = titles + [f"wavenumber={wavenumber} \n PSNR={metric.item():.2f}dB"]
+        imgs = imgs + [x_gd.detach().cpu()]
+
+    dinv.utils.plot(imgs, titles=titles, figsize=(10, 3))
 
 
 # %%
