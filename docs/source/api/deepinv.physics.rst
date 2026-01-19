@@ -174,6 +174,7 @@ Functional
    deepinv.physics.functional.idct_2d
    deepinv.physics.functional.imresize_matlab
    deepinv.physics.functional.random_choice
+   deepinv.physics.functional.power_method
 
 
 .. autosummary::
