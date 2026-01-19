@@ -254,16 +254,16 @@ class Physics(torch.nn.Module):  # parent class for forward models
         """
         if kwargs:
             for key, value in kwargs.items():
-                if value is not None and hasattr(self, key):
+                if (
+                    value is not None
+                    and hasattr(self, key)
+                    and isinstance(value, torch.Tensor)
+                ):
 
-                    if isinstance(value, torch.Tensor):
-                        # Move `value` to the buffer's device before updating
-                        # regardless of where the `value` tensor is located.
-                        # Also performs type casting if necessary.
-                        setattr(self, key, value.to(getattr(self, key)))
-                    else:
-                        # Some parameters are not torch.Tensor, e.g. self.factor is a float in deepinv.physics.Downsampling
-                        setattr(self, key, value)
+                    # Move `value` to the buffer's device before updating
+                    # regardless of where the `value` tensor is located.
+                    # Also performs type casting if necessary.
+                    setattr(self, key, value.to(getattr(self, key)))
 
     # NOTE: Physics instances can hold instances of torch.Generator as
     # (possibly nested) attributes and they cannot be copied using deepcopy
