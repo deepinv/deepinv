@@ -165,6 +165,60 @@ class Downsampling(LinearPhysics):
 
         return parameters
 
+    def update_parameters(
+        self,
+        filter: Tensor | str | list[str] = None,
+        factor: int | float | Tensor = None,
+        device: torch.device | str = "cpu",
+        **kwargs,
+    ):
+        r"""
+        Updates the current filter and/or factor.
+
+        :param torch.Tensor, str, list[str] filter: New filter to be applied to the input image.
+        :param int, float, torch.Tensor factor: New downsampling factor to be applied to the input image.
+        :param torch.device, str device: If needed, device where the filter tensor will be created.
+        """
+        if factor is not None and filter is None and self.filter is not None:
+            warn(
+                "Updating factor but not filter. Filter will not be valid for new factor. Pass filter string or new filter to resolve this."
+            )
+
+        imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
+
+        # filter_parameters contains keys "factor", "filter", "Fh", "Fhc", "Fh2"
+        # "filter", "Fh", "Fhc", "Fh2" are Tensor arguments
+        filter_parameters = self.get_filter_parameters(
+            img_size=imsize,
+            filter=filter,
+            factor=factor if factor is not None else self.factor,
+            device=device,
+        )
+        if filter_parameters["factor"] is not None:
+            self.factor = filter_parameters.pop("factor")
+
+        # IF filter_parameters["filter"] is not None then update of "Fh", "Fhc", "Fh2" has
+        # already been triggered in `self.get_filter_parameters`
+        # ELSE, computation of "Fh", "Fhc", "Fh2" is triggered here in case a
+        # change of domain size (imsize_dynamic) has occured
+        # FIXME: When `self.imsize` is None, need to track changes of `self.imsize_dynamic`
+        # to avoid recomputation of "Fh" when not needed
+        if filter_parameters["filter"] is None and self.filter is not None:
+            imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
+
+            filter_parameters["Fh"] = filter_fft(
+                self.filter, imsize, real_fft=False, dims=(-2, -1)
+            ).to(self.device)
+            filter_parameters["Fhc"] = torch.conj(filter_parameters["Fh"])
+            filter_parameters["Fh2"] = (
+                filter_parameters["Fhc"] * filter_parameters["Fh"]
+            )
+
+        # user is allowed to override parameters updates
+        filter_parameters.update(**kwargs)
+
+        super().update_parameters(**filter_parameters)
+
     def A(
         self,
         x: Tensor,
@@ -186,16 +240,7 @@ class Downsampling(LinearPhysics):
 
         """
         self.imsize_dynamic = x.shape[-3:]
-        imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
-
-        filter_parameters = self.get_filter_parameters(
-            img_size=imsize,
-            filter=filter,
-            factor=factor,
-            device=x.device,
-        )
-
-        self.update_parameters(**filter_parameters)
+        self.update_parameters(filter=filter, factor=factor, device=x.device, **kwargs)
 
         if self.filter is not None:
             x = conv2d(x, self.filter, padding=self.padding)
@@ -229,17 +274,9 @@ class Downsampling(LinearPhysics):
             y.shape[-2] * self.factor,
             y.shape[-1] * self.factor,
         )
+        self.update_parameters(filter=filter, factor=factor, **kwargs)
 
         imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
-
-        filter_parameters = self.get_filter_parameters(
-            img_size=imsize,
-            filter=filter,
-            factor=factor,
-            device=y.device,
-        )
-
-        self.update_parameters(**filter_parameters)
 
         if self.filter is not None and self.padding == "valid":
             imsize = (
@@ -541,16 +578,12 @@ class BlurFFT(DecomposablePhysics):
         self.to(device)
 
     def A(self, x: Tensor, filter: Tensor | None = None, **kwargs) -> Tensor:
-        filter_parameters = self.get_filter_parameters(
-            img_size=self.img_size, filter=filter, device=x.device
-        )
-        return super().A(x, **filter_parameters)
+        # updating the parameters is already handled in DecomposablePhysics.A
+        return super().A(x, filter=filter)
 
     def A_adjoint(self, x: Tensor, filter: Tensor | None = None, **kwargs) -> Tensor:
-        filter_parameters = self.get_filter_parameters(
-            img_size=self.img_size, filter=filter, device=x.device
-        )
-        return super().A_adjoint(x, **filter_parameters)
+        # updating the parameters is already handled in DecomposablePhysics.A_adjoint
+        return super().A_adjoint(x, filter=filter)
 
     def V_adjoint(self, x: Tensor) -> Tensor:
         return torch.view_as_real(
@@ -589,7 +622,7 @@ class BlurFFT(DecomposablePhysics):
         if filter is not None and isinstance(filter, Tensor):
             filter = filter.to(device)
             if img_size[0] > filter.shape[1]:
-                filter = filter.expand(-1, img_size[0], -1, -1)
+                filter = filter.repeat(1, img_size[0], 1, 1)
             mask = filter_fft(filter, img_size, dims=(-2, -1), real_fft=True)
             angle = torch.angle(mask)
             mask = torch.abs(mask).unsqueeze(-1)
@@ -606,6 +639,27 @@ class BlurFFT(DecomposablePhysics):
             parameters["mask"] = None
 
         return parameters
+
+    def update_parameters(
+        self, filter: Tensor | None = None, device: torch.device | str = "cpu", **kwargs
+    ):
+        r"""
+        Updates the current filter.
+
+        :param torch.Tensor filter: New filter to be applied to the input image.
+        :param torch.device, str device: If needed, device where the filter tensor will be created.
+        """
+        filter_parameters = self.get_filter_parameters(
+            img_size=self.img_size, filter=filter, device=device
+        )
+
+        # In BlurFFT.A, `update_parameters` is called from DecomposablePhysics.A
+        # with mask=None if not specified otherwise by user.
+        # Pop "mask" from kwargs if kwargs.get("mask") is None to avoid overwriting
+        # filter_parameters["mask'"] with None
+        if kwargs.get("mask") is None:
+            kwargs.pop("mask")
+        super().update_parameters(**filter_parameters)
 
 
 class SpaceVaryingBlur(LinearPhysics):
