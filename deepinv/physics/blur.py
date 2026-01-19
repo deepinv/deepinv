@@ -208,7 +208,7 @@ class Downsampling(LinearPhysics):
 
             filter_parameters["Fh"] = filter_fft(
                 self.filter, imsize, real_fft=False, dims=(-2, -1)
-            ).to(self.device)
+            ).to(device)
             filter_parameters["Fhc"] = torch.conj(filter_parameters["Fh"])
             filter_parameters["Fh2"] = (
                 filter_parameters["Fhc"] * filter_parameters["Fh"]
@@ -630,7 +630,7 @@ class BlurFFT(DecomposablePhysics):
 
             parameters = {
                 "filter": filter,
-                "angle": torch.exp(-1.0j * angle),  # phase: e^{i*angle}
+                "angle": torch.exp(1.0j * angle),  # phase: e^{i*angle}
                 "mask": mask,
             }
         else:
