@@ -656,9 +656,10 @@ class BlurFFT(DecomposablePhysics):
         # In BlurFFT.A, `update_parameters` is called from DecomposablePhysics.A
         # with mask=None if not specified otherwise by user.
         # Pop "mask" from kwargs if kwargs.get("mask") is None to avoid overwriting
-        # filter_parameters["mask'"] with None
-        if kwargs.get("mask") is None:
+        # filter_parameters["mask"] with None
+        if kwargs.get("mask") is None and "mask" in kwargs:
             kwargs.pop("mask")
+
         super().update_parameters(**filter_parameters)
 
 
