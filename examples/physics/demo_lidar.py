@@ -10,7 +10,6 @@ import deepinv as dinv
 import torch
 import matplotlib.pyplot as plt
 
-
 # %%
 # Create forward model
 # -----------------------------------------------
