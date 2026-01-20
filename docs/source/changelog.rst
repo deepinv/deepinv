@@ -22,6 +22,7 @@ Fixed
 ^^^^^
 - Implement/extend functional for 2D/3D convolution with spatial and FFT (:func:`deepinv.physics.functional.conv3d` and  :func:`deepinv.physics.functional.conv_transpose3d`), support all padding modes with equivalent outputs (:gh:`825` by `Minh Hai Nguyen`_)
 - Fix ZeroPrior :class:`deepinv.optim.ZeroPrior` (:gh:`1001` by `Victor Sechaud`_)
+- Fix DEQConfig (:class:`deepinv.optim.DEQConfig`) anderson acceleration settings being ignored (:gh:`1022` by `Dylan Sechet`_)
 
 v0.3.7
 ------
