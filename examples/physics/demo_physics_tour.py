@@ -14,7 +14,6 @@ import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.utils import load_example
 
-
 # %%
 # Load image from the internet
 # ----------------------------
