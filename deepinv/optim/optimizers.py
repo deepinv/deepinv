@@ -307,9 +307,7 @@ class BaseOptim(Reconstructor):
                 AndersonAccelerationConfig() if anderson_acceleration else None
             )
         else:
-            self.anderson_acceleration_config = (
-                anderson_acceleration or AndersonAccelerationConfig()
-            )
+            self.anderson_acceleration_config = anderson_acceleration
 
         # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
         if prior is None:
