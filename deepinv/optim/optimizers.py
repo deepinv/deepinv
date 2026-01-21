@@ -50,9 +50,9 @@ class AndersonAccelerationConfig:
     :param  float eps: Regularization parameter for Anderson acceleration.
     """
 
-    history_size: float = 0.1
+    history_size: int = 20
     beta: float = 0.9
-    eps: int = 20
+    eps: float = 0.1
 
 
 @dataclass
