@@ -301,7 +301,7 @@ class BaseOptim(Reconstructor):
             self.DEQ_config = DEQConfig() if DEQ else None
         else:
             self.DEQ = DEQ is not None
-            self.DEQ_config = DEQConfig or DEQConfig()
+            self.DEQ_config = DEQ or DEQConfig()
         if isinstance(anderson_acceleration, bool):
             self.anderson_acceleration_config = (
                 AndersonAccelerationConfig() if anderson_acceleration else None
