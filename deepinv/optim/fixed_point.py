@@ -125,21 +125,33 @@ class FixedPoint(nn.Module):
         x = X["est"][0]
         b, d, h, w = x.shape
         x_hist = torch.zeros(
-            b, self.history_size, d * h * w, dtype=x.dtype, device=x.device
+            b,
+            self.anderson_acceleration_config.history_size,
+            d * h * w,
+            dtype=x.dtype,
+            device=x.device,
         )  # history of iterates.
         T_hist = torch.zeros(
-            b, self.history_size, d * h * w, dtype=x.dtype, device=x.device
+            b,
+            self.anderson_acceleration_config.history_size,
+            d * h * w,
+            dtype=x.dtype,
+            device=x.device,
         )  # history of T(x_k) with T the fixed point operator.
         H = torch.zeros(
             b,
-            self.history_size + 1,
-            self.history_size + 1,
+            self.anderson_acceleration_config.history_size + 1,
+            self.anderson_acceleration_config.history_size + 1,
             dtype=x.dtype,
             device=x.device,
         )  # H in the Anderson acceleration linear system Hp = q .
         H[:, 0, 1:] = H[:, 1:, 0] = 1.0
         q = torch.zeros(
-            b, self.history_size + 1, 1, dtype=x.dtype, device=x.device
+            b,
+            self.anderson_acceleration_config.history_size + 1,
+            1,
+            dtype=x.dtype,
+            device=x.device,
         )  # q in the Anderson acceleration linear system Hp = q .
         q[:, 0] = 1
         return x_hist, T_hist, H, q
@@ -178,13 +190,13 @@ class FixedPoint(nn.Module):
         x_prev = X_prev["est"][0]  # current iterate Tx
         Tx_prev = TX_prev["est"][0]  # current iterate x
         b = x_prev.shape[0]  # batchsize
-        x_hist[:, it % self.history_size] = x_prev.reshape(
+        x_hist[:, it % self.anderson_acceleration_config.history_size] = x_prev.reshape(
             b, -1
         )  # prepare history of x
-        T_hist[:, it % self.history_size] = Tx_prev.reshape(
-            b, -1
+        T_hist[:, it % self.anderson_acceleration_config.history_size] = (
+            Tx_prev.reshape(b, -1)
         )  # prepare history of Tx
-        m = min(it + 1, self.history_size)
+        m = min(it + 1, self.anderson_acceleration_config.history_size)
         G = T_hist[:, :m] - x_hist[:, :m]
         H[:, 1 : m + 1, 1 : m + 1] = (
             torch.bmm(G, G.transpose(1, 2))
