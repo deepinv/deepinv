@@ -123,18 +123,19 @@ class FixedPoint(nn.Module):
         :param dict X: initial iterate.
         """
         x = X["est"][0]
-        b, d, h, w = x.shape
+        b = x.shape[0]
+        feature_num = x[0].numel()
         x_hist = torch.zeros(
             b,
             self.anderson_acceleration_config.history_size,
-            d * h * w,
+            feature_num,
             dtype=x.dtype,
             device=x.device,
         )  # history of iterates.
         T_hist = torch.zeros(
             b,
             self.anderson_acceleration_config.history_size,
-            d * h * w,
+            feature_num,
             dtype=x.dtype,
             device=x.device,
         )  # history of T(x_k) with T the fixed point operator.
