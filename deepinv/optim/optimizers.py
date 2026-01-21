@@ -773,7 +773,6 @@ class BaseOptim(Reconstructor):
                         self.DEQ_config.history_size_backward,
                         self.DEQ_config.beta_backward,
                         self.DEQ_config.eps_backward,
-                        self.DEQ_config.max_iter_backward,
                     )
                 else:
                     anderson_acceleration_config = None
