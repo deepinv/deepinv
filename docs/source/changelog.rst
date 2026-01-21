@@ -561,3 +561,4 @@ Changed
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
 .. _Avithal Lautman: https://github.com/avithal
 .. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
+.. _Dylan Sechet: https://github.com/dylansechet
