@@ -1420,6 +1420,7 @@ class GD(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
+            anderson_acceleration=anderson_acceleration,
             **kwargs,
         )
 
@@ -1560,6 +1561,7 @@ class HQS(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
+            anderson_acceleration=anderson_acceleration,
             **kwargs,
         )
 
@@ -1702,6 +1704,7 @@ class PGD(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
+            anderson_acceleration=anderson_acceleration,
             **kwargs,
         )
 
