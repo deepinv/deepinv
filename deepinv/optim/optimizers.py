@@ -773,7 +773,6 @@ class BaseOptim(Reconstructor):
                         self.DEQ_config.history_size_backward,
                         self.DEQ_config.beta_backward,
                         self.DEQ_config.eps_backward,
-                        self.DEQ_config.max_iter_backward,
                     )
                 else:
                     anderson_acceleration_config = None
@@ -783,7 +782,7 @@ class BaseOptim(Reconstructor):
                     init_iterate_fn=init_iterate_fn,
                     max_iter=self.DEQ_config.max_iter_backward,
                     check_conv_fn=self.check_conv_fn,
-                    anderson_acceleration_config=self.anderson_acceleration_config,
+                    anderson_acceleration_config=anderson_acceleration_config,
                 )
                 g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
                 return g
