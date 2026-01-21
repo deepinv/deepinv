@@ -191,6 +191,12 @@ class FixedPoint(nn.Module):
         x_prev = X_prev["est"][0]  # current iterate Tx
         Tx_prev = TX_prev["est"][0]  # current iterate x
         b = x_prev.shape[0]  # batchsize
+
+        # Create a copy to avoid in-place modification, which messes with autograd
+        x_hist = x_hist.clone()
+        T_hist = T_hist.clone()
+        H = H.clone()
+
         x_hist[:, it % self.anderson_acceleration_config.history_size] = x_prev.reshape(
             b, -1
         )  # prepare history of x
