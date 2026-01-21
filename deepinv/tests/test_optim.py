@@ -325,6 +325,25 @@ def test_itoh_fidelity(device, mode):
     assert x_prox.shape == x.shape
 
 
+# Basic smoke test
+@pytest.mark.parametrize("name_algo", ["PGD", "GD", "HQS"])
+@pytest.mark.parametrize(
+    "anderson_acceleration",
+    [True, False, None, dinv.optim.AndersonAccelerationConfig(history_size=5)],
+)
+def test_enable_anderson(name_algo, anderson_acceleration):
+    optimalgo = getattr(dinv.optim, name_algo)(
+        anderson_acceleration=anderson_acceleration
+    )
+    if anderson_acceleration in [False, None]:
+        assert (
+            optimalgo.anderson_acceleration_config is None
+            or optimalgo.anderson_acceleration_config.history_size == 0
+        )
+    else:
+        assert optimalgo.anderson_acceleration_config.history_size > 0
+
+
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
 @pytest.mark.parametrize(
     "name_algo",
