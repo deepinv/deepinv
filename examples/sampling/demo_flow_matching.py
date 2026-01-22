@@ -45,7 +45,7 @@ from deepinv.sampling import (
     PosteriorDiffusion,
     DPSDataFidelity,
     EulerSolver,
-    FlowMatching
+    FlowMatching,
 )
 import numpy as np
 from torchvision import datasets, transforms
