@@ -260,6 +260,12 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     and isinstance(value, torch.Tensor)
                 ):
 
+                    if value.device.type != getattr(self, key).device.type:
+                        warnings.warn(
+                            f"The provided tensor for parameter '{key}' is on a different device ({value.device}) than the current parameter device ({getattr(self, key).device}). The current device will be used.",
+                            stacklevel=2,
+                        )
+
                     # Move `value` to the buffer's device before updating
                     # regardless of where the `value` tensor is located.
                     # Also performs type casting if necessary.
@@ -361,6 +367,7 @@ class LinearPhysics(Physics):
         is used for computing it, and this parameter fixes the relative tolerance of the least squares algorithm.
     :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.linear.least_squares` for more details.
     :param bool implicit_backward_solver: If `True`, uses implicit differentiation for computing gradients through the :meth:`deepinv.physics.LinearPhysics.A_dagger` and :meth:`deepinv.physics.LinearPhysics.prox_l2`, using :func:`deepinv.optim.linear.least_squares_implicit_backward` instead of :func:`deepinv.optim.linear.least_squares`. This can significantly reduce memory consumption, especially when using many iterations. If `False`, uses the standard autograd mechanism, which can be memory-intensive. Default is `True`.
+    :param torch.device, str device: cpu or cuda, every registered buffer and module parameters are recursively pushed onto the device during initialization.
 
     |sep|
 
@@ -997,7 +1004,8 @@ class DecomposablePhysics(LinearPhysics):
         from the `V_adjoint` function and the `img_size` parameter.
         This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can
         have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter.
-    :param torch.nn.parameter.Parameter, float params: Singular values of the transform
+    :param torch.nn.parameter.Parameter, float mask: Singular values of the transform
+    :param torch.device, str device: cpu or cuda, every registered buffer and module parameters are recursively pushed onto the device during initialization.
 
     |sep|
 
@@ -1035,9 +1043,10 @@ class DecomposablePhysics(LinearPhysics):
         U_adjoint=None,
         V=None,
         mask=1.0,
+        device: torch.device | str = "cpu",
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
 
         assert not (
             U is None and not (U_adjoint is None)
@@ -1059,6 +1068,8 @@ class DecomposablePhysics(LinearPhysics):
         mask = torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask
         self.img_size = img_size
         self.register_buffer("mask", mask)
+        
+        self.to(device)
 
     def A(self, x, mask=None, **kwargs) -> Tensor:
         r"""
@@ -1243,6 +1254,7 @@ class Denoising(DecomposablePhysics):
     The linear operator is just the identity mapping :math:`A(x)=x`
 
     :param torch.nn.Module noise: noise distribution, e.g., :class:`deepinv.physics.GaussianNoise`, or a user-defined torch.nn.Module. By default, it is set to Gaussian noise with a standard deviation of 0.1.
+    :param torch.device, str device: cpu or cuda, every registered buffer and module parameters are recursively pushed onto the device during initialization.
 
     |sep|
 
@@ -1262,11 +1274,16 @@ class Denoising(DecomposablePhysics):
 
     """
 
-    def __init__(self, noise_model: NoiseModel | None = None, **kwargs):
+    def __init__(self, noise_model: NoiseModel | None = None, device: str | torch.device = "cpu", **kwargs):
         if noise_model is None:
             noise_model = GaussianNoise(sigma=0.1)
-        super().__init__(noise_model=noise_model, **kwargs)
-
+        
+        if noise_model.rng is not None:
+            if noise_model.rng.device != device:
+                warnings.warn(f"argument `device`={device} is different from the random generator device of the noise model, `noise_model.rng.device`={noise_model.rng.device}. This will likely lead to errors during execution. The device argument will be ignored in favor of `noise_model.rng.device`={noise_model.rng.device}.")
+                device = noise_model.rng.device
+        
+        super().__init__(noise_model=noise_model, device=device, **kwargs)
 
 def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     r"""
