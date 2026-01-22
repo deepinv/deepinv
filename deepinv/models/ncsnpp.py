@@ -382,9 +382,11 @@ class NCSNpp(Denoiser):
             c_skip = 1
             c_out = sigma
             c_in = 1
-            c_noise = (sigma/2).log()
+            c_noise = (sigma / 2).log()
         else:
-            raise NotImplementedError(f"Preconditioning type {self.precondition_type} not implemented.")
+            raise NotImplementedError(
+                f"Preconditioning type {self.precondition_type} not implemented."
+            )
 
         F_x = self.forward_unet(
             c_in * x,

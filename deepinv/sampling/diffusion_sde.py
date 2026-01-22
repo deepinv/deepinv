@@ -12,7 +12,9 @@ from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity, DPSDataFidelity
 from deepinv.sampling.utils import trapz_torch
 import threading
+
 _print_lock = threading.Lock()
+
 
 class _WrapperDenoiserMinusOneOne(nn.Module):
     r"""
@@ -31,12 +33,12 @@ class _WrapperDenoiserMinusOneOne(nn.Module):
 
     def forward(self, x: Tensor, sigma: Tensor, *args, **kwargs) -> Tensor:
         # Scale from [-1, 1] to [xmin, xmax], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs
-        if 'input_in_minus_one_one' in kwargs and not kwargs['input_in_minus_one_one']:
+        if "input_in_minus_one_one" in kwargs and not kwargs["input_in_minus_one_one"]:
             x = (x + 1) / 2 * (self.xmax - self.xmin) + self.xmin
             sigma = sigma * (self.xmax - self.xmin) / 2
         denoised = self.model(x, sigma, *args, **kwargs)
         # Scale back to [-1, 1], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs
-        if 'input_in_minus_one_one' in kwargs and not kwargs['input_in_minus_one_one']:
+        if "input_in_minus_one_one" in kwargs and not kwargs["input_in_minus_one_one"]:
             denoised = 2 * (denoised - self.xmin) / (self.xmax - self.xmin) - 1
         return denoised
 
@@ -774,7 +776,6 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
                 beta_min_sqrt = np.sqrt(beta_min)
                 beta_max_sqrt = np.sqrt(beta_max)
                 return (beta_min_sqrt + t * (beta_max_sqrt - beta_min_sqrt)) ** 2
-            
 
         def B_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
@@ -946,7 +947,7 @@ class PosteriorDiffusion(Reconstructor):
             get_trajectory=get_trajectory,
             verbose=self.verbose,
             *args,
-            **kwargs
+            **kwargs,
         )
         # Scale the output back to [0, 1]
         sample = solution.sample

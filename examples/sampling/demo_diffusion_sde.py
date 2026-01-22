@@ -69,7 +69,7 @@ from deepinv.sampling import (
     DPSDataFidelity,
     EulerSolver,
     VarianceExplodingDiffusion,
-    VariancePreservingDiffusion
+    VariancePreservingDiffusion,
 )
 from deepinv.optim import ZeroFidelity
 
@@ -268,7 +268,7 @@ except FileNotFoundError:
 
 
 del trajectory
-sde = VariancePreservingDiffusion(alpha = 0.1, device=device, dtype=dtype)
+sde = VariancePreservingDiffusion(alpha=0.1, device=device, dtype=dtype)
 
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,

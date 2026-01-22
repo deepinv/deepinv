@@ -80,10 +80,10 @@ class ScoreModelWrapper(Denoiser):
 
                     def sigma_schedule(t):
                         t = self._handle_time_step(t, device=device)
-                        return (1/scale_schedule(t)**2 - 1).clamp(min=0).sqrt()
+                        return (1 / scale_schedule(t) ** 2 - 1).clamp(min=0).sqrt()
 
                 else:
-                    sigma_schedule = (1/scale_schedule**2 - 1).clamp(min=0).sqrt()
+                    sigma_schedule = (1 / scale_schedule**2 - 1).clamp(min=0).sqrt()
 
         if isinstance(sigma_schedule, torch.Tensor):
             self.register_buffer("sigma_schedule", sigma_schedule)
@@ -98,7 +98,12 @@ class ScoreModelWrapper(Denoiser):
         self.T = T
         self.to(device)
 
-    def _handle_time_step(self, t: torch.Tensor | float, device: str | torch.device = "cpu", dtype: torch.dtype = torch.float32) -> torch.Tensor:
+    def _handle_time_step(
+        self,
+        t: torch.Tensor | float,
+        device: str | torch.device = "cpu",
+        dtype: torch.dtype = torch.float32,
+    ) -> torch.Tensor:
         t = torch.as_tensor(t, device=device, dtype=dtype)
         return t
 
@@ -277,7 +282,7 @@ class ScoreModelWrapper(Denoiser):
         )
         if not self.input_in_minus_one_one and self._was_trained_on_minus_one_one:
             sigma = sigma * 2  # since image is in [-1, 1] range in the model
-        
+
         timestep = self.time_from_sigma(sigma.squeeze())
         scale = self.get_schedule_value(self.scale_schedule, timestep, x.shape)
 
@@ -361,7 +366,12 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         ), "Provide a diffusers model id. E.g., 'google/ddpm-cat-256'"
 
         try:
-            from diffusers import DiffusionPipeline, DDPMScheduler, PNDMScheduler, DDIMScheduler
+            from diffusers import (
+                DiffusionPipeline,
+                DDPMScheduler,
+                PNDMScheduler,
+                DDIMScheduler,
+            )
         except ImportError:
             raise ImportError(
                 "diffusers is not installed. Please install it via 'pip install diffusers'."
@@ -374,28 +384,32 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         prediction_type = getattr(scheduler.config, "prediction_type", "epsilon")
 
         if isinstance(scheduler, (PNDMScheduler, DDPMScheduler, DDIMScheduler)):
-            
+
             if hasattr(scheduler, "alphas_cumprod"):
                 alphas_cumprod = scheduler.alphas_cumprod
                 scale_schedule = torch.sqrt(alphas_cumprod)
             else:
-                if scheduler.beta_schedule == 'scaled_linear':
+                if scheduler.beta_schedule == "scaled_linear":
                     N = scheduler.config.num_train_timesteps
                     beta_start = 0.5 * N * scheduler.config.beta_start
-                    beta_end = 0.5 * N * scheduler.config.beta_end 
+                    beta_end = 0.5 * N * scheduler.config.beta_end
                     a = np.sqrt(beta_start)
                     c = np.sqrt(beta_end) - a
                     B_t = lambda t: (a**2) * t + a * c * t**2 + (c**2 / 3.0) * t**3
                     scale_schedule = lambda t: torch.exp(-B_t(t))
-                elif scheduler.beta_schedule == 'linear':
+                elif scheduler.beta_schedule == "linear":
                     N = scheduler.config.num_train_timesteps
                     beta_start = 0.5 * scheduler.config.beta_start * N
                     beta_end = 0.5 * scheduler.config.beta_end * N
                     delta = beta_end - beta_start
-                    scale_schedule = lambda t: torch.exp(-(beta_start * t + 0.5 * delta * t ** 2)) 
+                    scale_schedule = lambda t: torch.exp(
+                        -(beta_start * t + 0.5 * delta * t**2)
+                    )
                 else:
-                    raise ValueError("only 'scaled_linear' and 'linear' schedule are supported for beta")
-            
+                    raise ValueError(
+                        "only 'scaled_linear' and 'linear' schedule are supported for beta"
+                    )
+
             sigma_schedule = None
             variance_preserving = True
             variance_exploding = False
@@ -411,18 +425,20 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
             clip_output=clip_output,
             scale_schedule=scale_schedule,
             sigma_schedule=sigma_schedule,
-            variance_preserving = variance_preserving,
-            variance_exploding = variance_exploding,
-            takes_integer_time = True,
-            n_timesteps = scheduler.config.num_train_timesteps,
+            variance_preserving=variance_preserving,
+            variance_exploding=variance_exploding,
+            takes_integer_time=True,
+            n_timesteps=scheduler.config.num_train_timesteps,
             device=device,
             *args,
             **kwargs,
         )
 
         self.tokenizer = pipeline.tokenizer if hasattr(pipeline, "tokenizer") else None
-        self.text_encoder = pipeline.text_encoder if hasattr(pipeline, "text_encoder") else None    
-        self.bert = pipeline.bert if hasattr(pipeline, "bert") else None    
+        self.text_encoder = (
+            pipeline.text_encoder if hasattr(pipeline, "text_encoder") else None
+        )
+        self.bert = pipeline.bert if hasattr(pipeline, "bert") else None
         self.vae = pipeline.vae if hasattr(pipeline, "vae") else None
         self.vqvae = pipeline.vqvae if hasattr(pipeline, "vqvae") else None
         self.scheduler = pipeline.scheduler if hasattr(pipeline, "scheduler") else None

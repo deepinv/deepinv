@@ -47,7 +47,7 @@ from deepinv.sampling import (
     EulerSolver,
     FlowMatching,
     VariancePreservingDiffusion,
-    VarianceExplodingDiffusion
+    VarianceExplodingDiffusion,
 )
 import numpy as np
 from torchvision import datasets, transforms
@@ -66,9 +66,9 @@ from deepinv.models.wrapper import DiffusersDenoiserWrapper
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device(
-    "cuda" if torch.cuda.is_available()
-    else "mps" if torch.backends.mps.is_available()
-    else "cpu"
+    "cuda"
+    if torch.cuda.is_available()
+    else "mps" if torch.backends.mps.is_available() else "cpu"
 )
 dtype = torch.float32
 
@@ -79,10 +79,10 @@ figsize = 2.5
 dataset = datasets.MNIST(
     root=".", train=False, download=True, transform=transforms.ToTensor()
 )
-dataloader = torch.utils.data.DataLoader(
-    dataset, batch_size=1000, shuffle=False
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=1000, shuffle=False)
+n_max = (
+    1000  # limit the number of images to speed up the computation of the MMSE denoiser
 )
-n_max = 1000  # limit the number of images to speed up the computation of the MMSE denoiser
 tensors = torch.cat([data[0] for data in iter(dataloader)], dim=0)  # (N,1,28,28)
 tensors = tensors[:n_max].to(device)
 denoiser = MMSE(dataloader=tensors, device=device, dtype=dtype)
@@ -95,7 +95,7 @@ denoiser = MMSE(dataloader=tensors, device=device, dtype=dtype)
 # The module FlowMatching module takes as input the denoiser and the ODE solver.
 
 num_steps = 100
-timesteps = torch.linspace(0.99, 0., num_steps)
+timesteps = torch.linspace(0.99, 0.0, num_steps)
 rng = torch.Generator(device).manual_seed(5)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 sde = FlowMatching(denoiser=denoiser, solver=solver, device=device, dtype=dtype)
@@ -173,14 +173,14 @@ physics = dinv.physics.Inpainting(
     noise_model=dinv.physics.GaussianNoise(sigma=0.1),
 )
 y = physics(x)
-dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=1.)
+dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=1.0)
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
     sde=sde,
     solver=solver,
     dtype=dtype,
     device=device,
-    verbose=True
+    verbose=True,
 )
 x_hat, trajectory = model(
     y,
@@ -243,7 +243,7 @@ sde = FlowMatching(
     denoiser=denoiser,
     solver=solver,
     device=device,
-    dtype=dtype
+    dtype=dtype,
 )
 
 model = PosteriorDiffusion(
