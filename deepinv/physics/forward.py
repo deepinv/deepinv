@@ -1068,7 +1068,7 @@ class DecomposablePhysics(LinearPhysics):
         mask = torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask
         self.img_size = img_size
         self.register_buffer("mask", mask)
-        
+
         self.to(device)
 
     def A(self, x, mask=None, **kwargs) -> Tensor:
@@ -1274,16 +1274,24 @@ class Denoising(DecomposablePhysics):
 
     """
 
-    def __init__(self, noise_model: NoiseModel | None = None, device: str | torch.device = "cpu", **kwargs):
+    def __init__(
+        self,
+        noise_model: NoiseModel | None = None,
+        device: str | torch.device = "cpu",
+        **kwargs,
+    ):
         if noise_model is None:
             noise_model = GaussianNoise(sigma=0.1)
-        
+
         if noise_model.rng is not None:
             if noise_model.rng.device != device:
-                warnings.warn(f"argument `device`={device} is different from the random generator device of the noise model, `noise_model.rng.device`={noise_model.rng.device}. This will likely lead to errors during execution. The device argument will be ignored in favor of `noise_model.rng.device`={noise_model.rng.device}.")
+                warnings.warn(
+                    f"argument `device`={device} is different from the random generator device of the noise model, `noise_model.rng.device`={noise_model.rng.device}. This will likely lead to errors during execution. The device argument will be ignored in favor of `noise_model.rng.device`={noise_model.rng.device}."
+                )
                 device = noise_model.rng.device
-        
+
         super().__init__(noise_model=noise_model, device=device, **kwargs)
+
 
 def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     r"""

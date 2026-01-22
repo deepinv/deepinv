@@ -194,43 +194,43 @@ class Downsampling(LinearPhysics):
                     "The current filter is None and no device is provided."
                     f"Will proceed with self.device={_self_device}"
                     "The self.device attribute is deprecated and will be removed. Please pass the `device` argument to update_parameters. In future versions, device will be set to'cpu'.",
-                    stacklevel=2
-                )  
-                
+                    stacklevel=2,
+                )
+
                 device = _self_device
-                
+
             if isinstance(filter, Tensor):
                 if device is not None:
                     warn(
                         f"Got device={device}. The device argument is ignored since the provided ``filter`` is a Tensor. To change the device of the underlying filter, please use physics.to(device).",
                         stacklevel=2,
                     )
-                    
+
                 device = filter.device
-                
-                # NOTE: to properly handle self._device_holder, which tracks the 
+
+                # NOTE: to properly handle self._device_holder, which tracks the
                 # deprecated self.device property.
                 # When self.device is no longer supported, this line can be removed
                 # as no "implicit" device will be tied to self when self.filter is None.
-                self.to(device) 
-        
-        # the device of self.filter (which is equal to self._device_holder.device) takes precedence 
+                self.to(device)
+
+        # the device of self.filter (which is equal to self._device_holder.device) takes precedence
         elif isinstance(self.filter, Tensor):
             # if device is not None:
             #     warn(
             #         f"Got device={device}. The device argument is ignored since ``self.filter`` is a Tensor. To change the device of the underlying filter, please use physics.to(device).",
             #         stacklevel=2,
             #     )
-                
+
             if isinstance(filter, Tensor):
                 if self.filter.device.type != filter.device.type:
                     warn(
                         "The provided ``filter`` is on a different device than the current filter ``self.filter``. The current underlying self.filter.device={self.filter.device} will be used.",
                         stacklevel=2,
                     )
-                    
+
             device = self.filter.device
-            
+
         # filter_parameters contains keys "factor", "filter", "Fh", "Fhc", "Fh2"
         # "filter", "Fh", "Fhc", "Fh2" are Tensor arguments
         filter_parameters = self.get_filter_parameters(
@@ -685,31 +685,29 @@ class BlurFFT(DecomposablePhysics):
 
         return parameters
 
-    def update_parameters(
-        self, filter: Tensor | None = None, **kwargs
-    ):
+    def update_parameters(self, filter: Tensor | None = None, **kwargs):
         r"""
         Updates the current filter.
 
         :param torch.Tensor filter: New filter to be applied to the input image.
         """
-        
+
         # self.filter can be None after initialization
         if self.filter is None:
-            if isinstance(filter, Tensor):                    
+            if isinstance(filter, Tensor):
                 device = filter.device
-                
-                # NOTE: to properly handle self._device_holder, which tracks the 
+
+                # NOTE: to properly handle self._device_holder, which tracks the
                 # deprecated self.device property.
                 # When self.device is no longer supported, this line can be removed
                 # as no "implicit" device will be tied to self when self.filter is None.
-                self.to(device) 
-        
+                self.to(device)
+
             # elif filter is None:
             #   `self.get_filter_parameters` will return
-            #   parameters with None values 
+            #   parameters with None values
             #   so no update is performed and device is not needed
-        
+
         elif isinstance(self.filter, Tensor):
             # if isinstance(filter, Tensor):
             #     if self.filter.device != filter.device:

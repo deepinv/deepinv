@@ -1061,9 +1061,7 @@ def test_restoration_models(
         if hasattr(physics, "noise_model"):
             if hasattr(physics.noise_model, "sigma"):
                 physics.noise_model.sigma = torch.tensor(
-                    [max(physics.noise_model.sigma, sigma)],
-                    device=device,
-                    dtype=dtype
+                    [max(physics.noise_model.sigma, sigma)], device=device, dtype=dtype
                 )
             else:
                 physics.noise_model = dinv.physics.GaussianNoise(sigma)

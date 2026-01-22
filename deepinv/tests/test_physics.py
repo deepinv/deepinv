@@ -792,11 +792,7 @@ def test_operator_cropper(name, device, rng):
     padding_shape = (2, 5)
     x_new = torch.nn.functional.pad(x, (padding_shape[1], 0, padding_shape[0], 0))
 
-    new_physics = dinv.physics.PhysicsCropper(
-        physics,
-        padding_shape,
-        device=device
-    )
+    new_physics = dinv.physics.PhysicsCropper(physics, padding_shape, device=device)
     y = new_physics(x_new)
     Aty = new_physics.A_adjoint(y)
 
