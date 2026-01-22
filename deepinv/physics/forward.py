@@ -260,15 +260,18 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     and isinstance(value, torch.Tensor)
                 ):
 
-                    if value.device.type != getattr(self, key).device.type:
-                        warnings.warn(
-                            f"The provided tensor for parameter '{key}' is on a different device ({value.device}) than the current parameter device ({getattr(self, key).device}). The current device will be used.",
-                            stacklevel=2,
-                        )
+                    if isinstance(getattr(self, key), torch.Tensor):
+                        if value.device.type != getattr(self, key).device.type:
+                            warnings.warn(
+                                f"The provided tensor for parameter '{key}' is on a different device ({value.device}) than the current parameter device ({getattr(self, key).device}). The current device will be used.",
+                                stacklevel=2,
+                            )
 
                     # Move `value` to the buffer's device before updating
                     # regardless of where the `value` tensor is located.
                     # Also performs type casting if necessary.
+                    # If getattr(self, key) is None, torch.Tensor.to will
+                    # ignore the call and just return the original tensor.
                     setattr(self, key, value.to(getattr(self, key)))
 
     # NOTE: Physics instances can hold instances of torch.Generator as

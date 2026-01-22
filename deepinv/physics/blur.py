@@ -40,7 +40,7 @@ class Downsampling(LinearPhysics):
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
-    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to Downsampling's device.
+    :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     |sep|
 
@@ -411,7 +411,7 @@ class Upsampling(Downsampling):
     :param tuple[int] img_size: size of the output image
     :param int factor: upsampling factor
     :param str padding: options are ``'circular'``, ``'replicate'`` and ``'reflect'``.
-    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to Upsampling's device.
+    :param torch.device, str device: Device on which the physics' buffers will be created. To change the device of the physics, please use ``physics.to(device)``.
     """
 
     def __init__(
@@ -466,8 +466,7 @@ class Blur(LinearPhysics):
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image. (default is ``'valid'``).
         Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
-    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to Blur's device.
-
+    :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     .. note::
 
@@ -570,8 +569,7 @@ class BlurFFT(DecomposablePhysics):
     :param tuple img_size: Input image size in the form `(C, H, W)`.
     :param torch.Tensor filter: torch.Tensor of size `(1, c, h, w)` containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
         :func:`deepinv.physics.blur.gaussian_blur`.
-    :param torch.device, str device: Device this physics lives on. If `filter` is modified via `physics.update_parameters()`, it will be automatically casted to BlurFFT's device.
-    :param str, torch.dtype dtype: data type of the tensors. Default is ``torch.float32``.
+    :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     |sep|
 
@@ -598,7 +596,6 @@ class BlurFFT(DecomposablePhysics):
         img_size: tuple[int, ...],
         filter: Tensor | None = None,
         device: str | torch.device = "cpu",
-        dtype: str | torch.dtype = torch.float32,
         **kwargs,
     ):
         super().__init__(device=device, **kwargs)
@@ -745,7 +742,7 @@ class SpaceVaryingBlur(LinearPhysics):
     :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
-    :param torch.device, str device: Device this physics lives on. If filter or multipliers is updated, it will be cast to SpaceVaryingBlur's device.
+    :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     |sep|
 
@@ -1071,6 +1068,7 @@ class DownsamplingMatlab(Downsampling):
     :param str padding: MATLAB padding type, supports only `reflect` for reflect padding.
     :param bool antialiasing: whether to perform antialiasing in MATLAB downsampling.
         Recommended to set to `True` to match MATLAB.
+    :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
     """
 
     def __init__(
@@ -1079,9 +1077,10 @@ class DownsamplingMatlab(Downsampling):
         kernel: str = "cubic",
         padding: str = "reflect",
         antialiasing: bool = True,
+        device: torch.device | str = "cpu",
         **kwargs,
     ):
-        super().__init__(filter=None, factor=factor, **kwargs)
+        super().__init__(filter=None, factor=factor, device=device, **kwargs)
 
         self.kernel = kernel
         self.padding = padding
@@ -1093,7 +1092,7 @@ class DownsamplingMatlab(Downsampling):
         :param torch.Tensor x: input image
         :param int, float factor: downsampling factor. If not `None`, use this factor and store it as current factor.
         """
-        self.update_parameters(factor=factor, **kwargs)
+        self.update_parameters(factor=factor, device=x.device, **kwargs)
         # Clone because of in-place ops
         return imresize_matlab(
             x.clone(),
@@ -1109,7 +1108,7 @@ class DownsamplingMatlab(Downsampling):
         :param torch.Tensor y: input measurement
         :param int, float factor: downsampling factor. If not `None`, use this factor and store it as current factor.
         """
-        self.update_parameters(factor=factor, **kwargs)
+        self.update_parameters(factor=factor, device=y.device, **kwargs)
 
         adj = adjoint_function(
             self.A,
