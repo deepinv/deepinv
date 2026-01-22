@@ -27,6 +27,7 @@ Classical Denoisers
    :nosignatures:
 
    deepinv.models.BM3D
+   deepinv.models.BilateralFilter
    deepinv.models.MedianFilter
    deepinv.models.TVDenoiser
    deepinv.models.TGVDenoiser

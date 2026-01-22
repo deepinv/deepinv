@@ -145,6 +145,9 @@ underlined in the table below by (D) in the tensor size which accounts for depth
    * - :class:`deepinv.models.BM3D`
      - Patch-based denoiser
      - C=1 or C=3, any H, W.
+   * - :class:`deepinv.models.BilateralFilter`
+     - Distance and range kernel-based filter
+     - Any C, H, W
    * - :class:`deepinv.models.MedianFilter`
      - Non-learned filter
      - Any C, H, W

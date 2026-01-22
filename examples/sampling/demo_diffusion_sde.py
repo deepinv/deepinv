@@ -139,7 +139,6 @@ import os
 import shutil
 from pathlib import Path
 
-
 try:
     final_dir = (
         Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"

@@ -20,6 +20,7 @@ FULL_REFERENCE_METRICS = [
     "ERGAS",
     "SAM",
     "HaarPSI",
+    "CosineSimilarity",
 ]
 NO_REFERENCE_METRICS = [
     "BlurStrength",
@@ -70,6 +71,8 @@ def choose_full_reference_metric(metric_name, device, **kwargs) -> metric.Metric
     elif metric_name == "HaarPSI":
         kwargs.pop("norm_inputs")
         return metric.HaarPSI(norm_inputs="clip", **kwargs)
+    elif metric_name == "CosineSimilarity":
+        return metric.CosineSimilarity(**kwargs)
     else:
         raise ValueError("Incorrect metric name.")
 

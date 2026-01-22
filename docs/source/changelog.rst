@@ -8,12 +8,19 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
+- Add :class:`deepinv.loss.metric.CosineSimilarity` to the metrics (:gh:`944` by `Avithal Lautman`_)
 
 Changed
 ^^^^^^^
+- (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.
+- Refactor folder structure of least-squares solvers (:gh:`1011` by `Julian Tachella`_)
+- Removed `eps` parameter from :func:`deepinv.optim.linear.conjugate_gradient` (:gh:`1011` by `Julian Tachella`_)
+
 
 Fixed
 ^^^^^
+- Implement/extend functional for 2D/3D convolution with spatial and FFT (:func:`deepinv.physics.functional.conv3d` and  :func:`deepinv.physics.functional.conv_transpose3d`), support all padding modes with equivalent outputs (:gh:`825` by `Minh Hai Nguyen`_)
 - Fix ZeroPrior :class:`deepinv.optim.ZeroPrior` (:gh:`1001` by `Victor Sechaud`_)
 
 v0.3.7
@@ -45,6 +52,7 @@ Fixed
 - Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
 - `generate_dataset` received a general refactor, now supports PIL image datasets and doesn't break when validation dataset returns `TensorList` (:gh:`948` by `Vicky De Ridder`_)
 - test_physics.test_tomography correctly implements the pseudo-inverse test (:gh: `930` by `Romain Vo`_)
+- :class:`deepinv.physics.Tomography` now correctly handles multi-channel data (:gh:`960` by `Julian Tachella`_)
 
 
 
@@ -61,6 +69,7 @@ New Features
 - Rotation transform via shear operations :func:`deepinv.transform.rotate.rotate_via_shear` for reduced interpolation artifacts (:gh:`826` by `Minh Hai Nguyen`_)
 - Zernike polynomials interface :class:`deepinv.physics.generator.Zernike` for any (n, m) order (:gh:`826` by `Minh Hai Nguyen`_)
 - Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (:gh:`893` by `Minh Hai Nguyen`_)
+
 
 Changed
 ^^^^^^^
@@ -145,7 +154,7 @@ Fixed
 - NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
 - Fix the condition for break in compute_norm (:gh:`699` by `Quentin Barthélemy`_)
 - Python 3.9 backward compatibility and zip_strict (:gh:`707` by `Andrew Wang`_)
-- Fix numerical instability of :func:`deepinv.optim.utils.bicgstab` solver (:gh:`739` by `Minh Hai Nguyen`_)
+- Fix numerical instability of :func:`deepinv.optim.linear.bicgstab` solver (:gh:`739` by `Minh Hai Nguyen`_)
 
 
 v0.3.3
@@ -162,7 +171,7 @@ New Features
 Changed
 ^^^^^^^
 - Rename the normalizing function `deepinv.utils.rescale_img` to :func:`deepinv.utils.normalize_signal` (:gh:`641` by `Jérémy Scanvic`_)
-- Changed default linear solver from `CG` to :func:`deepinv.optim.utils.lsqr` (:gh:`658` by `Julian Tachella`_)
+- Changed default linear solver from `CG` to :func:`deepinv.optim.linear.lsqr` (:gh:`658` by `Julian Tachella`_)
 - Added positive clipping by default and gain minimum in :class:`deepinv.physics.PoissonGaussianNoise` (:gh:`658` by `Julian Tachella`_).
 
 Fixed
@@ -549,3 +558,5 @@ Changed
 .. _Chaithya G R: https://github.com/chaithyagr
 .. _Alexander Skorikov: https://github.com/askorikov
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
+.. _Avithal Lautman: https://github.com/avithal
+.. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
