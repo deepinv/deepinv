@@ -38,7 +38,8 @@ class PhysicsMultiScaler(Physics):
         device="cpu",
         **kwargs,
     ):
-        super().__init__(noise_model=physics.noise_model, **kwargs)
+        # NOTE: `device` is passed to super().__init__ (even if Physics does not use it) for proper variable propagation during Method Resolution Order (MRO: https://docs.python.org/3/howto/mro.html) when inherited jointly with another class, e.g., with LinearPhysics
+        super().__init__(noise_model=physics.noise_model, device=device, **kwargs) 
         self.base = physics
         self.factors = factors
         self.img_shape = img_shape
@@ -211,10 +212,13 @@ class PhysicsCropper(LinearPhysics):
 
     :param deepinv.physics.LinearPhysics physics: base linear physics operator.
     :param tuple crop: padding to apply to the input tensor, e.g., (pad_height, pad_width).
+    :param torch.device, str device: cpu or cuda, every registered buffer and module parameters are recursively pushed onto the device during initialization.
+
     """
 
-    def __init__(self, physics, crop):
-        super().__init__(noise_model=physics.noise_model)
+    def __init__(self, physics, crop, device: torch.device | str = "cpu",
+):
+        super().__init__(noise_model=physics.noise_model, device=device)
         self.base = physics
         self.crop = crop
 
