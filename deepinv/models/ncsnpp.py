@@ -16,10 +16,10 @@ from typing import Sequence
 
 
 class NCSNpp(Denoiser):
-    r"""Implementation of the DDPM++ and NCSN++ architectures.
+    r"""Implementation of the DDPM++ and NCSN++ UNet architectures.
 
     Equivalent to the original implementation by :footcite:t:`song2020score`, available at `the official implementation <https://github.com/yang-song/score_sde_pytorch>`_.
-    The DDPM model has been trained with the VP-SDE from :footcite:t:`song2020score` while the NCSN++ model has been trained with the VE-SDE.
+    The DDPM model was originally built for the VP-SDE from :footcite:t:`song2020score` while the NCSN++ model was originally built with the VE-SDE.
     See the :ref:`diffusion SDE implementations <diffusion>` for more details on the VP-SDE and VE-SDE from :footcite:t:`song2020score`.
     The model is also pre-conditioned by the method described in :footcite:t:`karras2022elucidating`.
 
@@ -29,6 +29,7 @@ class NCSNpp(Denoiser):
     The noise level can be embedded using either Positional Embedding  or Fourier Embedding with optional augmentation linear layer.
 
     :param str model_type: Model name, 'ncsn' for the NCSN++ architecture or 'ddpm' for the  DDPM++ architecture.
+    :param str precondition_type: Input preconditioning for denoising. Can be 'edm' for the method from :footcite:t:`karras2022elucidating` or 'baseline_ve' for the original method from :footcite:t:`song2020score`. See Table 1 from :footcite:t:`karras2022elucidating` for more details.
     :param int img_resolution: Image spatial resolution at input/output.
     :param int in_channels: Number of color channels at input.
     :param int out_channels: Number of color channels at output.
@@ -52,16 +53,19 @@ class NCSNpp(Denoiser):
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the attribute `_was_trained_on_minus_one_one` to `True` after loading the weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
+    :param str, None pretrained: use a pretrained network.
+        - If ``pretrained=None``, the weights will be initialized at random using Pytorch's default initialization.
+        - If ``pretrained='download'``, the weights will be downloaded from an online repository (the default model trained on FFHQ at 64x64 resolution (`ffhq64-uncond-ve`) with default architecture).
+        - Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights. In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the argument `_was_trained_on_minus_one_one` to `True`.
+    :param bool _was_trained_on_minus_one_one: Indicate whether the model has been trained on `[-1, 1]` pixels or `[0, 1]` pixels. Default to `False`.
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
-
-
-
     """
 
     def __init__(
         self,
         model_type: str = "ncsn",  # Model name, 'ncsn' or 'ddpm'.
+        precondition_type: str = "edm",  # Preconditioning type, 'edm' or 'baseline_ve'.
         img_resolution: int = 64,  # Image spatial resolution at input/output.
         in_channels: int = 3,  # Number of color channels at input.
         out_channels: int = 3,  # Number of color channels at output.
@@ -80,10 +84,12 @@ class NCSNpp(Denoiser):
         dropout: float = 0.10,  # Dropout probability of intermediate activations.
         label_dropout: float = 0.0,  # Dropout probability of class labels for classifier-free guidance.
         pretrained: str = "download",
+        _was_trained_on_minus_one_one: bool = False,
         pixel_std: float = 0.75,
         device=None,
         **kwargs,
     ):
+        super().__init__()
         model_type = model_type.lower()
         assert model_type in ["ncsn", "ddpm"]
         if model_type == "ncsn":
@@ -98,11 +104,10 @@ class NCSNpp(Denoiser):
             encoder_type = "standard"
             decoder_type = "standard"
             resample_filter = [1, 1]
-
         assert embedding_type in ["fourier", "positional"]
         assert encoder_type in ["standard", "skip", "residual"]
         assert decoder_type in ["standard", "skip"]
-        super().__init__()
+        self.precondition_type = precondition_type.lower()
         self.label_dropout = label_dropout
         emb_channels = model_channels * channel_mult_emb
         noise_channels = model_channels * channel_mult_noise
@@ -230,7 +235,7 @@ class NCSNpp(Denoiser):
                 self.dec[f"{res}x{res}_aux_conv"] = UpDownConv2d(
                     in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
                 )
-
+        self._was_trained_on_minus_one_one = _was_trained_on_minus_one_one
         if pretrained is not None:
             if pretrained.lower() == "edm-ffhq64-uncond-ve" or (
                 pretrained.lower() == "download" and model_type == "ncsn"
@@ -240,7 +245,8 @@ class NCSNpp(Denoiser):
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
-                self._was_trained_on_minus_one_one = True  # Pretrained on [-1,1]s
+                self._was_trained_on_minus_one_one = True
+                self.precondition_type = "edm"
                 self.pixel_std = 0.5
             elif pretrained.lower() == "edm-ffhq64-uncond-vp" or (
                 pretrained.lower() == "download" and model_type == "ddpm"
@@ -250,13 +256,20 @@ class NCSNpp(Denoiser):
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
-                self._was_trained_on_minus_one_one = True  # Pretrained on [-1,1]s
+                self._was_trained_on_minus_one_one = True
+                self.precondition_type = "edm"
                 self.pixel_std = 0.5
+            elif pretrained.lower() == "baseline-ffhq64-uncond-ve":
+                name = "baseline-ffhq-64x64-uncond-ve.pt"
+                url = get_weights_url(model_name="edm", file_name=name)
+                ckpt = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=name
+                )
+                self._was_trained_on_minus_one_one = True
+                self.precondition_type = "baseline_ve"
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
-                self._was_trained_on_minus_one_one = False
             self.load_state_dict(ckpt, strict=True)
-            self._train_on_minus_one_one = True  # Pretrained on [-1,1]s
             self.pixel_std = 0.5
         else:
             self._was_trained_on_minus_one_one = False
@@ -328,6 +341,7 @@ class NCSNpp(Denoiser):
         sigma: Tensor | float,
         class_labels: Tensor | None = None,
         augment_labels: Tensor | None = None,
+        input_in_minus_one_one: bool = False,
         *args,
         **kwargs,
     ):
@@ -338,6 +352,7 @@ class NCSNpp(Denoiser):
         :param Union[torch.Tensor, float]  sigma: noise level
         :param torch.Tensor class_labels: class labels
         :param torch.Tensor augment_labels: augmentation labels
+        :param bool input_in_minus_one_one: whether the input `x` is in `[-1, 1]` range. Default is `False`.
         :return torch.Tensor: denoised image.
         """
         dtype = x.dtype
@@ -349,15 +364,22 @@ class NCSNpp(Denoiser):
         sigma = self._handle_sigma(
             sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
         )
-
-        # Rescale [0,1] input to [-1,-1]
-        if getattr(self, "_was_trained_on_minus_one_one", False):
+        # Rescale [0,1] input to [-1,1]
+        if self._was_trained_on_minus_one_one and not input_in_minus_one_one:
             x = (x - 0.5) * 2.0
             sigma = sigma * 2.0
-        c_skip = self.pixel_std**2 / (sigma**2 + self.pixel_std**2)
-        c_out = sigma * self.pixel_std / (sigma**2 + self.pixel_std**2).sqrt()
-        c_in = 1 / (self.pixel_std**2 + sigma**2).sqrt()
-        c_noise = sigma.log() / 4
+        if self.precondition_type == "edm":
+            c_skip = self.pixel_std**2 / (sigma**2 + self.pixel_std**2)
+            c_out = sigma * self.pixel_std / (sigma**2 + self.pixel_std**2).sqrt()
+            c_in = 1 / (self.pixel_std**2 + sigma**2).sqrt()
+            c_noise = sigma.log() / 4
+        elif self.precondition_type == "ve-baseline":
+            c_skip = 1
+            c_out = sigma
+            c_in = 1
+            c_noise = (sigma/2).log()
+        else:
+            raise NotImplementedError(f"Preconditioning type {self.precondition_type} not implemented.")
 
         F_x = self.forward_unet(
             c_in * x,
@@ -365,12 +387,10 @@ class NCSNpp(Denoiser):
             class_labels=class_labels,
             augment_labels=augment_labels,
         )
-
         D_x = c_skip * x + c_out * F_x
-
         D_x = D_x.to(dtype)
-        # Rescale [-1,1] output to [0,-1]
-        if getattr(self, "_was_trained_on_minus_one_one", False):
+        # Rescale [-1,1] output to [0,1]
+        if self._was_trained_on_minus_one_one and not input_in_minus_one_one:
             return (D_x + 1.0) / 2.0
         else:
             return D_x

@@ -30,6 +30,9 @@ class ScoreModelWrapper(Denoiser):
     :param bool variance_preserving: whether the schedule is variance-preserving. If `True`, the `scale_schedule` is computed from the `sigma_schedule`.
     :param bool variance_exploding: whether the schedule is variance-exploding. If `True`, the `scale_schedule` is set to `1`.
     :param float T: maximum time value for continuous schedules. Default is `1.0`.
+    :param bool takes_integer_time: whether the model takes integer time steps (in `[0, n_timesteps-1]`) as input. Default is `False`.
+    :param int n_timesteps: number of time steps for discrete schedules. Default is `1000`.
+    :param bool _was_trained_on_minus_one_one: whether the model was trained on images in `[-1, 1]` range (`True`) or `[0, 1]` range (`False`). Default is `True`.
     :param str: device to load the model on. Default is `'cpu'`.
     """
 
@@ -44,12 +47,18 @@ class ScoreModelWrapper(Denoiser):
         variance_preserving: bool = False,
         variance_exploding: bool = False,
         T: float = 1.0,
+        takes_integer_time: bool = False,
+        n_timesteps: int = 1000,
+        _was_trained_on_minus_one_one: bool = True,
         device: str | torch.device = "cpu",
     ):
         super().__init__()
         self.model = score_model
         self.clip_output = clip_output
         self.prediction_type = prediction_type
+        self.takes_integer_time = takes_integer_time
+        self.n_timesteps = n_timesteps
+        self._was_trained_on_minus_one_one = _was_trained_on_minus_one_one
 
         if scale_schedule is None:
             if variance_preserving:
@@ -66,6 +75,16 @@ class ScoreModelWrapper(Denoiser):
                     scale_schedule = lambda t: 1.0
                 else:
                     scale_schedule = torch.ones_like(sigma_schedule)
+        elif sigma_schedule is None and scale_schedule is not None:
+            if variance_preserving:
+                if isinstance(scale_schedule, Callable):
+
+                    def sigma_schedule(t):
+                        t = self._handle_time_step(t, device=device)
+                        return (1/scale_schedule(t)**2 - 1).clamp(min=0).sqrt()
+
+                else:
+                    sigma_schedule = (1/scale_schedule**2 - 1).clamp(min=0).sqrt()
 
         if isinstance(sigma_schedule, torch.Tensor):
             self.register_buffer("sigma_schedule", sigma_schedule)
@@ -79,6 +98,10 @@ class ScoreModelWrapper(Denoiser):
         self.sigma_inverse = sigma_inverse
         self.T = T
         self.to(device)
+
+    def _handle_time_step(self, t: torch.Tensor | float, device: str | torch.device = "cpu", dtype: torch.dtype = torch.float32) -> torch.Tensor:
+        t = torch.as_tensor(t, device=device, dtype=dtype)
+        return t
 
     def get_schedule_value(
         self,
@@ -95,7 +118,8 @@ class ScoreModelWrapper(Denoiser):
         """
 
         if isinstance(schedule, torch.Tensor):
-            val = schedule[t.long()]
+            time_idx = (t * (self.n_timesteps - 1) / self.T).long()
+            val = schedule[time_idx]
         else:
             val = schedule(t)
 
@@ -203,7 +227,8 @@ class ScoreModelWrapper(Denoiser):
         t = self._handle_sigma(
             t, batch_size=x.size(), ndim=1, device=device, dtype=dtype
         )
-
+        if self.takes_integer_time:
+            t = (t * (self.n_timesteps - 1)).long()
         # UNet forward
         pred = self.model(x, t, *args, return_dict=False, **kwargs)
         if isinstance(pred, (list, tuple)):
@@ -219,17 +244,20 @@ class ScoreModelWrapper(Denoiser):
         self,
         x: torch.Tensor,
         sigma: float | torch.Tensor = None,
+        input_in_minus_one_one: bool = False,
         *args,
         **kwargs,
     ) -> torch.Tensor:
         r"""
         Applies denoiser :math:`\denoiser{x}{\sigma}`.
-        The input `x` is expected to be in `[0, 1]` range (up to random noise) and the output is also in `[0, 1]` range.
+        If `input_in_minus_one_one` is `False` (default value), the input `x` is expected to be in `[0, 1]` range (up to random noise) and the output is also in `[0, 1]` range.
+        Else, both input and output are expected in `[-1, 1]` range.
 
         :param torch.Tensor x: noisy input, of shape `[B, C, H, W]`.
         :param torch.Tensor, float sigma: noise level. Can be a `float` or a :class:`torch.Tensor` of shape `[B]`.
             If a single `float` is provided, the same noise level is used for all samples in the batch.
             Otherwise, batch-wise noise levels are used.
+        :param bool input_in_minus_one_one: whether the input `x` is in `[-1, 1]` range. Default is `False`.
         :param args: additional positional arguments to be passed to the model.
         :param kwarg: additional keyword arguments to be passed to the model. For example, a `prompt` for text-conditioned or `class_label` for class-conditioned models.
 
@@ -248,13 +276,19 @@ class ScoreModelWrapper(Denoiser):
             device=device,
             dtype=dtype,
         )
-
-        sigma = sigma * 2  # since image is in [-1, 1] range in the model
+        if not self.input_in_minus_one_one and self._was_trained_on_minus_one_one:
+            sigma = sigma * 2  # since image is in [-1, 1] range in the model
+        
         timestep = self.time_from_sigma(sigma.squeeze())
         scale = self.get_schedule_value(self.scale_schedule, timestep, x.shape)
 
-        # Rescale input x from [0, 1] to model scale [-1, 1] and apply scaling following DDPM
-        x = (x * 2 - 1) * scale
+        if not input_in_minus_one_one and self._was_trained_on_minus_one_one:
+            # Rescale input x from [0, 1] to model scale [-1, 1] and apply scaling following DDPM
+            x = (x * 2 - 1) * scale
+        else:
+            x = x * scale
+        if self.takes_integer_time:
+            timestep = (timestep * (self.n_timesteps - 1)).long()
         # UNet forward
         pred = self.model(x, timestep, *args, **kwargs)
         if isinstance(pred, (list, tuple)):
@@ -268,8 +302,10 @@ class ScoreModelWrapper(Denoiser):
         if self.clip_output:
             x0 = x0.clamp(-1, 1)
 
-        # Rescale to [0, 1]
-        x0 = (x0 + 1) / 2
+        if not input_in_minus_one_one:
+            # Rescale to [0, 1]
+            x0 = (x0 + 1) / 2
+
         return x0
 
 
@@ -318,13 +354,15 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         mode_id: str = None,
         clip_output: bool = True,
         device: str | torch.device = "cpu",
+        *args,
+        **kwargs,
     ):
         assert (
             mode_id is not None
         ), "Provide a diffusers model id. E.g., 'google/ddpm-cat-256'"
 
         try:
-            from diffusers import DiffusionPipeline, DDPMScheduler
+            from diffusers import DiffusionPipeline, DDPMScheduler, PNDMScheduler, DDIMScheduler
         except ImportError:
             raise ImportError(
                 "diffusers is not installed. Please install it via 'pip install diffusers'."
@@ -336,12 +374,37 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         scheduler = pipeline.scheduler
         prediction_type = getattr(scheduler.config, "prediction_type", "epsilon")
 
-        assert isinstance(
-            scheduler, DDPMScheduler
-        ), "Currently, only DDPMScheduler is supported."
-        ac = scheduler.alphas_cumprod
-        scale_schedule = ac.sqrt()
-        sigma_schedule = (1 / ac - 1.0).clamp(min=0).sqrt()
+        if isinstance(scheduler, (PNDMScheduler, DDPMScheduler, DDIMScheduler)):
+            
+            if hasattr(scheduler, "alphas_cumprod"):
+                alphas_cumprod = scheduler.alphas_cumprod
+                scale_schedule = torch.sqrt(alphas_cumprod)
+            else:
+                if scheduler.beta_schedule == 'scaled_linear':
+                    N = scheduler.config.num_train_timesteps
+                    beta_start = 0.5 * N * scheduler.config.beta_start
+                    beta_end = 0.5 * N * scheduler.config.beta_end 
+                    a = np.sqrt(beta_start)
+                    c = np.sqrt(beta_end) - a
+                    B_t = lambda t: (a**2) * t + a * c * t**2 + (c**2 / 3.0) * t**3
+                    scale_schedule = lambda t: torch.exp(-B_t(t))
+                elif scheduler.beta_schedule == 'linear':
+                    N = scheduler.config.num_train_timesteps
+                    beta_start = 0.5 * scheduler.config.beta_start * N
+                    beta_end = 0.5 * scheduler.config.beta_end * N
+                    delta = beta_end - beta_start
+                    scale_schedule = lambda t: torch.exp(-(beta_start * t + 0.5 * delta * t ** 2)) 
+                else:
+                    raise ValueError("only 'scaled_linear' and 'linear' schedule are supported for beta")
+            
+            sigma_schedule = None
+            variance_preserving = True
+            variance_exploding = False
+
+        else:
+            raise ValueError(
+                f"Scheduler of type {type(scheduler)} is not supported yet."
+            )
 
         super().__init__(
             score_model=model,
@@ -349,8 +412,21 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
             clip_output=clip_output,
             scale_schedule=scale_schedule,
             sigma_schedule=sigma_schedule,
+            variance_preserving = variance_preserving,
+            variance_exploding = variance_exploding,
+            takes_integer_time = True,
+            n_timesteps = scheduler.config.num_train_timesteps,
             device=device,
+            *args,
+            **kwargs,
         )
+
+        self.tokenizer = pipeline.tokenizer if hasattr(pipeline, "tokenizer") else None
+        self.text_encoder = pipeline.text_encoder if hasattr(pipeline, "text_encoder") else None    
+        self.bert = pipeline.bert if hasattr(pipeline, "bert") else None    
+        self.vae = pipeline.vae if hasattr(pipeline, "vae") else None
+        self.vqvae = pipeline.vqvae if hasattr(pipeline, "vqvae") else None
+        self.scheduler = pipeline.scheduler if hasattr(pipeline, "scheduler") else None
 
     def forward(
         self,

@@ -4,13 +4,15 @@ from torch import Tensor
 import torch.nn as nn
 from typing import Callable
 import numpy as np
+import deepinv.utils as dinv
 from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor, Denoiser
 from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity, DPSDataFidelity
 from deepinv.sampling.utils import trapz_torch
-
+import threading
+_print_lock = threading.Lock()
 
 class _WrapperDenoiserMinusOneOne(nn.Module):
     r"""
@@ -21,20 +23,21 @@ class _WrapperDenoiserMinusOneOne(nn.Module):
     :param float xmax: maximum value of the denoiser training range. Default to `1.0`.
     """
 
-    def __init__(self, denoiser: nn.Module, xmin: float = 0.0, xmax: float = 1.0):
+    def __init__(self, model: nn.Module, xmin: float = 0.0, xmax: float = 1.0):
         super().__init__()
-        self.denoiser = denoiser
+        self.model = model
         self.xmin = xmin
         self.xmax = xmax
 
     def forward(self, x: Tensor, sigma: Tensor, *args, **kwargs) -> Tensor:
-        # Scale from [-1, 1] to [xmin, xmax]
-        x_scaled = (x + 1) / 2 * (self.xmax - self.xmin) + self.xmin
-        denoised_scaled = self.denoiser(
-            x_scaled, sigma / (2 * (self.xmax - self.xmin)), *args, **kwargs
-        )
-        # Scale back from [xmin, xmax] to [-1, 1]
-        denoised = 2 * (denoised_scaled - self.xmin) / (self.xmax - self.xmin) - 1
+        # Scale from [-1, 1] to [xmin, xmax], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs
+        if 'input_in_minus_one_one' in kwargs and not kwargs['input_in_minus_one_one']:
+            x = (x + 1) / 2 * (self.xmax - self.xmin) + self.xmin
+            sigma = sigma * (self.xmax - self.xmin) / 2
+        denoised = self.model(x, sigma, *args, **kwargs)
+        # Scale back to [-1, 1], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs
+        if 'input_in_minus_one_one' in kwargs and not kwargs['input_in_minus_one_one']:
+            denoised = 2 * (denoised - self.xmin) / (self.xmax - self.xmin) - 1
         return denoised
 
 
@@ -618,6 +621,7 @@ class FlowMatching(EDMDiffusionSDE):
         a_prime_t: Callable = lambda t: -1.0,
         b_t: Callable = lambda t: t,
         b_prime_t: Callable = lambda t: 1.0,
+        T: float = 0.99,
         alpha: Callable | float = 0.0,
         denoiser: nn.Module = None,
         solver: BaseSDESolver = None,
@@ -649,7 +653,7 @@ class FlowMatching(EDMDiffusionSDE):
             sigma_t=sigma_t,
             sigma_prime_t=sigma_prime_t,
             alpha=alpha,
-            T=0.99,
+            T=T,
             denoiser=denoiser,
             solver=solver,
             dtype=dtype,
@@ -728,6 +732,7 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
     :param float beta_min: the minimum noise level.
     :param float beta_max: the maximum noise level.
     :param Callable, float alpha: a (possibly time-dependent) positive scalar weighting the diffusion term. A  constant function :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
+    :param bool scaled_linear: whether to use the scaled linear beta schedule. If `False`, uses the more standard linear schedule. Default to `False`.
     :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
@@ -744,6 +749,7 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
         beta_min: float = 0.1,
         beta_max: float = 20,
         alpha: Callable | float = 1.0,
+        scaled_linear: bool = False,
         solver: BaseSDESolver = None,
         dtype=torch.float64,
         device=torch.device("cpu"),
@@ -753,11 +759,24 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
 
         def beta_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
-            return beta_min + t * (beta_max - beta_min)
+            if not scaled_linear:
+                return beta_min + t * (beta_max - beta_min)
+            else:
+                beta_min_sqrt = np.sqrt(beta_min)
+                beta_max_sqrt = np.sqrt(beta_max)
+                return (beta_min_sqrt + t * (beta_max_sqrt - beta_min_sqrt)) ** 2
+            
 
         def B_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
-            return beta_min * t + 0.5 * t**2 * (beta_max - beta_min)
+            if not scaled_linear:
+                return beta_min * t + 0.5 * t**2 * (beta_max - beta_min)
+            else:
+                beta_min_sqrt = np.sqrt(beta_min)
+                beta_max_sqrt = np.sqrt(beta_max)
+                a = beta_min_sqrt
+                c = beta_max_sqrt - beta_min_sqrt
+                return (a**2) * t + a * c * t**2 + (c**2 / 3.0) * t**3
 
         super().__init__(
             beta_t=beta_t,
@@ -835,8 +854,6 @@ class PosteriorDiffusion(Reconstructor):
         ), "A denoiser must be specified."
         if denoiser is None:
             denoiser = sde.denoiser
-        if minus_one_one:
-            denoiser = _WrapperDenoiserMinusOneOne(denoiser)
 
         self.sde.denoiser = denoiser
         if hasattr(self.data_fidelity, "denoiser"):
@@ -909,8 +926,6 @@ class PosteriorDiffusion(Reconstructor):
                 x_init = self.sde.sample_init(y.shape, rng=self.solver.rng)
             else:
                 raise ValueError("Either `x_init` or `physics` must be specified.")
-        if self.minus_one_one and y is not None:
-            y = (y - 0.5) * 2  # Scale y to [-1, 1]
         solution = self.solver.sample(
             self.posterior,
             x_init,
@@ -920,14 +935,12 @@ class PosteriorDiffusion(Reconstructor):
             get_trajectory=get_trajectory,
             verbose=self.verbose,
             *args,
-            **kwargs,
+            **kwargs
         )
-
         # Scale the output back to [0, 1]
         sample = solution.sample
         if self.minus_one_one:
-            sample = (sample.clamp_(-1, 1) + 1) / 2
-
+            sample = (sample.clamp(-1, 1) + 1) / 2
         if get_trajectory:
             return sample, solution.trajectory
         else:
