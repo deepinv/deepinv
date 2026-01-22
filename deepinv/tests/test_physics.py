@@ -556,7 +556,7 @@ def wrap_physics(wrapper_name, physics, img_size, device):
         img_size_out = (img_size[0], img_size[-2] // 4, img_size[-1] // 4)
     elif wrapper_name == "PhysicsCropper":
         crop = (2, 4)
-        p = dinv.physics.PhysicsCropper(physics=physics, crop=crop)
+        p = dinv.physics.PhysicsCropper(physics=physics, crop=crop, device=device)
         img_size_out = (
             *img_size[:-2],
             img_size[-2] + crop[-2],
@@ -795,6 +795,7 @@ def test_operator_cropper(name, device, rng):
     new_physics = dinv.physics.PhysicsCropper(
         physics,
         padding_shape,
+        device=device
     )
     y = new_physics(x_new)
     Aty = new_physics.A_adjoint(y)
