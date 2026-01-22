@@ -27,8 +27,12 @@ class NCSNpp(Denoiser):
     The model also supports an additional class condition model.
     Each residual block has a self-attention mechanism with multiple channels per attention head.
     The noise level can be embedded using either Positional Embedding  or Fourier Embedding with optional augmentation linear layer.
+    :param str model_type: Model type, which defines the architecture and embedding types. Options are:
 
-    :param str model_type: Model name, 'ncsn' for the NCSN++ architecture or 'ddpm' for the  DDPM++ architecture.
+        - `'ncsn'` for the NCSN++ architecture: the following arguments will be ignored and set to `embedding_type='fourier'`, `channel_mult_noise=2`, `encoder_type='residual'`, `decoder_type='standard'`, `resample_filter=[1,3,3,1]`.
+        - `'ddpm'` for the  DDPM++ architecture: the following arguments will be ignored and set to `embedding_type='positional'`, `channel_mult_noise=1`, `encoder_type='standard'`, `decoder_type='standard'`, `resample_filter=[1,1]`.
+
+        Default is `'ncsn'`.
     :param str precondition_type: Input preconditioning for denoising. Can be 'edm' for the method from :footcite:t:`karras2022elucidating` or 'baseline_ve' for the original method from :footcite:t:`song2020score`. See Table 1 from :footcite:t:`karras2022elucidating` for more details.
     :param int img_resolution: Image spatial resolution at input/output.
     :param int in_channels: Number of color channels at input.
@@ -42,16 +46,17 @@ class NCSNpp(Denoiser):
     :param list attn_resolutions: List of resolutions with self-attention.
     :param float dropout: Dropout probability of intermediate activations.
     :param float label_dropout: Dropout probability of class labels for classifier-free guidance.
-    :param str embedding_type: Timestep embedding type: 'positional' for DDPM++, 'fourier' for NCSN++.
+    :param str embedding_type: Timestep embedding type: `'positional'` for DDPM++, `'fourier'` for NCSN++.
     :param int channel_mult_noise: Timestep embedding size: 1 for DDPM++, 2 for NCSN++.
-    :param str encoder_type: Encoder architecture: 'standard' for DDPM++, 'residual' for NCSN++.
-    :param str decoder_type: Decoder architecture: 'standard' for both DDPM++ and NCSN++.
-    :param list resample_filter: Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
-    :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
-        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
-        online repository (the default model trained on FFHQ at 64x64 resolution (`ffhq64-uncond-ve`) with default architecture).
-        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
-        In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the attribute `_was_trained_on_minus_one_one` to `True` after loading the weights.
+    :param str encoder_type: Encoder architecture: `'standard'` for DDPM++, `'residual'` for NCSN++.
+    :param str decoder_type: Decoder architecture: `'standard'` for both DDPM++ and NCSN++.
+    :param list resample_filter: Resampling filter: `[1,1]` for DDPM++, `[1,3,3,1]` for NCSN++.
+    :param str, None pretrained: use a pretrained network.
+
+        - If ``pretrained=None``, the weights will be initialized at random using Pytorch's default initialization.
+        - If ``pretrained='download'``, the weights will be downloaded from an online repository (the default model trained on FFHQ at 64x64 resolution (`ffhq64-uncond-ve`) with default architecture).
+        - Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights. In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the attribute `_was_trained_on_minus_one_one` to `True` after loading the weights.
+
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param str, None pretrained: use a pretrained network.
         - If ``pretrained=None``, the weights will be initialized at random using Pytorch's default initialization.

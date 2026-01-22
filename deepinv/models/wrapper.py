@@ -13,13 +13,12 @@ class ScoreModelWrapper(Denoiser):
     Given a noisy sample :math:`x_t = s_t(x_0 + \sigma_t \varepsilon)`, where :math:`\varepsilon \sim \mathcal{N}(0, I)`,
     depending on the `prediction_type`, the input `score_model` is trained to predict, either:
 
-        * the noise :math:`\varepsilon` (`prediction_type = noise`)
+        * the noise :math:`\varepsilon` (`prediction_type = 'noise'`)
 
-        * the denoised sample :math:`x_0` (`prediction_type = denoised`)
+        * the denoised sample :math:`x_0` (`prediction_type = 'denoised'`)
 
-        * the `v-prediction` :math:`s_t (\varepsilon - sigma_t * x_0)` as proposed by :footcite:`salimans2022progressive` (`prediction_type = v_prediction`)
-
-        * the velocity (or drift) of the corresponding ODE/SDE :math:`s_t (\varepsilon - sigma_t * x_0)` as typically the case for flow-matching models (`prediction_type = velocity`)
+        * the `v-prediction` :math:`s_t (\varepsilon - \sigma_t * x_0)` as proposed by :footcite:`salimans2022progressive` (`prediction_type = 'v_prediction'`)
+        * the velocity (or drift) of the corresponding ODE/SDE :math:`s_t (\varepsilon - \sigma_t * x_0)` as typically the case for flow-matching models (`prediction_type = 'velocity'`)
 
     :param torch.nn.Module | Callable score_model: score model to be wrapped.
     :param str prediction_type: type of prediction made by the score model.
