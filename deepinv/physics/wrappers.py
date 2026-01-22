@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 
 from deepinv.physics import Physics, LinearPhysics
