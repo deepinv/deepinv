@@ -188,8 +188,8 @@ class FixedPoint(nn.Module):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param args: arguments for the iterator.
         """
-        x_prev = X_prev["est"][0]  # current iterate Tx
-        Tx_prev = TX_prev["est"][0]  # current iterate x
+        x_prev = X_prev["est"][0]  # current iterate x
+        Tx_prev = TX_prev["est"][0]  # current iterate Tx
         b = x_prev.shape[0]  # batchsize
 
         # Create a copy to avoid in-place modification, which messes with autograd
