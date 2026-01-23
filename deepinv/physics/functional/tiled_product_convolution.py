@@ -189,7 +189,7 @@ class TiledPConv2dHandler:
 # =============================================================================
 
 
-def tiled_product_convolution2d(
+def tiled_product_conv2d(
     x: Tensor,
     w: Tensor,
     h: Tensor,
@@ -270,7 +270,7 @@ def tiled_product_convolution2d(
     return result[..., margin[0] : -margin[0], margin[1] : -margin[1]]
 
 
-def tiled_product_convolution2d_adjoint(
+def tiled_product_conv2d_adjoint(
     y: Tensor,
     w: Tensor,
     h: Tensor,
@@ -345,6 +345,12 @@ def tiled_product_convolution2d_adjoint(
         result.view(B, C, n_rows, n_cols, H, W),
         img_size=original_img_size,
     )
+
+
+def generate_tiled_multipliers(img_size, patch_size, overlap, kernel_size, device):
+    masks = unity_partition_function_2d(img_size, patch_size, overlap)
+    w, _ = crop_unity_partition_2d(masks, patch_size, overlap, kernel_size)
+    return w.flatten(0, 1).unsqueeze(0).unsqueeze(0).to(device)
 
 
 # =============================================================================

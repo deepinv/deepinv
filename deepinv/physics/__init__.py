@@ -7,6 +7,7 @@ from .blur import (
     SpaceVaryingBlur,
     Upsampling,
     DownsamplingMatlab,
+    TiledSpaceVaryingBlur,
 )
 from .range import Decolorize
 from .haze import Haze

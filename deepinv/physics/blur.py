@@ -676,6 +676,125 @@ class SpaceVaryingBlur(LinearPhysics):
         super().update_parameters(**kwargs)
 
 
+from deepinv.physics.functional import (
+    tiled_product_conv2d,
+    tiled_product_conv2d_adjoint,
+    generate_tiled_multipliers,
+)
+
+
+class TiledSpaceVaryingBlur(LinearPhysics):
+    r"""
+    Space varying blur via tiled-convolution.
+
+    This linear operator performs
+
+    .. math::
+
+        y = \sum_{k=1}^K h_k \star (m_k \odot x)
+
+    where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product,  :math:`m_k` are binary masks defining the tiles and :math:`h_k` are filters.
+
+    :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(B, C, K, h, w)` where
+        `B` is the batch size, `C` the number of channels, `K` the number of filters, `h` and `w` the filter height and width which should be smaller or equal than the image :math:`x` height and width respectively.
+    :param torch.Tensor masks: Binary masks :math:`m_k`. Tensor of size `(B, C, K, H, W)` where
+        `B` is the batch size, `C` the number of channels, `K` the number of masks, `H` and `W` the image :math:`x` height and width.
+    :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
+        If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
+        otherwise the blurred output has the same size as the image.
+
+    :param torch.device, str device: Device this physics lives on. If filter or masks is updated, it will be cast to TiledSpaceVaryingBlur's device.
+
+    """
+
+    def __init__(
+        self,
+        filters: Tensor = None,
+        patch_size: int | tuple[int, int] = None,
+        overlap: int | tuple[int, int] = None,
+        padding: str = "valid",
+        device: torch.device | str = "cpu",
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.multipliers = None
+        self.patch_size = patch_size
+        self.overlap = overlap
+        self.padding = padding
+        self.update_parameters(filters, **kwargs)
+        self.to(device)
+
+    def A(self, x: Tensor, filters=None, **kwargs) -> torch.Tensor:
+        r"""
+        Applies the space varying blur operator to the input image.
+
+        It can receive new parameters  :math:`h_k` and padding to be used in the forward operator, and stored
+        as the current parameters.
+
+        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
+        :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
+            If `padding = 'valid'` the blurred output is smaller than the image (no padding),
+            otherwise the blurred output has the same size as the image.
+        :param str device: cpu or cuda
+        """
+        self.update_parameters(filters, img_size=x.shape[-2:], **kwargs)
+        return tiled_product_conv2d(x, self.multipliers, self.filters, self.overlap)
+
+    def A_adjoint(
+        self,
+        y: Tensor,
+        filters: Tensor = None,
+        **kwargs,
+    ) -> Tensor:
+        r"""
+        Applies the adjoint operator.
+
+        It can receive new parameters :math:`h_k` and padding to be used in the forward operator, and stored
+        as the current parameters.
+
+        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
+        :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
+            If `padding = 'valid'` the blurred output is smaller than the image (no padding),
+            otherwise the blurred output has the same size as the image.
+        """
+        if filters is None:
+            filters = self.filters
+
+        # Infer original image size from y and filters, since the padding is 'valid'
+        original_img_size = (
+            y.size(-2) + filters.size(-2) - 1,
+            y.size(-1) + filters.size(-1) - 1,
+        )
+        self.update_parameters(filters=filters, img_size=original_img_size, **kwargs)
+
+        return tiled_product_conv2d_adjoint(
+            y, self.multipliers, self.filters, self.overlap
+        )
+
+    def update_parameters(
+        self, filters: Tensor = None, img_size: int | tuple[int, int] = None, **kwargs
+    ):
+        if filters is not None and isinstance(filters, Tensor):
+            self.register_buffer("filters", filters.to(self.device))
+
+        # Only generate multipliers if the image size changed
+        if (self.multipliers is None) or (
+            img_size is not None and img_size != self.img_size
+        ):
+            multipliers = generate_tiled_multipliers(
+                img_size,
+                self.patch_size,
+                self.overlap,
+                self.filters.shape[-2:],
+                device=self.device,
+            )
+            self.register_buffer("multipliers", multipliers)
+            self.img_size = img_size
+
+        super().update_parameters(**kwargs)
+
+
 def gaussian_blur(
     sigma: float | tuple[float, ...] = (1, 1),
     angle: float = 0,

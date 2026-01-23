@@ -12,6 +12,11 @@ from .convolution import (
 )
 
 from .product_convolution import product_convolution2d, product_convolution2d_adjoint
+from .tiled_product_convolution import (
+    tiled_product_conv2d,
+    tiled_product_conv2d_adjoint,
+    generate_tiled_multipliers,
+)
 
 from .multiplier import (
     multiplier,

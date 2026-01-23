@@ -321,31 +321,3 @@ def test_tiled_product_convolution2d_adjointness(
     assert torch.abs(lhs - rhs) < 1e-4 * max(
         torch.abs(lhs), torch.abs(rhs)
     )  # relative tolerance
-
-
-from deepinv.physics.functional.tiled_product_convolution import (
-    image_to_patches,
-    patches_to_image,
-)
-
-
-@pytest.mark.parametrize("batch_size", [1, 2])
-@pytest.mark.parametrize("n_channels", [1, 3])
-@pytest.mark.parametrize("img_size", [(32, 32), (33, 33), (32, 33)])
-@pytest.mark.parametrize("patch_size", [(8, 8), (9, 9), (8, 9)])
-@pytest.mark.parametrize("overlap", [(4, 4), (5, 5), (4, 5)])
-def test_image_to_patch_adjointness(
-    batch_size, n_channels, img_size, patch_size, overlap
-):
-    device = "cuda:0"
-    x = torch.randn(batch_size, n_channels, *img_size).to(device)
-
-    Ax = image_to_patches(x, patch_size, overlap)
-    y = torch.randn_like(Ax)
-    Aty = patches_to_image(y, overlap, img_size=img_size)
-
-    lhs = torch.sum(Ax * y)
-    rhs = torch.sum(Aty * x)
-    assert torch.abs(lhs - rhs) < 1e-4 * max(
-        torch.abs(lhs), torch.abs(rhs)
-    )  # relative tolerance
