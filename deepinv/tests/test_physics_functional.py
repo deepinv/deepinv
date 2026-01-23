@@ -283,7 +283,13 @@ def test_dct_idct(device):
     assert torch.linalg.vector_norm(x - xrec) < 1e-5
 
 
-from deepinv.physics.functional.tiled_product_convolution import tiled_product_convolution2d, tiled_product_convolution2d_adjoint, unity_partition_function_2d, crop_unity_partition_2d, to_compatible_img_size
+from deepinv.physics.functional.tiled_product_convolution import (
+    tiled_product_convolution2d,
+    tiled_product_convolution2d_adjoint,
+    unity_partition_function_2d,
+    crop_unity_partition_2d,
+    to_compatible_img_size,
+)
 
 
 @pytest.mark.parametrize("batch_size", [1, 2])
@@ -291,43 +297,55 @@ from deepinv.physics.functional.tiled_product_convolution import tiled_product_c
 @pytest.mark.parametrize("img_size", [(32, 32), (33, 33), (32, 33)])
 @pytest.mark.parametrize("patch_size", [(8, 8), (9, 9), (8, 9)])
 @pytest.mark.parametrize("overlap", [(4, 4), (5, 5), (4, 5)])
-@pytest.mark.parametrize("psf_size", [(5,5), (6,6), (5,6)])
-def test_tiled_product_convolution2d_adjointness(batch_size, n_channels, img_size, patch_size, psf_size, overlap):
-    device='cuda:0'
+@pytest.mark.parametrize("psf_size", [(5, 5), (6, 6), (5, 6)])
+def test_tiled_product_convolution2d_adjointness(
+    batch_size, n_channels, img_size, patch_size, psf_size, overlap
+):
+    device = "cuda:0"
     x = torch.randn(batch_size, n_channels, *img_size).to(device)
     img_size, _ = to_compatible_img_size(img_size, patch_size, overlap)
 
     masks = unity_partition_function_2d(img_size, patch_size, overlap)
     w, _ = crop_unity_partition_2d(masks, patch_size, overlap, psf_size)
-    w = w.flatten(0,1).unsqueeze(0).unsqueeze(0).to(device)
-    
+    w = w.flatten(0, 1).unsqueeze(0).unsqueeze(0).to(device)
+
     h = torch.rand(1, n_channels, w.size(2), *psf_size).to(device)
     h = h / h.sum(dim=(-1, -2), keepdim=True)
-    
+
     Ax = tiled_product_convolution2d(x, w, h, overlap)
     y = torch.randn_like(Ax)
     Aty = tiled_product_convolution2d_adjoint(y, w, h, overlap)
-    
+
     lhs = torch.sum(Ax * y)
     rhs = torch.sum(Aty * x)
-    assert torch.abs(lhs - rhs) < 1e-4 * max(torch.abs(lhs), torch.abs(rhs))  # relative tolerance
-    
-    
-from deepinv.physics.functional.tiled_product_convolution import image_to_patches, patches_to_image
+    assert torch.abs(lhs - rhs) < 1e-4 * max(
+        torch.abs(lhs), torch.abs(rhs)
+    )  # relative tolerance
+
+
+from deepinv.physics.functional.tiled_product_convolution import (
+    image_to_patches,
+    patches_to_image,
+)
+
 
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("n_channels", [1, 3])
 @pytest.mark.parametrize("img_size", [(32, 32), (33, 33), (32, 33)])
 @pytest.mark.parametrize("patch_size", [(8, 8), (9, 9), (8, 9)])
 @pytest.mark.parametrize("overlap", [(4, 4), (5, 5), (4, 5)])
-def test_image_to_patch_adjointness(batch_size, n_channels, img_size, patch_size, overlap):
-    device='cuda:0'
+def test_image_to_patch_adjointness(
+    batch_size, n_channels, img_size, patch_size, overlap
+):
+    device = "cuda:0"
     x = torch.randn(batch_size, n_channels, *img_size).to(device)
 
     Ax = image_to_patches(x, patch_size, overlap)
     y = torch.randn_like(Ax)
     Aty = patches_to_image(y, overlap, img_size=img_size)
-    
+
     lhs = torch.sum(Ax * y)
     rhs = torch.sum(Aty * x)
-    assert torch.abs(lhs - rhs) < 1e-4 * max(torch.abs(lhs), torch.abs(rhs))  # relative tolerance
+    assert torch.abs(lhs - rhs) < 1e-4 * max(
+        torch.abs(lhs), torch.abs(rhs)
+    )  # relative tolerance

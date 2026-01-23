@@ -6,8 +6,8 @@ import torch
 import torch.nn.functional as F
 import math
 
-# METHOD 2: PRODUCT CONVOLUTION USING PATCHES
 
+# METHOD 2: PRODUCT CONVOLUTION USING PATCHES
 def tiled_product_convolution2d(
     x: Tensor,
     w: Tensor,
@@ -75,7 +75,7 @@ def tiled_product_convolution2d(
     result = torch.stack(result, dim=2)
     margin = (psf_size[0] - 1, psf_size[1] - 1)
     B, C, K, H, W = result.size()
-    
+
     result = patches_to_image(
         result.view(B, C, n_rows, n_cols, H, W),
         _add_tuple(overlap, _add_tuple(psf_size, (-1,) * len(psf_size))),
@@ -116,8 +116,10 @@ def tiled_product_convolution2d_adjoint(
     patch_size = w.shape[-2:]
     overlap = _as_pair(overlap)
     psf_size = h.shape[-2:]
-    original_img_size = _add_tuple(y.shape[-2:], _add_tuple(psf_size, (-1,) * len(psf_size)))
-    
+    original_img_size = _add_tuple(
+        y.shape[-2:], _add_tuple(psf_size, (-1,) * len(psf_size))
+    )
+
     margin = (psf_size[0] - 1, psf_size[1] - 1)
     y = F.pad(
         y,
@@ -151,7 +153,9 @@ def tiled_product_convolution2d_adjoint(
     result = result * w
     B, C, _, H, W = result.size()
 
-    return patches_to_image(result.view(B, C, n_rows, n_cols, H, W), overlap, img_size=original_img_size)
+    return patches_to_image(
+        result.view(B, C, n_rows, n_cols, H, W), overlap, img_size=original_img_size
+    )
 
 
 def get_psf_pconv2d_patch(
@@ -423,25 +427,30 @@ def crop_unity_partition_2d(
 
 
 # UTILITY FUNCTIONS FOR PATCHES
-def to_compatible_img_size(img_size: tuple[int], patch_size: tuple[int], overlap: tuple[int]):
+def to_compatible_img_size(
+    img_size: tuple[int], patch_size: tuple[int], overlap: tuple[int]
+):
     patch_size = _as_pair(patch_size)
     overlap = _as_pair(overlap)
     img_size = _as_pair(img_size)
-    
+
     stride = (patch_size[0] - overlap[0], patch_size[1] - overlap[1])
-    
+
     # Zero-pad the image if necessary to make it divisible by the patch extraction
     n_h, n_w = (
-            (img_size[0] - patch_size[0]) // stride[0] + 1,
-            (img_size[1] - patch_size[1]) // stride[1] + 1,
-        )
-    
+        (img_size[0] - patch_size[0]) // stride[0] + 1,
+        (img_size[1] - patch_size[1]) // stride[1] + 1,
+    )
+
     pad_h = patch_size[0] + n_h * stride[0] - img_size[0]
     pad_w = patch_size[1] + n_w * stride[1] - img_size[1]
-    
+
     return (img_size[0] + pad_h, img_size[1] + pad_w), (pad_h, pad_w)
 
-def image_to_patches(image: Tensor, patch_size: int | tuple[int, int], overlap: int | tuple[int, int]):
+
+def image_to_patches(
+    image: Tensor, patch_size: int | tuple[int, int], overlap: int | tuple[int, int]
+):
     """
     Splits an image into patches with specified patch size and overlap.
     The image will be cropped to the appropriate size so that all patches have the same size.
@@ -458,28 +467,32 @@ def image_to_patches(image: Tensor, patch_size: int | tuple[int, int], overlap: 
     patch_size = _as_pair(patch_size)
     overlap = _as_pair(overlap)
     img_size = image.shape[-2:]
-    
+
     # Ensure image is a tensor
     if not isinstance(image, torch.Tensor):
         raise TypeError("Image should be a torch.Tensor")
 
     stride = (patch_size[0] - overlap[0], patch_size[1] - overlap[1])
-    
+
     # Ensure the patch size and overlap are valid
     assert (stride[0] > 0) * (stride[1] > 0), "Patch size must be greater than overlap"
-    
+
     # Zero-pad the image if necessary to make it divisible by the patch extraction
     __, to_pad = to_compatible_img_size(img_size, patch_size, overlap)
     if to_pad[0] > 0 or to_pad[1] > 0:
         image = F.pad(image, (0, to_pad[1], 0, to_pad[0]))
-        
+
     patches = image.unfold(2, patch_size[0], stride[0]).unfold(
         3, patch_size[1], stride[1]
     )
     return patches.contiguous()
 
 
-def patches_to_image(patches: Tensor,  overlap: int | tuple[int, int], img_size: int | tuple[int, int] = None):
+def patches_to_image(
+    patches: Tensor,
+    overlap: int | tuple[int, int],
+    img_size: int | tuple[int, int] = None,
+):
     """
     Reconstruct a batch of images from patches.
     This function is the reverse of  `patches_to_image`
@@ -527,8 +540,8 @@ def patches_to_image(patches: Tensor,  overlap: int | tuple[int, int], img_size:
     )
     if img_size is not None:
         img_size = _as_pair(img_size)
-        output = output[:, :, :img_size[0], :img_size[1]]
-    
+        output = output[:, :, : img_size[0], : img_size[1]]
+
     return output.contiguous()
 
 
@@ -562,7 +575,9 @@ def _as_pair(input: tuple | int) -> tuple:
         if len(input) >= 2:
             return input[-2:]
         else:
-            raise ValueError("Input must be an int or a tuple of length greater than 2.")
+            raise ValueError(
+                "Input must be an int or a tuple of length greater than 2."
+            )
     else:
         raise TypeError("Input must be an int or a tuple of length greater than 2.")
 
@@ -631,4 +646,3 @@ def compute_patch_info(
         "max_size": max_size,
     }
     return patch_info
-
