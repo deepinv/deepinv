@@ -42,6 +42,9 @@ How to Contribute
 
 Want to solve an issue or contribute something new to DeepInverse? Never contributed to DeepInverse before? Here's a step-by-step with the basics!
 
+.. tip::
+  Need help? Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_, open an `issue <https://github.com/deepinv/deepinv/issues>`_, or find a `maintainer <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
+
 1. Fork DeepInverse and write your code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -53,7 +56,7 @@ You're ready to move on!
 
 .. note::
 
-  By default, GitHub allows maintainers to edit your PR to help you directly.
+  Our maintainers will then try to assist you by working directly on your PR. Do not hesitate to ask questions or to leave comments directly on the Pull Request page. 
 
 2. Write tests
 ~~~~~~~~~~~~~~
@@ -92,7 +95,7 @@ How to write and run tests:
 Writing good documentation is also crucial for helping other users use your code. This is how:
 
 1. Write good quality `docstrings <https://realpython.com/how-to-write-docstrings-in-python/>`_ for each new class, method or function. Have a look at any other class or method in DeepInverse to see examples! Please follow our :ref:`docstring guidelines below <docstring_guidelines>`.
-2. If you wrote a new class or function, add it to the lists in the `API reference <https://deepinv.github.io/deepinv/API.html>`_ and `User Guide <https://deepinv.github.io/deepinv/user_guide.html>`_.
+2. If you wrote a new class or function, add it to the lists in the `API reference <https://deepinv.github.io/deepinv/API.html>`_ and `User Guide <https://deepinv.github.io/deepinv/user_guide.html>`_. For API, add to the appropriate `.rst` file `here <https://github.com/deepinv/deepinv/tree/main/docs/source/api>`__. For User Guide, `here <https://github.com/deepinv/deepinv/tree/main/docs/source/user_guide>`__.
 3. Want to share more about your new feature? Consider writing an `example <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ in `examples/`!
 4. Check that your documentation is correct by building the docs locally. First `cd docs`, then we use `sphinx <https://www.sphinx-doc.org/en/master/usage/installation.html>`_ to build:
   
@@ -119,8 +122,6 @@ Writing good documentation is also crucial for helping other users use your code
 .. tip::
   If the `Build Docs` GitHub action has run successfully, you can download the documentation as a zip file from the `Actions page <https://github.com/deepinv/deepinv/actions/workflows/documentation.yml>`_. Look for the workflow run corresponding to your pull request.
 
-.. tip::
-  **Run into a problem**? Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_ and we'll help you out.
 
 4. Code quality
 ~~~~~~~~~~~~~~~
@@ -141,13 +142,15 @@ You're done! A maintainer will see your PR and will interact with you. They may 
 
   A maintainer may directly edit your code if appropriate. Make sure to `git pull` to integrate these changes locally.
 
-Finding Help
+Finding help
 ~~~~~~~~~~~~
 
-Don't know where to start or got any questions or suggestions?
-Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_, open an `issue <https://github.com/deepinv/deepinv/issues>`_, or
-send an email to a `maintainer <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_ and we'll help you out.
+.. tip::
 
+  **Run into a problem, don't know where to start, or got a question/suggestion?**
+  
+  Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_, open an `issue <https://github.com/deepinv/deepinv/issues>`_, or 
+  send an email to a `maintainer <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_ and we'll help you out.
 
 .. _docstring_guidelines:
 
