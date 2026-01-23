@@ -14,9 +14,15 @@ UNFOLDED_ALGO = [
     "FISTA",
 ]
 
+UNFOLDED_ALGO_PARAMS = [
+    (algo, anderson)
+    for algo in UNFOLDED_ALGO
+    for anderson in ([True, False] if algo in ["PGD", "HQS", "GD"] else [False])
+]
 
-@pytest.mark.parametrize("unfolded_algo", UNFOLDED_ALGO)
-def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
+
+@pytest.mark.parametrize("unfolded_algo,and_acc", UNFOLDED_ALGO_PARAMS)
+def test_unfolded(unfolded_algo, and_acc, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
 
     # Select the data fidelity term
@@ -73,6 +79,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
         data_fidelity=data_fidelity,
         max_iter=max_iter,
         prior=prior,
+        anderson_acceleration=and_acc,
     )
     model.to(device)
 
