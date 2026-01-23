@@ -1,7 +1,6 @@
 import torch
 import math
 
-
 # Dictionary for Standard aberrations
 # See: https://en.wikipedia.org/wiki/Zernike_polynomials#Zernike_polynomials
 _NAMES = {
