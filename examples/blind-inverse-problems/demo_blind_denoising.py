@@ -69,6 +69,7 @@ dinv.utils.plot_inset(
     extract_loc=(0.7, 0.7),
     inset_size=0.5,
     figsize=(len(imgs) * 1.5, 2.5),
+    fontsize=8,
 )
 
 # %%
