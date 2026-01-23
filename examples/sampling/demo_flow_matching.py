@@ -49,7 +49,7 @@ from deepinv.sampling import (
 )
 import numpy as np
 from torchvision import datasets, transforms
-from deepinv.models import MMSE, NCSNpp
+from deepinv.models import MMSE
 import os
 import shutil
 from pathlib import Path

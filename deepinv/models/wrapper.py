@@ -120,7 +120,6 @@ class ScoreModelWrapper(Denoiser):
         :param torch.Size target_size: target size to broadcast the output to. Default is `None`.
         :returns: (:class:`torch.Tensor`) schedule values at time steps `t`, of shape that is broadcastable to `target_size` if `target_size` is provided.
         """
-
         if isinstance(schedule, torch.Tensor):
             time_idx = (t * (self.n_timesteps - 1) / self.T).long()
             val = schedule[time_idx]
@@ -161,13 +160,12 @@ class ScoreModelWrapper(Denoiser):
 
     def time_from_sigma(self, sigma: torch.Tensor | float) -> torch.Tensor:
         r"""
-        Computes the time step `t` corresponding to a given noise level `sigma`.
+        Computes the time step `t \in [0,T]` corresponding to a given noise level `sigma`.
 
         If an analytic inverse of the `sigma_schedule` is provided, it is used.
         Otherwise, a numeric inversion is performed (nearest neighbor for discrete schedules, binary search for continuous schedules).
 
         :param torch.Tensor | float sigma: noise level(s), either a scalar or a tensor of shape `[B]`.
-
         """
 
         sigma = torch.as_tensor(sigma)
@@ -181,10 +179,12 @@ class ScoreModelWrapper(Denoiser):
             sigmas = self.sigma_schedule  # [T]
             sigma = sigma.to(device=sigmas.device, dtype=sigmas.dtype)
             if sigma.dim() == 0:
-                return torch.argmin((sigmas - sigma).abs())
+                time_idx = torch.argmin((sigmas - sigma).abs())
+                return time_idx.float() * self.T / (self.n_timesteps - 1)
             else:
                 diffs = (sigmas[None, :] - sigma[:, None]).abs()  # [B, T]
-                return torch.argmin(diffs, dim=1)
+                time_idx = torch.argmin(diffs, dim=1)
+                return time_idx.float() * self.T / (self.n_timesteps - 1)
         else:
             # 3) Fallback: numeric inversion for continuous schedules (binary search).
             t_low = torch.zeros_like(sigma)
@@ -232,9 +232,11 @@ class ScoreModelWrapper(Denoiser):
             t, batch_size=x.size(), ndim=1, device=device, dtype=dtype
         )
         if self.takes_integer_time:
-            t = (t * (self.n_timesteps - 1)).long()
+            t_model = (t * (self.n_timesteps - 1)).long()
+        else:
+            t_model = t
         # UNet forward
-        pred = self.model(x, t, *args, return_dict=False, **kwargs)
+        pred = self.model(x, t_model, *args, return_dict=False, **kwargs)
         if isinstance(pred, (list, tuple)):
             pred = pred[0]
         pred = pred.to(dtype)
@@ -280,7 +282,7 @@ class ScoreModelWrapper(Denoiser):
             device=device,
             dtype=dtype,
         )
-        if not self.input_in_minus_one_one and self._was_trained_on_minus_one_one:
+        if not input_in_minus_one_one and self._was_trained_on_minus_one_one:
             sigma = sigma * 2  # since image is in [-1, 1] range in the model
 
         timestep = self.time_from_sigma(sigma.squeeze())
@@ -292,9 +294,11 @@ class ScoreModelWrapper(Denoiser):
         else:
             x = x * scale
         if self.takes_integer_time:
-            timestep = (timestep * (self.n_timesteps - 1)).long()
+            t_model = (timestep * (self.n_timesteps - 1)).long()
+        else:
+            t_model = timestep
         # UNet forward
-        pred = self.model(x, timestep, *args, **kwargs)
+        pred = self.model(x, t_model, *args, **kwargs)
         if isinstance(pred, (list, tuple)):
             pred = pred[0]  # take the first output if multiple outputs are returned
         pred = pred.to(dtype)
@@ -384,7 +388,6 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         prediction_type = getattr(scheduler.config, "prediction_type", "epsilon")
 
         if isinstance(scheduler, (PNDMScheduler, DDPMScheduler, DDIMScheduler)):
-
             if hasattr(scheduler, "alphas_cumprod"):
                 alphas_cumprod = scheduler.alphas_cumprod
                 scale_schedule = torch.sqrt(alphas_cumprod)
