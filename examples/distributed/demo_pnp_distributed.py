@@ -38,7 +38,7 @@ where both the stacked physics operators and the denoiser are distributed across
 - Distribute multiple physics operators across processes/devices
 - Distribute denoiser with image tiling
 - PnP algorithm with distributed components
-- :math:`\ell_2` data fidelity gradient computed using :math:`deepinv.distributed.DistributedDataFidelity.grad`
+- :math:`\ell_2` data fidelity gradient computed using :func:`deepinv.distributed.DistributedDataFidelity.grad`
 
 **Key Steps:**
 
@@ -47,7 +47,7 @@ where both the stacked physics operators and the denoiser are distributed across
 3. Distribute physics with :func:`deepinv.distributed.distribute`
 4. Distribute denoiser with tiling configuration
 5. Create PnP prior and :math:`\ell_2` data fidelity
-6. Run PnP iterations using :math:`deepinv.distributed.DistributedDataFidelity.grad` for gradient computation
+6. Run PnP iterations using :func:`deepinv.distributed.DistributedDataFidelity.grad` for gradient computation
 7. Visualize results and track convergence
 
 Import modules and define noisy image generation

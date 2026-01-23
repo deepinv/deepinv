@@ -173,7 +173,17 @@ The :func:`deepinv.distributed.distribute()` function:
 Distributed Physics
 -------------------
 
-Physics operators can be distributed across processes to parallelize forward and adjoint operations.
+Large-scale physics operators can sometimes be separated into blocks:
+
+.. math::
+       A(x) = \begin{bmatrix} A_1(x) \\  \vdots \\ A_N(x) \end{bmatrix}
+
+for sub-operators :math:`A_i`.
+
+The distributed framework allows you to compute each sub-operator in parallel to speed up the computation of the global forward or adjoint operator.
+
+.. note::
+    Check out the :ref:`distributed physics example <sphx_glr_auto_examples_distributed_demo_physics_distributed.py>` for a complete demo.
 
 Basic Usage
 ~~~~~~~~~~~
@@ -256,6 +266,9 @@ Distributed Denoisers
 ---------------------
 
 Denoisers can be distributed using **spatial tiling** to handle large images.
+
+.. note::
+    Check out the :ref:`distributed denoiser example <sphx_glr_auto_examples_distributed_demo_denoiser_distributed.py>` for a complete demo.
 
 Basic Usage
 ~~~~~~~~~~~
@@ -478,7 +491,7 @@ Troubleshooting
 
 - This is normal for tiling strategies due to boundary blending
 - Differences are typically very small
-- The distributed implementation of ``A_dagger``and ``compute_norm``in ``LinearDistributedPhysics`` uses approximations that lead to differences compared to the non-distributed versions.
+- The distributed implementation of ``A_dagger`` and ``compute_norm`` in ``LinearDistributedPhysics`` uses approximations that lead to differences compared to the non-distributed versions.
 
 
 See Also
