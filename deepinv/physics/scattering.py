@@ -28,10 +28,8 @@ class Scattering(Physics):
 
     .. math::
 
-        \begin{align*}
-            u_i &= g * \left( x \circ (u_i+v_i) \right) \\
-            y_i &= G_s \left( x \circ (u_i+v_i) \right)
-        \end{align*}
+        u_i &= g * \left( x \circ (u_i+v_i) \right) \\
+        y_i &= G_s \left( x \circ (u_i+v_i) \right)
 
     where :math:`g(\mathbf{r}) = k_b^2 \frac{i}{4} H_0^1(k_b\|\mathbf{r}\|)` is Green's function in 2D (normalized by :math:`k_b^2`),
     :math:`y \in \mathbb{C}^{R}` are the measurements at the receivers for the ith transmitter,

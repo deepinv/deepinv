@@ -144,7 +144,7 @@ plt.plot(
     [-0.5, 0.5, 0.5, -0.5, -0.5],
     [-0.5, -0.5, 0.5, 0.5, -0.5],
     c="k",
-    label="box object is located",
+    label="box where object is located",
 )
 plt.legend()
 plt.title("First transmitter and associated receiver positions")
