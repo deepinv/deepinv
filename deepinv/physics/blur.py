@@ -444,7 +444,6 @@ class Blur(LinearPhysics):
             raise ValueError(f"Expected Tensor dimension to be 4 or 5, is {y.dim()}")
 
 
-
 class BlurFFT(DecomposablePhysics):
     """
 
