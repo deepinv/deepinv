@@ -9,12 +9,14 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
-
-- Add Cosine Similarity to the metrics (:gh:`944` by `Avithal Lautman`_)
+- Add :class:`deepinv.loss.metric.CosineSimilarity` to the metrics (:gh:`944` by `Avithal Lautman`_)
 
 Changed
 ^^^^^^^
-- - (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.  
+- (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.
+- Refactor folder structure of least-squares solvers (:gh:`1011` by `Julian Tachella`_)
+- Removed `eps` parameter from :func:`deepinv.optim.linear.conjugate_gradient` (:gh:`1011` by `Julian Tachella`_)
+
 
 Fixed
 ^^^^^
@@ -40,6 +42,7 @@ Changed
 - (Breaking) Change :class:`deepinv.physics.TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
 - Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
 - (Breaking) `Tomography` physics uses the true adjoint by default. `Tomography` and `TomographyWithAstra` implement the pseudo-inverse as the solution of a least-squares problem, with the option to use `fbp`. (:gh:`930` by `Romain Vo`_)
+- :class:`deepinv.models.UNet` now accepts a new (optional) argument `channels_per_scale` to control the number of feature maps at each stage. It now also supports arbitrary number of scales and bias-free batchnorm is supported for 3D variant; also clean-up code (:gh:`976` by `Vicky De Ridder`_)
 - Add a check in `deepinv.datasets.FMD` to avoid unnecessary downloads (:gh:`962` by `Jérémy Scanvic`_)
 - Trainer checkpoint loading verbose (:gh:`982` by `Andrew Wang`_)
 
@@ -50,6 +53,7 @@ Fixed
 - Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
 - `generate_dataset` received a general refactor, now supports PIL image datasets and doesn't break when validation dataset returns `TensorList` (:gh:`948` by `Vicky De Ridder`_)
 - test_physics.test_tomography correctly implements the pseudo-inverse test (:gh: `930` by `Romain Vo`_)
+- :class:`deepinv.physics.Tomography` now correctly handles multi-channel data (:gh:`960` by `Julian Tachella`_)
 
 
 
@@ -151,7 +155,7 @@ Fixed
 - NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
 - Fix the condition for break in compute_norm (:gh:`699` by `Quentin Barthélemy`_)
 - Python 3.9 backward compatibility and zip_strict (:gh:`707` by `Andrew Wang`_)
-- Fix numerical instability of :func:`deepinv.optim.utils.bicgstab` solver (:gh:`739` by `Minh Hai Nguyen`_)
+- Fix numerical instability of :func:`deepinv.optim.linear.bicgstab` solver (:gh:`739` by `Minh Hai Nguyen`_)
 
 
 v0.3.3
@@ -168,7 +172,7 @@ New Features
 Changed
 ^^^^^^^
 - Rename the normalizing function `deepinv.utils.rescale_img` to :func:`deepinv.utils.normalize_signal` (:gh:`641` by `Jérémy Scanvic`_)
-- Changed default linear solver from `CG` to :func:`deepinv.optim.utils.lsqr` (:gh:`658` by `Julian Tachella`_)
+- Changed default linear solver from `CG` to :func:`deepinv.optim.linear.lsqr` (:gh:`658` by `Julian Tachella`_)
 - Added positive clipping by default and gain minimum in :class:`deepinv.physics.PoissonGaussianNoise` (:gh:`658` by `Julian Tachella`_).
 
 Fixed

@@ -85,14 +85,14 @@ denoisers = [
     "PyWavelets",
     "ptwt",
     "FrEIA",
-    "pyiqa",
+    "pyiqa>=0.1.13",
     "kornia",
     "torchkbnufft",
     "libcpab",
     "sigpy",
     "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
     "spyrit>=3.0.0; platform_system=='Linux'",
-    "diffusers", 
+    "diffusers",
     "transformers",
     "numba>=0.60.0",
 ]
@@ -144,7 +144,7 @@ exclude_also = [
 target-version = "py39"
 
 [tool.ruff.lint]
-select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251", "N805", "E402"]
+select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251", "N805", "E402", "F821", "F822", "F823"]
 
 [tool.ruff.lint.per-file-ignores]
 # NOTE: Rule F401 is ruff's unused imports rule.
