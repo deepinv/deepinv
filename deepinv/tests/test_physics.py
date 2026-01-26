@@ -76,7 +76,8 @@ OPERATORS = [
     "radio",
     "radio_weighted",
     "structured_random",
-    "cassi",
+    "cassi-ss",
+    "cassi-sd",
     "ptychography_linear",
     "2DParallelBeamCT",
     "2DFanBeamCT",
@@ -160,9 +161,18 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         p = dinv.physics.Decolorize(device=device)
         norm = 0.4468
         params = ["srf"]
-    elif name == "cassi":
+    elif name == "cassi-ss":
         img_size = (7, 37, 31) if imsize is None else imsize
-        p = dinv.physics.CompressiveSpectralImaging(img_size, device=device, rng=rng)
+        p = dinv.physics.CompressiveSpectralImaging(
+            img_size, device=device, rng=rng, mode="ss"
+        )
+        norm = 1 / img_size[0]
+        params = ["mask"]
+    elif name == "cassi-sd":
+        img_size = (7, 37, 31) if imsize is None else imsize
+        p = dinv.physics.CompressiveSpectralImaging(
+            img_size, device=device, rng=rng, mode="sd"
+        )
         norm = 1 / img_size[0]
         params = ["mask"]
     elif name == "inpainting":
