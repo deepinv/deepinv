@@ -15,6 +15,8 @@ from deepinv.physics.functional import (
     conv3d_fft,
     conv_transpose3d_fft,
     imresize_matlab,
+    conv2d_fft,
+    conv_transpose2d_fft,
 )
 
 
@@ -715,6 +717,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         filters: Tensor = None,
         patch_size: int | tuple[int, int] = None,
         overlap: int | tuple[int, int] = None,
+        use_fft: bool = True,
         device: torch.device | str = "cpu",
         **kwargs,
     ):
@@ -724,6 +727,12 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         self.overlap = overlap
         self._dynamic_img_size = None  # To track image size changes
         # self.update_parameters(filters, **kwargs)
+        self.use_fft = use_fft
+        self.conv2d_fn = conv2d if not use_fft else conv2d_fft
+        self.conv2d_adjoint_fn = (
+            conv_transpose2d if not use_fft else conv_transpose2d_fft
+        )
+
         self.register_buffer("filters", filters)
         self.register_buffer("multipliers", None)
         self.to(device)
@@ -739,7 +748,9 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         self.update_parameters(
             filters, img_size=x.shape[-2:], device=x.device, **kwargs
         )
-        return tiled_product_conv2d(x, self.multipliers, self.filters, self.overlap)
+        return tiled_product_conv2d(
+            self.conv2d_fn, x, self.multipliers, self.filters, self.overlap
+        )
 
     def A_adjoint(
         self,
@@ -766,7 +777,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         )
 
         return tiled_product_conv2d_adjoint(
-            y, self.multipliers, self.filters, self.overlap
+            self.conv2d_adjoint_fn, y, self.multipliers, self.filters, self.overlap
         )
 
     def update_parameters(

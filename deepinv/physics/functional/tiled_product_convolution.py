@@ -4,18 +4,12 @@ from dataclasses import dataclass
 from typing import Literal
 
 from torch import Tensor
-
-from deepinv.physics.functional import (
-    conv2d,
-    conv_transpose2d,
-    conv2d_fft,
-    conv_transpose2d_fft,
-)
 from deepinv.physics.generator.blur import bump_function
 import torch
 import torch.nn.functional as F
 import math
 from einops import rearrange
+from typing import Callable
 
 
 # =============================================================================
@@ -198,6 +192,7 @@ from deepinv.physics.functional.convolution import _prepare_filter_for_grouped
 
 
 def tiled_product_conv2d(
+    conv2d_fn: Callable,
     x: Tensor,
     w: Tensor,
     h: Tensor,
@@ -258,7 +253,7 @@ def tiled_product_conv2d(
     B, C = patches.shape[:2]
     h = _prepare_filter_for_grouped(h, B=B, C=C)
 
-    result = conv2d_fft(
+    result = conv2d_fn(
         rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
         rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
         padding="valid",
@@ -284,6 +279,7 @@ def tiled_product_conv2d(
 
 
 def tiled_product_conv2d_adjoint(
+    conv2d_adjoint_fn: Callable,
     y: Tensor,
     w: Tensor,
     h: Tensor,
@@ -342,7 +338,7 @@ def tiled_product_conv2d_adjoint(
     B, C = patches.shape[:2]
     h = _prepare_filter_for_grouped(h, B=B, C=C)
 
-    result = conv_transpose2d_fft(
+    result = conv2d_adjoint_fn(
         rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
         rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
         padding="valid",

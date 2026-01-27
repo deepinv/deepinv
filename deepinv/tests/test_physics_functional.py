@@ -329,8 +329,9 @@ def test_tiled_product_convolution2d_adjointness(
 @pytest.mark.parametrize("patch_size", [(8, 8), (9, 9), (8, 9)])
 @pytest.mark.parametrize("overlap", [(4, 4), (5, 5), (4, 5)])
 @pytest.mark.parametrize("psf_size", [(5, 5), (6, 6), (5, 6)])
+@pytest.mark.parametrize("use_fft", [False, True])
 def test_tiled_product_physics_adjointness(
-    batch_size, n_channels, img_size, patch_size, psf_size, overlap
+    batch_size, n_channels, img_size, patch_size, psf_size, overlap, use_fft
 ):
     device = "cuda:0"
     x = torch.randn(batch_size, n_channels, *img_size).to(device)
@@ -351,7 +352,11 @@ def test_tiled_product_physics_adjointness(
     h = torch.rand(1, n_channels, n_filters, *psf_size).to(device)
 
     physics = TiledSpaceVaryingBlur(
-        filters=h, patch_size=patch_size, overlap=overlap, device=device
+        filters=h,
+        patch_size=patch_size,
+        overlap=overlap,
+        use_fft=use_fft,
+        device=device,
     )
 
     Ax = physics.A(x)
