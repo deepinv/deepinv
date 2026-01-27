@@ -183,10 +183,6 @@ class FixedPoint(nn.Module):
         :param int it: current iteration.
         :param dict X_prev: previous iterate.
         :param dict TX_prev: output of the fixed-point operator evaluated at X_prev
-        :param torch.Tensor x_hist: history of last ``history-size`` iterates.
-        :param torch.Tensor T_hist: history of T evaluations at the last ``history-size``, where T is the fixed-point operator.
-        :param torch.Tensor H: H in the Anderson acceleration linear system Hp = q .
-        :param torch.Tensor q: q in the Anderson acceleration linear system Hp = q .
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
