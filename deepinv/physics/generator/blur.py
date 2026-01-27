@@ -1105,3 +1105,55 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         List of Zernike polynomials used in the decomposition, with the corresponding aberration if available.
         """
         return self.generator_ill.zernike_polynomials
+
+
+from deepinv.physics.functional import TiledPConv2dConfig, to_compatible_img_size
+
+
+class TiledBlurGenerator(PSFGenerator):
+    r"""
+    Generates parameters of :class:`deepinv.physics.TiledSpaceVaryingBlur` operator.
+    """
+
+    def __init__(
+        self,
+        psf_generator: PSFGenerator,
+        patch_size: int | tuple[int, int],
+        overlap: int | tuple[int, int] = 0,
+        rng: torch.Generator = None,
+        device: str = "cpu",
+        **kwargs,
+    ):
+        super().__init__(rng=rng, device=device, **kwargs)
+        self.psf_generator = psf_generator
+        self.psf_size = psf_generator.psf_size
+
+        self.patch_size = patch_size
+        self.overlap = overlap
+        self.config = TiledPConv2dConfig(
+            patch_size=patch_size, overlap=overlap, psf_size=self.psf_size
+        )
+
+    def step(
+        self,
+        batch_size: int = 1,
+        img_size: int | tuple[int, int] | None = None,
+        seed: int = None,
+        **kwargs,
+    ) -> dict:
+        compatile_size, _ = to_compatible_img_size(
+            img_size, self.patch_size, self.overlap
+        )
+        num_patches = self.config.compute_num_patches(compatile_size)
+        num_patches = num_patches[0] * num_patches[1]
+
+        params = self.psf_generator.step(
+            batch_size=batch_size * num_patches, seed=seed, **kwargs
+        )
+        psf = (
+            params["filter"]
+            .view(batch_size, num_patches, -1, *self.psf_size)
+            .transpose(1, 2)
+        )  # B x C x num_patches x psf_size x psf_size
+
+        return dict(filters=psf)

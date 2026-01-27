@@ -337,42 +337,38 @@ plot(
 #
 
 from deepinv.physics.blur import TiledSpaceVaryingBlur
-from deepinv.physics.functional.tiled_product_convolution import (
-    to_compatible_img_size,
-    TiledPConv2dConfig,
+from deepinv.physics.generator import TiledBlurGenerator
+
+img_size = (1024, 1024)
+patch_size = (256, 256)
+overlap = (128, 128)
+
+psf_generator = DiffractionBlurGenerator(
+    (17, 17),
+    device=device,
+    dtype=dtype,
+)
+generator = TiledBlurGenerator(
+    psf_generator=psf_generator, patch_size=patch_size, overlap=overlap, device=device
 )
 
-img_size = (256, 256)
-patch_size = (64, 64)
-overlap = (32, 32)
 
-config = TiledPConv2dConfig(patch_size=patch_size, overlap=overlap, psf_size=psf_size)
-
-n_filters = config.compute_num_patches(
-    to_compatible_img_size(img_size, patch_size, overlap)[0]
-)
-n_filters = n_filters[0] * n_filters[1]
-
-psf_generator = MotionBlurGenerator((17, 17), device=device, dtype=dtype)
-filters = psf_generator.step(batch_size=n_filters)["filter"]
+filters = generator.step(batch_size=batch_size, img_size=img_size)["filters"]
 
 physics = TiledSpaceVaryingBlur(
-    filters=filters.view(1, 1, n_filters, 17, 17),
+    filters=filters,
     patch_size=patch_size,
     overlap=overlap,
     device=device,
-    use_fft=False,
+    use_fft=True,
 )
 
-dirac_comb = dinv.utils.dirac_comb((1, 1) + img_size, step=15, device=device)
+dirac_comb = dinv.utils.dirac_comb((1, 1) + img_size, step=10, device=device)
 
 y = physics(dirac_comb)
 
-filters = filters.reshape(8, 8, 17, 17)
-plot([filters[:, i].unsqueeze(1) for i in range(8)], suptitle="Tiled PSFs", max_imgs=8)
-
 plot(
-    y.abs() ** 0.5,
+    y.abs() ** 0.75,
     suptitle="Impulse responses of the tiled space varying blur",
     figsize=(10, 10),
 )
@@ -388,3 +384,5 @@ plot(
     rescale_mode="clip",
     figsize=(5, 5),
 )
+
+# %%

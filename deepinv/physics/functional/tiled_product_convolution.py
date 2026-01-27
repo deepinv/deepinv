@@ -128,8 +128,6 @@ class TiledPConv2dConfig:
 # =============================================================================
 # PATCH HANDLER CLASS
 # =============================================================================
-
-
 class TiledPConv2dHandler:
     """Handler for patch-based image operations.
 

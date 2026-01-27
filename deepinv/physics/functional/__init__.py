@@ -16,6 +16,8 @@ from .tiled_product_convolution import (
     tiled_product_conv2d,
     tiled_product_conv2d_adjoint,
     generate_tiled_multipliers,
+    TiledPConv2dConfig,
+    to_compatible_img_size,
 )
 
 from .multiplier import (
