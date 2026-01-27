@@ -198,7 +198,6 @@ class FixedPoint(nn.Module):
         m = min(
             it + 1, self.anderson_acceleration_config.history_size
         )  # effective history length
-        idx_m = idx if idx < m else (m - 1)
         if self.anderson_acceleration_config.full_backprop:
             # Full gradient through history
             # avoid in-place modification, which messes with autograd
@@ -206,8 +205,8 @@ class FixedPoint(nn.Module):
             x_hist = self.x_hist.clone()
             H = self.H.clone()
             # update history and buffers
-            x_hist[:, idx_m] = x_prev.reshape(b, -1)
-            T_hist[:, idx_m] = Tx_prev.reshape(b, -1)
+            x_hist[:, idx] = x_prev.reshape(b, -1)
+            T_hist[:, idx] = Tx_prev.reshape(b, -1)
             self.x_hist = x_hist
             self.T_hist = T_hist
             # use the m first elements of the history
@@ -217,8 +216,8 @@ class FixedPoint(nn.Module):
             # No gradient through history, only through current iterate
             # update history and buffers
             H = self.H.clone().detach()
-            self.x_hist[:, idx_m] = x_prev.reshape(b, -1).detach()
-            self.T_hist[:, idx_m] = Tx_prev.reshape(b, -1).detach()
+            self.x_hist[:, idx] = x_prev.reshape(b, -1).detach()
+            self.T_hist[:, idx] = Tx_prev.reshape(b, -1).detach()
             # old values : don't use grad
             X_old = self.x_hist[:, :m].detach()
             T_old = self.T_hist[:, :m].detach()
@@ -227,9 +226,9 @@ class FixedPoint(nn.Module):
             t_cur = Tx_prev.reshape(b, 1, -1)
             # use masking to only have the current value updating the gradient
             mask = torch.zeros((1, m, 1), device=x_prev.device, dtype=x_prev.dtype)
-            mask[:, idx_m, :] = 1
-            X = X_old + mask * (x_cur - X_old[:, idx_m : idx_m + 1, :])
-            T = T_old + mask * (t_cur - T_old[:, idx_m : idx_m + 1, :])
+            mask[:, idx, :] = 1
+            X = X_old + mask * (x_cur - X_old[:, idx : idx + 1, :])
+            T = T_old + mask * (t_cur - T_old[:, idx : idx + 1, :])
 
         G = T - X  # (b,m,d)
         H[:, 1 : m + 1, 1 : m + 1] = (
