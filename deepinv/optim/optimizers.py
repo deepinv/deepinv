@@ -48,11 +48,13 @@ class AndersonAccelerationConfig:
     :param  int history_size: Number of past iterates used in Anderson acceleration.
     :param  float beta: Momentum coefficient in Anderson acceleration.
     :param  float eps: Regularization parameter for Anderson acceleration.
+    :param  bool full_backprop: Compute backpropagation through all iterates of Anderson acceleration instead of the last iterate only. Default: ``False``.
     """
 
-    history_size: float = 0.1
+    history_size: int = 10
     beta: float = 0.9
-    eps: int = 20
+    eps: float = 0.1
+    full_backprop: bool = False
 
 
 @dataclass
@@ -301,15 +303,13 @@ class BaseOptim(Reconstructor):
             self.DEQ_config = DEQConfig() if DEQ else None
         else:
             self.DEQ = DEQ is not None
-            self.DEQ_config = DEQConfig or DEQConfig()
+            self.DEQ_config = DEQ or DEQConfig()
         if isinstance(anderson_acceleration, bool):
             self.anderson_acceleration_config = (
                 AndersonAccelerationConfig() if anderson_acceleration else None
             )
         else:
-            self.anderson_acceleration_config = (
-                anderson_acceleration or AndersonAccelerationConfig()
-            )
+            self.anderson_acceleration_config = anderson_acceleration
 
         # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
         if prior is None:
@@ -773,7 +773,6 @@ class BaseOptim(Reconstructor):
                         self.DEQ_config.history_size_backward,
                         self.DEQ_config.beta_backward,
                         self.DEQ_config.eps_backward,
-                        self.DEQ_config.max_iter_backward,
                     )
                 else:
                     anderson_acceleration_config = None
@@ -783,7 +782,7 @@ class BaseOptim(Reconstructor):
                     init_iterate_fn=init_iterate_fn,
                     max_iter=self.DEQ_config.max_iter_backward,
                     check_conv_fn=self.check_conv_fn,
-                    anderson_acceleration_config=self.anderson_acceleration_config,
+                    anderson_acceleration_config=anderson_acceleration_config,
                 )
                 g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
                 return g
@@ -1421,6 +1420,7 @@ class GD(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
+            anderson_acceleration=anderson_acceleration,
             **kwargs,
         )
 
@@ -1561,6 +1561,7 @@ class HQS(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
+            anderson_acceleration=anderson_acceleration,
             **kwargs,
         )
 
@@ -1703,6 +1704,7 @@ class PGD(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
+            anderson_acceleration=anderson_acceleration,
             **kwargs,
         )
 
