@@ -48,6 +48,7 @@ class AndersonAccelerationConfig:
     :param  int history_size: Number of past iterates used in Anderson acceleration.
     :param  float beta: Momentum coefficient in Anderson acceleration.
     :param  float eps: Regularization parameter for Anderson acceleration.
+    :param  bool full_backprop: Compute backpropagation through all iterates of Anderson acceleration instead of the last iterate only. Default: ``False``.
     """
 
     history_size: int = 10
