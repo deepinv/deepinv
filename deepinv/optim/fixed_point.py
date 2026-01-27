@@ -245,7 +245,6 @@ class FixedPoint(nn.Module):
         beta = self.anderson_acceleration_config.beta
         x = beta * (p[:, None] @ T)[:, 0] + (1 - beta) * (p[:, None] @ X)[:, 0]
         x = x.view_as(x_prev)
-        x = x.view(x_prev.shape)
         self.H = H
         F = (
             self.iterator.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, *args)
