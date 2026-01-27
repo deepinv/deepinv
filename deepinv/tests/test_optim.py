@@ -325,29 +325,8 @@ def test_itoh_fidelity(device, mode):
     assert x_prox.shape == x.shape
 
 
-# Basic smoke test
-@pytest.mark.parametrize("name_algo", ["PGD", "GD", "HQS"])
-@pytest.mark.parametrize(
-    "anderson_acceleration",
-    [True, False, None, dinv.optim.AndersonAccelerationConfig(history_size=5)],
-)
-def test_enable_anderson(name_algo, anderson_acceleration):
-    optimalgo = getattr(dinv.optim, name_algo)(
-        anderson_acceleration=anderson_acceleration
-    )
-    if anderson_acceleration in [False, None]:
-        assert (
-            optimalgo.anderson_acceleration_config is None
-            or optimalgo.anderson_acceleration_config.history_size == 0
-        )
-    else:
-        assert optimalgo.anderson_acceleration_config.history_size > 0
-
-
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
-@pytest.mark.parametrize(
-    "name_algo",
-    [
+OPTIM_ALGO = [
         "GD",
         "PGD",
         "ADMM",
@@ -356,9 +335,17 @@ def test_enable_anderson(name_algo, anderson_acceleration):
         "FISTA",
         "MD",
         "PMD",
-    ],
+    ]
+OPTIM_ALGO_PARAMS = [
+    (algo, anderson)
+    for algo in OPTIM_ALGO
+    for anderson in ([True, False] if algo in ["PGD", "HQS", "GD"] else [False])
+]
+@pytest.mark.parametrize(
+    "name_algo, and_acc",
+    OPTIM_ALGO_PARAMS,
 )
-def test_optim_algo(name_algo, imsize, dummy_dataset, device):
+def test_optim_algo(name_algo, and_acc, imsize, dummy_dataset, device):
     for g_first in [True, False]:
         # Define two points
         x = torch.tensor([[[10], [10]]], dtype=torch.float64)
@@ -382,12 +369,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         rng = torch.Generator(x.device).manual_seed(123)
         lipschitz_const = physics.compute_sqnorm(x, tol=1e-4, rng=rng).item()
 
-        if (
-            name_algo == "CP"
-        ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
-            stepsize = 1.9 / lipschitz_const
-            sigma = 1.0
-        elif name_algo == "FISTA":
+        if name_algo == "FISTA":
             stepsize = 0.9 / lipschitz_const
             sigma = None
         else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
@@ -408,10 +390,12 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             g_param=sigma,
             early_stop=True,
             g_first=g_first,
+            anderson_acceleration=and_acc,
         )
 
         # Run the optimization algorithm
-        x = optimalgo(y, physics)
+        with torch.no_grad():
+            x = optimalgo(y, physics)
 
         assert optimalgo.has_converged
 
@@ -445,6 +429,8 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             # In this case, the algorithm converges to the minimum of :math:`f+\lambda g`.
             # The optimality condition is then :math:`0 \in  \nabla f(x)+ \lambda \partial g(x)`
             grad_deepinv = data_fidelity.grad(x, y, physics)
+            print(grad_deepinv)
+            print(-lambda_reg * subdiff)
             assert torch.allclose(
                 grad_deepinv, -lambda_reg * subdiff, atol=1e-8
             )  # Optimality condition
