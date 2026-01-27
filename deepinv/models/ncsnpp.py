@@ -27,11 +27,14 @@ class NCSNpp(Denoiser):
     The model also supports an additional class condition model.
     Each residual block has a self-attention mechanism with multiple channels per attention head.
     The noise level can be embedded using either Positional Embedding  or Fourier Embedding with optional augmentation linear layer.
+
     :param str model_type: Model type, which defines the architecture and embedding types. Options are:
+
         - `'ncsn'` for the NCSN++ architecture: the following arguments will be ignored and set to `embedding_type='fourier'`, `channel_mult_noise=2`, `encoder_type='residual'`, `decoder_type='standard'`, `resample_filter=[1,3,3,1]`.
         - `'ddpm'` for the  DDPM++ architecture: the following arguments will be ignored and set to `embedding_type='positional'`, `channel_mult_noise=1`, `encoder_type='standard'`, `decoder_type='standard'`, `resample_filter=[1,1]`.
-    
+
         Default is `'ncsn'`.
+
     :param str precondition_type: Input preconditioning for denoising. Can be 'edm' for the method from :footcite:t:`karras2022elucidating` or 'baseline_ve' for the original method from :footcite:t:`song2020score`. See Table 1 from :footcite:t:`karras2022elucidating` for more details.
     :param int img_resolution: Image spatial resolution at input/output.
     :param int in_channels: Number of color channels at input.
