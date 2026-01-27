@@ -5,11 +5,17 @@ from typing import Literal
 
 from torch import Tensor
 
-from deepinv.physics.functional import conv2d, conv_transpose2d
+from deepinv.physics.functional import (
+    conv2d,
+    conv_transpose2d,
+    conv2d_fft,
+    conv_transpose2d_fft,
+)
 from deepinv.physics.generator.blur import bump_function
 import torch
 import torch.nn.functional as F
 import math
+from einops import rearrange
 
 
 # =============================================================================
@@ -188,6 +194,8 @@ class TiledPConv2dHandler:
 # TILED PRODUCT CONVOLUTION OPERATIONS
 # =============================================================================
 
+from deepinv.physics.functional.convolution import _prepare_filter_for_grouped
+
 
 def tiled_product_conv2d(
     x: Tensor,
@@ -247,12 +255,17 @@ def tiled_product_conv2d(
     )
 
     # Apply convolution per patch
-    result = torch.stack(
-        [
-            conv2d(patches[:, :, k, ...], h[:, :, k, ...], padding="valid")
-            for k in range(h.size(2))
-        ],
-        dim=2,
+    B, C = patches.shape[:2]
+    h = _prepare_filter_for_grouped(h, B=B, C=C)
+
+    result = conv2d_fft(
+        rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
+        rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
+        padding="valid",
+    )
+
+    result = rearrange(
+        result, "(b k) c h w -> b c k h w", b=patches.size(0), k=h.size(2)
     )
 
     # Reconstruct image using handler with expanded overlap
@@ -326,13 +339,16 @@ def tiled_product_conv2d_adjoint(
 
     # Apply transpose convolution per patch
     patches = patches.flatten(2, 3)
-    result = torch.stack(
-        [
-            conv_transpose2d(patches[:, :, k, ...], h[:, :, k, ...], padding="valid")
-            for k in range(h.size(2))
-        ],
-        dim=2,
+    B, C = patches.shape[:2]
+    h = _prepare_filter_for_grouped(h, B=B, C=C)
+
+    result = conv_transpose2d_fft(
+        rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
+        rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
+        padding="valid",
     )
+
+    result = rearrange(result, "(b k) c h w -> b c k h w", b=B, k=h.size(2))
 
     # Remove margin and apply weights
     result = result[..., margin[0] : -margin[0], margin[1] : -margin[1]]

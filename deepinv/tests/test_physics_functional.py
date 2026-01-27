@@ -284,8 +284,8 @@ def test_dct_idct(device):
 
 
 from deepinv.physics.functional.tiled_product_convolution import (
-    tiled_product_convolution2d,
-    tiled_product_convolution2d_adjoint,
+    tiled_product_conv2d,
+    tiled_product_conv2d_adjoint,
     unity_partition_function_2d,
     crop_unity_partition_2d,
     to_compatible_img_size,
@@ -312,9 +312,51 @@ def test_tiled_product_convolution2d_adjointness(
     h = torch.rand(1, n_channels, w.size(2), *psf_size).to(device)
     h = h / h.sum(dim=(-1, -2), keepdim=True)
 
-    Ax = tiled_product_convolution2d(x, w, h, overlap)
+    Ax = tiled_product_conv2d(x, w, h, overlap)
     y = torch.randn_like(Ax)
-    Aty = tiled_product_convolution2d_adjoint(y, w, h, overlap)
+    Aty = tiled_product_conv2d_adjoint(y, w, h, overlap)
+
+    lhs = torch.sum(Ax * y)
+    rhs = torch.sum(Aty * x)
+    assert torch.abs(lhs - rhs) < 1e-4 * max(
+        torch.abs(lhs), torch.abs(rhs)
+    )  # relative tolerance
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("n_channels", [1, 3])
+@pytest.mark.parametrize("img_size", [(32, 32), (33, 33), (32, 33)])
+@pytest.mark.parametrize("patch_size", [(8, 8), (9, 9), (8, 9)])
+@pytest.mark.parametrize("overlap", [(4, 4), (5, 5), (4, 5)])
+@pytest.mark.parametrize("psf_size", [(5, 5), (6, 6), (5, 6)])
+def test_tiled_product_physics_adjointness(
+    batch_size, n_channels, img_size, patch_size, psf_size, overlap
+):
+    device = "cuda:0"
+    x = torch.randn(batch_size, n_channels, *img_size).to(device)
+    from deepinv.physics.blur import TiledSpaceVaryingBlur
+    from deepinv.physics.functional.tiled_product_convolution import (
+        TiledPConv2dConfig,
+        to_compatible_img_size,
+    )
+
+    config = TiledPConv2dConfig(
+        patch_size=patch_size, overlap=overlap, psf_size=psf_size
+    )
+    n_filters = config.compute_num_patches(
+        to_compatible_img_size(img_size, patch_size, overlap)[0]
+    )
+    n_filters = n_filters[0] * n_filters[1]
+
+    h = torch.rand(1, n_channels, n_filters, *psf_size).to(device)
+
+    physics = TiledSpaceVaryingBlur(
+        filters=h, patch_size=patch_size, overlap=overlap, device=device
+    )
+
+    Ax = physics.A(x)
+    y = torch.randn_like(Ax)
+    Aty = physics.A_adjoint(y)
 
     lhs = torch.sum(Ax * y)
     rhs = torch.sum(Aty * x)

@@ -703,11 +703,11 @@ class TiledSpaceVaryingBlur(LinearPhysics):
     :param torch.device, str device: Device this physics lives on. If filter or masks is updated, it will be cast to TiledSpaceVaryingBlur's device.
 
     |sep|
-    
+
     .. note::
-    
+
         This class only supports `'valid'` padding. If you need other padding options, please raise an issue.
-         
+
     """
 
     def __init__(
@@ -720,11 +720,12 @@ class TiledSpaceVaryingBlur(LinearPhysics):
     ):
         super().__init__(**kwargs)
 
-        self.multipliers = None
         self.patch_size = patch_size
         self.overlap = overlap
         self._dynamic_img_size = None  # To track image size changes
-        self.update_parameters(filters, **kwargs)
+        # self.update_parameters(filters, **kwargs)
+        self.register_buffer("filters", filters)
+        self.register_buffer("multipliers", None)
         self.to(device)
 
     def A(self, x: Tensor, filters=None, **kwargs) -> torch.Tensor:
@@ -733,9 +734,11 @@ class TiledSpaceVaryingBlur(LinearPhysics):
 
         :param torch.Tensor x: input image.
         :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(b, c, K, h, w)` where :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W` and `K` is the number of filters (number of tiles).
-        
+
         """
-        self.update_parameters(filters, img_size=x.shape[-2:], **kwargs)
+        self.update_parameters(
+            filters, img_size=x.shape[-2:], device=x.device, **kwargs
+        )
         return tiled_product_conv2d(x, self.multipliers, self.filters, self.overlap)
 
     def A_adjoint(
@@ -758,33 +761,59 @@ class TiledSpaceVaryingBlur(LinearPhysics):
             y.size(-2) + filters.size(-2) - 1,
             y.size(-1) + filters.size(-1) - 1,
         )
-        self.update_parameters(filters=filters, img_size=original_img_size, **kwargs)
+        self.update_parameters(
+            filters=filters, img_size=original_img_size, device=y.device, **kwargs
+        )
 
         return tiled_product_conv2d_adjoint(
             y, self.multipliers, self.filters, self.overlap
         )
 
     def update_parameters(
-        self, filters: Tensor = None, img_size: int | tuple[int, int] = None, **kwargs
+        self,
+        filters: Tensor = None,
+        img_size: int | tuple[int, int] = None,
+        device=None,
+        **kwargs,
     ):
         if filters is not None and isinstance(filters, Tensor):
-            self.register_buffer("filters", filters.to(self.device))
+            self.register_buffer("filters", filters.to(device))
+
+        from deepinv.physics.functional.tiled_product_convolution import (
+            to_compatible_img_size,
+        )
 
         # Only generate multipliers if the image size changed
         if (self.multipliers is None) or (
             img_size is not None and img_size != self._dynamic_img_size
         ):
             multipliers = generate_tiled_multipliers(
-                img_size,
+                to_compatible_img_size(img_size, self.patch_size, self.overlap)[0],
                 self.patch_size,
                 self.overlap,
                 self.filters.shape[-2:],
-                device=self.device,
+                device=device,
             )
             self.register_buffer("multipliers", multipliers)
             self._dynamic_img_size = img_size
 
         super().update_parameters(**kwargs)
+
+    @staticmethod
+    def num_filters(
+        img_size: tuple[int, int], patch_size: tuple[int, int], overlap: tuple[int, int]
+    ) -> int:
+        r"""
+        Computes the number of filters (tiles) required for a given image size, patch size and overlap.
+
+        :param tuple[int, int] img_size: Image size (H, W).
+        :param tuple[int, int] patch_size: Patch size (h, w).
+        :param tuple[int, int] overlap: Overlap size (oh, ow).
+        :return: Number of filters (tiles) required.
+        """
+        num_patches_h = (img_size[0] - overlap[0]) // (patch_size[0] - overlap[0])
+        num_patches_w = (img_size[1] - overlap[1]) // (patch_size[1] - overlap[1])
+        return num_patches_h * num_patches_w
 
 
 def gaussian_blur(

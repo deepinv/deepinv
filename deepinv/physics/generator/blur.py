@@ -3,7 +3,8 @@ import torch
 import numpy as np
 from math import ceil, floor
 from deepinv.physics.generator import PhysicsGenerator
-from deepinv.physics.functional import histogramdd, conv2d
+from deepinv.physics.functional.hist import histogramdd
+from deepinv.physics.functional.convolution import conv2d
 from deepinv.physics.functional.interp import ThinPlateSpline
 from deepinv.utils.decorators import _deprecated_alias
 from deepinv.transform.rotate import rotate_via_shear
