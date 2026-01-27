@@ -274,8 +274,8 @@ for i in range(4):
     )
 
 # %%
-# Space varying blurs
-# --------------------
+# Space varying blurs with Eigen PSFs by product convolution
+# ----------------------------------------------------------
 #
 # Space varying blurs are also available using :class:`deepinv.physics.SpaceVaryingBlur`
 #
@@ -314,6 +314,69 @@ plot(
     rescale_mode="clip",
     figsize=(5, 5),
 )
+
+image = dinv.utils.load_example(
+    "celeba_example.jpg", img_size=img_size, resize_mode="resize", device=device
+)
+blurry_image = physics(image)
+plot(
+    [image, blurry_image],
+    titles=["Original image", "Blurry image"],
+    rescale_mode="clip",
+    figsize=(5, 5),
+)
+
+
+# %%
+# Space varying blur with tiles
+# -----------------------------
+#
+# The forward operator :math:`A` is decomposed as a sum of local convolutions with different
+# kernels :math:`h_k` acting on different image regions defined by tiles of spatial size
+# `(patch_size[0], patch_size[1])` and overlapping with a stride of `(stride[0], stride[1])`.
+#
+
+from deepinv.physics.blur import TiledSpaceVaryingBlur
+from deepinv.physics.functional.tiled_product_convolution import (
+    to_compatible_img_size,
+    TiledPConv2dConfig,
+)
+
+img_size = (256, 256)
+patch_size = (64, 64)
+overlap = (32, 32)
+
+config = TiledPConv2dConfig(patch_size=patch_size, overlap=overlap, psf_size=psf_size)
+
+n_filters = config.compute_num_patches(
+    to_compatible_img_size(img_size, patch_size, overlap)[0]
+)
+n_filters = n_filters[0] * n_filters[1]
+
+psf_generator = MotionBlurGenerator((17, 17), device=device, dtype=dtype)
+filters = psf_generator.step(batch_size=n_filters)["filter"]
+
+physics = TiledSpaceVaryingBlur(
+    filters=filters.view(1, 1, n_filters, 17, 17),
+    patch_size=patch_size,
+    overlap=overlap,
+    device=device,
+    use_fft=False,
+)
+
+dirac_comb = dinv.utils.dirac_comb((1, 1) + img_size, step=15, device=device)
+
+y = physics(dirac_comb)
+
+filters = filters.reshape(8, 8, 17, 17)
+plot([filters[:, i].unsqueeze(1) for i in range(8)], suptitle="Tiled PSFs", max_imgs=8)
+
+plot(
+    y.abs() ** 0.5,
+    suptitle="Impulse responses of the tiled space varying blur",
+    figsize=(10, 10),
+)
+
 
 image = dinv.utils.load_example(
     "celeba_example.jpg", img_size=img_size, resize_mode="resize", device=device
