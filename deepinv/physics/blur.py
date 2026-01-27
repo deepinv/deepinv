@@ -699,12 +699,15 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         `B` is the batch size, `C` the number of channels, `K` the number of filters, `h` and `w` the filter height and width which should be smaller or equal than the image :math:`x` height and width respectively.
     :param torch.Tensor masks: Binary masks :math:`m_k`. Tensor of size `(B, C, K, H, W)` where
         `B` is the batch size, `C` the number of channels, `K` the number of masks, `H` and `W` the image :math:`x` height and width.
-    :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
-        If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
-        otherwise the blurred output has the same size as the image.
 
     :param torch.device, str device: Device this physics lives on. If filter or masks is updated, it will be cast to TiledSpaceVaryingBlur's device.
 
+    |sep|
+    
+    .. note::
+    
+        This class only supports `'valid'` padding. If you need other padding options, please raise an issue.
+         
     """
 
     def __init__(
@@ -712,7 +715,6 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         filters: Tensor = None,
         patch_size: int | tuple[int, int] = None,
         overlap: int | tuple[int, int] = None,
-        padding: str = "valid",
         device: torch.device | str = "cpu",
         **kwargs,
     ):
@@ -721,7 +723,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         self.multipliers = None
         self.patch_size = patch_size
         self.overlap = overlap
-        self.padding = padding
+        self._dynamic_img_size = None  # To track image size changes
         self.update_parameters(filters, **kwargs)
         self.to(device)
 
@@ -729,14 +731,9 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         r"""
         Applies the space varying blur operator to the input image.
 
-        It can receive new parameters  :math:`h_k` and padding to be used in the forward operator, and stored
-        as the current parameters.
-
-        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
-        :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
-            If `padding = 'valid'` the blurred output is smaller than the image (no padding),
-            otherwise the blurred output has the same size as the image.
-        :param str device: cpu or cuda
+        :param torch.Tensor x: input image.
+        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(b, c, K, h, w)` where :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W` and `K` is the number of filters (number of tiles).
+        
         """
         self.update_parameters(filters, img_size=x.shape[-2:], **kwargs)
         return tiled_product_conv2d(x, self.multipliers, self.filters, self.overlap)
@@ -750,13 +747,8 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         r"""
         Applies the adjoint operator.
 
-        It can receive new parameters :math:`h_k` and padding to be used in the forward operator, and stored
-        as the current parameters.
-
-        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
-        :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
-            If `padding = 'valid'` the blurred output is smaller than the image (no padding),
-            otherwise the blurred output has the same size as the image.
+        :param torch.Tensor y: blurred image :math:`y`. Tensor of size `(B, C, H', W')` where `B` is the batch size, `C` the number of channels, `H'` and `W'` the height and width of the blurred image.
+        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(b, c, K, h, w)` where :math:`b \in \{1, B\}` and :math:`c \in \{1 , C\}`.
         """
         if filters is None:
             filters = self.filters
@@ -780,7 +772,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
 
         # Only generate multipliers if the image size changed
         if (self.multipliers is None) or (
-            img_size is not None and img_size != self.img_size
+            img_size is not None and img_size != self._dynamic_img_size
         ):
             multipliers = generate_tiled_multipliers(
                 img_size,
@@ -790,7 +782,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
                 device=self.device,
             )
             self.register_buffer("multipliers", multipliers)
-            self.img_size = img_size
+            self._dynamic_img_size = img_size
 
         super().update_parameters(**kwargs)
 
