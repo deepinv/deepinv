@@ -71,7 +71,7 @@ def test_unfolded(unfolded_algo, and_acc, full_backprop, imsize, dummy_dataset, 
     ]  # define which parameters  are trainable
 
     anderson_acceleration_config = dinv.optim.AndersonAccelerationConfig(
-       full_backprop=full_backprop
+        full_backprop=full_backprop
     )
 
     # Define the unfolded trainable model.
@@ -122,6 +122,8 @@ def test_unfolded(unfolded_algo, and_acc, full_backprop, imsize, dummy_dataset, 
 
 
 DEQ_ALGO = ["PGD", "HQS"]
+
+
 @pytest.mark.parametrize("unfolded_algo", DEQ_ALGO)
 @pytest.mark.parametrize("and_acc", [False, True])
 @pytest.mark.parametrize("jac_free", [False, True])

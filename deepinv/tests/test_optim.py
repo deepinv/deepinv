@@ -327,20 +327,22 @@ def test_itoh_fidelity(device, mode):
 
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
 OPTIM_ALGO = [
-        "GD",
-        "PGD",
-        "ADMM",
-        "DRS",
-        "HQS",
-        "FISTA",
-        "MD",
-        "PMD",
-    ]
+    "GD",
+    "PGD",
+    "ADMM",
+    "DRS",
+    "HQS",
+    "FISTA",
+    "MD",
+    "PMD",
+]
 OPTIM_ALGO_PARAMS = [
     (algo, anderson)
     for algo in OPTIM_ALGO
     for anderson in ([True, False] if algo in ["PGD", "HQS", "GD"] else [False])
 ]
+
+
 @pytest.mark.parametrize(
     "name_algo, and_acc",
     OPTIM_ALGO_PARAMS,

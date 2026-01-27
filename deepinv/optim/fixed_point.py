@@ -196,14 +196,18 @@ class FixedPoint(nn.Module):
         Tx_prev = TX_prev["est"][0]  # current iterate Tx
         b = x_prev.shape[0]  # batchsize
 
-        idx = it % self.anderson_acceleration_config.history_size # "current" position in the ring buffer
-        m = min(it + 1, self.anderson_acceleration_config.history_size) # effective history length
+        idx = (
+            it % self.anderson_acceleration_config.history_size
+        )  # "current" position in the ring buffer
+        m = min(
+            it + 1, self.anderson_acceleration_config.history_size
+        )  # effective history length
         idx_m = idx if idx < m else (m - 1)
         if self.anderson_acceleration_config.full_backprop:
             # Full gradient through history
             # avoid in-place modification, which messes with autograd
             T_hist = self.T_hist.clone()
-            x_hist = self.x_hist.clone() 
+            x_hist = self.x_hist.clone()
             H = self.H.clone()
             # update history and buffers
             x_hist[:, idx_m] = x_prev.reshape(b, -1)
@@ -223,15 +227,15 @@ class FixedPoint(nn.Module):
             X_old = self.x_hist[:, :m].detach()
             T_old = self.T_hist[:, :m].detach()
             # new values : use grad
-            x_cur = x_prev.reshape(b, 1, -1)   
+            x_cur = x_prev.reshape(b, 1, -1)
             t_cur = Tx_prev.reshape(b, 1, -1)
             # use masking to only have the current value updating the gradient
             mask = torch.zeros((1, m, 1), device=x_prev.device, dtype=x_prev.dtype)
             mask[:, idx_m, :] = 1
-            X = X_old + mask * (x_cur - X_old[:, idx_m:idx_m+1, :])
-            T = T_old + mask * (t_cur - T_old[:, idx_m:idx_m+1, :])
-            
-        G = (T - X)  # (b,m,d)
+            X = X_old + mask * (x_cur - X_old[:, idx_m : idx_m + 1, :])
+            T = T_old + mask * (t_cur - T_old[:, idx_m : idx_m + 1, :])
+
+        G = T - X  # (b,m,d)
         H[:, 1 : m + 1, 1 : m + 1] = (
             torch.bmm(G, G.transpose(1, 2))
             + self.anderson_acceleration_config.eps
