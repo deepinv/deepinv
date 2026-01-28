@@ -739,7 +739,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         self,
         filters: Tensor = None,
         patch_size: int | tuple[int, int] = None,
-        overlap: int | tuple[int, int] = None,
+        stride: int | tuple[int, int] = None,
         blending_mode: str = "bump",
         use_fft: bool = True,
         **kwargs,
@@ -747,7 +747,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         super().__init__(**kwargs)
 
         self.patch_size = patch_size
-        self.overlap = overlap
+        self.stride = stride if stride is not None else patch_size
         self._dynamic_img_size = None  # To track image size changes
 
         self.use_fft = use_fft
@@ -757,9 +757,10 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         )
         self.blending_mode = blending_mode
         # config for tiles
+
         self.config = TiledPConv2dConfig(
             patch_size=patch_size,
-            overlap=overlap,
+            stride=self.stride,
             psf_size_init=filters.shape[-2:] if filters is not None else None,
         )
         self.tiled_handler = TiledPConv2dHandler(self.config)
@@ -936,18 +937,18 @@ class TiledSpaceVaryingBlur(LinearPhysics):
 
     @staticmethod
     def num_filters(
-        img_size: tuple[int, int], patch_size: tuple[int, int], overlap: tuple[int, int]
+        img_size: tuple[int, int], patch_size: tuple[int, int], stride: tuple[int, int]
     ) -> int:
         r"""
-        Computes the number of filters (tiles) required for a given image size, patch size and overlap.
+        Computes the number of filters (tiles) required for a given image size, patch size and stride.
 
         :param tuple[int, int] img_size: Image size (H, W).
         :param tuple[int, int] patch_size: Patch size (h, w).
-        :param tuple[int, int] overlap: Overlap size (oh, ow).
+        :param tuple[int, int] stride: Stride size (sh, sw).
         :return: Number of filters (tiles) required.
         """
         num_patches_h, num_patches_w = TiledPConv2dConfig(
-            patch_size=patch_size, overlap=overlap
+            patch_size=patch_size, stride=stride
         ).get_num_patches(img_size)
         return num_patches_h * num_patches_w
 

@@ -24,7 +24,7 @@ class TiledPConv2dConfig:
     """
 
     patch_size: int | tuple[int, int]
-    overlap: int | tuple[int, int]
+    stride: int | tuple[int, int]
     psf_size_init: InitVar[int | tuple[int, int] | None] = None
     _psf_size: int | tuple[int, int] | None = field(init=False, default=None)
 
@@ -33,8 +33,8 @@ class TiledPConv2dConfig:
         Normalize all sizes to tuples after initialization.
         """
         self.patch_size = _as_pair(self.patch_size)
-        self.overlap = _as_pair(self.overlap)
-        self.stride = _add_tuple(self.patch_size, self.overlap, -1)
+        self.stride = _as_pair(self.stride)
+        self.overlap = _add_tuple(self.patch_size, self.stride, -1)
         self._psf_size = _as_pair(psf_size_init) if psf_size_init is not None else None
 
     @property
@@ -104,7 +104,7 @@ class TiledPConv2dConfig:
         expansion = self.margin
         return TiledPConv2dConfig(
             patch_size=_add_tuple(self.patch_size, expansion),
-            overlap=_add_tuple(self.overlap, expansion),
+            stride=self.stride,
             psf_size_init=self.psf_size,
         )
 

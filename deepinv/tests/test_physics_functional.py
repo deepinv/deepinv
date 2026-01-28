@@ -287,25 +287,25 @@ def test_dct_idct(device):
 @pytest.mark.parametrize("n_channels", [1, 3])
 @pytest.mark.parametrize("img_size", [(32, 32), (33, 33), (32, 33)])
 @pytest.mark.parametrize("patch_size", [(8, 8), (9, 9), (8, 9)])
-@pytest.mark.parametrize("overlap", [(4, 4), (5, 5), (4, 5)])
+@pytest.mark.parametrize("stride", [(4, 4), (5, 5), (4, 5)])
 @pytest.mark.parametrize("psf_size", [(5, 5), (6, 6), (5, 6)])
 @pytest.mark.parametrize("use_fft", [False, True])
 def test_tiled_product_physics_adjointness(
-    batch_size, n_channels, img_size, patch_size, psf_size, overlap, use_fft
+    batch_size, n_channels, img_size, patch_size, psf_size, stride, use_fft
 ):
     device = "cuda:0"
     x = torch.randn(batch_size, n_channels, *img_size).to(device)
     from deepinv.physics.blur import TiledSpaceVaryingBlur
 
     n_filters = TiledSpaceVaryingBlur.num_filters(
-        img_size=img_size, patch_size=patch_size, overlap=overlap
+        img_size=img_size, patch_size=patch_size, stride=stride
     )
     h = torch.rand(1, n_channels, n_filters, *psf_size).to(device)
 
     physics = TiledSpaceVaryingBlur(
         filters=h,
         patch_size=patch_size,
-        overlap=overlap,
+        stride=stride,
         use_fft=use_fft,
         device=device,
     )

@@ -1130,7 +1130,7 @@ class TiledBlurGenerator(PSFGenerator):
         self,
         psf_generator: PSFGenerator,
         patch_size: int | tuple[int, int],
-        overlap: int | tuple[int, int] = 0,
+        stride: int | tuple[int, int] = None,
         rng: torch.Generator = None,
         device: str = "cpu",
         **kwargs,
@@ -1140,9 +1140,9 @@ class TiledBlurGenerator(PSFGenerator):
         self.psf_size = psf_generator.psf_size
 
         self.patch_size = patch_size
-        self.overlap = overlap
+        self.stride = stride if stride is not None else patch_size
         self.config = TiledPConv2dConfig(
-            patch_size=patch_size, overlap=overlap, psf_size_init=self.psf_size
+            patch_size=patch_size, stride=self.stride, psf_size_init=self.psf_size
         )
 
     def step(
