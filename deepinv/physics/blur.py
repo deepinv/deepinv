@@ -421,6 +421,7 @@ class Blur(LinearPhysics):
         :param torch.Tensor filter: Filter :math:`w` to be applied to the input image.
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
+        :raises ValueError: if the input tensor does not have 4 or 5 dimensions.
         """
         self.update_parameters(
             filter=filter.to(self.device) if filter is not None else filter, **kwargs
@@ -430,6 +431,8 @@ class Blur(LinearPhysics):
             return conv2d(x, filter=self.filter, padding=self.padding)
         elif x.dim() == 5:
             return conv3d_fft(x, filter=self.filter, padding=self.padding)
+        else:
+            raise ValueError(f"Expected Tensor dimension to be 4 or 5, is {x.dim()}")
 
     def A_adjoint(self, y: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
         r"""
@@ -439,6 +442,7 @@ class Blur(LinearPhysics):
         :param torch.Tensor filter: Filter :math:`w` to be applied to the input image.
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
+        :raises ValueError: if the input tensor does not have 4 or 5 dimensions.
         """
         self.update_parameters(
             filter=filter.to(self.device) if filter is not None else filter, **kwargs
@@ -448,6 +452,8 @@ class Blur(LinearPhysics):
             return conv_transpose2d(y, filter=self.filter, padding=self.padding)
         elif y.dim() == 5:
             return conv_transpose3d_fft(y, filter=self.filter, padding=self.padding)
+        else:
+            raise ValueError(f"Expected Tensor dimension to be 4 or 5, is {y.dim()}")
 
 
 class BlurFFT(DecomposablePhysics):
