@@ -9,7 +9,7 @@ Test Organization:
 - Core distributed physics tests
 - Distributed processor (denoiser) tests
 - Distributed data fidelity tests
-- Advanced operations (A_dagger, compute_norm, reduce=False parameter)
+- Advanced operations (A_dagger, compute_norm, gather=False parameter)
 - Integration tests
 
 All tests support both CPU-only and multi-GPU configurations automatically.
@@ -19,6 +19,7 @@ from __future__ import annotations
 import os
 import pytest
 import torch
+import torch.distributed as dist
 import time
 import socket
 import platform
@@ -359,7 +360,7 @@ def create_physics_specification(spec_type, device, num_operators):
 
     elif spec_type == "callable_factory":
 
-        def physics_factory(idx, device, shared):
+        def physics_factory(idx, device, factory_kwargs):
             kernel = gaussian_blur(sigma=1.0 + idx * 0.5, device=device)
             blur = Blur(filter=kernel, padding="circular", device=device)
             blur.noise_model = GaussianNoise(sigma=0.01)
@@ -578,7 +579,7 @@ def _test_data_fidelity_worker(rank, world_size, args):
         distributed_physics = distribute(physics_list, ctx=ctx)
 
         # 1. Test factory method
-        def fidelity_factory(idx, device, shared):
+        def fidelity_factory(idx, device, factory_kwargs):
             return L2()
 
         distributed_fidelity_factory = distribute(
@@ -716,9 +717,9 @@ def test_a_dagger(device_config):
 # =============================================================================
 
 
-def _test_reduce_false_worker(rank, world_size, args):
+def _test_gather_false_worker(rank, world_size, args):
     """
-    Worker for testing operations with reduce=False parameter.
+    Worker for testing operations with gather=False parameter.
 
     :param int rank: Rank of the current process.
     :param int world_size: Total number of processes.
@@ -731,27 +732,27 @@ def _test_reduce_false_worker(rank, world_size, args):
 
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
 
-        # Test A with reduce=False
-        y_local = distributed_physics.A(x, reduce=False)
+        # Test A with gather=False
+        y_local = distributed_physics.A(x, gather=False)
         assert isinstance(y_local, list)
 
-        # Test A_adjoint with reduce=False
-        y_full = distributed_physics.A(x, reduce=True)
-        x_adj_local = distributed_physics.A_adjoint(y_full, reduce=False)
+        # Test A_adjoint with gather=False
+        y_full = distributed_physics.A(x, gather=True)
+        x_adj_local = distributed_physics.A_adjoint(y_full, gather=False)
         assert torch.is_tensor(x_adj_local)
         return "success"
 
 
-def test_reduce_false_operations(device_config):
+def test_gather_false_operations(device_config):
     """
-    Test operations with reduce=False parameter.
+    Test operations with gather=False parameter.
 
     Verifies that operations return local results without global reduction.
 
     :param dict device_config: Device configuration from fixture.
     """
     test_args = {"device_mode": device_config["device_mode"]}
-    results = run_distributed_test(_test_reduce_false_worker, device_config, test_args)
+    results = run_distributed_test(_test_gather_false_worker, device_config, test_args)
     assert all(r == "success" for r in results)
 
 
@@ -1159,9 +1160,10 @@ def _test_distributed_context_collectives_worker(rank, world_size, args):
     :return: Success status string.
     """
     with DistributedContext(device_mode=args["device_mode"]) as ctx:
-        # Test all_reduce_ with sum
+        # Test all_reduce with sum
         t = torch.tensor([float(rank + 1), 2.0, 3.0], device=ctx.device)
-        result_sum = ctx.all_reduce_(t.clone(), op="sum")
+        result_sum = t.clone()
+        ctx.all_reduce(result_sum, op=dist.ReduceOp.SUM)
         # Sum across all ranks: rank 0 contributes 1, rank 1 contributes 2, etc.
         expected_sum = torch.tensor(
             [sum(range(1, world_size + 1)), 2.0 * world_size, 3.0 * world_size],
@@ -1171,20 +1173,22 @@ def _test_distributed_context_collectives_worker(rank, world_size, args):
             result_sum, expected_sum
         ), f"Rank {rank}: {result_sum} vs {expected_sum}"
 
-        # Test all_reduce_ with mean
-        result_mean = ctx.all_reduce_(t.clone(), op="mean")
+        # Test all_reduce with mean
+        result_mean = t.clone()
+        ctx.all_reduce(result_mean, op=dist.ReduceOp.AVG)
         expected_mean = expected_sum / world_size
         assert torch.allclose(
             result_mean, expected_mean
         ), f"Rank {rank}: {result_mean} vs {expected_mean}"
 
-        # Test broadcast_
+        # Test broadcast
         if rank == 0:
             t_bcast = torch.tensor([10.0, 20.0, 30.0], device=ctx.device)
         else:
             t_bcast = torch.tensor([0.0, 0.0, 0.0], device=ctx.device)
 
-        result_bcast = ctx.broadcast_(t_bcast.clone(), src=0)
+        result_bcast = t_bcast.clone()
+        ctx.broadcast(result_bcast, src=0)
         expected_bcast = torch.tensor([10.0, 20.0, 30.0], device=ctx.device)
         assert torch.allclose(result_bcast, expected_bcast)
 
@@ -1465,11 +1469,11 @@ def test_data_fidelity_different_fidelities(device_config):
 
 
 # =============================================================================
-# Reduce=False Comprehensive Tests
+# Gather=False Comprehensive Tests
 # =============================================================================
 
 
-def _test_reduce_false_physics_operations_worker(rank, world_size, args):
+def _test_gather_false_physics_operations_worker(rank, world_size, args):
     operation = args["operation"]
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
@@ -1478,14 +1482,14 @@ def _test_reduce_false_physics_operations_worker(rank, world_size, args):
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
 
         if operation == "A":
-            result_local = distributed_physics.A(x, reduce=False)
-            result_global = distributed_physics.A(x, reduce=True)
+            result_local = distributed_physics.A(x, gather=False)
+            result_global = distributed_physics.A(x, gather=True)
             assert isinstance(result_local, list)
             assert isinstance(result_global, TensorList)
 
         elif operation == "forward":
-            result_local = distributed_physics.forward(x, reduce=False)
-            result_global = distributed_physics.forward(x, reduce=True)
+            result_local = distributed_physics.forward(x, gather=False)
+            result_global = distributed_physics.forward(x, gather=True)
             assert isinstance(result_local, list)
             assert isinstance(result_global, TensorList)
 
@@ -1495,7 +1499,7 @@ def _test_reduce_false_physics_operations_worker(rank, world_size, args):
             result_global = distributed_physics.A_adjoint(y)
             assert torch.is_tensor(result_global)
             # Local version returns unreduced result (one per local operator)
-            result_local = distributed_physics.A_adjoint(y, reduce=False)
+            result_local = distributed_physics.A_adjoint(y, gather=False)
             assert isinstance(result_local, list) or torch.is_tensor(result_local)
 
         elif operation == "A_vjp":
@@ -1504,7 +1508,7 @@ def _test_reduce_false_physics_operations_worker(rank, world_size, args):
             result_global = distributed_physics.A_vjp(x, y)
             assert torch.is_tensor(result_global)
             # Local version
-            result_local = distributed_physics.A_vjp(x, y, reduce=False)
+            result_local = distributed_physics.A_vjp(x, y, gather=False)
             assert isinstance(result_local, list) or torch.is_tensor(result_local)
 
         elif operation == "A_adjoint_A":
@@ -1512,16 +1516,16 @@ def _test_reduce_false_physics_operations_worker(rank, world_size, args):
             result_global = distributed_physics.A_adjoint_A(x)
             assert torch.is_tensor(result_global)
             # Local version
-            result_local = distributed_physics.A_adjoint_A(x, reduce=False)
+            result_local = distributed_physics.A_adjoint_A(x, gather=False)
             assert isinstance(result_local, list) or torch.is_tensor(result_local)
 
         elif operation == "A_A_adjoint":
             y = distributed_physics.A(x)
-            # A_A_adjoint should return TensorList when reduce=True
+            # A_A_adjoint should return TensorList when gather=True
             result_global = distributed_physics.A_A_adjoint(y)
             assert isinstance(result_global, TensorList)
             # Local version returns list of tensors (one per local operator)
-            result_local = distributed_physics.A_A_adjoint(y, reduce=False)
+            result_local = distributed_physics.A_A_adjoint(y, gather=False)
             assert isinstance(result_local, list)
     return "success"
 
@@ -1529,16 +1533,16 @@ def _test_reduce_false_physics_operations_worker(rank, world_size, args):
 @pytest.mark.parametrize(
     "operation", ["A", "forward", "A_adjoint", "A_vjp", "A_adjoint_A", "A_A_adjoint"]
 )
-def test_reduce_false_physics_operations(device_config, operation):
-    """Test all physics operations with reduce=False."""
+def test_gather_false_physics_operations(device_config, operation):
+    """Test all physics operations with gather=False."""
     test_args = {"device_mode": device_config["device_mode"], "operation": operation}
     results = run_distributed_test(
-        _test_reduce_false_physics_operations_worker, device_config, test_args
+        _test_gather_false_physics_operations_worker, device_config, test_args
     )
     assert all(r == "success" for r in results)
 
 
-def _test_reduce_false_processor_worker(rank, world_size, args):
+def _test_gather_false_processor_worker(rank, world_size, args):
     denoiser_spec = args["denoiser_spec"]
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         processor = create_denoiser(denoiser_spec, ctx.device, num_channels=3)
@@ -1553,12 +1557,12 @@ def _test_reduce_false_processor_worker(rank, world_size, args):
 
         x = torch.randn(1, 3, 16, 16, device=ctx.device)
 
-        # Test with reduce=True (default)
+        # Test with gather=True (default)
         result_global = distributed_processor(x, sigma=0.1)
         assert torch.is_tensor(result_global)
 
-        # Test with reduce=False if supported
-        result_local = distributed_processor(x, reduce=False, sigma=0.1)
+        # Test with gather=False if supported
+        result_local = distributed_processor(x, gather=False, sigma=0.1)
         assert torch.is_tensor(
             result_local
         )  # Same tensor but a lot of zeros (patches not processed locally)
@@ -1567,19 +1571,19 @@ def _test_reduce_false_processor_worker(rank, world_size, args):
 
 
 @pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
-def test_reduce_false_processor(device_config, denoiser_spec):
-    """Test DistributedProcessing with reduce=False."""
+def test_gather_false_processor(device_config, denoiser_spec):
+    """Test DistributedProcessing with gather=False."""
     test_args = {
         "device_mode": device_config["device_mode"],
         "denoiser_spec": denoiser_spec,
     }
     results = run_distributed_test(
-        _test_reduce_false_processor_worker, device_config, test_args
+        _test_gather_false_processor_worker, device_config, test_args
     )
     assert all(r == "success" for r in results)
 
 
-def _test_reduce_false_data_fidelity_worker(rank, world_size, args):
+def _test_gather_false_data_fidelity_worker(rank, world_size, args):
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(physics_list, ctx=ctx)
@@ -1589,25 +1593,25 @@ def _test_reduce_false_data_fidelity_worker(rank, world_size, args):
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
         y = distributed_physics.A(x)
 
-        # Test fn with reduce=False
-        fid_local = distributed_fidelity.fn(x, y, distributed_physics, reduce=False)
-        fid_global = distributed_fidelity.fn(x, y, distributed_physics, reduce=True)
+        # Test fn with gather=False
+        fid_local = distributed_fidelity.fn(x, y, distributed_physics, gather=False)
+        fid_global = distributed_fidelity.fn(x, y, distributed_physics, gather=True)
         assert torch.is_tensor(fid_local)
         assert torch.is_tensor(fid_global)
 
-        # Test grad with reduce=False
-        grad_local = distributed_fidelity.grad(x, y, distributed_physics, reduce=False)
-        grad_global = distributed_fidelity.grad(x, y, distributed_physics, reduce=True)
+        # Test grad with gather=False
+        grad_local = distributed_fidelity.grad(x, y, distributed_physics, gather=False)
+        grad_global = distributed_fidelity.grad(x, y, distributed_physics, gather=True)
         assert torch.is_tensor(grad_local)
         assert torch.is_tensor(grad_global)
     return "success"
 
 
-def test_reduce_false_data_fidelity(device_config):
-    """Test DistributedDataFidelity with reduce=False."""
+def test_gather_false_data_fidelity(device_config):
+    """Test DistributedDataFidelity with gather=False."""
     test_args = {"device_mode": device_config["device_mode"]}
     results = run_distributed_test(
-        _test_reduce_false_data_fidelity_worker, device_config, test_args
+        _test_gather_false_data_fidelity_worker, device_config, test_args
     )
     assert all(r == "success" for r in results)
 

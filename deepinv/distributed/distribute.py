@@ -59,7 +59,9 @@ def _distribute_physics(
         physics_list_extracted = physics.physics_list
         num_operators = len(physics_list_extracted)
 
-        def physics_factory(idx: int, device: torch.device, shared: dict | None):
+        def physics_factory(
+            idx: int, device: torch.device, factory_kwargs: dict | None
+        ):
             return physics_list_extracted[idx].to(device)
 
     elif callable(physics):
@@ -72,7 +74,9 @@ def _distribute_physics(
         physics_list_extracted = physics
         num_operators = len(physics_list_extracted)
 
-        def physics_factory(idx: int, device: torch.device, shared: dict | None):
+        def physics_factory(
+            idx: int, device: torch.device, factory_kwargs: dict | None
+        ):
             return physics_list_extracted[idx].to(device)
 
     if type_object == "linear_physics":
@@ -179,7 +183,9 @@ def _distribute_data_fidelity(
         data_fidelity_list_extracted = data_fidelity.data_fidelity_list
         num_operators = len(data_fidelity_list_extracted)
 
-        def data_fidelity_factory(idx: int, device: torch.device, shared: dict | None):
+        def data_fidelity_factory(
+            idx: int, device: torch.device, factory_kwargs: dict | None
+        ):
             return data_fidelity_list_extracted[idx].to(device)
 
     elif callable(data_fidelity):
@@ -192,7 +198,9 @@ def _distribute_data_fidelity(
         data_fidelity_list_extracted = data_fidelity
         num_operators = len(data_fidelity_list_extracted)
 
-        def data_fidelity_factory(idx: int, device: torch.device, shared: dict | None):
+        def data_fidelity_factory(
+            idx: int, device: torch.device, factory_kwargs: dict | None
+        ):
             return data_fidelity_list_extracted[idx].to(device)
 
     return DistributedDataFidelity(
@@ -308,8 +316,7 @@ def distribute(
         >>> from deepinv.distributed import DistributedContext, distribute
         >>> with DistributedContext() as ctx: # doctest: +SKIP
         ...     denoiser = DnCNN()
-        ...     img_size = (1, 3, 256, 256)
-        ...     ddenoiser = distribute(denoiser, ctx, img_size=img_size)
+        ...     ddenoiser = distribute(denoiser, ctx)
     """
     # Check object type and distribute accordingly
     if type_object == "auto":

@@ -379,16 +379,22 @@ Advanced Features
 Local vs Reduced Operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, distributed methods return fully reduced results (combined from all processes).
-You can get local-only results with ``reduce=False``:
+By default, distributed methods return fully gathered and reduced results (combined from all processes).
+You can get local-only results with ``gather=False`` and you can choose to skip reduction with ``reduce_op=None``:
 
 .. code-block:: python
 
-    # Get local results only (no communication)
-    y_local = dist_physics.A(x, reduce=False)  # List of local measurements
+    # Get local results without local reduction
+    y_local = dist_physics.A(x, gather=False, reduce_op=None)
+
+    # Get local results with reduction (sum by default)
+    y_local = dist_physics.A(x, gather=False)
+
+    # Get gathered results without reduction
+    y_gathered = dist_physics.A(x, reduce_op=None)
     
-    # Get reduced results (default, with communication)
-    y_all = dist_physics.A(x, reduce=True)  # TensorList of all measurements
+    # Get gathered results (default)
+    y_all = dist_physics.A(x)
 
 This is useful for:
 
