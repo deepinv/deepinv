@@ -4,7 +4,6 @@ from torch import Tensor
 import torch.nn as nn
 from typing import Callable
 import numpy as np
-import deepinv.utils as dinv
 from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor, Denoiser
 from deepinv.optim.data_fidelity import ZeroFidelity
