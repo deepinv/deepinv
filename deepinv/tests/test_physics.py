@@ -42,6 +42,7 @@ OPERATORS = [
     "space_deblur_reflect",
     "space_deblur_replicate",
     "space_deblur_constant",
+    "tiled_space_deblur_valid",
     "hyperspectral_unmixing",
     "3Ddeblur_valid",
     "3Ddeblur_circular",
@@ -376,6 +377,25 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = ["filters", "multipliers"]
+    elif name == "tiled_space_deblur_valid":
+        img_size = (3, 20, 13) if imsize is None else imsize
+        h = dinv.physics.blur.bilinear_filter(factor=2).to(device)
+        h = h.unsqueeze(2)  # shape (1,1,1,Hf,Wf)
+        num_filters = dinv.physics.TiledSpaceVaryingBlur.num_filters(
+            img_size=img_size[-2:],
+            patch_size=(8, 5),
+            stride=(4, 3),
+        )
+        h = h.repeat(1, 3, num_filters, 1, 1)  # shape (1,3,K,Hf,Wf)
+        p = dinv.physics.TiledSpaceVaryingBlur(
+            filters=h,
+            patch_size=(8, 5),
+            stride=(4, 3),
+            device=device,
+        )
+
+        params = ["filters", "multipliers"]
+
     elif name == "hyperspectral_unmixing":
         img_size = (15, 32, 32) if imsize is None else imsize  # x (E, H, W)
         p = dinv.physics.HyperSpectralUnmixing(E=15, C=64, device=device)
@@ -2317,3 +2337,42 @@ def test_squared_or_non_squared_norms(seed, device):
 
     assert torch.allclose(sqnorm1, sqnorm2, rtol=1e-5), "squared norms do not match"
     assert torch.allclose(sqnorm1, norm**2, rtol=1e-5), "norms do not match"
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("n_channels", [1, 3])
+@pytest.mark.parametrize("img_size", [(32, 32), (33, 33), (32, 33)])
+@pytest.mark.parametrize("patch_size", [(8, 8), (9, 9), (8, 9)])
+@pytest.mark.parametrize("stride", [(4, 4), (5, 5), (4, 5)])
+@pytest.mark.parametrize("psf_size", [(5, 5), (6, 6), (5, 6)])
+@pytest.mark.parametrize("use_fft", [False, True])
+def test_tiled_product_physics_adjointness(
+    batch_size, n_channels, img_size, patch_size, psf_size, stride, use_fft
+):
+    device = "cuda:0"
+    from deepinv.physics.blur import TiledSpaceVaryingBlur
+
+    x = torch.randn(batch_size, n_channels, *img_size).to(device)
+
+    n_filters = TiledSpaceVaryingBlur.num_filters(
+        img_size=img_size, patch_size=patch_size, stride=stride
+    )
+    h = torch.rand(1, n_channels, n_filters, *psf_size).to(device)
+
+    physics = TiledSpaceVaryingBlur(
+        filters=h,
+        patch_size=patch_size,
+        stride=stride,
+        use_fft=use_fft,
+        device=device,
+    )
+
+    Ax = physics.A(x)
+    y = torch.randn_like(Ax)
+    Aty = physics.A_adjoint(y)
+
+    lhs = torch.sum(Ax * y)
+    rhs = torch.sum(Aty * x)
+    assert torch.abs(lhs - rhs) < 1e-3 * max(
+        torch.abs(lhs), torch.abs(rhs)
+    )  # relative tolerance

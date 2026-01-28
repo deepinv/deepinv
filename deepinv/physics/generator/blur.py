@@ -1115,15 +1115,16 @@ class TiledBlurGenerator(PSFGenerator):
 
     Parameters generated:
 
-    -`'filters'`: tensor of shape `(B, C, n_patches, psf_size, psf_size)`
+    -`'filters'`: tensor of shape `(B, C, K, psf_size, psf_size)`
 
-    where `n_patches` is the number of patches in which the image is divided. It is computed based on the `patch_size`, `overlap` and the given `img_size` during the `step()` function call.
+    where `K` is the number of patches in which the image is divided.
+    It is computed based on the `patch_size`, `stride` and the given `img_size` during the `step()` function call.
 
     :param deepinv.physics.generator.PSFGenerator psf_generator: A PSF generator, such as :class:`motion blur <deepinv.physics.generator.MotionBlurGenerator>`
     or :class:`diffraction blur generator <deepinv.physics.generator.DiffractionBlurGenerator>`
 
     :param int | tuple[int, int] patch_size: size of the patches (height, width) in which the image is divided.
-    :param int | tuple[int, int] overlap: size of the overlapping region between adjacent patches (height, width). Defaults to `0`. It should be strictly less than `patch_size`.
+    :param int | tuple[int, int] stride: stride between adjacent patches (height, width). Defaults to `patch_size`.
     """
 
     def __init__(

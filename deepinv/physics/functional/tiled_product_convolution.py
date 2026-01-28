@@ -7,7 +7,6 @@ from torch import Tensor
 
 import torch
 import torch.nn.functional as F
-import math
 from deepinv.physics.functional.utils import _as_pair, _add_tuple
 
 
@@ -18,9 +17,9 @@ class TiledPConv2dConfig:
     This dataclass centralizes all patch-related parameters and provides
     computed properties for derived values like stride and margin.
 
-    :param patch_size: Size of each patch (height, width) or single int for square patches.
-    :param overlap: Overlap between adjacent patches (height, width) or single int.
-    :param psf_size_init: The initial size of the PSF/kernel (height, width) or single int. Optional.
+    :param patch_size: Size of each patch (height, width) or single `int` for square patches.
+    :param stride: Stride between adjacent patches (height, width). If a single `int` is provided, it is used for both dimensions.
+    :param psf_size_init: The initial size of the PSF/kernel (height, width) or single `int`. Optional.
     """
 
     patch_size: int | tuple[int, int]
@@ -299,17 +298,27 @@ def _crop_unity_partition_2d(
 def generate_tiled_multipliers(
     img_size: int | tuple[int, int],
     patch_size: int | tuple[int, int],
-    overlap: int | tuple[int, int],
+    stride: int | tuple[int, int],
     mode: Literal["bump", "linear"] = "bump",
     device="cpu",
     dtype=torch.float32,
-):
+) -> Tensor:
+    r"""
+    Generate tiled multipliers for patch blending.
+
+    It is used in tiled product convolution, see :class:`deepinv.physics.TiledSpaceVaryingBlur` to smoothly blend overlapping patches.
+
+    :param img_size: Size of the image (height, width) or single `int` for square images.
+    :param patch_size: Size of each patch (height, width) or single `int` for square patches.
+    :param stride: Stride between adjacent patches (height, width). If a single `int` is provided, it is used for both dimensions.
+    :param mode: Blending mode - `'bump'` (smooth) or `'linear'`.
+    :return: Tensor of shape `(1, 1, K, H, W)` with multipliers for each patch.
+    """
     img_size = _as_pair(img_size)
     patch_size = _as_pair(patch_size)
-    overlap = _as_pair(overlap)
-    stride = _add_tuple(patch_size, overlap, -1)
+    stride = _as_pair(stride)
+    overlap = _add_tuple(patch_size, stride, -1)
 
-    # masks = unity_partition_function_2d(img_size, patch_size, overlap)
     masks_x = _unity_partition_function_1d(
         img_size[0], patch_size[0], overlap[0], mode, device=device, dtype=dtype
     )
@@ -326,248 +335,3 @@ def generate_tiled_multipliers(
 
     w = _crop_unity_partition_2d(masks, patch_size, stride)
     return w.flatten(0, 1).unsqueeze(0).unsqueeze(0)
-
-
-# =============================================================================
-# PSF EXTRACTION
-# =============================================================================
-def get_psf_pconv2d_patch(
-    h: Tensor,
-    w: Tensor,
-    position: tuple[int],
-    overlap: tuple[int],
-    num_patches: tuple[int],
-):
-    r"""Get the PSF at the given position for tiled product convolution.
-
-    :param torch.Tensor h: PSF tensor of size (B, C, K, h, w). h<=H and w<=W
-    :param torch.Tensor w: Weight tensor of size (b, C, K, H, W). b in {1, B} and c in {1, C}
-    :param tuple[int] position: Position of the PSF patch (B, N, 2)
-    :param tuple[int] overlap: Overlap between PSF patches
-    :param tuple[int] num_patches: Number of PSF patches (n_rows, n_cols)
-
-    :return: PSF at the given position (B, C, N, psf_size, psf_size)
-    """
-    patch_size = w.shape[-2:]
-    B, N = position.shape[:2]
-
-    # Collect indices and positions for all positions
-    indices = _collect_position_indices(position, patch_size, overlap, num_patches)
-
-    # Convert to tensors
-    tensors = _indices_to_tensors(indices, h.device, B, N)
-
-    # Select and combine PSFs
-    return _compute_combined_psf(h, w, tensors, num_patches)
-
-
-def _collect_position_indices(
-    position: Tensor,
-    patch_size: tuple[int, int],
-    overlap: tuple[int, int],
-    num_patches: tuple[int, int],
-) -> dict:
-    """Collect patch indices and positions for all query positions.
-
-    :param position: Position tensor of shape (B, N, 2).
-    :param patch_size: Size of each patch.
-    :param overlap: Overlap between patches.
-    :param num_patches: Number of patches (n_rows, n_cols).
-    :return: Dictionary with collected indices and positions.
-    """
-    index_h, index_w = [], []
-    patch_position_h, patch_position_w = [], []
-
-    for p in position.tolist():
-        for pos in p:
-            ih, iw, ph, pw = get_index_and_position(
-                pos, patch_size, overlap, num_patches
-            )
-            index_h.append(ih)
-            index_w.append(iw)
-            patch_position_h.append(ph)
-            patch_position_w.append(pw)
-
-    return {
-        "index_h": index_h,
-        "index_w": index_w,
-        "patch_position_h": patch_position_h,
-        "patch_position_w": patch_position_w,
-    }
-
-
-def _indices_to_tensors(indices: dict, device: torch.device, B: int, N: int) -> dict:
-    """Convert collected indices to padded tensors.
-
-    :param indices: Dictionary with index lists.
-    :param device: Target device for tensors.
-    :param B: Batch size.
-    :param N: Number of positions.
-    :return: Dictionary with tensor versions of indices.
-    """
-    index_h, weight_h = _pad_sublist(indices["index_h"])
-    index_w, weight_w = _pad_sublist(indices["index_w"])
-    patch_position_h, _ = _pad_sublist(indices["patch_position_h"])
-    patch_position_w, _ = _pad_sublist(indices["patch_position_w"])
-
-    def to_tensor(data):
-        return torch.tensor(data, device=device, dtype=torch.long).view(B, N, -1)
-
-    return {
-        "index_h": to_tensor(index_h),
-        "index_w": to_tensor(index_w),
-        "weight_h": to_tensor(weight_h),
-        "weight_w": to_tensor(weight_w),
-        "patch_position_h": to_tensor(patch_position_h),
-        "patch_position_w": to_tensor(patch_position_w),
-    }
-
-
-def _compute_combined_psf(
-    h: Tensor, w: Tensor, tensors: dict, num_patches: tuple[int, int]
-) -> Tensor:
-    """Compute the combined PSF from selected patches.
-
-    :param h: PSF tensor.
-    :param w: Weight tensor.
-    :param tensors: Dictionary with index tensors.
-    :param num_patches: Number of patches (n_rows, n_cols).
-    :return: Combined PSF tensor.
-    """
-    # Reshape PSF and weights to grid layout
-    h = h.view(
-        h.size(0), h.size(1), num_patches[0], num_patches[1], h.size(3), h.size(4)
-    )
-    w = w.view(
-        w.size(0), w.size(1), num_patches[0], num_patches[1], w.size(3), w.size(4)
-    )
-
-    # Create batch indices
-    batch_idx = torch.arange(h.size(0), device=h.device, dtype=torch.long)[
-        :, None, None, None
-    ]
-
-    # Select relevant PSFs and weights
-    h_selected = h[
-        batch_idx,
-        :,
-        tensors["index_h"][..., None, :],
-        tensors["index_w"][..., :, None],
-        ...,
-    ]
-    w_selected = w[
-        batch_idx,
-        :,
-        tensors["index_h"][..., None, :],
-        tensors["index_w"][..., :, None],
-        tensors["patch_position_h"][..., None, :],
-        tensors["patch_position_w"][..., :, None],
-    ]
-
-    # Compute weighted combination
-    weight = tensors["weight_h"][..., None, :] * tensors["weight_w"][..., None]
-    psf = torch.sum(
-        h_selected * w_selected[..., None, None] * weight[..., None, None, None],
-        dim=(2, 3),
-    )
-    return psf.transpose(1, 2)
-
-
-def get_index_and_position(
-    position: tuple[int],
-    patch_size: tuple[int],
-    overlap: tuple[int],
-    num_patches: tuple[int],
-):
-    r"""Get the patch indices and local positions for a given image position.
-
-    Determines which patches contain the given position and computes the
-    local coordinates within each patch.
-
-    :param tuple[int] position: Position in image coordinates (row, column)
-    :param tuple[int] patch_size: Size of each patch (height, width)
-    :param tuple[int] overlap: Overlap between patches (height, width)
-    :param tuple[int] num_patches: Number of patches (n_rows, n_cols)
-
-    :return: Tuple of (index_h, index_w, patch_position_h, patch_position_w)
-    :raises ValueError: If position is outside all patches.
-    """
-    overlap = _as_pair(overlap)
-    patch_size = _as_pair(patch_size)
-    stride = _add_tuple(patch_size, overlap, -1)
-
-    if isinstance(position, torch.Tensor):
-        position = position.tolist()
-
-    max_size = (
-        patch_size[0] + (num_patches[0] - 1) * stride[0],
-        patch_size[1] + (num_patches[1] - 1) * stride[1],
-    )
-
-    # Compute search range for patches
-    n_min = (
-        max(math.floor((position[0] - patch_size[0]) / stride[0]), 0),
-        max(math.floor((position[1] - patch_size[1]) / stride[1]), 0),
-    )
-    n_max = (
-        math.floor(position[0] / stride[0]),
-        math.floor(position[1] / stride[1]),
-    )
-
-    index_h, patch_position_h = _find_containing_patches_1d(
-        position[0], n_min[0], n_max[0], stride[0], patch_size[0], max_size[0]
-    )
-    index_w, patch_position_w = _find_containing_patches_1d(
-        position[1], n_min[1], n_max[1], stride[1], patch_size[1], max_size[1]
-    )
-
-    if len(index_h) == 0 or len(index_w) == 0:
-        raise ValueError(f"The position center {position} is not valid.")
-
-    return index_h, index_w, patch_position_h, patch_position_w
-
-
-def _find_containing_patches_1d(
-    pos: int, n_min: int, n_max: int, stride: int, patch_size: int, max_size: int
-) -> tuple[list[int], list[int]]:
-    """Find patches containing a position along one dimension.
-
-    :param pos: Position coordinate.
-    :param n_min: Minimum patch index to check.
-    :param n_max: Maximum patch index to check.
-    :param stride: Stride between patches.
-    :param patch_size: Size of each patch.
-    :param max_size: Maximum valid coordinate.
-    :return: Tuple of (patch_indices, local_positions).
-    """
-    indices = []
-    positions = []
-
-    for i in range(n_min, n_max + 1):
-        left = i * stride
-        right = left + patch_size
-
-        if left <= pos < right <= max_size:
-            indices.append(i)
-            positions.append(pos - i * stride)
-
-    return indices, positions
-
-
-# ===========================================
-# PRIVATE HELPER FUNCTIONS
-# =============================================================================
-
-
-def _pad_sublist(input_list: list[list]) -> tuple[list[list], list[list[int]]]:
-    """Pad sublists to equal length by repeating last elements."""
-    max_length = max(len(sublist) for sublist in input_list)
-
-    padded_weights = [
-        [1] * len(sublist) + [0] * (max_length - len(sublist)) for sublist in input_list
-    ]
-    padded_lists = [
-        sublist + [sublist[-1]] * (max_length - len(sublist)) for sublist in input_list
-    ]
-
-    return padded_lists, padded_weights

@@ -702,10 +702,10 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         y = \sum_{k=1}^K h_k \star (m_k \odot x)
 
     where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`m_k` are binary masks defining the tiles and :math:`h_k` are filters.
-    When the size of the image is not perfectly divisible by the `patch_size` minus the `overlap`, the image is padded with zeros to fit an integer number of patches and the extra padding is removed afterwards automatically.
+    When the size of the image minus `stride` is not perfectly divisible by the `patch_size`, the image is padded with zeros to fit an integer number of patches and the extra padding is removed afterwards automatically.
 
-    The number of patches (tiles) :math:`K` is determined by the `patch_size` and `overlap` parameters: it is the product of the number of patches along each spatial dimension.
-    A helper class method `num_filters(img_size, patch_size, overlap)` is provided to compute the number of filters needed for a given image size, patch size and overlap.
+    The number of patches (tiles) :math:`K` is determined by the `patch_size` and `stride` parameters: it is the product of the number of patches along each spatial dimension.
+    A helper class method `num_filters(img_size, patch_size, stride)` is provided to compute the number of filters needed for a given image size, patch size and stride.
 
     .. note::
 
@@ -823,7 +823,6 @@ class TiledSpaceVaryingBlur(LinearPhysics):
             result, "(b k) c h w -> b c k h w", b=patches.size(0), k=h.size(2)
         )
 
-        # Reconstruct image using handler with expanded overlap
         B, C, K, H, W = result.size()
         target_size = _add_tuple(x.shape[-2:], margin)
 
@@ -925,7 +924,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
             multipliers = generate_tiled_multipliers(
                 self.config._get_compatible_img_size(img_size)[0],
                 self.config.patch_size,
-                self.config.overlap,
+                self.config.stride,
                 mode=self.blending_mode,
                 device=device,
                 dtype=dtype,
