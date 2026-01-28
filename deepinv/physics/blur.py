@@ -25,8 +25,8 @@ from deepinv.physics.functional.tiled_product_convolution import (
     generate_tiled_multipliers,
     TiledPConv2dConfig,
     TiledPConv2dHandler,
-    _add_tuple,
 )
+from deepinv.physics.functional.utils import _add_tuple
 from einops import rearrange
 
 
@@ -692,20 +692,40 @@ class TiledSpaceVaryingBlur(LinearPhysics):
     r"""
     Space varying blur via tiled-convolution.
 
-    This linear operator performs
+    This forward operator performs the space-varying blur using local convolutions on overlapping patches (tiles) of the image.
+    The resulting images is then reconstructed using a smooth blending of the overlapping patches (`blending_mode`).
+
+    Given an input image :math:`x`, this linear operator performs
 
     .. math::
 
         y = \sum_{k=1}^K h_k \star (m_k \odot x)
 
-    where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product,  :math:`m_k` are binary masks defining the tiles and :math:`h_k` are filters.
+    where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`m_k` are binary masks defining the tiles and :math:`h_k` are filters.
+    When the size of the image is not perfectly divisible by the `patch_size` minus the `overlap`, the image is padded with zeros to fit an integer number of patches and the extra padding is removed afterwards automatically.
+
+    The number of patches (tiles) :math:`K` is determined by the `patch_size` and `overlap` parameters: it is the product of the number of patches along each spatial dimension.
+    A helper class method `num_filters(img_size, patch_size, overlap)` is provided to compute the number of filters needed for a given image size, patch size and overlap.
+
+    .. note::
+
+        For simplicity, we also provide the generator class :class:`deepinv.physics.generator.TiledBlurGenerator` to generate the filters, for example during training.
+
+
+    .. note::
+
+        This class supports both FFT-based convolutions and direct convolutions, see :func:`deepinv.physics.functional.conv2d_fft` and :func:`deepinv.physics.functional.conv2d`.
+        FFT-based convolutions are typically faster for large filters. This can be selected via the `use_fft` parameter (default: `True`).
+
+    .. note::
+
+        This class supports broadcast between of batch and channel dimensions of the filters and the input image.
+        See :func:`deepinv.physics.functional.conv2d` for more details.
+
 
     :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(B, C, K, h, w)` where
         `B` is the batch size, `C` the number of channels, `K` the number of filters, `h` and `w` the filter height and width which should be smaller or equal than the image :math:`x` height and width respectively.
-    :param torch.Tensor masks: Binary masks :math:`m_k`. Tensor of size `(B, C, K, H, W)` where
-        `B` is the batch size, `C` the number of channels, `K` the number of masks, `H` and `W` the image :math:`x` height and width.
-
-    :param torch.device, str device: Device this physics lives on. If filter or masks is updated, it will be cast to TiledSpaceVaryingBlur's device.
+    :param int, tuple[int, int] patch_size: Size of the patches (tiles). If `int`, the same size is used for both spatial dimensions.
 
     |sep|
 
@@ -720,8 +740,8 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         filters: Tensor = None,
         patch_size: int | tuple[int, int] = None,
         overlap: int | tuple[int, int] = None,
+        blending_mode: str = "bump",
         use_fft: bool = True,
-        device: torch.device | str = "cpu",
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -735,7 +755,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         self.conv2d_adjoint_fn = (
             conv_transpose2d if not use_fft else conv_transpose2d_fft
         )
-
+        self.blending_mode = blending_mode
         # config for tiles
         self.config = TiledPConv2dConfig(
             patch_size=patch_size,
@@ -750,13 +770,14 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         self.register_buffer("filters", filters)
         self.register_buffer("multipliers", None)
 
-    def A(self, x: Tensor, filters=None, **kwargs) -> torch.Tensor:
+    def A(self, x: Tensor, filters: Tensor = None, **kwargs) -> torch.Tensor:
         r"""
         Applies the space varying blur operator to the input image.
 
         :param torch.Tensor x: input image.
-        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(b, c, K, h, w)` where :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W` and `K` is the number of filters (number of tiles).
+        :param torch.Tensor filters: Filters :math:`h_k`.
 
+        :return torch.Tensor: Space varying blurred image.
         """
         self.update_parameters(
             filters, img_size=x.shape[-2:], device=x.device, **kwargs
@@ -822,8 +843,8 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         r"""
         Applies the adjoint operator.
 
-        :param torch.Tensor y: blurred image :math:`y`. Tensor of size `(B, C, H', W')` where `B` is the batch size, `C` the number of channels, `H'` and `W'` the height and width of the blurred image.
-        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(b, c, K, h, w)` where :math:`b \in \{1, B\}` and :math:`c \in \{1 , C\}`.
+        :param torch.Tensor y: blurry image :math:`y`. Tensor of size `(B, C, H', W')`.
+        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(b, c, K, h, w)`.
         """
         if filters is None:
             filters = self.filters
@@ -833,7 +854,11 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         original_img_size = _add_tuple(y.shape[-2:], margin)
 
         self.update_parameters(
-            filters=filters, img_size=original_img_size, device=y.device, **kwargs
+            filters=filters,
+            img_size=original_img_size,
+            device=y.device,
+            dtype=y.dtype,
+            **kwargs,
         )
 
         w = self.multipliers  # (B, C, K, H, W)
@@ -884,6 +909,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         filters: Tensor = None,
         img_size: int | tuple[int, int] = None,
         device=None,
+        dtype=torch.float32,
         **kwargs,
     ):
         if filters is not None and isinstance(filters, Tensor):
@@ -899,8 +925,9 @@ class TiledSpaceVaryingBlur(LinearPhysics):
                 self.config._get_compatible_img_size(img_size)[0],
                 self.config.patch_size,
                 self.config.overlap,
-                self.config.psf_size,
+                mode=self.blending_mode,
                 device=device,
+                dtype=dtype,
             )
             self.register_buffer("multipliers", multipliers)
             self._dynamic_img_size = img_size

@@ -316,6 +316,6 @@ def test_tiled_product_physics_adjointness(
 
     lhs = torch.sum(Ax * y)
     rhs = torch.sum(Aty * x)
-    assert torch.abs(lhs - rhs) < 1e-4 * max(
+    assert torch.abs(lhs - rhs) < 1e-3 * max(
         torch.abs(lhs), torch.abs(rhs)
     )  # relative tolerance

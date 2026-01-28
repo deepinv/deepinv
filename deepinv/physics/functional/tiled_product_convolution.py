@@ -8,25 +8,19 @@ from torch import Tensor
 import torch
 import torch.nn.functional as F
 import math
-from einops import rearrange
-from typing import Callable
-
-
-# =============================================================================
-# CONFIGURATION DATACLASS
-# =============================================================================
+from deepinv.physics.functional.utils import _as_pair, _add_tuple
 
 
 @dataclass
 class TiledPConv2dConfig:
-    """Configuration for tiled patch-based operations.
+    """Configuration for tiled patch-based operations. Used in :class:`deepinv.physics.TiledSpaceVaryingBlur`
 
     This dataclass centralizes all patch-related parameters and provides
     computed properties for derived values like stride and margin.
 
     :param patch_size: Size of each patch (height, width) or single int for square patches.
     :param overlap: Overlap between adjacent patches (height, width) or single int.
-    :param psf_size: Size of the PSF/kernel (height, width) or single int. Optional.
+    :param psf_size_init: The initial size of the PSF/kernel (height, width) or single int. Optional.
     """
 
     patch_size: int | tuple[int, int]
@@ -35,7 +29,9 @@ class TiledPConv2dConfig:
     _psf_size: int | tuple[int, int] | None = field(init=False, default=None)
 
     def __post_init__(self, psf_size_init):
-        """Normalize all sizes to tuples after initialization."""
+        """
+        Normalize all sizes to tuples after initialization.
+        """
         self.patch_size = _as_pair(self.patch_size)
         self.overlap = _as_pair(self.overlap)
         self.stride = _add_tuple(self.patch_size, self.overlap, -1)
@@ -43,7 +39,9 @@ class TiledPConv2dConfig:
 
     @property
     def psf_size(self) -> tuple[int, int] | None:
-        """Size of the PSF/kernel (height, width)."""
+        """
+        Size of the PSF/kernel (height, width).
+        """
         return self._psf_size
 
     @psf_size.setter
@@ -55,13 +53,16 @@ class TiledPConv2dConfig:
 
     @property
     def margin(self) -> tuple[int, int]:
-        """Compute margin based on PSF size: psf_size - 1."""
+        """
+        Compute margin based on PSF size: psf_size - 1.
+        """
         if self.psf_size is None:
             return (0, 0)
         return (self.psf_size[0] - 1, self.psf_size[1] - 1)
 
     def get_num_patches(self, img_size: tuple[int, int]) -> tuple[int, int]:
-        """Compute the number of patches that fit in the image.
+        """
+        Compute the number of patches that fit in the image.
         If the image size is not compatible, we pad it beforehand.
 
         :param img_size: Image size (height, width).
@@ -79,7 +80,8 @@ class TiledPConv2dConfig:
     def _get_compatible_img_size(
         self, img_size: tuple[int, int]
     ) -> tuple[tuple[int, int], tuple[int, int]]:
-        """Get compatible image size and required padding.
+        """
+        Get compatible image size and required padding.
 
         :param img_size: Original image size (height, width).
         :return: Tuple of (compatible_size, padding).
@@ -94,8 +96,8 @@ class TiledPConv2dConfig:
         return (img_size[0] + pad_h, img_size[1] + pad_w), (pad_h, pad_w)
 
     def adjoint_config(self) -> "TiledPConv2dConfig":
-        """Create a new config for adjoint operations.
-        :return: New TiledPConv2dConfig with expanded sizes.
+        """
+        Create a new config for adjoint operations.
         """
         if self.psf_size is None:
             return self
@@ -111,24 +113,26 @@ class TiledPConv2dConfig:
 # PATCH HANDLER CLASS
 # =============================================================================
 class TiledPConv2dHandler:
-    """Handler for patch-based image operations.
+    """
+    Handler for extraction and reconstruction of image patches.
 
-    This class provides methods for extracting patches from images,
-    reconstructing images from patches, and related utilities.
+    It is helpful for implementing tiled operations, such as :class:`deepinv.physics.TiledSpaceVaryingBlur`.
 
-    :param config: TiledPConv2dConfig instance with patch parameters.
+    :param TiledPConv2dConfig config: a :class:`deepinv.physics.functional.TiledPConv2dConfig` instance with patch parameters.
+
     """
 
     def __init__(self, config: TiledPConv2dConfig):
         self.config = config
 
     def image_to_patches(self, image: Tensor) -> Tensor:
-        """Split an image into overlapping patches.
+        r"""
+        Split an image into overlapping patches.
 
         The image will be padded if necessary to ensure all patches have the same size.
 
-        :param torch.Tensor image: Input image tensor of shape (B, C, H, W).
-        :return: Patches tensor of shape (B, C, n_rows, n_cols, patch_h, patch_w).
+        :param torch.Tensor image: Input image tensor of shape `(B, C, H, W)`.
+        :return: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
         """
         patch_size = self.config.patch_size
         stride = self.config.stride
@@ -150,15 +154,15 @@ class TiledPConv2dHandler:
     def patches_to_image(
         self, patches: Tensor, img_size: tuple[int, int] | None = None
     ) -> Tensor:
-        """Reconstruct an image from overlapping patches.
+        r"""
+        Reconstruct an image from overlapping patches.
 
         This is the inverse operation of `image_to_patches`. Note that overlapping
-        regions are summed, so proper normalization (e.g., using unity partition
-        functions) may be needed for correct reconstruction.
+        regions are summed, so proper normalization may be needed for correct reconstruction.
 
-        :param torch.Tensor patches: Patches tensor of shape (B, C, n_rows, n_cols, patch_h, patch_w).
+        :param torch.Tensor patches: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
         :param img_size: Target output size (height, width). If provided, output is cropped.
-        :return: Reconstructed image tensor of shape (B, C, H, W).
+        :return: Reconstructed image tensor of shape `(B, C, H, W)`.
         """
         stride = self.config.stride
 
@@ -193,166 +197,140 @@ class TiledPConv2dHandler:
 
 
 # =============================================================================
-# TILED PRODUCT CONVOLUTION OPERATIONS
+# UNITY PARTITION FUNCTIONS
 # =============================================================================
-
-from deepinv.physics.functional.convolution import _prepare_filter_for_grouped
-
-
-def tiled_product_conv2d(
-    conv2d_fn: Callable,
-    x: Tensor,
-    w: Tensor,
-    h: Tensor,
-    overlap: int | tuple[int, int] = (128, 128),
+def _unity_partition_function_1d(
+    image_size: int,
+    patch_size: int,
+    overlap: int,
+    mode: Literal["bump", "linear"] = "bump",
+    device="cpu",
+    dtype=torch.float32,
 ) -> Tensor:
+    r"""Create a 1D unity partition function for smooth patch blending.
 
-    config = TiledPConv2dConfig.from_tensors(w, h, overlap)
-    handler = TiledPConv2dHandler(config)
+    Creates masks that sum to 1 across all patches, enabling smooth blending
+    in overlap regions. The function is 1 on [-a, a] and decreases to 0 on
+    -(a+b) and (a+b), where a = patch_size/2 - overlap and b = overlap.
 
-    # Extract patches: (B, C, K1, K2, P1, P2)
-    patches = handler.extract_patches(x)
-
-    n_rows, n_cols = patches.size(2), patches.size(3)
-    assert n_rows * n_cols == h.size(2), (
-        f"The number of patches must be equal to the number of PSFs, "
-        f"got {n_rows * n_cols} and {h.size(2)}"
-    )
-
-    # Flatten K1 and K2 to: (B, C, K, P1, P2)
-    patches = patches.flatten(2, 3)
-    patches = patches * w
-
-    # Pad for convolution
-    margin = config.margin
-    patches = F.pad(
-        patches,
-        pad=(margin[1], margin[1], margin[0], margin[0]),
-        value=0,
-        mode="constant",
-    )
-
-    # Apply convolution per patch
-    B, C = patches.shape[:2]
-    h = _prepare_filter_for_grouped(h, B=B, C=C)
-
-    result = conv2d_fn(
-        rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
-        rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
-        padding="valid",
-    )
-
-    result = rearrange(
-        result, "(b k) c h w -> b c k h w", b=patches.size(0), k=h.size(2)
-    )
-
-    # Reconstruct image using handler with expanded overlap
-    B, C, K, H, W = result.size()
-    expanded_config = config.with_psf_expansion()
-    expanded_handler = TiledPConv2dHandler(expanded_config)
-    target_size = _add_tuple(x.shape[-2:], margin)
-
-    result = expanded_handler.reconstruct_image(
-        result.view(B, C, n_rows, n_cols, H, W),
-        img_size=target_size,
-    )
-
-    # Remove margin
-    return result[..., margin[0] : -margin[0], margin[1] : -margin[1]]
-
-
-def tiled_product_conv2d_adjoint(
-    conv2d_adjoint_fn: Callable,
-    y: Tensor,
-    w: Tensor,
-    h: Tensor,
-    overlap: int | tuple[int, int] = (128, 128),
-) -> Tensor:
-    r"""Adjoint of the product-convolution operator in 2d.
-
-    Details available in the following paper:
-
-    Escande, P., & Weiss, P. (2017).
-    `Approximation of integral operators using product-convolution expansions.
-    <https://hal.science/hal-01301235/file/Approximation_Integral_Operators_Convolution-Product_Expansion_Escande_Weiss_2016.pdf>`_
-    Journal of Mathematical Imaging and Vision, 58, 333-348.
-
-    The convolution is done by patches, using only 'valid' padding.
-    This is the adjoint of the forward operator:
-
-    .. math::
-
-        y = \sum_{k=1}^K h_k \star (w_k \odot x)
-
-    where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product,
-    :math:`w_k` are multipliers :math:`h_k` are filters.
-
-    :param torch.Tensor y: Tensor of size (B, C, H, W)
-    :param torch.Tensor w: Tensor of size (b, c, K, patch_size, patch_size). b in {1, B} and c in {1, C}
-    :param torch.Tensor h: Tensor of size (b, c, K, psf_size, psf_size). b in {1, B} and c in {1, C}, h<=H and w<=W
-
-    :return: torch.Tensor x
+    :param int image_size: Size of the image dimension.
+    :param int patch_size: Size of each patch.
+    :param int overlap: Overlap between adjacent patches.
+    :param str mode: Blending mode - 'bump' (smooth) or 'linear'.
+    :return: Tensor of shape (n_patches, max_size) with partition masks.
     """
-    config = TiledPConv2dConfig.from_tensors(w, h, overlap)
-    expanded_config = config.with_psf_expansion()
-
-    margin = config.margin
-    original_img_size = _add_tuple(y.shape[-2:], margin)
-
-    # Pad input
-    y = F.pad(
-        y,
-        pad=(margin[1], margin[1], margin[0], margin[0]),
-        value=0,
-        mode="constant",
+    n_patch = (image_size - patch_size) // (patch_size - overlap) + 1
+    max_size = patch_size + (n_patch - 1) * (patch_size - overlap)
+    t = torch.linspace(
+        -max_size // 2, max_size // 2, max_size, device=device, dtype=dtype
     )
 
-    # Extract patches with expanded config
-    handler = TiledPConv2dHandler(expanded_config)
-    patches = handler.extract_patches(y)
+    if mode.lower() == "bump":
+        from deepinv.physics.generator.blur import bump_function
 
-    n_rows, n_cols = patches.size(2), patches.size(3)
-    assert n_rows * n_cols == h.size(
-        2
-    ), "The number of patches must be equal to the number of PSFs"
+        mask = bump_function(t, patch_size / 2 - overlap, overlap).roll(
+            shifts=-max_size // 2 + patch_size // 2
+        )
+    elif mode.lower() == "linear":
+        a = patch_size / 2 - overlap
+        b = overlap
+        mask = ((a + b) / b - t.abs().clip(0, a + b) / b).abs().clip(0, 1)
+        mask = mask.roll(shifts=-max_size // 2 + patch_size // 2)
+    else:
+        raise ValueError(f"Unknown mode: {mode}. Use 'bump' or 'linear'.")
 
-    # Apply transpose convolution per patch
-    patches = patches.flatten(2, 3)
-    B, C = patches.shape[:2]
-    h = _prepare_filter_for_grouped(h, B=B, C=C)
-
-    result = conv2d_adjoint_fn(
-        rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
-        rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
-        padding="valid",
+    # Create masks for each patch
+    masks = torch.stack(
+        [mask.roll(shifts=(patch_size - overlap) * i) for i in range(n_patch)], dim=0
     )
 
-    result = rearrange(result, "(b k) c h w -> b c k h w", b=B, k=h.size(2))
+    # Handle boundary patches
+    masks[0, :overlap] = 1.0
+    masks[-1, -overlap:] = 1.0
 
-    # Remove margin and apply weights
-    result = result[..., margin[0] : -margin[0], margin[1] : -margin[1]]
-    result = result * w
+    # Normalize to sum to 1
+    masks = masks / (masks.sum(dim=0, keepdims=True) + 1e-8)
+    return masks
 
-    # Reconstruct image using original config's handler
-    B, C, _, H, W = result.size()
-    original_handler = TiledPConv2dHandler(config)
-    return original_handler.reconstruct_image(
-        result.view(B, C, n_rows, n_cols, H, W),
-        img_size=original_img_size,
+
+def _crop_unity_partition_2d(
+    masks: Tensor,
+    patch_size: tuple[int, int],
+    stride: tuple[int, int],
+) -> Tensor:
+    r"""
+    Crop unity partition masks to patch regions.
+
+    Extracts the relevant portion of each partition mask corresponding to
+    its patch location.
+    """
+
+    n_rows, n_cols = masks.size(0), masks.size(1)
+
+    # Create grid indices for vectorized extraction
+    row_idx = torch.arange(n_rows, device=masks.device)
+    col_idx = torch.arange(n_cols, device=masks.device)
+    h_starts = row_idx * stride[0]
+    w_starts = col_idx * stride[1]
+
+    # Extract cropped masks using unfold for efficiency
+    # Reshape masks from (K_h, K_w, H, W) to process each patch location
+    cropped_masks = torch.zeros(
+        n_rows,
+        n_cols,
+        patch_size[0],
+        patch_size[1],
+        device=masks.device,
+        dtype=masks.dtype,
+    )
+    for i in range(n_rows):
+        for j in range(n_cols):
+            h_start, w_start = int(h_starts[i]), int(w_starts[j])
+            cropped_masks[i, j] = masks[
+                i,
+                j,
+                h_start : h_start + patch_size[0],
+                w_start : w_start + patch_size[1],
+            ]
+
+    return cropped_masks
+
+
+def generate_tiled_multipliers(
+    img_size: int | tuple[int, int],
+    patch_size: int | tuple[int, int],
+    overlap: int | tuple[int, int],
+    mode: Literal["bump", "linear"] = "bump",
+    device="cpu",
+    dtype=torch.float32,
+):
+    img_size = _as_pair(img_size)
+    patch_size = _as_pair(patch_size)
+    overlap = _as_pair(overlap)
+    stride = _add_tuple(patch_size, overlap, -1)
+
+    # masks = unity_partition_function_2d(img_size, patch_size, overlap)
+    masks_x = _unity_partition_function_1d(
+        img_size[0], patch_size[0], overlap[0], mode, device=device, dtype=dtype
+    )
+    masks_y = _unity_partition_function_1d(
+        img_size[1], patch_size[1], overlap[1], mode, device=device, dtype=dtype
     )
 
+    # Combine 1D masks into 2D via outer product
+    masks = torch.tensordot(masks_x, masks_y, dims=0)
+    masks = masks.permute(0, 2, 1, 3)
 
-def generate_tiled_multipliers(img_size, patch_size, overlap, kernel_size, device):
-    masks = unity_partition_function_2d(img_size, patch_size, overlap)
-    w, _ = crop_unity_partition_2d(masks, patch_size, overlap, kernel_size)
-    return w.flatten(0, 1).unsqueeze(0).unsqueeze(0).to(device)
+    # Normalize to sum to 1
+    masks = masks / (masks.sum(dim=(0, 1), keepdims=True) + 1e-8)
+
+    w = _crop_unity_partition_2d(masks, patch_size, stride)
+    return w.flatten(0, 1).unsqueeze(0).unsqueeze(0)
 
 
 # =============================================================================
 # PSF EXTRACTION
 # =============================================================================
-
-
 def get_psf_pconv2d_patch(
     h: Tensor,
     w: Tensor,
@@ -576,198 +554,9 @@ def _find_containing_patches_1d(
     return indices, positions
 
 
-# =============================================================================
-# UNITY PARTITION FUNCTIONS
-# =============================================================================
-
-
-def unity_partition_function_1d(
-    image_size: int,
-    patch_size: int,
-    overlap: int,
-    mode: Literal["bump", "linear"] = "bump",
-) -> Tensor:
-    r"""Create a 1D unity partition function for smooth patch blending.
-
-    Creates masks that sum to 1 across all patches, enabling smooth blending
-    in overlap regions. The function is 1 on [-a, a] and decreases to 0 on
-    -(a+b) and (a+b), where a = patch_size/2 - overlap and b = overlap.
-
-    :param int image_size: Size of the image dimension.
-    :param int patch_size: Size of each patch.
-    :param int overlap: Overlap between adjacent patches.
-    :param str mode: Blending mode - 'bump' (smooth) or 'linear'.
-    :return: Tensor of shape (n_patches, max_size) with partition masks.
-    """
-    n_patch = (image_size - patch_size) // (patch_size - overlap) + 1
-    max_size = patch_size + (n_patch - 1) * (patch_size - overlap)
-    t = torch.linspace(-max_size // 2, max_size // 2, max_size)
-
-    if mode.lower() == "bump":
-        from deepinv.physics.generator.blur import bump_function
-
-        mask = bump_function(t, patch_size / 2 - overlap, overlap).roll(
-            shifts=-max_size // 2 + patch_size // 2
-        )
-    elif mode.lower() == "linear":
-        a = patch_size / 2 - overlap
-        b = overlap
-        mask = ((a + b) / b - t.abs().clip(0, a + b) / b).abs().clip(0, 1)
-        mask = mask.roll(shifts=-max_size // 2 + patch_size // 2)
-    else:
-        raise ValueError(f"Unknown mode: {mode}. Use 'bump' or 'linear'.")
-
-    # Create masks for each patch
-    masks = torch.stack(
-        [mask.roll(shifts=(patch_size - overlap) * i) for i in range(n_patch)], dim=0
-    )
-
-    # Handle boundary patches
-    masks[0, :overlap] = 1.0
-    masks[-1, -overlap:] = 1.0
-
-    # Normalize to sum to 1
-    masks = masks / masks.sum(dim=0, keepdims=True)
-    return masks
-
-
-def unity_partition_function_2d(
-    image_size: tuple[int],
-    patch_size: tuple[int],
-    overlap: tuple[int],
-    mode: Literal["bump", "linear"] = "bump",
-) -> Tensor:
-    r"""Create a 2D unity partition function for smooth patch blending.
-
-    Creates 2D masks by combining 1D partition functions. The masks sum to 1
-    across all patches, enabling smooth blending in overlap regions.
-
-    :param tuple image_size: Image size (height, width).
-    :param tuple patch_size: Patch size (height, width).
-    :param tuple overlap: Overlap size (height, width).
-    :param str mode: Blending mode - 'bump' (smooth) or 'linear'.
-    :return: Tensor of shape (n_rows, n_cols, patch_h, patch_w) with partition masks.
-    """
-    image_size = _as_pair(image_size)
-    patch_size = _as_pair(patch_size)
-    overlap = _as_pair(overlap)
-
-    masks_x = unity_partition_function_1d(
-        image_size[0], patch_size[0], overlap[0], mode
-    )
-    masks_y = unity_partition_function_1d(
-        image_size[1], patch_size[1], overlap[1], mode
-    )
-
-    # Combine 1D masks into 2D via outer product
-    masks = torch.tensordot(masks_x, masks_y, dims=0)
-    masks = masks.permute(0, 2, 1, 3)
-
-    # Normalize to sum to 1
-    masks = masks / (masks.sum(dim=(0, 1), keepdims=True) + 1e-8)
-    return masks
-
-
-def crop_unity_partition_2d(
-    masks: Tensor,
-    patch_size: tuple[int],
-    overlap: tuple[int],
-    psf_size: tuple[int],
-) -> tuple[Tensor, Tensor]:
-    r"""Crop unity partition masks to patch regions.
-
-    Extracts the relevant portion of each partition mask corresponding to
-    its patch location.
-
-    :param torch.Tensor masks: Full masks of shape (K_h, K_w, H, W).
-    :param tuple patch_size: Patch size (height, width).
-    :param tuple overlap: Overlap size (height, width).
-    :param tuple psf_size: PSF size for computing center indices.
-    :return: Tuple of:
-        - cropped_masks: Tensor of shape (K_h, K_w, patch_h, patch_w)
-        - index: Tensor of shape (K_h, K_w, 2) with mask center indices
-    """
-    patch_size = _as_pair(patch_size)
-    overlap = _as_pair(overlap)
-    psf_size = _as_pair(psf_size)
-
-    stride = (patch_size[0] - overlap[0], patch_size[1] - overlap[1])
-    n_rows, n_cols = masks.size(0), masks.size(1)
-
-    # Create grid indices for vectorized extraction
-    row_idx = torch.arange(n_rows, device=masks.device)
-    col_idx = torch.arange(n_cols, device=masks.device)
-    h_starts = row_idx * stride[0]
-    w_starts = col_idx * stride[1]
-
-    # Build index tensor: shape (K_h, K_w, 2)
-    index = torch.stack(
-        torch.meshgrid(
-            h_starts + psf_size[0] // 2, w_starts + psf_size[1] // 2, indexing="ij"
-        ),
-        dim=-1,
-    ).float()
-
-    # Extract cropped masks using unfold for efficiency
-    # Reshape masks from (K_h, K_w, H, W) to process each patch location
-    cropped_masks = torch.zeros(
-        n_rows,
-        n_cols,
-        patch_size[0],
-        patch_size[1],
-        device=masks.device,
-        dtype=masks.dtype,
-    )
-    for i in range(n_rows):
-        for j in range(n_cols):
-            h_start, w_start = int(h_starts[i]), int(w_starts[j])
-            cropped_masks[i, j] = masks[
-                i,
-                j,
-                h_start : h_start + patch_size[0],
-                w_start : w_start + patch_size[1],
-            ]
-
-    return cropped_masks, index
-
-
 # ===========================================
 # PRIVATE HELPER FUNCTIONS
 # =============================================================================
-
-
-def _add_tuple(a: tuple, b: tuple, constant: float = 1) -> tuple:
-    """Add two tuples element-wise with optional scaling of second tuple.
-
-    Computes: output[i] = a[i] + b[i] * constant
-
-    :param tuple a: First tuple.
-    :param tuple b: Second tuple (must have same length as a).
-    :param float constant: Scalar multiplier for b. Default is 1.
-    :return: Result tuple.
-    :raises AssertionError: If tuples have different lengths.
-    """
-    assert len(a) == len(b), "Input tuples must have the same length"
-    return tuple(a[i] + constant * b[i] for i in range(len(a)))
-
-
-def _as_pair(value: int | tuple | list) -> tuple[int, int]:
-    """Ensure value is a 2-tuple.
-
-    :param value: Integer (duplicated) or tuple/list (last 2 elements used).
-    :return: 2-tuple of integers.
-    :raises ValueError: If tuple/list has fewer than 2 elements.
-    :raises TypeError: If value is neither int nor tuple/list.
-    """
-    if isinstance(value, int):
-        return (value, value)
-    elif isinstance(value, (tuple, list)):
-        if len(value) >= 2:
-            return tuple(value[-2:])
-        else:
-            raise ValueError("Tuple/list must have at least 2 elements.")
-    else:
-        raise TypeError(f"Expected int or tuple/list, got {type(value).__name__}")
 
 
 def _pad_sublist(input_list: list[list]) -> tuple[list[list], list[list[int]]]:
