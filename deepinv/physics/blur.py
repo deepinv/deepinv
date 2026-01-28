@@ -26,7 +26,7 @@ from deepinv.physics.functional.tiled_product_convolution import (
     TiledPConv2dConfig,
     TiledPConv2dHandler,
 )
-from deepinv.physics.functional.utils import _add_tuple
+from deepinv.physics.functional.utils import _add_tuple, _as_pair
 from einops import rearrange
 
 
@@ -739,6 +739,31 @@ class TiledSpaceVaryingBlur(LinearPhysics):
 
         This class only supports `'valid'` padding. If you need other padding options, please raise an issue.
 
+    |sep|
+    
+    :Examples:
+    
+    >>> import torch 
+    >>> from deepinv.physics import TiledSpaceVaryingBlur
+    >>> from deepinv.physics.generator import MotionBlurGenerator, TiledBlurGenerator
+    >>> import deepinv as dinv 
+    >>> img_size = (256, 256)
+    >>> patch_size = (64, 64)
+    >>> stride = (32, 32)
+    >>> x = dinv.utils.load_example(
+    ...        "butterfly.png", img_size=img_size, resize_mode="resize"
+    ...    ).to(device)
+    >>> psf_generator = DiffractionBlurGenerator(psf_size=(31, 31), device=device)
+    >>> generator = TiledBlurGenerator(
+    ...     psf_generator=psf_generator,
+    ...     patch_size=patch_size,
+    ...     stride=stride,
+    ...     device=device,
+    ... )
+    >>> filters = generator.step(batch_size=1, img_size=img_size)["filters"]
+    >>> physics = TiledSpaceVaryingBlur(patch_size=patch_size, stride=stride, device=device)
+    >>> y = physics(x, filters=filters)
+    >>> dinv.utils.plot([x, y], titles=["Original", "Blurred"])
     """
 
     def __init__(
@@ -752,8 +777,11 @@ class TiledSpaceVaryingBlur(LinearPhysics):
     ):
         super().__init__(**kwargs)
 
-        self.patch_size = patch_size
-        self.stride = stride if stride is not None else patch_size
+        self.patch_size = _as_pair(patch_size)
+        self.stride = _as_pair(stride) if stride is not None else self.patch_size // 2
+        assert self.stride[0] <= self.patch_size[0] and self.stride[1] <= self.patch_size[1], (
+            f"Stride {self.stride} must be smaller or equal than patch_size {self.patch_size}."
+        )
         self._dynamic_img_size = None  # To track image size changes
 
         self.use_fft = use_fft
@@ -784,7 +812,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         :param torch.Tensor x: input image.
         :param torch.Tensor filters: Filters :math:`h_k`.
 
-        :return torch.Tensor: Space varying blurred image.
+        :return: torch.Tensor: Space varying blurred image.
         """
         self.update_parameters(
             filters, img_size=x.shape[-2:], device=x.device, **kwargs
@@ -851,6 +879,8 @@ class TiledSpaceVaryingBlur(LinearPhysics):
 
         :param torch.Tensor y: blurry image :math:`y`. Tensor of size `(B, C, H', W')`.
         :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(b, c, K, h, w)`.
+        
+        :return: torch.Tensor: Adjoint result.
         """
         if filters is None:
             filters = self.filters

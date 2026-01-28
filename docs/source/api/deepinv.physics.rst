@@ -39,6 +39,7 @@ Operators
    deepinv.physics.Blur
    deepinv.physics.BlurFFT
    deepinv.physics.SpaceVaryingBlur
+   deepinv.physics.TiledSpaceVaryingBlur
    deepinv.physics.Downsampling
    deepinv.physics.Upsampling
    deepinv.physics.DownsamplingMatlab
@@ -87,6 +88,7 @@ Generators
    deepinv.physics.generator.DiffractionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator3D
    deepinv.physics.generator.ProductConvolutionBlurGenerator
+   deepinv.physics.generator.TiledBlurGenerator
    deepinv.physics.generator.ConfocalBlurGenerator3D
    deepinv.physics.generator.Zernike
    deepinv.physics.generator.BaseMaskGenerator

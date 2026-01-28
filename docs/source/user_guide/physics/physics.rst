@@ -44,6 +44,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Blur`
        | :class:`deepinv.physics.BlurFFT`
        | :class:`deepinv.physics.SpaceVaryingBlur`
+       | :class:`deepinv.physics.TiledSpaceVaryingBlur`
        | :class:`deepinv.physics.Downsampling`
        | :class:`deepinv.physics.Upsampling`
        | :class:`deepinv.physics.DownsamplingMatlab`

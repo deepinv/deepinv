@@ -1113,10 +1113,7 @@ class TiledBlurGenerator(PSFGenerator):
     Generates parameters of the :class:`deepinv.physics.TiledSpaceVaryingBlur` operator.
     The image is divided into overlapping patches, each local patch is convolved with a different PSF.
 
-    Parameters generated:
-
-    -`'filters'`: tensor of shape `(B, C, K, psf_size, psf_size)`
-
+    Parameters generated: `'filters'`: tensor of shape `(B, C, K, psf_size, psf_size)`
     where `K` is the number of patches in which the image is divided.
     It is computed based on the `patch_size`, `stride` and the given `img_size` during the `step()` function call.
 
