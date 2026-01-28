@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field, InitVar
 from typing import Literal
 
 from torch import Tensor
-from deepinv.physics.generator.blur import bump_function
+
 import torch
 import torch.nn.functional as F
 import math
@@ -31,19 +31,27 @@ class TiledPConv2dConfig:
 
     patch_size: int | tuple[int, int]
     overlap: int | tuple[int, int]
-    psf_size: int | tuple[int, int] | None = None
+    psf_size_init: InitVar[int | tuple[int, int] | None] = None
+    _psf_size: int | tuple[int, int] | None = field(init=False, default=None)
 
-    def __post_init__(self):
+    def __post_init__(self, psf_size_init):
         """Normalize all sizes to tuples after initialization."""
         self.patch_size = _as_pair(self.patch_size)
         self.overlap = _as_pair(self.overlap)
-        if self.psf_size is not None:
-            self.psf_size = _as_pair(self.psf_size)
+        self.stride = _add_tuple(self.patch_size, self.overlap, -1)
+        self._psf_size = _as_pair(psf_size_init) if psf_size_init is not None else None
 
     @property
-    def stride(self) -> tuple[int, int]:
-        """Compute stride between patches: patch_size - overlap."""
-        return _add_tuple(self.patch_size, self.overlap, -1)
+    def psf_size(self) -> tuple[int, int] | None:
+        """Size of the PSF/kernel (height, width)."""
+        return self._psf_size
+
+    @psf_size.setter
+    def psf_size(self, value: int | tuple[int, int] | None):
+        if value is not None:
+            self._psf_size = _as_pair(value)
+        else:
+            self._psf_size = None
 
     @property
     def margin(self) -> tuple[int, int]:
@@ -52,50 +60,41 @@ class TiledPConv2dConfig:
             return (0, 0)
         return (self.psf_size[0] - 1, self.psf_size[1] - 1)
 
-    def compute_num_patches(self, img_size: tuple[int, int]) -> tuple[int, int]:
+    def get_num_patches(self, img_size: tuple[int, int]) -> tuple[int, int]:
         """Compute the number of patches that fit in the image.
+        If the image size is not compatible, we pad it beforehand.
 
         :param img_size: Image size (height, width).
         :return: Number of patches (n_rows, n_cols).
         """
         img_size = _as_pair(img_size)
+        img_size = self._get_compatible_img_size(img_size)[0]
         stride = self.stride
+
         return (
             (img_size[0] - self.patch_size[0]) // stride[0] + 1,
             (img_size[1] - self.patch_size[1]) // stride[1] + 1,
         )
 
-    def compute_max_size(self, img_size: tuple[int, int]) -> tuple[int, int]:
-        """Compute maximum image size that can be evenly split into patches.
+    def _get_compatible_img_size(
+        self, img_size: tuple[int, int]
+    ) -> tuple[tuple[int, int], tuple[int, int]]:
+        """Get compatible image size and required padding.
 
-        :param img_size: Image size (height, width).
-        :return: Maximum size (height, width).
+        :param img_size: Original image size (height, width).
+        :return: Tuple of (compatible_size, padding).
         """
-        num_patches = self.compute_num_patches(img_size)
-        stride = self.stride
-        return (
-            self.patch_size[0] + (num_patches[0] - 1) * stride[0],
-            self.patch_size[1] + (num_patches[1] - 1) * stride[1],
-        )
+        # Compute number of patches and required padding
+        n_h = (img_size[0] - self.patch_size[0]) // self.stride[0] + 1
+        n_w = (img_size[1] - self.patch_size[1]) // self.stride[1] + 1
 
-    def compute_padding(self, img_size: tuple[int, int]) -> tuple[int, int]:
-        """Compute padding needed to make image compatible with patch extraction.
+        pad_h = self.patch_size[0] + n_h * self.stride[0] - img_size[0]
+        pad_w = self.patch_size[1] + n_w * self.stride[1] - img_size[1]
 
-        :param img_size: Image size (height, width).
-        :return: Padding (pad_h, pad_w).
-        """
-        img_size = _as_pair(img_size)
-        stride = self.stride
-        n_h, n_w = self.compute_num_patches(img_size)
-        pad_h = self.patch_size[0] + n_h * stride[0] - img_size[0]
-        pad_w = self.patch_size[1] + n_w * stride[1] - img_size[1]
-        return (pad_h, pad_w)
+        return (img_size[0] + pad_h, img_size[1] + pad_w), (pad_h, pad_w)
 
-    def with_psf_expansion(self) -> "TiledPConv2dConfig":
-        """Create a new config with patch_size and overlap expanded by PSF margin.
-
-        Used for adjoint operations where we need larger patches.
-
+    def adjoint_config(self) -> "TiledPConv2dConfig":
+        """Create a new config for adjoint operations.
         :return: New TiledPConv2dConfig with expanded sizes.
         """
         if self.psf_size is None:
@@ -104,24 +103,7 @@ class TiledPConv2dConfig:
         return TiledPConv2dConfig(
             patch_size=_add_tuple(self.patch_size, expansion),
             overlap=_add_tuple(self.overlap, expansion),
-            psf_size=self.psf_size,
-        )
-
-    @classmethod
-    def from_tensors(
-        cls, w: Tensor, h: Tensor, overlap: int | tuple[int, int]
-    ) -> "TiledPConv2dConfig":
-        """Create config from weight and PSF tensors.
-
-        :param w: Weight tensor of shape (b, c, K, patch_h, patch_w).
-        :param h: PSF tensor of shape (b, c, K, psf_h, psf_w).
-        :param overlap: Overlap between patches.
-        :return: TiledPConv2dConfig instance.
-        """
-        return cls(
-            patch_size=w.shape[-2:],
-            overlap=overlap,
-            psf_size=h.shape[-2:],
+            psf_size_init=self.psf_size,
         )
 
 
@@ -140,46 +122,74 @@ class TiledPConv2dHandler:
     def __init__(self, config: TiledPConv2dConfig):
         self.config = config
 
-    @property
-    def patch_size(self) -> tuple[int, int]:
-        return self.config.patch_size
+    def image_to_patches(self, image: Tensor) -> Tensor:
+        """Split an image into overlapping patches.
 
-    @property
-    def overlap(self) -> tuple[int, int]:
-        return self.config.overlap
+        The image will be padded if necessary to ensure all patches have the same size.
 
-    @property
-    def stride(self) -> tuple[int, int]:
-        return self.config.stride
-
-    def extract_patches(self, image: Tensor) -> Tensor:
-        """Extract patches from an image.
-
-        :param image: Input image tensor of shape (B, C, H, W).
+        :param torch.Tensor image: Input image tensor of shape (B, C, H, W).
         :return: Patches tensor of shape (B, C, n_rows, n_cols, patch_h, patch_w).
         """
-        return image_to_patches(image, self.patch_size, self.overlap)
+        patch_size = self.config.patch_size
+        stride = self.config.stride
 
-    def reconstruct_image(
+        img_size = image.shape[-2:]
+
+        # Pad image if necessary for even patch extraction
+        __, to_pad = self.config._get_compatible_img_size(img_size)
+
+        if to_pad[0] > 0 or to_pad[1] > 0:
+            image = F.pad(image, (0, to_pad[1], 0, to_pad[0]))
+
+        # Extract patches using unfold
+        patches = image.unfold(2, patch_size[0], stride[0]).unfold(
+            3, patch_size[1], stride[1]
+        )
+        return patches.contiguous()
+
+    def patches_to_image(
         self, patches: Tensor, img_size: tuple[int, int] | None = None
     ) -> Tensor:
-        """Reconstruct image from patches.
+        """Reconstruct an image from overlapping patches.
 
-        :param patches: Patches tensor of shape (B, C, n_rows, n_cols, patch_h, patch_w).
-        :param img_size: Target image size (height, width). Optional.
+        This is the inverse operation of `image_to_patches`. Note that overlapping
+        regions are summed, so proper normalization (e.g., using unity partition
+        functions) may be needed for correct reconstruction.
+
+        :param torch.Tensor patches: Patches tensor of shape (B, C, n_rows, n_cols, patch_h, patch_w).
+        :param img_size: Target output size (height, width). If provided, output is cropped.
         :return: Reconstructed image tensor of shape (B, C, H, W).
         """
-        return patches_to_image(patches, self.overlap, img_size)
+        stride = self.config.stride
 
-    def get_compatible_img_size(
-        self, img_size: tuple[int, int]
-    ) -> tuple[tuple[int, int], tuple[int, int]]:
-        """Get compatible image size and required padding.
+        B, C, num_patches_h, num_patches_w, h, w = patches.size()
 
-        :param img_size: Original image size (height, width).
-        :return: Tuple of (compatible_size, padding).
-        """
-        return to_compatible_img_size(img_size, self.patch_size, self.overlap)
+        output_size = (
+            h + (num_patches_h - 1) * stride[0],
+            w + (num_patches_w - 1) * stride[1],
+        )
+
+        # Reshape: (B, C, n_h, n_w, h, w) -> (B, n_h*n_w, C, h, w) -> (B, C*h*w, n_h*n_w)
+        num_patches = num_patches_h * num_patches_w
+        patches = (
+            patches.permute(0, 2, 3, 1, 4, 5).contiguous().view(B, num_patches, C, h, w)
+        )
+        patches = patches.view(B, num_patches, C * h * w).permute(0, 2, 1)
+
+        # Fold patches back into image
+        output = F.fold(
+            patches,
+            output_size=output_size,
+            kernel_size=(h, w),
+            stride=stride,
+        )
+
+        # Crop to target size if specified
+        if img_size is not None:
+            img_size = _as_pair(img_size)
+            output = output[:, :, : img_size[0], : img_size[1]]
+
+        return output.contiguous()
 
 
 # =============================================================================
@@ -196,32 +206,7 @@ def tiled_product_conv2d(
     h: Tensor,
     overlap: int | tuple[int, int] = (128, 128),
 ) -> Tensor:
-    r"""Product-convolution operator in 2d.
 
-    Details available in the following paper:
-
-    Escande, P., & Weiss, P. (2017).
-    `Approximation of integral operators using product-convolution expansions.
-    <https://hal.science/hal-01301235/file/Approximation_Integral_Operators_Convolution-Product_Expansion_Escande_Weiss_2016.pdf>`_
-    Journal of Mathematical Imaging and Vision, 58, 333-348.
-
-    The convolution is done by patches, using only 'valid' padding.
-    This forward operator performs
-
-    .. math::
-
-        y = \sum_{k=1}^K h_k \star (w_k \odot x)
-
-    where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product,
-    :math:`w_k` are multipliers :math:`h_k` are filters.
-
-    :param torch.Tensor x: Tensor of size (B, C, H, W)
-    :param torch.Tensor w: Tensor of size (b, c, K, patch_size, patch_size). b in {1, B} and c in {1, C}
-    :param torch.Tensor h: Tensor of size (b, c, K, psf_size, psf_size). b in {1, B} and c in {1, C}, h<=H and w<=W
-        where `K` is the number of patches.
-
-    :return: torch.Tensor the blurry image.
-    """
     config = TiledPConv2dConfig.from_tensors(w, h, overlap)
     handler = TiledPConv2dHandler(config)
 
@@ -619,6 +604,8 @@ def unity_partition_function_1d(
     t = torch.linspace(-max_size // 2, max_size // 2, max_size)
 
     if mode.lower() == "bump":
+        from deepinv.physics.generator.blur import bump_function
+
         mask = bump_function(t, patch_size / 2 - overlap, overlap).roll(
             shifts=-max_size // 2 + patch_size // 2
         )
@@ -744,126 +731,7 @@ def crop_unity_partition_2d(
     return cropped_masks, index
 
 
-# =============================================================================
-# PATCH UTILITY FUNCTIONS
-# =============================================================================
-
-
-def to_compatible_img_size(
-    img_size: tuple[int], patch_size: tuple[int], overlap: tuple[int]
-) -> tuple[tuple[int, int], tuple[int, int]]:
-    """Compute image size compatible with patch extraction and required padding.
-
-    :param tuple img_size: Original image size (height, width).
-    :param tuple patch_size: Patch size (height, width).
-    :param tuple overlap: Overlap between patches (height, width).
-    :return: Tuple of (compatible_size, padding_needed).
-    """
-    patch_size = _as_pair(patch_size)
-    overlap = _as_pair(overlap)
-    img_size = _as_pair(img_size)
-
-    stride = (patch_size[0] - overlap[0], patch_size[1] - overlap[1])
-
-    # Compute number of patches and required padding
-    n_h = (img_size[0] - patch_size[0]) // stride[0] + 1
-    n_w = (img_size[1] - patch_size[1]) // stride[1] + 1
-
-    pad_h = patch_size[0] + n_h * stride[0] - img_size[0]
-    pad_w = patch_size[1] + n_w * stride[1] - img_size[1]
-
-    return (img_size[0] + pad_h, img_size[1] + pad_w), (pad_h, pad_w)
-
-
-def image_to_patches(
-    image: Tensor, patch_size: int | tuple[int, int], overlap: int | tuple[int, int]
-) -> Tensor:
-    """Split an image into overlapping patches.
-
-    The image will be padded if necessary to ensure all patches have the same size.
-
-    :param torch.Tensor image: Input image tensor of shape (B, C, H, W).
-    :param patch_size: Size of each patch (height, width) or single int.
-    :param overlap: Overlap between adjacent patches (height, width) or single int.
-    :return: Patches tensor of shape (B, C, n_rows, n_cols, patch_h, patch_w).
-    :raises TypeError: If image is not a torch.Tensor.
-    :raises AssertionError: If patch_size <= overlap.
-    """
-    if not isinstance(image, torch.Tensor):
-        raise TypeError("Image should be a torch.Tensor")
-
-    patch_size = _as_pair(patch_size)
-    overlap = _as_pair(overlap)
-    img_size = image.shape[-2:]
-    stride = (patch_size[0] - overlap[0], patch_size[1] - overlap[1])
-
-    assert stride[0] > 0 and stride[1] > 0, "Patch size must be greater than overlap"
-
-    # Pad image if necessary for even patch extraction
-    __, to_pad = to_compatible_img_size(img_size, patch_size, overlap)
-    if to_pad[0] > 0 or to_pad[1] > 0:
-        image = F.pad(image, (0, to_pad[1], 0, to_pad[0]))
-
-    # Extract patches using unfold
-    patches = image.unfold(2, patch_size[0], stride[0]).unfold(
-        3, patch_size[1], stride[1]
-    )
-    return patches.contiguous()
-
-
-def patches_to_image(
-    patches: Tensor,
-    overlap: int | tuple[int, int],
-    img_size: int | tuple[int, int] = None,
-) -> Tensor:
-    """Reconstruct an image from overlapping patches.
-
-    This is the inverse operation of `image_to_patches`. Note that overlapping
-    regions are summed, so proper normalization (e.g., using unity partition
-    functions) may be needed for correct reconstruction.
-
-    :param torch.Tensor patches: Patches tensor of shape (B, C, n_rows, n_cols, patch_h, patch_w).
-    :param overlap: Overlap between patches (height, width) or single int.
-    :param img_size: Target output size (height, width). If provided, output is cropped.
-    :return: Reconstructed image tensor of shape (B, C, H, W).
-    :raises TypeError: If patches is not a torch.Tensor.
-    """
-    if not isinstance(patches, torch.Tensor):
-        raise TypeError("Patches should be a torch.Tensor")
-
-    overlap = _as_pair(overlap)
-    B, C, num_patches_h, num_patches_w, h, w = patches.size()
-    stride = (h - overlap[0], w - overlap[1])
-
-    output_size = (
-        h + (num_patches_h - 1) * stride[0],
-        w + (num_patches_w - 1) * stride[1],
-    )
-
-    # Reshape: (B, C, n_h, n_w, h, w) -> (B, n_h*n_w, C, h, w) -> (B, C*h*w, n_h*n_w)
-    num_patches = num_patches_h * num_patches_w
-    patches = (
-        patches.permute(0, 2, 3, 1, 4, 5).contiguous().view(B, num_patches, C, h, w)
-    )
-    patches = patches.view(B, num_patches, C * h * w).permute(0, 2, 1)
-
-    # Fold patches back into image
-    output = F.fold(
-        patches,
-        output_size=output_size,
-        kernel_size=(h, w),
-        stride=stride,
-    )
-
-    # Crop to target size if specified
-    if img_size is not None:
-        img_size = _as_pair(img_size)
-        output = output[:, :, : img_size[0], : img_size[1]]
-
-    return output.contiguous()
-
-
-# =============================================================================
+# ===========================================
 # PRIVATE HELPER FUNCTIONS
 # =============================================================================
 

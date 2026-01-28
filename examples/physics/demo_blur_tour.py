@@ -339,15 +339,16 @@ plot(
 from deepinv.physics.blur import TiledSpaceVaryingBlur
 from deepinv.physics.generator import TiledBlurGenerator
 
-img_size = (1024, 1024)
-patch_size = (256, 256)
-overlap = (128, 128)
+img_size = (512, 512)
+patch_size = (128, 128)
+overlap = (64, 64)
 
-psf_generator = DiffractionBlurGenerator(
-    (17, 17),
+psf_generator = MotionBlurGenerator(
+    (25, 25),
     device=device,
     dtype=dtype,
 )
+
 generator = TiledBlurGenerator(
     psf_generator=psf_generator, patch_size=patch_size, overlap=overlap, device=device
 )
@@ -363,14 +364,14 @@ physics = TiledSpaceVaryingBlur(
     use_fft=True,
 )
 
-dirac_comb = dinv.utils.dirac_comb((1, 1) + img_size, step=10, device=device)
+dirac_comb = dinv.utils.dirac_comb((1, 1) + img_size, step=32, device=device)
 
 y = physics(dirac_comb)
 
 plot(
-    y.abs() ** 0.75,
+    y.abs() ** 0.5,
     suptitle="Impulse responses of the tiled space varying blur",
-    figsize=(10, 10),
+    figsize=(5, 5),
 )
 
 

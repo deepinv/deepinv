@@ -5,6 +5,7 @@ import torchvision
 import torch
 import torch.fft as fft
 from torch import Tensor
+import torch.nn.functional as F
 from deepinv.physics.forward import LinearPhysics, DecomposablePhysics, adjoint_function
 from deepinv.physics.functional import (
     conv2d,
@@ -18,6 +19,15 @@ from deepinv.physics.functional import (
     conv2d_fft,
     conv_transpose2d_fft,
 )
+
+from deepinv.physics.functional.convolution import _prepare_filter_for_grouped
+from deepinv.physics.functional.tiled_product_convolution import (
+    generate_tiled_multipliers,
+    TiledPConv2dConfig,
+    TiledPConv2dHandler,
+    _add_tuple,
+)
+from einops import rearrange
 
 
 class Downsampling(LinearPhysics):
@@ -678,13 +688,6 @@ class SpaceVaryingBlur(LinearPhysics):
         super().update_parameters(**kwargs)
 
 
-from deepinv.physics.functional import (
-    tiled_product_conv2d,
-    tiled_product_conv2d_adjoint,
-    generate_tiled_multipliers,
-)
-
-
 class TiledSpaceVaryingBlur(LinearPhysics):
     r"""
     Space varying blur via tiled-convolution.
@@ -726,16 +729,26 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         self.patch_size = patch_size
         self.overlap = overlap
         self._dynamic_img_size = None  # To track image size changes
-        # self.update_parameters(filters, **kwargs)
+
         self.use_fft = use_fft
         self.conv2d_fn = conv2d if not use_fft else conv2d_fft
         self.conv2d_adjoint_fn = (
             conv_transpose2d if not use_fft else conv_transpose2d_fft
         )
 
+        # config for tiles
+        self.config = TiledPConv2dConfig(
+            patch_size=patch_size,
+            overlap=overlap,
+            psf_size_init=filters.shape[-2:] if filters is not None else None,
+        )
+        self.tiled_handler = TiledPConv2dHandler(self.config)
+
+        self.adjoint_config = self.config.adjoint_config()
+        self.adjoint_tiled_handler = TiledPConv2dHandler(self.adjoint_config)
+
         self.register_buffer("filters", filters)
         self.register_buffer("multipliers", None)
-        self.to(device)
 
     def A(self, x: Tensor, filters=None, **kwargs) -> torch.Tensor:
         r"""
@@ -748,9 +761,57 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         self.update_parameters(
             filters, img_size=x.shape[-2:], device=x.device, **kwargs
         )
-        return tiled_product_conv2d(
-            self.conv2d_fn, x, self.multipliers, self.filters, self.overlap
+
+        w = self.multipliers  # (B, C, K, H, W)
+        h = self.filters  # (B, C, K, h, w)
+
+        # Extract patches: (B, C, K1, K2, P1, P2)
+        patches = self.tiled_handler.image_to_patches(x)
+
+        n_rows, n_cols = patches.size(2), patches.size(3)
+        assert n_rows * n_cols == h.size(2), (
+            f"The number of patches must be equal to the number of PSFs, "
+            f"got {n_rows * n_cols} and {h.size(2)}"
         )
+
+        # Flatten K1 and K2 to: (B, C, K, P1, P2)
+        patches = patches.flatten(2, 3)
+        patches = patches * w
+
+        # Pad for convolution
+        margin = self.config.margin
+        patches = F.pad(
+            patches,
+            pad=(margin[1], margin[1], margin[0], margin[0]),
+            value=0,
+            mode="constant",
+        )
+
+        # Apply convolution per patch
+        B, C = patches.shape[:2]
+        h = _prepare_filter_for_grouped(h, B=B, C=C)
+
+        result = self.conv2d_fn(
+            rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
+            rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
+            padding="valid",
+        )
+
+        result = rearrange(
+            result, "(b k) c h w -> b c k h w", b=patches.size(0), k=h.size(2)
+        )
+
+        # Reconstruct image using handler with expanded overlap
+        B, C, K, H, W = result.size()
+        target_size = _add_tuple(x.shape[-2:], margin)
+
+        result = self.tiled_handler.patches_to_image(
+            result.view(B, C, n_rows, n_cols, H, W),
+            img_size=target_size,
+        )
+
+        # Remove margin
+        return result[..., margin[0] : -margin[0], margin[1] : -margin[1]]
 
     def A_adjoint(
         self,
@@ -768,16 +829,54 @@ class TiledSpaceVaryingBlur(LinearPhysics):
             filters = self.filters
 
         # Infer original image size from y and filters, since the padding is 'valid'
-        original_img_size = (
-            y.size(-2) + filters.size(-2) - 1,
-            y.size(-1) + filters.size(-1) - 1,
-        )
+        margin = self.config.margin
+        original_img_size = _add_tuple(y.shape[-2:], margin)
+
         self.update_parameters(
             filters=filters, img_size=original_img_size, device=y.device, **kwargs
         )
 
-        return tiled_product_conv2d_adjoint(
-            self.conv2d_adjoint_fn, y, self.multipliers, self.filters, self.overlap
+        w = self.multipliers  # (B, C, K, H, W)
+        h = self.filters  # (B, C, K, h, w)
+
+        # Pad input
+        y = F.pad(
+            y,
+            pad=(margin[1], margin[1], margin[0], margin[0]),
+            value=0,
+            mode="constant",
+        )
+
+        # Extract patches with expanded config
+        patches = self.adjoint_tiled_handler.image_to_patches(y)
+
+        n_rows, n_cols = patches.size(2), patches.size(3)
+        assert n_rows * n_cols == h.size(
+            2
+        ), "The number of patches must be equal to the number of PSFs"
+
+        # Apply transpose convolution per patch
+        patches = patches.flatten(2, 3)
+        B, C = patches.shape[:2]
+        h = _prepare_filter_for_grouped(h, B=B, C=C)
+
+        result = self.conv2d_adjoint_fn(
+            rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
+            rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
+            padding="valid",
+        )
+
+        result = rearrange(result, "(b k) c h w -> b c k h w", b=B, k=h.size(2))
+
+        # Remove margin and apply weights
+        result = result[..., margin[0] : -margin[0], margin[1] : -margin[1]]
+        result = result * w
+
+        # Reconstruct image using original config's handler
+        B, C, _, H, W = result.size()
+        return self.adjoint_tiled_handler.patches_to_image(
+            result.view(B, C, n_rows, n_cols, H, W),
+            img_size=original_img_size,
         )
 
     def update_parameters(
@@ -789,20 +888,18 @@ class TiledSpaceVaryingBlur(LinearPhysics):
     ):
         if filters is not None and isinstance(filters, Tensor):
             self.register_buffer("filters", filters.to(device))
-
-        from deepinv.physics.functional.tiled_product_convolution import (
-            to_compatible_img_size,
-        )
+            self.config.psf_size = filters.shape[-2:]
+            self.adjoint_config.psf_size = filters.shape[-2:]
 
         # Only generate multipliers if the image size changed
-        if (self.multipliers is None) or (
+        if getattr(self, "multipliers", None) is None or (
             img_size is not None and img_size != self._dynamic_img_size
         ):
             multipliers = generate_tiled_multipliers(
-                to_compatible_img_size(img_size, self.patch_size, self.overlap)[0],
-                self.patch_size,
-                self.overlap,
-                self.filters.shape[-2:],
+                self.config._get_compatible_img_size(img_size)[0],
+                self.config.patch_size,
+                self.config.overlap,
+                self.config.psf_size,
                 device=device,
             )
             self.register_buffer("multipliers", multipliers)
@@ -822,8 +919,9 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         :param tuple[int, int] overlap: Overlap size (oh, ow).
         :return: Number of filters (tiles) required.
         """
-        num_patches_h = (img_size[0] - overlap[0]) // (patch_size[0] - overlap[0])
-        num_patches_w = (img_size[1] - overlap[1]) // (patch_size[1] - overlap[1])
+        num_patches_h, num_patches_w = TiledPConv2dConfig(
+            patch_size=patch_size, overlap=overlap
+        ).get_num_patches(img_size)
         return num_patches_h * num_patches_w
 
 

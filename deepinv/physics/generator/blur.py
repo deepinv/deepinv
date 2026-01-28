@@ -9,6 +9,7 @@ from deepinv.physics.functional.interp import ThinPlateSpline
 from deepinv.utils.decorators import _deprecated_alias
 from deepinv.transform.rotate import rotate_via_shear
 from .zernike import Zernike
+from deepinv.physics.functional.tiled_product_convolution import TiledPConv2dConfig
 
 
 class PSFGenerator(PhysicsGenerator):
@@ -1107,9 +1108,6 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         return self.generator_ill.zernike_polynomials
 
 
-from deepinv.physics.functional import TiledPConv2dConfig, to_compatible_img_size
-
-
 class TiledBlurGenerator(PSFGenerator):
     r"""
     Generates parameters of :class:`deepinv.physics.TiledSpaceVaryingBlur` operator.
@@ -1131,7 +1129,7 @@ class TiledBlurGenerator(PSFGenerator):
         self.patch_size = patch_size
         self.overlap = overlap
         self.config = TiledPConv2dConfig(
-            patch_size=patch_size, overlap=overlap, psf_size=self.psf_size
+            patch_size=patch_size, overlap=overlap, psf_size_init=self.psf_size
         )
 
     def step(
@@ -1141,10 +1139,7 @@ class TiledBlurGenerator(PSFGenerator):
         seed: int = None,
         **kwargs,
     ) -> dict:
-        compatile_size, _ = to_compatible_img_size(
-            img_size, self.patch_size, self.overlap
-        )
-        num_patches = self.config.compute_num_patches(compatile_size)
+        num_patches = self.config.get_num_patches(img_size)
         num_patches = num_patches[0] * num_patches[1]
 
         params = self.psf_generator.step(
