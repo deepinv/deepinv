@@ -3,7 +3,7 @@ import torch
 from deepinv.optim.linear import least_squares
 from dataclasses import dataclass
 from deepinv.physics.forward import Physics, LinearPhysics
-from deepinv.physics.functional.special import hankel1, jv
+from deepinv.physics.functional.special import hankel1, bessel_j
 
 
 class Scattering(Physics):
@@ -907,8 +907,8 @@ def green_fourier(
     # use Vico's paper correction
     L = 1.5 * box_length  # for d=2
     constant = 1j * torch.pi * L / 2
-    filterf = filterf + constant * s * jv(1, L * s) * hankel1(0, L * k)
-    filterf = filterf - constant * k * jv(0, L * s) * hankel1(1, L * k)
+    filterf = filterf + constant * s * bessel_j(1, L * s) * hankel1(0, L * k)
+    filterf = filterf - constant * k * bessel_j(0, L * s) * hankel1(1, L * k)
 
     filterf = filterf / (s**2 - k**2)
     filterf = filterf / 2
@@ -997,7 +997,7 @@ def mie_theory(
         1, angles.shape[0], img_width, img_width, device=device, dtype=dtype
     )
     total_field = torch.zeros_like(incident_field)
-    jv_prime = lambda n, x: 0.5 * (jv(n - 1, x) - jv(n + 1, x))
+    jv_prime = lambda n, x: 0.5 * (bessel_j(n - 1, x) - bessel_j(n + 1, x))
     hankel1_prime = lambda n, x: 0.5 * (hankel1(n - 1, x) - hankel1(n + 1, x))
 
     list_n = [0]
@@ -1011,9 +1011,9 @@ def mie_theory(
     for p in range(angles.shape[0]):
         for n in list_n:
             # calculate incident and total fields
-            jvn = jv(n, w * extra_contrast * cylinder_radius)
+            jvn = bessel_j(n, w * extra_contrast * cylinder_radius)
             jvn_prime = jv_prime(n, w * extra_contrast * cylinder_radius)
-            jv0n = jv(n, w * cylinder_radius)
+            jv0n = bessel_j(n, w * cylinder_radius)
             jv0n_prime = jv_prime(n, w * cylinder_radius)
             hn = hankel1(n, w * cylinder_radius)
             hn_prime = hankel1_prime(n, w * cylinder_radius)
@@ -1033,7 +1033,7 @@ def mie_theory(
             incident_coeff *= torch.exp(-1j * n * angles[p])
 
             # incident field
-            term = incident_coeff * jv(n, w * r) * torch.exp(1j * n * theta)
+            term = incident_coeff * bessel_j(n, w * r) * torch.exp(1j * n * theta)
             if torch.isnan(term).any():
                 print("incident field is nan", n)
                 break
@@ -1046,7 +1046,7 @@ def mie_theory(
 
             term = (
                 coeff
-                * jv(n, w * extra_contrast * r[ind])
+                * bessel_j(n, w * extra_contrast * r[ind])
                 * torch.exp(1j * n * theta[ind])
             )
             if torch.isnan(term).any():
@@ -1058,7 +1058,7 @@ def mie_theory(
             # add incident field
             coeff = incident_coeff
             total_field[0, p, ~ind] += (
-                coeff * jv(n, w * r[~ind]) * torch.exp(1j * n * (theta[~ind]))
+                coeff * bessel_j(n, w * r[~ind]) * torch.exp(1j * n * (theta[~ind]))
             )
 
             # add scattered field

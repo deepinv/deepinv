@@ -1,10 +1,14 @@
 import torch
 
 
-def native_hankel1(n, x):
+def native_hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
     """
     Implements H1(n, x) = J(n, x) + i*Y(n, x) using native PyTorch.
     Only supports real-valued x as of PyTorch 2.6.
+
+    :param int n: Order of the Hankel function.
+    :param torch.Tensor x: Input tensor.
+    :return: Complex tensor representing H1(n, x).
     """
     # Use torch.special functions for J and Y
     jn = torch.special.bessel_j(n, x)
@@ -14,15 +18,20 @@ def native_hankel1(n, x):
     return torch.complex(jn, yn)
 
 
-def hankel1(n, x, device=None):
-    """
+def hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
+    r"""
     Dispatches between native Torch and SciPy based on version/availability.
+
+    :param int n: Order of the Hankel function.
+    :param torch.Tensor x: Input tensor.
+    :return: Complex tensor representing H1(n, x).
     """
     # 1. Check if we can use native Torch (requires version >= 1.9 for torch.special)
     # and specifically bessel_j/y which were stabilized in later 2.x versions.
     has_native_bessel = hasattr(torch.special, "bessel_j") and hasattr(
         torch.special, "bessel_y"
     )
+    device = x.device
 
     # 2. Use native Torch if available and input is on GPU or requires grad
     if has_native_bessel and (x.is_cuda or x.requires_grad):
@@ -45,12 +54,17 @@ def hankel1(n, x, device=None):
     return out.to(device=device or x.device)
 
 
-def jv(n, x, device=None):
+def bessel_j(n: int, x: torch.Tensor) -> torch.Tensor:
     """
     Computes J_v(n, x) using native Torch if available,
     otherwise falls back to SciPy.
+
+    :param int n: Order of the Bessel function.
+    :param torch.Tensor x: Input tensor.
+    :return: Tensor representing J_v(n, x).
     """
     # 1. Attempt Native PyTorch (Available in torch >= 1.9)
+    device = x.device
     if hasattr(torch.special, "bessel_j"):
         try:
             # Note: bessel_j supports float/double and supports autograd
