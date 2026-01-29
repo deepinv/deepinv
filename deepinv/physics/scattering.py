@@ -247,20 +247,14 @@ class Scattering(Physics):
         super().update_parameters(**kwargs)
 
     def generate_incident_field(self):
-        """
+        r"""
         Generate incident fields on the image grid and at receiver positions.
-
-        Produces:
-
-            - self.incident_field of shape `(1, T, H, W)`
-
-        where `T` is the number of transmitters.
 
         Plane waves are computed as:
 
         .. math::
 
-            v_i(\mathbf{r}) = \exp\left( i \mathbf{k}_i \cdot \mathbf{r} \right)
+            v_i(\mathbf{r}) = \exp\left( \mathrm{i} \mathbf{k}_i^{\top} \mathbf{r} \right)
 
         where :math:`\mathbf{k}_i` is the wavevector for the ith transmitter.
 
@@ -272,8 +266,7 @@ class Scattering(Physics):
 
         where :math:`\mathbf{r}_i` is the position of the ith transmitter.
 
-
-        :param torch.dtype dtype: torch.dtype used for the generated fields
+        :returns: (:class:`torch.Tensor`) Incident field tensor of shape `(1,T,H,W)`.
         """
         x_domain = self.x_domain.flatten()
         y_domain = self.y_domain.flatten()
