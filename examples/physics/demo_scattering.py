@@ -44,7 +44,7 @@ and :math:`G_s` denotes the convolution with Green's operator plus sampling at t
     where :math:`\lambda` is the wavelength of the incident wave.
 
 This example shows how to define the scattering forward model, generate measurements,
-and perform reconstructions using both a linear (Born approximation) solver and a non-linear
+and perform reconstructions (i.e., recover the contrast of the object) using both a linear (Born approximation) solver and a non-linear
 gradient descent solver. We also explore the trade-off between resolution and non-linearity
 by varying the wavenumber of the incident wave.
 
@@ -96,7 +96,8 @@ psnr = dinv.metric.PSNR(max_pixel=contrast)
 #
 # This linear system becomes highly ill-conditioned for high contrast objects (i.e., large :math:`\|x\|_{\infty}`) and/or high wavenumber
 # (which induces a high spectral norm of the Green operator :math:`\|G_s\|_2`), and the solver
-# may fail to converge. In that case, one can try to increase the number of iterations, or change the solver.
+# may fail to converge. In that case, one can try to increase the number of iterations, or change the solver (see
+# :class:`deepinv.physics.Scattering.SolverConfig` for more details).
 #
 
 sensors = 32
@@ -169,6 +170,60 @@ dinv.utils.plot(
 )
 
 # %%
+# Computing gradients through the physics operator
+# --------------------------------------------------
+# The gradient computation is fully compatible with PyTorch autograd, allowing to
+# easily plug this physics operator into more complex optimization or learning-based algorithms.
+#
+# Gradients can be computed with less memory using the adjoint-state method under the hood, requiring a single additional solver pass per
+# gradient evaluation (see e.g. :cite:t:`soubies2017efficient`), and does not require storing all intermediate variables (as in standard backpropagation via PyTorch autograd).
+# Here we show that the gradients computed using the adjoint-state method are consistent with those computed via standard PyTorch autograd.
+#
+# ,, note::
+#
+#    If you are using a GPU, the peak memory usage during gradient computation is also displayed for comparison.
+
+
+def compute_grad(x, y, physics):
+    if device != "cpu":
+        torch.cuda.reset_peak_memory_stats()  # Reset peak memory tracking
+
+    x_ = x.clone()
+    x_[
+        ..., img_width // 4 : 3 * img_width // 4, img_width // 4 : 3 * img_width // 4
+    ] = 0.0
+    x_ = x_.requires_grad_(True)
+    y_ = physics.A(x_)
+    error = torch.mean((y_ - y).abs() ** 2)
+    grad = torch.autograd.grad(error, x_)[0]
+
+    if device != "cpu":
+        print(
+            f"Peak GPU memory usage for grad computation: {torch.cuda.max_memory_allocated() / 1e6 :.1f} MB",
+        )
+    return x_, grad
+
+
+x_, grad = compute_grad(x, y, physics)
+# set solver to not use adjoint state
+config2 = dinv.physics.Scattering.SolverConfig(
+    max_iter=200, tol=1e-5, solver="lsqr", adjoint_state=False
+)
+physics.set_solver(config2)
+_, grad2 = compute_grad(x, y, physics)
+
+dinv.utils.plot(
+    [x_.real, grad, grad2],
+    titles=["Original image", "Grad with adjoint state", "Grad via Pytorch autograd"],
+    figsize=(12, 6),
+)
+
+print("difference between gradients:", torch.norm(grad - grad2).item())
+
+# go back to adjoint state solver
+physics.set_solver(config)
+
+# %%
 # Reconstruction with linear (Born approximation) solver
 # ------------------------------------------------------
 #
@@ -202,9 +257,6 @@ print(f"PSNR of Born approximation:", psnr(x, x_lin).item())
 #           \min_x \frac{1}{2} \sum_{i=1}^T \| y_i - A_i(x) \|_2^2
 #
 # where :math:`A_i(x)` is the non-linear forward operator for the ith transmitter, given by the Lippmann-Schwinger equation above.
-# Here we use the adjoint-state method to compute
-# the gradient of the data-fidelity term efficiently, requiring a single additional solver pass per
-# gradient evaluation.
 #
 # .. note::
 #
@@ -232,8 +284,8 @@ dinv.utils.plot(
     [x, x_lin, x_gd],
     titles=[
         "ground truth",
-        "Born approximation\nPSNR={:.2f}dB".format(psnr(x, x_lin).item()),
-        "Gradient descent\nPSNR={:.2f}dB".format(psnr(x, x_gd).item()),
+        f"Born approximation\nPSNR={psnr(x, x_lin).item():.2f}dB",
+        f"Gradient descent\nPSNR={psnr(x, x_gd).item():.2f}dB",
     ],
     figsize=(10, 3),
 )
