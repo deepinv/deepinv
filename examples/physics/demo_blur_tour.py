@@ -340,7 +340,7 @@ from deepinv.physics.generator import TiledBlurGenerator
 
 img_size = (512, 512)
 patch_size = (128, 128)
-overlap = (64, 64)
+stride = (64, 64)
 
 psf_generator = MotionBlurGenerator(
     (25, 25),
@@ -349,7 +349,7 @@ psf_generator = MotionBlurGenerator(
 )
 
 generator = TiledBlurGenerator(
-    psf_generator=psf_generator, patch_size=patch_size, overlap=overlap, device=device
+    psf_generator=psf_generator, patch_size=patch_size, stride=stride, device=device
 )
 
 
@@ -358,7 +358,7 @@ filters = generator.step(batch_size=batch_size, img_size=img_size)["filters"]
 physics = TiledSpaceVaryingBlur(
     filters=filters,
     patch_size=patch_size,
-    overlap=overlap,
+    stride=stride,
     device=device,
     use_fft=True,
 )
@@ -384,5 +384,3 @@ plot(
     rescale_mode="clip",
     figsize=(5, 5),
 )
-
-# %%
