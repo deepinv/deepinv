@@ -218,7 +218,7 @@ dinv.utils.plot(
     figsize=(12, 6),
 )
 
-print("difference between gradients:", torch.norm(grad - grad2).item())
+print("Difference between gradients:", (grad - grad2).abs().mean().item())
 
 # go back to adjoint state solver
 physics.set_solver(config)

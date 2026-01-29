@@ -1,9 +1,9 @@
+from __future__ import annotations
 import torch
 from deepinv.optim.linear import least_squares
 from dataclasses import dataclass
 from deepinv.physics.forward import Physics, LinearPhysics
 from deepinv.physics.functional.special import hankel1, jv
-
 
 class Scattering(Physics):
     r"""
