@@ -179,7 +179,7 @@ dinv.utils.plot(
 # gradient evaluation (see e.g. :cite:t:`soubies2017efficient`), and does not require storing all intermediate variables (as in standard backpropagation via PyTorch autograd).
 # Here we show that the gradients computed using the adjoint-state method are consistent with those computed via standard PyTorch autograd.
 #
-# ,, note::
+# .. note::
 #
 #    If you are using a GPU, the peak memory usage during gradient computation is also displayed for comparison.
 

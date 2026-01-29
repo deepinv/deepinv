@@ -75,7 +75,7 @@ class Scattering(Physics):
 
 
     :param int img_width: Number of pixels per image side (`H=W`). The minimum required number of pixels depends on the background wavenumber to avoid spatial aliasing.
-        We require at least :math:`\text{img_width} \geq 2 k_b L/(2 \pi)`, where :math:`k_b` is the background wavenumber and :math:`L` is the box length.
+        We require at least :math:`\text{image width} \geq 2 k_b L/(2 \pi)`, where :math:`k_b` is the background wavenumber and :math:`L` is the box length.
     :param torch.Tensor receivers: Tensor of shape `(2, R)` (shared receivers) or `(2, T, R)` (per-transmitter receivers) with receiver x/y positions.
     :param torch.Tensor transmitters: Tensor of shape `(2, T)` with transmitter x/y positions.
     :param float, torch.Tensor background_wavenumber: background wavenumber :math:`k_b`, which can be real (`float` or `torch.float`) or complex (`torch.complex`).
