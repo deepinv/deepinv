@@ -266,7 +266,7 @@ class Scattering(Physics):
 
         where :math:`\mathbf{r}_i` is the position of the ith transmitter.
 
-        :returns: (:class:`torch.Tensor`) Incident field tensor of shape `(1,T,H,W)`.
+        :returns: (:class:`torch.Tensor`) Incident field tensor of shape `(1,T,H,W)` where `T` is the number of transmitters.
         """
         x_domain = self.x_domain.flatten()
         y_domain = self.y_domain.flatten()
