@@ -27,7 +27,6 @@ from deepinv.physics.functional.tiled_product_convolution import (
     TiledPConv2dHandler,
 )
 from deepinv.physics.functional.utils import _add_tuple, _as_pair
-from einops import rearrange
 
 
 class Downsampling(LinearPhysics):
@@ -776,8 +775,20 @@ class TiledSpaceVaryingBlur(LinearPhysics):
     ):
         super().__init__(**kwargs)
 
+        try:
+            from einops import rearrange
+        except ImportError:
+            raise ImportError(
+                "einops is required for TiledSpaceVaryingBlur. Please install it via 'pip install einops'."
+            )
+
+        self.rearrange = rearrange
         self.patch_size = _as_pair(patch_size)
-        self.stride = _as_pair(stride) if stride is not None else self.patch_size // 2
+        self.stride = (
+            _as_pair(stride)
+            if stride is not None
+            else tuple(p // 2 for p in self.patch_size)
+        )
         assert (
             self.stride[0] <= self.patch_size[0]
             and self.stride[1] <= self.patch_size[1]
@@ -848,12 +859,12 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         h = _prepare_filter_for_grouped(h, B=B, C=C)
 
         result = self.conv2d_fn(
-            rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
-            rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
+            self.rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
+            self.rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
             padding="valid",
         )
 
-        result = rearrange(
+        result = self.rearrange(
             result, "(b k) c h w -> b c k h w", b=patches.size(0), k=h.size(2)
         )
 
@@ -922,12 +933,12 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         h = _prepare_filter_for_grouped(h, B=B, C=C)
 
         result = self.conv2d_adjoint_fn(
-            rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
-            rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
+            self.rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
+            self.rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
             padding="valid",
         )
 
-        result = rearrange(result, "(b k) c h w -> b c k h w", b=B, k=h.size(2))
+        result = self.rearrange(result, "(b k) c h w -> b c k h w", b=B, k=h.size(2))
 
         # Remove margin and apply weights
         result = result[..., margin[0] : -margin[0], margin[1] : -margin[1]]
@@ -944,8 +955,8 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         self,
         filters: Tensor = None,
         img_size: int | tuple[int, int] = None,
-        device=None,
-        dtype=torch.float32,
+        device: torch.device = None,
+        dtype: torch.dtype = torch.float32,
         **kwargs,
     ):
         if filters is not None and isinstance(filters, Tensor):
@@ -977,9 +988,9 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         r"""
         Computes the number of filters (tiles) required for a given image size, patch size and stride.
 
-        :param tuple[int, int] img_size: Image size (H, W).
-        :param tuple[int, int] patch_size: Patch size (h, w).
-        :param tuple[int, int] stride: Stride size (sh, sw).
+        :param tuple[int, int] img_size: Image size `(H, W)`.
+        :param tuple[int, int] patch_size: Patch size `(h, w)`.
+        :param tuple[int, int] stride: Stride size `(sh, sw)`.
         :return: Number of filters (tiles) required.
         """
         num_patches_h, num_patches_w = TiledPConv2dConfig(

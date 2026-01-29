@@ -1,4 +1,5 @@
 # Some utility functions
+from __future__ import annotations
 
 
 def _add_tuple(a: tuple, b: tuple, constant: float = 1) -> tuple:

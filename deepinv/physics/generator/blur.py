@@ -1129,7 +1129,7 @@ class TiledBlurGenerator(PSFGenerator):
         patch_size: int | tuple[int, int],
         stride: int | tuple[int, int] = None,
         rng: torch.Generator = None,
-        device: str = "cpu",
+        device: str | torch.device = "cpu",
         **kwargs,
     ):
         super().__init__(rng=rng, device=device, **kwargs)
@@ -1145,10 +1145,23 @@ class TiledBlurGenerator(PSFGenerator):
     def step(
         self,
         batch_size: int = 1,
-        img_size: int | tuple[int, int] | None = None,
-        seed: int = None,
+        img_size: int | tuple[int, int] = None,
+        seed: int | None = None,
         **kwargs,
     ) -> dict:
+        r"""
+        Generates a random set of filters for the tiled space-varying blur.
+
+        :param int batch_size: batch size of the PSF parameters to generate. Should be equal to the batch size of the images to be blurred.
+        :param int | tuple[int, int] img_size: size of the image to be blurred (height, width).
+        :param int | None seed: the seed for the random number generator.
+
+        :returns: a dictionary containing filters, with key:
+
+            - `filters`: a tensor of shape `(B, C, K, psf_size, psf_size)`, where `K` is the number of patches in which the image is divided.
+
+        """
+
         num_patches = self.config.get_num_patches(img_size)
         num_patches = num_patches[0] * num_patches[1]
 
