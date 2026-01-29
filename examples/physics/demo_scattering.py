@@ -22,7 +22,7 @@ The total field (scattered + incident) is measured at :math:`R` different receiv
 
 Parametrizing the unknown spatially-varying wavenumber as :math:`k^2(\mathbf{r}) = k_b^2 (x(\mathbf{r})+1)`, where
 :math:`k_b` is the background wavenumber, and :math:`x = k^2/k_b^2 - 1` is the scattering potential of the object to be recovered,
-the problem can be reformulated in the **Lippmann-Schwinger** integral equation form:
+the forward problem can be reformulated in the **Lippmann-Schwinger** integral equation form:
 
 .. math::
 
