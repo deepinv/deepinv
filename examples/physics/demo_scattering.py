@@ -199,7 +199,8 @@ def compute_grad(x, y, physics):
 
     if device != "cpu":
         print(
-            f"Peak GPU memory usage for grad computation: {torch.cuda.max_memory_allocated() / 1e6 :.1f} MB",
+            f"Peak GPU memory usage for grad computation: "
+            f"{torch.cuda.max_memory_allocated() / 1e6 :.1f} MB",
         )
     return x_, grad
 
@@ -214,8 +215,12 @@ _, grad2 = compute_grad(x, y, physics)
 
 dinv.utils.plot(
     [x_.real, grad, grad2],
-    titles=["Original image", "Grad with adjoint state", "Grad via Pytorch autograd"],
-    figsize=(12, 6),
+    titles=[
+        "Image where grad is computed",
+        "Grad with adjoint state",
+        "Grad via Pytorch autograd",
+    ],
+    figsize=(8, 4),
 )
 
 print("Difference between gradients:", (grad - grad2).abs().mean().item())
