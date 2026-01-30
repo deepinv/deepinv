@@ -752,7 +752,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
     >>> x = dinv.utils.load_example(
     ...        "butterfly.png", img_size=img_size, resize_mode="resize"
     ...    )
-    >>> psf_generator = DiffractionBlurGenerator(psf_size=(31, 31))
+    >>> psf_generator = MotionBlurGenerator(psf_size=(31, 31))
     >>> generator = TiledBlurGenerator(
     ...     psf_generator=psf_generator,
     ...     patch_size=patch_size,
