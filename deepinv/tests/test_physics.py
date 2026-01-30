@@ -2357,9 +2357,8 @@ def test_squared_or_non_squared_norms(seed, device):
 @pytest.mark.parametrize("psf_size", [(5, 5), (6, 6), (5, 6)])
 @pytest.mark.parametrize("use_fft", [False, True])
 def test_tiled_product_physics_adjointness(
-    batch_size, n_channels, img_size, patch_size, psf_size, stride, use_fft
+    batch_size, n_channels, img_size, patch_size, psf_size, stride, use_fft, device
 ):
-    device = "cuda:0"
     from deepinv.physics.blur import TiledSpaceVaryingBlur
 
     x = torch.randn(batch_size, n_channels, *img_size).to(device)
