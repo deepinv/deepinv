@@ -36,6 +36,16 @@ copyright = "deepinverse contributors 2025"
 author = str(metadata["Author"])
 release = str(metadata["Version"])
 
+# Determine version for documentation switcher
+# Development versions (containing 'dev', 'rc', 'alpha', 'beta') match to 'dev'
+# Release versions match to their exact version number
+import re
+
+if re.search(r"(dev|rc|alpha|beta|\.post)", release, re.IGNORECASE):
+    version_match = "dev"
+else:
+    version_match = release
+
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
@@ -427,6 +437,13 @@ html_theme_options = {
         "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates."
     ),
     "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
+    # Version switcher configuration
+    "switcher": {
+        "json_url": "https://deepinv.github.io/deepinv/dev/_static/versions.json",
+        "version_match": version_match,
+    },
+    "navbar_start": ["navbar-logo", "version-switcher"],
+    "show_version_warning_banner": True,
 }
 
 

@@ -52,13 +52,19 @@ jobs:
 
       - name: create PR with changes
         if: ${{ github.event.inputs.bump_type != 'dev' && success() }}
+        id: create-pr
         uses: peter-evans/create-pull-request@v7
         with:
           branch: release-branch
           title: "Release v${{ steps.bump.outputs.version }}"
           body: |
             This automatic PR updates the version to v${{ steps.bump.outputs.version }} and updates the changelog.
-            Please merge this PR to finalize the release.
+            
+            **After merging this PR**, a GitHub release will be automatically created, which will:
+            - Publish to PyPI
+            - Deploy versioned documentation to GitHub Pages
+            
+            Please review and merge this PR to finalize the release.
           commit-message: "Release v${{ steps.bump.outputs.version }}"
           add-paths: |
             pyproject.toml
@@ -66,12 +72,9 @@ jobs:
           base: main
           labels: release
           delete-branch: true
-    
-      - name: Create Github release
+
+      - name: Save release info for later
         if: ${{ github.event.inputs.bump_type != 'dev' && success() }}
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.bump.outputs.version }}
-          body_path: changelog.txt
-          name: Release v${{ steps.bump.outputs.version }}
-          files: dist/*
+        run: |
+          echo "Release PR #${{ steps.create-pr.outputs.pull-request-number }} created for v${{ steps.bump.outputs.version }}"
+          echo "Merge the PR to trigger the release and documentation deployment."

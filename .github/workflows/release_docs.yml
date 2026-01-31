@@ -1,0 +1,174 @@
+name: Release Docs
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to deploy (e.g., 0.3.0)"
+        required: true
+        type: string
+      set_stable:
+        description: "Set this version as stable"
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  release-docs:
+    name: Build and deploy release documentation
+    runs-on: gpu
+    env:
+      DEEPINV_MOCK_TESTS: "True"
+      UV_CACHE_DIR: "/local/jtachell/.cache/uv"
+      WORKING_DIR: "/local/jtachell"
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.release.tag_name || format('v{0}', inputs.version) }}
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+            # Remove 'v' prefix if present
+            VERSION="${VERSION#v}"
+            SET_STABLE="true"
+          else
+            VERSION="${{ inputs.version }}"
+            SET_STABLE="${{ inputs.set_stable }}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "SET_STABLE=$SET_STABLE" >> $GITHUB_OUTPUT
+          echo "Deploying version: $VERSION (stable: $SET_STABLE)"
+
+      # See https://docs.astral.sh/uv/guides/integration/github
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: "0.8.22"
+          python-version: "3.11"
+          cache-local-path: ${{ env.UV_CACHE_DIR }}
+
+      - name: Set up Python
+        run: |
+          uv python install
+          uv run python --version
+
+      - name: Install the project
+        run: uv sync --extra dataset --extra denoisers --extra test --extra training --extra doc
+
+      - name: Build documentation
+        run: |
+          uv run sphinx-build -W docs/source _build
+
+      - name: Deploy versioned docs
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _build/
+          destination_dir: ${{ steps.version.outputs.VERSION }}
+          keep_files: true
+
+      - name: Deploy as stable
+        if: ${{ steps.version.outputs.SET_STABLE == 'true' }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _build/
+          destination_dir: stable
+          keep_files: true
+
+      - name: Checkout gh-pages to update versions.json
+        if: ${{ steps.version.outputs.SET_STABLE == 'true' }}
+        uses: actions/checkout@v5
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Update versions.json
+        if: ${{ steps.version.outputs.SET_STABLE == 'true' }}
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          VERSIONS_FILE="gh-pages/dev/_static/versions.json"
+          
+          # Create a Python script to update versions.json
+          python3 << 'EOF'
+          import json
+          import os
+          
+          version = os.environ.get('VERSION', '')
+          versions_file = os.environ.get('VERSIONS_FILE', '')
+          
+          # Read existing versions
+          with open(versions_file, 'r') as f:
+              versions = json.load(f)
+          
+          # Check if version already exists
+          version_exists = any(v.get('version') == version for v in versions)
+          
+          if not version_exists:
+              # Insert new version after dev but before stable
+              new_version = {
+                  "name": f"v{version}",
+                  "version": version,
+                  "url": f"https://deepinv.github.io/deepinv/{version}/"
+              }
+              
+              # Find stable index
+              stable_idx = next((i for i, v in enumerate(versions) if v.get('version') == 'stable'), len(versions))
+              versions.insert(stable_idx, new_version)
+          
+          # Update stable entry with latest version info
+          for v in versions:
+              if v.get('version') == 'stable':
+                  v['name'] = f"stable (v{version})"
+          
+          # Write back
+          with open(versions_file, 'w') as f:
+              json.dump(versions, f, indent=2)
+          
+          print(f"Updated {versions_file}")
+          print(json.dumps(versions, indent=2))
+          EOF
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+          VERSIONS_FILE: gh-pages/dev/_static/versions.json
+
+      - name: Copy versions.json to all version directories
+        if: ${{ steps.version.outputs.SET_STABLE == 'true' }}
+        run: |
+          VERSIONS_FILE="gh-pages/dev/_static/versions.json"
+          
+          # Copy to stable
+          if [ -d "gh-pages/stable/_static" ]; then
+            cp "$VERSIONS_FILE" "gh-pages/stable/_static/versions.json"
+          fi
+          
+          # Copy to version directory
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          if [ -d "gh-pages/$VERSION/_static" ]; then
+            cp "$VERSIONS_FILE" "gh-pages/$VERSION/_static/versions.json"
+          fi
+          
+          # Copy to any other version directories
+          for dir in gh-pages/*/; do
+            if [ -d "${dir}_static" ] && [ "$(basename $dir)" != "dev" ]; then
+              cp "$VERSIONS_FILE" "${dir}_static/versions.json"
+            fi
+          done
+
+      - name: Push updated versions.json
+        if: ${{ steps.version.outputs.SET_STABLE == 'true' }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: gh-pages/
+          keep_files: false
