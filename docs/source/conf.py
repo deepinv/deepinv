@@ -18,6 +18,7 @@ from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
 from sphinx_gallery.directives import ImageSg
 from deepinv.utils.plotting import set_default_plot_fontsize
 import torch
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,6 @@ release = str(metadata["Version"])
 # Determine version for documentation switcher
 # Development versions (containing 'dev', 'rc', 'alpha', 'beta') match to 'dev'
 # Release versions match to their exact version number
-import re
 
 if re.search(r"(dev|rc|alpha|beta|\.post)", release, re.IGNORECASE):
     version_match = "dev"
