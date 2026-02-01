@@ -25,16 +25,16 @@ The most common choice of time schedulers is the linear schedule :math:`a(t) = 1
 
 In this demo, we will show how to :
 
-    *  Perform unconditional generation using, instead of a trained denoiser, the closed-form MMSE denoiser
+    -  Perform unconditional generation using, instead of a trained denoiser, the closed-form MMSE denoiser
 
     .. math::
         D(x, \sigma) = \mathbb{E}_{x_0 \sim p_{data}, \epsilon \sim \mathcal{N}(0, I)} \Big[ x_0 | x = x_0 + \sigma \epsilon \Big]
 
     Given a dataset of clean images, it can be computed by evaluating the distance between the input image and all the points of the dataset (see :class:`deepinv.models.MMSE`).
 
-    *  Perform posterior sampling using Flow-Matching combined with a DPS data fidelity term (see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more details)
+    -  Perform posterior sampling using Flow-Matching combined with a DPS data fidelity term (see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more details)
 
-    *  Explore different choices of time schedulers :math:`a(t)` and :math:`b(t)`.
+    -  Explore different choices of time schedulers :math:`a(t)` and :math:`b(t)`.
 
 """
 
@@ -111,36 +111,6 @@ dinv.utils.plot(
     figsize=(figsize, figsize),
 )
 
-# sphinx_gallery_start_ignore
-# cleanup
-try:
-    final_dir = (
-        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
-    )
-    shutil.move("FM_trajectory.gif", final_dir / "FM_trajectory.gif")
-    shutil.move("FM_sample.png", final_dir / "FM_sample.png")
-except FileNotFoundError:
-    pass
-# sphinx_gallery_end_ignore
-
-# %%
-# We obtain the following unconditional sample, which belongs to the MNIST dataset.
-#
-# .. container:: image-row
-#
-#    .. image-sg-ignore:: /auto_examples/images/FM_sample.png
-#       :alt: example of unconditional sample
-#       :srcset: /auto_examples/images/FM_sample.png
-#       :class: custom-img
-#       :ignore_missing: true
-#
-#    .. image-sg-ignore:: /auto_examples/images/FM_trajectory.gif
-#       :alt: example of unconditional trajectory
-#       :srcset: /auto_examples/images/FM_trajectory.gif
-#       :class: custom-gif
-#       :ignore_missing: true
-
-
 # %% Perform posterior sampling
 # -----------------------------------------------------------------------
 #
@@ -196,30 +166,6 @@ dinv.utils.plot(
     save_fn="FM_posterior.png",
 )
 
-
-# sphinx_gallery_start_ignore
-# cleanup
-try:
-    final_dir = (
-        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
-    )
-    shutil.move("FM_posterior.png", final_dir / "FM_posterior.png")
-except FileNotFoundError:
-    pass
-# sphinx_gallery_end_ignore
-
-# %%
-# We obtain the following conditional sample:
-#
-# .. container:: image-row
-#
-#    .. image-sg-ignore:: /auto_examples/images/FM_posterior.png
-#       :alt: example of unconditional sample
-#       :srcset: /auto_examples/images/FM_posterior.png
-#       :class: custom-img
-#       :ignore_missing: true
-
-
 # %% Explore different time schedulers for Flow-Matching
 # ----------------------------------------------------------------
 #
@@ -267,28 +213,6 @@ dinv.utils.plot(
     figsize=(figsize * 3, figsize),
     save_fn="FM_posterior_new_at_bt.png",
 )
-
-# sphinx_gallery_start_ignore
-# cleanup
-try:
-    final_dir = (
-        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
-    )
-    shutil.move("FM_posterior_new_at_bt.png", final_dir / "FM_posterior_new_at_bt.png")
-except FileNotFoundError:
-    pass
-# sphinx_gallery_end_ignore
-
-# %%
-# We obtain the following conditional sample:
-#
-# .. container:: image-row
-#
-#    .. image-sg-ignore:: /auto_examples/images/FM_posterior_new_at_bt.png
-#       :alt: example of unconditional sample
-#       :srcset: /auto_examples/images/FM_posterior_new_at_bt.png
-#       :class: custom-img
-#       :ignore_missing: true
 
 # %%
 # :References:
