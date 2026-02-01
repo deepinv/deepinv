@@ -273,7 +273,12 @@ class PromptIR(Reconstructor, Denoiser):
         if pretrained is not None:
             self.load_pretrained(pretrained)
 
-    def load_pretrained(self, checkpoint_path):
+    def load_pretrained(self, checkpoint_path: str) -> None:
+        r"""
+        Load pretrained weights.
+
+        :param str checkpoint_path: path to the checkpoint or 'download' to download the authors' weights.
+        """
 
         # Load checkpoint
         if checkpoint_path == "download":
