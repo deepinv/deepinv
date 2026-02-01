@@ -24,6 +24,7 @@ MODEL_LIST_1_CHANNEL = [
     "waveletdict",
     "epll",
     "restormer",
+    "promptir",
     "ncsnpp",
     "adinv.modelsunet",
 ]
@@ -126,7 +127,7 @@ def choose_denoiser(name, imsize):
         out = dinv.models.EPLLDenoiser(channels=imsize[0])
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
-    elif name == "restormer":
+    elif name == "promptir":
         out = dinv.models.PromptIR(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "ncsnpp":
         out = dinv.models.NCSNpp(
@@ -1229,13 +1230,14 @@ def test_denoiser_perf(device):
 
     psnr_fn = PSNR(max_pixel=1)
 
-    # Only test the trained denoisers and the correspinding expected performance
+    # Only test the trained denoisers and the corresponding expected performance
     learned_denoisers = [
         (dinv.models.DnCNN(pretrained="download").to(device), (0.1, 0.03, 0.001)),
         (dinv.models.DRUNet(pretrained="download").to(device), (7.0, 10.5, 11.0)),
         (dinv.models.GSDRUNet(pretrained="download").to(device), (6.5, 10.5, 10.5)),
         (dinv.models.SCUNet(pretrained="download").to(device), (3.5, 9.5, 8.5)),
         (dinv.models.SwinIR(pretrained="download").to(device), (7.5, 3.4, 1.0)),
+        (dinv.models.PromptIR(pretrained="download").to(device), (6.0, 8.0, 8.0)),
         (dinv.models.DiffUNet(pretrained="download").to(device), (6.5, 10.5, 10.0)),
         (
             dinv.models.Restormer(

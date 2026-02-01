@@ -1,21 +1,28 @@
 """
 PromptIR Model
-Code borrowed from Potlapalli et al., at: https://github.com/va1shn9v/PromptIR
+Code adapted from Potlapalli et al., at: https://github.com/va1shn9v/PromptIR
+
+See deepinv/models/third_party/LICENSE for license details.
 """
 
 from __future__ import annotations
+
+import warnings
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from deepinv.models.utils import get_weights_url
+from deepinv.models import Reconstructor, Denoiser
+from deepinv.models.utils import get_weights_url, test_pad
 from deepinv.models.restormer import (
     Downsample,
     Upsample,
     TransformerBlock,
     OverlapPatchEmbed,
 )
+
+from deepinv.physics import Physics
 
 
 class PromptGenBlock(nn.Module):
@@ -42,7 +49,7 @@ class PromptGenBlock(nn.Module):
         return prompt
 
 
-class PromptIR(nn.Module):
+class PromptIR(Reconstructor, Denoiser):
     r"""
     PromptIR restoration model.
 
@@ -60,7 +67,7 @@ class PromptIR(nn.Module):
     :param bool bias: whether to use bias in the convolutional layers.
     :param str LayerNorm_type: type of layer normalization to use ('BiasFree' or 'WithBias').
     :param bool decoder: whether to use the decoder with prompt generation blocks.
-    :param torch.device | str device: device to load the model on.
+    :param torch.device, str device: device to load the model on.
     :param str pretrained: path to the pretrained weights or 'download' to download the authors' weights.
     """
 
@@ -292,9 +299,9 @@ class PromptIR(nn.Module):
         else:
             self.load_state_dict(checkpoint, strict=True)
 
-    def forward(self, inp_img, noise_emb=None):
+    def forward_promptir(self, y: torch.Tensor) -> torch.Tensor:
 
-        inp_enc_level1 = self.patch_embed(inp_img)
+        inp_enc_level1 = self.patch_embed(y)
 
         out_enc_level1 = self.encoder_level1(inp_enc_level1)
 
@@ -341,6 +348,24 @@ class PromptIR(nn.Module):
         out_dec_level1 = self.decoder_level1(inp_dec_level1)
         out_dec_level1 = self.refinement(out_dec_level1)
 
-        out_dec_level1 = self.output(out_dec_level1) + inp_img
+        out_dec_level1 = self.output(out_dec_level1) + y
 
         return out_dec_level1
+
+    def forward(
+        self, y: torch.Tensor, physics: Physics = None, **kwargs
+    ) -> torch.Tensor:
+
+        # raise warning if physics is not None
+        if physics is not None:
+            warnings.warn(
+                "PromptIR model does not use the physics operator. The physics argument will be ignored."
+            )
+
+        shape_is_safe = all((s % 2 == 0 and s > 31) for s in y.shape[2:])
+        if shape_is_safe:
+            out = self.forward_promptir(y)
+        else:
+            out = test_pad(self.forward_promptir, y, modulo=16)
+
+        return out

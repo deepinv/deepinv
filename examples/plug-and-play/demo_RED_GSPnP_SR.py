@@ -18,7 +18,6 @@ from torchvision import transforms
 from deepinv.utils.parameters import get_GSPnP_params
 from deepinv.utils import load_dataset, load_degradation
 
-
 # %%
 # Setup paths for data loading and results.
 # --------------------------------------------------------

@@ -4,7 +4,7 @@ LICENSE for third-party models used in DeepInverse
 PromptIR License Information
 ===============================================================================
 
-The file promptir.py in deepinv/models/third_parties/ contains code from the
+The file promptir.py in deepinv/models/third_party/ contains code from the
 PromptIR repository https://github.com/va1shn9v/PromptIR/tree/main
 
 Title: PromptIR: Prompting for All-in-One Blind Image Restoration

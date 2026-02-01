@@ -54,6 +54,7 @@ Deep Architectures
    deepinv.models.SCUNet
    deepinv.models.GSDRUNet
    deepinv.models.SwinIR
+   deepinv.models.PromptIR
    deepinv.models.DiffUNet
    deepinv.models.Restormer
    deepinv.models.ICNN
