@@ -63,30 +63,3 @@ def product_convolution2d_adjoint(
         )
 
     return result
-
-
-def get_psf_pconv2d_eigen(h, w, position):
-    r"""
-    Get the PSF at the given position of the :meth:`deepinv.physics.functional.product_convolution2d` function.
-    :param torch.Tensor w: Tensor of size (B, C, K, H, W).
-    :param torch.Tensor h: Tensor of size (B, C, K, h, w).
-    :param torch.Tensor position: Position of the PSF, a Tensor of size (B, n_position, 2)
-
-    :return torch.Tensor: PSF at position of shape (B, C, n_position, psf_size, psf_size)
-    """
-    batch_index = torch.arange(w.size(0), dtype=torch.long, device=w.device)
-    position_h = position[..., 0:1]
-    position_w = position[..., 1:2]
-    w_selected = (
-        w[
-            batch_index[:, None, None],
-            ...,
-            position_h,
-            position_w,
-        ]
-        .squeeze(2)
-        .transpose(1, 2)
-    )
-    return torch.sum(h[:, :, None, ...] * w_selected[..., None, None], dim=3).flip(
-        (-1, -2)
-    )
