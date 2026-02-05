@@ -39,7 +39,12 @@ from .ram import RAM
 from .client import Client
 from .wrapper import DiffusersDenoiserWrapper
 from .mmse import MMSE
-from .wrapper import ScoreModelWrapper, DiffusersDenoiserWrapper, ComplexDenoiserWrapper
+from .wrapper import (
+    ScoreModelWrapper,
+    DiffusersDenoiserWrapper,
+    ComplexDenoiserWrapper,
+    MinusOneOneDenoiserWrapper,
+)
 from .poisson2sparse import ConvLista, Poisson2Sparse
 from .kernel_network import KernelIdentificationNetwork
 from .bilateral import BilateralFilter

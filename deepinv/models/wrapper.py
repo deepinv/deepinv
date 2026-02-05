@@ -271,7 +271,7 @@ class ScoreModelWrapper(Denoiser):
         Computes the score function :math:`\nabla_x \log p_t(x)`.
 
         :param torch.Tensor x: input tensor of shape `[B, C, H, W]`.
-        :param torch.Tensor | float t: single time or tensor of shape `[B]` or `[]`.
+        :param torch.Tensor | float t: single timestep or tensor of shape `[B]` or `[]`.
         :param args: additional positional arguments of the model.
         :param kwargs: additional keyword arguments of the model.
 
@@ -312,7 +312,7 @@ class ScoreModelWrapper(Denoiser):
         r"""
         Applies denoiser :math:`\denoiser{x}{\sigma}`.
         If `input_in_minus_one_one` is `False` (default value), the input `x` is expected to be in `[0, 1]` range (up to random noise) and the output is also in `[0, 1]` range.
-        Else, both input and output are expected in `[-1, 1]` range.
+        Otherwise, both input and output are expected in `[-1, 1]` range.
 
         :param torch.Tensor x: noisy input, of shape `[B, C, H, W]`.
         :param torch.Tensor, float sigma: noise level. Can be a `float` or a :class:`torch.Tensor` of shape `[B]`.
@@ -646,3 +646,30 @@ class ComplexDenoiserWrapper(Denoiser):
             return denoised_batch[: x_mag.shape[0], ...] * torch.exp(
                 1j * denoised_batch[x_mag.shape[0] :, ...].clamp(-torch.pi, torch.pi)
             )
+
+
+class MinusOneOneDenoiserWrapper(nn.Module):
+    r"""
+    A wrapper for denoisers trained on :math:`[x_{\mathrm{min}}, x_{\mathrm{max}}]` images to be used with math:`[-1, 1]` images, i.e. on diffusion sampling iterates.
+
+    :param deepinv.models.Denoiser denoiser: the denoiser to be wrapped.
+    :param float xmin: minimum value of the denoiser training range. Default to `0.0`.
+    :param float xmax: maximum value of the denoiser training range. Default to `1.0`.
+    """
+
+    def __init__(self, model: nn.Module, xmin: float = 0.0, xmax: float = 1.0):
+        super().__init__()
+        self.model = model
+        self.xmin = xmin
+        self.xmax = xmax
+
+    def forward(self, x: Tensor, sigma: Tensor, *args, **kwargs) -> Tensor:
+        # Scale from [-1, 1] to [xmin, xmax], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs
+        if not kwargs.get("input_in_minus_one_one", True):
+            x = (x + 1) / 2 * (self.xmax - self.xmin) + self.xmin
+            sigma = sigma * (self.xmax - self.xmin) / 2
+        denoised = self.model(x, sigma, *args, **kwargs)
+        # Scale back to [-1, 1], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs
+        if not kwargs.get("input_in_minus_one_one", True):
+            denoised = 2 * (denoised - self.xmin) / (self.xmax - self.xmin) - 1
+        return denoised
