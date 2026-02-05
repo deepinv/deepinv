@@ -13,7 +13,7 @@ class LPIPS(Metric):
     Computes the perceptual similarity between two images, based on a pre-trained deep neural network.
     Uses implementation from `torchmetrics <https://lightning.ai/docs/torchmetrics/stable/image/learned_perceptual_image_patch_similarity.html>`_.
 
-    The inputs `x_net`, `x` must both have 3 channels and be in `[0, 1]`.
+    The inputs `x_net`, `x` must both have 3 channels and be in `[0, 1]`. Optionally use `norm_inputs` argument to clip to `[0, 1]`.
 
     .. note::
 
