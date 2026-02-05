@@ -33,8 +33,7 @@ class NCSNpp(Denoiser):
         - `'ncsn'` for the NCSN++ architecture: the following arguments will be ignored and set to `embedding_type='fourier'`, `channel_mult_noise=2`, `encoder_type='residual'`, `decoder_type='standard'`, `resample_filter=[1,3,3,1]`.
         - `'ddpm'` for the  DDPM++ architecture: the following arguments will be ignored and set to `embedding_type='positional'`, `channel_mult_noise=1`, `encoder_type='standard'`, `decoder_type='standard'`, `resample_filter=[1,1]`.
 
-    Default is `'ncsn'`.
-
+        Default is `'ncsn'`.
     :param str precondition_type: Input preconditioning for denoising. Can be 'edm' for the method from :footcite:t:`karras2022elucidating` or 'baseline_ve' for the original method from :footcite:t:`song2020score`. See Table 1 from :footcite:t:`karras2022elucidating` for more details.
     :param int img_resolution: Image spatial resolution at input/output.
     :param int in_channels: Number of color channels at input.
@@ -53,17 +52,19 @@ class NCSNpp(Denoiser):
     :param str encoder_type: Encoder architecture: `'standard'` for DDPM++, `'residual'` for NCSN++.
     :param str decoder_type: Decoder architecture: `'standard'` for both DDPM++ and NCSN++.
     :param list resample_filter: Resampling filter: `[1,1]` for DDPM++, `[1,3,3,1]` for NCSN++.
-    :param str, None pretrained: use a pretrained network.
+    :param pretrained: Use pretrained weights (or a path to custom weights).
 
-        - If ``pretrained=None``, the weights will be initialized at random using Pytorch's default initialization.
-        - If ``pretrained='download'``, the weights will be downloaded from an online repository (the default model trained on FFHQ at 64x64 resolution (`ffhq64-uncond-ve`) with default architecture).
-        - Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights. In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the attribute `_was_trained_on_minus_one_one` to `True` after loading the weights.
-
+        - If ``pretrained is None``, the weights are initialized randomly using PyTorch's default initialization.
+        - ``pretrained='edm-ffhq64-64x64-uncond-ve'`` loads **NCSN++** weights from :footcite:t:`karras2022elucidating`, trained on **FFHQ 64x64** with the **EDM** diffusion schedule (see Table 1 in :footcite:t:`karras2022elucidating`).
+        - ``pretrained='edm-cifar10-32x32-uncond-ve'`` loads **NCSN++** weights from :footcite:t:`karras2022elucidating`, trained on **CIFAR-10 32x32** with the **EDM** diffusion schedule.
+        - ``pretrained='edm-ffhq-64x64-uncond-vp'`` loads **DDPM++** weights from :footcite:t:`karras2022elucidating`, trained on **FFHQ 64x64** with the **EDM** diffusion schedule.
+        - ``pretrained='edm-cifar10-32x32-uncond-vp'`` loads **DDPM++** weights from :footcite:t:`karras2022elucidating`, trained on **CIFAR-10 32x32** with the **EDM** diffusion schedule.
+        - ``pretrained='baseline-ffhq-64x64-uncond-ve'`` loads **NCSN++** weights from :footcite:t:`song2020score`, trained on **FFHQ 64x64** with the **VE-SDE** diffusion schedule.
+        - ``pretrained='baseline-cifar10-32x32-uncond-ve'`` loads **NCSN++** weights from :footcite:t:`song2020score`, trained on **CIFAR-10 32x32** with the **VE-SDE** diffusion schedule.
+        - ``pretrained='download'`` is a convenience alias: if ``model_type='ncsn'`` (default) it maps to ``'edm-ffhq-64x64-uncond-ve'``, and if ``model_type='ddpm'`` it maps to ``'edm-ffhq-64x64-uncond-vp'``.
+        - ``pretrained`` may also be a filesystem path to user-provided weights; the model is assumed to be trained on pixels in ``[0, 1]``—if trained on ``[-1, 1]``, set ``model._was_trained_on_minus_one_one = True`` after loading.
+        
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param str, None pretrained: use a pretrained network.
-        - If ``pretrained=None``, the weights will be initialized at random using Pytorch's default initialization.
-        - If ``pretrained='download'``, the weights will be downloaded from an online repository (the default model trained on FFHQ at 64x64 resolution (`ffhq64-uncond-ve`) with default architecture).
-        - Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights. In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the argument `_was_trained_on_minus_one_one` to `True`.
     :param bool _was_trained_on_minus_one_one: Indicate whether the model has been trained on `[-1, 1]` pixels or `[0, 1]` pixels. Default to `False`.
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
@@ -244,20 +245,30 @@ class NCSNpp(Denoiser):
                 )
         self._was_trained_on_minus_one_one = _was_trained_on_minus_one_one
         if pretrained is not None:
-            if pretrained.lower() == "edm-ffhq64-uncond-ve" or (
-                pretrained.lower() == "download" and model_type == "ncsn"
-            ):
+            if pretrained.lower() == "edm-ffhq64-uncond-ve" or pretrained.lower() == 'edm-ffhq-64x64-uncond-ve'  or (pretrained.lower() == "download" and model_type == "ncsn"):
                 name = "edm-ffhq-64x64-uncond-ve.pt"
-                url = get_weights_url(model_name="edm", file_name=name)
-                ckpt = torch.hub.load_state_dict_from_url(
-                    url, map_location=lambda storage, loc: storage, file_name=name
-                )
-                self._was_trained_on_minus_one_one = True
-                self.precondition_type = "edm"
+                from_url = True
                 self.pixel_std = 0.5
-            elif pretrained.lower() == "edm-ffhq64-uncond-vp" or (
-                pretrained.lower() == "download" and model_type == "ddpm"
-            ):
+                self.precondition_type = "edm"
+            if  pretrained.lower() == 'edm-ffhq-64x64-uncond-vp' or (pretrained.lower() == "download" and model_type == "ddpm"):
+                name = "edm-ffhq-64x64-uncond-vp.pt"
+                from_url = True
+                self.pixel_std = 0.5
+                self.precondition_type = "edm"
+            elif pretrained.lower() == "edm-cifar10-32x32-uncond-ve":
+                name = "edm-cifar10-32x32-uncond-ve.pt"
+                from_url = True
+                self.pixel_std = 0.5
+                self.precondition_type = "edm"
+            elif pretrained.lower() == "edm-cifar10-32x32-uncond-vp":
+            url = get_weights_url(model_name="edm", file_name=name)
+            ckpt = torch.hub.load_state_dict_from_url(
+                url, map_location=lambda storage, loc: storage, file_name=name
+            )
+            self._was_trained_on_minus_one_one = True
+            self.precondition_type = "edm"
+            self.pixel_std = 0.5
+            elif pretrained.lower() == "download" and model_type == "ddpm":
                 name = "edm-ffhq-64x64-uncond-vp.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
                 ckpt = torch.hub.load_state_dict_from_url(
