@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-from torch import nn
+from torch import Tensor, nn
 from deepinv.models import Denoiser
 from typing import Callable
 import numpy as np
@@ -13,12 +13,10 @@ class ScoreModelWrapper(Denoiser):
     Given a noisy sample :math:`x_t = s_t(x_0 + \sigma_t \varepsilon)`, where :math:`\varepsilon \sim \mathcal{N}(0, I)`,
     depending on the `prediction_type`, the input `score_model` is trained to predict, either:
 
-        * the noise :math:`\varepsilon` (`prediction_type = 'noise'`)
-
-        * the denoised sample :math:`x_0` (`prediction_type = 'denoised'`)
-
-        * the `v-prediction` :math:`s_t (\varepsilon - \sigma_t * x_0)` as proposed by :footcite:`salimans2022progressive` (`prediction_type = 'v_prediction'`)
-        * the velocity (or drift) of the corresponding ODE/SDE :math:`s_t (\varepsilon - \sigma_t * x_0)` as typically the case for flow-matching models (`prediction_type = 'velocity'`)
+        * the noise :math:`\varepsilon` (`prediction_type = 'epsilon'`) as typically the case for DDPM models, or
+        * the denoised sample :math:`x_0` (`prediction_type = 'sample'`) or
+        * the `v-prediction` :math:`s_t (\varepsilon - \sigma_t \cdot x_0)` as proposed by :footcite:`salimans2022progressive` (`prediction_type = 'v_prediction'`)
+        * the velocity (or drift) of the corresponding ODE/SDE :math:`s_t (\varepsilon - \sigma_t \cdot x_0)` as typically the case for flow-matching models (`prediction_type = 'velocity'`)
 
     :param torch.nn.Module | Callable score_model: score model to be wrapped.
     :param str prediction_type: type of prediction made by the score model.
@@ -54,58 +52,114 @@ class ScoreModelWrapper(Denoiser):
         super().__init__()
         self.model = score_model
         self.clip_output = clip_output
+        if prediction_type not in ["epsilon", "v_prediction", "sample"]:
+            raise ValueError(
+                f"Unsupported prediction_type: {prediction_type}. Supported types are 'epsilon', 'v_prediction', and 'sample'."
+            )
+
+        if variance_preserving and variance_exploding:
+            raise ValueError(
+                "variance_preserving and variance_exploding cannot both be True."
+            )
+
         self.prediction_type = prediction_type
         self.takes_integer_time = takes_integer_time
         self.n_timesteps = n_timesteps
         self._was_trained_on_minus_one_one = _was_trained_on_minus_one_one
+        self.variance_preserving = variance_preserving
+        self.variance_exploding = variance_exploding
 
-        if scale_schedule is None:
-            if variance_preserving:
-                if isinstance(sigma_schedule, Callable):
+        self._initialize_schedules(sigma_schedule, scale_schedule)
+        self.sigma_inverse = sigma_inverse
+        self.T = T
+        self.to(device)
 
-                    def scale_schedule(t):
-                        t = self._handle_time_step(t)
-                        return (1 / (1 + self.sigma_t(t) ** 2)) ** 0.5
+    def _map_schedule(
+        self, source_schedule: Tensor | Callable, transform_fn: Callable
+    ) -> Tensor | Callable:
+        """
+        Applies a transform function to a schedule (Tensor or Callable).
 
-                else:
-                    scale_schedule = 1.0 / (1 + sigma_schedule**2) ** 0.5
-            elif variance_exploding:
-                if isinstance(sigma_schedule, Callable):
-                    scale_schedule = lambda t: 1.0
-                else:
-                    scale_schedule = torch.ones_like(sigma_schedule)
+        Guarantees:
+            1. If Callable: input 't' is converted to a Tensor if it is a float/int.
+            2. The output is always a Tensor (casting Python floats/ints if needed).
+        """
+        if isinstance(source_schedule, Callable):
+
+            def wrapped_schedule(t):
+                t = torch.as_tensor(t)
+                val = source_schedule(t)
+                res = transform_fn(val)
+                # Ensure output is a Tensor
+                if not torch.is_tensor(res):
+                    res = torch.tensor(res, device=t.device, dtype=t.dtype)
+                return res
+
+            return wrapped_schedule
+
+        else:
+            # source_schedule is already a Tensor
+            res = transform_fn(source_schedule)
+            # Ensure output is a Tensor (e.g., if transform returned plain 1.0)
+            if not torch.is_tensor(res):
+                res = torch.tensor(
+                    res, device=source_schedule.device, dtype=source_schedule.dtype
+                )
+        return res
+
+    def _initialize_schedules(self, sigma_schedule, scale_schedule):
+        """
+        A helper function to initialize the schedules based on the provided arguments and configuration.
+        """
+        ops = {
+            "vp_sigma_to_scale": lambda s: (1 / (1 + s**2)).sqrt(),
+            "vp_scale_to_sigma": lambda s: (1 / s**2 - 1).clamp(min=0).sqrt(),
+            "ve_sigma_to_scale": lambda s: torch.ones_like(s),
+        }
+
+        # Determine which operation to use based on configuration
+        transform_op = None
+        source = None
+        target_name = None
+
+        # If scale_schedule is None, but sigma_schedule is provided, we can try to compute scale_schedule from sigma_schedule if variance_preserving or variance_exploding is True. If neither is True, we skip the transformation since we don't know how to compute the missing schedule.
+        if scale_schedule is None and sigma_schedule is not None:
+            target_name = "scale"
+            source = sigma_schedule
+            if self.variance_preserving:
+                transform_op = ops["vp_sigma_to_scale"]
+            elif self.variance_exploding:
+                transform_op = ops["ve_sigma_to_scale"]
+
+        # scale_schedule is not None, but sigma_schedule is None, we can try to compute sigma_schedule from scale_schedule if variance_preserving is True. If variance_exploding is True, sigma_schedule is not defined since scale is always 1, so we skip the transformation in that case.
         elif sigma_schedule is None and scale_schedule is not None:
-            if variance_preserving:
-                if isinstance(scale_schedule, Callable):
+            target_name = "sigma"
+            source = scale_schedule
+            if self.variance_preserving:
+                transform_op = ops["vp_scale_to_sigma"]
 
-                    def sigma_schedule(t):
-                        t = self._handle_time_step(t, device=device)
-                        return (1 / scale_schedule(t) ** 2 - 1).clamp(min=0).sqrt()
+        else:
+            # Either both schedules are provided, or both are None. In both cases, we do nothing.
+            pass
 
-                else:
-                    sigma_schedule = (1 / scale_schedule**2 - 1).clamp(min=0).sqrt()
+        #  Apply the transformation
+        if transform_op and source is not None:
+            result = self._map_schedule(source, transform_op)
+            # Assign back to the correct variable
+            if target_name == "scale":
+                scale_schedule = result
+            else:
+                sigma_schedule = result
 
         if isinstance(sigma_schedule, torch.Tensor):
             self.register_buffer("sigma_schedule", sigma_schedule)
         else:
             self.sigma_schedule = sigma_schedule
+
         if isinstance(scale_schedule, torch.Tensor):
             self.register_buffer("scale_schedule", scale_schedule)
         else:
             self.scale_schedule = scale_schedule
-
-        self.sigma_inverse = sigma_inverse
-        self.T = T
-        self.to(device)
-
-    def _handle_time_step(
-        self,
-        t: torch.Tensor | float,
-        device: str | torch.device = "cpu",
-        dtype: torch.dtype = torch.float32,
-    ) -> torch.Tensor:
-        t = torch.as_tensor(t, device=device, dtype=dtype)
-        return t
 
     def get_schedule_value(
         self,
@@ -115,6 +169,7 @@ class ScoreModelWrapper(Denoiser):
     ) -> torch.Tensor:
         r"""
         Get the value of a schedule (function or tensor) at given time steps.
+
         :param Callable | torch.Tensor schedule: schedule function or tensor.
         :param torch.Tensor t: time steps, of shape `[B]` or `[]`.
         :param torch.Size target_size: target size to broadcast the output to. Default is `None`.
@@ -328,7 +383,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
     :param device: Device to load the model on. Default is 'cpu'.
 
     .. note::
-        Currently, only models trained with `DDPMScheduler` are supported.
+        Currently, only models trained with `DDPMScheduler`, `DDIMScheduler` or `PNDMScheduler` are supported.
 
     .. warning::
         This wrapper requires the `diffusers` and `transformers` packages.
@@ -361,6 +416,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         self,
         mode_id: str = None,
         clip_output: bool = True,
+        dtype: torch.dtype = torch.float32,
         device: str | torch.device = "cpu",
         *args,
         **kwargs,
@@ -381,10 +437,12 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
                 "diffusers is not installed. Please install it via 'pip install diffusers'."
             )
 
-        pipeline = DiffusionPipeline.from_pretrained(mode_id, torch_dtype=torch.float32)
+        pipeline = DiffusionPipeline.from_pretrained(mode_id, torch_dtype=dtype).to(
+            device
+        )
 
         model = pipeline.unet
-        scheduler = pipeline.scheduler
+        scheduler = getattr(pipeline, "scheduler", None)
         prediction_type = getattr(scheduler.config, "prediction_type", "epsilon")
 
         if isinstance(scheduler, (PNDMScheduler, DDPMScheduler, DDIMScheduler)):
@@ -437,14 +495,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
             **kwargs,
         )
 
-        self.tokenizer = pipeline.tokenizer if hasattr(pipeline, "tokenizer") else None
-        self.text_encoder = (
-            pipeline.text_encoder if hasattr(pipeline, "text_encoder") else None
-        )
-        self.bert = pipeline.bert if hasattr(pipeline, "bert") else None
-        self.vae = pipeline.vae if hasattr(pipeline, "vae") else None
-        self.vqvae = pipeline.vqvae if hasattr(pipeline, "vqvae") else None
-        self.scheduler = pipeline.scheduler if hasattr(pipeline, "scheduler") else None
+        self.scheduler = scheduler
 
     def forward(
         self,
