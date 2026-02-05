@@ -422,7 +422,11 @@ class TiledMixin2D:
         :param img_size: Image size (height, width).
         :return: Number of patches (n_h, n_w).
         """
-        compatible_size = self.get_compatible_img_size(img_size)
+        if self.pad_if_needed:
+            compatible_size = self.get_compatible_img_size(img_size)
+        else:
+            compatible_size = img_size
+
         n_h = (compatible_size[0] - self.patch_size[0]) // self.stride[0] + 1
         n_w = (compatible_size[1] - self.patch_size[1]) // self.stride[1] + 1
         return n_h, n_w
