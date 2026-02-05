@@ -330,17 +330,17 @@ plot(
 # Space varying blur with tiles
 # -----------------------------
 #
-# The forward operator :math:`A` is decomposed as a sum of local convolutions with different
-# kernels :math:`h_k` acting on different image regions defined by tiles of spatial size
-# `(patch_size[0], patch_size[1])` and overlapping with a stride of `(stride[0], stride[1])`.
-#
+# While the :class:`deepinv.physics.blur.SpaceVaryingBlur` physics uses global eigen-PSFs to define the space varying blur, we also provide a local version of space varying blur with the :class:`deepinv.physics.TiledSpaceVaryingBlur` class. In this case, the image is decomposed into overlapping tiles, and each tile is convolved with a different kernel. The kernels are then blended together with a unity partition to ensure a smooth transition between tiles.
+
+# This physics is particularly useful for large images when one can perform local estimation of the PSFs.
+
 
 from deepinv.physics.blur import TiledSpaceVaryingBlur
 from deepinv.physics.generator import TiledBlurGenerator
 
-img_size = (512, 512)
-patch_size = (128, 128)
-stride = (64, 64)
+img_size = (512, 512)  # size of the image to blur
+patch_size = (128, 128)  # size of the tiles on which local convolution is performed
+stride = (64, 64)  # stride between tiles
 
 psf_generator = MotionBlurGenerator(
     (25, 25),

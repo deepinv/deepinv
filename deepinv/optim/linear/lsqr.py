@@ -2,7 +2,7 @@ from __future__ import annotations
 import torch
 from torch import Tensor
 from typing import Callable
-from deepinv.utils import TensorList, zeros_like
+from deepinv.utils.tensorlist import TensorList, zeros_like
 from deepinv.utils.compat import zip_strict
 
 

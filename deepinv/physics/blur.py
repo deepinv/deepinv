@@ -23,10 +23,9 @@ from deepinv.physics.functional import (
 from deepinv.physics.functional.convolution import _prepare_filter_for_grouped
 from deepinv.physics.functional.tiled_product_convolution import (
     generate_tiled_multipliers,
-    TiledPConv2dConfig,
-    TiledPConv2dHandler,
 )
-from deepinv.physics.functional.utils import _add_tuple, _as_pair
+from deepinv.utils._internal import _add_tuple, _as_pair
+from deepinv.utils.mixins import TiledMixin2D
 
 
 class Downsampling(LinearPhysics):
@@ -693,7 +692,7 @@ class SpaceVaryingBlur(LinearPhysics):
         super().update_parameters(**kwargs)
 
 
-class TiledSpaceVaryingBlur(LinearPhysics):
+class TiledSpaceVaryingBlur(TiledMixin2D, LinearPhysics):
     r"""
     Space varying blur via tiled-convolution.
 
@@ -730,6 +729,8 @@ class TiledSpaceVaryingBlur(LinearPhysics):
 
     :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(B, C, K, h, w)` where
         `B` is the batch size, `C` the number of channels, `K` the number of filters, `h` and `w` the filter height and width which should be smaller or equal than the image :math:`x` height and width respectively.
+        If `None`, filters must be provided during the forward pass.
+    :param str blending_mode: Blending mode for overlapping patches. Options are `'bump'` (default) and `'linear'`.
     :param int, tuple[int, int] patch_size: Size of the patches (tiles). If `int`, the same size is used for both spatial dimensions.
 
     |sep|
@@ -761,6 +762,8 @@ class TiledSpaceVaryingBlur(LinearPhysics):
     >>> filters = generator.step(batch_size=1, img_size=img_size)["filters"]
     >>> physics = TiledSpaceVaryingBlur(patch_size=patch_size, stride=stride)
     >>> y = physics(x, filters=filters)
+    >>> print(x.shape, y.shape)
+    torch.Size([1, 3, 256, 256]) torch.Size([1, 3, 226, 226])
     >>> dinv.utils.plot([x, y], titles=["Original", "Blurred"])   # DOCTEST: +SKIP
     """
 
@@ -771,9 +774,14 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         stride: int | tuple[int, int] = None,
         blending_mode: str = "bump",
         use_fft: bool = True,
+        device: torch.device | str = "cpu",
+        dtype: str | torch.dtype = torch.float32,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(
+            patch_size=patch_size, stride=stride, pad_if_needed=True, **kwargs
+        )
+        # Always use pad_if_needed=True to ensure that the image is padded to fit an integer number of patches, and the extra padding is removed automatically after processing.
 
         try:
             from einops import rearrange
@@ -783,17 +791,10 @@ class TiledSpaceVaryingBlur(LinearPhysics):
             )
 
         self.rearrange = rearrange
-        self.patch_size = _as_pair(patch_size)
-        self.stride = (
-            _as_pair(stride)
-            if stride is not None
-            else tuple(p // 2 for p in self.patch_size)
-        )
-        assert (
-            self.stride[0] <= self.patch_size[0]
-            and self.stride[1] <= self.patch_size[1]
-        ), f"Stride {self.stride} must be smaller or equal than patch_size {self.patch_size}."
         self._dynamic_img_size = None  # To track image size changes
+        self._dynamic_psf_size = (
+            filters.shape[-2:] if filters is not None else None
+        )  # To track psf size changes
 
         self.use_fft = use_fft
         self.conv2d_fn = conv2d if not use_fft else conv2d_fft
@@ -801,20 +802,10 @@ class TiledSpaceVaryingBlur(LinearPhysics):
             conv_transpose2d if not use_fft else conv_transpose2d_fft
         )
         self.blending_mode = blending_mode
-        # config for tiles
-
-        self.config = TiledPConv2dConfig(
-            patch_size=patch_size,
-            stride=self.stride,
-            psf_size_init=filters.shape[-2:] if filters is not None else None,
-        )
-        self.tiled_handler = TiledPConv2dHandler(self.config)
-
-        self.adjoint_config = self.config.adjoint_config()
-        self.adjoint_tiled_handler = TiledPConv2dHandler(self.adjoint_config)
 
         self.register_buffer("filters", filters)
         self.register_buffer("multipliers", None)
+        self.to(device=device, dtype=dtype)
 
     def A(self, x: Tensor, filters: Tensor = None, **kwargs) -> torch.Tensor:
         r"""
@@ -833,7 +824,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         h = self.filters  # (B, C, K, h, w)
 
         # Extract patches: (B, C, K1, K2, P1, P2)
-        patches = self.tiled_handler.image_to_patches(x)
+        patches = self.image_to_patches(x)
 
         n_rows, n_cols = patches.size(2), patches.size(3)
         assert n_rows * n_cols == h.size(2), (
@@ -846,7 +837,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         patches = patches * w
 
         # Pad for convolution
-        margin = self.config.margin
+        margin = (h.shape[-2] - 1, h.shape[-1] - 1)
         patches = F.pad(
             patches,
             pad=(margin[1], margin[1], margin[0], margin[0]),
@@ -871,7 +862,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         B, C, K, H, W = result.size()
         target_size = _add_tuple(x.shape[-2:], margin)
 
-        result = self.tiled_handler.patches_to_image(
+        result = self.patches_to_image(
             result.view(B, C, n_rows, n_cols, H, W),
             img_size=target_size,
         )
@@ -897,7 +888,7 @@ class TiledSpaceVaryingBlur(LinearPhysics):
             filters = self.filters
 
         # Infer original image size from y and filters, since the padding is 'valid'
-        margin = self.config.margin
+        margin = (filters.shape[-2] - 1, filters.shape[-1] - 1)
         original_img_size = _add_tuple(y.shape[-2:], margin)
 
         self.update_parameters(
@@ -920,7 +911,13 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         )
 
         # Extract patches with expanded config
-        patches = self.adjoint_tiled_handler.image_to_patches(y)
+        original_patch_size = self.patch_size
+
+        # Update patch size to account for margin in adjoint
+        self.patch_size = _add_tuple(original_patch_size, margin)
+        patches = self.image_to_patches(y)
+        # Restore original patch size
+        self.patch_size = original_patch_size
 
         n_rows, n_cols = patches.size(2), patches.size(3)
         assert n_rows * n_cols == h.size(
@@ -944,9 +941,9 @@ class TiledSpaceVaryingBlur(LinearPhysics):
         result = result[..., margin[0] : -margin[0], margin[1] : -margin[1]]
         result = result * w
 
-        # Reconstruct image using original config's handler
+        # Reconstruct image using overlapping patches
         B, C, _, H, W = result.size()
-        return self.adjoint_tiled_handler.patches_to_image(
+        return self.patches_to_image(
             result.view(B, C, n_rows, n_cols, H, W),
             img_size=original_img_size,
         )
@@ -961,17 +958,16 @@ class TiledSpaceVaryingBlur(LinearPhysics):
     ):
         if filters is not None and isinstance(filters, Tensor):
             self.register_buffer("filters", filters.to(device))
-            self.config.psf_size = filters.shape[-2:]
-            self.adjoint_config.psf_size = filters.shape[-2:]
+            self._dynamic_psf_size = filters.shape[-2:]
 
         # Only generate multipliers if the image size changed
         if getattr(self, "multipliers", None) is None or (
             img_size is not None and img_size != self._dynamic_img_size
         ):
             multipliers = generate_tiled_multipliers(
-                self.config._get_compatible_img_size(img_size)[0],
-                self.config.patch_size,
-                self.config.stride,
+                self.get_compatible_img_size(img_size),
+                self.patch_size,
+                self.stride,
                 mode=self.blending_mode,
                 device=device,
                 dtype=dtype,
@@ -984,19 +980,28 @@ class TiledSpaceVaryingBlur(LinearPhysics):
     @staticmethod
     def num_filters(
         img_size: tuple[int, int], patch_size: tuple[int, int], stride: tuple[int, int]
-    ) -> int:
+    ) -> tuple[int, int]:
         r"""
         Computes the number of filters (tiles) required for a given image size, patch size and stride.
+        Can be used to determine the required number of filters when instantiating the class.
 
         :param tuple[int, int] img_size: Image size `(H, W)`.
         :param tuple[int, int] patch_size: Patch size `(h, w)`.
         :param tuple[int, int] stride: Stride size `(sh, sw)`.
-        :return: Number of filters (tiles) required.
+        :return: Number of filters (tiles) required in each spatial dimension.
         """
-        num_patches_h, num_patches_w = TiledPConv2dConfig(
-            patch_size=patch_size, stride=stride
-        ).get_num_patches(img_size)
-        return num_patches_h * num_patches_w
+        img_size = _as_pair(img_size)
+        patch_size = _as_pair(patch_size)
+        stride = _as_pair(stride)
+
+        # Using the same logic as in TiledMixin2D, but a static method here to help users compute the number of filters needed beforehand
+        num = [(i - p) // s + 1 for i, p, s in zip(img_size, patch_size, stride)]
+        pad = [p + n * s - i for p, n, s, i in zip(patch_size, num, stride, img_size)]
+        compatible_size = _add_tuple(img_size, pad)
+        n_h = (compatible_size[0] - patch_size[0]) // stride[0] + 1
+        n_w = (compatible_size[1] - patch_size[1]) // stride[1] + 1
+
+        return n_h, n_w
 
 
 def gaussian_blur(

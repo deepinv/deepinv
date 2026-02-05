@@ -8,8 +8,8 @@ from deepinv.physics.functional.convolution import conv2d
 from deepinv.physics.functional.interp import ThinPlateSpline
 from deepinv.utils.decorators import _deprecated_alias
 from deepinv.transform.rotate import rotate_via_shear
+from deepinv.utils.mixins import TiledMixin2D
 from .zernike import Zernike
-from deepinv.physics.functional.tiled_product_convolution import TiledPConv2dConfig
 
 
 class PSFGenerator(PhysicsGenerator):
@@ -1108,7 +1108,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         return self.generator_ill.zernike_polynomials
 
 
-class TiledBlurGenerator(PSFGenerator):
+class TiledBlurGenerator(TiledMixin2D, PSFGenerator):
     r"""
     Generates parameters of the :class:`deepinv.physics.TiledSpaceVaryingBlur` operator.
     The image is divided into overlapping patches, each local patch is convolved with a different PSF.
@@ -1132,15 +1132,11 @@ class TiledBlurGenerator(PSFGenerator):
         device: str | torch.device = "cpu",
         **kwargs,
     ):
-        super().__init__(rng=rng, device=device, **kwargs)
+        super().__init__(
+            patch_size=patch_size, stride=stride, rng=rng, device=device, **kwargs
+        )
         self.psf_generator = psf_generator
         self.psf_size = psf_generator.psf_size
-
-        self.patch_size = patch_size
-        self.stride = stride if stride is not None else patch_size
-        self.config = TiledPConv2dConfig(
-            patch_size=patch_size, stride=self.stride, psf_size_init=self.psf_size
-        )
 
     def step(
         self,
@@ -1162,7 +1158,7 @@ class TiledBlurGenerator(PSFGenerator):
 
         """
 
-        num_patches = self.config.get_num_patches(img_size)
+        num_patches = self.get_num_patches(img_size=img_size)
         num_patches = num_patches[0] * num_patches[1]
 
         params = self.psf_generator.step(

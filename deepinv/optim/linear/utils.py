@@ -1,5 +1,5 @@
 from __future__ import annotations
-from deepinv.utils import TensorList
+from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
 
 

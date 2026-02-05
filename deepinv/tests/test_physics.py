@@ -2366,7 +2366,7 @@ def test_tiled_product_physics_adjointness(
     n_filters = TiledSpaceVaryingBlur.num_filters(
         img_size=img_size, patch_size=patch_size, stride=stride
     )
-    h = torch.rand(1, n_channels, n_filters, *psf_size).to(device)
+    h = torch.rand(1, n_channels, n_filters[0] * n_filters[1], *psf_size).to(device)
 
     physics = TiledSpaceVaryingBlur(
         filters=h,
