@@ -69,6 +69,44 @@ def _get_freer_gpu_system(hide_warnings=False):
     return device, idx, mem
 
 
+def get_device(verbose=True, use_torch_api=True):
+    r"""
+    Selects the best available device: CUDA GPU (with most free memory), MPS (Apple Silicon), or CPU.
+
+    This function checks for available accelerators in the following order:
+
+    1. **CUDA**: If CUDA GPUs are available, selects the one with the most free memory
+       (delegates to :func:`get_freer_gpu`).
+    2. **MPS**: If running on Apple Silicon with MPS support, returns the MPS device.
+    3. **CPU**: Falls back to CPU if no accelerator is available.
+
+    :param bool verbose: print the selected device information. Default: ``True``.
+    :param bool use_torch_api: passed to :func:`get_freer_gpu` when selecting a CUDA GPU.
+        Default: ``True``.
+    :return: the selected device.
+    :rtype: torch.device
+
+    :Examples:
+
+    >>> import deepinv
+    >>> device = deepinv.utils.get_device(verbose=False)
+
+    """
+    if torch.cuda.is_available():
+        device = get_freer_gpu(verbose=verbose, use_torch_api=use_torch_api)
+        if device is not None:
+            return device
+
+    if torch.backends.mps.is_available():
+        if verbose:
+            print("Selected MPS device (Apple Silicon)")
+        return torch.device("mps")
+
+    if verbose:
+        print("Selected CPU device")
+    return torch.device("cpu")
+
+
 def get_freer_gpu(verbose=True, use_torch_api=True, hide_warnings=False):
     """
     Returns the GPU device with the most free memory.

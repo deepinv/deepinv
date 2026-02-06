@@ -99,7 +99,7 @@ class DDRM(Reconstructor):
         Denoising diffusion restoration model using a pretrained DRUNet denoiser:
 
         >>> import deepinv as dinv
-        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu'
+        >>> device = dinv.utils.get_device(verbose=False)
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> seed = torch.cuda.manual_seed(0) # Random seed for reproducibility on GPU
         >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define plain gray 32x32 image
@@ -267,7 +267,7 @@ class DiffPIR(Reconstructor):
         Denoising diffusion restoration model using a pretrained DRUNet denoiser:
 
         >>> import deepinv as dinv
-        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu'
+        >>> device = dinv.utils.get_device(verbose=False)
         >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define a plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
         ...   mask=0.5, img_size=(3, 32, 32),
