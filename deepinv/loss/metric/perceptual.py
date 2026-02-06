@@ -85,13 +85,15 @@ class NIQE(Metric):
 
     :Example:
 
-    >>> from deepinv.utils import load_example
-    >>> from deepinv.loss.metric import NIQE
-    >>> m = NIQE() # doctest: +IGNORE_RESULT
-    (...)
-    >>> x_net = load_example("celeba_example.jpg", img_size=128)
-    >>> m(x_net) # doctest: +ELLIPSIS
-    tensor([...])
+    ::
+
+        from deepinv.utils import load_example
+        from deepinv.loss.metric import NIQE
+        m = NIQE()
+        (...)
+        x_net = load_example("celeba_example.jpg", img_size=128)
+        m(x_net)
+        tensor([...])
 
     :param str device: device to use for the metric computation. Default: 'cpu'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
