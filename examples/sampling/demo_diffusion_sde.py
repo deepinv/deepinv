@@ -72,7 +72,8 @@ from deepinv.sampling import (
     VariancePreservingDiffusion,
 )
 from deepinv.optim import ZeroFidelity
-'''
+
+"""
 # In this example, we use the pre-trained FFHQ-64 model from the
 # EDM framework: https://arxiv.org/pdf/2206.00364 .
 # The network architecture is from Song et al: https://arxiv.org/abs/2011.13456 .
@@ -345,7 +346,7 @@ except FileNotFoundError:
 # For example, we can use the :class:`deepinv.models.DRUNet` for posterior sampling.
 # We can also change the underlying SDE, for example change the `sigma_max` value.
 
-del trajectory  # clean memory'''
+del trajectory  # clean memory"""
 sigma_max = 10.0
 rng = torch.Generator(device)
 dtype = torch.float32
@@ -353,7 +354,9 @@ timesteps = torch.linspace(1, 0.001, 250)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
-sde = VarianceExplodingDiffusion(sigma_max=sigma_max, alpha=0.75, device=device, dtype=dtype)
+sde = VarianceExplodingDiffusion(
+    sigma_max=sigma_max, alpha=0.75, device=device, dtype=dtype
+)
 
 x = dinv.utils.load_example(
     "butterfly.png",
