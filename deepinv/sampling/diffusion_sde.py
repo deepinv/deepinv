@@ -704,8 +704,8 @@ class VarianceExplodingDiffusion(EDMDiffusionSDE):
     def __init__(
         self,
         denoiser: nn.Module = None,
-        sigma_min: float = 0.02,
-        sigma_max: float = 100,
+        sigma_min: float = 0.001,
+        sigma_max: float = 80,
         alpha: Callable | float = 0.25,
         solver: BaseSDESolver = None,
         dtype=torch.float64,
