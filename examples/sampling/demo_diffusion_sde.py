@@ -73,7 +73,6 @@ from deepinv.sampling import (
 )
 from deepinv.optim import ZeroFidelity
 
-"""
 # In this example, we use the pre-trained FFHQ-64 model from the
 # EDM framework: https://arxiv.org/pdf/2206.00364 .
 # The network architecture is from Song et al: https://arxiv.org/abs/2011.13456 .
@@ -262,7 +261,7 @@ except FileNotFoundError:
 
 
 del trajectory
-sde = VariancePreservingDiffusion(alpha=0., device=device, dtype=dtype)
+sde = VariancePreservingDiffusion(alpha=0.0, device=device, dtype=dtype)
 
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
@@ -346,7 +345,7 @@ except FileNotFoundError:
 # For example, we can use the :class:`deepinv.models.DRUNet` for posterior sampling.
 # We can also change the underlying SDE, for example change the `sigma_max` value.
 
-del trajectory  # clean memory"""
+del trajectory  # clean memory
 sigma_max = 10.0
 rng = torch.Generator(device)
 dtype = torch.float32
