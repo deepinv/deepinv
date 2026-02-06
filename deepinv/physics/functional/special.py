@@ -11,8 +11,16 @@ def native_hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
     :return: Complex tensor representing H1(n, x).
     """
     # Use torch.special functions for J and Y
-    jn = torch.special.bessel_j(n, x)
-    yn = torch.special.bessel_y(n, x)
+    if n == 0:
+        jn = torch.special.bessel_j0(x)
+        yn = torch.special.bessel_y0(x)
+    elif n == 1:
+        jn = torch.special.bessel_j1(x)
+        yn = torch.special.bessel_y1(x)
+    else:
+        raise NotImplementedError(
+            "Only orders n=0 and n=1 are implemented for native Hankel1. Use SciPy for other orders."
+        )
 
     # Combine into a complex tensor: J + iY
     return torch.complex(jn, yn)
@@ -36,7 +44,7 @@ def hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
     device = x.device
 
     # 2. Use native Torch if available and input is on GPU or requires grad
-    if has_native_bessel and (x.is_cuda or x.requires_grad):
+    if has_native_bessel and (x.is_cuda or x.requires_grad) and n in (0, 1):
         try:
             return native_hankel1(n, x).to(device=device)
         except RuntimeError:
@@ -68,12 +76,18 @@ def bessel_j(n: int, x: torch.Tensor) -> torch.Tensor:
     """
     # 1. Attempt Native PyTorch (Available in torch >= 1.9)
     device = x.device
-    if hasattr(torch.special, "bessel_j"):
+    if hasattr(torch.special, "bessel_j0") and n == 0:
         try:
             # Note: bessel_j supports float/double and supports autograd
-            return torch.special.bessel_j(n, x).to(device=device)
+            return torch.special.bessel_j0(n, x).to(device=device)
         except (TypeError, RuntimeError):
             # Fallback if the specific n (order) or x (dtype) is unsupported natively
+            pass
+
+    if hasattr(torch.special, "bessel_j1") and n == 1:
+        try:
+            return torch.special.bessel_j1(n, x).to(device=device)
+        except (TypeError, RuntimeError):
             pass
 
     # 2. Fallback to SciPy

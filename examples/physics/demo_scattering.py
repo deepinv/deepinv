@@ -247,8 +247,7 @@ physics.set_verbose(False)
 
 x_lin = physics.A_dagger(y, linear=True)
 
-print(f"PSNR of Born approximation:", psnr(x, x_lin).item())
-
+print(f"PSNR of Born approximation: {psnr(x, x_lin).item():2f} dB")
 # %%
 # Reconstruction with gradient descent
 # -------------------------------------
@@ -283,7 +282,7 @@ gd_solver = dinv.optim.GD(
 
 x_gd = gd_solver(y, physics)
 
-print("PSNR of gradient descent reconstruction:", psnr(x, x_gd).item())
+print(f"PSNR of gradient descent reconstruction: {psnr(x, x_gd).item():.2f} dB")
 
 dinv.utils.plot(
     [x, x_lin, x_gd],

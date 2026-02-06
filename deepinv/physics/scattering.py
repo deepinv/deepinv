@@ -146,8 +146,8 @@ class Scattering(Physics):
         self.total_field = None
 
         self.update_parameters(
-            receivers=receivers.to(device).to(dtype),
-            transmitters=transmitters.to(device).to(dtype),
+            receivers=receivers.to(device=device, dtype=dtype),
+            transmitters=transmitters.to(device=device, dtype=dtype),
         )
 
     @dataclass
@@ -162,6 +162,8 @@ class Scattering(Physics):
         :param str solver: Linear solver to use (`'lsqr'`, `'BiCGStab'` or `'CG'`). By default, `'lsqr'`.
         :param float tol: Stopping criterion for the solver. By default, 1e-5.
         :param bool adjoint_state: If True, use adjoint state method for gradients, else use autograd. By default `True`.
+        :param float green_imaginary_part: Small imaginary part to add to the wavenumber in the
+            Green's function to improve solver convergence. By default, 0 (no modification).
         :param bool verbose: If True, print solver convergence information. By default, False.
         """
 
@@ -169,6 +171,7 @@ class Scattering(Physics):
         max_iter: int = 500
         solver: str = "lsqr"
         tol: float = 1e-5
+        green_imaginary_part: float = 0.0
         adjoint_state: bool = True
         verbose: bool = False
 
@@ -182,7 +185,7 @@ class Scattering(Physics):
             device=device,
             dtype=dtype,
         )
-        x_domain, y_domain = torch.meshgrid(-image_domain, image_domain, indexing="ij")
+        y_domain, x_domain = torch.meshgrid(-image_domain, image_domain, indexing="ij")
         return x_domain.flatten(), y_domain.flatten()
 
     def normalize(self, x: torch.Tensor):
@@ -377,10 +380,10 @@ class Scattering(Physics):
         self, x: torch.Tensor, total_field: torch.Tensor
     ) -> torch.Tensor:
         """
-        Compute sensor outputs y = G_s * diag(x) u.
+        Compute sensor outputs :math:`y = G_s * \text{diag}(x) u`.
 
-        :param torch.Tensor x: Scattering potential (B,1,H,W).
-        :param torch.Tensor total_field: Total field u (B,T,H,W).
+        :param torch.Tensor x: Scattering potential `(B,1,H,W)`.
+        :param torch.Tensor total_field: Total field u `(B,T,H,W)`.
         """
         # This computes y = G_s*diag(x)*Et
         self.born_operator.total_field = total_field
@@ -572,7 +575,7 @@ class BornOperator(LinearPhysics):
         """
         Solve least-squares for x given y using the operator A and its adjoint.
 
-        :param torch.Tensor y: Measurements (B,T,R).
+        :param torch.Tensor y: Measurements `(B,T,R)`.
         :param None, torch.Tensor init: Initial guess for the solver `(B,1,H,W)`.
         :param str solver: Solver to use (`'lsqr'`, `'BiCGStab'` or `'CG'`), see :func:`deepinv.optim.linear.least_squares`.
         :param float gamma: Regularization parameter for the least-squares solver.
@@ -681,9 +684,10 @@ def circular_sensors(
     :param float max_angle: Maximum angle in degrees covered by sensors.
     :param float offset_angle: Offset angle in degrees.
     :param str device: Torch device for tensors.
-    :return:: Tuple of tensors:
+    :return: Tuple of tensors:
          - `transmitters`: Tensor of shape `(2, number)` with (x,y) positions.
          - `receivers`: Tensor of shape `(2, number, number-1)` with (x,y) positions.
+
     """
     angles = (
         torch.linspace(0, max_angle / 360 * 2 * torch.pi, number + 1, device=device)[
@@ -691,13 +695,16 @@ def circular_sensors(
         ]
         + offset_angle / 360 * 2 * torch.pi
     )
-    receiver_radii = radius * torch.ones_like(angles)
+    receiver_radii = radius
     x_pos = receiver_radii * torch.cos(angles)
     y_pos = receiver_radii * torch.sin(angles)
     transmitters = torch.stack([x_pos, y_pos])  # 2, number
-    receivers = torch.zeros((2, number, number - 1), device=device)
-    for i in range(number):
-        receivers[:, i, :] = transmitters[:, torch.arange(number) != i]
+    # receivers = torch.zeros((2, number, number - 1), device=device)
+
+    mask = ~torch.eye(number, dtype=torch.bool, device=device)
+    all_indices = torch.arange(number, device=device).expand(number, number)
+    valid_indices = all_indices[mask].view(number, number - 1)
+    receivers = transmitters[:, valid_indices]
     return transmitters, receivers
 
 
@@ -764,9 +771,10 @@ class LippmannSchwingerSolver(torch.nn.Module):
         super().__init__()
 
         # Pre-compute Green's function in Fourier space and move to device
-        self.e = 0.01
         _, g_fourier = green_fourier(
-            img_width, box_length, (wavenumber.pow(2) + 1j * self.e).sqrt()
+            img_width,
+            box_length,
+            (wavenumber.pow(2) + 1j * config.green_imaginary_part).sqrt(),
         )
         self.register_buffer("g_fourier", g_fourier)
         self.register_buffer("k02", wavenumber.pow(2).to(device))
@@ -793,7 +801,7 @@ class LippmannSchwingerSolver(torch.nn.Module):
     ) -> torch.Tensor:
         """
         Calls the custom autograd function to solve the equation.
-        PyTorch will automatically use the defined .backward() method during backpropagation.
+        PyTorch will automatically use the defined `.backward()` method during backpropagation.
 
         :param torch.Tensor k2: Squared space-varying wavenumber tensor `(B,1,H,W)`.
         :param torch.Tensor source: Source term tensor `(B,T,H,W)`.
@@ -1011,7 +1019,7 @@ def mie_theory(
     if not isinstance(wavenumber, torch.Tensor):
         wavenumber = torch.tensor(wavenumber, dtype=dtype, device=device)
     else:
-        wavenumber = wavenumber.to(dtype).to(device)
+        wavenumber = wavenumber.to(dtype=dtype, device=device)
 
     grid = torch.linspace(-box_length / 2, box_length / 2, img_width, device=device)
     yy, xx = torch.meshgrid(-grid, grid, indexing="ij")

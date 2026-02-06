@@ -2384,7 +2384,7 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
     assert (
         physics.born_operator.adjointness_test(
             torch.randn((1, 1, pixels, pixels), device=device, dtype=dtype)
-        )
+        ).abs()
         < 1e-4
     ), "Adjointness test failed for the Born sub-operator of the Scattering physics."
 
