@@ -19,7 +19,6 @@ from deepinv.training import test
 from torchvision import transforms
 from deepinv.utils import load_dataset
 
-
 # %%
 # Setup paths for data loading and results.
 # --------------------------------------------

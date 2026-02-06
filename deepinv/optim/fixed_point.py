@@ -120,39 +120,56 @@ class FixedPoint(nn.Module):
         Initialize the Anderson acceleration algorithm.
         Code inspired from `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_.
 
+        Initializes the history buffers and the H and q matrices used in Anderson acceleration.
+        H and q are used to solve the linear system Hp = q at each Anderson acceleration step.
+        H is initialized as a (m+1)x(m+1) matrix where m is the history size, with first row and column set to 1.
+        Q is initialized as a (m+1)x1 vector with first element set to 1.
+
         :param dict X: initial iterate.
         """
         x = X["est"][0]
-        b, d, h, w = x.shape
+        b = x.shape[0]
+        feature_num = x[0].numel()
         x_hist = torch.zeros(
-            b, self.history_size, d * h * w, dtype=x.dtype, device=x.device
+            b,
+            self.anderson_acceleration_config.history_size,
+            feature_num,
+            dtype=x.dtype,
+            device=x.device,
         )  # history of iterates.
         T_hist = torch.zeros(
-            b, self.history_size, d * h * w, dtype=x.dtype, device=x.device
+            b,
+            self.anderson_acceleration_config.history_size,
+            feature_num,
+            dtype=x.dtype,
+            device=x.device,
         )  # history of T(x_k) with T the fixed point operator.
         H = torch.zeros(
             b,
-            self.history_size + 1,
-            self.history_size + 1,
+            self.anderson_acceleration_config.history_size + 1,
+            self.anderson_acceleration_config.history_size + 1,
             dtype=x.dtype,
             device=x.device,
         )  # H in the Anderson acceleration linear system Hp = q .
         H[:, 0, 1:] = H[:, 1:, 0] = 1.0
         q = torch.zeros(
-            b, self.history_size + 1, 1, dtype=x.dtype, device=x.device
+            b,
+            self.anderson_acceleration_config.history_size + 1,
+            1,
+            dtype=x.dtype,
+            device=x.device,
         )  # q in the Anderson acceleration linear system Hp = q .
         q[:, 0] = 1
-        return x_hist, T_hist, H, q
+        self.register_buffer("x_hist", x_hist, persistent=False)
+        self.register_buffer("T_hist", T_hist, persistent=False)
+        self.register_buffer("H", H, persistent=False)
+        self.register_buffer("q", q, persistent=False)
 
     def anderson_acceleration_step(
         self,
         it: int,
         X_prev: dict,
         TX_prev: dict,
-        x_hist: torch.Tensor,
-        T_hist: torch.Tensor,
-        H: torch.Tensor,
-        q: torch.Tensor,
         cur_data_fidelity: deepinv.optim.DataFidelity,
         cur_prior: deepinv.optim.Prior,
         cur_params: dict,
@@ -166,40 +183,68 @@ class FixedPoint(nn.Module):
         :param int it: current iteration.
         :param dict X_prev: previous iterate.
         :param dict TX_prev: output of the fixed-point operator evaluated at X_prev
-        :param torch.Tensor x_hist: history of last ``history-size`` iterates.
-        :param torch.Tensor T_hist: history of T evlauaton at the last ``history-size``, where T is the fixed-point operator.
-        :param torch.Tensor H: H in the Anderson acceleration linear system Hp = q .
-        :param torch.Tensor q: q in the Anderson acceleration linear system Hp = q .
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param args: arguments for the iterator.
         """
-        x_prev = X_prev["est"][0]  # current iterate Tx
-        Tx_prev = TX_prev["est"][0]  # current iterate x
+        x_prev = X_prev["est"][0]  # current iterate x
+        Tx_prev = TX_prev["est"][0]  # current iterate Tx
         b = x_prev.shape[0]  # batchsize
-        x_hist[:, it % self.history_size] = x_prev.reshape(
-            b, -1
-        )  # prepare history of x
-        T_hist[:, it % self.history_size] = Tx_prev.reshape(
-            b, -1
-        )  # prepare history of Tx
-        m = min(it + 1, self.history_size)
-        G = T_hist[:, :m] - x_hist[:, :m]
+
+        idx = (
+            it % self.anderson_acceleration_config.history_size
+        )  # "current" position in the ring buffer
+        m = min(
+            it + 1, self.anderson_acceleration_config.history_size
+        )  # effective history length
+        if self.anderson_acceleration_config.full_backprop:
+            # Full gradient through history
+            # avoid in-place modification, which messes with autograd
+            T_hist = self.T_hist.clone()
+            x_hist = self.x_hist.clone()
+            H = self.H.clone()
+            # update history and buffers
+            x_hist[:, idx] = x_prev.reshape(b, -1)
+            T_hist[:, idx] = Tx_prev.reshape(b, -1)
+            self.x_hist = x_hist
+            self.T_hist = T_hist
+            # use the m first elements of the history
+            X = x_hist[:, :m]  # (b,m,d)
+            T = T_hist[:, :m]  # (b,m,d)
+        else:
+            # No gradient through history, only through current iterate
+            # update history and buffers
+            H = self.H.clone().detach()
+            self.x_hist[:, idx] = x_prev.reshape(b, -1).detach()
+            self.T_hist[:, idx] = Tx_prev.reshape(b, -1).detach()
+            # old values : don't use grad
+            X_old = self.x_hist[:, :m].detach()
+            T_old = self.T_hist[:, :m].detach()
+            # new values : use grad
+            x_cur = x_prev.reshape(b, 1, -1)
+            t_cur = Tx_prev.reshape(b, 1, -1)
+            # use masking to only have the current value updating the gradient
+            mask = torch.zeros((1, m, 1), device=x_prev.device, dtype=x_prev.dtype)
+            mask[:, idx, :] = 1
+            X = X_old + mask * (x_cur - X_old[:, idx : idx + 1, :])
+            T = T_old + mask * (t_cur - T_old[:, idx : idx + 1, :])
+
+        G = T - X  # (b,m,d)
         H[:, 1 : m + 1, 1 : m + 1] = (
             torch.bmm(G, G.transpose(1, 2))
             + self.anderson_acceleration_config.eps
             * torch.eye(m, dtype=Tx_prev.dtype, device=Tx_prev.device)[None]
         )
-        p = torch.linalg.solve(H[:, : m + 1, : m + 1], q[:, : m + 1])[
+        p = torch.linalg.solve(H[:, : m + 1, : m + 1], self.q[:, : m + 1])[
             :, 1 : m + 1, 0
         ]  # solve the linear system H p = q.
-        x = (
-            self.anderson_acceleration_config.beta * (p[:, None] @ T_hist[:, :m])[:, 0]
-            + (1 - self.anderson_acceleration_config.beta)
-            * (p[:, None] @ x_hist[:, :m])[:, 0]
-        )  # Anderson acceleration step.
-        x = x.view(x_prev.shape)
+
+        # Anderson update
+        beta = self.anderson_acceleration_config.beta
+        x = beta * (p[:, None] @ T)[:, 0] + (1 - beta) * (p[:, None] @ X)[:, 0]
+        x = x.view_as(x_prev)
+        self.H = H
         F = (
             self.iterator.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, *args)
             if self.iterator.cost_fn is not None
@@ -267,9 +312,7 @@ class FixedPoint(nn.Module):
         failed_backtracking_count = 0
 
         if self.anderson_acceleration_config is not None:
-            self.x_hist, self.T_hist, self.H, self.q = self.init_anderson_acceleration(
-                X
-            )
+            self.init_anderson_acceleration(X)
 
         for it in tqdm(
             range(self.max_iter),
@@ -325,10 +368,6 @@ class FixedPoint(nn.Module):
                 it,
                 X_prev,
                 X,
-                self.x_hist,
-                self.T_hist,
-                self.H,
-                self.q,
                 cur_data_fidelity,
                 cur_prior,
                 cur_params,

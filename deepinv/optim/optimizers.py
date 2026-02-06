@@ -48,11 +48,13 @@ class AndersonAccelerationConfig:
     :param  int history_size: Number of past iterates used in Anderson acceleration.
     :param  float beta: Momentum coefficient in Anderson acceleration.
     :param  float eps: Regularization parameter for Anderson acceleration.
+    :param  bool full_backprop: Compute backpropagation through all iterates of Anderson acceleration instead of the last iterate only. Default: ``False``.
     """
 
-    history_size: float = 0.1
+    history_size: int = 10
     beta: float = 0.9
-    eps: int = 20
+    eps: float = 0.1
+    full_backprop: bool = False
 
 
 @dataclass
@@ -301,15 +303,13 @@ class BaseOptim(Reconstructor):
             self.DEQ_config = DEQConfig() if DEQ else None
         else:
             self.DEQ = DEQ is not None
-            self.DEQ_config = DEQConfig or DEQConfig()
+            self.DEQ_config = DEQ or DEQConfig()
         if isinstance(anderson_acceleration, bool):
             self.anderson_acceleration_config = (
                 AndersonAccelerationConfig() if anderson_acceleration else None
             )
         else:
-            self.anderson_acceleration_config = (
-                anderson_acceleration or AndersonAccelerationConfig()
-            )
+            self.anderson_acceleration_config = anderson_acceleration
 
         # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
         if prior is None:
@@ -773,7 +773,6 @@ class BaseOptim(Reconstructor):
                         self.DEQ_config.history_size_backward,
                         self.DEQ_config.beta_backward,
                         self.DEQ_config.eps_backward,
-                        self.DEQ_config.max_iter_backward,
                     )
                 else:
                     anderson_acceleration_config = None
@@ -783,7 +782,7 @@ class BaseOptim(Reconstructor):
                     init_iterate_fn=init_iterate_fn,
                     max_iter=self.DEQ_config.max_iter_backward,
                     check_conv_fn=self.check_conv_fn,
-                    anderson_acceleration_config=self.anderson_acceleration_config,
+                    anderson_acceleration_config=anderson_acceleration_config,
                 )
                 g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
                 return g
@@ -1037,13 +1036,11 @@ class ADMM(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the ADMM iterations write (see :footcite:t:`boyd2011distributed` for more details):
 
     .. math::
-        \begin{equation*}
         \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\gamma f}(x_k - z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_{k+1} + z_k) \\
         z_{k+1} &= z_k + \beta (u_{k+1} - x_{k+1})
         \end{aligned}
-        \end{equation*}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.  If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`\regname` are
     inverted in the previous iterations. The ADMM iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.ADMMIteration`.
@@ -1170,13 +1167,11 @@ class DRS(BaseOptim):
      If the attribute ``g_first`` is set to False (by default), the DRS iterations are given by
 
     .. math::
-        \begin{equation*}
         \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\gamma f}(z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k) \\
         z_{k+1} &= z_k + \beta (x_{k+1} - u_{k+1})
         \end{aligned}
-        \end{equation*}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter. If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The DRS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.DRSIteration`.
@@ -1301,9 +1296,7 @@ class GD(BaseOptim):
     The Gradient Descent iterations are given by
 
     .. math::
-        \begin{equation*}
         x_{k+1} = x_k - \gamma \nabla f(x_k) - \gamma \lambda \nabla \regname(x_k)
-        \end{equation*}
 
     where :math:`\gamma>0` is a stepsize. The Gradient Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.GDIteration`.
     For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
@@ -1421,6 +1414,7 @@ class GD(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
+            anderson_acceleration=anderson_acceleration,
             **kwargs,
         )
 
@@ -1440,12 +1434,10 @@ class HQS(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the HQS iterations are given by
     
     .. math::
-        \begin{equation*}
         \begin{aligned}
         u_{k} &= \operatorname{prox}_{\gamma f}(x_k) \\
         x_{k+1} &= \operatorname{prox}_{\sigma \lambda \regname}(u_k).
         \end{aligned}
-        \end{equation*}
     
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The HQS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.HQSIteration`.
@@ -1561,6 +1553,7 @@ class HQS(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
+            anderson_acceleration=anderson_acceleration,
             **kwargs,
         )
 
@@ -1580,9 +1573,7 @@ class PGD(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the PGD iterations are given by
 
     .. math::
-        \begin{equation*}
         x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(x_k - \gamma \nabla f(x_k)).
-        \end{equation*}
 
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The PGD iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.PGDIteration`.
@@ -1703,6 +1694,7 @@ class PGD(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
+            anderson_acceleration=anderson_acceleration,
             **kwargs,
         )
 
@@ -1713,13 +1705,11 @@ class FISTA(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the FISTA iterations are given by
     
     .. math::
-        \begin{equation*}
         \begin{aligned}
         u_{k} &= z_k -  \gamma \nabla f(z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_k) \\
         z_{k+1} &= x_{k+1} + \alpha_k (x_{k+1} - x_k),
         \end{aligned}
-        \end{equation*}
     
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
     :math:`\alpha_k = (k+a-1)/(k+a)`,  with :math:`a` a parameter that should be strictly greater than 2.
@@ -1837,12 +1827,10 @@ class MD(BaseOptim):
     Mirror Descent (MD) or Bregman variant of the Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
     
     .. math::
-        \begin{equation*}
         \begin{aligned}
         v_{k} &= \nabla f(x_k) + \lambda \nabla g(x_k) \\
         x_{k+1} &= \nabla h^*(\nabla h(x_k) - \gamma v_{k})
         \end{aligned}
-        \end{equation*}
     
     where :math:`\gamma>0` is a stepsize and :math:`h^*` is the convex conjugate of :math:`h`.
     The Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.MDIteration`.
@@ -1954,12 +1942,10 @@ class PMD(BaseOptim):
     Proximal Mirror Descent (PMD) or Bregman variant of the Proximal Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
     
     .. math::
-        \begin{equation*}
         \begin{aligned}
         u_{k} &= \nabla h^*(\nabla h(x_k) - \gamma \nabla f(x_k)) \\
         x_{k+1} &= \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)
         \end{aligned}
-        \end{equation*}
     
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex. 
     :math:`\operatorname{prox^h}_{\gamma \lambda \regname}` is the Bregman proximal operator, detailed in the method :meth:`deepinv.optim.Potential.bregman_prox`.
@@ -2080,13 +2066,11 @@ class PDCP(BaseOptim):
     If the attribute ``g_first`` is set to ``False`` (by default), a single iteration is given by
     
     .. math::
-        \begin{equation*}
         \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\sigma F^*}(u_k + \sigma K z_k) \\
         x_{k+1} &= \operatorname{prox}_{\tau \lambda G}(x_k-\tau K^\top u_{k+1}) \\
         z_{k+1} &= x_{k+1} + \beta(x_{k+1}-x_k) \\
         \end{aligned}
-        \end{equation*}
     
     where :math:`F^*` is the Fenchel-Legendre conjugate of :math:`F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
     satisfy :math:`\sigma \tau \|K\|^2 \leq 1`. 
@@ -2095,9 +2079,7 @@ class PDCP(BaseOptim):
     In particular, setting :math:`F = \distancename`, :math:`K = A` and :math:`G = \regname`, the above algorithms solves
 
     .. math::
-        \begin{equation*}
         \underset{x}{\operatorname{min}} \,\,  \distancename(Ax, y) + \lambda \regname(x)
-        \end{equation*}
     
     with a splitting on :math:`\distancename`.
 
