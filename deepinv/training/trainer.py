@@ -232,8 +232,6 @@ class Trainer:
     :Verbose:
 
     :param bool verbose: Output training progress information in the console. Default is ``True``.
-    :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training.
-        Otherwise, only the total loss is printed. Default is ``True``.
     :param bool show_progress_bar: Show a progress bar during training. Default is ``True``.
     :param int freq_update_progress_bar: progress bar postfix update frequency (measured in iterations). Defaults to 1.
         Increasing this may speed up training.
@@ -302,7 +300,6 @@ class Trainer:
     compute_eval_losses: bool = False
     log_train_batch: bool = False
     verbose: bool = True
-    verbose_individual_losses: bool = True
     show_progress_bar: bool = True
     freq_update_progress_bar: int = 1
     non_blocking_transfers: bool = (
@@ -873,7 +870,7 @@ class Trainer:
                     self.logs_losses_train[k] if train else self.logs_losses_eval[k]
                 )
                 meters.update(loss.detach().cpu().numpy())
-                if len(self.losses) > 1 and self.verbose_individual_losses:
+                if len(self.losses) > 1:
                     logs[l.__class__.__name__] = meters.avg
 
             meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
@@ -1072,15 +1069,10 @@ class Trainer:
 
         if last_batch:
             if self.verbose and not self.show_progress_bar:
-                if self.verbose_individual_losses:
-                    print(
-                        f"{'Train' if train else 'Eval'} epoch {epoch}:"
-                        f" {', '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}"
-                    )
-                else:
-                    print(
-                        f"{'Train' if train else 'Eval'} epoch {epoch}: Total loss: {logs['TotalLoss']}"
-                    )
+                print(
+                    f"{'Train' if train else 'Eval'} epoch {epoch}:"
+                    f" {', '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}"
+                )
 
             if self.log_train_batch and train:
                 logs["step"] = train_ite
