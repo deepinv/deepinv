@@ -386,7 +386,7 @@ class Scattering(Physics):
         :param torch.Tensor total_field: Total field u `(B,T,H,W)`.
         """
         # This computes y = G_s*diag(x)*Et
-        self.born_operator.total_field = total_field
+        self.born_operator.register_buffer("total_field", total_field)
         return self.born_operator.A(x)
 
     def A(
