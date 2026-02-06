@@ -100,6 +100,7 @@ Wrappers
    deepinv.models.ScoreModelWrapper
    deepinv.models.DiffusersDenoiserWrapper
    deepinv.models.ComplexDenoiserWrapper
+   deepinv.models.MinusOneOneDenoiserWrapper
 
 Deep Image Prior
 ----------------

@@ -10,36 +10,7 @@ from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity, DPSDataFidelity
 from deepinv.sampling.utils import trapz_torch
-import threading
-
-_print_lock = threading.Lock()
-
-
-class _WrapperDenoiserMinusOneOne(nn.Module):
-    r"""
-    A wrapper for denoisers trained on :math:`[x_{\mathrm{min}}, x_{\mathrm{max}}]` images to be used with math:`[-1, 1]` images, i.e. on diffusion sampling iterates.
-
-    :param deepinv.models.Denoiser denoiser: the denoiser to be wrapped.
-    :param float xmin: minimum value of the denoiser training range. Default to `0.0`.
-    :param float xmax: maximum value of the denoiser training range. Default to `1.0`.
-    """
-
-    def __init__(self, model: nn.Module, xmin: float = 0.0, xmax: float = 1.0):
-        super().__init__()
-        self.model = model
-        self.xmin = xmin
-        self.xmax = xmax
-
-    def forward(self, x: Tensor, sigma: Tensor, *args, **kwargs) -> Tensor:
-        # Scale from [-1, 1] to [xmin, xmax], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs
-        if "input_in_minus_one_one" in kwargs and not kwargs["input_in_minus_one_one"]:
-            x = (x + 1) / 2 * (self.xmax - self.xmin) + self.xmin
-            sigma = sigma * (self.xmax - self.xmin) / 2
-        denoised = self.model(x, sigma, *args, **kwargs)
-        # Scale back to [-1, 1], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs
-        if "input_in_minus_one_one" in kwargs and not kwargs["input_in_minus_one_one"]:
-            denoised = 2 * (denoised - self.xmin) / (self.xmax - self.xmin) - 1
-        return denoised
+from deepinv.models.wrapper import MinusOneOneDenoiserWrapper
 
 
 class BaseSDE(nn.Module):
@@ -226,7 +197,7 @@ class DiffusionSDE(BaseSDE):
         self.forward_diffusion = forward_diffusion
         self.solver = solver
         self.denoiser = (
-            denoiser if not minus_one_one else _WrapperDenoiserMinusOneOne(denoiser)
+            denoiser if not minus_one_one else MinusOneOneDenoiserWrapper(denoiser)
         )
         self.minus_one_one = minus_one_one
 
@@ -281,7 +252,7 @@ class EDMDiffusionSDE(DiffusionSDE):
     This class implements the diffusion generative SDE based on the formulation from :footcite:t:`karras2022elucidating` (with :math:`\beta(t) = \alpha(t) s(t)^2 \sigma(t) \sigma'(t)`):
 
     .. math::
-        d x_t = \left(\frac{s'(t)}{s(t)} x_t - \frac{1 + \alpha(t)}{2} s(t)^2 \sigma(t) \sigma'(t) \nabla \log p_t(x_t) \right) dt + s(t) \sqrt{2 \alpha(t) \sigma(t) \sigma'(t)} d w_t
+        d x_t = \left(\frac{s'(t)}{s(t)} x_t - (1 + \alpha(t)) s(t)^2 \sigma(t) \sigma'(t) \nabla \log p_t(x_t) \right) dt + s(t) \sqrt{2 \alpha(t) \sigma(t) \sigma'(t)} d w_t
 
     where :math:`s(t)` is a time-dependent scale, :math:`\sigma(t)` is a time-dependent noise level, and :math:`\alpha(t)` is weighting the diffusion term.
     It corresponds to the reverse-time SDE of the following forward-time SDE:
@@ -447,7 +418,7 @@ class EDMDiffusionSDE(DiffusionSDE):
 
     def sample_init(self, shape, rng: torch.Generator) -> Tensor:
         r"""
-        Sample from the initial distribution of the reverse-time diffusion SDE, which is a Gaussian with zero mean and covariance matrix :math:` s(t)^2 \sigma(T)^2 \operatorname{Id}`.
+        Sample from the initial distribution of the reverse-time diffusion SDE, which is a Gaussian with zero mean and covariance matrix :math:` s(T)^2 \sigma(T)^2 \operatorname{Id}`.
 
         :param tuple shape: The shape of the sample to generate
         :param torch.Generator rng: Random number generator for reproducibility
@@ -469,22 +440,22 @@ class SongDiffusionSDE(EDMDiffusionSDE):
     This class implements the diffusion generative SDE based the formulation from :footcite:t:`song2020score`:
 
     .. math::
-        d x_t = -\left(\frac{1}{2} \beta(t) x_t + \frac{1 + \alpha(t)}{2} \xi(t) \nabla \log p_t(x_t) \right) dt + \sqrt{\alpha(t) \xi(t)} d w_t
+        d x_t = -\left(\frac{1}{2} \beta(t) x_t + \frac{1 + \alpha(t)}{2} g(t) \nabla \log p_t(x_t) \right) dt + \sqrt{\alpha(t) g(t)} d w_t
 
-    where :math:`\beta(t)` is a time-dependent linear drift, :math:`\xi(t)` is a time-dependent linear diffusion, and
+    where :math:`\beta(t)` is a time-dependent linear drift, :math:`g(t)` is a time-dependent linear diffusion, and
     :math:`\alpha(t)` is weighting the diffusion term.
 
     It corresponds to the reverse-time SDE of the following forward-time SDE:
 
     .. math::
-        d x_t = -\frac{1}{2} \beta(t) x_t dt + \sqrt{\xi(t)} d w_t
+        d x_t = -\frac{1}{2} \beta(t) x_t dt + \sqrt{g(t)} d w_t
 
-    Compared to the EDM formulation in :class:`deepinv.sampling.EDMDiffusionSDE`, the scale :math:`s(t)` and noise :math:`\sigma(t)` schedulers are defined with respect to :math:`\beta(t)` and :math:`\xi(t)` as follows:
+    Compared to the EDM formulation in :class:`deepinv.sampling.EDMDiffusionSDE`, the scale :math:`s(t)` and noise :math:`\sigma(t)` schedulers are defined with respect to :math:`\beta(t)` and :math:`g(t)` as follows:
 
     .. math::
-        s(t) = \exp\left(-\int_0^t \beta(s) ds\right), \quad \sigma(t) = \sqrt{2 \int_0^t \frac{\xi(s)}{s(s)^2} ds}.
+        s(t) = \exp\left(-\int_0^t \beta(s) ds\right), \quad \sigma(t) = \sqrt{2 \int_0^t \frac{g(s)}{s(s)^2} ds}.
 
-    Common choices include the variance-preserving formulation :math:`\beta(t) = \xi(t)` and the variance-exploding formulation :math:`\beta(t) = 0`.
+    Common choices include the variance-preserving formulation :math:`\beta(t) = g(t)` and the variance-exploding formulation :math:`\beta(t) = 0`.
 
         - For choosing variance-preserving formulation, set `variance_preserving=True` and `beta_t` and `xi_t` will be automatically set to be the same function.
         - For choosing variance-exploding formulation, set `variance_exploding=True` and `beta_t` will be automatically set to `0`.
@@ -669,10 +640,21 @@ class FlowMatching(EDMDiffusionSDE):
             dtype=dtype,
             device=device,
             *args,
-            *kwargs,
+            **kwargs,
         )
 
-    def velocity(self, x, t, *args, **kwargs):
+    def velocity(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
+        r"""
+        Computes the velocity field of the flow matching process, which is defined as the drift of the backward SDE.
+
+        :param torch.Tensor x: current state
+        :param torch.Tensor, float t: current timestep
+        :param \*args: additional arguments for the `denoiser`.
+        :param \*\*kwargs: additional keyword arguments for the `denoiser`, e.g., `class_labels` for class-conditional models.
+
+        :return: the velocity field at state `x` and time `t`.
+        :rtype: torch.Tensor
+        """
         return self.drift(x, t, *args, **kwargs)
 
 
@@ -710,7 +692,7 @@ class VarianceExplodingDiffusion(EDMDiffusionSDE):
             dtype=dtype,
             device=device,
             *args,
-            *kwargs,
+            **kwargs,
         )
 
 
