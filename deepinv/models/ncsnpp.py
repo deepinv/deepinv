@@ -63,7 +63,7 @@ class NCSNpp(Denoiser):
         - ``pretrained='baseline-cifar10-32x32-uncond-ve'`` loads **NCSN++** weights from :footcite:t:`song2020score`, trained on **CIFAR-10 32x32** with the **VE-SDE** diffusion schedule.
         - ``pretrained='download'`` is a convenience alias: if ``model_type='ncsn'`` (default) it maps to ``'edm-ffhq-64x64-uncond-ve'``, and if ``model_type='ddpm'`` it maps to ``'edm-ffhq-64x64-uncond-vp'``.
         - ``pretrained`` may also be a filesystem path to user-provided weights; the model is assumed to be trained on pixels in ``[0, 1]``—if trained on ``[-1, 1]``, set ``model._was_trained_on_minus_one_one = True`` after loading.
-        
+
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool _was_trained_on_minus_one_one: Indicate whether the model has been trained on `[-1, 1]` pixels or `[0, 1]` pixels. Default to `False`.
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
@@ -245,52 +245,46 @@ class NCSNpp(Denoiser):
                 )
         self._was_trained_on_minus_one_one = _was_trained_on_minus_one_one
         if pretrained is not None:
-            if pretrained.lower() == "edm-ffhq64-uncond-ve" or pretrained.lower() == 'edm-ffhq-64x64-uncond-ve'  or (pretrained.lower() == "download" and model_type == "ncsn"):
-                name = "edm-ffhq-64x64-uncond-ve.pt"
-                from_url = True
-                self.pixel_std = 0.5
+            if (
+                pretrained.lower() == "edm-ffhq64-uncond-ve"
+                or pretrained.lower() == "edm-ffhq-64x64-uncond-ve"
+                or (pretrained.lower() == "download" and model_type == "ncsn")
+            ):
+                url_name = "edm-ffhq-64x64-uncond-ve.pt"
                 self.precondition_type = "edm"
-            if  pretrained.lower() == 'edm-ffhq-64x64-uncond-vp' or (pretrained.lower() == "download" and model_type == "ddpm"):
-                name = "edm-ffhq-64x64-uncond-vp.pt"
-                from_url = True
                 self.pixel_std = 0.5
+                self._was_trained_on_minus_one_one = True
+            elif pretrained.lower() == "edm-ffhq-64x64-uncond-vp" or (
+                pretrained.lower() == "download" and model_type == "ddpm"
+            ):
+                url_name = "edm-ffhq-64x64-uncond-vp.pt"
                 self.precondition_type = "edm"
+                self.pixel_std = 0.5
+                self._was_trained_on_minus_one_one = True
             elif pretrained.lower() == "edm-cifar10-32x32-uncond-ve":
-                name = "edm-cifar10-32x32-uncond-ve.pt"
-                from_url = True
-                self.pixel_std = 0.5
+                url_name = "edm-cifar10-32x32-uncond-ve.pt"
                 self.precondition_type = "edm"
+                self.pixel_std = 0.5
+                self._was_trained_on_minus_one_one = True
             elif pretrained.lower() == "edm-cifar10-32x32-uncond-vp":
-            url = get_weights_url(model_name="edm", file_name=name)
-            ckpt = torch.hub.load_state_dict_from_url(
-                url, map_location=lambda storage, loc: storage, file_name=name
-            )
-            self._was_trained_on_minus_one_one = True
-            self.precondition_type = "edm"
-            self.pixel_std = 0.5
-            elif pretrained.lower() == "download" and model_type == "ddpm":
-                name = "edm-ffhq-64x64-uncond-vp.pt"
-                url = get_weights_url(model_name="edm", file_name=name)
-                ckpt = torch.hub.load_state_dict_from_url(
-                    url, map_location=lambda storage, loc: storage, file_name=name
-                )
-                self._was_trained_on_minus_one_one = True
+                url_name = "edm-cifar10-32x32-uncond-vp.pt"
                 self.precondition_type = "edm"
                 self.pixel_std = 0.5
-            elif pretrained.lower() == "baseline-ffhq64-uncond-ve":
-                name = "baseline-ffhq-64x64-uncond-ve.pt"
-                url = get_weights_url(model_name="edm", file_name=name)
-                ckpt = torch.hub.load_state_dict_from_url(
-                    url, map_location=lambda storage, loc: storage, file_name=name
-                )
                 self._was_trained_on_minus_one_one = True
+            elif pretrained.lower() == "edm-cifar10-32x32-uncond-vp":
+                url_name = "baseline-ffhq-64x64-uncond-ve.pt"
                 self.precondition_type = "baseline_ve"
+                self._was_trained_on_minus_one_one = True
+            else:
+                url_name = None
+            if url_name is not None:
+                url = get_weights_url(model_name="edm", file_name=url_name)
+                ckpt = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=url_name
+                )
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
             self.load_state_dict(ckpt, strict=True)
-            self.pixel_std = 0.5
-        else:
-            self._was_trained_on_minus_one_one = False
         self.eval()
         if device is not None:
             self.to(device)

@@ -273,13 +273,20 @@ class EDMDiffusionSDE(DiffusionSDE):
         This SDE must be solved by going reverse in time i.e. from :math:`t=T` to :math:`t=0`.
 
     :param Callable sigma_t: a time-dependent noise level schedule.
+        It takes a time step `t` (either a Python ``float`` or a ``torch.Tensor``) as input  and returns the noise level at time `t` (either a Python ``float`` or a ``torch.Tensor``).
+        Note that this is a required argument.
     :param Callable scale_t: a time-dependent scale schedule.
+        It takes a time step `t` (either a Python ``float`` or a ``torch.Tensor``) as input  and returns the noise level at time `t` (either a Python ``float`` or a ``torch.Tensor``).
         If not provided, it will be set to :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}` if `variance_preserving=True`, or :math:`s(t) = 1` if `variance_exploding=True`.
         If both `variance_preserving` and `variance_exploding` are `False`, `scale_t` must be provided. Default to `None`.
-    :param Callable sigma_prime_t: the derivative of `sigma_t`. If not provided, it will be computed using autograd. Default to `None`.
-    :param Callable scale_prime_t: the derivative of `scale_t`. If not provided, it will be computed using autograd. Default to `None`.
-    :param bool variance_preserving: whether to use the variance-preserving formulation, which imposes :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}`. Default to `False`.
-    :param bool variance_exploding: whether to use the variance-exploding formulation, which imposes :math:`s(t) = 1`. Default to `False`.
+    :param Callable sigma_prime_t: the derivative of `sigma_t`.
+        It takes a time step `t` (either a Python ``float`` or a ``torch.Tensor``) as input and returns the noise level at time `t` (either a Python ``float`` or a ``torch.Tensor``).
+        If not provided, it will be computed using autograd. Default to `None`.
+    :param Callable scale_prime_t: the derivative of `scale_t`.
+        It takes a time step `t` (either a Python ``float`` or a ``torch.Tensor``) as input and returns the noise level at time `t` (either a Python ``float`` or a ``torch.Tensor``).
+        If not provided, it will be computed using autograd. Default to `None`.
+    :param bool variance_preserving: whether to use a variance-preserving diffusion schedule, which imposes :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}`. Default to `False`.
+    :param bool variance_exploding: whether to use a variance-exploding diffusion schedule, which imposes :math:`s(t) = 1`. Default to `False`.
     :param Callable, float alpha: a (possibly time-dependent) positive scalar weighting the diffusion term. A  constant function :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
     :param float T: the end time of the forward SDE. Default to `1.0`.
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`. Default to `None`.
@@ -310,7 +317,13 @@ class EDMDiffusionSDE(DiffusionSDE):
         **kwargs,
     ):
         self.T = T
+
+        def sigma_t(t: Tensor | float) -> Tensor:
+            t = self._handle_time_step(t)
+            return sigma_t(t)
+
         self.sigma_t = sigma_t
+
         assert not (
             variance_preserving and variance_exploding
         ), "Cannot set both variance_preserving and variance_exploding to True."
@@ -318,11 +331,11 @@ class EDMDiffusionSDE(DiffusionSDE):
         if scale_t is None:
             if variance_preserving:
 
-                def scale_t(t):
+                def scale_t(t: Tensor | float) -> Tensor:
                     t = self._handle_time_step(t)
                     return (1 / (1 + self.sigma_t(t) ** 2)) ** 0.5
 
-                def scale_prime_t(t):
+                def scale_prime_t(t: Tensor | float) -> Tensor:
                     self._handle_time_step(t)
                     return (
                         -self.sigma_t(t)
@@ -332,11 +345,11 @@ class EDMDiffusionSDE(DiffusionSDE):
 
             elif variance_exploding:
 
-                def scale_t(t):
+                def scale_t(t: Tensor | float) -> Tensor:
                     t = self._handle_time_step(t)
                     return torch.ones_like(t)
 
-                def scale_prime_t(t):
+                def scale_prime_t(t: Tensor | float) -> Tensor:
                     t = self._handle_time_step(t)
                     return torch.zeros_like(t)
 
@@ -344,27 +357,49 @@ class EDMDiffusionSDE(DiffusionSDE):
                 raise ValueError(
                     "'scale_t' must be provided if 'variance_preserving' and 'variance_exploding' is False"
                 )
+        else:
+
+            def scale_t(t: Tensor | float) -> Tensor:
+                t = self._handle_time_step(t)
+                return scale_t(t)
+
         self.scale_t = scale_t
 
         if sigma_prime_t is None:
 
-            def sigma_prime_t(t):
+            def sigma_prime_t(t: Tensor | float) -> Tensor:
                 with torch.enable_grad():
                     t = self._handle_time_step(t).requires_grad_(True)
-                    s = self.sigma_t(t)
-                    s.backward()
-                    return t.grad.item()
+                    sigma = self.sigma_t(t)
+                    grad = torch.autograd.grad(
+                        sigma.sum(), t, create_graph=False, retain_graph=False
+                    )[0]
+                    return grad
+
+        else:
+
+            def sigma_prime_t(t: Tensor | float) -> Tensor:
+                t = self._handle_time_step(t)
+                return sigma_prime_t(t)
 
         self.sigma_prime_t = sigma_prime_t
 
         if scale_prime_t is None:
 
-            def scale_prime_t(t):
+            def scale_prime_t(t: Tensor | float) -> Tensor:
                 with torch.enable_grad():
                     t = self._handle_time_step(t).requires_grad_(True)
-                    s = self.scale_t(t)
-                    s.backward()
-                    return t.grad.item()
+                    scale = self.scale_t(t)
+                    grad = torch.autograd.grad(
+                        scale.sum(), t, create_graph=False, retain_graph=False
+                    )[0]
+                    return grad
+
+        else:
+
+            def scale_prime_t(t: Tensor | float) -> Tensor:
+                t = self._handle_time_step(t)
+                return scale_prime_t(t)
 
         self.scale_prime_t = scale_prime_t
 
@@ -578,7 +613,8 @@ class FlowMatching(EDMDiffusionSDE):
 
     .. note::
 
-        This SDE must be solved going reverse in time i.e. from :math:`t=T` to :math:`t=0`.
+        This SDE must be solved going reverse in time i.e. from :math:`t=1` to :math:`t=0`.
+        Note that in order to unify flow matching and diffusion models, we set the starting time of the generating process (noise distribution) to be 1, and the ending time of the generating process (data distribution) to be 0, which is different from the convention in the flow matching literature.
 
 
     :param Callable a_t: time-dependent parameter :math:`a(t)` of flow-matching. Default to `lambda t: 1-t`.
