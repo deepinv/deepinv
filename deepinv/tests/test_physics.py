@@ -396,7 +396,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             patch_size=(8, 5),
             stride=(4, 3),
         )
-        h = h.repeat(1, 3, num_filters, 1, 1)  # shape (1,3,K,Hf,Wf)
+        h = h.repeat(1, 3, num_filters[0] * num_filters[1], 1, 1)  # shape (1,3,K,Hf,Wf)
         p = dinv.physics.TiledSpaceVaryingBlur(
             filters=h,
             patch_size=(8, 5),
