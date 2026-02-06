@@ -12,7 +12,7 @@ from deepinv.optim.prior import Prior
 from deepinv.optim.utils import check_conv
 from deepinv.physics import Physics, LinearPhysics
 from deepinv.sampling import sampling_iterators as _sampling_iterators
-from deepinv.sampling.sampling_iterators import SamplingIterator, ULAIterator
+from deepinv.sampling.sampling_iterators import SamplingIterator
 from deepinv.sampling.utils import Welford
 from deepinv.utils.compat import zip_strict
 
