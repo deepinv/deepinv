@@ -9,7 +9,9 @@ import importlib
 
 
 @pytest.fixture(
-    params=list(dict.fromkeys([torch.device("cpu"), dinv.utils.get_device(verbose=False)]))
+    params=list(
+        dict.fromkeys([torch.device("cpu"), dinv.utils.get_device(verbose=False)])
+    )
 )
 def device(request):
     return request.param

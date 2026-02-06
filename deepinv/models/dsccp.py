@@ -19,7 +19,7 @@ class DScCP(Denoiser):
     :param int depth: depth i.e. number of convolutional layers.
     :param int n_channels_per_layer: number of channels per convolutional layer.
     :param str, None pretrained: 'download' to download pretrained weights, or path to local weights file.
-    :param torch.device, str device: 'cuda' or 'cpu'.
+    :param torch.device, str device: 'cuda', 'mps' or 'cpu'.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
     """
