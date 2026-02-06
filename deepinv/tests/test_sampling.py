@@ -320,8 +320,8 @@ def test_sde(device):
         for solver in solvers:
             for sde_class in sde_classes:
                 if sde_class == EDMDiffusionSDE:
-                    sigma_t = lambda t : 100 * t ** 2
-                    scale_t = lambda t : 1 / (1 + sigma_t(t) ** 2)**0.5
+                    sigma_t = lambda t: 100 * t**2
+                    scale_t = lambda t: 1 / (1 + sigma_t(t) ** 2) ** 0.5
                     sde = sde_class(
                         sigma_t=sigma_t,
                         scale_t=scale_t,

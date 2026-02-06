@@ -319,6 +319,7 @@ class EDMDiffusionSDE(DiffusionSDE):
         self.T = T
 
         _sigma_t = sigma_t
+
         def sigma_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             return _sigma_t(t)
@@ -360,6 +361,7 @@ class EDMDiffusionSDE(DiffusionSDE):
                 )
         else:
             _scale_t = scale_t
+
             def scale_t(t: Tensor | float) -> Tensor:
                 t = self._handle_time_step(t)
                 return _scale_t(t)
@@ -379,6 +381,7 @@ class EDMDiffusionSDE(DiffusionSDE):
 
         else:
             _sigma_prime_t = sigma_prime_t
+
             def sigma_prime_t(t: Tensor | float) -> Tensor:
                 t = self._handle_time_step(t)
                 return _sigma_prime_t(t)
@@ -398,6 +401,7 @@ class EDMDiffusionSDE(DiffusionSDE):
 
         else:
             _scale_prime_t = scale_prime_t
+
             def scale_prime_t(t: Tensor | float) -> Tensor:
                 t = self._handle_time_step(t)
                 return _scale_prime_t(t)
