@@ -1908,15 +1908,21 @@ def test_composed_physics(device):
     )
 
     # Compose with Transform:
-    physics = dinv.physics.Blur(filter=dinv.physics.blur.bicubic_filter(3.0))
+    physics = dinv.physics.Blur(
+        filter=dinv.physics.blur.bicubic_filter(3.0, device=device), device=device
+    )
     T = dinv.transform.Shift()
-    T_kwargs = {"x_shift": torch.tensor([1]), "y_shift": torch.tensor([1])}
+    T_kwargs = {
+        "x_shift": torch.tensor([1], device=device),
+        "y_shift": torch.tensor([1], device=device),
+    }
 
     physics_mul = physics * dinv.physics.LinearPhysics(
         A=lambda x: T.inverse(x, **T_kwargs),
         A_adjoint=lambda y: T(y, **T_kwargs),
     )
-    x = torch.randn(1, 3, 64, 64)
+    rng = torch.Generator(device=device).manual_seed(0)
+    x = torch.randn(1, 3, 64, 64, device=device, generator=rng)
     assert torch.allclose(physics_mul.A(x), physics.A(T.inverse(x, **T_kwargs)))
     y = physics_mul.A(x)
     assert torch.allclose(physics_mul.A_adjoint(y), T(physics.A_adjoint(y), **T_kwargs))
