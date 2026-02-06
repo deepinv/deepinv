@@ -39,12 +39,14 @@ release = str(metadata["Version"])
 
 # Determine version for documentation switcher
 # Development versions (containing 'dev', 'rc', 'alpha', 'beta') match to 'dev'
-# Release versions match to their exact version number
+# Release versions match to their exact version number unless overridden by env.
 
-if re.search(r"(dev|rc|alpha|beta|\.post)", release, re.IGNORECASE):
-    version_match = "dev"
-else:
-    version_match = release
+version_match = os.environ.get("DOCS_VERSION_MATCH")
+if not version_match:
+    if re.search(r"(dev|rc|alpha|beta|\.post)", release, re.IGNORECASE):
+        version_match = "dev"
+    else:
+        version_match = release
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -410,6 +412,9 @@ html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
+html_context = {
+    "docs_version": os.environ.get("DOCS_VERSION_MATCH", "dev"),
+}
 html_sidebars = {  # pages with no sidebar
     "changelog": [],
     "contributing": [],

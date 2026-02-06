@@ -1,5 +1,8 @@
 name: Release Docs
 
+permissions:
+  contents: write
+
 on:
   release:
     types: [published]
@@ -62,16 +65,23 @@ jobs:
       - name: Install the project
         run: uv sync --extra dataset --extra denoisers --extra test --extra training --extra doc
 
-      - name: Build documentation
+      - name: Build documentation (versioned)
         run: |
-          uv run sphinx-build -W docs/source _build
+          DOCS_VERSION_MATCH="${{ steps.version.outputs.VERSION }}" \
+            uv run sphinx-build -W docs/source _build_version
+
+      - name: Build documentation (stable)
+        if: ${{ steps.version.outputs.SET_STABLE == 'true' }}
+        run: |
+          DOCS_VERSION_MATCH="stable" \
+            uv run sphinx-build -W docs/source _build_stable
 
       - name: Deploy versioned docs
         uses: peaceiris/actions-gh-pages@v3
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: _build/
+          publish_dir: _build_version/
           destination_dir: ${{ steps.version.outputs.VERSION }}
           keep_files: true
 
@@ -81,7 +91,7 @@ jobs:
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: _build/
+          publish_dir: _build_stable/
           destination_dir: stable
           keep_files: true
 
@@ -99,7 +109,7 @@ jobs:
           VERSIONS_FILE="gh-pages/dev/_static/versions.json"
           
           # Create a Python script to update versions.json
-          python3 << 'EOF'
+          uv run python << 'EOF'
           import json
           import os
           
