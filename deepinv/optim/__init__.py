@@ -25,7 +25,7 @@ from .optimizers import (
     PGD,
     FISTA,
     PMD,
-    RichardsonLucy,
+    MLEM,
 )
 from .fixed_point import FixedPoint
 from .prior import (
@@ -54,7 +54,7 @@ from .optim_iterators import (
     GDIteration,
     MDIteration,
     SMIteration,
-    RichardsonLucyIteration,
+    MLEMIteration,
 )
 from .epll import EPLL
 from .dpir import DPIR

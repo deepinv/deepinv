@@ -7,7 +7,7 @@ from types import MappingProxyType
 import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.optim_iterators.richardson_lucy import RichardsonLucyIteration
+from deepinv.optim.optim_iterators.MLEM import MLEMIteration
 from deepinv.optim.prior import Zero, Prior
 from deepinv.optim.data_fidelity import DataFidelity, ZeroFidelity
 from deepinv.optim.bregman import Bregman
@@ -2235,7 +2235,7 @@ class PDCP(BaseOptim):
         )
 
 
-class RichardsonLucy(BaseOptim):
+class MLEM(BaseOptim):
     r"""Richardson-Lucy (RL) optimization module."""
 
     def __init__(
@@ -2253,6 +2253,17 @@ class RichardsonLucy(BaseOptim):
         custom_init: Callable[[torch.Tensor, Physics], dict] = None,
         g_first: bool = False,
         params_algo: dict[str, float] = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
         **kwargs,
     ):
         if params_algo is None:
@@ -2261,8 +2272,8 @@ class RichardsonLucy(BaseOptim):
                 "stepsize": stepsize,
                 "g_param": g_param,
             }
-        super(RichardsonLucy, self).__init__(
-            RichardsonLucyIteration(g_first=g_first),
+        super(MLEM, self).__init__(
+            MLEMIteration(g_first=g_first, cost_fn=cost_fn),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
