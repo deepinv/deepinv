@@ -43,7 +43,6 @@ from deepinv.distributed.distrib_framework import (
 )
 from deepinv.distributed.distribute import distribute
 
-
 # =============================================================================
 # Test Infrastructure: Multi-GPU and CPU Support
 # =============================================================================

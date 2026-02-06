@@ -4,7 +4,6 @@ from typing import Sequence
 import itertools
 import torch
 
-
 Index = tuple[slice, ...]
 
 
