@@ -72,7 +72,7 @@ from deepinv.sampling import (
     VariancePreservingDiffusion,
 )
 from deepinv.optim import ZeroFidelity
-
+'''
 # In this example, we use the pre-trained FFHQ-64 model from the
 # EDM framework: https://arxiv.org/pdf/2206.00364 .
 # The network architecture is from Song et al: https://arxiv.org/abs/2011.13456 .
@@ -84,13 +84,7 @@ num_steps = 150
 rng = torch.Generator(device).manual_seed(42)
 timesteps = torch.linspace(1, 0.001, num_steps)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
-
-sigma_min = 0.005
-sigma_max = 5
 sde = VarianceExplodingDiffusion(
-    sigma_max=sigma_max,
-    sigma_min=sigma_min,
-    alpha=0.5,
     device=device,
     dtype=dtype,
 )
@@ -115,7 +109,7 @@ x, trajectory = model(
     y=None,
     physics=None,
     x_init=(1, 3, 64, 64),
-    seed=1,
+    seed=10,
     get_trajectory=True,
 )
 dinv.utils.plot(
@@ -267,7 +261,7 @@ except FileNotFoundError:
 
 
 del trajectory
-sde = VariancePreservingDiffusion(alpha=0.1, device=device, dtype=dtype)
+sde = VariancePreservingDiffusion(alpha=0., device=device, dtype=dtype)
 
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
@@ -351,8 +345,7 @@ except FileNotFoundError:
 # For example, we can use the :class:`deepinv.models.DRUNet` for posterior sampling.
 # We can also change the underlying SDE, for example change the `sigma_max` value.
 
-del trajectory  # clean memory
-sigma_min = 0.001
+del trajectory  # clean memory'''
 sigma_max = 10.0
 rng = torch.Generator(device)
 dtype = torch.float32
@@ -360,9 +353,8 @@ timesteps = torch.linspace(1, 0.001, 250)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
-sde = VarianceExplodingDiffusion(
-    sigma_max=sigma_max, sigma_min=sigma_min, alpha=0.75, device=device, dtype=dtype
-)
+sde = VarianceExplodingDiffusion(sigma_max=sigma_max, alpha=0.75, device=device, dtype=dtype)
+
 x = dinv.utils.load_example(
     "butterfly.png",
     img_size=256,
