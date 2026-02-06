@@ -318,9 +318,10 @@ class EDMDiffusionSDE(DiffusionSDE):
     ):
         self.T = T
 
+        _sigma_t = sigma_t
         def sigma_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
-            return sigma_t(t)
+            return _sigma_t(t)
 
         self.sigma_t = sigma_t
 
@@ -358,10 +359,10 @@ class EDMDiffusionSDE(DiffusionSDE):
                     "'scale_t' must be provided if 'variance_preserving' and 'variance_exploding' is False"
                 )
         else:
-
+            _scale_t = scale_t
             def scale_t(t: Tensor | float) -> Tensor:
                 t = self._handle_time_step(t)
-                return scale_t(t)
+                return _scale_t(t)
 
         self.scale_t = scale_t
 
@@ -377,10 +378,10 @@ class EDMDiffusionSDE(DiffusionSDE):
                     return grad
 
         else:
-
+            _sigma_prime_t = sigma_prime_t
             def sigma_prime_t(t: Tensor | float) -> Tensor:
                 t = self._handle_time_step(t)
-                return sigma_prime_t(t)
+                return _sigma_prime_t(t)
 
         self.sigma_prime_t = sigma_prime_t
 
@@ -396,10 +397,10 @@ class EDMDiffusionSDE(DiffusionSDE):
                     return grad
 
         else:
-
+            _scale_prime_t = scale_prime_t
             def scale_prime_t(t: Tensor | float) -> Tensor:
                 t = self._handle_time_step(t)
-                return scale_prime_t(t)
+                return _scale_prime_t(t)
 
         self.scale_prime_t = scale_prime_t
 
