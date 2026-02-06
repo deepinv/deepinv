@@ -19,7 +19,6 @@ from deepinv.optim import PGD
 from torchvision import transforms
 from deepinv.utils import load_dataset, load_degradation
 
-
 # %%
 # Setup paths for data loading and results.
 # ----------------------------------------------------------------------------------------

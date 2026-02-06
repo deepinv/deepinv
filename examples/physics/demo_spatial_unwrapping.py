@@ -26,7 +26,6 @@ import matplotlib.pyplot as plt
 from deepinv.optim import ADMM
 from deepinv.utils import load_example
 
-
 # %%
 # Load image and preprocess
 # -------------------------------------------------------
