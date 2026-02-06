@@ -175,6 +175,8 @@ Functional
    deepinv.physics.functional.imresize_matlab
    deepinv.physics.functional.random_choice
    deepinv.physics.functional.power_method
+   deepinv.physics.functional.hankel1
+   deepinv.physics.functional.bessel_j
 
 
 .. autosummary::

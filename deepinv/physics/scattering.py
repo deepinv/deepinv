@@ -76,8 +76,8 @@ class Scattering(Physics):
 
     :param int img_width: Number of pixels per image side (`H=W`). The minimum required number of pixels depends on the background wavenumber to avoid spatial aliasing.
         We require at least :math:`\text{image width} \geq 2 k_b L/(2 \pi)`, where :math:`k_b` is the background wavenumber and :math:`L` is the box length.
-    :param torch.Tensor receivers: Tensor of shape `(2, R)` (shared receivers) or `(2, T, R)` (per-transmitter receivers) with receiver x/y positions.
-    :param torch.Tensor transmitters: Tensor of shape `(2, T)` with transmitter x/y positions.
+    :param torch.Tensor receivers: Tensor of shape `(2, R)` (shared receivers) or `(2, T, R)` (per-transmitter receivers) with receiver x/y positions (`torch.float` dtype).
+    :param torch.Tensor transmitters: Tensor of shape `(2, T)` with transmitter x/y positions (`torch.float` dtype)
     :param float, torch.Tensor background_wavenumber: background wavenumber :math:`k_b`, which can be real (`float` or `torch.float`) or complex (`torch.complex`).
         It controls the frequency of the incident wave, and thus the maximum achievable resolution of the contrast image.
     :param deepinv.physics.scattering.Scattering.SolverConfig solver_config: Configuration for the Lippmann-Schwinger solver used to
@@ -131,31 +131,24 @@ class Scattering(Physics):
             img_width=img_width,
             box_length=box_length,
             wavenumber=self.wavenumber,
-            verbose=verbose,
             device=device,
             dtype=dtype,
             config=solver_config,
         )
-
-        self.device = device
-        self.dtype = dtype
         self.verbose = verbose
 
         self.box_length = box_length
         self.pixel_area = (box_length / img_width) ** 2
         self.wave_type = wave_type
-        image_domain = torch.linspace(
-            -box_length / 2, box_length / 2, img_width, device=device, dtype=dtype
-        )
-        self.y_domain, self.x_domain = torch.meshgrid(
-            -image_domain, image_domain, indexing="ij"
-        )
         self.img_width = img_width
 
         # incident field
         self.total_field = None
 
-        self.update_parameters(receivers=receivers, transmitters=transmitters)
+        self.update_parameters(
+            receivers=receivers.to(device).to(dtype),
+            transmitters=transmitters.to(device).to(dtype),
+        )
 
     @dataclass
     class SolverConfig:
@@ -169,6 +162,7 @@ class Scattering(Physics):
         :param str solver: Linear solver to use (`'lsqr'`, `'BiCGStab'` or `'CG'`). By default, `'lsqr'`.
         :param float tol: Stopping criterion for the solver. By default, 1e-5.
         :param bool adjoint_state: If True, use adjoint state method for gradients, else use autograd. By default `True`.
+        :param bool verbose: If True, print solver convergence information. By default, False.
         """
 
         min_iter: int = 1
@@ -176,6 +170,20 @@ class Scattering(Physics):
         solver: str = "lsqr"
         tol: float = 1e-5
         adjoint_state: bool = True
+        verbose: bool = False
+
+    def get_img_grid(
+        self, device: str | torch.device, dtype: torch.dtype
+    ) -> tuple[torch.Tensor, ...]:
+        image_domain = torch.linspace(
+            -self.box_length / 2,
+            self.box_length / 2,
+            self.img_width,
+            device=device,
+            dtype=dtype,
+        )
+        x_domain, y_domain = torch.meshgrid(-image_domain, image_domain, indexing="ij")
+        return x_domain.flatten(), y_domain.flatten()
 
     def normalize(self, x: torch.Tensor):
         """
@@ -199,29 +207,34 @@ class Scattering(Physics):
             img_width=self.img_width,
             box_length=self.box_length,
             wavenumber=self.wavenumber,
-            verbose=self.verbose,
-            device=self.device,
-            dtype=self.dtype,
+            device=self.wavenumber.device,
+            dtype=self.wavenumber.dtype,
             config=solver_config,
         )
 
-    def update_parameters(self, receivers=None, transmitters=None, **kwargs):
+    def update_parameters(
+        self,
+        receivers: torch.Tensor = None,
+        transmitters: torch.Tensor = None,
+        **kwargs,
+    ):
         """
         Update transmitter and receiver parameters and recompute dependent fields/operators.
 
         :param torch.Tensor receivers: New receiver positions of shape `(2, R)` or `(2, T, R)`.
-        :param torch.Tensor transmitters: New transmitter positions of shape `(2, T)`, where T is the number of transmitters.
+        :param torch.Tensor transmitters: New transmitter positions of shape `(2, T)`, where `T` is the number of transmitters.
         """
+        device = self.wavenumber.device
+        dtype = self.wavenumber.dtype
         if transmitters is not None:
             self.register_buffer("transmitters", transmitters)
-            self.transmitters = transmitters.to(self.device).to(self.dtype)
+            self.transmitters = transmitters.to(dtype).to(device)
             # recompute the incident field
-            self.incident_field = (
-                self.generate_incident_field().to(self.device).to(self.dtype)
-            )
+            incident_field = self.generate_incident_field(device=device, dtype=dtype)
+            self.register_buffer("incident_field", incident_field)
 
         if receivers is not None:
-            receivers = receivers.to(self.device).to(self.dtype)
+            receivers = receivers.to(dtype).to(dtype)
 
             # Handle receivers: convert (2, R) to (2, T, R) if needed
             if receivers.ndim == 2:
@@ -233,11 +246,12 @@ class Scattering(Physics):
 
             self.register_buffer("receivers", receivers)
             # recompute the output linear operator
+            x_domain, y_domain = self.get_img_grid(device=device, dtype=dtype)
             self.born_operator = BornOperator(
                 total_field=self.incident_field,
                 receivers=receivers,
-                x_domain=self.x_domain,
-                y_domain=self.y_domain,
+                x_domain=x_domain,
+                y_domain=y_domain,
                 wavenumber=self.wavenumber,
                 pixel_area=self.pixel_area,
                 img_width=self.img_width,
@@ -246,7 +260,9 @@ class Scattering(Physics):
 
         super().update_parameters(**kwargs)
 
-    def generate_incident_field(self):
+    def generate_incident_field(
+        self, device: torch.device, dtype: torch.dtype
+    ) -> torch.Tensor:
         r"""
         Generate incident fields on the image grid and at receiver positions.
 
@@ -268,9 +284,10 @@ class Scattering(Physics):
 
         :returns: (:class:`torch.Tensor`) Incident field tensor of shape `(1,T,H,W)` where `T` is the number of transmitters.
         """
-        x_domain = self.x_domain.flatten()
-        y_domain = self.y_domain.flatten()
-        x_transmitters, y_transmitters = self.transmitters
+        x_domain, y_domain = self.get_img_grid(device=device, dtype=dtype)
+        x_transmitters, y_transmitters = self.transmitters.to(
+            dtype=dtype, device=device
+        )
 
         if self.wave_type == "plane_wave":
             # to angles
@@ -322,8 +339,8 @@ class Scattering(Physics):
         """
         Vector-Jacobian product for the forward operator.
 
-        :param torch.Tensor x: Scattering potential (B,1,H,W).
-        :param torch.Tensor v: Vector to multiply with the Jacobian (B,T,R).
+        :param torch.Tensor x: Scattering potential of shape `(B,1,H,W)`.
+        :param torch.Tensor v: Vector to multiply with the Jacobian, a tensor of shape `(B,T,R)`.
         :param torch.dtype dtype: torch.dtype used for internal computations and returned result
         """
         with torch.enable_grad():
@@ -334,10 +351,10 @@ class Scattering(Physics):
 
     def compute_total_field(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """
-        Solve for the total field given scattering potential x using the provided solver.
+        Solve for the total field given scattering potential `x` using the provided solver.
 
-        :param torch.Tensor x: Scattering potential tensor of shape (B,1,H,W).
-        :returns: (:class:`torch.Tensor`) Total field tensor of shape (B,T,H,W).
+        :param torch.Tensor x: Scattering potential tensor of shape `(B,1,H,W)`.
+        :returns: (:class:`torch.Tensor`) Total field tensor of shape `(B,T,H,W)`.
         """
         # This solves the following linear problem: (I - G_d*diag(x))u = v
 
@@ -468,13 +485,21 @@ class BornOperator(LinearPhysics):
     r"""
     Linear operator implementing the Born approximation for the scattering problem.
 
-    :param torch.Tensor total_field: Total field tensor (1,T,H,W) or (B,T,H,W).
-    :param torch.Tensor receivers: Receiver positions of shape (2, T, R).
-    :param torch.Tensor x_domain: x coordinates of image grid points (H*W,).
-    :param torch.Tensor y_domain: y coordinates of image grid points (H*W,).
+    It computes the measurements at the receivers given a total field and a scattering potential, according to the following operation:
+
+    .. math::
+
+        y = G_s \left( x \circ u \right)
+
+    where :x: is the scattering potential, :math:`u` is the (here known) total field (scattered + incident), and :math:`G_s` is the Green's operator plus sampling at the receiver locations.
+
+    :param torch.Tensor total_field: Total field tensor `(1,T,H,W)` or `(B,T,H,W)`.
+    :param torch.Tensor receivers: Receiver positions of shape `(2, T, R)`.
+    :param torch.Tensor x_domain: x coordinates of image grid points `(H*W,)`.
+    :param torch.Tensor y_domain: y coordinates of image grid points `(H*W,)`.
     :param float, torch.Tensor wavenumber: Scalar wavenumber.
     :param float pixel_area: Area of each pixel in the discretized grid.
-    :param int img_width: Number of img_width per image side (H=W).
+    :param int img_width: Number of pixels per image side (H=W).
     :param bool verbose: Enable verbose/debug printing.
     """
 
@@ -490,8 +515,8 @@ class BornOperator(LinearPhysics):
         verbose: bool = False,
     ):
         super().__init__()
-        self.total_field = total_field
-        self.green_operator = self.compute_operator(
+        self.register_buffer("total_field", total_field)
+        green_operator = self.compute_operator(
             receivers,
             x_domain,
             y_domain,
@@ -501,6 +526,7 @@ class BornOperator(LinearPhysics):
             dtype=total_field.dtype,
             device=total_field.device,
         )
+        self.register_buffer("green_operator", green_operator)
         self.verbose = verbose
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
@@ -592,8 +618,6 @@ class BornOperator(LinearPhysics):
         :param str, torch.device device: `torch.device` used for internal computations and returned result
         :returns: (:class:`torch.Tensor`) Green's function operator of shape `(T, R, H, W)`.
         """
-        x_domain = x_domain.flatten()
-        y_domain = y_domain.flatten()
 
         # receivers shape: (2, T, R)
         num_transmitters = receivers.shape[1]
@@ -681,8 +705,8 @@ def forward_lippmann_schwinger(
     m: torch.Tensor,
     source: torch.Tensor,
     g_fourier: torch.Tensor,
-    solver_params: dict,
     init: torch.Tensor = None,
+    config: "Scattering.SolverConfig" = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     r"""
     Computes the scattered field by solving the Lippmann-Schwinger equation using an iterative solver.
@@ -690,7 +714,7 @@ def forward_lippmann_schwinger(
     :param torch.Tensor m: Scattering potential `(B,1,H,W)`.
     :param torch.Tensor source: Source term `(B,T,H,W)`.
     :param torch.Tensor g_fourier: Green's function in Fourier space `(1,H,W)`.
-    :param dict solver_params: Dictionary of solver parameters for the least-squares solver.
+    :param dict solver_config: Dictionary of solver parameters for the least-squares solver.
     :param None, torch.Tensor init: Initial guess for the scattered field `(B,T,H,W)`.
     :returns: (:class:`torch.Tensor`, :class:`torch.Tensor`)
         - Scattered field `(B,T,H,W)`.
@@ -706,7 +730,11 @@ def forward_lippmann_schwinger(
     b_incident_field = apply_filter(source, g_fourier)
 
     scattered_field = least_squares(
-        A=A, AT=AT, y=b_incident_field, init=init, **solver_params
+        A=A,
+        AT=AT,
+        y=b_incident_field,
+        init=init,
+        **vars(config) if config is not None else {},
     )
     return scattered_field, b_incident_field
 
@@ -730,7 +758,6 @@ class LippmannSchwingerSolver(torch.nn.Module):
         box_length: float,
         wavenumber: torch.Tensor,
         config: "Scattering.SolverConfig" = None,
-        verbose: bool = False,
         device: torch.device | str = "cpu",
         dtype: torch.dtype = torch.complex128,
     ):
@@ -738,27 +765,24 @@ class LippmannSchwingerSolver(torch.nn.Module):
 
         # Pre-compute Green's function in Fourier space and move to device
         self.e = 0.01
-        _, self.g_fourier = green_fourier(
+        _, g_fourier = green_fourier(
             img_width, box_length, (wavenumber.pow(2) + 1j * self.e).sqrt()
         )
-        self.k02 = wavenumber.pow(2).to(device)
-        self.g_fourier = self.g_fourier.to(device).to(dtype)
+        self.register_buffer("g_fourier", g_fourier)
+        self.register_buffer("k02", wavenumber.pow(2).to(device))
+        self.register_buffer("g_fourier", self.g_fourier.to(device).to(dtype))
         self.adjoint_state = config.adjoint_state
 
         # Store solver parameters in a dictionary for easy passing
-        self.solver_params = {
-            "min_iter": config.min_iter,
-            "max_iter": config.max_iter,
-            "verbose": verbose,
-            "solver": config.solver,
-            "tol": config.tol,
-        }
+        self.solver_config = config
 
-    def set_verbose(self, verbose):
+    def set_verbose(self, verbose: bool):
         """
-        Set the verbosity of the solver.
+        Toggle verbosity.
+
+        :param bool verbose: Enable verbose/debug printing.
         """
-        self.solver_params["verbose"] = verbose
+        self.solver_config.verbose = verbose
 
     def forward(
         self,
@@ -781,11 +805,15 @@ class LippmannSchwingerSolver(torch.nn.Module):
         if self.adjoint_state:
             # Use the Lippmann-Schwinger function with adjoint state
             return LippmannSchwingerAdjointState.apply(
-                k2, source, init, self.g_fourier, self.k02, self.solver_params
+                k2, source, init, self.g_fourier, self.k02, self.solver_config
             )
         else:
             scattered_field, _ = forward_lippmann_schwinger(
-                k2 - self.k02, source, self.g_fourier, self.solver_params, init
+                k2 - self.k02,
+                source,
+                self.g_fourier,
+                init=init,
+                config=self.solver_config,
             )
             return scattered_field
 
@@ -797,18 +825,18 @@ class LippmannSchwingerAdjointState(torch.autograd.Function):
     """
 
     @staticmethod
-    def forward(ctx, k2, source, init, g_fourier, k02, solver_params):
+    def forward(ctx, k2, source, init, g_fourier, k02, config):
         """
         Solves for the scattered field using an iterative solver.
         """
 
         m = k2 - k02  # Scattering potential
         scattered_field, b_incident_field = forward_lippmann_schwinger(
-            m, source, g_fourier, solver_params, init
+            m, source, g_fourier, config=config, init=init
         )
 
         # Save necessary tensors for the backward pass
-        ctx.solver_params = solver_params
+        ctx.config = config
         ctx.save_for_backward(m, scattered_field, b_incident_field, g_fourier)
         return scattered_field
 
@@ -819,7 +847,7 @@ class LippmannSchwingerAdjointState(torch.autograd.Function):
         using the pre-derived closed-form Frechet derivative.
         """
         # Unpack saved tensors and parameters
-        solver_params = ctx.solver_params
+        config = ctx.config
         m, scattered_field, b_incident_field, g_fourier = ctx.saved_tensors
 
         # Initialize gradients to None
@@ -841,7 +869,11 @@ class LippmannSchwingerAdjointState(torch.autograd.Function):
         init_adjoint = scattered_field.conj().clone()
 
         v = least_squares(
-            A=AT, AT=A, y=grad_scattered_field, init=init_adjoint, **solver_params
+            A=AT,
+            AT=A,
+            y=grad_scattered_field,
+            init=init_adjoint,
+            **vars(config) if config is not None else {},
         )
 
         g_adj_v = apply_filter(v, g_fourier.conj())

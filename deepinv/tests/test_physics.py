@@ -1990,9 +1990,24 @@ def test_adjoint_autograd(name, device):
     assert torch.allclose(delta_y, Az, rtol=1e-5)
 
 
-@pytest.mark.parametrize("name", OPERATORS)
+@pytest.mark.parametrize(
+    "name", OPERATORS + NONLINEAR_OPERATORS + PHASE_RETRIEVAL_OPERATORS
+)
 def test_clone(name, device):
-    physics, imsize, _, dtype = find_operator(name, device)
+
+    if name in OPERATORS:
+        physics, imsize, _, dtype = find_operator(name, device)
+    elif name in NONLINEAR_OPERATORS:
+        if name == "haze":
+            pytest.skip(
+                "Haze physics takes a TensorList as input, which is not supported by the current test."
+            )
+        physics, x = find_nonlinear_operator(name, device)
+        imsize = x.shape[1:]
+        dtype = x.dtype
+    elif name in PHASE_RETRIEVAL_OPERATORS:
+        physics, imsize = find_phase_retrieval_operator(name, device)
+        dtype = torch.complex64
 
     # Add a dummy parameter used for further testing
     dummy_tensor = torch.randn(
@@ -2364,6 +2379,14 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
         receivers=receivers,
         verbose=True,
     )
+
+    # test adjointness of the born sub-operator
+    assert (
+        physics.born_operator.adjointness_test(
+            torch.randn((1, 1, pixels, pixels), device=device, dtype=dtype)
+        )
+        < 1e-4
+    ), "Adjointness test failed for the Born sub-operator of the Scattering physics."
 
     # create cylinder contrast
     x = torch.zeros((pixels, pixels), device=device, dtype=dtype)

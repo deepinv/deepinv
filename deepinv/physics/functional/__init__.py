@@ -28,3 +28,5 @@ from .astra import XrayTransform
 from .imresize import imresize_matlab
 
 from .matrix import power_method
+
+from .special import hankel1, bessel_j

@@ -20,11 +20,13 @@ def native_hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
 
 def hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
     r"""
-    Dispatches between native Torch and SciPy based on version/availability.
+    Computes the Hankel function of the first kind :math:`H_1(n, x)` for order :math:`n` and input :math:`x`.
+
+    Uses native Torch if available, otherwise falls back to SciPy.
 
     :param int n: Order of the Hankel function.
     :param torch.Tensor x: Input tensor.
-    :return: Complex tensor representing H1(n, x).
+    :return: Complex tensor representing :math:`H_1(n, x)`.
     """
     # 1. Check if we can use native Torch (requires version >= 1.9 for torch.special)
     # and specifically bessel_j/y which were stabilized in later 2.x versions.
@@ -51,17 +53,18 @@ def hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
         )
     out = scipy.special.hankel1(n, x.to("cpu"))
 
-    return out.to(device=device or x.device)
+    return out.to(device=device)
 
 
 def bessel_j(n: int, x: torch.Tensor) -> torch.Tensor:
     """
-    Computes J_v(n, x) using native Torch if available,
-    otherwise falls back to SciPy.
+    Computes the Bessel function of the first kind :math:`J_v(n, x)` for order :math:`n` and input :math:`x`.
+
+    Uses native Torch if available, otherwise falls back to SciPy.
 
     :param int n: Order of the Bessel function.
     :param torch.Tensor x: Input tensor.
-    :return: Tensor representing J_v(n, x).
+    :return: Tensor representing :math:`J_v(n, x)`.
     """
     # 1. Attempt Native PyTorch (Available in torch >= 1.9)
     device = x.device
@@ -84,4 +87,4 @@ def bessel_j(n: int, x: torch.Tensor) -> torch.Tensor:
     out = scipy.special.jv(n, x.to("cpu"))
 
     # Return as a torch tensor on the original or requested device
-    return out.to(device=device or x.device)
+    return out.to(device=device)
