@@ -29,7 +29,7 @@ class LPIPS(Metric):
     >>> m(x_net, x) # doctest: +ELLIPSIS
     tensor([...])
 
-    :param str device: device to use for the metric computation. Default: 'cpu'.
+    :param str net_type: network architecture to use. Options: 'alex', 'vgg', 'squeeze'. Default: 'alex'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
@@ -41,28 +41,34 @@ class LPIPS(Metric):
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def __init__(self, device="cpu", **kwargs):
+    def __init__(self, net_type="alex", **kwargs):
         super().__init__(**kwargs)
-        from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
+        from torchmetrics.functional.image import (
+            learned_perceptual_image_patch_similarity,
+        )
 
-        self.lpips = LearnedPerceptualImagePatchSimilarity(
-            net_type="alex", normalize=True, reduction="none"
-        ).to(device)
+        self.net_type = net_type
+        self.lpips_fn = learned_perceptual_image_patch_similarity
         self.lower_better = True
 
     def metric(self, x_net, x, *args, **kwargs):
-        if not (
-            torch.all((0.0 <= x_net) & (x_net <= 1.0))
-            and torch.all((0.0 <= x_net) & (x_net <= 1.0))
-        ):
-            raise ValueError("LPIPS metric requires x_net and x to be between 0 and 1.")
+        if x_net.ndim != 4 or x.ndim != 4:
+            raise ValueError(
+                f"LPIPS metric requires 4D input (B, C, H, W), but got shapes {x_net.shape}, {x.shape}."
+            )
 
         if not (x_net.shape[1] == x.shape[1] == 3):
             raise ValueError(
                 f"LPIPS metric only supports 3-channel input, but got channels for x_net, x as {x_net.shape[1]}, {x.shape[1]}."
             )
 
-        return self.lpips(x_net, x)
+        min_val, max_val = torch.aminmax(torch.cat([x_net, x], dim=0))
+        if not ((min_val >= 0.0) & (max_val <= 1.0)):
+            raise ValueError("LPIPS metric requires x_net and x to be between 0 and 1.")
+
+        return self.lpips_fn(
+            x_net, x, net_type=self.net_type, normalize=True, reduction="none"
+        )
 
 
 class NIQE(Metric):
