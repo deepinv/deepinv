@@ -284,17 +284,61 @@ class MRIMixin:
         return ss.sqrt()
 
 
-class TiledMixin2D:
-    """
+class TiledMixin2d:
+    r"""
     Mixin base class for 2D tiled patch extraction and reconstruction.
     Provides methods to extract overlapping patches from images and reconstruct images from patches.
 
     It also handles padding if necessary to ensure all patches have the same size.
+    The patch extraction and reconstruction are implemented using PyTorch's unfold and fold operations for efficiency.
 
     :param int | tuple[int, int] patch_size: Size of each patch (height, width) or single `int` for square patches.
     :param int | tuple[int, int] stride: Stride between adjacent patches (height, width). If a single `int` is provided, it is used for both dimensions. Defaults to half the patch size.
     :param bool pad_if_needed: If `True`, the image will be padded if necessary to ensure all patches have the same size. Defaults to `True`.
 
+    |sep|
+
+    The following example demonstrates how to use the `TiledMixin2d` to extract patches from an image and reconstruct the image from those patches.
+
+    :Examples:
+
+        >>> import torch
+        >>> from deepinv.utils.mixins import TiledMixin2d
+        >>> # Create an image of shape (B, C, H, W)
+        >>> B, C, H, W = 1, 1, 5, 5
+        >>> image = torch.arange(B * C * H * W, dtype=torch.float32).reshape(B, C, H, W)
+        >>> print(image)
+        tensor([[[[ 0.,  1.,  2.,  3.,  4.],
+                  [ 5.,  6.,  7.,  8.,  9.],
+                  [10., 11., 12., 13., 14.],
+                  [15., 16., 17., 18., 19.],
+                  [20., 21., 22., 23., 24.]]]])
+
+        >>> # Initialize the TiledMixin2d with patch size and stride
+        >>> patch_size = (3, 3)
+        >>> stride = (2, 2)
+        >>> tiled_mixin = TiledMixin2d(patch_size=patch_size, stride=stride)
+
+        >>> # Extract patches from the image
+        >>> patches = tiled_mixin.image_to_patches(image)
+        >>> print("Extracted Patches Shape:", patches.shape)
+        Extracted Patches Shape: torch.Size([1, 1, 3, 3, 3, 3])
+        >>> print(patches[..., 0, 0, :, :]) # Print the first patch for verification
+        tensor([[[[ 0.,  1.,  2.],
+                  [ 5.,  6.,  7.],
+                  [10., 11., 12.]]]])
+
+        >>> # Reconstruct the image from the patches
+        >>> reconstructed_image = tiled_mixin.patches_to_image(patches, img_size=(H, W))
+        >>> print("Reconstructed Image Shape:", reconstructed_image.shape)
+        Reconstructed Image Shape: torch.Size([1, 1, 5, 5])
+        >>> print("Reconstructed Image:\n", reconstructed_image)
+        tensor([[[[ 0.,  1.,  4.,  3.,  8.],
+                  [ 5.,  6., 14.,  8., 18.],
+                  [20., 22., 48., 26., 56.],
+                  [15., 16., 34., 18., 38.],
+                  [40., 42., 88., 46., 96.]]]])
+        >>> # Note that the reconstructed image is not necessarily equal to the original image due to overlapping regions being summed.
     """
 
     def __init__(
@@ -397,10 +441,12 @@ class TiledMixin2D:
         :param img_size: Original image size (height, width).
         :return: Tuple of (compatible_size, padding).
         """
-        # Compute number of patches and required padding
+        # Compute number of maximum patches that can fit without padding
+        # Note that this number of patches can be not sufficient to cover the whole image, which is why we need padding
         n_h = (img_size[0] - self.patch_size[0]) // self.stride[0] + 1
         n_w = (img_size[1] - self.patch_size[1]) // self.stride[1] + 1
 
+        # Compute required padding to fit an integer number of patches
         pad_h = self.patch_size[0] + n_h * self.stride[0] - img_size[0]
         pad_w = self.patch_size[1] + n_w * self.stride[1] - img_size[1]
 
@@ -418,6 +464,8 @@ class TiledMixin2D:
     def get_num_patches(self, img_size: tuple[int, int]) -> tuple[int, int]:
         """
         Get number of patches along height and width.
+            - If `pad_if_needed` is `True`, this will return the number of patches that can be extracted after padding the image to a compatible size.
+            - If `pad_if_needed` is `False`, this will return the number of patches that can be extracted without padding, which may not cover the whole image.
 
         :param img_size: Image size (height, width).
         :return: Number of patches (n_h, n_w).

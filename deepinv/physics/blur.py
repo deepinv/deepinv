@@ -25,7 +25,7 @@ from deepinv.physics.functional.tiled_product_convolution import (
     generate_tiled_multipliers,
 )
 from deepinv.utils._internal import _add_tuple, _as_pair
-from deepinv.utils.mixins import TiledMixin2D
+from deepinv.utils.mixins import TiledMixin2d
 
 
 class Downsampling(LinearPhysics):
@@ -692,7 +692,7 @@ class SpaceVaryingBlur(LinearPhysics):
         super().update_parameters(**kwargs)
 
 
-class TiledSpaceVaryingBlur(TiledMixin2D, LinearPhysics):
+class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
     r"""
     Space varying blur via tiled-convolution.
 
@@ -827,10 +827,11 @@ class TiledSpaceVaryingBlur(TiledMixin2D, LinearPhysics):
         patches = self.image_to_patches(x)
 
         n_rows, n_cols = patches.size(2), patches.size(3)
-        assert n_rows * n_cols == h.size(2), (
-            f"The number of patches must be equal to the number of PSFs, "
-            f"got {n_rows * n_cols} and {h.size(2)}"
-        )
+        if n_rows * n_cols != h.size(2):
+            raise ValueError(
+                f"The total number of patches must be equal to the number of PSFs, "
+                f"got {n_rows * n_cols} and {h.size(2)}"
+            )
 
         # Flatten K1 and K2 to: (B, C, K, P1, P2)
         patches = patches.flatten(2, 3)
@@ -920,9 +921,11 @@ class TiledSpaceVaryingBlur(TiledMixin2D, LinearPhysics):
         self.patch_size = original_patch_size
 
         n_rows, n_cols = patches.size(2), patches.size(3)
-        assert n_rows * n_cols == h.size(
-            2
-        ), "The number of patches must be equal to the number of PSFs"
+        if n_rows * n_cols != h.size(2):
+            raise ValueError(
+                f"The total number of patches must be equal to the number of PSFs, "
+                f"got {n_rows * n_cols} and {h.size(2)}"
+            )
 
         # Apply transpose convolution per patch
         patches = patches.flatten(2, 3)
@@ -994,7 +997,7 @@ class TiledSpaceVaryingBlur(TiledMixin2D, LinearPhysics):
         patch_size = _as_pair(patch_size)
         stride = _as_pair(stride)
 
-        # Using the same logic as in TiledMixin2D, but a static method here to help users compute the number of filters needed beforehand
+        # Using the same logic as in TiledMixin2d, but a static method here to help users compute the number of filters needed beforehand
         num = [(i - p) // s + 1 for i, p, s in zip(img_size, patch_size, stride)]
         pad = [p + n * s - i for p, n, s, i in zip(patch_size, num, stride, img_size)]
         compatible_size = _add_tuple(img_size, pad)

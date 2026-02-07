@@ -184,5 +184,5 @@ such as temporal or MRI functionality.
    * - :class:`deepinv.utils.TimeMixin`
      - Methods for expanding and flattening time dimension for dynamic/video data.
 
-   * - :class:`deepinv.utils.TiledMixin2D`
+   * - :class:`deepinv.utils.TiledMixin2d`
      - Methods for extracting and merging tiles for 2D images.

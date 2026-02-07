@@ -8,7 +8,7 @@ from deepinv.physics.functional.convolution import conv2d
 from deepinv.physics.functional.interp import ThinPlateSpline
 from deepinv.utils.decorators import _deprecated_alias
 from deepinv.transform.rotate import rotate_via_shear
-from deepinv.utils.mixins import TiledMixin2D
+from deepinv.utils.mixins import TiledMixin2d
 from .zernike import Zernike
 
 
@@ -1108,7 +1108,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         return self.generator_ill.zernike_polynomials
 
 
-class TiledBlurGenerator(TiledMixin2D, PSFGenerator):
+class TiledBlurGenerator(TiledMixin2d, PSFGenerator):
     r"""
     Generates parameters of the :class:`deepinv.physics.TiledSpaceVaryingBlur` operator.
     The image is divided into overlapping patches, each local patch is convolved with a different PSF.
