@@ -38,8 +38,8 @@ def hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
     """
     # 1. Check if we can use native Torch (requires version >= 1.9 for torch.special)
     # and specifically bessel_j/y which were stabilized in later 2.x versions.
-    has_native_bessel = hasattr(torch.special, "bessel_j") and hasattr(
-        torch.special, "bessel_y"
+    has_native_bessel = hasattr(torch.special, "bessel_j0") and hasattr(
+        torch.special, "bessel_y0"
     )
     device = x.device
 
@@ -79,14 +79,14 @@ def bessel_j(n: int, x: torch.Tensor) -> torch.Tensor:
     if hasattr(torch.special, "bessel_j0") and n == 0:
         try:
             # Note: bessel_j supports float/double and supports autograd
-            return torch.special.bessel_j0(n, x).to(device=device)
+            return torch.special.bessel_j0(x)
         except (TypeError, RuntimeError):
             # Fallback if the specific n (order) or x (dtype) is unsupported natively
             pass
 
     if hasattr(torch.special, "bessel_j1") and n == 1:
         try:
-            return torch.special.bessel_j1(n, x).to(device=device)
+            return torch.special.bessel_j1(x)
         except (TypeError, RuntimeError):
             pass
 
