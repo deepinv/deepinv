@@ -99,7 +99,7 @@ def get_freer_gpu(verbose=True, use_torch_api=True, hide_warnings=False):
     else:
         try:
             device, idx, mem = _get_freer_gpu_system(hide_warnings)
-        except:
+        except Exception:
             warn(
                 "an exception occured when selecting GPU using nvidia-driver (nvidia-smi) "
                 "falling back to direct PyTorch's runtime API"

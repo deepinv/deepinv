@@ -91,7 +91,7 @@ class DnCNN(Denoiser):
                             name = "dncnn_sigma2_gray.pth"
 
                 if name == "":
-                    raise Exception(
+                    raise ValueError(
                         "No pretrained weights were found online that match the chosen architecture"
                     )
                 url = get_weights_url(model_name="dncnn", file_name=name)
