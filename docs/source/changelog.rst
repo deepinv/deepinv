@@ -9,6 +9,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
+- Add distributed computing framework with :class:`deepinv.distributed.DistributedContext`, :class:`deepinv.distributed.DistributedStackedPhysics`, :class:`deepinv.distributed.DistributedProcessing`, :class:`deepinv.distributed.DistributedDataFidelity` and :func:`deepinv.distributed.distribute` factory function. Supports multi-GPU/multi-process execution with physics-based and spatial tiling distribution strategies (:gh:`790`` by `Benoît Malézieux`_)
 - Add :class:`deepinv.loss.metric.CosineSimilarity` to the metrics (:gh:`944` by `Avithal Lautman`_)
 - New option to initialize 3D networks (DRUNet, DnCNN, DScCP) from pretrained 2D weights (:gh:`958` by `Romain Vo`_)
 
@@ -564,3 +565,4 @@ Changed
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
 .. _Avithal Lautman: https://github.com/avithal
 .. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
+.. _Benoît Malézieux: https://github.com/bmalezieux
