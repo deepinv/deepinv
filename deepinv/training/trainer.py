@@ -232,6 +232,8 @@ class Trainer:
     :Verbose:
 
     :param bool verbose: Output training progress information in the console. Default is ``True``.
+    :param bool verbose_individual_losses: **Deprecated.** This parameter is deprecated and will be removed in a future version.
+        Individual losses are now always added to logs when multiple losses are present. Default is ``None``.
     :param bool show_progress_bar: Show a progress bar during training. Default is ``True``.
     :param int freq_update_progress_bar: progress bar postfix update frequency (measured in iterations). Defaults to 1.
         Increasing this may speed up training.
@@ -300,6 +302,7 @@ class Trainer:
     compute_eval_losses: bool = False
     log_train_batch: bool = False
     verbose: bool = True
+    verbose_individual_losses: bool = None
     show_progress_bar: bool = True
     freq_update_progress_bar: int = 1
     non_blocking_transfers: bool = (
@@ -315,6 +318,13 @@ class Trainer:
                 stacklevel=2,
             )
             self.compute_eval_losses = self.display_losses_eval
+        if self.verbose_individual_losses is not None:
+            warnings.warn(
+                "Argument 'verbose_individual_losses' is deprecated and will be removed in a future version. "
+                "Individual losses are now always added to logs when multiple losses are present.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         # Cache flag for whether model.forward accepts 'update_parameters'
         self._model_accepts_update_parameters = False
 
