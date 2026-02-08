@@ -1,11 +1,22 @@
 from __future__ import annotations
 from typing import Callable, TYPE_CHECKING
-import sys
 import warnings
 from collections.abc import Iterable
 from types import MappingProxyType
 import torch
-from deepinv.optim.optim_iterators import *
+from deepinv.optim import optim_iterators as _optim_iterators
+from deepinv.optim.optim_iterators import (
+    OptimIterator,
+    ADMMIteration,
+    PGDIteration,
+    FISTAIteration,
+    PMDIteration,
+    CPIteration,
+    HQSIteration,
+    DRSIteration,
+    GDIteration,
+    MDIteration,
+)
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import ZeroPrior, Prior
 from deepinv.optim.data_fidelity import DataFidelity, ZeroFidelity
@@ -1018,7 +1029,7 @@ def optim_builder(
 
 
 def str_to_class(classname):
-    return getattr(sys.modules[__name__], classname)
+    return getattr(_optim_iterators, classname)
 
 
 class ADMM(BaseOptim):

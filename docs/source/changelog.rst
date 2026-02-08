@@ -9,7 +9,9 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
+- Add distributed computing framework with :class:`deepinv.distributed.DistributedContext`, :class:`deepinv.distributed.DistributedStackedPhysics`, :class:`deepinv.distributed.DistributedProcessing`, :class:`deepinv.distributed.DistributedDataFidelity` and :func:`deepinv.distributed.distribute` factory function. Supports multi-GPU/multi-process execution with physics-based and spatial tiling distribution strategies (:gh:`790`` by `Benoît Malézieux`_)
 - Add :class:`deepinv.loss.metric.CosineSimilarity` to the metrics (:gh:`944` by `Avithal Lautman`_)
+- New option to initialize 3D networks (DRUNet, DnCNN, DScCP) from pretrained 2D weights (:gh:`958` by `Romain Vo`_)
 
 Changed
 ^^^^^^^
@@ -24,6 +26,7 @@ Fixed
 - Implement/extend functional for 2D/3D convolution with spatial and FFT (:func:`deepinv.physics.functional.conv3d` and  :func:`deepinv.physics.functional.conv_transpose3d`), support all padding modes with equivalent outputs (:gh:`825` by `Minh Hai Nguyen`_)
 - Fix ZeroPrior :class:`deepinv.optim.ZeroPrior` (:gh:`1001` by `Victor Sechaud`_)
 - Fix single-disperser CASSI adjointness (:gh:`1029` by `Andrew Wang`_)
+- Add :class:`deepinv.physics.ComposedPhysics`, :class:`deepinv.physics.ComposedLinearPhysics` to online documentation (:gh:`1000` by `Romain Vo`_)
 
 v0.3.7
 ------
@@ -564,3 +567,4 @@ Changed
 .. _Avithal Lautman: https://github.com/avithal
 .. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
 .. _Tiberiu Sabau: https://github.com/tibisabau
+.. _Benoît Malézieux: https://github.com/bmalezieux
