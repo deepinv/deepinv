@@ -279,6 +279,7 @@ def plot(
     vmax: float | None = None,
     labels: list[str] | None = None,
     label_loc: tuple | list = (0.03, 0.03),
+    plot_inset: bool = False,
     extract_loc: tuple | list = (0.0, 0.0),
     extract_size: float = 0.2,
     inset_loc: tuple | list = (0.0, 0.5),
@@ -299,6 +300,10 @@ def plot(
         If the number of channels is bigger than 3, only the first 3 channels are plotted.
 
     We provide flexibility to save plots either side-by-side using ``save_fn`` or as individual images using ``save_dir``.
+
+    .. note::
+
+        Zoomed-in insets can be plotted by setting ``plot_inset=True``. See :func:`plot_inset` for the original implementation.
 
     Example usage:
 
@@ -341,15 +346,15 @@ def plot(
     :param float, None vmin: minimum value for clipping when using 'clip' rescaling.
     :param float, None vmax: maximum value for clipping when using 'clip' rescaling.
     :param list[str], None labels: list of overlaid labels for each image, has to be same length as img_list.
-        If provided, zoomed-in insets will be created showing a patch of the image.
-    :param list, tuple label_loc: location or locations for label to be plotted on image, defaults to (.03, .03).
-        Coordinates are fractions from 0-1, (0, 0) is the top left corner and (1, 1) is the bottom right corner.
-    :param list, tuple extract_loc: image location or locations for extract to be taken from, defaults to (0., 0.).
-        Coordinates are fractions from 0-1, (0, 0) is the top left corner and (1, 1) is the bottom right corner.
-    :param float extract_size: size of extract to be taken from image, defaults to 0.2
-    :param list, tuple inset_loc: location or locations for inset to be plotted on image, defaults to (0., 0.5).
-        Coordinates are fractions from 0-1, (0, 0) is the top left corner and (1, 1) is the bottom right corner.
-    :param float inset_size: size of inset to be plotted on image, defaults to 0.4
+    :param tuple, list label_loc: location or locations for label to be plotted on image. Defaults to (.03, .03).
+        Coordinates are fractions from 0-1, where (0, 0) is the top left corner and (1, 1) is the bottom right corner.
+    :param bool plot_inset: whether to plot zoomed-in insets. Defaults to False.
+    :param tuple, list extract_loc: image location or locations for extract to be taken from. Defaults to (0., 0.).
+        Coordinates are fractions from 0-1, where (0, 0) is the top left corner and (1, 1) is the bottom right corner.
+    :param float extract_size: size of extract to be taken from image. Defaults to 0.2.
+    :param tuple, list inset_loc: location or locations for inset to be plotted on image. Defaults to (0., 0.5).
+        Coordinates are fractions from 0-1, where (0, 0) is the top left corner and (1, 1) is the bottom right corner.
+    :param float inset_size: size of inset to be plotted on image. Defaults to 0.4.
     :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` calls. See
         `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
     """
@@ -434,21 +439,20 @@ def plot(
         plt.subplots_adjust(hspace=0.2, wspace=0.2)
         fig.get_layout_engine().set(w_pad=0.2, h_pad=0.2)
 
-    # Add insets if labels are provided
-    if labels is not None:
-        batch_size = img_list[0].shape[0]
+    batch_size = img_list[0].shape[0]
 
-        # Expand the locs over img_list and batch dimensions
-        def expand_locs(locs, n):
-            if not isinstance(locs[0], (tuple, list)):
-                locs = (locs,)
-            n //= len(locs)
-            temp = [(loc,) * n for loc in locs]
-            return [a for b in temp for a in b]
+    # Expand the locs over img_list and batch dimensions
+    def expand_locs(locs, n):
+        if not isinstance(locs[0], (tuple, list)):
+            locs = (locs,)
+        n //= len(locs)
+        temp = [(loc,) * n for loc in locs]
+        return [a for b in temp for a in b]
 
+    # Add insets if requested
+    if plot_inset:
         extract_locs = expand_locs(extract_loc, len(img_list) * batch_size)
         inset_locs = expand_locs(inset_loc, len(img_list) * batch_size)
-        label_locs = expand_locs(label_loc, len(img_list) * batch_size)
 
         # Loop through all axes and apply the inset to each image
         for r, row_axs in enumerate(axs):
@@ -497,6 +501,14 @@ def plot(
                     edgecolor="red",
                 )
 
+    # Add labels if provided
+    if labels is not None:
+        label_locs = expand_locs(label_loc, len(img_list) * batch_size)
+
+        for r, row_axs in enumerate(axs):
+            for i, ax in enumerate(row_axs):
+                idx = i * batch_size + r
+
                 if i < len(labels):
                     lab = labels[i]
                     loc_lab = label_locs[idx]
@@ -517,7 +529,7 @@ def plot(
 
     if save_dir:
         # Save the combined figure
-        if labels is not None:
+        if plot_inset:
             plt.savefig(save_dir / "inset_images.svg", dpi=dpi)
         else:
             plt.savefig(save_dir / "images.svg", dpi=dpi)
@@ -816,7 +828,7 @@ def plot_inset(
 
     .. deprecated::
         This function is deprecated and will be removed in a future version.
-        Use :func:`plot` with ``labels`` parameter instead, which has the same functionality.
+        Use :func:`plot` with ``plot_inset=True`` instead, which has the same functionality.
 
     The inset taken from extract_loc and shown at inset_loc. The coordinates extract_loc, inset_loc, and label_loc correspond to their top left corners taken at (horizontal, vertical) from the image's top left.
 
@@ -855,10 +867,6 @@ def plot_inset(
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
     """
-    # Convert empty tuple to None for labels
-    if labels == ():
-        labels = None
-
     # Call plot with all parameters including inset-specific ones
     return plot(
         img_list=img_list,
@@ -882,8 +890,9 @@ def plot_inset(
         axs=axs,
         return_fig=return_fig,
         return_axs=return_axs,
-        labels=labels,
+        labels=labels if labels != () else None,
         label_loc=label_loc,
+        plot_inset=True,
         extract_loc=extract_loc,
         extract_size=extract_size,
         inset_loc=inset_loc,
