@@ -16,11 +16,14 @@ from .forward import (
     Denoising,
     Physics,
     StackedPhysics,
+    ComposedPhysics,
     LinearPhysics,
     StackedLinearPhysics,
+    ComposedLinearPhysics,
     DecomposablePhysics,
     adjoint_function,
     stack,
+    compose,
 )
 from .noise import (
     NoiseModel,

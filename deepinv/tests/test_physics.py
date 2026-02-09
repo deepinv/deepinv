@@ -76,7 +76,8 @@ OPERATORS = [
     "radio",
     "radio_weighted",
     "structured_random",
-    "cassi",
+    "cassi-ss",
+    "cassi-sd",
     "ptychography_linear",
     "2DParallelBeamCT",
     "2DFanBeamCT",
@@ -161,9 +162,18 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         p = dinv.physics.Decolorize(device=device)
         norm = 0.4468
         params = ["srf"]
-    elif name == "cassi":
+    elif name == "cassi-ss":
         img_size = (7, 37, 31) if imsize is None else imsize
-        p = dinv.physics.CompressiveSpectralImaging(img_size, device=device, rng=rng)
+        p = dinv.physics.CompressiveSpectralImaging(
+            img_size, device=device, rng=rng, mode="ss"
+        )
+        norm = 1 / img_size[0]
+        params = ["mask"]
+    elif name == "cassi-sd":
+        img_size = (7, 37, 31) if imsize is None else imsize
+        p = dinv.physics.CompressiveSpectralImaging(
+            img_size, device=device, rng=rng, mode="sd"
+        )
         norm = 1 / img_size[0]
         params = ["mask"]
     elif name == "inpainting":
@@ -1914,15 +1924,21 @@ def test_composed_physics(device):
     )
 
     # Compose with Transform:
-    physics = dinv.physics.Blur(filter=dinv.physics.blur.bicubic_filter(3.0))
+    physics = dinv.physics.Blur(
+        filter=dinv.physics.blur.bicubic_filter(3.0, device=device), device=device
+    )
     T = dinv.transform.Shift()
-    T_kwargs = {"x_shift": torch.tensor([1]), "y_shift": torch.tensor([1])}
+    T_kwargs = {
+        "x_shift": torch.tensor([1], device=device),
+        "y_shift": torch.tensor([1], device=device),
+    }
 
     physics_mul = physics * dinv.physics.LinearPhysics(
         A=lambda x: T.inverse(x, **T_kwargs),
         A_adjoint=lambda y: T(y, **T_kwargs),
     )
-    x = torch.randn(1, 3, 64, 64)
+    rng = torch.Generator(device=device).manual_seed(0)
+    x = torch.randn(1, 3, 64, 64, device=device, generator=rng)
     assert torch.allclose(physics_mul.A(x), physics.A(T.inverse(x, **T_kwargs)))
     y = physics_mul.A(x)
     assert torch.allclose(physics_mul.A_adjoint(y), T(physics.A_adjoint(y), **T_kwargs))
