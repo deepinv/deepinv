@@ -360,7 +360,7 @@ class Blur(LinearPhysics):
 
     .. note::
 
-        This class performs a true convolution, not a cross-correlation as the standard convolution functions in ``torch.nn.functional``. 
+        This class performs a true convolution, not a cross-correlation as the standard convolution functions in ``torch.nn.functional``.
         It is recommended to use ``use_fft=True`` for large filters, and ``use_fft=False`` for small filters, since FFT-based convolutions can be faster for large kernels but slower for small kernels.
 
     |sep|
