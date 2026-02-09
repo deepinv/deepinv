@@ -2,6 +2,7 @@ from deepinv.loss.metric.metric import import_pyiqa, Metric
 import torch
 import torch.nn.functional as F
 import math
+import warnings
 
 
 class LPIPS(Metric):
@@ -41,8 +42,12 @@ class LPIPS(Metric):
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def __init__(self, net_type="alex", **kwargs):
+    def __init__(self, net_type="alex", device=None, **kwargs):
         super().__init__(**kwargs)
+        if device is not None:
+            warnings.warn(
+                "LPIPS argument device is deprecated and unused, and will be removed in a future version."
+            )
         from torchmetrics.functional.image import (
             learned_perceptual_image_patch_similarity,
         )

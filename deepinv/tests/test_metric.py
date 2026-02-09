@@ -63,7 +63,7 @@ def choose_full_reference_metric(metric_name, device, **kwargs) -> metric.Metric
     elif metric_name == "L1L2":
         return metric.L1L2(**kwargs)
     elif metric_name == "LPIPS":
-        return metric.LPIPS(**kwargs, device=device)
+        return metric.LPIPS(**kwargs)
     elif metric_name == "ERGAS":
         return metric.ERGAS(factor=4, **kwargs)
     elif metric_name == "SAM":
