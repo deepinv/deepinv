@@ -15,8 +15,6 @@ from deepinv.utils.tensorlist import TensorList
 from deepinv.distributed.strategies import DistributedSignalStrategy, create_strategy
 from deepinv.distributed.distributed_utils import map_reduce_gather
 
-Index = tuple[slice | int, ...]
-
 
 # =========================
 # Distributed Context

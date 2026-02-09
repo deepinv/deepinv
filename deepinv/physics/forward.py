@@ -506,7 +506,7 @@ class LinearPhysics(Physics):
         """
         return self.A_adjoint(self.A(x, **kwargs), **kwargs)
 
-    def __mul__(self, other):
+    def __mul__(self, other, **kwargs):
         r"""
         Concatenates two linear forward operators :math:`A = A_1 \circ A_2` via the * operation
 
@@ -516,7 +516,7 @@ class LinearPhysics(Physics):
         :return: (:class:`deepinv.physics.LinearPhysics`) concatenated operator
 
         """
-        return compose(other, self, max_iter=self.max_iter, tol=self.tol)
+        return compose(other, self, max_iter=self.max_iter, tol=self.tol, **kwargs)
 
     def stack(self, other):
         r"""
