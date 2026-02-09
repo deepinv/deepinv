@@ -149,7 +149,7 @@ test(
     model=model,
     test_dataloader=dataloader,
     physics=p,
-    metrics=[dinv.metric.PSNR(), dinv.metric.LPIPS(device=device)],
+    metrics=[dinv.metric.PSNR(), dinv.metric.LPIPS(norm_inputs="clip")],
     device=device,
     plot_images=plot_images,
     save_folder=save_folder,
