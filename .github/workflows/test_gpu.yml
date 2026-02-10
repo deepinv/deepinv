@@ -21,6 +21,8 @@ jobs:
       DEEPINV_MOCK_TESTS: "True"
       UV_CACHE_DIR: "/local/jtachell/.cache/uv"
       WORKING_DIR: "/local/jtachell"
+      CUDA_LAUNCH_BLOCKING: "1" # Enable CUDA launch blocking for better error reporting
+      TORCH_USE_CUDA_DSA: "1"
 
     steps:
       - uses: actions/checkout@v5
