@@ -7,7 +7,7 @@ from types import MappingProxyType
 import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.optim_iterators.MLEM import MLEMIteration
+from deepinv.optim.optim_iterators.mlem import MLEMIteration
 from deepinv.optim.prior import Zero, Prior
 from deepinv.optim.data_fidelity import DataFidelity, ZeroFidelity
 from deepinv.optim.bregman import Bregman
