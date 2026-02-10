@@ -84,19 +84,16 @@ def least_squares(
 
     if gamma is None:
         gamma = torch.tensor(0.0, device=y.device)
-        gamma_provided = False
-    else:
-        gamma_provided = True
+    elif not isinstance(gamma, Tensor):
+        gamma = torch.tensor(gamma, device=y.device)
 
-        if not isinstance(gamma, Tensor):
-            gamma = torch.tensor(gamma, device=y.device)
-
-        if torch.any(gamma <= 0):
-            warnings.warn(
-                "Regularization parameter of least squares problem (gamma) should be positive."
-                "Otherwise, the problem can become non-convex and the solvers are not designed for that."
-                "Continuing anyway..."
-            )
+    if torch.any(gamma < 0):
+        warnings.warn(
+            "Regularization parameter of least squares problem (gamma) should be positive."
+            "Otherwise, the problem can become non-convex and the solvers are not designed for that."
+            "Continuing anyway..."
+        )
+    gamma_provided = torch.all(gamma != 0)
 
     Aty = AT(y)
 
