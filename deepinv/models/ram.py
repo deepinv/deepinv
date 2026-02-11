@@ -1,4 +1,6 @@
+from __future__ import annotations
 from collections import OrderedDict
+from typing import Sequence, TYPE_CHECKING
 from pathlib import Path
 from warnings import warn
 import torch
@@ -8,6 +10,9 @@ import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Reconstructor, Denoiser
+
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
 
 
 class RAM(Reconstructor, Denoiser):
@@ -33,27 +38,25 @@ class RAM(Reconstructor, Denoiser):
     :param Sequence in_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
     :param str device: Device to which the model should be moved. If None, the model will be created on the default device.
     :param bool, str pretrained: If `True`, the model will be initialized with pretrained weights. If `str`, load from file.
-    :param float sigma_threshold: Threshold (minimum value) for the noise level. Default is 1e-3.
 
     |sep|
 
       >>> import deepinv as dinv
       >>> x = dinv.utils.load_example("butterfly.png")
-      >>> physics = dinv.physics.Downsampling(filter="bicubic")
+      >>> physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
       >>> y = physics(x)
-      >>> model = dinv.models.RAM() # doctest: +ELLIPSIS
-      ...
+      >>> model = dinv.models.RAM() # doctest: +IGNORE_OUTPUT
       >>> x_hat = model(y, physics) # run model
-      >>> dinv.metric.PSNR()(x_hat, x) > 31.98
+      >>> dinv.metric.PSNR()(x_hat, x) > 29.75
       tensor([True])
 
     """
 
     def __init__(
         self,
-        in_channels=(1, 2, 3),
-        device=None,
-        pretrained=True,
+        in_channels: Sequence[int] = (1, 2, 3),
+        device: str | torch.device = None,
+        pretrained: bool | str = True,
     ):
         super(RAM, self).__init__()
 
@@ -68,8 +71,8 @@ class RAM(Reconstructor, Denoiser):
 
         if isinstance(in_channels, list):
             in_channels_first = []
-            for i in range(len(in_channels)):
-                in_channels_first.append(in_channels[i] + 2)
+            for ch in in_channels:
+                in_channels_first.append(ch + 2)
 
         # check if in_channels is a list
         self.m_head = InHead(in_channels_first, nc[0])
@@ -125,7 +128,7 @@ class RAM(Reconstructor, Denoiser):
         if device is not None:
             self.to(device)
 
-    def constant2map(self, value, x):
+    def constant2map(self, value: float, x: torch.Tensor) -> torch.Tensor:
         r"""
         Converts a constant value to a map of the same size as the input tensor x.
 
@@ -150,7 +153,9 @@ class RAM(Reconstructor, Denoiser):
             )
         return value_map
 
-    def base_conditioning(self, x, sigma, gain):
+    def base_conditioning(
+        self, x: torch.Tensor, sigma: float, gain: float
+    ) -> torch.Tensor:
         r"""
         Stacks the sigma and gain value as additional channel dimensions to the input tensor.
 
@@ -163,7 +168,9 @@ class RAM(Reconstructor, Denoiser):
         gain_map = self.constant2map(gain, x)
         return torch.cat((x, noise_level_map, gain_map), 1)
 
-    def realign_input(self, x, physics, y, sigma):
+    def realign_input(
+        self, x: torch.Tensor, physics: Physics, y: torch.Tensor, sigma: float
+    ) -> torch.Tensor:
         r"""
         Realign the input x based on the measurements y and the physics model.
         Applies the proximity operator of the L2 norm with respect to the physics model.
@@ -192,7 +199,14 @@ class RAM(Reconstructor, Denoiser):
 
         return model_input
 
-    def forward_unet(self, x0, sigma=None, gain=None, physics=None, y=None):
+    def forward_unet(
+        self,
+        x0: torch.Tensor,
+        sigma: float | Tensor = None,
+        gain: float | Tensor = None,
+        physics: Physics = None,
+        y: torch.Tensor = None,
+    ):
         r"""
         Forward pass of the UNet model.
 
@@ -267,7 +281,14 @@ class RAM(Reconstructor, Denoiser):
 
         return x
 
-    def forward(self, y, physics=None, sigma=None, gain=None, img_size=None):
+    def forward(
+        self,
+        y: torch.Tensor,
+        physics: Physics = None,
+        sigma: float | Tensor = None,
+        gain: float | Tensor = None,
+        img_size: Sequence[int] = None,
+    ) -> torch.Tensor:
         r"""
         Reconstructs a signal estimate from measurements y
 
@@ -354,7 +375,14 @@ class RAM(Reconstructor, Denoiser):
 
         return out
 
-    def obtain_sigma_gain(self, physics, sigma, gain, rescale_val, device="cpu"):
+    def obtain_sigma_gain(
+        self,
+        physics: Physics,
+        sigma: float | Tensor,
+        gain: float | Tensor,
+        rescale_val: torch.Tensor,
+        device: str | torch.device = "cpu",
+    ) -> tuple[Tensor, Tensor]:
         r"""
         Defines the sigma and gain values to be used in the model.
 
@@ -423,12 +451,12 @@ class BaseEncBlock(nn.Module):
 
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        bias=False,
-        nb=4,
-        img_channels=None,
-        decode_upscale=None,
+        in_channels: int,
+        out_channels: int,
+        bias: bool = False,
+        nb: int = 4,
+        img_channels: int | Sequence[int] = None,
+        decode_upscale: int = None,
     ):
         super(BaseEncBlock, self).__init__()
         self.enc = nn.ModuleList(
@@ -444,7 +472,14 @@ class BaseEncBlock(nn.Module):
             ]
         )
 
-    def forward(self, x, physics=None, y=None, img_channels=None, scale=0):
+    def forward(
+        self,
+        x: torch.Tensor,
+        physics: Physics = None,
+        y: torch.Tensor = None,
+        img_channels: int = None,
+        scale: int = 0,
+    ) -> torch.Tensor:
         r"""
         Forward pass of the encoding block.
 
@@ -461,13 +496,20 @@ class BaseEncBlock(nn.Module):
         return x
 
 
-def krylov_embeddings(y, p, factor, v=None, N=4, x_init=None):
+def krylov_embeddings(
+    y: torch.Tensor,
+    p: Physics,
+    factor: int,
+    v: torch.Tensor = None,
+    N: int = 4,
+    x_init: torch.Tensor = None,
+) -> torch.Tensor:
     r"""
     Efficient Krylov subspace embedding computation with parallel processing.
 
     :param torch.Tensor y: Input tensor.
     :param deepinv.physics.Physics p: A deepinv physics.
-    :param float factor: Scaling factor.
+    :param int factor: Scaling factor.
     :param torch.Tensor v: Precomputed values to subtract from Krylov sequence. Defaults to None.
     :param int N: Number of Krylov iterations. Defaults to 4.
     :param torch.Tensor x_init: Initial guess. Defaults to None.
@@ -508,12 +550,12 @@ class MeasCondBlock(nn.Module):
 
     def __init__(
         self,
-        out_channels=64,
-        img_channels=None,
-        decode_upscale=None,
-        N=4,
-        depth_encoding=1,
-        c_mult=1,
+        out_channels: int = 64,
+        img_channels: int = None,
+        decode_upscale: int = None,
+        N: int = 4,
+        depth_encoding: int = 1,
+        c_mult: int = 1,
     ):
         super(MeasCondBlock, self).__init__()
 
@@ -540,7 +582,14 @@ class MeasCondBlock(nn.Module):
             skip_in=True,
         )
 
-    def forward(self, x, y, physics, img_channels=None, scale=1):
+    def forward(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        img_channels: int = None,
+        scale: int = 1,
+    ) -> torch.Tensor:
         physics.set_scale(scale)
         dec = self.decoding_conv(x, img_channels)
         factor = 2 ** (scale)
@@ -584,19 +633,19 @@ class ResBlock(nn.Module):
 
     def __init__(
         self,
-        in_channels=64,
-        out_channels=64,
-        kernel_size=3,
-        stride=1,
-        padding=1,
-        bias=True,
-        img_channels=None,
-        decode_upscale=None,
-        head=False,
-        tail=False,
-        N=2,
-        c_mult=2,
-        depth_encoding=2,
+        in_channels: int = 64,
+        out_channels: int = 64,
+        kernel_size: int = 3,
+        stride: int = 1,
+        padding: int = 1,
+        bias: bool = True,
+        img_channels: int | Sequence[int] = None,
+        decode_upscale: int = None,
+        head: bool = False,
+        tail: bool = False,
+        N: int = 2,
+        c_mult: int = 2,
+        depth_encoding: int = 2,
     ):
         super(ResBlock, self).__init__()
 
@@ -642,7 +691,14 @@ class ResBlock(nn.Module):
             depth_encoding=depth_encoding,
         )
 
-    def forward(self, x, physics=None, y=None, img_channels=None, scale=0):
+    def forward(
+        self,
+        x: torch.Tensor,
+        physics: Physics = None,
+        y: torch.Tensor = None,
+        img_channels: int = None,
+        scale: int = 0,
+    ):
         r"""
         Forward pass of the residual block.
 
@@ -674,7 +730,13 @@ class InHead(torch.nn.Module):
     :param bool input_layer: If True, this will be considered as an input layer (necessitating a channel number adjustment), otherwise it will not.
     """
 
-    def __init__(self, in_channels_list, out_channels, bias=False, input_layer=False):
+    def __init__(
+        self,
+        in_channels_list: Sequence[int],
+        out_channels: int,
+        bias: bool = False,
+        input_layer: bool = False,
+    ):
         super(InHead, self).__init__()
         self.in_channels_list = in_channels_list
         self.input_layer = input_layer
@@ -690,7 +752,7 @@ class InHead(torch.nn.Module):
             )
             setattr(self, f"conv{i}", conv)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         in_channels = x.size(1) - 1 if self.input_layer else x.size(1)
 
         # find index
@@ -711,7 +773,9 @@ class OutTail(torch.nn.Module):
     :param bool bias: Whether to use bias in the convolution.
     """
 
-    def __init__(self, in_channels, out_channels_list, bias=False):
+    def __init__(
+        self, in_channels: int, out_channels_list: Sequence[int], bias: bool = False
+    ):
         super(OutTail, self).__init__()
         self.in_channels = in_channels
         self.out_channels_list = out_channels_list
@@ -727,7 +791,7 @@ class OutTail(torch.nn.Module):
             )
             setattr(self, f"conv{i}", conv)
 
-    def forward(self, x, out_channels):
+    def forward(self, x: torch.Tensor, out_channels: int) -> torch.Tensor:
         i = self.out_channels_list.index(out_channels)
         x = getattr(self, f"conv{i}")(x)
 
@@ -752,16 +816,16 @@ class Heads(torch.nn.Module):
 
     def __init__(
         self,
-        in_channels_list,
-        out_channels,
-        depth=2,
-        scale=1,
-        bias=True,
-        mode="bilinear",
-        c_mult=1,
-        c_add=0,
-        relu_in=False,
-        skip_in=False,
+        in_channels_list: Sequence[int],
+        out_channels: int,
+        depth: int = 2,
+        scale: int = 1,
+        bias: bool = True,
+        mode: str = "bilinear",
+        c_mult: int = 1,
+        c_add: int = 0,
+        relu_in: bool = False,
+        skip_in: bool = False,
     ):
         super(Heads, self).__init__()
         self.in_channels_list = [c * (c_mult + c_add) for c in in_channels_list]
@@ -793,7 +857,7 @@ class Heads(torch.nn.Module):
                         ),
                     )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         in_channels = x.size(1)
         i = self.in_channels_list.index(in_channels)
 
@@ -829,15 +893,15 @@ class Tails(torch.nn.Module):
 
     def __init__(
         self,
-        in_channels,
-        out_channels_list,
-        depth=2,
-        scale=1,
-        bias=True,
-        mode="bilinear",
-        c_mult=1,
-        relu_in=False,
-        skip_in=False,
+        in_channels: int,
+        out_channels_list: Sequence[int],
+        depth: int = 2,
+        scale: int = 1,
+        bias: bool = True,
+        mode: str = "bilinear",
+        c_mult: int = 1,
+        relu_in: bool = False,
+        skip_in: bool = False,
     ):
         super(Tails, self).__init__()
         self.out_channels_list = out_channels_list
@@ -872,7 +936,7 @@ class Tails(torch.nn.Module):
                         ),
                     )
 
-    def forward(self, x, out_channels):
+    def forward(self, x: torch.Tensor, out_channels: int):
         i = self.out_channels_list.index(out_channels)
         x = getattr(self, f"tail{i}")(x)
         # find index
@@ -904,13 +968,13 @@ class HeadBlock(torch.nn.Module):
 
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        kernel_size=3,
-        bias=True,
-        depth=2,
-        relu_in=False,
-        skip_in=False,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 3,
+        bias: bool = True,
+        depth: int = 2,
+        relu_in: bool = False,
+        skip_in: bool = False,
     ):
         super(HeadBlock, self).__init__()
 
@@ -946,7 +1010,7 @@ class HeadBlock(torch.nn.Module):
             )
             setattr(self, f"skipconv{i}", torch.nn.Conv2d(c_in, c, 1, bias=False))
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         if self.skip_in and self.relu_in:
             x = self.nl_1(self.convin(x)) + self.zero_conv_skip(x)
@@ -991,13 +1055,13 @@ def sequential(*args):
 
 
 def conv(
-    in_channels=64,
-    out_channels=64,
-    kernel_size=3,
-    stride=1,
-    padding=1,
-    bias=True,
-    mode="CR",
+    in_channels: int = 64,
+    out_channels: int = 64,
+    kernel_size: int = 3,
+    stride: int = 1,
+    padding: int = 1,
+    bias: bool = True,
+    mode: str = "CR",
 ):
     r"""
     Conv + ReLU layer with optional transposed convolution.
@@ -1046,11 +1110,11 @@ def conv(
 
 
 def upsample_convtranspose(
-    in_channels=64,
-    out_channels=3,
-    padding=0,
-    bias=True,
-    mode="2R",
+    in_channels: int = 64,
+    out_channels: int = 3,
+    padding: int = 0,
+    bias: bool = True,
+    mode: str = "2R",
 ):
     r"""
     Upsample using ConvTranspose2d + ReLU layer.
@@ -1087,11 +1151,11 @@ def upsample_convtranspose(
 
 
 def downsample_strideconv(
-    in_channels=64,
-    out_channels=64,
-    padding=0,
-    bias=True,
-    mode="2R",
+    in_channels: int = 64,
+    out_channels: int = 64,
+    padding: int = 0,
+    bias: bool = True,
+    mode: str = "2R",
 ):
     r"""
     Downsample using Conv2d with stride + ReLU layer.

@@ -37,6 +37,7 @@ Full Reference Metrics
     deepinv.loss.metric.SpectralAngleMapper
     deepinv.loss.metric.ERGAS
     deepinv.loss.metric.HaarPSI
+    deepinv.loss.metric.CosineSimilarity
 
 
 No Reference Metrics
@@ -50,3 +51,5 @@ No Reference Metrics
 
     deepinv.loss.metric.NIQE
     deepinv.loss.metric.QNR
+    deepinv.loss.metric.BlurStrength
+    deepinv.loss.metric.SharpnessIndex

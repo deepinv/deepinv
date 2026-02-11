@@ -7,8 +7,7 @@ from types import MappingProxyType
 import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.optim_iterators.mlem import MLEMIteration
-from deepinv.optim.prior import Zero, Prior
+from deepinv.optim.prior import ZeroPrior, Prior
 from deepinv.optim.data_fidelity import DataFidelity, ZeroFidelity
 from deepinv.optim.bregman import Bregman
 from deepinv.models import Reconstructor
@@ -314,7 +313,7 @@ class BaseOptim(Reconstructor):
 
         # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
         if prior is None:
-            self.prior = [Zero()]
+            self.prior = [ZeroPrior()]
         elif not isinstance(prior, Iterable):
             self.prior = [prior]
         else:
@@ -892,7 +891,7 @@ def create_iterator(
         cost_fn = F_fn
     # If no prior is given, we set it to a zero prior.
     if prior is None:
-        prior = Zero()
+        prior = ZeroPrior()
     # If no custom objective function cost_fn is given but g is explicitly given, we have an explicit objective function.
     explicit_prior = (
         prior[0].explicit_prior if isinstance(prior, list) else prior.explicit_prior

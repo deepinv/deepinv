@@ -20,7 +20,7 @@ import torch
 import matplotlib.pyplot as plt
 from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import PnP, Zero
+from deepinv.optim.prior import PnP, ZeroPrior
 from deepinv.optim import PGD
 from deepinv.utils import load_example
 from deepinv.utils.plotting import plot
@@ -99,7 +99,7 @@ y = physics(x_phase)
 # First, we use the function :class:`deepinv.optim.L2` as the data fidelity function, and the class :class:`deepinv.optim.optim_iterators.GDIteration` as the optimizer to run a gradient descent algorithm. The initial guess is a random complex signal.
 
 data_fidelity = L2()
-prior = Zero()
+prior = ZeroPrior()
 iterator = dinv.optim.optim_iterators.GDIteration()
 # Parameters for the optimizer, including stepsize and regularization coefficient.
 optim_params = {"stepsize": 0.06, "lambda": 1.0, "g_param": None}

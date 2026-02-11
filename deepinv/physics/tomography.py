@@ -147,7 +147,6 @@ class Tomography(LinearPhysics):
             )
 
         self.register_buffer("theta", theta)
-
         self.fan_beam = fan_beam
         self.adjoint_via_backprop = adjoint_via_backprop
         if fan_beam or adjoint_via_backprop:
@@ -195,12 +194,15 @@ class Tomography(LinearPhysics):
         if normalize:
             operator_norm = self.compute_norm(
                 torch.randn(
-                    (img_width, img_width),
+                    (1, img_width, img_width),
                     generator=torch.Generator(self.device).manual_seed(0),
                     device=self.device,
-                )[None, None],
+                )[None],
                 squared=False,
+                verbose=False,
             )
+            # NOTE: we need to reset the A_adjoint via backprop to account for the added normalization in A
+            self._auto_grad_adjoint_fn = None
             self.register_buffer("operator_norm", operator_norm)
             self.normalize = True
 
@@ -210,6 +212,11 @@ class Tomography(LinearPhysics):
         :param torch.Tensor x: input of shape [B,C,H,W]
         :return: measurement of shape [B,C,A,N], with A the number of angular positions, and N the number of detector cells.
         """
+        if not x.shape[-2:] == (self.img_width, self.img_width):
+            raise ValueError(
+                f"Input image size {x.shape[-2:]} does not match the operator image size {(self.img_width, self.img_width)}."
+            )
+
         if self.fan_beam or self.adjoint_via_backprop:
             output = self.radon(x)
         else:
@@ -284,7 +291,7 @@ class Tomography(LinearPhysics):
         :return: scaled back-projection of shape [B,C,H,W]
         """
         if self.fan_beam or self.adjoint_via_backprop:
-            # lazy implementation for the adjoint...
+            # lazy implementation for the adjoint
             if (
                 self._auto_grad_adjoint_fn is None
                 or self._auto_grad_adjoint_input_shape
@@ -292,7 +299,7 @@ class Tomography(LinearPhysics):
             ):
                 self._auto_grad_adjoint_fn = adjoint_function(
                     self.A,
-                    (y.shape[0], y.shape[1], self.img_width, self.img_width),
+                    (y.shape[0], y.size(1), self.img_width, self.img_width),
                     device=self.device,
                     dtype=self.dtype,
                 )
@@ -307,8 +314,9 @@ class Tomography(LinearPhysics):
         else:
             output = ApplyRadon.apply(y, self.radon, self.iradon, True)
 
-        if self.normalize:
-            output = output / self.operator_norm
+            if self.normalize:
+                # NOTE: if adjoint_via_backprop = True, the normalization is already done in A.
+                output = output / self.operator_norm
 
         return output
 
