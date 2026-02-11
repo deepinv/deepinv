@@ -2232,3 +2232,55 @@ class PDCP(BaseOptim):
             trainable_params=trainable_params,
             **kwargs,
         )
+
+
+class MLEM(BaseOptim):
+    r"""Richardson-Lucy (RL) optimization module."""
+
+    def __init__(
+        self,
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        stepsize: float = 1.0,
+        g_param: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        g_first: bool = False,
+        params_algo: dict[str, float] = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        **kwargs,
+    ):
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
+        super(MLEM, self).__init__(
+            MLEMIteration(g_first=g_first, cost_fn=cost_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
+            **kwargs,
+        )
