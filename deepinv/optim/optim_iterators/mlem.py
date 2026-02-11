@@ -61,6 +61,9 @@ class gStepMLEM(gStep):
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         """
+        if hasattr(cur_prior, "grad") and cur_prior.grad is not None:
+            grad = cur_params["lambda"] * cur_prior.grad(x, cur_params["g_param"])
+            return grad
         prox_g = cur_prior.prox(
             x,
             cur_params["g_param"],
