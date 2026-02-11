@@ -376,24 +376,45 @@ class ImageFolder(ImageDataset):
     def __len__(self):
         return len(self.x_paths) if self.x_paths is not None else len(self.y_paths)
 
-    def __getitem__(self, idx):
-        if self.x_paths is None:
-            x = torch.nan
-        else:
-            x = self.transform_x(self.loader(self.x_paths[idx]))
+    def __getitem__(
+        self, idx: int
+    ) -> (
+        tuple[torch.Tensor, torch.Tensor]
+        | tuple[torch.Tensor, torch.Tensor, dict]
+        | torch.Tensor
+    ):
+        """
+        Returns the sample at the given index.
 
-        if self.y_paths is None:
-            y = None
-        else:
-            y = self.transform_y(self.loader(self.y_paths[idx]))
+        :param int idx: index of the sample to load.
+        :return: transformed x, y, and optionally params.
+        """
+
+        x = (
+            torch.tensor(float("nan"))
+            if self.x_paths is None
+            else self.loader(self.x_paths[idx])
+        )
+        y = None if self.y_paths is None else self.loader(self.y_paths[idx])
+
+        # Synchronize RNG state for paired transforms
+        state = torch.get_rng_state()
+
+        # Check if x is a valid tensor
+        x_is_valid = isinstance(x, torch.Tensor) and not torch.isnan(x).all()
+
+        if x_is_valid and self.transform_x is not None:
+            x = self.transform_x(x)
+
+        if y is not None and self.transform_y is not None:
+            torch.set_rng_state(state)
+            y = self.transform_y(y)
 
         params = self.estimate_params(x, y) if self.estimate_params is not None else {}
 
         out = (x,)
-
         if y is not None:
             out += (y,)
-
         if params:
             out += (params,)
 
