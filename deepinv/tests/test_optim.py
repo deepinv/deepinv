@@ -337,6 +337,7 @@ def test_itoh_fidelity(device, mode):
         "FISTA",
         "MD",
         "PMD",
+        "MLEM",
     ],
 )
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
