@@ -5,6 +5,7 @@ from pathlib import Path
 from warnings import warn
 import torch
 import torch.nn as nn
+from torch import Tensor
 
 import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
@@ -45,7 +46,7 @@ class RAM(Reconstructor, Denoiser):
       >>> x = dinv.utils.load_example("butterfly.png")
       >>> physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
       >>> y = physics(x)
-      >>> model = dinv.models.RAM() # doctest: +IGNORE_OUTPUT
+      >>> model = dinv.models.RAM()
       >>> x_hat = model(y, physics) # run model
       >>> dinv.metric.PSNR()(x_hat, x) > 29.75
       tensor([True])

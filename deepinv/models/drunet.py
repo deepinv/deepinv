@@ -13,6 +13,7 @@ from .utils import (
     instancenorm_nd,
     maxpool_nd,
     avgpool_nd,
+    initialize_3d_from_2d,
 )
 from .base import Denoiser
 from collections import OrderedDict
@@ -41,9 +42,10 @@ class DRUNet(Denoiser):
         shuffling, and "upconv" for nearest neighbour upsampling with additional convolution. "pixelshuffle" is not implemented for 3D.
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
-        online repository (only available for the default architecture with 3 or 1 input/output channels).
+        online repository (only available for the default architecture with 3 or 1 input/output channels). When building a 3D network, it is possible to initialize with 2D pretrained weights by using ``pretrained='download_2d'``, which provides a good starting point for fine-tuning.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
+    :param bool pretrained_2d_isotropic: when loading 2D pretrained weights into a 3D network, whether to initialize the 3D kernels isotropically. By default the weights are loaded axially, i.e., by initializing the central slice of the 3D kernels with the 2D weights.
     :param torch.device, str device: Device to put the model on.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
@@ -59,6 +61,7 @@ class DRUNet(Denoiser):
         downsample_mode: str = "strideconv",
         upsample_mode: str = "convtranspose",
         pretrained: str | None = "download",
+        pretrained_2d_isotropic: bool = False,
         device: torch.device | str = None,
         dim: str | int = 2,
     ):
@@ -146,10 +149,10 @@ class DRUNet(Denoiser):
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode="C", dim=dim)
         if pretrained is not None:
-            if pretrained == "download":
-                if dim == 3:  # pragma: no cover
+            if pretrained == "download" or pretrained == "download_2d":
+                if dim == 3 and pretrained == "download":  # pragma: no cover
                     raise ValueError(
-                        "No 3D weights for DRUNet are available for download. Please set pretrained to None or path to your own pretrained weights."
+                        "No 3D weights for DRUNet are available for download. You can either initialize with 2D weights by using `download_2d`, which provides a good starting point for fine-tuning, or set pretrained to None or path to your own pretrained weights."
                     )
                 if in_channels == 4:
                     name = "drunet_deepinv_color_finetune_22k.pth"
@@ -164,7 +167,12 @@ class DRUNet(Denoiser):
                     pretrained, map_location=lambda storage, loc: storage
                 )
 
-            self.load_state_dict(ckpt_drunet, strict=True)
+            if dim == 3 and pretrained == "download_2d":
+                initialize_3d_from_2d(
+                    self, ckpt_drunet, isotropic=pretrained_2d_isotropic
+                )
+            else:
+                self.load_state_dict(ckpt_drunet, strict=True)
             self.eval()
         else:
             self.apply(weights_init_drunet)

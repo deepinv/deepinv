@@ -70,5 +70,5 @@ from .distance import (
     LogPoissonLikelihoodDistance,
     ZeroDistance,
 )
-
 from . import utils
+from .linear import least_squares
