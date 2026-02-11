@@ -3,7 +3,7 @@ from typing import Callable
 import warnings
 import copy
 import inspect
-import collections.abc
+from collections.abc import Mapping, Iterable
 
 import torch
 from torch import Tensor
@@ -207,7 +207,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
             x^* \in \underset{x}{\arg\min} \quad \|\forw{x}-y\|^2.
 
         :param str solver: solver to use. If the physics are non-linear, the only available solver is `'gradient_descent'`.
-            For linear operators, the options are `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'` (see :func:`deepinv.optim.utils.least_squares` for more details).
+            For linear operators, the options are `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'` (see :func:`deepinv.optim.linear.least_squares` for more details).
         :param int max_iter: maximum number of iterations for the solver.
         :param float tol: relative tolerance for the solver, stopping when :math:`\|A(x) - y\| < \text{tol} \|y\|`.
         """
@@ -309,7 +309,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
             # NOTE: It is necessary to include values for mapping objects for
             # the case of submodules which are stored as entries in a
             # dictionary instead of directly as attributes.
-            if isinstance(node, collections.abc.Mapping):
+            if isinstance(node, Mapping):
                 neighbors += list(node.values())
 
             # 4. Queue the unseen neighbors
@@ -355,8 +355,8 @@ class LinearPhysics(Physics):
         is used for computing it, and this parameter fixes the maximum number of conjugate gradient iterations.
     :param float tol: If the operator does not have a closed form pseudoinverse, a least squares algorithm
         is used for computing it, and this parameter fixes the relative tolerance of the least squares algorithm.
-    :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.utils.least_squares` for more details.
-    :param bool implicit_backward_solver: If `True`, uses implicit differentiation for computing gradients through the :meth:`deepinv.physics.LinearPhysics.A_dagger` and :meth:`deepinv.physics.LinearPhysics.prox_l2`, using :func:`deepinv.optim.utils.least_squares_implicit_backward` instead of :func:`deepinv.optim.utils.least_squares`. This can significantly reduce memory consumption, especially when using many iterations. If `False`, uses the standard autograd mechanism, which can be memory-intensive. Default is `True`.
+    :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.linear.least_squares` for more details.
+    :param bool implicit_backward_solver: If `True`, uses implicit differentiation for computing gradients through the :meth:`deepinv.physics.LinearPhysics.A_dagger` and :meth:`deepinv.physics.LinearPhysics.prox_l2`, using :func:`deepinv.optim.linear.least_squares_implicit_backward` instead of :func:`deepinv.optim.linear.least_squares`. This can significantly reduce memory consumption, especially when using many iterations. If `False`, uses the standard autograd mechanism, which can be memory-intensive. Default is `True`.
 
     |sep|
 
@@ -674,7 +674,7 @@ class LinearPhysics(Physics):
         r"""
         Computes an approximation of the condition number of the linear operator :math:`A`.
 
-        Uses the LSQR algorithm, see :func:`deepinv.optim.utils.lsqr` for more details.
+        Uses the LSQR algorithm, see :func:`deepinv.optim.linear.lsqr` for more details.
 
         :param torch.Tensor x: Any input tensor (e.g. random)
         :param int max_iter: maximum number of iterations
@@ -707,9 +707,9 @@ class LinearPhysics(Physics):
             \underset{x}{\arg\min} \; \frac{\gamma}{2}\|Ax-y\|^2 + \frac{1}{2}\|x-z\|^2
 
         :param torch.Tensor y: measurements tensor
-        :param torch.Tensor z: signal tensor
+        :param torch.Tensor, float, int, None z: signal tensor
         :param float gamma: hyperparameter of the proximal operator
-        :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.utils.least_squares` for details
+        :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.linear.least_squares` for details
         :param int max_iter: maximum number of iterations for iterative solvers
         :param float tol: tolerance for iterative solvers
         :param bool verbose: whether to print information during the solver execution
@@ -723,6 +723,11 @@ class LinearPhysics(Physics):
             self.tol = tol
         if solver is not None:
             self.solver = solver
+
+        if z is None or isinstance(z, float) or isinstance(z, int):
+            z = torch.full_like(
+                self.A_adjoint(y), fill_value=0.0 if z is None else float(z)
+            )
 
         if not self.implicit_backward_solver:
             return least_squares(
@@ -765,7 +770,7 @@ class LinearPhysics(Physics):
         This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
         :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :param str solver: least squares solver to use. Choose between 'CG', 'lsqr' and 'BiCGStab'. See :func:`deepinv.optim.utils.least_squares` for more details.
+        :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.linear.least_squares` for more details.
         :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.
 
         """
@@ -817,10 +822,12 @@ class ComposedPhysics(Physics):
 
     where :math:`A_i(\cdot)` is the ith physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
-    :param list[deepinv.physics.Physics] *physics: list of physics to compose.
+    :param Iterable[deepinv.physics.Physics] physics: variable number of physics to compose.
     """
 
-    def __init__(self, *physics: Physics, device=None, **kwargs):
+    def __init__(
+        self, *physics: Iterable[Physics], device: str | torch.device = "cpu", **kwargs
+    ):
         super().__init__()
 
         self.physics_list = nn.ModuleList([])
@@ -889,10 +896,10 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
 
     where :math:`A_i(\cdot)` is the i-th physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
-    :param list[deepinv.physics.Physics] *physics: list of physics operators to compose.
+    :param Iterable[deepinv.physics.LinearPhysics] physics: variable number of physics to compose.
     """
 
-    def __init__(self, *physics: Physics, **kwargs):
+    def __init__(self, *physics: Iterable[LinearPhysics], **kwargs):
         super().__init__(*physics, **kwargs)
 
     def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
@@ -911,14 +918,14 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
         return y
 
 
-def compose(*physics: Physics | LinearPhysics, **kwargs):
+def compose(*physics: Iterable[Physics | LinearPhysics], **kwargs):
     r"""
     Composes multiple forward operators :math:`A = A_1\circ A_2\circ \dots \circ A_n`.
 
     The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
     each entry corresponds to the measurements of the corresponding operator.
 
-    :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be composed.
+    :param Iterable[deepinv.physics.Physics | deepinv.physics.LinearPhysics] physics: Physics operators :math:`A_i` to be composed.
     """
     if any(isinstance(phys, DecomposablePhysics) for phys in physics):
         warnings.warn(
@@ -1253,7 +1260,7 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
 
     """
     x = torch.ones(input_size, device=device, dtype=dtype)
-    (_, vjpfunc) = torch.func.vjp(A, x)
+    _, vjpfunc = torch.func.vjp(A, x)
     batches = x.size()[0]
 
     # NOTE: In certain cases A(x) can't be automatically differentiated

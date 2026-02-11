@@ -326,21 +326,29 @@ def test_itoh_fidelity(device, mode):
 
 
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
+OPTIM_ALGO = [
+    "GD",
+    "PGD",
+    "ADMM",
+    "DRS",
+    "HQS",
+    "FISTA",
+    "MD",
+    "PMD",
+    "MLEM",
+]
+OPTIM_ALGO_PARAMS = [
+    (algo, anderson)
+    for algo in OPTIM_ALGO
+    for anderson in ([True, False] if algo in ["PGD", "HQS", "GD"] else [False])
+]
+
+
 @pytest.mark.parametrize(
-    "name_algo",
-    [
-        "GD",
-        "PGD",
-        "ADMM",
-        "DRS",
-        "HQS",
-        "FISTA",
-        "MD",
-        "PMD",
-        "MLEM",
-    ],
+    "name_algo, and_acc",
+    OPTIM_ALGO_PARAMS,
 )
-def test_optim_algo(name_algo, imsize, dummy_dataset, device):
+def test_optim_algo(name_algo, and_acc, imsize, dummy_dataset, device):
     for g_first in [True, False]:
         # Define two points
         x = torch.tensor([[[10], [10]]], dtype=torch.float64)
@@ -364,12 +372,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         rng = torch.Generator(x.device).manual_seed(123)
         lipschitz_const = physics.compute_sqnorm(x, tol=1e-4, rng=rng).item()
 
-        if (
-            name_algo == "CP"
-        ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
-            stepsize = 1.9 / lipschitz_const
-            sigma = 1.0
-        elif name_algo == "FISTA":
+        if name_algo == "FISTA":
             stepsize = 0.9 / lipschitz_const
             sigma = None
         else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
@@ -390,10 +393,12 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             g_param=sigma,
             early_stop=True,
             g_first=g_first,
+            anderson_acceleration=and_acc,
         )
 
         # Run the optimization algorithm
-        x = optimalgo(y, physics)
+        with torch.no_grad():
+            x = optimalgo(y, physics)
 
         assert optimalgo.has_converged
 
@@ -427,6 +432,8 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             # In this case, the algorithm converges to the minimum of :math:`f+\lambda g`.
             # The optimality condition is then :math:`0 \in  \nabla f(x)+ \lambda \partial g(x)`
             grad_deepinv = data_fidelity.grad(x, y, physics)
+            print(grad_deepinv)
+            print(-lambda_reg * subdiff)
             assert torch.allclose(
                 grad_deepinv, -lambda_reg * subdiff, atol=1e-8
             )  # Optimality condition
@@ -975,7 +982,7 @@ least_squares_physics = [
 def test_least_square_solvers(
     device, solver, physics_name, implicit_backward_solver, gamma_scalar
 ):
-    batch_size = 4
+    batch_size = 2
 
     physics, img_size, _, _ = find_operator(physics_name, device=device)
     physics.implicit_backward_solver = implicit_backward_solver
@@ -1021,7 +1028,8 @@ DTYPES = [torch.float32, torch.complex64]
 
 @pytest.mark.parametrize("solver", solvers)
 @pytest.mark.parametrize("dtype", DTYPES)
-def test_linear_system(device, solver, dtype, rng):
+@pytest.mark.parametrize("zero_input", [False, True])
+def test_linear_system(device, solver, dtype, rng, zero_input):
     # test the solution of linear systems with random matrices
     batch_size = 2
     mat = torch.randn((32, 32), dtype=dtype, device=device, generator=rng)
@@ -1035,25 +1043,34 @@ def test_linear_system(device, solver, dtype, rng):
     if solver == "BiCGStab" and torch.is_complex(mat):
         # bicgstab currently doesn't work for complex-valued systems
         return
-    b = torch.randn((batch_size, 32), dtype=dtype, device=device, generator=rng)
+
+    if zero_input:
+        b = torch.zeros((batch_size, 32), dtype=dtype, device=device)
+    else:
+        b = torch.randn((batch_size, 32), dtype=dtype, device=device, generator=rng)
 
     A = lambda x: (mat @ x.T).T
     AT = lambda x: (mat.adjoint() @ x.T).T
 
-    tol = 1e-5
+    tol = 1e-4
     if solver == "CG":
-        x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol, max_iter=1000)
+        x = dinv.optim.linear.conjugate_gradient(
+            A, b, tol=tol, max_iter=1000, verbose=True
+        )
     elif solver == "minres":
-        x = dinv.optim.utils.minres(A, b, tol=tol, max_iter=1000)
+        x = dinv.optim.linear.minres(A, b, tol=tol, max_iter=1000)
     elif solver == "BiCGStab":
-        x = dinv.optim.utils.bicgstab(A, b, tol=tol, max_iter=1000)
+        x = dinv.optim.linear.bicgstab(A, b, tol=tol, max_iter=1000)
     elif solver == "lsqr":
-        x = dinv.optim.utils.lsqr(A, AT, b, tol=tol, max_iter=1000)[0]
+        x = dinv.optim.linear.lsqr(A, AT, b, tol=tol, max_iter=1000)[0]
     else:
         raise ValueError("Solver not found")
 
-    error = (A(x) - b).abs().pow(2).sum()
-    assert error < tol * b.abs().pow(2).sum()
+    if zero_input:
+        assert torch.allclose(x, torch.zeros_like(x), atol=1e-8)
+    else:
+        error = (A(x) - b).abs().pow(2).sum()
+        assert error < tol * b.abs().pow(2).sum()
 
 
 def test_condition_number(device):

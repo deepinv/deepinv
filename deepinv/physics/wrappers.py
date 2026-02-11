@@ -169,7 +169,7 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
         :param torch.Tensor y: measurements tensor
         :param torch.Tensor z: signal tensor
         :param float gamma: hyperparameter of the proximal operator
-        :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.utils.least_squares` for details
+        :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.linear.least_squares` for details
         :param int max_iter: maximum number of iterations for iterative solvers
         :param float tol: tolerance for iterative solvers
         :param bool verbose: whether to print information during the solver execution

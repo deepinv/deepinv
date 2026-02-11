@@ -277,6 +277,13 @@ def plot(
     return_axs: bool = False,
     vmin: float | None = None,
     vmax: float | None = None,
+    labels: list[str] | None = None,
+    label_loc: tuple | list = (0.03, 0.03),
+    plot_inset: bool = False,
+    extract_loc: tuple | list = (0.0, 0.0),
+    extract_size: float = 0.2,
+    inset_loc: tuple | list = (0.0, 0.5),
+    inset_size: float = 0.4,
     **imshow_kwargs,
 ):
     r"""
@@ -293,6 +300,10 @@ def plot(
         If the number of channels is bigger than 3, only the first 3 channels are plotted.
 
     We provide flexibility to save plots either side-by-side using ``save_fn`` or as individual images using ``save_dir``.
+
+    .. note::
+
+        Zoomed-in insets can be plotted by setting ``plot_inset=True``. See :func:`plot_inset` for the original implementation.
 
     Example usage:
 
@@ -334,6 +345,16 @@ def plot(
     :param bool return_axs: return the axs object.
     :param float, None vmin: minimum value for clipping when using 'clip' rescaling.
     :param float, None vmax: maximum value for clipping when using 'clip' rescaling.
+    :param list[str], None labels: list of overlaid labels for each image, has to be same length as img_list.
+    :param tuple, list label_loc: location or locations for label to be plotted on image. Defaults to (.03, .03).
+        Coordinates are fractions from 0-1, where (0, 0) is the top left corner and (1, 1) is the bottom right corner.
+    :param bool plot_inset: whether to plot zoomed-in insets. Defaults to False.
+    :param tuple, list extract_loc: image location or locations for extract to be taken from. Defaults to (0., 0.).
+        Coordinates are fractions from 0-1, where (0, 0) is the top left corner and (1, 1) is the bottom right corner.
+    :param float extract_size: size of extract to be taken from image. Defaults to 0.2.
+    :param tuple, list inset_loc: location or locations for inset to be plotted on image. Defaults to (0., 0.5).
+        Coordinates are fractions from 0-1, where (0, 0) is the top left corner and (1, 1) is the bottom right corner.
+    :param float inset_size: size of inset to be plotted on image. Defaults to 0.4.
     :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` calls. See
         `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
     """
@@ -418,11 +439,102 @@ def plot(
         plt.subplots_adjust(hspace=0.2, wspace=0.2)
         fig.get_layout_engine().set(w_pad=0.2, h_pad=0.2)
 
+    batch_size = img_list[0].shape[0]
+
+    # Expand the locs over img_list and batch dimensions
+    def expand_locs(locs, n):
+        if not isinstance(locs[0], (tuple, list)):
+            locs = (locs,)
+        n //= len(locs)
+        temp = [(loc,) * n for loc in locs]
+        return [a for b in temp for a in b]
+
+    # Add insets if requested
+    if plot_inset:
+        extract_locs = expand_locs(extract_loc, len(img_list) * batch_size)
+        inset_locs = expand_locs(inset_loc, len(img_list) * batch_size)
+
+        # Loop through all axes and apply the inset to each image
+        for r, row_axs in enumerate(axs):
+            for i, ax in enumerate(row_axs):
+                idx = i * batch_size + r
+
+                # Get the preprocessed image that's already been displayed in this axis
+                img = img_list[i][[r]]
+                img = preprocess_img(
+                    img, rescale_mode=rescale_mode, vmin=vmin, vmax=vmax
+                )
+
+                loc_in = inset_locs[idx]
+                axins = ax.inset_axes(
+                    (
+                        loc_in[0],
+                        1 - loc_in[1] - inset_size,
+                        inset_size,
+                        inset_size,
+                    )
+                )
+                axins.imshow(
+                    img.squeeze(0).permute(1, 2, 0).cpu().numpy(),
+                    cmap=cmap,
+                    interpolation=interpolation,
+                )
+
+                h, w = img.shape[2], img.shape[3]
+                ex = extract_locs[idx]
+                axins.set_xlim(ex[0] * w, (ex[0] + extract_size) * w)
+                axins.set_ylim((ex[1] + extract_size) * h, ex[1] * h)
+
+                for spine in axins.spines.values():
+                    spine.set_color("lime")
+                axins.set_xticks([])
+                axins.set_yticks([])
+                axins.grid(False)
+
+                ax.indicate_inset(
+                    [
+                        ex[0] * w,
+                        ex[1] * h,
+                        extract_size * w,
+                        extract_size * h,
+                    ],
+                    edgecolor="red",
+                )
+
+    # Add labels if provided
+    if labels is not None:
+        label_locs = expand_locs(label_loc, len(img_list) * batch_size)
+
+        for r, row_axs in enumerate(axs):
+            for i, ax in enumerate(row_axs):
+                idx = i * batch_size + r
+
+                if i < len(labels):
+                    lab = labels[i]
+                    loc_lab = label_locs[idx]
+                    ax.text(
+                        loc_lab[0],
+                        1 - loc_lab[1],
+                        str(lab),
+                        fontsize="medium",
+                        color="red",
+                        ha="left",
+                        va="top",
+                        transform=ax.transAxes,
+                        bbox=dict(boxstyle="square,pad=0", fc="white", ec="none"),
+                    )
+
     if save_fn:
         plt.savefig(save_fn, dpi=dpi)
 
     if save_dir:
-        plt.savefig(save_dir / "images.svg", dpi=dpi)
+        # Save the combined figure
+        if plot_inset:
+            plt.savefig(save_dir / "inset_images.svg", dpi=dpi)
+        else:
+            plt.savefig(save_dir / "images.svg", dpi=dpi)
+
+        # Save individual images for each column
         for i, row_imgs in enumerate(imgs):
             row_dirname = titles[i] if titles is not None else str(i)
             save_dir_i = Path(save_dir) / Path(row_dirname)
@@ -714,6 +826,10 @@ def plot_inset(
 ):
     r"""Plots a list of images with zoomed-in insets extracted from the images.
 
+    .. deprecated::
+        This function is deprecated and will be removed in a future version.
+        Use :func:`plot` with ``plot_inset=True`` instead, which has the same functionality.
+
     The inset taken from extract_loc and shown at inset_loc. The coordinates extract_loc, inset_loc, and label_loc correspond to their top left corners taken at (horizontal, vertical) from the image's top left.
 
     Each loc can either be a tuple (float, float) which uses the same loc for all images across the batch dimension, or a list of these whose length must equal the batch dimension.
@@ -751,26 +867,16 @@ def plot_inset(
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
     """
-    import matplotlib.pyplot as plt
-
-    if save_dir:
-        save_dir = Path(save_dir)
-        save_dir.mkdir(parents=True, exist_ok=True)
-
-    if isinstance(img_list, dict):
-        if titles is not None:
-            raise ValueError("titles should be None when img_list is a dictionary")
-
-        titles, img_list = list(img_list.keys()), list(img_list.values())
-
-    fig, axs = plot(
+    # Call plot with all parameters including inset-specific ones
+    return plot(
         img_list=img_list,
         titles=titles,
+        save_fn=save_fn,
         save_dir=save_dir,
         tight=tight,
         max_imgs=max_imgs,
         rescale_mode=rescale_mode,
-        show=False,
+        show=show,
         close=False,
         figsize=figsize,
         subtitles=subtitles,
@@ -782,104 +888,16 @@ def plot_inset(
         dpi=dpi,
         fig=fig,
         axs=axs,
-        return_fig=True,
-        return_axs=True,
+        return_fig=return_fig,
+        return_axs=return_axs,
+        labels=labels if labels != () else None,
+        label_loc=label_loc,
+        plot_inset=True,
+        extract_loc=extract_loc,
+        extract_size=extract_size,
+        inset_loc=inset_loc,
+        inset_size=inset_size,
     )
-    batch_size = img_list[0].shape[0]
-
-    # Expand the locs over img_list and batch dimensions
-    def expand_locs(locs, n):
-        if not isinstance(locs[0], (tuple, list)):
-            locs = (locs,)
-        n //= len(locs)
-        temp = [(loc,) * n for loc in locs]
-        return [a for b in temp for a in b]
-
-    extract_locs = expand_locs(extract_loc, len(img_list) * batch_size)
-    inset_locs = expand_locs(inset_loc, len(img_list) * batch_size)
-    label_locs = expand_locs(label_loc, len(img_list) * batch_size)
-
-    # Loop through all axes and apply the inset to each image
-    for r, row_axs in enumerate(axs):
-        for i, ax in enumerate(row_axs):
-            idx = i * batch_size + r
-
-            # Get the preprocessed image that's already been displayed in this axis
-            img = img_list[i][[r]]
-            img = preprocess_img(img, rescale_mode=rescale_mode)
-
-            loc_in = inset_locs[idx]
-            axins = ax.inset_axes(
-                (
-                    loc_in[0],
-                    1 - loc_in[1] - inset_size,
-                    inset_size,
-                    inset_size,
-                )
-            )
-            axins.imshow(
-                img.squeeze(0).permute(1, 2, 0).cpu().numpy(),
-                cmap=cmap,
-                interpolation=interpolation,
-            )
-
-            h, w = img.shape[2], img.shape[3]
-            ex = extract_locs[idx]
-            axins.set_xlim(ex[0] * w, (ex[0] + extract_size) * w)
-            axins.set_ylim((ex[1] + extract_size) * h, ex[1] * h)
-
-            for spine in axins.spines.values():
-                spine.set_color("lime")
-            axins.set_xticks([])
-            axins.set_yticks([])
-            axins.grid(False)
-
-            ax.indicate_inset(
-                [
-                    ex[0] * w,
-                    ex[1] * h,
-                    extract_size * w,
-                    extract_size * h,
-                ],
-                edgecolor="red",
-            )
-
-            if labels is not None and i < len(labels):
-                lab = labels[i]
-                loc_lab = label_locs[idx]
-                ax.text(
-                    loc_lab[0],
-                    1 - loc_lab[1],
-                    str(lab),
-                    fontsize="medium",
-                    color="red",
-                    ha="left",
-                    va="top",
-                    transform=ax.transAxes,
-                    bbox=dict(boxstyle="square,pad=0", fc="white", ec="none"),
-                )
-
-    if save_fn:
-        plt.savefig(save_fn, dpi=dpi)
-
-    if save_dir:
-        save_dir = Path(save_dir)
-        save_dir.mkdir(parents=True, exist_ok=True)
-
-        # Save the whole figure
-        plt.savefig(save_dir / "inset_images.svg", dpi=dpi)
-
-    if show:
-        plt.show()
-
-    if return_axs and return_fig:
-        return fig, axs
-
-    if return_fig:
-        return fig
-
-    if return_axs:
-        return axs
 
 
 def plot_videos(
