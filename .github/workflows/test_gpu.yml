@@ -21,8 +21,6 @@ jobs:
       DEEPINV_MOCK_TESTS: "True"
       UV_CACHE_DIR: "/local/jtachell/.cache/uv"
       WORKING_DIR: "/local/jtachell"
-      CUDA_LAUNCH_BLOCKING: "1" # Enable CUDA launch blocking for better error reporting
-      TORCH_USE_CUDA_DSA: "1"
 
     steps:
       - uses: actions/checkout@v5
@@ -55,6 +53,11 @@ jobs:
       - name: Check import
         run: |
           uv run python -c "import deepinv"
+      # FOR DEBUGGING, SHOULD BE REMOVED
+      - name: Check CUDA versions
+        run: |
+          uv run python -c "import torch; print(f'Torch CUDA version: {torch.version.cuda}')"
+          nvidia-smi
 
       - name: Restore .testmondata # Restore testmon data from main to speed up tests
         uses: actions/cache/restore@v3
@@ -67,7 +70,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          uv run python -m pytest -n 2 --dist=loadgroup --testmon
+          CUDA_LAUNCH_BLOCKING=1 TORCH_USE_CUDA_DSA=1 uv run python -m pytest -n 2 --dist=loadgroup --testmon
 
       - name: Save .testmondata
         uses: actions/cache/save@v3
