@@ -12,7 +12,7 @@ class MLEMIteration(OptimIterator):
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
     ):
         r"""
-        Single Richardson-Lucy iteration.
+        Single Maximum-Likelihood Expectation-Maximization (MLEM) iteration.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
@@ -30,13 +30,14 @@ class MLEMIteration(OptimIterator):
         else:
             denom = sensitivity
         x = x / denom.clamp(min=1e-15)
-        # print("curr_data_fidelity", cur_data_fidelity(x, y, physics))
-        # print(
-        #     "curr_prior",
-        #     cur_prior(x, cur_params["g_param"]).shape,
-        #     cur_prior(x, cur_params["g_param"]),
-        # )
-        F = self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+        F = (
+            self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            if self.cost_fn is not None
+            and self.has_cost
+            and cur_data_fidelity is not None
+            and cur_prior is not None
+            else None
+        )
         return {"est": (x, None), "cost": F, "it": k + 1}
 
 
