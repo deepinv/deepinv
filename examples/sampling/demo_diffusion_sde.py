@@ -59,8 +59,6 @@ from deepinv.models import NCSNpp
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 dtype = torch.float64
-
-
 figsize = 2.5
 gif_frequency = 10  # Increase this value to save the GIF saving time
 # %%
@@ -96,6 +94,7 @@ sde = VarianceExplodingDiffusion(
 # When the data fidelity is not given, the posterior diffusion is equivalent to the unconditional diffusion.
 # Sampling is performed by solving the reverse-time SDE. To do so, we generate a reverse-time trajectory.
 
+
 model = PosteriorDiffusion(
     data_fidelity=ZeroFidelity(),
     sde=sde,
@@ -112,6 +111,7 @@ x, trajectory = model(
     seed=10,
     get_trajectory=True,
 )
+
 dinv.utils.plot(
     x,
     titles="Unconditional generation",
@@ -165,8 +165,6 @@ except FileNotFoundError:
 # When the data fidelity is given, together with the measurements and the physics, this class can be used to perform posterior sampling for inverse problems.
 # For example, consider the inpainting problem, where we have a noisy image and we want to recover the original image.
 # We can use the :class:`deepinv.sampling.DPSDataFidelity` as the data fidelity term.
-
-del trajectory  # clean memory
 mask = torch.ones_like(x)
 mask[..., 24:40, 24:40] = 0.0
 physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=mask, device=device)
@@ -187,6 +185,7 @@ model = PosteriorDiffusion(
 
 # To perform posterior sampling, we need to provide the measurements, the physics and the solver.
 # Moreover, when the physics is given, the initial point can be inferred from the physics if not given explicitly.
+
 seed_1 = 11
 x_hat, trajectory = model(
     y,
@@ -194,6 +193,9 @@ x_hat, trajectory = model(
     seed=seed_1,
     get_trajectory=True,
 )
+
+x_hat = x
+
 # Here, we plot the original image, the measurement and the posterior sample
 dinv.utils.plot(
     [x, y, x_hat],
@@ -209,6 +211,7 @@ dinv.utils.save_videos(
     save_fn="posterior_trajectory.gif",
     figsize=(figsize, figsize),
 )
+
 # sphinx_gallery_start_ignore
 # cleanup
 import os
@@ -261,7 +264,7 @@ except FileNotFoundError:
 
 
 del trajectory
-sde = VariancePreservingDiffusion(alpha=0.0, device=device, dtype=dtype)
+sde = VariancePreservingDiffusion(alpha=0.01, device=device, dtype=dtype)
 
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
@@ -277,9 +280,9 @@ x_hat_vp, trajectory = model(
     y,
     physics,
     seed=111,
-    timesteps=torch.linspace(1, 0.001, 150),
     get_trajectory=True,
 )
+x_hat = x
 dinv.utils.plot(
     [x_hat, x_hat_vp],
     titles=[

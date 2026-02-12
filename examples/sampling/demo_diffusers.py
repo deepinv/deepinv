@@ -89,6 +89,8 @@ model = PosteriorDiffusion(
     device=device,
     verbose=True,
 )
+
+
 sample, trajectory = model(
     y=None,
     physics=None,
@@ -101,7 +103,6 @@ dinv.utils.plot(
     titles="Unconditional generation",
     figsize=(figsize, figsize),
 )
-
 
 # %% Posterior sampling
 # ---------------------
@@ -121,7 +122,7 @@ physics = dinv.physics.Inpainting(
 )
 
 y = physics(x)
-sde = VariancePreservingDiffusion(device=device, dtype=dtype)
+sde = VariancePreservingDiffusion(device=device, dtype=dtype, alpha=0.25)
 
 # %% Define the posterior sampler with a noisy data-fidelity term
 

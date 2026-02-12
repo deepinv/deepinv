@@ -779,8 +779,8 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
     def __init__(
         self,
         denoiser: Denoiser = None,
-        beta_min: float = 0.1,
-        beta_max: float = 20,
+        beta_min: float = 0.05,
+        beta_max: float = 10,
         alpha: Callable | float = 0.0,
         scaled_linear: bool = False,
         solver: BaseSDESolver = None,
