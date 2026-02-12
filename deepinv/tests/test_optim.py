@@ -930,6 +930,10 @@ def test_MLEM(imsize, dummy_dataset, device):
         verbose=True,
         early_stop=True,
     )
+    with torch.no_grad():
+        x = optimalgo(y, physics)
+
+    assert optimalgo.has_converged
 
 
 def test_patch_prior(imsize, dummy_dataset, device):

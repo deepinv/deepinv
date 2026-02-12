@@ -2229,14 +2229,56 @@ class PDCP(BaseOptim):
 
 
 class MLEM(BaseOptim):
-    r"""Richardson-Lucy (RL) optimization module."""
+    r"""
+    Maximum Likelihood Expectation Maximization (MLEM) algorithm for Poisson inverse problems.
+
+    Implements the MLEM iterative algorithm, which is a classic baseline reconstruction method
+    for inverse problems with Poisson noise statistics. At each iteration, the algorithm
+    performs a multiplicative update of the form:
+
+    .. math::
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1}} \odot A^T \left(\frac{y}{A x_k}\right)
+
+    where :math:`A` is the forward operator, :math:`y` is the observed data,
+    :math:`\mathbf{1}` is a tensor of ones, and :math:`\odot` denotes element-wise multiplication.
+
+    The algorithm can be used with a prior term (e.g., for MAP-EM variants) or without
+    (standard MLEM). See :class:`deepinv.optim.MLEMIteration` for the details of the iteration.
+
+    Any data-fidelity can be used but the algorithm only minimizes the Poisson negative log-likelihood data-fidelity.
+    If a different data-fidelity is provided, the algorithm will still perform the MLEM iterations
+    but they might not decrease the provided data-fidelity at each iteration.
+
+    :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity term.
+        If ``None``, the data fidelity term is not used. Default: ``None``.
+    :param deepinv.optim.Prior, list[Prior] prior: prior term. If ``None``, no prior is used.
+        Default: ``None``.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float g_param: parameter for the prior. Default: ``None``.
+    :param int max_iter: maximum number of iterations. Default: ``100``.
+    :param str crit_conv: convergence criterion, either ``"residual"`` or ``"cost"``.
+        Default: ``"residual"``.
+    :param float thres_conv: convergence threshold. Default: ``1e-5``.
+    :param bool early_stop: if ``True``, the algorithm stops when the convergence criterion is met.
+        Default: ``False``.
+    :param dict custom_metrics: dictionary of custom metrics to compute at each iteration.
+        Default: ``None``.
+    :param callable custom_init: custom initialization function. Default: ``None``.
+    :param bool g_first: if ``True``, the prior step is applied before the data fidelity step.
+        Default: ``False``.
+    :param dict params_algo: dictionary of algorithm parameters. If ``None``, the parameters
+        are set from ``lambda_reg``, ``stepsize``, and ``g_param``. Default: ``None``.
+    :param callable cost_fn: custom cost function. Default: ``None``.
+    :param kwargs: additional keyword arguments passed to :class:`deepinv.optim.BaseOptim`.
+    """
+
+    r"""MLEM"""
 
     def __init__(
         self,
         data_fidelity: DataFidelity | list[DataFidelity] = None,
         prior: Prior | list[Prior] = None,
         lambda_reg: float = 1.0,
-        stepsize: float = 1.0,
         g_param: float = None,
         max_iter: int = 100,
         crit_conv: str = "residual",
