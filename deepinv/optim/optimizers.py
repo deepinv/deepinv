@@ -2263,12 +2263,12 @@ class MLEM(BaseOptim):
         Default: ``False``.
     :param dict custom_metrics: dictionary of custom metrics to compute at each iteration.
         Default: ``None``.
-    :param callable custom_init: custom initialization function. Default: ``None``.
+    :param Callable custom_init: custom initialization function. Default: ``None``.
     :param bool g_first: if ``True``, the prior step is applied before the data fidelity step.
         Default: ``False``.
     :param dict params_algo: dictionary of algorithm parameters. If ``None``, the parameters
         are set from ``lambda_reg``, ``stepsize``, and ``g_param``. Default: ``None``.
-    :param callable cost_fn: custom cost function. Default: ``None``.
+    :param Callable cost_fn: custom cost function. Default: ``None``.
     :param kwargs: additional keyword arguments passed to :class:`deepinv.optim.BaseOptim`.
     """
 
