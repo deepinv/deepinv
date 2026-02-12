@@ -165,6 +165,14 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Reconstruction with misspecified physics and/or noise level.
 
+    .. grid-item-card::
+        :link: distributed
+        :link-type: ref
+
+        :octicon:`server` **Distributed Computing**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Large-scale image reconstruction using distributed computing.
+
 .. toctree::
    :maxdepth: 2
    :hidden:
@@ -181,6 +189,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
    user_guide/reconstruction/unfolded
    user_guide/reconstruction/adversarial
    user_guide/reconstruction/blind
+   user_guide/reconstruction/distributed
 
 
 Training, Testing and Utilities

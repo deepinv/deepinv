@@ -3,7 +3,7 @@ from typing import Callable
 import warnings
 import copy
 import inspect
-import collections.abc
+from collections.abc import Mapping, Iterable
 
 import torch
 from torch import Tensor
@@ -309,7 +309,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
             # NOTE: It is necessary to include values for mapping objects for
             # the case of submodules which are stored as entries in a
             # dictionary instead of directly as attributes.
-            if isinstance(node, collections.abc.Mapping):
+            if isinstance(node, Mapping):
                 neighbors += list(node.values())
 
             # 4. Queue the unseen neighbors
@@ -506,7 +506,7 @@ class LinearPhysics(Physics):
         """
         return self.A_adjoint(self.A(x, **kwargs), **kwargs)
 
-    def __mul__(self, other):
+    def __mul__(self, other, **kwargs):
         r"""
         Concatenates two linear forward operators :math:`A = A_1 \circ A_2` via the * operation
 
@@ -516,7 +516,7 @@ class LinearPhysics(Physics):
         :return: (:class:`deepinv.physics.LinearPhysics`) concatenated operator
 
         """
-        return compose(other, self, max_iter=self.max_iter, tol=self.tol)
+        return compose(other, self, max_iter=self.max_iter, tol=self.tol, **kwargs)
 
     def stack(self, other):
         r"""
@@ -822,10 +822,12 @@ class ComposedPhysics(Physics):
 
     where :math:`A_i(\cdot)` is the ith physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
-    :param list[deepinv.physics.Physics] *physics: list of physics to compose.
+    :param Iterable[deepinv.physics.Physics] physics: variable number of physics to compose.
     """
 
-    def __init__(self, *physics: Physics, device=None, **kwargs):
+    def __init__(
+        self, *physics: Iterable[Physics], device: str | torch.device = "cpu", **kwargs
+    ):
         super().__init__()
 
         self.physics_list = nn.ModuleList([])
@@ -894,10 +896,10 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
 
     where :math:`A_i(\cdot)` is the i-th physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
-    :param list[deepinv.physics.Physics] *physics: list of physics operators to compose.
+    :param Iterable[deepinv.physics.LinearPhysics] physics: variable number of physics to compose.
     """
 
-    def __init__(self, *physics: Physics, **kwargs):
+    def __init__(self, *physics: Iterable[LinearPhysics], **kwargs):
         super().__init__(*physics, **kwargs)
 
     def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
@@ -916,14 +918,14 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
         return y
 
 
-def compose(*physics: Physics | LinearPhysics, **kwargs):
+def compose(*physics: Iterable[Physics | LinearPhysics], **kwargs):
     r"""
     Composes multiple forward operators :math:`A = A_1\circ A_2\circ \dots \circ A_n`.
 
     The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
     each entry corresponds to the measurements of the corresponding operator.
 
-    :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be composed.
+    :param Iterable[deepinv.physics.Physics | deepinv.physics.LinearPhysics] physics: Physics operators :math:`A_i` to be composed.
     """
     if any(isinstance(phys, DecomposablePhysics) for phys in physics):
         warnings.warn(

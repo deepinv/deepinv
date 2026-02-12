@@ -38,8 +38,8 @@ class KernelIdentificationNetwork(nn.Module):
 
     >>> import deepinv as dinv
     >>> import torch
-    >>> device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-    >>> kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device) # doctest: +IGNORE_OUTPUT
+    >>> device = "cuda" if torch.cuda.is_available() else "cpu"
+    >>> kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device)
     >>> physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
     >>> y = torch.randn(1, 3, 128, 128).to(device)  # random blurry image for demonstration
     >>> with torch.no_grad():
@@ -265,7 +265,6 @@ class Up(nn.Module):
         # https://github.com/HaiyongJiang/U-Net-Pytorch-Unstructured-Buggy/commit/0e854509c2cea854e247a9c615f175f76fbb2e3a
         # https://github.com/xiaopeng-liao/Pytorch-UNet/commit/8ebac70e633bac59fc22bb5195e513d5832fb3bd
         if x2 is not None:
-
             diffY = torch.tensor([x2.size()[2] - x1.size()[2]])
             diffX = torch.tensor([x2.size()[3] - x1.size()[3]])
 
