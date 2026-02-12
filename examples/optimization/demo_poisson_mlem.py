@@ -97,7 +97,7 @@ y_blur = physics_blur(x)
 # -----------------------
 # The :class:`deepinv.optim.MLEM` class wraps the MLEM iterations.
 # Without a prior, and in the case of deconvolution, this is equivalent to the classic Richardson-Lucy algorithm.
-# Note that without prior, the algorithm will create artifacts when noise is present in the objervations.
+# Note that without prior, the algorithm will create artifacts when noise is present in the observation.
 
 data_fidelity = dinv.optim.PoissonLikelihood(gain=gain)
 
@@ -214,7 +214,11 @@ val_transform_gray = transforms.Compose(
     ]
 )
 x_ct = load_example(
-    "SheppLogan.png", img_size=128, grayscale=True, resize_mode="resize", device=device
+    "SheppLogan.png",
+    img_size=img_size,
+    grayscale=True,
+    resize_mode="resize",
+    device=device,
 )
 
 # %%
