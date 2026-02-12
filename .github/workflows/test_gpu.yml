@@ -44,7 +44,10 @@ jobs:
           uv run python --version
 
       - name: Install the project
-        run: uv sync --extra dataset --extra denoisers --extra test --extra training
+        run: |
+          uv sync --extra dataset --extra denoisers --extra test --extra training \
+            --extra-index-url https://download.pytorch.org/whl/cu124     
+      # NOTE: use cuda 12.4, should be updated once the server driver is updated, see here: https://pytorch.org/get-started/previous-versions/
 
       - name: Check installed packages
         run: |
