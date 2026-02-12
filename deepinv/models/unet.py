@@ -14,12 +14,12 @@ class UNet(Denoiser):
     r"""
     U-Net convolutional denoiser.
 
-    The architecture follows the design described in :footcite:t:`jin2017deep`, which is adapted for 
-    inverse problems by using zero padding and a global residual connection. 
+    The architecture follows the design described in :footcite:t:`jin2017deep`, which is adapted for
+    inverse problems by using zero padding and a global residual connection.
     This differs from the original U-Net :footcite:p:`ronneberger2015u` commonly used for medical segmentation.
 
-    The number of stages in the network is controlled by ``scales``. The width of each stage is 
-    controlled by ``channels_per_scale``, which gives the number of feature maps at each stage, 
+    The number of stages in the network is controlled by ``scales``. The width of each stage is
+    controlled by ``channels_per_scale``, which gives the number of feature maps at each stage,
     from shallow to deeper stages.
 
 
