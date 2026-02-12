@@ -371,7 +371,7 @@ which defines the parameters for backtracking line-search. The :class:`deepinv.o
         max_iter: int = 10
             # Maximum number of backtracking iterations
 
-By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
+By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtracking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
 
 .. note::
   To use backtracking, the optimized function (i.e., both the the data-fidelity and prior) must be explicit and provide a computable cost for the current iterate.
