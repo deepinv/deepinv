@@ -200,12 +200,17 @@ class DRUNet(Denoiser):
 
         :param torch.Tensor x: noisy image
         :param float, torch.Tensor sigma: noise level. If ``sigma`` is a float, it is used for all images in the batch.
-            If ``sigma`` is a tensor, it must be of shape ``(batch_size,)``.
+            If ``sigma`` is a tensor, it can be of shape ``(batch_size,)`` or ``(batch_size, 1, height, width)``.
         """
         if isinstance(sigma, torch.Tensor):
             if sigma.ndim > 0:
-                noise_level_map = sigma.view(x.size(0), 1, 1, 1)
-                noise_level_map = noise_level_map.expand(-1, 1, x.size(2), x.size(3))
+                if sigma.shape == (x.size(0), 1, *x.shape[2:]):
+                    noise_level_map = sigma
+                else:
+                    noise_level_map = sigma.view(x.size(0), 1, 1, 1)
+                    noise_level_map = noise_level_map.expand(
+                        -1, 1, x.size(2), x.size(3)
+                    )
             else:
                 noise_level_map = torch.ones(
                     (x.size(0), 1, *x.shape[2:]), device=x.device
