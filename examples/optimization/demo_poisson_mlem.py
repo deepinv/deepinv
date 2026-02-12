@@ -4,7 +4,7 @@ Poisson Inverse Problems with Maximum-Likelihood Expectation-Maximization (MLEM)
 
 This example demonstrates how to solve Poisson inverse problems using the
 **Maximum-Likelihood Expectation-Maximization (MLEM)** algorithm :footcite:`sheppMaximumLikelihoodReconstruction1982b`,
-also known as the Richardson-Lucy algorithm in the deconvolution setting :footcite:`richardsonBayesianBasedIterativeMethod1972a,lucyIterativeTechniqueRectification1974`.
+also known as the Richardson-Lucy algorithm in the deconvolution setting :footcite:`richardsonBayesianBasedIterativeMethod1972a,lucyIterativeTechniqueRectification1974a`.
 
 The Poisson observation model is:
 
@@ -47,7 +47,7 @@ from deepinv.utils.plotting import plot, plot_curves
 
 # %%
 # Setup
-# -----
+# -----------------------------------------------
 # Set paths, device and random seed for reproducibility.
 
 BASE_DIR = Path(".")
@@ -58,7 +58,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
 # Load a test image
-# -----------------
+# -----------------------------------------------
 # We use a single image from the Set3C dataset.
 
 img_size = 128 if torch.cuda.is_available() else 64
@@ -70,7 +70,7 @@ x = dataset[0].unsqueeze(0).to(device)  # ground-truth image
 
 # %%
 # Deblurring with MLEM without prior
-# ----------------------------------------
+# -----------------------------------------------
 #
 # We create a Gaussian blur operator with Poisson noise. The MLEM/Richardson-Lucy
 # algorithm is a standard approach for Poisson deconvolution without any prior.
@@ -94,7 +94,7 @@ y_blur = physics_blur(x)
 
 # %%
 # Run MLEM without prior
-# -----------------------
+# -----------------------------------------------
 # The :class:`deepinv.optim.MLEM` class wraps the MLEM iterations.
 # Without a prior, and in the case of deconvolution, this is equivalent to the classic Richardson-Lucy algorithm.
 # Note that without prior, the algorithm will create artifacts when noise is present in the observation.
@@ -117,7 +117,7 @@ x_mlem, metrics_mlem = model_no_prior(
 
 # %%
 # Visualize results and PSNR values along with convergence curves
-# ----------------------------------------
+# -----------------------------------------------------------------------
 
 psnr_input = dinv.metric.PSNR()(x, y_blur)
 psnr_mlem = dinv.metric.PSNR()(x, x_mlem)
@@ -267,7 +267,7 @@ x_ct_recon, metrics_ct = model_ct(y_ct, physics_ct, x_gt=x_ct, compute_metrics=T
 
 # %%
 # Visualize CT results and plot convergence curves
-# ---------------------
+# --------------------------------------------------
 
 psnr_fbp = dinv.metric.PSNR()(x_ct, x_fbp)
 psnr_ct = dinv.metric.PSNR()(x_ct, x_ct_recon)
