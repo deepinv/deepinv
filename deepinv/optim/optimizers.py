@@ -2304,7 +2304,6 @@ class MLEM(BaseOptim):
         if params_algo is None:
             params_algo = {
                 "lambda": lambda_reg,
-                "stepsize": stepsize,
                 "g_param": g_param,
             }
         super(MLEM, self).__init__(
