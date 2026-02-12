@@ -16,6 +16,7 @@ from deepinv.optim.optim_iterators import (
     DRSIteration,
     GDIteration,
     MDIteration,
+    MLEMIteration,
 )
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import ZeroPrior, Prior
