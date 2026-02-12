@@ -9,19 +9,24 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
+- Add distributed computing framework with :class:`deepinv.distributed.DistributedContext`, :class:`deepinv.distributed.DistributedStackedPhysics`, :class:`deepinv.distributed.DistributedProcessing`, :class:`deepinv.distributed.DistributedDataFidelity` and :func:`deepinv.distributed.distribute` factory function. Supports multi-GPU/multi-process execution with physics-based and spatial tiling distribution strategies (:gh:`790`` by `Benoît Malézieux`_)
 - Add :class:`deepinv.loss.metric.CosineSimilarity` to the metrics (:gh:`944` by `Avithal Lautman`_)
+- New option to initialize 3D networks (DRUNet, DnCNN, DScCP) from pretrained 2D weights (:gh:`958` by `Romain Vo`_)
 
 Changed
 ^^^^^^^
 - (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.
 - Refactor folder structure of least-squares solvers (:gh:`1011` by `Julian Tachella`_)
 - Removed `eps` parameter from :func:`deepinv.optim.linear.conjugate_gradient` (:gh:`1011` by `Julian Tachella`_)
+- Deprecated `verbose_individual_losses` parameter in :class:`deepinv.Trainer`. Individual losses are now always added to logs when multiple losses are present (:gh:`928` by `Tiberiu Sabau`_)
 
 
 Fixed
 ^^^^^
 - Implement/extend functional for 2D/3D convolution with spatial and FFT (:func:`deepinv.physics.functional.conv3d` and  :func:`deepinv.physics.functional.conv_transpose3d`), support all padding modes with equivalent outputs (:gh:`825` by `Minh Hai Nguyen`_)
 - Fix ZeroPrior :class:`deepinv.optim.ZeroPrior` (:gh:`1001` by `Victor Sechaud`_)
+- Fix single-disperser CASSI adjointness (:gh:`1029` by `Andrew Wang`_)
+- Add :class:`deepinv.physics.ComposedPhysics`, :class:`deepinv.physics.ComposedLinearPhysics` to online documentation (:gh:`1000` by `Romain Vo`_)
 
 v0.3.7
 ------
@@ -42,6 +47,7 @@ Changed
 - (Breaking) Change :class:`deepinv.physics.TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
 - Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
 - (Breaking) `Tomography` physics uses the true adjoint by default. `Tomography` and `TomographyWithAstra` implement the pseudo-inverse as the solution of a least-squares problem, with the option to use `fbp`. (:gh:`930` by `Romain Vo`_)
+- :class:`deepinv.models.UNet` now accepts a new (optional) argument `channels_per_scale` to control the number of feature maps at each stage. It now also supports arbitrary number of scales and bias-free batchnorm is supported for 3D variant; also clean-up code (:gh:`976` by `Vicky De Ridder`_)
 - Add a check in `deepinv.datasets.FMD` to avoid unnecessary downloads (:gh:`962` by `Jérémy Scanvic`_)
 - Trainer checkpoint loading verbose (:gh:`982` by `Andrew Wang`_)
 
@@ -560,3 +566,5 @@ Changed
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
 .. _Avithal Lautman: https://github.com/avithal
 .. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
+.. _Tiberiu Sabau: https://github.com/tibisabau
+.. _Benoît Malézieux: https://github.com/bmalezieux
