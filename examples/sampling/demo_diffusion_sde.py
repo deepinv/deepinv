@@ -76,6 +76,7 @@ from deepinv.optim import ZeroFidelity
 # The network architecture is from Song et al: https://arxiv.org/abs/2011.13456 .
 denoiser = NCSNpp(pretrained="download").to(device)
 
+
 # The solution is obtained by calling the SDE object with a desired solver (here, Euler).
 # The reproducibility of the SDE Solver class can be controlled by providing the pseudo-random number generator.
 num_steps = 150
