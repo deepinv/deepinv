@@ -2243,7 +2243,7 @@ class MLEM(BaseOptim):
     :math:`\mathbf{1}` is a tensor of ones, and :math:`\odot` denotes element-wise multiplication.
 
     The algorithm can be used with a prior term (e.g., for MAP-EM variants) or without
-    (standard MLEM). See :class:`deepinv.optim.MLEMIteration` for the details of the iteration.
+    (standard MLEM). See :class:`deepinv.optim.optim_iterators.MLEMIteration` for the details of the iteration.
 
     Any data-fidelity can be used but the algorithm only minimizes the Poisson negative log-likelihood data-fidelity.
     If a different data-fidelity is provided, the algorithm will still perform the MLEM iterations

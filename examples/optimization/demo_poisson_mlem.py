@@ -146,13 +146,17 @@ plot_curves(metrics_mlem)
 # Adding a Total-Variation (TV) prior solves this issue while favoring piecewise constant solutions.
 # There are several ways of modifying MLEM for regularized objectives: here we use the most straightforward approach
 # called One-Step-Late (OSL) :footcite:`greenUseEmAlgorithm1990` which simply adds the gradient of the prior to the denominator of the MLEM update:
+#
 # .. math::
 #
 #    x^{k+1} = \frac{x^k}{A^\top \mathbf{1} + \lambda \nabla \regname(x^k)} \odot A^\top\!\left(\frac{y}{Ax^k}\right)
+#
 # For non-smooth regularizations, the penalized MLEM update becomes:
 #
 # .. math::
-#   x^{k+1} = \frac{x^k}{A^\top \mathbf{1} + \lambda g^k} \odot A^\top\!\left(\frac{y}{Ax^k}\right), \quad g^k \in \partial \regname(x^k)
+#
+#    x^{k+1} = \frac{x^k}{A^\top \mathbf{1} + \lambda g^k} \odot A^\top\!\left(\frac{y}{Ax^k}\right), \quad g^k \in \partial \regname(x^k)
+#
 # where :math:`\partial \regname(x^k)` is the subdifferential of the regularization at :math:`x^k`.
 # Any prior implementing the :class:`deepinv.optim.prior.Prior` interface can be used in the :class:`deepinv.optim.MLEM` class, and the proximal step is automatically computed when needed.
 
