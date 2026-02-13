@@ -122,7 +122,7 @@ class RAM(Reconstructor, Denoiser):
                 self.load_state_dict(
                     torch.hub.load_state_dict_from_url(
                         "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar",
-                        show_progree=False
+                        show_progress=False,
                     ),
                     strict=False,
                 )
