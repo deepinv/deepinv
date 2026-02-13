@@ -1528,13 +1528,13 @@ def test_kernel_identification(channels, filters, blur_kernel_size, device):
 @pytest.mark.parametrize("mode", ["image", "synthetic"])
 @pytest.mark.parametrize("channels", [1, 2, 3])
 @pytest.mark.parametrize("sigma", [0.1, 0.5, 0.01])
-def test_noise_estimators(model_name, mode, channels, sigma, device, rng):
+def test_gaussian_noise_estimators(model_name, mode, channels, sigma, device, rng):
     if model_name == "pca":
         model = dinv.models.PatchCovarianceNoiseEstimator().to(device)
     elif model_name == "wavelets":
         model = dinv.models.WaveletNoiseEstimator().to(device)
     else:
-        raise NotImplementedError
+        raise NotImplementedError()
 
     if model_name == "wavelets":
         pytest.importorskip(

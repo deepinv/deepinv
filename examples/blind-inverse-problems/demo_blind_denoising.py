@@ -106,7 +106,7 @@ print("Patch covariance-based noise level estimate: ", sigma_patch_cov.item())
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # Once we have estimated the noise level, we can use general denoising models available in the library.
-# Here, we use the DRUNet model from :footcite:t:`zhang2021plug` that can handle a range of noise levels.
+# Here, we use the pretrained DRUNet model from :footcite:t:`zhang2021plug` that can handle a range of noise levels.
 
 denoiser = dinv.models.DRUNet()
 
@@ -151,6 +151,8 @@ estimate_errors = {
     "patch_cov std": [],
 }
 
+mean_abs_error = dinv.metric.MAE()
+
 # run estimations for different noise levels, and average over 10 random seeds
 for sigma in list_sigmas:
 
@@ -166,7 +168,7 @@ for sigma in list_sigmas:
     sigma_wavelet = torch.stack(sigma_wavelet)
     sigma_patch_cov = torch.stack(sigma_patch_cov)
 
-    estimate_errors["wavelet mean"].append((sigma_wavelet - sigma).abs().mean().item())
+    estimate_errors["wavelet mean"].append(mean_abs_error(sigma_wavelet, sigma).item())
     estimate_errors["wavelet std"].append(sigma_wavelet.std().item())
     estimate_errors["patch_cov mean"].append(
         (sigma_patch_cov - sigma).abs().mean().item()
