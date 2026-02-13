@@ -37,7 +37,7 @@ from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize
 import deepinv as dinv
 from deepinv.utils import get_data_home
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 ORIGINAL_DATA_DIR = get_data_home() / "Urban100"
 
