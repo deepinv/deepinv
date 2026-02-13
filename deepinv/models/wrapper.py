@@ -27,7 +27,7 @@ class DiffusersDenoiserWrapper(Denoiser):
         >>> import deepinv as dinv
         >>> from deepinv.models import DiffusersDenoiserWrapper
         >>> import torch
-        >>> device = dinv.utils.get_device()
+        >>> device = dinv.utils.get_device(verbose=False)
         >>> denoiser = DiffusersDenoiserWrapper(mode_id='google/ddpm-cat-256', device=device)
         >>> x = dinv.utils.load_example(
         ...         "cat.jpg",
