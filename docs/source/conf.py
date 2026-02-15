@@ -238,8 +238,10 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # Only add extra exclusions during doctest-style CI runs
+_sphinx_tags = globals().get("tags")
 if os.environ.get("SPHINX_DOCTEST") == "1":
-    tags.add("doctest_ci")
+    if _sphinx_tags is not None:
+        _sphinx_tags.add("doctest_ci")
     exclude_patterns.extend(
         ["user_guide/training/multigpu.rst", "user_guide/training/datasets.rst"]
     )
