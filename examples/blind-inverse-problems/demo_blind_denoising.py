@@ -223,3 +223,8 @@ dinv.utils.plot(
     },
     fontsize=9,
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

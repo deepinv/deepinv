@@ -79,12 +79,23 @@ def patchify(
 
     :Examples:
     >>> import deepinv as dinv
-    >>> x = dinv.utils.load_example('butterfly.png').to(device)
+    >>> x = dinv.utils.load_example('butterfly.png')
     >>> out = patchify(x, patch_size=8, stride=4)
     >>> print(f"Input shape: {x.shape}, patchified shape: {out.shape}")
-    >>> patches_list = out[0, ..., :10].permute(3, 0, 1, 2)
-    >>> imgs = [patches_list[i] for i in range(patches_list.shape[0])]
+    Input shape: torch.Size([1, 3, 256, 256]), patchified shape: torch.Size([1, 3, 8, 8, 3969])
     >>> dinv.utils.plot(imgs, titles=[f"Patch {i}" for i in range(len(imgs))])
+
+    .. plot::
+
+        import deepinv as dinv
+        from deepinv.models.utils import patchify  # adjust import path
+
+        x = dinv.utils.load_example('butterfly.png')
+        out = patchify(x, patch_size=8, stride=4)
+        patches_list = out[0, ..., :16].permute(3, 0, 1, 2)
+        imgs = [patches_list[i] for i in range(patches_list.shape[0])]
+        dinv.utils.plot(imgs, titles=[f"Patch {i}" for i in range(len(imgs))])
+
     """
     B, C, H, W = x.shape
     num_H = (H - patch_size) // stride + 1

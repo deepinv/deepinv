@@ -87,6 +87,18 @@ Model Utils
 
    deepinv.models.complex.to_complex_denoiser
 
+Utility functions for model inference
+-------------------------------------
+.. userguide:: model-inference-utils
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.models.utils.patchify
+
+
 Wrappers 
 --------
 .. userguide:: model-wrappers
