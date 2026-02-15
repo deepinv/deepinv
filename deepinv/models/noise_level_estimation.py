@@ -150,7 +150,7 @@ class PatchCovarianceNoiseEstimator(nn.Module):
                 return noise_level
 
         if noise_level is None:
-            raise ValueError("Noise level estimation failed.")
+            raise RuntimeError("Noise level estimation failed.")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         r"""
