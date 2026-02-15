@@ -41,7 +41,7 @@ class WaveletNoiseEstimator(nn.Module):
     :Examples:
 
         >>> import deepinv as dinv
-        >>> from deepinv.models import PatchCovarianceNoiseEstimator
+        >>> from deepinv.models import WaveletNoiseEstimator
         >>> # set seed
         >>> rng = torch.Generator('cpu').manual_seed(0)
         >>> noise = dinv.physics.GaussianNoise(0.1, rng=rng)
