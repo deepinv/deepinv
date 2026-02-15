@@ -42,8 +42,7 @@ class WaveletNoiseEstimator(nn.Module):
 
         >>> import deepinv as dinv
         >>> from deepinv.models import WaveletNoiseEstimator
-        >>> # set seed
-        >>> rng = torch.Generator('cpu').manual_seed(0)
+        >>> rng = torch.Generator('cpu').manual_seed(0) # set seed
         >>> noise = dinv.physics.GaussianNoise(0.1, rng=rng)
         >>> noise_estimator = WaveletNoiseEstimator()
         >>> sigma_est = noise_estimator(noise)
@@ -106,8 +105,7 @@ class PatchCovarianceNoiseEstimator(nn.Module):
 
     >>> import deepinv as dinv
     >>> from deepinv.models import PatchCovarianceNoiseEstimator
-    >>> # set seed
-    >>> rng = torch.Generator('cpu').manual_seed(0)
+    >>> rng = torch.Generator('cpu').manual_seed(0) # set seed
     >>> noise = dinv.physics.GaussianNoise(0.1, rng=rng)
     >>> noise_estimator = PatchCovarianceNoiseEstimator()
     >>> sigma_est = noise_estimator(noise)
