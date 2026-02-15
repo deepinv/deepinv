@@ -65,31 +65,41 @@ def test_pad(model, L, modulo=16):
 
 
 def patchify(
-    im: torch.Tensor, pch_size: tuple[int, int], stride: int = 1
+    x: torch.Tensor, patch_size: tuple[int, int], stride: int = 1
 ) -> torch.Tensor:
     r"""
     Patchifying images in pch_size patches.
 
-    :param torch.Tensor im: input image
-    :param (int, int) pch_size: patch size
+    :param torch.Tensor x: input image
+    :param (int, int) patch_size: patch size
     :param int stride: stride
     :return: (:class:`torch.Tensor`) patched image of shape (B, C, pch_H, pch_W, num_pch)
-    """
-    pch_H = pch_W = pch_size
-    stride_H = stride_W = stride
 
-    B, C, H, W = im.shape
-    num_H = (H - pch_H) // stride_H + 1
-    num_W = (W - pch_W) // stride_W + 1
+    |sep|
+
+    :Examples:
+    >>> import deepinv as dinv
+    >>> x = dinv.utils.load_example('butterfly.png').to(device)
+    >>> out = patchify(x, patch_size=8, stride=4)
+    >>> print(f"Input shape: {x.shape}, patchified shape: {out.shape}")
+    >>> patches_list = out[0, ..., :10].permute(3, 0, 1, 2)
+    >>> imgs = [patches_list[i] for i in range(patches_list.shape[0])]
+    >>> dinv.utils.plot(imgs, titles=[f"Patch {i}" for i in range(len(imgs))])
+    """
+    B, C, H, W = x.shape
+    num_H = (H - patch_size) // stride + 1
+    num_W = (W - patch_size) // stride + 1
     num_pch = num_H * num_W
 
     # Use unfold to extract patches
-    patches = im.unfold(2, pch_H, stride_H).unfold(
-        3, pch_W, stride_W
-    )  # B x C x num_H x num_W x pch_H x pch_W
+    patches = x.unfold(2, patch_size, stride).unfold(
+        3, patch_size, stride
+    )  # B x C x num_H x num_W x patch_size x patch_size
 
     # Rearrange and reshape to match the desired output
-    patches = patches.permute(0, 1, 4, 5, 2, 3).reshape(B, C, pch_H, pch_W, num_pch)
+    patches = patches.permute(0, 1, 4, 5, 2, 3).reshape(
+        B, C, patch_size, patch_size, num_pch
+    )
 
     return patches
 
