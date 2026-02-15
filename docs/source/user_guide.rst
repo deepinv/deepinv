@@ -272,7 +272,7 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
    user_guide/training/metric
    user_guide/training/transforms
 
-.. only:: not doctest
+.. only:: not doctest_ci
 
    .. toctree::
       :maxdepth: 2

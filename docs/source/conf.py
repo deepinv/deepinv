@@ -237,8 +237,9 @@ add_references_block_to_examples()
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
-# Only add extra exclusions during doctest runs
+# Only add extra exclusions during doctest-style CI runs
 if os.environ.get("SPHINX_DOCTEST") == "1":
+    tags.add("doctest_ci")
     exclude_patterns.extend(
         ["user_guide/training/multigpu.rst", "user_guide/training/datasets.rst"]
     )
