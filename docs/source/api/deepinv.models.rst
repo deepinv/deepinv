@@ -89,7 +89,6 @@ Model Utils
 
 Utility functions for model inference
 -------------------------------------
-.. userguide:: model-inference-utils
 
 .. autosummary::
    :toctree: stubs
