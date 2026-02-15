@@ -96,8 +96,8 @@ class PatchCovarianceNoiseEstimator(nn.Module):
     .. warning::
 
         This estimator assumes that the noise in the corrupted image follows a Gaussian distribution.
-        It may not perform well if the noise distribution deviates significantly from Gaussian, or if the image contains
-        strong edges or textures that can affect the wavelet coefficients.
+        It may not perform well if the noise distribution deviates significantly from Gaussian, or if the image lacks
+        sufficient homogeneous regions for reliable patch statistics.
 
     |sep|
 
@@ -125,32 +125,38 @@ class PatchCovarianceNoiseEstimator(nn.Module):
         :param (int, int) pch_size: patch size
         :return: (:class:`torch.Tensor`) estimated noise level
         """
-        # image to patch
-        pch = patchify(
-            x, pch_size, stride=3
-        )  # C x pch_size x pch_size x num_pch tensor
-
+        # Convert image to patches
+        pch = patchify(x, pch_size, stride=3)  # C x pch_size x pch_size x num_pch
         B, num_pch = pch.shape[0], pch.shape[-1]
         pch = pch.reshape(B, -1, num_pch)  # d x num_pch matrix
         d = pch.shape[1]
 
+        # Compute covariance matrix eigenvalues
         mu = pch.mean(dim=-1, keepdim=True)  # B x d x 1
         X = pch - mu
         sigma_X = torch.bmm(X, X.transpose(-2, -1)) / num_pch
         sig_value = torch.linalg.eigvalsh(sigma_X)
         sig_value, _ = torch.sort(sig_value)
 
-        noise_level = None
+        # Track noise level and which samples have been solved
+        noise_level = torch.zeros(B, device=x.device)
+        found = torch.zeros(B, dtype=torch.bool, device=x.device)
+
+        # Find tau where eigenvalues are balanced around it
         for ii in range(-1, -d - 1, -1):
             tau = sig_value[..., :ii].mean(dim=-1)
-            if torch.sum(sig_value[..., :ii] > tau.unsqueeze(-1)) == torch.sum(
-                sig_value[..., :ii] < tau.unsqueeze(-1)
-            ):
-                noise_level = torch.sqrt(tau)
-                return noise_level
+            counts_greater = torch.sum(sig_value[..., :ii] > tau.unsqueeze(-1), dim=-1)
+            counts_less = torch.sum(sig_value[..., :ii] < tau.unsqueeze(-1), dim=-1)
 
-        if noise_level is None:
+            # Update samples where condition is met and not yet found
+            mask = (counts_greater == counts_less) & ~found
+            noise_level[mask] = torch.sqrt(tau[mask])
+            found = found | mask
+
+        if not torch.all(found):
             raise RuntimeError("Noise level estimation failed.")
+
+        return noise_level
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         r"""

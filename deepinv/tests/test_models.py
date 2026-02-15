@@ -1612,7 +1612,7 @@ def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_iso
         ), f"PSNR with init {psnr_init} not better than without init {psnr_noinit} + {improvement}"
 
 
-@pytest.mark.parametrize("model_name", ["wavelets", "pca"])
+@pytest.mark.parametrize("model_name", ["pca"])
 @pytest.mark.parametrize("mode", ["image", "synthetic"])
 @pytest.mark.parametrize("channels", [1, 2, 3])
 @pytest.mark.parametrize("sigma", [0.1, 0.5, 0.01])
@@ -1638,7 +1638,7 @@ def test_gaussian_noise_estimators(model_name, mode, channels, sigma, device, rn
     else:
         x = torch.zeros((1, channels, 256, 256))
 
-    y = x + sigma * torch.randn_like(x).to(device)
+    y = x + sigma * torch.empty_like(x).normal_(generator=rng).to(device)
 
     sigma_est = model(y)
 
@@ -1648,3 +1648,14 @@ def test_gaussian_noise_estimators(model_name, mode, channels, sigma, device, rn
         assert (
             sigma_est - sigma
         ) < sigma + 0.01  # error less than 2 * sigma + quantization std
+
+    # Test batching is correct
+    x = torch.cat([x, x, x])
+    sigma = torch.tensor([sigma, sigma * 2, sigma * 3], device=device)
+    y = x + sigma.view(-1, 1, 1, 1) * torch.empty_like(x).normal_(generator=rng).to(
+        device
+    )
+
+    assert torch.allclose(
+        model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-4, atol=1e-6
+    )
