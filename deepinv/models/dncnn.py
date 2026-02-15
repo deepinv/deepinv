@@ -1,7 +1,7 @@
 from __future__ import annotations
 import torch.nn as nn
 import torch
-from .utils import get_weights_url, conv_nd, fix_dim
+from .utils import get_weights_url, conv_nd, fix_dim, initialize_3d_from_2d
 from .base import Denoiser
 
 
@@ -25,8 +25,10 @@ class DnCNN(Denoiser):
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (only available for architecture with depth 20, 64 channels and biases).
         It is possible to download weights trained via the regularization method in :footcite:t:`pesquet2021learning`, using ``pretrained='download_lipschitz'``.
+        When building a 3D network, it is possible to initialize with 2D pretrained weights by using ``pretrained='download_2d'`` or ``pretrained='download_lipschitz_2d'``, which provides a good starting point for fine-tuning.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
+    :param bool pretrained_2d_isotropic: when loading 2D pretrained weights into a 3D network, whether to initialize the 3D kernels isotropically. By default the weights are loaded axially, i.e., by initializing the central slice of the 3D kernels with the 2D weights.
     :param torch.device, str device: Device to put the model on.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
     """
@@ -39,6 +41,7 @@ class DnCNN(Denoiser):
         bias: bool = True,
         nf: int = 64,
         pretrained: str | None = "download",
+        pretrained_2d_isotropic: bool = False,
         device: torch.device | str = "cpu",
         dim: int | str = 2,
     ):
@@ -67,13 +70,16 @@ class DnCNN(Denoiser):
 
         if pretrained is not None:
             if pretrained.startswith("download"):
-                if dim == 3:  # pragma: no cover
-                    raise RuntimeError(
-                        "No pretrained weights are available for download for 3D DnCNN."
+                if dim == 3 and pretrained in (
+                    "download",
+                    "download_lipschitz",
+                ):  # pragma: no cover
+                    raise ValueError(
+                        "No 3D weights for DnCNN are available for download. You can either initialize with 2D weights by using `download_2d` or `download_lipschitz_2d`, which provides a good starting point for fine-tuning, or set pretrained to None or path to your own pretrained weights."
                     )
                 name = ""
                 if bias and depth == 20:
-                    if pretrained == "download_lipschitz":
+                    if pretrained.startswith("download_lipschitz"):
                         if in_channels == 3 and out_channels == 3:
                             name = "dncnn_sigma2_lipschitz_color.pth"
                         elif in_channels == 1 and out_channels == 1:
@@ -85,7 +91,7 @@ class DnCNN(Denoiser):
                             name = "dncnn_sigma2_gray.pth"
 
                 if name == "":
-                    raise Exception(
+                    raise ValueError(
                         "No pretrained weights were found online that match the chosen architecture"
                     )
                 url = get_weights_url(model_name="dncnn", file_name=name)
@@ -94,7 +100,11 @@ class DnCNN(Denoiser):
                 )
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
-            self.load_state_dict(ckpt, strict=True)
+
+            if dim == 3 and pretrained in ("download_2d", "download_lipschitz_2d"):
+                initialize_3d_from_2d(self, ckpt, isotropic=pretrained_2d_isotropic)
+            else:
+                self.load_state_dict(ckpt, strict=True)
             self.eval()
         else:
             self.apply(weights_init_kaiming)

@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 # at pixel :math:`(i,j)`.
 #
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 bins = 100
 irf_sigma = 2
 physics = dinv.physics.SinglePhotonLidar(bins=bins, sigma=irf_sigma, device=device)

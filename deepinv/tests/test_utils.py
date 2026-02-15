@@ -821,13 +821,13 @@ def test_load_image(
 
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize(
-    "signal_shape",
+    "img_size",
     [(3, 16, 16), (1, 16, 16), (1, 16), (1, 16, 16, 16), (1, 16, 8), (16, 16), (16,)],
 )
 @pytest.mark.parametrize("mode", ["min_max", "clip"])
 @pytest.mark.parametrize("seed", [0])
-def test_normalize_signals(batch_size, signal_shape, mode, seed):
-    shape = (batch_size, *signal_shape)
+def test_normalize_signals(batch_size, img_size, mode, seed):
+    shape = (batch_size, *img_size)
     rng = torch.Generator().manual_seed(seed)
 
     # Generate a batch of random signals, half constant and half not
@@ -839,7 +839,7 @@ def test_normalize_signals(batch_size, signal_shape, mode, seed):
     const_values = torch.randn(
         N_const_idx, generator=rng, device=inp.device, dtype=inp.dtype
     )
-    inp[const_idx] = const_values.view((-1,) + ((1,) * len(signal_shape)))
+    inp[const_idx] = const_values.view((-1,) + ((1,) * len(img_size)))
     if var_idx.numel() != 0:
         inp[var_idx] = torch.randn(
             inp[const_idx].shape, generator=rng, device=inp.device, dtype=inp.dtype
