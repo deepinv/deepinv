@@ -68,12 +68,15 @@ def patchify(
     x: torch.Tensor, patch_size: tuple[int, int], stride: int = 1
 ) -> torch.Tensor:
     r"""
-    Patchifying images in pch_size patches.
+    Patchifying images.
+
+    This function takes in a batch of images and extracts overlapping patches of specified size and stride,
+    returning them in a format suitable for processing by patch-based models.
 
     :param torch.Tensor x: input image
     :param (int, int) patch_size: patch size
     :param int stride: stride
-    :return: (:class:`torch.Tensor`) patched image of shape (B, C, pch_H, pch_W, num_pch)
+    :return: (:class:`torch.Tensor`) patched image of shape (B, C, patch_size, patch_size, num_pch)
 
     |sep|
 
