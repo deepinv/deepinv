@@ -212,7 +212,9 @@ class DRUNet(Denoiser):
                         -1, 1, x.size(2), x.size(3)
                     )
                 else:
-                    raise ValueError("Incorrect shape, sigma should be of shape (1,), (batch_size,) or (batch_size, 1, height, width)")
+                    raise ValueError(
+                        "Incorrect shape, sigma should be of shape (1,), (batch_size,) or (batch_size, 1, height, width)"
+                    )
             else:
                 noise_level_map = torch.ones(
                     (x.size(0), 1, *x.shape[2:]), device=x.device
