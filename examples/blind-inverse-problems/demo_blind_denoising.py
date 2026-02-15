@@ -151,7 +151,7 @@ estimate_errors = {
     "patch_cov std": [],
 }
 
-mean_abs_error = dinv.metric.MAE()
+mean_abs_error = dinv.metric.MAE(reduction="mean")
 
 # run estimations for different noise levels, and average over 10 random seeds
 for sigma in list_sigmas:
