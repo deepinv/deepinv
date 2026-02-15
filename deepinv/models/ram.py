@@ -121,7 +121,8 @@ class RAM(Reconstructor, Denoiser):
             else:
                 self.load_state_dict(
                     torch.hub.load_state_dict_from_url(
-                        "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar"
+                        "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar",
+                        progress=False,
                     ),
                     strict=False,
                 )

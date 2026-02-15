@@ -40,6 +40,7 @@ class KernelIdentificationNetwork(nn.Module):
     >>> import torch
     >>> device = "cuda" if torch.cuda.is_available() else "cpu"
     >>> kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device)
+    ...
     >>> physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
     >>> y = torch.randn(1, 3, 128, 128).to(device)  # random blurry image for demonstration
     >>> with torch.no_grad():
@@ -135,6 +136,7 @@ class KernelIdentificationNetwork(nn.Module):
                         file_name=file_name,
                         check_hash=True,
                         weights_only=True,
+                        progress=False,
                     )
                     self.load_state_dict(ckpt, strict=True)
                 else:

@@ -12,6 +12,7 @@ from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_backward
 from deepinv.utils.compat import zip_strict
+from deepinv.physics.functional import power_method
 import warnings
 
 
@@ -321,6 +322,21 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         return copy.deepcopy(self, memo=memo)
 
+    def compute_norm(self, x, verbose=True):
+        r"""
+        Computes an estimate of the operator norm of the forward operator :math:`\|A\|_2` at point `x`.
+
+        This function uses the power method to compute the operator norm.
+
+        :param torch.Tensor x: input tensor used to estimate the norm.
+        :param bool verbose: if `True`, prints the estimated norm.
+        :return: (:class:`torch.Tensor`) estimated operator norm.
+
+        """
+        linear_operator = lambda v: self.A_vjp(x, self.A_jvp(x, v))
+        norm = power_method(linear_operator, x, max_iter=100, tol=1e-6)
+        return norm
+
 
 class LinearPhysics(Physics):
     r"""
@@ -477,7 +493,7 @@ class LinearPhysics(Physics):
             A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v = \conj{A} v.
 
         :param torch.Tensor x: signal/image.
-        :param torch.Tensor v: vector.
+        :param torch.Tensor v: vector of the size of the measurements.
         :return: (:class:`torch.Tensor`) the VJP product between :math:`v` and the Jacobian.
         """
         return self.A_adjoint(v)
@@ -620,26 +636,14 @@ class LinearPhysics(Physics):
         """
         if rng is None:
             rng = torch.Generator(x0.device)
-        x = torch.randn(x0.shape, device=x0.device, dtype=x0.dtype, generator=rng)
-        x /= torch.linalg.vector_norm(x)
-        zold = torch.zeros_like(x)
-        for it in range(max_iter):
-            y = self.A_adjoint_A(x, **kwargs)
-            z = torch.vdot(x.flatten(), y.flatten()) / torch.linalg.vector_norm(x) ** 2
-
-            rel_var = torch.linalg.vector_norm(z - zold)
-            if rel_var < tol:
-                if verbose:
-                    print(
-                        f"Power iteration converged at iteration {it}, ||A^T A||_2={z.real.item():.2f}"
-                    )
-                break
-            zold = z
-            x = y / torch.linalg.vector_norm(y)
-        else:
-            warnings.warn("Power iteration: convergence not reached")
-
-        return z.real
+        return power_method(
+            operator=self.A_adjoint_A,
+            x0=x0,
+            max_iter=max_iter,
+            tol=tol,
+            verbose=verbose,
+            **kwargs,
+        )
 
     def adjointness_test(self, u, **kwargs):
         r"""
