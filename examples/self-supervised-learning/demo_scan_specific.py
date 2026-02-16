@@ -41,6 +41,9 @@ dinv.utils.download_example("demo_fastmri_brain_multicoil.h5", DATA_DIR)
 # .. note::
 #     This loading takes a few seconds per slice, as it must estimate the coil sensitivity map
 #     on the fly.
+#
+# .. hint::
+#     We skip coil map estimation on CPU for speed. Set `estimate_coil_maps=True` to always estimate coil maps.
 
 dataset = dinv.datasets.FastMRISliceDataset(
     DATA_DIR,
@@ -124,6 +127,9 @@ loss = dinv.loss.mri.WeightedSplittingLoss(
 # We train the model using the self-supervised loss. We randomly split the dataset into training and validation for
 # early stopping (up to a maximum of 100 epochs).
 # Because the FastMRI ground truth are cropped magnitude root-sum-of-squares reconstructions, we define a helper metric for evaluation later.
+#
+# .. hint::
+#     This example trains on GPU with 100 epochs. We recommend training on GPU to accelerate training.
 
 
 def crop(x_net, x):
