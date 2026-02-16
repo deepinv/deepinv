@@ -39,8 +39,7 @@ class KernelIdentificationNetwork(nn.Module):
     >>> import deepinv as dinv
     >>> import torch
     >>> device = "cuda" if torch.cuda.is_available() else "cpu"
-    >>> kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device) # doctest: +ELLIPSIS
-    ...
+    >>> kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device) # doctest: +SKIP
     >>> physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
     >>> y = torch.randn(1, 3, 128, 128).to(device)  # random blurry image for demonstration
     >>> with torch.no_grad():

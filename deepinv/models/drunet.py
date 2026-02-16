@@ -160,7 +160,10 @@ class DRUNet(Denoiser):
                     name = "drunet_deepinv_gray_finetune_26k.pth"
                 url = get_weights_url(model_name="drunet", file_name=name)
                 ckpt_drunet = torch.hub.load_state_dict_from_url(
-                    url, map_location=lambda storage, loc: storage, file_name=name
+                    url,
+                    map_location=lambda storage, loc: storage,
+                    file_name=name,
+                    progress=False,
                 )
             else:
                 ckpt_drunet = torch.load(
