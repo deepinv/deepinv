@@ -103,7 +103,7 @@ model = dinv.models.MoDL(denoiser=denoiser, num_iter=12).to(device)
 # These splitting masks are multiplied with the measurements as per the original paper.
 # Finally, the weighted SSDU loss requires knowledge of the original physics generator to define the weight.
 #
-# .. info::
+# .. tip::
 #     Feel free to use any self-supervised loss you like here!
 
 split_generator = dinv.physics.generator.GaussianMaskGenerator(
