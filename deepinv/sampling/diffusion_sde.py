@@ -558,11 +558,11 @@ class SongDiffusionSDE(EDMDiffusionSDE):
 
         def scale_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
-            return torch.exp(- 0.5 * B_t(t))
+            return torch.exp(-0.5 * B_t(t))
 
         def scale_prime_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
-            return - 0.5 * beta_t(t) * scale_t(t)
+            return -0.5 * beta_t(t) * scale_t(t)
 
         def sigma_t(t: Tensor | float, n_steps: int = 100) -> Tensor:
             t = self._handle_time_step(t)
