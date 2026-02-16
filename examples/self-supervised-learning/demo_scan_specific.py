@@ -21,7 +21,8 @@ rng_cpu = torch.Generator(device="cpu").manual_seed(0)
 # %%
 # Data
 # ----
-# First, download a single volume from the FastMRI brain dataset, via HuggingFace.
+# First, download a demo single brain MRI volume (FLAIR sequence, SIEMENS Trio Tim 3T scanner)
+# from the FastMRI brain dataset :footcite:p:`knoll2020advancing`, via HuggingFace.
 #
 # .. important::
 #    By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
