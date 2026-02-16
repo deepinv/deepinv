@@ -10,6 +10,7 @@ However, note that any of the :ref:`self-supervised losses <self-supervised-loss
 For example see the :ref:`example using Equivariant Imaging <sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py>` :footcite:p:`chen2021equivariant`.
 
 """
+
 import torch
 import deepinv as dinv
 
@@ -47,7 +48,7 @@ dataset = dinv.datasets.FastMRISliceDataset(
     slice_index="all",
     transform=dinv.datasets.MRISliceTransform(
         mask_generator=dinv.physics.generator.GaussianMaskGenerator(
-            img_size=(256, 256), # this is overridden internally by true image size
+            img_size=(256, 256),  # this is overridden internally by true image size
             acceleration=6,
             center_fraction=0.08,
             device="cpu",
@@ -153,7 +154,9 @@ trainer = dinv.Trainer(
     losses=loss,
     metrics=metric,
     optimizer=torch.optim.Adam(model.parameters(), lr=1e-6),
-    train_dataloader=torch.utils.data.DataLoader(train_dataset, shuffle=True, generator=rng_cpu),
+    train_dataloader=torch.utils.data.DataLoader(
+        train_dataset, shuffle=True, generator=rng_cpu
+    ),
     eval_dataloader=torch.utils.data.DataLoader(val_dataset, generator=rng_cpu),
     epochs=0 if str(device) == "cpu" else 100,
     save_path=None,
