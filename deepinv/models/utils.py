@@ -94,7 +94,7 @@ def patchify(
 
         x = dinv.utils.load_example('butterfly.png')
         patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
-        dinv.utils.plot(patches.permute(3, 0, 1, 2)[:16].tolist(), titles=[f"Patch {i}" for i in range(16)])
+        dinv.utils.plot(patches[0].permute(3, 0, 1, 2)[:16].tolist(), titles=[f"Patch {i} of {patches.shape[-1]}" for i in range(16)])
 
     """
     B, C, H, W = x.shape
