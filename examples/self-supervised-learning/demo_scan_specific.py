@@ -2,14 +2,15 @@ r"""
 Scan-specific zero-shot measurement splitting for MRI
 =====================================================
 
-We demonstrate scan-specific self-supervised learning, that is, learning to 
+We demonstrate scan-specific self-supervised learning, that is, learning to
 reconstruct MRI scans from a single accelerated sample without ground truth.
 
 Here, we demonstrate training with the :class:`weighted SSDU <deepinv.loss.WeightedSplittingLoss>` :footcite:p:`millard2023theoretical,yaman2020self`.
-However, note that any of the :ref:`self-supervised losses <self-supervised-losses>` can be used to do this with varying performance,
-for example see the :ref:`example using Equivariant Imaging <sphx_glr_auto_examples_self-supervised-learning_demo_ei.py>` :footcite:p:`chen2021equivariant`.
+However, note that any of the :ref:`self-supervised losses <self-supervised-losses>` can be used to do this with varying performance :footcite:p:`wang2025benchmarking`.
+For example see the :ref:`example using Equivariant Imaging <sphx_glr_auto_examples_self-supervised-learning_demo_ei.py>` :footcite:p:`chen2021equivariant`.
 
 """
+
 from tqdm import tqdm
 import torch
 from torch.utils.data import DataLoader
@@ -31,7 +32,9 @@ rng_cpu = torch.Generator(device="cpu").manual_seed(0)
 DATA_DIR = dinv.utils.get_data_home() / "fastMRI" / "multicoil_train"
 SLICE_DIR = DATA_DIR / "slices"
 OUT_DIR = DATA_DIR / "out"
-DATA_DIR.mkdir(parents=True, exist_ok=True) ; SLICE_DIR.mkdir(exist_ok=True) ; OUT_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+SLICE_DIR.mkdir(exist_ok=True)
+OUT_DIR.mkdir(exist_ok=True)
 
 dinv.utils.download_example("demo_fastmri_brain_multicoil.h5", DATA_DIR)
 
@@ -72,9 +75,11 @@ if not any(SLICE_DIR.iterdir()):
 # We also load a rough noise level as a param to be passed into the physics.
 # The ground truth is loaded for evaluation later.
 
+
 def loader(f):
     x, y, params = torch.load(f, weights_only=True)
     return x * 1e5, y * 1e5, params | {"sigma": 1e-5 * 1e5}
+
 
 dataset = dinv.datasets.ImageFolder(SLICE_DIR, x_path="*.pt", loader=loader)
 
@@ -83,7 +88,9 @@ dataset = dinv.datasets.ImageFolder(SLICE_DIR, x_path="*.pt", loader=loader)
 # -------
 # The multicoil physics is defined every easily:
 
-physics = dinv.physics.MultiCoilMRI(device=device, noise_model=dinv.physics.GaussianNoise(0.))
+physics = dinv.physics.MultiCoilMRI(
+    device=device, noise_model=dinv.physics.GaussianNoise(0.0)
+)
 
 # %%
 # Model
@@ -103,17 +110,26 @@ model = dinv.models.MoDL(denoiser=denoiser, num_iter=12).to(device)
 # .. info::
 #     Feel free to use any self-supervised loss you like here!
 
-split_generator = dinv.physics.generator.GaussianMaskGenerator((256, 256), acceleration=2, center_fraction=0., device=device)
-mask_generator = dinv.physics.generator.MultiplicativeSplittingMaskGenerator((256, 256), split_generator, device=device)
-physics_generator = dinv.physics.generator.GaussianMaskGenerator((256, 256), acceleration=6, center_fraction=0.04, rng=rng, device=device)
-loss = dinv.loss.mri.WeightedSplittingLoss(mask_generator=mask_generator, physics_generator=physics_generator)
+split_generator = dinv.physics.generator.GaussianMaskGenerator(
+    (256, 256), acceleration=2, center_fraction=0.0, device=device
+)
+mask_generator = dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
+    (256, 256), split_generator, device=device
+)
+physics_generator = dinv.physics.generator.GaussianMaskGenerator(
+    (256, 256), acceleration=6, center_fraction=0.04, rng=rng, device=device
+)
+loss = dinv.loss.mri.WeightedSplittingLoss(
+    mask_generator=mask_generator, physics_generator=physics_generator
+)
 
 # %%
 # Training
 # --------
-# We train the model using the self-supervised loss. We randomly split the dataset into training and validation for 
+# We train the model using the self-supervised loss. We randomly split the dataset into training and validation for
 # early stopping (up to a maximum of 100 epochs).
 # Because the FastMRI ground truth are cropped magnitude root-sum-of-squares reconstructions, we define a helper metric for evaluation later.
+
 
 def crop(x_net, x):
     """Crop to GT shape then take magnitude."""
@@ -121,13 +137,17 @@ def crop(x_net, x):
         dinv.utils.MRIMixin().crop(x_net, shape=x.shape), multicoil=False
     )
 
+
 class CropPSNR(dinv.metric.PSNR):
     def forward(self, x_net=None, x=None, *args, **kwargs):
         return super().forward(crop(x_net, x), x, *args, **kwargs)
 
+
 metric = CropPSNR(max_pixel=None)
 
-train_dataset, val_dataset = torch.utils.data.random_split(dataset, (0.8, 0.2), generator=rng_cpu)
+train_dataset, val_dataset = torch.utils.data.random_split(
+    dataset, (0.8, 0.2), generator=rng_cpu
+)
 
 trainer = dinv.Trainer(
     model=model,
@@ -137,7 +157,7 @@ trainer = dinv.Trainer(
     optimizer=torch.optim.Adam(model.parameters(), lr=1e-6),
     train_dataloader=DataLoader(train_dataset, shuffle=True),
     eval_dataloader=DataLoader(val_dataset),
-    epochs=0, # 100
+    epochs=0,  # 100
     save_path=None,
     show_progress_bar=True,
     early_stop=True,
@@ -156,8 +176,15 @@ model.eval()
 for i in [len(dataset) // 2 - 1, len(dataset) // 2, len(dataset) // 2 + 1]:
     # Load slice
     x, y, params = default_collate([dataset[i]])
-    x, y, params = (x, y.to(device), {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for (k, v) in params.items()})
-    
+    x, y, params = (
+        x,
+        y.to(device),
+        {
+            k: (v.to(device) if isinstance(v, torch.Tensor) else v)
+            for (k, v) in params.items()
+        },
+    )
+
     physics.update(**params)
 
     # Compute baseline reconstructions
@@ -168,17 +195,23 @@ for i in [len(dataset) // 2 - 1, len(dataset) // 2, len(dataset) // 2 + 1]:
     with torch.no_grad():
         x_hat = model(y, physics).detach().cpu()
 
-    dinv.utils.plot({
-        "GT": x,
-        "Adjoint": crop(x_adj, x),
-        "SENSE": crop(x_dag, x),
-        "Trained": crop(x_hat, x),
-    }, subtitles=[
-        "",
-        f"{metric(x_adj, x).item():.2f} dB",
-        f"{metric(x_dag, x).item():.2f} dB",
-        f"{metric(x_hat, x).item():.2f} dB",
-    ], save_fn=OUT_DIR / f"result_{i}.png", close=True, show=False)
+    dinv.utils.plot(
+        {
+            "GT": x,
+            "Adjoint": crop(x_adj, x),
+            "SENSE": crop(x_dag, x),
+            "Trained": crop(x_hat, x),
+        },
+        subtitles=[
+            "",
+            f"{metric(x_adj, x).item():.2f} dB",
+            f"{metric(x_dag, x).item():.2f} dB",
+            f"{metric(x_hat, x).item():.2f} dB",
+        ],
+        save_fn=OUT_DIR / f"result_{i}.png",
+        close=True,
+        show=False,
+    )
 
 
 # %%
