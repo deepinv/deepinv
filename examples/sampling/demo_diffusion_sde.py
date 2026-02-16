@@ -59,6 +59,7 @@ from deepinv.models import NCSNpp
 
 device = dinv.utils.get_device()
 dtype = torch.float64
+dtype = torch.float32
 figsize = 2.5
 gif_frequency = 10  # Increase this value to save the GIF saving time
 # %%
@@ -171,7 +172,7 @@ mask[..., 24:40, 24:40] = 0.0
 physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=mask, device=device)
 y = physics(x)
 
-weight = 3.0  # guidance strength
+weight = 4.0  # guidance strength
 dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=weight)
 
 model = PosteriorDiffusion(
@@ -188,6 +189,7 @@ model = PosteriorDiffusion(
 # Moreover, when the physics is given, the initial point can be inferred from the physics if not given explicitly.
 
 seed_1 = 11
+
 x_hat, trajectory = model(
     y,
     physics,
@@ -195,7 +197,6 @@ x_hat, trajectory = model(
     get_trajectory=True,
 )
 
-x_hat = x
 
 # Here, we plot the original image, the measurement and the posterior sample
 dinv.utils.plot(
@@ -265,8 +266,12 @@ except FileNotFoundError:
 
 
 del trajectory
-sde = VariancePreservingDiffusion(alpha=0.01, device=device, dtype=dtype)
 
+beta_min = 0.0001
+beta_max = 5
+sde = VariancePreservingDiffusion(
+    alpha=0.01, beta_min=beta_min, beta_max=beta_max, device=device, dtype=dtype
+)
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
     denoiser=denoiser,
