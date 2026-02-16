@@ -480,22 +480,22 @@ class SongDiffusionSDE(EDMDiffusionSDE):
     This class implements the diffusion generative SDE based the formulation from :footcite:t:`song2020score`:
 
     .. math::
-        d x_t = -\left(\frac{1}{2} \beta(t) x_t + \frac{1 + \alpha(t)}{2} g(t) \nabla \log p_t(x_t) \right) dt + \sqrt{\alpha(t) g(t)} d w_t
+        d x_t = -\left(\frac{1}{2} \beta(t) x_t + \frac{1 + \alpha(t)}{2} \xi(t) \nabla \log p_t(x_t) \right) dt + \sqrt{\alpha(t) \xi(t)} d w_t
 
-    where :math:`\beta(t)` is a time-dependent linear drift, :math:`g(t)` is a time-dependent linear diffusion, and
+    where :math:`\beta(t)` is a time-dependent linear drift, :math:`\xi(t)` is a time-dependent linear diffusion, and
     :math:`\alpha(t)` is weighting the diffusion term.
 
     It corresponds to the reverse-time SDE of the following forward-time SDE:
 
     .. math::
-        d x_t = -\frac{1}{2} \beta(t) x_t dt + \sqrt{g(t)} d w_t
+        d x_t = -\frac{1}{2} \beta(t) x_t dt + \sqrt{\xi(t)} d w_t
 
-    Compared to the EDM formulation in :class:`deepinv.sampling.EDMDiffusionSDE`, the scale :math:`s(t)` and noise :math:`\sigma(t)` schedulers are defined with respect to :math:`\beta(t)` and :math:`g(t)` as follows:
+    Compared to the EDM formulation in :class:`deepinv.sampling.EDMDiffusionSDE`, the scale :math:`s(t)` and noise :math:`\sigma(t)` schedulers are defined with respect to :math:`\beta(t)` and :math:`\xi(t)` as follows:
 
     .. math::
-        s(t) = \exp\left(-\int_0^t \beta(s) ds\right), \quad \sigma(t) = \sqrt{2 \int_0^t \frac{g(s)}{s(s)^2} ds}.
+        s(t) = \exp\left(-\int_0^t \beta(s) ds\right), \quad \sigma(t) = \sqrt{2 \int_0^t \frac{\xi(s)}{s(s)^2} ds}.
 
-    Common choices include the variance-preserving formulation :math:`\beta(t) = g(t)` and the variance-exploding formulation :math:`\beta(t) = 0`.
+    Common choices include the variance-preserving formulation :math:`\beta(t) = \xi(t)` and the variance-exploding formulation :math:`\beta(t) = 0`.
 
         - For choosing variance-preserving formulation, set `variance_preserving=True` and `beta_t` and `xi_t` will be automatically set to be the same function.
         - For choosing variance-exploding formulation, set `variance_exploding=True` and `beta_t` will be automatically set to `0`.
@@ -652,7 +652,6 @@ class FlowMatching(EDMDiffusionSDE):
         *args,
         **kwargs,
     ):
-
         def scale_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             return a_t(t)
@@ -700,7 +699,6 @@ class FlowMatching(EDMDiffusionSDE):
 
 
 class VarianceExplodingDiffusion(EDMDiffusionSDE):
-
     def __init__(
         self,
         denoiser: nn.Module = None,
@@ -713,7 +711,6 @@ class VarianceExplodingDiffusion(EDMDiffusionSDE):
         *args,
         **kwargs,
     ):
-
         def sigma_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             return sigma_min * (sigma_max / sigma_min) ** t
@@ -789,7 +786,6 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
         *args,
         **kwargs,
     ):
-
         def beta_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             if not scaled_linear:

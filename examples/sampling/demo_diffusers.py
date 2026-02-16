@@ -122,14 +122,14 @@ physics = dinv.physics.Inpainting(
 )
 
 y = physics(x)
-sde = VariancePreservingDiffusion(device=device, dtype=dtype, alpha=0.2)
+sde = VariancePreservingDiffusion(device=device, dtype=dtype, alpha=0.25)
 
 # %% Define the posterior sampler with a noisy data-fidelity term
 
 from deepinv.sampling import DPSDataFidelity
 
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=0.3),
+    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=4.0),
     denoiser=denoiser,
     sde=sde,
     solver=solver,
@@ -150,3 +150,5 @@ dinv.utils.plot(
     titles=["Original image", "Measurement", "Posterior sample"],
     figsize=(figsize * 3, figsize),
 )
+
+# %%
