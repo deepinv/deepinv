@@ -267,11 +267,7 @@ except FileNotFoundError:
 
 del trajectory
 
-beta_min = 0.0001
-beta_max = 5
-sde = VariancePreservingDiffusion(
-    alpha=0.01, beta_min=beta_min, beta_max=beta_max, device=device, dtype=dtype
-)
+sde = VariancePreservingDiffusion(alpha=0.01, device=device, dtype=dtype)
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
     denoiser=denoiser,
