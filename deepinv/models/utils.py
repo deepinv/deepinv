@@ -81,6 +81,7 @@ def patchify(
     |sep|
 
     :Examples:
+    
     >>> import deepinv as dinv
     >>> x = dinv.utils.load_example('butterfly.png')
     >>> out = patchify(x, patch_size=8, stride=4)
