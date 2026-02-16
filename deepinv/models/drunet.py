@@ -206,7 +206,7 @@ class DRUNet(Denoiser):
             if sigma.ndim > 0:
                 if sigma.shape == (x.size(0), 1, *x.shape[2:]):
                     noise_level_map = sigma
-                elif sigma.shape == (x.size(0),):
+                elif sigma.shape in [(x.size(0),), (x.size(0), 1, 1, 1)]:
                     noise_level_map = sigma.view(x.size(0), 1, 1, 1)
                     noise_level_map = noise_level_map.expand(
                         -1, 1, x.size(2), x.size(3)
