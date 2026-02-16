@@ -23,8 +23,7 @@ figsize = 2.5
 from deepinv.sampling import (
     PosteriorDiffusion,
     EulerSolver,
-    VarianceExplodingDiffusion,
-    VariancePreservingDiffusion,
+    VarianceExplodingDiffusion
 )
 from deepinv.optim import ZeroFidelity
 
