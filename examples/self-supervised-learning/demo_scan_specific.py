@@ -5,9 +5,9 @@ Scan-specific zero-shot measurement splitting for MRI
 We demonstrate scan-specific self-supervised learning, that is, learning to
 reconstruct MRI scans from a single accelerated sample without ground truth.
 
-Here, we demonstrate training with the :class:`weighted SSDU <deepinv.loss.WeightedSplittingLoss>` :footcite:p:`millard2023theoretical,yaman2020self`.
+Here, we demonstrate training with the :class:`weighted SSDU <deepinv.loss.mri.WeightedSplittingLoss>` :footcite:p:`millard2023theoretical,yaman2020self`.
 However, note that any of the :ref:`self-supervised losses <self-supervised-losses>` can be used to do this with varying performance :footcite:p:`wang2025benchmarking`.
-For example see the :ref:`example using Equivariant Imaging <sphx_glr_auto_examples_self-supervised-learning_demo_ei.py>` :footcite:p:`chen2021equivariant`.
+For example see the :ref:`example using Equivariant Imaging <sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py>` :footcite:p:`chen2021equivariant`.
 
 """
 
@@ -57,7 +57,7 @@ dataset = dinv.datasets.FastMRISliceDataset(
             device="cpu",
             rng=rng_cpu,
         ),
-        estimate_coil_maps=True,
+        estimate_coil_maps=str(device) != "cpu",
     ),
 )
 
@@ -155,7 +155,7 @@ trainer = dinv.Trainer(
     optimizer=torch.optim.Adam(model.parameters(), lr=1e-6),
     train_dataloader=DataLoader(train_dataset, shuffle=True),
     eval_dataloader=DataLoader(val_dataset),
-    epochs=0,  # 100
+    epochs=0 if str(device) == "cpu" else 100,
     save_path=None,
     show_progress_bar=True,
     early_stop=3,
