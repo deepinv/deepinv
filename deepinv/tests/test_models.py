@@ -968,6 +968,18 @@ def test_varnet(varnet_type, device):
     assert psnr(x_init, x) < psnr(x_hat, x)
 
 
+def test_ram_performance(device):
+    model = dinv.models.RAM(device=device)
+    x = dinv.utils.load_example("butterfly.png", device=device)
+    physics = dinv.physics.Downsampling(
+        filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01), device=device
+    )
+    y = physics(x)
+    with torch.no_grad():
+        x_hat = model(y, physics)
+        assert dinv.metric.PSNR()(x_hat, x) > 29.75
+
+
 @pytest.mark.parametrize("use_physics", [True, False])
 @pytest.mark.parametrize("scale", [1e-5, 1e5])
 def test_ram_scale(scale, device, use_physics):
