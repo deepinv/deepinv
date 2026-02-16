@@ -497,7 +497,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
 
     Common choices include the variance-preserving formulation :math:`\beta(t) = g(t)` and the variance-exploding formulation :math:`\beta(t) = 0`.
 
-        - For choosing variance-preserving formulation, set `variance_preserving=True` and `beta_t` and `xi_t` will be automatically set to be the same function.
+        - For choosing variance-preserving formulation, set `variance_preserving=True` and `beta_t` and `g_t` will be automatically set to be the same function.
         - For choosing variance-exploding formulation, set `variance_exploding=True` and `beta_t` will be automatically set to `0`.
 
     .. note::
@@ -506,7 +506,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
 
     :param Callable beta_t: a time-dependent linear drift of the forward-time SDE.
     :param Callable B_t: time integral of beta_t between 0 and t. If None, it is calculated by numerical integration.
-    :param Callable xi_t: a time-dependent linear diffusion of the forward-time SDE.
+    :param Callable g_t: a time-dependent linear diffusion of the forward-time SDE.
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`.
     :param Callable, float alpha: a (possibly time-dependent) positive scalar weighting the diffusion term. A  constant function :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
     :param float T: the end time of the forward SDE.
@@ -523,7 +523,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
         self,
         beta_t: Callable = None,
         B_t: Callable = None,
-        xi_t: Callable = None,
+        g_t: Callable = None,
         variance_preserving: bool = False,
         variance_exploding: bool = False,
         alpha: Callable | float = 0.0,
@@ -537,12 +537,12 @@ class SongDiffusionSDE(EDMDiffusionSDE):
     ):
         if variance_preserving:
             if beta_t is not None:
-                xi_t = beta_t
-            elif xi_t is not None:
-                beta_t = xi_t
+                g_t = beta_t
+            elif g_t is not None:
+                beta_t = g_t
             else:
                 raise ValueError(
-                    "Either beta_t or xi_t must be provided if variance_preserving is True"
+                    "Either beta_t or g_t must be provided if variance_preserving is True"
                 )
         elif variance_exploding:
             beta_t = lambda t: 0 * self._handle_time_step(t)
@@ -571,7 +571,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
             else:
 
                 def integrand(s: torch.Tensor) -> torch.Tensor:
-                    return xi_t(s) / (scale_t(s) ** 2)
+                    return g_t(s) / (scale_t(s) ** 2)
 
                 integral = trapz_torch(
                     integrand, torch.tensor(0.0, device=t.device), t, n_steps
@@ -580,7 +580,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
 
         def sigma_prime_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
-            return (xi_t(t) / (scale_t(t) ** 2)) * (1 / sigma_t(t))
+            return (g_t(t) / (scale_t(t) ** 2)) * (1 / sigma_t(t))
 
         super().__init__(
             sigma_t=sigma_t,
@@ -652,7 +652,6 @@ class FlowMatching(EDMDiffusionSDE):
         *args,
         **kwargs,
     ):
-
         def scale_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             return a_t(t)
@@ -700,7 +699,6 @@ class FlowMatching(EDMDiffusionSDE):
 
 
 class VarianceExplodingDiffusion(EDMDiffusionSDE):
-
     def __init__(
         self,
         denoiser: nn.Module = None,
@@ -713,7 +711,6 @@ class VarianceExplodingDiffusion(EDMDiffusionSDE):
         *args,
         **kwargs,
     ):
-
         def sigma_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             return sigma_min * (sigma_max / sigma_min) ** t
@@ -789,7 +786,6 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
         *args,
         **kwargs,
     ):
-
         def beta_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             if not scaled_linear:
