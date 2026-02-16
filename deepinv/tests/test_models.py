@@ -1612,3 +1612,52 @@ def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_iso
         assert (
             psnr_init > psnr_noinit + improvement
         ), f"PSNR with init {psnr_init} not better than without init {psnr_noinit} + {improvement}"
+
+
+@pytest.mark.parametrize("model_name", ["pca"])
+@pytest.mark.parametrize("mode", ["image", "synthetic"])
+@pytest.mark.parametrize("channels", [1, 2, 3])
+@pytest.mark.parametrize("sigma", [0.1, 0.5, 0.01])
+def test_gaussian_noise_estimators(model_name, mode, channels, sigma, device, rng):
+    if model_name == "pca":
+        model = dinv.models.PatchCovarianceNoiseEstimator().to(device)
+    elif model_name == "wavelets":
+        model = dinv.models.WaveletNoiseEstimator().to(device)
+    else:
+        raise NotImplementedError()
+
+    if model_name == "wavelets":
+        pytest.importorskip(
+            "ptwt",
+            reason="This test requires pytorch_wavelets. It should be "
+            "installed with `pip install "
+            "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+        )
+
+    if mode == "image":
+        x = dinv.utils.load_example("butterfly.png").to(device)
+        x = x[:, :channels, :, :]
+    else:
+        x = torch.zeros((1, channels, 256, 256))
+
+    y = x + sigma * torch.empty_like(x).normal_(generator=rng).to(device)
+
+    sigma_est = model(y)
+
+    if mode == "synthetic":
+        assert (sigma_est - sigma).abs() / sigma < 5e-2  # 5 % error
+    elif mode == "image":
+        assert (
+            sigma_est - sigma
+        ) < sigma + 0.01  # error less than 2 * sigma + quantization std
+
+    # Test batching is correct
+    x = torch.cat([x, x, x])
+    sigma = torch.tensor([sigma, sigma * 2, sigma * 3], device=device)
+    y = x + sigma.view(-1, 1, 1, 1) * torch.empty_like(x).normal_(generator=rng).to(
+        device
+    )
+
+    assert torch.allclose(
+        model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-4, atol=1e-6
+    )
