@@ -41,22 +41,19 @@ dinv.utils.download_example("demo_fastmri_brain_multicoil.h5", DATA_DIR)
 # .. note::
 #     This loading takes a few seconds per slice, as it must estimate the coil sensitivity map
 #     on the fly.
-#
-# .. hint::
-#     We skip coil map estimation on CPU for speed. Set `estimate_coil_maps=True` to always estimate coil maps.
 
 dataset = dinv.datasets.FastMRISliceDataset(
     DATA_DIR,
     slice_index="all",
     transform=dinv.datasets.MRISliceTransform(
         mask_generator=dinv.physics.generator.GaussianMaskGenerator(
-            img_size=(256, 256),
+            img_size=(256, 256), # this is overridden internally by true image size
             acceleration=6,
             center_fraction=0.08,
             device="cpu",
             rng=rng_cpu,
         ),
-        estimate_coil_maps=str(device) != "cpu",
+        estimate_coil_maps=True,
     ),
 )
 
