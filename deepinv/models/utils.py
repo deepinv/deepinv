@@ -1,10 +1,14 @@
 from __future__ import annotations
-import torch
-import torch.nn as nn
 import numpy as np
-import torch.nn.functional as F
+
+import torch
 from torch import Tensor
+
+import torch.nn as nn
+import torch.nn.functional as F
+
 from torch.nn import Linear, GroupNorm
+
 from itertools import chain
 
 
@@ -58,6 +62,57 @@ def test_pad(model, L, modulo=16):
     E = model(L)
     E = E[(...,) + tuple(slice(0, s) for s in spatials)]
     return E
+
+
+def patchify(
+    x: torch.Tensor, patch_size: tuple[int, int], stride: int = 1
+) -> torch.Tensor:
+    r"""
+    Patchifying images.
+
+    This function takes in a batch of images and extracts overlapping patches of specified size and stride,
+    returning them in a format suitable for processing by patch-based models.
+
+    :param torch.Tensor x: input image
+    :param (int, int) patch_size: patch size
+    :param int stride: stride
+    :return: (:class:`torch.Tensor`) patched image of shape (B, C, patch_size, patch_size, num_pch)
+
+    |sep|
+
+    :Examples:
+
+    >>> import deepinv as dinv
+    >>> x = dinv.utils.load_example('butterfly.png')
+    >>> patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
+    >>> print(f"Input shape: {x.shape}, patchified shape: {patches.shape}")
+    Input shape: torch.Size([1, 3, 256, 256]), patchified shape: torch.Size([1, 3, 8, 8, 3969])
+
+    .. plot::
+
+        import deepinv as dinv
+
+        x = dinv.utils.load_example('butterfly.png')
+        patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
+        dinv.utils.plot(list(patches[0].permute(3, 0, 1, 2)[:16]), titles=[f"Patch {i} of {patches.shape[-1]}" for i in range(16)])
+
+    """
+    B, C, H, W = x.shape
+    num_H = (H - patch_size) // stride + 1
+    num_W = (W - patch_size) // stride + 1
+    num_pch = num_H * num_W
+
+    # Use unfold to extract patches
+    patches = x.unfold(2, patch_size, stride).unfold(
+        3, patch_size, stride
+    )  # B x C x num_H x num_W x patch_size x patch_size
+
+    # Rearrange and reshape to match the desired output
+    patches = patches.permute(0, 1, 4, 5, 2, 3).reshape(
+        B, C, patch_size, patch_size, num_pch
+    )
+
+    return patches
 
 
 def test_onesplit(model, L, refield=32, sf=1):
