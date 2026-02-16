@@ -20,11 +20,7 @@ device = dinv.utils.get_device()
 dtype = torch.float32
 figsize = 2.5
 
-from deepinv.sampling import (
-    PosteriorDiffusion,
-    EulerSolver,
-    VarianceExplodingDiffusion
-)
+from deepinv.sampling import PosteriorDiffusion, EulerSolver, VarianceExplodingDiffusion
 from deepinv.optim import ZeroFidelity
 
 # %% Load a pretrained model and wrap it as a denoiser
