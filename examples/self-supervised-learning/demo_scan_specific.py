@@ -10,11 +10,7 @@ However, note that any of the :ref:`self-supervised losses <self-supervised-loss
 For example see the :ref:`example using Equivariant Imaging <sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py>` :footcite:p:`chen2021equivariant`.
 
 """
-
-from tqdm import tqdm
 import torch
-from torch.utils.data import DataLoader
-from torch.utils.data._utils.collate import default_collate
 import deepinv as dinv
 
 device = dinv.utils.get_device()
@@ -63,6 +59,7 @@ dataset = dinv.datasets.FastMRISliceDataset(
 
 # %%
 # When training with data that is slow to be loaded, it is faster to save the pre-loaded slices:
+from tqdm import tqdm
 
 if not any(SLICE_DIR.iterdir()):
     for i, (x, y, params) in tqdm(enumerate(dataset)):
@@ -153,8 +150,8 @@ trainer = dinv.Trainer(
     losses=loss,
     metrics=metric,
     optimizer=torch.optim.Adam(model.parameters(), lr=1e-6),
-    train_dataloader=DataLoader(train_dataset, shuffle=True),
-    eval_dataloader=DataLoader(val_dataset),
+    train_dataloader=torch.utils.data.DataLoader(train_dataset, shuffle=True, generator=rng_cpu),
+    eval_dataloader=torch.utils.data.DataLoader(val_dataset, generator=rng_cpu),
     epochs=0 if str(device) == "cpu" else 100,
     save_path=None,
     show_progress_bar=True,
@@ -170,6 +167,7 @@ model.eval()
 # ----------
 # Now that the model is trained, we test the model on 3 samples
 # by evaluating the model, plotting and saving the reconstructions and evaluation metrics.
+from torch.utils.data._utils.collate import default_collate
 
 for i in [len(dataset) // 2 - 1, len(dataset) // 2, len(dataset) // 2 + 1]:
     # Load slice
