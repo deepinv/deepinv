@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data._utils.collate import default_collate
 import deepinv as dinv
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 rng = torch.Generator(device=device).manual_seed(0)
 rng_cpu = torch.Generator(device="cpu").manual_seed(0)
 
@@ -31,10 +31,8 @@ rng_cpu = torch.Generator(device="cpu").manual_seed(0)
 
 DATA_DIR = dinv.utils.get_data_home() / "fastMRI" / "multicoil_train"
 SLICE_DIR = DATA_DIR / "slices"
-OUT_DIR = DATA_DIR / "out"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 SLICE_DIR.mkdir(exist_ok=True)
-OUT_DIR.mkdir(exist_ok=True)
 
 dinv.utils.download_example("demo_fastmri_brain_multicoil.h5", DATA_DIR)
 
@@ -160,7 +158,7 @@ trainer = dinv.Trainer(
     epochs=0,  # 100
     save_path=None,
     show_progress_bar=True,
-    early_stop=True,
+    early_stop=3,
     device=device,
 )
 
@@ -208,9 +206,6 @@ for i in [len(dataset) // 2 - 1, len(dataset) // 2, len(dataset) // 2 + 1]:
             f"{metric(x_dag, x).item():.2f} dB",
             f"{metric(x_hat, x).item():.2f} dB",
         ],
-        save_fn=OUT_DIR / f"result_{i}.png",
-        close=True,
-        show=False,
     )
 
 
