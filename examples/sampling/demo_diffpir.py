@@ -14,7 +14,7 @@ from tqdm import tqdm
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 
 # %%
 # Generate an inverse problem
@@ -29,7 +29,7 @@ from deepinv.utils.demo import load_example
 #
 
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 torch.manual_seed(1)
 
 x_true = load_example("69037.png", img_size=256, device=device)

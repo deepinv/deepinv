@@ -4,7 +4,7 @@ Tour of forward sensing operators
 
 This example provides a tour of some of the forward operators implemented in DeepInverse.
 We restrict ourselves to operators where the signal is a 2D image. The full list of operators can be found in
-`here <physics>`_.
+:ref:`here <physics>`.
 
 """
 
@@ -12,8 +12,7 @@ import torch
 
 import deepinv as dinv
 from deepinv.utils.plotting import plot
-from deepinv.utils.demo import load_example
-
+from deepinv.utils import load_example
 
 # %%
 # Load image from the internet
@@ -21,7 +20,7 @@ from deepinv.utils.demo import load_example
 #
 # This example uses an image of the CBSD68 dataset.
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 x = load_example("CBSD_0010.png", grayscale=False).to(device)
 
@@ -106,21 +105,27 @@ plot([x, physics.A_dagger(y)], titles=["signal", "linear inverse"])
 # ---------------------------------------
 #
 # The class :class:`deepinv.physics.Tomography` is associated with the sparse Radon transform.
-# Here we take 20 views of an image of size 64x64, and consider mixed Poisson-Gaussian noise.
+# Here we take 40 views of an image of size 64x64, and consider mixed Poisson-Gaussian noise.
+#
+# .. note::
+#    The filtered backprojection (FBP) can be computed using the method :meth:`deepinv.physics.Tomography.fbp` of the physics object.
+#    This does not coincide with the linear pseudo-inverse, computed with :meth:`deepinv.physics.Tomography.A_dagger`
+#
 
 physics = dinv.physics.Tomography(
     img_width=img_size[-1],
-    angles=20,
+    angles=40,
     device=device,
-    noise_model=dinv.physics.PoissonGaussianNoise(gain=0.1, sigma=0.05),
+    noise_model=dinv.physics.PoissonGaussianNoise(gain=0.001, sigma=0.001),
+    normalize=True,
 )
 
 y = physics(x)
 
 # plot results
 plot(
-    [x, (y - y.min()) / y.max(), physics.A_dagger(y)],
-    titles=["signal", "sinogram", "filtered backprojection"],
+    [x, (y - y.min()) / y.max(), physics.fbp(y), physics.A_dagger(y)],
+    titles=["signal", "sinogram", "filt. backproj.", "linear inverse"],
 )
 
 # %%

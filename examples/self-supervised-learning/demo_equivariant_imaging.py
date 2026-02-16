@@ -31,7 +31,7 @@ CKPT_DIR = BASE_DIR / "ckpts"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Load base image datasets and degradation operators.
@@ -157,7 +157,13 @@ optimizer.load_state_dict(ckpt["optimizer"])
 # %%
 # Train the network
 # --------------------------------------------
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
 #
+# .. tip::
+#
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
 
 
 verbose = True  # print training information
@@ -178,6 +184,11 @@ trainer = dinv.Trainer(
     losses=losses,
     optimizer=optimizer,
     train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
+    metrics=None,  # no supervised metrics
+    early_stop=2,  # early stop using the self-supervised loss on the test set
     plot_images=True,
     device=device,
     save_path=str(CKPT_DIR / operation),
@@ -192,9 +203,11 @@ model = trainer.train()
 # Test the network
 # --------------------------------------------
 #
+# We now assume that we have access to a small test set of ground-truth images to evaluate the performance of the trained network.
+# and we compute the PSNR between the denoised images and the clean ground truth images.
 #
 
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 # %%
 # :References:

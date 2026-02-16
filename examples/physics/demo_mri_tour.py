@@ -32,7 +32,7 @@ import deepinv as dinv
 import torch, torchvision
 from torch.utils.data import DataLoader
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 rng = torch.Generator(device=device).manual_seed(0)
 
 
@@ -422,10 +422,8 @@ _ = trainer.train()
 #
 
 x = (
-    torch.from_numpy(
-        dinv.utils.demo.load_np_url(
-            "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
-        )
+    dinv.utils.load_np_url(
+        "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
     )
     .unsqueeze(0)
     .unsqueeze(0)
@@ -466,13 +464,11 @@ dataset = dinv.datasets.CMRxReconSliceDataset(
 
 x, y, params = next(iter(DataLoader(dataset)))
 
-print(
-    f"""
+print(f"""
     Ground truth: {x.shape} (B, C, T, H, W)
     Measurements: {y.shape}
     Acc. mask: {params["mask"].shape}
-"""
-)
+""")
 
 # %%
 # Dynamic MRI data is directly compatible with existing functionality.

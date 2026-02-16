@@ -5,10 +5,12 @@ from tqdm import tqdm
 import torch.nn as nn
 from torch import Tensor
 from torch import rand
+import torch
 from torch.optim import Adam
 from deepinv.physics import Physics
 from deepinv.loss import MCLoss
 from .base import Reconstructor
+from .utils import fix_dim, conv_nd, batchnorm_nd, conv_transpose_nd
 from deepinv.utils.decorators import _deprecated_alias
 
 
@@ -28,6 +30,7 @@ class PatchGANDiscriminator(nn.Module):
     :param bool use_sigmoid: use sigmoid activation at end, defaults to False
     :param bool batch_norm: whether to use batch norm layers, defaults to True
     :param bool bias: whether to use bias in conv layers, defaults to True
+    :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
     """
 
     def __init__(
@@ -38,13 +41,18 @@ class PatchGANDiscriminator(nn.Module):
         use_sigmoid: bool = False,
         batch_norm: bool = True,
         bias: bool = True,
+        dim: str | int = 2,
     ):
         super().__init__()
+
+        dim = fix_dim(dim)
+
+        conv = conv_nd(dim)
 
         kw = 4  # kernel width
         padw = int(np.ceil((kw - 1) / 2))
         sequence = [
-            nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw),
+            conv(input_nc, ndf, kernel_size=kw, stride=2, padding=padw),
             nn.LeakyReLU(0.2, True),
         ]
 
@@ -54,7 +62,7 @@ class PatchGANDiscriminator(nn.Module):
             nf_mult_prev = nf_mult
             nf_mult = min(2**n, 8)
             sequence += [
-                nn.Conv2d(
+                conv(
                     ndf * nf_mult_prev,
                     ndf * nf_mult,
                     kernel_size=kw,
@@ -62,14 +70,14 @@ class PatchGANDiscriminator(nn.Module):
                     padding=padw,
                     bias=bias,
                 ),
-                nn.BatchNorm2d(ndf * nf_mult) if batch_norm else nn.Identity(),
+                batchnorm_nd(dim)(ndf * nf_mult) if batch_norm else nn.Identity(),
                 nn.LeakyReLU(0.2, True),
             ]
 
         nf_mult_prev = nf_mult
         nf_mult = min(2**n_layers, 8)
         sequence += [
-            nn.Conv2d(
+            conv(
                 ndf * nf_mult_prev,
                 ndf * nf_mult,
                 kernel_size=kw,
@@ -77,20 +85,18 @@ class PatchGANDiscriminator(nn.Module):
                 padding=padw,
                 bias=bias,
             ),
-            nn.BatchNorm2d(ndf * nf_mult) if batch_norm else nn.Identity(),
+            batchnorm_nd(dim)(ndf * nf_mult) if batch_norm else nn.Identity(),
             nn.LeakyReLU(0.2, True),
         ]
 
-        sequence += [
-            nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)
-        ]
+        sequence += [conv(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]
 
         if use_sigmoid:
             sequence += [nn.Sigmoid()]
 
         self.model = nn.Sequential(*sequence)
 
-    def forward(self, x: Tensor):
+    def forward(self, x: Tensor) -> Tensor:
         r"""
         Forward pass of discriminator model.
 
@@ -108,46 +114,55 @@ class ESRGANDiscriminator(nn.Module):
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param tuple img_size: shape of input image
+    :param tuple filter: Width (number of filters) at each stage. This can also be used to control the number of stages (or also: the output shape relative to input shapes). Defaults to (64, 128, 256, 512)
+    :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
 
     """
 
     @_deprecated_alias(input_shape="img_size")
-    def __init__(self, img_size: tuple):
+    def __init__(
+        self, img_size: tuple, filters: tuple = (64, 128, 256, 512), dim: str | int = 2
+    ):
         super().__init__()
+
+        dim = fix_dim(dim)
+        conv = conv_nd(dim)
+        batchnorm = batchnorm_nd(dim)
+
         self.img_size = img_size
-        in_channels, in_height, in_width = self.img_size
-        patch_h, patch_w = int(in_height / 2**4), int(in_width / 2**4)
-        self.output_shape = (1, patch_h, patch_w)
+        in_channels, *spatials = self.img_size
+        patch_spatials = tuple(s // 2 ** len(filters) for s in spatials)
+        self.output_shape = (1, *patch_spatials)
 
         def discriminator_block(in_filters, out_filters, first_block=False):
             layers = []
             layers.append(
-                nn.Conv2d(in_filters, out_filters, kernel_size=3, stride=1, padding=1)
+                conv(in_filters, out_filters, kernel_size=3, stride=1, padding=1)
             )
             if not first_block:
-                layers.append(nn.BatchNorm2d(out_filters))
+                layers.append(batchnorm(out_filters))
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             layers.append(
-                nn.Conv2d(out_filters, out_filters, kernel_size=3, stride=2, padding=1)
+                conv(out_filters, out_filters, kernel_size=3, stride=2, padding=1)
             )
-            layers.append(nn.BatchNorm2d(out_filters))
+            layers.append(batchnorm(out_filters))
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             return layers
 
         layers = []
         in_filters = in_channels
-        for i, out_filters in enumerate([64, 128, 256, 512]):
+        for i, out_filters in enumerate(filters):
             layers.extend(
                 discriminator_block(in_filters, out_filters, first_block=(i == 0))
             )
             in_filters = out_filters
 
-        layers.append(nn.Conv2d(out_filters, 1, kernel_size=3, stride=1, padding=1))
+        layers.append(conv(out_filters, 1, kernel_size=3, stride=1, padding=1))
 
         self.model = nn.Sequential(*layers)
 
-    def forward(self, x: Tensor):
+    def forward(self, x: Tensor) -> Tensor:
         r"""
         Forward pass of discriminator model.
 
@@ -166,34 +181,37 @@ class DCGANDiscriminator(nn.Module):
 
     :param int ndf: hidden layer size, defaults to 64
     :param int nc: number of input channels, defaults to 3
-
+    :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
     """
 
-    def __init__(self, ndf: int = 64, nc: int = 3):
+    def __init__(self, ndf: int = 64, nc: int = 3, dim: str | int = 2):
         super().__init__()
+        dim = fix_dim(dim)
+        conv = conv_nd(dim)
+        batchnorm = batchnorm_nd(dim)
         self.model = nn.Sequential(
             # input is ``(nc) x 64 x 64``
-            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
+            conv(nc, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. ``(ndf) x 32 x 32``
-            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 2),
+            conv(ndf, ndf * 2, 4, 2, 1, bias=False),
+            batchnorm(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. ``(ndf*2) x 16 x 16``
-            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 4),
+            conv(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+            batchnorm(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. ``(ndf*4) x 8 x 8``
-            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 8),
+            conv(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
+            batchnorm(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. ``(ndf*8) x 4 x 4``
-            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
+            conv(ndf * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid(),
         )
 
-    def forward(self, x: Tensor):
+    def forward(self, x: Tensor) -> Tensor:
         r"""Forward pass of discriminator model.
 
         :param torch.Tensor x: input image
@@ -215,48 +233,57 @@ class DCGANGenerator(nn.Module):
     :param int nz: latent dimension, defaults to 100
     :param int ngf: hidden layer size, defaults to 64
     :param int nc: number of image output channels, defaults to 3
+    :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
     """
 
     def __init__(
-        self, output_size: int = 64, nz: int = 100, ngf: int = 64, nc: int = 3
+        self,
+        output_size: int = 64,
+        nz: int = 100,
+        ngf: int = 64,
+        nc: int = 3,
+        dim: str | int = 2,
     ):
         super().__init__()
+        dim = fix_dim(dim)
+        batchnorm = batchnorm_nd(dim)
+        convtranspose = conv_transpose_nd(dim)
         self.nz = nz
         # input is (b, nz, 1, 1), output is (b, nc, output_size, output_size)
         if output_size == 64:
             layers = [
-                nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
-                nn.BatchNorm2d(ngf * 8),
+                convtranspose(nz, ngf * 8, 4, 1, 0, bias=False),
+                batchnorm(ngf * 8),
                 nn.ReLU(True),
             ]
         elif output_size == 128:
             layers = [
-                nn.ConvTranspose2d(nz, ngf * 16, 4, 1, 0, bias=False),
-                nn.BatchNorm2d(ngf * 16),
+                convtranspose(nz, ngf * 16, 4, 1, 0, bias=False),
+                batchnorm(ngf * 16),
                 nn.ReLU(True),
-                nn.ConvTranspose2d(ngf * 16, ngf * 8, 4, 2, 1, bias=False),
-                nn.BatchNorm2d(ngf * 8),
+                convtranspose(ngf * 16, ngf * 8, 4, 2, 1, bias=False),
+                batchnorm(ngf * 8),
                 nn.ReLU(True),
             ]
         else:
             raise ValueError("output_size must be 64 or 128.")
 
         layers += [
-            nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ngf * 4),
+            convtranspose(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
+            batchnorm(ngf * 4),
             nn.ReLU(True),
-            nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ngf * 2),
+            convtranspose(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
+            batchnorm(ngf * 2),
             nn.ReLU(True),
-            nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ngf),
+            convtranspose(ngf * 2, ngf, 4, 2, 1, bias=False),
+            batchnorm(ngf),
             nn.ReLU(True),
-            nn.ConvTranspose2d(ngf, nc, 4, 2, 1, bias=False),
+            convtranspose(ngf, nc, 4, 2, 1, bias=False),
             nn.Tanh(),
         ]
         self.model = nn.Sequential(*layers)
 
-    def forward(self, z: Tensor, *args, **kwargs):
+    def forward(self, z: Tensor, *args, **kwargs) -> Tensor:
         r"""
         Generate an image
 
@@ -332,6 +359,7 @@ class CSGMGenerator(Reconstructor):
             - 1
         )
 
+    @torch.enable_grad()
     def optimize_z(self, z: Tensor, y: Tensor, physics: Physics):
         r"""Run inference-time optimisation of latent z that is consistent with input measurement y according to physics.
 
@@ -363,7 +391,7 @@ class CSGMGenerator(Reconstructor):
                 break
         return z
 
-    def forward(self, y: Tensor, physics: Physics, *args, **kwargs):
+    def forward(self, y: Tensor, physics: Physics, *args, **kwargs) -> Tensor:
         r"""Forward pass of generator model.
 
         At train time, the generator samples latent vector from Unif[-1, 1] and passes through backbone.

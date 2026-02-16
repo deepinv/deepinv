@@ -39,7 +39,7 @@ class SupLoss(Loss):
         self.name = "supervised"
         self.metric = metric
 
-    def forward(self, x_net, x, **kwargs):
+    def forward(self, x_net: Tensor, x: Tensor, **kwargs) -> Tensor:
         r"""
         Computes the loss.
 
@@ -73,8 +73,8 @@ class ReducedResolutionLoss(SupLoss):
 
     .. hint::
 
-        During training, consider using the `disable_train_metrics` option in :class:`deepinv.Trainer` to prevent a shape
-        mismatch during metric computation if the reduced resolution output will be smaller than ground truth.
+        During training, consider using the `compute_train_metrics=False` option in :class:`deepinv.Trainer` to prevent a shape
+        mismatch during metric computation since the reduced resolution output will smaller than ground truth.
 
     This loss was used in :footcite:t:`shocher2017zero-shot` for downsampling tasks, and is named Wald's protocol :footcite:p:`wald1997fusion`
     for pan-sharpening tasks.
@@ -90,7 +90,7 @@ class ReducedResolutionLoss(SupLoss):
         super().__init__(metric=metric)
         self.physics = physics
 
-    def forward(self, x_net: Tensor, y: Tensor, *args, **kwargs):
+    def forward(self, x_net: Tensor, y: Tensor, *args, **kwargs) -> Tensor:
         r"""
         Computes the reduced resolution loss.
 
@@ -104,7 +104,8 @@ class ReducedResolutionLoss(SupLoss):
             return self.metric(x_net, y)
         except BaseException as e:
             raise RuntimeError(
-                f"Metric error. Check that the reconstruction (of shape {x_net.shape}) and y (of shape {y.shape}) can be used to calculate the metric. Full error:",
+                f"Metric error. Check that the reconstruction (of shape {x_net.shape}) and y (of shape {y.shape}) can be used to calculate the metric. "
+                f"Full error:",
                 str(e),
             )
 
@@ -120,7 +121,7 @@ class ReducedResolutionLoss(SupLoss):
             self.model = model
             self.physics = physics
 
-        def forward(self, y: Tensor, physics: Physics, **kwargs):
+        def forward(self, y: Tensor, physics: Physics, **kwargs) -> Tensor:
             if self.training:
                 phys = self.physics if self.physics is not None else physics
                 try:

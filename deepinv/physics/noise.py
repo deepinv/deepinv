@@ -1,6 +1,7 @@
 from __future__ import annotations
 import torch
 import torch.nn as nn
+from torch import Tensor
 from typing import Callable
 from collections.abc import Iterable
 import warnings
@@ -925,7 +926,7 @@ class FisherTippettNoise(NoiseModel):
 
 class RicianNoise(NoiseModel):
     r"""
-    RicianNoise: :math:`y = \sqrt{(x + \sigma \epsilon_1)^2 + (\sigma \epsilon_2)^2}`
+    Rician noise: :math:`y = \sqrt{(x + \sigma \epsilon_1)^2 + (\sigma \epsilon_2)^2}`
 
     where :math:`\epsilon_1\sim\mathcal{N}(0,I)` and :math:`\epsilon_2\sim\mathcal{N}(0,I)`
 
@@ -966,6 +967,58 @@ class RicianNoise(NoiseModel):
         N1 = self.randn_like(x)
         N2 = self.randn_like(x)
         return torch.sqrt((self.sigma * N1 + x) ** 2 + (self.sigma * N2) ** 2)
+
+
+class LaplaceNoise(NoiseModel):
+    r"""
+    Laplace noise :math:`y = z + \epsilon` where :math:`\epsilon\sim\text{Laplace}(0,b)`.
+    In the laplace distribution, b is the scale parameter and the variance is given by :math:`\sigma^2=2b^2`.
+
+    :param Union[float, torch.Generator] b: scale of the noise.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
+
+    |sep|
+    :Examples:
+
+        Adding Laplace noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
+
+        >>> from deepinv.physics import Denoising, LaplaceNoise
+        >>> import torch
+        >>> physics = Denoising()
+        >>> physics.noise_model = LaplaceNoise()
+        >>> x = torch.rand(1, 1, 2, 2)
+        >>> y = physics(x)
+    """
+
+    def __init__(
+        self,
+        b: float | torch.Tensor = 0.1,
+        rng: torch.Generator | None = None,
+    ):
+        device = _infer_device([b, rng])
+        super().__init__(rng=rng)
+        b = self._float_to_tensor(b)
+        b = b.to(device)
+        self.register_buffer("b", b)
+
+    def forward(self, x: Tensor, b: float | Tensor = None, seed: int = None, **kwargs):
+        r"""
+        Adds the noise to measurements x
+
+        :param torch.Tensor x: measurements
+        :param float, torch.Tensor b: scale of the noise. If not None, it will overwrite the current noise level.
+        :param int seed: the seed for the random number generator, if `rng` is provided.
+        :returns: noisy measurements
+        """
+        self.update_parameters(b=b, **kwargs)
+        self.to(x.device)
+
+        u = self.rand_like(x, seed=seed)
+        noise = (
+            -self.b * torch.sign(u - 0.5) * torch.log1p(-2 * torch.abs(u - 0.5))
+        )  # Inverse CDF method
+        return x + noise
 
 
 def _infer_device(

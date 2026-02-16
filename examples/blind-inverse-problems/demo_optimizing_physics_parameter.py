@@ -1,9 +1,9 @@
 r"""
-Solving blind inverse problems / estimating physics parameters
-==============================================================
+Calibrating physics operators
+=============================
 
 This demo shows you how to use
-:class:`deepinv.physics.Physics` together with automatic differentiation to optimize your operator.
+:class:`deepinv.physics.Physics` together with automatic differentiation to estimate unknown parameters of your forward operator.
 
 Consider the forward model
 
@@ -15,7 +15,7 @@ where :math:`N` is the noise model, :math:`\forw{\cdot, \theta}` is the forward 
 In a typical blind inverse problem, given a measurement :math:`y`, we would like to recover both the underlying image :math:`x` and the operator parameter :math:`\theta`,
 resulting in a highly ill-posed inverse problem.
 
-In this example, we only focus on a much more simpler problem: given the measurement :math:`y` and the ground truth :math:`x`, find the parameter :math:`\theta`.
+In this example, we only focus on a much more simpler calibration problem: given the measurement :math:`y` and the ground truth :math:`x`, find the parameter :math:`\theta`.
 This can be reformulated as the following optimization problem:
 
 .. math::
@@ -38,7 +38,7 @@ import torch
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 dtype = torch.float32
 
 # %%
@@ -56,7 +56,7 @@ physics = dinv.physics.Blur(noise_model=dinv.physics.GaussianNoise(0.02), device
 
 # %% Load and example image and compute the measurement
 x = dinv.utils.load_url_image(
-    dinv.utils.demo.get_image_url("celeba_example.jpg"),
+    dinv.utils.get_image_url("celeba_example.jpg"),
     img_size=256,
     resize_mode="resize",
 ).to(device)

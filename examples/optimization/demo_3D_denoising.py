@@ -1,20 +1,18 @@
 """
-3D wavelet denoising
+3D denoising
 ====================================================================================================
 
-This example shows how to use a 3D wavelet denoiser for denoising a 3D image. We first apply a standard soft-thresholding
-wavelet denoiser to a 3D brain MRI volume. We then extend the denoiser objective to a redundant dictionary of wavelet
+This example shows how to use variational 3D denoisers for denoising a 3D image. We first apply a standard soft-thresholding
+wavelet denoiser to a 3D brain MRI volume, as well as a 3D TV denoiser.
+We then extend the wavelet denoiser objective to a redundant dictionary of wavelet
 bases, which does not admit a closed-form solution. We solve the denoising problem using the Dykstra-like algorithm.
 """
 
 import deepinv as dinv
 from pathlib import Path
-import numpy as np
 
 import torch
 import torch.nn as nn
-
-from deepinv.utils.demo import load_np_url
 
 # %%
 # Setup paths for data loading and results.
@@ -38,13 +36,16 @@ DEG_DIR = BASE_DIR / "degradations"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
-volume_data = load_np_url(
-    "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
+volume_data = (
+    dinv.utils.load_np_url(
+        "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
+    )
+    .flip(0)
+    .unsqueeze(0)
+    .unsqueeze(0)
 )
-volume_data = np.copy(volume_data[::-1, ...])
-volume_data = torch.from_numpy(volume_data).unsqueeze(0).unsqueeze(0)
 x = volume_data / volume_data.max()
 
 noise_level_img = 0.1  # Gaussian Noise standard deviation for the degradation
@@ -56,7 +57,7 @@ physics = dinv.physics.Denoising(
 y = physics(x)
 
 # Compute the PSNR
-psnr = dinv.metric.PSNR()(x, y).item()
+psnr = dinv.metric.PSNR()(y, x).item()
 
 # Plot the input and the output of the degradation
 list_images = [x[0, :, 90, :, :], x[0, :, :, 108, :], x[0, :, :, :, 90]]
@@ -72,7 +73,7 @@ list_images = [y[0, :, 90, :, :], y[0, :, :, 108, :], y[0, :, :, :, 90]]
 dinv.utils.plot(
     list_images,
     figsize=(6, 2),
-    suptitle="noisy brain volume, PSNR = {:.2f}dB".format(psnr),
+    suptitle=f"noisy brain volume, PSNR = {psnr:.2f}dB",
     cmap="viridis",
     tight=False,
     fontsize=12,
@@ -106,20 +107,68 @@ denoiser = dinv.models.wavdict.WaveletDenoiser(
 
 # Apply the denoiser to the volume
 ths = noise_level_img * 2  # thresholding parameter
-x_hat = denoiser(y, ths)  # denoised volume
-psnr = dinv.metric.PSNR()(x, x_hat).item()  # compute PSNR
+with torch.no_grad():
+    x_hat = denoiser(y, ths)  # denoised volume
+psnr = dinv.metric.PSNR()(x_hat, x).item()  # compute PSNR
 
 # Plot
 list_images = [x_hat[0, :, 90, :, :], x_hat[0, :, :, 108, :], x_hat[0, :, :, :, 90]]
 dinv.utils.plot(
     list_images,
     figsize=(6, 2),
-    suptitle="Denoised brain volume. PSNR = {:.2f}dB".format(psnr),
+    suptitle=f"Denoised brain volume, wavelet prior. PSNR = {psnr:.2f}dB",
     cmap="viridis",
     tight=False,
     fontsize=12,
 )
 
+# sphinx_gallery_start_ignore
+assert psnr > 29.0
+# sphinx_gallery_end_ignore
+
+
+# %%
+# Other variational priors do also support 3D implementation. For instance, this is the case with TV or TGV priors.
+# Below, we illustrate the use of a TV denoiser, that solves the problem
+#
+# .. math::
+#     \widehat{x} = \arg\min_{x} \frac{1}{2} \|y - x\|_2^2 + \lambda \|x\|_\text{TV} = \operatorname{prox}_{\lambda \|\cdot\|_{\text{TV}}}(y)
+#
+# where :math:`\|\cdot\|_\text{TV}` is the total variation norm and :math:`\lambda` is a regularization parameter.
+
+
+denoiser_tv = dinv.models.TVDenoiser(n_it_max=10)
+
+# Apply the denoiser to the volume
+ths_tv = noise_level_img * 5.0  # thresholding parameter
+with torch.no_grad():
+    x_hat_tv = denoiser_tv(y, ths_tv)  # denoised volume
+
+psnr_tv = dinv.metric.PSNR()(x_hat_tv, x).item()
+
+# Plot
+list_images = [
+    x_hat_tv[0, :, 90, :, :],
+    x_hat_tv[0, :, :, 108, :],
+    x_hat_tv[0, :, :, :, 90],
+]
+dinv.utils.plot(
+    list_images,
+    figsize=(6, 2),
+    suptitle=f"Denoised brain volume, TV prior. PSNR = {psnr_tv:.2f}dB",
+    cmap="viridis",
+    tight=False,
+    fontsize=12,
+)
+
+# sphinx_gallery_start_ignore
+assert psnr_tv > 29.5
+# sphinx_gallery_end_ignore
+
+# %%
+# One can extend the above denoisers to more general denoisers.
+# For instance, we can extend the wavelet denoiser to a redundant dictionary of wavelet bases.
+# This is the purpose of the next section.
 
 # %%
 # Extension to multiple wavelet bases.
@@ -225,18 +274,22 @@ for it in range(max_iter):
 
 
 # Compute the PSNR
-psnr = dinv.metric.PSNR()(x, x_cur).item()
+psnr = dinv.metric.PSNR()(x_cur, x).item()
 
 # Plot the output
 list_images = [x_cur[0, :, 90, :, :], x_cur[0, :, :, 108, :], x_cur[0, :, :, :, 90]]
 dinv.utils.plot(
     list_images,
     figsize=(6, 2),
-    suptitle="Denoised brain volume after 10 steps. PSNR = {:.2f}dB".format(psnr),
+    suptitle=f"Denoised brain volume after 10 steps. PSNR = {psnr:.2f}dB",
     cmap="viridis",
     tight=False,
     fontsize=12,
 )
+
+# sphinx_gallery_start_ignore
+assert psnr > 29.4
+# sphinx_gallery_end_ignore
 
 
 # %%

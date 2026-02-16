@@ -27,10 +27,6 @@ from deepinv import utils
 
 __all__ += ["utils"]
 
-from deepinv import models
-
-__all__ += ["iterative"]
-
 from deepinv import physics
 
 __all__ += ["physics"]
@@ -61,6 +57,7 @@ __all__ += ["training"]
 
 from deepinv.training import train, test, Trainer
 
+from deepinv.utils import io as io
 
 # GLOBAL PROPERTY
 dtype = torch.float

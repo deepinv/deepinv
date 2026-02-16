@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from torch.nn.functional import silu
 import numpy as np
@@ -9,9 +10,9 @@ from .utils import (
 from .base import Denoiser
 
 from torch.nn import Linear, GroupNorm
+from torch import Tensor
 from math import floor
 from .utils import get_weights_url
-from typing import Sequence  # noqa: F401
 
 
 class ADMUNet(Denoiser):
@@ -204,7 +205,13 @@ class ADMUNet(Denoiser):
             self.device = device
 
     def forward(
-        self, x, sigma, class_labels=None, augment_labels=None, *args, **kwargs
+        self,
+        x: Tensor,
+        sigma: Tensor | float,
+        class_labels: Tensor | None = None,
+        augment_labels: Tensor | None = None,
+        *args,
+        **kwargs,
     ):
         r"""
         Run the denoiser on noisy image.

@@ -13,10 +13,6 @@ on:
         required: true
         type: number
 
-concurrency: # Cancel in-progress runs when pushing a new commit on the PR
-  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number || github.ref_name }}
-  cancel-in-progress: true
-
 jobs:
   test:
     name: Test GPU
@@ -48,7 +44,11 @@ jobs:
           uv run python --version
 
       - name: Install the project
-        run: uv sync --extra dataset --extra denoisers --extra test --extra training
+        run: |
+          uv sync --extra dataset --extra denoisers --extra test --extra training
+          uv pip install --python .venv torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+      # NOTE: use cuda 12.4, should be updated once the server driver is updated, see here: https://pytorch.org/get-started/previous-versions/
+      # The above line is a quick and dirty way to do this, since we do not want to modify the pyproject.toml
 
       - name: Check installed packages
         run: |
@@ -58,9 +58,25 @@ jobs:
         run: |
           uv run python -c "import deepinv"
 
+      - name: Restore .testmondata # Restore testmon data from main to speed up tests
+        uses: actions/cache/restore@v3
+        id: restore-cache
+        with:
+          path: .testmondata
+          key: testmon-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            testmon-gpu-main-
+
       - name: Test with pytest
         run: |
-          uv run python -m pytest -n 2 --dist=loadgroup
+          uv run python -m pytest -n 2 --dist=loadgroup --testmon
+
+      - name: Save .testmondata
+        uses: actions/cache/save@v3
+        if: github.ref == 'refs/heads/main' # Only save cache on main branch
+        with:
+          path: .testmondata
+          key: testmon-gpu-main-${{ github.run_id }}
 
       - name: Post result to PR
         if: always() && inputs.pr_number != ''

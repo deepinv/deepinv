@@ -35,9 +35,9 @@ from torch.utils.data import DataLoader, random_split
 from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize
 
 import deepinv as dinv
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 ORIGINAL_DATA_DIR = get_data_home() / "Urban100"
 
@@ -105,6 +105,13 @@ physics = dinv.physics.Inpainting((3, 256, 256), mask=0.6, device=device)
 #
 #       We only train for a single epoch in the demo, but it is recommended to train multiple epochs in practice.
 #
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
+#
+# .. tip::
+#
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
 
 model = dinv.models.UNet(
     in_channels=3, out_channels=3, scales=2, circular_padding=True, batch_norm=False
@@ -123,8 +130,12 @@ model = dinv.Trainer(
     online_measurements=True,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
     epochs=1,
     losses=losses,
+    metrics=None,  # no supervised metrics
+    early_stop=2,  # we can use early stopping as we have a validation set
     optimizer=optimizer,
     verbose=True,
     show_progress_bar=False,

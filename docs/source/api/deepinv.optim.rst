@@ -22,6 +22,18 @@ Base Class
    :nosignatures:
 
    deepinv.optim.BaseOptim
+   deepinv.optim.BacktrackingConfig
+   deepinv.optim.AndersonAccelerationConfig
+   deepinv.optim.DEQConfig
+   deepinv.optim.GD
+   deepinv.optim.PGD
+   deepinv.optim.FISTA
+   deepinv.optim.ADMM
+   deepinv.optim.DRS
+   deepinv.optim.HQS
+   deepinv.optim.MD
+   deepinv.optim.PMD
+   deepinv.optim.PDCP
 
 
 Potentials
@@ -69,6 +81,7 @@ Priors
    deepinv.optim.PnP
    deepinv.optim.RED
    deepinv.optim.ScorePrior
+   deepinv.optim.ZeroPrior
    deepinv.optim.Tikhonov
    deepinv.optim.L1Prior
    deepinv.optim.WaveletPrior
@@ -125,7 +138,7 @@ Distance
 
 Iterators
 ---------
-.. userguide:: optim-iterators
+.. userguide:: optim_iterators
 
 .. autosummary::
    :toctree: stubs
@@ -144,8 +157,25 @@ Iterators
    deepinv.optim.optim_iterators.DRSIteration
    deepinv.optim.optim_iterators.HQSIteration
    deepinv.optim.optim_iterators.MDIteration
+   deepinv.optim.optim_iterators.PMDIteration
    deepinv.optim.optim_iterators.SMIteration
 
+
+Linear Solvers
+--------------
+.. userguide:: least_squares
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+    deepinv.optim.linear.least_squares
+    deepinv.optim.linear.least_squares_implicit_backward
+    deepinv.optim.linear.lsqr
+    deepinv.optim.linear.bicgstab
+    deepinv.optim.linear.minres
+    deepinv.optim.linear.conjugate_gradient
 
 Utils
 -----
@@ -156,12 +186,6 @@ Utils
    :template: myfunc_template.rst
    :nosignatures:
 
-    deepinv.optim.utils.least_squares
-    deepinv.optim.utils.least_squares_implicit_backward
-    deepinv.optim.utils.lsqr
-    deepinv.optim.utils.bicgstab
-    deepinv.optim.utils.minres
-    deepinv.optim.utils.conjugate_gradient
     deepinv.optim.utils.gradient_descent
     deepinv.optim.phase_retrieval.correct_global_phase
     deepinv.optim.phase_retrieval.spectral_methods

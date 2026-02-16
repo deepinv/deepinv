@@ -22,10 +22,10 @@ import torch
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 from tqdm import tqdm  # to visualize progress
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 x_true = load_example("butterfly.png", img_size=64).to(device)
 x = x_true.clone()

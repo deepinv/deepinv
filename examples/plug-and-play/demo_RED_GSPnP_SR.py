@@ -12,12 +12,11 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import RED
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim import PGD
 from deepinv.training import test
 from torchvision import transforms
 from deepinv.utils.parameters import get_GSPnP_params
-from deepinv.utils.demo import load_dataset, load_degradation
-
+from deepinv.utils import load_dataset, load_degradation
 
 # %%
 # Setup paths for data loading and results.
@@ -32,7 +31,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # Set the global random seed from pytorch to ensure
 # the reproducibility of the example.
 torch.manual_seed(0)
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Load base image datasets and degradation operators.
@@ -95,17 +94,12 @@ crit_conv = "cost"  # Convergence is reached when the difference of cost functio
 # smaller than thres_conv
 thres_conv = 1e-5
 backtracking = True
-use_bicubic_init = False  # Use bicubic interpolation to initialize the algorithm
 batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
 
 # load specific parameters for GSPnP
-lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(operation, noise_level_img)
-
-params_algo = {
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-    "lambda": lamb,
-}
+lambda_reg, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
+    operation, noise_level_img
+)
 
 # Select the data fidelity term
 data_fidelity = L2()
@@ -126,8 +120,8 @@ class GSPnP(RED):
         r"""
         Computes the prior :math:`g(x)`.
 
-        :param torch.tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (torch.tensor) prior :math:`g(x)`.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (torch.Tensor) prior :math:`g(x)`.
         """
         return self.denoiser.potential(x, *args, **kwargs)
 
@@ -144,12 +138,13 @@ def custom_output(X):
 
 
 # instantiate the algorithm class to solve the IP problem.
-model = optim_builder(
-    iteration="PGD",
+model = PGD(
     prior=prior,
     g_first=True,
     data_fidelity=data_fidelity,
-    params_algo=params_algo,
+    sigma_denoiser=sigma_denoiser,
+    lambda_reg=lambda_reg,
+    stepsize=stepsize,
     early_stop=early_stop,
     max_iter=max_iter,
     crit_conv=crit_conv,

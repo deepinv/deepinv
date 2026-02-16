@@ -41,10 +41,10 @@ class ArtifactRemoval(Reconstructor):
     def __init__(
         self,
         backbone_net: Denoiser,
-        mode="adjoint",
-        pinv=False,
-        ckpt_path=None,
-        device=None,
+        mode: str = "adjoint",
+        pinv: bool = False,
+        ckpt_path: str = None,
+        device: torch.device | str = None,
     ):
         super(ArtifactRemoval, self).__init__()
         self.pinv = pinv
@@ -52,20 +52,17 @@ class ArtifactRemoval(Reconstructor):
 
         if self.pinv:
             mode = "pinv"
-        self.mode = mode
+        self.mode = mode.lower()
 
         if ckpt_path is not None:
             self.backbone_net.load_state_dict(torch.load(ckpt_path), strict=True)
             self.backbone_net.eval()
 
-        if type(self.backbone_net).__name__ == "UNetRes":
-            for _, v in self.backbone_net.named_parameters():
-                v.requires_grad = False
-
-        self.backbone_net = self.backbone_net.to(device)
+        if device is not None:
+            self.backbone_net = self.backbone_net.to(device)
 
     def backbone_inference(
-        self, tensor_in: Tensor, physics: Physics, y: Tensor
+        self, tensor_in: Tensor, physics: Physics, y: Tensor, **kwargs
     ) -> torch.Tensor:
         """Perform inference on the backbone network.
 
@@ -75,37 +72,34 @@ class ArtifactRemoval(Reconstructor):
         :param torch.Tensor tensor_in: input tensor as dictated by ArtifactRemoval mode
         :param Physics physics: forward physics
         :param torch.Tensor y: input measurements y
-        :return: (:class:`torch.Tensor`): reconstructed image
+        :return: reconstructed image
         """
-        return self.backbone_net(tensor_in, getattr(physics.noise_model, "sigma", None))
+        return self.backbone_net(
+            tensor_in, getattr(physics.noise_model, "sigma", None), **kwargs
+        )
 
-    def forward(self, y: Tensor, physics: Physics, **kwargs):
+    def forward(self, y: Tensor, physics: Physics, **kwargs) -> torch.Tensor:
         r"""
         Reconstructs a signal estimate from measurements y
 
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
+        :param dict kwargs: additional keyword arguments for the backbone network.
+
+        :return: reconstructed image
         """
         if isinstance(physics, nn.DataParallel):
             physics = physics.module
 
         if self.mode == "adjoint":
-            y_in = physics.A_adjoint(y)
+            x_hat = physics.A_adjoint(y, **kwargs)
         elif self.mode == "pinv":
-            y_in = physics.A_dagger(y)
+            x_hat = physics.A_dagger(y, **kwargs)
         elif self.mode == "direct":
-            y_in = y
+            x_hat = y
         else:
             raise ValueError(
                 "Invalid ArtifactRemoval mode. Options are 'direct', 'adjoint' or 'pinv'."
             )
 
-        if type(self.backbone_net).__name__ == "UNetRes":
-            noise_level_map = (
-                torch.FloatTensor(y_in.size(0), 1, y_in.size(2), y_in.size(3))
-                .fill_(kwargs["sigma"])
-                .to(y_in.dtype)
-            )
-            y_in = torch.cat((y_in, noise_level_map), 1)
-
-        return self.backbone_inference(y_in, physics, y)
+        return self.backbone_inference(x_hat, physics, y, **kwargs)

@@ -33,7 +33,7 @@ and Hadamard spectrum.
 import torch
 from pathlib import Path
 import deepinv as dinv
-from deepinv.utils.demo import get_image_url, load_url_image
+from deepinv.utils import get_image_url, load_url_image
 from deepinv.utils.plotting import plot
 from deepinv.loss.metric import PSNR
 from deepinv.physics.singlepixel import hadamard_2d_shift
@@ -47,7 +47,7 @@ RESULTS_DIR = BASE_DIR / "results"
 
 # Set the global random seed for reproducibility.
 torch.manual_seed(0)
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Configuration
@@ -137,7 +137,7 @@ plot(
 from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim import ADMM
 
 n_channels = 1  # Number of channels in the image
 
@@ -158,17 +158,16 @@ prior = PnP(denoiser=denoiser)
 # Set optimization parameters
 max_iter = 5  # Maximum number of iterations
 noise_level_img = 0.03  # Noise level in the image
-params_algo = {"stepsize": 0.8, "g_param": noise_level_img}
+stepsize = 0.8  # Step size for the optimization
 
-# Instantiate the optimization algorithm (ADMM)
-model = optim_builder(
-    iteration="ADMM",
+model = ADMM(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=False,
     max_iter=max_iter,
     verbose=False,
-    params_algo=params_algo,
+    stepsize=stepsize,
+    sigma_denoiser=noise_level_img,
     g_first=True,
 )
 

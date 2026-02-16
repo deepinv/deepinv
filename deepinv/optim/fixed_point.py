@@ -1,7 +1,14 @@
+from __future__ import annotations
+from typing import Callable, TYPE_CHECKING
+from collections.abc import Iterable
 import torch
 import torch.nn as nn
 import warnings
 from tqdm import tqdm
+
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
+    import deepinv
 
 
 class FixedPoint(nn.Module):
@@ -55,35 +62,35 @@ class FixedPoint(nn.Module):
     :param Callable update_prior_fn: function that returns the prior to be used at each iteration. Default: ``None``.
     :param Callable init_iterate_fn: function that returns the initial iterate. Default: ``None``.
     :param Callable init_metrics_fn: function that returns the initial metrics. Default: ``None``.
-    :param Callable check_iteration_fn: function that performs a check on the last iteration and returns a bool indicating if we can proceed to next iteration. Default: ``None``.
+    :param Callable backtraking_check_fn: function that performs a sufficent decrease check on the last iteration and returns a bool indicating if we can proceed to next iteration. Default: ``None``.
     :param Callable check_conv_fn: function that checks the convergence after each iteration, returns a bool indicating if convergence has been reached. Default: ``None``.
     :param int max_iter: maximum number of iterations. Default: ``50``.
     :param bool early_stop: if True, the algorithm stops when the convergence criterion is reached. Default: ``True``.
-    :param bool anderson_acceleration: if True, the Anderson acceleration is used. Default: ``False``.
-    :param int history_size: size of the history used for the Anderson acceleration. Default: ``5``.
-    :param float beta_anderson_acc: momentum of the Anderson acceleration step. Default: ``1.0``.
-    :param float eps_anderson_acc: regularization parameter of the Anderson acceleration step. Default: ``1e-4``.
+    :param deepinv.optim.AndersonAccelerationConfig anderson_acceleration_config: parameters for Anderson acceleration of the fixed-point iterations.
+    :param deepinv.optim.BacktrackingConfig backtracking_config: parameters for backtracking line-search stepsize strategy.
+    :param bool verbose: if True, various convergence information are printed during the iterations. Default: ``False``.
+    :param bool show_progress_bar: if True, a progress bar is displayed during the iterations. Default: ``False``.
     """
 
     def __init__(
         self,
-        iterator=None,
-        update_params_fn=None,
-        update_data_fidelity_fn=None,
-        update_prior_fn=None,
-        init_iterate_fn=None,
-        init_metrics_fn=None,
-        update_metrics_fn=None,
-        check_iteration_fn=None,
-        check_conv_fn=None,
-        max_iter=50,
-        early_stop=True,
-        anderson_acceleration=False,
-        history_size=5,
-        beta_anderson_acc=1.0,
-        eps_anderson_acc=1e-4,
-        verbose=False,
-        show_progress_bar=False,
+        iterator: deepinv.optim.OptimIterator = None,
+        update_params_fn: Callable[int, dict[str, float | Iterable]] = None,
+        update_data_fidelity_fn: Callable[int, deepinv.optim.DataFidelity] = None,
+        update_prior_fn: Callable[int, deepinv.optim.Prior] = None,
+        init_iterate_fn: Callable[..., dict] = None,
+        init_metrics_fn: Callable[[dict, torch.Tensor], dict[str, list]] = None,
+        update_metrics_fn: Callable[
+            [dict[str, list], dict, dict, torch.Tensor], dict[str, list]
+        ] = None,
+        backtraking_check_fn: Callable[[dict, dict], bool] = None,
+        check_conv_fn: Callable[[int, dict, dict], bool] = None,
+        max_iter: int = 50,
+        early_stop: bool = True,
+        anderson_acceleration_config: deepinv.optim.AndersonAccelerationConfig = None,
+        backtracking_config: deepinv.optim.BacktrakingConfig = None,
+        verbose: bool = False,
+        show_progress_bar: bool = False,
     ):
         super().__init__()
         self.iterator = iterator
@@ -96,11 +103,9 @@ class FixedPoint(nn.Module):
         self.init_metrics_fn = init_metrics_fn
         self.update_metrics_fn = update_metrics_fn
         self.check_conv_fn = check_conv_fn
-        self.check_iteration_fn = check_iteration_fn
-        self.anderson_acceleration = anderson_acceleration
-        self.history_size = history_size
-        self.beta_anderson_acc = beta_anderson_acc
-        self.eps_anderson_acc = eps_anderson_acc
+        self.backtraking_check_fn = backtraking_check_fn
+        self.anderson_acceleration_config = anderson_acceleration_config
+        self.backtracking_config = backtracking_config
         self.verbose = verbose
         self.show_progress_bar = show_progress_bar
 
@@ -110,47 +115,64 @@ class FixedPoint(nn.Module):
             )
             self.early_stop = False
 
-    def init_anderson_acceleration(self, X):
+    def init_anderson_acceleration(self, X: dict):
         r"""
         Initialize the Anderson acceleration algorithm.
         Code inspired from `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_.
 
+        Initializes the history buffers and the H and q matrices used in Anderson acceleration.
+        H and q are used to solve the linear system Hp = q at each Anderson acceleration step.
+        H is initialized as a (m+1)x(m+1) matrix where m is the history size, with first row and column set to 1.
+        Q is initialized as a (m+1)x1 vector with first element set to 1.
+
         :param dict X: initial iterate.
         """
         x = X["est"][0]
-        b, d, h, w = x.shape
+        b = x.shape[0]
+        feature_num = x[0].numel()
         x_hist = torch.zeros(
-            b, self.history_size, d * h * w, dtype=x.dtype, device=x.device
+            b,
+            self.anderson_acceleration_config.history_size,
+            feature_num,
+            dtype=x.dtype,
+            device=x.device,
         )  # history of iterates.
         T_hist = torch.zeros(
-            b, self.history_size, d * h * w, dtype=x.dtype, device=x.device
+            b,
+            self.anderson_acceleration_config.history_size,
+            feature_num,
+            dtype=x.dtype,
+            device=x.device,
         )  # history of T(x_k) with T the fixed point operator.
         H = torch.zeros(
             b,
-            self.history_size + 1,
-            self.history_size + 1,
+            self.anderson_acceleration_config.history_size + 1,
+            self.anderson_acceleration_config.history_size + 1,
             dtype=x.dtype,
             device=x.device,
         )  # H in the Anderson acceleration linear system Hp = q .
         H[:, 0, 1:] = H[:, 1:, 0] = 1.0
         q = torch.zeros(
-            b, self.history_size + 1, 1, dtype=x.dtype, device=x.device
+            b,
+            self.anderson_acceleration_config.history_size + 1,
+            1,
+            dtype=x.dtype,
+            device=x.device,
         )  # q in the Anderson acceleration linear system Hp = q .
         q[:, 0] = 1
-        return x_hist, T_hist, H, q
+        self.register_buffer("x_hist", x_hist, persistent=False)
+        self.register_buffer("T_hist", T_hist, persistent=False)
+        self.register_buffer("H", H, persistent=False)
+        self.register_buffer("q", q, persistent=False)
 
     def anderson_acceleration_step(
         self,
-        it,
-        X_prev,
-        TX_prev,
-        x_hist,
-        T_hist,
-        H,
-        q,
-        cur_data_fidelity,
-        cur_prior,
-        cur_params,
+        it: int,
+        X_prev: dict,
+        TX_prev: dict,
+        cur_data_fidelity: deepinv.optim.DataFidelity,
+        cur_prior: deepinv.optim.Prior,
+        cur_params: dict,
         *args,
     ):
         r"""
@@ -161,49 +183,94 @@ class FixedPoint(nn.Module):
         :param int it: current iteration.
         :param dict X_prev: previous iterate.
         :param dict TX_prev: output of the fixed-point operator evaluated at X_prev
-        :param torch.Tensor x_hist: history of last ``history-size`` iterates.
-        :param torch.Tensor T_hist: history of T evlauaton at the last ``history-size``, where T is the fixed-point operator.
-        :param torch.Tensor H: H in the Anderson acceleration linear system Hp = q .
-        :param torch.Tensor q: q in the Anderson acceleration linear system Hp = q .
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param args: arguments for the iterator.
         """
-        x_prev = X_prev["est"][0]  # current iterate Tx
-        Tx_prev = TX_prev["est"][0]  # current iterate x
+        x_prev = X_prev["est"][0]  # current iterate x
+        Tx_prev = TX_prev["est"][0]  # current iterate Tx
         b = x_prev.shape[0]  # batchsize
-        x_hist[:, it % self.history_size] = x_prev.reshape(
-            b, -1
-        )  # prepare history of x
-        T_hist[:, it % self.history_size] = Tx_prev.reshape(
-            b, -1
-        )  # prepare history of Tx
-        m = min(it + 1, self.history_size)
-        G = T_hist[:, :m] - x_hist[:, :m]
+
+        idx = (
+            it % self.anderson_acceleration_config.history_size
+        )  # "current" position in the ring buffer
+        m = min(
+            it + 1, self.anderson_acceleration_config.history_size
+        )  # effective history length
+        if self.anderson_acceleration_config.full_backprop:
+            # Full gradient through history
+            # avoid in-place modification, which messes with autograd
+            T_hist = self.T_hist.clone()
+            x_hist = self.x_hist.clone()
+            H = self.H.clone()
+            # update history and buffers
+            x_hist[:, idx] = x_prev.reshape(b, -1)
+            T_hist[:, idx] = Tx_prev.reshape(b, -1)
+            self.x_hist = x_hist
+            self.T_hist = T_hist
+            # use the m first elements of the history
+            X = x_hist[:, :m]  # (b,m,d)
+            T = T_hist[:, :m]  # (b,m,d)
+        else:
+            # No gradient through history, only through current iterate
+            # update history and buffers
+            H = self.H.clone().detach()
+            self.x_hist[:, idx] = x_prev.reshape(b, -1).detach()
+            self.T_hist[:, idx] = Tx_prev.reshape(b, -1).detach()
+            # old values : don't use grad
+            X_old = self.x_hist[:, :m].detach()
+            T_old = self.T_hist[:, :m].detach()
+            # new values : use grad
+            x_cur = x_prev.reshape(b, 1, -1)
+            t_cur = Tx_prev.reshape(b, 1, -1)
+            # use masking to only have the current value updating the gradient
+            mask = torch.zeros((1, m, 1), device=x_prev.device, dtype=x_prev.dtype)
+            mask[:, idx, :] = 1
+            X = X_old + mask * (x_cur - X_old[:, idx : idx + 1, :])
+            T = T_old + mask * (t_cur - T_old[:, idx : idx + 1, :])
+
+        G = T - X  # (b,m,d)
         H[:, 1 : m + 1, 1 : m + 1] = (
             torch.bmm(G, G.transpose(1, 2))
-            + self.eps_anderson_acc
+            + self.anderson_acceleration_config.eps
             * torch.eye(m, dtype=Tx_prev.dtype, device=Tx_prev.device)[None]
         )
-        p = torch.linalg.solve(H[:, : m + 1, : m + 1], q[:, : m + 1])[
+        p = torch.linalg.solve(H[:, : m + 1, : m + 1], self.q[:, : m + 1])[
             :, 1 : m + 1, 0
         ]  # solve the linear system H p = q.
-        x = (
-            self.beta_anderson_acc * (p[:, None] @ T_hist[:, :m])[:, 0]
-            + (1 - self.beta_anderson_acc) * (p[:, None] @ x_hist[:, :m])[:, 0]
-        )  # Anderson acceleration step.
-        x = x.view(x_prev.shape)
+
+        # Anderson update
+        beta = self.anderson_acceleration_config.beta
+        x = beta * (p[:, None] @ T)[:, 0] + (1 - beta) * (p[:, None] @ X)[:, 0]
+        x = x.view_as(x_prev)
+        self.H = H
         F = (
-            self.iterator.F_fn(x, cur_data_fidelity, cur_prior, cur_params, *args)
-            if self.iterator.has_cost
+            self.iterator.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, *args)
+            if self.iterator.cost_fn is not None
+            and cur_data_fidelity is not None
+            and cur_prior is not None
             else None
         )
         est = list(TX_prev["est"])
         est[0] = x
         return {"est": est, "cost": F}
 
-    def forward(self, *args, compute_metrics=False, x_gt=None, **kwargs):
+    def forward(
+        self,
+        *args,
+        init: (
+            Callable[
+                [torch.Tensor, Physics], Iterable[torch.Tensor] | torch.Tensor | dict
+            ]
+            | Iterable[torch.Tensor]
+            | torch.Tensor
+            | dict
+        ) = None,
+        compute_metrics: bool = False,
+        x_gt: torch.Tensor = None,
+        **kwargs,
+    ):
         r"""
         Loops over the fixed-point iterator as (1) and returns the fixed point.
 
@@ -215,17 +282,23 @@ class FixedPoint(nn.Module):
         Since the prior and parameters (stepsize, regularisation parameter, etc.) can change at each iteration,
         the prior and parameters are updated before each call to the iterator.
 
+        :param Callable, torch.Tensor, tuple, dict init: initialization of the algorithm.
+            Either a Callable function of the form ``init(y, physics)`` or a fixed torch.Tensor initialization.
+            The output of the function or the fixed initialization can be either:
+
+            - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+            - a :class:`torch.Tensor` :math:`x_0` (if no dual variables :math:`z_0` are used), or
+            - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+
         :param bool compute_metrics: if ``True``, the metrics are computed along the iterations. Default: ``False``.
         :param torch.Tensor x_gt: ground truth solution. Default: ``None``.
         :param args: optional arguments for the iterator. Commonly (y,physics) where ``y`` (torch.Tensor y) is the measurement and
-                    ``physics`` (deepinv.physics) is the physics model.
+            ``physics`` (deepinv.physics) is the physics model.
         :param kwargs: optional keyword arguments for the iterator.
-        :return tuple: ``(x,metrics)`` with ``x`` the fixed-point solution (dict) and
-                    ``metrics`` the computed along the iterations if ``compute_metrics`` is ``True`` or ``None``
-                    otherwise.
+        :return tuple: ``(x,metrics)`` with ``x`` the fixed-point solution (dict) and ``metrics`` the computed along the iterations if ``compute_metrics`` is ``True`` or ``None`` otherwise.
         """
         X = (
-            self.init_iterate_fn(*args, F_fn=self.iterator.F_fn)
+            self.init_iterate_fn(*args, init, cost_fn=self.iterator.cost_fn)
             if self.init_iterate_fn
             else None
         )
@@ -234,43 +307,53 @@ class FixedPoint(nn.Module):
             if self.init_metrics_fn and compute_metrics
             else None
         )
-        self.check_iteration = True
-        if self.anderson_acceleration:
-            self.x_hist, self.T_hist, self.H, self.q = self.init_anderson_acceleration(
-                X
-            )
-        it = 0
+
+        self.backtraking_check = True
+        failed_backtracking_count = 0
+
+        if self.anderson_acceleration_config is not None:
+            self.init_anderson_acceleration(X)
 
         for it in tqdm(
             range(self.max_iter),
             disable=(not self.verbose or not self.show_progress_bar),
         ):
             X_prev = X
-            X = self.single_iteration(
-                X,
-                it,
-                *args,
-                **kwargs,
-            )
+            X = self.single_iteration(X, it, *args, **kwargs)
 
-            if self.check_iteration:
+            if self.backtraking_check or self.backtraking_config is None:
+                # Successful iteration → reset the failure counter
+                failed_backtracking_count = 0
                 metrics = (
                     self.update_metrics_fn(metrics, X_prev, X, x_gt=x_gt)
                     if self.update_metrics_fn and compute_metrics
                     else None
                 )
+
+                # Convergence check
                 if (
                     self.early_stop
-                    and (self.check_conv_fn is not None)
+                    and self.check_conv_fn is not None
                     and it > 1
                     and self.check_conv_fn(it, X_prev, X)
                 ):
                     break
-                it += 1
+
+            else:
+                # Failed backtracking iteration
+                failed_backtracking_count += 1
+                # Stop if too many consecutive failures
+                if failed_backtracking_count >= self.backtraking_config.max_iter:
+                    if self.verbose:
+                        print(
+                            f"[Stopping] Reached maximum number of failed backtracking checks "
+                            f"({self.max_iter_backtracking})."
+                        )
+                    break
 
         return X, metrics
 
-    def single_iteration(self, X, it, *args, **kwargs):
+    def single_iteration(self, X: dict, it: int, *args, **kwargs):
         cur_params = self.update_params_fn(it) if self.update_params_fn else None
         cur_data_fidelity = (
             self.update_data_fidelity_fn(it) if self.update_data_fidelity_fn else None
@@ -280,21 +363,17 @@ class FixedPoint(nn.Module):
         X = self.iterator(
             X_prev, cur_data_fidelity, cur_prior, cur_params, *args, **kwargs
         )
-        if self.anderson_acceleration:
+        if self.anderson_acceleration_config is not None:
             X = self.anderson_acceleration_step(
                 it,
                 X_prev,
                 X,
-                self.x_hist,
-                self.T_hist,
-                self.H,
-                self.q,
                 cur_data_fidelity,
                 cur_prior,
                 cur_params,
                 *args,
             )
-        self.check_iteration = (
-            self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
+        self.backtraking_check = (
+            self.backtraking_check_fn(X_prev, X) if self.backtraking_check_fn else True
         )
-        return X if self.check_iteration else X_prev
+        return X if self.backtraking_check else X_prev

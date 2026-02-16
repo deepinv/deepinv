@@ -23,9 +23,8 @@ import torch
 import deepinv as dinv
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
-
-from deepinv.utils.demo import load_example
-
+from deepinv.optim import ADMM
+from deepinv.utils import load_example
 
 # %%
 # Load image and preprocess
@@ -72,7 +71,7 @@ x_rgb = channel_norm(x_rgb) * dynamic_range
 #         \begin{equation}  \underset{x}{\arg\min} \quad \| Dx - w_t(Dy) \|^2_2. \end{equation}
 #
 # Below, we illustrate this for a single row of the image by visualizing the pixel values, their differences, and the wrapped differences.
-# We can understand the condition by artificially blurring the images with a Gaussian kernel to reduce their high frequencies (and thus the :math:`\|Dx\|_{\infty}) until the condition is verified.
+# We can understand the condition by artificially blurring the images with a Gaussian kernel to reduce their high frequencies (and thus the :math:`\|Dx\|_{\infty}`) until the condition is verified.
 # For instace, with a blur of 0.1 it can be seen that the differences :math:`Dx` exceed the threshold (red dotted lines),
 # and consequently, we observe a mismatch with the wrapped differences :math:`w_t(Dy)`,
 # while with a blur of 2.0, the differences :math:`Dx` remain within the threshold, matching the wrapped differences :math:`w_t(Dy)`,
@@ -166,22 +165,20 @@ wrapped_phase = physics(phase_map)
 
 # ADMM-based inversion with TV prior and Itoh fidelity
 stepsize = 1e-4
-lam = 2.0 / stepsize
+lambda_reg = 2.0 / stepsize
 prior = dinv.optim.TVPrior(n_it_max=10)
 fidelity = dinv.optim.ItohFidelity(threshold=threshold)
 
 # DCT-based inversion
 x_est = fidelity.D_dagger(wrapped_phase)
 
-
-params_algo = {"stepsize": stepsize, "lambda": lam, "g_param": 1.0}
-model = dinv.optim.optim_builder(
-    iteration="ADMM",
+model = ADMM(
     prior=prior,
     data_fidelity=fidelity,
     max_iter=10,
     verbose=False,
-    params_algo=params_algo,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
 )
 x_model = model(wrapped_phase, physics)
 

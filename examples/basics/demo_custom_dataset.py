@@ -33,7 +33,7 @@ from torchvision.transforms import ToTensor
 #    :class:`deepinv.datasets.ImageFolder` can load any type of data (e.g. MRI, CT, etc.)
 #    by passing in a custom `loader` function and `transform`.
 
-DATA_DIR = dinv.utils.demo.get_data_home() / "demo_custom_dataset"
+DATA_DIR = dinv.utils.get_data_home() / "demo_custom_dataset"
 dinv.utils.download_example("butterfly.png", DATA_DIR / "GT")
 
 dataset1 = dinv.datasets.ImageFolder(DATA_DIR / "GT", transform=ToTensor())
@@ -122,7 +122,7 @@ dinv.datasets.check_dataset(dataset5)
 # %%
 # Say you have a DeepInverse problem already set up:
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 physics = dinv.physics.Inpainting(img_size=(3, 256, 256))
 model = dinv.models.RAM(pretrained=True, device=device)
 
@@ -146,10 +146,9 @@ dinv.test(model, DataLoader(dataset2), physics, plot_images=True, device=device)
 # %%
 # Even if the dataset doesn't have ground truth:
 #
-# Here reference-metrics such as PSNR will give NaN due to lack of ground truth, but
-# no-reference metrics can be used.
+# Here only no-reference metrics can be used.
 
-metrics = [dinv.metric.PSNR(), dinv.metric.NIQE(device=device)]
+metrics = [dinv.metric.NIQE(device=device)]
 
 dinv.test(
     model,

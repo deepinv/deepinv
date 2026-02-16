@@ -1,7 +1,14 @@
+from __future__ import annotations
 import torch
-from torch import nn
+from torch import Tensor, nn
 from deepinv.models import Denoiser
-from .utils import get_weights_url
+from .utils import (
+    get_weights_url,
+    fix_dim,
+    conv_nd,
+    conv_transpose_nd,
+    initialize_3d_from_2d,
+)
 
 
 class DScCP(Denoiser):
@@ -17,15 +24,26 @@ class DScCP(Denoiser):
 
     :param int depth: depth i.e. number of convolutional layers.
     :param int n_channels_per_layer: number of channels per convolutional layer.
-    :param str pretrained: 'download' to download pretrained weights, or path to local weights file.
-    :param torch.device, str device: 'cuda' or 'cpu'.
+    :param str, None pretrained: ``pretrained='download'`` to download pretrained weights, or path to local weights file. When building a 3D network, it is possible to initialize with 2D pretrained weights by using ``pretrained='download_2d'``, which provides a good starting point for fine-tuning.
+    :param bool pretrained_2d_isotropic: when loading 2D pretrained weights into a 3D network, whether to initialize the 3D kernels isotropically. By default the weights are loaded axially, i.e., by initializing the central slice of the 3D kernels with the 2D weights.
+    :param torch.device, str device: 'cuda', 'mps' or 'cpu'.
+    :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
     """
 
     def __init__(
-        self, depth=20, n_channels_per_layer=64, pretrained="download", device=None
+        self,
+        depth: int = 20,
+        n_channels_per_layer: int = 64,
+        pretrained: str | None = "download",
+        pretrained_2d_isotropic: bool = False,
+        device: torch.device | str = None,
+        dim: int | str = 2,
     ):
         super(DScCP, self).__init__()
+        dim = fix_dim(dim)
+        conv = conv_nd(dim)
+        convtranspose = conv_transpose_nd(dim)
         self.depth = depth
         self.n_channels_per_layer = n_channels_per_layer
         self.norm_net = 0
@@ -33,7 +51,7 @@ class DScCP(Denoiser):
         self.conv = nn.ModuleList()
         for i in range(self.depth):
             self.conv.append(
-                nn.Conv2d(
+                conv(
                     in_channels=3,
                     out_channels=n_channels_per_layer,
                     kernel_size=3,
@@ -43,7 +61,7 @@ class DScCP(Denoiser):
                 )
             )
             self.conv.append(
-                nn.ConvTranspose2d(
+                convtranspose(
                     in_channels=n_channels_per_layer,
                     out_channels=3,
                     kernel_size=3,
@@ -64,7 +82,12 @@ class DScCP(Denoiser):
             nn.init.kaiming_normal_(self.conv[i].weight.data, nonlinearity="relu")
 
         if pretrained is not None:
-            if pretrained == "download":
+
+            if pretrained == "download" or pretrained == "download_2d":
+                if dim == 3 and pretrained == "download":  # pragma: no cover
+                    raise ValueError(
+                        "No 3D weights for DScCP are available for download. You can either initialize with 2D weights by using `download_2d`, which provides a good starting point for fine-tuning, or set pretrained to None or path to your own pretrained weights."
+                    )
                 url = get_weights_url(
                     model_name="dsccp", file_name="ckpt_dsccp.pth.tar"
                 )
@@ -75,7 +98,11 @@ class DScCP(Denoiser):
                 )
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
-            self.load_state_dict(ckpt)
+
+            if dim == 3 and pretrained == "download_2d":
+                initialize_3d_from_2d(self, ckpt, isotropic=pretrained_2d_isotropic)
+            else:
+                self.load_state_dict(ckpt)
 
         self.tol = 1e-4
         self.max_iter = 50
@@ -83,7 +110,7 @@ class DScCP(Denoiser):
         if device is not None:
             self.to(device)
 
-    def forward(self, x, sigma=0.03):
+    def forward(self, x: Tensor, sigma: float = 0.03) -> Tensor:
         r"""
         Run the denoiser on noisy image.
 

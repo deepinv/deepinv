@@ -15,7 +15,7 @@ import torch
 from torchvision import transforms
 
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim import PGD
 from deepinv.utils.demo import load_dataset, load_degradation
 from deepinv.utils.plotting import plot, plot_curves
 
@@ -39,7 +39,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # Set up the variable to fetch dataset and operators.
 dataset_name = "set3c"
@@ -147,20 +147,19 @@ plot_convergence_metrics = (
 
 # Algorithm parameters
 stepsize = 1.0
-lamb = 1e-2  # TV regularisation parameter
-params_algo = {"stepsize": stepsize, "lambda": lamb}
+lambda_reg = 1e-2  # TV regularisation parameter
 max_iter = 300
 early_stop = True
 
 # Instantiate the algorithm class to solve the problem.
-model = optim_builder(
-    iteration="PGD",
+model = PGD(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
 )
 
 # %%

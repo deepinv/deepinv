@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
 import deepinv as dinv
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 
 # %%
 # Setup paths for data loading and results.
@@ -39,7 +39,7 @@ ORIGINAL_DATA_DIR = get_data_home()
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Load base image datasets
@@ -149,6 +149,14 @@ print(f"INIT. noise level {loss.sigma2.sqrt().item():.3f}")
 # --------------------------------------------
 # We train the network using the :class:`deepinv.Trainer` class.
 #
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
+#
+# .. tip::
+#
+#       We can use the same self-supervised loss for evaluation (without updating the noise level, which is equivalent to SURE with the estimated noise level),
+#       as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True
@@ -160,9 +168,14 @@ trainer = dinv.Trainer(
     physics=physics,
     epochs=epochs,
     losses=loss,
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
+    metrics=None,  # no supervised metrics
+    early_stop=2,  # early stop using the self-supervised loss on the test set
     optimizer=optimizer,
     device=device,
     train_dataloader=train_dataloader,
+    eval_dataloader=train_dataloader,
     plot_images=False,
     save_path=str(CKPT_DIR / operation),
     verbose=True,  # print training information
@@ -195,7 +208,7 @@ test_dataloader = DataLoader(
 )
 
 trainer.plot_images = True
-trainer.test(test_dataloader=test_dataloader)
+trainer.test(test_dataloader=test_dataloader, metrics=dinv.metric.PSNR())
 
 # %%
 # :References:

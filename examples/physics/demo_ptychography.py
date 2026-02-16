@@ -14,13 +14,13 @@ import matplotlib.pyplot as plt
 import torch
 import numpy as np
 import deepinv as dinv
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 from deepinv.utils.plotting import plot
 from deepinv.physics import Ptychography
 from deepinv.optim.data_fidelity import L1
 from deepinv.optim.phase_retrieval import correct_global_phase
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 
 # %%

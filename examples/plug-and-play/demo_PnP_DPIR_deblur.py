@@ -13,11 +13,11 @@ from torch.utils.data import DataLoader
 from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim import HQS
 from deepinv.training import test
 from torchvision import transforms
 from deepinv.optim.dpir import get_DPIR_params
-from deepinv.utils.demo import load_dataset, load_degradation
+from deepinv.utils import load_dataset, load_degradation
 
 # %%
 # Setup paths for data loading and results.
@@ -38,7 +38,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # Set up the variable to fetch dataset and operators.
 method = "DPIR"
@@ -50,7 +50,9 @@ val_transform = transforms.Compose(
 
 # Generate a motion blur operator.
 kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
-kernel_torch = load_degradation("Levin09.npy", DEG_DIR / "kernels", index=kernel_index)
+kernel_torch = load_degradation(
+    "Levin09.npy", DEG_DIR / "kernels", index=kernel_index
+).to(torch.float32)
 kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
     0
 )  # add batch and channel dimensions
@@ -106,7 +108,6 @@ dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 
 # load specific parameters for DPIR
 sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img, device=device)
-params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
 early_stop = False  # Do not stop algorithm with convergence criteria
 
 # Select the data fidelity term
@@ -116,14 +117,14 @@ data_fidelity = L2()
 prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
 
 # instantiate the algorithm class to solve the IP problem.
-model = optim_builder(
-    iteration="HQS",
+model = HQS(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    sigma_denoiser=sigma_denoiser,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=True,
-    params_algo=params_algo,
 )
 
 # Set the model to evaluation mode. We do not require training here.

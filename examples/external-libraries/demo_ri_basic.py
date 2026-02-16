@@ -19,10 +19,11 @@ import torchkbnufft as tkbn
 
 import deepinv as dinv
 from deepinv.utils.plotting import plot, plot_curves, scatter_plot, plot_inset
-from deepinv.utils.demo import load_np_url, get_image_url, get_degradation_url
+from deepinv.utils import load_np_url, get_image_url, get_degradation_url
 from deepinv.utils.tensorlist import dirac_like
+from deepinv.optim import FISTA
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # The RI measurement operator
@@ -153,8 +154,9 @@ class RadioInterferometry(LinearPhysics):
 # In the case of this particular image, this ratio is of ``5000``.
 # For this reason, unlike in other applications, we tend to visualize the logarithmic scale of the data instead of the data itself.
 
-image_gdth = load_np_url(get_image_url("3c353_gdth.npy"))
-image_gdth = torch.from_numpy(image_gdth).unsqueeze(0).unsqueeze(0).to(device)
+image_gdth = (
+    load_np_url(get_image_url("3c353_gdth.npy")).unsqueeze(0).unsqueeze(0).to(device)
+)
 
 
 def to_logimage(im, rescale=False, dr=5000):
@@ -186,8 +188,7 @@ plot(
 # so that the possibility of point sources appearing on the boundaries of pixels can be reduced.
 # Here, this factor is ``1.5``.
 
-uv = load_np_url(get_degradation_url("uv_coordinates.npy"))
-uv = torch.from_numpy(uv).to(device)
+uv = load_np_url(get_degradation_url("uv_coordinates.npy")).to(device)
 
 scatter_plot([uv], titles=["uv coverage"], s=0.2, linewidths=0.0)
 
@@ -224,8 +225,9 @@ y = y + tau * noise
 # We here provide the Briggs-weighting scheme associated to the above uv-sampling pattern.
 
 # load pre-computed Briggs weighting
-nWimag = load_np_url(get_degradation_url("briggs_weight.npy"))
-nWimag = torch.from_numpy(nWimag).reshape(1, 1, -1).to(device)
+nWimag = (
+    load_np_url(get_degradation_url("briggs_weight.npy")).reshape(1, 1, -1).to(device)
+)
 
 # apply natural weighting and Briggs weighting to measurements
 y *= nWimag / tau
@@ -300,18 +302,15 @@ prior = WaveletPrior(level=3, wv=wv_list, p=1, device="cpu", clamp_min=0)
 
 
 # %%
-# The problem is quite challenging and to reduce optimization time,
-# we can start from an approximate guess of the solution that is pseudo-inverse reconstruction.
 
 
 def custom_init(y, physics):
     x_init = torch.clamp(physics.A_dagger(y), 0)
-    return {"est": (x_init, x_init)}
+    return x_init
 
 
 # %%
 # We are now ready to implement the FISTA algorithm.
-from deepinv.optim.optimizers import optim_builder
 
 # Logging parameters
 verbose = True
@@ -322,25 +321,29 @@ plot_convergence_metrics = (
 
 # Algorithm parameters
 stepsize = 1.0 / (1.5 * opnorm)
-lamb = 1e-3 * opnorm  # wavelet regularisation parameter
-params_algo = {"stepsize": stepsize, "lambda": lamb}
+lambda_reg = 1e-3 * opnorm  # wavelet regularisation parameter
 max_iter = 50
 early_stop = True
 
 # Instantiate the algorithm class to solve the problem.
-model = optim_builder(
-    iteration="FISTA",
+model = FISTA(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
     custom_init=custom_init,
 )
 
 # reconstruction with FISTA algorithm
-x_model, metrics = model(y, physics, x_gt=image_gdth, compute_metrics=True)
+# The problem is quite challenging and to reduce optimization time,
+# we can start from an approximate guess of the solution that is pseudo-inverse reconstruction.
+init = torch.clamp(physics.A_dagger(y), 0), torch.clamp(
+    physics.A_dagger(y), 0
+)  # initialization of the x and z variables in FISTA
+x_model, metrics = model(y, physics, init=init, x_gt=image_gdth, compute_metrics=True)
 
 # compute PSNR
 print(

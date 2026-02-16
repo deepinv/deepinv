@@ -1,6 +1,8 @@
 # Code borrowed from https://github.com/ZhenghanFang/learned-proximal-networks
+from __future__ import annotations
 import torch
 from torch import nn
+from .utils import fix_dim, conv_nd, avgpool_nd
 
 
 class ICNN(nn.Module):
@@ -14,26 +16,31 @@ class ICNN(nn.Module):
 
     :param int in_channels: Number of input channels.
     :param int num_filters: Number of hidden units.
-    :param kernel_dim: dimension of the convolutional kernels.
+    :param int kernel_dim: dimension of the convolutional kernels.
     :param int num_layers: Number of layers.
     :param float strong_convexity: Strongly convex parameter.
     :param bool pos_weights: Whether to force positive weights in the forward pass.
-    :param str device: Device to use for the model.
-
+    :param torch.device, str device: Device to put the model on.
+    :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
     """
 
     def __init__(
         self,
-        in_channels=3,
-        num_filters=64,
-        kernel_dim=5,
-        num_layers=10,
-        strong_convexity=0.5,
-        pos_weights=True,
-        device="cpu",
+        in_channels: int = 3,
+        num_filters: int = 64,
+        kernel_dim: int = 5,
+        num_layers: int = 10,
+        strong_convexity: float = 0.5,
+        pos_weights: bool = True,
+        device: torch.device | str = "cpu",
+        dim: int | str = 2,
     ):
         super(ICNN, self).__init__()
+
+        dim = fix_dim(dim)
+        conv = conv_nd(dim)
+
         self.n_in_channels = in_channels
         self.n_layers = num_layers
         self.n_filters = num_filters
@@ -43,7 +50,7 @@ class ICNN(nn.Module):
         # these layers should have non-negative weights
         self.wz = nn.ModuleList(
             [
-                nn.Conv2d(
+                conv(
                     self.n_filters,
                     self.n_filters,
                     self.kernel_size,
@@ -60,7 +67,7 @@ class ICNN(nn.Module):
         # these layers can have arbitrary weights
         self.wx_quad = nn.ModuleList(
             [
-                nn.Conv2d(
+                conv(
                     self.n_in_channels,
                     self.n_filters,
                     self.kernel_size,
@@ -75,7 +82,7 @@ class ICNN(nn.Module):
         )
         self.wx_lin = nn.ModuleList(
             [
-                nn.Conv2d(
+                conv(
                     self.n_in_channels,
                     self.n_filters,
                     self.kernel_size,
@@ -90,7 +97,7 @@ class ICNN(nn.Module):
         )
 
         # one final conv layer with nonnegative weights
-        self.final_conv2d = nn.Conv2d(
+        self.final_conv = conv(
             self.n_filters,
             self.n_in_channels,
             self.kernel_size,
@@ -101,6 +108,9 @@ class ICNN(nn.Module):
             device=device,
         )
 
+        self.avgpool = avgpool_nd(dim)
+        self.dim = dim
+
         # slope of leaky-relu
         self.negative_slope = 0.2
         self.strong_convexity = strong_convexity
@@ -108,7 +118,7 @@ class ICNN(nn.Module):
         self.pos_weights = pos_weights
         self.device = device
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Calculate potential function of the ICNN.
 
@@ -127,15 +137,15 @@ class ICNN(nn.Module):
                 + self.wx_lin[layer + 1](x),
                 negative_slope=self.negative_slope,
             )
-        z = self.final_conv2d(z)
-        z_avg = torch.nn.functional.avg_pool2d(z, z.size()[2:]).view(z.size()[0], -1)
+        z = self.final_conv(z)
+        z_avg = self.avgpool(z.size()[2:])(z).view(z.size()[0], -1)
 
         return z_avg + 0.5 * self.strong_convexity * torch.linalg.vector_norm(
-            x, dim=(1, 2, 3), ord=2
+            x, dim=tuple(range(1, self.dim + 2)), ord=2
         ).pow(2)
 
     @torch.enable_grad()
-    def grad(self, x):
+    def grad(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Calculate the gradient of the potential function.
 
@@ -158,7 +168,7 @@ class ICNN(nn.Module):
             self.wz[layer].weight.data = min_val + (max_val - min_val) * torch.rand(
                 self.n_filters, self.n_filters, self.kernel_size, self.kernel_size
             ).to(self.device)
-        self.final_conv2d.weight.data = min_val + (max_val - min_val) * torch.rand(
+        self.final_conv.weight.data = min_val + (max_val - min_val) * torch.rand(
             1, self.n_filters, self.kernel_size, self.kernel_size
         ).to(self.device)
         return self
@@ -167,5 +177,5 @@ class ICNN(nn.Module):
     def zero_clip_weights(self):
         for layer in range(self.n_layers):
             self.wz[layer].weight.data.clamp_(0)
-        self.final_conv2d.weight.data.clamp_(0)
+        self.final_conv.weight.data.clamp_(0)
         return self

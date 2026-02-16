@@ -55,6 +55,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`ConfocalBlurGenerator3D <deepinv.physics.generator.ConfocalBlurGenerator3D>`
        | :class:`gaussian_blur <deepinv.physics.blur.gaussian_blur>`, :class:`sinc_filter <deepinv.physics.blur.sinc_filter>`
        | :class:`bilinear_filter <deepinv.physics.blur.bilinear_filter>`, :class:`bicubic_filter <deepinv.physics.blur.bicubic_filter>`
+       | :class:`Zernike <deepinv.physics.generator.Zernike>` 
 
    * - Magnetic Resonance Imaging (MRI)
      -
@@ -115,6 +116,10 @@ This is particular useful when dealing with blind inverse problems or parameter 
      - | :func:`build_probe <deepinv.physics.phase_retrieval.build_probe>`
        | :func:`generate_shifts <deepinv.physics.phase_retrieval.generate_shifts>`
 
+   * - Inverse Scattering
+     -
+       | :class:`deepinv.physics.Scattering`
+     -
 
 .. _wrapper_list:
 
@@ -165,6 +170,9 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
 
    * - :class:`deepinv.physics.PoissonGaussianNoise`
      - :math:`y = \gamma z + \epsilon`, :math:`z\sim\mathcal{P}(\frac{z}{\gamma})`, :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`
+
+   * - :class:`deepinv.physics.LaplaceNoise`
+     - :math:`y\sim\text{Laplace}(z, b)`
 
    * - :class:`deepinv.physics.LogPoissonNoise`
      - :math:`y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu z) N_0)}{N_0})`
