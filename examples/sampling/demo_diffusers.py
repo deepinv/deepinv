@@ -16,7 +16,7 @@ import torch
 import deepinv as dinv
 from deepinv.models.wrapper import DiffusersDenoiserWrapper
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 dtype = torch.float32
 figsize = 2.5
 
@@ -70,12 +70,7 @@ rng = torch.Generator(device)
 timesteps = torch.linspace(1, 0.001, num_steps)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 
-sigma_min = 0.001
-sigma_max = 80
 sde = VarianceExplodingDiffusion(
-    sigma_max=sigma_max,
-    sigma_min=sigma_min,
-    alpha=0.5,
     device=device,
     dtype=dtype,
 )
@@ -122,14 +117,13 @@ physics = dinv.physics.Inpainting(
 )
 
 y = physics(x)
-sde = VariancePreservingDiffusion(device=device, dtype=dtype, alpha=0.25)
 
 # %% Define the posterior sampler with a noisy data-fidelity term
 
 from deepinv.sampling import DPSDataFidelity
 
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=4.0),
+    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=1.0),
     denoiser=denoiser,
     sde=sde,
     solver=solver,
