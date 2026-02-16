@@ -5,7 +5,7 @@ Scan-specific zero-shot measurement splitting for MRI
 We demonstrate scan-specific self-supervised learning, that is, learning to
 reconstruct MRI scans from a single accelerated sample without ground truth.
 
-Here, we demonstrate training with the :class:`weighted SSDU <deepinv.loss.mri.WeightedSplittingLoss>` :footcite:p:`millard2023theoretical,yaman2020self`.
+Here, we demonstrate training with the :class:`weighted SSDU <deepinv.loss.mri.WeightedSplittingLoss>` loss :footcite:p:`millard2023theoretical,yaman2020self`.
 However, note that any of the :ref:`self-supervised losses <self-supervised-losses>` can be used to do this with varying performance :footcite:p:`wang2025benchmarking`.
 For example see the :ref:`example using Equivariant Imaging <sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py>` :footcite:p:`chen2021equivariant`.
 
@@ -167,7 +167,7 @@ trainer = dinv.Trainer(
 )
 
 model = trainer.train()
-model.eval()
+model = model.eval()
 
 # %%
 # Evaluation
