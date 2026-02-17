@@ -913,7 +913,7 @@ def test_MLEM(imsize, dummy_dataset, device):
     physics = dinv.physics.Blur(
         dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
-        noise_model=dinv.physics.GaussianNoise(0.1),
+        noise_model=dinv.physics.PoissonNoise(gain=1.0),
         padding="circular",
     )
     y = physics(test_sample)
