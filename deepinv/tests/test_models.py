@@ -1571,7 +1571,8 @@ def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_iso
     # Test output tensor shape
     image_size = (n_channels, 32, 32, 32)
     x = torch.rand(image_size, device=device)[None]
-    out = model(x, 0.01)
+    with torch.no_grad():
+        out = model(x, 0.01)
     assert (
         out.shape == x.shape
     ), f"Output shape {out.shape} does not match input shape {x.shape}"
@@ -1599,7 +1600,8 @@ def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_iso
         improvement = 10 if model_name == "DRUNet" else 8
 
         model = model.eval().to(device)
-        y_denoised = model(y, sigma=sigma)
+        with torch.no_grad():
+            y_denoised = model(y, sigma=sigma)
 
         model_noinit = model_noinit.eval().to(device)
         y_denoised_noinit = model_noinit(y, sigma=sigma)
@@ -1636,7 +1638,7 @@ def test_gaussian_noise_estimators(model_name, mode, channels, sigma, device, rn
         x = dinv.utils.load_example("butterfly.png").to(device)
         x = x[:, :channels, :, :]
     else:
-        x = torch.zeros((1, channels, 256, 256))
+        x = torch.zeros((1, channels, 256, 256), device=device)
 
     y = x + sigma * torch.empty_like(x).normal_(generator=rng).to(device)
 
