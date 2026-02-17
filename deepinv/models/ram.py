@@ -155,18 +155,32 @@ class RAM(Reconstructor, Denoiser):
         return value_map
 
     def base_conditioning(
-        self, x: torch.Tensor, sigma: float, gain: float
+        self, x: torch.Tensor, sigma: float | torch.Tensor, gain: float | torch.Tensor
     ) -> torch.Tensor:
         r"""
         Stacks the sigma and gain value as additional channel dimensions to the input tensor.
 
         :param torch.Tensor x: Input tensor
-        :param float sigma: Gaussian noise level
-        :param float gain: Poisson noise gain
+        :param float, torch.Tensor sigma: Gaussian noise level or noise level map
+        :param float, torch.Tensor gain: Poisson noise gain or Poisson noise map
         :return torch.Tensor: Input tensor with additional channels for sigma and gain
         """
-        noise_level_map = self.constant2map(sigma, x)
-        gain_map = self.constant2map(gain, x)
+        if isinstance(sigma, torch.Tensor):
+            if sigma.shape == (x.size(0), 1, *x.shape[2:]):
+                noise_level_map = sigma
+            else:
+                noise_level_map = self.constant2map(sigma, x)
+        else:
+            noise_level_map = self.constant2map(sigma, x)
+
+        if isinstance(gain, torch.Tensor):
+            if gain.shape == (x.size(0), 1, *x.shape[2:]):
+                gain_map = gain
+            else:
+                gain_map = self.constant2map(gain, x)
+        else:
+            gain_map = self.constant2map(gain, x)
+
         return torch.cat((x, noise_level_map, gain_map), 1)
 
     def realign_input(
@@ -191,7 +205,15 @@ class RAM(Reconstructor, Denoiser):
         else:
             num = y.reshape(y.shape[0], -1).abs().mean(1)
 
-        snr = num / (sigma + 1e-4)  # SNR equivariant
+        if isinstance(sigma, torch.Tensor):
+            if sigma.shape == (x.shape[0], 1, *x.shape[2:]):
+                snr = num / (torch.amax(sigma, dim=(1, 2, 3)) + 1e-4)
+            else:
+                snr = num / (sigma + 1e-4)
+        else:
+            snr = num / (sigma + 1e-4)
+
+        # SNR equivariant
         gamma = 1 / (1e-4 + 1 / (snr * f**2))
         gamma = gamma[(...,) + (None,) * (x.dim() - 1)]
         gamma = gamma * self.fact_realign
@@ -212,8 +234,8 @@ class RAM(Reconstructor, Denoiser):
         Forward pass of the UNet model.
 
         :param torch.Tensor x0: init image
-        :param float sigma: Gaussian noise level
-        :param float gamma: Poisson noise gain
+        :param float, torch.Tensor sigma: Gaussian noise level or noise level map
+        :param float, torch.Tensor gain: Poisson noise gain or Poisson noise map
         :param deepinv.physics.Physics physics: physics measurement operator
         :param torch.Tensor y: measurements
         """
@@ -360,12 +382,38 @@ class RAM(Reconstructor, Denoiser):
         sigma = torch.maximum(
             sigma, torch.tensor(self.sigma_threshold, device=x_in.device)
         )
-        sigma = self._handle_sigma(sigma)
+
+        if isinstance(sigma, torch.Tensor):
+            if sigma.shape == (y.shape[0], 1, *y.shape[2:]):
+                # add padding to match x_in's shape
+                sigma = nn.functional.pad(
+                    sigma,
+                    (pad[0], 0, pad[1], 0),
+                    mode="constant",
+                    value=self.sigma_threshold,
+                )
+            else:
+                sigma = self._handle_sigma(sigma)
+        else:
+            sigma = self._handle_sigma(sigma)
 
         gain = torch.maximum(
             gain, torch.tensor(self.gain_threshold, device=x_in.device)
         )
-        gain = self._handle_sigma(gain)
+
+        if isinstance(gain, torch.Tensor):
+            if gain.shape == (y.shape[0], 1, *y.shape[2:]):
+                # add padding to match x_in's shape
+                gain = nn.functional.pad(
+                    gain,
+                    (pad[0], 0, pad[1], 0),
+                    mode="constant",
+                    value=self.gain_threshold,
+                )
+            else:
+                gain = self._handle_sigma(gain)
+        else:
+            gain = self._handle_sigma(gain)
 
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
 
@@ -406,7 +454,14 @@ class RAM(Reconstructor, Denoiser):
             if isinstance(sigma, TensorList):
                 sigma = sigma.abs().max()
         else:
-            sigma = sigma / rescale_val
+            if isinstance(sigma, torch.Tensor):
+                if sigma.ndim == 4:
+                    rescale_val_map = rescale_val.view(rescale_val.shape[0], 1, 1, 1)
+                    sigma = sigma / rescale_val_map
+                else:
+                    sigma = sigma / rescale_val
+            else:
+                sigma = sigma / rescale_val
             if hasattr(physics.noise_model, "sigma"):
                 warn(
                     "Both sigma provided to the model and a noise model in the physics. The sigma provided to the model will be used."
@@ -422,7 +477,14 @@ class RAM(Reconstructor, Denoiser):
             if isinstance(gain, TensorList):
                 gain = gain.abs().max()
         else:
-            gain = gain / rescale_val
+            if isinstance(gain, torch.Tensor):
+                if gain.ndim == 4:
+                    rescale_val_map = rescale_val.view(rescale_val.shape[0], 1, 1, 1)
+                    gain = gain / rescale_val_map
+                else:
+                    gain = gain / rescale_val
+            else:
+                gain = gain / rescale_val
             if hasattr(physics.noise_model, "gain"):
                 warn(
                     "Both gain provided to the model and a noise model in the physics. The gain provided to the model will be used."
