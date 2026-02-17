@@ -1638,7 +1638,7 @@ def test_gaussian_noise_estimators(model_name, mode, channels, sigma, device, rn
         x = dinv.utils.load_example("butterfly.png").to(device)
         x = x[:, :channels, :, :]
     else:
-        x = torch.zeros((1, channels, 256, 256))
+        x = torch.zeros((1, channels, 256, 256), device=device)
 
     y = x + sigma * torch.empty_like(x).normal_(generator=rng).to(device)
 
