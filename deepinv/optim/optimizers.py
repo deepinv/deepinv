@@ -16,6 +16,7 @@ from deepinv.optim.optim_iterators import (
     DRSIteration,
     GDIteration,
     MDIteration,
+    SIRTIteration,
 )
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import ZeroPrior, Prior
@@ -2248,7 +2249,6 @@ class SIRT(BaseOptim):
 
     def __init__(
         self,
-        prior: Prior | list[Prior] = None,
         stepsize: float = 1.0,
         max_iter: int = 100,
         crit_conv: str = "residual",
@@ -2262,5 +2262,10 @@ class SIRT(BaseOptim):
             SIRTIteration(),
             params_algo={"stepsize": stepsize},
             max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             **kwargs,
         )
