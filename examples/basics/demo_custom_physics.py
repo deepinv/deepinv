@@ -28,6 +28,7 @@ the pseudo-inverse and proximal operators.
 """
 
 # %%
+from __future__ import annotations
 import deepinv as dinv
 import torch
 
