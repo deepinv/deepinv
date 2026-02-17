@@ -578,18 +578,18 @@ class ComplexDenoiserWrapper(Denoiser):
 
     :Examples:
 
-        >>> import deepinv as dinv
-        >>> import torch
-        >>> from deepinv.models import ComplexDenoiserWrapper, DRUNet
-        >>> denoiser = DRUNet() # doctest: +ELLIPSIS
-        ...
-        >>> complex_denoiser = ComplexDenoiserWrapper(denoiser, mode="real_imag")
-        >>> y = torch.randn(2, 3, 32, 32, dtype=torch.complex64)  # complex input
-        >>> sigma = 0.1
-        >>> with torch.no_grad():
-        ...     denoised = complex_denoiser(y, sigma)
-        >>> print(denoised.dtype)  # should be complex dtype
-        torch.complex64
+    ::
+
+        import deepinv as dinv
+        import torch
+        from deepinv.models import ComplexDenoiserWrapper, DRUNet
+        denoiser = DRUNet()
+        complex_denoiser = ComplexDenoiserWrapper(denoiser, mode="real_imag")
+        y = torch.randn(2, 3, 32, 32, dtype=torch.complex64)  # complex input
+        sigma = 0.1
+        with torch.no_grad():
+            denoised = complex_denoiser(y, sigma)
+        print(denoised.dtype)  # torch.complex64
 
     :param deepinv.models.Denoiser denoiser: Real-valued denoiser :math:`\denoisername` to wrap.
     :param str mode: Either ``'real_imag'`` or ``'abs_angle'``. Default ``'real_imag'``.

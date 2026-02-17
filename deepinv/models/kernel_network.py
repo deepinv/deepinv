@@ -36,18 +36,19 @@ class KernelIdentificationNetwork(nn.Module):
 
     Example usage:
 
-    >>> import deepinv as dinv
-    >>> import torch
-    >>> device = "cuda" if torch.cuda.is_available() else "cpu"
-    >>> kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device)   # doctest: +ELLIPSIS
-    ...
-    >>> physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
-    >>> y = torch.randn(1, 3, 128, 128).to(device)  # random blurry image for demonstration
-    >>> with torch.no_grad():
-    ...     params = kernel_estimator(y)  # this outputs {"filters": ..., "multipliers": ...}
-    >>> physics.update(**params) # update physics with estimated kernels
-    >>> print(params["filters"].shape, params["multipliers"].shape)
-    torch.Size([1, 1, 25, 33, 33]) torch.Size([1, 1, 25, 128, 128])
+    ::
+
+        import deepinv as dinv
+        import torch
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device)
+        physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
+        y = torch.randn(1, 3, 128, 128).to(device)  # random blurry image for demonstration
+        with torch.no_grad():
+            params = kernel_estimator(y)  # this outputs {"filters": ..., "multipliers": ...}
+        physics.update(**params) # update physics with estimated kernels
+        print(params["filters"].shape, params["multipliers"].shape)
+        # torch.Size([1, 1, 25, 33, 33]) torch.Size([1, 1, 25, 128, 128])
 
 
     """
