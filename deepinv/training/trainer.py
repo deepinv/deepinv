@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves
+from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves, get_device
 import os
 import numpy as np
 from tqdm import tqdm
@@ -67,7 +67,7 @@ class Trainer:
         for how we expect data to be provided.
     :param bool online_measurements: Generate new measurements `y` in an online manner at each iteration by calling
         `y=physics(x)`. If `False` (default), the measurements are loaded from the training dataset.
-    :param str, torch.device device: Device on which to run the training (e.g., 'cuda' or 'cpu'). Default is 'cuda' if available, otherwise 'cpu'.
+    :param str, torch.device device: Device on which to run the training (e.g., 'cuda', 'mps' or 'cpu'). Default is first 'cuda' and second 'mps' if available, otherwise 'cpu'.
 
     |sep|
 
@@ -279,7 +279,7 @@ class Trainer:
     metrics: Metric | list[Metric] | None = field(default_factory=PSNR)
     compute_train_metrics: bool = True
     early_stop_on_losses: bool = False
-    device: str | torch.device = "cuda" if torch.cuda.is_available() else "cpu"
+    device: str | torch.device = get_device(verbose=False)
     ckpt_pretrained: str | None = None
     save_path: str | Path | None = "."
     compare_no_learning: bool = False

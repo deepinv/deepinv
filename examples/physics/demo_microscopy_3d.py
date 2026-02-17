@@ -15,7 +15,7 @@ import deepinv as dinv
 # First, let's load some test images.
 
 dtype = torch.float32
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # Next, set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)

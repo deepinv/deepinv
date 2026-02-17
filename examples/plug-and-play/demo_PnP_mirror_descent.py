@@ -42,7 +42,7 @@ CKPT_DIR = BASE_DIR / "ckpts"
 torch.manual_seed(0)
 
 img_size = 64
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 x_true = load_example("butterfly.png", img_size=img_size).to(device)
 x = x_true.clone()
 

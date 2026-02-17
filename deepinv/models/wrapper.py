@@ -27,7 +27,7 @@ class DiffusersDenoiserWrapper(Denoiser):
         >>> import deepinv as dinv
         >>> from deepinv.models import DiffusersDenoiserWrapper
         >>> import torch
-        >>> device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        >>> device = dinv.utils.get_device(verbose=False)
         >>> denoiser = DiffusersDenoiserWrapper(mode_id='google/ddpm-cat-256', device=device)
         >>> x = dinv.utils.load_example(
         ...         "cat.jpg",
@@ -232,7 +232,8 @@ class ComplexDenoiserWrapper(Denoiser):
         >>> import deepinv as dinv
         >>> import torch
         >>> from deepinv.models import ComplexDenoiserWrapper, DRUNet
-        >>> denoiser = DRUNet()
+        >>> denoiser = DRUNet() # doctest: +ELLIPSIS
+        ...
         >>> complex_denoiser = ComplexDenoiserWrapper(denoiser, mode="real_imag")
         >>> y = torch.randn(2, 3, 32, 32, dtype=torch.complex64)  # complex input
         >>> sigma = 0.1
