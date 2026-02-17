@@ -44,7 +44,7 @@ class ArtifactRemoval(Reconstructor):
         mode: str = "adjoint",
         pinv: bool = False,
         ckpt_path: str = None,
-        device: torch.device = None,
+        device: torch.device | str = None,
     ):
         super(ArtifactRemoval, self).__init__()
         self.pinv = pinv
@@ -92,9 +92,9 @@ class ArtifactRemoval(Reconstructor):
             physics = physics.module
 
         if self.mode == "adjoint":
-            x_hat = physics.A_adjoint(y)
+            x_hat = physics.A_adjoint(y, **kwargs)
         elif self.mode == "pinv":
-            x_hat = physics.A_dagger(y)
+            x_hat = physics.A_dagger(y, **kwargs)
         elif self.mode == "direct":
             x_hat = y
         else:

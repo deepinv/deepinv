@@ -76,7 +76,8 @@ OPERATORS = [
     "radio",
     "radio_weighted",
     "structured_random",
-    "cassi",
+    "cassi-ss",
+    "cassi-sd",
     "ptychography_linear",
     "2DParallelBeamCT",
     "2DFanBeamCT",
@@ -87,6 +88,7 @@ NONLINEAR_OPERATORS = [
     "lidar",
     "spatial_unwrapping_round",
     "spatial_unwrapping_floor",
+    "scattering",
 ]
 
 PHASE_RETRIEVAL_OPERATORS = [
@@ -160,9 +162,18 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         p = dinv.physics.Decolorize(device=device)
         norm = 0.4468
         params = ["srf"]
-    elif name == "cassi":
+    elif name == "cassi-ss":
         img_size = (7, 37, 31) if imsize is None else imsize
-        p = dinv.physics.CompressiveSpectralImaging(img_size, device=device, rng=rng)
+        p = dinv.physics.CompressiveSpectralImaging(
+            img_size, device=device, rng=rng, mode="ss"
+        )
+        norm = 1 / img_size[0]
+        params = ["mask"]
+    elif name == "cassi-sd":
+        img_size = (7, 37, 31) if imsize is None else imsize
+        p = dinv.physics.CompressiveSpectralImaging(
+            img_size, device=device, rng=rng, mode="sd"
+        )
         norm = 1 / img_size[0]
         params = ["mask"]
     elif name == "inpainting":
@@ -533,6 +544,21 @@ def find_nonlinear_operator(name, device):
         )
         p = dinv.physics.Haze()
 
+    elif name == "scattering":
+        dtype = torch.complex128
+        transmitters, receivers = dinv.physics.scattering.circular_sensors(
+            8, radius=1.0, device=device
+        )
+        p = dinv.physics.Scattering(
+            img_width=32,
+            device=device,
+            background_wavenumber=5 * (2 * torch.pi),
+            wave_type="plane_wave",
+            transmitters=transmitters,
+            receivers=receivers,
+            verbose=False,
+        )
+        x = torch.rand(1, 1, 32, 32, dtype=dtype, device=device) * 0.1  # low contrast
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
@@ -1251,14 +1277,27 @@ def test_noise_domain(device):
     assert y1[0, 2, 2, 2] == 0
 
 
-def test_blur(device):
+@pytest.mark.parametrize(
+    "img_size", [(1, 64, 64), (3, 65, 65), (1, 64, 65), (3, 65, 64)]
+)
+@pytest.mark.parametrize("filter_size", [(1, 5, 5), (1, 6, 6), (1, 6, 5)])
+@pytest.mark.parametrize("filter_type", ["random", "directional"])
+def test_blur(img_size, filter_size, filter_type, device):
     r"""
     Test that :class:`deepinv.physics.Blur` with `padding="circular"` and :class:`deepinv.physics.BlurFFT` compute the same circular blur.
     """
     torch.manual_seed(0)
-    x = torch.randn((3, 128, 128), device=device).unsqueeze(0)
-    h = torch.ones((1, 1, 5, 5)) / 25.0
+    x = torch.randn(*img_size, device=device).unsqueeze(0)
+    if filter_type == "random":
+        h = torch.rand(*filter_size, device=device).unsqueeze(0)
+    elif filter_type == "directional":
+        # create a directional filter
+        h = torch.zeros(*filter_size, device=device).unsqueeze(0)
+        diag_len = min(filter_size[-2], filter_size[-1])
+        idx = torch.arange(diag_len, device=device)
+        h[..., idx, idx] = 1.0
 
+    h = h / h.sum(dim=[-2, -1], keepdim=True)  # normalize filter
     physics_blur = dinv.physics.Blur(
         filter=h,
         device=device,
@@ -1266,7 +1305,7 @@ def test_blur(device):
     )
 
     physics_blurfft = dinv.physics.BlurFFT(
-        img_size=(1, x.shape[-2], x.shape[-1]),
+        img_size=img_size,
         filter=h,
         device=device,
     )
@@ -1280,11 +1319,8 @@ def test_blur(device):
     assert y1.shape == y2.shape
     assert back1.shape == back2.shape
 
-    error_A = (y1 - y2).flatten().abs().max()
-    error_At = (back1 - back2).flatten().abs().max()
-
-    assert error_A < 1e-6
-    assert error_At < 1e-6
+    assert torch.allclose(y1, y2, atol=1e-5)
+    assert torch.allclose(back1, back2, atol=1e-5)
 
 
 def test_reset_noise(device):
@@ -1326,6 +1362,7 @@ def test_reset_noise(device):
 @pytest.mark.parametrize("adjoint_via_backprop", [True, False])
 @pytest.mark.parametrize("fbp_interpolate_boundary", [True, False])
 @pytest.mark.parametrize("fbp_pseudo_inverse", [True, False])
+@pytest.mark.parametrize("channels", [1, 2])
 def test_tomography(
     normalize,
     parallel_computation,
@@ -1334,6 +1371,7 @@ def test_tomography(
     adjoint_via_backprop,
     fbp_interpolate_boundary,
     fbp_pseudo_inverse,
+    channels,
     device,
 ):
     r"""
@@ -1341,7 +1379,7 @@ def test_tomography(
 
     :param device: (torch.device) cpu or cuda:x
     """
-    imsize = (1, 16, 16)
+    imsize = (channels, 16, 16)
     physics = dinv.physics.Tomography(
         img_width=imsize[-1],
         angles=imsize[-1],
@@ -1886,15 +1924,21 @@ def test_composed_physics(device):
     )
 
     # Compose with Transform:
-    physics = dinv.physics.Blur(filter=dinv.physics.blur.bicubic_filter(3.0))
+    physics = dinv.physics.Blur(
+        filter=dinv.physics.blur.bicubic_filter(3.0, device=device), device=device
+    )
     T = dinv.transform.Shift()
-    T_kwargs = {"x_shift": torch.tensor([1]), "y_shift": torch.tensor([1])}
+    T_kwargs = {
+        "x_shift": torch.tensor([1], device=device),
+        "y_shift": torch.tensor([1], device=device),
+    }
 
     physics_mul = physics * dinv.physics.LinearPhysics(
         A=lambda x: T.inverse(x, **T_kwargs),
         A_adjoint=lambda y: T(y, **T_kwargs),
     )
-    x = torch.randn(1, 3, 64, 64)
+    rng = torch.Generator(device=device).manual_seed(0)
+    x = torch.randn(1, 3, 64, 64, device=device, generator=rng)
     assert torch.allclose(physics_mul.A(x), physics.A(T.inverse(x, **T_kwargs)))
     y = physics_mul.A(x)
     assert torch.allclose(physics_mul.A_adjoint(y), T(physics.A_adjoint(y), **T_kwargs))
@@ -1962,9 +2006,24 @@ def test_adjoint_autograd(name, device):
     assert torch.allclose(delta_y, Az, rtol=1e-5)
 
 
-@pytest.mark.parametrize("name", OPERATORS)
+@pytest.mark.parametrize(
+    "name", OPERATORS + NONLINEAR_OPERATORS + PHASE_RETRIEVAL_OPERATORS
+)
 def test_clone(name, device):
-    physics, imsize, _, dtype = find_operator(name, device)
+
+    if name in OPERATORS:
+        physics, imsize, _, dtype = find_operator(name, device)
+    elif name in NONLINEAR_OPERATORS:
+        if name == "haze":
+            pytest.skip(
+                "Haze physics takes a TensorList as input, which is not supported by the current test."
+            )
+        physics, x = find_nonlinear_operator(name, device)
+        imsize = x.shape[1:]
+        dtype = x.dtype
+    elif name in PHASE_RETRIEVAL_OPERATORS:
+        physics, imsize = find_phase_retrieval_operator(name, device)
+        dtype = torch.complex64
 
     # Add a dummy parameter used for further testing
     dummy_tensor = torch.randn(
@@ -2287,6 +2346,84 @@ def test_downsampling_default_filter_depreciation():
         match="deprecated",
     ):
         _ = dinv.physics.Downsampling()
+
+
+@pytest.mark.parametrize("wavenumber", [21.55])
+@pytest.mark.parametrize("contrast", [0.1, 1.0])
+@pytest.mark.parametrize("wave_type", ["circular_wave", "plane_wave"])
+def test_scattering_mie(device, wavenumber, contrast, wave_type):
+    r"""
+    This test uses the closed-form Mie theory solution for computing the total
+    field of a single cylinder to validate our Scattering physics implementation.
+
+    See https://opg.optica.org/oe/viewmedia.cfm?uri=oe-25-18-21786&html=true for more details.
+
+    We limit the number of tests, since this is a rather long test
+    """
+    wavenumber = torch.tensor([wavenumber])
+    cylinder_contrast = contrast
+    cylinder_radius = 0.25
+    pixels = 64
+    dtype = torch.complex128
+    angles = 4
+    radius_tx = 1.0
+    n_coeffs = 55
+
+    total_field_mie, incident_field_mie = dinv.physics.scattering.mie_theory(
+        wavenumber,
+        cylinder_radius,
+        cylinder_contrast,
+        pixels,
+        wave_type=wave_type,
+        angles=torch.linspace(0, 2 * torch.pi, angles + 1, device=device)[:-1],
+        dtype=dtype,
+        device=device,
+        n_coeffs=n_coeffs,
+        transmitter_radius=radius_tx,
+    )
+
+    transmitters, receivers = dinv.physics.scattering.circular_sensors(
+        angles, radius=radius_tx, device=device
+    )
+
+    physics = dinv.physics.Scattering(
+        img_width=pixels,
+        device=device,
+        background_wavenumber=wavenumber,
+        wave_type=wave_type,
+        transmitters=transmitters,
+        receivers=receivers,
+        verbose=True,
+    )
+
+    # test adjointness of the born sub-operator
+    assert (
+        physics.born_operator.adjointness_test(
+            torch.randn((1, 1, pixels, pixels), device=device, dtype=dtype)
+        ).abs()
+        < 1e-4
+    ), "Adjointness test failed for the Born sub-operator of the Scattering physics."
+
+    # create cylinder contrast
+    x = torch.zeros((pixels, pixels), device=device, dtype=dtype)
+    yy, xx = torch.meshgrid(
+        torch.linspace(-0.5, 0.5, pixels, device=device),
+        torch.linspace(-0.5, 0.5, pixels, device=device),
+        indexing="ij",
+    )
+    r = torch.sqrt(xx**2 + yy**2)
+    x[r <= cylinder_radius] = cylinder_contrast
+    x = x.unsqueeze(0).unsqueeze(0)
+
+    total_field = physics.compute_total_field(x)
+    incident_field = physics.incident_field
+
+    assert (
+        incident_field - incident_field_mie
+    ).abs().mean() < 1e-3, "theoretical and empirical incident fields do not match"
+    assert (
+        total_field - total_field_mie
+    ).abs().mean() < 1e-1, "theoretical and empirical total fields do not match"
 
 
 @pytest.mark.parametrize("seed", [0])

@@ -27,6 +27,7 @@ Classical Denoisers
    :nosignatures:
 
    deepinv.models.BM3D
+   deepinv.models.BilateralFilter
    deepinv.models.MedianFilter
    deepinv.models.TVDenoiser
    deepinv.models.TGVDenoiser
@@ -86,6 +87,17 @@ Model Utils
 
    deepinv.models.complex.to_complex_denoiser
 
+Utility functions for model inference
+-------------------------------------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.models.utils.patchify
+
+
 Wrappers 
 --------
 .. userguide:: model-wrappers
@@ -127,3 +139,17 @@ Adversarial Networks
    deepinv.models.DCGANGenerator
    deepinv.models.DCGANDiscriminator
    deepinv.models.CSGMGenerator
+
+
+Identification Models
+---------------------
+.. userguide:: blind
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.KernelIdentificationNetwork
+   deepinv.models.WaveletNoiseEstimator
+   deepinv.models.PatchCovarianceNoiseEstimator

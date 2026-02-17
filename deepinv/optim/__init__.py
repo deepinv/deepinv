@@ -38,7 +38,7 @@ from .prior import (
     PatchPrior,
     WaveletPrior,
     PatchNR,
-    Zero,
+    ZeroPrior,
     L12Prior,
 )
 from .optim_iterators import (
@@ -68,5 +68,5 @@ from .distance import (
     LogPoissonLikelihoodDistance,
     ZeroDistance,
 )
-
 from . import utils
+from .linear import least_squares

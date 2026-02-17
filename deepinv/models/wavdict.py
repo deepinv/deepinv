@@ -1,24 +1,34 @@
 from __future__ import annotations
+from typing import Sequence, Any, Union
 import torch
 import torch.nn as nn
+from torch import Tensor
 from .base import Denoiser
 
+# Coeffs is, depending on the dimension:
+# 2D: [Tensor, list[Tensor], list[Tensor]]
+# 3D: [Tensor, dict[str, Tensor], dict[str, Tensor]]
 
-def _get_axes(is_complex, dimension):
+Wavcoef = Union[
+    list[Union[Tensor, list[Tensor]]], list[Union[Tensor, dict[str, Tensor]]]
+]
+
+
+def _get_axes(is_complex: bool, dimension: int) -> tuple[int, ...]:
     axes = (-3, -2, -1) if dimension == 3 else (-2, -1)
     if is_complex:
         axes = tuple(a - 1 for a in axes)
     return axes
 
 
-def _complexify(x, is_complex):
+def _complexify(x: Tensor, is_complex: bool) -> Tensor:
     """If the input was complex, convert back to complex."""
     if is_complex:
         return torch.view_as_complex(x.contiguous())
     return x
 
 
-def _realify(x, dimension):
+def _realify(x: Tensor, dimension: int) -> tuple[Tensor, tuple[int, ...]]:
     is_complex = x.is_complex()
     if is_complex:
         x = torch.view_as_real(x)
@@ -60,10 +70,6 @@ class WaveletDenoiser(Denoiser):
     :param bool is_complex: whether the input is complex-valued (default: False).
     :param str device: cpu or gpu
 
-    .. note::
-
-        This class requires the ``ptwt`` package to be installed. Install with ``pip install ptwt``.
-
     """
 
     def __init__(
@@ -77,6 +83,10 @@ class WaveletDenoiser(Denoiser):
         is_complex: bool = False,
     ):
         super().__init__()
+        if non_linearity not in ["soft", "hard", "topk"]:
+            raise ValueError(
+                f"non_linearity must be one of 'soft', 'hard' or 'topk', but got {non_linearity}"
+            )
         self.level = level
         self.wv = wv
         self.device = device
@@ -86,12 +96,17 @@ class WaveletDenoiser(Denoiser):
         self.is_complex = is_complex
         self.axes = _get_axes(is_complex, self.dimension)
 
-    def dwt(self, x):
+    def dwt(self, x: Tensor) -> list[Any]:
         r"""
         Applies the wavelet decomposition.
         """
-        import pywt
-        import ptwt
+        try:
+            import pywt
+            import ptwt
+        except ImportError:  # pragma: no cover
+            raise RuntimeError(
+                "WaveletDenoiser requires the Pytorch Wavelets package. Please install it (pip install ptwt)"
+            )
 
         if self.is_complex:
             x = torch.view_as_real(x)
@@ -115,7 +130,7 @@ class WaveletDenoiser(Denoiser):
         dec[0] = _complexify(dec[0], self.is_complex)
         return dec
 
-    def flatten_coeffs(self, dec):
+    def flatten_coeffs(self, dec: Wavcoef) -> Tensor:
         r"""
         Flattens the wavelet coefficients and returns them in a single torch vector of shape (n_coeffs,).
         """
@@ -140,7 +155,13 @@ class WaveletDenoiser(Denoiser):
         return flat
 
     @staticmethod
-    def psi(x, wavelet="db2", level=2, dimension=2, mode="zero"):
+    def psi(
+        x: Tensor,
+        wavelet: str = "db2",
+        level: int = 2,
+        dimension: int = 2,
+        mode: str = "zero",
+    ) -> list[Tensor]:
         r"""
         Returns a flattened list containing the wavelet coefficients.
 
@@ -148,9 +169,15 @@ class WaveletDenoiser(Denoiser):
         :param str wavelet: mother wavelet.
         :param int level: decomposition level.
         :param int dimension: dimension of the wavelet transform (either 2 or 3).
+        :param str mode: padding mode for the wavelet transform (default: "zero").
         """
-        import pywt
-        import ptwt
+        try:
+            import pywt
+            import ptwt
+        except ImportError:  # pragma: no cover
+            raise RuntimeError(
+                "WaveletDenoiser requires the Pytorch Wavelets package. Please install it (pip install ptwt)"
+            )
 
         is_complex = x.is_complex()
         x, axes = _realify(x, dimension)
@@ -176,12 +203,17 @@ class WaveletDenoiser(Denoiser):
             ]
         return vec
 
-    def iwt(self, coeffs):
+    def iwt(self, coeffs: Wavcoef) -> Tensor:
         r"""
         Applies the wavelet recomposition.
         """
-        import pywt
-        import ptwt
+        try:
+            import pywt
+            import ptwt
+        except ImportError:  # pragma: no cover
+            raise RuntimeError(
+                "WaveletDenoiser requires the Pytorch Wavelets package. Please install it (pip install ptwt)"
+            )
 
         if isinstance(coeffs, tuple):
             coeffs = list(coeffs)
@@ -194,7 +226,7 @@ class WaveletDenoiser(Denoiser):
         rec = _complexify(rec, self.is_complex)
         return rec
 
-    def prox_l1(self, x, ths=0.1):
+    def prox_l1(self, x: Tensor, ths: Tensor | float = 0.1) -> Tensor:
         r"""
         Soft thresholding of the wavelet coefficients.
 
@@ -207,19 +239,19 @@ class WaveletDenoiser(Denoiser):
         )
 
     @staticmethod
-    def _expand_ths_as(ths: float | torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+    def _expand_ths_as(ths: float | Tensor | int, x: Tensor) -> float | Tensor:
         r"""
         Expand the threshold to the same shape as the input tensor.
         """
         if isinstance(ths, (float, int)):
             return float(ths)
-        elif isinstance(ths, torch.Tensor):
+        elif isinstance(ths, Tensor):
             ths = ths.squeeze()
             return ths.view(-1, *([1] * (x.ndim - 1))).to(x.device)
         else:
             raise ValueError(f"Invalid threshold type: {type(ths)}")
 
-    def prox_l0(self, x: torch.Tensor, ths: float | torch.Tensor = 0.1) -> torch.Tensor:
+    def prox_l0(self, x: Tensor, ths: float | Tensor = 0.1) -> Tensor:
         r"""
         Hard thresholding of the wavelet coefficients.
 
@@ -232,7 +264,7 @@ class WaveletDenoiser(Denoiser):
         out[out.abs() < ths] = 0
         return out
 
-    def hard_threshold_topk(self, x, ths=0.1):
+    def hard_threshold_topk(self, x: Tensor, ths: float | int = 0.1) -> Tensor:
         r"""
         Hard thresholding of the wavelet coefficients by keeping only the top-k coefficients and setting the others to
         0.
@@ -243,11 +275,11 @@ class WaveletDenoiser(Denoiser):
         """
         if isinstance(ths, (float, int)):
             k = int(ths * x.shape[-3] * x.shape[-2] * x.shape[-1])
-        elif isinstance(ths, torch.Tensor):
+        elif isinstance(ths, Tensor):
             k = ths.squeeze().view(-1).expand(x.size(0)).to(x.device, torch.int32)
         else:
             raise ValueError(
-                f"Invalid threshold type: {type(ths)}. Expected float, int or torch.Tensor."
+                f"Invalid threshold type: {type(ths)}. Expected float, int or Tensor."
             )
 
         # Reshape arrays to 2D and initialize output to 0
@@ -274,8 +306,11 @@ class WaveletDenoiser(Denoiser):
                 out[i, topk_indices] = x_flat[i, topk_indices]
             return torch.reshape(out, x.shape)
 
-    def thresold_func(self, x, ths):
-        r""" "
+    def thresold_func(self, x: Tensor, ths: float | int | Tensor) -> Tensor:
+        return self.threshold_func(x, ths)
+
+    def threshold_func(self, x: Tensor, ths: float | int | Tensor) -> Tensor:
+        r"""
         Apply thresholding to the wavelet coefficients.
         """
         if self.non_linearity == "soft":
@@ -286,32 +321,35 @@ class WaveletDenoiser(Denoiser):
             y = self.hard_threshold_topk(x, ths)
         return y
 
-    def thresold_2D(self, coeffs, ths):
+    def thresold_2D(self, coeffs: Wavcoef, ths: float | int | Tensor) -> Wavcoef:
+        return self.threshold_2D(coeffs, ths)
+
+    def threshold_2D(self, coeffs: Wavcoef, ths: float | int | Tensor) -> Wavcoef:
         r"""
         Thresholds coefficients of the 2D wavelet transform.
         """
         for level in range(1, self.level + 1):
             ths_cur = self.reshape_ths(ths, level)
             for c in range(3):
-                coeffs[level][c] = self.thresold_func(coeffs[level][c], ths_cur[c])
+                coeffs[level][c] = self.threshold_func(coeffs[level][c], ths_cur[c])
         return coeffs
 
-    def threshold_3D(self, coeffs, ths):
+    def threshold_3D(self, coeffs: Wavcoef, ths: float | int | Tensor) -> Wavcoef:
         r"""
         Thresholds coefficients of the 3D wavelet transform.
         """
         for level in range(1, self.level + 1):
             ths_cur = self.reshape_ths(ths, level)
             for c, key in enumerate(["aad", "ada", "daa", "add", "dad", "dda", "ddd"]):
-                coeffs[level][key] = self.thresold_func(coeffs[level][key], ths_cur[c])
+                coeffs[level][key] = self.threshold_func(coeffs[level][key], ths_cur[c])
         return coeffs
 
-    def threshold_ND(self, coeffs, ths):
+    def threshold_ND(self, coeffs: Wavcoef, ths: float | int | Tensor) -> Wavcoef:
         r"""
         Apply thresholding to the wavelet coefficients of arbitrary dimension.
         """
         if self.dimension == 2:
-            coeffs = self.thresold_2D(coeffs, ths)
+            coeffs = self.threshold_2D(coeffs, ths)
         elif self.dimension == 3:
             coeffs = self.threshold_3D(coeffs, ths)
         else:
@@ -319,7 +357,7 @@ class WaveletDenoiser(Denoiser):
 
         return coeffs
 
-    def pad_input(self, x):
+    def pad_input(self, x: Tensor) -> tuple[Tensor, tuple[int, ...]]:
         r"""
         Pad the input to make it compatible with the wavelet transform.
         """
@@ -344,7 +382,7 @@ class WaveletDenoiser(Denoiser):
             )
         return x, p
 
-    def crop_output(self, x, padding):
+    def crop_output(self, x: Tensor, padding: tuple[int, ...]) -> Tensor:
         r"""
         Crop the output to make it compatible with the wavelet transform.
         """
@@ -355,7 +393,9 @@ class WaveletDenoiser(Denoiser):
             out = x[..., : d - padding[0], : h - padding[1], : w - padding[2]]
         return out
 
-    def reshape_ths(self, ths, level):
+    def reshape_ths(
+        self, ths: int | float | Tensor | Sequence[int | float], level: int
+    ) -> list[float | Tensor] | Tensor:
         r"""
         Reshape the thresholding parameter in the appropriate format, i.e. either:
          - a list of 3 elements, or
@@ -378,9 +418,9 @@ class WaveletDenoiser(Denoiser):
                     ths_cur = [ths_cur[0]] * numel
         else:
             if ths.ndim == 0 or ths.ndim == 1:  # a tensor of shape 0 or (B,)
-                return self._reshape_ths_one_dim(ths, level)
+                ths_cur = self._reshape_ths_one_dim(ths, level)
             elif ths.ndim == 2:  # (B, n_levels-1)
-                return self._reshape_ths_two_dim(ths, level)
+                ths_cur = self._reshape_ths_two_dim(ths, level)
             elif ths.ndim == 3:
                 # (B, n_levels-1, numel) or (B, n_levels-1, 1)
                 ths_cur = self._reshape_ths_three_dim(ths, level)
@@ -388,14 +428,13 @@ class WaveletDenoiser(Denoiser):
                 raise ValueError(
                     f"Expected tensor of 0, 1, 2 or 3 dimensions. Got tensor of {ths.ndim} dimensions"
                 )
-
         return ths_cur
 
-    def _reshape_ths_one_dim(self, ths, level):
+    def _reshape_ths_one_dim(self, ths: Tensor, level: int) -> list[Tensor]:
         numel = 3 if self.dimension == 2 else 7
         return [ths] * numel
 
-    def _reshape_ths_two_dim(self, ths, level):
+    def _reshape_ths_two_dim(self, ths: Tensor, level: int) -> list[Tensor]:
         numel = 3 if self.dimension == 2 else 7
         if ths.size(1) == 1:
             return [ths[:, 0]] * numel
@@ -403,7 +442,7 @@ class WaveletDenoiser(Denoiser):
             assert ths.size(1) == self.level
             return [ths[:, level - 2]] * numel
 
-    def _reshape_ths_three_dim(self, ths, level):
+    def _reshape_ths_three_dim(self, ths: Tensor, level: int) -> Tensor | list[Tensor]:
         numel = 3 if self.dimension == 2 else 7
         if ths.size(1) == 1:
             ths = ths.expand(-1, self.level, -1)
@@ -429,9 +468,7 @@ class WaveletDenoiser(Denoiser):
             return tuple(WaveletDenoiser._list_to_tuple(item) for item in obj)
         return obj
 
-    def forward(
-        self, x: torch.Tensor, ths: float | torch.Tensor = 0.1, **kwargs
-    ) -> torch.Tensor:
+    def forward(self, x: Tensor, ths: float | int | Tensor = 0.1, **kwargs) -> Tensor:
         r"""
         Run the model on a noisy image.
 
@@ -488,9 +525,9 @@ class WaveletDictDenoiser(Denoiser):
         ``pip install ptwt``.
 
     :param int level: decomposition level of the wavelet transform.
-    :param Sequence[str] wv: list of mother wavelets. The names of the wavelets can be found in `here
+    :param Sequence[str] list_wv: list of mother wavelets. The names of the wavelets can be found in `here
         <https://wavelets.pybytes.com/>`_. (default: ["db8", "db4"]).
-    :param str device: cpu or gpu.
+    :param torch.device, str device: cpu or gpu.
     :param int max_iter: number of iterations of the optimization algorithm (default: 10).
     :param str non_linearity: "soft", "hard" or "topk" thresholding (default: "soft")
     :param int wvdim: dimension of the wavelet transform (either 2 or 3) (default: 2).
@@ -499,13 +536,13 @@ class WaveletDictDenoiser(Denoiser):
 
     def __init__(
         self,
-        level=3,
-        list_wv=("db8", "db4"),
-        max_iter=10,
-        non_linearity="soft",
-        wvdim=2,
-        is_complex=False,
-        device="cpu",
+        level: int = 3,
+        list_wv: Sequence[str] = ("db8", "db4"),
+        max_iter: int = 10,
+        non_linearity: str = "soft",
+        wvdim: int = 2,
+        is_complex: bool = False,
+        device: str | torch.device = "cpu",
     ):
         super().__init__()
         self.level = level
@@ -525,9 +562,7 @@ class WaveletDictDenoiser(Denoiser):
         )
         self.max_iter = max_iter
 
-    def forward(
-        self, y: torch.Tensor, ths: float | torch.Tensor = 0.1, **kwargs
-    ) -> torch.Tensor:
+    def forward(self, y: Tensor, ths: float | Tensor = 0.1, **kwargs) -> Tensor:
         r"""
         Run the model on a noisy image.
 
@@ -539,8 +574,8 @@ class WaveletDictDenoiser(Denoiser):
         x = p_p.clone()
         for it in range(self.max_iter):
             x_prev = x.clone()
-            for p in range(len(self.list_prox)):
-                p_p[p, ...] = self.list_prox[p](z_p[p, ...], ths)
+            for p, prox in enumerate(self.list_prox):
+                p_p[p, ...] = prox(z_p[p, ...], ths)
             x = torch.mean(p_p.clone(), axis=0)
             for p in range(len(self.list_prox)):
                 z_p[p, ...] = x + z_p[p, ...].clone() - p_p[p, ...]
@@ -551,7 +586,7 @@ class WaveletDictDenoiser(Denoiser):
                 break
         return x
 
-    def psi(self, x: torch.Tensor, **kwargs) -> list[torch.Tensor]:
+    def psi(self, x: Tensor, **kwargs) -> list[Tensor]:
         r"""
         Returns a flattened list containing the wavelet coefficients for each wavelet.
         """

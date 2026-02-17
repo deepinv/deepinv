@@ -9,8 +9,9 @@ import importlib
 
 
 @pytest.fixture(
-    params=[torch.device("cpu")]
-    + ([dinv.utils.get_freer_gpu()] if torch.cuda.is_available() else [])
+    params=list(
+        dict.fromkeys([torch.device("cpu"), dinv.utils.get_device(verbose=False)])
+    )
 )
 def device(request):
     return request.param
