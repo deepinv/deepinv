@@ -26,7 +26,7 @@ class DScCP(Denoiser):
     :param int n_channels_per_layer: number of channels per convolutional layer.
     :param str, None pretrained: ``pretrained='download'`` to download pretrained weights, or path to local weights file. When building a 3D network, it is possible to initialize with 2D pretrained weights by using ``pretrained='download_2d'``, which provides a good starting point for fine-tuning.
     :param bool pretrained_2d_isotropic: when loading 2D pretrained weights into a 3D network, whether to initialize the 3D kernels isotropically. By default the weights are loaded axially, i.e., by initializing the central slice of the 3D kernels with the 2D weights.
-    :param torch.device, str device: 'cuda' or 'cpu'.
+    :param torch.device, str device: 'cuda', 'mps' or 'cpu'.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
     """

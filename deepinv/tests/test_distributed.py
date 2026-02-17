@@ -1438,7 +1438,6 @@ def _test_data_fidelity_different_fidelities_worker(rank, world_size, args):
 
         # Test L1 and L2
         for FidelityClass in [L1, L2]:
-
             distributed_fidelity = distribute(
                 FidelityClass(), ctx=ctx, num_operators=num_operators
             )
