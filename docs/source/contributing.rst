@@ -80,8 +80,8 @@ How to write and run tests:
 
   If you've contributed a new class (e.g. dataset, physics etc.), you should add it to any existing tests, e.g. those that check physics adjointness, dataset return format, etc.
 
-3. Check your tests pass locally by running ``python -m pytest deepinv/tests`` in the root directory after making the desired changes. Learn more `here <https://realpython.com/pytest-python-testing/>`__.
-4. Push your code to your PR. A maintainer will run the tests on CPU and GPU in the CI, and you will see the results in the `Test PR...` GitHub action.
+1. Check your tests pass locally by running ``python -m pytest deepinv/tests`` in the root directory after making the desired changes. Learn more `here <https://realpython.com/pytest-python-testing/>`__. You can also run specific tests by providing the path to the test file, e.g. ``python -m pytest deepinv/tests/test_physics.py``, or even to a specific test function, e.g. ``python -m pytest -k "test_operators_adjointness" deepinv/tests/test_physics.py``.
+2. Push your code to your PR. A maintainer will run the tests on CPU and GPU in the CI, and you will see the results in the `Test PR...` GitHub action.
 
 .. note::
   Your code coverage will automatically be checked using ``codecov``.
@@ -220,6 +220,28 @@ Below is a minimal working example of a typical docstring that includes all thes
         def __init__(self, in_channels: int, out_channels: int, pretrained: bool = None):
             pass
 
+Contributing new physics
+-------------------------
+
+Providing new physics is one of the most impactful contributions you can make to DeepInverse, as it will allow users to solve new inverse problems. The process for contributing a new physics is similar to what is described above with some specificities:
+
+- writing a new class that inherits from the appropriate physics base class, you can follow the basic design described in `Bring your own physics <https://deepinv.github.io/deepinv/auto_examples/basics/demo_custom_physics.html>`_
+  
+- registering your physics in the appropriate test suite and check that the tests are passing -- when inheriting from :class:`deepinv.physics.LinearPhysics` it involves the following modifications to `deepinv/tests/test_physics.py`:
+
+  1. add a new entry corresponding to your physics configuration to the list variable ``OPERATORS``
+  2. specify how to instantiate this configuration in the function ``find_operator``
+  3. if applicable, write the tests specific to your physics, e.g. if it has a specific behavior that is not covered by the existing tests, see `test_MRI` in `here <https://github.com/deepinv/deepinv/blob/main/deepinv/tests/test_physics.py>`_ for an example
+
+- adding your physics to the `API reference <https://deepinv.github.io/deepinv/api/deepinv.physics.html>`__ and `User Guide <https://deepinv.github.io/deepinv/user_guide/physics/physics.html>`__ as described in the previous section.
+
+Here are some pull requests that you can refer to for examples of how to contribute new physics:
+
+- :class:`deepinv.physics.Scattering` in `#1020 <https://github.com/deepinv/deepinv/pull/1020>`_
+
+- :class:`deepinv.physics.SpatialUnwrapping` in `#723 <https://github.com/deepinv/deepinv/pull/723>`_
+
+- :class:`deepinv.physics.TomographyWithAstra` in `#474 <https://github.com/deepinv/deepinv/pull/474>`_
 
 Contributing new datasets
 --------------------------
