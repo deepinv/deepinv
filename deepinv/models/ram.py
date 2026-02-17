@@ -338,6 +338,11 @@ class RAM(Reconstructor, Denoiser):
         else:
             max_val = y.abs().reshape(y.size(0), -1).amax(dim=1, keepdim=False)
 
+        # Prevent returning NaN if the input image is a torch.zeros
+        if 0 in max_val:
+            indexs = torch.where(max_val == 0)
+            max_val[indexs] = 1e-12 if not max_val.dtype == torch.float16 else 1e-4
+
         # rescale elements in the batch where max_val > 5 * sigma_threshold
         rescale_val = torch.where(
             max_val > 5 * self.sigma_threshold,
