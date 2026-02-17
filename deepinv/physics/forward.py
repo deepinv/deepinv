@@ -3,7 +3,7 @@ from typing import Callable
 import warnings
 import copy
 import inspect
-import collections.abc
+from collections.abc import Mapping, Iterable
 
 import torch
 from torch import Tensor
@@ -12,6 +12,7 @@ from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_backward
 from deepinv.utils.compat import zip_strict
+from deepinv.physics.functional import power_method
 import warnings
 
 
@@ -309,7 +310,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
             # NOTE: It is necessary to include values for mapping objects for
             # the case of submodules which are stored as entries in a
             # dictionary instead of directly as attributes.
-            if isinstance(node, collections.abc.Mapping):
+            if isinstance(node, Mapping):
                 neighbors += list(node.values())
 
             # 4. Queue the unseen neighbors
@@ -320,6 +321,21 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     traversal_queue.append(neighbor)
 
         return copy.deepcopy(self, memo=memo)
+
+    def compute_norm(self, x, verbose=True):
+        r"""
+        Computes an estimate of the operator norm of the forward operator :math:`\|A\|_2` at point `x`.
+
+        This function uses the power method to compute the operator norm.
+
+        :param torch.Tensor x: input tensor used to estimate the norm.
+        :param bool verbose: if `True`, prints the estimated norm.
+        :return: (:class:`torch.Tensor`) estimated operator norm.
+
+        """
+        linear_operator = lambda v: self.A_vjp(x, self.A_jvp(x, v))
+        norm = power_method(linear_operator, x, max_iter=100, tol=1e-6)
+        return norm
 
 
 class LinearPhysics(Physics):
@@ -477,7 +493,7 @@ class LinearPhysics(Physics):
             A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v = \conj{A} v.
 
         :param torch.Tensor x: signal/image.
-        :param torch.Tensor v: vector.
+        :param torch.Tensor v: vector of the size of the measurements.
         :return: (:class:`torch.Tensor`) the VJP product between :math:`v` and the Jacobian.
         """
         return self.A_adjoint(v)
@@ -506,7 +522,7 @@ class LinearPhysics(Physics):
         """
         return self.A_adjoint(self.A(x, **kwargs), **kwargs)
 
-    def __mul__(self, other):
+    def __mul__(self, other, **kwargs):
         r"""
         Concatenates two linear forward operators :math:`A = A_1 \circ A_2` via the * operation
 
@@ -516,7 +532,7 @@ class LinearPhysics(Physics):
         :return: (:class:`deepinv.physics.LinearPhysics`) concatenated operator
 
         """
-        return compose(other, self, max_iter=self.max_iter, tol=self.tol)
+        return compose(other, self, max_iter=self.max_iter, tol=self.tol, **kwargs)
 
     def stack(self, other):
         r"""
@@ -620,26 +636,14 @@ class LinearPhysics(Physics):
         """
         if rng is None:
             rng = torch.Generator(x0.device)
-        x = torch.randn(x0.shape, device=x0.device, dtype=x0.dtype, generator=rng)
-        x /= torch.linalg.vector_norm(x)
-        zold = torch.zeros_like(x)
-        for it in range(max_iter):
-            y = self.A_adjoint_A(x, **kwargs)
-            z = torch.vdot(x.flatten(), y.flatten()) / torch.linalg.vector_norm(x) ** 2
-
-            rel_var = torch.linalg.vector_norm(z - zold)
-            if rel_var < tol:
-                if verbose:
-                    print(
-                        f"Power iteration converged at iteration {it}, ||A^T A||_2={z.real.item():.2f}"
-                    )
-                break
-            zold = z
-            x = y / torch.linalg.vector_norm(y)
-        else:
-            warnings.warn("Power iteration: convergence not reached")
-
-        return z.real
+        return power_method(
+            operator=self.A_adjoint_A,
+            x0=x0,
+            max_iter=max_iter,
+            tol=tol,
+            verbose=verbose,
+            **kwargs,
+        )
 
     def adjointness_test(self, u, **kwargs):
         r"""
@@ -822,10 +826,10 @@ class ComposedPhysics(Physics):
 
     where :math:`A_i(\cdot)` is the ith physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
-    :param list[deepinv.physics.Physics] *physics: list of physics to compose.
+    :param Iterable[deepinv.physics.Physics] physics: variable number of physics to compose.
     """
 
-    def __init__(self, *physics: Physics, device=None, **kwargs):
+    def __init__(self, *physics: Iterable[Physics], **kwargs):
         super().__init__()
 
         self.physics_list = nn.ModuleList([])
@@ -837,7 +841,6 @@ class ComposedPhysics(Physics):
             )
         self.noise_model = physics[-1].noise_model
         self.sensor_model = physics[-1].sensor_model
-        self.to(device)
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
         r"""
@@ -894,10 +897,10 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
 
     where :math:`A_i(\cdot)` is the i-th physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
-    :param list[deepinv.physics.Physics] *physics: list of physics operators to compose.
+    :param Iterable[deepinv.physics.LinearPhysics] physics: variable number of physics to compose.
     """
 
-    def __init__(self, *physics: Physics, **kwargs):
+    def __init__(self, *physics: Iterable[LinearPhysics], **kwargs):
         super().__init__(*physics, **kwargs)
 
     def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
@@ -916,14 +919,14 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
         return y
 
 
-def compose(*physics: Physics | LinearPhysics, **kwargs):
+def compose(*physics: Iterable[Physics | LinearPhysics], **kwargs):
     r"""
     Composes multiple forward operators :math:`A = A_1\circ A_2\circ \dots \circ A_n`.
 
     The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
     each entry corresponds to the measurements of the corresponding operator.
 
-    :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be composed.
+    :param Iterable[deepinv.physics.Physics | deepinv.physics.LinearPhysics] physics: Physics operators :math:`A_i` to be composed.
     """
     if any(isinstance(phys, DecomposablePhysics) for phys in physics):
         warnings.warn(

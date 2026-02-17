@@ -28,7 +28,7 @@ from deepinv.utils import get_data_home
 from deepinv.models.utils import get_weights_url
 
 torch.manual_seed(0)
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"

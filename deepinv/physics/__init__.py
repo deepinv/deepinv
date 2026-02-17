@@ -8,6 +8,7 @@ from .blur import (
     Upsampling,
     DownsamplingMatlab,
 )
+from .scattering import Scattering
 from .range import Decolorize
 from .haze import Haze
 from .unmixing import HyperSpectralUnmixing
@@ -15,11 +16,14 @@ from .forward import (
     Denoising,
     Physics,
     StackedPhysics,
+    ComposedPhysics,
     LinearPhysics,
     StackedLinearPhysics,
+    ComposedLinearPhysics,
     DecomposablePhysics,
     adjoint_function,
     stack,
+    compose,
 )
 from .noise import (
     NoiseModel,
