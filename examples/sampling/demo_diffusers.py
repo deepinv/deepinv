@@ -98,9 +98,9 @@ dinv.utils.plot(
 # ---------------------
 #
 # Similar to other denoisers in DeepInv, the wrapped diffusers model can be used for posterior sampling.
-# Below we use VP-SDE for posterior sampling in an inpainting problem.
+# Below we use the same VE-SDE for posterior sampling in an inpainting problem.
 
-# Initialize the physics and the VP-SDE
+# Initialize the physics
 
 mask = torch.ones_like(x)
 mask[..., 70:150, 120:180] = 0
