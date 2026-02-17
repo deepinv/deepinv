@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves
+from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves, get_device
 import os
 import numpy as np
 from tqdm import tqdm
@@ -67,7 +67,7 @@ class Trainer:
         for how we expect data to be provided.
     :param bool online_measurements: Generate new measurements `y` in an online manner at each iteration by calling
         `y=physics(x)`. If `False` (default), the measurements are loaded from the training dataset.
-    :param str, torch.device device: Device on which to run the training (e.g., 'cuda' or 'cpu'). Default is 'cuda' if available, otherwise 'cpu'.
+    :param str, torch.device device: Device on which to run the training (e.g., 'cuda', 'mps' or 'cpu'). Default is first 'cuda' and second 'mps' if available, otherwise 'cpu'.
 
     |sep|
 
@@ -232,8 +232,8 @@ class Trainer:
     :Verbose:
 
     :param bool verbose: Output training progress information in the console. Default is ``True``.
-    :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training.
-        Otherwise, only the total loss is printed. Default is ``True``.
+    :param bool verbose_individual_losses: **Deprecated.** This parameter is deprecated and will be removed in a future version.
+        Individual losses are now always added to logs when multiple losses are present. Default is ``None``.
     :param bool show_progress_bar: Show a progress bar during training. Default is ``True``.
     :param int freq_update_progress_bar: progress bar postfix update frequency (measured in iterations). Defaults to 1.
         Increasing this may speed up training.
@@ -279,7 +279,7 @@ class Trainer:
     metrics: Metric | list[Metric] | None = field(default_factory=PSNR)
     compute_train_metrics: bool = True
     early_stop_on_losses: bool = False
-    device: str | torch.device = "cuda" if torch.cuda.is_available() else "cpu"
+    device: str | torch.device = get_device(verbose=False)
     ckpt_pretrained: str | None = None
     save_path: str | Path | None = "."
     compare_no_learning: bool = False
@@ -302,7 +302,7 @@ class Trainer:
     compute_eval_losses: bool = False
     log_train_batch: bool = False
     verbose: bool = True
-    verbose_individual_losses: bool = True
+    verbose_individual_losses: bool = None
     show_progress_bar: bool = True
     freq_update_progress_bar: int = 1
     non_blocking_transfers: bool = (
@@ -318,6 +318,13 @@ class Trainer:
                 stacklevel=2,
             )
             self.compute_eval_losses = self.display_losses_eval
+        if self.verbose_individual_losses is not None:
+            warnings.warn(
+                "Argument 'verbose_individual_losses' is deprecated and will be removed in a future version. "
+                "Individual losses are now always added to logs when multiple losses are present.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         # Cache flag for whether model.forward accepts 'update_parameters'
         self._model_accepts_update_parameters = False
 
@@ -873,7 +880,7 @@ class Trainer:
                     self.logs_losses_train[k] if train else self.logs_losses_eval[k]
                 )
                 meters.update(loss.detach().cpu().numpy())
-                if len(self.losses) > 1 and self.verbose_individual_losses:
+                if len(self.losses) > 1:
                     logs[l.__class__.__name__] = meters.avg
 
             meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
@@ -1072,15 +1079,10 @@ class Trainer:
 
         if last_batch:
             if self.verbose and not self.show_progress_bar:
-                if self.verbose_individual_losses:
-                    print(
-                        f"{'Train' if train else 'Eval'} epoch {epoch}:"
-                        f" {', '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}"
-                    )
-                else:
-                    print(
-                        f"{'Train' if train else 'Eval'} epoch {epoch}: Total loss: {logs['TotalLoss']}"
-                    )
+                print(
+                    f"{'Train' if train else 'Eval'} epoch {epoch}:"
+                    f" {', '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}"
+                )
 
             if self.log_train_batch and train:
                 logs["step"] = train_ite

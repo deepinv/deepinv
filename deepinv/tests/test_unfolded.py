@@ -14,9 +14,16 @@ UNFOLDED_ALGO = [
     "FISTA",
 ]
 
+UNFOLDED_ALGO_PARAMS = [
+    (algo, anderson, full_backprop)
+    for algo in UNFOLDED_ALGO
+    for anderson in ([True, False] if algo in ["PGD", "HQS", "GD"] else [False])
+    for full_backprop in ([True, False] if algo in ["PGD", "HQS", "GD"] else [False])
+]
 
-@pytest.mark.parametrize("unfolded_algo", UNFOLDED_ALGO)
-def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
+
+@pytest.mark.parametrize("unfolded_algo, and_acc, full_backprop", UNFOLDED_ALGO_PARAMS)
+def test_unfolded(unfolded_algo, and_acc, full_backprop, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
 
     # Select the data fidelity term
@@ -63,6 +70,10 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
         "stepsize",
     ]  # define which parameters  are trainable
 
+    anderson_acceleration_config = dinv.optim.AndersonAccelerationConfig(
+        full_backprop=full_backprop
+    )
+
     # Define the unfolded trainable model.
     model = getattr(optim, unfolded_algo)(
         unfold=True,
@@ -73,6 +84,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
         data_fidelity=data_fidelity,
         max_iter=max_iter,
         prior=prior,
+        anderson_acceleration=anderson_acceleration_config if and_acc else None,
     )
     model.to(device)
 

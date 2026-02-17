@@ -29,7 +29,7 @@ from deepinv.utils import load_example
 #
 
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 torch.manual_seed(1)
 
 x_true = load_example("69037.png", img_size=256, device=device)

@@ -1,5 +1,6 @@
 import torch.nn as nn
 from deepinv.optim.utils import objective_function
+import warnings
 
 
 class OptimIterator(nn.Module):

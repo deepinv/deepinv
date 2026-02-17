@@ -121,7 +121,7 @@ physics = dinv.physics.Inpainting(
 )
 
 y = physics(x)
-sde = VariancePreservingDiffusion(device=device, dtype=dtype)
+sde = VariancePreservingDiffusion(device=device, dtype=dtype, alpha=0.2)
 
 # %% Define the posterior sampler with a noisy data-fidelity term
 
