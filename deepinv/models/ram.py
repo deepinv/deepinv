@@ -46,7 +46,8 @@ class RAM(Reconstructor, Denoiser):
       >>> x = dinv.utils.load_example("butterfly.png")
       >>> physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
       >>> y = physics(x)
-      >>> model = dinv.models.RAM() # doctest: +IGNORE_OUTPUT
+      >>> model = dinv.models.RAM() # doctest: +ELLIPSIS
+      ...
       >>> x_hat = model(y, physics) # run model
       >>> dinv.metric.PSNR()(x_hat, x) > 29.75
       tensor([True])
@@ -121,7 +122,8 @@ class RAM(Reconstructor, Denoiser):
             else:
                 self.load_state_dict(
                     torch.hub.load_state_dict_from_url(
-                        "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar"
+                        "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar",
+                        progress=False,
                     ),
                     strict=False,
                 )

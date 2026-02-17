@@ -6,16 +6,7 @@ import torch
 import torch.fft as fft
 from torch import Tensor
 from deepinv.physics.forward import LinearPhysics, DecomposablePhysics, adjoint_function
-from deepinv.physics.functional import (
-    conv2d,
-    conv_transpose2d,
-    filter_fft,
-    product_convolution2d,
-    product_convolution2d_adjoint,
-    conv3d_fft,
-    conv_transpose3d_fft,
-    imresize_matlab,
-)
+import deepinv.physics.functional as dF
 
 
 class Downsampling(LinearPhysics):
@@ -149,7 +140,7 @@ class Downsampling(LinearPhysics):
                 filter = sinc_filter(factor, length=4 * factor, device=device)
 
             # `Fh` is initialized on `filter.device`
-            Fh = filter_fft(filter, img_size, real_fft=False)
+            Fh = dF.filter_fft(filter, img_size, real_fft=False)
             Fhc = torch.conj(Fh)
             Fh2 = Fhc * Fh
 
@@ -245,7 +236,7 @@ class Downsampling(LinearPhysics):
         if filter_parameters["filter"] is None and self.filter is not None:
             imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
 
-            filter_parameters["Fh"] = filter_fft(
+            filter_parameters["Fh"] = dF.filter_fft(
                 self.filter, imsize, real_fft=False, dims=(-2, -1)
             ).to(device)
             filter_parameters["Fhc"] = torch.conj(filter_parameters["Fh"])
@@ -282,7 +273,7 @@ class Downsampling(LinearPhysics):
         self.update_parameters(filter=filter, factor=factor, device=x.device, **kwargs)
 
         if self.filter is not None:
-            x = conv2d(x, self.filter, padding=self.padding)
+            x = dF.conv2d(x, self.filter, padding=self.padding)
 
         x = x[:, :, :: self.factor, :: self.factor]  # downsample
 
@@ -329,7 +320,7 @@ class Downsampling(LinearPhysics):
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
-            x = conv_transpose2d(
+            x = dF.conv_transpose2d(
                 x, self.filter, padding=self.padding
             )  # Note: this may be slow against x = conv_transpose2d_fft(x, self.filter) in the case of circular padding
 
@@ -466,7 +457,9 @@ class Blur(LinearPhysics):
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image. (default is ``'valid'``).
         Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
-    :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
+    :param bool use_fft: whether to use FFT-based convolutions. If ``True``, it uses FFT-based convolutions which can be faster for large kernels.
+        If ``False``, it uses the standard convolution functions from ``torch.nn.functional``.
+    :param torch.device, str device: Device on which the physics' buffers will be created. When a buffer is updated via ``physics.update_parameters()``, if the current buffer is None, use the device of the incoming value, else, the incoming value is casted to the device of the current buffer. To change the device of all buffers, please use ``physics.to(device)``.
 
     .. note::
 
@@ -475,9 +468,8 @@ class Blur(LinearPhysics):
 
     .. note::
 
-        This class uses the highly optimized :func:`torch.nn.functional.conv2d` for performing the convolutions in 2D
-        and FFT for performing the convolutions in 3D as implemented in :func:`deepinv.physics.functional.conv3d_fft`.
-        It uses FFT based convolutions in 3D since :func:`torch.nn.functional.conv3d` is slow for large kernels.
+        This class performs a true convolution, not a cross-correlation as the standard convolution functions in ``torch.nn.functional``.
+        It is recommended to use ``use_fft=True`` for large filters, and ``use_fft=False`` for small filters, since FFT-based convolutions can be faster for large kernels but slower for small kernels.
 
     |sep|
 
@@ -501,18 +493,29 @@ class Blur(LinearPhysics):
 
     def __init__(
         self,
-        filter: torch.Tensor | None = None,
+        filter: Tensor = None,
         padding: str = "valid",
-        device: str | torch.device = "cpu",
+        use_fft: bool = False,
+        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
-        super().__init__(device=device, **kwargs)
+        super().__init__(**kwargs)
+        self.device = device
         self.padding = padding
         assert (
             isinstance(filter, Tensor) or filter is None
         ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
 
         self.register_buffer("filter", filter)
+        self.use_fft = use_fft
+        self.conv = {
+            2: dF.conv2d_fft if use_fft else dF.conv2d,
+            3: dF.conv3d_fft if use_fft else dF.conv3d,
+        }
+        self.conv_transpose = {
+            2: dF.conv_transpose2d_fft if use_fft else dF.conv_transpose2d,
+            3: dF.conv_transpose3d_fft if use_fft else dF.conv_transpose3d,
+        }
         self.to(device)
 
     def A(self, x: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
@@ -527,10 +530,11 @@ class Blur(LinearPhysics):
         """
         self.update_parameters(filter=filter, **kwargs)
 
-        if x.dim() == 4:
-            return conv2d(x, filter=self.filter, padding=self.padding)
-        elif x.dim() == 5:
-            return conv3d_fft(x, filter=self.filter, padding=self.padding)
+        dim = (
+            x.dim() - 2
+        )  # get the spatial dimensions to select the right convolution function
+        if dim in [2, 3]:  # either 2D or 3D convolution
+            return self.conv[dim](x, filter=self.filter, padding=self.padding)
         else:
             raise ValueError(f"Expected Tensor dimension to be 4 or 5, is {x.dim()}")
 
@@ -546,10 +550,11 @@ class Blur(LinearPhysics):
         """
         self.update_parameters(filter=filter, **kwargs)
 
-        if y.dim() == 4:
-            return conv_transpose2d(y, filter=self.filter, padding=self.padding)
-        elif y.dim() == 5:
-            return conv_transpose3d_fft(y, filter=self.filter, padding=self.padding)
+        dim = (
+            y.dim() - 2
+        )  # get the spatial dimensions to select the right convolution function
+        if dim in [2, 3]:  # either 2D or 3D convolution
+            return self.conv_transpose[dim](y, filter=self.filter, padding=self.padding)
         else:
             raise ValueError(f"Expected Tensor dimension to be 4 or 5, is {y.dim()}")
 
@@ -665,7 +670,7 @@ class BlurFFT(DecomposablePhysics):
             filter = filter.to(device)
             if img_size[0] > filter.shape[1]:
                 filter = filter.repeat(1, img_size[0], 1, 1)
-            mask = filter_fft(filter, img_size, dims=(-2, -1), real_fft=True)
+            mask = dF.filter_fft(filter, img_size, dims=(-2, -1), real_fft=True)
             angle = torch.angle(mask)
             mask = torch.abs(mask).unsqueeze(-1)
             mask = torch.cat([mask, mask], dim=-1)
@@ -806,7 +811,7 @@ class SpaceVaryingBlur(LinearPhysics):
         :param str device: cpu or cuda
         """
         self.update_parameters(filters, multipliers, padding, **kwargs)
-        return product_convolution2d(x, self.multipliers, self.filters, self.padding)
+        return dF.product_convolution2d(x, self.multipliers, self.filters, self.padding)
 
     def A_adjoint(
         self,
@@ -831,7 +836,7 @@ class SpaceVaryingBlur(LinearPhysics):
         self.update_parameters(
             filters=filters, multipliers=multipliers, padding=padding, **kwargs
         )
-        return product_convolution2d_adjoint(
+        return dF.product_convolution2d_adjoint(
             y, self.multipliers, self.filters, self.padding
         )
 
@@ -1100,7 +1105,7 @@ class DownsamplingMatlab(Downsampling):
         """
         self.update_parameters(factor=factor, device=x.device, **kwargs)
         # Clone because of in-place ops
-        return imresize_matlab(
+        return dF.imresize_matlab(
             x.clone(),
             scale=1 / self.factor,
             antialiasing=self.antialiasing,

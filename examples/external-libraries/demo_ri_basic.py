@@ -23,7 +23,7 @@ from deepinv.utils import load_np_url, get_image_url, get_degradation_url
 from deepinv.utils.tensorlist import dirac_like
 from deepinv.optim import FISTA
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # The RI measurement operator

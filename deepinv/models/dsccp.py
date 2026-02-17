@@ -2,7 +2,13 @@ from __future__ import annotations
 import torch
 from torch import Tensor, nn
 from deepinv.models import Denoiser
-from .utils import get_weights_url, fix_dim, conv_nd, conv_transpose_nd
+from .utils import (
+    get_weights_url,
+    fix_dim,
+    conv_nd,
+    conv_transpose_nd,
+    initialize_3d_from_2d,
+)
 
 
 class DScCP(Denoiser):
@@ -18,8 +24,9 @@ class DScCP(Denoiser):
 
     :param int depth: depth i.e. number of convolutional layers.
     :param int n_channels_per_layer: number of channels per convolutional layer.
-    :param str, None pretrained: 'download' to download pretrained weights, or path to local weights file.
-    :param torch.device, str device: 'cuda' or 'cpu'.
+    :param str, None pretrained: ``pretrained='download'`` to download pretrained weights, or path to local weights file. When building a 3D network, it is possible to initialize with 2D pretrained weights by using ``pretrained='download_2d'``, which provides a good starting point for fine-tuning.
+    :param bool pretrained_2d_isotropic: when loading 2D pretrained weights into a 3D network, whether to initialize the 3D kernels isotropically. By default the weights are loaded axially, i.e., by initializing the central slice of the 3D kernels with the 2D weights.
+    :param torch.device, str device: 'cuda', 'mps' or 'cpu'.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
     """
@@ -29,6 +36,7 @@ class DScCP(Denoiser):
         depth: int = 20,
         n_channels_per_layer: int = 64,
         pretrained: str | None = "download",
+        pretrained_2d_isotropic: bool = False,
         device: torch.device | str = None,
         dim: int | str = 2,
     ):
@@ -75,9 +83,11 @@ class DScCP(Denoiser):
 
         if pretrained is not None:
 
-            if pretrained == "download":
-                if dim == 3:  # pragma: no cover
-                    raise RuntimeError("Pretrained weights are not available for 3D")
+            if pretrained == "download" or pretrained == "download_2d":
+                if dim == 3 and pretrained == "download":  # pragma: no cover
+                    raise ValueError(
+                        "No 3D weights for DScCP are available for download. You can either initialize with 2D weights by using `download_2d`, which provides a good starting point for fine-tuning, or set pretrained to None or path to your own pretrained weights."
+                    )
                 url = get_weights_url(
                     model_name="dsccp", file_name="ckpt_dsccp.pth.tar"
                 )
@@ -88,7 +98,11 @@ class DScCP(Denoiser):
                 )
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
-            self.load_state_dict(ckpt)
+
+            if dim == 3 and pretrained == "download_2d":
+                initialize_3d_from_2d(self, ckpt, isotropic=pretrained_2d_isotropic)
+            else:
+                self.load_state_dict(ckpt)
 
         self.tol = 1e-4
         self.max_iter = 50

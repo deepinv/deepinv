@@ -164,7 +164,9 @@ class Inpainting(DecomposablePhysics):
                 device=self.mask.device if self.mask is not None else None,
             )
         else:
-            return super().__mul__(other)
+            return super().__mul__(
+                other, device=self.mask.device if self.mask is not None else None
+            )
 
 
 class Demosaicing(Inpainting):
