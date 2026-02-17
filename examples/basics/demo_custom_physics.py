@@ -63,9 +63,16 @@ class Decolorize(dinv.physics.LinearPhysics):
     Converts RGB images to grayscale.
     """
 
-    def __init__(self, device: str | torch.device = "cpu", dtype: torch.dtype = torch.float32, **kwargs):
+    def __init__(
+        self,
+        device: str | torch.device = "cpu",
+        dtype: torch.dtype = torch.float32,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
-        coefficients = torch.tensor([0.2989, 0.5870, 0.1140], dtype=dtype, device=device)
+        coefficients = torch.tensor(
+            [0.2989, 0.5870, 0.1140], dtype=dtype, device=device
+        )
         self.register_buffer("coefficients", coefficients)
 
     def A(
