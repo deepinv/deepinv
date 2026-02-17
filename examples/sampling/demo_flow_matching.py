@@ -4,7 +4,7 @@ Flow-Matching for posterior sampling and unconditional generation
 
 This demo shows you how to perform unconditional image generation and posterior sampling using Flow Matching (FM).
 
-Flow matching consists in building a continuous transportation between a reference distribution :math:`p_0` which is easy to sample from (e.g., a Gaussian distribution) and the data distribution :math:`p_1`.
+Flow matching consists in building a continuous transportation between a reference distribution :math:`p_1` which is easy to sample from (e.g., a Gaussian distribution) and the data distribution :math:`p_0`.
 Sampling is done by solving the following ordinary differential equation (ODE) defined by a time-dependent velocity field :math:`v_\theta(x,t)`:
 
 .. math::
@@ -25,16 +25,16 @@ The most common choice of time schedulers is the linear schedule :math:`a(t) = 1
 
 In this demo, we will show how to :
 
-    -  Perform unconditional generation using, instead of a trained denoiser, the closed-form MMSE denoiser
+-  Perform unconditional generation using, instead of a trained denoiser, the closed-form MMSE denoiser
 
-    .. math::
-        D(x, \sigma) = \mathbb{E}_{x_0 \sim p_{data}, \epsilon \sim \mathcal{N}(0, I)} \Big[ x_0 | x = x_0 + \sigma \epsilon \Big]
+.. math::
+    D(x, \sigma) = \mathbb{E}_{x_0 \sim p_{data}, \epsilon \sim \mathcal{N}(0, I)} \Big[ x_0 | x = x_0 + \sigma \epsilon \Big]
 
-    Given a dataset of clean images, it can be computed by evaluating the distance between the input image and all the points of the dataset (see :class:`deepinv.models.MMSE`).
+Given a dataset of clean images, it can be computed by evaluating the distance between the input image and all the points of the dataset (see :class:`deepinv.models.MMSE`).
 
-    -  Perform posterior sampling using Flow-Matching combined with a DPS data fidelity term (see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more details)
+-  Perform posterior sampling using Flow-Matching combined with a DPS data fidelity term (see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more details)
 
-    -  Explore different choices of time schedulers :math:`a(t)` and :math:`b(t)`.
+-  Explore different choices of time schedulers :math:`a(t)` and :math:`b(t)`.
 
 """
 
@@ -58,12 +58,7 @@ from deepinv.models import MMSE
 # This can be quite long to compute for large images and large datasets.  In this toy example, we use the validation set of MNIST.
 # When using this closed-form MMSE denoiser, the sampling is guaranteed to output an image of the dataset.
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device(
-    "cuda"
-    if torch.cuda.is_available()
-    else "mps" if torch.backends.mps.is_available() else "cpu"
-)
+device = dinv.utils.get_device()
 dtype = torch.float32
 
 figsize = 2.5
@@ -112,19 +107,9 @@ dinv.utils.plot(
 # -----------------------------------------------------------------------
 #
 # Now, we can use the Flow-Matching model to perform posterior sampling.
-# In order not to replicate training image data, we now use a pretrained deep denoiser, here the NCSNpp denoiser  :footcite:t:`song2020score`, with pretrained weights from :footcite:t:`karras2022elucidating`.
 # We consider the inpainting problem, where we have a masked image and we want to recover the original image.
 # We use DPS :class:`deepinv.sampling.DPSDataFidelity` as data fidelity term (see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more details).
 # Note that due to the division by :math:`a(t)` in the velocity field, initialization close to t=1 causes instability.
-
-# denoiser = NCSNpp(pretrained="download").to(device)
-
-# x = dinv.utils.load_example(
-#         "celeba_example.jpg",
-#         img_size=64,
-#         resize_mode="resize",
-#         device=device,
-# )
 
 x = next(iter(dataloader))[0][:1].to(device)
 
