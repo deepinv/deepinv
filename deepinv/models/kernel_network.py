@@ -50,8 +50,6 @@ class KernelIdentificationNetwork(nn.Module):
 
         print(params["filters"].shape, params["multipliers"].shape) # torch.Size([1, 1, 25, 33, 33]) torch.Size([1, 1, 25, 128, 128])
 
-
-
     """
 
     def __init__(

@@ -49,8 +49,8 @@ class RAM(Reconstructor, Denoiser):
         physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
         y = physics(x)
         model = dinv.models.RAM()
-        x_hat = model(y, physics)
-        assert dinv.metric.PSNR()(x_hat, x) > 29.75
+        x_hat = model(y, physics) # run model
+        assert dinv.metric.PSNR()(x_hat, x) > 29.75 # tensor([True])
 
     """
 

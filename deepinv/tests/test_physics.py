@@ -8,6 +8,7 @@ import warnings
 import random
 
 import torch
+from packaging import version
 
 import numpy as np
 from deepinv.physics.forward import adjoint_function
@@ -559,6 +560,10 @@ def find_nonlinear_operator(name, device):
             verbose=False,
         )
         x = torch.rand(1, 1, 32, 32, dtype=dtype, device=device) * 0.1  # low contrast
+        if version.parse(torch.__version__) < version.parse("2.6.0"):
+            pytest.skip(
+                "This test requires PyTorch 2.6.0 or higher due to the use of torch.special."
+            )
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
@@ -1768,7 +1773,7 @@ def test_device_consistency(name):
 
     def try_find_nonlinear_operator(name):
         physics, x = find_nonlinear_operator(name, "cpu")
-        return physics, x, torch.float32
+        return physics, x, x[0].dtype if isinstance(x, TensorList) else x.dtype
 
     def try_find_phase_retrieval_operator(name):
         (
@@ -2360,6 +2365,11 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
 
     We limit the number of tests, since this is a rather long test
     """
+    if version.parse(torch.__version__) < version.parse("2.6.0"):
+        pytest.skip(
+            "Scattering physics requires PyTorch 2.6.0 or higher, as it relies on torch.special"
+        )
+
     wavenumber = torch.tensor([wavenumber])
     cylinder_contrast = contrast
     cylinder_radius = 0.25

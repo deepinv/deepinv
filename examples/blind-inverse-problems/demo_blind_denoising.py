@@ -108,7 +108,7 @@ print("Patch covariance-based noise level estimate: ", sigma_patch_cov.item())
 # Once we have estimated the noise level, we can use general denoising models available in the library.
 # Here, we use the pretrained DRUNet model from :footcite:t:`zhang2021plug` that can handle a range of noise levels.
 
-denoiser = dinv.models.DRUNet()
+denoiser = dinv.models.DRUNet(device=device)
 
 with torch.no_grad():
     denoised_naive = denoiser(y, sigma=std_naive)
@@ -209,7 +209,7 @@ plt.show()
 # For instance, we can use the Restormer model from :footcite:t:`zamir2022restormer`. We note that this model provides
 # better results than the non-blind denoiser with estimated noise level.
 
-blind_restormer = dinv.models.Restormer()
+blind_restormer = dinv.models.Restormer(device=device)
 
 with torch.no_grad():
     denoised_restormer = blind_restormer(y)
