@@ -920,12 +920,13 @@ def test_MLEM(imsize, dummy_dataset, device):
 
     data_fidelity = dinv.optim.PoissonLikelihood()
 
+    # without prior MLEM does not converge in residual, but it does in cost
     optimalgo = dinv.optim.MLEM(
         data_fidelity=data_fidelity,
         prior=dinv.optim.prior.ZeroPrior(),
         lambda_reg=1.0,
         max_iter=1000,
-        crit_conv="residual",
+        crit_conv="cost",
         thres_conv=1e-4,
         verbose=True,
         early_stop=True,
