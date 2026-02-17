@@ -44,7 +44,7 @@ def hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
     device = x.device
 
     # 2. Use native Torch if available and input is on GPU or requires grad
-    if has_native_bessel and (x.is_cuda or x.requires_grad) and n in (0, 1):
+    if has_native_bessel and n in (0, 1):
         try:
             return native_hankel1(n, x).to(device=device)
         except RuntimeError:
