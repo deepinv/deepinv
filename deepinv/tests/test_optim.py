@@ -913,7 +913,7 @@ def test_MLEM(imsize, dummy_dataset, device):
     physics = dinv.physics.Blur(
         dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
-        noise_model=dinv.physics.PoissonNoise(gain=1.0),
+        noise_model=dinv.physics.PoissonNoise(gain=1 / 60),
         padding="circular",
     )
     y = physics(test_sample)
@@ -931,8 +931,7 @@ def test_MLEM(imsize, dummy_dataset, device):
         verbose=True,
         early_stop=True,
     )
-    with torch.no_grad():
-        x = optimalgo(y, physics)
+    x = optimalgo(y, physics)
 
     assert optimalgo.has_converged
 
