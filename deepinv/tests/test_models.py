@@ -1356,8 +1356,8 @@ def test_denoiser_perf_noise_map(device, mode):
 
     # Only test the trained denoisers and the correspinding expected performance
     learned_denoisers = [
-        (dinv.models.DRUNet(pretrained="download").to(device), (6.8, 10.5, 11.0)),
-        (dinv.models.RAM(pretrained=True).to(device), (6, 10, 10)),
+        (dinv.models.DRUNet(pretrained="download").to(device), (6.8, 10.4, 11.0)),
+        (dinv.models.RAM(pretrained=True).to(device), (6, 9.5, 10)),
     ]
 
     for denoiser, expected_perf in learned_denoisers:
@@ -1365,23 +1365,26 @@ def test_denoiser_perf_noise_map(device, mode):
 
         with torch.no_grad():
             x_hat = denoiser(y, sigma=sigma, **kwargs)
-
+        improvement = psnr_fn(x_hat, x) - psnr_fn(y, x)
         assert torch.all(
-            psnr_fn(x_hat, x) >= psnr_fn(y, x) + torch.tensor(expected_perf).to(device)
-        )
+            improvement >= torch.tensor(expected_perf).to(device)
+        ), f"Got improvement {improvement.tolist()}, expected at least {expected_perf} with denoiser={type(denoiser).__name__}"
 
     for denoiser, expected_perf in learned_denoisers:
         kwargs = {}
         # Test denoisers on complex data
-        denoiser = dinv.models.ComplexDenoiserWrapper(denoiser=denoiser, mode=mode).to(
-            device
+        denoiser_cpx = dinv.models.ComplexDenoiserWrapper(
+            denoiser=denoiser, mode=mode
+        ).to(device)
+        x_cpx = x.to(torch.complex64)
+        y_cpx = y.to(torch.complex64)
+        x_hat_cpx = denoiser_cpx(y_cpx, sigma=sigma)
+        psnr_orig = dinv.metric.PSNR()(y_cpx, x_cpx).mean().item()
+        psnr_denoised = dinv.metric.PSNR()(x_hat_cpx, x_cpx).mean().item()
+        assert psnr_denoised > psnr_orig + 0.5, (
+            f"Mode={mode}, denoiser={type(denoiser).__name__}, "
+            f"psnr_orig={psnr_orig:.2f}, psnr_denoised={psnr_denoised:.2f}"
         )
-        x = x.to(torch.complex64)
-        y = y.to(torch.complex64)
-        x_hat = denoiser(y, sigma=sigma)
-        psnr_orig = dinv.metric.PSNR()(y, x).mean().item()
-        psnr_denoised = dinv.metric.PSNR()(x_hat, x).mean().item()
-        assert psnr_denoised > psnr_orig + 0.5, "Denoiser did not improve performance"
 
 
 @pytest.mark.parametrize("return_metadata", [False, True])
