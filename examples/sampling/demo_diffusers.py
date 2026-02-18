@@ -121,7 +121,11 @@ physics = dinv.physics.Inpainting(
 )
 
 y = physics(x)
-sde = VariancePreservingDiffusion(device=device, dtype=dtype)
+beta_max = 5
+beta_min = 0.0025
+sde = VariancePreservingDiffusion(
+    device=device, dtype=dtype, beta_max=beta_max, beta_min=beta_min
+)
 
 # %% Define the posterior sampler with a noisy data-fidelity term
 
@@ -149,3 +153,5 @@ dinv.utils.plot(
     titles=["Original image", "Measurement", "Posterior sample"],
     figsize=(figsize * 3, figsize),
 )
+
+# %%
