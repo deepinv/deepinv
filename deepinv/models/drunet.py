@@ -196,6 +196,8 @@ class DRUNet(Denoiser):
 
     def forward(self, x: torch.Tensor, sigma: torch.Tensor | float) -> torch.Tensor:
         r"""
+        .. tip:: `sigma` can be a non uniform noise map with a size `(batch_size, 1, height, width)`.
+
         Run the denoiser on image with noise level :math:`\sigma`.
 
         :param torch.Tensor x: noisy image

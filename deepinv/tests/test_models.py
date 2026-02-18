@@ -1227,7 +1227,7 @@ def test_denoiser_perf(device):
 
     psnr_fn = PSNR(max_pixel=1)
 
-    # Only test the trained denoisers and the correspinding expected performance
+    # Only test the trained denoisers and the corresponding expected performance
     learned_denoisers = [
         (dinv.models.DnCNN(pretrained="download").to(device), (0.1, 0.03, 0.001)),
         (dinv.models.DRUNet(pretrained="download").to(device), (7.0, 10.5, 11.0)),
@@ -1338,7 +1338,7 @@ def test_denoiser_perf_noise_map(device, mode):
 
     x = torch.cat([x1, x2, x1], dim=0)
     # three different noise levels
-    sigma = torch.ones(x.shape, device=device)[:, 0].unsqueeze(1) * torch.tensor(
+    sigma_values = torch.ones(x.shape, device=device)[:, 0].unsqueeze(1) * torch.tensor(
         [0.05, 0.1, 0.2]
     ).to(device).view((3, 1, 1, 1))
     # non uniform noise, gaussian amplitude along the width
@@ -1349,28 +1349,29 @@ def test_denoiser_perf_noise_map(device, mode):
     ).view((1, 1, 1, -1))
 
     rng = torch.Generator(device=device).manual_seed(123)
-    sigma = sigma * gaussian_x
+    sigma = sigma_values * gaussian_x
     y = x + sigma * torch.randn(x.shape, generator=rng, device=device)
 
     psnr_fn = PSNR(max_pixel=1)
 
-    # Only test the trained denoisers and the correspinding expected performance
+    # Only test the trained denoisers and the corresponding expected performance
     learned_denoisers = [
-        (dinv.models.DRUNet(pretrained="download").to(device), (6.8, 10.4, 11.0)),
-        (dinv.models.RAM(pretrained=True).to(device), (6, 9.5, 10)),
+        dinv.models.DRUNet(pretrained="download").to(device),
+        dinv.models.RAM(pretrained=True).to(device),
     ]
 
-    for denoiser, expected_perf in learned_denoisers:
+    for denoiser in learned_denoisers:
         kwargs = {}
 
         with torch.no_grad():
             x_hat = denoiser(y, sigma=sigma, **kwargs)
-        improvement = psnr_fn(x_hat, x) - psnr_fn(y, x)
-        assert torch.all(
-            improvement >= torch.tensor(expected_perf).to(device)
-        ), f"Got improvement {improvement.tolist()}, expected at least {expected_perf} with denoiser={type(denoiser).__name__}"
+            x_hat_no_map = denoiser(y, sigma=sigma_values, **kwargs)
 
-    for denoiser, expected_perf in learned_denoisers:
+        assert torch.all(
+            psnr_fn(x_hat, x) >= psnr_fn(x_hat_no_map, x)
+        ), f"denoiser={type(denoiser).__name__} didn't perfom better with a noise map : psnr_map={psnr_fn(x_hat, x).tolist()}, psnr_no_map={psnr_fn(x_hat_no_map, x).tolist()}"
+
+    for denoiser in learned_denoisers:
         kwargs = {}
         # Test denoisers on complex data
         denoiser_cpx = dinv.models.ComplexDenoiserWrapper(
@@ -1378,12 +1379,14 @@ def test_denoiser_perf_noise_map(device, mode):
         ).to(device)
         x_cpx = x.to(torch.complex64)
         y_cpx = y.to(torch.complex64)
-        x_hat_cpx = denoiser_cpx(y_cpx, sigma=sigma)
-        psnr_orig = dinv.metric.PSNR()(y_cpx, x_cpx).mean().item()
-        psnr_denoised = dinv.metric.PSNR()(x_hat_cpx, x_cpx).mean().item()
-        assert psnr_denoised > psnr_orig + 0.5, (
+        with torch.no_grad():
+            x_hat_cpx = denoiser_cpx(y_cpx, sigma=sigma)
+            x_hat_no_map_cpx = denoiser_cpx(y_cpx, sigma=sigma_values)
+        psnr_map = dinv.metric.PSNR()(x_hat_cpx, x_cpx).mean().item()
+        psnr_no_map = dinv.metric.PSNR()(x_hat_no_map_cpx, x_cpx).mean().item()
+        assert psnr_map > psnr_no_map, (
             f"Mode={mode}, denoiser={type(denoiser).__name__}, "
-            f"psnr_orig={psnr_orig:.2f}, psnr_denoised={psnr_denoised:.2f}"
+            f"psnr_map={psnr_map:.2f}, psnr_no_map={psnr_no_map:.2f}"
         )
 
 

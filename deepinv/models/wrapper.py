@@ -267,17 +267,12 @@ class ComplexDenoiserWrapper(Denoiser):
         :return: Denoised images, with the same shape as the input and will always be in complex dtype.
         """
         # Duplicate sigma in the batch dimension for real and imaginary parts
-        if isinstance(sigma, torch.Tensor):
-            if sigma.shape == (x.shape[0], 1, *x.shape[2:]):
-                sigma = torch.cat((sigma, sigma), dim=0)
-            else:
-                sigma = self._handle_sigma(
-                    sigma,
-                    batch_size=x.size(0) * 2,
-                    ndim=x.ndim,
-                    device=x.device,
-                    dtype=x.real.dtype,
-                )
+        if isinstance(sigma, torch.Tensor) and sigma.shape == (
+            x.shape[0],
+            1,
+            *x.shape[2:],
+        ):
+            sigma = torch.cat((sigma, sigma), dim=0)
         else:
             sigma = self._handle_sigma(
                 sigma,
