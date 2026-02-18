@@ -36,6 +36,10 @@ class RAM(Reconstructor, Denoiser):
         The physics operator should be normalized (i.e. have unit norm) for best results.
         Use :func:`physics.compute_norm() <deepinv.physics.LinearPhysics.compute_norm>` to check this.
 
+
+    .. tip:: This model can handle non-uniform `sigma` and `gain` maps, which can be of size `(batch_size, 1, height, width)`.
+
+
     :param Sequence in_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
     :param str device: Device to which the model should be moved. If None, the model will be created on the default device.
     :param bool, str pretrained: If `True`, the model will be initialized with pretrained weights. If `str`, load from file.
@@ -323,8 +327,6 @@ class RAM(Reconstructor, Denoiser):
             The noise levels `sigma` and `gain` can be kept as `None` if a noise model with :class:`GaussianNoise <deepinv.physics.GaussianNoise>`,
             :class:`PoissonNoise <deepinv.physics.PoissonNoise>` or :class:`PoissonGaussianNoise <deepinv.physics.PoissonGaussianNoise>`
             is specified in the physics. If both are provided, the `sigma` and `gain` values provided to the model will be used.
-
-        .. tip:: `sigma` and `gain` can be a non uniform noise map with a size `(batch_size, 1, height, width)`.
 
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
