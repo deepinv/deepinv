@@ -58,14 +58,23 @@ class SIRTIteration(OptimIterator):
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, **kwargs
     ):
         x = X["est"][0]
+        k = 0 if "it" not in X else X["it"]
 
         tau = float(cur_params.get("stepsize", 1.0)) if cur_params is not None else 1.0
         eps = float(cur_params.get("eps", 1e-8)) if cur_params is not None else 1e-8
 
         row_sum, col_sum = self._get_normalizers(x, y, physics, eps)
 
-        Ax = physics.A(x)
-        resid = y - Ax
+        resid = y - physics.A(x)
 
         x_next = x + tau * physics.A_adjoint(resid / row_sum) / col_sum
-        return {"est": (x_next,)}
+
+        F = (
+            self.cost_fn(x_next, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            if self.has_cost
+            and self.cost_fn is not None
+            and cur_data_fidelity is not None
+            else None
+        )
+
+        return {"est": (x_next,), "cost": F, "it": k + 1}

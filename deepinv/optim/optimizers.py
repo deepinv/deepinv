@@ -2251,6 +2251,7 @@ class SIRT(BaseOptim):
     For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
     The SIRT iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.SIRTIteration`.
 
+    :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`. Note that SIRT only decreases the least-squares data-fidelity term :math:`\|Ax-y\|_2^2`, but other data-fidelities can still be measured along the iterations.
     :param float stepsize: stepsize parameter :math:`\tau`. Default: ``1.0``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
@@ -2263,6 +2264,7 @@ class SIRT(BaseOptim):
 
     def __init__(
         self,
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
         stepsize: float = 1.0,
         max_iter: int = 100,
         crit_conv: str = "residual",
@@ -2274,6 +2276,7 @@ class SIRT(BaseOptim):
     ):
         super(SIRT, self).__init__(
             SIRTIteration(),
+            data_fidelity=data_fidelity,
             params_algo={"stepsize": stepsize},
             max_iter=max_iter,
             crit_conv=crit_conv,
