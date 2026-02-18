@@ -94,8 +94,10 @@ physics = dinv.physics.MultiCoilMRI(
 # -----
 # For the model we use a fairly large MoDL with a UNet backbone, with 12 iterations:
 
-denoiser = dinv.models.UNet(2, 2, scales=5, batch_norm=False)
-model = dinv.models.MoDL(denoiser=denoiser, num_iter=12).to(device)
+# denoiser = dinv.models.UNet(2, 2, scales=5, batch_norm=False)
+# model = dinv.models.MoDL(denoiser=denoiser, num_iter=12).to(device)
+
+model = dinv.models.RAM(device=device)
 
 # %%
 # Loss
