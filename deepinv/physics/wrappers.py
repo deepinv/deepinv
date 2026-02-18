@@ -226,10 +226,20 @@ class PhysicsCropper(LinearPhysics):
         return y
 
     def remove_pad(self, x):
-        return x[..., self.crop[0] :, self.crop[1] :]
+        if len(self.crop) == 2:
+            return x[..., self.crop[0] :, self.crop[1] :]
+        elif len(self.crop) == 3:
+            return x[..., self.crop[0] :, self.crop[1] :, self.crop[2] :]
+        else:
+            raise ValueError("Crop must be a tuple of length 2 or 3.")
 
     def pad(self, x):
-        return torch.nn.functional.pad(x, (self.crop[1], 0, self.crop[0], 0))
+        if len(self.crop) == 3:
+            return torch.nn.functional.pad(
+                x, (self.crop[2], 0, self.crop[1], 0, self.crop[0], 0)
+            )
+        else:
+            return torch.nn.functional.pad(x, (self.crop[1], 0, self.crop[0], 0))
 
     def update_parameters(self, **kwargs):
         self.base.update_parameters(**kwargs)

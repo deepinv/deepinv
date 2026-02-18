@@ -7,10 +7,10 @@ We demonstrate self-supervised (blind) denoising of a low-field MRI scan without
 In low-field MRI, images have high noise due to the fixed permanent magnet, and acquiring clean reference images is often impossible.
 One could average the images over multiple repetitions, but if there's any patient motion, the image would be blurry.
 
-Here, we fine-tune the Reconstruct Anything Model (RAM) :footcite:p:`terris2025reconstruct` on a single noisy scan using the self-supervised
-RecorruptedtoRecorrupted loss :footcite:p:`pang2021recorrupted`.
+Here, we fine-tune the Reconstruct Anything Model (:class:`deepinv.models.RAM`) :footcite:p:`terris2025reconstruct` on a single noisy scan using the self-supervised
+:class:`Recorrupted2Recorrupted loss <deepinv.loss.R2RLoss>` :footcite:p:`pang2021recorrupted`.
 
-Play around with different self-supervised denoising losses :ref:`self-supervised-losses`!
+Play around with different self-supervised denoising losses (see :ref:`self-supervised-losses`)!
 
 """
 

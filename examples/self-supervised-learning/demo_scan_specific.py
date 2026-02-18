@@ -1,11 +1,12 @@
 r"""
-Scan-specific zero-shot measurement splitting for MRI
+Scan-specific zero-shot SSDU for MRI
 =====================================================
 
 We demonstrate scan-specific self-supervised learning, that is, learning to
 reconstruct MRI scans from a single accelerated sample without ground truth.
 
-Here, we demonstrate training with the :class:`weighted SSDU <deepinv.loss.mri.WeightedSplittingLoss>` loss :footcite:p:`millard2023theoretical,yaman2020self`.
+Here, we demonstrate fine-tuning the Reconstruct Anything Model (:class:`deepinv.models.RAM`) :footcite:p:`terris2025reconstruct`
+with the :class:`weighted SSDU <deepinv.loss.mri.WeightedSplittingLoss>` loss :footcite:p:`millard2023theoretical,yaman2020self`.
 However, note that any of the :ref:`self-supervised losses <self-supervised-losses>` can be used to do this with varying performance :footcite:p:`wang2025benchmarking`.
 For example see the :ref:`example using Equivariant Imaging <sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py>` :footcite:p:`chen2021equivariant`.
 
@@ -130,7 +131,7 @@ loss = dinv.loss.mri.WeightedSplittingLoss(
 # Because the FastMRI ground truth are cropped magnitude root-sum-of-squares reconstructions, we define a helper metric for evaluation later.
 #
 # .. hint::
-#     This example trains on GPU with 100 epochs. We recommend training on GPU to accelerate training.
+#     This example trains on GPU to accelerate training in the example.
 
 
 def crop(x_net, x):
@@ -163,8 +164,11 @@ trainer = dinv.Trainer(
     eval_dataloader=torch.utils.data.DataLoader(val_dataset, generator=rng_cpu),
     epochs=0 if str(device) == "cpu" else 100,
     save_path=None,
-    show_progress_bar=True,
     early_stop=3,
+    early_stop_on_losses=True,
+    compute_train_metrics=False,
+    compute_eval_losses=True,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     device=device,
 )
 

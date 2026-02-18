@@ -44,13 +44,13 @@ class RAM(Reconstructor, Denoiser):
 
     ::
 
-        import deepinv as dinv
-        x = dinv.utils.load_example("butterfly.png")
-        physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
-        y = physics(x)
-        model = dinv.models.RAM()
-        x_hat = model(y, physics) # run model
-        assert dinv.metric.PSNR()(x_hat, x) > 29.75 # tensor([True])
+      import deepinv as dinv
+      x = dinv.utils.load_example("butterfly.png")
+      physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
+      y = physics(x)
+      model = dinv.models.RAM()
+      x_hat = model(y, physics) # run model
+      dinv.metric.PSNR()(x_hat, x) > 29.75 # tensor([True])
 
     """
 
@@ -284,6 +284,30 @@ class RAM(Reconstructor, Denoiser):
 
         return x
 
+    def get_pad(self, x: Tensor) -> tuple[int, int, int]:
+        """Get padding amount for model input.
+
+        :param Tensor x: input tensor
+        :return tuple[int, int, int]: padding amounts
+        """
+        img_shape = x.shape
+
+        spatial_pad = 2**4
+
+        pad = (
+            0,
+            -img_shape[-2] % spatial_pad,
+            -img_shape[-1] % spatial_pad,
+        )
+
+        min_size = 64
+        if img_shape[-2] + pad[1] < min_size:
+            pad = (pad[0], min_size - img_shape[-2], pad[2])
+        if img_shape[-1] + pad[2] < min_size:
+            pad = (pad[0], pad[1], min_size - img_shape[-1])
+
+        return pad
+
     def forward(
         self,
         y: torch.Tensor,
@@ -334,13 +358,7 @@ class RAM(Reconstructor, Denoiser):
         if physics is None:
             physics = dinv.physics.Denoising(noise_model=dinv.physics.ZeroNoise())
 
-        if img_size is None:
-            if hasattr(physics, "img_shape") and physics.img_shape is not None:
-                img_size = physics.img_shape
-            elif hasattr(physics, "img_size") and physics.img_size is not None:
-                img_size = physics.img_size
-            else:
-                img_size = physics.A_adjoint(y).shape[1:]
+        pad = self.get_pad(physics.A_adjoint(y))
 
         sigma, gain = self.obtain_sigma_gain(
             physics=physics,
@@ -350,10 +368,8 @@ class RAM(Reconstructor, Denoiser):
             device=y.device,
         )
 
-        pad = (-img_size[-2] % 8, -img_size[-1] % 8)
-
         use_pad = False
-        if pad[0] != 0 or pad[1] != 0:
+        if pad[0] != 0 or pad[1] != 0 or pad[2] != 0:
             physics = PhysicsCropper(physics, pad)
             use_pad = True
 
