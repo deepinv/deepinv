@@ -2232,19 +2232,33 @@ class SIRT(BaseOptim):
     r"""Simultaneous Iterative Reconstruction Technique (SIRT) optimization module.
 
     Implementation of the `Simultaneous Iterative Reconstruction Technique (SIRT) <https://www.sciencedirect.com/science/article/pii/0022519372901804>`_
-    algorithm for solving linear inverse problems of the form :math:`y = Ax + \epsilon`, where :math:`\epsilon` models all the errors in the modelisation.
-    This algorithm is widely used in tomography, especially for X-ray computed tomography.
+    algorithm for tomographic reconstruction. This algorithm is especially used in transmission tomography, i.e for X-ray computed tomography.
+    The algorithm minimizes the least-squares data-fidelity term :math:`\|Ax-y\|_2^2` and does not support any regularization.
 
     Iterations are given by
     .. math::
         \begin{equation*}
-        x_{k+1} = x_k + \gamma V A^{\top} W (y - A x_k)
+        x_{k+1} = x_k + \tau V A^{\top} W (y - A x_k)
         \end{equation*}
 
     where
-    - :math:`\gamma` is a stepsize parameter,
-    - :math:`W = \mathrm{diag}\left(\frac{1}{\sum_{i}a_{ij}}\right)`, a diagonal matrix where each diagonal element is the inverse of the sum of the elements of the corresponding row of the forward operator :math:`A`,
-    - :math:`V = \mathrm{diag}\left(\frac{1}{\sum_{j}a_{ij}}\right)`, a diagonal matrix where each diagonal element is the inverse of the sum of the elements of the corresponding column of the forward operator :math:`A`.
+    - :math:`\tau` is a stepsize parameter,
+    - :math:`W = \mathrm{diag}\left(\frac{1}{\sum_{i}a_{ij}}\right)`, a diagonal matrix where each element is the inverse of the row sums of :math:`A`,
+    - :math:`V = \mathrm{diag}\left(\frac{1}{\sum_{j}a_{ij}}\right)`, a diagonal matrix where each element is the inverse of the column sums of :math:`A`.
+
+    The stepsize parameter :math:`\tau`, sometimes called relaxation parameter, should satisfy :math:`0 < \tau < 2` for convergence.
+
+    For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
+    The SIRT iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.SIRTIteration`.
+
+    :param float stepsize: stepsize parameter :math:`\tau`. Default: ``1.0``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``.
+    :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
+    :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
+    :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
+    :param Callable custom_init:  Custom initialization of the algorithm.
     """
 
     def __init__(

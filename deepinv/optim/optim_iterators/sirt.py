@@ -5,7 +5,21 @@ from torch import ones_like
 
 class SIRTIteration(OptimIterator):
     r"""
-    SIRT iteration.
+    Iterator for the Simultaneous Iterative Reconstruction Technique (SIRT) algorithm.
+
+    Class for a single iteration of the SIRT algorithm.
+
+    The iteration is given by:
+
+    .. math::
+        \begin{equation*}
+        x_{k+1} = x_k + \tau V A^{\top} W (y - A x_k)
+        \end{equation*}
+    where
+    - :math:`\tau` is a stepsize parameter which should satisfy :math:`0 < \tau < 2`
+    - :math:`W = \mathrm{diag}\left(\frac{1}{\sum_{i}a_{ij}}\right)`, a diagonal matrix where each element is the inverse of the row sums of :math:`A`,
+    - :math:`V = \mathrm{diag}\left(\frac{1}{\sum_{j}a_{ij}}\right)`, a diagonal matrix where each element is the inverse of the column sums of :math:`A`.
+
     """
 
     def __init__(self, **kwargs):
@@ -45,9 +59,7 @@ class SIRTIteration(OptimIterator):
     ):
         x = X["est"][0]
 
-        omega = (
-            float(cur_params.get("stepsize", 1.0)) if cur_params is not None else 1.0
-        )
+        tau = float(cur_params.get("stepsize", 1.0)) if cur_params is not None else 1.0
         eps = float(cur_params.get("eps", 1e-8)) if cur_params is not None else 1e-8
 
         row_sum, col_sum = self._get_normalizers(x, y, physics, eps)
@@ -55,5 +67,5 @@ class SIRTIteration(OptimIterator):
         Ax = physics.A(x)
         resid = y - Ax
 
-        x_next = x + omega * physics.A_adjoint(resid / row_sum) / col_sum
+        x_next = x + tau * physics.A_adjoint(resid / row_sum) / col_sum
         return {"est": (x_next,)}
