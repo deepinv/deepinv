@@ -287,7 +287,7 @@ class RAM(Reconstructor, Denoiser):
     def get_pad(self, x: Tensor) -> tuple[int, int, int]:
         """Get padding amount for model input.
 
-        :param Tensor x: input tensor
+        :param torch.Tensor x: input tensor
         :return tuple[int, int, int]: padding amounts
         """
         img_shape = x.shape
