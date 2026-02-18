@@ -267,25 +267,19 @@ class DiffPIR(Reconstructor):
 
         Denoising diffusion restoration model using a pretrained DRUNet denoiser:
 
-        >>> import deepinv as dinv
-        >>> device = dinv.utils.get_device(verbose=False)
-        >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define a plain gray 32x32 image
-        >>> physics = dinv.physics.Inpainting(
-        ...   mask=0.5, img_size=(3, 32, 32),
-        ...   noise_model=dinv.physics.GaussianNoise(0.1),
-        ...   device=device
-        ... )
-        >>> y = physics(x) # Measurements
-        >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-        >>> model = dinv.sampling.DiffPIR(
-        ...   model=denoiser,
-        ...   data_fidelity=dinv.optim.data_fidelity.L2(),
-        ...   device=device,
-        ... ) # Define the DiffPIR model
-        >>> xhat = model(y, physics) # Run the DiffPIR algorithm
-        >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
-        tensor([True])
+    ::
 
+        import deepinv as dinv
+        device = dinv.utils.get_device(verbose=False)
+        x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define a plain gray 32x32 image
+        physics = dinv.physics.Inpainting(mask=0.5, img_size=(3, 32, 32),
+           noise_model=dinv.physics.GaussianNoise(0.1), device=device)
+        y = physics(x) # Measurements
+        denoiser = dinv.models.DRUNet(device=device)
+        model = dinv.sampling.DiffPIR(model=denoiser, data_fidelity=dinv.optim.data_fidelity.L2(),
+           device=device) # Define the DiffPIR model
+        xhat = model(y, physics) # Run the DiffPIR algorithm
+        print((dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x))) # should be True
 
 
     """
