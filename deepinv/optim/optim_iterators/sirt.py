@@ -1,6 +1,6 @@
 from __future__ import annotations
 from .optim_iterator import OptimIterator
-import torch
+from torch import ones_like
 
 
 class SIRTIteration(OptimIterator):
@@ -14,7 +14,6 @@ class SIRTIteration(OptimIterator):
         self._cached_col_sum = None
         self.sinogram_shape = None
 
-    @torch.no_grad()
     def _get_normalizers(self, x, y, physics, eps: float):
         sinogram_shape = tuple(y.shape)
         # We cache the normalizers to avoid recomputing them at every iteration
@@ -26,8 +25,8 @@ class SIRTIteration(OptimIterator):
         ):
             return self._cached_row_sum, self._cached_col_sum
 
-        ones_x = torch.ones_like(x)
-        ones_y = torch.ones_like(y)
+        ones_x = ones_like(x)
+        ones_y = ones_like(y)
 
         row_sum = physics.A(ones_x)
         col_sum = physics.A_adjoint(ones_y)
