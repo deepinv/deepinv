@@ -1,5 +1,5 @@
 from .optim_iterator import OptimIterator, fStep, gStep
-import torch
+from torch import ones_like
 
 
 class MLEMIteration(OptimIterator):
@@ -23,7 +23,7 @@ class MLEMIteration(OptimIterator):
         """
         x_prev = X["est"][0]
         k = 0 if "it" not in X else X["it"]
-        sensitivity = physics.A_adjoint(torch.ones_like(y))
+        sensitivity = physics.A_adjoint(ones_like(y))
         x = self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
         if cur_prior is not None:
             denom = sensitivity + self.g_step(x, cur_prior, cur_params)
