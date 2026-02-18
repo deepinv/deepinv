@@ -436,7 +436,7 @@ class BaseOptim(Reconstructor):
             update_params_fn=self.update_params_fn,
             update_data_fidelity_fn=self.update_data_fidelity_fn,
             update_prior_fn=self.update_prior_fn,
-            backtraking_check_fn=self.backtraking_check_fn,
+            backtracking_check_fn=self.backtracking_check_fn,
             check_conv_fn=self.check_conv_fn,
             init_metrics_fn=self.init_metrics_fn,
             init_iterate_fn=self.init_iterate_fn,
@@ -657,7 +657,7 @@ class BaseOptim(Reconstructor):
                         )
         return metrics
 
-    def backtraking_check_fn(self, X_prev: dict, X: dict) -> bool:
+    def backtracking_check_fn(self, X_prev: dict, X: dict) -> bool:
         r"""
         Performs stepsize backtracking if the sufficient decrease condition is not verified.
 
@@ -676,15 +676,15 @@ class BaseOptim(Reconstructor):
             )
             stepsize = self.params_algo["stepsize"][0]
             if diff_F < (self.backtracking_config.gamma / stepsize) * diff_x:
-                backtraking_check = False
+                backtracking_check = False
                 self.params_algo["stepsize"] = [self.backtracking_config.eta * stepsize]
                 if self.verbose:
                     print(
-                        f'Backtraking : new stepsize = {self.params_algo["stepsize"][0]:.6f}'
+                        f'Backtracking : new stepsize = {self.params_algo["stepsize"][0]:.6f}'
                     )
             else:
-                backtraking_check = True
-            return backtraking_check
+                backtracking_check = True
+            return backtracking_check
         else:
             return True
 
@@ -1336,7 +1336,7 @@ class GD(BaseOptim):
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
     :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
         If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtracking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1614,7 +1614,7 @@ class PGD(BaseOptim):
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
     :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
         If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtracking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
