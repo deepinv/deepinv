@@ -138,9 +138,7 @@ class HDF5Dataset(ImageDataset):
         HDF5 datasets always contain measurements even though our conventions permit datasets
         with only ground truths (with or without physics parameters).
 
-    :param bool load_physics_generator_params: Return the physics parameters
-    with each entry. If no physics parameter is featured in the dataset, an
-    empty dictionary is returned nonetheless.
+    :param bool load_physics_generator_params: Return the physics parameters with each entry. If no physics parameter is featured in the dataset, an empty dictionary is returned nonetheless.
 
     |sep|
 
