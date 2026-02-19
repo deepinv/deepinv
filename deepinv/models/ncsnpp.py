@@ -16,10 +16,11 @@ from typing import Sequence
 
 
 class NCSNpp(Denoiser):
-    r"""Implementation of the DDPM++ and NCSN++ architectures.
+    r"""Implementation of the DDPM++ and NCSN++ UNet architectures.
 
     Equivalent to the original implementation by :footcite:t:`song2020score`, available at `the official implementation <https://github.com/yang-song/score_sde_pytorch>`_.
-
+    The DDPM model was originally built for the VP-SDE from :footcite:t:`song2020score` while the NCSN++ model was originally built with the VE-SDE.
+    See the :ref:`diffusion SDE implementations <diffusion>` for more details on the VP-SDE and VE-SDE from :footcite:t:`song2020score`.
     The model is also pre-conditioned by the method described in :footcite:t:`karras2022elucidating`.
 
     The architecture consists of a series of convolution layer, down-sampling residual blocks and up-sampling residual blocks with skip-connections of scale :math:`\sqrt{0.5}`.
@@ -27,6 +28,13 @@ class NCSNpp(Denoiser):
     Each residual block has a self-attention mechanism with multiple channels per attention head.
     The noise level can be embedded using either Positional Embedding  or Fourier Embedding with optional augmentation linear layer.
 
+    :param str model_type: Model type, which defines the architecture and embedding types. Options are:
+
+        - `'ncsn'` for the NCSN++ architecture: the following arguments will be ignored and set to `embedding_type='fourier'`, `channel_mult_noise=2`, `encoder_type='residual'`, `decoder_type='standard'`, `resample_filter=[1,3,3,1]`.
+        - `'ddpm'` for the  DDPM++ architecture: the following arguments will be ignored and set to `embedding_type='positional'`, `channel_mult_noise=1`, `encoder_type='standard'`, `decoder_type='standard'`, `resample_filter=[1,1]`.
+
+        Default is `'ncsn'`.
+    :param str precondition_type: Input preconditioning for denoising. Can be 'edm' for the method from :footcite:t:`karras2022elucidating` or 'baseline_ve' for the original method from :footcite:t:`song2020score`. See Table 1 from :footcite:t:`karras2022elucidating` for more details.
     :param int img_resolution: Image spatial resolution at input/output.
     :param int in_channels: Number of color channels at input.
     :param int out_channels: Number of color channels at output.
@@ -39,26 +47,33 @@ class NCSNpp(Denoiser):
     :param list attn_resolutions: List of resolutions with self-attention.
     :param float dropout: Dropout probability of intermediate activations.
     :param float label_dropout: Dropout probability of class labels for classifier-free guidance.
-    :param str embedding_type: Timestep embedding type: 'positional' for DDPM++, 'fourier' for NCSN++.
+    :param str embedding_type: Timestep embedding type: `'positional'` for DDPM++, `'fourier'` for NCSN++.
     :param int channel_mult_noise: Timestep embedding size: 1 for DDPM++, 2 for NCSN++.
-    :param str encoder_type: Encoder architecture: 'standard' for DDPM++, 'residual' for NCSN++.
-    :param str decoder_type: Decoder architecture: 'standard' for both DDPM++ and NCSN++.
-    :param list resample_filter: Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
-    :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
-        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
-        online repository (the default model trained on FFHQ at 64x64 resolution (`ffhq64-uncond-ve`) with default architecture).
-        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
-        In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the attribute `_was_trained_on_minus_one_one` to `True` after loading the weights.
+    :param str encoder_type: Encoder architecture: `'standard'` for DDPM++, `'residual'` for NCSN++.
+    :param str decoder_type: Decoder architecture: `'standard'` for both DDPM++ and NCSN++.
+    :param list resample_filter: Resampling filter: `[1,1]` for DDPM++, `[1,3,3,1]` for NCSN++.
+    :param pretrained: Use pretrained weights (or a path to custom weights).
+
+        - If ``pretrained is None``, the weights are initialized randomly using PyTorch's default initialization.
+        - ``pretrained='edm-ffhq64-64x64-uncond-ve'`` loads **NCSN++** weights from :footcite:t:`karras2022elucidating`, trained on **FFHQ 64x64** with the **EDM** diffusion schedule (see Table 1 in :footcite:t:`karras2022elucidating`).
+        - ``pretrained='edm-cifar10-32x32-uncond-ve'`` loads **NCSN++** weights from :footcite:t:`karras2022elucidating`, trained on **CIFAR-10 32x32** with the **EDM** diffusion schedule.
+        - ``pretrained='edm-ffhq-64x64-uncond-vp'`` loads **DDPM++** weights from :footcite:t:`karras2022elucidating`, trained on **FFHQ 64x64** with the **EDM** diffusion schedule.
+        - ``pretrained='edm-cifar10-32x32-uncond-vp'`` loads **DDPM++** weights from :footcite:t:`karras2022elucidating`, trained on **CIFAR-10 32x32** with the **EDM** diffusion schedule.
+        - ``pretrained='baseline-ffhq-64x64-uncond-ve'`` loads **NCSN++** weights from :footcite:t:`song2020score`, trained on **FFHQ 64x64** with the **VE-SDE** diffusion schedule.
+        - ``pretrained='baseline-cifar10-32x32-uncond-ve'`` loads **NCSN++** weights from :footcite:t:`song2020score`, trained on **CIFAR-10 32x32** with the **VE-SDE** diffusion schedule.
+        - ``pretrained='download'`` is a convenience alias: if ``model_type='ncsn'`` (default) it maps to ``'edm-ffhq-64x64-uncond-ve'``, and if ``model_type='ddpm'`` it maps to ``'edm-ffhq-64x64-uncond-vp'``.
+        - ``pretrained`` may also be a filesystem path to user-provided weights; the model is assumed to be trained on pixels in ``[0, 1]``—if trained on ``[-1, 1]``, set ``model._was_trained_on_minus_one_one = True`` after loading.
+
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
+    :param bool _was_trained_on_minus_one_one: Indicate whether the model has been trained on `[-1, 1]` pixels or `[0, 1]` pixels. Default to `False`.
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
-
-
-
     """
 
     def __init__(
         self,
+        model_type: str = "ncsn",  # Model name, 'ncsn' or 'ddpm'.
+        precondition_type: str = "edm",  # Preconditioning type, 'edm' or 'baseline_ve'.
         img_resolution: int = 64,  # Image spatial resolution at input/output.
         in_channels: int = 3,  # Number of color channels at input.
         out_channels: int = 3,  # Number of color channels at output.
@@ -76,25 +91,31 @@ class NCSNpp(Denoiser):
         attn_resolutions: Sequence = (16,),  # List of resolutions with self-attention.
         dropout: float = 0.10,  # Dropout probability of intermediate activations.
         label_dropout: float = 0.0,  # Dropout probability of class labels for classifier-free guidance.
-        embedding_type: str = "fourier",  # Timestep embedding type: 'positional' for DDPM++, 'fourier' for NCSN++.
-        channel_mult_noise: int = 2,  # Timestep embedding size: 1 for DDPM++, 2 for NCSN++.
-        encoder_type: str = "residual",  # Encoder architecture: 'standard' for DDPM++, 'residual' for NCSN++.
-        decoder_type: str = "standard",  # Decoder architecture: 'standard' for both DDPM++ and NCSN++.
-        resample_filter: Sequence = (
-            1,
-            3,
-            3,
-            1,
-        ),  # Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
         pretrained: str = "download",
+        _was_trained_on_minus_one_one: bool = False,
         pixel_std: float = 0.75,
         device=None,
+        **kwargs,
     ):
+        super().__init__()
+        model_type = model_type.lower()
+        assert model_type in ["ncsn", "ddpm"]
+        if model_type == "ncsn":
+            embedding_type = "fourier"
+            channel_mult_noise = 2
+            encoder_type = "residual"
+            decoder_type = "standard"
+            resample_filter = [1, 3, 3, 1]
+        elif model_type == "ddpm":
+            embedding_type = "positional"
+            channel_mult_noise = 1
+            encoder_type = "standard"
+            decoder_type = "standard"
+            resample_filter = [1, 1]
         assert embedding_type in ["fourier", "positional"]
         assert encoder_type in ["standard", "skip", "residual"]
         assert decoder_type in ["standard", "skip"]
-
-        super().__init__()
+        self.precondition_type = precondition_type.lower()
         self.label_dropout = label_dropout
         emb_channels = model_channels * channel_mult_emb
         noise_channels = model_channels * channel_mult_noise
@@ -222,27 +243,48 @@ class NCSNpp(Denoiser):
                 self.dec[f"{res}x{res}_aux_conv"] = UpDownConv2d(
                     in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
                 )
-
+        self._was_trained_on_minus_one_one = _was_trained_on_minus_one_one
         if pretrained is not None:
             if (
                 pretrained.lower() == "edm-ffhq64-uncond-ve"
-                or pretrained.lower() == "download"
+                or pretrained.lower() == "edm-ffhq-64x64-uncond-ve"
+                or (pretrained.lower() == "download" and model_type == "ncsn")
             ):
-                name = "ncsnpp-ffhq64-uncond-ve.pt"
-                url = get_weights_url(model_name="edm", file_name=name)
-                ckpt = torch.hub.load_state_dict_from_url(
-                    url, map_location=lambda storage, loc: storage, file_name=name
-                )
-                self._was_trained_on_minus_one_one = True  # Pretrained on [-1,1]s
+                url_name = "edm-ffhq-64x64-uncond-ve.pt"
+                self.precondition_type = "edm"
                 self.pixel_std = 0.5
+                self._was_trained_on_minus_one_one = True
+            elif pretrained.lower() == "edm-ffhq-64x64-uncond-vp" or (
+                pretrained.lower() == "download" and model_type == "ddpm"
+            ):
+                url_name = "edm-ffhq-64x64-uncond-vp.pt"
+                self.precondition_type = "edm"
+                self.pixel_std = 0.5
+                self._was_trained_on_minus_one_one = True
+            elif pretrained.lower() == "edm-cifar10-32x32-uncond-ve":
+                url_name = "edm-cifar10-32x32-uncond-ve.pt"
+                self.precondition_type = "edm"
+                self.pixel_std = 0.5
+                self._was_trained_on_minus_one_one = True
+            elif pretrained.lower() == "edm-cifar10-32x32-uncond-vp":
+                url_name = "edm-cifar10-32x32-uncond-vp.pt"
+                self.precondition_type = "edm"
+                self.pixel_std = 0.5
+                self._was_trained_on_minus_one_one = True
+            elif pretrained.lower() == "edm-cifar10-32x32-uncond-vp":
+                url_name = "baseline-ffhq-64x64-uncond-ve.pt"
+                self.precondition_type = "baseline_ve"
+                self._was_trained_on_minus_one_one = True
+            else:
+                url_name = None
+            if url_name is not None:
+                url = get_weights_url(model_name="edm", file_name=url_name)
+                ckpt = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=url_name
+                )
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
-                self._was_trained_on_minus_one_one = False
             self.load_state_dict(ckpt, strict=True)
-            self._train_on_minus_one_one = True  # Pretrained on [-1,1]s
-            self.pixel_std = 0.5
-        else:
-            self._was_trained_on_minus_one_one = False
         self.eval()
         if device is not None:
             self.to(device)
@@ -311,6 +353,7 @@ class NCSNpp(Denoiser):
         sigma: Tensor | float,
         class_labels: Tensor | None = None,
         augment_labels: Tensor | None = None,
+        input_in_minus_one_one: bool = False,
         *args,
         **kwargs,
     ):
@@ -321,6 +364,7 @@ class NCSNpp(Denoiser):
         :param Union[torch.Tensor, float]  sigma: noise level
         :param torch.Tensor class_labels: class labels
         :param torch.Tensor augment_labels: augmentation labels
+        :param bool input_in_minus_one_one: whether the input `x` is in `[-1, 1]` range. Default is `False`.
         :return torch.Tensor: denoised image.
         """
         dtype = x.dtype
@@ -332,15 +376,24 @@ class NCSNpp(Denoiser):
         sigma = self._handle_sigma(
             sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
         )
-
-        # Rescale [0,1] input to [-1,-1]
-        if getattr(self, "_was_trained_on_minus_one_one", False):
+        # Rescale [0,1] input to [-1,1]
+        if self._was_trained_on_minus_one_one and not input_in_minus_one_one:
             x = (x - 0.5) * 2.0
             sigma = sigma * 2.0
-        c_skip = self.pixel_std**2 / (sigma**2 + self.pixel_std**2)
-        c_out = sigma * self.pixel_std / (sigma**2 + self.pixel_std**2).sqrt()
-        c_in = 1 / (self.pixel_std**2 + sigma**2).sqrt()
-        c_noise = sigma.log() / 4
+        if self.precondition_type == "edm":
+            c_skip = self.pixel_std**2 / (sigma**2 + self.pixel_std**2)
+            c_out = sigma * self.pixel_std / (sigma**2 + self.pixel_std**2).sqrt()
+            c_in = 1 / (self.pixel_std**2 + sigma**2).sqrt()
+            c_noise = sigma.log() / 4
+        elif self.precondition_type == "ve-baseline":
+            c_skip = 1
+            c_out = sigma
+            c_in = 1
+            c_noise = (sigma / 2).log()
+        else:
+            raise NotImplementedError(
+                f"Preconditioning type {self.precondition_type} not implemented."
+            )
 
         F_x = self.forward_unet(
             c_in * x,
@@ -348,12 +401,10 @@ class NCSNpp(Denoiser):
             class_labels=class_labels,
             augment_labels=augment_labels,
         )
-
         D_x = c_skip * x + c_out * F_x
-
         D_x = D_x.to(dtype)
-        # Rescale [-1,1] output to [0,-1]
-        if getattr(self, "_was_trained_on_minus_one_one", False):
+        # Rescale [-1,1] output to [0,1]
+        if self._was_trained_on_minus_one_one and not input_in_minus_one_one:
             return (D_x + 1.0) / 2.0
         else:
             return D_x
