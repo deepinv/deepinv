@@ -36,17 +36,19 @@ class KernelIdentificationNetwork(nn.Module):
 
     Example usage:
 
-    >>> import deepinv as dinv
-    >>> import torch
-    >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else "cpu"
-    >>> kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device)
-    >>> physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
-    >>> y = torch.randn(1, 3, 128, 128).to(device)  # random blurry image for demonstration
-    >>> with torch.no_grad():
-    ...     params = kernel_estimator(y)  # this outputs {"filters": ..., "multipliers": ...}
-    >>> physics.update(**params) # update physics with estimated kernels
-    >>> print(params["filters"].shape, params["multipliers"].shape)
-    torch.Size([1, 1, 25, 33, 33]) torch.Size([1, 1, 25, 128, 128])
+    ::
+
+        import deepinv as dinv
+        import torch
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device)
+        physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
+        y = torch.randn(1, 3, 128, 128).to(device)  # random blurry image for demonstration
+        with torch.no_grad():
+            params = kernel_estimator(y)  # this outputs {"filters": ..., "multipliers": ...}
+        physics.update(**params) # update physics with estimated kernels
+        print(params["filters"].shape, params["multipliers"].shape)
+        # torch.Size([1, 1, 25, 33, 33]) torch.Size([1, 1, 25, 128, 128])
 
 
     """
@@ -135,6 +137,7 @@ class KernelIdentificationNetwork(nn.Module):
                         file_name=file_name,
                         check_hash=True,
                         weights_only=True,
+                        progress=False,
                     )
                     self.load_state_dict(ckpt, strict=True)
                 else:
@@ -265,7 +268,6 @@ class Up(nn.Module):
         # https://github.com/HaiyongJiang/U-Net-Pytorch-Unstructured-Buggy/commit/0e854509c2cea854e247a9c615f175f76fbb2e3a
         # https://github.com/xiaopeng-liao/Pytorch-UNet/commit/8ebac70e633bac59fc22bb5195e513d5832fb3bd
         if x2 is not None:
-
             diffY = torch.tensor([x2.size()[2] - x1.size()[2]])
             diffX = torch.tensor([x2.size()[3] - x1.size()[3]])
 

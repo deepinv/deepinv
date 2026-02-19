@@ -8,13 +8,14 @@ fluorescence microscopes.
 
 """
 
+# %%
 import torch
 import deepinv as dinv
 
 # First, let's load some test images.
 
 dtype = torch.float32
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # Next, set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -97,7 +98,7 @@ diffraction_generator = DiffractionBlurGenerator3D(
 # For optician physicists: ``fc`` is the cutoff frequency, which should be below 0.25
 # to respect Shannon's sampling theorem,  ``kb`` is the wave number, used for propagation
 # in depth. Letting ``NA`` denote the numerical aperture, ``NI`` denote the index
-# of refraction of the immersion medium and lambda denote the emission wavelength,
+# of refraction of the immersion medium and `lambda` denote the emission wavelength,
 # the quantities are related through:
 # `fc = (NA/lambda) * pixel_size`.
 # `kb = (NI/lambda) * pixel_size`.
@@ -130,10 +131,14 @@ print(blurs["coeff"])
 
 
 # %%
+# We provide a helper property to get the list of Zernike polynomials used in the decomposition:
+zernike_polynomials = diffraction_generator.zernike_polynomials
+print("Zernike polynomials used: \n", "\n ".join(zernike_polynomials))
+
 # It is also possible to directly specify the Zernike decomposition.
 # For instance, if the pupil is null, the PSF is the Airy pattern.
 n_zernike = len(
-    diffraction_generator.list_param
+    zernike_polynomials
 )  # number of Zernike coefficients in the decomposition
 blurs = diffraction_generator.step(
     batch_size=3, coeff=torch.zeros(3, n_zernike, device=device)
@@ -151,7 +156,7 @@ diffraction_generator = DiffractionBlurGenerator3D(
     fc=1 / 8,
     kb=0.25,
     stepz_pixel=2,
-    list_param=["Z5", "Z6"],
+    zernike_index=(5, 6),
     device=device,
     dtype=dtype,
 )

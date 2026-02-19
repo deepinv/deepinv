@@ -22,7 +22,6 @@ import typing
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
 
-
 NO_LEARNING = ["A_dagger", "A_adjoint", "prox_l2", "y"]
 
 
@@ -1082,7 +1081,6 @@ def test_trainer_speed(device):  # pragma: no cover
         optimizer=optimizer,
         ckp_interval=epochs + 1,
         show_progress_bar=True,
-        verbose_individual_losses=True,
         compute_train_metrics=False,
         verbose=True,
         device=device,

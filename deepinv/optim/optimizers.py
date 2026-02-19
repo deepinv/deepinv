@@ -1,13 +1,24 @@
 from __future__ import annotations
 from typing import Callable, TYPE_CHECKING
-import sys
 import warnings
 from collections.abc import Iterable
 from types import MappingProxyType
 import torch
-from deepinv.optim.optim_iterators import *
+from deepinv.optim import optim_iterators as _optim_iterators
+from deepinv.optim.optim_iterators import (
+    OptimIterator,
+    ADMMIteration,
+    PGDIteration,
+    FISTAIteration,
+    PMDIteration,
+    CPIteration,
+    HQSIteration,
+    DRSIteration,
+    GDIteration,
+    MDIteration,
+)
 from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.prior import Zero, Prior
+from deepinv.optim.prior import ZeroPrior, Prior
 from deepinv.optim.data_fidelity import DataFidelity, ZeroFidelity
 from deepinv.optim.bregman import Bregman
 from deepinv.models import Reconstructor
@@ -48,11 +59,13 @@ class AndersonAccelerationConfig:
     :param  int history_size: Number of past iterates used in Anderson acceleration.
     :param  float beta: Momentum coefficient in Anderson acceleration.
     :param  float eps: Regularization parameter for Anderson acceleration.
+    :param  bool full_backprop: Compute backpropagation through all iterates of Anderson acceleration instead of the last iterate only. Default: ``False``.
     """
 
-    history_size: float = 0.1
+    history_size: int = 10
     beta: float = 0.9
-    eps: int = 20
+    eps: float = 0.1
+    full_backprop: bool = False
 
 
 @dataclass
@@ -301,19 +314,17 @@ class BaseOptim(Reconstructor):
             self.DEQ_config = DEQConfig() if DEQ else None
         else:
             self.DEQ = DEQ is not None
-            self.DEQ_config = DEQConfig or DEQConfig()
+            self.DEQ_config = DEQ or DEQConfig()
         if isinstance(anderson_acceleration, bool):
             self.anderson_acceleration_config = (
                 AndersonAccelerationConfig() if anderson_acceleration else None
             )
         else:
-            self.anderson_acceleration_config = (
-                anderson_acceleration or AndersonAccelerationConfig()
-            )
+            self.anderson_acceleration_config = anderson_acceleration
 
         # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
         if prior is None:
-            self.prior = [Zero()]
+            self.prior = [ZeroPrior()]
         elif not isinstance(prior, Iterable):
             self.prior = [prior]
         else:
@@ -424,7 +435,7 @@ class BaseOptim(Reconstructor):
             update_params_fn=self.update_params_fn,
             update_data_fidelity_fn=self.update_data_fidelity_fn,
             update_prior_fn=self.update_prior_fn,
-            backtraking_check_fn=self.backtraking_check_fn,
+            backtracking_check_fn=self.backtracking_check_fn,
             check_conv_fn=self.check_conv_fn,
             init_metrics_fn=self.init_metrics_fn,
             init_iterate_fn=self.init_iterate_fn,
@@ -645,7 +656,7 @@ class BaseOptim(Reconstructor):
                         )
         return metrics
 
-    def backtraking_check_fn(self, X_prev: dict, X: dict) -> bool:
+    def backtracking_check_fn(self, X_prev: dict, X: dict) -> bool:
         r"""
         Performs stepsize backtracking if the sufficient decrease condition is not verified.
 
@@ -664,15 +675,15 @@ class BaseOptim(Reconstructor):
             )
             stepsize = self.params_algo["stepsize"][0]
             if diff_F < (self.backtracking_config.gamma / stepsize) * diff_x:
-                backtraking_check = False
+                backtracking_check = False
                 self.params_algo["stepsize"] = [self.backtracking_config.eta * stepsize]
                 if self.verbose:
                     print(
-                        f'Backtraking : new stepsize = {self.params_algo["stepsize"][0]:.6f}'
+                        f'Backtracking : new stepsize = {self.params_algo["stepsize"][0]:.6f}'
                     )
             else:
-                backtraking_check = True
-            return backtraking_check
+                backtracking_check = True
+            return backtracking_check
         else:
             return True
 
@@ -773,7 +784,6 @@ class BaseOptim(Reconstructor):
                         self.DEQ_config.history_size_backward,
                         self.DEQ_config.beta_backward,
                         self.DEQ_config.eps_backward,
-                        self.DEQ_config.max_iter_backward,
                     )
                 else:
                     anderson_acceleration_config = None
@@ -783,7 +793,7 @@ class BaseOptim(Reconstructor):
                     init_iterate_fn=init_iterate_fn,
                     max_iter=self.DEQ_config.max_iter_backward,
                     check_conv_fn=self.check_conv_fn,
-                    anderson_acceleration_config=self.anderson_acceleration_config,
+                    anderson_acceleration_config=anderson_acceleration_config,
                 )
                 g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
                 return g
@@ -891,7 +901,7 @@ def create_iterator(
         cost_fn = F_fn
     # If no prior is given, we set it to a zero prior.
     if prior is None:
-        prior = Zero()
+        prior = ZeroPrior()
     # If no custom objective function cost_fn is given but g is explicitly given, we have an explicit objective function.
     explicit_prior = (
         prior[0].explicit_prior if isinstance(prior, list) else prior.explicit_prior
@@ -1019,7 +1029,7 @@ def optim_builder(
 
 
 def str_to_class(classname):
-    return getattr(sys.modules[__name__], classname)
+    return getattr(_optim_iterators, classname)
 
 
 class ADMM(BaseOptim):
@@ -1037,13 +1047,11 @@ class ADMM(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the ADMM iterations write (see :footcite:t:`boyd2011distributed` for more details):
 
     .. math::
-        \begin{equation*}
         \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\gamma f}(x_k - z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_{k+1} + z_k) \\
         z_{k+1} &= z_k + \beta (u_{k+1} - x_{k+1})
         \end{aligned}
-        \end{equation*}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.  If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`\regname` are
     inverted in the previous iterations. The ADMM iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.ADMMIteration`.
@@ -1170,13 +1178,11 @@ class DRS(BaseOptim):
      If the attribute ``g_first`` is set to False (by default), the DRS iterations are given by
 
     .. math::
-        \begin{equation*}
         \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\gamma f}(z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k) \\
         z_{k+1} &= z_k + \beta (x_{k+1} - u_{k+1})
         \end{aligned}
-        \end{equation*}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter. If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The DRS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.DRSIteration`.
@@ -1301,9 +1307,7 @@ class GD(BaseOptim):
     The Gradient Descent iterations are given by
 
     .. math::
-        \begin{equation*}
         x_{k+1} = x_k - \gamma \nabla f(x_k) - \gamma \lambda \nabla \regname(x_k)
-        \end{equation*}
 
     where :math:`\gamma>0` is a stepsize. The Gradient Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.GDIteration`.
     For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
@@ -1331,7 +1335,7 @@ class GD(BaseOptim):
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
     :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
         If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtracking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1421,6 +1425,7 @@ class GD(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
+            anderson_acceleration=anderson_acceleration,
             **kwargs,
         )
 
@@ -1440,12 +1445,10 @@ class HQS(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the HQS iterations are given by
     
     .. math::
-        \begin{equation*}
         \begin{aligned}
         u_{k} &= \operatorname{prox}_{\gamma f}(x_k) \\
         x_{k+1} &= \operatorname{prox}_{\sigma \lambda \regname}(u_k).
         \end{aligned}
-        \end{equation*}
     
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The HQS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.HQSIteration`.
@@ -1561,6 +1564,7 @@ class HQS(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
+            anderson_acceleration=anderson_acceleration,
             **kwargs,
         )
 
@@ -1580,9 +1584,7 @@ class PGD(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the PGD iterations are given by
 
     .. math::
-        \begin{equation*}
         x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(x_k - \gamma \nabla f(x_k)).
-        \end{equation*}
 
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The PGD iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.PGDIteration`.
@@ -1611,7 +1613,7 @@ class PGD(BaseOptim):
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
     :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
         If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtracking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1703,6 +1705,7 @@ class PGD(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
+            anderson_acceleration=anderson_acceleration,
             **kwargs,
         )
 
@@ -1713,13 +1716,11 @@ class FISTA(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the FISTA iterations are given by
     
     .. math::
-        \begin{equation*}
         \begin{aligned}
         u_{k} &= z_k -  \gamma \nabla f(z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_k) \\
         z_{k+1} &= x_{k+1} + \alpha_k (x_{k+1} - x_k),
         \end{aligned}
-        \end{equation*}
     
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
     :math:`\alpha_k = (k+a-1)/(k+a)`,  with :math:`a` a parameter that should be strictly greater than 2.
@@ -1837,12 +1838,10 @@ class MD(BaseOptim):
     Mirror Descent (MD) or Bregman variant of the Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
     
     .. math::
-        \begin{equation*}
         \begin{aligned}
         v_{k} &= \nabla f(x_k) + \lambda \nabla g(x_k) \\
         x_{k+1} &= \nabla h^*(\nabla h(x_k) - \gamma v_{k})
         \end{aligned}
-        \end{equation*}
     
     where :math:`\gamma>0` is a stepsize and :math:`h^*` is the convex conjugate of :math:`h`.
     The Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.MDIteration`.
@@ -1954,12 +1953,10 @@ class PMD(BaseOptim):
     Proximal Mirror Descent (PMD) or Bregman variant of the Proximal Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
     
     .. math::
-        \begin{equation*}
         \begin{aligned}
         u_{k} &= \nabla h^*(\nabla h(x_k) - \gamma \nabla f(x_k)) \\
         x_{k+1} &= \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)
         \end{aligned}
-        \end{equation*}
     
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex. 
     :math:`\operatorname{prox^h}_{\gamma \lambda \regname}` is the Bregman proximal operator, detailed in the method :meth:`deepinv.optim.Potential.bregman_prox`.
@@ -2080,13 +2077,11 @@ class PDCP(BaseOptim):
     If the attribute ``g_first`` is set to ``False`` (by default), a single iteration is given by
     
     .. math::
-        \begin{equation*}
         \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\sigma F^*}(u_k + \sigma K z_k) \\
         x_{k+1} &= \operatorname{prox}_{\tau \lambda G}(x_k-\tau K^\top u_{k+1}) \\
         z_{k+1} &= x_{k+1} + \beta(x_{k+1}-x_k) \\
         \end{aligned}
-        \end{equation*}
     
     where :math:`F^*` is the Fenchel-Legendre conjugate of :math:`F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
     satisfy :math:`\sigma \tau \|K\|^2 \leq 1`. 
@@ -2095,9 +2090,7 @@ class PDCP(BaseOptim):
     In particular, setting :math:`F = \distancename`, :math:`K = A` and :math:`G = \regname`, the above algorithms solves
 
     .. math::
-        \begin{equation*}
         \underset{x}{\operatorname{min}} \,\,  \distancename(Ax, y) + \lambda \regname(x)
-        \end{equation*}
     
     with a splitting on :math:`\distancename`.
 

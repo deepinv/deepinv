@@ -57,7 +57,7 @@ import torch
 import deepinv as dinv
 from deepinv.models import NCSNpp
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 dtype = torch.float64
 figsize = 2.5
 gif_frequency = 10  # Increase this value to save the GIF saving time
@@ -135,7 +135,6 @@ dinv.utils.save_videos(
 import os
 import shutil
 from pathlib import Path
-
 
 try:
     final_dir = (

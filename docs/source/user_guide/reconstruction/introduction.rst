@@ -39,6 +39,11 @@ For the models that require training, you can do this using the :ref:`trainer <t
      - **Requires Training**
      - **Iterative**
      - **Sampling**
+   * - :ref:`Least squares pseudoinverse <least_squares>`
+     - Least squares solution without priors or training.
+     - No
+     - Yes, via conjugate gradient if linear
+     - No
    * - :ref:`Deep Reconstruction Models <deep-reconstructors>`
      - Deep model architectures for reconstruction.
      - No if pretrained, yes otherwise
