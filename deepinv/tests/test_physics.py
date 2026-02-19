@@ -2366,7 +2366,7 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
     We limit the number of tests, since this is a rather long test
     """
     try:
-        import scipy # noqa: F401
+        import scipy  # noqa: F401
     except ImportError:
         pytest.skip("Scipy is required for this test.")
 
