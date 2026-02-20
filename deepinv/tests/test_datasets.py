@@ -438,10 +438,14 @@ def test_hdf5dataset_generate_dataset(tmpdir, physgen, stacked, supervised):
         assert torch.isnan(x_train).all(), "Unsupervised train split should have NaN x."
 
     if stacked:
-        assert isinstance(y_train, TensorList), "Stacked physics should return TensorList."
+        assert isinstance(
+            y_train, TensorList
+        ), "Stacked physics should return TensorList."
         assert len(y_train) == 2, "Stacked measurements should have two elements."
     else:
-        assert isinstance(y_train, torch.Tensor), "Unstacked physics should return Tensor."
+        assert isinstance(
+            y_train, torch.Tensor
+        ), "Unstacked physics should return Tensor."
 
     if physgen is None:
         assert params_train == {}, "Params should be empty when no generator is used."
@@ -463,10 +467,14 @@ def test_hdf5dataset_generate_dataset(tmpdir, physgen, stacked, supervised):
     assert not torch.isnan(x_test).all(), "Test split should have x."
 
     if stacked:
-        assert isinstance(y_test, TensorList), "Stacked physics should return TensorList."
+        assert isinstance(
+            y_test, TensorList
+        ), "Stacked physics should return TensorList."
         assert len(y_test) == 2, "Stacked measurements should have two elements."
     else:
-        assert isinstance(y_test, torch.Tensor), "Unstacked physics should return Tensor."
+        assert isinstance(
+            y_test, torch.Tensor
+        ), "Unstacked physics should return Tensor."
 
     if physgen is None:
         assert params_test == {}, "Params should be empty when no generator is used."
