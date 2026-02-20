@@ -1,0 +1,1029 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.distributed.strategies &#8212; deepinv 0.3.7 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=29d04658"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/distributed/strategies';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/distributed/strategies.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">🎉 We are part of the <a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.</div>
+</aside>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.7 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.7 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.distributed.strategies</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.distributed.strategies</h1><div class="highlight"><pre>
+<span></span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Distributed signal processing strategies for the deepinv library.</span>
+
+<span class="sd">This module provides abstract base classes and concrete implementations for</span>
+<span class="sd">distributed signal processing, including splitting, batching, and reduction operations.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">tiling_splitting_strategy</span><span class="p">,</span>
+    <span class="n">tiling_reduce_fn</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">Index</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">slice</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="DistributedSignalStrategy">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.DistributedSignalStrategy.html#deepinv.distributed.strategies.DistributedSignalStrategy">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DistributedSignalStrategy</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract base class for distributed signal processing strategies.</span>
+
+<span class="sd">    A strategy defines how to:</span>
+<span class="sd">        1. Split a signal into patches for distributed processing</span>
+<span class="sd">        2. Batch patches for efficient processing</span>
+<span class="sd">        3. Reduce processed patches back into a complete signal</span>
+
+<span class="sd">    This allows users to implement custom distributed processing strategies</span>
+<span class="sd">    for different types of data and use cases.</span>
+
+<span class="sd">    :param Sequence[int] img_size: shape of the complete signal tensor (e.g., `[B, C, H, W]`).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img_size</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the strategy.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">(</span><span class="n">img_size</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DistributedSignalStrategy.get_local_patches">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.DistributedSignalStrategy.html#deepinv.distributed.strategies.DistributedSignalStrategy.get_local_patches">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_local_patches</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">local_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract and prepare local patches for processing.</span>
+
+<span class="sd">        :param torch.Tensor x: the complete signal tensor.</span>
+<span class="sd">        :param list[int] local_indices: global indices of patches assigned to this rank.</span>
+<span class="sd">        :return: list of (global_index, prepared_patch) pairs ready for processing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="DistributedSignalStrategy.reduce_patches">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.DistributedSignalStrategy.html#deepinv.distributed.strategies.DistributedSignalStrategy.reduce_patches">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reduce_patches</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">out_tensor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">local_pairs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reduce processed patches into the output tensor.</span>
+
+<span class="sd">        This operates in-place on `out_tensor`, placing each processed patch</span>
+<span class="sd">        in its correct location within the complete signal.</span>
+
+<span class="sd">        :param torch.Tensor out_tensor: output tensor to fill (should be initialized to zeros).</span>
+<span class="sd">        :param list[tuple[int, torch.Tensor]] local_pairs: list of (global_index, processed_patch) pairs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="DistributedSignalStrategy.get_num_patches">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.DistributedSignalStrategy.html#deepinv.distributed.strategies.DistributedSignalStrategy.get_num_patches">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_num_patches</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the total number of patches this strategy creates.</span>
+
+<span class="sd">        :return: total number of patches.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="DistributedSignalStrategy.apply_batching">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.DistributedSignalStrategy.html#deepinv.distributed.strategies.DistributedSignalStrategy.apply_batching">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply_batching</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">patches</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">max_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Group patches into batches for efficient processing.</span>
+
+<span class="sd">        The batching should preserve order: when the batched tensors are processed</span>
+<span class="sd">        and then concatenated back, they should yield patches in the same order</span>
+<span class="sd">        as the input.</span>
+
+<span class="sd">        :param list[torch.Tensor] patches: list of prepared patches.</span>
+<span class="sd">        :param int | None max_batch_size: maximum number of patches per batch. If `None`, all patches are batched together. If `1`, each patch is processed individually.</span>
+<span class="sd">        :return: batched patches ready for processing. When processed results are concatenated, they should preserve the original patch order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">patches</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+        <span class="c1"># Verify all patches have the same shape</span>
+        <span class="n">expected_shape</span> <span class="o">=</span> <span class="n">patches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">patch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">patches</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">patch</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">expected_shape</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Patch </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> has shape </span><span class="si">{</span><span class="n">patch</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="n">expected_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+        <span class="c1"># Store metadata for unpacking</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batching_metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;num_patches&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">patches</span><span class="p">),</span>
+            <span class="s2">&quot;original_batch_size&quot;</span><span class="p">:</span> <span class="n">patches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">patches</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;patch_shape&quot;</span><span class="p">:</span> <span class="n">expected_shape</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="c1"># If max_batch_size is None or &gt;= num patches, batch all together</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">max_batch_size</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="ow">or</span> <span class="n">max_batch_size</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">patches</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="n">max_batch_size</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+        <span class="p">):</span>
+            <span class="c1"># Concatenate all patches along batch dimension</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">patches</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">batch</span><span class="p">]</span>
+
+        <span class="c1"># Otherwise, split into multiple batches</span>
+        <span class="n">batches</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">patches</span><span class="p">),</span> <span class="n">max_batch_size</span><span class="p">):</span>
+            <span class="n">batch_patches</span> <span class="o">=</span> <span class="n">patches</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">max_batch_size</span><span class="p">]</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">batch_patches</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">batches</span></div>
+
+
+<div class="viewcode-block" id="DistributedSignalStrategy.unpack_batched_results">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.DistributedSignalStrategy.html#deepinv.distributed.strategies.DistributedSignalStrategy.unpack_batched_results">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">unpack_batched_results</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">processed_batches</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">num_patches</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Unpack processed batches back to individual patches.</span>
+
+<span class="sd">        Default implementation: concatenate along batch dimension and split back.</span>
+<span class="sd">        Uses stored metadata to determine original patch batch size.</span>
+
+<span class="sd">        :param list[torch.Tensor] processed_batches: results from processing batched patches.</span>
+<span class="sd">        :param int num_patches: expected number of individual patches.</span>
+<span class="sd">        :return: list of individual processed patches in original order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">processed_batches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+        <span class="c1"># Use metadata if available to get original batch size per patch</span>
+        <span class="n">original_batch_size</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_batching_metadata&quot;</span><span class="p">):</span>
+            <span class="n">original_batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batching_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;original_batch_size&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Concatenate all batches</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">processed_batches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">all_batched</span> <span class="o">=</span> <span class="n">processed_batches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">all_batched</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">processed_batches</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Split back into individual patches</span>
+        <span class="c1"># Each patch has original_batch_size elements in the batch dimension</span>
+        <span class="n">patches</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">total_batch_size</span> <span class="o">=</span> <span class="n">all_batched</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">expected_total</span> <span class="o">=</span> <span class="n">num_patches</span> <span class="o">*</span> <span class="n">original_batch_size</span>
+
+        <span class="k">if</span> <span class="n">total_batch_size</span> <span class="o">!=</span> <span class="n">expected_total</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Batch size mismatch: got </span><span class="si">{</span><span class="n">total_batch_size</span><span class="si">}</span><span class="s2">, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;expected </span><span class="si">{</span><span class="n">num_patches</span><span class="si">}</span><span class="s2"> patches × </span><span class="si">{</span><span class="n">original_batch_size</span><span class="si">}</span><span class="s2"> batch size = </span><span class="si">{</span><span class="n">expected_total</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_patches</span><span class="p">):</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">original_batch_size</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">original_batch_size</span>
+            <span class="n">patch</span> <span class="o">=</span> <span class="n">all_batched</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+            <span class="n">patches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">patch</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">patches</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="BasicStrategy">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.BasicStrategy.html#deepinv.distributed.strategies.BasicStrategy">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BasicStrategy</span><span class="p">(</span><span class="n">DistributedSignalStrategy</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Basic distributed strategy with naive splitting along specified dimensions.</span>
+
+<span class="sd">    This strategy:</span>
+<span class="sd">        - Splits the signal into blocks along specified dimensions</span>
+<span class="sd">        - Processes patches individually (no batching)</span>
+<span class="sd">        - Uses simple tensor assignment for reduction</span>
+
+<span class="sd">    :param Sequence[int] img_size: shape of the complete signal tensor.</span>
+<span class="sd">    :param int | tuple[int, ...] tiling_dims: dimensions along which to split. If `int`, tiles only that dimension.</span>
+<span class="sd">    :param tuple[int, ...] | None num_splits: number of splits along each dimension. If `None`, automatically computed. Default is `None`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">img_size</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">tiling_dims</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+        <span class="n">num_splits</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize basic strategy.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">img_size</span><span class="p">)</span>
+
+        <span class="c1"># Normalize tiling_dims to tuple</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tiling_dims</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="c1"># If tiling_dims is an int, tile only that dimension</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span> <span class="o">=</span> <span class="p">(</span><span class="n">tiling_dims</span><span class="p">,)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tiling_dims</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span> <span class="o">=</span> <span class="n">tiling_dims</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;tiling_dims must be an int or a tuple of ints&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Compute splits</span>
+        <span class="k">if</span> <span class="n">num_splits</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Default: split into roughly square patches</span>
+            <span class="n">total_size</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span><span class="p">:</span>
+                <span class="n">total_size</span> <span class="o">*=</span> <span class="n">img_size</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span>
+            <span class="n">target_patch_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                <span class="mi">64</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_size</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">num_splits</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">img_size</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span> <span class="o">//</span> <span class="n">target_patch_size</span><span class="p">)</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_dim</span> <span class="o">=</span> <span class="n">num_splits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compute_splits</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_splits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute all patch slices.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_patch_slices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_patch_positions</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Generate all combinations of splits</span>
+        <span class="n">ranges</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span><span class="p">):</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span>
+            <span class="n">n_splits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_dim</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">split_size</span> <span class="o">=</span> <span class="n">size</span> <span class="o">//</span> <span class="n">n_splits</span>
+            <span class="n">remainder</span> <span class="o">=</span> <span class="n">size</span> <span class="o">%</span> <span class="n">n_splits</span>
+
+            <span class="n">dim_ranges</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_splits</span><span class="p">):</span>
+                <span class="c1"># Distribute remainder across first few splits</span>
+                <span class="n">current_size</span> <span class="o">=</span> <span class="n">split_size</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">remainder</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="n">dim_ranges</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">start</span><span class="p">,</span> <span class="n">start</span> <span class="o">+</span> <span class="n">current_size</span><span class="p">))</span>
+                <span class="n">start</span> <span class="o">+=</span> <span class="n">current_size</span>
+            <span class="n">ranges</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dim_ranges</span><span class="p">)</span>
+
+        <span class="c1"># Generate all patch combinations</span>
+        <span class="k">for</span> <span class="n">positions</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">))</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ranges</span><span class="p">]):</span>
+            <span class="c1"># Create slice tuple</span>
+            <span class="n">slices</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span><span class="p">,</span> <span class="n">positions</span><span class="p">)):</span>
+                <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">pos</span><span class="p">]</span>
+                <span class="n">slices</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_patch_slices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">slices</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_patch_positions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BasicStrategy.get_local_patches">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.BasicStrategy.html#deepinv.distributed.strategies.BasicStrategy.get_local_patches">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_local_patches</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">local_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Extract local patches without any special processing.&quot;&quot;&quot;</span>
+        <span class="n">patches</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">local_indices</span><span class="p">:</span>
+            <span class="n">patch</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_patch_slices</span><span class="p">[</span><span class="n">idx</span><span class="p">]]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="n">patches</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">idx</span><span class="p">,</span> <span class="n">patch</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">patches</span></div>
+
+
+<div class="viewcode-block" id="BasicStrategy.reduce_patches">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.BasicStrategy.html#deepinv.distributed.strategies.BasicStrategy.reduce_patches">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reduce_patches</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">out_tensor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">local_pairs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Simple assignment of patches to output tensor.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">patch</span> <span class="ow">in</span> <span class="n">local_pairs</span><span class="p">:</span>
+            <span class="n">out_tensor</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_patch_slices</span><span class="p">[</span><span class="n">idx</span><span class="p">]]</span> <span class="o">=</span> <span class="n">patch</span></div>
+
+
+<div class="viewcode-block" id="BasicStrategy.get_num_patches">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.BasicStrategy.html#deepinv.distributed.strategies.BasicStrategy.get_num_patches">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_num_patches</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return total number of patches.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_patch_slices</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="OverlapTilingStrategy">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.OverlapTilingStrategy.html#deepinv.distributed.strategies.OverlapTilingStrategy">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">OverlapTilingStrategy</span><span class="p">(</span><span class="n">DistributedSignalStrategy</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Smart tiling strategy with padding for N-dimensional data.</span>
+
+<span class="sd">    This strategy:</span>
+<span class="sd">        - Creates uniform patches with receptive field padding</span>
+<span class="sd">        - Batches patches for efficient processing</span>
+<span class="sd">        - Uses optimized tensor operations for reduction</span>
+
+<span class="sd">    :param Sequence[int] img_size: full shape of the signal tensor, including batch and channel dimensions (e.g., ``(B, C, H, W)``).</span>
+<span class="sd">    :param int | tuple[int, ...] | None tiling_dims: dimensions to tile.</span>
+<span class="sd">        -   If `None`, defaults to last N dimensions where N is `len(patch_size)` if `patch_size` is `tuple`, else `2`.</span>
+<span class="sd">        -   If `int`, tiles only that dimension.</span>
+<span class="sd">        -   If `tuple`, tiles specified dimensions.</span>
+<span class="sd">    :param int | tuple[int, ...] patch_size: size of each patch, supports non-cuboid patch size.</span>
+<span class="sd">    :param int | tuple[int, ...] overlap: padding radius around each patch, supports non-cuboid receptive field size.</span>
+<span class="sd">    :param int | tuple[int, ...] | None stride: stride between patches. Default to the same value as `patch_size` for non-overlapping patches.</span>
+<span class="sd">    :param str pad_mode: padding mode for edge patches.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">img_size</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">tiling_dims</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
+        <span class="n">overlap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+        <span class="n">stride</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pad_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;reflect&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">img_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span> <span class="o">=</span> <span class="n">patch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">overlap</span> <span class="o">=</span> <span class="n">overlap</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">stride</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pad_mode</span> <span class="o">=</span> <span class="n">pad_mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span> <span class="o">=</span> <span class="n">tiling_dims</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">patch_size</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">patch_size</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="c1"># If tiling_dims is an int, tile only that dimension</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span><span class="p">,)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;tiling_dims must be an int or a tuple of ints&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compute_tiling</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_tiling</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute tiling layout using existing utils.&quot;&quot;&quot;</span>
+
+        <span class="c1"># At this point, tiling_dims is always a tuple (ensured by __init__)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span><span class="p">,</span> <span class="nb">tuple</span>
+        <span class="p">),</span> <span class="s2">&quot;tiling_dims must be a tuple at this point&quot;</span>
+
+        <span class="c1"># Normalize patch_size and overlap to tuples</span>
+        <span class="n">ndim_tiled</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">to_tuple</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">val</span><span class="p">,)</span> <span class="o">*</span> <span class="n">ndim_tiled</span>
+            <span class="k">return</span> <span class="n">val</span>
+
+        <span class="n">p_sizes</span> <span class="o">=</span> <span class="n">to_tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span><span class="p">)</span>
+        <span class="n">rf_sizes</span> <span class="o">=</span> <span class="n">to_tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">overlap</span><span class="p">)</span>
+
+        <span class="c1"># Check dimensions</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span>
+
+        <span class="c1"># We might need to adjust patch sizes if they are too big</span>
+        <span class="n">new_p_sizes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">p_sizes</span><span class="p">)</span>
+        <span class="n">new_rf_sizes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rf_sizes</span><span class="p">)</span>
+        <span class="n">modified</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">dim_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">dim_idx</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">dim_idx</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+            <span class="n">D</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="n">dim_idx</span><span class="p">]</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">p_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">rf</span> <span class="o">=</span> <span class="n">rf_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">p</span> <span class="o">&gt;</span> <span class="n">D</span><span class="p">:</span>
+                <span class="n">safe_p</span> <span class="o">=</span> <span class="n">D</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">rf</span>
+                <span class="k">if</span> <span class="n">safe_p</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">safe_p</span> <span class="o">=</span> <span class="n">D</span>
+                    <span class="n">safe_rf</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">D</span> <span class="o">//</span> <span class="mi">8</span><span class="p">)</span>
+                    <span class="n">new_rf_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">safe_rf</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">safe_rf</span> <span class="o">=</span> <span class="n">rf</span>
+
+                <span class="n">new_p_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">safe_p</span>
+                <span class="n">modified</span> <span class="o">=</span> <span class="kc">True</span>
+
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;patch_size[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">] (</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">) &gt; dim </span><span class="si">{</span><span class="n">dim_idx</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">D</span><span class="si">}</span><span class="s2">). Adjusted to </span><span class="si">{</span><span class="n">safe_p</span><span class="si">}</span><span class="s2">, rf </span><span class="si">{</span><span class="n">safe_rf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">modified</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="n">new_p_sizes</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+                <span class="k">else</span> <span class="n">new_p_sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">overlap</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="n">new_rf_sizes</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">overlap</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+                <span class="k">else</span> <span class="n">new_rf_sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_slices</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="o">=</span> <span class="n">tiling_splitting_strategy</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">,</span>
+            <span class="n">patch_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span><span class="p">,</span>
+            <span class="n">overlap</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">overlap</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">tiling_dims</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tiling_dims</span><span class="p">,</span>
+            <span class="n">pad_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pad_mode</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="OverlapTilingStrategy.get_local_patches">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.OverlapTilingStrategy.html#deepinv.distributed.strategies.OverlapTilingStrategy.get_local_patches">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_local_patches</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">local_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Extract and pad local patches.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Apply global padding</span>
+        <span class="n">pad_specs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;global_padding&quot;</span><span class="p">)</span>
+        <span class="n">pad_mode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pad_mode&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad_mode</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pad_specs</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="n">p</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pad_specs</span><span class="p">):</span>
+            <span class="c1"># Trim trailing zeros from pad_specs to avoid F.pad issues with reflect mode</span>
+            <span class="c1"># pad_specs is (last_left, last_right, 2nd_last_left, ...)</span>
+            <span class="n">pads</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pad_specs</span><span class="p">)</span>
+            <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">pads</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">pads</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">pads</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">pads</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                <span class="n">pads</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="n">trimmed_pads</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">pads</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">x_pad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">trimmed_pads</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">pad_mode</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="c1"># Fallback to constant padding if reflect fails</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Padding with mode &#39;</span><span class="si">{</span><span class="n">pad_mode</span><span class="si">}</span><span class="s2">&#39; failed. Falling back to &#39;constant&#39; padding.&quot;</span><span class="p">,</span>
+                    <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">x_pad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pad_specs</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;constant&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x_pad</span> <span class="o">=</span> <span class="n">x</span>
+
+        <span class="n">patches</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">local_indices</span><span class="p">:</span>
+            <span class="n">slc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_slices</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="n">patch</span> <span class="o">=</span> <span class="n">x_pad</span><span class="p">[</span><span class="n">slc</span><span class="p">]</span>
+            <span class="n">patches</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">idx</span><span class="p">,</span> <span class="n">patch</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">patches</span></div>
+
+
+<div class="viewcode-block" id="OverlapTilingStrategy.reduce_patches">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.OverlapTilingStrategy.html#deepinv.distributed.strategies.OverlapTilingStrategy.reduce_patches">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reduce_patches</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">out_tensor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">local_pairs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Reduce patches using tiling metadata.&quot;&quot;&quot;</span>
+        <span class="n">tiling_reduce_fn</span><span class="p">(</span><span class="n">out_tensor</span><span class="p">,</span> <span class="n">local_pairs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="OverlapTilingStrategy.get_num_patches">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.OverlapTilingStrategy.html#deepinv.distributed.strategies.OverlapTilingStrategy.get_num_patches">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_num_patches</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return total number of patches.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_slices</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="create_strategy">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.strategies.create_strategy.html#deepinv.distributed.strategies.create_strategy">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_strategy</span><span class="p">(</span>
+    <span class="n">strategy_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">img_size</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="n">tiling_dims</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DistributedSignalStrategy</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a distributed signal strategy by name.</span>
+
+<span class="sd">    :param str strategy_name: name of the strategy (`&#39;basic&#39;`, `&#39;overlap_tiling&#39;`).</span>
+<span class="sd">    :param Sequence[int] img_size: full shape of the signal tensor, including batch and channel dimensions (e.g., ``(B, C, H, W)``).</span>
+<span class="sd">    :param tuple[int, ...] | None tiling_dims: dimensions to tile. If `None`, defaults to last N dimensions.</span>
+<span class="sd">    :return: the created strategy instance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Handle tiling_dims priority: kwargs &gt; n_dimension</span>
+    <span class="k">if</span> <span class="n">tiling_dims</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n_dimension</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_size</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span>  <span class="c1"># Assume (B, C, D1, D2, ...)</span>
+        <span class="n">tiling_dims</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="n">n_dimension</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;No tiling_dims provided. Assuming last </span><span class="si">{</span><span class="n">n_dimension</span><span class="si">}</span><span class="s2"> dimensions: </span><span class="si">{</span><span class="n">tiling_dims</span><span class="si">}</span><span class="s2">. &quot;</span>
+            <span class="s2">&quot;If your layout is different, please provide tiling_dims explicitly.&quot;</span><span class="p">,</span>
+            <span class="ne">UserWarning</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">strategy_name</span> <span class="o">==</span> <span class="s2">&quot;basic&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">BasicStrategy</span><span class="p">(</span><span class="n">img_size</span><span class="p">,</span> <span class="n">tiling_dims</span><span class="o">=</span><span class="n">tiling_dims</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">strategy_name</span> <span class="o">==</span> <span class="s2">&quot;overlap_tiling&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">OverlapTilingStrategy</span><span class="p">(</span><span class="n">img_size</span><span class="p">,</span> <span class="n">tiling_dims</span><span class="o">=</span><span class="n">tiling_dims</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown strategy: </span><span class="si">{</span><span class="n">strategy_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

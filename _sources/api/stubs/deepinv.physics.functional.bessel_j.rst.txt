@@ -1,0 +1,9 @@
+﻿bessel\_j
+=========
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: bessel_j
+
+.. minigallery:: deepinv.physics.functional.bessel_j
+    :add-heading: Examples using ``bessel_j``:

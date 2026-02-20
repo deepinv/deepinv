@@ -1,0 +1,15 @@
+﻿Crop
+====
+
+.. currentmodule:: deepinv.datasets.utils
+
+.. autoclass:: Crop
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.datasets.utils.Crop:
+
+.. minigallery:: deepinv.datasets.utils.Crop
+    :add-heading: Examples using ``Crop``:

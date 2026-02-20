@@ -1,0 +1,81 @@
+
+
+.. _sphx_glr_auto_examples_distributed:
+
+Distributed Computing
+---------------------
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In many imaging problems, the data to be processed can be very large, making it challenging to fit the denoising process into the memory of a single device. For instance, medical imaging or satellite imagery often involves processing gigapixel images that cannot be processed as a whole.">
+
+.. only:: html
+
+  .. image:: /auto_examples/distributed/images/thumb/sphx_glr_demo_denoiser_distributed_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/distributed/demo_denoiser_distributed`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Distributed Denoiser with Image Tiling</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Many large-scale imaging problems involve operators that can be naturally decomposed as a stack of multiple sub-operators:">
+
+.. only:: html
+
+  .. image:: /auto_examples/distributed/images/thumb/sphx_glr_demo_physics_distributed_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/distributed/demo_physics_distributed`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Distributed Physics Operators</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Many large-scale imaging problems involve operators that can be naturally decomposed as a stack of multiple sub-operators:">
+
+.. only:: html
+
+  .. image:: /auto_examples/distributed/images/thumb/sphx_glr_demo_pnp_distributed_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/distributed/demo_pnp_distributed`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Distributed Plug-and-Play (PnP) Reconstruction</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/distributed/demo_denoiser_distributed
+   /auto_examples/distributed/demo_physics_distributed
+   /auto_examples/distributed/demo_pnp_distributed
+
