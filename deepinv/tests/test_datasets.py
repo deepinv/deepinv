@@ -393,24 +393,89 @@ def test_hdf5dataset(
 
 
 @pytest.mark.parametrize("physgen", [None, "mask"])
-def test_hdf5dataset_generate_dataset(physgen):
+@pytest.mark.parametrize("stacked", [False, True])
+@pytest.mark.parametrize("supervised", [True, False])
+def test_hdf5dataset_generate_dataset(tmpdir, physgen, stacked, supervised):
     img_size = (1, 4, 4)
-    dataset = MyDataset(torch.zeros(1, *img_size))
-    physics = Inpainting(img_size, mask=0.5)
+    train_dataset = MyDataset(torch.zeros(1, *img_size))
+    test_dataset = MyDataset(torch.ones(1, *img_size))
+
+    base_physics = Inpainting(img_size, mask=0.5)
+    if stacked:
+        physics = dinv.physics.stack(
+            base_physics,
+            Inpainting(img_size, mask=0.5),
+        )
+    else:
+        physics = base_physics
+
     physics_generator = (
         None if physgen is None else BernoulliSplittingMaskGenerator(img_size, 0.5)
     )
+
     path = generate_dataset(
-        dataset,
+        train_dataset,
         physics,
-        save_dir="temp",
+        save_dir=str(tmpdir),
         batch_size=1,
         physics_generator=physics_generator,
+        supervised=supervised,
+        test_dataset=test_dataset,
     )
-    dataset = HDF5Dataset(path, load_physics_generator_params=True)
-    check_dataset_format(dataset, length=1, dtype=tuple, allow_non_tensor=False)
-    dataset.close()
-    assert dataset.hd5 is None
+
+    train_ds = HDF5Dataset(path, split="train", load_physics_generator_params=True)
+    check_dataset_format(
+        train_ds,
+        length=1,
+        dtype=None if stacked else tuple,
+        allow_non_tensor=False,
+    )
+    x_train, y_train, params_train = train_ds[0]
+
+    if supervised:
+        assert not torch.isnan(x_train).all(), "Supervised train split should have x."
+    else:
+        assert torch.isnan(x_train).all(), "Unsupervised train split should have NaN x."
+
+    if stacked:
+        assert isinstance(y_train, TensorList), "Stacked physics should return TensorList."
+        assert len(y_train) == 2, "Stacked measurements should have two elements."
+    else:
+        assert isinstance(y_train, torch.Tensor), "Unstacked physics should return Tensor."
+
+    if physgen is None:
+        assert params_train == {}, "Params should be empty when no generator is used."
+    else:
+        assert "mask" in params_train, "Params should contain mask when generator used."
+        assert params_train["mask"].shape == img_size
+
+    train_ds.close()
+    assert train_ds.hd5 is None
+
+    test_ds = HDF5Dataset(path, split="test", load_physics_generator_params=True)
+    check_dataset_format(
+        test_ds,
+        length=1,
+        dtype=None if stacked else tuple,
+        allow_non_tensor=False,
+    )
+    x_test, y_test, params_test = test_ds[0]
+    assert not torch.isnan(x_test).all(), "Test split should have x."
+
+    if stacked:
+        assert isinstance(y_test, TensorList), "Stacked physics should return TensorList."
+        assert len(y_test) == 2, "Stacked measurements should have two elements."
+    else:
+        assert isinstance(y_test, torch.Tensor), "Unstacked physics should return Tensor."
+
+    if physgen is None:
+        assert params_test == {}, "Params should be empty when no generator is used."
+    else:
+        assert "mask" in params_test, "Params should contain mask when generator used."
+        assert params_test["mask"].shape == img_size
+
+    test_ds.close()
+    assert test_ds.hd5 is None
 
 
 def test_generate_dataset():
