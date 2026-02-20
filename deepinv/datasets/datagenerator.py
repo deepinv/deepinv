@@ -94,7 +94,9 @@ class HDF5Dataset(ImageDataset):
                 if suffix in k and k not in (f"x{suffix}", f"y{suffix}"):
                     self.params[k.replace(suffix, "")] = self.hd5[k]
 
-    def __getitem__(self, index):
+    def __getitem__(
+        self, index: int
+    ) -> tuple[Tensor, Tensor] | tuple[Tensor, Tensor, dict]:
         r"""
         Returns the measurement and signal pair ``(x, y)`` at the given index.
 
@@ -102,6 +104,7 @@ class HDF5Dataset(ImageDataset):
         the dataset returns the measurement again as the signal.
 
         :param int index: Index of the pair to return.
+        :return: transformed x, y, and optionally params.
         """
         if self.hd5 is None:  # pragma: no cover
             raise ValueError(
@@ -115,11 +118,17 @@ class HDF5Dataset(ImageDataset):
 
         if not self.unsupervised:
             x = self.cast(torch.from_numpy(self.x[index]))
-
-            if self.transform is not None:
-                x = self.transform(x)
         else:
             x = torch.tensor(torch.nan, dtype=y.dtype, device=y.device)
+
+        if self.transform is not None:
+            # Capturing RNG state to ensure x and y transforms are synchronized
+            state = torch.get_rng_state()
+            if not self.unsupervised:
+                x = self.transform(x)
+
+            torch.set_rng_state(state)
+            y = self.transform(y)
 
         if self.load_physics_generator_params:
             params = {
