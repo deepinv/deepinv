@@ -1672,9 +1672,5 @@ def test_gaussian_noise_estimators(model_name, mode, channels, sigma, device, rn
     )
 
     assert torch.allclose(
-<<<<<<< scan_specific_ssdu_example
-        model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-3, atol=1e-5
-=======
         model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-3, atol=1e-4
->>>>>>> main
     )
