@@ -31,6 +31,8 @@ class DRUNet(Denoiser):
     A pretrained network for (in_channels=out_channels=1 or in_channels=out_channels=3)
     can be downloaded via setting ``pretrained='download'``.
 
+    .. tip:: This model can handle non-uniform `sigma` maps, which can be of size `(batch_size, 1, height, width)`.
+
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
     :param Sequence[int,int,int,int] nc: number of channels per convolutional layer, the network has a fixed number of 4 scales with ``nb`` blocks per scale (default: ``[64,128,256,512]``).
@@ -210,12 +212,21 @@ class DRUNet(Denoiser):
 
         :param torch.Tensor x: noisy image
         :param float, torch.Tensor sigma: noise level. If ``sigma`` is a float, it is used for all images in the batch.
-            If ``sigma`` is a tensor, it must be of shape ``(batch_size,)``.
+            If ``sigma`` is a tensor, it can be of shape ``(batch_size,)`` or ``(batch_size, 1, height, width)``.
         """
         if isinstance(sigma, torch.Tensor):
             if sigma.ndim > 0:
-                noise_level_map = sigma.view(x.size(0), 1, 1, 1)
-                noise_level_map = noise_level_map.expand(-1, 1, x.size(2), x.size(3))
+                if sigma.shape == (x.size(0), 1, *x.shape[2:]):
+                    noise_level_map = sigma
+                elif sigma.shape in [(x.size(0),), (x.size(0), 1, 1, 1)]:
+                    noise_level_map = sigma.view(x.size(0), 1, 1, 1)
+                    noise_level_map = noise_level_map.expand(
+                        -1, 1, x.size(2), x.size(3)
+                    )
+                else:
+                    raise ValueError(
+                        "Incorrect shape, sigma should be of shape (1,), (batch_size,) or (batch_size, 1, height, width)"
+                    )
             else:
                 noise_level_map = torch.ones(
                     (x.size(0), 1, *x.shape[2:]), device=x.device
