@@ -41,18 +41,18 @@ def hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
     has_native_bessel = hasattr(torch.special, "bessel_j0") and hasattr(
         torch.special, "bessel_y0"
     )
-    device = x.device
 
     # 2. Use native Torch if available and input is on GPU or requires grad
-    if has_native_bessel and (x.is_cuda or x.requires_grad) and n in (0, 1):
+    if has_native_bessel and n in (0, 1):
         try:
-            return native_hankel1(n, x).to(device=device)
+            return native_hankel1(n, x)
         except RuntimeError:
             # Fallback if torch.special fails for specific dtypes/complex inputs
             pass
 
     # 3. Fallback to SciPy (requires CPU transfer)
     # Transfer to CPU, convert to numpy, compute, then back to Torch
+    device = x.device
     try:
         import scipy.special
     except ImportError:
@@ -75,7 +75,6 @@ def bessel_j(n: int, x: torch.Tensor) -> torch.Tensor:
     :return: Tensor representing :math:`J_v(n, x)`.
     """
     # 1. Attempt Native PyTorch (Available in torch >= 1.9)
-    device = x.device
     if hasattr(torch.special, "bessel_j0") and n == 0:
         try:
             # Note: bessel_j supports float/double and supports autograd
@@ -91,6 +90,7 @@ def bessel_j(n: int, x: torch.Tensor) -> torch.Tensor:
             pass
 
     # 2. Fallback to SciPy
+    device = x.device
     try:
         import scipy.special
     except ImportError:

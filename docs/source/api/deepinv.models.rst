@@ -34,6 +34,7 @@ Classical Denoisers
    deepinv.models.WaveletDenoiser
    deepinv.models.WaveletDictDenoiser
    deepinv.models.EPLLDenoiser
+   deepinv.models.MMSE
 
 
 Deep Architectures
@@ -107,8 +108,10 @@ Wrappers
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.models.ScoreModelWrapper
    deepinv.models.DiffusersDenoiserWrapper
    deepinv.models.ComplexDenoiserWrapper
+   deepinv.models.MinusOneOneDenoiserWrapper
 
 Deep Image Prior
 ----------------
