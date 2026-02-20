@@ -133,6 +133,19 @@ class HDF5Dataset(ImageDataset):
     parameter is set and the dataset does not contain any physics parameter, an
     empty dictionary is returned nonetheless.
 
+    Measurements intended to be used with :class:`deepinv.physics.StackedPhysics` are stored across multiple members of
+    the HDF5 file, one per operator. In that case, member names follow the format ``y{i}_{split_name}`` where ``i``
+    denotes the stack index (starting at 0) and they are loaded as a :class:`deepinv.utils.tensorlist.TensorList`.
+
+    .. note::
+
+        Physics parameters are identified using a fallback logic. Namely, every member with a name of the form ``{prefix}_{split_name}``
+        that is neither interpreted as containing ground truths or measurements (including stacked measurements) defaults
+        to being interpreted as containing physics parameter, with ``prefix`` denoting the parameter name.
+        In particular, the joint presence of physics parameters and stacked measurements is generally supported as long
+        as custom physics parameter names cannot be misinterpreted as ground truth or measurements names, for instance
+        ``x``, ``y``, and ``y0`` are unsupported parameter names.
+
     .. note::
 
         HDF5 datasets always contain measurements even though our conventions permit datasets
