@@ -315,7 +315,8 @@ class Scattering(Physics):
                 y_transmitters, y_domain, indexing="ij"
             )
             dist_transmitter_circles = torch.sqrt(
-                (circle_x - transmitter_x) ** 2 + (circle_y - transmitter_y) ** 2
+                (circle_x - transmitter_x).abs() ** 2
+                + (circle_y - transmitter_y).abs() ** 2
             )
 
             # multiply distances by scalar wavenumber
@@ -646,7 +647,8 @@ class BornOperator(LinearPhysics):
                 y_domain, receivers_t[1, :], indexing="ij"
             )
             dist_receivers_circles = torch.sqrt(
-                (x_circles - x_receivers) ** 2 + (y_circles - y_receivers) ** 2
+                (x_circles - x_receivers).abs() ** 2
+                + (y_circles - y_receivers).abs() ** 2
             )
             dist_receivers_circles = dist_receivers_circles.T  # (R, H*W)
 
@@ -908,7 +910,7 @@ def green_function(r, remove_nans=False):
     :param torch.dtype dtype: torch.dtype used for the returned tensor (matches r.dtype)
     :return: Complex tensor with Green's function values.
     """
-    out = 1j / 4 * hankel1(0, r)
+    out = 1j / 4 * hankel1(0, r.abs())
     if remove_nans:
         out[torch.isnan(out)] = out.abs().max()  # singularity at 0
     return out
@@ -1039,7 +1041,7 @@ def mie_theory(
         list_n.append(-i)
 
     extra_contrast = torch.sqrt(torch.tensor(1 + cylinder_contrast, dtype=dtype))
-    w = wavenumber
+    w = wavenumber.abs()
     ind = r < cylinder_radius
     for p in range(angles.shape[0]):
         for n in list_n:

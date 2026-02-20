@@ -1035,7 +1035,6 @@ class HeadBlock(torch.nn.Module):
             setattr(self, f"skipconv{i}", torch.nn.Conv2d(c_in, c, 1, bias=False))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-
         if self.skip_in and self.relu_in:
             x = self.nl_1(self.convin(x)) + self.zero_conv_skip(x)
         elif self.skip_in and not self.relu_in:

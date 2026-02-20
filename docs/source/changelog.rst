@@ -22,6 +22,7 @@ Changed
 - Refactor folder structure of least-squares solvers (:gh:`1011` by `Julian Tachella`_)
 - Removed `eps` parameter from :func:`deepinv.optim.linear.conjugate_gradient` (:gh:`1011` by `Julian Tachella`_)
 - Deprecated `verbose_individual_losses` parameter in :class:`deepinv.Trainer`. Individual losses are now always added to logs when multiple losses are present (:gh:`928` by `Tiberiu Sabau`_)
+- Deprecate historical attributes in HDF5Dataset (:gh:`764` by `Jérémy Scanvic`_)
 
 
 Fixed
@@ -30,6 +31,8 @@ Fixed
 - Fix ZeroPrior :class:`deepinv.optim.ZeroPrior` (:gh:`1001` by `Victor Sechaud`_)
 - Fix single-disperser CASSI adjointness (:gh:`1029` by `Andrew Wang`_)
 - Add :class:`deepinv.physics.ComposedPhysics`, :class:`deepinv.physics.ComposedLinearPhysics` to online documentation (:gh:`1000` by `Romain Vo`_)
+- Have test ground truths returned in HDF5Dataset when present (:gh:`764` by `Jérémy Scanvic`_)
+- Dispose of invalid physics parameters in HDF5Dataset loading (:gh:`764` by `Jérémy Scanvic`_)
 
 v0.3.7
 ------
