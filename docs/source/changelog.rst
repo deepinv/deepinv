@@ -11,6 +11,7 @@ New Features
 - Add :class:`deepinv.models.WaveletNoiseEstimator` and :class:`deepinv.models.PatchCovarianceNoiseEstimator` for noise level estimation (:gh:`1015` by `Matthieu Terris`_)
 - Add :class:`deepinv.physics.Scattering` physics for non-linear inverse scattering problems (:gh:`1020` by `Julian Tachella`_)
 - Add :meth:`deepinv.physics.Physics.compute_norm` local operator norm computation for non-linear physics (:gh:`1020` by `Julian Tachella`_)
+- Add SRNO model (:gh:`953` by `Matthieu Terris`_)
 - Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
 - Add distributed computing framework with :class:`deepinv.distributed.DistributedContext`, :class:`deepinv.distributed.DistributedStackedPhysics`, :class:`deepinv.distributed.DistributedProcessing`, :class:`deepinv.distributed.DistributedDataFidelity` and :func:`deepinv.distributed.distribute` factory function. Supports multi-GPU/multi-process execution with physics-based and spatial tiling distribution strategies (:gh:`790`` by `Benoît Malézieux`_)
 - Add :class:`deepinv.loss.metric.CosineSimilarity` to the metrics (:gh:`944` by `Avithal Lautman`_)
