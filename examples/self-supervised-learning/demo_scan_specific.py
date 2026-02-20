@@ -5,10 +5,12 @@ Scan-specific zero-shot SSDU for MRI
 We demonstrate scan-specific self-supervised learning, that is, learning to
 reconstruct MRI scans from a single accelerated sample without ground truth.
 
-Here, we demonstrate fine-tuning the Reconstruct Anything Model (:class:`deepinv.models.RAM`) :footcite:p:`terris2025reconstruct`
+Here, we demonstrate fine-tuning a pretrained model (:class:`deepinv.models.RAM`) :footcite:p:`terris2025reconstruct`
 with the :class:`weighted SSDU <deepinv.loss.mri.WeightedSplittingLoss>` loss :footcite:p:`millard2023theoretical,yaman2020self`.
 However, note that any of the :ref:`self-supervised losses <self-supervised-losses>` can be used to do this with varying performance :footcite:p:`wang2025benchmarking`.
 For example see the :ref:`example using Equivariant Imaging <sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py>` :footcite:p:`chen2021equivariant`.
+
+Note that, if more data is available, better results can be obtained by fine-tuning on more samples!
 
 """
 
@@ -93,10 +95,7 @@ physics = dinv.physics.MultiCoilMRI(
 # %%
 # Model
 # -----
-# For the model we use a fairly large MoDL with a UNet backbone, with 12 iterations:
-
-# denoiser = dinv.models.UNet(2, 2, scales=5, batch_norm=False)
-# model = dinv.models.MoDL(denoiser=denoiser, num_iter=12).to(device)
+# For the model we fine-tune a pretrained model (:class:`deepinv.models.RAM`) :footcite:p:`terris2025reconstruct`
 
 model = dinv.models.RAM(device=device)
 
@@ -126,7 +125,7 @@ loss = dinv.loss.mri.WeightedSplittingLoss(
 # %%
 # Training
 # --------
-# We train the model using the self-supervised loss. We randomly split the dataset into training and validation for
+# We train the model using the self-supervised loss. We randomly split the volume into training slices and validation slices for
 # early stopping (up to a maximum of 100 epochs).
 # Because the FastMRI ground truth are cropped magnitude root-sum-of-squares reconstructions, we define a helper metric for evaluation later.
 #

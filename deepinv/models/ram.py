@@ -123,7 +123,6 @@ class RAM(Reconstructor, Denoiser):
                 self.load_state_dict(
                     torch.hub.load_state_dict_from_url(
                         "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar",
-                        progress=False,
                     ),
                     strict=False,
                 )
@@ -284,27 +283,25 @@ class RAM(Reconstructor, Denoiser):
 
         return x
 
-    def get_pad(self, x: Tensor) -> tuple[int, int, int]:
+    def get_pad(self, img_size: tuple) -> tuple[int, int, int]:
         """Get padding amount for model input.
 
-        :param torch.Tensor x: input tensor
-        :return tuple[int, int, int]: padding amounts
+        :param tuple img_size: model input image shape.
+        :return tuple[int, int, int]: padding amounts for channel dim and spatial dims.
         """
-        img_shape = x.shape
-
         spatial_pad = 2**4
 
         pad = (
             0,
-            -img_shape[-2] % spatial_pad,
-            -img_shape[-1] % spatial_pad,
+            -img_size[-2] % spatial_pad,
+            -img_size[-1] % spatial_pad,
         )
 
         min_size = 64
-        if img_shape[-2] + pad[1] < min_size:
-            pad = (pad[0], min_size - img_shape[-2], pad[2])
-        if img_shape[-1] + pad[2] < min_size:
-            pad = (pad[0], pad[1], min_size - img_shape[-1])
+        if img_size[-2] + pad[1] < min_size:
+            pad = (pad[0], min_size - img_size[-2], pad[2])
+        if img_size[-1] + pad[2] < min_size:
+            pad = (pad[0], pad[1], min_size - img_size[-1])
 
         return pad
 
@@ -358,7 +355,15 @@ class RAM(Reconstructor, Denoiser):
         if physics is None:
             physics = dinv.physics.Denoising(noise_model=dinv.physics.ZeroNoise())
 
-        pad = self.get_pad(physics.A_adjoint(y))
+        if img_size is None:
+            if hasattr(physics, "img_shape") and physics.img_shape is not None:
+                img_size = physics.img_shape
+            elif hasattr(physics, "img_size") and physics.img_size is not None:
+                img_size = physics.img_size
+            else:
+                img_size = physics.A_adjoint(y).shape[1:]
+
+        pad = self.get_pad(img_size)
 
         sigma, gain = self.obtain_sigma_gain(
             physics=physics,

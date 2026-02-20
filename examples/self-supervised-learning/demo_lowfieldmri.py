@@ -8,10 +8,9 @@ In low-field MRI, images have high noise due to the fixed permanent magnet, and 
 One could average the images over multiple repetitions, but if there's any patient motion, the image would be blurry.
 
 Here, we fine-tune the Reconstruct Anything Model (:class:`deepinv.models.RAM`) :footcite:p:`terris2025reconstruct` on a single noisy scan using the self-supervised
-:class:`Recorrupted2Recorrupted loss <deepinv.loss.R2RLoss>` :footcite:p:`pang2021recorrupted`.
+:class:`Recorrupted2Recorrupted loss <deepinv.loss.R2RLoss>` :footcite:p:`pang2021recorrupted`. Play around with different self-supervised denoising losses (see :ref:`self-supervised-losses`) and models!
 
-Play around with different self-supervised denoising losses (see :ref:`self-supervised-losses`)!
-
+Note that, if more data is available, better results can be obtained by fine-tuning on more samples.
 """
 
 import torch

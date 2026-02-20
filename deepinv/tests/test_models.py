@@ -968,18 +968,6 @@ def test_varnet(varnet_type, device):
     assert psnr(x_init, x) < psnr(x_hat, x)
 
 
-def test_ram_performance(device):
-    model = dinv.models.RAM(device=device)
-    x = dinv.utils.load_example("butterfly.png", device=device)
-    physics = dinv.physics.Downsampling(
-        filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01), device=device
-    )
-    y = physics(x)
-    with torch.no_grad():
-        x_hat = model(y, physics)
-        assert dinv.metric.PSNR()(x_hat, x) > 29.75
-
-
 @pytest.mark.parametrize("use_physics", [True, False])
 @pytest.mark.parametrize("scale", [1e-5, 1e5])
 def test_ram_scale(scale, device, use_physics):
@@ -1114,15 +1102,28 @@ def test_restoration_models(
 
     psnr_fn = PSNR(max_pixel=1)
 
-    if (
+    if (  # RAM performance test
         not (physics_name == "super_resolution_circular" and channels == 2)
         and model_name == "ram"
         and pretrained == True
         and physics is not None
-    ):  # suboptimal performance in this case
+    ):
         psnr_in = psnr_fn(physics.A_dagger(y), x)
         psnr_out = psnr_fn(x_hat, x)
         assert torch.all(psnr_out > psnr_in)
+        if physics_name == LINEAR_OPERATORS[0]:
+            butterfly = dinv.utils.load_example("butterfly.png", device=device)
+            _physics = dinv.physics.Downsampling(
+                filter="bicubic",
+                noise_model=dinv.physics.GaussianNoise(0.01),
+                device=device,
+            )
+            with torch.no_grad():
+                assert (
+                    dinv.metric.PSNR()(model(_physics(butterfly), _physics), butterfly)
+                    > 29.75
+                )
+
     else:
         pytest.skip(f"Skipping PSNR test for {model_name} with {physics_name}.")
 

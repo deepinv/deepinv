@@ -173,7 +173,6 @@ class DRUNet(Denoiser):
                     url,
                     map_location=lambda storage, loc: storage,
                     file_name=name,
-                    progress=False,
                 )
             else:
                 ckpt_drunet = torch.load(
