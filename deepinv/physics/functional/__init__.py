@@ -3,6 +3,7 @@ from .convolution import (
     conv_transpose2d,
     conv2d_fft,
     conv_transpose2d_fft,
+    filter_fft,
     filter_fft_2d,
     conv3d,
     conv_transpose3d,
@@ -25,3 +26,7 @@ from .dst import dst1
 from .dct import dct, idct, dct_2d, idct_2d
 from .astra import XrayTransform
 from .imresize import imresize_matlab
+
+from .matrix import power_method
+
+from .special import hankel1, bessel_j

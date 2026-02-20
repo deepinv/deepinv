@@ -28,8 +28,9 @@ class TestTomographyWithAstra:
             (False, "conebeam"),
         ],
     )
+    @pytest.mark.parametrize("channels", [1, 3])
     def test_tomography_with_astra_logic(
-        self, is_2d, geometry_type, normalize, fbp, monkeypatch
+        self, is_2d, geometry_type, normalize, fbp, monkeypatch, channels
     ):
         r"""
         Tests tomography operator with astra backend which does not have a numerically precise adjoint.
@@ -37,6 +38,8 @@ class TestTomographyWithAstra:
         :param bool is_2d: Runs the test with 2D geometry, else 3D.
         :param str geometry_type: In 2D, expects ``parallel`` or ``fanbeam``. In 3D expects ``parallel`` or ``conebeam``.
         :param bool normalize: Initializes the operator with ``normalize=normalize``.
+        :param bool fbp: Whether or not to approximate the pseudo-inverse with filtered back-projection.
+        :param int channels: Number of input channels. The tomography operator is applied per channel.
         """
 
         pytest.importorskip(
@@ -45,8 +48,8 @@ class TestTomographyWithAstra:
             "installed with `conda install -c astra-toolbox -c nvidia astra-toolbox`",
         )
 
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        if device != "cuda":
+        device = dinv.utils.get_device(verbose=False)
+        if str(device) != "cuda":
             monkeypatch.setattr(
                 target=dinv.physics.functional.XrayTransform,
                 name="_forward_projection",
@@ -95,21 +98,21 @@ class TestTomographyWithAstra:
                 device=device,
             )
 
-        x = torch.rand(1, 1, *img_size, device=device)
+        x = torch.rand(1, channels, *img_size, device=device)
 
         if device != "cuda":
             ## -------- Test forward --------
             Ax = physics.A(x)
-            assert Ax.shape == (1, 1, *physics.measurement_shape)
+            assert Ax.shape == (1, channels, *physics.measurement_shape)
 
             ## ------- Test backward --------
             y = torch.rand_like(Ax)
             At_y = physics.A_adjoint(y)
-            assert At_y.shape == (1, 1, *img_size)
+            assert At_y.shape == (1, channels, *img_size)
 
             ## ---- Test pseudo-inverse -----
             x_hat = physics.A_dagger(y, fbp=fbp)
-            assert x_hat.shape == (1, 1, *img_size)
+            assert x_hat.shape == (1, channels, *img_size)
 
             ## --- Test autograd.Function ---
             pred = torch.zeros_like(x, requires_grad=True)

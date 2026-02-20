@@ -48,6 +48,12 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
    * - :func:`deepinv.physics.functional.conv_transpose2d_fft`
      - Computes the 2D transposed convolution with FFT, efficiently implementing upsampling or deconvolution.
 
+   * - :func:`deepinv.physics.functional.conv3d`
+     - Performs 3D convolution.
+
+   * - :func:`deepinv.physics.functional.conv_transpose3d`
+     - Computes the 3D transposed convolution
+
    * - :func:`deepinv.physics.functional.conv3d_fft`
      - Performs 3D convolution using FFT, suitable for volumetric data processing in applications like medical imaging.
 
@@ -92,3 +98,15 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
 
    * - :func:`deepinv.physics.functional.imresize_matlab`
      - MATLAB bicubic imresize function implemented in PyTorch.
+
+   * - :func:`deepinv.physics.functional.power_method`
+     - Implements the power method to compute the largest singular value of a linear operator defined by forward and adjoint functions.
+
+   * - :func:`deepinv.physics.functional.random_choice`
+     - Randomly selects elements from a given input tensor based on specified probabilities, useful for stochastic sampling in various applications.
+
+   * - :func:`deepinv.physics.functional.hankel1`
+     - Computes the Hankel function of the first kind.
+
+   * - :func:`deepinv.physics.functional.bessel_j`
+     - Computes the Bessel function of the first kind.

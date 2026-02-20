@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "deepinv"
 authors = [{name="DeepInverse maintainers (see https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md)"}]
-license = "BSD-3-Clause"
+license = { text = "BSD-3-Clause" }
 description = "DeepInverse: a PyTorch library for imaging with deep learning"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.10"
-version = "0.3.6"
+version = "0.3.7"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -56,6 +56,7 @@ test = [
     "pytest-cov",
     "pytest-xdist",
     "coverage",
+    "pytest-testmon",
 ]
 
 doc = [
@@ -84,15 +85,16 @@ denoisers = [
     "PyWavelets",
     "ptwt",
     "FrEIA",
-    "pyiqa",
+    "pyiqa>=0.1.13",
     "kornia",
     "torchkbnufft",
     "libcpab",
     "sigpy",
     "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
     "spyrit>=3.0.0; platform_system=='Linux'",
-    "diffusers", 
+    "diffusers",
     "transformers",
+    "numba>=0.60.0",
 ]
 
 # optional dependencies for specific datasets
@@ -128,7 +130,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-branch = true
+branch = false
 omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 
 [tool.coverage.report]
@@ -142,7 +144,7 @@ exclude_also = [
 target-version = "py39"
 
 [tool.ruff.lint]
-select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251", "N805", "E402"]
+select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251", "N805", "E402", "F821", "F822", "F823"]
 
 [tool.ruff.lint.per-file-ignores]
 # NOTE: Rule F401 is ruff's unused imports rule.

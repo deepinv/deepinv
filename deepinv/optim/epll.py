@@ -26,8 +26,7 @@ class EPLL(nn.Module):
     where the first term is a standard :math:`\ell_2` data-fidelity, and the second term represents a patch prior via
     Gaussian mixture models, where :math:`P_i` is a patch operator that extracts the ith (overlapping) patch from the image.
 
-    The reconstruction function is based on the approximated half-quadratic splitting method as in Zoran, D., and Weiss,
-    Y.  "From learning models of natural image patches to whole image restoration." (ICCV 2011).
+    The reconstruction function is based on the approximated half-quadratic splitting method as in :cite:t:`zoran2011learning`.
 
     :param None, deepinv.optim.utils.GaussianMixtureModel GMM: Gaussian mixture defining the distribution on the patch space.
         ``None`` creates a GMM with n_components components of dimension accordingly to the arguments patch_size and channels.
