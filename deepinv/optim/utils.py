@@ -38,6 +38,7 @@ def objective_function(x, data_fidelity, prior, cur_params, y, physics):
     :param deepinv.physics physics: Instance of the physics modeling the observation.
     """
     if prior is not None and prior.explicit_prior:
+        print(data_fidelity(x, y, physics))
         return data_fidelity(x, y, physics) + cur_params["lambda"] * prior(
             x, cur_params["g_param"]
         )
