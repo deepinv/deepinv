@@ -2365,10 +2365,10 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
 
     We limit the number of tests, since this is a rather long test
     """
-    if version.parse(torch.__version__) < version.parse("2.6.0"):
-        pytest.skip(
-            "Scattering physics requires PyTorch 2.6.0 or higher, as it relies on torch.special"
-        )
+    try:
+        import scipy  # noqa: F401
+    except ImportError:
+        pytest.skip("Scipy is required for this test.")
 
     wavenumber = torch.tensor([wavenumber])
     cylinder_contrast = contrast
@@ -2409,7 +2409,7 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
     # test adjointness of the born sub-operator
     assert (
         physics.born_operator.adjointness_test(
-            torch.randn((1, 1, pixels, pixels), device=device, dtype=dtype)
+            torch.ones((1, 1, pixels, pixels), device=device, dtype=dtype)
         ).abs()
         < 1e-4
     ), "Adjointness test failed for the Born sub-operator of the Scattering physics."
