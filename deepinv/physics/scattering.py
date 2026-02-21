@@ -534,7 +534,7 @@ class BornOperator(LinearPhysics):
         self.verbose = verbose
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
-        """
+        r"""
         Linear forward operation
 
         This operator computes the following operation:
