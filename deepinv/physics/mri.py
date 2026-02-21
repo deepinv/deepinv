@@ -95,6 +95,7 @@ class MRI(MRIMixin, DecomposablePhysics):
 
         # Check and update mask
         self.register_buffer("mask", self.check_mask(mask).to(self.device))
+        self.img_size = mask.shape[1:]
         self.to(device)
 
     def V_adjoint(self, x: Tensor) -> Tensor:
@@ -361,6 +362,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
                 else mask
             )
             self.register_buffer("mask", mask)
+            self.img_size = mask.shape[1:]
 
         if coil_maps is not None:
             while len(coil_maps.shape) < (
