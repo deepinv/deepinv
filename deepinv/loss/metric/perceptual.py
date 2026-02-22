@@ -134,17 +134,24 @@ class NIQE(Metric):
         neg_mask = v < 0
         pos_mask = v > 0
 
-        cnt_neg = neg_mask.sum(dim=1).clamp_min(1)
-        cnt_pos = pos_mask.sum(dim=1).clamp_min(1)
+        cnt_neg = neg_mask.sum(dim=1)
+        cnt_pos = pos_mask.sum(dim=1)
 
-        left_ms = ((v * v) * neg_mask).sum(dim=1) / cnt_neg
-        right_ms = ((v * v) * pos_mask).sum(dim=1) / cnt_pos
+        left_ms = ((v * v) * neg_mask).sum(dim=1) / cnt_neg.to(v.dtype)
+        right_ms = ((v * v) * pos_mask).sum(dim=1) / cnt_pos.to(v.dtype)
 
-        leftstd = left_ms.clamp_min(eps).sqrt()
-        rightstd = right_ms.clamp_min(eps).sqrt()
+        left_ms = torch.where(
+            cnt_neg > 0, left_ms, torch.full_like(left_ms, float("nan"))
+        )
+        right_ms = torch.where(
+            cnt_pos > 0, right_ms, torch.full_like(right_ms, float("nan"))
+        )
 
-        gammahat = leftstd / rightstd.clamp_min(eps)
-        rhat = (v.abs().mean(dim=1) ** 2) / (v.pow(2).mean(dim=1).clamp_min(eps))
+        leftstd = torch.sqrt(left_ms)
+        rightstd = torch.sqrt(right_ms)
+
+        gammahat = leftstd / torch.clamp(rightstd, min=eps)
+        rhat = (v.abs().mean(dim=1) ** 2) / torch.clamp(v.pow(2).mean(dim=1), min=eps)
 
         gam = torch.arange(
             0.2, 10.0 + 1e-9, 0.001, device=v.device, dtype=v.dtype
@@ -153,9 +160,9 @@ class NIQE(Metric):
             self._gamma(1.0 / gam) * self._gamma(3.0 / gam)
         )  # (G,)
 
-        rhatnorm = (rhat * (gammahat**3 + 1.0) * (gammahat + 1.0)) / (
-            (gammahat**2 + 1.0) ** 2
-        ).clamp_min(eps)
+        rhatnorm = (rhat * (gammahat**3 + 1.0) * (gammahat + 1.0)) / torch.clamp(
+            (gammahat**2 + 1.0) ** 2, min=eps
+        )
 
         diff = (r_gam.unsqueeze(0) - rhatnorm.unsqueeze(1)).pow(2)
         idx = diff.argmin(dim=1)
@@ -227,10 +234,7 @@ class NIQE(Metric):
                 )
 
         X = torch.cat(all_feats, dim=2)  # (B, L, 36)
-        mu_d = X.mean(dim=1)  # (B, 36)
-        Xc = X - mu_d.unsqueeze(1)  # (B, L, 36)
-        denom = (X.shape[1] - 1) if X.shape[1] > 1 else 1
-        cov_d = torch.einsum("blf,blg->bfg", Xc, Xc) / denom  # (B, 36, 36)
+        mu_d, cov_d = self._nanstats_rowdrop(X)  # MATLAB-like nanmean/nancov
 
         cov_p = self.cov_p.expand_as(cov_d)  # (B,36,36)
         mu_p = self.mu_p  # (36,)
@@ -255,6 +259,36 @@ class NIQE(Metric):
 
     def _gamma(self, x: torch.Tensor) -> torch.Tensor:
         return torch.exp(torch.lgamma(x))
+
+    def _nanstats_rowdrop(self, X: torch.Tensor):
+        """
+        X: (B, L, F)
+        Returns:
+        mu:  (B, F)
+        cov: (B, F, F)
+        Drops rows (patches) with any non-finite feature, per batch item.
+        """
+        B, L, Fdim = X.shape
+        mu = X.new_full((B, Fdim), float("nan"))
+        cov = X.new_full((B, Fdim, Fdim), float("nan"))
+
+        for b in range(B):
+            Xb = X[b]  # (L,F)
+            valid = torch.isfinite(Xb).all(dim=1)
+            Xv = Xb[valid]  # (Lv,F)
+
+            Lv = Xv.shape[0]
+            if Lv == 0:
+                continue  # leave as NaN like MATLAB nanmean/nancov on all-NaN
+            mu_b = Xv.mean(dim=0)
+            mu[b] = mu_b
+
+            if Lv < 2:
+                continue  # covariance undefined -> NaN (matches MATLAB behavior closely)
+            Xc = Xv - mu_b
+            cov[b] = (Xc.t() @ Xc) / (Lv - 1)
+
+        return mu, cov
 
     def metric(self, x_net: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         """We base ourselves on the original Matlab code (available at http://live.ece.utexas.edu/research/quality/niqe_release.zip), but allow some exceptions:
