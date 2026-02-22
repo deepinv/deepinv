@@ -401,7 +401,7 @@ class NIQE(Metric):
             if sharpness is None or sharpness.numel() == 0:
                 continue
             th = sharpness_threshold * sharpness.max()
-            keep_idx = (sharpness >= th).nonzero(as_tuple=False).flatten()
+            keep_idx = (sharpness > th).nonzero(as_tuple=False).flatten()
             if keep_idx.numel() == 0:
                 continue
 
