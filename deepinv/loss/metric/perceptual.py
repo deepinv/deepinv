@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from deepinv.loss.metric.metric import Metric, import_pyiqa
 from deepinv.physics.functional.convolution import conv2d
+from deepinv.physics.functional.imresize import imresize_matlab
 
 import io, requests, math
 import numpy as np
@@ -217,14 +218,12 @@ class NIQE(Metric):
             all_feats.append(feats)
 
             if scale < self.n_scales:
-                newH = x_net.shape[2] // 2
-                newW = x_net.shape[3] // 2
-                x_net = F.interpolate(
+                x_net = imresize_matlab(
                     x_net,
-                    size=(newH, newW),
-                    mode="bilinear",
-                    align_corners=False,
-                    antialias=True,
+                    scale=0.5,
+                    kernel="cubic",
+                    antialiasing=True,
+                    padding_type="reflect",
                 )
 
         X = torch.cat(all_feats, dim=2)  # (B, L, 36)
