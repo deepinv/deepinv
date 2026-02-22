@@ -96,6 +96,7 @@ class NIQE(Metric):
         patch_size: int = 96,
         patch_overlap: int = 0,
         device: str | torch.device = "cpu",
+        dtype=torch.float32,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -112,7 +113,7 @@ class NIQE(Metric):
         except:  # pragma: no cover
             raise ImportError("NIQE requires scipy. Please install it")
         resp = requests.get(
-            "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/niqe_matlab_params.mat",
+            "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/niqe_modelparameters.mat",
             timeout=2.5,
         )
         resp.raise_for_status()
@@ -121,13 +122,14 @@ class NIQE(Metric):
 
         self.mu_p = (
             torch.from_numpy(params["mu_prisparam"])
-            .to(dtype=torch.float32, device=device)
+            .to(dtype=dtype, device=device)
             .squeeze(0)
         )
 
         self.cov_p = torch.from_numpy(params["cov_prisparam"]).to(
-            dtype=torch.float32, device=device
+            dtype=dtype, device=device
         )
+        self.dtype = dtype
 
     def estimate_aggd_param(self, vecs: torch.Tensor, eps: float = 1e-12):
         v = vecs
@@ -247,7 +249,7 @@ class NIQE(Metric):
         invcov = torch.linalg.pinv(
             0.5 * (cov_d.to(torch.float64) + cov_p.to(torch.float64))
         ).to(
-            torch.float32
+            self.dtype
         )  # (B,36,36)
         diff = (mu_p.unsqueeze(0) - mu_d).unsqueeze(1)  # (B,1,36)
         score = torch.sqrt((diff @ invcov @ diff.transpose(1, 2)).squeeze())
@@ -257,7 +259,7 @@ class NIQE(Metric):
         # sigma per original code: 7/6, window size 7
         sigma = 7 / 6
         radius = 3
-        ax = torch.arange(-radius, radius + 1, device=self.device, dtype=torch.float32)
+        ax = torch.arange(-radius, radius + 1, device=self.device, dtype=self.dtype)
         xx, yy = torch.meshgrid(ax, ax, indexing="ij")
         kernel = torch.exp(-(xx**2 + yy**2) / (2 * sigma * sigma))
         kernel /= kernel.sum()
@@ -268,7 +270,6 @@ class NIQE(Metric):
 
     def _nanstats_rowdrop(self, X: torch.Tensor):
         """
-        X: (B, L, F)
         Returns:
         mu:  (B, F)
         cov: (B, F, F)
@@ -290,7 +291,7 @@ class NIQE(Metric):
             mu[b] = mu_b
 
             if Lv < 2:
-                continue  # covariance undefined -> NaN (matches MATLAB behavior closely)
+                continue  # covariance undefined -> NaN (match MATLAB behavior)
             Xc = Xv - mu_b
             cov[b] = (Xc.t() @ Xc) / (Lv - 1)
 
@@ -299,8 +300,7 @@ class NIQE(Metric):
     def metric(self, x_net: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         """We base ourselves on the original Matlab code (available at http://live.ece.utexas.edu/research/quality/niqe_release.zip), but allow some exceptions:
 
-        (i) Originally, the image was converted to float64. For efficiency & kernel reasons, we work in float32.
-        (ii)
+        (i) Originally, the image was converted to float64. Here we convert to dtype specified at init, but always use float64 when calculating pseudoinverse.
 
         """
         if x_net.ndim != 4:  # pragma: no cover
