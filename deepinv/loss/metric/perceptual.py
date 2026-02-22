@@ -173,25 +173,25 @@ class NIQE(Metric):
         structdis: (B,1,H,W)
         returns: (B, L, 18), L is #patches
         """
-        B, _, H, W = structdis.shape
-        base = F.unfold(
+        B, C, H, W = structdis.shape
+        assert C == 1
+        base_u = F.unfold(
             structdis, kernel_size=(k, k), stride=(stride, stride)
         )  # (B, k*k, L)
-        BKL = base.shape
-        L = BKL[-1]
-        base = base.transpose(1, 2).contiguous().view(B * L, k * k)
+
+        L = base_u.shape[-1]
+        base = base_u.transpose(1, 2).contiguous().view(B * L, k * k)
 
         a0, bl0, br0 = self.estimate_aggd_param(base)
         feat_cols = [a0, (bl0 + br0) * 0.5]
 
+        patches = base_u.transpose(1, 2).contiguous().view(B * L, 1, k, k)
         shifts = [(0, 1), (1, 0), (1, 1), (1, -1)]
         for dr, dc in shifts:
-            shifted = torch.roll(structdis, shifts=(dr, dc), dims=(2, 3))
-            pair = structdis * shifted
-            U = F.unfold(pair, kernel_size=(k, k), stride=(stride, stride))
-            U = U.transpose(1, 2).contiguous().view(B * L, k * k)
+            shifted = torch.roll(patches, shifts=(dr, dc), dims=(2, 3))
+            pair_vec = (patches * shifted).view(B * L, k * k)
 
-            a, bl, br = self.estimate_aggd_param(U)
+            a, bl, br = self.estimate_aggd_param(pair_vec)
             meanparam = (br - bl) * (self._gamma(2.0 / a) / self._gamma(1.0 / a))
             feat_cols += [a, meanparam, bl, br]
 
