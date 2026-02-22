@@ -444,8 +444,11 @@ class NIQE(Metric):
             keep_idx = (sharpness > th).nonzero(as_tuple=False).flatten()
             if keep_idx.numel() == 0:
                 continue
-
-            all_feats.append(feats_2scales.index_select(0, keep_idx))
+            feats_kept = feats_2scales.index_select(0, keep_idx)
+            feats_kept = feats_kept[torch.isfinite(feats_kept).all(dim=1)]
+            if feats_kept.numel() == 0:
+                continue
+            all_feats.append(feats_kept)
 
         if not all_feats:
             raise RuntimeError(
