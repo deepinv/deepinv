@@ -1146,12 +1146,14 @@ def test_FastMRISliceDataset(download_fastmri):
         coil_maps=torch.ones(kspace_shape, dtype=torch.complex64),
         img_size=img_size,
     )
-    rss1 = physics.A_adjoint(kspace1.unsqueeze(0), rss=True, crop=True)
+    rss1 = physics.A_adjoint(kspace1.unsqueeze(0), rss=True)
+    rss1 = physics.crop(rss1, shape=target1.shape)
     assert torch.allclose(target1.unsqueeze(0), rss1)
 
     # Test singlecoil MRI mag works
     physics = MRI(mask=torch.ones(kspace_shape), img_size=img_size)
-    mag1 = physics.A_adjoint(kspace1.unsqueeze(0)[:, :, 0], mag=True, crop=True)
+    mag1 = physics.A_adjoint(kspace1.unsqueeze(0)[:, :, 0], mag=True)
+    mag1 = physics.crop(mag1, shape=target1.shape)
     assert target1.unsqueeze(0).shape == mag1.shape
 
     # Test save simple dataset
