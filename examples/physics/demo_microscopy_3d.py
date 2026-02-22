@@ -144,7 +144,7 @@ blurs = diffraction_generator.step(
     batch_size=3, coeff=torch.zeros(3, n_zernike, device=device)
 )
 dinv.utils.plot_ortho3D(
-    [f ** 0.5 for f in blurs["filter"][:, None]],
+    [f**0.5 for f in blurs["filter"][:, None]],
     suptitle="Airy pattern",
 )
 

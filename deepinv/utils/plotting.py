@@ -1214,9 +1214,7 @@ def plot_ortho3D(
         for r, img in enumerate(row_imgs):
 
             ax_XY = axs[r, i]
-            ax_XY.imshow(
-                img[img.shape[0] // 2], cmap=cmap, interpolation=interpolation
-            )
+            ax_XY.imshow(img[img.shape[0] // 2], cmap=cmap, interpolation=interpolation)
             # ax_XY.set_aspect(1.)
             from mpl_toolkits.axes_grid1 import make_axes_locatable
 

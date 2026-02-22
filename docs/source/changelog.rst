@@ -33,6 +33,7 @@ Fixed
 - Add :class:`deepinv.physics.ComposedPhysics`, :class:`deepinv.physics.ComposedLinearPhysics` to online documentation (:gh:`1000` by `Romain Vo`_)
 - Have test ground truths returned in HDF5Dataset when present (:gh:`764` by `Jérémy Scanvic`_)
 - Dispose of invalid physics parameters in HDF5Dataset loading (:gh:`764` by `Jérémy Scanvic`_)
+- :func:`deepinv.utils.plot_ortho3D` doesn't perform sqrt on images (:gh:`1068` by `Andrew Wang`_)
 
 v0.3.7
 ------
