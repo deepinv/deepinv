@@ -106,10 +106,6 @@ class NIQE(Metric):
         self.patch_overlap = patch_overlap
         self.denominator = denominator
 
-        # resp = requests.get(
-        #     "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/niqe_modelparameters.mat",
-        #     timeout=2.5,
-        # )
         try:
             from scipy.io import loadmat
         except:  # pragma: no cover
@@ -282,8 +278,12 @@ class NIQE(Metric):
 
         if C == 3:
             luminance_weights = torch.tensor(
-                [0.2126, 0.7152, 0.0722], dtype=x_net.dtype, device=x_net.device
-            ).view(1, 3, 1, 1)
+                [0.29893602, 0.58704307, 0.11402090],
+                dtype=x_net.dtype,
+                device=x_net.device,
+            ).view(
+                1, 3, 1, 1
+            )  # this matches https://github.com/mattools/matlab-image-class/blob/master/src/%40Image/rgb2gray.m
             x_net = F.conv2d(x_net, luminance_weights)
         if x_net.shape[1] != 1:  # pragma: no cover
             raise RuntimeError(
