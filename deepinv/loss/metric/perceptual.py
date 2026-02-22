@@ -131,21 +131,29 @@ class NIQE(Metric):
 
     def estimate_aggd_param(self, vecs: torch.Tensor, eps: float = 1e-12):
         v = vecs
-        neg_mask = v < 0
-        pos_mask = v > 0
+        neg = v < 0
+        pos = v > 0
 
-        cnt_neg = neg_mask.sum(dim=1)
-        cnt_pos = pos_mask.sum(dim=1)
+        cnt_neg = neg.sum(dim=1)
+        cnt_pos = pos.sum(dim=1)
 
-        left_ms = ((v * v) * neg_mask).sum(dim=1) / cnt_neg.to(v.dtype)
-        right_ms = ((v * v) * pos_mask).sum(dim=1) / cnt_pos.to(v.dtype)
-
-        left_ms = torch.where(
-            cnt_neg > 0, left_ms, torch.full_like(left_ms, float("nan"))
+        # Allocate outputs as NaN by default (MATLAB mean([]) -> NaN)
+        left_ms = torch.full(
+            (v.shape[0],), float("nan"), device=v.device, dtype=v.dtype
         )
-        right_ms = torch.where(
-            cnt_pos > 0, right_ms, torch.full_like(right_ms, float("nan"))
+        right_ms = torch.full(
+            (v.shape[0],), float("nan"), device=v.device, dtype=v.dtype
         )
+
+        # Only compute where there are samples
+        if (cnt_neg > 0).any():
+            left_ms[cnt_neg > 0] = ((v * v) * neg).sum(dim=1)[cnt_neg > 0] / cnt_neg.to(
+                v.dtype
+            )[cnt_neg > 0]
+        if (cnt_pos > 0).any():
+            right_ms[cnt_pos > 0] = ((v * v) * pos).sum(dim=1)[
+                cnt_pos > 0
+            ] / cnt_pos.to(v.dtype)[cnt_pos > 0]
 
         leftstd = torch.sqrt(left_ms)
         rightstd = torch.sqrt(right_ms)
@@ -153,12 +161,10 @@ class NIQE(Metric):
         gammahat = leftstd / torch.clamp(rightstd, min=eps)
         rhat = (v.abs().mean(dim=1) ** 2) / torch.clamp(v.pow(2).mean(dim=1), min=eps)
 
-        gam = torch.arange(
-            0.2, 10.0 + 1e-9, 0.001, device=v.device, dtype=v.dtype
-        )  # (G,)
+        gam = torch.arange(0.2, 10.0 + 1e-9, 0.001, device=v.device, dtype=v.dtype)
         r_gam = (self._gamma(2.0 / gam) ** 2) / (
             self._gamma(1.0 / gam) * self._gamma(3.0 / gam)
-        )  # (G,)
+        )
 
         rhatnorm = (rhat * (gammahat**3 + 1.0) * (gammahat + 1.0)) / torch.clamp(
             (gammahat**2 + 1.0) ** 2, min=eps
@@ -166,7 +172,7 @@ class NIQE(Metric):
 
         diff = (r_gam.unsqueeze(0) - rhatnorm.unsqueeze(1)).pow(2)
         idx = diff.argmin(dim=1)
-        alpha = gam[idx]  # (M,)
+        alpha = gam[idx]
 
         beta_factor = torch.sqrt(self._gamma(1.0 / alpha) / self._gamma(3.0 / alpha))
         betal = leftstd * beta_factor
