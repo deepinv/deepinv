@@ -345,7 +345,7 @@ class NIQE(Metric):
 
             if x.shape[1] == 3:
                 luminance_weights = torch.tensor(
-                    [0.2126, 0.7152, 0.0722], dtype=x.dtype, device=x.device
+                    [0.29893602, 0.58704307, 0.11402090], dtype=x.dtype, device=x.device
                 ).view(1, 3, 1, 1)
                 x = F.conv2d(x, luminance_weights)
             elif x.shape[1] != 1:
@@ -388,14 +388,12 @@ class NIQE(Metric):
                     sharpness = U.mean(dim=1).squeeze(0)  # (L,)
 
                 if scale < self.n_scales:
-                    newH = x_scale.shape[2] // 2
-                    newW = x_scale.shape[3] // 2
-                    x_scale = F.interpolate(
+                    x_scale = imresize_matlab(
                         x_scale,
-                        size=(newH, newW),
-                        mode="bilinear",
-                        align_corners=False,
-                        antialias=True,
+                        scale=0.5,
+                        kernel="cubic",
+                        antialiasing=True,
+                        padding_type="reflect",
                     )
 
             feats_2scales = torch.cat(feats_scales, dim=2).squeeze(0)  # (L,36)
