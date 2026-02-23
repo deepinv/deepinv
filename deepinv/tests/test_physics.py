@@ -568,7 +568,7 @@ def find_nonlinear_operator(name, device):
                 torch.rand(1, 1, 32, 32, dtype=dtype, device=device) * 0.1
             )  # low contrast
         else:
-            pytest.skip("Scattering test requires PyTorch 2.8 or newer.")
+            pytest.skip("Scattering test requires PyTorch 2.8 or higher.")
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
