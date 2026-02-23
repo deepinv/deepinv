@@ -8,7 +8,6 @@ import warnings
 import random
 
 import torch
-from packaging import version
 
 import numpy as np
 from deepinv.physics.forward import adjoint_function
