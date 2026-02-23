@@ -4,7 +4,7 @@ import torch
 def native_hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
     """
     Implements H1(n, x) = J(n, x) + i*Y(n, x) using native PyTorch.
-    Only supports real-valued x as of PyTorch 2.6.
+    Only supports real-valued x as of PyTorch 2.8.
 
     :param int n: Order of the Hankel function.
     :param torch.Tensor x: Input tensor.
@@ -57,7 +57,7 @@ def hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
         import scipy.special
     except ImportError:
         raise ImportError(
-            "SciPy or PyTorch version >= 2.6 is required for hankel1 computation."
+            "SciPy or PyTorch version >= 2.8 is required for hankel1 computation."
         )
     out = scipy.special.hankel1(n, x.to("cpu"))
 
@@ -95,7 +95,7 @@ def bessel_j(n: int, x: torch.Tensor) -> torch.Tensor:
         import scipy.special
     except ImportError:
         raise ImportError(
-            "SciPy or PyTorch version >= 2.6 is required for jv computation."
+            "SciPy or PyTorch version >= 2.8 is required for jv computation."
         )
     # We detach and move to CPU to avoid breaking the graph or moving the whole model
     out = scipy.special.jv(n, x.to("cpu"))
