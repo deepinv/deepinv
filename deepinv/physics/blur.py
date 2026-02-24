@@ -8,6 +8,8 @@ from torch import Tensor
 import torch.nn.functional as F
 from deepinv.physics.forward import LinearPhysics, DecomposablePhysics, adjoint_function
 import deepinv.physics.functional as dF
+from deepinv.utils.mixins import TiledMixin2d
+from deepinv.utils._internal import _as_pair, _add_tuple
 
 
 class Downsampling(LinearPhysics):
@@ -306,7 +308,6 @@ class Upsampling(Downsampling):
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-
         assert (
             padding != "valid"
         ), "Padding 'valid' is not supported for Upsampling operator."
@@ -796,9 +797,9 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         )  # To track psf size changes
 
         self.use_fft = use_fft
-        self.conv2d_fn = conv2d if not use_fft else conv2d_fft
+        self.conv2d_fn = dF.conv2d if not use_fft else dF.conv2d_fft
         self.conv2d_adjoint_fn = (
-            conv_transpose2d if not use_fft else conv_transpose2d_fft
+            dF.conv_transpose2d if not use_fft else dF.conv_transpose2d_fft
         )
         self.blending_mode = blending_mode
 
@@ -847,7 +848,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         # Apply convolution per patch
         B, C = patches.shape[:2]
-        h = _prepare_filter_for_grouped(h, B=B, C=C)
+        h = dF.convolution._prepare_filter_for_grouped(h, B=B, C=C)
 
         result = self.conv2d_fn(
             self.rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
@@ -929,7 +930,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         # Apply transpose convolution per patch
         patches = patches.flatten(2, 3)
         B, C = patches.shape[:2]
-        h = _prepare_filter_for_grouped(h, B=B, C=C)
+        h = dF.convolution._prepare_filter_for_grouped(h, B=B, C=C)
 
         result = self.conv2d_adjoint_fn(
             self.rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
@@ -966,7 +967,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         if getattr(self, "multipliers", None) is None or (
             img_size is not None and img_size != self._dynamic_img_size
         ):
-            multipliers = generate_tiled_multipliers(
+            multipliers = dF.generate_tiled_multipliers(
                 self.get_compatible_img_size(img_size),
                 self.patch_size,
                 self.stride,
