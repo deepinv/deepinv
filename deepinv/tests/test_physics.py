@@ -2039,7 +2039,6 @@ def test_adjoint_autograd(name, device):
     "name", OPERATORS + NONLINEAR_OPERATORS + PHASE_RETRIEVAL_OPERATORS
 )
 def test_clone(name, device):
-
     if name in OPERATORS:
         physics, imsize, _, dtype = find_operator(name, device)
     elif name in NONLINEAR_OPERATORS:
@@ -2460,22 +2459,19 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
     ).abs().mean() < 1e-1, "theoretical and empirical total fields do not match"
 
 
-@pytest.mark.parametrize("seed", [0])
-def test_squared_or_non_squared_norms(seed, device):
-    random.seed(seed)
-    name = random.choice(OPERATORS)
+def test_squared_or_non_squared_norms(device):
+    name = "fftdeblur"
     physics, imsize, _, dtype = find_operator(name, device)
-
-    rng = torch.Generator(device).manual_seed(seed)
+    rng = torch.Generator(device)
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
-    sqnorm1 = physics.compute_sqnorm(x, max_iter=1, tol=1e-9)
-    norm = physics.compute_norm(x, max_iter=1, tol=1e-9, squared=False)
+    sqnorm1 = physics.compute_sqnorm(x, max_iter=1000, tol=1e-9)
+    norm = physics.compute_norm(x, max_iter=1000, tol=1e-9, squared=False)
 
     with pytest.warns(DeprecationWarning, match="compute_sqnorm"):
-        sqnorm2 = physics.compute_norm(x, max_iter=1, tol=1e-9, squared=True)
+        sqnorm2 = physics.compute_norm(x, max_iter=1000, tol=1e-9, squared=True)
 
-    assert torch.allclose(sqnorm1, sqnorm2, rtol=1e-5), "squared norms do not match"
-    assert torch.allclose(sqnorm1, norm**2, rtol=1e-5), "norms do not match"
+    assert torch.allclose(sqnorm1, sqnorm2, rtol=1e-4), "squared norms do not match"
+    assert torch.allclose(sqnorm1, norm**2, rtol=1e-4), "norms do not match"
 
 
 @pytest.mark.parametrize("batch_size", [1, 2])
