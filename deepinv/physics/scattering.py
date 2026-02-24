@@ -4,7 +4,6 @@ from deepinv.optim.linear import least_squares
 from dataclasses import dataclass
 from deepinv.physics.forward import Physics, LinearPhysics
 
-
 def hankel1(n, x):
     try:
         from scipy.special import hankel1
