@@ -764,7 +764,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
     >>> y = physics(x, filters=filters)
     >>> print(x.shape, y.shape)
     torch.Size([1, 3, 256, 256]) torch.Size([1, 3, 226, 226])
-    >>> dinv.utils.plot([x, y], titles=["Original", "Blurred"])   # DOCTEST: +SKIP
+    >>> dinv.utils.plot([x, y], titles=["Original", "Blurred"])   # doctest: +SKIP
     """
 
     def __init__(
