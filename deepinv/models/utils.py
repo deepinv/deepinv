@@ -1,10 +1,14 @@
 from __future__ import annotations
-import torch
-import torch.nn as nn
 import numpy as np
-import torch.nn.functional as F
+
+import torch
 from torch import Tensor
+
+import torch.nn as nn
+import torch.nn.functional as F
+
 from torch.nn import Linear, GroupNorm
+
 from itertools import chain
 
 
@@ -58,6 +62,57 @@ def test_pad(model, L, modulo=16):
     E = model(L)
     E = E[(...,) + tuple(slice(0, s) for s in spatials)]
     return E
+
+
+def patchify(
+    x: torch.Tensor, patch_size: tuple[int, int], stride: int = 1
+) -> torch.Tensor:
+    r"""
+    Patchifying images.
+
+    This function takes in a batch of images and extracts overlapping patches of specified size and stride,
+    returning them in a format suitable for processing by patch-based models.
+
+    :param torch.Tensor x: input image
+    :param (int, int) patch_size: patch size
+    :param int stride: stride
+    :return: (:class:`torch.Tensor`) patched image of shape (B, C, patch_size, patch_size, num_pch)
+
+    |sep|
+
+    :Examples:
+
+    >>> import deepinv as dinv
+    >>> x = dinv.utils.load_example('butterfly.png')
+    >>> patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
+    >>> print(f"Input shape: {x.shape}, patchified shape: {patches.shape}")
+    Input shape: torch.Size([1, 3, 256, 256]), patchified shape: torch.Size([1, 3, 8, 8, 3969])
+
+    .. plot::
+
+        import deepinv as dinv
+
+        x = dinv.utils.load_example('butterfly.png')
+        patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
+        dinv.utils.plot(list(patches[0].permute(3, 0, 1, 2)[:16]), titles=[f"Patch {i} of {patches.shape[-1]}" for i in range(16)])
+
+    """
+    B, C, H, W = x.shape
+    num_H = (H - patch_size) // stride + 1
+    num_W = (W - patch_size) // stride + 1
+    num_pch = num_H * num_W
+
+    # Use unfold to extract patches
+    patches = x.unfold(2, patch_size, stride).unfold(
+        3, patch_size, stride
+    )  # B x C x num_H x num_W x patch_size x patch_size
+
+    # Rearrange and reshape to match the desired output
+    patches = patches.permute(0, 1, 4, 5, 2, 3).reshape(
+        B, C, patch_size, patch_size, num_pch
+    )
+
+    return patches
 
 
 def test_onesplit(model, L, refield=32, sf=1):
@@ -444,3 +499,65 @@ class FourierEmbedding(torch.nn.Module):
         x = x.outer((2 * np.pi * self.freqs).to(x.dtype))
         x = torch.cat([x.cos(), x.sin()], dim=1)
         return x
+
+
+def initialize_3d_from_2d(
+    model_3d: nn.Module, ckpt_2d: dict[str, torch.Tensor], isotropic: bool = False
+) -> None:
+    r"""
+    Initialize a 3D model's Conv3d and ConvTranspose3d layers from a its 2D counterpart layers.
+    Useful when no pretrained 3D weights are available.
+
+    :param nn.Module model_3d: 3D model to be initialized.
+    :param dict[str, torch.Tensor] ckpt_2d: state_dict of the 2D counterpart of model_3d.
+    :param bool isotropic: If True, for odd kernel sizes, the weights are copied to the center slice
+        of all three dimensions and averaged. For even kernel sizes, the 2D weights are
+        divided by the kernel size and copied to all slices in all three dimensions. Otherwise,
+        only the depth dimension is considered.
+    """
+    for name, module in model_3d.named_modules():
+        if isinstance(module, (nn.Conv3d, nn.ConvTranspose3d)):
+
+            module.weight.data[:] = 0.0
+            with torch.no_grad():
+                if module.kernel_size[0] % 2 == 1:
+                    if isotropic:
+                        module.weight[:, :, module.kernel_size[0] // 2 + 1] = ckpt_2d[
+                            f"{name}.weight"
+                        ]
+
+                        module.weight[
+                            :, :, :, module.kernel_size[1] // 2 + 1, :
+                        ] += ckpt_2d[f"{name}.weight"]
+
+                        module.weight[..., module.kernel_size[2] // 2 + 1] += ckpt_2d[
+                            f"{name}.weight"
+                        ]
+
+                        module.weight /= 3.0
+                    else:
+                        module.weight[:, :, module.kernel_size[0] // 2 + 1] = ckpt_2d[
+                            f"{name}.weight"
+                        ]
+                else:
+                    if isotropic:
+                        module.weight[:] = (
+                            ckpt_2d[f"{name}.weight"][:, :, None]
+                            / module.kernel_size[0]
+                        )
+                        module.weight[:] += (
+                            ckpt_2d[f"{name}.weight"][:, :, :, None]
+                            / module.kernel_size[1]
+                        )
+                        module.weight[:] += (
+                            ckpt_2d[f"{name}.weight"][..., None] / module.kernel_size[2]
+                        )
+                        module.weight /= 3.0
+                    else:
+                        module.weight[:] = (
+                            ckpt_2d[f"{name}.weight"][:, :, None]
+                            / module.kernel_size[0]
+                        )
+
+                if module.bias is not None:
+                    module.bias[:] = ckpt_2d[f"{name}.bias"]

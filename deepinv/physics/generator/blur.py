@@ -416,7 +416,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         pupil = torch.exp(-2.0j * torch.pi * pupil)
         pupil = pupil * self.indicator_circ
         psf = torch.fft.ifftshift(torch.fft.fft2(torch.fft.fftshift(pupil)))
-        psf = torch.real(psf * torch.conj(psf))
+        psf = psf.abs().pow(2)
         psf = psf[
             :,
             self.pad_pre[0] : self.pupil_size[0] - self.pad_post[0],
@@ -849,7 +849,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         pshift = torch.fft.fftshift(p, dim=(-2, -1))
         pfft = torch.fft.fft2(pshift, dim=(-2, -1))
         psf = torch.fft.ifftshift(pfft, dim=(-2, -1))
-        psf = torch.real(psf * torch.conj(psf))
+        psf = psf.abs().pow(2)
 
         psf = psf[
             :,

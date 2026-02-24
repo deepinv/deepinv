@@ -15,7 +15,7 @@ import deepinv as dinv
 # First, let's load some test images.
 
 dtype = torch.float32
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # Next, set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -114,7 +114,7 @@ blurs = diffraction_generator.step(batch_size=3)
 print(blurs.keys())
 
 dinv.utils.plot_ortho3D(
-    [f[None] for f in blurs["filter"]],
+    [f[None] ** 0.5 for f in blurs["filter"]],
     suptitle="Examples of randomly generated diffraction blurs",
 )
 
@@ -144,7 +144,7 @@ blurs = diffraction_generator.step(
     batch_size=3, coeff=torch.zeros(3, n_zernike, device=device)
 )
 dinv.utils.plot_ortho3D(
-    [f for f in blurs["filter"][:, None]],
+    [f**0.5 for f in blurs["filter"][:, None]],
     suptitle="Airy pattern",
 )
 
@@ -209,12 +209,12 @@ blur_coll = generator.generator_coll.step(
 psf_coll = blur_coll["filter"]
 # plot generated PSFs
 dinv.utils.plot_ortho3D(
-    [psf[None] for psf in psf_coll],
+    [psf[None] ** 0.5 for psf in psf_coll],
     suptitle="PSFs of Widefield microscope (collection only)",
 )
 
 dinv.utils.plot_ortho3D(
-    [psf[None] for psf in psf_confocal],
+    [psf[None] ** 0.5 for psf in psf_confocal],
     suptitle="Corresponding PSFs of Confocal microscope",
 )
 

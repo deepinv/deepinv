@@ -37,7 +37,14 @@ from .guided_diffusion import ADMUNet
 from .precond import EDMPrecond
 from .ram import RAM
 from .client import Client
-from .wrapper import DiffusersDenoiserWrapper, ComplexDenoiserWrapper
+from .mmse import MMSE
+from .wrapper import (
+    ScoreModelWrapper,
+    DiffusersDenoiserWrapper,
+    ComplexDenoiserWrapper,
+    MinusOneOneDenoiserWrapper,
+)
 from .poisson2sparse import ConvLista, Poisson2Sparse
 from .kernel_network import KernelIdentificationNetwork
 from .bilateral import BilateralFilter
+from .noise_level_estimation import WaveletNoiseEstimator, PatchCovarianceNoiseEstimator

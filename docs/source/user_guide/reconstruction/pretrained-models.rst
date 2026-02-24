@@ -20,7 +20,8 @@ These models can be set-up in one line and perform inference in another line:
     >>> x = dinv.utils.load_example("butterfly.png")
     >>> physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
     >>> y = physics(x)
-    >>> model = dinv.models.RAM(pretrained=True)  # or any of the models listed below  # doctest: +IGNORE_OUTPUT
+    >>> model = dinv.models.RAM(pretrained=True)  # doctest: +ELLIPSIS  # or any of the models listed below
+    ...
     >>> x_hat = model(y, physics) # Model inference
     >>> dinv.metric.PSNR()(x_hat, x) > 29.75
     tensor([True])
