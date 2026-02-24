@@ -49,6 +49,16 @@ class DRUNet(Denoiser):
     :param torch.device, str device: Device to put the model on.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
+    ::
+
+        import deepinv as dinv
+        import torch
+        denoiser = dinv.models.DRUNet()
+        y = torch.randn(1, 3, 32, 32)
+        sigma = 0.1
+        with torch.no_grad():
+            denoised = denoiser(y, sigma)
+
     """
 
     def __init__(

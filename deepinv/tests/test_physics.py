@@ -545,20 +545,29 @@ def find_nonlinear_operator(name, device):
         p = dinv.physics.Haze()
 
     elif name == "scattering":
-        dtype = torch.complex128
-        transmitters, receivers = dinv.physics.scattering.circular_sensors(
-            8, radius=1.0, device=device
-        )
-        p = dinv.physics.Scattering(
-            img_width=32,
-            device=device,
-            background_wavenumber=5 * (2 * torch.pi),
-            wave_type="plane_wave",
-            transmitters=transmitters,
-            receivers=receivers,
-            verbose=False,
-        )
-        x = torch.rand(1, 1, 32, 32, dtype=dtype, device=device) * 0.1  # low contrast
+        if (
+            hasattr(torch, "special")
+            and hasattr(torch.special, "bessel_j0")
+            and hasattr(torch.special, "bessel_y0")
+        ):
+            dtype = torch.complex128
+            transmitters, receivers = dinv.physics.scattering.circular_sensors(
+                8, radius=1.0, device=device
+            )
+            p = dinv.physics.Scattering(
+                img_width=32,
+                device=device,
+                background_wavenumber=5 * (2 * torch.pi),
+                wave_type="plane_wave",
+                transmitters=transmitters,
+                receivers=receivers,
+                verbose=False,
+            )
+            x = (
+                torch.rand(1, 1, 32, 32, dtype=dtype, device=device) * 0.1
+            )  # low contrast
+        else:
+            pytest.skip("Scattering test requires PyTorch 2.8 or higher.")
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
@@ -1767,7 +1776,7 @@ def test_device_consistency(name):
 
     def try_find_nonlinear_operator(name):
         physics, x = find_nonlinear_operator(name, "cpu")
-        return physics, x, torch.float32
+        return physics, x, x[0].dtype if isinstance(x, TensorList) else x.dtype
 
     def try_find_phase_retrieval_operator(name):
         (
@@ -2370,6 +2379,11 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
 
     We limit the number of tests, since this is a rather long test
     """
+    try:
+        import scipy  # noqa: F401
+    except ImportError:
+        pytest.skip("Scipy is required for this test.")
+
     wavenumber = torch.tensor([wavenumber])
     cylinder_contrast = contrast
     cylinder_radius = 0.25
@@ -2409,7 +2423,7 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
     # test adjointness of the born sub-operator
     assert (
         physics.born_operator.adjointness_test(
-            torch.randn((1, 1, pixels, pixels), device=device, dtype=dtype)
+            torch.ones((1, 1, pixels, pixels), device=device, dtype=dtype)
         ).abs()
         < 1e-4
     ), "Adjointness test failed for the Born sub-operator of the Scattering physics."

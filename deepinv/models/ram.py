@@ -42,15 +42,15 @@ class RAM(Reconstructor, Denoiser):
 
     |sep|
 
-      >>> import deepinv as dinv
-      >>> x = dinv.utils.load_example("butterfly.png")
-      >>> physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
-      >>> y = physics(x)
-      >>> model = dinv.models.RAM() # doctest: +ELLIPSIS
-      ...
-      >>> x_hat = model(y, physics) # run model
-      >>> dinv.metric.PSNR()(x_hat, x) > 29.75
-      tensor([True])
+    ::
+
+      import deepinv as dinv
+      x = dinv.utils.load_example("butterfly.png")
+      physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
+      y = physics(x)
+      model = dinv.models.RAM()
+      x_hat = model(y, physics) # run model
+      dinv.metric.PSNR()(x_hat, x) > 29.75 # tensor([True])
 
     """
 
@@ -1016,7 +1016,6 @@ class HeadBlock(torch.nn.Module):
             setattr(self, f"skipconv{i}", torch.nn.Conv2d(c_in, c, 1, bias=False))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-
         if self.skip_in and self.relu_in:
             x = self.nl_1(self.convin(x)) + self.zero_conv_skip(x)
         elif self.skip_in and not self.relu_in:

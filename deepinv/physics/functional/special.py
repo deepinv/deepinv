@@ -4,7 +4,7 @@ import torch
 def native_hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
     """
     Implements H1(n, x) = J(n, x) + i*Y(n, x) using native PyTorch.
-    Only supports real-valued x as of PyTorch 2.6.
+    Only supports real-valued x as of PyTorch 2.8.
 
     :param int n: Order of the Hankel function.
     :param torch.Tensor x: Input tensor.
@@ -41,23 +41,23 @@ def hankel1(n: int, x: torch.Tensor) -> torch.Tensor:
     has_native_bessel = hasattr(torch.special, "bessel_j0") and hasattr(
         torch.special, "bessel_y0"
     )
-    device = x.device
 
     # 2. Use native Torch if available and input is on GPU or requires grad
-    if has_native_bessel and (x.is_cuda or x.requires_grad) and n in (0, 1):
+    if has_native_bessel and n in (0, 1):
         try:
-            return native_hankel1(n, x).to(device=device)
+            return native_hankel1(n, x)
         except RuntimeError:
             # Fallback if torch.special fails for specific dtypes/complex inputs
             pass
 
     # 3. Fallback to SciPy (requires CPU transfer)
     # Transfer to CPU, convert to numpy, compute, then back to Torch
+    device = x.device
     try:
         import scipy.special
     except ImportError:
         raise ImportError(
-            "SciPy or PyTorch version >= 2.6 is required for hankel1 computation."
+            "SciPy or PyTorch version >= 2.8 is required for hankel1 computation."
         )
     out = scipy.special.hankel1(n, x.to("cpu"))
 
@@ -75,7 +75,6 @@ def bessel_j(n: int, x: torch.Tensor) -> torch.Tensor:
     :return: Tensor representing :math:`J_v(n, x)`.
     """
     # 1. Attempt Native PyTorch (Available in torch >= 1.9)
-    device = x.device
     if hasattr(torch.special, "bessel_j0") and n == 0:
         try:
             # Note: bessel_j supports float/double and supports autograd
@@ -91,11 +90,12 @@ def bessel_j(n: int, x: torch.Tensor) -> torch.Tensor:
             pass
 
     # 2. Fallback to SciPy
+    device = x.device
     try:
         import scipy.special
     except ImportError:
         raise ImportError(
-            "SciPy or PyTorch version >= 2.6 is required for jv computation."
+            "SciPy or PyTorch version >= 2.8 is required for jv computation."
         )
     # We detach and move to CPU to avoid breaking the graph or moving the whole model
     out = scipy.special.jv(n, x.to("cpu"))

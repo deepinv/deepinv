@@ -875,9 +875,7 @@ class ComposedPhysics(Physics):
     :param Iterable[deepinv.physics.Physics] physics: variable number of physics to compose.
     """
 
-    def __init__(
-        self, *physics: Iterable[Physics], device: str | torch.device = "cpu", **kwargs
-    ):
+    def __init__(self, *physics: Iterable[Physics], **kwargs):
         super().__init__()
 
         self.physics_list = nn.ModuleList([])
@@ -889,7 +887,6 @@ class ComposedPhysics(Physics):
             )
         self.noise_model = physics[-1].noise_model
         self.sensor_model = physics[-1].sensor_model
-        self.to(device)
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
         r"""

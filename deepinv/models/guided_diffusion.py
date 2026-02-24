@@ -46,6 +46,7 @@ class ADMUNet(Denoiser):
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the attribute `_was_trained_on_minus_one_one` to `True` after loading the weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
+    :param bool _was_trained_on_minus_one_one: Indicate whether the model has been trained on `[-1, 1]` pixels or `[0, 1]` pixels. Default to `False`.
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
 
@@ -72,6 +73,7 @@ class ADMUNet(Denoiser):
         dropout=0.10,  # List of resolutions with self-attention.
         label_dropout=0,  # Dropout probability of class labels for classifier-free guidance.
         pretrained: str = "download",
+        _was_trained_on_minus_one_one: bool = False,
         pixel_std: float = 0.75,
         device=None,
         *args,
@@ -180,6 +182,7 @@ class ADMUNet(Denoiser):
         self.out_conv = UpDownConv2d(
             in_channels=cout, out_channels=out_channels, kernel=3
         )
+        self._was_trained_on_minus_one_one = _was_trained_on_minus_one_one
         if pretrained is not None:
             if (
                 pretrained.lower() == "edm-imagenet64-cond"
@@ -195,10 +198,7 @@ class ADMUNet(Denoiser):
                 self.pixel_std = 0.5
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
-                self._was_trained_on_minus_one_one = False  # Pretrained on [0,1]
             self.load_state_dict(ckpt, strict=True)
-        else:
-            self._was_trained_on_minus_one_one = False
         self.eval()
         if device is not None:
             self.to(device)
@@ -210,6 +210,7 @@ class ADMUNet(Denoiser):
         sigma: Tensor | float,
         class_labels: Tensor | None = None,
         augment_labels: Tensor | None = None,
+        input_in_minus_one_one: bool = False,
         *args,
         **kwargs,
     ):
@@ -220,6 +221,7 @@ class ADMUNet(Denoiser):
         :param Union[torch.Tensor, float]  sigma: noise level
         :param torch.Tensor class_labels: class labels
         :param torch.Tensor augment_labels: augmentation labels
+        :param bool input_in_minus_one_one: whether the input `x` is in `[-1, 1]` range. Default is `False`.
         :return torch.Tensor: denoised image.
         """
         if class_labels is not None:
@@ -229,7 +231,7 @@ class ADMUNet(Denoiser):
         )
 
         # Rescale [0,1] input to [-1,-1]
-        if getattr(self, "_was_trained_on_minus_one_one", False):
+        if self._was_trained_on_minus_one_one and not input_in_minus_one_one:
             x = (x - 0.5) * 2.0
             sigma = sigma * 2.0
 
@@ -247,7 +249,7 @@ class ADMUNet(Denoiser):
         D_x = c_skip * x + c_out * F_x
 
         # Rescale [-1,1] output to [0,-1]
-        if getattr(self, "_was_trained_on_minus_one_one", False):
+        if self._was_trained_on_minus_one_one and not input_in_minus_one_one:
             return (D_x + 1.0) / 2.0
         else:
             return D_x
