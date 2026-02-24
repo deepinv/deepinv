@@ -1,6 +1,9 @@
 from __future__ import annotations
 from .optim_iterator import OptimIterator
 from torch import ones_like
+from torch import Tensor
+from deepinv.physics import LinearPhysics
+from deepinv.optim import DataFidelity, Prior
 
 
 class SIRTIteration(OptimIterator):
@@ -28,7 +31,9 @@ class SIRTIteration(OptimIterator):
         self._cached_col_sum = None
         self.sinogram_shape = None
 
-    def _get_normalizers(self, x, y, physics, eps: float):
+    def _get_normalizers(
+        self, x: Tensor, y: Tensor, physics: LinearPhysics, eps: float
+    ):
         sinogram_shape = tuple(y.shape)
         # We cache the normalizers to avoid recomputing them at every iteration
         # If the physics has changed, the shape of y should change, which will trigger a recomputation of the normalizers
@@ -55,7 +60,14 @@ class SIRTIteration(OptimIterator):
         return row_sum, col_sum
 
     def forward(
-        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, **kwargs
+        self,
+        X: dict,
+        cur_data_fidelity: DataFidelity,
+        cur_prior: Prior,
+        cur_params: dict,
+        y: Tensor,
+        physics: LinearPhysics,
+        **kwargs,
     ):
         x = X["est"][0]
         k = 0 if "it" not in X else X["it"]
