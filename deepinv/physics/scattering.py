@@ -4,6 +4,7 @@ from deepinv.optim.linear import least_squares
 from dataclasses import dataclass
 from deepinv.physics.forward import Physics, LinearPhysics
 
+
 def hankel1(n, x):
     try:
         from scipy.special import hankel1
@@ -935,7 +936,7 @@ def green_function(r, remove_nans=False):
     :param torch.dtype dtype: torch.dtype used for the returned tensor (matches r.dtype)
     :return: Complex tensor with Green's function values.
     """
-    out = 1j / 4 * hankel1(0, r.abs())
+    out = 1j / 4 * hankel1(0, r)
     if remove_nans:
         out[torch.isnan(out)] = out.abs().max()  # singularity at 0
     return out
@@ -1066,7 +1067,7 @@ def mie_theory(
         list_n.append(-i)
 
     extra_contrast = torch.sqrt(torch.tensor(1 + cylinder_contrast, dtype=dtype))
-    w = wavenumber.abs()
+    w = wavenumber
     ind = r < cylinder_radius
     for p in range(angles.shape[0]):
         for n in list_n:
