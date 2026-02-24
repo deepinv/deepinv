@@ -332,7 +332,7 @@ class TiledMixin2d:
         >>> reconstructed_image = tiled_mixin.patches_to_image(patches, img_size=(H, W))
         >>> print("Reconstructed Image Shape:", reconstructed_image.shape)
         Reconstructed Image Shape: torch.Size([1, 1, 5, 5])
-        >>> print("Reconstructed Image:\n", reconstructed_image)
+        >>> print(reconstructed_image)
         tensor([[[[ 0.,  1.,  4.,  3.,  8.],
                   [ 5.,  6., 14.,  8., 18.],
                   [20., 22., 48., 26., 56.],
