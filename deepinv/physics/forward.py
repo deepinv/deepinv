@@ -1437,6 +1437,12 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
         else:
             raise ValueError("reduction must be either sum, mean or none.")
 
+        if reduction != "sum":
+            warnings.warn(
+                f"Using `reduction={reduction}` is deprecated and will be removed in a future version. Using `reduction={reduction}` breaks the adjointness property of the operator, and can lead to suboptimal performance of certain algorithms. Use `reduction='sum'` instead.",
+                stacklevel=2,
+            )
+
     def A_adjoint(self, y: TensorList, **kwargs) -> torch.Tensor:
         r"""
         Computes the adjoint of the stacked operator, defined as
