@@ -443,12 +443,12 @@ class TiledMixin2d:
         """
         # Compute number of maximum patches that can fit without padding
         # Note that this number of patches can be not sufficient to cover the whole image, which is why we need padding
-        n_h = (img_size[0] - self.patch_size[0]) // self.stride[0] + 1
-        n_w = (img_size[1] - self.patch_size[1]) // self.stride[1] + 1
+        n_h = abs(img_size[0] - self.patch_size[0]) // self.stride[0] + 1
+        n_w = abs(img_size[1] - self.patch_size[1]) // self.stride[1] + 1
 
         # Compute required padding to fit an integer number of patches
-        pad_h = self.patch_size[0] + n_h * self.stride[0] - img_size[0]
-        pad_w = self.patch_size[1] + n_w * self.stride[1] - img_size[1]
+        pad_h = self.patch_size[0] + (n_h - 1) * self.stride[0] - img_size[0]
+        pad_w = self.patch_size[1] + (n_w - 1) * self.stride[1] - img_size[1]
 
         return pad_h, pad_w
 
