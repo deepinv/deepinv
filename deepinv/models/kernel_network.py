@@ -40,16 +40,15 @@ class KernelIdentificationNetwork(nn.Module):
 
         import deepinv as dinv
         import torch
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = dinv.utils.get_device()
         kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device)
         physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
         y = torch.randn(1, 3, 128, 128).to(device)  # random blurry image for demonstration
         with torch.no_grad():
             params = kernel_estimator(y)  # this outputs {"filters": ..., "multipliers": ...}
         physics.update(**params) # update physics with estimated kernels
-        print(params["filters"].shape, params["multipliers"].shape)
-        # torch.Size([1, 1, 25, 33, 33]) torch.Size([1, 1, 25, 128, 128])
 
+        print(params["filters"].shape, params["multipliers"].shape) # torch.Size([1, 1, 25, 33, 33]) torch.Size([1, 1, 25, 128, 128])
 
     """
 
@@ -137,7 +136,6 @@ class KernelIdentificationNetwork(nn.Module):
                         file_name=file_name,
                         check_hash=True,
                         weights_only=True,
-                        progress=False,
                     )
                     self.load_state_dict(ckpt, strict=True)
                 else:
