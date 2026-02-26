@@ -899,14 +899,8 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         pad = self._get_pad(h_size)
         y = self._pad(y, pad)
 
-        # Extract patches with expanded config
-        # original_patch_size = self.patch_size
-
-        # Update patch size to account for margin in adjoint
-        # self.patch_size = _add_tuple(original_patch_size, margin)
+        # Extract patches
         patches = self.image_to_patches(y)
-        # Restore original patch size
-        # self.patch_size = original_patch_size
 
         n_rows, n_cols = patches.size(2), patches.size(3)
         if n_rows * n_cols != h.size(2):
@@ -1009,13 +1003,15 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         bottom = h - top - 1
         return (left, right, top, bottom)
 
-    def _pad(self, x: Tensor, pad: tuple[int, int, int, int]) -> Tensor:
+    @staticmethod
+    def _pad(x: Tensor, pad: tuple[int, int, int, int]) -> Tensor:
         r"""
         Pads the input tensor `x` with padding `pad`, in the order (left, right, top, bottom).
         """
         return torch.nn.functional.pad(x, pad=pad, mode="constant", value=0)
 
-    def _crop(self, x: Tensor, pad: tuple[int, int, int, int]) -> Tensor:
+    @staticmethod
+    def _crop(x: Tensor, pad: tuple[int, int, int, int]) -> Tensor:
         r"""
         Removes padding from the input tensor `x` with padding `pad`, in the order (left, right, top, bottom).
         """
