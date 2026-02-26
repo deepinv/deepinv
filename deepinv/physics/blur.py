@@ -816,9 +816,8 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         :return: torch.Tensor: Space varying blurred image.
         """
-        self.update_parameters(
-            filters, img_size=x.shape[-2:], device=x.device, **kwargs
-        )
+        img_size = x.shape[-2:]
+        self.update_parameters(filters, img_size=img_size, device=x.device, **kwargs)
 
         w = self.multipliers  # (B, C, K, H, W)
         h = self.filters  # (B, C, K, h, w)
@@ -837,14 +836,10 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         patches = patches.flatten(2, 3)
         patches = patches * w
 
-        # Pad for convolution
-        margin = (h.shape[-2] - 1, h.shape[-1] - 1)
-        patches = F.pad(
-            patches,
-            pad=(margin[1], margin[1], margin[0], margin[0]),
-            value=0,
-            mode="constant",
-        )
+        # Pad each patch for local convolution: so that local convolution produce image of same size
+        h_size = h.shape[-2:]
+        pad = self._get_pad(h_size)
+        patches = self._pad(patches, pad)
 
         # Apply convolution per patch
         B, C = patches.shape[:2]
@@ -855,21 +850,18 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
             self.rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
             padding="valid",
         )
-
         result = self.rearrange(
             result, "(b k) c h w -> b c k h w", b=patches.size(0), k=h.size(2)
         )
 
         B, C, K, H, W = result.size()
-        target_size = _add_tuple(x.shape[-2:], margin)
-
         result = self.patches_to_image(
             result.view(B, C, n_rows, n_cols, H, W),
-            img_size=target_size,
+            img_size=img_size,
         )
-
-        # Remove margin
-        return result[..., margin[0] : -margin[0], margin[1] : -margin[1]]
+        # Remove pad
+        result = self._crop(result, pad)
+        return result
 
     def A_adjoint(
         self,
@@ -889,8 +881,8 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
             filters = self.filters
 
         # Infer original image size from y and filters, since the padding is 'valid'
-        margin = (filters.shape[-2] - 1, filters.shape[-1] - 1)
-        original_img_size = _add_tuple(y.shape[-2:], margin)
+        h_size = filters.shape[-2:]
+        original_img_size = _add_tuple(y.shape[-2:], _add_tuple(h_size, (-1, -1)))
 
         self.update_parameters(
             filters=filters,
@@ -904,21 +896,17 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         h = self.filters  # (B, C, K, h, w)
 
         # Pad input
-        y = F.pad(
-            y,
-            pad=(margin[1], margin[1], margin[0], margin[0]),
-            value=0,
-            mode="constant",
-        )
+        pad = self._get_pad(h_size)
+        y = self._pad(y, pad)
 
         # Extract patches with expanded config
-        original_patch_size = self.patch_size
+        # original_patch_size = self.patch_size
 
         # Update patch size to account for margin in adjoint
-        self.patch_size = _add_tuple(original_patch_size, margin)
+        # self.patch_size = _add_tuple(original_patch_size, margin)
         patches = self.image_to_patches(y)
         # Restore original patch size
-        self.patch_size = original_patch_size
+        # self.patch_size = original_patch_size
 
         n_rows, n_cols = patches.size(2), patches.size(3)
         if n_rows * n_cols != h.size(2):
@@ -940,8 +928,8 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         result = self.rearrange(result, "(b k) c h w -> b c k h w", b=B, k=h.size(2))
 
-        # Remove margin and apply weights
-        result = result[..., margin[0] : -margin[0], margin[1] : -margin[1]]
+        # Remove pad and apply weights
+        result = self._crop(result, pad)
         result = result * w
 
         # Reconstruct image using overlapping patches
@@ -1007,6 +995,34 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         n_w = (compatible_size[1] - patch_size[1]) // stride[1] + 1
 
         return n_h, n_w
+
+    @staticmethod
+    def _get_pad(filter_size: tuple[int, int]) -> tuple[int, int]:
+        r"""
+        Computes padding from the filters size: (left, right, top, bottom).
+        """
+        h, w = filter_size
+
+        left = w // 2
+        right = w - left - 1
+        top = h // 2
+        bottom = h - top - 1
+        return (left, right, top, bottom)
+
+    def _pad(self, x: Tensor, pad: tuple[int, int, int, int]) -> Tensor:
+        r"""
+        Pads the input tensor `x` with padding `pad`, in the order (left, right, top, bottom).
+        """
+        return torch.nn.functional.pad(x, pad=pad, mode="constant", value=0)
+
+    def _crop(self, x: Tensor, pad: tuple[int, int, int, int]) -> Tensor:
+        r"""
+        Removes padding from the input tensor `x` with padding `pad`, in the order (left, right, top, bottom).
+        """
+        left, right, top, bottom = pad
+        h_slice = slice(top, -bottom if bottom > 0 else None)  # top, bottom
+        w_slice = slice(left, -right if right > 0 else None)  # left, right
+        return x[..., h_slice, w_slice]
 
 
 def gaussian_blur(
