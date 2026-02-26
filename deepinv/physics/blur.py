@@ -1008,7 +1008,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         r"""
         Pads the input tensor `x` with padding `pad`, in the order (left, right, top, bottom).
         """
-        return torch.nn.functional.pad(x, pad=pad, mode="constant", value=0)
+        return F.pad(x, pad=pad, mode="constant", value=0)
 
     @staticmethod
     def _crop(x: Tensor, pad: tuple[int, int, int, int]) -> Tensor:
