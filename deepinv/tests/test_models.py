@@ -45,6 +45,8 @@ REST_MODEL_LIST = [
     "modl",
     "varnet",
     "pannet",
+    "srno_rdn",
+    "srno_edsr",
 ]
 
 LINEAR_OPERATORS = [
@@ -126,6 +128,10 @@ def choose_denoiser(name, imsize):
         out = dinv.models.EPLLDenoiser(channels=imsize[0])
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
+    elif name == "srno_rdn":
+        out = dinv.models.SRNO(encoder_type="rdn")
+    elif name == "srno_edsr":
+        out = dinv.models.SRNO(encoder_type="edsr")
     elif name == "ncsnpp":
         out = dinv.models.NCSNpp(
             in_channels=imsize[0],
