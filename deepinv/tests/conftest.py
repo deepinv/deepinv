@@ -102,3 +102,8 @@ def pytest_collection_modifyitems(config, items):
             # All other tests are grouped under "main" and run one at a time
             # but in parallel of the slow tests.
             item.add_marker(pytest.mark.xdist_group("main"))
+
+
+# Make deprecation warnings raise errors in tests
+def pytest_configure(config):
+    config.addinivalue_line("filterwarnings", "error::DeprecationWarning")
