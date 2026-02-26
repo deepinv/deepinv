@@ -210,7 +210,9 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             (1, n_coils, img_size[-2], img_size[-1]),
             dtype=torch.complex64,
             device=device,
-        ) / sqrt(n_coils)  # B,N,H,W where N is coil dimension
+        ) / sqrt(
+            n_coils
+        )  # B,N,H,W where N is coil dimension
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
         params = ["mask", "coil_maps"]
     elif name == "MultiCoilMRIBirdcage":
@@ -232,7 +234,9 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             (1, n_coils, img_size[-3], img_size[-2], img_size[-1]),
             dtype=torch.complex64,
             device=device,
-        ) / sqrt(n_coils)  # B,N,D,H,W where N is coils and D is depth
+        ) / sqrt(
+            n_coils
+        )  # B,N,D,H,W where N is coils and D is depth
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
         params = ["mask"]
     elif name == "2DParallelBeamCT":
@@ -1419,9 +1423,9 @@ def test_tomography(
     error = torch.linalg.vector_norm(
         physics.A_dagger(y, fbp=fbp_pseudo_inverse) - r
     ) / torch.linalg.vector_norm(r)
-    assert error < r_tol, (
-        f"error: {error} > {r_tol}, fanbeam={fan_beam}, circle={circle}, fbp_interpolate_boundary={fbp_interpolate_boundary}, normalize={normalize}, adjoint_via_backprop={adjoint_via_backprop}, parallel_computation={parallel_computation}, fbp_pseudo_inverse={fbp_pseudo_inverse}"
-    )
+    assert (
+        error < r_tol
+    ), f"error: {error} > {r_tol}, fanbeam={fan_beam}, circle={circle}, fbp_interpolate_boundary={fbp_interpolate_boundary}, normalize={normalize}, adjoint_via_backprop={adjoint_via_backprop}, parallel_computation={parallel_computation}, fbp_pseudo_inverse={fbp_pseudo_inverse}"
 
 
 @pytest.mark.parametrize(
@@ -2055,9 +2059,9 @@ def test_clone(name, device):
         param_clone = physics_clone.get_parameter(name)
 
         # Check that params have been reallocated somewhere else in the memory space
-        assert param.data_ptr() != param_clone.data_ptr(), (
-            f"Parameter {name} has not been cloned properly."
-        )
+        assert (
+            param.data_ptr() != param_clone.data_ptr()
+        ), f"Parameter {name} has not been cloned properly."
 
         # Check that changing one parameter does not change the other
         # NOTE: no_grad is necessary because autograd prevents in-place modifications
@@ -2078,9 +2082,9 @@ def test_clone(name, device):
         buffer_clone = physics_clone.get_buffer(name)
 
         # Check that buffers have been reallocated somewhere else in the memory space
-        assert buffer.data_ptr() != buffer_clone.data_ptr(), (
-            f"Buffer {name} has not been cloned properly."
-        )
+        assert (
+            buffer.data_ptr() != buffer_clone.data_ptr()
+        ), f"Buffer {name} has not been cloned properly."
 
         # Check that changing one buffer does not change the other
         buffer.fill_(0)
@@ -2091,20 +2095,20 @@ def test_clone(name, device):
     rng = getattr(physics, "rng", None)
     rng_clone = getattr(physics_clone, "rng", None)
 
-    assert (rng is not None) == (rng_clone is not None), (
-        "RNGs are not both set or unset."
-    )
+    assert (rng is not None) == (
+        rng_clone is not None
+    ), "RNGs are not both set or unset."
 
     if rng is not None:
-        assert torch.all(rng.get_state() == rng_clone.get_state()), (
-            "RNG state does not match."
-        )
+        assert torch.all(
+            rng.get_state() == rng_clone.get_state()
+        ), "RNG state does not match."
 
         arr = torch.randn(16, device=rng.device, generator=rng)
         arr_clone = torch.randn(16, device=rng_clone.device, generator=rng_clone)
-        assert torch.allclose(arr, arr_clone), (
-            "RNGs do not produce the same random numbers after cloning."
-        )
+        assert torch.allclose(
+            arr, arr_clone
+        ), "RNGs do not produce the same random numbers after cloning."
 
     # Additional tests
     if hasattr(physics, "mask") and physics.mask.dtype != torch.bool:
@@ -2114,9 +2118,9 @@ def test_clone(name, device):
 
         physics.mask += 7
         physics_clone = physics.clone()
-        assert torch.allclose(physics_clone.mask, physics.mask), (
-            "Mask has not been cloned properly."
-        )
+        assert torch.allclose(
+            physics_clone.mask, physics.mask
+        ), "Mask has not been cloned properly."
 
         # Restore original values
         physics_clone.mask = saved_mask
@@ -2134,9 +2138,9 @@ def test_clone(name, device):
 
         setattr(physics, attr_name, 42)
         physics_clone = physics.clone()
-        assert getattr(physics_clone, attr_name) == getattr(physics, attr_name), (
-            "Attribute has not been cloned properly."
-        )
+        assert getattr(physics_clone, attr_name) == getattr(
+            physics, attr_name
+        ), "Attribute has not been cloned properly."
 
         # Restore original values
         setattr(physics, attr_name, attr_val)
@@ -2285,9 +2289,9 @@ def test_automatic_A_adjoint(device):
     y = physics(x)
     x_adj = physics.A_adjoint(y)
     assert x_adj.shape == x.shape, "A_adjoint shape mismatch."
-    assert physics.adjointness_test(x) < 1e-4, (
-        "Adjointness test failed for LinearPhysics with automatic A_adjoint."
-    )
+    assert (
+        physics.adjointness_test(x) < 1e-4
+    ), "Adjointness test failed for LinearPhysics with automatic A_adjoint."
 
     # test decomposable physics
     physics = dinv.physics.DecomposablePhysics(
@@ -2297,14 +2301,14 @@ def test_automatic_A_adjoint(device):
     y = physics(x)
     x_adj = physics.A_adjoint(y)
 
-    assert torch.allclose(physics.U(x), physics.U_adjoint(x)), (
-        "U and U_adjoint should be identity if not provided."
-    )
+    assert torch.allclose(
+        physics.U(x), physics.U_adjoint(x)
+    ), "U and U_adjoint should be identity if not provided."
     assert torch.allclose(physics.U(x), x), "U should be identity if not provided."
     assert x_adj.shape == x.shape, "A_adjoint shape mismatch for DecomposablePhysics."
-    assert physics.adjointness_test(x) < 1e-4, (
-        "Adjointness test failed for DecomposablePhysics with automatic A_adjoint."
-    )
+    assert (
+        physics.adjointness_test(x) < 1e-4
+    ), "Adjointness test failed for DecomposablePhysics with automatic A_adjoint."
 
     physics = dinv.physics.DecomposablePhysics(
         U=lambda x: x.mean(dim=1, keepdim=True), img_size=(3, 8, 8)
@@ -2313,35 +2317,35 @@ def test_automatic_A_adjoint(device):
     y = physics(x)
     x_adj = physics.A_adjoint(y)
 
-    assert torch.allclose(physics.V(x), physics.V_adjoint(x)), (
-        "V and V_adjoint should be identity if not provided."
-    )
+    assert torch.allclose(
+        physics.V(x), physics.V_adjoint(x)
+    ), "V and V_adjoint should be identity if not provided."
     assert torch.allclose(physics.V(x), x), "V should be identity if not provided."
     assert x_adj.shape == x.shape, "A_adjoint shape mismatch for DecomposablePhysics."
-    assert physics.adjointness_test(x) < 1e-4, (
-        "Adjointness test failed for DecomposablePhysics with automatic A_adjoint."
-    )
+    assert (
+        physics.adjointness_test(x) < 1e-4
+    ), "Adjointness test failed for DecomposablePhysics with automatic A_adjoint."
 
 
 def test_separate_noise_models():
     physics1 = dinv.physics.Denoising()
     physics2 = dinv.physics.Denoising()
-    assert id(physics1.noise_model) != id(physics2.noise_model), (
-        "Expected distinct noise models for the distinct physics"
-    )
-    assert isinstance(physics1.noise_model, dinv.physics.GaussianNoise), (
-        f"Expected the default noise model to be GaussianNoise, got {type(physics1.noise_model).__name__}"
-    )
+    assert id(physics1.noise_model) != id(
+        physics2.noise_model
+    ), "Expected distinct noise models for the distinct physics"
+    assert isinstance(
+        physics1.noise_model, dinv.physics.GaussianNoise
+    ), f"Expected the default noise model to be GaussianNoise, got {type(physics1.noise_model).__name__}"
     sigma1 = physics1.noise_model.sigma
     sigma2 = physics2.noise_model.sigma
     sigma1_new = sigma2 + 1
-    assert sigma1_new != sigma2, (
-        "Expected a standard deviation different from that of physics2"
-    )
+    assert (
+        sigma1_new != sigma2
+    ), "Expected a standard deviation different from that of physics2"
     physics1.update(sigma=sigma1_new)
-    assert physics2.noise_model.sigma == sigma2, (
-        "Expected physics2 to be unchanged after updating physics1"
-    )
+    assert (
+        physics2.noise_model.sigma == sigma2
+    ), "Expected physics2 to be unchanged after updating physics1"
 
 
 def test_downsampling_default_filter_depreciation():
@@ -2427,12 +2431,12 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
     total_field = physics.compute_total_field(x)
     incident_field = physics.incident_field
 
-    assert (incident_field - incident_field_mie).abs().mean() < 1e-3, (
-        "theoretical and empirical incident fields do not match"
-    )
-    assert (total_field - total_field_mie).abs().mean() < 1e-1, (
-        "theoretical and empirical total fields do not match"
-    )
+    assert (
+        incident_field - incident_field_mie
+    ).abs().mean() < 1e-3, "theoretical and empirical incident fields do not match"
+    assert (
+        total_field - total_field_mie
+    ).abs().mean() < 1e-1, "theoretical and empirical total fields do not match"
 
 
 @pytest.mark.parametrize("seed", [0])
