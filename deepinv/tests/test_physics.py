@@ -545,29 +545,27 @@ def find_nonlinear_operator(name, device):
         p = dinv.physics.Haze()
 
     elif name == "scattering":
-        if (
-            hasattr(torch, "special")
-            and hasattr(torch.special, "bessel_j0")
-            and hasattr(torch.special, "bessel_y0")
-        ):
-            dtype = torch.complex128
-            transmitters, receivers = dinv.physics.scattering.circular_sensors(
-                8, radius=1.0, device=device
+        try:
+            import scipy  # noqa: F401
+        except ImportError:
+            pytest.skip(
+                "This test requires scipy. It should be "
+                "installed with `pip install scipy`"
             )
-            p = dinv.physics.Scattering(
-                img_width=32,
-                device=device,
-                background_wavenumber=5 * (2 * torch.pi),
-                wave_type="plane_wave",
-                transmitters=transmitters,
-                receivers=receivers,
-                verbose=False,
-            )
-            x = (
-                torch.rand(1, 1, 32, 32, dtype=dtype, device=device) * 0.1
-            )  # low contrast
-        else:
-            pytest.skip("Scattering test requires PyTorch 2.8 or higher.")
+        dtype = torch.complex128
+        transmitters, receivers = dinv.physics.scattering.circular_sensors(
+            8, radius=1.0, device=device
+        )
+        p = dinv.physics.Scattering(
+            img_width=32,
+            device=device,
+            background_wavenumber=5 * (2 * torch.pi),
+            wave_type="plane_wave",
+            transmitters=transmitters,
+            receivers=receivers,
+            verbose=False,
+        )
+        x = torch.rand(1, 1, 32, 32, dtype=dtype, device=device) * 0.1  # low contrast
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
