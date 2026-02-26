@@ -333,11 +333,11 @@ class TiledMixin2d:
         >>> print("Reconstructed Image Shape:", reconstructed_image.shape)
         Reconstructed Image Shape: torch.Size([1, 1, 5, 5])
         >>> print(reconstructed_image)
-        tensor([[[[ 0.,  1.,  4.,  3.,  8.],
-                  [ 5.,  6., 14.,  8., 18.],
-                  [20., 22., 48., 26., 56.],
-                  [15., 16., 34., 18., 38.],
-                  [40., 42., 88., 46., 96.]]]])
+        tensor([[[[ 0.,  1.,  4.,  3.,  4.],
+                  [ 5.,  6., 14.,  8.,  9.],
+                  [20., 22., 48., 26., 28.],
+                  [15., 16., 34., 18., 19.],
+                  [20., 21., 44., 23., 24.]]]])
         >>> # Note that the reconstructed image is not necessarily equal to the original image due to overlapping regions being summed.
     """
 
@@ -447,8 +447,12 @@ class TiledMixin2d:
         n_w = abs(img_size[1] - self.patch_size[1]) // self.stride[1] + 1
 
         # Compute required padding to fit an integer number of patches
-        pad_h = self.patch_size[0] + (n_h - 1) * self.stride[0] - img_size[0]
-        pad_w = self.patch_size[1] + (n_w - 1) * self.stride[1] - img_size[1]
+        pad_h = (self.patch_size[0] + n_h * self.stride[0] - img_size[0]) % self.stride[
+            0
+        ]
+        pad_w = (self.patch_size[1] + n_w * self.stride[1] - img_size[1]) % self.stride[
+            1
+        ]
 
         return pad_h, pad_w
 
