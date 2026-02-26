@@ -1440,6 +1440,7 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
         if reduction != "sum":
             warnings.warn(
                 f"Using `reduction={reduction}` is deprecated and will be removed in a future version. Using `reduction={reduction}` breaks the adjointness property of the operator, and can lead to suboptimal performance of certain algorithms. Use `reduction='sum'` instead.",
+                DeprecationWarning,
                 stacklevel=2,
             )
 
