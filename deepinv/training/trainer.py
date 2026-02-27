@@ -63,6 +63,8 @@ class Trainer:
     :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
         or any other custom reconstruction network.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: :ref:`Forward operator(s) <physics_list>`.
+        When multiple physics are provided, there must be a 1-to-1 mapping with the train dataloaders.
+        If multiple physics are given with a single dataloader, the dataloader is automatically replicated.
     :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see :ref:`datasets user guide <datasets>`
         for how we expect data to be provided.
     :param bool online_measurements: Generate new measurements `y` in an online manner at each iteration by calling
@@ -508,6 +510,17 @@ class Trainer:
             self.physics_generator, (list, tuple)
         ):
             self.physics_generator = [self.physics_generator]
+
+        # handle mismatch between number of physics and dataloaders
+        if len(self.physics) > 1 and self.G == 1:
+            self.train_dataloader = self.train_dataloader * len(self.physics)
+            self.G = len(self.train_dataloader)
+        elif len(self.physics) != self.G:
+            raise ValueError(
+                f"Number of physics ({len(self.physics)}) must match "
+                f"number of train dataloaders ({self.G}). "
+                f"Provide either one physics, one dataloader, or equal counts of both."
+            )
 
         self.save_folder_im = None
 
