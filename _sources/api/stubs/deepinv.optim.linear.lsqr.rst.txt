@@ -1,0 +1,9 @@
+﻿lsqr
+====
+
+.. currentmodule:: deepinv.optim.linear
+
+.. autofunction:: lsqr
+
+.. minigallery:: deepinv.optim.linear.lsqr
+    :add-heading: Examples using ``lsqr``:

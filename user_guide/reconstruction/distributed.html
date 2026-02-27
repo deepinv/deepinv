@@ -1,0 +1,1115 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Distributed Computing &#8212; deepinv 0.3.7 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=29d04658"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "inversename": "R", "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/reconstruction/distributed';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/user_guide/reconstruction/distributed.html" />
+    <link rel="icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Trainer" href="../training/trainer.html" />
+    <link rel="prev" title="Blind Inverse Problems" href="blind.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">🎉 We are part of the <a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.</div>
+</aside>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.7 documentation - Home"/>
+    <img src="../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.7 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Forward Operators</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../physics/intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/physics.html">Operators &amp; Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/functional.html">Functional</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Reconstruction Methods</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="least-squares.html">Pseudoinverse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pretrained-models.html">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep-reconstructors.html">Deep Reconstruction Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sampling.html">Diffusion and MCMC Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="adversarial.html">Adversarial Networks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="blind.html">Blind Inverse Problems</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Distributed Computing</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training and Testing</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../training/trainer.html">Trainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/loss.html">Training Losses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/transforms.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/multigpu.html">Using Multiple GPUs</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Other</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../other/utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/biblio.html">References</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../user_guide.html" class="nav-link">User Guide</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Distributed Computing</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="distributed-computing">
+<span id="distributed"></span><h1>Distributed Computing<a class="headerlink" href="#distributed-computing" title="Link to this heading">#</a></h1>
+<p>For large-scale inverse problems, the memory and compute of a single device might not be enough.
+The distributed computing framework enables efficient parallel processing across multiple GPUs by distributing physics operators and computations across multiple processes.</p>
+<p>The framework provides an API centered around two key functions:</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="../../api/stubs/deepinv.distributed.DistributedContext.html#deepinv.distributed.DistributedContext" title="deepinv.distributed.DistributedContext"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.distributed.DistributedContext</span></code></a> - manages distributed execution</p></li>
+<li><p><a class="reference internal" href="../../api/stubs/deepinv.distributed.distribute.html#deepinv.distributed.distribute" title="deepinv.distributed.distribute"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.distributed.distribute()</span></code></a> - converts regular objects to distributed versions</p></li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The distributed framework is particularly useful when:</p>
+<ul class="simple">
+<li><p><em>Multiple physics operators</em> with individual measurements need to be processed in parallel</p></li>
+<li><p><em>Large images</em> are too large to fit in a single device’s memory</p></li>
+<li><p><em>Denoising priors</em> need to be applied to large images using spatial tiling</p></li>
+<li><p>You want to <em>accelerate reconstruction</em> by leveraging multiple devices</p></li>
+</ul>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This module is in beta and may undergo significant changes in future releases.
+Some features are experimental and only supported for specific use cases.
+Please report any issues you encounter on our <a class="reference external" href="https://github.com/deepinv/deepinv">GitHub repository</a>.</p>
+</div>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h2>
+<p>Here’s a minimal example that shows the complete workflow:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blur</span><span class="p">,</span> <span class="n">stack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.blur</span><span class="w"> </span><span class="kn">import</span> <span class="n">gaussian_blur</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.data_fidelity</span><span class="w"> </span><span class="kn">import</span> <span class="n">L2</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">DRUNet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistributedContext</span><span class="p">,</span> <span class="n">distribute</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.demo</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_example</span>
+
+<span class="c1"># Step 1: Create distributed context</span>
+<span class="k">with</span> <span class="n">DistributedContext</span><span class="p">()</span> <span class="k">as</span> <span class="n">ctx</span><span class="p">:</span>
+
+    <span class="c1"># Load an example image</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">load_example</span><span class="p">(</span>
+        <span class="s2">&quot;CBSD_0010.png&quot;</span><span class="p">,</span> <span class="n">grayscale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>  <span class="c1"># Make sure the image is on the correct device</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Step 2: Create and stack your physics operators</span>
+    <span class="n">physics_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">Blur</span><span class="p">(</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="n">gaussian_blur</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="s2">&quot;circular&quot;</span>
+        <span class="p">),</span>
+        <span class="n">Blur</span><span class="p">(</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="n">gaussian_blur</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">2.0</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="s2">&quot;circular&quot;</span>
+        <span class="p">),</span>
+        <span class="n">Blur</span><span class="p">(</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="n">gaussian_blur</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">3.0</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="s2">&quot;circular&quot;</span>
+        <span class="p">),</span>
+    <span class="p">]</span>
+    <span class="n">stacked_physics</span> <span class="o">=</span> <span class="n">stack</span><span class="p">(</span><span class="o">*</span><span class="n">physics_list</span><span class="p">)</span>
+
+    <span class="c1"># Step 3: Distribute physics</span>
+    <span class="n">distributed_physics</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">stacked_physics</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>  <span class="c1"># Distribute physics operators, transfers to correct devices</span>
+
+    <span class="c1"># Use it like regular physics</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">distributed_physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># Forward operation</span>
+    <span class="n">x_adj</span> <span class="o">=</span> <span class="n">distributed_physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>  <span class="c1"># Adjoint</span>
+
+    <span class="c1"># Step 4: Distribute a denoiser for large images</span>
+    <span class="n">denoiser</span> <span class="o">=</span> <span class="n">DRUNet</span><span class="p">()</span>
+    <span class="n">distributed_denoiser</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span>
+        <span class="n">denoiser</span><span class="p">,</span>
+        <span class="n">ctx</span><span class="p">,</span>
+        <span class="n">patch_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>  <span class="c1"># Split image into patches</span>
+        <span class="n">overlap</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>  <span class="c1"># Overlap for smooth blending</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Use it like regular denoiser</span>
+    <span class="n">denoised</span> <span class="o">=</span> <span class="n">distributed_denoiser</span><span class="p">(</span><span class="n">x_adj</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+
+    <span class="c1"># Step 5: Distribute a data fidelity term</span>
+    <span class="n">data_fidelity</span> <span class="o">=</span> <span class="n">L2</span><span class="p">()</span>
+    <span class="n">distributed_data_fidelity</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">data_fidelity</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+
+    <span class="c1"># Use it like regular data fidelity</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">distributed_data_fidelity</span><span class="o">.</span><span class="n">fn</span><span class="p">(</span><span class="n">denoised</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">distributed_physics</span><span class="p">)</span>
+
+    <span class="c1"># Step 6: debug and print on rank 0 only</span>
+    <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Distributed physics output shape:&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Distributed physics adjoint output shape:&quot;</span><span class="p">,</span> <span class="n">x_adj</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Distributed denoiser output shape:&quot;</span><span class="p">,</span> <span class="n">denoised</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Distributed data fidelity loss: </span><span class="si">{</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Distributed physics output shape: [torch.Size([1, 3, 481, 321]), torch.Size([1, 3, 481, 321]), torch.Size([1, 3, 481, 321])]
+Distributed physics adjoint output shape: torch.Size([1, 3, 481, 321])
+Distributed denoiser output shape: torch.Size([1, 3, 481, 321])
+Distributed data fidelity loss: ...
+</pre></div>
+</div>
+<p><strong>That’s the entire API!</strong> The <a class="reference internal" href="../../api/stubs/deepinv.distributed.distribute.html#deepinv.distributed.distribute" title="deepinv.distributed.distribute"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.distributed.distribute()</span></code></a> function handles all the complexity of distributed computing.
+You can choose to distribute some components and not others, depending on your needs.
+For instance, you might only want to distribute the denoiser for large images, while keeping the physics and data fidelity local.</p>
+</section>
+<section id="when-to-use-distributed-computing">
+<h2>When to Use Distributed Computing<a class="headerlink" href="#when-to-use-distributed-computing" title="Link to this heading">#</a></h2>
+<p><strong>Multi-Operator Problems</strong>: many inverse problems involve multiple physics operators with corresponding measurements:</p>
+<ul class="simple">
+<li><p><em>Multi-view imaging</em>: Different camera angles or viewpoints</p></li>
+<li><p><em>Multi-frequency acquisitions</em>: Different measurement frequencies or channels</p></li>
+<li><p><em>Multi-blur deconvolution</em>: Different blur kernels applied to the same scene</p></li>
+<li><p><em>Tomography</em>: Different projection angles</p></li>
+</ul>
+<p>The distributed framework automatically splits these operators across processes, computing forward operations,
+adjoints, and data fidelity gradients in parallel.</p>
+<p><strong>Large-Scale Images</strong>: for very large images (e.g., high-resolution medical scans, satellite imagery, radio interferometry),
+the distributed framework uses spatial tiling to:</p>
+<ul class="simple">
+<li><p>Split the image into overlapping patches</p></li>
+<li><p>Process each patch independently across multiple devices</p></li>
+<li><p>Reconstruct the full image with smooth blending at boundaries</p></li>
+</ul>
+<p>This enables handling arbitrarily large images that wouldn’t fit in a single device’s memory.</p>
+</section>
+<section id="simple-two-step-pattern">
+<h2>Simple Two-Step Pattern<a class="headerlink" href="#simple-two-step-pattern" title="Link to this heading">#</a></h2>
+<p><strong>Step 1: Create a distributed context</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistributedContext</span>
+
+<span class="k">with</span> <span class="n">DistributedContext</span><span class="p">()</span> <span class="k">as</span> <span class="n">ctx</span><span class="p">:</span>
+    <span class="c1"># All distributed operations go here</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+<p>The context:</p>
+<ul class="simple">
+<li><p>Works seamlessly in both single-process and multi-process modes</p></li>
+<li><p>Automatically initializes process groups when running with <code class="docutils literal notranslate"><span class="pre">torchrun</span></code> or on a slurm cluster with one task per gpu.</p></li>
+<li><p>Assigns devices based on available GPUs</p></li>
+<li><p>Cleans up resources on exit</p></li>
+</ul>
+<p><strong>Step 2: Distribute your objects</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Distribute physics operators</span>
+<span class="n">distributed_physics</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+
+<span class="c1"># Distribute denoisers with tiling parameters</span>
+<span class="n">distributed_denoiser</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">denoiser</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">overlap</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
+
+<span class="c1"># Distribute data fidelity</span>
+<span class="n">distributed_data_fidelity</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">data_fidelity</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="../../api/stubs/deepinv.distributed.distribute.html#deepinv.distributed.distribute" title="deepinv.distributed.distribute"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.distributed.distribute()</span></code></a> function:</p>
+<ul class="simple">
+<li><p>Auto-detects the object type (physics, denoiser, prior, data fidelity)</p></li>
+<li><p>Creates the appropriate distributed version</p></li>
+<li><p>Handles all parallelization logic internally</p></li>
+</ul>
+</section>
+<section id="distributed-physics">
+<h2>Distributed Physics<a class="headerlink" href="#distributed-physics" title="Link to this heading">#</a></h2>
+<p>Large-scale physics operators can sometimes be separated into blocks:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}A(x) = \begin{bmatrix} A_1(x) \\  \vdots \\ A_N(x) \end{bmatrix}\end{split}\]</div>
+<p>for sub-operators <span class="math notranslate nohighlight">\(A_i\)</span>.</p>
+<p>The distributed framework allows you to compute each sub-operator in parallel to speed up the computation of the global forward or adjoint operator.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Check out the <a class="reference internal" href="../../auto_examples/distributed/demo_physics_distributed.html#sphx-glr-auto-examples-distributed-demo-physics-distributed-py"><span class="std std-ref">distributed physics example</span></a> for a complete demo.</p>
+</div>
+<section id="basic-usage">
+<h3>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blur</span><span class="p">,</span> <span class="n">stack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistributedContext</span><span class="p">,</span> <span class="n">distribute</span>
+
+<span class="k">with</span> <span class="n">DistributedContext</span><span class="p">()</span> <span class="k">as</span> <span class="n">ctx</span><span class="p">:</span>
+    <span class="c1"># Create multiple operators</span>
+    <span class="n">physics_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">operator1</span><span class="p">,</span> <span class="n">operator2</span><span class="p">,</span> <span class="n">operator3</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">stacked_physics</span> <span class="o">=</span> <span class="n">stack</span><span class="p">(</span><span class="o">*</span><span class="n">physics_list</span><span class="p">)</span>
+
+    <span class="c1"># Distribute them</span>
+    <span class="n">dist_physics</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">stacked_physics</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+
+    <span class="c1"># Use like regular physics</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">dist_physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>              <span class="c1"># Forward (parallel)</span>
+    <span class="n">x_adj</span> <span class="o">=</span> <span class="n">dist_physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>  <span class="c1"># Adjoint (parallel)</span>
+    <span class="n">x_ata</span> <span class="o">=</span> <span class="n">dist_physics</span><span class="o">.</span><span class="n">A_adjoint_A</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># Composition (parallel)</span>
+</pre></div>
+</div>
+</section>
+<section id="how-it-works">
+<h3>How It Works<a class="headerlink" href="#how-it-works" title="Link to this heading">#</a></h3>
+<ol class="arabic simple">
+<li><p><strong>Operator Sharding</strong>: Operators are divided across processes using round-robin assignment</p></li>
+<li><p><strong>Parallel Forward</strong>: Each process computes <span class="math notranslate nohighlight">\(A_i(x)\)</span> for its local operators</p></li>
+<li><p><strong>Parallel Adjoint</strong>: Each process computes local adjoints, then results are summed via <code class="docutils literal notranslate"><span class="pre">all_reduce</span></code></p></li>
+</ol>
+</section>
+<section id="input-formats">
+<h3>Input Formats<a class="headerlink" href="#input-formats" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">distribute()</span></code> function accepts multiple formats:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">physics_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">operator1</span><span class="p">,</span> <span class="n">operator2</span><span class="p">,</span> <span class="n">operator3</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+<span class="c1"># From StackedPhysics</span>
+<span class="n">stacked</span> <span class="o">=</span> <span class="n">stack</span><span class="p">(</span><span class="o">*</span><span class="n">physics_list</span><span class="p">)</span>
+<span class="n">dist_physics</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">stacked</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+
+<span class="c1"># From list of physics</span>
+<span class="n">dist_physics</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">physics_list</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+
+<span class="c1"># From factory function</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">physics_factory</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">shared</span><span class="p">):</span>
+    <span class="c1"># idx is the index of the operator to create</span>
+    <span class="c1"># device is the assigned device for this process</span>
+    <span class="c1"># shared is a dict for sharing parameters across operators (optional)</span>
+    <span class="k">return</span> <span class="n">create_physics</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+<span class="n">dist_physics</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">physics_factory</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">num_operators</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="c1"># With shared parameters</span>
+<span class="n">shared_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;common_param&quot;</span><span class="p">:</span> <span class="n">value</span><span class="p">}</span>
+
+<span class="n">dist_physics</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span>
+    <span class="n">physics_factory</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">num_operators</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">shared</span><span class="o">=</span><span class="n">shared_params</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="gather-strategies">
+<h3>Gather Strategies<a class="headerlink" href="#gather-strategies" title="Link to this heading">#</a></h3>
+<p>You can control how results are gathered from different processes:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Concatenated (default): most efficient for similar-sized tensors</span>
+<span class="n">dist_physics</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">gather_strategy</span><span class="o">=</span><span class="s2">&quot;concatenated&quot;</span><span class="p">)</span>
+
+<span class="c1"># Naive: simple serialization, good for small tensors</span>
+<span class="n">dist_physics</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">gather_strategy</span><span class="o">=</span><span class="s2">&quot;naive&quot;</span><span class="p">)</span>
+
+<span class="c1"># Broadcast: good for heterogeneous sizes</span>
+<span class="n">dist_physics</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">gather_strategy</span><span class="o">=</span><span class="s2">&quot;broadcast&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="distributed-denoisers">
+<h2>Distributed Denoisers<a class="headerlink" href="#distributed-denoisers" title="Link to this heading">#</a></h2>
+<p>Denoisers can be distributed using <strong>spatial tiling</strong> to handle large images.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Check out the <a class="reference internal" href="../../auto_examples/distributed/demo_denoiser_distributed.html#sphx-glr-auto-examples-distributed-demo-denoiser-distributed-py"><span class="std std-ref">distributed denoiser example</span></a> for a complete demo.</p>
+</div>
+<section id="id1">
+<h3>Basic Usage<a class="headerlink" href="#id1" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">DRUNet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistributedContext</span><span class="p">,</span> <span class="n">distribute</span>
+
+<span class="k">with</span> <span class="n">DistributedContext</span><span class="p">()</span> <span class="k">as</span> <span class="n">ctx</span><span class="p">:</span>
+    <span class="c1"># Load your denoiser</span>
+    <span class="n">denoiser</span> <span class="o">=</span> <span class="n">DRUNet</span><span class="p">()</span>
+
+    <span class="c1"># Distribute with tiling parameters</span>
+    <span class="n">dist_denoiser</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span>
+        <span class="n">denoiser</span><span class="p">,</span>
+        <span class="n">ctx</span><span class="p">,</span>
+        <span class="n">patch_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>           <span class="c1"># Size of each patch</span>
+        <span class="n">overlap</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>  <span class="c1"># Overlap for smooth boundaries</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Process image</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="n">denoised</span> <span class="o">=</span> <span class="n">dist_denoiser</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Denoised image shape:&quot;</span><span class="p">,</span> <span class="n">denoised</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Denoised image shape: torch.Size([1, 3, 512, 512])
+</pre></div>
+</div>
+</section>
+<section id="id2">
+<h3>How It Works<a class="headerlink" href="#id2" title="Link to this heading">#</a></h3>
+<ol class="arabic simple">
+<li><p><strong>Patch Extraction</strong>: Image is split into overlapping patches</p></li>
+<li><p><strong>Distributed Processing</strong>: Patches are distributed across processes</p></li>
+<li><p><strong>Parallel Denoising</strong>: Each process denoises its local patches</p></li>
+<li><p><strong>Reconstruction</strong>: Patches are blended back into full image, each rank has access to the full output</p></li>
+</ol>
+</section>
+<section id="tiling-parameters">
+<h3>Tiling Parameters<a class="headerlink" href="#tiling-parameters" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">patch_size</span></code></p></td>
+<td><p>Size of each patch (default: 256). Larger patches = less communication, more memory</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">overlap</span></code></p></td>
+<td><p>Overlap radius for smooth blending (default: 64).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tiling_strategy</span></code></p></td>
+<td><p>Strategy for tiling: <code class="docutils literal notranslate"><span class="pre">'overlap_tiling'</span></code> (default), or <code class="docutils literal notranslate"><span class="pre">'basic'</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_batch_size</span></code></p></td>
+<td><p>Max patches per batch (default: all). Set to 1 for sequential processing (lowest memory)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="tiling-strategies">
+<h3>Tiling Strategies<a class="headerlink" href="#tiling-strategies" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Tiling with overlap (default)</span>
+<span class="n">dist_denoiser</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">denoiser</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">tiling_strategy</span><span class="o">=</span><span class="s2">&quot;overlap_tiling&quot;</span><span class="p">)</span>
+
+<span class="c1"># Basic (no overlap blending)</span>
+<span class="n">dist_denoiser</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">denoiser</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">tiling_strategy</span><span class="o">=</span><span class="s2">&quot;basic&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="running-multi-process">
+<h2>Running Multi-Process<a class="headerlink" href="#running-multi-process" title="Link to this heading">#</a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">torchrun</span></code> to launch multiple processes. Examples:</p>
+<p>4 GPUs on one machine:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>torchrun<span class="w"> </span>--nproc_per_node<span class="o">=</span><span class="m">4</span><span class="w"> </span>my_script.py
+</pre></div>
+</div>
+<p>2 machines with 2 GPUs each:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># On machine 1 (rank 0)</span>
+torchrun<span class="w"> </span>--nproc_per_node<span class="o">=</span><span class="m">4</span><span class="w"> </span>--nnodes<span class="o">=</span><span class="m">2</span><span class="w"> </span>--node_rank<span class="o">=</span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+<span class="w">         </span>--master_addr<span class="o">=</span><span class="s2">&quot;192.168.1.1&quot;</span><span class="w"> </span>--master_port<span class="o">=</span><span class="m">29500</span><span class="w"> </span>my_script.py
+
+<span class="c1"># On machine 2 (rank 1):</span>
+torchrun<span class="w"> </span>--nproc_per_node<span class="o">=</span><span class="m">4</span><span class="w"> </span>--nnodes<span class="o">=</span><span class="m">2</span><span class="w"> </span>--node_rank<span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">         </span>--master_addr<span class="o">=</span><span class="s2">&quot;192.168.1.1&quot;</span><span class="w"> </span>--master_port<span class="o">=</span><span class="m">29500</span><span class="w"> </span>my_script.py
+</pre></div>
+</div>
+<p>Alternatively, use the <code class="docutils literal notranslate"><span class="pre">-m</span> <span class="pre">torch.distributed.run</span></code> syntax to run as a module:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>torch.distributed.run<span class="w"> </span>--nproc_per_node<span class="o">=</span><span class="m">4</span><span class="w"> </span>my_script.py
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">DistributedContext</span></code> automatically detects the settings from environment variables.</p>
+</section>
+<section id="advanced-features">
+<h2>Advanced Features<a class="headerlink" href="#advanced-features" title="Link to this heading">#</a></h2>
+<section id="local-vs-reduced-operations">
+<h3>Local vs Reduced Operations<a class="headerlink" href="#local-vs-reduced-operations" title="Link to this heading">#</a></h3>
+<p>By default, distributed methods return fully gathered and reduced results (combined from all processes).
+You can get local-only results with <code class="docutils literal notranslate"><span class="pre">gather=False</span></code> and you can choose to skip reduction with <code class="docutils literal notranslate"><span class="pre">reduce_op=None</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get local results without local reduction</span>
+<span class="n">y_local</span> <span class="o">=</span> <span class="n">dist_physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gather</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">reduce_op</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+<span class="c1"># Get local results with reduction (sum by default)</span>
+<span class="n">y_local</span> <span class="o">=</span> <span class="n">dist_physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gather</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># Get gathered results without reduction</span>
+<span class="n">y_gathered</span> <span class="o">=</span> <span class="n">dist_physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">reduce_op</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+<span class="c1"># Get gathered results (default)</span>
+<span class="n">y_all</span> <span class="o">=</span> <span class="n">dist_physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This is useful for:</p>
+<ul class="simple">
+<li><p>Custom reduction strategies</p></li>
+<li><p>Debugging distributed execution</p></li>
+<li><p>Optimizing communication patterns</p></li>
+</ul>
+</section>
+<section id="custom-tiling-strategies">
+<h3>Custom Tiling Strategies<a class="headerlink" href="#custom-tiling-strategies" title="Link to this heading">#</a></h3>
+<p>You can implement custom tiling strategies by subclassing
+<a class="reference internal" href="../../api/stubs/deepinv.distributed.strategies.DistributedSignalStrategy.html#deepinv.distributed.strategies.DistributedSignalStrategy" title="deepinv.distributed.strategies.DistributedSignalStrategy"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.distributed.strategies.DistributedSignalStrategy</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed.strategies</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistributedSignalStrategy</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MyCustomStrategy</span><span class="p">(</span><span class="n">DistributedSignalStrategy</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_local_patches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">local_indices</span><span class="p">):</span>
+        <span class="c1"># Your patch extraction logic</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">reduce_patches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_tensor</span><span class="p">,</span> <span class="n">local_pairs</span><span class="p">):</span>
+        <span class="c1"># Your patch reduction logic</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_num_patches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Total number of patches</span>
+        <span class="k">pass</span>
+
+<span class="c1"># Use it</span>
+<span class="n">dist_denoiser</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span>
+    <span class="n">denoiser</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span>
+    <span class="n">tiling_strategy</span><span class="o">=</span><span class="n">MyCustomStrategy</span><span class="p">(</span><span class="n">img_size</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="performance-tips">
+<h2>Performance Tips<a class="headerlink" href="#performance-tips" title="Link to this heading">#</a></h2>
+<p><strong>Choosing the Right Number of Processes</strong></p>
+<ul class="simple">
+<li><p><em>Multi-operator problems</em>: Use as many processes as operators (up to available devices)</p></li>
+<li><p><em>Spatial tiling</em>: Balance parallelism vs communication overhead</p></li>
+<li><p><em>Rule of thumb</em>: Start with number of GPUs, experiment from there</p></li>
+</ul>
+<p><strong>Optimizing Patch Size</strong></p>
+<ul class="simple">
+<li><p><em>Larger patches</em> (512+): Less communication, more memory per process</p></li>
+<li><p><em>Smaller patches</em> (128-256): More parallelism, more communication</p></li>
+<li><p><em>Recommendation</em>: 256-512 pixels for deep denoisers on natural images</p></li>
+</ul>
+<p><strong>Receptive Field Padding</strong></p>
+<ul class="simple">
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">overlap</span></code> to match your denoiser’s receptive field</p></li>
+<li><p>Ensures smooth blending at patch boundaries</p></li>
+<li><p><em>Typical values</em>: 32-64 pixels for U-Net style denoisers</p></li>
+</ul>
+<p><strong>Gather Strategies</strong></p>
+<ul class="simple">
+<li><p><em>Concatenated</em> (default): Best for most cases, minimal communication</p></li>
+<li><p><em>Naive</em>: Use for small tensors or debugging</p></li>
+<li><p><em>Broadcast</em>: Use when operator outputs have very different sizes</p></li>
+</ul>
+</section>
+<section id="key-classes">
+<h2>Key Classes<a class="headerlink" href="#key-classes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.distributed.DistributedContext.html#deepinv.distributed.DistributedContext" title="deepinv.distributed.DistributedContext"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.distributed.DistributedContext</span></code></a></p></td>
+<td><p>Manages distributed execution, process groups, and devices</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.distributed.DistributedStackedPhysics.html#deepinv.distributed.DistributedStackedPhysics" title="deepinv.distributed.DistributedStackedPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.distributed.DistributedStackedPhysics</span></code></a></p></td>
+<td><p>Distributes physics operators across processes (auto-created by <code class="docutils literal notranslate"><span class="pre">distribute()</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.distributed.DistributedStackedLinearPhysics.html#deepinv.distributed.DistributedStackedLinearPhysics" title="deepinv.distributed.DistributedStackedLinearPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.distributed.DistributedStackedLinearPhysics</span></code></a></p></td>
+<td><p>Extends DistributedStackedPhysics for linear operators with adjoint operations</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.distributed.DistributedProcessing.html#deepinv.distributed.DistributedProcessing" title="deepinv.distributed.DistributedProcessing"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.distributed.DistributedProcessing</span></code></a></p></td>
+<td><p>Distributes denoisers/priors using spatial tiling (auto-created by <code class="docutils literal notranslate"><span class="pre">distribute()</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.distributed.DistributedDataFidelity.html#deepinv.distributed.DistributedDataFidelity" title="deepinv.distributed.DistributedDataFidelity"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.distributed.DistributedDataFidelity</span></code></a></p></td>
+<td><p>Distributes data fidelity <code class="code docutils literal notranslate"><span class="pre">fn</span></code> and <code class="code docutils literal notranslate"><span class="pre">grad`</span></code> (if needed, auto-created by <code class="docutils literal notranslate"><span class="pre">distribute()</span></code>)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>You typically won’t need to instantiate these classes directly.</strong> Use the <a class="reference internal" href="../../api/stubs/deepinv.distributed.distribute.html#deepinv.distributed.distribute" title="deepinv.distributed.distribute"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.distributed.distribute()</span></code></a> function instead.</p>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading">#</a></h2>
+<p><strong>Out of memory errors</strong></p>
+<ul class="simple">
+<li><p>Reduce <code class="docutils literal notranslate"><span class="pre">patch_size</span></code> for distributed denoisers</p></li>
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">max_batch_size=1</span></code> for sequential patch processing</p></li>
+</ul>
+<p><strong>Results differ slightly from non-distributed</strong></p>
+<ul class="simple">
+<li><p>This is normal for tiling strategies due to boundary blending</p></li>
+<li><p>Differences are typically very small</p></li>
+<li><p>The distributed implementation of <code class="docutils literal notranslate"><span class="pre">A_dagger</span></code> and <code class="docutils literal notranslate"><span class="pre">compute_norm</span></code> in <code class="docutils literal notranslate"><span class="pre">LinearDistributedPhysics</span></code> uses approximations that lead to differences compared to the non-distributed versions.</p></li>
+</ul>
+</section>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>API Reference</strong>: <a class="reference internal" href="../../api/deepinv.distributed.html"><span class="doc">deepinv.distributed</span></a></p></li>
+<li><p><strong>Examples</strong>:</p>
+<ul>
+<li><p><a class="reference internal" href="../../auto_examples/distributed/demo_physics_distributed.html#sphx-glr-auto-examples-distributed-demo-physics-distributed-py"><span class="std std-ref">Distributed Physics Operators</span></a></p></li>
+<li><p><a class="reference internal" href="../../auto_examples/distributed/demo_denoiser_distributed.html#sphx-glr-auto-examples-distributed-demo-denoiser-distributed-py"><span class="std std-ref">Distributed Denoiser with Image Tiling</span></a></p></li>
+<li><p><a class="reference internal" href="../../auto_examples/distributed/demo_pnp_distributed.html#sphx-glr-auto-examples-distributed-demo-pnp-distributed-py"><span class="std std-ref">Distributed Plug-and-Play (PnP) Reconstruction</span></a></p></li>
+</ul>
+</li>
+<li><p><strong>Related</strong>:</p>
+<ul>
+<li><p><a class="reference internal" href="../../api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics" title="deepinv.physics.StackedPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.StackedPhysics</span></code></a> for multi-operator physics</p></li>
+<li><p><a class="reference internal" href="optimization.html#optim"><span class="std std-ref">Optimization algorithms</span></a> for reconstruction methods</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="blind.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Blind Inverse Problems</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../training/trainer.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Trainer</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick Start</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#when-to-use-distributed-computing">When to Use Distributed Computing</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#simple-two-step-pattern">Simple Two-Step Pattern</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#distributed-physics">Distributed Physics</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#basic-usage">Basic Usage</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-it-works">How It Works</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#input-formats">Input Formats</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gather-strategies">Gather Strategies</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#distributed-denoisers">Distributed Denoisers</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Basic Usage</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">How It Works</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tiling-parameters">Tiling Parameters</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tiling-strategies">Tiling Strategies</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#running-multi-process">Running Multi-Process</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#advanced-features">Advanced Features</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#local-vs-reduced-operations">Local vs Reduced Operations</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#custom-tiling-strategies">Custom Tiling Strategies</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#performance-tips">Performance Tips</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#key-classes">Key Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#troubleshooting">Troubleshooting</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#see-also">See Also</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/user_guide/reconstruction/distributed.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

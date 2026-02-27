@@ -1,0 +1,15 @@
+﻿BaseUnfold
+==========
+
+.. currentmodule:: deepinv.unfolded
+
+.. autoclass:: BaseUnfold
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.unfolded.BaseUnfold:
+
+.. minigallery:: deepinv.unfolded.BaseUnfold
+    :add-heading: Examples using ``BaseUnfold``:

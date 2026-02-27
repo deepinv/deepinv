@@ -1,0 +1,9 @@
+﻿patchify
+========
+
+.. currentmodule:: deepinv.models.utils
+
+.. autofunction:: patchify
+
+.. minigallery:: deepinv.models.utils.patchify
+    :add-heading: Examples using ``patchify``:

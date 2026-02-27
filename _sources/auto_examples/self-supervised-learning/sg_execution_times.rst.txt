@@ -1,0 +1,67 @@
+
+:orphan:
+
+.. _sphx_glr_auto_examples_self-supervised-learning_sg_execution_times:
+
+
+Computation times
+=================
+**09:46.624** total execution time for 11 files **from auto_examples/self-supervised-learning**:
+
+.. container::
+
+  .. raw:: html
+
+    <style scoped>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    </style>
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script type="text/javascript" class="init">
+    $(document).ready( function () {
+        $('table.sg-datatable').DataTable({order: [[1, 'desc']]});
+    } );
+    </script>
+
+  .. list-table::
+   :header-rows: 1
+   :class: table table-striped sg-datatable
+
+   * - Example
+     - Time
+     - Mem (MB)
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py` (``demo_equivariant_imaging.py``)
+     - 06:48.019
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_multioperator_imaging.py` (``demo_multioperator_imaging.py``)
+     - 01:36.384
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_splitting_loss.py` (``demo_splitting_loss.py``)
+     - 00:22.979
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` (``demo_ei_transforms.py``)
+     - 00:14.835
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_unsure.py` (``demo_unsure.py``)
+     - 00:11.423
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_poisson2sparse.py` (``demo_poisson2sparse.py``)
+     - 00:08.788
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_transforms.py` (``demo_transforms.py``)
+     - 00:06.715
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_r2r_denoising.py` (``demo_r2r_denoising.py``)
+     - 00:06.396
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_n2n_denoising.py` (``demo_n2n_denoising.py``)
+     - 00:03.749
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_sure_denoising.py` (``demo_sure_denoising.py``)
+     - 00:03.747
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_artifact2artifact.py` (``demo_artifact2artifact.py``)
+     - 00:03.588
+     - 0.0

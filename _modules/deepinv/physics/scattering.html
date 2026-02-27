@@ -1,0 +1,1677 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.physics.scattering &#8212; deepinv 0.3.7 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=29d04658"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/physics/scattering';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/physics/scattering.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">🎉 We are part of the <a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.</div>
+</aside>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.7 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.7 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.physics.scattering</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.physics.scattering</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">least_squares</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.forward</span><span class="w"> </span><span class="kn">import</span> <span class="n">Physics</span><span class="p">,</span> <span class="n">LinearPhysics</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">hankel1</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.special</span><span class="w"> </span><span class="kn">import</span> <span class="n">hankel1</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;SciPy is required for Green&#39;s function computation in the scattering physics model.&quot;</span>
+            <span class="s2">&quot;Install scipy with `pip install scipy` to use this physics model.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">device</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">return</span> <span class="n">hankel1</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">jv</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.special</span><span class="w"> </span><span class="kn">import</span> <span class="n">jv</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;SciPy is required for Green&#39;s function computation in the scattering physics model.&quot;</span>
+            <span class="s2">&quot;Install scipy with `pip install scipy` to use this physics model.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">device</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">return</span> <span class="n">jv</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Scattering">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Scattering</span><span class="p">(</span><span class="n">Physics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Inverse scattering physics model in 2 dimensions.</span>
+
+<span class="sd">    For each of the :math:`i=1,\dots,T` transmitters, the 2D forward model is given by inhomogeneous Helmholtz equation (see e.g., :cite:t:`soubies2017efficient`):</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \nabla^2 u_i(\mathbf{r}) + k^2(\mathbf{r})  u_i(\mathbf{r}) = - (k^2(\mathbf{r}) - k^2_b)  v_i(\mathbf{r})  \quad \mathbf{r} \in \mathbb{R}^2</span>
+
+<span class="sd">    where :math:`u_i` is the (unknown) scattered field, :math:`k_b` is the (known scalar) wavenumber of the incident wave in the background medium,</span>
+<span class="sd">    :math:`k(\mathbf{r})` is the (unknown) spatially-varying wavenumber of the object to be recovered,</span>
+<span class="sd">    and :math:`v_i` is the incident field generated by the ith transmitter in the absence of the object.</span>
+<span class="sd">    The total field (scattered + incident) is measured at :math:`R` different receiver locations surrounding the object.</span>
+
+
+<span class="sd">    Parametrizing the unknown spatially-varying wavenumber as :math:`k^2(\mathbf{r}) = k_b^2 (x(\mathbf{r})+1)`, where</span>
+<span class="sd">    :math:`k_b` is the background wavenumber, and :math:`x = k^2/k_b^2 - 1` is the scattering potential of the object to be recovered,</span>
+<span class="sd">    the problem can be reformulated in the **Lippmann-Schwinger** integral equation form:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        u_i &amp;= g * \left( x \circ (u_i+v_i) \right) \\</span>
+<span class="sd">        y_i &amp;= G_s \left( x \circ (u_i+v_i) \right)</span>
+
+<span class="sd">    where :math:`g(\mathbf{r}) = k_b^2 \frac{i}{4} H_0^1(k_b\|\mathbf{r}\|)` is Green&#39;s function in 2D (normalized by :math:`k_b^2`),</span>
+<span class="sd">    :math:`y \in \mathbb{C}^{R}` are the measurements at the receivers for the ith transmitter,</span>
+<span class="sd">    and :math:`G_s` denotes the convolution with Green&#39;s operator plus sampling at the :math:`R` different receiver locations.</span>
+
+
+<span class="sd">    .. tip::</span>
+
+<span class="sd">        This parametrization ensures that the scattering potential :math:`x` is dimensionless, and can be used for different physical</span>
+<span class="sd">        modalities:</span>
+<span class="sd">        In **microwave tomography** applications, the scattering potential is related to the object&#39;s relative permittivity :math:`\epsilon_r` as :math:`x(\mathbf{r}) = \epsilon_r(\mathbf{r}) - 1`.</span>
+<span class="sd">        In **optical diffraction tomography**, the scattering potential is related to the refractive index :math:`n` as :math:`x(\mathbf{r}) = n^2(\mathbf{r}) - 1`.</span>
+
+<span class="sd">        Moreover, the wavenumber can be also provided in a dimensionless form by normalizing it with respect to the box length :math:`L` as :math:`k_b = 2 \pi L / \lambda`,</span>
+<span class="sd">        where :math:`\lambda` is the wavelength of the incident wave.</span>
+
+<span class="sd">    All spatial quantities are discretized in a square grid of size `img_width x img_width` pixels, which</span>
+<span class="sd">    is assumed to cover a square domain of size :math:`L \times L` in space, where :math:`L` is the box length.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The forward operator uses a linear solver to compute the total field for each transmitter by solving the Lippmann-Schwinger equation.</span>
+<span class="sd">        The default solver configuration can be modified by passing a custom :class:`deepinv.physics.Scattering.SolverConfig` object to the constructor.</span>
+<span class="sd">        If the objects&#39; contrast and/or the wavenumber is very large, the linear solver may not converge, leading to inaccurate results.</span>
+<span class="sd">        Setting `verbose=True` in the constructor will print solver convergence information, which can help diagnose convergence issues.</span>
+
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The forward operator uses the adjoint state method to compute gradients, e.g., :meth:`deepinv.physics.Scattering.A_jvp` and :meth:`deepinv.physics.Scattering.A_vjp` by default,</span>
+<span class="sd">        which is more memory efficient than using autograd, especially for large-scale problems. The adjoint state method requires</span>
+<span class="sd">        one additional solve of the Lippmann-Schwinger equation per gradient computation, and avoids storing the entire computational graph (done by standard autograd).</span>
+<span class="sd">        This can be disabled by setting `adjoint_state=False` in the :class:`deepinv.physics.Scattering.SolverConfig` object passed to the constructor</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        Green&#39;s function has a singularity at r=0. In practice, we can avoid this issue following :cite:t:`vico2016fast` which</span>
+<span class="sd">        convolves Green&#39;s function with a sinc kernel to account for the bounded domain:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">                g_L(\mathbf{r}) = g(\mathbf{r}) * \text{rect}\left(\frac{\|\mathbf{r}\|}{L}\right),</span>
+
+
+<span class="sd">    :param int img_width: Number of pixels per image side (`H=W`). The minimum required number of pixels depends on the background wavenumber to avoid spatial aliasing.</span>
+<span class="sd">        We require at least :math:`\text{image width} \geq 2 k_b L/(2 \pi)`, where :math:`k_b` is the background wavenumber and :math:`L` is the box length.</span>
+<span class="sd">    :param torch.Tensor receivers: Tensor of shape `(2, R)` (shared receivers) or `(2, T, R)` (per-transmitter receivers) with receiver x/y positions (`torch.float` dtype).</span>
+<span class="sd">    :param torch.Tensor transmitters: Tensor of shape `(2, T)` with transmitter x/y positions (`torch.float` dtype)</span>
+<span class="sd">    :param float, torch.Tensor background_wavenumber: background wavenumber :math:`k_b`, which can be real (`float` or `torch.float`) or complex (`torch.complex`).</span>
+<span class="sd">        It controls the frequency of the incident wave, and thus the maximum achievable resolution of the contrast image.</span>
+<span class="sd">    :param deepinv.physics.scattering.Scattering.SolverConfig solver_config: Configuration for the Lippmann-Schwinger solver used to</span>
+<span class="sd">        compute the total field (first equation in the forward model).</span>
+<span class="sd">        If `None`, default configuration is used which uses the LSQR solver with a maximum of 500 iterations and tolerance 1e-5.</span>
+<span class="sd">    :param float box_length: Physical side length of the square domain :math:`L`, which can be specified relative to the wavenumber.</span>
+<span class="sd">    :param str wave_type: incident wave type. Options are `&#39;circular_wave&#39;` or `&#39;plane_wave&#39;`.</span>
+<span class="sd">        The circular wave corresponds to a point source transmitter, while the plane wave corresponds to a far-field transmitter.</span>
+<span class="sd">    :param str device: Torch device string, e.g. `&#39;cpu&#39;` or `&#39;cuda&#39;`.</span>
+<span class="sd">    :param torch.dtype dtype: Torch `dtype` for tensors which must be of complex type (e.g. `torch.complex128`).</span>
+<span class="sd">    :param bool verbose: Enable verbose/debug printing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">img_width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">receivers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">transmitters</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">background_wavenumber</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
+        <span class="n">solver_config</span><span class="p">:</span> <span class="s2">&quot;Scattering.SolverConfig&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">box_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">wave_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;circular_wave&quot;</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">complex128</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Scattering</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">wave_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;circular_wave&quot;</span><span class="p">,</span> <span class="s2">&quot;plane_wave&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Wave type not recognized, options are &quot;circular_wave&quot; or &quot;plane_wave&quot;&#39;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># store a single scalar wavenumber (no wavenumber dimension)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">background_wavenumber</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">wavenumber</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">background_wavenumber</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">wavenumber</span> <span class="o">=</span> <span class="n">background_wavenumber</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(())</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;wavenumber&quot;</span><span class="p">,</span> <span class="n">wavenumber</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">box_length</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">wavenumber</span><span class="o">.</span><span class="n">real</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">img_width</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;The number of img_width is not enough to sample the largest background wavenumber. &quot;</span>
+                <span class="s2">&quot;Increase the number of img_width or decrease the wavenumber.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">solver_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># default solver config</span>
+            <span class="n">solver_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SolverConfig</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver</span> <span class="o">=</span> <span class="n">LippmannSchwingerSolver</span><span class="p">(</span>
+            <span class="n">img_width</span><span class="o">=</span><span class="n">img_width</span><span class="p">,</span>
+            <span class="n">box_length</span><span class="o">=</span><span class="n">box_length</span><span class="p">,</span>
+            <span class="n">wavenumber</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wavenumber</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">solver_config</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">box_length</span> <span class="o">=</span> <span class="n">box_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_area</span> <span class="o">=</span> <span class="p">(</span><span class="n">box_length</span> <span class="o">/</span> <span class="n">img_width</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wave_type</span> <span class="o">=</span> <span class="n">wave_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span> <span class="o">=</span> <span class="n">img_width</span>
+
+        <span class="c1"># incident field</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_field</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span>
+            <span class="n">receivers</span><span class="o">=</span><span class="n">receivers</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="n">transmitters</span><span class="o">=</span><span class="n">transmitters</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Scattering.SolverConfig">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.SolverConfig">[docs]</a>
+    <span class="nd">@dataclass</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">SolverConfig</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Configuration class for the Lippmann-Schwinger solver.</span>
+
+<span class="sd">        Defines the parameters for the iterative solver used to solve the Lippmann-Schwinger equation.</span>
+
+<span class="sd">        :param int min_iter: Minimum number of iterations. By default, 1.</span>
+<span class="sd">        :param int max_iter: Maximum number of iterations. By default, 500.</span>
+<span class="sd">        :param str solver: Linear solver to use (`&#39;lsqr&#39;`, `&#39;BiCGStab&#39;` or `&#39;CG&#39;`). By default, `&#39;lsqr&#39;`.</span>
+<span class="sd">        :param float tol: Stopping criterion for the solver. By default, 1e-5.</span>
+<span class="sd">        :param bool adjoint_state: If True, use adjoint state method for gradients, else use autograd. By default `True`.</span>
+<span class="sd">        :param float green_imaginary_part: Small imaginary part to add to the wavenumber in the</span>
+<span class="sd">            Green&#39;s function to improve solver convergence. By default, 0 (no modification).</span>
+<span class="sd">        :param bool verbose: If True, print solver convergence information. By default, False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">min_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span>
+        <span class="n">solver</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;lsqr&quot;</span>
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span>
+        <span class="n">green_imaginary_part</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">adjoint_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_img_grid</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+        <span class="n">image_domain</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+            <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">box_length</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">box_length</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">y_domain</span><span class="p">,</span> <span class="n">x_domain</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="o">-</span><span class="n">image_domain</span><span class="p">,</span> <span class="n">image_domain</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x_domain</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">y_domain</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Scattering.normalize">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.normalize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Normalize the operator to have unitary Jacobian spectral norm around the input contrast</span>
+<span class="sd">        incident field and noise model by the operator norm.</span>
+
+<span class="sd">        :param torch.Tensor x: Scattering potential of size `(B,1,H,W)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">incident_field</span> <span class="o">/=</span> <span class="n">norm</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="p">,</span> <span class="s2">&quot;sigma&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="o">.</span><span class="n">sigma</span> <span class="o">/=</span> <span class="n">norm</span></div>
+
+
+<div class="viewcode-block" id="Scattering.set_solver">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.set_solver">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_solver</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">solver_config</span><span class="p">:</span> <span class="s2">&quot;Scattering.SolverConfig&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the Lippmann-Schwinger solver configuration.</span>
+
+<span class="sd">        :param deepinv.physics.Scattering.SolverConfig solver_config: New solver configuration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver</span> <span class="o">=</span> <span class="n">LippmannSchwingerSolver</span><span class="p">(</span>
+            <span class="n">img_width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">img_width</span><span class="p">,</span>
+            <span class="n">box_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">box_length</span><span class="p">,</span>
+            <span class="n">wavenumber</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wavenumber</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wavenumber</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wavenumber</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">solver_config</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Scattering.update_parameters">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.update_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_parameters</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">receivers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">transmitters</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update transmitter and receiver parameters and recompute dependent fields/operators.</span>
+
+<span class="sd">        :param torch.Tensor receivers: New receiver positions of shape `(2, R)` or `(2, T, R)`.</span>
+<span class="sd">        :param torch.Tensor transmitters: New transmitter positions of shape `(2, T)`, where `T` is the number of transmitters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wavenumber</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wavenumber</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="k">if</span> <span class="n">transmitters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;transmitters&quot;</span><span class="p">,</span> <span class="n">transmitters</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transmitters</span> <span class="o">=</span> <span class="n">transmitters</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="c1"># recompute the incident field</span>
+            <span class="n">incident_field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_incident_field</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;incident_field&quot;</span><span class="p">,</span> <span class="n">incident_field</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">receivers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">receivers</span> <span class="o">=</span> <span class="n">receivers</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+
+            <span class="c1"># Handle receivers: convert (2, R) to (2, T, R) if needed</span>
+            <span class="k">if</span> <span class="n">receivers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="c1"># Shared receivers across all transmitters: (2, R) -&gt; (2, T, R)</span>
+                <span class="n">num_transmitters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transmitters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">receivers</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">receivers</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">num_transmitters</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+                <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;receivers&quot;</span><span class="p">,</span> <span class="n">receivers</span><span class="p">)</span>
+            <span class="c1"># recompute the output linear operator</span>
+            <span class="n">x_domain</span><span class="p">,</span> <span class="n">y_domain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_img_grid</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">born_operator</span> <span class="o">=</span> <span class="n">BornOperator</span><span class="p">(</span>
+                <span class="n">total_field</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">incident_field</span><span class="p">,</span>
+                <span class="n">receivers</span><span class="o">=</span><span class="n">receivers</span><span class="p">,</span>
+                <span class="n">x_domain</span><span class="o">=</span><span class="n">x_domain</span><span class="p">,</span>
+                <span class="n">y_domain</span><span class="o">=</span><span class="n">y_domain</span><span class="p">,</span>
+                <span class="n">wavenumber</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wavenumber</span><span class="p">,</span>
+                <span class="n">pixel_area</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_area</span><span class="p">,</span>
+                <span class="n">img_width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">img_width</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Scattering.generate_incident_field">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.generate_incident_field">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_incident_field</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate incident fields on the image grid and at receiver positions.</span>
+
+<span class="sd">        Plane waves are computed as:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            v_i(\mathbf{r}) = \exp\left( \mathrm{i} \mathbf{k}_i^{\top} \mathbf{r} \right)</span>
+
+<span class="sd">        where :math:`\mathbf{k}_i` is the wavevector for the ith transmitter.</span>
+
+<span class="sd">        Circular waves are computed using Green&#39;s function as:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            v_i(\mathbf{r}) = g(\|\mathbf{r} - \mathbf{r}_i\|)</span>
+
+<span class="sd">        where :math:`\mathbf{r}_i` is the position of the ith transmitter.</span>
+
+<span class="sd">        :returns: (:class:`torch.Tensor`) Incident field tensor of shape `(1,T,H,W)` where `T` is the number of transmitters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_domain</span><span class="p">,</span> <span class="n">y_domain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_img_grid</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">x_transmitters</span><span class="p">,</span> <span class="n">y_transmitters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transmitters</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">wave_type</span> <span class="o">==</span> <span class="s2">&quot;plane_wave&quot;</span><span class="p">:</span>
+            <span class="c1"># to angles</span>
+            <span class="n">transmitter_angles</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">y_transmitters</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">x_transmitters</span><span class="o">.</span><span class="n">real</span><span class="p">)</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wavenumber</span>
+            <span class="n">wave_number_x</span> <span class="o">=</span> <span class="n">k</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">transmitter_angles</span><span class="p">)</span>  <span class="c1"># (T,)</span>
+            <span class="n">wave_number_y</span> <span class="o">=</span> <span class="n">k</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">transmitter_angles</span><span class="p">)</span>  <span class="c1"># (T,)</span>
+            <span class="n">aux</span> <span class="o">=</span> <span class="n">wave_number_x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">x_domain</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+                <span class="mi">0</span>
+            <span class="p">)</span> <span class="o">+</span> <span class="n">wave_number_y</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">y_domain</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+                <span class="mi">0</span>
+            <span class="p">)</span>  <span class="c1"># (T, H*W)</span>
+            <span class="n">incident_field</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">aux</span><span class="p">)</span>
+            <span class="n">incident_field</span> <span class="o">=</span> <span class="n">incident_field</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="mi">1</span><span class="p">,</span> <span class="n">incident_field</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span>
+            <span class="p">)</span>  <span class="c1"># (1, T, H, W)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># circular_wave</span>
+            <span class="n">transmitter_x</span><span class="p">,</span> <span class="n">circle_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+                <span class="n">x_transmitters</span><span class="p">,</span> <span class="n">x_domain</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span>
+            <span class="p">)</span>
+            <span class="n">transmitter_y</span><span class="p">,</span> <span class="n">circle_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+                <span class="n">y_transmitters</span><span class="p">,</span> <span class="n">y_domain</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span>
+            <span class="p">)</span>
+            <span class="n">dist_transmitter_circles</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">circle_x</span> <span class="o">-</span> <span class="n">transmitter_x</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span>
+                <span class="o">+</span> <span class="p">(</span><span class="n">circle_y</span> <span class="o">-</span> <span class="n">transmitter_y</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span>
+            <span class="p">)</span>
+
+            <span class="c1"># multiply distances by scalar wavenumber</span>
+            <span class="n">dist_transmitter_circles</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">dist_transmitter_circles</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">wavenumber</span>
+            <span class="p">)</span>  <span class="c1"># (T, H*W)</span>
+            <span class="n">incident_field</span> <span class="o">=</span> <span class="n">green_function</span><span class="p">(</span><span class="n">dist_transmitter_circles</span><span class="p">)</span>
+            <span class="n">incident_field</span> <span class="o">=</span> <span class="n">incident_field</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="mi">1</span><span class="p">,</span> <span class="n">incident_field</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span>
+            <span class="p">)</span>  <span class="c1"># (1, T, H, W)</span>
+
+        <span class="k">return</span> <span class="n">incident_field</span></div>
+
+
+<div class="viewcode-block" id="Scattering.A_jvp">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.A_jvp">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_jvp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Jacobian-vector product for the forward operator.</span>
+
+<span class="sd">        :param torch.Tensor x: Scattering potential `(B,1,H,W)`.</span>
+<span class="sd">        :param torch.Tensor u: Vector to multiply with the Jacobian `(B,1,H,W)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">jvp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">u</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Scattering.A_vjp">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.A_vjp">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_vjp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Vector-Jacobian product for the forward operator.</span>
+
+<span class="sd">        :param torch.Tensor x: Scattering potential of shape `(B,1,H,W)`.</span>
+<span class="sd">        :param torch.Tensor v: Vector to multiply with the Jacobian, a tensor of shape `(B,T,R)`.</span>
+<span class="sd">        :param torch.dtype dtype: torch.dtype used for internal computations and returned result</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">enable_grad</span><span class="p">():</span>
+            <span class="c1"># we need a fresh forward pass to build the graph for autograd</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">v</span><span class="p">,</span> <span class="n">retain_graph</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Scattering.compute_total_field">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.compute_total_field">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_total_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Solve for the total field given scattering potential `x` using the provided solver.</span>
+
+<span class="sd">        :param torch.Tensor x: Scattering potential tensor of shape `(B,1,H,W)`.</span>
+<span class="sd">        :returns: (:class:`torch.Tensor`) Total field tensor of shape `(B,T,H,W)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This solves the following linear problem: (I - G_d*diag(x))u = v</span>
+
+        <span class="n">k02</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wavenumber</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">k2</span> <span class="o">=</span> <span class="n">k02</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="p">(</span><span class="n">k2</span> <span class="o">-</span> <span class="n">k02</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">incident_field</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="p">(</span><span class="n">k2</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">incident_field</span></div>
+
+
+<div class="viewcode-block" id="Scattering.set_verbose">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.set_verbose">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_verbose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Toggle verbosity.</span>
+
+<span class="sd">        :param bool verbose: Enable verbose/debug printing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">born_operator</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">set_verbose</span><span class="p">(</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Scattering.compute_field_out">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.compute_field_out">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_field_out</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">total_field</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute sensor outputs :math:`y = G_s * \text{diag}(x) u`.</span>
+
+<span class="sd">        :param torch.Tensor x: Scattering potential `(B,1,H,W)`.</span>
+<span class="sd">        :param torch.Tensor total_field: Total field u `(B,T,H,W)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This computes y = G_s*diag(x)*Et</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">born_operator</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;total_field&quot;</span><span class="p">,</span> <span class="n">total_field</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">born_operator</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Scattering.A">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">receivers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">transmitters</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Forward operator wrapper: updates parameters, solves for total field and returns measurements.</span>
+
+<span class="sd">        :param torch.Tensor x: Scattering potential `(B,1,H,W)`.</span>
+<span class="sd">        :param torch.Tensor receivers: Optional new receiver positions of shape `(2, R)` or `(2, T, R)`.</span>
+<span class="sd">        :param torch.Tensor transmitters: Optional new transmitter positions of shape `(2, T)`, where T is the number of transmitters.</span>
+<span class="sd">        :returns: (:class:`torch.Tensor`) Measurements tensor of shape `(B,T,R)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">receivers</span><span class="p">,</span> <span class="n">transmitters</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">total_field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_total_field</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_field_out</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">total_field</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="Scattering.A_dagger">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.A_dagger">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_dagger</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">linear</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">x_init</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">use_init</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">rel_tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pseudo-inverse for the scattering operator.</span>
+
+<span class="sd">        If `linear=True`, uses the Born approximation (single iteration).</span>
+
+<span class="sd">        If `linear=False`, alternates between updating the total field estimate with a fixed scattering potential,</span>
+<span class="sd">        and updating the scattering potential estimate with a fixed total field, for a maximum of `max_iter` iterations.</span>
+
+<span class="sd">        :param torch.Tensor y: Measurements tensor (B,T,R).</span>
+<span class="sd">        :param bool linear: If True, use Born approximation (single iteration).</span>
+<span class="sd">        :param torch.Tensor x_init: Initial guess for the reconstruction (B,1,H,W).</span>
+<span class="sd">        :param int max_iter: Maximum number of alternating optimization iterations.</span>
+<span class="sd">        :param bool use_init: If True, use previous total field estimate to initialize the next iteration.</span>
+<span class="sd">        :param float rel_tol: Relative tolerance for convergence.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">linear</span><span class="p">:</span>
+            <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">x_init</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x_init</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span><span class="p">),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="o">*</span> <span class="mf">0.05</span>
+            <span class="p">)</span>
+
+        <span class="n">flag</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">use_init</span><span class="p">:</span>
+            <span class="n">total_field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">incident_field</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">total_field</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter</span><span class="p">):</span>
+            <span class="n">prev_x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">linear</span><span class="p">:</span>
+                <span class="n">total_field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">incident_field</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">total_field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_total_field</span><span class="p">(</span>
+                    <span class="n">x</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="n">total_field</span> <span class="k">if</span> <span class="n">use_init</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">born_operator</span><span class="o">.</span><span class="n">total_field</span> <span class="o">=</span> <span class="n">total_field</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">born_operator</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="n">x</span> <span class="k">if</span> <span class="n">use_init</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">rel_err</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">prev_x</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">/</span> <span class="n">prev_x</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">rel_err</span> <span class="o">&lt;</span> <span class="n">rel_tol</span><span class="p">:</span>
+                <span class="n">flag</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">&quot;Alternated optimization pseudo inverse converged at iteration&quot;</span><span class="p">,</span>
+                        <span class="n">i</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">flag</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">linear</span> <span class="ow">and</span> <span class="n">max_iter</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Alternated optimization pseudo inverse did not converge&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span></div>
+</div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">BornOperator</span><span class="p">(</span><span class="n">LinearPhysics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Linear operator implementing the Born approximation for the scattering problem.</span>
+
+<span class="sd">    It computes the measurements at the receivers given a total field and a scattering potential, according to the following operation:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        y = G_s \left( x \circ u \right)</span>
+
+<span class="sd">    where :x: is the scattering potential, :math:`u` is the (here known) total field (scattered + incident), and :math:`G_s` is the Green&#39;s operator plus sampling at the receiver locations.</span>
+
+<span class="sd">    :param torch.Tensor total_field: Total field tensor `(1,T,H,W)` or `(B,T,H,W)`.</span>
+<span class="sd">    :param torch.Tensor receivers: Receiver positions of shape `(2, T, R)`.</span>
+<span class="sd">    :param torch.Tensor x_domain: x coordinates of image grid points `(H*W,)`.</span>
+<span class="sd">    :param torch.Tensor y_domain: y coordinates of image grid points `(H*W,)`.</span>
+<span class="sd">    :param float, torch.Tensor wavenumber: Scalar wavenumber.</span>
+<span class="sd">    :param float pixel_area: Area of each pixel in the discretized grid.</span>
+<span class="sd">    :param int img_width: Number of pixels per image side (H=W).</span>
+<span class="sd">    :param bool verbose: Enable verbose/debug printing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">total_field</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">receivers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">x_domain</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y_domain</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">wavenumber</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">pixel_area</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">img_width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;total_field&quot;</span><span class="p">,</span> <span class="n">total_field</span><span class="p">)</span>
+        <span class="n">green_operator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_operator</span><span class="p">(</span>
+            <span class="n">receivers</span><span class="p">,</span>
+            <span class="n">x_domain</span><span class="p">,</span>
+            <span class="n">y_domain</span><span class="p">,</span>
+            <span class="n">wavenumber</span><span class="p">,</span>
+            <span class="n">pixel_area</span><span class="p">,</span>
+            <span class="n">img_width</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">total_field</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">total_field</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;green_operator&quot;</span><span class="p">,</span> <span class="n">green_operator</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Linear forward operation</span>
+
+<span class="sd">        This operator computes the following operation:</span>
+
+<span class="sd">        :math:`y = G_s (u \circ x)`</span>
+
+<span class="sd">        where :math:`u` is the total field stored in the object.</span>
+
+<span class="sd">        :param torch.Tensor x: Scattering potential `(B,1,H,W)`.</span>
+<span class="sd">        :returns: (:class:`torch.Tensor`) Measurements `(B,T,R)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># x: (B,1,H,W), total_field: (1,T,H,W) -&gt; aux (B,T,H,W)</span>
+        <span class="n">aux</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_field</span>
+        <span class="c1"># green_operator: (T,R,H,W), aux: (B,T,H,W) -&gt; y: (B,T,R)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;bthw, trhw-&gt;btr&quot;</span><span class="p">,</span> <span class="n">aux</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">green_operator</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span>  <span class="c1"># (B,T,R)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adjoint operation mapping measurements back to image domain.</span>
+
+<span class="sd">        :param torch.Tensor y: Measurements `(B,T,R)`.</span>
+<span class="sd">        :returns: (:class:`torch.Tensor`) Scattering potential `(B,1,H,W)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># y: (B, T, R), green_operator: (T, R, H, W) -&gt; aux: (B, T, H, W)</span>
+        <span class="n">aux</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;btr, trhw-&gt;bthw&quot;</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">green_operator</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_field</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="n">aux</span>  <span class="c1"># (B, T, H, W)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># (B,1,H,W)</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_dagger</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">init</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">solver</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;lsqr&quot;</span><span class="p">,</span>
+        <span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e3</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Solve least-squares for x given y using the operator A and its adjoint.</span>
+
+<span class="sd">        :param torch.Tensor y: Measurements `(B,T,R)`.</span>
+<span class="sd">        :param None, torch.Tensor init: Initial guess for the solver `(B,1,H,W)`.</span>
+<span class="sd">        :param str solver: Solver to use (`&#39;lsqr&#39;`, `&#39;BiCGStab&#39;` or `&#39;CG&#39;`), see :func:`deepinv.optim.linear.least_squares`.</span>
+<span class="sd">        :param float gamma: Regularization parameter for the least-squares solver.</span>
+<span class="sd">        :returns: (:class:`torch.Tensor`) Scattering potential `(B,1,H,W)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">least_squares</span><span class="p">(</span>
+            <span class="n">A</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span>
+            <span class="n">AT</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">,</span>
+            <span class="n">gamma</span><span class="o">=</span><span class="n">gamma</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
+            <span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">,</span>
+            <span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">init</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+            <span class="n">tol</span><span class="o">=</span><span class="mf">5e-3</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_operator</span><span class="p">(</span>
+        <span class="n">receivers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">x_domain</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y_domain</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">wavenumber</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">pixel_area</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">img_width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute Green&#39;s function sampled at receiver positions and grid points.</span>
+
+<span class="sd">        Returns a tensor of shape `(T, R, H, W)` where receivers can vary per transmitter.</span>
+
+<span class="sd">        :param torch.Tensor receivers: Receiver positions of shape `(2, T, R)`.</span>
+<span class="sd">        :param torch.Tensor x_domain: x coordinates of image grid points `(H*W,)`.</span>
+<span class="sd">        :param torch.Tensor y_domain: y coordinates of image grid points `(H*W,)`.</span>
+<span class="sd">        :param float, torch.Tensor wavenumber: Scalar wavenumber.</span>
+<span class="sd">        :param float pixel_area: Area of each pixel in the discretized grid.</span>
+<span class="sd">        :param int img_width: Number of img_width per image side `(H=W)`.</span>
+<span class="sd">        :param torch.dtype dtype: torch.dtype used for internal computations and returned result</span>
+<span class="sd">        :param str, torch.device device: `torch.device` used for internal computations and returned result</span>
+<span class="sd">        :returns: (:class:`torch.Tensor`) Green&#39;s function operator of shape `(T, R, H, W)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># receivers shape: (2, T, R)</span>
+        <span class="n">num_transmitters</span> <span class="o">=</span> <span class="n">receivers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">num_receivers</span> <span class="o">=</span> <span class="n">receivers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="c1"># Initialize output: (T, R, H*W)</span>
+        <span class="n">receivers_operator</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">num_transmitters</span><span class="p">,</span>
+            <span class="n">num_receivers</span><span class="p">,</span>
+            <span class="n">x_domain</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_transmitters</span><span class="p">):</span>
+            <span class="c1"># Get receivers for this transmitter: (2, R)</span>
+            <span class="n">receivers_t</span> <span class="o">=</span> <span class="n">receivers</span><span class="p">[:,</span> <span class="n">t</span><span class="p">,</span> <span class="p">:]</span>  <span class="c1"># (2, R)</span>
+
+            <span class="n">x_circles</span><span class="p">,</span> <span class="n">x_receivers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+                <span class="n">x_domain</span><span class="p">,</span> <span class="n">receivers_t</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span>
+            <span class="p">)</span>
+            <span class="n">y_circles</span><span class="p">,</span> <span class="n">y_receivers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+                <span class="n">y_domain</span><span class="p">,</span> <span class="n">receivers_t</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span>
+            <span class="p">)</span>
+            <span class="n">dist_receivers_circles</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">x_circles</span> <span class="o">-</span> <span class="n">x_receivers</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span>
+                <span class="o">+</span> <span class="p">(</span><span class="n">y_circles</span> <span class="o">-</span> <span class="n">y_receivers</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span>
+            <span class="p">)</span>
+            <span class="n">dist_receivers_circles</span> <span class="o">=</span> <span class="n">dist_receivers_circles</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># (R, H*W)</span>
+
+            <span class="c1"># scalar wavenumber</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">wavenumber</span>
+            <span class="n">receivers_operator</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">green_function</span><span class="p">(</span>
+                <span class="n">dist_receivers_circles</span> <span class="o">*</span> <span class="n">k</span>
+            <span class="p">)</span>  <span class="c1"># (R, H*W)</span>
+
+        <span class="n">receivers_operator</span> <span class="o">=</span> <span class="n">receivers_operator</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">num_transmitters</span><span class="p">,</span> <span class="n">num_receivers</span><span class="p">,</span> <span class="n">img_width</span><span class="p">,</span> <span class="n">img_width</span>
+        <span class="p">)</span>  <span class="c1"># (T, R, H, W)</span>
+
+        <span class="c1"># use normalized Green&#39;s function (postmultiplied by k_b^2)</span>
+        <span class="n">receivers_operator</span> <span class="o">*=</span> <span class="n">wavenumber</span><span class="o">**</span><span class="mi">2</span>
+        <span class="c1"># account for pixel area in the discretized integral</span>
+        <span class="n">receivers_operator</span> <span class="o">*=</span> <span class="n">pixel_area</span>
+
+        <span class="c1"># shape (T, R, H, W)</span>
+        <span class="k">return</span> <span class="n">receivers_operator</span>
+
+
+<div class="viewcode-block" id="circular_sensors">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.scattering.circular_sensors.html#deepinv.physics.circular_sensors">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">circular_sensors</span><span class="p">(</span>
+    <span class="n">number</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">max_angle</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">360</span><span class="p">,</span>
+    <span class="n">offset_angle</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate equispaced sensors on a circle.</span>
+
+<span class="sd">    :param int number: Number of sensors.</span>
+<span class="sd">    :param float radius: Radius of the circle.</span>
+<span class="sd">    :param float max_angle: Maximum angle in degrees covered by sensors.</span>
+<span class="sd">    :param float offset_angle: Offset angle in degrees.</span>
+<span class="sd">    :param str device: Torch device for tensors.</span>
+<span class="sd">    :return: Tuple of tensors:</span>
+<span class="sd">         - `transmitters`: Tensor of shape `(2, number)` with (x,y) positions.</span>
+<span class="sd">         - `receivers`: Tensor of shape `(2, number, number-1)` with (x,y) positions.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_angle</span> <span class="o">/</span> <span class="mi">360</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">number</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)[</span>
+            <span class="p">:</span><span class="o">-</span><span class="mi">1</span>
+        <span class="p">]</span>
+        <span class="o">+</span> <span class="n">offset_angle</span> <span class="o">/</span> <span class="mi">360</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span>
+    <span class="p">)</span>
+    <span class="n">receiver_radii</span> <span class="o">=</span> <span class="n">radius</span>
+    <span class="n">x_pos</span> <span class="o">=</span> <span class="n">receiver_radii</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angles</span><span class="p">)</span>
+    <span class="n">y_pos</span> <span class="o">=</span> <span class="n">receiver_radii</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angles</span><span class="p">)</span>
+    <span class="n">transmitters</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x_pos</span><span class="p">,</span> <span class="n">y_pos</span><span class="p">])</span>  <span class="c1"># 2, number</span>
+    <span class="c1"># receivers = torch.zeros((2, number, number - 1), device=device)</span>
+
+    <span class="n">mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">number</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">all_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">number</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">number</span><span class="p">,</span> <span class="n">number</span><span class="p">)</span>
+    <span class="n">valid_indices</span> <span class="o">=</span> <span class="n">all_indices</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">number</span><span class="p">,</span> <span class="n">number</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">receivers</span> <span class="o">=</span> <span class="n">transmitters</span><span class="p">[:,</span> <span class="n">valid_indices</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">transmitters</span><span class="p">,</span> <span class="n">receivers</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">forward_lippmann_schwinger</span><span class="p">(</span>
+    <span class="n">m</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">g_fourier</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">init</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">config</span><span class="p">:</span> <span class="s2">&quot;Scattering.SolverConfig&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the scattered field by solving the Lippmann-Schwinger equation using an iterative solver.</span>
+
+<span class="sd">    :param torch.Tensor m: Scattering potential `(B,1,H,W)`.</span>
+<span class="sd">    :param torch.Tensor source: Source term `(B,T,H,W)`.</span>
+<span class="sd">    :param torch.Tensor g_fourier: Green&#39;s function in Fourier space `(1,H,W)`.</span>
+<span class="sd">    :param dict solver_config: Dictionary of solver parameters for the least-squares solver.</span>
+<span class="sd">    :param None, torch.Tensor init: Initial guess for the scattered field `(B,T,H,W)`.</span>
+<span class="sd">    :returns: (:class:`torch.Tensor`, :class:`torch.Tensor`)</span>
+<span class="sd">        - Scattered field `(B,T,H,W)`.</span>
+<span class="sd">        - Incident field `(B,T,H,W)`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Define the forward operator A(u) = u - G * (m * u)</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">u</span><span class="p">:</span> <span class="n">u</span> <span class="o">-</span> <span class="n">apply_filter</span><span class="p">(</span><span class="n">m</span> <span class="o">*</span> <span class="n">u</span><span class="p">,</span> <span class="n">g_fourier</span><span class="p">)</span>
+
+    <span class="c1"># Define its adjoint AT(u) = u - m.conj() * G.conj()(u)</span>
+    <span class="n">AT</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">u</span><span class="p">:</span> <span class="n">u</span> <span class="o">-</span> <span class="n">m</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="n">apply_filter</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">g_fourier</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+
+    <span class="c1"># The right-hand side is the incident field u_i = G * source</span>
+    <span class="n">b_incident_field</span> <span class="o">=</span> <span class="n">apply_filter</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">g_fourier</span><span class="p">)</span>
+
+    <span class="n">scattered_field</span> <span class="o">=</span> <span class="n">least_squares</span><span class="p">(</span>
+        <span class="n">A</span><span class="o">=</span><span class="n">A</span><span class="p">,</span>
+        <span class="n">AT</span><span class="o">=</span><span class="n">AT</span><span class="p">,</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">b_incident_field</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">init</span><span class="p">,</span>
+        <span class="o">**</span><span class="nb">vars</span><span class="p">(</span><span class="n">config</span><span class="p">)</span> <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{},</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">scattered_field</span><span class="p">,</span> <span class="n">b_incident_field</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">LippmannSchwingerSolver</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Lippmann-Schwinger equation solver using iterative methods.</span>
+
+<span class="sd">    :param int img_width: Number of img_width per image side (`H=W`).</span>
+<span class="sd">    :param float box_length: Physical side length of the square domain.</span>
+<span class="sd">    :param torch.Tensor wavenumber: Wavenumber (real or complex).</span>
+<span class="sd">    :param SolverConfig config: Solver configuration parameters.</span>
+<span class="sd">    :param bool verbose: Enable verbose/debug printing.</span>
+<span class="sd">    :param str device: Torch device string, e.g. &#39;cpu&#39; or &#39;cuda&#39;.</span>
+<span class="sd">    :param torch.dtype dtype: Torch `dtype` for tensors (e.g. `torch.complex128`).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">img_width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">box_length</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">wavenumber</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="s2">&quot;Scattering.SolverConfig&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">complex128</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="c1"># Pre-compute Green&#39;s function in Fourier space and move to device</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">g_fourier</span> <span class="o">=</span> <span class="n">green_fourier</span><span class="p">(</span>
+            <span class="n">img_width</span><span class="p">,</span>
+            <span class="n">box_length</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">wavenumber</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">config</span><span class="o">.</span><span class="n">green_imaginary_part</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;g_fourier&quot;</span><span class="p">,</span> <span class="n">g_fourier</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;k02&quot;</span><span class="p">,</span> <span class="n">wavenumber</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;g_fourier&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">g_fourier</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adjoint_state</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">adjoint_state</span>
+
+        <span class="c1"># Store solver parameters in a dictionary for easy passing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver_config</span> <span class="o">=</span> <span class="n">config</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_verbose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Toggle verbosity.</span>
+
+<span class="sd">        :param bool verbose: Enable verbose/debug printing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver_config</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">k2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">init</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calls the custom autograd function to solve the equation.</span>
+<span class="sd">        PyTorch will automatically use the defined `.backward()` method during backpropagation.</span>
+
+<span class="sd">        :param torch.Tensor k2: Squared space-varying wavenumber tensor `(B,1,H,W)`.</span>
+<span class="sd">        :param torch.Tensor source: Source term tensor `(B,T,H,W)`.</span>
+<span class="sd">        :param None, torch.Tensor init: Initial guess for the scattered field `(B,T,H,W)`.</span>
+<span class="sd">        :returns: (:class:`torch.Tensor`) Scattered field tensor `(B,T,H,W)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># sizes total_field = (B, T, F, H, W), green_function = (1, F, H, W), y = (B, R, F), x = (B, 1, H, W), incident_field = (T, R, H, W)</span>
+        <span class="c1"># Pack non-tensor parameters and call the custom function</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjoint_state</span><span class="p">:</span>
+            <span class="c1"># Use the Lippmann-Schwinger function with adjoint state</span>
+            <span class="k">return</span> <span class="n">LippmannSchwingerAdjointState</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+                <span class="n">k2</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">init</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">g_fourier</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k02</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">solver_config</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">scattered_field</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">forward_lippmann_schwinger</span><span class="p">(</span>
+                <span class="n">k2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">k02</span><span class="p">,</span>
+                <span class="n">source</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">g_fourier</span><span class="p">,</span>
+                <span class="n">init</span><span class="o">=</span><span class="n">init</span><span class="p">,</span>
+                <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">solver_config</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">scattered_field</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">LippmannSchwingerAdjointState</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements the Lippmann-Schwinger forward solver and its analytical</span>
+<span class="sd">    adjoint-state method for the backward pass.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">k2</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">init</span><span class="p">,</span> <span class="n">g_fourier</span><span class="p">,</span> <span class="n">k02</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Solves for the scattered field using an iterative solver.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">m</span> <span class="o">=</span> <span class="n">k2</span> <span class="o">-</span> <span class="n">k02</span>  <span class="c1"># Scattering potential</span>
+        <span class="n">scattered_field</span><span class="p">,</span> <span class="n">b_incident_field</span> <span class="o">=</span> <span class="n">forward_lippmann_schwinger</span><span class="p">(</span>
+            <span class="n">m</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">g_fourier</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="n">init</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Save necessary tensors for the backward pass</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">save_for_backward</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">scattered_field</span><span class="p">,</span> <span class="n">b_incident_field</span><span class="p">,</span> <span class="n">g_fourier</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">scattered_field</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_scattered_field</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the gradient of the loss with respect to k2 and source</span>
+<span class="sd">        using the pre-derived closed-form Frechet derivative.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Unpack saved tensors and parameters</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">config</span>
+        <span class="n">m</span><span class="p">,</span> <span class="n">scattered_field</span><span class="p">,</span> <span class="n">b_incident_field</span><span class="p">,</span> <span class="n">g_fourier</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
+
+        <span class="c1"># Initialize gradients to None</span>
+        <span class="n">grad_k2</span> <span class="o">=</span> <span class="n">grad_source</span> <span class="o">=</span> <span class="n">grad_init</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Only proceed if gradients for k2 or source are required</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">needs_input_grad</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">ctx</span><span class="o">.</span><span class="n">needs_input_grad</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="c1">### Adjoint-State Calculation</span>
+
+        <span class="c1"># Define the forward operator A(u) = u - G * (m * u)</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">u</span><span class="p">:</span> <span class="n">u</span> <span class="o">-</span> <span class="n">apply_filter</span><span class="p">(</span><span class="n">m</span> <span class="o">*</span> <span class="n">u</span><span class="p">,</span> <span class="n">g_fourier</span><span class="p">)</span>
+
+        <span class="c1"># Define its adjoint AT(u) = u - m.conj() * G.conj()(u)</span>
+        <span class="n">AT</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">u</span><span class="p">:</span> <span class="n">u</span> <span class="o">-</span> <span class="n">m</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="n">apply_filter</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">g_fourier</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+
+        <span class="c1"># 1. Adjoint Solve: Solve AT(v) = grad_output for the adjoint field &#39;v&#39;</span>
+        <span class="n">init_adjoint</span> <span class="o">=</span> <span class="n">scattered_field</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
+        <span class="n">v</span> <span class="o">=</span> <span class="n">least_squares</span><span class="p">(</span>
+            <span class="n">A</span><span class="o">=</span><span class="n">AT</span><span class="p">,</span>
+            <span class="n">AT</span><span class="o">=</span><span class="n">A</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">grad_scattered_field</span><span class="p">,</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">init_adjoint</span><span class="p">,</span>
+            <span class="o">**</span><span class="nb">vars</span><span class="p">(</span><span class="n">config</span><span class="p">)</span> <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{},</span>
+        <span class="p">)</span>
+
+        <span class="n">g_adj_v</span> <span class="o">=</span> <span class="n">apply_filter</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">g_fourier</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+
+        <span class="c1"># 2. Gradient Calculation for k2</span>
+        <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">needs_input_grad</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">grad_k2</span> <span class="o">=</span> <span class="n">scattered_field</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="n">g_adj_v</span>
+
+        <span class="c1"># 3. Gradient Calculation for source</span>
+        <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">needs_input_grad</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="c1"># grad_source = G_adj(v)</span>
+            <span class="n">grad_source</span> <span class="o">=</span> <span class="n">g_adj_v</span>
+
+        <span class="c1"># Return gradients in the same order as inputs to forward()</span>
+        <span class="k">return</span> <span class="n">grad_k2</span><span class="p">,</span> <span class="n">grad_source</span><span class="p">,</span> <span class="n">grad_init</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">green_function</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">remove_nans</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Green&#39;s function in 2D based on Hankel function H_0^{(1)}.</span>
+
+<span class="sd">    :param torch.Tensor r: Radial argument(s) (can be tensor).</span>
+<span class="sd">    :param bool remove_nans: If True replace NaNs (singularity) with max abs value.</span>
+<span class="sd">    :param torch.dtype dtype: torch.dtype used for the returned tensor (matches r.dtype)</span>
+<span class="sd">    :return: Complex tensor with Green&#39;s function values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="mi">1</span><span class="n">j</span> <span class="o">/</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">hankel1</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">remove_nans</span><span class="p">:</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">out</span><span class="p">)]</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>  <span class="c1"># singularity at 0</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">green_fourier</span><span class="p">(</span>
+    <span class="n">img_width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">box_length</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">wavenumber</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Green function discretization for :cite:t:`vico2016fast` in 2D.</span>
+
+<span class="sd">    :param int img_width: image width H=W</span>
+<span class="sd">    :param float box_length: physical box length</span>
+<span class="sd">    :param torch.Tensor or scalar wavenumber: scalar wavenumber expected</span>
+<span class="sd">    :return: Tuple of:</span>
+<span class="sd">         - `filter`: (:class:`torch.Tensor`) Spatial-domain filter of shape `(1, H*factor, W*factor)`.</span>
+<span class="sd">         - `filterf`: (:class:`torch.Tensor`) Fourier-domain filter of shape `(1, H*factor, W*factor)`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">img_width</span>
+    <span class="n">aux</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mi">4</span> <span class="o">*</span> <span class="n">box_length</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">wavenumber</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">fx_domain</span> <span class="o">=</span> <span class="n">aux</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">fy_domain</span> <span class="o">=</span> <span class="n">aux</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fx_domain</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">fy_domain</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span>  <span class="c1"># (n, n)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">wavenumber</span>  <span class="c1"># scalar</span>
+
+    <span class="n">filterf</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="mi">0</span><span class="n">j</span>
+
+    <span class="c1"># use Vico&#39;s paper correction</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="n">box_length</span>  <span class="c1"># for d=2</span>
+    <span class="n">constant</span> <span class="o">=</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">L</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">filterf</span> <span class="o">=</span> <span class="n">filterf</span> <span class="o">+</span> <span class="n">constant</span> <span class="o">*</span> <span class="n">s</span> <span class="o">*</span> <span class="n">jv</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">L</span> <span class="o">*</span> <span class="n">s</span><span class="p">)</span> <span class="o">*</span> <span class="n">hankel1</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span> <span class="o">*</span> <span class="n">k</span><span class="p">)</span>
+    <span class="n">filterf</span> <span class="o">=</span> <span class="n">filterf</span> <span class="o">-</span> <span class="n">constant</span> <span class="o">*</span> <span class="n">k</span> <span class="o">*</span> <span class="n">jv</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span> <span class="o">*</span> <span class="n">s</span><span class="p">)</span> <span class="o">*</span> <span class="n">hankel1</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">L</span> <span class="o">*</span> <span class="n">k</span><span class="p">)</span>
+
+    <span class="n">filterf</span> <span class="o">=</span> <span class="n">filterf</span> <span class="o">/</span> <span class="p">(</span><span class="n">s</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">k</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">filterf</span> <span class="o">=</span> <span class="n">filterf</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="c1"># to (1, H, W)</span>
+    <span class="nb">filter</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">filterf</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;ortho&quot;</span><span class="p">)</span>
+    <span class="nb">filter</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="nb">filter</span><span class="p">)[</span>
+        <span class="o">...</span><span class="p">,</span> <span class="n">img_width</span> <span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">img_width</span><span class="p">,</span> <span class="n">img_width</span> <span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">img_width</span>
+    <span class="p">]</span>
+    <span class="nb">filter</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifftshift</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
+    <span class="nb">filter</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">filterf</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;ortho&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">filter</span><span class="p">,</span> <span class="n">filterf</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_filter</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">filterf</span><span class="p">,</span> <span class="n">factor</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding_mode</span><span class="o">=</span><span class="s2">&quot;constant&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Apply a Fourier-domain filter to a field with optional factor padding.</span>
+
+<span class="sd">    :param torch.Tensor field: Input field with shape (..., H, W).</span>
+<span class="sd">    :param torch.Tensor filterf: Fourier filter of shape (1, H*factor, W*factor) or broadcastable.</span>
+<span class="sd">    :param int factor: Oversampling / padding factor.</span>
+<span class="sd">    :param str padding_mode: Padding mode used before FFT.</span>
+<span class="sd">    :param torch.dtype dtype: torch.dtype used for returned field (matches input)</span>
+<span class="sd">    :return: Filtered field cropped to original size.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">field</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">H2</span> <span class="o">=</span> <span class="n">H</span> <span class="o">*</span> <span class="p">(</span><span class="n">factor</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">W2</span> <span class="o">=</span> <span class="n">W</span> <span class="o">*</span> <span class="p">(</span><span class="n">factor</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="c1"># pad input</span>
+    <span class="n">field</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="p">(</span><span class="n">W2</span><span class="p">,</span> <span class="n">W2</span><span class="p">,</span> <span class="n">H2</span><span class="p">,</span> <span class="n">H2</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="n">padding_mode</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># filter in fourier space</span>
+    <span class="n">xf</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;ortho&quot;</span><span class="p">)</span>
+    <span class="n">yf</span> <span class="o">=</span> <span class="n">xf</span> <span class="o">*</span> <span class="n">filterf</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">yf</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;ortho&quot;</span><span class="p">)</span>
+    <span class="c1"># crop output</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">H2</span> <span class="p">:</span> <span class="n">H2</span> <span class="o">+</span> <span class="n">H</span><span class="p">,</span> <span class="n">W2</span> <span class="p">:</span> <span class="n">W2</span> <span class="o">+</span> <span class="n">W</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">y</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">mie_theory</span><span class="p">(</span>
+    <span class="n">wavenumber</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">cylinder_radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">cylinder_contrast</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">img_width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">angles</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">wave_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;plane_wave&quot;</span><span class="p">,</span>
+    <span class="n">box_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">complex128</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="n">n_coeffs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">70</span><span class="p">,</span>
+    <span class="n">transmitter_radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the total field using the closed form formula from Mie theory for a single cylinder.</span>
+
+<span class="sd">    Can be used for validation of the Lippmann-Schwinger solver.</span>
+
+<span class="sd">    :param torch.Tensor or scalar wavenumber: Wavenumber.</span>
+<span class="sd">    :param float cylinder_radius: Radius of the cylinder.</span>
+<span class="sd">    :param float cylinder_contrast: Contrast of the cylinder (relative permittivity - 1).</span>
+<span class="sd">    :param int img_width: Number of img_width per image side.</span>
+<span class="sd">    :param torch.Tensor angles: Incident wave angles (radians) of shape (P,).</span>
+<span class="sd">    :param str wave_type: Type of incident wave (&#39;plane_wave&#39; or &#39;circular_wave&#39;).</span>
+<span class="sd">    :param float box_length: Physical side length of the square domain.</span>
+<span class="sd">    :param torch.dtype dtype: torch.dtype used for intermediate and returned tensors.</span>
+<span class="sd">    :param str device: Torch device string, e.g. &#39;cpu&#39; or &#39;cuda&#39;.</span>
+<span class="sd">    :param int n_coeffs: Number of Fourier coefficients to use in the series expansion.</span>
+<span class="sd">    :param float transmitter_radius: Radius of the circular wave transmitter (only for &#39;circular_wave&#39; type).</span>
+<span class="sd">    :return: total_field, incident_field tensors of shape (1, P, img_width, img_width).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wavenumber</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">wavenumber</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">wavenumber</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">wavenumber</span> <span class="o">=</span> <span class="n">wavenumber</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">grid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">box_length</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">box_length</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">img_width</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">yy</span><span class="p">,</span> <span class="n">xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="o">-</span><span class="n">grid</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">xx</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">yy</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">yy</span><span class="p">,</span> <span class="n">xx</span><span class="p">)</span>
+
+    <span class="n">incident_field</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="mi">1</span><span class="p">,</span> <span class="n">angles</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">img_width</span><span class="p">,</span> <span class="n">img_width</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span>
+    <span class="p">)</span>
+    <span class="n">total_field</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">incident_field</span><span class="p">)</span>
+    <span class="n">jv_prime</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">jv</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">jv</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+    <span class="n">hankel1_prime</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">hankel1</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">hankel1</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+
+    <span class="n">list_n</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_coeffs</span><span class="p">):</span>
+        <span class="n">list_n</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">list_n</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="n">i</span><span class="p">)</span>
+
+    <span class="n">extra_contrast</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">cylinder_contrast</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">))</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">wavenumber</span>
+    <span class="n">ind</span> <span class="o">=</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="n">cylinder_radius</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">angles</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">list_n</span><span class="p">:</span>
+            <span class="c1"># calculate incident and total fields</span>
+            <span class="n">jvn</span> <span class="o">=</span> <span class="n">jv</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">extra_contrast</span> <span class="o">*</span> <span class="n">cylinder_radius</span><span class="p">)</span>
+            <span class="n">jvn_prime</span> <span class="o">=</span> <span class="n">jv_prime</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">extra_contrast</span> <span class="o">*</span> <span class="n">cylinder_radius</span><span class="p">)</span>
+            <span class="n">jv0n</span> <span class="o">=</span> <span class="n">jv</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">cylinder_radius</span><span class="p">)</span>
+            <span class="n">jv0n_prime</span> <span class="o">=</span> <span class="n">jv_prime</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">cylinder_radius</span><span class="p">)</span>
+            <span class="n">hn</span> <span class="o">=</span> <span class="n">hankel1</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">cylinder_radius</span><span class="p">)</span>
+            <span class="n">hn_prime</span> <span class="o">=</span> <span class="n">hankel1_prime</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">cylinder_radius</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">wave_type</span> <span class="o">==</span> <span class="s2">&quot;plane_wave&quot;</span><span class="p">:</span>
+                <span class="n">incident_coeff</span> <span class="o">=</span> <span class="mi">1</span><span class="n">j</span><span class="o">**</span><span class="n">n</span>
+            <span class="k">elif</span> <span class="n">wave_type</span> <span class="o">==</span> <span class="s2">&quot;circular_wave&quot;</span><span class="p">:</span>
+                <span class="n">incident_coeff</span> <span class="o">=</span> <span class="mi">1</span><span class="n">j</span> <span class="o">/</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">hankel1</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">transmitter_radius</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">incident_coeff</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;incident_coeff is nan&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+                    <span class="n">incident_coeff</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Wave type </span><span class="si">{</span><span class="n">wave_type</span><span class="si">}</span><span class="s2"> not supported, please choose &#39;plane_wave&#39; or &#39;circular_wave&#39;&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">incident_coeff</span> <span class="o">*=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="n">angles</span><span class="p">[</span><span class="n">p</span><span class="p">])</span>
+
+            <span class="c1"># incident field</span>
+            <span class="n">term</span> <span class="o">=</span> <span class="n">incident_coeff</span> <span class="o">*</span> <span class="n">jv</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">r</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="n">theta</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">term</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;incident field is nan&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="n">incident_field</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">+=</span> <span class="n">term</span>
+
+            <span class="c1"># total field for r &lt; cylinder_radius</span>
+            <span class="n">Tn</span> <span class="o">=</span> <span class="mi">2</span><span class="n">j</span> <span class="o">/</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">w</span> <span class="o">*</span> <span class="n">cylinder_radius</span><span class="p">)</span>
+            <span class="n">Tn</span> <span class="o">/=</span> <span class="n">jvn</span> <span class="o">*</span> <span class="n">hn_prime</span> <span class="o">-</span> <span class="n">extra_contrast</span> <span class="o">*</span> <span class="p">(</span><span class="n">jvn_prime</span> <span class="o">*</span> <span class="n">hn</span><span class="p">)</span>
+            <span class="n">coeff</span> <span class="o">=</span> <span class="n">Tn</span> <span class="o">*</span> <span class="n">incident_coeff</span>
+
+            <span class="n">term</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">coeff</span>
+                <span class="o">*</span> <span class="n">jv</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">extra_contrast</span> <span class="o">*</span> <span class="n">r</span><span class="p">[</span><span class="n">ind</span><span class="p">])</span>
+                <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="n">ind</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">term</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;total field is nan&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="n">total_field</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">ind</span><span class="p">]</span> <span class="o">+=</span> <span class="n">term</span>
+
+            <span class="c1"># total field for r &gt; cylinder_radius</span>
+            <span class="c1"># add incident field</span>
+            <span class="n">coeff</span> <span class="o">=</span> <span class="n">incident_coeff</span>
+            <span class="n">total_field</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">~</span><span class="n">ind</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span>
+                <span class="n">coeff</span> <span class="o">*</span> <span class="n">jv</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">r</span><span class="p">[</span><span class="o">~</span><span class="n">ind</span><span class="p">])</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="o">~</span><span class="n">ind</span><span class="p">]))</span>
+            <span class="p">)</span>
+
+            <span class="c1"># add scattered field</span>
+            <span class="n">num</span> <span class="o">=</span> <span class="n">extra_contrast</span> <span class="o">*</span> <span class="n">jv0n</span> <span class="o">*</span> <span class="n">jvn_prime</span> <span class="o">-</span> <span class="n">jvn</span> <span class="o">*</span> <span class="n">jv0n_prime</span>
+            <span class="n">den</span> <span class="o">=</span> <span class="n">jvn</span> <span class="o">*</span> <span class="n">hn_prime</span> <span class="o">-</span> <span class="n">extra_contrast</span> <span class="o">*</span> <span class="p">(</span><span class="n">jvn_prime</span> <span class="o">*</span> <span class="n">hn</span><span class="p">)</span>
+            <span class="n">Rn</span> <span class="o">=</span> <span class="n">num</span> <span class="o">/</span> <span class="n">den</span>
+            <span class="n">coeff</span> <span class="o">=</span> <span class="n">Rn</span> <span class="o">*</span> <span class="n">incident_coeff</span>
+
+            <span class="n">term</span> <span class="o">=</span> <span class="n">coeff</span> <span class="o">*</span> <span class="n">hankel1</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">r</span><span class="p">[</span><span class="o">~</span><span class="n">ind</span><span class="p">])</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="o">~</span><span class="n">ind</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">term</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;total field is nan&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+                <span class="k">break</span>
+
+            <span class="n">total_field</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">~</span><span class="n">ind</span><span class="p">]</span> <span class="o">+=</span> <span class="n">term</span>
+
+    <span class="k">return</span> <span class="n">total_field</span><span class="p">,</span> <span class="n">incident_field</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

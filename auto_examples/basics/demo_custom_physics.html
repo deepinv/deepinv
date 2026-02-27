@@ -1,0 +1,1020 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Bring your own physics &#8212; deepinv 0.3.7 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=29d04658"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "inversename": "R", "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/basics/demo_custom_physics';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/auto_examples/basics/demo_custom_physics.html" />
+    <link rel="icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Models" href="../models/index.html" />
+    <link rel="prev" title="Bring your own dataset" href="demo_custom_dataset.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">🎉 We are part of the <a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.</div>
+</aside>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.7 documentation - Home"/>
+    <img src="../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.7 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Basics</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="demo_quickstart.html">5 minute quickstart tutorial</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_pretrained_model.html">Use a pretrained model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_custom_optim.html">Use iterative reconstruction algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_custom_dataset.html">Bring your own dataset</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Bring your own physics</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../models/index.html">Models</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../models/demo_foundation_model.html">Inference and fine-tune a foundation model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/demo_training.html">Training a reconstruction model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/demo_denoiser_tour.html">Benchmarking pretrained denoisers</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../physics/index.html">Physics</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_physics_tour.html">Tour of forward sensing operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_blur_tour.html">Tour of blur operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_mri_tour.html">Tour of MRI functionality in DeepInverse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_scattering.html">Inverse scattering problem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_lidar.html">Single photon lidar operator for depth ranging.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_spc.html">Pattern Ordering in a Compressive Single Pixel Camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_spatial_unwrapping.html">Spatial unwrapping and modulo imaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_microscopy_3d.html">3D diffraction PSF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_remote_sensing.html">Remote sensing with satellite images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_phase_retrieval.html">Random phase retrieval and reconstruction methods.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_ptychography.html">Ptychography phase retrieval</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../optimization/index.html">Optimization</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_3D_denoising.html">3D denoising</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_epll.html">Expected Patch Log Likelihood (EPLL) for Denoising and Inpainting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_TV_minimisation.html">Image deblurring with Total-Variation (TV) prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_custom_prior.html">Image deblurring with custom deep explicit prior.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_wavelet_prior.html">Image inpainting with wavelet prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_patch_priors_CT.html">Patch priors for limited-angle computed tomography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_dip.html">Reconstructing an image using the deep image prior.</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../plug-and-play/index.html">Plug-and-Play</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_PnP_DPIR_deblur.html">DPIR method for PnP image deblurring.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_PnP_mirror_descent.html">Plug-and-Play algorithm with Mirror Descent for Poisson noise inverse problems.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_PnP_custom_optim.html">PnP with custom optimization algorithm (Primal-Dual Condat-Vu)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_RED_GSPnP_SR.html">Regularization by Denoising (RED) for Super-Resolution.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_vanilla_PnP.html">Vanilla PnP for computed tomography (CT).</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../sampling/index.html">Diffusion &amp; MCMC</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_custom_kernel.html">Building your custom MCMC sampling algorithm.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_diffusion_sde.html">Building your diffusion posterior sampling method using SDEs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_flow_matching.html">Flow-Matching for posterior sampling and unconditional generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_ddrm.html">Image reconstruction with a diffusion model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_dps.html">Implementing DPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_diffpir.html">Implementing DiffPIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_sampling.html">Uncertainty quantification with PnP-ULA.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_diffusers.html">Using state-of-the-art diffusion models from HuggingFace Diffusers with DeepInverse</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../unfolded/index.html">Unfolded</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_DEQ.html">Deep Equilibrium (DEQ) algorithms for image deblurring</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_LISTA.html">Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_learned_primal_dual.html">Learned Primal-Dual algorithm for CT scan.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_custom_prior_unfolded.html">Learned iterative custom prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_unfolded_constant_memory.html">Reducing the memory and computational complexity of unfolded network training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_unfolded_constrained_LISTA.html">Unfolded Chambolle-Pock for constrained image inpainting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_vanilla_unfolded.html">Vanilla Unfolded algorithm for super-resolution</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../blind-inverse-problems/index.html">Blind Inverse Problems</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../blind-inverse-problems/demo_blind_deblurring.html">Blind deblurring with kernel estimation network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blind-inverse-problems/demo_blind_denoising.html">Blind denoising with noise level estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blind-inverse-problems/demo_optimizing_physics_parameter.html">Calibrating physics operators</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../self-supervised-learning/index.html">Self-Supervised Learning</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_ei_transforms.html">Image transformations for Equivariant Imaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_transforms.html">Image transforms for equivariance &amp; augmentations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_poisson2sparse.html">Poisson denoising using Poisson2Sparse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_artifact2artifact.html">Self-supervised MRI reconstruction with Artifact2Artifact</a></li>
+
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_r2r_denoising.html">Self-supervised denoising with the Generalized R2R loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_n2n_denoising.html">Self-supervised denoising with the Neighbor2Neighbor loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_sure_denoising.html">Self-supervised denoising with the SURE loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_unsure.html">Self-supervised denoising with the UNSURE loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_multioperator_imaging.html">Self-supervised learning from incomplete measurements of multiple operators.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_equivariant_imaging.html">Self-supervised learning with Equivariant Imaging for MRI.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_splitting_loss.html">Self-supervised learning with measurement splitting</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../adversarial-learning/index.html">Adversarial Learning</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../adversarial-learning/demo_gan_imaging.html">Imaging inverse problems with adversarial networks</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../external-libraries/index.html">External Libraries</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_io.html">Loading scientific images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_astra_tomography.html">Low-dose CT with ASTRA backend and Total-Variation (TV) prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_ri_basic.html">Radio interferometric imaging with deepinverse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_connect_spyrit.html">Single-pixel imaging with Spyrit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_hf_dataset.html">Using HuggingFace datasets</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../distributed/index.html">Distributed Computing</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../distributed/demo_denoiser_distributed.html">Distributed Denoiser with Image Tiling</a></li>
+
+<li class="toctree-l2"><a class="reference internal" href="../distributed/demo_physics_distributed.html">Distributed Physics Operators</a></li>
+
+<li class="toctree-l2"><a class="reference internal" href="../distributed/demo_pnp_distributed.html">Distributed Plug-and-Play (PnP) Reconstruction</a></li>
+
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Examples</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Basics</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Bring your own physics</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p>New to DeepInverse? Get started with the basics with the
+<a class="reference internal" href="demo_quickstart.html#sphx-glr-auto-examples-basics-demo-quickstart-py"><span class="std std-ref">5 minute quickstart tutorial</span></a>..</p>
+</div>
+<section class="sphx-glr-example-title" id="bring-your-own-physics">
+<span id="sphx-glr-auto-examples-basics-demo-custom-physics-py"></span><h1>Bring your own physics<a class="headerlink" href="#bring-your-own-physics" title="Link to this heading">#</a></h1>
+<p>This examples shows you how to use DeepInverse with your own physics.</p>
+<p>While DeepInverse offers a <a class="reference internal" href="../../user_guide/physics/physics.html#physics"><span class="std std-ref">large number of forward operators</span></a>,
+you can also bring your own forward operator for your specific imaging problem.</p>
+<p>DeepInverse’s modular <a class="reference internal" href="../../user_guide/physics/intro.html#physics-intro"><span class="std std-ref">physics framework</span></a> makes this easy by letting you inherit useful methods from the most appropriate
+physics base class:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Physics</span></code></a> for non-linear operators;</p></li>
+<li><p><a class="reference internal" href="../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics</span></code></a> for linear operators;</p></li>
+<li><p><a class="reference internal" href="../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.DecomposablePhysics</span></code></a> for linear operators with a closed-form singular value decomposition.</p></li>
+</ul>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>Often your physics can be modelled without much work. You could:</p>
+<ul class="simple">
+<li><p>Use an existing physics but with custom <code class="code docutils literal notranslate"><span class="pre">params</span></code>, e.g. blur with a custom kernel, or MRI with a custom sampling pattern. See <a class="reference internal" href="../../user_guide/physics/intro.html#parameter-dependent-operators"><span class="std std-ref">parameter dependent operators</span></a>.</p></li>
+<li><p>Inherit from an existing physics but override or wrap a particular method e.g. <a class="reference internal" href="../../api/stubs/deepinv.physics.MRI.html#deepinv.physics.MRI" title="deepinv.physics.MRI"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.MRI</span></code></a> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <a class="reference internal" href="../../api/stubs/deepinv.physics.DynamicMRI.html#deepinv.physics.DynamicMRI" title="deepinv.physics.DynamicMRI"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.DynamicMRI</span></code></a></p></li>
+<li><p>Define a new operator by <a class="reference internal" href="../../user_guide/physics/intro.html#physics-combining"><span class="std std-ref">combining existing operators</span></a>.</p></li>
+</ul>
+</div>
+<p>In this example we will demonstrate creating a simple forward operator from scratch that converts RGB images to grayscale images.
+We also show you how to exploit the singular value decomposition of the operator to speed up the evaluation of
+the pseudo-inverse and proximal operators.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">deepinv</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dinv</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+</pre></div>
+</div>
+<section id="creating-a-custom-forward-operator">
+<h2>Creating a custom forward operator.<a class="headerlink" href="#creating-a-custom-forward-operator" title="Link to this heading">#</a></h2>
+<p>Defining a new linear operator only requires a forward function <span class="math notranslate nohighlight">\(\forw{\cdot}\)</span> and its adjoint operation <span class="math notranslate nohighlight">\(A^\top(\cdot)\)</span>,
+inheriting the remaining structure of the <a class="reference internal" href="../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics</span></code></a> class.</p>
+<p>Once the operator is defined, we can use any of the functions in the <a class="reference internal" href="../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Physics</span></code></a> class and
+<a class="reference internal" href="../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics</span></code></a> class, such as computing the norm of the operator, testing the adjointness,
+computing the proximal operator, etc.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>By default, the adjoint of a <a class="reference internal" href="../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">LinearPhysics</span></code></a> is computed using autograd with <a class="reference internal" href="../../api/stubs/deepinv.physics.adjoint_function.html#deepinv.physics.adjoint_function" title="deepinv.physics.adjoint_function"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.adjoint_function</span></code></a>.
+Note however that defining a closed form adjoint is generally more computationally efficient in memory and time.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To make the new physics compatible with other torch functionalities, all physics parameters (i.e. attributes of type <a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code></a>) should be registered as <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.register_buffer">module buffers</a> by using <code class="code docutils literal notranslate"><span class="pre">self.register_buffer(param_name,</span> <span class="pre">param_tensor)</span></code>. This ensures methods like <code class="code docutils literal notranslate"><span class="pre">.to(),</span> <span class="pre">.cuda()</span></code> work properly, allowing one to train a model using Distributed Data Parallel.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Inherit from <a class="reference internal" href="../../user_guide/other/utils.html#mixin"><span class="std std-ref">mixin</span></a> classes to provide specialized methods for your physics.</p>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Decolorize</span><span class="p">(</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">LinearPhysics</span></a><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts RGB images to grayscale.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">coefficients</span> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">([</span><span class="mf">0.2989</span><span class="p">,</span> <span class="mf">0.5870</span><span class="p">,</span> <span class="mf">0.1140</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">torch</span><span class="o">.</span><span class="n">float32</span></a><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;coefficients&quot;</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">A</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">:</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span></a><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span></a> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span></a><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward operator.</span>
+
+<span class="sd">        :param torch.Tensor x: input image with 3 color (RGB) channels, i.e. [*,3,*,*]</span>
+<span class="sd">        :param torch.Tensor coefficients: optionally set coefficients on the fly</span>
+<span class="sd">        :param dict kwargs: any other keyword parameters to set on the fly, such as noise model sigma</span>
+<span class="sd">        :return: torch.Tensor grayscale measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">coefficients</span><span class="o">=</span><span class="n">coefficients</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">return</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.sum.html#torch.sum" title="torch.sum" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">sum</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="test-physics">
+<h2>Test physics<a class="headerlink" href="#test-physics" title="Link to this heading">#</a></h2>
+<p>We test our physics on a toy image with 3 color channels.
+We add a Gaussian noise model to the linear physics.</p>
+<p>We simulate measurements using the forward operator <span class="math notranslate nohighlight">\(y=\forw{x}+\epsilon\)</span>.
+We then leverage the linear physics base class to automatically compute the linear pseudo-inverse <span class="math notranslate nohighlight">\(A^\dagger y\)</span>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.zeros.html#torch.zeros" title="torch.zeros" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span></a><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">96</span><span class="p">,</span> <span class="mi">128</span><span class="p">)</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:</span><span class="mi">32</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">32</span><span class="p">:</span><span class="mi">64</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">64</span><span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="n">physics</span> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class"><span class="n">Decolorize</span></a><span class="p">(</span>
+    <span class="n">img_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">96</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">noise_model</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.GaussianNoise.html#deepinv.physics.GaussianNoise" title="deepinv.physics.GaussianNoise" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span></a><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="p">)</span>
+
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.plot.html#deepinv.utils.plot" title="deepinv.utils.plot" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span></a><span class="p">({</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <span class="s2">&quot;Linear pseudo-inverse&quot;</span><span class="p">:</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_dagger" title="deepinv.physics.LinearPhysics.A_dagger" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">)})</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_custom_physics_001.png" srcset="../../_images/sphx_glr_demo_custom_physics_001.png" alt="x, y, Linear pseudo-inverse" class = "sphx-glr-single-img"/><p>It is often useful for reconstruction algorithms that the physics has unit norm, which you can verify using <a class="reference internal" href="../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.compute_norm" title="deepinv.physics.LinearPhysics.compute_norm"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics.compute_norm()</span></code></a>.
+We see that this physics fails this.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The linear operator has norm=</span><span class="si">{</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.compute_sqnorm" title="deepinv.physics.LinearPhysics.compute_sqnorm" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">compute_sqnorm</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Power iteration converged at iteration 2, ||A^T A||_2=0.45
+The linear operator has norm=0.45
+</pre></div>
+</div>
+<p>All parameters or buffers of the physics, such as <code class="code docutils literal notranslate"><span class="pre">coefficients</span></code> in the case of <code class="code docutils literal notranslate"><span class="pre">Decolorize</span></code>, can be updated on the fly
+with <code class="code docutils literal notranslate"><span class="pre">physics.update(**params)</span></code> or in the forward pass <code class="code docutils literal notranslate"><span class="pre">physics(x,</span> <span class="pre">**params)</span></code>:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Original coefficients and sigma:&quot;</span><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span><span class="o">.</span><span class="n">coefficients</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.ZeroNoise.html#deepinv.physics.ZeroNoise" title="deepinv.physics.ZeroNoise" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="o">.</span><span class="n">sigma</span></a>
+<span class="p">)</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.update" title="deepinv.physics.Physics.update" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">update</span></a><span class="p">(</span><span class="n">coefficients</span><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">]),</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Updated coefficients and sigma via update:&quot;</span><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span><span class="o">.</span><span class="n">coefficients</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.ZeroNoise.html#deepinv.physics.ZeroNoise" title="deepinv.physics.ZeroNoise" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="o">.</span><span class="n">sigma</span></a><span class="p">,</span>
+<span class="p">)</span>
+
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <span class="n">coefficients</span><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">([</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]),</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Updated coefficients and sigma via forward pass:&quot;</span><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span><span class="o">.</span><span class="n">coefficients</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.ZeroNoise.html#deepinv.physics.ZeroNoise" title="deepinv.physics.ZeroNoise" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="o">.</span><span class="n">sigma</span></a><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Original coefficients and sigma: tensor([0.2989, 0.5870, 0.1140]) tensor(0.1000)
+Updated coefficients and sigma via update: tensor([1., 2., 3.]) tensor(0.2000)
+Updated coefficients and sigma via forward pass: tensor([4., 5., 6.]) tensor(0.3000)
+</pre></div>
+</div>
+</section>
+<section id="implementing-a-closed-form-adjoint">
+<h2>Implementing a closed form adjoint<a class="headerlink" href="#implementing-a-closed-form-adjoint" title="Link to this heading">#</a></h2>
+<p>Instead, if we know the closed form of the adjoint operator, we can implement it directly in
+<a class="reference internal" href="../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_adjoint" title="deepinv.physics.LinearPhysics.A_adjoint"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics.A_adjoint()</span></code></a>, instead of relying on
+<a class="reference internal" href="../../api/stubs/deepinv.physics.adjoint_function.html#deepinv.physics.adjoint_function" title="deepinv.physics.adjoint_function"><code class="xref py py-func docutils literal notranslate"><span class="pre">autodifferentiation</span></code></a> which is generally less efficient.</p>
+<p>An additional benefit of implementing the adjoint is that we no longer require the <code class="code docutils literal notranslate"><span class="pre">img_size</span></code> parameter when creating the
+operator, which was needed for autodifferentiation.</p>
+<p>If you implement your own adjoint, it is recommended to verify that it is well-defined using
+<a class="reference internal" href="../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.adjointness_test" title="deepinv.physics.LinearPhysics.adjointness_test"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics.adjointness_test()</span></code></a>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Decolorize2</span><span class="p">(</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class"><span class="n">Decolorize</span></a><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Override previous Decolorize using a closed-form adjoint.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">:</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span></a><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span></a> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span></a><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Closed-form adjoint operator.</span>
+
+<span class="sd">        :param torch.Tensor y: input grayscale measurements</span>
+<span class="sd">        :param torch.Tensor coefficients: optionally set coefficients on the fly</span>
+<span class="sd">        :param dict kwargs: any other keyword parameters to set on the fly, such as noise model sigma</span>
+<span class="sd">        :return: torch.Tensor adjoint reconstruction</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">coefficients</span><span class="o">=</span><span class="n">coefficients</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+
+
+<span class="n">physics</span> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class"><span class="n">Decolorize2</span></a><span class="p">()</span>
+
+<span class="k">if</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.adjointness_test" title="deepinv.physics.LinearPhysics.adjointness_test" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">adjointness_test</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-5</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The linear operator has a well defined adjoint&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>The linear operator has a well defined adjoint
+</pre></div>
+</div>
+</section>
+<section id="creating-a-decomposable-forward-operator">
+<h2>Creating a decomposable forward operator.<a class="headerlink" href="#creating-a-decomposable-forward-operator" title="Link to this heading">#</a></h2>
+<p>If the forward operator has a closed form singular value decomposition (SVD),
+you should instead implement the operator using the <a class="reference internal" href="../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.DecomposablePhysics</span></code></a> base class.</p>
+<p>The operator <span class="math notranslate nohighlight">\(A\)</span> in this example has a known closed-form SVD:</p>
+<div class="math notranslate nohighlight">
+\[A = U\text{diag}(s)V^{\top}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\text{diag}(s)\)</span> is the <code class="code docutils literal notranslate"><span class="pre">mask</span></code> of singular values.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>As in the case of <code class="code docutils literal notranslate"><span class="pre">LinearPhysics</span></code>, <code class="code docutils literal notranslate"><span class="pre">V</span></code> and <code class="code docutils literal notranslate"><span class="pre">U_adjoint</span></code> are implemented using autodifferentiation by default,
+but you can implement them directly if you know the closed form of the operator.</p>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DecolorizeSVD</span><span class="p">(</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">DecomposablePhysics</span></a><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts RGB images to grayscale.</span>
+
+<span class="sd">    We use unnormalized coefficients and a singular value of 0.447.</span>
+
+<span class="sd">    Here, `U` and `U_adjoint` are set to the identity.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="mf">0.447</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">coefficients</span> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.tensor.html#torch.tensor" title="torch.tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span></a><span class="p">([</span><span class="mf">0.6687</span><span class="p">,</span> <span class="mf">1.3132</span><span class="p">,</span> <span class="mf">0.2550</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">torch</span><span class="o">.</span><span class="n">float32</span></a><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;coefficients&quot;</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">V_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">:</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span></a><span class="p">)</span> <span class="o">-&gt;</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span></a><span class="p">:</span>
+        <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">return</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.sum.html#torch.sum" title="torch.sum" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">sum</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">V</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">:</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span></a><span class="p">)</span> <span class="o">-&gt;</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span></a><span class="p">:</span>
+        <span class="k">return</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+
+
+<span class="n">physics2</span> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class"><span class="n">DecolorizeSVD</span></a><span class="p">(</span><span class="n">noise_model</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.GaussianNoise.html#deepinv.physics.GaussianNoise" title="deepinv.physics.GaussianNoise" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span></a><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">0.1</span><span class="p">))</span>
+
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y2</span></a> <span class="o">=</span> <span class="n">physics2</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.plot.html#deepinv.utils.plot" title="deepinv.utils.plot" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span></a><span class="p">({</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y2</span></a><span class="p">,</span> <span class="s2">&quot;Linear pseudo-inverse&quot;</span><span class="p">:</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.A_dagger" title="deepinv.physics.DecomposablePhysics.A_dagger" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics2</span><span class="o">.</span><span class="n">A_dagger</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y2</span></a><span class="p">)})</span>
+
+<span class="k">if</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.adjointness_test" title="deepinv.physics.LinearPhysics.adjointness_test" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">adjointness_test</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-5</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The decomposable operator has a well defined transpose&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The decomposable operator has norm=</span><span class="si">{</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.compute_sqnorm" title="deepinv.physics.LinearPhysics.compute_sqnorm" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">compute_sqnorm</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_custom_physics_002.png" srcset="../../_images/sphx_glr_demo_custom_physics_002.png" alt="x, y, Linear pseudo-inverse" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>The decomposable operator has a well defined transpose
+Power iteration converged at iteration 2, ||A^T A||_2=0.45
+The decomposable operator has norm=0.45
+</pre></div>
+</div>
+</section>
+<section id="benefits-of-using-a-decomposable-forward-operator">
+<h2>Benefits of using a decomposable forward operator.<a class="headerlink" href="#benefits-of-using-a-decomposable-forward-operator" title="Link to this heading">#</a></h2>
+<p>The main benefit of using a decomposable forward operator is that it provides closed form solutions for the
+proximal operator and the linear pseudo-inverse. Moreover, some algorithms, such as <a class="reference internal" href="../../api/stubs/deepinv.sampling.DDRM.html#deepinv.sampling.DDRM" title="deepinv.sampling.DDRM"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DDRM</span></code></a>
+require the forward operator to be decomposable.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">sync_cuda</span><span class="p">():</span>
+    <span class="k">if</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">():</span>
+        <a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.synchronize.html#torch.cuda.synchronize" title="torch.cuda.synchronize" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">synchronize</span></a><span class="p">()</span>
+
+
+<span class="n">sync_cuda</span><span class="p">()</span>
+<a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">start</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.9/library/time.html#time.time" title="time.time" class="sphx-glr-backref-module-time sphx-glr-backref-type-py-function"><span class="n">time</span><span class="o">.</span><span class="n">time</span></a><span class="p">()</span>
+<span class="k">for</span> <a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">i</span></a> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xlin</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_dagger" title="deepinv.physics.LinearPhysics.A_dagger" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">)</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xprox</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.prox_l2" title="deepinv.physics.LinearPhysics.prox_l2" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">prox_l2</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+
+<span class="n">sync_cuda</span><span class="p">()</span>
+<a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">end</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.9/library/time.html#time.time" title="time.time" class="sphx-glr-backref-module-time sphx-glr-backref-type-py-function"><span class="n">time</span><span class="o">.</span><span class="n">time</span></a><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elapsed time for LinearPhysics: </span><span class="si">{</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">end</span></a><span class="w"> </span><span class="o">-</span><span class="w"> </span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">start</span></a><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+
+<span class="n">sync_cuda</span><span class="p">()</span>
+<a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">start</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.9/library/time.html#time.time" title="time.time" class="sphx-glr-backref-module-time sphx-glr-backref-type-py-function"><span class="n">time</span><span class="o">.</span><span class="n">time</span></a><span class="p">()</span>
+<span class="k">for</span> <a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">i</span></a> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xlin2</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.A_dagger" title="deepinv.physics.DecomposablePhysics.A_dagger" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics2</span><span class="o">.</span><span class="n">A_dagger</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">)</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">xprox2</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.prox_l2" title="deepinv.physics.DecomposablePhysics.prox_l2" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics2</span><span class="o">.</span><span class="n">prox_l2</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y2</span></a><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+
+<span class="n">sync_cuda</span><span class="p">()</span>
+<a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">end</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.9/library/time.html#time.time" title="time.time" class="sphx-glr-backref-module-time sphx-glr-backref-type-py-function"><span class="n">time</span><span class="o">.</span><span class="n">time</span></a><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elapsed time for DecomposablePhysics: </span><span class="si">{</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">end</span></a><span class="w"> </span><span class="o">-</span><span class="w"> </span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">start</span></a><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Elapsed time for LinearPhysics: 0.02 seconds
+Elapsed time for DecomposablePhysics: 2.27e-03 seconds
+</pre></div>
+</div>
+<p>🎉 Well done, you now know how to implement your own physics!</p>
+<section id="what-s-next">
+<h3>What’s next?<a class="headerlink" href="#what-s-next" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Check out <a class="reference internal" href="demo_pretrained_model.html#sphx-glr-auto-examples-basics-demo-pretrained-model-py"><span class="std std-ref">the example on how to inference a state-of-the-art general pretrained model</span></a> with your new physics.</p></li>
+<li><p>Check out the <a class="reference internal" href="../models/demo_foundation_model.html#sphx-glr-auto-examples-models-demo-foundation-model-py"><span class="std std-ref">example on how to fine-tune a foundation model</span></a> to your own physics.</p></li>
+</ul>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 1.325 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-basics-demo-custom-physics-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/18622f4a3fd14981b3f936fc8221271d/demo_custom_physics.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_custom_physics.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/ad174c57928b9ac2c9a785d6df428128/demo_custom_physics.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">demo_custom_physics.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/57df16b7767233f84e3f23d1d30244bd/demo_custom_physics.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">demo_custom_physics.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="demo_custom_dataset.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Bring your own dataset</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../models/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Models</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#creating-a-custom-forward-operator">Creating a custom forward operator.</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#test-physics">Test physics</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#implementing-a-closed-form-adjoint">Implementing a closed form adjoint</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#creating-a-decomposable-forward-operator">Creating a decomposable forward operator.</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#benefits-of-using-a-decomposable-forward-operator">Benefits of using a decomposable forward operator.</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#what-s-next">What’s next?</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/auto_examples/basics/demo_custom_physics.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+  <div class="sidebar-secondary-item">
+
+
+  <div class="sphx-glr-sidebar-component">
+    
+      
+        <div class="sphx-glr-sidebar-item sphx-glr-download-python-sidebar" title="demo_custom_physics.py">
+          <a download href="../../_downloads/ad174c57928b9ac2c9a785d6df428128/demo_custom_physics.py">
+            <i class="fa-solid fa-download"></i>
+            Download source code
+          </a>
+        </div>
+      
+    
+      
+        <div class="sphx-glr-sidebar-item sphx-glr-download-jupyter-sidebar" title="demo_custom_physics.ipynb">
+          <a download href="../../_downloads/18622f4a3fd14981b3f936fc8221271d/demo_custom_physics.ipynb">
+            <i class="fa-solid fa-download"></i>
+            Download Jupyter notebook
+          </a>
+        </div>
+      
+    
+      
+        <div class="sphx-glr-sidebar-item sphx-glr-download-zip-sidebar" title="demo_custom_physics.zip">
+          <a download href="../../_downloads/57df16b7767233f84e3f23d1d30244bd/demo_custom_physics.zip">
+            <i class="fa-solid fa-download"></i>
+            Download zipped
+          </a>
+        </div>
+      
+    
+  </div>
+</div>
+
+  <div class="sidebar-secondary-item">
+
+
+
+
+
+
+<div class="sd-card sd-shadow-sm sd-mb-3">
+  <div class="sd-card-body" style="display:flex; flex-direction:column; align-items:center; text-align:center;">
+    <p class="sd-card-text sd-fs-5 sd-font-weight-bold sd-mb-2" style="margin-bottom:0.75rem;">Run this example</p>
+
+  
+    <a class="sd-btn sd-btn-primary" style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:0.25rem; padding:0.5rem 0.75rem;" href="https://colab.research.google.com/github/deepinv/deepinv/blob/gh-pages/auto_examples/_notebooks/basics/demo_custom_physics.ipynb" target="_blank" rel="noopener">
+      <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="vertical-align: middle; height: 20px;">
+    </a>
+
+  </div>
+</div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

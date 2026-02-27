@@ -1,0 +1,1084 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Inverse scattering problem &#8212; deepinv 0.3.7 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=29d04658"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "inversename": "R", "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/physics/demo_scattering';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/auto_examples/physics/demo_scattering.html" />
+    <link rel="icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Single photon lidar operator for depth ranging." href="demo_lidar.html" />
+    <link rel="prev" title="Tour of MRI functionality in DeepInverse" href="demo_mri_tour.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">🎉 We are part of the <a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.</div>
+</aside>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.7 documentation - Home"/>
+    <img src="../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.7 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../basics/index.html">Basics</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_quickstart.html">5 minute quickstart tutorial</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_pretrained_model.html">Use a pretrained model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_custom_optim.html">Use iterative reconstruction algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_custom_dataset.html">Bring your own dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_custom_physics.html">Bring your own physics</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../models/index.html">Models</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../models/demo_foundation_model.html">Inference and fine-tune a foundation model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/demo_training.html">Training a reconstruction model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/demo_denoiser_tour.html">Benchmarking pretrained denoisers</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Physics</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="demo_physics_tour.html">Tour of forward sensing operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_blur_tour.html">Tour of blur operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_mri_tour.html">Tour of MRI functionality in DeepInverse</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Inverse scattering problem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_lidar.html">Single photon lidar operator for depth ranging.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_spc.html">Pattern Ordering in a Compressive Single Pixel Camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_spatial_unwrapping.html">Spatial unwrapping and modulo imaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_microscopy_3d.html">3D diffraction PSF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_remote_sensing.html">Remote sensing with satellite images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_phase_retrieval.html">Random phase retrieval and reconstruction methods.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_ptychography.html">Ptychography phase retrieval</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../optimization/index.html">Optimization</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_3D_denoising.html">3D denoising</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_epll.html">Expected Patch Log Likelihood (EPLL) for Denoising and Inpainting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_TV_minimisation.html">Image deblurring with Total-Variation (TV) prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_custom_prior.html">Image deblurring with custom deep explicit prior.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_wavelet_prior.html">Image inpainting with wavelet prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_patch_priors_CT.html">Patch priors for limited-angle computed tomography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_dip.html">Reconstructing an image using the deep image prior.</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../plug-and-play/index.html">Plug-and-Play</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_PnP_DPIR_deblur.html">DPIR method for PnP image deblurring.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_PnP_mirror_descent.html">Plug-and-Play algorithm with Mirror Descent for Poisson noise inverse problems.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_PnP_custom_optim.html">PnP with custom optimization algorithm (Primal-Dual Condat-Vu)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_RED_GSPnP_SR.html">Regularization by Denoising (RED) for Super-Resolution.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_vanilla_PnP.html">Vanilla PnP for computed tomography (CT).</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../sampling/index.html">Diffusion &amp; MCMC</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_custom_kernel.html">Building your custom MCMC sampling algorithm.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_diffusion_sde.html">Building your diffusion posterior sampling method using SDEs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_flow_matching.html">Flow-Matching for posterior sampling and unconditional generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_ddrm.html">Image reconstruction with a diffusion model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_dps.html">Implementing DPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_diffpir.html">Implementing DiffPIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_sampling.html">Uncertainty quantification with PnP-ULA.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_diffusers.html">Using state-of-the-art diffusion models from HuggingFace Diffusers with DeepInverse</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../unfolded/index.html">Unfolded</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_DEQ.html">Deep Equilibrium (DEQ) algorithms for image deblurring</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_LISTA.html">Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_learned_primal_dual.html">Learned Primal-Dual algorithm for CT scan.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_custom_prior_unfolded.html">Learned iterative custom prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_unfolded_constant_memory.html">Reducing the memory and computational complexity of unfolded network training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_unfolded_constrained_LISTA.html">Unfolded Chambolle-Pock for constrained image inpainting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_vanilla_unfolded.html">Vanilla Unfolded algorithm for super-resolution</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../blind-inverse-problems/index.html">Blind Inverse Problems</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../blind-inverse-problems/demo_blind_deblurring.html">Blind deblurring with kernel estimation network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blind-inverse-problems/demo_blind_denoising.html">Blind denoising with noise level estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blind-inverse-problems/demo_optimizing_physics_parameter.html">Calibrating physics operators</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../self-supervised-learning/index.html">Self-Supervised Learning</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_ei_transforms.html">Image transformations for Equivariant Imaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_transforms.html">Image transforms for equivariance &amp; augmentations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_poisson2sparse.html">Poisson denoising using Poisson2Sparse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_artifact2artifact.html">Self-supervised MRI reconstruction with Artifact2Artifact</a></li>
+
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_r2r_denoising.html">Self-supervised denoising with the Generalized R2R loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_n2n_denoising.html">Self-supervised denoising with the Neighbor2Neighbor loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_sure_denoising.html">Self-supervised denoising with the SURE loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_unsure.html">Self-supervised denoising with the UNSURE loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_multioperator_imaging.html">Self-supervised learning from incomplete measurements of multiple operators.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_equivariant_imaging.html">Self-supervised learning with Equivariant Imaging for MRI.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_splitting_loss.html">Self-supervised learning with measurement splitting</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../adversarial-learning/index.html">Adversarial Learning</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../adversarial-learning/demo_gan_imaging.html">Imaging inverse problems with adversarial networks</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../external-libraries/index.html">External Libraries</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_io.html">Loading scientific images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_astra_tomography.html">Low-dose CT with ASTRA backend and Total-Variation (TV) prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_ri_basic.html">Radio interferometric imaging with deepinverse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_connect_spyrit.html">Single-pixel imaging with Spyrit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_hf_dataset.html">Using HuggingFace datasets</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../distributed/index.html">Distributed Computing</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../distributed/demo_denoiser_distributed.html">Distributed Denoiser with Image Tiling</a></li>
+
+<li class="toctree-l2"><a class="reference internal" href="../distributed/demo_physics_distributed.html">Distributed Physics Operators</a></li>
+
+<li class="toctree-l2"><a class="reference internal" href="../distributed/demo_pnp_distributed.html">Distributed Plug-and-Play (PnP) Reconstruction</a></li>
+
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Examples</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Physics</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Inverse scattering problem</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p>New to DeepInverse? Get started with the basics with the
+<a class="reference internal" href="../basics/demo_quickstart.html#sphx-glr-auto-examples-basics-demo-quickstart-py"><span class="std std-ref">5 minute quickstart tutorial</span></a>..</p>
+</div>
+<section class="sphx-glr-example-title" id="inverse-scattering-problem">
+<span id="sphx-glr-auto-examples-physics-demo-scattering-py"></span><h1>Inverse scattering problem<a class="headerlink" href="#inverse-scattering-problem" title="Link to this heading">#</a></h1>
+<p>In this example we show how to use the <a class="reference internal" href="../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering" title="deepinv.physics.Scattering"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Scattering</span></code></a> forward model.</p>
+<p>The scattering inverse problem consists in reconstructing the contrast of an unknown object
+from measurements of the scattered wave field resulting from the interaction of an incident
+wave with the object.</p>
+<p>For each of the <span class="math notranslate nohighlight">\(i=1,\dots,T\)</span> transmitters, the 2D forward model is given by inhomogeneous Helmholtz equation (see e.g., <span id="id1">Soubies <em>et al.</em> [<a class="reference internal" href="../../user_guide/other/biblio.html#id15" title="Emmanuel Soubies, Thanh-An Pham, and Michael Unser. Efficient inversion of multiple-scattering model for optical diffraction tomography. Optics express, 25(18):21786–21800, 2017.">101</a>]</span>):</p>
+<div class="math notranslate nohighlight">
+\[\nabla^2 u_i(\mathbf{r}) + k^2(\mathbf{r})  u_i(\mathbf{r}) = - (k^2(\mathbf{r}) - k^2_b)  v_i(\mathbf{r})  \quad \mathbf{r} \in \mathbb{R}^2\]</div>
+<p>where <span class="math notranslate nohighlight">\(u_i\)</span> is the (unknown) scattered field, <span class="math notranslate nohighlight">\(k_b\)</span> is the (known scalar) wavenumber of the incident wave in the background medium,
+<span class="math notranslate nohighlight">\(k(\mathbf{r})\)</span> is the (unknown) spatially-varying wavenumber of the object to be recovered,
+and <span class="math notranslate nohighlight">\(v_i\)</span> is the incident field generated by the ith transmitter in the absence of the object.
+The total field (scattered + incident) is measured at <span class="math notranslate nohighlight">\(R\)</span> different receiver locations surrounding the object.</p>
+<p>Parametrizing the unknown spatially-varying wavenumber as <span class="math notranslate nohighlight">\(k^2(\mathbf{r}) = k_b^2 (x(\mathbf{r})+1)\)</span>, where
+<span class="math notranslate nohighlight">\(k_b\)</span> is the background wavenumber, and <span class="math notranslate nohighlight">\(x = k^2/k_b^2 - 1\)</span> is the scattering potential of the object to be recovered,
+the forward problem can be reformulated in the <strong>Lippmann-Schwinger</strong> integral equation form:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}u_i &amp;= g * \left( x \circ (u_i+v_i) \right) \\
+y_i &amp;= G_s \left( x \circ (u_i+v_i) \right)\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(g(\mathbf{r}) = k_b^2 \frac{i}{4} H_0^1(k_b\|\mathbf{r}\|)\)</span> is Green’s function in 2D (normalized by <span class="math notranslate nohighlight">\(k_b^2\)</span>),
+<span class="math notranslate nohighlight">\(y \in \mathbb{C}^{R}\)</span> are the measurements at the receivers for the ith transmitter,
+and <span class="math notranslate nohighlight">\(G_s\)</span> denotes the convolution with Green’s operator plus sampling at the <span class="math notranslate nohighlight">\(R\)</span> different receiver locations.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>This parametrization ensures that the scattering potential <span class="math notranslate nohighlight">\(x\)</span> is dimensionless, and can be used for different physical
+modalities:
+In <strong>microwave tomography</strong> applications, the scattering potential is related to the object’s relative permittivity <span class="math notranslate nohighlight">\(\epsilon_r\)</span> as <span class="math notranslate nohighlight">\(x(\mathbf{r}) = \epsilon_r(\mathbf{r}) - 1\)</span>.
+In <strong>optical diffraction tomography</strong>, the scattering potential is related to the refractive index <span class="math notranslate nohighlight">\(n\)</span> as <span class="math notranslate nohighlight">\(x(\mathbf{r}) = n^2(\mathbf{r}) - 1\)</span>.</p>
+<p>Moreover, the wavenumber can be also provided in a dimensionless form by normalizing it with respect to the box length <span class="math notranslate nohighlight">\(L\)</span> as <span class="math notranslate nohighlight">\(k_b = 2 \pi L / \lambda\)</span>,
+where <span class="math notranslate nohighlight">\(\lambda\)</span> is the wavelength of the incident wave.</p>
+</div>
+<p>This example shows how to define the scattering forward model, generate measurements,
+and perform reconstructions (i.e., recover the contrast of the object) using both a linear (Born approximation) solver and a non-linear
+gradient descent solver. We also explore the trade-off between resolution and non-linearity
+by varying the wavenumber of the incident wave.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">deepinv</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dinv</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+
+<a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.get_freer_gpu.html#deepinv.utils.get_freer_gpu" title="deepinv.utils.get_freer_gpu" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_freer_gpu</span></a><span class="p">()</span> <span class="k">if</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+
+<a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_width</span></a> <span class="o">=</span> <span class="mi">32</span>
+
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.load_example.html#deepinv.utils.load_example" title="deepinv.utils.load_example" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">load_example</span></a><span class="p">(</span>
+    <span class="s2">&quot;SheppLogan.png&quot;</span><span class="p">,</span>
+    <span class="n">img_size</span><span class="o">=</span><a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_width</span></a><span class="p">,</span>
+    <span class="n">resize_mode</span><span class="o">=</span><span class="s2">&quot;resize&quot;</span><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <span class="n">grayscale</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">contrast</span></a> <span class="o">=</span> <span class="p">(</span>
+    <span class="mf">0.5</span> <span class="k">if</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a> <span class="o">!=</span> <span class="s2">&quot;cpu&quot;</span> <span class="k">else</span> <span class="mf">0.1</span>
+<span class="p">)</span>  <span class="c1"># reduce contrast for CPU for faster convergence</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">*</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">contrast</span></a>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.metric.PSNR.html#deepinv.loss.metric.PSNR" title="deepinv.loss.metric.distortion.PSNR" class="sphx-glr-backref-module-deepinv-loss-metric-distortion sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psnr</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.metric.PSNR.html#deepinv.loss.metric.PSNR" title="deepinv.loss.metric.distortion.PSNR" class="sphx-glr-backref-module-deepinv-loss-metric-distortion sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">PSNR</span></a><span class="p">(</span><span class="n">max_pixel</span><span class="o">=</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">contrast</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Selected GPU 0 with 8057.25 MiB free memory
+</pre></div>
+</div>
+<section id="define-the-forward-model">
+<h2>Define the forward model<a class="headerlink" href="#define-the-forward-model" title="Link to this heading">#</a></h2>
+<p>We define a scattering forward model with circularly distributed transmitters and receivers.</p>
+<p>The forward operator internally solves the Lippmann-Schwinger equation for the scattered field of each
+transmitter:</p>
+<div class="math notranslate nohighlight">
+\[u_i = g * \left(x \circ (u_i + v_i) \right)\]</div>
+<p>using a linear system solver, which aims at finding the solution <span class="math notranslate nohighlight">\(u_i\)</span> of</p>
+<div class="math notranslate nohighlight">
+\[\left(I - G_s \text{diag}(x)\right) u_i = b_i\]</div>
+<p>where <span class="math notranslate nohighlight">\(G_s\)</span> is the convolution operator with Green’s function <span class="math notranslate nohighlight">\(g\)</span>, and <span class="math notranslate nohighlight">\(b_i = G_s (x \circ v_i)\)</span>.</p>
+<p>This linear system becomes highly ill-conditioned for high contrast objects (i.e., large <span class="math notranslate nohighlight">\(\|x\|_{\infty}\)</span>) and/or high wavenumber
+(which induces a high spectral norm of the Green operator <span class="math notranslate nohighlight">\(\|G_s\|_2\)</span>), and the solver
+may fail to converge. In that case, one can try to increase the number of iterations, or change the solver (see
+<a class="reference internal" href="../../api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.SolverConfig" title="deepinv.physics.Scattering.SolverConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Scattering.SolverConfig</span></code></a> for more details).</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sensors</span></a> <span class="o">=</span> <span class="mi">32</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">transmitters</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">receivers</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.scattering.circular_sensors.html#deepinv.physics.scattering.circular_sensors" title="deepinv.physics.scattering.circular_sensors" class="sphx-glr-backref-module-deepinv-physics-scattering sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">scattering</span><span class="o">.</span><span class="n">circular_sensors</span></a><span class="p">(</span>
+    <a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sensors</span></a><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a>
+<span class="p">)</span>
+<a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wavenumber</span></a> <span class="o">=</span> <span class="mi">5</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">torch</span><span class="o">.</span><span class="n">pi</span></a><span class="p">)</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.SolverConfig" title="deepinv.physics.scattering.Scattering.SolverConfig" class="sphx-glr-backref-module-deepinv-physics-scattering-Scattering sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">config</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.SolverConfig" title="deepinv.physics.scattering.Scattering.SolverConfig" class="sphx-glr-backref-module-deepinv-physics-scattering-Scattering sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Scattering</span><span class="o">.</span><span class="n">SolverConfig</span></a><span class="p">(</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">&quot;lsqr&quot;</span><span class="p">,</span> <span class="n">adjoint_state</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering" title="deepinv.physics.Scattering" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering" title="deepinv.physics.Scattering" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Scattering</span></a><span class="p">(</span>
+    <a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_width</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_width</span></a><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <span class="n">background_wavenumber</span><span class="o">=</span><a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wavenumber</span></a><span class="p">,</span>
+    <span class="n">solver_config</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.SolverConfig" title="deepinv.physics.scattering.Scattering.SolverConfig" class="sphx-glr-backref-module-deepinv-physics-scattering-Scattering sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">config</span></a><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">transmitters</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">transmitters</span></a><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">receivers</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">receivers</span></a><span class="p">,</span>
+<span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.normalize" title="deepinv.physics.Scattering.normalize" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">normalize</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.set_verbose" title="deepinv.physics.Scattering.set_verbose" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">set_verbose</span></a><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering" title="deepinv.physics.Scattering" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>LSQR converged at iteration 23
+</pre></div>
+</div>
+</section>
+<section id="visualize-sensor-positions">
+<h2>Visualize sensor positions<a class="headerlink" href="#visualize-sensor-positions" title="Link to this heading">#</a></h2>
+<p>In this example, we assume we have 64 sensors that can be used both as transmitters and receivers,
+placed on a circle of radius 1 around the object. Each transmitter emits a cylindrical wave, and the rest of the sensors
+measure the scattered field.
+We first visualize the position of the first transmitter and its associated receivers.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.figure.html#matplotlib.pyplot.figure" title="matplotlib.pyplot.figure" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">figure</span></a><span class="p">()</span>
+<a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.scatter.html#matplotlib.pyplot.scatter" title="matplotlib.pyplot.scatter" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">scatter</span></a><span class="p">(</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">transmitters</span></a><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">transmitters</span></a><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Transmitter&quot;</span>
+<span class="p">)</span>
+<a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.scatter.html#matplotlib.pyplot.scatter" title="matplotlib.pyplot.scatter" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">scatter</span></a><span class="p">(</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">receivers</span></a><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">receivers</span></a><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Receivers&quot;</span>
+<span class="p">)</span>
+<span class="c1"># draw square of length1</span>
+<a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html#matplotlib.pyplot.plot" title="matplotlib.pyplot.plot" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">plot</span></a><span class="p">(</span>
+    <span class="p">[</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">],</span>
+    <span class="p">[</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">],</span>
+    <span class="n">c</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span>
+    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;box where object is located&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.legend.html#matplotlib.pyplot.legend" title="matplotlib.pyplot.legend" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">legend</span></a><span class="p">()</span>
+<a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.title.html#matplotlib.pyplot.title" title="matplotlib.pyplot.title" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">title</span></a><span class="p">(</span><span class="s2">&quot;First transmitter and associated receiver positions&quot;</span><span class="p">)</span>
+<a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axis.html#matplotlib.pyplot.axis" title="matplotlib.pyplot.axis" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">axis</span></a><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+<a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.show.html#matplotlib.pyplot.show" title="matplotlib.pyplot.show" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">show</span></a><span class="p">()</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_scattering_001.png" srcset="../../_images/sphx_glr_demo_scattering_001.png" alt="First transmitter and associated receiver positions" class = "sphx-glr-single-img"/></section>
+<section id="visualize-incident-and-total-fields">
+<h2>Visualize incident and total fields<a class="headerlink" href="#visualize-incident-and-total-fields" title="Link to this heading">#</a></h2>
+<p>We now visualize the incident and scattered fields for the first transmitter.
+The incident field <span class="math notranslate nohighlight">\(v_i\)</span> is the field that would be present in the absence of the object,
+while the total field <span class="math notranslate nohighlight">\(u_i + v_i\)</span> is the sum of the incident and scattered fields.</p>
+<p>Since the fields are complex-valued, we only visualize their real part here.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">incident_field</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span><span class="o">.</span><span class="n">incident_field</span></a>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">scattered_field</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.compute_total_field" title="deepinv.physics.Scattering.compute_total_field" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">compute_total_field</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span> <span class="o">-</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">incident_field</span></a>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.plot.html#deepinv.utils.plot" title="deepinv.utils.plot" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span></a><span class="p">(</span>
+    <span class="p">[</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">incident_field</span></a><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">scattered_field</span></a><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="p">],</span>
+    <a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">titles</span></a><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Incident field&quot;</span><span class="p">,</span> <span class="s2">&quot;Scattered field&quot;</span><span class="p">],</span>
+    <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_scattering_002.png" srcset="../../_images/sphx_glr_demo_scattering_002.png" alt="Incident field, Scattered field" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>LSQR converged at iteration 23
+</pre></div>
+</div>
+</section>
+<section id="computing-gradients-through-the-physics-operator">
+<h2>Computing gradients through the physics operator<a class="headerlink" href="#computing-gradients-through-the-physics-operator" title="Link to this heading">#</a></h2>
+<p>The gradient computation is fully compatible with PyTorch autograd, allowing to
+easily plug this physics operator into more complex optimization or learning-based algorithms.</p>
+<p>Gradients can be computed with less memory using the adjoint-state method under the hood, requiring a single additional solver pass per
+gradient evaluation (see e.g. <span id="id2">Soubies <em>et al.</em> [<a class="reference internal" href="../../user_guide/other/biblio.html#id15" title="Emmanuel Soubies, Thanh-An Pham, and Michael Unser. Efficient inversion of multiple-scattering model for optical diffraction tomography. Optics express, 25(18):21786–21800, 2017.">101</a>]</span>), and does not require storing all intermediate variables (as in standard backpropagation via PyTorch autograd).
+Here we show that the gradients computed using the adjoint-state method are consistent with those computed via standard PyTorch autograd.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are using a GPU, the peak memory usage during gradient computation is also displayed for comparison.</p>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">compute_grad</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering" title="deepinv.physics.Scattering" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">):</span>
+    <span class="k">if</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a> <span class="o">!=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">reset_peak_memory_stats</span><span class="p">()</span>  <span class="c1"># Reset peak memory tracking</span>
+
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_</span></a><span class="p">[</span>
+        <span class="o">...</span><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_width</span></a> <span class="o">//</span> <span class="mi">4</span> <span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_width</span></a> <span class="o">//</span> <span class="mi">4</span><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_width</span></a> <span class="o">//</span> <span class="mi">4</span> <span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_width</span></a> <span class="o">//</span> <span class="mi">4</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_</span></a><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">y_</span> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.A" title="deepinv.physics.Scattering.A" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">A</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_</span></a><span class="p">)</span>
+    <span class="n">error</span> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.mean.html#torch.mean" title="torch.mean" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">mean</span></a><span class="p">((</span><span class="n">y_</span> <span class="o">-</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grad</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.autograd.grad.html#torch.autograd.grad" title="torch.autograd.grad" class="sphx-glr-backref-module-torch-autograd sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span></a><span class="p">(</span><span class="n">error</span><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_</span></a><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a> <span class="o">!=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Peak GPU memory usage for grad computation: &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">max_memory_allocated</span><span class="p">()</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1e6</span><span class="w"> </span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> MB&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grad</span></a>
+
+
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grad</span></a> <span class="o">=</span> <span class="n">compute_grad</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering" title="deepinv.physics.Scattering" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">)</span>
+<span class="c1"># set solver to not use adjoint state</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.SolverConfig" title="deepinv.physics.scattering.Scattering.SolverConfig" class="sphx-glr-backref-module-deepinv-physics-scattering-Scattering sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">config2</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.SolverConfig" title="deepinv.physics.scattering.Scattering.SolverConfig" class="sphx-glr-backref-module-deepinv-physics-scattering-Scattering sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Scattering</span><span class="o">.</span><span class="n">SolverConfig</span></a><span class="p">(</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">&quot;lsqr&quot;</span><span class="p">,</span> <span class="n">adjoint_state</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.set_solver" title="deepinv.physics.Scattering.set_solver" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">set_solver</span></a><span class="p">(</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.SolverConfig" title="deepinv.physics.scattering.Scattering.SolverConfig" class="sphx-glr-backref-module-deepinv-physics-scattering-Scattering sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">config2</span></a><span class="p">)</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grad2</span></a> <span class="o">=</span> <span class="n">compute_grad</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering" title="deepinv.physics.Scattering" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">)</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.plot.html#deepinv.utils.plot" title="deepinv.utils.plot" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span></a><span class="p">(</span>
+    <span class="p">[</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_</span><span class="o">.</span><span class="n">real</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grad</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grad2</span></a><span class="p">],</span>
+    <a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">titles</span></a><span class="o">=</span><span class="p">[</span>
+        <span class="s2">&quot;Image where grad is computed&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Grad with adjoint state&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Grad via Pytorch autograd&quot;</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Difference between gradients:&quot;</span><span class="p">,</span> <span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grad</span></a> <span class="o">-</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">grad2</span></a><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+
+<span class="c1"># go back to adjoint state solver</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.set_solver" title="deepinv.physics.Scattering.set_solver" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">set_solver</span></a><span class="p">(</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.SolverConfig" title="deepinv.physics.scattering.Scattering.SolverConfig" class="sphx-glr-backref-module-deepinv-physics-scattering-Scattering sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">config</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_scattering_003.png" srcset="../../_images/sphx_glr_demo_scattering_003.png" alt="Image where grad is computed, Grad with adjoint state, Grad via Pytorch autograd" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>LSQR converged at iteration 22
+LSQR converged at iteration 21
+Peak GPU memory usage for grad computation: 61.3 MB
+Peak GPU memory usage for grad computation: 180.2 MB
+Difference between gradients: 1.081687628357031e-09
+</pre></div>
+</div>
+</section>
+<section id="reconstruction-with-linear-born-approximation-solver">
+<h2>Reconstruction with linear (Born approximation) solver<a class="headerlink" href="#reconstruction-with-linear-born-approximation-solver" title="Link to this heading">#</a></h2>
+<p>The born (first-order) approximation consists in assuming that the scattered field is small
+compared to the incident field, i.e., <span class="math notranslate nohighlight">\(u_i \ll v_i\)</span>. This allows to
+approximate the Lippmann-Schwinger equation as:</p>
+<div class="math notranslate nohighlight">
+\[y_i = G_s \left(x \circ v_i\right)\]</div>
+<p>which is a linear forward model in <span class="math notranslate nohighlight">\(x\)</span>. This linear model can be inverted
+using its linear pseudo-inverse, computed with a linear solver.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.set_verbose" title="deepinv.physics.Scattering.set_verbose" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">set_verbose</span></a><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_lin</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.A_dagger" title="deepinv.physics.Scattering.A_dagger" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <span class="n">linear</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PSNR of Born approximation: </span><span class="si">{</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.metric.PSNR.html#deepinv.loss.metric.PSNR" title="deepinv.loss.metric.distortion.PSNR" class="sphx-glr-backref-module-deepinv-loss-metric-distortion sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psnr</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span><span class="w"> </span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_lin</span></a><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">2f</span><span class="si">}</span><span class="s2"> dB&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>PSNR of Born approximation: 14.543628 dB
+</pre></div>
+</div>
+</section>
+<section id="reconstruction-with-gradient-descent">
+<h2>Reconstruction with gradient descent<a class="headerlink" href="#reconstruction-with-gradient-descent" title="Link to this heading">#</a></h2>
+<p>The linear Born approximation is only valid for weakly scattering objects.
+We now perform a non-linear reconstruction using gradient descent to minimize the
+least-squares data-fidelity term:</p>
+<div class="math notranslate nohighlight">
+\[\min_x \frac{1}{2} \sum_{i=1}^T \| y_i - A_i(x) \|_2^2\]</div>
+<p>where <span class="math notranslate nohighlight">\(A_i(x)\)</span> is the non-linear forward operator for the ith transmitter, given by the Lippmann-Schwinger equation above.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We can use a step size of 1 here since we have normalized the physics operator to have
+a (local) Lipschitz constant of 1.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Here we only do 50 iterations for demonstration purposes. In practice, more iterations may be needed
+to reach convergence.</p>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.optim.L2.html#deepinv.optim.L2" title="deepinv.optim.L2" class="sphx-glr-backref-module-deepinv-optim sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data_fid</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.optim.L2.html#deepinv.optim.L2" title="deepinv.optim.L2" class="sphx-glr-backref-module-deepinv-optim sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">L2</span></a><span class="p">()</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.optim.GD.html#deepinv.optim.GD" title="deepinv.optim.GD" class="sphx-glr-backref-module-deepinv-optim sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gd_solver</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.optim.GD.html#deepinv.optim.GD" title="deepinv.optim.GD" class="sphx-glr-backref-module-deepinv-optim sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">GD</span></a><span class="p">(</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">data_fidelity</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.optim.L2.html#deepinv.optim.L2" title="deepinv.optim.L2" class="sphx-glr-backref-module-deepinv-optim sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">data_fid</span></a><span class="p">,</span>
+    <span class="n">stepsize</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">custom_init</span><span class="o">=</span><span class="k">lambda</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering" title="deepinv.physics.Scattering" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">:</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.A_dagger" title="deepinv.physics.Scattering.A_dagger" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <span class="n">linear</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">)</span>
+
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_gd</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.optim.GD.html#deepinv.optim.GD" title="deepinv.optim.GD" class="sphx-glr-backref-module-deepinv-optim sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gd_solver</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering" title="deepinv.physics.Scattering" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PSNR of gradient descent reconstruction: </span><span class="si">{</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.metric.PSNR.html#deepinv.loss.metric.PSNR" title="deepinv.loss.metric.distortion.PSNR" class="sphx-glr-backref-module-deepinv-loss-metric-distortion sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psnr</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span><span class="w"> </span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_gd</span></a><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> dB&quot;</span><span class="p">)</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.plot.html#deepinv.utils.plot" title="deepinv.utils.plot" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span></a><span class="p">(</span>
+    <span class="p">[</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_lin</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_gd</span></a><span class="p">],</span>
+    <a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">titles</span></a><span class="o">=</span><span class="p">[</span>
+        <span class="s2">&quot;ground truth&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;Born approximation</span><span class="se">\n</span><span class="s2">PSNR=</span><span class="si">{</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.metric.PSNR.html#deepinv.loss.metric.PSNR" title="deepinv.loss.metric.distortion.PSNR" class="sphx-glr-backref-module-deepinv-loss-metric-distortion sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psnr</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span><span class="w"> </span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_lin</span></a><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">dB&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;Gradient descent</span><span class="se">\n</span><span class="s2">PSNR=</span><span class="si">{</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.metric.PSNR.html#deepinv.loss.metric.PSNR" title="deepinv.loss.metric.distortion.PSNR" class="sphx-glr-backref-module-deepinv-loss-metric-distortion sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psnr</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span><span class="w"> </span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_gd</span></a><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">dB&quot;</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_scattering_004.png" srcset="../../_images/sphx_glr_demo_scattering_004.png" alt="ground truth, Born approximation PSNR=14.54dB, Gradient descent PSNR=23.68dB" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>PSNR of gradient descent reconstruction: 23.68 dB
+</pre></div>
+</div>
+</section>
+<section id="understanding-the-trade-off-between-resolution-and-non-linearity">
+<h2>Understanding the trade-off between resolution and non-linearity<a class="headerlink" href="#understanding-the-trade-off-between-resolution-and-non-linearity" title="Link to this heading">#</a></h2>
+<p>The background wavenumber <span class="math notranslate nohighlight">\(k_b\)</span> (or equivalently the frequency) of the transmitted wave
+plays a key role in the scattering process. Higher wavenumbers lead to smaller waves which
+can resolve smaller details in the object being imaged. However, higher wavenumbers also
+lead to stronger multiple scattering effects, since
+the non-linearity of the problem is roughly proportional to <span class="math notranslate nohighlight">\(\|x\|_{\infty} k_b\)</span> (i.e., the product of the object contrast and the wavenumber).</p>
+<p>We now compare the Born approximation reconstruction with a gradient descent reconstruction
+for different normalized wavenumbers (i.e. different resolutions).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This example requires a GPU to run in a reasonable time.</p>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a> <span class="o">!=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
+
+    <a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">imgs</span></a> <span class="o">=</span> <span class="p">[</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()]</span>
+    <a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">titles</span></a> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ground truth&quot;</span><span class="p">]</span>
+
+    <a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wavenumbers</span></a> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span>
+    <span class="k">for</span> <a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wavenumber</span></a> <span class="ow">in</span> <a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wavenumbers</span></a><span class="p">:</span>
+        <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering" title="deepinv.physics.Scattering" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering" title="deepinv.physics.Scattering" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Scattering</span></a><span class="p">(</span>
+            <a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_width</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">img_width</span></a><span class="p">,</span>
+            <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+            <span class="n">background_wavenumber</span><span class="o">=</span><a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wavenumber</span></a> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">torch</span><span class="o">.</span><span class="n">pi</span></a><span class="p">),</span>
+            <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">transmitters</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">transmitters</span></a><span class="p">,</span>
+            <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">receivers</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">receivers</span></a><span class="p">,</span>
+        <span class="p">)</span>
+        <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering.normalize" title="deepinv.physics.Scattering.normalize" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-method"><span class="n">physics</span><span class="o">.</span><span class="n">normalize</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+        <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering" title="deepinv.physics.Scattering" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+
+        <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_gd</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.optim.GD.html#deepinv.optim.GD" title="deepinv.optim.GD" class="sphx-glr-backref-module-deepinv-optim sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gd_solver</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Scattering.html#deepinv.physics.Scattering" title="deepinv.physics.Scattering" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">)</span>
+
+        <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">metric</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.metric.PSNR.html#deepinv.loss.metric.PSNR" title="deepinv.loss.metric.distortion.PSNR" class="sphx-glr-backref-module-deepinv-loss-metric-distortion sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">psnr</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_gd</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+        <a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">titles</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">titles</span></a> <span class="o">+</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;wavenumber=</span><span class="si">{</span><a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">wavenumber</span></a><span class="si">}</span><span class="s2"> </span><span class="se">\n</span><span class="s2"> PSNR=</span><span class="si">{</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">metric</span></a><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">dB&quot;</span><span class="p">]</span>
+        <a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">imgs</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">imgs</span></a> <span class="o">+</span> <span class="p">[</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_gd</span></a><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()]</span>
+
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.plot.html#deepinv.utils.plot" title="deepinv.utils.plot" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">imgs</span></a><span class="p">,</span> <a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">titles</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">titles</span></a><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_scattering_005.png" srcset="../../_images/sphx_glr_demo_scattering_005.png" alt="ground truth, wavenumber=1   PSNR=19.18dB, wavenumber=5   PSNR=23.68dB, wavenumber=7   PSNR=17.98dB" class = "sphx-glr-single-img"/></section>
+<section id="going-further">
+<h2>Going further<a class="headerlink" href="#going-further" title="Link to this heading">#</a></h2>
+<p>You can check out the following examples to go further:</p>
+<ul class="simple">
+<li><p>Try other sensor configurations, e.g., a linear array of transmitters on one side of the object, and receivers on the opposite side.</p></li>
+<li><p>Use a pretrained denoiser to perform plug-and-play reconstruction, as in <a class="reference internal" href="../plug-and-play/demo_vanilla_PnP.html#sphx-glr-auto-examples-plug-and-play-demo-vanilla-pnp-py"><span class="std std-ref">Vanilla PnP for computed tomography (CT).</span></a></p></li>
+<li><p>Learn a reconstruction network using an unrolled architecture, as in <a class="reference internal" href="../unfolded/demo_vanilla_unfolded.html#sphx-glr-auto-examples-unfolded-demo-vanilla-unfolded-py"><span class="std std-ref">Vanilla Unfolded algorithm for super-resolution</span></a>.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">References<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 49.609 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-physics-demo-scattering-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/96a631387aec4a1a9994f425f58e4c2f/demo_scattering.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_scattering.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/636aee0006e3b12703cec5a1c2e90517/demo_scattering.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">demo_scattering.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/28a56bea992e3841a3eef1bfb974fbd8/demo_scattering.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">demo_scattering.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="demo_mri_tour.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Tour of MRI functionality in DeepInverse</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="demo_lidar.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Single photon lidar operator for depth ranging.</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#define-the-forward-model">Define the forward model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visualize-sensor-positions">Visualize sensor positions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visualize-incident-and-total-fields">Visualize incident and total fields</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#computing-gradients-through-the-physics-operator">Computing gradients through the physics operator</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reconstruction-with-linear-born-approximation-solver">Reconstruction with linear (Born approximation) solver</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reconstruction-with-gradient-descent">Reconstruction with gradient descent</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#understanding-the-trade-off-between-resolution-and-non-linearity">Understanding the trade-off between resolution and non-linearity</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#going-further">Going further</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/auto_examples/physics/demo_scattering.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+  <div class="sidebar-secondary-item">
+
+
+  <div class="sphx-glr-sidebar-component">
+    
+      
+        <div class="sphx-glr-sidebar-item sphx-glr-download-python-sidebar" title="demo_scattering.py">
+          <a download href="../../_downloads/636aee0006e3b12703cec5a1c2e90517/demo_scattering.py">
+            <i class="fa-solid fa-download"></i>
+            Download source code
+          </a>
+        </div>
+      
+    
+      
+        <div class="sphx-glr-sidebar-item sphx-glr-download-jupyter-sidebar" title="demo_scattering.ipynb">
+          <a download href="../../_downloads/96a631387aec4a1a9994f425f58e4c2f/demo_scattering.ipynb">
+            <i class="fa-solid fa-download"></i>
+            Download Jupyter notebook
+          </a>
+        </div>
+      
+    
+      
+        <div class="sphx-glr-sidebar-item sphx-glr-download-zip-sidebar" title="demo_scattering.zip">
+          <a download href="../../_downloads/28a56bea992e3841a3eef1bfb974fbd8/demo_scattering.zip">
+            <i class="fa-solid fa-download"></i>
+            Download zipped
+          </a>
+        </div>
+      
+    
+  </div>
+</div>
+
+  <div class="sidebar-secondary-item">
+
+
+
+
+
+
+<div class="sd-card sd-shadow-sm sd-mb-3">
+  <div class="sd-card-body" style="display:flex; flex-direction:column; align-items:center; text-align:center;">
+    <p class="sd-card-text sd-fs-5 sd-font-weight-bold sd-mb-2" style="margin-bottom:0.75rem;">Run this example</p>
+
+  
+    <a class="sd-btn sd-btn-primary" style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:0.25rem; padding:0.5rem 0.75rem;" href="https://colab.research.google.com/github/deepinv/deepinv/blob/gh-pages/auto_examples/_notebooks/physics/demo_scattering.ipynb" target="_blank" rel="noopener">
+      <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="vertical-align: middle; height: 20px;">
+    </a>
+
+  </div>
+</div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

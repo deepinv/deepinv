@@ -1,0 +1,1311 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.datasets.datagenerator &#8212; deepinv 0.3.7 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=29d04658"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/datasets/datagenerator';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/datasets/datagenerator.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">🎉 We are part of the <a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.</div>
+</aside>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.7 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.7 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.datasets.datagenerator</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.datasets.datagenerator</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Any</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">Subset</span><span class="p">,</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.tensorlist</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorList</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics</span><span class="w"> </span><span class="kn">import</span> <span class="n">StackedPhysics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.datasets.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageDataset</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Physics</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.generator</span><span class="w"> </span><span class="kn">import</span> <span class="n">PhysicsGenerator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.transform</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transform</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_register_deprecated_attr</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">attr_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">attr_underscore_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">attr_initial_value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">deprecation_message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">doc</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Deprecate an instance attribute.</span>
+
+<span class="sd">    It wraps the attribute so that a warning is raised any time the attribute is read, written, or deleted.</span>
+
+<span class="sd">    :param self: The instance to which the attribute is added.</span>
+<span class="sd">    :param str attr_name: The name of the attribute to be deprecated.</span>
+<span class="sd">    :param str attr_underscore_name: The name of the internal attribute to store the value.</span>
+<span class="sd">    :param Any attr_initial_value: The initial value of the attribute.</span>
+<span class="sd">    :param str deprecation_message: The deprecation warning message to be shown.</span>
+<span class="sd">    :param str, None doc: The docstring for the deprecated attribute.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_underscore_name</span><span class="p">,</span> <span class="n">attr_initial_value</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">fget</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_underscore_name</span><span class="p">)</span>
+        <span class="c1"># warn last in case retrieval fails</span>
+        <span class="n">warn</span><span class="p">(</span><span class="n">deprecation_message</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">val</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">fset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_underscore_name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="c1"># warn last in case setting fails</span>
+        <span class="n">warn</span><span class="p">(</span><span class="n">deprecation_message</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">fdel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_underscore_name</span><span class="p">)</span>
+        <span class="c1"># warn last in case deletion fails</span>
+        <span class="n">warn</span><span class="p">(</span><span class="n">deprecation_message</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">attr_value</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">fget</span><span class="o">=</span><span class="n">fget</span><span class="p">,</span> <span class="n">fset</span><span class="o">=</span><span class="n">fset</span><span class="p">,</span> <span class="n">fdel</span><span class="o">=</span><span class="n">fdel</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="n">doc</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">attr_value</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="HDF5Dataset">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.HDF5Dataset.html#deepinv.datasets.HDF5Dataset">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HDF5Dataset</span><span class="p">(</span><span class="n">ImageDataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    DeepInverse HDF5 dataset</span>
+
+<span class="sd">    DeepInverse features its own file format for imaging datasets designed as a</span>
+<span class="sd">    subset of the `HDF5 file format &lt;https://www.hdfgroup.org/solutions/hdf5/&gt;`_.</span>
+<span class="sd">    A dataset in this format is typically obtained from a base dataset of ground-truth</span>
+<span class="sd">    images and measured through a forward operator using the function :func:`deepinv.datasets.generate_dataset`.</span>
+<span class="sd">    This class features the code to load them in memory.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Basics:</span>
+
+<span class="sd">    The file containing the dataset is opened in the constructor and remains</span>
+<span class="sd">    opened until the method :meth:`close` is called.</span>
+
+<span class="sd">    :param str path: Path to the HDF5 file containing the dataset.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Splits:</span>
+
+<span class="sd">    The dataset is structured in splits that are either freely named or</span>
+<span class="sd">    understood specifically as training and testing splits. By convention,</span>
+<span class="sd">    the training split is named ``train`` and the testing split ``test``.</span>
+<span class="sd">    In both cases, the parameter ``split`` can be used to select one of</span>
+<span class="sd">    the splits available in the dataset. For the specific case of training</span>
+<span class="sd">    and testing splits, they can be loaded in using the boolean parameter</span>
+<span class="sd">    ``train``. If ``train=True``, the training split is loaded, otherwise</span>
+<span class="sd">    the testing split is loaded.</span>
+
+<span class="sd">    By default, if neither ``split`` nor ``train`` is provided, it attempts to</span>
+<span class="sd">    load the training split. We don&#39;t recommend relying on this behaviour which</span>
+<span class="sd">    is likely to change in future versions of the library.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        If both ``split`` and ``train`` are provided, then ``split`` takes</span>
+<span class="sd">        precedence and ``train`` is ignored. We recommend that you only</span>
+<span class="sd">        specify one of the two parameters to avoid errors.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        A single instance of the class holds a single split of the dataset. If</span>
+<span class="sd">        you wish to load multiple splits, you must instantiate the class once</span>
+<span class="sd">        per split. See for instance :ref:`sphx_glr_auto_examples_models_demo_training.py`.</span>
+
+<span class="sd">    :param str, None split: The name of the split to load, for instance ``&quot;train&quot;``, ``&quot;test&quot;`` or `&quot;val&quot;``. It can be left unspecified if ``train`` is used instead.</span>
+<span class="sd">    :param bool train: If ``split`` is left unspecified, uses ``&quot;train&quot;`` as the split name if set to ``True`` and ``&quot;test&quot;`` otherwise. Note that if ``split`` is specified, this parameter is ignored with a warning.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Entries:</span>
+
+<span class="sd">    HDF5 datasets adhere to our `conventions for datasets &lt;https://deepinv.github.io/deepinv/user_guide/training/datasets.html&gt;`_.</span>
+<span class="sd">    In particular, their entries are either pairs of ground truth images and measuements ``(x, y)`` or triplets with additional</span>
+<span class="sd">    physics parameters ``(x, y, params)``. It is possible that the datast does not contain ground truth data and in this case</span>
+<span class="sd">    the ground truth is replaced by a scalar NaN tensor.</span>
+
+<span class="sd">    Physics parameters represent additional information about the measurement</span>
+<span class="sd">    process. For instance the mask for inpainting or the blur kernel for</span>
+<span class="sd">    deblurring. HDF5 datasets can contain the physics parameters used to</span>
+<span class="sd">    generate each set of measurements and in that case, they are returned with</span>
+<span class="sd">    each entry as a dictionary as long as the parameter</span>
+<span class="sd">    ``load_physics_generator_params`` is set to ``True``. Note that if the</span>
+<span class="sd">    parameter is set and the dataset does not contain any physics parameter, an</span>
+<span class="sd">    empty dictionary is returned nonetheless.</span>
+
+<span class="sd">    Measurements intended to be used with :class:`deepinv.physics.StackedPhysics` are stored across multiple members of</span>
+<span class="sd">    the HDF5 file, one per operator. In that case, member names follow the format ``y{i}_{split_name}`` where ``i``</span>
+<span class="sd">    denotes the stack index (starting at 0) and they are loaded as a :class:`deepinv.utils.tensorlist.TensorList`.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        Physics parameters are identified using a fallback logic. Namely, every member with a name of the form ``{prefix}_{split_name}``</span>
+<span class="sd">        that is neither interpreted as containing ground truths or measurements (including stacked measurements) defaults</span>
+<span class="sd">        to being interpreted as containing physics parameter, with ``prefix`` denoting the parameter name.</span>
+<span class="sd">        In particular, the joint presence of physics parameters and stacked measurements is generally supported as long</span>
+<span class="sd">        as custom physics parameter names cannot be misinterpreted as ground truth or measurements names, for instance</span>
+<span class="sd">        ``x``, ``y``, and ``y0`` are unsupported parameter names.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        HDF5 datasets always contain measurements even though our conventions permit datasets</span>
+<span class="sd">        with only ground truths (with or without physics parameters).</span>
+
+<span class="sd">    :param bool load_physics_generator_params: Return the physics parameters with each entry. If no physics parameter is featured in the dataset, an empty dictionary is returned nonetheless.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Pre-processing:</span>
+
+<span class="sd">    The data loaded in from the disk is not necessarily returned as is. The</span>
+<span class="sd">    pre-processing pipeline contains two steps. First, the real and complex</span>
+<span class="sd">    numbers are cast to user-provided dtypes using the parameters ``dtype``</span>
+<span class="sd">    and ``complex_dtype``. Then, an optional transform provided by the user</span>
+<span class="sd">    through the parameter ``transform`` is applied to the ground truth</span>
+<span class="sd">    image.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The user-provided transformation is only applied to the ground truth</span>
+<span class="sd">        image. It does not affect the measurements or the physics parameters.</span>
+
+<span class="sd">    :param torch.dtype, str dtype: The dtype for real-valued numbers, by default ``torch.float``.</span>
+<span class="sd">    :param torch.dtype, str complex_dtype: The dtype for complex-valued numbers, by default ``torch.cfloat``.</span>
+<span class="sd">    :param Transform, Callable, None transform: An optional transformation applied to the ground truth.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">transform</span><span class="p">:</span> <span class="n">Transform</span> <span class="o">|</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">load_physics_generator_params</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+        <span class="n">complex_dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cfloat</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Process ground truths</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Process measurements</span>
+        <span class="n">attrs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">attrs</span>
+        <span class="n">marked_stacked</span> <span class="o">=</span> <span class="s2">&quot;stacked&quot;</span> <span class="ow">in</span> <span class="n">attrs</span>
+        <span class="n">stacked</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stacked&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">marked_stacked</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">stacked</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Process forward operator parameters</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">load_physics_generator_params</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="c1"># Register members in the HDF5 file as ground truths, parts of stacked</span>
+        <span class="c1"># measurements or regular measurements and forward operator parameters</span>
+        <span class="k">if</span> <span class="n">split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">train</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;The parameters &#39;split&#39; and &#39;train&#39; are both provided. The parameter &#39;split&#39; takes precedence and &#39;train&#39; is ignored.&quot;</span><span class="p">,</span>
+                    <span class="ne">UserWarning</span><span class="p">,</span>
+                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="n">split_name</span> <span class="o">=</span> <span class="n">split</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">train</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Neither &#39;split&#39; nor &#39;train&#39; parameters are provided. Defaulting to loading the &#39;train&#39; split. This behaviour is likely to change in future versions of the library.&quot;</span><span class="p">,</span>
+                    <span class="ne">UserWarning</span><span class="p">,</span>
+                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">train</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">split_name</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span> <span class="k">if</span> <span class="n">train</span> <span class="k">else</span> <span class="s2">&quot;test&quot;</span>
+        <span class="n">split_suffix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;_</span><span class="si">{</span><span class="n">split_name</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="c1"># We make sure that the split contains as many xs as ys and params.</span>
+        <span class="n">split_size</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">update_split_size</span><span class="p">(</span><span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">nonlocal</span> <span class="n">split_size</span>
+            <span class="k">if</span> <span class="n">split_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">split_size</span> <span class="o">=</span> <span class="n">size</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">split_size</span> <span class="o">!=</span> <span class="n">size</span><span class="p">:</span>
+                    <span class="n">warn</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Found different sizes for split </span><span class="si">{</span><span class="n">split_name</span><span class="si">}</span><span class="s2"> between fields, </span><span class="si">{</span><span class="n">split_size</span><span class="si">}</span><span class="s2"> for previous fields and </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2"> for field </span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">. Using the minimum size. There is most likely an error with the dataset.&quot;</span><span class="p">,</span>
+                        <span class="ne">UserWarning</span><span class="p">,</span>
+                        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="c1"># Using min we can still load the data, only losing some samples.</span>
+                <span class="n">split_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">split_size</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">member_name</span><span class="p">,</span> <span class="n">member</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># Only register members corresponding to the selected split</span>
+            <span class="k">if</span> <span class="n">member_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">split_suffix</span><span class="p">):</span>
+                <span class="c1"># Get the attribute name by stripping the split suffix</span>
+                <span class="n">attr_name</span> <span class="o">=</span> <span class="n">member_name</span><span class="p">[:</span> <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">split_suffix</span><span class="p">)]</span>
+                <span class="c1"># Register the ground truths</span>
+                <span class="k">if</span> <span class="n">attr_name</span> <span class="o">==</span> <span class="s2">&quot;x&quot;</span><span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">member</span>
+                    <span class="n">update_split_size</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">field_name</span><span class="o">=</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>
+                <span class="c1"># Register the measurements</span>
+                <span class="k">elif</span> <span class="n">attr_name</span> <span class="o">==</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">marked_stacked</span><span class="p">:</span>
+                        <span class="n">y</span> <span class="o">=</span> <span class="n">member</span>
+                        <span class="n">update_split_size</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">field_name</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">warn</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Dataset marked as stacked but found unstacked member </span><span class="si">{</span><span class="n">member_name</span><span class="si">}</span><span class="s2">. There is probably an error with the dataset.&quot;</span><span class="p">,</span>
+                            <span class="ne">UserWarning</span><span class="p">,</span>
+                            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                        <span class="p">)</span>
+                <span class="c1"># Register parts of the stacked measurements and forward operator parameters</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Other members are understood as parameters except if they are stacked measurements</span>
+                    <span class="n">registered_as_measurements</span> <span class="o">=</span> <span class="kc">False</span>
+
+                    <span class="c1"># Register part of the stacked measurements</span>
+                    <span class="c1"># Example target values for member_name: &quot;y0_train&quot;, &quot;y1_train&quot;, ...</span>
+                    <span class="k">if</span> <span class="n">attr_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">):</span>
+                        <span class="n">stacking_needle</span> <span class="o">=</span> <span class="n">attr_name</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                        <span class="c1"># If needle is the canonical base 10 representation of a non-negative integer</span>
+                        <span class="k">if</span> <span class="p">(</span>
+                            <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;0|[1-9]\d*&quot;</span><span class="p">,</span> <span class="n">stacking_needle</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">ASCII</span><span class="p">)</span>
+                            <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                        <span class="p">):</span>
+                            <span class="n">stacking_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">stacking_needle</span><span class="p">)</span>
+                            <span class="c1"># If the stacking index is in the target range</span>
+                            <span class="k">if</span> <span class="n">stacking_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">stacked</span><span class="p">):</span>
+                                <span class="k">if</span> <span class="n">marked_stacked</span><span class="p">:</span>
+                                    <span class="n">registered_as_measurements</span> <span class="o">=</span> <span class="kc">True</span>
+                                    <span class="n">y</span><span class="p">[</span><span class="n">stacking_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">member</span>
+                                    <span class="n">update_split_size</span><span class="p">(</span>
+                                        <span class="nb">len</span><span class="p">(</span><span class="n">member</span><span class="p">),</span>
+                                        <span class="n">field_name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;y</span><span class="si">{</span><span class="n">stacking_index</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                                    <span class="p">)</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="n">warn</span><span class="p">(</span>
+                                        <span class="sa">f</span><span class="s2">&quot;Dataset not marked as stacked but found stacked member </span><span class="si">{</span><span class="n">member_name</span><span class="si">}</span><span class="s2">. There is probably an error with the dataset.&quot;</span><span class="p">,</span>
+                                        <span class="ne">UserWarning</span><span class="p">,</span>
+                                        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                    <span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">warn</span><span class="p">(</span>
+                                    <span class="sa">f</span><span class="s2">&quot;Found stacked measurement member </span><span class="si">{</span><span class="n">member_name</span><span class="si">}</span><span class="s2"> with stacking index </span><span class="si">{</span><span class="n">stacking_index</span><span class="si">}</span><span class="s2"> outside of the expected range [0, </span><span class="si">{</span><span class="n">stacked</span><span class="si">}</span><span class="s2">). There is probably an error with the dataset.&quot;</span><span class="p">,</span>
+                                    <span class="ne">UserWarning</span><span class="p">,</span>
+                                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                <span class="p">)</span>
+
+                    <span class="c1"># Register the forward operator parameters</span>
+                    <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">registered_as_measurements</span><span class="p">:</span>
+                        <span class="n">params</span><span class="p">[</span><span class="n">attr_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">member</span>
+                        <span class="n">update_split_size</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">member</span><span class="p">),</span> <span class="n">field_name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;params.</span><span class="si">{</span><span class="n">attr_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Process ground truths</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+
+        <span class="c1"># Process measurements</span>
+        <span class="k">if</span> <span class="n">marked_stacked</span><span class="p">:</span>
+            <span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="n">y</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Dataset marked as stacked with </span><span class="si">{</span><span class="n">stacked</span><span class="si">}</span><span class="s2"> parts but some parts are missing.&quot;</span>
+                <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y</span>
+
+        <span class="c1"># Process forward operator parameters</span>
+        <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_split_size</span> <span class="o">=</span> <span class="n">split_size</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">hd5</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cast</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">complex_dtype</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">is_complex</span><span class="p">()</span> <span class="k">else</span> <span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># The attribute load_physics_generator_params is redundant with the attribute params.</span>
+        <span class="c1"># Indeed, it is true if and only if the attribute params exists.</span>
+        <span class="n">_register_deprecated_attr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">attr_name</span><span class="o">=</span><span class="s2">&quot;load_physics_generator_params&quot;</span><span class="p">,</span>
+            <span class="n">attr_underscore_name</span><span class="o">=</span><span class="s2">&quot;_load_physics_generator_params&quot;</span><span class="p">,</span>
+            <span class="n">attr_initial_value</span><span class="o">=</span><span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="p">),</span>
+            <span class="n">deprecation_message</span><span class="o">=</span><span class="s2">&quot;The attribute &#39;load_physics_generator_params&#39; is deprecated and will be removed in future versions. Use the attribute &#39;params&#39; instead.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># The attribute stacked is redundant with the attribute y. It is the</span>
+        <span class="c1"># number of elements in y if y is a list, otherwise y is a h5py.Dataset</span>
+        <span class="c1"># and it is 0.</span>
+        <span class="n">_register_deprecated_attr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">attr_name</span><span class="o">=</span><span class="s2">&quot;stacked&quot;</span><span class="p">,</span>
+            <span class="n">attr_underscore_name</span><span class="o">=</span><span class="s2">&quot;_stacked&quot;</span><span class="p">,</span>
+            <span class="n">attr_initial_value</span><span class="o">=</span><span class="mi">0</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">),</span>
+            <span class="n">deprecation_message</span><span class="o">=</span><span class="s2">&quot;The attribute &#39;stacked&#39; is deprecated and will be removed in future versions. Use the attribute &#39;y&#39; instead.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># The attribute data_info is used nowhere.</span>
+        <span class="n">_register_deprecated_attr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">attr_name</span><span class="o">=</span><span class="s2">&quot;data_info&quot;</span><span class="p">,</span>
+            <span class="n">attr_underscore_name</span><span class="o">=</span><span class="s2">&quot;_data_info&quot;</span><span class="p">,</span>
+            <span class="n">attr_initial_value</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">deprecation_message</span><span class="o">=</span><span class="s2">&quot;The attribute &#39;data_info&#39; is deprecated and will be removed in future versions.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># The attribute data_cache is used nowhere.</span>
+        <span class="n">_register_deprecated_attr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">attr_name</span><span class="o">=</span><span class="s2">&quot;data_cache&quot;</span><span class="p">,</span>
+            <span class="n">attr_underscore_name</span><span class="o">=</span><span class="s2">&quot;_data_cache&quot;</span><span class="p">,</span>
+            <span class="n">attr_initial_value</span><span class="o">=</span><span class="p">{},</span>
+            <span class="n">deprecation_message</span><span class="o">=</span><span class="s2">&quot;The attribute &#39;data_cache&#39; is deprecated and will be removed in future versions.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Get an entry in the dataset.</span>
+
+<span class="sd">        Return the measurement and signal pair ``(x, y)`` at the given index, in</span>
+<span class="sd">        the selected split. If forward operator parameters are available, it</span>
+<span class="sd">        returns ``(x, y, params)`` where ``params`` is a dict of parameters.</span>
+
+<span class="sd">        The method returns a scalar NaN tensor as the ground truth when none is</span>
+<span class="sd">        present in the dataset, in accordance with the conventions of the</span>
+<span class="sd">        library (see :ref:`datasets user guide &lt;datasets&gt;`).</span>
+
+<span class="sd">        :param int index: Index of the pair to return.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hd5</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Dataset has been closed. Redefine the dataset to continue.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Compute x</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># Compute y</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">TensorList</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">yk</span><span class="p">[</span><span class="n">index</span><span class="p">]))</span> <span class="k">for</span> <span class="n">yk</span> <span class="ow">in</span> <span class="n">y</span><span class="p">])</span>
+
+        <span class="c1"># Compute params</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="p">):</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span>
+                    <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">params</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the size of the dataset.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_size</span>
+
+<div class="viewcode-block" id="HDF5Dataset.close">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.HDF5Dataset.html#deepinv.datasets.HDF5Dataset.close">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Closes the HDF5 dataset. Use when you are finished with the dataset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;hd5&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">hd5</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hd5</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hd5</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">unsupervised</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test if the split is unsupervised (i.e. contains no ground truths).&quot;&quot;&quot;</span>
+        <span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;The attribute &#39;unsupervised&#39; is deprecated and will be removed in future versions. Please check the dataset entries directly instead.&quot;</span><span class="p">,</span>
+            <span class="ne">DeprecationWarning</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">collate</span><span class="p">(</span><span class="n">dataset</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span> <span class="n">Tensor</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Infer an appropriate `collate_fn` for a DataLoader based on the type returned by the dataset.</span>
+
+<span class="sd">    Because `dataset` may return arbitrary Python objects, and we have no control</span>
+<span class="sd">    over its internals, this helper inspects the first sample and constructs a</span>
+<span class="sd">    custom `collate_fn` when necessary (for now, this is only implemented for PIL Images)</span>
+
+<span class="sd">    Behaviour</span>
+<span class="sd">    ---------</span>
+<span class="sd">    - If the dataset returns `torch.Tensor` or `np.ndarray` (or lists/tuples</span>
+<span class="sd">      whose first element is one of these), `None` is returned. The default</span>
+<span class="sd">      DataLoader collate logic already handles batching these types.</span>
+
+<span class="sd">    - If the dataset returns a PIL Image (or a list/tuple whose first element</span>
+<span class="sd">      is a PIL Image),  a custom collate function is returned that:</span>
+<span class="sd">        * converts each image to a float32 tensor in [0, 1] with shape</span>
+<span class="sd">          `(C, H, W)` using `torchvision.transforms.ToTensor`,</span>
+<span class="sd">        * stacks all samples into a batched tensor of shape (N, C, H, W), and</span>
+<span class="sd">        * raises an error if any images differ in shape.</span>
+
+<span class="sd">    - Any other return type leads to a `RuntimeError`.</span>
+
+<span class="sd">    Only the first sample (`dataset[0]`) is inspected, so the dataset is</span>
+<span class="sd">    assumed to be type-consistent.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">example_output</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">example_output</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">example_output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">example_output</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
+        <span class="k">else</span> <span class="n">example_output</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">example_output</span><span class="p">,</span> <span class="p">(</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">example_output</span><span class="p">,</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">):</span>
+
+            <span class="k">def</span><span class="w"> </span><span class="nf">collate_pillow</span><span class="p">(</span>
+                <span class="n">batch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Image</span><span class="o">.</span><span class="n">Image</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">]],</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+                <span class="n">tensors</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">):</span>
+                        <span class="n">img</span> <span class="o">=</span> <span class="n">sample</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                        <span class="c1"># only keeping the first element is same behavior as when dataset returns list of tensors!</span>
+                        <span class="n">img</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;generate_dataset expects datasets to consistently return a (list of) Tensor, Array, or PIL images. Detected use of PIL in a sample, but received a new item of type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                        <span class="p">)</span>
+                    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                    <span class="n">t</span><span class="o">.</span><span class="n">div_</span><span class="p">(</span><span class="mf">255.0</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">tensors</span> <span class="ow">and</span> <span class="n">t</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">tensors</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;generate_dataset expects dataset to return elements of same shape, but received at two different shapes: </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">tensors</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">. Please add a crop/pad or other shape handling to your dataset.&quot;</span>
+                        <span class="p">)</span>
+                    <span class="n">tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">collate_pillow</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Dataset must return either numpy array, torch tensor, or PIL image, but got type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">example_output</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+
+<div class="viewcode-block" id="generate_dataset">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.generate_dataset.html#deepinv.datasets.generate_dataset">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_dataset</span><span class="p">(</span>
+    <span class="n">train_dataset</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
+    <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Physics</span><span class="p">],</span>
+    <span class="n">save_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">test_dataset</span><span class="p">:</span> <span class="n">Dataset</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">val_dataset</span><span class="p">:</span> <span class="n">Dataset</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dataset_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;dinv_dataset&quot;</span><span class="p">,</span>
+    <span class="n">overwrite_existing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">train_datapoints</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">test_datapoints</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">val_datapoints</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">physics_generator</span><span class="p">:</span> <span class="n">PhysicsGenerator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">save_physics_generator_params</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">num_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">supervised</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">show_progress_bar</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generates dataset of signal/measurement pairs from base dataset.</span>
+
+<span class="sd">    It generates the measurement data using the forward operator provided by the user.</span>
+<span class="sd">    The dataset is saved in HDF5 format and can be easily loaded using the :class:`deepinv.datasets.HDF5Dataset` class.</span>
+<span class="sd">    The generated dataset contains `train` and `test` splits.</span>
+
+<span class="sd">    The base dataset of ground-truth images must return tensors `x` or tuples `(x, ...)`. We provide a large library of predefined</span>
+<span class="sd">    popular imaging datasets. See :ref:`datasets user guide &lt;datasets&gt;` for more information.</span>
+
+<span class="sd">    Optionally, if random physics generator is used to generate data, also save physics generator params.</span>
+<span class="sd">    This is useful e.g. if you are performing a parameter estimation task and want to evaluate the learnt parameters,</span>
+<span class="sd">    or for measurement consistency/data fidelity, and require knowledge of the params when constructing the loss.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        We support all dtypes supported by ``h5py`` including complex numbers, which will be stored as complex dtype.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        By default, we overwrite existing datasets if they have been previously created. To avoid this, set ``overwrite_existing=False``.</span>
+
+<span class="sd">    :param torch.utils.data.Dataset train_dataset: base dataset of ground-truth images. Must return tensors `x` or tuples `(x, ...)`.</span>
+<span class="sd">    :param deepinv.physics.Physics physics: Forward operator used to generate the measurement data.</span>
+<span class="sd">        It can be either a single operator or a list of forward operators. In the latter case, the dataset will be</span>
+<span class="sd">        assigned evenly across operators.</span>
+<span class="sd">    :param str save_dir: folder where the dataset and forward operator will be saved.</span>
+<span class="sd">    :param torch.utils.data.Dataset test_dataset: if included, the function will also generate measurements associated to the test dataset.</span>
+<span class="sd">    :param torch.utils.data.Dataset val_dataset: if included, the function will also generate measurements associated to the validation dataset.</span>
+<span class="sd">    :param str dataset_filename: desired filename of the dataset (without extension).</span>
+<span class="sd">    :param bool overwrite_existing: if ``True``, create new dataset file, overwriting any existing dataset with the same ``dataset_filename``.</span>
+<span class="sd">        If ``False`` and dataset file already exists, does not create new dataset.</span>
+<span class="sd">    :param int, None train_datapoints: Desired number of datapoints in the training dataset. If set to ``None``, it will use the</span>
+<span class="sd">        number of datapoints in the base dataset. This is useful for generating a larger train dataset via data</span>
+<span class="sd">        augmentation (which should be chosen in the train_dataset).</span>
+<span class="sd">    :param int, None test_datapoints: Desired number of datapoints in the test dataset. If set to ``None``, it will use the</span>
+<span class="sd">        number of datapoints in the base test dataset.</span>
+<span class="sd">    :param int, None val_datapoints: Desired number of datapoints in the val dataset.</span>
+<span class="sd">    :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating</span>
+<span class="sd">            the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.</span>
+<span class="sd">    :param bool save_physics_generator_params: save physics generator params too, ignored if ``physics_generator`` not used.</span>
+<span class="sd">    :param int batch_size: batch size for generating the measurement data</span>
+<span class="sd">        (it affects the speed of the generating process, and the physics generator batch size)</span>
+<span class="sd">    :param int num_workers: number of workers for generating the measurement data</span>
+<span class="sd">        (it only affects the speed of the generating process)</span>
+<span class="sd">    :param bool supervised: Generates supervised pairs ``(x,y)`` of measurements and signals.</span>
+<span class="sd">        If set to ``False``, it will generate a training dataset with measurements only ``(y)``</span>
+<span class="sd">        and a test dataset with pairs ``(x,y)``</span>
+<span class="sd">    :param bool verbose: Output progress information in the console.</span>
+<span class="sd">    :param bool show_progress_bar: Show progress bar during the generation</span>
+<span class="sd">        of the dataset (if verbose is set to ``True``).</span>
+<span class="sd">    :param torch.device, str device: device, e.g. cpu or gpu, on which to generate measurements. All data is moved back to cpu before saving.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+
+    <span class="k">if</span> <span class="n">test_dataset</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">train_dataset</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">val_dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No train or test datasets provided.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">save_dir</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">save_dir</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">physics</span> <span class="o">=</span> <span class="p">[</span><span class="n">physics</span><span class="p">]</span>
+
+    <span class="n">physics</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">physics</span><span class="p">]</span>
+
+    <span class="n">G</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">physics</span><span class="p">)</span>
+
+    <span class="n">save_physics_generator_params</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">save_physics_generator_params</span> <span class="ow">and</span> <span class="n">physics_generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">train_dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n_train</span> <span class="o">=</span> <span class="n">train_datapoints</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">)</span>
+        <span class="n">n_train_g</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_train</span> <span class="o">/</span> <span class="n">G</span><span class="p">)</span>
+        <span class="n">n_dataset_g</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">),</span> <span class="n">n_train</span><span class="p">)</span> <span class="o">/</span> <span class="n">G</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">test_dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n_test</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">),</span> <span class="n">test_datapoints</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">))</span>
+        <span class="n">n_test_g</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_test</span> <span class="o">/</span> <span class="n">G</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">val_dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n_val</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">val_dataset</span><span class="p">),</span> <span class="n">val_datapoints</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">val_dataset</span><span class="p">))</span>
+        <span class="n">n_val_g</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_val</span> <span class="o">/</span> <span class="n">G</span><span class="p">)</span>
+
+    <span class="n">hf_paths</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+        <span class="n">hf_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">save_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">dataset_filename</span><span class="si">}{</span><span class="n">g</span><span class="si">}</span><span class="s2">.h5&quot;</span>
+        <span class="n">hf_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hf_path</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">hf_path</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">overwrite_existing</span><span class="p">:</span>
+                <span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Dataset </span><span class="si">{</span><span class="n">hf_path</span><span class="si">}</span><span class="s2"> already exists, this will close and overwrite the previous dataset.&quot;</span>
+                <span class="p">)</span>
+                <span class="c1"># remove existing dataset to avoid open file error</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">hf_path</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dataset </span><span class="si">{</span><span class="n">hf_path</span><span class="si">}</span><span class="s2"> already exists, skipping...&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+        <span class="n">hf</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">hf_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="n">op_g</span> <span class="o">=</span> <span class="n">physics</span><span class="p">[</span><span class="n">g</span><span class="p">]</span>
+        <span class="n">hf</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;operator&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">op_g</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">op_g</span><span class="p">,</span> <span class="n">StackedPhysics</span><span class="p">):</span>
+            <span class="n">hf</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;stacked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">op_g</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">physics_generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">physics_generator</span><span class="o">.</span><span class="n">reset_rng</span><span class="p">()</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">measure</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">TensorList</span><span class="p">,</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">physics_generator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">op_g</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="kc">None</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">physics_generator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="n">b</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">op_g</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">),</span> <span class="n">params</span>
+
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">op_g</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">save_dir</span><span class="si">}</span><span class="s2">/physics</span><span class="si">{</span><span class="n">g</span><span class="si">}</span><span class="s2">.pt&quot;</span><span class="p">)</span>
+
+        <span class="n">created_splits</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">process_batch</span><span class="p">(</span>
+            <span class="n">hf_ds</span><span class="p">:</span> <span class="n">HDF5Dataset</span><span class="p">,</span>
+            <span class="n">x_batch</span><span class="p">,</span>
+            <span class="n">split_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">n_split</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Process one batch for a given split and return updated index.&quot;&quot;&quot;</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x_batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_batch</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="k">else</span> <span class="n">x_batch</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+            <span class="n">bsize</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">split_name</span> <span class="o">==</span> <span class="s2">&quot;train&quot;</span> <span class="ow">and</span> <span class="n">index</span> <span class="o">+</span> <span class="n">bsize</span> <span class="o">&gt;</span> <span class="n">n_split</span><span class="p">:</span>
+                <span class="n">bsize</span> <span class="o">=</span> <span class="n">n_split</span> <span class="o">-</span> <span class="n">index</span>
+            <span class="k">if</span> <span class="n">bsize</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">index</span>
+            <span class="n">y</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">measure</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">bsize</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">split_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">created_splits</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">TensorList</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)):</span>
+                        <span class="n">hf_ds</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;y</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">split_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                            <span class="p">(</span><span class="n">n_split</span><span class="p">,)</span> <span class="o">+</span> <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
+                            <span class="n">dtype</span><span class="o">=</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                        <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">hf_ds</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;y_</span><span class="si">{</span><span class="n">split_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">n_split</span><span class="p">,)</span> <span class="o">+</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">split_name</span> <span class="o">!=</span> <span class="s2">&quot;train&quot;</span> <span class="ow">or</span> <span class="n">supervised</span><span class="p">:</span>
+                    <span class="n">hf_ds</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;x_</span><span class="si">{</span><span class="n">split_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                        <span class="p">(</span><span class="n">n_split</span><span class="p">,)</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">if</span> <span class="n">save_physics_generator_params</span> <span class="ow">and</span> <span class="n">params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">hf_ds</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">split_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                            <span class="p">(</span><span class="n">n_split</span><span class="p">,)</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
+                            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                        <span class="p">)</span>
+                <span class="n">created_splits</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">split_name</span><span class="p">)</span>
+
+            <span class="n">sl</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index</span> <span class="o">+</span> <span class="n">bsize</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">TensorList</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)):</span>
+                    <span class="n">hf_ds</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;y</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">split_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">][:</span><span class="n">bsize</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">hf_ds</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;y_</span><span class="si">{</span><span class="n">split_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span><span class="p">[:</span><span class="n">bsize</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">split_name</span> <span class="o">!=</span> <span class="s2">&quot;train&quot;</span> <span class="ow">or</span> <span class="n">supervised</span><span class="p">:</span>
+                <span class="n">hf_ds</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;x_</span><span class="si">{</span><span class="n">split_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:</span><span class="n">bsize</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">save_physics_generator_params</span> <span class="ow">and</span> <span class="n">params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">hf_ds</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">split_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:</span><span class="n">bsize</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+            <span class="k">return</span> <span class="n">index</span> <span class="o">+</span> <span class="n">bsize</span>
+
+        <span class="n">split_specs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">train_dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">epochs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_train_g</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">train_indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="n">n_dataset_g</span><span class="p">,</span> <span class="p">(</span><span class="n">g</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">n_dataset_g</span><span class="p">))</span>
+            <span class="n">split_specs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="n">train_dataset</span><span class="p">,</span> <span class="n">n_train_g</span><span class="p">,</span> <span class="n">train_indices</span><span class="p">,</span> <span class="n">epochs</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">test_dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">test_indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="n">n_test_g</span><span class="p">,</span> <span class="p">(</span><span class="n">g</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">n_test_g</span><span class="p">))</span>
+            <span class="n">split_specs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">test_dataset</span><span class="p">,</span> <span class="n">n_test_g</span><span class="p">,</span> <span class="n">test_indices</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">val_dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">val_indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">g</span> <span class="o">*</span> <span class="n">n_val_g</span><span class="p">,</span> <span class="p">(</span><span class="n">g</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">n_val_g</span><span class="p">))</span>
+            <span class="n">split_specs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;val&quot;</span><span class="p">,</span> <span class="n">val_dataset</span><span class="p">,</span> <span class="n">n_val_g</span><span class="p">,</span> <span class="n">val_indices</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">split_name</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">n_split</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">epochs</span> <span class="ow">in</span> <span class="n">split_specs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">n_split</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">subset</span> <span class="o">=</span> <span class="n">Subset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">indices</span><span class="o">=</span><span class="n">indices</span><span class="p">)</span>
+
+            <span class="n">epoch_iter</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">split_name</span> <span class="o">==</span> <span class="s2">&quot;train&quot;</span><span class="p">:</span>
+                <span class="n">epoch_iter</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span>
+                    <span class="n">epoch_iter</span><span class="p">,</span>
+                    <span class="n">ncols</span><span class="o">=</span><span class="mi">150</span><span class="p">,</span>
+                    <span class="n">disable</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">verbose</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">show_progress_bar</span><span class="p">),</span>
+                <span class="p">)</span>
+
+            <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">epoch_iter</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">split_name</span> <span class="o">==</span> <span class="s2">&quot;train&quot;</span><span class="p">:</span>
+                    <span class="n">desc</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Generating dataset operator </span><span class="si">{</span><span class="n">g</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="k">if</span> <span class="n">G</span> <span class="o">&gt;</span> <span class="mi">1</span>
+                        <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;Generating </span><span class="si">{</span><span class="n">split_name</span><span class="si">}</span><span class="s2"> dataset&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">epoch_iter</span><span class="o">.</span><span class="n">set_description</span><span class="p">(</span><span class="n">desc</span><span class="p">)</span>
+
+                <span class="n">dataloader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span>
+                    <span class="n">subset</span><span class="p">,</span>
+                    <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                    <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span>
+                    <span class="n">pin_memory</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+                    <span class="n">drop_last</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">collate_fn</span><span class="o">=</span><span class="n">collate</span><span class="p">(</span><span class="n">dataset</span><span class="p">),</span>
+                <span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">x_batch</span> <span class="ow">in</span> <span class="n">dataloader</span><span class="p">:</span>
+                    <span class="n">index</span> <span class="o">=</span> <span class="n">process_batch</span><span class="p">(</span>
+                        <span class="n">hf</span><span class="p">,</span>
+                        <span class="n">x_batch</span><span class="p">,</span>
+                        <span class="n">split_name</span><span class="p">,</span>
+                        <span class="n">index</span><span class="p">,</span>
+                        <span class="n">n_split</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                    <span class="c1"># for train, once we&#39;ve filled n_split samples, we stop</span>
+                    <span class="k">if</span> <span class="n">split_name</span> <span class="o">==</span> <span class="s2">&quot;train&quot;</span> <span class="ow">and</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="n">n_split</span><span class="p">:</span>
+                        <span class="k">break</span>
+
+                <span class="k">if</span> <span class="n">split_name</span> <span class="o">==</span> <span class="s2">&quot;train&quot;</span> <span class="ow">and</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="n">n_split</span><span class="p">:</span>
+                    <span class="k">break</span>
+
+        <span class="n">hf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dataset has been saved at </span><span class="si">{</span><span class="n">hf_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">hf_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">G</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">hf_paths</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

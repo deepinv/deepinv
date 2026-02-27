@@ -1,0 +1,9 @@
+﻿load\_torch
+===========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_torch
+
+.. minigallery:: deepinv.utils.load_torch
+    :add-heading: Examples using ``load_torch``:

@@ -1,0 +1,9 @@
+﻿dst1
+====
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: dst1
+
+.. minigallery:: deepinv.physics.functional.dst1
+    :add-heading: Examples using ``dst1``:

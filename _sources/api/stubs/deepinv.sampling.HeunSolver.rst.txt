@@ -1,0 +1,15 @@
+﻿HeunSolver
+==========
+
+.. currentmodule:: deepinv.sampling
+
+.. autoclass:: HeunSolver
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.sampling.HeunSolver:
+
+.. minigallery:: deepinv.sampling.HeunSolver
+    :add-heading: Examples using ``HeunSolver``:

@@ -1,0 +1,15 @@
+﻿BaseSampling
+============
+
+.. currentmodule:: deepinv.sampling
+
+.. autoclass:: BaseSampling
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.sampling.BaseSampling:
+
+.. minigallery:: deepinv.sampling.BaseSampling
+    :add-heading: Examples using ``BaseSampling``:

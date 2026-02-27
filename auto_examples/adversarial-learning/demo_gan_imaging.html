@@ -1,0 +1,1198 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Imaging inverse problems with adversarial networks &#8212; deepinv 0.3.7 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=29d04658"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "inversename": "R", "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/adversarial-learning/demo_gan_imaging';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/auto_examples/adversarial-learning/demo_gan_imaging.html" />
+    <link rel="icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="External Libraries" href="../external-libraries/index.html" />
+    <link rel="prev" title="Adversarial Learning" href="index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">🎉 We are part of the <a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.</div>
+</aside>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.7 documentation - Home"/>
+    <img src="../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.7 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../basics/index.html">Basics</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_quickstart.html">5 minute quickstart tutorial</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_pretrained_model.html">Use a pretrained model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_custom_optim.html">Use iterative reconstruction algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_custom_dataset.html">Bring your own dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_custom_physics.html">Bring your own physics</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../models/index.html">Models</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../models/demo_foundation_model.html">Inference and fine-tune a foundation model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/demo_training.html">Training a reconstruction model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/demo_denoiser_tour.html">Benchmarking pretrained denoisers</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../physics/index.html">Physics</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_physics_tour.html">Tour of forward sensing operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_blur_tour.html">Tour of blur operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_mri_tour.html">Tour of MRI functionality in DeepInverse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_scattering.html">Inverse scattering problem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_lidar.html">Single photon lidar operator for depth ranging.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_spc.html">Pattern Ordering in a Compressive Single Pixel Camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_spatial_unwrapping.html">Spatial unwrapping and modulo imaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_microscopy_3d.html">3D diffraction PSF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_remote_sensing.html">Remote sensing with satellite images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_phase_retrieval.html">Random phase retrieval and reconstruction methods.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_ptychography.html">Ptychography phase retrieval</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../optimization/index.html">Optimization</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_3D_denoising.html">3D denoising</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_epll.html">Expected Patch Log Likelihood (EPLL) for Denoising and Inpainting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_TV_minimisation.html">Image deblurring with Total-Variation (TV) prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_custom_prior.html">Image deblurring with custom deep explicit prior.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_wavelet_prior.html">Image inpainting with wavelet prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_patch_priors_CT.html">Patch priors for limited-angle computed tomography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_dip.html">Reconstructing an image using the deep image prior.</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../plug-and-play/index.html">Plug-and-Play</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_PnP_DPIR_deblur.html">DPIR method for PnP image deblurring.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_PnP_mirror_descent.html">Plug-and-Play algorithm with Mirror Descent for Poisson noise inverse problems.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_PnP_custom_optim.html">PnP with custom optimization algorithm (Primal-Dual Condat-Vu)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_RED_GSPnP_SR.html">Regularization by Denoising (RED) for Super-Resolution.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_vanilla_PnP.html">Vanilla PnP for computed tomography (CT).</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../sampling/index.html">Diffusion &amp; MCMC</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_custom_kernel.html">Building your custom MCMC sampling algorithm.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_diffusion_sde.html">Building your diffusion posterior sampling method using SDEs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_flow_matching.html">Flow-Matching for posterior sampling and unconditional generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_ddrm.html">Image reconstruction with a diffusion model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_dps.html">Implementing DPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_diffpir.html">Implementing DiffPIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_sampling.html">Uncertainty quantification with PnP-ULA.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sampling/demo_diffusers.html">Using state-of-the-art diffusion models from HuggingFace Diffusers with DeepInverse</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../unfolded/index.html">Unfolded</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_DEQ.html">Deep Equilibrium (DEQ) algorithms for image deblurring</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_LISTA.html">Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_learned_primal_dual.html">Learned Primal-Dual algorithm for CT scan.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_custom_prior_unfolded.html">Learned iterative custom prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_unfolded_constant_memory.html">Reducing the memory and computational complexity of unfolded network training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_unfolded_constrained_LISTA.html">Unfolded Chambolle-Pock for constrained image inpainting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_vanilla_unfolded.html">Vanilla Unfolded algorithm for super-resolution</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../blind-inverse-problems/index.html">Blind Inverse Problems</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../blind-inverse-problems/demo_blind_deblurring.html">Blind deblurring with kernel estimation network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blind-inverse-problems/demo_blind_denoising.html">Blind denoising with noise level estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../blind-inverse-problems/demo_optimizing_physics_parameter.html">Calibrating physics operators</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../self-supervised-learning/index.html">Self-Supervised Learning</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_ei_transforms.html">Image transformations for Equivariant Imaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_transforms.html">Image transforms for equivariance &amp; augmentations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_poisson2sparse.html">Poisson denoising using Poisson2Sparse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_artifact2artifact.html">Self-supervised MRI reconstruction with Artifact2Artifact</a></li>
+
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_r2r_denoising.html">Self-supervised denoising with the Generalized R2R loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_n2n_denoising.html">Self-supervised denoising with the Neighbor2Neighbor loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_sure_denoising.html">Self-supervised denoising with the SURE loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_unsure.html">Self-supervised denoising with the UNSURE loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_multioperator_imaging.html">Self-supervised learning from incomplete measurements of multiple operators.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_equivariant_imaging.html">Self-supervised learning with Equivariant Imaging for MRI.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_splitting_loss.html">Self-supervised learning with measurement splitting</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Adversarial Learning</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Imaging inverse problems with adversarial networks</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../external-libraries/index.html">External Libraries</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_io.html">Loading scientific images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_astra_tomography.html">Low-dose CT with ASTRA backend and Total-Variation (TV) prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_ri_basic.html">Radio interferometric imaging with deepinverse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_connect_spyrit.html">Single-pixel imaging with Spyrit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_hf_dataset.html">Using HuggingFace datasets</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../distributed/index.html">Distributed Computing</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../distributed/demo_denoiser_distributed.html">Distributed Denoiser with Image Tiling</a></li>
+
+<li class="toctree-l2"><a class="reference internal" href="../distributed/demo_physics_distributed.html">Distributed Physics Operators</a></li>
+
+<li class="toctree-l2"><a class="reference internal" href="../distributed/demo_pnp_distributed.html">Distributed Plug-and-Play (PnP) Reconstruction</a></li>
+
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Examples</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Adversarial Learning</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Imaging inverse problems with adversarial networks</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p>New to DeepInverse? Get started with the basics with the
+<a class="reference internal" href="../basics/demo_quickstart.html#sphx-glr-auto-examples-basics-demo-quickstart-py"><span class="std std-ref">5 minute quickstart tutorial</span></a>..</p>
+</div>
+<section class="sphx-glr-example-title" id="imaging-inverse-problems-with-adversarial-networks">
+<span id="sphx-glr-auto-examples-adversarial-learning-demo-gan-imaging-py"></span><h1>Imaging inverse problems with adversarial networks<a class="headerlink" href="#imaging-inverse-problems-with-adversarial-networks" title="Link to this heading">#</a></h1>
+<p>This example shows you how to train various networks using adversarial
+training for deblurring problems. We demonstrate running training and
+inference using a conditional GAN (i.e. DeblurGAN), CSGM, AmbientGAN and
+UAIR implemented in the library, and how to simply train
+your own GAN by using <a class="reference internal" href="../../api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer" title="deepinv.training.AdversarialTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.training.AdversarialTrainer</span></code></a>. These
+examples can also be easily extended to train more complicated GANs such
+as CycleGAN.</p>
+<p>This example is based on the papers DeblurGAN <a class="footnote-reference brackets" href="#footcite-kupyn2018deblurgan" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>,
+Compressed Sensing using Generative Models (CSGM) <a class="footnote-reference brackets" href="#footcite-bora2017compressed" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a>,
+AmbiantGAN <a class="footnote-reference brackets" href="#footcite-bora2018ambientgan" id="id3" role="doc-noteref"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></a>, and Unsupervised Adversarial Image Reconstruction (UAIR) <a class="footnote-reference brackets" href="#footcite-pajot2019unsupervised" id="id4" role="doc-noteref"><span class="fn-bracket">[</span>4<span class="fn-bracket">]</span></a>.</p>
+<p>Adversarial networks are characterized by the addition of an adversarial
+loss <span class="math notranslate nohighlight">\(\mathcal{L}_\text{adv}\)</span> to the standard reconstruction loss:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]\]</div>
+<p>where <span class="math notranslate nohighlight">\(D(\cdot)\)</span> is the discriminator model, <span class="math notranslate nohighlight">\(x\)</span> is the
+reference image, <span class="math notranslate nohighlight">\(\hat x\)</span> is the estimated reconstruction,
+<span class="math notranslate nohighlight">\(q(\cdot)\)</span> is a quality function (e.g <span class="math notranslate nohighlight">\(q(x)=x\)</span> for WGAN).
+Training alternates between generator <span class="math notranslate nohighlight">\(G\)</span> and discriminator
+<span class="math notranslate nohighlight">\(D\)</span> in a minimax game. When there are no ground truths (i.e.
+unsupervised), this may be defined on the measurements <span class="math notranslate nohighlight">\(y\)</span>
+instead.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <a href="https://docs.python.org/3.9/library/pathlib.html#pathlib.Path" title="pathlib.Path" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class"><span class="n">Path</span></a>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">DataLoader</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.random_split" title="torch.utils.data.random_split" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-function"><span class="n">random_split</span></a>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchvision.transforms</span><span class="w"> </span><span class="kn">import</span> <a href="https://docs.pytorch.org/vision/stable/generated/torchvision.transforms.Compose.html#torchvision.transforms.Compose" title="torchvision.transforms.Compose" class="sphx-glr-backref-module-torchvision-transforms sphx-glr-backref-type-py-class"><span class="n">Compose</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/vision/stable/generated/torchvision.transforms.ToTensor.html#torchvision.transforms.ToTensor" title="torchvision.transforms.ToTensor" class="sphx-glr-backref-module-torchvision-transforms sphx-glr-backref-type-py-class"><span class="n">ToTensor</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/vision/stable/generated/torchvision.transforms.CenterCrop.html#torchvision.transforms.CenterCrop" title="torchvision.transforms.CenterCrop" class="sphx-glr-backref-module-torchvision-transforms sphx-glr-backref-type-py-class"><span class="n">CenterCrop</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/vision/stable/generated/torchvision.transforms.Resize.html#torchvision.transforms.Resize" title="torchvision.transforms.Resize" class="sphx-glr-backref-module-torchvision-transforms sphx-glr-backref-type-py-class"><span class="n">Resize</span></a>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">deepinv</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dinv</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.loss</span><span class="w"> </span><span class="kn">import</span> <span class="n">adversarial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils</span><span class="w"> </span><span class="kn">import</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.get_data_home.html#deepinv.utils.get_data_home" title="deepinv.utils.get_data_home" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">get_data_home</span></a>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.generator</span><span class="w"> </span><span class="kn">import</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.generator.MotionBlurGenerator.html#deepinv.physics.generator.MotionBlurGenerator" title="deepinv.physics.generator.MotionBlurGenerator" class="sphx-glr-backref-module-deepinv-physics-generator sphx-glr-backref-type-py-class"><span class="n">MotionBlurGenerator</span></a>
+
+<a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_device</span><span class="p">()</span>
+
+<a href="https://docs.python.org/3.9/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">BASE_DIR</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.9/library/pathlib.html#pathlib.Path" title="pathlib.Path" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class"><span class="n">Path</span></a><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+<a href="https://docs.python.org/3.9/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">DATA_DIR</span></a> <span class="o">=</span> <a href="https://docs.python.org/3.9/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">BASE_DIR</span></a> <span class="o">/</span> <span class="s2">&quot;measurments&quot;</span>
+<a href="https://docs.python.org/3.9/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ORGINAL_DATA_DIR</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.get_data_home.html#deepinv.utils.get_data_home" title="deepinv.utils.get_data_home" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">get_data_home</span></a><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;Urban100&quot;</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Selected GPU 0 with 1763.25 MiB free memory
+</pre></div>
+</div>
+<section id="generate-dataset">
+<h2>Generate dataset<a class="headerlink" href="#generate-dataset" title="Link to this heading">#</a></h2>
+<p>In this example we use the Urban100 dataset resized to 128x128. We apply random
+motion blur physics using
+<a class="reference internal" href="../../api/stubs/deepinv.physics.generator.MotionBlurGenerator.html#deepinv.physics.generator.MotionBlurGenerator" title="deepinv.physics.generator.MotionBlurGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.generator.MotionBlurGenerator</span></code></a>, and save the data
+using <a class="reference internal" href="../../api/stubs/deepinv.datasets.generate_dataset.html#deepinv.datasets.generate_dataset" title="deepinv.datasets.generate_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.datasets.generate_dataset()</span></code></a>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur" title="deepinv.physics.Blur" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur" title="deepinv.physics.Blur" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Blur</span></a><span class="p">(</span><span class="n">padding</span><span class="o">=</span><span class="s2">&quot;circular&quot;</span><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.generator.MotionBlurGenerator.html#deepinv.physics.generator.MotionBlurGenerator" title="deepinv.physics.generator.MotionBlurGenerator" class="sphx-glr-backref-module-deepinv-physics-generator sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blur_generator</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.generator.MotionBlurGenerator.html#deepinv.physics.generator.MotionBlurGenerator" title="deepinv.physics.generator.MotionBlurGenerator" class="sphx-glr-backref-module-deepinv-physics-generator sphx-glr-backref-type-py-class"><span class="n">MotionBlurGenerator</span></a><span class="p">((</span><span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">),</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.datasets.Urban100HR.html#deepinv.datasets.Urban100HR" title="deepinv.datasets.Urban100HR" class="sphx-glr-backref-module-deepinv-datasets sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dataset</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.datasets.Urban100HR.html#deepinv.datasets.Urban100HR" title="deepinv.datasets.Urban100HR" class="sphx-glr-backref-module-deepinv-datasets sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">Urban100HR</span></a><span class="p">(</span>
+    <span class="n">root</span><span class="o">=</span><a href="https://docs.python.org/3.9/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ORGINAL_DATA_DIR</span></a><span class="p">,</span>
+    <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">transform</span><span class="o">=</span><a href="https://docs.pytorch.org/vision/stable/generated/torchvision.transforms.Compose.html#torchvision.transforms.Compose" title="torchvision.transforms.Compose" class="sphx-glr-backref-module-torchvision-transforms sphx-glr-backref-type-py-class"><span class="n">Compose</span></a><span class="p">([</span><a href="https://docs.pytorch.org/vision/stable/generated/torchvision.transforms.ToTensor.html#torchvision.transforms.ToTensor" title="torchvision.transforms.ToTensor" class="sphx-glr-backref-module-torchvision-transforms sphx-glr-backref-type-py-class"><span class="n">ToTensor</span></a><span class="p">(),</span> <a href="https://docs.pytorch.org/vision/stable/generated/torchvision.transforms.Resize.html#torchvision.transforms.Resize" title="torchvision.transforms.Resize" class="sphx-glr-backref-module-torchvision-transforms sphx-glr-backref-type-py-class"><span class="n">Resize</span></a><span class="p">(</span><span class="mi">256</span><span class="p">),</span> <a href="https://docs.pytorch.org/vision/stable/generated/torchvision.transforms.CenterCrop.html#torchvision.transforms.CenterCrop" title="torchvision.transforms.CenterCrop" class="sphx-glr-backref-module-torchvision-transforms sphx-glr-backref-type-py-class"><span class="n">CenterCrop</span></a><span class="p">(</span><span class="mi">128</span><span class="p">)]),</span>
+<span class="p">)</span>
+
+<a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.Subset" title="torch.utils.data.Subset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataset</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.Subset" title="torch.utils.data.Subset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataset</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.random_split" title="torch.utils.data.random_split" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-function"><span class="n">random_split</span></a><span class="p">(</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.datasets.Urban100HR.html#deepinv.datasets.Urban100HR" title="deepinv.datasets.Urban100HR" class="sphx-glr-backref-module-deepinv-datasets sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dataset</span></a><span class="p">,</span> <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">))</span>
+
+<span class="c1"># Generate data pairs x,y offline using a physics generator</span>
+<a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dataset_path</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.datasets.generate_dataset.html#deepinv.datasets.generate_dataset" title="deepinv.datasets.generate_dataset" class="sphx-glr-backref-module-deepinv-datasets sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">generate_dataset</span></a><span class="p">(</span>
+    <a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.Subset" title="torch.utils.data.Subset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataset</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.Subset" title="torch.utils.data.Subset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataset</span></a><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.Subset" title="torch.utils.data.Subset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataset</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.Subset" title="torch.utils.data.Subset" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataset</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur" title="deepinv.physics.Blur" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur" title="deepinv.physics.Blur" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">,</span>
+    <span class="n">physics_generator</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.generator.MotionBlurGenerator.html#deepinv.physics.generator.MotionBlurGenerator" title="deepinv.physics.generator.MotionBlurGenerator" class="sphx-glr-backref-module-deepinv-physics-generator sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">blur_generator</span></a><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <span class="n">save_dir</span><span class="o">=</span><a href="https://docs.python.org/3.9/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath" class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">DATA_DIR</span></a><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span>
+
+<a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">DataLoader</span></a><span class="p">(</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.datasets.HDF5Dataset.html#deepinv.datasets.HDF5Dataset" title="deepinv.datasets.HDF5Dataset" class="sphx-glr-backref-module-deepinv-datasets sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">HDF5Dataset</span></a><span class="p">(</span>
+        <a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dataset_path</span></a><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">load_physics_generator_params</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">),</span>
+    <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class"><span class="n">DataLoader</span></a><span class="p">(</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.datasets.HDF5Dataset.html#deepinv.datasets.HDF5Dataset" title="deepinv.datasets.HDF5Dataset" class="sphx-glr-backref-module-deepinv-datasets sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">HDF5Dataset</span></a><span class="p">(</span>
+        <a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dataset_path</span></a><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">load_physics_generator_params</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">),</span>
+    <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  0%|          | 0/135388067 [00:00&lt;?, ?it/s]
+  5%|▍         | 5.94M/129M [00:00&lt;00:02, 62.1MB/s]
+ 13%|█▎        | 17.3M/129M [00:00&lt;00:01, 95.7MB/s]
+ 22%|██▏       | 28.0M/129M [00:00&lt;00:01, 103MB/s]
+ 30%|██▉       | 38.7M/129M [00:00&lt;00:00, 106MB/s]
+ 38%|███▊      | 48.9M/129M [00:00&lt;00:00, 103MB/s]
+ 47%|████▋     | 61.2M/129M [00:00&lt;00:00, 111MB/s]
+ 56%|█████▌    | 71.9M/129M [00:00&lt;00:00, 111MB/s]
+ 64%|██████▍   | 82.5M/129M [00:00&lt;00:00, 108MB/s]
+ 73%|███████▎  | 94.1M/129M [00:00&lt;00:00, 107MB/s]
+ 83%|████████▎ | 107M/129M [00:01&lt;00:00, 114MB/s]
+ 91%|█████████ | 118M/129M [00:01&lt;00:00, 113MB/s]
+100%|█████████▉| 128M/129M [00:01&lt;00:00, 110MB/s]
+100%|██████████| 129M/129M [00:01&lt;00:00, 108MB/s]
+
+Extracting:   0%|          | 0/101 [00:00&lt;?, ?it/s]
+Extracting:  23%|██▎       | 23/101 [00:00&lt;00:00, 226.43it/s]
+Extracting:  52%|█████▏    | 53/101 [00:00&lt;00:00, 266.50it/s]
+Extracting:  79%|███████▉  | 80/101 [00:00&lt;00:00, 245.77it/s]
+Extracting: 100%|██████████| 101/101 [00:00&lt;00:00, 247.67it/s]
+Dataset has been successfully downloaded.
+Dataset has been saved at measurments/dinv_dataset0.h5
+</pre></div>
+</div>
+</section>
+<section id="define-models">
+<h2>Define models<a class="headerlink" href="#define-models" title="Link to this heading">#</a></h2>
+<p>We first define reconstruction network (i.e conditional generator) and
+discriminator network to use for adversarial training. For demonstration
+we use a simple U-Net as the reconstruction network and the
+discriminator from PatchGAN <a class="footnote-reference brackets" href="#footcite-isola2017image" id="id5" role="doc-noteref"><span class="fn-bracket">[</span>5<span class="fn-bracket">]</span></a>, but
+these can be replaced with any architecture e.g transformers, unrolled
+etc. Further discriminator models are in <a class="reference internal" href="../../user_guide/reconstruction/adversarial.html#adversarial"><span class="std std-ref">adversarial models</span></a>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_models</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lr_g</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">lr_d</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">):</span>
+    <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.UNet.html#deepinv.models.UNet" title="deepinv.models.UNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">UNet</span></a><span class="p">(</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="n">scales</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">circular_padding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+    <span class="k">if</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.PatchGANDiscriminator.html#deepinv.models.PatchGANDiscriminator" title="deepinv.models.PatchGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">PatchGANDiscriminator</span></a><span class="p">(</span><span class="n">n_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer" title="deepinv.training.AdversarialOptimizer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer" title="deepinv.training.AdversarialOptimizer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">adversarial</span><span class="o">.</span><span class="n">AdversarialOptimizer</span></a><span class="p">(</span>
+        <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html#torch.optim.Adam" title="torch.optim.Adam" class="sphx-glr-backref-module-torch-optim sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span></a><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr_g</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">),</span>
+        <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html#torch.optim.Adam" title="torch.optim.Adam" class="sphx-glr-backref-module-torch-optim sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.parameters" title="torch.nn.Module.parameters" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-method"><span class="n">D</span><span class="o">.</span><span class="n">parameters</span></a><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr_d</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">scheduler</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">adversarial</span><span class="o">.</span><span class="n">AdversarialScheduler</span><span class="p">(</span>
+        <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.StepLR.html#torch.optim.lr_scheduler.StepLR" title="torch.optim.lr_scheduler.StepLR" class="sphx-glr-backref-module-torch-optim-lr_scheduler sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">StepLR</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html#torch.optim.Adam" title="torch.optim.Adam" class="sphx-glr-backref-module-torch-optim sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span><span class="o">.</span><span class="n">G</span></a><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.9</span><span class="p">),</span>
+        <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.StepLR.html#torch.optim.lr_scheduler.StepLR" title="torch.optim.lr_scheduler.StepLR" class="sphx-glr-backref-module-torch-optim-lr_scheduler sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">StepLR</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html#torch.optim.Adam" title="torch.optim.Adam" class="sphx-glr-backref-module-torch-optim sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span><span class="o">.</span><span class="n">D</span></a><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.9</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer" title="deepinv.training.AdversarialOptimizer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a><span class="p">,</span> <span class="n">scheduler</span>
+</pre></div>
+</div>
+</section>
+<section id="conditional-gan-training">
+<h2>Conditional GAN training<a class="headerlink" href="#conditional-gan-training" title="Link to this heading">#</a></h2>
+<p>Conditional GANs <a class="footnote-reference brackets" href="#footcite-kupyn2018deblurgan" id="id6" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a> are a type of GAN where the generator is conditioned on a label or input.
+In the context of imaging, this can be used to generate images from a given measurement.
+In this example, we use a simple U-Net as the generator
+and a PatchGAN discriminator. The forward pass of the generator is given by:</p>
+<p><strong>Conditional GAN</strong> forward pass:</p>
+<div class="math notranslate nohighlight">
+\[\hat x = G(y)\]</div>
+<p><strong>Conditional GAN</strong> loss:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}=\mathcal{L}_\text{sup}(\hat x, x)+\mathcal{L}_\text{adv}(\hat x, x;D)\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathcal{L}_\text{sup}\)</span> is a supervised loss such as
+pixel-wise MSE or VGG Perceptual Loss.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator" title="deepinv.models.CSGMGenerator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">G</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer" title="deepinv.training.AdversarialOptimizer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a><span class="p">,</span> <span class="n">scheduler</span> <span class="o">=</span> <span class="n">get_models</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>We next define pixel-wise and adversarial losses as defined above. We use the
+MSE for the supervised pixel-wise metric for simplicity but this can be
+easily replaced with a perceptual loss if desired.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.SupAdversarialGeneratorLoss" title="deepinv.loss.adversarial.SupAdversarialGeneratorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_g</span></a> <span class="o">=</span> <span class="p">[</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.SupLoss.html#deepinv.loss.SupLoss" title="deepinv.loss.SupLoss" class="sphx-glr-backref-module-deepinv-loss sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">loss</span><span class="o">.</span><span class="n">SupLoss</span></a><span class="p">(</span><span class="n">metric</span><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.MSELoss.html#torch.nn.MSELoss" title="torch.nn.MSELoss" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span></a><span class="p">()),</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.SupAdversarialGeneratorLoss" title="deepinv.loss.adversarial.SupAdversarialGeneratorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">SupAdversarialGeneratorLoss</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">),</span>
+<span class="p">]</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" title="deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_d</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" title="deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">SupAdversarialDiscriminatorLoss</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<p>We are now ready to train the networks using <a class="reference internal" href="../../api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer" title="deepinv.training.AdversarialTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.training.AdversarialTrainer</span></code></a>.
+We load the pretrained models that were trained in the exact same way after 50 epochs,
+and fine-tune the model for 1 epoch for a quick demo.
+You can find the pretrained models on HuggingFace <a class="reference external" href="https://huggingface.co/deepinv/adversarial-demo">https://huggingface.co/deepinv/adversarial-demo</a>.
+To train from scratch, simply comment out the model loading code and increase the number of epochs.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.9/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/hub.html#torch.hub.load_state_dict_from_url" title="torch.hub.load_state_dict_from_url" class="sphx-glr-backref-module-torch-hub sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load_state_dict_from_url</span></a><span class="p">(</span>
+    <span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_weights_url</span><span class="p">(</span><span class="s2">&quot;adversarial-demo&quot;</span><span class="p">,</span> <span class="s2">&quot;deblurgan_model.pth&quot;</span><span class="p">),</span>
+    <span class="n">map_location</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_</span></a><span class="p">:</span> <span class="n">s</span><span class="p">,</span>
+<span class="p">)</span>
+
+<a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.load_state_dict" title="torch.nn.Module.load_state_dict" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-method"><span class="n">G</span><span class="o">.</span><span class="n">load_state_dict</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a><span class="p">[</span><span class="s2">&quot;state_dict&quot;</span><span class="p">])</span>
+<a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.load_state_dict" title="torch.nn.Module.load_state_dict" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-method"><span class="n">D</span><span class="o">.</span><span class="n">load_state_dict</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a><span class="p">[</span><span class="s2">&quot;state_dict_D&quot;</span><span class="p">])</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer.load_state_dict" title="deepinv.training.AdversarialOptimizer.load_state_dict" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-method"><span class="n">optimizer</span><span class="o">.</span><span class="n">load_state_dict</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">])</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer" title="deepinv.training.AdversarialTrainer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trainer</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer" title="deepinv.training.AdversarialTrainer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">AdversarialTrainer</span></a><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator" title="deepinv.models.CSGMGenerator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">G</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur" title="deepinv.physics.Blur" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur" title="deepinv.physics.Blur" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="p">,</span>
+    <span class="n">eval_dataloader</span><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="p">,</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">losses</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.SupAdversarialGeneratorLoss" title="deepinv.loss.adversarial.SupAdversarialGeneratorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_g</span></a><span class="p">,</span>
+    <span class="n">losses_d</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" title="deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_d</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer" title="deepinv.training.AdversarialOptimizer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer" title="deepinv.training.AdversarialOptimizer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a><span class="p">,</span>
+    <span class="n">scheduler</span><span class="o">=</span><span class="n">scheduler</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">show_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+<span class="p">)</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator" title="deepinv.models.CSGMGenerator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">G</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.Trainer.html#deepinv.Trainer.train" title="deepinv.Trainer.train" class="sphx-glr-backref-module-deepinv sphx-glr-backref-type-py-method"><span class="n">trainer</span><span class="o">.</span><span class="n">train</span></a><span class="p">()</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading: &quot;https://huggingface.co/deepinv/adversarial-demo/resolve/main/deblurgan_model.pth?download=true&quot; to /local/jtachell/.cache/torch/hub/checkpoints/deblurgan_model.pth
+
+  0%|          | 0.00/12.7M [00:00&lt;?, ?B/s]
+ 43%|████▎     | 5.50M/12.7M [00:00&lt;00:00, 56.3MB/s]
+ 86%|████████▌ | 10.9M/12.7M [00:00&lt;00:00, 56.3MB/s]
+100%|██████████| 12.7M/12.7M [00:00&lt;00:00, 55.9MB/s]
+/local/jtachell/deepinv/deepinv/deepinv/training/adversarial.py:165: UserWarning: non_blocking_transfers=True but DataLoader.pin_memory=False; set pin_memory=True to overlap host-device copies with compute.
+  super().setup_train(**kwargs)
+The model has 444867 trainable parameters
+/local/jtachell/deepinv/deepinv/deepinv/training/adversarial.py:168: UserWarning: optimizer_step_multi_dataset parameter of Trainer is should be set to `False` when using adversarial trainer. Automatically setting it to `False`.
+  warnings.warn(
+Train epoch 0: SupLoss=0.004, SupAdversarialGeneratorLoss=0.003, TotalLoss=0.007, PSNR=25.134
+Eval epoch 0: PSNR=24.721
+Best model saved at epoch 1
+</pre></div>
+</div>
+<p>Test the trained model and plot the results. We compare to the pseudo-inverse as a baseline.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.9/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trainer</span><span class="o">.</span><span class="n">plot_images</span></a> <span class="o">=</span> <span class="kc">True</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.Trainer.html#deepinv.Trainer.test" title="deepinv.Trainer.test" class="sphx-glr-backref-module-deepinv sphx-glr-backref-type-py-method"><span class="n">trainer</span><span class="o">.</span><span class="n">test</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_gan_imaging_001.png" srcset="../../_images/sphx_glr_demo_gan_imaging_001.png" alt="Ground truth, Measurement, No learning, Reconstruction" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Eval epoch 0: PSNR=24.721, PSNR no learning=23.812
+Test results:
+PSNR no learning: 23.812 +- 4.224
+PSNR: 24.721 +- 3.487
+
+{&#39;PSNR no learning&#39;: 23.811522006988525, &#39;PSNR no learning_std&#39;: 4.223702789630766, &#39;PSNR&#39;: 24.72085771560669, &#39;PSNR_std&#39;: 3.4869397117335326}
+</pre></div>
+</div>
+</section>
+<section id="uair-training">
+<h2>UAIR training<a class="headerlink" href="#uair-training" title="Link to this heading">#</a></h2>
+<p>Unsupervised Adversarial Image Reconstruction (UAIR) <a class="footnote-reference brackets" href="#footcite-pajot2019unsupervised" id="id7" role="doc-noteref"><span class="fn-bracket">[</span>4<span class="fn-bracket">]</span></a>
+is a method for solving inverse problems using generative models. In this
+example, we use a simple U-Net as the generator and discriminator, and
+train using the adversarial loss. The forward pass of the generator is defined as:</p>
+<p><strong>UAIR</strong> forward pass:</p>
+<div class="math notranslate nohighlight">
+\[\hat x = G(y),\]</div>
+<p><strong>UAIR</strong> loss:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert \forw{\inverse{\hat y}}- \hat y\rVert^2_2,\quad\hat y=\forw{\hat x}.\]</div>
+<p>We next load the models and construct losses as defined above.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator" title="deepinv.models.CSGMGenerator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">G</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer" title="deepinv.training.AdversarialOptimizer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a><span class="p">,</span> <span class="n">scheduler</span> <span class="o">=</span> <span class="n">get_models</span><span class="p">(</span>
+    <span class="n">lr_g</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">lr_d</span><span class="o">=</span><span class="mf">4e-4</span>
+<span class="p">)</span>  <span class="c1"># learning rates from original paper</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.SupAdversarialGeneratorLoss" title="deepinv.loss.adversarial.SupAdversarialGeneratorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_g</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.UAIRGeneratorLoss.html#deepinv.loss.adversarial.UAIRGeneratorLoss" title="deepinv.loss.adversarial.UAIRGeneratorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">UAIRGeneratorLoss</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" title="deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_d</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss" title="deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">UnsupAdversarialDiscriminatorLoss</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<p>We are now ready to train the networks using <a class="reference internal" href="../../api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer" title="deepinv.training.AdversarialTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.training.AdversarialTrainer</span></code></a>.
+Like above, we load a pretrained model trained in the exact same way for 50 epochs,
+and fine-tune here for a quick demo with 1 epoch.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.9/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/hub.html#torch.hub.load_state_dict_from_url" title="torch.hub.load_state_dict_from_url" class="sphx-glr-backref-module-torch-hub sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load_state_dict_from_url</span></a><span class="p">(</span>
+    <span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_weights_url</span><span class="p">(</span><span class="s2">&quot;adversarial-demo&quot;</span><span class="p">,</span> <span class="s2">&quot;uair_model.pth&quot;</span><span class="p">),</span>
+    <span class="n">map_location</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_</span></a><span class="p">:</span> <span class="n">s</span><span class="p">,</span>
+<span class="p">)</span>
+
+<a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.load_state_dict" title="torch.nn.Module.load_state_dict" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-method"><span class="n">G</span><span class="o">.</span><span class="n">load_state_dict</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a><span class="p">[</span><span class="s2">&quot;state_dict&quot;</span><span class="p">])</span>
+<a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.load_state_dict" title="torch.nn.Module.load_state_dict" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-method"><span class="n">D</span><span class="o">.</span><span class="n">load_state_dict</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a><span class="p">[</span><span class="s2">&quot;state_dict_D&quot;</span><span class="p">])</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer.load_state_dict" title="deepinv.training.AdversarialOptimizer.load_state_dict" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-method"><span class="n">optimizer</span><span class="o">.</span><span class="n">load_state_dict</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">])</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer" title="deepinv.training.AdversarialTrainer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trainer</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer" title="deepinv.training.AdversarialTrainer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">AdversarialTrainer</span></a><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator" title="deepinv.models.CSGMGenerator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">G</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur" title="deepinv.physics.Blur" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur" title="deepinv.physics.Blur" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="p">,</span>
+    <span class="n">eval_dataloader</span><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="p">,</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">losses</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.SupAdversarialGeneratorLoss" title="deepinv.loss.adversarial.SupAdversarialGeneratorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_g</span></a><span class="p">,</span>
+    <span class="n">losses_d</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" title="deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_d</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer" title="deepinv.training.AdversarialOptimizer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer" title="deepinv.training.AdversarialOptimizer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a><span class="p">,</span>
+    <span class="n">scheduler</span><span class="o">=</span><span class="n">scheduler</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">show_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+<span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator" title="deepinv.models.CSGMGenerator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">G</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.Trainer.html#deepinv.Trainer.train" title="deepinv.Trainer.train" class="sphx-glr-backref-module-deepinv sphx-glr-backref-type-py-method"><span class="n">trainer</span><span class="o">.</span><span class="n">train</span></a><span class="p">()</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading: &quot;https://huggingface.co/deepinv/adversarial-demo/resolve/main/uair_model.pth?download=true&quot; to /local/jtachell/.cache/torch/hub/checkpoints/uair_model.pth
+
+  0%|          | 0.00/12.7M [00:00&lt;?, ?B/s]
+ 44%|████▍     | 5.62M/12.7M [00:00&lt;00:00, 58.7MB/s]
+ 89%|████████▊ | 11.2M/12.7M [00:00&lt;00:00, 58.1MB/s]
+100%|██████████| 12.7M/12.7M [00:00&lt;00:00, 59.1MB/s]
+The model has 444867 trainable parameters
+Train epoch 0: TotalLoss=0.138, PSNR=24.465
+Eval epoch 0: PSNR=24.723
+Best model saved at epoch 1
+</pre></div>
+</div>
+<p>Test the trained model and plot the results:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.9/library/functions.html#bool" title="builtins.bool" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trainer</span><span class="o">.</span><span class="n">plot_images</span></a> <span class="o">=</span> <span class="kc">True</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.Trainer.html#deepinv.Trainer.test" title="deepinv.Trainer.test" class="sphx-glr-backref-module-deepinv sphx-glr-backref-type-py-method"><span class="n">trainer</span><span class="o">.</span><span class="n">test</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_gan_imaging_002.png" srcset="../../_images/sphx_glr_demo_gan_imaging_002.png" alt="Ground truth, Measurement, No learning, Reconstruction" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Eval epoch 0: PSNR=24.723, PSNR no learning=23.812
+Test results:
+PSNR no learning: 23.812 +- 4.224
+PSNR: 24.723 +- 3.576
+
+{&#39;PSNR no learning&#39;: 23.811522006988525, &#39;PSNR no learning_std&#39;: 4.223702789630766, &#39;PSNR&#39;: 24.722901916503908, &#39;PSNR_std&#39;: 3.5759563452970653}
+</pre></div>
+</div>
+</section>
+<section id="csgm-ambientgan-training">
+<h2>CSGM / AmbientGAN training<a class="headerlink" href="#csgm-ambientgan-training" title="Link to this heading">#</a></h2>
+<p>Compressed Sensing using Generative Models (CSGM) <a class="footnote-reference brackets" href="#footcite-bora2017compressed" id="id8" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a> and AmbientGAN <a class="footnote-reference brackets" href="#footcite-bora2018ambientgan" id="id9" role="doc-noteref"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></a> are two methods for solving inverse problems
+using generative models. CSGM uses a generative model to solve the inverse problem by optimising the latent
+space of the generator. AmbientGAN uses a generative model to solve the inverse problem by optimising the
+measurements themselves. Both methods are trained using an adversarial loss; the main difference is that CSGM requires
+a ground truth dataset (supervised loss), while AmbientGAN does not (unsupervised loss).</p>
+<p>In this example, we use a DCGAN as the
+generator and discriminator, and train using the adversarial loss. The forward pass of the generator is given by:</p>
+<p><strong>CSGM</strong> forward pass at train time:</p>
+<div class="math notranslate nohighlight">
+\[\hat x = \inverse{z},\quad z\sim \mathcal{N}(\mathbf{0},\mathbf{I}_k)\]</div>
+<p><strong>CSGM</strong>/<strong>AmbientGAN</strong> forward pass at eval time:</p>
+<div class="math notranslate nohighlight">
+\[\hat x = \inverse{\hat z}\quad\text{s.t.}\quad\hat z=\operatorname*{argmin}_z \lVert \forw{\inverse{z}}-y\rVert _2^2\]</div>
+<p><strong>CSGM</strong> loss:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}=\mathcal{L}_\text{adv}(\hat x, x;D)\]</div>
+<p><strong>AmbientGAN</strong> loss (where <span class="math notranslate nohighlight">\(\forw{\cdot}\)</span> is the physics):</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}=\mathcal{L}_\text{adv}(\forw{\hat x}, y;D)\]</div>
+<p>We next load the models and construct losses as defined above.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator" title="deepinv.models.CSGMGenerator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">G</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator" title="deepinv.models.CSGMGenerator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">CSGMGenerator</span></a><span class="p">(</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANGenerator.html#deepinv.models.DCGANGenerator" title="deepinv.models.DCGANGenerator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DCGANGenerator</span></a><span class="p">(</span><span class="n">output_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">nz</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">ngf</span><span class="o">=</span><span class="mi">32</span><span class="p">),</span> <span class="n">inf_tol</span><span class="o">=</span><span class="mf">1e-2</span>
+<span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DCGANDiscriminator</span></a><span class="p">(</span><span class="n">ndf</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer" title="deepinv.training.AdversarialOptimizer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a><span class="p">,</span> <span class="n">scheduler</span> <span class="o">=</span> <span class="n">get_models</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator" title="deepinv.models.CSGMGenerator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">G</span></a><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="p">,</span> <span class="n">lr_g</span><span class="o">=</span><span class="mf">2e-4</span><span class="p">,</span> <span class="n">lr_d</span><span class="o">=</span><span class="mf">2e-4</span>
+<span class="p">)</span>  <span class="c1"># learning rates from original paper</span>
+
+<span class="c1"># For AmbientGAN:</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.SupAdversarialGeneratorLoss" title="deepinv.loss.adversarial.SupAdversarialGeneratorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_g</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss" title="deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">UnsupAdversarialGeneratorLoss</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" title="deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_d</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss" title="deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">UnsupAdversarialDiscriminatorLoss</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+<span class="c1"># For CSGM:</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.SupAdversarialGeneratorLoss" title="deepinv.loss.adversarial.SupAdversarialGeneratorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_g</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.SupAdversarialGeneratorLoss" title="deepinv.loss.adversarial.SupAdversarialGeneratorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">SupAdversarialGeneratorLoss</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" title="deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_d</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" title="deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class"><span class="n">adversarial</span><span class="o">.</span><span class="n">SupAdversarialDiscriminatorLoss</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<p>As before, we can now train our models. Since inference is very
+slow for CSGM/AmbientGAN as it requires an optimisation, we only do one
+evaluation at the end. Note the train PSNR is meaningless as this
+generative model is trained on random latents.
+Like above, we load a pretrained model trained in the exact same way for 50 epochs,
+and fine-tune here for a quick demo with 1 epoch.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.9/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/hub.html#torch.hub.load_state_dict_from_url" title="torch.hub.load_state_dict_from_url" class="sphx-glr-backref-module-torch-hub sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load_state_dict_from_url</span></a><span class="p">(</span>
+    <span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_weights_url</span><span class="p">(</span><span class="s2">&quot;adversarial-demo&quot;</span><span class="p">,</span> <span class="s2">&quot;csgm_model.pth&quot;</span><span class="p">),</span>
+    <span class="n">map_location</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">,</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">_</span></a><span class="p">:</span> <span class="n">s</span><span class="p">,</span>
+<span class="p">)</span>
+
+<a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.load_state_dict" title="torch.nn.Module.load_state_dict" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-method"><span class="n">G</span><span class="o">.</span><span class="n">load_state_dict</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a><span class="p">[</span><span class="s2">&quot;state_dict&quot;</span><span class="p">])</span>
+<a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.load_state_dict" title="torch.nn.Module.load_state_dict" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-method"><span class="n">D</span><span class="o">.</span><span class="n">load_state_dict</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a><span class="p">[</span><span class="s2">&quot;state_dict_D&quot;</span><span class="p">])</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer.load_state_dict" title="deepinv.training.AdversarialOptimizer.load_state_dict" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-method"><span class="n">optimizer</span><span class="o">.</span><span class="n">load_state_dict</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#dict" title="builtins.dict" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">ckpt</span></a><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">])</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer" title="deepinv.training.AdversarialTrainer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trainer</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer" title="deepinv.training.AdversarialTrainer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">AdversarialTrainer</span></a><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator" title="deepinv.models.CSGMGenerator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">G</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator" title="deepinv.models.DCGANDiscriminator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">D</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur" title="deepinv.physics.Blur" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur" title="deepinv.physics.Blur" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">train_dataloader</span></a><span class="p">,</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">losses</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.SupAdversarialGeneratorLoss" title="deepinv.loss.adversarial.SupAdversarialGeneratorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_g</span></a><span class="p">,</span>
+    <span class="n">losses_d</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" title="deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" class="sphx-glr-backref-module-deepinv-loss-adversarial sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">loss_d</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer" title="deepinv.training.AdversarialOptimizer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer" title="deepinv.training.AdversarialOptimizer" class="sphx-glr-backref-module-deepinv-training sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">optimizer</span></a><span class="p">,</span>
+    <span class="n">scheduler</span><span class="o">=</span><span class="n">scheduler</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">show_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="torch.device" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+<span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator" title="deepinv.models.CSGMGenerator" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">G</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.Trainer.html#deepinv.Trainer.train" title="deepinv.Trainer.train" class="sphx-glr-backref-module-deepinv sphx-glr-backref-type-py-method"><span class="n">trainer</span><span class="o">.</span><span class="n">train</span></a><span class="p">()</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading: &quot;https://huggingface.co/deepinv/adversarial-demo/resolve/main/csgm_model.pth?download=true&quot; to /local/jtachell/.cache/torch/hub/checkpoints/csgm_model.pth
+
+  0%|          | 0.00/49.3M [00:00&lt;?, ?B/s]
+ 11%|█▏        | 5.62M/49.3M [00:00&lt;00:00, 58.8MB/s]
+ 23%|██▎       | 11.2M/49.3M [00:00&lt;00:00, 58.4MB/s]
+ 34%|███▍      | 16.9M/49.3M [00:00&lt;00:00, 58.6MB/s]
+ 46%|████▌     | 22.6M/49.3M [00:00&lt;00:00, 58.8MB/s]
+ 57%|█████▋    | 28.2M/49.3M [00:00&lt;00:00, 57.4MB/s]
+ 69%|██████▊   | 33.9M/49.3M [00:00&lt;00:00, 57.6MB/s]
+ 80%|███████▉  | 39.4M/49.3M [00:00&lt;00:00, 57.5MB/s]
+ 91%|█████████ | 44.9M/49.3M [00:00&lt;00:00, 54.8MB/s]
+100%|██████████| 49.3M/49.3M [00:00&lt;00:00, 57.4MB/s]
+The model has 3608000 trainable parameters
+Train epoch 0: TotalLoss=0.007, PSNR=9.018
+</pre></div>
+</div>
+<p>Eventually, we run evaluation of the generative model by running test-time optimisation
+using test measurements. Note that we do not get great results as CSGM /
+AmbientGAN relies on large datasets of diverse samples, and we run the
+optimisation to a relatively high tolerance for speed. Improve the results by
+running the optimisation for longer.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.Trainer.html#deepinv.Trainer.test" title="deepinv.Trainer.test" class="sphx-glr-backref-module-deepinv sphx-glr-backref-type-py-method"><span class="n">trainer</span><span class="o">.</span><span class="n">test</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Eval epoch 0: PSNR=9.856, PSNR no learning=23.812
+Test results:
+PSNR no learning: 23.812 +- 4.224
+PSNR: 9.856 +- 0.971
+
+{&#39;PSNR no learning&#39;: 23.811522006988525, &#39;PSNR no learning_std&#39;: 4.223702789630766, &#39;PSNR&#39;: 9.855930137634278, &#39;PSNR_std&#39;: 0.9709567747081534}
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">References<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<div class="docutils container" id="id10">
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="footcite-kupyn2018deblurgan" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
+<span class="backrefs">(<a role="doc-backlink" href="#id1">1</a>,<a role="doc-backlink" href="#id6">2</a>)</span>
+<p>Orest Kupyn, Volodymyr Budzan, Mykola Mykhailych, Dmytro Mishkin, and Jiří Matas. Deblurgan: blind motion deblurring using conditional adversarial networks. In <em>Proceedings of the IEEE conference on computer vision and pattern recognition</em>, 8183–8192. 2018.</p>
+</aside>
+<aside class="footnote brackets" id="footcite-bora2017compressed" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></span>
+<span class="backrefs">(<a role="doc-backlink" href="#id2">1</a>,<a role="doc-backlink" href="#id8">2</a>)</span>
+<p>Ashish Bora, Ajil Jalal, Eric Price, and Alexandros G Dimakis. Compressed sensing using generative models. In <em>International conference on machine learning</em>, 537–546. PMLR, 2017.</p>
+</aside>
+<aside class="footnote brackets" id="footcite-bora2018ambientgan" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></span>
+<span class="backrefs">(<a role="doc-backlink" href="#id3">1</a>,<a role="doc-backlink" href="#id9">2</a>)</span>
+<p>Ashish Bora, Eric Price, and Alexandros G Dimakis. Ambientgan: generative models from lossy measurements. In <em>International conference on learning representations</em>. 2018.</p>
+</aside>
+<aside class="footnote brackets" id="footcite-pajot2019unsupervised" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>4<span class="fn-bracket">]</span></span>
+<span class="backrefs">(<a role="doc-backlink" href="#id4">1</a>,<a role="doc-backlink" href="#id7">2</a>)</span>
+<p>Arthur Pajot, Emmanuel De Bézenac, and Patrick Gallinari. Unsupervised adversarial image reconstruction. In <em>International conference on learning representations</em>. 2019.</p>
+</aside>
+<aside class="footnote brackets" id="footcite-isola2017image" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id5">5</a><span class="fn-bracket">]</span></span>
+<p>Phillip Isola, Jun-Yan Zhu, Tinghui Zhou, and Alexei A Efros. Image-to-image translation with conditional adversarial networks. In <em>Proceedings of the IEEE conference on computer vision and pattern recognition</em>, 1125–1134. 2017.</p>
+</aside>
+</aside>
+</div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 17.962 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-adversarial-learning-demo-gan-imaging-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/2f3e20ed263cc3e5c7e770603c2bda28/demo_gan_imaging.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_gan_imaging.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/1b08a6c94b052657775204a9369c2c98/demo_gan_imaging.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">demo_gan_imaging.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/74982483541b96cb559b9926a0156344/demo_gan_imaging.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">demo_gan_imaging.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Adversarial Learning</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../external-libraries/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">External Libraries</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#generate-dataset">Generate dataset</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#define-models">Define models</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#conditional-gan-training">Conditional GAN training</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#uair-training">UAIR training</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#csgm-ambientgan-training">CSGM / AmbientGAN training</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/auto_examples/adversarial-learning/demo_gan_imaging.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+  <div class="sidebar-secondary-item">
+
+
+  <div class="sphx-glr-sidebar-component">
+    
+      
+        <div class="sphx-glr-sidebar-item sphx-glr-download-python-sidebar" title="demo_gan_imaging.py">
+          <a download href="../../_downloads/1b08a6c94b052657775204a9369c2c98/demo_gan_imaging.py">
+            <i class="fa-solid fa-download"></i>
+            Download source code
+          </a>
+        </div>
+      
+    
+      
+        <div class="sphx-glr-sidebar-item sphx-glr-download-jupyter-sidebar" title="demo_gan_imaging.ipynb">
+          <a download href="../../_downloads/2f3e20ed263cc3e5c7e770603c2bda28/demo_gan_imaging.ipynb">
+            <i class="fa-solid fa-download"></i>
+            Download Jupyter notebook
+          </a>
+        </div>
+      
+    
+      
+        <div class="sphx-glr-sidebar-item sphx-glr-download-zip-sidebar" title="demo_gan_imaging.zip">
+          <a download href="../../_downloads/74982483541b96cb559b9926a0156344/demo_gan_imaging.zip">
+            <i class="fa-solid fa-download"></i>
+            Download zipped
+          </a>
+        </div>
+      
+    
+  </div>
+</div>
+
+  <div class="sidebar-secondary-item">
+
+
+
+
+
+
+<div class="sd-card sd-shadow-sm sd-mb-3">
+  <div class="sd-card-body" style="display:flex; flex-direction:column; align-items:center; text-align:center;">
+    <p class="sd-card-text sd-fs-5 sd-font-weight-bold sd-mb-2" style="margin-bottom:0.75rem;">Run this example</p>
+
+  
+    <a class="sd-btn sd-btn-primary" style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:0.25rem; padding:0.5rem 0.75rem;" href="https://colab.research.google.com/github/deepinv/deepinv/blob/gh-pages/auto_examples/_notebooks/adversarial-learning/demo_gan_imaging.ipynb" target="_blank" rel="noopener">
+      <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="vertical-align: middle; height: 20px;">
+    </a>
+
+  </div>
+</div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

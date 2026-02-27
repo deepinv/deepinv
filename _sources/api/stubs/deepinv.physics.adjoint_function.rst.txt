@@ -1,0 +1,9 @@
+﻿adjoint\_function
+=================
+
+.. currentmodule:: deepinv.physics
+
+.. autofunction:: adjoint_function
+
+.. minigallery:: deepinv.physics.adjoint_function
+    :add-heading: Examples using ``adjoint_function``:

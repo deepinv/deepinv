@@ -1,0 +1,1202 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.models.wrapper &#8212; deepinv 0.3.7 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=29d04658"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/models/wrapper';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/models/wrapper.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">🎉 We are part of the <a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.</div>
+</aside>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.7 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.7 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.models.wrapper</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.models.wrapper</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Denoiser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+
+<div class="viewcode-block" id="ScoreModelWrapper">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.ScoreModelWrapper.html#deepinv.models.ScoreModelWrapper">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ScoreModelWrapper</span><span class="p">(</span><span class="n">Denoiser</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wraps a score model as a DeepInv Denoiser.</span>
+
+<span class="sd">    Given a noisy sample :math:`x_t = s_t(x_0 + \sigma_t \varepsilon)`, where :math:`\varepsilon \sim \mathcal{N}(0, I)`,</span>
+<span class="sd">    depending on the `prediction_type`, the input `score_model` is trained to predict, either:</span>
+
+<span class="sd">        * the noise :math:`\varepsilon` (`prediction_type = &#39;epsilon&#39;`) as typically the case for DDPM models, or</span>
+<span class="sd">        * the denoised sample :math:`x_0` (`prediction_type = &#39;sample&#39;`) or</span>
+<span class="sd">        * the `v-prediction` :math:`s_t (\varepsilon - \sigma_t \cdot x_0)` as proposed by :footcite:`salimans2022progressive` (`prediction_type = &#39;v_prediction&#39;`)</span>
+
+<span class="sd">    :param torch.nn.Module | Callable score_model: score model to be wrapped.</span>
+<span class="sd">    :param str prediction_type: type of prediction made by the score model.</span>
+<span class="sd">    :param bool clip_output: whether to clip the output to the model range. Default is `True`.</span>
+<span class="sd">    :param Callable | torch.Tensor sigma_t: continuous function or tensor (of shape `[N]` with `N` the number of time steps) defining the noise schedule :math:`\sigma_t`.</span>
+<span class="sd">    :param Callable | torch.Tensor scale_t: function or tensor (of shape `[N]` with `N` the number of time steps) defining the scaling schedule :math:`s_t`.</span>
+<span class="sd">    :param Callable sigma_inverse: analytic inverse of the `sigma_t`. If not provided, a numeric inversion is used.</span>
+<span class="sd">    :param bool variance_preserving: whether the schedule is variance-preserving. If `True`, `scale_t` is computed from the `sigma_t`.</span>
+<span class="sd">    :param bool variance_exploding: whether the schedule is variance-exploding. If `True`, `scale_t` is set to `1`.</span>
+<span class="sd">    :param float T: maximum time value for continuous schedules. Default is `1.0`.</span>
+<span class="sd">    :param bool takes_integer_time: whether the model takes integer time steps (in `[0, n_timesteps-1]`) as input. Default is `False`.</span>
+<span class="sd">    :param int n_timesteps: number of time steps for discrete schedules. Default is `1000`.</span>
+<span class="sd">    :param bool _was_trained_on_minus_one_one: whether the model was trained on images in `[-1, 1]` range (`True`) or `[0, 1]` range (`False`). Default is `True`.</span>
+<span class="sd">    :param str: device to load the model on. Default is `&#39;cpu&#39;`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">score_model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">prediction_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;epsilon&quot;</span><span class="p">,</span>  <span class="c1"># prediction_type: &quot;epsilon&quot;, &quot;v_prediction&quot;, or &quot;sample&quot;</span>
+        <span class="n">clip_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">sigma_t</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">scale_t</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sigma_inverse</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">variance_preserving</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">variance_exploding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">T</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">takes_integer_time</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">n_timesteps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+        <span class="n">_was_trained_on_minus_one_one</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">score_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clip_output</span> <span class="o">=</span> <span class="n">clip_output</span>
+        <span class="k">if</span> <span class="n">prediction_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;epsilon&quot;</span><span class="p">,</span> <span class="s2">&quot;v_prediction&quot;</span><span class="p">,</span> <span class="s2">&quot;sample&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Unsupported prediction_type: </span><span class="si">{</span><span class="n">prediction_type</span><span class="si">}</span><span class="s2">. Supported types are &#39;epsilon&#39;, &#39;v_prediction&#39;, and &#39;sample&#39;.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">variance_preserving</span> <span class="ow">and</span> <span class="n">variance_exploding</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;variance_preserving and variance_exploding cannot both be True.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">prediction_type</span> <span class="o">=</span> <span class="n">prediction_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">takes_integer_time</span> <span class="o">=</span> <span class="n">takes_integer_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_timesteps</span> <span class="o">=</span> <span class="n">n_timesteps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_was_trained_on_minus_one_one</span> <span class="o">=</span> <span class="n">_was_trained_on_minus_one_one</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variance_preserving</span> <span class="o">=</span> <span class="n">variance_preserving</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variance_exploding</span> <span class="o">=</span> <span class="n">variance_exploding</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_schedules</span><span class="p">(</span><span class="n">sigma_t</span><span class="p">,</span> <span class="n">scale_t</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma_inverse</span> <span class="o">=</span> <span class="n">sigma_inverse</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">=</span> <span class="n">T</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_map_schedule</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">source_schedule</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">transform_fn</span><span class="p">:</span> <span class="n">Callable</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies a transform function to a schedule (Tensor or Callable).</span>
+
+<span class="sd">        Guarantees:</span>
+<span class="sd">            1. If Callable: input &#39;t&#39; is converted to a Tensor if it is a float/int.</span>
+<span class="sd">            2. The output is always a Tensor (casting Python floats/ints if needed).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_schedule</span><span class="p">,</span> <span class="n">Callable</span><span class="p">):</span>
+
+            <span class="k">def</span><span class="w"> </span><span class="nf">wrapped_schedule</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">source_schedule</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">transform_fn</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                <span class="c1"># Ensure output is a Tensor</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+                    <span class="n">res</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">res</span>
+
+            <span class="k">return</span> <span class="n">wrapped_schedule</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># source_schedule is already a Tensor</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">transform_fn</span><span class="p">(</span><span class="n">source_schedule</span><span class="p">)</span>
+            <span class="c1"># Ensure output is a Tensor (e.g., if transform returned plain 1.0)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                    <span class="n">res</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">source_schedule</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">source_schedule</span><span class="o">.</span><span class="n">dtype</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_initialize_schedules</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigma_t</span><span class="p">,</span> <span class="n">scale_t</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A helper function to initialize the schedules based on the provided arguments and configuration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ops</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;vp_sigma_to_scale&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">s</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(),</span>
+            <span class="s2">&quot;vp_scale_to_sigma&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">s</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(),</span>
+            <span class="s2">&quot;ve_sigma_to_scale&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">s</span><span class="p">),</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Determine which operation to use based on configuration</span>
+        <span class="n">transform_op</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">target_name</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># If scale_t is None, but sigma_t is provided, we can try to compute scale_t from sigma_t if variance_preserving or variance_exploding is True. If neither is True, we skip the transformation since we don&#39;t know how to compute the missing schedule.</span>
+        <span class="k">if</span> <span class="n">scale_t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">sigma_t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">target_name</span> <span class="o">=</span> <span class="s2">&quot;scale&quot;</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="n">sigma_t</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">variance_preserving</span><span class="p">:</span>
+                <span class="n">transform_op</span> <span class="o">=</span> <span class="n">ops</span><span class="p">[</span><span class="s2">&quot;vp_sigma_to_scale&quot;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">variance_exploding</span><span class="p">:</span>
+                <span class="n">transform_op</span> <span class="o">=</span> <span class="n">ops</span><span class="p">[</span><span class="s2">&quot;ve_sigma_to_scale&quot;</span><span class="p">]</span>
+
+        <span class="c1"># scale_t is not None, but sigma_t is None, we can try to compute sigma_t from scale_t if variance_preserving is True. If variance_exploding is True, sigma_t is not defined since scale is always 1, so we skip the transformation in that case.</span>
+        <span class="k">elif</span> <span class="n">sigma_t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">scale_t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">target_name</span> <span class="o">=</span> <span class="s2">&quot;sigma&quot;</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="n">scale_t</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">variance_preserving</span><span class="p">:</span>
+                <span class="n">transform_op</span> <span class="o">=</span> <span class="n">ops</span><span class="p">[</span><span class="s2">&quot;vp_scale_to_sigma&quot;</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Either both schedules are provided, or both are None. In both cases, we do nothing.</span>
+            <span class="k">pass</span>
+
+        <span class="c1">#  Apply the transformation</span>
+        <span class="k">if</span> <span class="n">transform_op</span> <span class="ow">and</span> <span class="n">source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_schedule</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">transform_op</span><span class="p">)</span>
+            <span class="c1"># Assign back to the correct variable</span>
+            <span class="k">if</span> <span class="n">target_name</span> <span class="o">==</span> <span class="s2">&quot;scale&quot;</span><span class="p">:</span>
+                <span class="n">scale_t</span> <span class="o">=</span> <span class="n">result</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sigma_t</span> <span class="o">=</span> <span class="n">result</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sigma_t</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;sigma_t&quot;</span><span class="p">,</span> <span class="n">sigma_t</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sigma_t</span> <span class="o">=</span> <span class="n">sigma_t</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scale_t</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;scale_t&quot;</span><span class="p">,</span> <span class="n">scale_t</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale_t</span> <span class="o">=</span> <span class="n">scale_t</span>
+
+<div class="viewcode-block" id="ScoreModelWrapper.get_schedule_value">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.ScoreModelWrapper.html#deepinv.models.ScoreModelWrapper.get_schedule_value">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_schedule_value</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">schedule</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">t</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">target_size</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the value of a schedule (function or tensor) at given time steps.</span>
+
+<span class="sd">        :param Callable | torch.Tensor schedule: schedule function or tensor.</span>
+<span class="sd">        :param torch.Tensor t: time steps, of shape `[B]` or `[]`.</span>
+<span class="sd">        :param torch.Size target_size: target size to broadcast the output to. Default is `None`.</span>
+<span class="sd">        :returns: (:class:`torch.Tensor`) schedule values at time steps `t`, of shape that is broadcastable to `target_size` if `target_size` is provided.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">time_idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_timesteps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">schedule</span><span class="p">[</span><span class="n">time_idx</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">schedule</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">target_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">target_size</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">val</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_pred_to_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
+        <span class="n">pt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_type</span>
+        <span class="k">if</span> <span class="n">pt</span> <span class="o">==</span> <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span>  <span class="c1"># predicts white noise</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">stable_division</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">pt</span> <span class="o">==</span> <span class="s2">&quot;v_prediction&quot;</span>
+        <span class="p">):</span>  <span class="c1"># predicts s_t*(eps - sigma_t * x). See https://arxiv.org/pdf/2202.00512.</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">stable_division</span><span class="p">(</span><span class="n">pred</span> <span class="o">/</span> <span class="n">scale</span> <span class="o">+</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">pt</span> <span class="o">==</span> <span class="s2">&quot;sample&quot;</span><span class="p">:</span>  <span class="c1"># predicts the denoised image (Tweedie formula)</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stable_division</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">pred</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported prediction_type: </span><span class="si">{</span><span class="n">pt</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">score</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_pred_to_x0</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
+        <span class="n">pt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_type</span>
+        <span class="k">if</span> <span class="n">pt</span> <span class="o">==</span> <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span>  <span class="c1"># predics white noise</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="n">x</span> <span class="o">/</span> <span class="n">scale</span> <span class="o">-</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">pred</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">pt</span> <span class="o">==</span> <span class="s2">&quot;v_prediction&quot;</span>
+        <span class="p">):</span>  <span class="c1"># predics s_t*eps - sigma_t * x. See https://arxiv.org/pdf/2202.00512.</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="n">scale</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">pred</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">pt</span> <span class="o">==</span> <span class="s2">&quot;sample&quot;</span><span class="p">:</span>  <span class="c1"># predics the denoised image</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="n">pred</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported prediction_type: </span><span class="si">{</span><span class="n">pt</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x0</span>
+
+<div class="viewcode-block" id="ScoreModelWrapper.time_from_sigma">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.ScoreModelWrapper.html#deepinv.models.ScoreModelWrapper.time_from_sigma">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">time_from_sigma</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigma</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the time step `t \in [0,T]` corresponding to a given noise level `sigma`.</span>
+
+<span class="sd">        If an analytic inverse of the `sigma_t` is provided, it is used.</span>
+<span class="sd">        Otherwise, a numeric inversion is performed (nearest neighbor for discrete schedules, binary search for continuous schedules).</span>
+
+<span class="sd">        :param torch.Tensor | float sigma: noise level(s), either a scalar or a tensor of shape `[B]`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span>
+
+        <span class="c1"># 1) If user provided an analytic / predefined inverse, use it.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma_inverse</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma_inverse</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span>
+
+        <span class="c1"># 2) If we have a discrete table, use nearest index.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma_t</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">sigmas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma_t</span>  <span class="c1"># [T]</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">sigmas</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">sigmas</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">sigma</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">time_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmin</span><span class="p">((</span><span class="n">sigmas</span> <span class="o">-</span> <span class="n">sigma</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">())</span>
+                <span class="k">return</span> <span class="n">time_idx</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_timesteps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">diffs</span> <span class="o">=</span> <span class="p">(</span><span class="n">sigmas</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">sigma</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">])</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span>  <span class="c1"># [B, T]</span>
+                <span class="n">time_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">diffs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">time_idx</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_timesteps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># 3) Fallback: numeric inversion for continuous schedules (binary search).</span>
+            <span class="n">t_low</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span>
+            <span class="n">t_high</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">32</span><span class="p">):</span>
+                <span class="n">t_mid</span> <span class="o">=</span> <span class="p">(</span><span class="n">t_low</span> <span class="o">+</span> <span class="n">t_high</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+                <span class="n">sigma_mid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma_t</span><span class="p">(</span><span class="n">t_mid</span><span class="p">)</span>
+                <span class="n">go_right</span> <span class="o">=</span> <span class="n">sigma_mid</span> <span class="o">&lt;</span> <span class="n">sigma</span>
+                <span class="n">t_low</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">go_right</span><span class="p">,</span> <span class="n">t_mid</span><span class="p">,</span> <span class="n">t_low</span><span class="p">)</span>
+                <span class="n">t_high</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">go_right</span><span class="p">,</span> <span class="n">t_high</span><span class="p">,</span> <span class="n">t_mid</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">t_low</span> <span class="o">+</span> <span class="n">t_high</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stable_division</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="n">b</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">epsilon</span><span class="p">,</span>
+                <span class="n">b</span><span class="p">,</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">epsilon</span><span class="p">)</span> <span class="o">*</span> <span class="n">b</span><span class="o">.</span><span class="n">sign</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">b</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">a</span> <span class="o">/</span> <span class="n">b</span>
+
+<div class="viewcode-block" id="ScoreModelWrapper.score">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.ScoreModelWrapper.html#deepinv.models.ScoreModelWrapper.score">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">score</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the score function :math:`\nabla_x \log p_t(x)`.</span>
+
+<span class="sd">        :param torch.Tensor x: input tensor of shape `[B, C, H, W]`.</span>
+<span class="sd">        :param torch.Tensor | float t: single timestep or tensor of shape `[B]` or `[]`.</span>
+<span class="sd">        :param args: additional positional arguments of the model.</span>
+<span class="sd">        :param kwargs: additional keyword arguments of the model.</span>
+
+<span class="sd">        :returns: (:class:`torch.Tensor`) the score function of shape `[B, C, H, W]`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
+
+        <span class="k">assert</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Please provide a time step t.&quot;</span>
+
+        <span class="c1"># Handle time step</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span>
+            <span class="n">t</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">takes_integer_time</span><span class="p">:</span>
+            <span class="n">t_model</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_timesteps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">t_model</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="c1"># UNet forward</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t_model</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">pred</span> <span class="o">=</span> <span class="n">pred</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_schedule_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma_t</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_schedule_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_t</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred_to_score</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ScoreModelWrapper.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.ScoreModelWrapper.html#deepinv.models.ScoreModelWrapper.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">input_in_minus_one_one</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies denoiser :math:`\denoiser{x}{\sigma}`.</span>
+<span class="sd">        If `input_in_minus_one_one` is `False` (default value), the input `x` is expected to be in `[0, 1]` range (up to random noise) and the output is also in `[0, 1]` range.</span>
+<span class="sd">        Otherwise, both input and output are expected in `[-1, 1]` range.</span>
+
+<span class="sd">        :param torch.Tensor x: noisy input, of shape `[B, C, H, W]`.</span>
+<span class="sd">        :param torch.Tensor, float sigma: noise level. Can be a `float` or a :class:`torch.Tensor` of shape `[B]`.</span>
+<span class="sd">            If a single `float` is provided, the same noise level is used for all samples in the batch.</span>
+<span class="sd">            Otherwise, batch-wise noise levels are used.</span>
+<span class="sd">        :param bool input_in_minus_one_one: whether the input `x` is in `[-1, 1]` range. Default is `False`.</span>
+<span class="sd">        :param args: additional positional arguments to be passed to the model.</span>
+<span class="sd">        :param kwarg: additional keyword arguments to be passed to the model. For example, a `prompt` for text-conditioned or `class_label` for class-conditioned models.</span>
+
+<span class="sd">        :returns: (:class:`torch.Tensor`) the denoised output.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
+
+        <span class="k">assert</span> <span class="n">sigma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Please provide a noise level sigma.&quot;</span>
+
+        <span class="c1"># Handle sigma</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span>
+            <span class="n">sigma</span><span class="p">,</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">ndim</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">input_in_minus_one_one</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_was_trained_on_minus_one_one</span><span class="p">:</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span> <span class="o">*</span> <span class="mi">2</span>  <span class="c1"># since image is in [-1, 1] range in the model</span>
+
+        <span class="n">timestep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_from_sigma</span><span class="p">(</span><span class="n">sigma</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_schedule_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_t</span><span class="p">,</span> <span class="n">timestep</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">input_in_minus_one_one</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_was_trained_on_minus_one_one</span><span class="p">:</span>
+            <span class="c1"># Rescale input x from [0, 1] to model scale [-1, 1] and apply scaling following DDPM</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">scale</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">takes_integer_time</span><span class="p">:</span>
+            <span class="n">t_model</span> <span class="o">=</span> <span class="p">(</span><span class="n">timestep</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_timesteps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">t_model</span> <span class="o">=</span> <span class="n">timestep</span>
+        <span class="c1"># UNet forward</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t_model</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">pred</span> <span class="o">=</span> <span class="n">pred</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># take the first output if multiple outputs are returned</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># Convert model output to x0 depending on prediction type</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred_to_x0</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
+
+        <span class="c1"># Optional: clamp to model range [-1, 1]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip_output</span><span class="p">:</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="n">x0</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">input_in_minus_one_one</span><span class="p">:</span>
+            <span class="c1"># Rescale to [0, 1]</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="p">(</span><span class="n">x0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+
+        <span class="k">return</span> <span class="n">x0</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DiffusersDenoiserWrapper">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.DiffusersDenoiserWrapper.html#deepinv.models.DiffusersDenoiserWrapper">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DiffusersDenoiserWrapper</span><span class="p">(</span><span class="n">ScoreModelWrapper</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wraps a `HuggingFace diffusers &lt;https://huggingface.co/docs/diffusers/index&gt;`_ model as a DeepInv Denoiser.</span>
+
+<span class="sd">    :param str mode_id: Diffusers model id or HuggingFace hub repository id. For example, &#39;google/ddpm-cat-256&#39;.</span>
+<span class="sd">        The id must work with `DiffusionPipeline`.</span>
+<span class="sd">        See `Diffusers Documentation &lt;https://huggingface.co/docs/diffusers/v0.35.1/en/api/pipelines/overview#diffusers.DiffusionPipeline&gt;`_.</span>
+<span class="sd">    :param bool clip_output: Whether to clip the output to the model range. Default is `True`.</span>
+<span class="sd">    :param device: Device to load the model on. Default is &#39;cpu&#39;.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        Currently, only models trained with `DDPMScheduler`, `DDIMScheduler` or `PNDMScheduler` are supported.</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        This wrapper requires the `diffusers` and `transformers` packages.</span>
+<span class="sd">        You can install them via `pip install diffusers transformers`.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        &gt;&gt;&gt; import deepinv as dinv</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.models import DiffusersDenoiserWrapper</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; device = dinv.utils.get_device(verbose=False)</span>
+<span class="sd">        &gt;&gt;&gt; denoiser = DiffusersDenoiserWrapper(mode_id=&#39;google/ddpm-cat-256&#39;, device=device)</span>
+<span class="sd">        &gt;&gt;&gt; x = dinv.utils.load_example(</span>
+<span class="sd">        ...         &quot;cat.jpg&quot;,</span>
+<span class="sd">        ...         img_size=256,</span>
+<span class="sd">        ...         resize_mode=&quot;resize&quot;,</span>
+<span class="sd">        ...     ).to(device)</span>
+
+
+<span class="sd">        &gt;&gt;&gt; sigma = 0.1</span>
+<span class="sd">        &gt;&gt;&gt; x_noisy = x + sigma * torch.randn_like(x)</span>
+<span class="sd">        &gt;&gt;&gt; with torch.no_grad():</span>
+<span class="sd">        ...     x_denoised = denoiser(x_noisy, sigma=sigma)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">mode_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">clip_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">mode_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">),</span> <span class="s2">&quot;Provide a diffusers model id. E.g., &#39;google/ddpm-cat-256&#39;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">diffusers</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+                <span class="n">DiffusionPipeline</span><span class="p">,</span>
+                <span class="n">DDPMScheduler</span><span class="p">,</span>
+                <span class="n">PNDMScheduler</span><span class="p">,</span>
+                <span class="n">DDIMScheduler</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                <span class="s2">&quot;diffusers is not installed. Please install it via &#39;pip install diffusers&#39;.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">pipeline</span> <span class="o">=</span> <span class="n">DiffusionPipeline</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">mode_id</span><span class="p">,</span> <span class="n">torch_dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">device</span>
+        <span class="p">)</span>
+
+        <span class="n">model</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">unet</span>
+        <span class="n">scheduler</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pipeline</span><span class="p">,</span> <span class="s2">&quot;scheduler&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">prediction_type</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">scheduler</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;prediction_type&quot;</span><span class="p">,</span> <span class="s2">&quot;epsilon&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scheduler</span><span class="p">,</span> <span class="p">(</span><span class="n">PNDMScheduler</span><span class="p">,</span> <span class="n">DDPMScheduler</span><span class="p">,</span> <span class="n">DDIMScheduler</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">scheduler</span><span class="p">,</span> <span class="s2">&quot;alphas_cumprod&quot;</span><span class="p">):</span>
+                <span class="n">alphas_cumprod</span> <span class="o">=</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">alphas_cumprod</span>
+                <span class="n">scale_t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">alphas_cumprod</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">beta_schedule</span> <span class="o">==</span> <span class="s2">&quot;scaled_linear&quot;</span><span class="p">:</span>
+                    <span class="n">N</span> <span class="o">=</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">num_train_timesteps</span>
+                    <span class="n">beta_start</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">N</span> <span class="o">*</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">beta_start</span>
+                    <span class="n">beta_end</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">N</span> <span class="o">*</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">beta_end</span>
+                    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">beta_start</span><span class="p">)</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">beta_end</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span>
+                    <span class="n">B_t</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">t</span> <span class="o">+</span> <span class="n">a</span> <span class="o">*</span> <span class="n">c</span> <span class="o">*</span> <span class="n">t</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">c</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="mf">3.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">t</span><span class="o">**</span><span class="mi">3</span>
+                    <span class="n">scale_t</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">B_t</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">beta_schedule</span> <span class="o">==</span> <span class="s2">&quot;linear&quot;</span><span class="p">:</span>
+                    <span class="n">N</span> <span class="o">=</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">num_train_timesteps</span>
+                    <span class="n">beta_start</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">beta_start</span> <span class="o">*</span> <span class="n">N</span>
+                    <span class="n">beta_end</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">beta_end</span> <span class="o">*</span> <span class="n">N</span>
+                    <span class="n">delta</span> <span class="o">=</span> <span class="n">beta_end</span> <span class="o">-</span> <span class="n">beta_start</span>
+                    <span class="n">scale_t</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+                        <span class="o">-</span><span class="p">(</span><span class="n">beta_start</span> <span class="o">*</span> <span class="n">t</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">delta</span> <span class="o">*</span> <span class="n">t</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;only &#39;scaled_linear&#39; and &#39;linear&#39; schedule are supported for beta&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="n">sigma_t</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">variance_preserving</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">variance_exploding</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Scheduler of type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span><span class="si">}</span><span class="s2"> is not supported yet.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">score_model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">prediction_type</span><span class="o">=</span><span class="n">prediction_type</span><span class="p">,</span>
+            <span class="n">clip_output</span><span class="o">=</span><span class="n">clip_output</span><span class="p">,</span>
+            <span class="n">scale_t</span><span class="o">=</span><span class="n">scale_t</span><span class="p">,</span>
+            <span class="n">sigma_t</span><span class="o">=</span><span class="n">sigma_t</span><span class="p">,</span>
+            <span class="n">variance_preserving</span><span class="o">=</span><span class="n">variance_preserving</span><span class="p">,</span>
+            <span class="n">variance_exploding</span><span class="o">=</span><span class="n">variance_exploding</span><span class="p">,</span>
+            <span class="n">takes_integer_time</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">n_timesteps</span><span class="o">=</span><span class="n">scheduler</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">num_train_timesteps</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span> <span class="o">=</span> <span class="n">scheduler</span>
+
+<div class="viewcode-block" id="DiffusersDenoiserWrapper.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.DiffusersDenoiserWrapper.html#deepinv.models.DiffusersDenoiserWrapper.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies denoiser :math:`\denoiser{x}{\sigma}`.</span>
+<span class="sd">        The input `x` is expected to be in `[0, 1]` range (up to random noise) and the output is also in `[0, 1]` range.</span>
+
+<span class="sd">        :param torch.Tensor x: noisy input, of shape `[B, C, H, W]`.</span>
+<span class="sd">        :param torch.Tensor, float sigma: noise level. Can be a `float` or a :class:`torch.Tensor` of shape `[B]`.</span>
+<span class="sd">            If a single `float` is provided, the same noise level is used for all samples in the batch.</span>
+<span class="sd">            Otherwise, batch-wise noise levels are used.</span>
+<span class="sd">        :param args: additional positional arguments to be passed to the model.</span>
+<span class="sd">        :param kwarg: additional keyword arguments to be passed to the model. For example, a `prompt` for text-conditioned or `class_label` for class-conditioned models.</span>
+
+<span class="sd">        :returns: (:class:`torch.Tensor`) the denoised output.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ComplexDenoiserWrapper">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.ComplexDenoiserWrapper.html#deepinv.models.ComplexDenoiserWrapper">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ComplexDenoiserWrapper</span><span class="p">(</span><span class="n">Denoiser</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Complex-valued wrapper for a real-valued denoiser :math:`\denoisername(\cdot, \sigma)`.</span>
+
+<span class="sd">    This class lifts any real-valued denoiser to the complex domain by applying it separately to a chosen *pair* of real representations of the complex input and recombining the outputs.</span>
+
+<span class="sd">    Let the input be :math:`x \in \mathbb{C}^{B\times C\times H\times W}` and a noise level :math:`\sigma &gt; 0` (scalar or batch of size :math:`B`).</span>
+<span class="sd">    The underlying denoiser (given by `denoiser`) :math:`\denoisername` acts on real tensors only. Two processing modes are supported:</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    1. `&#39;real_imag&#39;` mode</span>
+
+<span class="sd">    We decompose</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        x = x_{\mathrm{real}} + i x_{\mathrm{imag}}.</span>
+
+<span class="sd">    The denoiser is applied on the real and imaginary parts (same :math:`\sigma` broadcast across both halves).</span>
+<span class="sd">    The complex reconstruction is</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \hat x = \denoisername(x_{\mathrm{real}}, \sigma) + i \, \denoisername(x_{\mathrm{imag}}, \sigma).</span>
+
+<span class="sd">    If the provided input tensor is real (i.e. `torch.is_complex(x)` is ``False``), it is interpreted as :math:`x_{\mathrm{real}}` with :math:`x_{\mathrm{imag}}=0` and the output is returned as</span>
+<span class="sd">    :math:`\denoisername(x_{\mathrm{real}},\sigma) + i 0` (complex dtype ensured).</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    2. `&#39;abs_angle&#39;` mode</span>
+
+<span class="sd">    We use the polar decomposition</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        x = m \exp(i\phi), \qquad m = |x|,\; \phi = \mathrm{arg}(x) \in (-\pi,\pi].</span>
+
+<span class="sd">    The denoiser is applied on the magnitude and phase parts (same :math:`\sigma` broadcast across both halves).</span>
+<span class="sd">    The reconstructed complex output is</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \hat x = \denoisername(m, \sigma) \exp \big(i\, \denoisername(\phi, \sigma)\big).</span>
+
+<span class="sd">    Note that the phase estimate :math:`\denoisername(\phi,\sigma)` is **clipped** back to :math:`(-\pi,\pi]`.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This wrapper can only process complex inputs that are compatible with the underlying real-valued denoiser.</span>
+<span class="sd">        For example, if the wrapped ``denoiser`` supports only single-channel (grayscale) real images, then the</span>
+<span class="sd">        corresponding complex input must also be single-channel.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        import deepinv as dinv</span>
+<span class="sd">        import torch</span>
+<span class="sd">        from deepinv.models import ComplexDenoiserWrapper, DRUNet</span>
+<span class="sd">        denoiser = DRUNet()</span>
+<span class="sd">        complex_denoiser = ComplexDenoiserWrapper(denoiser, mode=&quot;real_imag&quot;)</span>
+<span class="sd">        y = torch.randn(2, 3, 32, 32, dtype=torch.complex64)  # complex input</span>
+<span class="sd">        sigma = 0.1</span>
+<span class="sd">        with torch.no_grad():</span>
+<span class="sd">            denoised = complex_denoiser(y, sigma)</span>
+<span class="sd">        print(denoised.dtype)  # torch.complex64</span>
+
+<span class="sd">    :param deepinv.models.Denoiser denoiser: Real-valued denoiser :math:`\denoisername` to wrap.</span>
+<span class="sd">    :param str mode: Either ``&#39;real_imag&#39;`` or ``&#39;abs_angle&#39;``. Default ``&#39;real_imag&#39;``.</span>
+<span class="sd">    :raises ValueError: If an unsupported mode string is provided.</span>
+<span class="sd">    :returns: Complex denoised output :math:`\hat x` with same spatial shape as the input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">denoiser</span><span class="p">:</span> <span class="n">Denoiser</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;real_imag&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">denoiser</span>
+
+        <span class="k">if</span> <span class="n">mode</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;real_imag&quot;</span><span class="p">,</span> <span class="s2">&quot;abs_angle&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&#39;mode&#39; must be &#39;real_imag&#39; or &#39;abs_angle&#39;. Got </span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="ComplexDenoiserWrapper.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.ComplexDenoiserWrapper.html#deepinv.models.ComplexDenoiserWrapper.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the complex-valued denoiser. If a real tensor is provided, it is treated as a complex tensor with zero imaginary part.</span>
+
+<span class="sd">        :param torch.Tensor x: complex-valued input images.</span>
+<span class="sd">        :param float or torch.Tensor sigma: noise level.</span>
+
+<span class="sd">        :return: Denoised images, with the same shape as the input and will always be in complex dtype.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Duplicate sigma in the batch dimension for real and imaginary parts</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span>
+            <span class="n">sigma</span><span class="p">,</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">ndim</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;real_imag&quot;</span><span class="p">:</span>
+            <span class="n">x_real</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">real</span>
+
+            <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_complex</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+                <span class="n">noisy_batch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">x_real</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">imag</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="n">denoised_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span><span class="p">(</span><span class="n">noisy_batch</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">(</span>
+                    <span class="n">denoised_batch</span><span class="p">[:</span> <span class="n">x_real</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">denoised_batch</span><span class="p">[</span><span class="n">x_real</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:,</span> <span class="o">...</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span><span class="p">(</span><span class="n">x_real</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span> <span class="o">+</span> <span class="mi">0</span><span class="n">j</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># abs_angle</span>
+            <span class="n">x_mag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x_phase</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">noisy_batch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">x_mag</span><span class="p">,</span> <span class="n">x_phase</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">denoised_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span><span class="p">(</span><span class="n">noisy_batch</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">denoised_batch</span><span class="p">[:</span> <span class="n">x_mag</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+                <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">denoised_batch</span><span class="p">[</span><span class="n">x_mag</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:,</span> <span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+            <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="MinusOneOneDenoiserWrapper">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.MinusOneOneDenoiserWrapper.html#deepinv.models.MinusOneOneDenoiserWrapper">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MinusOneOneDenoiserWrapper</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A wrapper for denoisers trained on :math:`[x_{\mathrm{min}}, x_{\mathrm{max}}]` images to be used with math:`[-1, 1]` images, i.e. on diffusion sampling iterates.</span>
+
+<span class="sd">    :param deepinv.models.Denoiser denoiser: the denoiser to be wrapped.</span>
+<span class="sd">    :param float xmin: minimum value of the denoiser training range. Default to `0.0`.</span>
+<span class="sd">    :param float xmax: maximum value of the denoiser training range. Default to `1.0`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">xmin</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">xmax</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xmin</span> <span class="o">=</span> <span class="n">xmin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xmax</span> <span class="o">=</span> <span class="n">xmax</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">sigma</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="c1"># Scale from [-1, 1] to [xmin, xmax], except if specified otherwise with the &#39;input_in_minus_one_one&#39; argument in kwargs</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;input_in_minus_one_one&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xmax</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xmin</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">xmin</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xmax</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xmin</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">denoised</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># Scale back to [-1, 1], except if specified otherwise with the &#39;input_in_minus_one_one&#39; argument in kwargs</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;input_in_minus_one_one&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="n">denoised</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">denoised</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xmin</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xmax</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xmin</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">denoised</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+﻿train
+=====
+
+.. currentmodule:: deepinv
+
+.. autofunction:: train
+
+.. minigallery:: deepinv.train
+    :add-heading: Examples using ``train``:
