@@ -87,6 +87,7 @@ def patchify(
     >>> patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
     >>> print(f"Input shape: {x.shape}, patchified shape: {patches.shape}")
     Input shape: torch.Size([1, 3, 256, 256]), patchified shape: torch.Size([1, 3, 8, 8, 3969])
+    >>> dinv.utils.plot(list(patches[0].permute(3, 0, 1, 2)[:16]), titles=[f"Patch {i} of {patches.shape[-1]}" for i in range(16)])  # doctest: +SKIP
 
     .. plot::
 
