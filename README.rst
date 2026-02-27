@@ -3,7 +3,7 @@
    :alt: deepinv logo
    :align: center
 
-|pip install| |stars| |discord| |colab| |youtube| |paper|
+|pip install| |stars| |discord| |colab| |youtube| |paper| |docs|
 
 |Test Status| |GPU Test Status|  |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov|
 
@@ -146,3 +146,5 @@ Star history
    :target: https://doi.org/10.21105/joss.08923
 .. |stars| image:: https://img.shields.io/github/stars/deepinv/deepinv?style=flat&label=%E2%AD%90%20Star%20us%20on%20GitHub
    :target: https://github.com/deepinv/deepinv
+.. |docs| image:: https://img.shields.io/badge/docs-deepinv.github.io-blue?logo=readthedocs
+   :target: https://deepinv.github.io/deepinv/
