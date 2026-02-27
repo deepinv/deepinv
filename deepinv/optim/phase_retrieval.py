@@ -30,16 +30,16 @@ def correct_global_phase(
     verbose: bool = False,
 ) -> torch.Tensor:
     r"""
-    Corrects the global phase shift (and optionally magnitude scaling) of a reconstructed complex image to match the reference.
+    Corrects the global phase shift (and optionally magnitude scaling) of reconstructed complex images to match the references.
 
     The optimal global phase shift and magnitude scaling is computed per image and channel as:
 
     .. math::
         \theta = \arg \langle \hat{x}, x \rangle, \quad r = \frac{|\langle \hat{x}, x \rangle|}{\|\hat{x}\|^2},
 
-    where :math:`\langle a, b \rangle = a^\mathrm{H} b` denotes the complex inner product and :math:`\|\cdot\|` denotes the Euclidean norm.
+    where :math:`\arg` denotes the angle of a complex number, :math:`\langle a, b \rangle = a^\mathrm{H} b` denotes the complex inner product and :math:`\|\cdot\|` denotes the Euclidean norm.
 
-    This computation corresponds to the minimizer :math:`c = r \mathrm{e}^{i \theta}` of the following program:
+    This computation corresponds to the complex-scalar minimizer :math:`c = r \mathrm{e}^{i \theta}` of the following program:
 
     .. math::
         \min_{c} \|c \cdot \hat{x} - x\|^2,
@@ -53,12 +53,12 @@ def correct_global_phase(
 
     with :math:`r' = r` if ``correct_magnitude`` is ``True`` and :math:`r' = 1` otherwise.
 
-    :param torch.Tensor x_est: Estimated image of shape ``(N, C, H, W)``.
-    :param torch.Tensor x_ref: Ground truth image of shape ``(N, C, H, W)``.
+    :param torch.Tensor x_est: Estimated images of shape ``(N, C, H, W)``.
+    :param torch.Tensor x_ref: Reference images of shape ``(N, C, H, W)``.
     :param bool correct_magnitude: If ``True``, also corrects the magnitude scaling in addition to the phase. Default is ``False``.
     :param bool verbose: If ``True``, prints the applied phase shift and scale factor. Default is ``False``.
 
-    :return: The phase-corrected (and optionally magnitude-corrected) image of the same shape as ``x_est``.
+    :return: The phase-corrected (and optionally magnitude-corrected) images of the same shape as ``x_est``.
     """
     assert x_est.shape == x_ref.shape, "The shapes of the images should be the same."
     assert len(x_est.shape) == 4, "The images should be input with shape (N, C, H, W) "
@@ -71,8 +71,9 @@ def correct_global_phase(
         c = inner / (inner.abs() + 1e-12)
     if verbose:
         print(
-            f"Applying global phase shift: {c.angle().item():.4f} radians, scaling factor: {c.abs().item():.4f}"
+            f"Applying global phase shift (radians):\n{c.angle().squeeze(-1).squeeze(-1)}"
         )
+        print(f"Scaling factor:\n{c.abs().squeeze(-1).squeeze(-1)}")
     return c * x_est
 
 
