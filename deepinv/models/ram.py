@@ -332,7 +332,9 @@ class RAM(Reconstructor, Denoiser):
             y = y / rescale_val.view([y.shape[0]] + [1] * (y.ndim - 1))
 
         if physics is None:
-            physics = dinv.physics.Denoising(noise_model=dinv.physics.ZeroNoise())
+            physics = dinv.physics.Denoising(
+                noise_model=dinv.physics.ZeroNoise(), device=y.device
+            )
 
         if img_size is None:
             if hasattr(physics, "img_shape") and physics.img_shape is not None:
@@ -354,7 +356,7 @@ class RAM(Reconstructor, Denoiser):
 
         use_pad = False
         if pad[0] != 0 or pad[1] != 0:
-            physics = PhysicsCropper(physics, pad)
+            physics = PhysicsCropper(physics, pad, device=y.device)
             use_pad = True
 
         x_in = physics.A_adjoint(y)

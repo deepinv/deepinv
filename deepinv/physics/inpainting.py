@@ -96,7 +96,7 @@ class Inpainting(DecomposablePhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
 
         if isinstance(mask, torch.Tensor):
             mask = mask.to(device)

@@ -4,6 +4,7 @@ import torch
 from torch import Tensor, zeros_like
 from torch.nn import Module
 from torchvision.transforms import CenterCrop, Resize
+from deepinv.utils.decorators import _deprecated_argument
 
 
 class TimeMixin:
@@ -112,21 +113,18 @@ class MRIMixin:
     Base class that provides helper functions for FFT and mask checking.
     """
 
-    def check_mask(
-        self, mask: Tensor = None, three_d: bool = False, device: str = "cpu", **kwargs
-    ) -> None:
+    @staticmethod
+    @_deprecated_argument("device")
+    def check_mask(mask: Tensor = None, three_d: bool = False) -> None:
         r"""
         Updates MRI mask and verifies mask shape to be B,C,...,H,W where C=2.
 
         :param torch.Tensor mask: MRI subsampling mask.
         :param bool three_d: If ``False`` the mask should be min 4 dimensions (B, C, H, W) for 2D data, otherwise if ``True`` the mask should have 5 dimensions (B, C, D, H, W) for 3D data.
-        :param torch.device, str device: mask intended device.
         """
         if mask is not None:
             if isinstance(mask, np.ndarray):
                 mask = torch.from_numpy(mask)
-
-            mask = mask.to(device)
 
             while len(mask.shape) < (
                 4 if not three_d else 5

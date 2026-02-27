@@ -58,6 +58,8 @@ You're ready to move on!
 
   Our maintainers will then try to assist you by working directly on your PR. Do not hesitate to ask questions or to leave comments directly on the Pull Request page. 
 
+.. _write_tests:
+
 2. Write tests
 ~~~~~~~~~~~~~~
 
@@ -80,7 +82,7 @@ How to write and run tests:
 
   If you've contributed a new class (e.g. dataset, physics etc.), you should add it to any existing tests, e.g. those that check physics adjointness, dataset return format, etc.
 
-3. Check your tests pass locally by running ``python -m pytest deepinv/tests`` in the root directory after making the desired changes. Learn more `here <https://realpython.com/pytest-python-testing/>`__.
+3. Check your tests pass locally by running ``python -m pytest deepinv/tests`` in the root directory after making the desired changes. Learn more `here <https://realpython.com/pytest-python-testing/>`__. You can also run specific tests by providing the path to the test file, e.g. ``python -m pytest deepinv/tests/test_physics.py``, or even to a specific test function, e.g. ``python -m pytest -k "test_operators_adjointness" deepinv/tests/test_physics.py``.
 4. Push your code to your PR. A maintainer will run the tests on CPU and GPU in the CI, and you will see the results in the `Test PR...` GitHub action.
 
 .. note::
@@ -88,6 +90,8 @@ How to write and run tests:
 
 .. tip::
   **Run into a problem**? Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_ and we'll help you out.
+
+.. _write_docs:
 
 3. Write docs
 ~~~~~~~~~~~~~
@@ -122,6 +126,7 @@ Writing good documentation is also crucial for helping other users use your code
 .. tip::
   If the `Build Docs` GitHub action has run successfully, you can download the documentation as a zip file from the `Actions page <https://github.com/deepinv/deepinv/actions/workflows/documentation.yml>`_. Look for the workflow run corresponding to your pull request.
 
+.. _code_quality:
 
 4. Code quality
 ~~~~~~~~~~~~~~~
@@ -220,6 +225,30 @@ Below is a minimal working example of a typical docstring that includes all thes
         def __init__(self, in_channels: int, out_channels: int, pretrained: bool = None):
             pass
 
+Contributing new physics
+-------------------------
+
+Adding a physical operator follows the general contribution guidelines. Specifically, your constribution must include proper :ref:`tests <write_tests>` and :ref:`documentation <write_docs>`, as well as meet our :ref:`code quality standards <code_quality>`. Additionally, the provided code is expected to follow specific design rules to ensure seamless integration into the codebase, this means:
+
+- Implementing a new class that inherits from the appropriate physics base class. Refer to the design outlined in `Bring your own physics <https://deepinv.github.io/deepinv/auto_examples/basics/demo_custom_physics.html>`_ for guidance.
+
+- Registering the physics in the appropriate test suite and verifying that the tests pass -- when inheriting from :class:`deepinv.physics.LinearPhysics`, it involves the following modifications to `deepinv/tests/test_physics.py`:
+
+  1. Adding a new entry corresponding to your physics configuration to the list variable ``OPERATORS``
+
+  2. Defining how to instantiate this configuration in the function ``find_operator``
+
+  3. If applicable, write the tests specific to your physics, e.g., if it has a specific behavior that is not covered by the existing tests, see `test_MRI` in `here <https://github.com/deepinv/deepinv/blob/main/deepinv/tests/test_physics.py>`_ for an example
+
+- Completing the `API reference <https://deepinv.github.io/deepinv/api/deepinv.physics.html>`__ and `User Guide <https://deepinv.github.io/deepinv/user_guide/physics/physics.html>`__ with the new operator, and checking that the documentation builds correctly.
+
+Refer to these pull requests for examples of contributing new physics:
+
+- :class:`deepinv.physics.Scattering` in `#1020 <https://github.com/deepinv/deepinv/pull/1020>`_
+
+- :class:`deepinv.physics.SpatialUnwrapping` in `#723 <https://github.com/deepinv/deepinv/pull/723>`_
+
+- :class:`deepinv.physics.TomographyWithAstra` in `#474 <https://github.com/deepinv/deepinv/pull/474>`_
 
 Contributing new datasets
 --------------------------

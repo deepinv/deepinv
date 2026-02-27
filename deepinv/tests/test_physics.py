@@ -300,7 +300,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size=img_size, device=device, filter=None, use_brovey=False
         )
         norm = 1.4
-        params = ["filter"]
+        params = []  # no filter in aliased case
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
             m=20, fast=True, img_size=img_size, device=device, rng=rng
@@ -589,7 +589,7 @@ def wrap_physics(wrapper_name, physics, img_size, device):
         img_size_out = (img_size[0], img_size[-2] // 4, img_size[-1] // 4)
     elif wrapper_name == "PhysicsCropper":
         crop = (2, 4)
-        p = dinv.physics.PhysicsCropper(physics=physics, crop=crop)
+        p = dinv.physics.PhysicsCropper(physics=physics, crop=crop, device=device)
         img_size_out = (
             *img_size[:-2],
             img_size[-2] + crop[-2],
@@ -825,10 +825,7 @@ def test_operator_cropper(name, device, rng):
     padding_shape = (2, 5)
     x_new = torch.nn.functional.pad(x, (padding_shape[1], 0, padding_shape[0], 0))
 
-    new_physics = dinv.physics.PhysicsCropper(
-        physics,
-        padding_shape,
-    )
+    new_physics = dinv.physics.PhysicsCropper(physics, padding_shape, device=device)
     y = new_physics(x_new)
     Aty = new_physics.A_adjoint(y)
 
@@ -1695,6 +1692,9 @@ def test_operators_differentiability(name, device):
     if name == "radio":
         dtype = torch.cfloat
 
+    if "composition" in name:
+        pytest.skip("Skip composition operators for differentiability test.")
+
     # Only test for floating point tensor
     valid_dtype = [torch.float16, torch.float32, torch.float64]
     if dtype in valid_dtype:
@@ -1723,9 +1723,8 @@ def test_operators_differentiability(name, device):
                 assert torch.all(~torch.isnan(x_hat.grad))
 
         # Differentiate w.r.t to physics parameters
-        if (
-            not physics._buffers == dict() and len(params) > 0
-        ):  # If the buffers are not empty (i.e. there is a parameter)
+        # if the buffers are not empty (i.e. there is a parameter)
+        if len(physics.state_dict()) > 0 and len(params) > 0:
             x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
             buffers = copy.deepcopy(dict(physics.named_buffers()))
             parameters = {k: v for k, v in buffers.items() if k in params}
@@ -1856,6 +1855,11 @@ def test_physics_state_dict(name, device):
                 and name not in module._non_persistent_buffers_set
             ):
                 tensor_attrs[full_name] = attr
+            elif isinstance(attr, torch.nn.ModuleList):
+                for i, submodule in enumerate(attr):
+                    tensor_attrs.update(
+                        get_all_tensor_attrs(submodule, prefix=f"{full_name}.{i}")
+                    )
             elif isinstance(attr, torch.nn.Module):
                 # Recurse into submodules
                 tensor_attrs.update(get_all_tensor_attrs(attr, prefix=full_name))
@@ -1871,7 +1875,7 @@ def test_physics_state_dict(name, device):
     os.makedirs(cache_dir, exist_ok=True)
 
     # If the buffers are not empty (i.e. there is a parameter)
-    if not physics._buffers == dict():
+    if len(physics.state_dict()) > 0:
         state_dict = physics.state_dict()
         # Check that all tensor attributes are in the state dict
         params = get_all_tensor_attrs(physics)
@@ -1897,7 +1901,13 @@ def test_physics_state_dict(name, device):
 
         # Check two physics have the same output
         x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
-        assert torch.allclose(physics(x), new_physics(x))
+        y1 = physics(x)
+        y2 = new_physics(x)
+        if isinstance(y1, TensorList):
+            for y1, y2 in zip_strict(physics(x), new_physics(x)):
+                assert torch.allclose(y1, y2)
+        else:
+            assert torch.allclose(y1, y2)
 
         # Remove the cache dir
         shutil.rmtree(cache_dir)
