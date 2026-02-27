@@ -63,6 +63,7 @@ def download_archive(url: str, save_path: str | Path, extract: bool = False) -> 
     # `stream=True` to avoid loading in memory an entire file, instead get a chunk
     # useful when downloading huge file
     response = requests.get(url, stream=True)
+    response.raise_for_status()
     file_size = int(response.headers.get("Content-Length", 0))
     # use tqdm progress bar to follow progress on downloading archive
     with tqdm.wrapattr(response.raw, "read", total=file_size) as r_raw:
