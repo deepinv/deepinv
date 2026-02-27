@@ -59,6 +59,7 @@ You're ready to move on!
   Our maintainers will then try to assist you by working directly on your PR. Do not hesitate to ask questions or to leave comments directly on the Pull Request page. 
 
 .. _write_tests:
+
 2. Write tests
 ~~~~~~~~~~~~~~
 
@@ -91,6 +92,7 @@ How to write and run tests:
   **Run into a problem**? Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_ and we'll help you out.
 
 .. _write_docs:
+
 3. Write docs
 ~~~~~~~~~~~~~
 
@@ -125,6 +127,7 @@ Writing good documentation is also crucial for helping other users use your code
   If the `Build Docs` GitHub action has run successfully, you can download the documentation as a zip file from the `Actions page <https://github.com/deepinv/deepinv/actions/workflows/documentation.yml>`_. Look for the workflow run corresponding to your pull request.
 
 .. _code_quality:
+
 4. Code quality
 ~~~~~~~~~~~~~~~
 
