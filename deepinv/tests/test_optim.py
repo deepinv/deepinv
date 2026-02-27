@@ -1092,6 +1092,18 @@ def test_condition_number(device):
     assert rel_error < 0.1
 
 
+def test_correct_global_phase(device):
+    x1 = torch.randn((2, 3, 32, 32), device=device, dtype=torch.complex64)
+    x2 = x1 * torch.rand((2, 3, 1, 1), device=device)
+    x2 = x2 * torch.exp(1j * torch.rand((2, 3, 1, 1), device=device))
+
+    x2 = dinv.optim.phase_retrieval.correct_global_phase(
+        x2, x1, correct_magnitude=True, verbose=True
+    )
+
+    assert torch.allclose(x1, x2, atol=1e-6)
+
+
 @pytest.mark.parametrize("batch_size", [2])
 @pytest.mark.parametrize(
     "physics_name",

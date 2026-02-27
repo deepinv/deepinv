@@ -24,61 +24,57 @@ def default_preprocessing(y: torch.Tensor, physics: Physics) -> torch.Tensor:
 
 
 def correct_global_phase(
-    x_recon: torch.Tensor,
-    x: torch.Tensor,
-    threshold: float = 1e-5,
+    x_est: torch.Tensor,
+    x_ref: torch.Tensor,
+    correct_magnitude: bool = False,
     verbose: bool = False,
 ) -> torch.Tensor:
     r"""
-        Corrects the global phase of the reconstructed image.
+    Corrects the global phase shift (and optionally magnitude scaling) of reconstructed complex images to match the references.
 
-    .. warning::
+    The optimal global phase shift and magnitude scaling is computed per image and channel as:
 
-        Do not mix the order of the reconstructed and original images since this function modifies x_recon in place.
+    .. math::
+        \theta = \arg \langle \hat{x}, x \rangle, \quad r = \frac{|\langle \hat{x}, x \rangle|}{\|\hat{x}\|^2},
 
+    where :math:`\arg` denotes the angle of a complex number, :math:`\langle a, b \rangle = a^\mathrm{H} b` denotes the complex inner product and :math:`\|\cdot\|` denotes the Euclidean norm.
 
-        The global phase shift is comptued per image and per channel as:
+    This computation corresponds to the complex-scalar minimizer :math:`c = r \mathrm{e}^{i \theta}` of the following program:
 
-        .. math::
-            e^{-i \phi} = \frac{\conj{\hat{x}} \cdot x}{|x|^2},
+    .. math::
+        \min_{c} \|c \cdot \hat{x} - x\|^2,
 
-        where :math:`\conj{\hat{x}}` is the complex conjugate of the reconstructed image, :math:`x` is the reference image, and :math:`|x|^2` is the squared magnitude of the reference image.
+    where :math:`\hat{x}` is the reconstructed image and :math:`x` is the reference image.
 
-        The global phase shift is then applied to the reconstructed image as:
+    The correction is then applied to the reconstructed image per image and channel as:
 
-        .. math::
-            \hat{x} = \hat{x} \cdot e^{-i \phi},
+    .. math::
+        \hat{x} \leftarrow r' \mathrm{e}^{\mathrm{i} \theta} \cdot \hat{x},
 
-        for the corresponding image and channel.
+    with :math:`r' = r` if ``correct_magnitude`` is ``True`` and :math:`r' = 1` otherwise.
 
-        :param torch.Tensor x_recon: Reconstructed image.
-        :param torch.Tensor x: Original image.
-        :param float threshold: Threshold to determine if the global phase shift is constant. Default is 1e-5.
-        :param bool verbose: If True, prints information about the global phase shift. Default is False.
+    :param torch.Tensor x_est: Estimated images of shape ``(N, C, H, W)``.
+    :param torch.Tensor x_ref: Reference images of shape ``(N, C, H, W)``.
+    :param bool correct_magnitude: If ``True``, also corrects the magnitude scaling in addition to the phase. Default is ``False``.
+    :param bool verbose: If ``True``, prints the applied phase shift and scale factor. Default is ``False``.
 
-        :return: The corrected image.
+    :return: The phase-corrected (and optionally magnitude-corrected) images of the same shape as ``x_est``.
     """
-    assert x_recon.shape == x.shape, "The shapes of the images should be the same."
-    assert (
-        len(x_recon.shape) == 4
-    ), "The images should be input with shape (N, C, H, W) "
+    assert x_est.shape == x_ref.shape, "The shapes of the images should be the same."
+    assert len(x_est.shape) == 4, "The images should be input with shape (N, C, H, W) "
 
-    n_imgs = x_recon.shape[0]
-    n_channels = x_recon.shape[1]
-
-    for i in range(n_imgs):
-        for j in range(n_channels):
-            e_minus_phi = (x_recon[i, j].conj() * x[i, j]) / (x[i, j].abs() ** 2)
-            if e_minus_phi.var() < threshold:
-                if verbose:
-                    print(f"Image {i}, channel {j} has a constant global phase shift.")
-            else:
-                if verbose:
-                    print(f"Image {i}, channel {j} does not have a global phase shift.")
-            e_minus_phi = e_minus_phi.mean()
-            x_recon[i, j] = x_recon[i, j] * e_minus_phi
-
-    return x_recon
+    inner = (x_est.conj() * x_ref).sum(dim=(-2, -1), keepdim=True)
+    if correct_magnitude:
+        energy = (x_est.abs() ** 2).sum(dim=(-2, -1), keepdim=True)
+        c = inner / (energy + 1e-12)
+    else:
+        c = inner / (inner.abs() + 1e-12)
+    if verbose:
+        print(
+            f"Applying global phase shift (radians):\n{c.angle().squeeze(-1).squeeze(-1)}"
+        )
+        print(f"Scaling factor:\n{c.abs().squeeze(-1).squeeze(-1)}")
+    return c * x_est
 
 
 def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
