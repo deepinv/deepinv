@@ -7,6 +7,7 @@ from .blur import (
     SpaceVaryingBlur,
     Upsampling,
     DownsamplingMatlab,
+    TiledSpaceVaryingBlur,
 )
 from .scattering import Scattering
 from .range import Decolorize

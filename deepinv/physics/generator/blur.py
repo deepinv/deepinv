@@ -3,10 +3,12 @@ import torch
 import numpy as np
 from math import ceil, floor
 from deepinv.physics.generator import PhysicsGenerator
-from deepinv.physics.functional import histogramdd, conv2d
+from deepinv.physics.functional.hist import histogramdd
+from deepinv.physics.functional.convolution import conv2d
 from deepinv.physics.functional.interp import ThinPlateSpline
 from deepinv.utils.decorators import _deprecated_alias
 from deepinv.transform.rotate import rotate_via_shear
+from deepinv.utils.mixins import TiledMixin2d
 from .zernike import Zernike
 
 
@@ -1104,3 +1106,68 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         List of Zernike polynomials used in the decomposition, with the corresponding aberration if available.
         """
         return self.generator_ill.zernike_polynomials
+
+
+class TiledBlurGenerator(TiledMixin2d, PSFGenerator):
+    r"""
+    Generates parameters of the :class:`deepinv.physics.TiledSpaceVaryingBlur` operator.
+    The image is divided into overlapping patches, each local patch is convolved with a different PSF.
+
+    This generates a dict with key `'filter'`, which is tensor of shape `(B, C, K, psf_size, psf_size)`
+    where `K` is the number of patches in which the image is divided.
+    It is computed based on the `patch_size`, `stride` and the given `img_size` during the `step()` function call.
+
+    :param deepinv.physics.generator.PSFGenerator psf_generator: A PSF generator, such as :class:`motion blur <deepinv.physics.generator.MotionBlurGenerator>` or :class:`diffraction blur generator <deepinv.physics.generator.DiffractionBlurGenerator>`.
+
+    :param int | tuple[int, int] patch_size: size of the patches (height, width) in which the image is divided.
+    :param int | tuple[int, int] stride: stride between adjacent patches (height, width). Defaults to `patch_size`.
+    """
+
+    def __init__(
+        self,
+        psf_generator: PSFGenerator,
+        patch_size: int | tuple[int, int],
+        stride: int | tuple[int, int] = None,
+        rng: torch.Generator = None,
+        device: str | torch.device = "cpu",
+        **kwargs,
+    ):
+        super().__init__(
+            patch_size=patch_size, stride=stride, rng=rng, device=device, **kwargs
+        )
+        self.psf_generator = psf_generator
+        self.psf_size = psf_generator.psf_size
+
+    def step(
+        self,
+        batch_size: int = 1,
+        img_size: int | tuple[int, int] = None,
+        seed: int | None = None,
+        **kwargs,
+    ) -> dict:
+        r"""
+        Generates a random set of filters for the tiled space-varying blur.
+
+        :param int batch_size: batch size of the PSF parameters to generate. Should be equal to the batch size of the images to be blurred.
+        :param int | tuple[int, int] img_size: size of the image to be blurred (height, width).
+        :param int | None seed: the seed for the random number generator.
+
+        :returns: a dictionary containing filters, with key:
+
+            - `filters`: a tensor of shape `(B, C, K, psf_size, psf_size)`, where `K` is the number of patches in which the image is divided.
+
+        """
+
+        num_patches = self.get_num_patches(img_size=img_size)
+        num_patches = num_patches[0] * num_patches[1]
+
+        params = self.psf_generator.step(
+            batch_size=batch_size * num_patches, seed=seed, **kwargs
+        )
+        psf = (
+            params["filter"]
+            .view(batch_size, num_patches, -1, *self.psf_size)
+            .transpose(1, 2)
+        )  # B x C x num_patches x psf_size x psf_size
+
+        return dict(filters=psf)
