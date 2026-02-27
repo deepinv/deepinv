@@ -617,32 +617,39 @@ class ComplexDenoiserWrapper(Denoiser):
         :return: Denoised images, with the same shape as the input and will always be in complex dtype.
         """
         # Duplicate sigma in the batch dimension for real and imaginary parts
-        sigma = self._handle_sigma(
-            sigma,
-            batch_size=x.size(0) * 2,
-            ndim=x.ndim,
-            device=x.device,
-            dtype=x.real.dtype,
-        )
+        if isinstance(sigma, torch.Tensor) and sigma.shape == (
+            x.shape[0],
+            1,
+            *x.shape[2:],
+        ):
+            sigma = torch.cat((sigma, sigma), dim=0)
+        else:
+            sigma = self._handle_sigma(
+                sigma,
+                batch_size=x.size(0) * 2,
+                ndim=x.ndim,
+                device=x.device,
+                dtype=x.real.dtype,
+            )
 
         if self.mode == "real_imag":
             x_real = x.real
 
             if torch.is_complex(x):
                 noisy_batch = torch.cat((x_real, x.imag), 0)
-                denoised_batch = self.denoiser(noisy_batch, sigma)
+                denoised_batch = self.denoiser(noisy_batch, sigma=sigma)
                 return (
                     denoised_batch[: x_real.shape[0], ...]
                     + 1j * denoised_batch[x_real.shape[0] :, ...]
                 )
             else:
-                return self.denoiser(x_real, sigma) + 0j
+                return self.denoiser(x_real, sigma=sigma) + 0j
 
         else:  # abs_angle
             x_mag = torch.abs(x)
             x_phase = torch.angle(x)
             noisy_batch = torch.cat((x_mag, x_phase), 0)
-            denoised_batch = self.denoiser(noisy_batch, sigma)
+            denoised_batch = self.denoiser(noisy_batch, sigma=sigma)
             return denoised_batch[: x_mag.shape[0], ...] * torch.exp(
                 1j * denoised_batch[x_mag.shape[0] :, ...].clamp(-torch.pi, torch.pi)
             )

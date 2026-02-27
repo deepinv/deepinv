@@ -1227,7 +1227,7 @@ def test_denoiser_perf(device):
 
     psnr_fn = PSNR(max_pixel=1)
 
-    # Only test the trained denoisers and the correspinding expected performance
+    # Only test the trained denoisers and the corresponding expected performance
     learned_denoisers = [
         (dinv.models.DnCNN(pretrained="download").to(device), (0.1, 0.03, 0.001)),
         (dinv.models.DRUNet(pretrained="download").to(device), (7.0, 10.5, 11.0)),
@@ -1318,6 +1318,76 @@ def test_denoiser_perf(device):
     psnr_orig = dinv.metric.PSNR()(y, x).mean().item()
     psnr_denoised = dinv.metric.PSNR()(x_hat, x).mean().item()
     assert psnr_denoised > psnr_orig + 0.5, "Denoiser did not improve performance"
+
+
+@pytest.mark.parametrize("mode", ["real_imag", "abs_angle"])
+def test_denoiser_perf_noise_map(device, mode):
+
+    # Load 2 example images
+    x1 = dinv.utils.load_example(
+        "butterfly.png",
+        img_size=64,
+        resize_mode="resize",
+    ).to(device)
+
+    x2 = dinv.utils.load_example(
+        "celeba_example.jpg",
+        img_size=64,
+        resize_mode="resize",
+    ).to(device)
+
+    x = torch.cat([x1, x2, x1], dim=0)
+    # three different noise levels
+    sigma_values = torch.ones(x.shape, device=device)[:, 0].unsqueeze(1) * torch.tensor(
+        [0.05, 0.1, 0.2]
+    ).to(device).view((3, 1, 1, 1))
+    # non uniform noise, gaussian amplitude along the width
+    sigma_filter = 25
+    gaussian_x = torch.ones(x.shape, device=device)[:, 0].unsqueeze(1) * torch.exp(
+        -torch.arange(-x.shape[-1] // 2, x.shape[-1] // 2, device=device) ** 2
+        / sigma_filter**2
+    ).view((1, 1, 1, -1))
+
+    rng = torch.Generator(device=device).manual_seed(123)
+    sigma = sigma_values * gaussian_x
+    y = x + sigma * torch.randn(x.shape, generator=rng, device=device)
+
+    psnr_fn = PSNR(max_pixel=1)
+
+    # Only test the trained denoisers and the corresponding expected performance
+    learned_denoisers = [
+        dinv.models.DRUNet(pretrained="download").to(device),
+        dinv.models.RAM(pretrained=True).to(device),
+    ]
+
+    for denoiser in learned_denoisers:
+        kwargs = {}
+
+        with torch.no_grad():
+            x_hat = denoiser(y, sigma=sigma, **kwargs)
+            x_hat_no_map = denoiser(y, sigma=sigma_values, **kwargs)
+
+        assert torch.all(
+            psnr_fn(x_hat, x) >= psnr_fn(x_hat_no_map, x)
+        ), f"denoiser={type(denoiser).__name__} didn't perfom better with a noise map : psnr_map={psnr_fn(x_hat, x).tolist()}, psnr_no_map={psnr_fn(x_hat_no_map, x).tolist()}"
+
+    for denoiser in learned_denoisers:
+        kwargs = {}
+        # Test denoisers on complex data
+        denoiser_cpx = dinv.models.ComplexDenoiserWrapper(
+            denoiser=denoiser, mode=mode
+        ).to(device)
+        x_cpx = x.to(torch.complex64)
+        y_cpx = y.to(torch.complex64)
+        with torch.no_grad():
+            x_hat_cpx = denoiser_cpx(y_cpx, sigma=sigma)
+            x_hat_no_map_cpx = denoiser_cpx(y_cpx, sigma=sigma_values)
+        psnr_map = dinv.metric.PSNR()(x_hat_cpx, x_cpx).mean().item()
+        psnr_no_map = dinv.metric.PSNR()(x_hat_no_map_cpx, x_cpx).mean().item()
+        assert psnr_map > psnr_no_map, (
+            f"Mode={mode}, denoiser={type(denoiser).__name__}, "
+            f"psnr_map={psnr_map:.2f}, psnr_no_map={psnr_no_map:.2f}"
+        )
 
 
 @pytest.mark.parametrize("return_metadata", [False, True])
