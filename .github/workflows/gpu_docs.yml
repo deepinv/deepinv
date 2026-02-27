@@ -127,8 +127,25 @@ jobs:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: _build/
-          force_orphan: true
-          enable_jekyll: false
+          destination_dir: dev
+          keep_files: true
+
+      - name: Prepare root redirect
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          mkdir -p _root_redirect
+          cp docs/source/_static/root_redirect.html _root_redirect/index.html
+          # Add .nojekyll to prevent Jekyll processing
+          touch _root_redirect/.nojekyll
+
+      - name: Deploy root redirect
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _root_redirect/
+          keep_files: true
 
       # Comment results back to PR
       - name: Post result to PR

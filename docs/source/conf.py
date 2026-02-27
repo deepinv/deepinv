@@ -18,6 +18,7 @@ from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
 from sphinx_gallery.directives import ImageSg
 from deepinv.utils.plotting import set_default_plot_fontsize
 import torch
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,17 @@ project = str(metadata["Name"])
 copyright = "deepinverse contributors 2025"
 author = str(metadata["Author"])
 release = str(metadata["Version"])
+
+# Determine version for documentation switcher
+# Development versions (containing 'dev', 'rc', 'alpha', 'beta') match to 'dev'
+# Release versions match to their exact version number unless overridden by env.
+
+version_match = os.environ.get("DOCS_VERSION_MATCH")
+if not version_match:
+    if re.search(r"(dev|rc|alpha|beta|\.post)", release, re.IGNORECASE):
+        version_match = "dev"
+    else:
+        version_match = release
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -406,6 +418,9 @@ html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
+html_context = {
+    "docs_version": os.environ.get("DOCS_VERSION_MATCH", "dev"),
+}
 html_sidebars = {  # pages with no sidebar
     "changelog": [],
     "contributing": [],
@@ -433,6 +448,13 @@ html_theme_options = {
         "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates."
     ),
     "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
+    # Version switcher configuration
+    "switcher": {
+        "json_url": "https://deepinv.github.io/deepinv/dev/_static/versions.json",
+        "version_match": version_match,
+    },
+    "navbar_start": ["navbar-logo", "version-switcher"],
+    "show_version_warning_banner": True,
 }
 
 

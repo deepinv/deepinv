@@ -1,4 +1,8 @@
-name: Deploy to pipy
+name: Deploy to PyPI
+
+# This workflow handles PyPI deployment when release PR is merged
+# The create_release_on_merge.yml workflow creates the GitHub release,
+# which then triggers release_docs.yml for versioned documentation.
 
 on:
   pull_request:
