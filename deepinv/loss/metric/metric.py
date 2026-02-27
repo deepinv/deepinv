@@ -246,7 +246,13 @@ class Metric(Module):
                 raise ValueError(
                     "Both x and x_net must not be None in order to use standardize."
                 )
-            x_net = (x_net - x_net.mean()) / x_net.std() * x.std() + x.mean()
+            reduce_dims = tuple(range(1, x_net.ndim))
+            x_net = (
+                (x_net - x_net.mean(dim=reduce_dims, keepdim=True))
+                / x_net.std(dim=reduce_dims, keepdim=True)
+                * x.std(dim=reduce_dims, keepdim=True)
+                + x.mean(dim=reduce_dims, keepdim=True)
+            )
 
         x_net = self.normalizer(x_net)
         x = self.normalizer(x) if x is not None else None
