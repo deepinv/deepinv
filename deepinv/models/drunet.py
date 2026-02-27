@@ -42,7 +42,14 @@ class DRUNet(Denoiser):
         shuffling, and "upconv" for nearest neighbour upsampling with additional convolution. "pixelshuffle" is not implemented for 3D.
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
-        online repository (only available for the default architecture with 3 or 1 input/output channels). When building a 3D network, it is possible to initialize with 2D pretrained weights by using ``pretrained='download_2d'``, which provides a good starting point for fine-tuning.
+        online repository (only available for the default architecture with 3 or 1 input/output channels).
+        These are DeepInverse's own fine-tuned weights (``drunet_deepinv_color_finetune_22k.pth`` for color
+        and ``drunet_deepinv_gray_finetune_26k.pth`` for grayscale), not the original DPIR weights from
+        :footcite:t:`zhang2021plug`. To use the original DPIR weights, download them from the
+        `DPIR repository <https://github.com/cszn/DPIR/tree/master/model_zoo>`_ and pass the local path
+        as ``pretrained='path/to/checkpoint.pth'``.
+        When building a 3D network, it is possible to initialize with 2D pretrained weights by using
+        ``pretrained='download_2d'``, which provides a good starting point for fine-tuning.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool pretrained_2d_isotropic: when loading 2D pretrained weights into a 3D network, whether to initialize the 3D kernels isotropically. By default the weights are loaded axially, i.e., by initializing the central slice of the 3D kernels with the 2D weights.
