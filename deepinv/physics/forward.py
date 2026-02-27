@@ -1423,7 +1423,7 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
 
     :param list[deepinv.physics.Physics] physics_list: list of physics operators to stack.
     :param str reduction: how to combine tensorlist outputs of adjoint operators into single
-        adjoint output. Choose between ``sum``, ``mean`` or ``None``.
+        adjoint output. Only ``sum`` preserves adjointness. ``mean`` and ``None`` are deprecated.
     """
 
     def __init__(self, physics_list, reduction="sum", **kwargs):
@@ -1431,8 +1431,20 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
         if reduction == "sum":
             self.reduction = sum
         elif reduction == "mean":
+            warnings.warn(
+                'reduction="mean" breaks adjointness of StackedLinearPhysics and is deprecated. '
+                'Use reduction="sum" instead.',
+                DeprecationWarning,
+                stacklevel=2,
+            )
             self.reduction = lambda x: sum(x) / len(x)
         elif reduction in ("none", None):
+            warnings.warn(
+                'reduction="none" breaks adjointness of StackedLinearPhysics and is deprecated. '
+                'Use reduction="sum" instead.',
+                DeprecationWarning,
+                stacklevel=2,
+            )
             self.reduction = lambda x: x
         else:
             raise ValueError("reduction must be either sum, mean or none.")
