@@ -587,7 +587,7 @@ class SpectralAngleMapper(Metric):
     def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         from torchmetrics.functional.image import spectral_angle_mapper
 
-        return spectral_angle_mapper(x_net, x, reduction="none").mean(
+        return spectral_angle_mapper(x_net, x, reduction="none").nanmean(
             dim=tuple(range(1, x.ndim - 1)), keepdim=False
         )
 
