@@ -423,6 +423,23 @@ class Trainer:
         if not isinstance(self.losses, (list, tuple)):
             self.losses = [self.losses]
 
+        if len(self.losses) > 1:
+            from deepinv.loss.loss import Loss
+
+            adapting = [
+                type(l).__name__
+                for l in self.losses
+                if getattr(type(l), "adapt_model", Loss.adapt_model)
+                is not Loss.adapt_model
+            ]
+            if adapting:
+                warnings.warn(
+                    f"Multiple losses are used and {', '.join(adapting)} adapt(s) the model. "
+                    f"All losses will receive x_net from the adapted model, not the original. "
+                    f"Make sure this is intended.",
+                    stacklevel=2,
+                )
+
         for l in self.losses:
             self.model = l.adapt_model(self.model)
 
