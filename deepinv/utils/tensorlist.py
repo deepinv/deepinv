@@ -295,26 +295,34 @@ class TensorList:
         return sum([xi.numel() for xi in self.x])
 
 
-def randn_like(x):
+def randn_like(x, generator=None):
     r"""
     Returns a :class:`deepinv.utils.TensorList` or :class:`torch.Tensor`
     with the same type as x, filled with standard gaussian numbers.
+
+    :param generator: optional :class:`torch.Generator` for reproducible sampling.
     """
     if isinstance(x, torch.Tensor):
-        return torch.randn_like(x)
+        return torch.empty_like(x).normal_(generator=generator)
     else:
-        return TensorList([torch.randn_like(xi) for xi in x])
+        return TensorList(
+            [torch.empty_like(xi).normal_(generator=generator) for xi in x]
+        )
 
 
-def rand_like(x):
+def rand_like(x, generator=None):
     r"""
     Returns a :class:`deepinv.utils.TensorList` or :class:`torch.Tensor`
     with the same type as x, filled with random uniform numbers in [0,1].
+
+    :param generator: optional :class:`torch.Generator` for reproducible sampling.
     """
     if isinstance(x, torch.Tensor):
-        return torch.rand_like(x)
+        return torch.empty_like(x).uniform_(generator=generator)
     else:
-        return TensorList([torch.rand_like(xi) for xi in x])
+        return TensorList(
+            [torch.empty_like(xi).uniform_(generator=generator) for xi in x]
+        )
 
 
 def zeros_like(x):
