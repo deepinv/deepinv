@@ -400,15 +400,18 @@ class ImageFolder(ImageDataset):
         # Synchronize RNG state for paired transforms
         state = torch.get_rng_state()
 
-        # Check if x is a valid tensor
-        x_is_valid = isinstance(x, torch.Tensor) and not torch.isnan(x).all()
-
-        if x_is_valid and self.transform_x is not None:
+        if x is not None and self.transform_x is not None:
             x = self.transform_x(x)
 
         if y is not None and self.transform_y is not None:
             torch.set_rng_state(state)
             y = self.transform_y(y)
+
+        # Ensure x is a tensor before estimating params or returning
+        if not isinstance(x, torch.Tensor):
+            from torchvision.transforms import ToTensor
+
+            x = ToTensor()(x)
 
         params = self.estimate_params(x, y) if self.estimate_params is not None else {}
 
