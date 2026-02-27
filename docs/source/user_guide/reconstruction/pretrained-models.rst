@@ -14,15 +14,17 @@ Some methods do not require any training and can be quickly deployed to your pro
 
 These models can be set-up in one line and perform inference in another line:
 
-::
+.. doctest::
 
-    import deepinv as dinv
-    x = dinv.utils.load_example("butterfly.png")
-    physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
-    y = physics(x)
-    model = dinv.models.RAM(pretrained=True)  # or any of the models listed below
-    x_hat = model(y, physics) # Model inference
-    dinv.metric.PSNR()(x_hat, x) > 29.75 # tensor([True])
+    >>> import deepinv as dinv
+    >>> x = dinv.utils.load_example("butterfly.png")
+    >>> physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
+    >>> y = physics(x)
+    >>> model = dinv.models.RAM(pretrained=True)  # doctest: +ELLIPSIS  # or any of the models listed below
+    ...
+    >>> x_hat = model(y, physics) # Model inference
+    >>> dinv.metric.PSNR()(x_hat, x) > 29.75
+    tensor([True])
 
 .. list-table:: Pretrained reconstructors
    :header-rows: 1
