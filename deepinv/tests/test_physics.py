@@ -1462,13 +1462,7 @@ def test_downsampling_adjointness(padding, device):
                     sim, filter=h, padding=padding, device=device
                 )
 
-                Ax = physics.A(x)
-                y = torch.rand_like(Ax)
-                Aty = physics.A_adjoint(y)
-                Axy = torch.sum(Ax * y)
-                Atyx = torch.sum(Aty * x)
-
-                assert torch.abs(Axy - Atyx) < 1e-3
+                assert physics.adjointness_test(x).abs() < 1e-3
 
 
 def test_prox_l2_downsampling(device):
