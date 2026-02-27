@@ -16,6 +16,7 @@ from deepinv.optim.optim_iterators import (
     DRSIteration,
     GDIteration,
     MDIteration,
+    MLEMIteration,
 )
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import ZeroPrior, Prior
@@ -2223,5 +2224,98 @@ class PDCP(BaseOptim):
             custom_metrics=custom_metrics,
             unfold=unfold,
             trainable_params=trainable_params,
+            **kwargs,
+        )
+
+
+class MLEM(BaseOptim):
+    r"""
+    Maximum Likelihood Expectation Maximization (MLEM) algorithm for Poisson inverse problems.
+
+    Implements the MLEM iterative algorithm, which is a classic baseline reconstruction method
+    for inverse problems with Poisson noise statistics. At each iteration, the algorithm
+    performs a multiplicative update of the form:
+
+    .. math::
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1}} \odot A^T \left(\frac{y}{A x_k}\right)
+
+    where :math:`A` is the forward operator, :math:`y` is the observed data,
+    :math:`\mathbf{1}` is a tensor of ones, and :math:`\odot` denotes element-wise multiplication.
+
+    The algorithm can be used with a prior term (e.g., for MAP-EM variants) or without
+    (standard MLEM). See :class:`deepinv.optim.optim_iterators.MLEMIteration` for the details of the iteration.
+
+    Any data-fidelity can be used but the algorithm only minimizes the Poisson negative log-likelihood data-fidelity.
+    If a different data-fidelity is provided, the algorithm will still perform the MLEM iterations
+    but they might not decrease the provided data-fidelity at each iteration.
+
+    :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity term.
+        If ``None``, the data fidelity term is not used. Default: ``None``.
+    :param deepinv.optim.Prior, list[Prior] prior: prior term. If ``None``, no prior is used.
+        Default: ``None``.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float g_param: parameter for the prior. Default: ``None``.
+    :param int max_iter: maximum number of iterations. Default: ``100``.
+    :param str crit_conv: convergence criterion, either ``"residual"`` or ``"cost"``.
+        Default: ``"residual"``.
+    :param float thres_conv: convergence threshold. Default: ``1e-5``.
+    :param bool early_stop: if ``True``, the algorithm stops when the convergence criterion is met.
+        Default: ``False``.
+    :param dict custom_metrics: dictionary of custom metrics to compute at each iteration.
+        Default: ``None``.
+    :param Callable custom_init: custom initialization function. Default: ``None``.
+    :param bool g_first: if ``True``, the prior step is applied before the data fidelity step.
+        Default: ``False``.
+    :param dict params_algo: dictionary of algorithm parameters. If ``None``, the parameters
+        are set from ``lambda_reg``, ``stepsize``, and ``g_param``. Default: ``None``.
+    :param Callable cost_fn: custom cost function. Default: ``None``.
+    :param kwargs: additional keyword arguments passed to :class:`deepinv.optim.BaseOptim`.
+    """
+
+    r"""MLEM"""
+
+    def __init__(
+        self,
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        g_param: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        g_first: bool = False,
+        params_algo: dict[str, float] = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        **kwargs,
+    ):
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "g_param": g_param,
+            }
+        super(MLEM, self).__init__(
+            MLEMIteration(g_first=g_first, cost_fn=cost_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             **kwargs,
         )

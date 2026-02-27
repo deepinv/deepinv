@@ -904,6 +904,38 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     )  # Optimality condition
 
 
+# Specific test for MLEM because the data-fidelity can only be the Poisson likelihood,
+# contrary to e.g mirror descent which can be tested on L2
+def test_MLEM(imsize, dummy_dataset, device):
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
+    test_sample = next(iter(dataloader)).to(device)
+
+    physics = dinv.physics.Blur(
+        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        device=device,
+        noise_model=dinv.physics.PoissonNoise(gain=1 / 60),
+        padding="circular",
+    )
+    y = physics(test_sample)
+
+    data_fidelity = dinv.optim.PoissonLikelihood()
+
+    # without prior MLEM does not converge in residual, but it does in cost
+    optimalgo = dinv.optim.MLEM(
+        data_fidelity=data_fidelity,
+        prior=dinv.optim.prior.ZeroPrior(),
+        lambda_reg=1.0,
+        max_iter=1000,
+        crit_conv="cost",
+        thres_conv=1e-4,
+        verbose=True,
+        early_stop=True,
+    )
+    x = optimalgo(y, physics)
+
+    assert optimalgo.has_converged
+
+
 def test_patch_prior(imsize, dummy_dataset, device):
     pytest.importorskip(
         "FrEIA",

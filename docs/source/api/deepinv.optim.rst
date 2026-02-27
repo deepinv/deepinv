@@ -34,6 +34,7 @@ Base Class
    deepinv.optim.MD
    deepinv.optim.PMD
    deepinv.optim.PDCP
+   deepinv.optim.MLEM
 
 
 Potentials
@@ -159,6 +160,7 @@ Iterators
    deepinv.optim.optim_iterators.MDIteration
    deepinv.optim.optim_iterators.PMDIteration
    deepinv.optim.optim_iterators.SMIteration
+   deepinv.optim.optim_iterators.MLEMIteration
 
 
 Linear Solvers
