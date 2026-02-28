@@ -105,8 +105,3 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
    * - :func:`deepinv.physics.functional.random_choice`
      - Randomly selects elements from a given input tensor based on specified probabilities, useful for stochastic sampling in various applications.
 
-   * - :func:`deepinv.physics.functional.hankel1`
-     - Computes the Hankel function of the first kind.
-
-   * - :func:`deepinv.physics.functional.bessel_j`
-     - Computes the Bessel function of the first kind.
