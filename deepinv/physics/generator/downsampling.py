@@ -107,13 +107,24 @@ class DownsamplingGenerator(PhysicsGenerator):
         """
         self.rng_manual_seed(seed)
 
-        factor_indices = torch.randint(
-            low=0,
-            high=len(self.list_factors),
-            size=(batch_size,),
-            generator=self.rng,
-            **self.factory_kwargs,
-        )
+        if batch_size > 1 and len(self.list_factors) > 1:
+            factor_index = torch.randint(
+                low=0,
+                high=len(self.list_factors),
+                size=(1,),
+                generator=self.rng,
+                **self.factory_kwargs,
+            )
+            factor_indices = factor_index.repeat(batch_size)
+        else:
+            factor_indices = torch.randint(
+                low=0,
+                high=len(self.list_factors),
+                size=(batch_size,),
+                generator=self.rng,
+                **self.factory_kwargs,
+            )
+
         filter_indices = torch.randint(
             low=0,
             high=len(self.list_filters),
