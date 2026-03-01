@@ -402,13 +402,16 @@ class HDF5Dataset(ImageDataset):
             y = TensorList([self.cast(torch.from_numpy(yk[index])) for yk in y_data])
 
         # 3. Synchronized Transforms
-        if self.transform is not None:
+        is_supervised = not getattr(self, "unsupervised", False)
+
+        if is_supervised and self.transform is not None:
             # Capture RNG state to ensure x and y transforms are synchronized
             state = torch.get_rng_state()
 
             if hasattr(self, "x"):
-                x = self.transform(x)
+                x = self.transform(x)  # Always transform x
 
+            # Synchronize and transform measurements
             torch.set_rng_state(state)
             y = self.transform(y)
 

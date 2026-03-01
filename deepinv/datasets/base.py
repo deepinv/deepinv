@@ -390,6 +390,7 @@ class ImageFolder(ImageDataset):
         :return: transformed x, y, and optionally params.
         """
 
+        # Load x and y
         x = (
             torch.tensor(float("nan"))
             if self.x_paths is None
@@ -397,24 +398,32 @@ class ImageFolder(ImageDataset):
         )
         y = None if self.y_paths is None else self.loader(self.y_paths[idx])
 
-        # Synchronize RNG state for paired transforms
+        is_supervised = not getattr(self, "unsupervised", False)
+
+        # Capture RNG state to synchronize paired random transforms
         state = torch.get_rng_state()
 
-        if x is not None and self.transform_x is not None:
-            x = self.transform_x(x)
+        if is_supervised:
+            if x is not None and self.transform_x is not None:
+                # Only apply transform_x if x is not already a tensor.
+                if not isinstance(x, torch.Tensor):
+                    x = self.transform_x(x)
 
-        if y is not None and self.transform_y is not None:
-            torch.set_rng_state(state)
-            y = self.transform_y(y)
+            if y is not None and self.transform_y is not None:
+                # Synchronize random state for y
+                torch.set_rng_state(state)
+                y = self.transform_y(y)
 
-        # Ensure x is a tensor before estimating params or returning
+        # Ensure x is a tensor for downstream estimate_params or model input
         if not isinstance(x, torch.Tensor):
             from torchvision.transforms import ToTensor
 
             x = ToTensor()(x)
 
+        # Estimate parameters if a method is provided
         params = self.estimate_params(x, y) if self.estimate_params is not None else {}
 
+        # Construct the output tuple
         out = (x,)
         if y is not None:
             out += (y,)
