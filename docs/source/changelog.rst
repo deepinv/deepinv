@@ -34,6 +34,7 @@ Fixed
 - Have test ground truths returned in HDF5Dataset when present (:gh:`764` by `Jérémy Scanvic`_)
 - Dispose of invalid physics parameters in HDF5Dataset loading (:gh:`764` by `Jérémy Scanvic`_)
 - :func:`deepinv.utils.plot_ortho3D` doesn't perform sqrt on images (:gh:`1068` by `Andrew Wang`_)
+- Sample a unique factor per batch in :class:`deepinv.physics.generator.DownsamplingGenerator` (:gh:`1085` by `Romain Vo`_)
 
 v0.3.7
 ------

@@ -103,7 +103,9 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None):
         keys = ["filters", "factors"]
     elif name == "DownsamplingGenerator[2, 4]":
         g = dinv.physics.generator.DownsamplingGenerator(
-            filters=["bilinear", "bicubic", "gaussian"], factors=[2, 4], psf_size=psf_size
+            filters=["bilinear", "bicubic", "gaussian"],
+            factors=[2, 4],
+            psf_size=psf_size,
         )
         keys = ["filters", "factors"]
     elif name == "SigmaGenerator":
@@ -270,7 +272,7 @@ def test_downsampling_generator(num_channels, device, dtype, psf_size, fact):
         y = physics(x, **params)
 
         assert y.shape[-1] == x.shape[-1] // params["factor"].unique().item()
-    
+
         if fact is not None and not isinstance(fact, list):
             assert fact == params["factor"].unique().item()
 
