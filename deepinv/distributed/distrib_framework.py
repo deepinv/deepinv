@@ -1104,7 +1104,7 @@ class DistributedReplicatedParameters:
 # =========================
 # Distributed Data Fidelity
 # =========================
-class DistributedDataFidelity:
+class DistributedDataFidelity(torch.nn.Module):
     r"""
     Distributed data fidelity term for use with distributed physics operators.
 
@@ -1155,9 +1155,9 @@ class DistributedDataFidelity:
         :param dict | None factory_kwargs: shared data dictionary passed to factory function. Default is `None`.
         :param str reduction: reduction mode for distributed operations. Options are ``'sum'`` and ``'mean'``. Default is ``'sum'``.
         """
+        super().__init__()
         self.ctx = ctx
         self.reduction_mode = reduction
-        self.local_data_fidelities = []
         self.single_fidelity = None
 
         if isinstance(data_fidelity, DataFidelity):
@@ -1169,9 +1169,12 @@ class DistributedDataFidelity:
                 raise ValueError("num_operators must be provided when using a factory.")
             # Create local data fidelity instances using factory
             local_indexes = list(ctx.local_indices(num_operators))
+            local_data_fidelities = []
             for i in local_indexes:
                 df = data_fidelity(i, ctx.device, factory_kwargs)
-                self.local_data_fidelities.append(df)
+                local_data_fidelities.append(df)
+            # Register as ModuleList for proper parameter management
+            self.local_data_fidelities = torch.nn.ModuleList(local_data_fidelities)
         else:
             raise ValueError(
                 "data_fidelity must be a DataFidelity instance or a factory callable."
@@ -1180,7 +1183,9 @@ class DistributedDataFidelity:
     def _get_fidelity(self, i: int) -> DataFidelity:
         if self.single_fidelity is not None:
             return self.single_fidelity
-        return self.local_data_fidelities[i]
+        if hasattr(self, "local_data_fidelities"):
+            return self.local_data_fidelities[i]
+        raise ValueError("No data fidelity available.")
 
     def _check_is_distributed_physics(self, physics: DistributedStackedLinearPhysics):
         if not isinstance(physics, DistributedStackedLinearPhysics):

@@ -1,28 +1,30 @@
 r"""
-Distributed Training of a Shared-Weight Unrolled PnP Network
---------------------------------------------------------------
+Distributed Training of Unrolled PGD with PnP Prior
+----------------------------------------------------
 
-This example shows how to train an unrolled reconstruction network in a fully distributed DeepInverse setup:
+This example demonstrates training an unrolled PGD (Proximal Gradient Descent) algorithm with
+Plug-and-Play (PnP) prior in a fully distributed DeepInverse setup:
 
 - distributed physics operators,
 - distributed data-fidelity gradient,
-- distributed denoiser with tiling,
-- trainable algorithmic step sizes and trainable denoiser weights.
+- distributed PnP denoiser with tiling,
+- trainable algorithmic parameters (stepsize) and denoiser weights
+- proper distributed metric reduction across all ranks using weighted averaging.
 
-We use Urban100HR as image dataset, a pretrained DRUNet as the shared denoiser (same model at all unrolled
-iterations), and run only a few epochs for the sake of the demo.
+We use Urban100HR as image dataset, a pretrained DRUNet as denoiser in the PnP prior, and run only
+a few epochs for the sake of the demo.
 
 **Usage:**
 
 .. code-block:: bash
 
     # Single process
-    python examples/distributed/demo_unrolled_distributed.py
+    python examples/distributed/demo_unrolled_PGD_distributed.py
 
 .. code-block:: bash
 
     # Multi-process (2 ranks)
-    python -m torch.distributed.run --nproc_per_node=2 examples/distributed/demo_unrolled_distributed.py
+    python -m torch.distributed.run --nproc_per_node=2 examples/distributed/demo_unrolled_PGD_distributed.py
 
 """
 
@@ -46,6 +48,8 @@ from deepinv.datasets import generate_dataset, HDF5Dataset
 from deepinv.models import DRUNet
 from deepinv.loss.metric import PSNR
 from deepinv.optim.data_fidelity import L2
+from deepinv.optim.prior import PnP
+from deepinv.optim import PGD
 from deepinv.distributed import DistributedContext, distribute
 from deepinv.physics import Denoising, GaussianNoise, stack
 from deepinv.utils import get_data_home
@@ -115,7 +119,6 @@ def collate_deepinv_batch(batch):
         else:
             # Single tensor measurements
             measurement_batch = torch.stack(measurements, dim=0)
-
         return ground_truth_batch, measurement_batch
 
 
@@ -243,65 +246,6 @@ def prepare_dataset(
 
 
 # %%
-# Unrolled PnP Model Architecture
-# --------------------------------
-#
-# This class implements an unrolled gradient descent algorithm with Plug-and-Play (PnP) prior.
-#
-# **Key features:**
-#
-# - **Shared denoiser**: Same pretrained DRUNet model used at all iterations. In this example, its weights are also fine-tuned during training.
-# - **Trainable stepsizes**: Each iteration has its own learnable stepsize parameter
-# - **PnP prior**: Denoising operation acts as an regularization term
-
-
-class SharedUnrolledPnP(torch.nn.Module):
-    """Unrolled gradient descent with Plug-and-Play prior and shared denoiser.
-
-    :param denoiser: Pretrained denoiser model (shared across iterations)
-    :param data_fidelity: Data-fidelity term for gradient computation
-    :param int n_iter: Number of unrolled iterations (layers)
-    :param float init_stepsize: Initial step size (will be optimized)
-    :param float sigma_denoiser: Noise level parameter for denoiser
-    """
-
-    def __init__(
-        self,
-        denoiser,
-        data_fidelity,
-        n_iter: int = 4,
-        init_stepsize: float = 0.9,
-        sigma_denoiser: float = 0.05,
-    ):
-        super().__init__()
-        self.denoiser = denoiser
-        self.data_fidelity = data_fidelity
-        self.n_iter = n_iter
-        self.sigma_denoiser = sigma_denoiser
-        self.log_steps = torch.nn.Parameter(
-            torch.log(torch.full((n_iter,), init_stepsize))
-        )
-
-    def get_stepsizes(self):
-        """Get actual step sizes via softplus transformation (ensures positivity)."""
-        return torch.nn.functional.softplus(self.log_steps)
-
-    def forward(self, y, physics):
-        """Forward pass: unrolled gradient descent with PnP prior."""
-        # Initialize with adjoint (backprojection)
-        x = physics.A_adjoint(y)
-        steps = self.get_stepsizes()
-        # Unrolled iterations
-        for k in range(self.n_iter):
-            # Data-fidelity gradient step
-            grad = self.data_fidelity.grad(x, y, physics)
-            x = x - steps[k] * grad
-            # PnP denoising prior
-            x = self.denoiser(x, sigma=self.sigma_denoiser)
-        return x
-
-
-# %%
 # Distributed Metric Reduction
 # -----------------------------
 #
@@ -336,7 +280,7 @@ def _reduce_weighted_scalar(weighted_sum: float, count: int, device, ctx=None) -
 
 @torch.no_grad()
 def evaluate_psnr(
-    model: SharedUnrolledPnP,
+    model,
     denoiser: torch.nn.Module,
     loader: DataLoader,
     physics,
@@ -358,7 +302,11 @@ def evaluate_psnr(
 
         # Accumulate weighted PSNR (weight = batch size)
         b = ground_truth.shape[0]
-        local_psnr_sum += metric(x_hat, ground_truth).item() * b
+        psnr_val = metric(x_hat, ground_truth)
+        if psnr_val.ndim > 0:  # Handle batch of PSNRs
+            local_psnr_sum += psnr_val.sum().item()
+        else:  # Handle single PSNR value
+            local_psnr_sum += psnr_val.item() * b
         local_count += b
 
     # Reduce across all ranks to get global average
@@ -373,18 +321,18 @@ def evaluate_psnr(
 #
 # **Key parameters:**
 #
-# - ``n_unroll``: Number of gradient descent iterations to unfold (number of layers)
-# - ``learning_rate``: Small (1e-5) to handle training 32M+ denoiser parameters
-# - ``batch_size``: Samples per batch (can be 1 for large images)
+# - ``n_unroll``: Number of PGD iterations to unfold (number of layers)
+# - ``learning_rate``: Small (1e-5) to handle training 32M+ denoiser parameters alongside algorithmic parameters
+# - ``batch_size``: Samples per batch
 # - ``patch_size`` and ``overlap``: For distributed tiling of images beyond GPU memory
 
-n_unroll = 4
+n_unroll = 4  # number of unfolded PGD iterations
 epochs = 2 if torch.cuda.is_available() else 1
 crop_size = 128 if torch.cuda.is_available() else 64
 batch_size = 1
 train_images = 24 if torch.cuda.is_available() else 8
 val_images = 8 if torch.cuda.is_available() else 4
-learning_rate = 1e-5
+learning_rate = 1e-5  # Small learning rate for training 32M+ parameters
 sigma_denoiser = 0.05
 patch_size = crop_size // 2
 overlap = max(4, patch_size // 8)
@@ -394,12 +342,12 @@ seed = 0
 
 # %%
 # Distributed setup and training
-# ------------------------------
+# -------------------------------
 
 with DistributedContext(seed=0) as ctx:
     if ctx.rank == 0:
         print("=" * 78)
-        print("Distributed Shared-Weight Unrolled Training Demo")
+        print("Distributed Unrolled PGD Training with PnP Prior")
         print("=" * 78)
         print(f"Processes: {ctx.world_size}")
         print(f"Device: {ctx.device}")
@@ -415,8 +363,9 @@ with DistributedContext(seed=0) as ctx:
         num_workers=num_workers,
         ctx=ctx,
         seed=seed,
-        dataset_name="urban100",
+        dataset_name="urban100_pgd",
     )
+
     # Step 2: Distributed physics and distributed data-fidelity
     distributed_physics = distribute(
         stacked_physics,
@@ -436,22 +385,32 @@ with DistributedContext(seed=0) as ctx:
         overlap=overlap,
         max_batch_size=1,
     )
-    # Step 4: Unrolled trainable model (same denoiser at each iteration)
-    model = SharedUnrolledPnP(
-        denoiser=distributed_denoiser,
-        data_fidelity=distributed_data_fidelity,
-        n_iter=n_unroll,
-        init_stepsize=0.9,
+
+    # Step 4: PGD unfolded trainable model
+    # We will train both the stepsize parameters and the denoiser weights end-to-end.
+    stepsize = [0.642] * n_unroll  # stepsize of the algorithm
+    trainable_params = ["stepsize"]  # define which parameters are trainable
+
+    # Create PnP prior with distributed denoiser
+    prior = PnP(denoiser=distributed_denoiser)
+
+    # Create PGD model with unfolding
+    model = PGD(
+        stepsize=stepsize,
         sigma_denoiser=sigma_denoiser,
+        trainable_params=trainable_params,
+        data_fidelity=distributed_data_fidelity,
+        max_iter=n_unroll,
+        prior=prior,
+        unfold=True,
     )
-    model.log_steps = distribute(model.log_steps, ctx)
 
     # Step 5: Setup Training
-
+    # Train all parameters: algorithmic parameters (stepsize) + denoiser weights
+    # Since the distributed wrapper doesn't expose parameters, we add denoiser.parameters() explicitly
     optimizer = torch.optim.Adam(
-        [model.log_steps] + list(denoiser.parameters()), lr=learning_rate
+        list(model.parameters()) + list(denoiser.parameters()), lr=learning_rate
     )
-    # Note that in this case we also optimize the denoiser weights, which are shared across iterations.
     mse_loss = torch.nn.MSELoss()
     psnr_metric = PSNR(reduction="mean")
 
@@ -477,7 +436,7 @@ with DistributedContext(seed=0) as ctx:
         print("Starting training...")
 
     # Step 6: Training Loop
-
+    # The current Trainer method does not support distributed training, so we implement a custom training loop here to handle it.
     for epoch in range(epochs):
         model.train()
         denoiser.train()
@@ -495,7 +454,7 @@ with DistributedContext(seed=0) as ctx:
             loss.backward()
 
             torch.nn.utils.clip_grad_norm_(denoiser.parameters(), max_norm=1.0)
-            torch.nn.utils.clip_grad_norm_([model.log_steps], max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(list(model.parameters()), max_norm=1.0)
             optimizer.step()
 
             b = ground_truth.shape[0]
@@ -514,7 +473,7 @@ with DistributedContext(seed=0) as ctx:
         neg_val_psnr_history.append(-val_psnr)
 
         if ctx.rank == 0:
-            steps = [f"{s:.4f}" for s in model.get_stepsizes().detach().cpu().tolist()]
+            steps = [f"{s.item():.4f}" for s in model.params_algo["stepsize"]]
             print(
                 f"Epoch {epoch + 1}/{epochs} | train PSNR: {train_psnr:.2f} dB | "
                 f"val PSNR: {val_psnr:.2f} dB | -val PSNR: {-val_psnr:.2f} | steps: {steps}"
@@ -525,9 +484,7 @@ with DistributedContext(seed=0) as ctx:
     with torch.no_grad():
         demo_rec_after = model(demo_y, distributed_physics).detach()
     if ctx.rank == 0:
-        final_steps = [
-            f"{s:.4f}" for s in model.get_stepsizes().detach().cpu().tolist()
-        ]
+        final_steps = [f"{s.item():.4f}" for s in model.params_algo["stepsize"]]
         print(f"Final trainable step sizes: {final_steps}")
         print(
             "Note: we track `-PSNR` as a decreasing objective (equivalent to increasing PSNR)."
@@ -542,7 +499,7 @@ with DistributedContext(seed=0) as ctx:
                 f"After training ({val_psnr_history[-1]:.2f} dB)",
             ],
             figsize=(16, 4),
-            save_fn="distributed_unrolled_result.png",
+            save_fn="distributed_pgd_result.png",
         )
 
         plot_curves(
@@ -553,5 +510,5 @@ with DistributedContext(seed=0) as ctx:
             }
         )
 
-        print("Saved: distributed_unrolled_result.png")
+        print("Saved: distributed_pgd_result.png")
         print("=" * 78)
