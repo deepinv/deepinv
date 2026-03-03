@@ -123,7 +123,6 @@ class RAM(Reconstructor, Denoiser):
                 self.load_state_dict(
                     torch.hub.load_state_dict_from_url(
                         "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar",
-                        progress=False,
                     ),
                     strict=False,
                 )
@@ -284,6 +283,28 @@ class RAM(Reconstructor, Denoiser):
 
         return x
 
+    def get_pad(self, img_size: tuple) -> tuple[int, int, int]:
+        """Get padding amount for model input.
+
+        :param tuple img_size: model input image shape.
+        :return tuple[int, int, int]: padding amounts for channel dim and spatial dims.
+        """
+        spatial_pad = 2**4
+
+        pad = (
+            0,
+            -img_size[-2] % spatial_pad,
+            -img_size[-1] % spatial_pad,
+        )
+
+        min_size = 64
+        if img_size[-2] + pad[1] < min_size:
+            pad = (pad[0], min_size - img_size[-2], pad[2])
+        if img_size[-1] + pad[2] < min_size:
+            pad = (pad[0], pad[1], min_size - img_size[-1])
+
+        return pad
+
     def forward(
         self,
         y: torch.Tensor,
@@ -342,6 +363,8 @@ class RAM(Reconstructor, Denoiser):
             else:
                 img_size = physics.A_adjoint(y).shape[1:]
 
+        pad = self.get_pad(img_size)
+
         sigma, gain = self.obtain_sigma_gain(
             physics=physics,
             sigma=sigma,
@@ -350,10 +373,8 @@ class RAM(Reconstructor, Denoiser):
             device=y.device,
         )
 
-        pad = (-img_size[-2] % 8, -img_size[-1] % 8)
-
         use_pad = False
-        if pad[0] != 0 or pad[1] != 0:
+        if pad[0] != 0 or pad[1] != 0 or pad[2] != 0:
             physics = PhysicsCropper(physics, pad)
             use_pad = True
 
