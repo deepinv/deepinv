@@ -3,6 +3,7 @@ import torch
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter
 from deepinv.utils.compat import zip_strict
+from deepinv.physics.functional import random_choice
 
 
 class DownsamplingGenerator(PhysicsGenerator):
@@ -110,23 +111,15 @@ class DownsamplingGenerator(PhysicsGenerator):
         # NOTE: if batch size > 1 and multiple factors are provided, we sample a
         # unique factor for the whole batch to ensure that all produced measurements
         # have the same shape.
-        if batch_size > 1 and len(self.list_factors) > 1:
-            factor_index = torch.randint(
-                low=0,
-                high=len(self.list_factors),
-                size=(1,),
-                generator=self.rng,
-                **self.factory_kwargs,
-            )
-            factor_indices = factor_index.repeat(batch_size)
-        else:
-            factor_indices = torch.randint(
-                low=0,
-                high=len(self.list_factors),
-                size=(batch_size,),
-                generator=self.rng,
-                **self.factory_kwargs,
-            )
+        factors = random_choice(
+            torch.as_tensor(self.list_factors),
+            size=(
+                (1,) if batch_size > 1 and len(self.list_factors) > 1 else (batch_size,)
+            ),
+            rng=self.rng,
+        )
+        # no-op if factors is already of shape (batch_size,)
+        factors = factors.expand(batch_size)
 
         filter_indices = torch.randint(
             low=0,
@@ -135,7 +128,6 @@ class DownsamplingGenerator(PhysicsGenerator):
             generator=self.rng,
             **self.factory_kwargs,
         )
-        factors = [self.list_factors[int(i)] for i in factor_indices.tolist()]
         filters = [self.list_filters[int(i)] for i in filter_indices.tolist()]
 
         filters = [
