@@ -322,7 +322,7 @@ class TiledMixin2d:
         >>> # Extract patches from the image
         >>> patches = tiled_mixin.image_to_patches(image)
         >>> print("Extracted Patches Shape:", patches.shape)
-        Extracted Patches Shape: torch.Size([1, 1, 3, 3, 3, 3])
+        Extracted Patches Shape: torch.Size([1, 1, 2, 2, 3, 3])
         >>> print(patches[..., 0, 0, :, :]) # Print the first patch for verification
         tensor([[[[ 0.,  1.,  2.],
                   [ 5.,  6.,  7.],
