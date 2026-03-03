@@ -2207,11 +2207,11 @@ def _test_processor_backward_worker(rank, world_size, args):
         # Ensure weights allow perfect comparison (though they should be identical by init)
         denoiser_ref.load_state_dict(denoiser.state_dict())
 
-        # Ensure identical initialization across ranks for inputs
-        rng_state = torch.get_rng_state()
-        torch.manual_seed(1234)  # Shared seed (overrides DistributedContext diversity)
-        x = torch.randn(1, 3, 16, 16, device=ctx.device, requires_grad=True)
-        torch.set_rng_state(rng_state)
+        # Ensure identical initialization across ranks while preserving outer RNG state.
+        fork_devices = [ctx.device.index] if ctx.device.type == "cuda" else []
+        with torch.random.fork_rng(devices=fork_devices):
+            torch.manual_seed(1234)  # Shared seed (overrides DistributedContext diversity)
+            x = torch.randn(1, 3, 16, 16, device=ctx.device, requires_grad=True)
 
         x_ref = x.clone().detach().requires_grad_(True)
 
@@ -2311,10 +2311,10 @@ def _test_processor_backward_multiple_calls_worker(rank, world_size, args):
         denoiser_ref = TrainableDenoiser(channels=3).to(ctx.device)
         denoiser_ref.load_state_dict(denoiser.state_dict())
 
-        rng_state = torch.get_rng_state()
-        torch.manual_seed(1234)
-        x = torch.randn(1, 3, 16, 16, device=ctx.device, requires_grad=True)
-        torch.set_rng_state(rng_state)
+        fork_devices = [ctx.device.index] if ctx.device.type == "cuda" else []
+        with torch.random.fork_rng(devices=fork_devices):
+            torch.manual_seed(1234)
+            x = torch.randn(1, 3, 16, 16, device=ctx.device, requires_grad=True)
         x_ref = x.clone().detach().requires_grad_(True)
 
         # Two distributed calls in the same graph and one backward.

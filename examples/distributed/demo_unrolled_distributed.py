@@ -1,6 +1,6 @@
 r"""
-Distributed Training of a Shared-Weight Unrolled PnP Network
---------------------------------------------------------------
+Distributed Training of an Unrolled Network
+-------------------------------------------
 
 This example shows how to train an unrolled reconstruction network in a fully distributed DeepInverse setup:
 
