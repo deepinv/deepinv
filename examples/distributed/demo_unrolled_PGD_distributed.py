@@ -246,36 +246,7 @@ def prepare_dataset(
 
 
 # %%
-# Distributed Metric Reduction
-# -----------------------------
-#
-# In distributed training, each process (rank) computes metrics on its local subset of data.
-# To get accurate global metrics, we need to aggregate results across all ranks using weighted averaging.
-#
-# **Why weighted averaging?**
-#
-# - Different ranks may process different numbers of samples (uneven batch sizes)
-# - Simply averaging local averages would give incorrect results
-# - We compute: global_metric = sum(local_metric × local_count) / sum(local_count)
-#
-# The ``_reduce_weighted_scalar`` function performs this aggregation using MPI-style ``all_reduce``
-# operations, ensuring all ranks get the same global result.
-
-
-def _reduce_weighted_scalar(weighted_sum: float, count: int, device, ctx=None) -> float:
-    """Reduce a weighted scalar across all ranks in distributed mode."""
-    if ctx is not None:
-        stats = torch.tensor([weighted_sum, float(count)], device=device)
-        if ctx.use_dist:
-            stats = ctx.all_reduce(stats, op=dist.ReduceOp.SUM)
-        return (stats[0] / stats[1]).item() if stats[1] > 0 else 0.0
-    else:
-        return weighted_sum / count if count > 0 else 0.0
-
-
-# %%
-# We then define a ``evaluate_psnr`` function to evaluate PSNR on the validation set with proper distributed reduction.
-# Each rank computes PSNR on its local data, then we aggregate across all ranks using weighted averaging to get the true global PSNR.
+# We then define a ``evaluate_psnr`` function to evaluate PSNR on the validation set.
 
 
 @torch.no_grad()
@@ -287,11 +258,11 @@ def evaluate_psnr(
     metric: PSNR,
     ctx: DistributedContext,
 ) -> float:
-    """Evaluate PSNR on validation set with proper distributed reduction."""
+    """Evaluate PSNR on validation set."""
     model.eval()
     denoiser.eval()
-    local_psnr_sum = 0.0
-    local_count = 0
+    psnr_sum = 0.0
+    count = 0
     for ground_truth, measurement in loader:
         # Move data to device
         ground_truth = ground_truth.to(ctx.device)
@@ -304,13 +275,12 @@ def evaluate_psnr(
         b = ground_truth.shape[0]
         psnr_val = metric(x_hat, ground_truth)
         if psnr_val.ndim > 0:  # Handle batch of PSNRs
-            local_psnr_sum += psnr_val.sum().item()
+            psnr_sum += psnr_val.sum().item()
         else:  # Handle single PSNR value
-            local_psnr_sum += psnr_val.item() * b
-        local_count += b
+            psnr_sum += psnr_val.item() * b
+        count += b
 
-    # Reduce across all ranks to get global average
-    return _reduce_weighted_scalar(local_psnr_sum, local_count, ctx.device, ctx)
+    return psnr_sum / count if count > 0 else 0.0
 
 
 # %%
@@ -411,7 +381,6 @@ with DistributedContext(seed=0) as ctx:
     optimizer = torch.optim.Adam(
         list(model.parameters()) + list(denoiser.parameters()), lr=learning_rate
     )
-    mse_loss = torch.nn.MSELoss()
     psnr_metric = PSNR(reduction="mean")
 
     # Keep one validation image for qualitative comparison
@@ -426,58 +395,33 @@ with DistributedContext(seed=0) as ctx:
         model, denoiser, val_loader, distributed_physics, psnr_metric, ctx
     )
 
-    # Initialize tracking variables
-    train_psnr_history = []
-    val_psnr_history = [init_val_psnr]
-    neg_val_psnr_history = [-init_val_psnr]
-
     if ctx.rank == 0:
         print(f"Initial validation PSNR: {init_val_psnr:.2f} dB")
         print("Starting training...")
 
-    # Step 6: Training Loop
-    # The current Trainer method does not support distributed training, so we implement a custom training loop here to handle it.
-    for epoch in range(epochs):
-        model.train()
-        denoiser.train()
-        local_psnr_sum = 0.0
-        local_count = 0
+    # Step 6: Training with Trainer
+    trainer = dinv.Trainer(
+        model=model,
+        physics=distributed_physics,
+        epochs=epochs,
+        device=ctx.device,
+        losses=[dinv.loss.SupLoss(metric=dinv.metric.MSE())],
+        metrics=psnr_metric,
+        optimizer=optimizer,
+        train_dataloader=train_loader,
+        eval_dataloader=val_loader,
+        grad_clip=1.0,
+        compare_no_learning=False,
+        save_path=f"ckpts/distributed_pgd_rank{ctx.rank}",
+        verbose=(ctx.rank == 0),
+        show_progress_bar=(ctx.rank == 0),
+        check_grad=True,
+    )
+    trainer.train()
 
-        for ground_truth, measurement in train_loader:
-            # Move data to device
-            ground_truth = ground_truth.to(ctx.device)
-            measurement = _move_measurement_to_device(measurement, ctx.device)
-
-            optimizer.zero_grad(set_to_none=True)
-            x_hat = model(measurement, distributed_physics)
-            loss = mse_loss(x_hat, ground_truth)
-            loss.backward()
-
-            torch.nn.utils.clip_grad_norm_(denoiser.parameters(), max_norm=1.0)
-            torch.nn.utils.clip_grad_norm_(list(model.parameters()), max_norm=1.0)
-            optimizer.step()
-
-            b = ground_truth.shape[0]
-            local_psnr_sum += psnr_metric(x_hat.detach(), ground_truth).item() * b
-            local_count += b
-
-        train_psnr = _reduce_weighted_scalar(
-            local_psnr_sum, local_count, ctx.device, ctx
-        )
-        val_psnr = evaluate_psnr(
-            model, denoiser, val_loader, distributed_physics, psnr_metric, ctx
-        )
-
-        train_psnr_history.append(train_psnr)
-        val_psnr_history.append(val_psnr)
-        neg_val_psnr_history.append(-val_psnr)
-
-        if ctx.rank == 0:
-            steps = [f"{s.item():.4f}" for s in model.params_algo["stepsize"]]
-            print(
-                f"Epoch {epoch + 1}/{epochs} | train PSNR: {train_psnr:.2f} dB | "
-                f"val PSNR: {val_psnr:.2f} dB | -val PSNR: {-val_psnr:.2f} | steps: {steps}"
-            )
+    train_psnr_history = trainer.train_metrics_history["PSNR"]
+    val_psnr_history = [init_val_psnr] + trainer.eval_metrics_history["PSNR"]
+    neg_val_psnr_history = [-v for v in val_psnr_history]
 
     # Step 7: Visualize (rank 0)
 
