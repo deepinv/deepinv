@@ -62,7 +62,7 @@ class FixedPoint(nn.Module):
     :param Callable update_prior_fn: function that returns the prior to be used at each iteration. Default: ``None``.
     :param Callable init_iterate_fn: function that returns the initial iterate. Default: ``None``.
     :param Callable init_metrics_fn: function that returns the initial metrics. Default: ``None``.
-    :param Callable backtraking_check_fn: function that performs a sufficent decrease check on the last iteration and returns a bool indicating if we can proceed to next iteration. Default: ``None``.
+    :param Callable backtracking_check_fn: function that performs a sufficent decrease check on the last iteration and returns a bool indicating if we can proceed to next iteration. Default: ``None``.
     :param Callable check_conv_fn: function that checks the convergence after each iteration, returns a bool indicating if convergence has been reached. Default: ``None``.
     :param int max_iter: maximum number of iterations. Default: ``50``.
     :param bool early_stop: if True, the algorithm stops when the convergence criterion is reached. Default: ``True``.
@@ -83,12 +83,12 @@ class FixedPoint(nn.Module):
         update_metrics_fn: Callable[
             [dict[str, list], dict, dict, torch.Tensor], dict[str, list]
         ] = None,
-        backtraking_check_fn: Callable[[dict, dict], bool] = None,
+        backtracking_check_fn: Callable[[dict, dict], bool] = None,
         check_conv_fn: Callable[[int, dict, dict], bool] = None,
         max_iter: int = 50,
         early_stop: bool = True,
         anderson_acceleration_config: deepinv.optim.AndersonAccelerationConfig = None,
-        backtracking_config: deepinv.optim.BacktrakingConfig = None,
+        backtracking_config: deepinv.optim.backtrackingConfig = None,
         verbose: bool = False,
         show_progress_bar: bool = False,
     ):
@@ -103,7 +103,7 @@ class FixedPoint(nn.Module):
         self.init_metrics_fn = init_metrics_fn
         self.update_metrics_fn = update_metrics_fn
         self.check_conv_fn = check_conv_fn
-        self.backtraking_check_fn = backtraking_check_fn
+        self.backtracking_check_fn = backtracking_check_fn
         self.anderson_acceleration_config = anderson_acceleration_config
         self.backtracking_config = backtracking_config
         self.verbose = verbose
@@ -308,7 +308,7 @@ class FixedPoint(nn.Module):
             else None
         )
 
-        self.backtraking_check = True
+        self.backtracking_check = True
         failed_backtracking_count = 0
 
         if self.anderson_acceleration_config is not None:
@@ -321,7 +321,7 @@ class FixedPoint(nn.Module):
             X_prev = X
             X = self.single_iteration(X, it, *args, **kwargs)
 
-            if self.backtraking_check or self.backtraking_config is None:
+            if self.backtracking_check or self.backtracking_config is None:
                 # Successful iteration → reset the failure counter
                 failed_backtracking_count = 0
                 metrics = (
@@ -343,7 +343,7 @@ class FixedPoint(nn.Module):
                 # Failed backtracking iteration
                 failed_backtracking_count += 1
                 # Stop if too many consecutive failures
-                if failed_backtracking_count >= self.backtraking_config.max_iter:
+                if failed_backtracking_count >= self.backtracking_config.max_iter:
                     if self.verbose:
                         print(
                             f"[Stopping] Reached maximum number of failed backtracking checks "
@@ -373,7 +373,9 @@ class FixedPoint(nn.Module):
                 cur_params,
                 *args,
             )
-        self.backtraking_check = (
-            self.backtraking_check_fn(X_prev, X) if self.backtraking_check_fn else True
+        self.backtracking_check = (
+            self.backtracking_check_fn(X_prev, X)
+            if self.backtracking_check_fn
+            else True
         )
-        return X if self.backtraking_check else X_prev
+        return X if self.backtracking_check else X_prev

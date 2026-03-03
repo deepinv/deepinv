@@ -44,7 +44,8 @@ jobs:
           uv run python --version
 
       - name: Install the project
-        run: uv sync --extra dataset --extra denoisers --extra test --extra training
+        run: |
+          uv sync --extra dataset --extra denoisers --extra test --extra training
 
       - name: Check installed packages
         run: |

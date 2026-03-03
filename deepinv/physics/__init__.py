@@ -8,6 +8,7 @@ from .blur import (
     Upsampling,
     DownsamplingMatlab,
 )
+from .scattering import Scattering
 from .range import Decolorize
 from .haze import Haze
 from .unmixing import HyperSpectralUnmixing

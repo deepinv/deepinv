@@ -25,7 +25,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.utils import load_example
 from tqdm import tqdm  # to visualize progress
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 x_true = load_example("butterfly.png", img_size=64).to(device)
 x = x_true.clone()
@@ -100,8 +100,7 @@ alphas = (1 - betas).cumprod(dim=0)
 # The algorithm writes as follows, for :math:`t` decreasing from :math:`T` to :math:`1`:
 #
 # .. math::
-#         \begin{equation*}
-#         \begin{aligned}
+#
 #         \widehat{\mathbf{x}}_{0} (\mathbf{x}_t) &= \denoiser{\mathbf{x}_t}{\sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t}}
 #         \\
 #         \mathbf{g}_t &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{0}(\mathbf{x}_t) | \mathbf{y} ) \\
@@ -109,22 +108,19 @@ alphas = (1 - betas).cumprod(dim=0)
 #         \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t
 #         + b_t \, \, \widehat{\mathbf{x}}_0
 #         + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t + \mathbf{g}_t,
-#         \end{aligned}
-#         \end{equation*}
+#
 #
 # where :math:`\denoiser{\cdot}{\sigma}` is a denoising network for noise level :math:`\sigma`,
 # :math:`\eta` is a hyperparameter in [0, 1], and the constants :math:`\tilde{\sigma}_t, a_t, b_t` are defined as
 #
 # .. math::
-#         \begin{equation*}
-#         \begin{aligned}
+#
 #           \tilde{\sigma}_t &= \eta \sqrt{ (1 - \frac{\overline{\alpha}_t}{\overline{\alpha}_{t-1}})
 #           \frac{1 - \overline{\alpha}_{t-1}}{1 - \overline{\alpha}_t}} \\
 #           a_t &= \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}/\sqrt{1-\overline{\alpha}_t} \\
 #           b_t &= \sqrt{\overline{\alpha}_{t-1}} - \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}
 #           \frac{\sqrt{\overline{\alpha}_{t}}}{\sqrt{1 - \overline{\alpha}_{t}}}
-#         \end{aligned}
-#         \end{equation*}
+#
 #
 
 

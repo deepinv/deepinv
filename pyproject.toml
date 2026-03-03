@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "deepinv"
 authors = [{name="DeepInverse maintainers (see https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md)"}]
-license = "BSD-3-Clause"
+license = { text = "BSD-3-Clause" }
 description = "DeepInverse: a PyTorch library for imaging with deep learning"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -90,6 +90,7 @@ denoisers = [
     "torchkbnufft",
     "libcpab",
     "sigpy",
+    "scipy",
     "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
     "spyrit>=3.0.0; platform_system=='Linux'",
     "diffusers",

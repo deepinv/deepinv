@@ -38,7 +38,7 @@ import torch
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 dtype = torch.float32
 
 # %%

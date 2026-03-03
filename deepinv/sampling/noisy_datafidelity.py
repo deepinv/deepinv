@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from deepinv.optim import DataFidelity, Distance
 import deepinv as dinv
@@ -143,27 +144,60 @@ class DPSDataFidelity(NoisyDataFidelity):
         raise NotImplementedError
 
     def grad(
-        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, sigma, *args, **kwargs
-    ) -> torch.Tensor:
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma,
+        *args,
+        get_model_outputs=False,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         r"""
         :param torch.Tensor x: Current iterate.
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: physics model
         :param float sigma: Standard deviation of the noise.
-        :return: (:class:`torch.Tensor`) score term.
+        :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.
+
+        :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) score term (and denoised output if `get_model_outputs` is `True`).
         """
         with torch.enable_grad():
             x.requires_grad_(True)
-            l2_loss = self.forward(x, y, physics, sigma, *args, **kwargs)
+            out = self.forward(
+                x,
+                y,
+                physics,
+                sigma,
+                *args,
+                get_model_outputs=get_model_outputs,
+                **kwargs,
+            )
+            # In case we also want the denoised output
+            if get_model_outputs:
+                l2_loss = out[0]
+            else:
+                l2_loss = out
+
             grad_outputs = torch.ones_like(l2_loss)
         norm_grad = torch.autograd.grad(
             outputs=l2_loss, inputs=x, grad_outputs=grad_outputs
         )[0]
-        return norm_grad
+        if get_model_outputs:
+            return norm_grad, out[1]
+        else:
+            return norm_grad
 
     def forward(
-        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, sigma, *args, **kwargs
-    ) -> torch.Tensor:
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma,
+        *args,
+        get_model_outputs=False,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         r"""
         Returns the loss term :math:`\frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|`.
 
@@ -171,7 +205,9 @@ class DPSDataFidelity(NoisyDataFidelity):
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
         :param float sigma: standard deviation of the noise.
-        :return: (torch.Tensor) loss term.
+        :param bool get_model_outputs: If `True`, also return the denoised output along with the loss. Default to `False`.
+
+        :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) loss term (and denoised output if `get_model_outputs` is `True`).
         """
 
         if isinstance(sigma, torch.Tensor):
@@ -181,4 +217,10 @@ class DPSDataFidelity(NoisyDataFidelity):
 
         if self.clip is not None:
             x0_t = torch.clip(x0_t, self.clip[0], self.clip[1])  # optional
-        return (self.d(physics.A(x0_t), y) * y.numel() / y.size(0)).sqrt() * self.weight
+
+        out = (self.d(physics.A(x0_t), y) * y.numel() / y.size(0)).sqrt() * self.weight
+
+        if get_model_outputs:
+            return out, x0_t
+        else:
+            return out

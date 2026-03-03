@@ -20,8 +20,6 @@ from deepinv.distributed.distributed_utils import (
     DistributedParameterSync,
 )
 
-Index = tuple[slice | int, ...]
-
 
 # =========================
 # Distributed Context

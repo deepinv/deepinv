@@ -53,6 +53,7 @@ extensions = [
     "sphinx_design",
     "sphinx_sitemap",
     "sphinxcontrib.bibtex",
+    "matplotlib.sphinxext.plot_directive",
 ]
 
 extlinks = {
@@ -64,6 +65,10 @@ bibtex_default_style = "plain"
 bibtex_foot_reference_style = "foot"
 copybutton_exclude = ".linenos, .gp"
 bibtex_tooltips = True
+
+# for plot in the docs
+plot_html_show_source_link = False
+plot_html_show_formats = False
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
