@@ -23,7 +23,7 @@ class DownsamplingGenerator(PhysicsGenerator):
 
     .. note::
         If batch size = 1, a random filter and factor is sampled in (filters, factors) at each step.
-        If batch size > 1, a unique factor needs to be sampled for the whole batch, but filters can vary. In this case,
+        If batch size > 1 and multiple factors are provided, a unique factor is sampled for the whole batch, but filters can vary. In this case,
         it is recommended to set the `psf_size` argument to ensure that all filters in the batch have the same shape.
 
     :param list[str] filters: list of filters to use for downsampling. Default is ["gaussian", "bilinear", "bicubic"].
@@ -107,6 +107,9 @@ class DownsamplingGenerator(PhysicsGenerator):
         """
         self.rng_manual_seed(seed)
 
+        # NOTE: if batch size > 1 and multiple factors are provided, we sample a
+        # unique factor for the whole batch to ensure that all produced measurements
+        # have the same shape.
         if batch_size > 1 and len(self.list_factors) > 1:
             factor_index = torch.randint(
                 low=0,
