@@ -832,7 +832,7 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
             )
 
 
-class DistributedProcessing:
+class DistributedProcessing(torch.nn.Module):
     r"""
     Distributed signal processing using pluggable tiling and reduction strategies.
 
@@ -881,6 +881,7 @@ class DistributedProcessing:
         r"""
         Initialize distributed signal processor.
         """
+        super().__init__()
         self.ctx = ctx
         self.processor = processor
         self.max_batch_size = max_batch_size
@@ -891,7 +892,7 @@ class DistributedProcessing:
         if hasattr(processor, "to"):
             self.processor.to(ctx.device)
 
-    def __call__(
+    def forward(
         self, x: torch.Tensor, *args, gather: bool = True, **kwargs
     ) -> torch.Tensor:
         r"""
@@ -927,12 +928,13 @@ class DistributedProcessing:
         """
 
         self.img_size = torch.Size(img_size)
-        tiling_dims = self.strategy_kwargs.pop("tiling_dims", None)
+        strategy_kwargs = dict(self.strategy_kwargs)
+        tiling_dims = strategy_kwargs.pop("tiling_dims", None)
 
         # Create or set the strategy
         self._strategy = (
             create_strategy(
-                self.strategy, img_size, tiling_dims=tiling_dims, **self.strategy_kwargs
+                self.strategy, img_size, tiling_dims=tiling_dims, **strategy_kwargs
             )
             if isinstance(self.strategy, str)
             else self.strategy
@@ -952,11 +954,7 @@ class DistributedProcessing:
 
         # Check for insufficient work distribution
         if self.ctx.use_dist and self.ctx.rank == 0:
-            ranks_with_work = sum(
-                1
-                for rank in range(self.ctx.world_size)
-                if len(self.ctx.local_indices(self.num_patches)) > 0
-            )
+            ranks_with_work = min(self.num_patches, self.ctx.world_size)
             if ranks_with_work < self.ctx.world_size:
                 warnings.warn(
                     f"Only {ranks_with_work}/{self.ctx.world_size} ranks have patches to process. "
@@ -1346,4 +1344,30 @@ class DistributedDataFidelity(torch.nn.Module):
 
         return self._apply_op(
             local_op=_local_grad_op, x=x, y=y, physics=physics, gather=gather, **kwargs
+        )
+
+    def prox(
+        self,
+        x: torch.Tensor,
+        y: list[torch.Tensor],
+        physics: DistributedStackedLinearPhysics,
+        *args,
+        gamma=1.0,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Compute proximal step for distributed data-fidelity.
+
+        Currently supported when a single shared DataFidelity object is used for all
+        operators (the standard unfolded setup). In that case, the prox is delegated
+        to the wrapped DataFidelity with the distributed physics object.
+        """
+        self._check_is_distributed_physics(physics)
+        if self.single_fidelity is None:
+            raise NotImplementedError(
+                "prox is only supported when DistributedDataFidelity wraps a single "
+                "shared DataFidelity instance."
+            )
+        return self.single_fidelity.prox(
+            x, y, physics=physics, *args, gamma=gamma, **kwargs
         )

@@ -32,8 +32,9 @@ from deepinv.physics.forward import StackedLinearPhysics
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Denoiser
 from deepinv.models.drunet import DRUNet
-from deepinv.optim import L2, L1
+from deepinv.optim import L2, L1, PGD
 from deepinv.optim.data_fidelity import StackedPhysicsDataFidelity
+from deepinv.optim.prior import PnP
 
 from deepinv.distributed.distrib_framework import (
     DistributedContext,
@@ -41,7 +42,10 @@ from deepinv.distributed.distrib_framework import (
     DistributedProcessing,
     DistributedDataFidelity,
 )
-from deepinv.distributed.distribute import distribute
+from deepinv.distributed.distribute import (
+    distribute,
+    _distribute_base_optim,
+)
 
 # =============================================================================
 # Test Infrastructure: Multi-GPU and CPU Support
@@ -2139,44 +2143,122 @@ def test_distributed_parameter_autodetect(device_config):
     assert all(r == "success" for r in results)
 
 
-def _test_distributed_module_autodetect_worker(rank, world_size, args):
-    """Auto-detected distribute(nn.Module) should sync/average gradients."""
+def _make_test_unfolded_model(device: torch.device, unfold: bool = True) -> PGD:
+    return PGD(
+        stepsize=[0.8, 0.7],
+        sigma_denoiser=0.05,
+        trainable_params=["stepsize"],
+        data_fidelity=L2(),
+        prior=PnP(TrainableDenoiser(channels=1).to(device)),
+        max_iter=2,
+        unfold=unfold,
+    )
+
+
+def _test_distribute_base_optim_worker(rank, world_size, args):
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
-        module = torch.nn.Linear(4, 1, bias=True).to(ctx.device)
-        with torch.no_grad():
-            module.weight.fill_(0.3)
-            module.bias.fill_(0.1)
-        module = distribute(module, ctx)
+        model = _make_test_unfolded_model(ctx.device, unfold=True)
+        model_out = _distribute_base_optim(
+            model, ctx, patch_size=8, overlap=2, max_batch_size=1
+        )
+        assert model_out is model
 
-        x_local = torch.linspace(-1.0, 1.0, steps=8, device=ctx.device).reshape(2, 4)
-        x_local = x_local + 0.1 * ctx.rank
-        y_local = torch.tensor([[0.2], [-0.4]], device=ctx.device) + 0.05 * ctx.rank
+        assert isinstance(model.data_fidelity, torch.nn.ModuleList)
+        assert all(
+            isinstance(df, DistributedDataFidelity) for df in model.data_fidelity
+        )
+        assert isinstance(model.prior[0].denoiser, DistributedProcessing)
+        assert hasattr(model, "_deepinv_dist_sync")
 
-        loss_dist = torch.nn.functional.mse_loss(module(x_local), y_local)
-        loss_dist.backward()
-        w_grad_dist = module.weight.grad.detach().clone()
-        b_grad_dist = module.bias.grad.detach().clone()
+        physics_list = create_test_physics_list(ctx.device, 2)
+        for p in physics_list:
+            p.noise_model = GaussianNoise(sigma=0.0)
+        distributed_physics = distribute(physics_list, ctx=ctx)
 
-        module_ref = torch.nn.Linear(4, 1, bias=True).to(ctx.device)
-        module_ref.load_state_dict(module.state_dict())
-        loss_ref = 0.0
-        for r in range(ctx.world_size):
-            x_r = torch.linspace(-1.0, 1.0, steps=8, device=ctx.device).reshape(2, 4)
-            x_r = x_r + 0.1 * r
-            y_r = torch.tensor([[0.2], [-0.4]], device=ctx.device) + 0.05 * r
-            loss_ref = loss_ref + torch.nn.functional.mse_loss(module_ref(x_r), y_r)
-        loss_ref = loss_ref / float(ctx.world_size)
-        loss_ref.backward()
+        x_true = torch.randn(1, 1, 16, 16, device=ctx.device)
+        y = distributed_physics.A(x_true)
+        out = model(y, distributed_physics)
+        out.square().mean().backward()
 
-        assert torch.allclose(w_grad_dist, module_ref.weight.grad, atol=1e-6)
-        assert torch.allclose(b_grad_dist, module_ref.bias.grad, atol=1e-6)
+        assert all(p.grad is not None for p in model.params_algo["stepsize"])
+        denoiser_params = [
+            p for p in model.prior[0].denoiser.processor.parameters() if p.requires_grad
+        ]
+        assert denoiser_params and all(p.grad is not None for p in denoiser_params)
         return "success"
 
 
-def test_distributed_module_autodetect(device_config):
+def test_distribute_base_optim(device_config):
     test_args = {"device_mode": device_config["device_mode"]}
     results = run_distributed_test(
-        _test_distributed_module_autodetect_worker, device_config, test_args
+        _test_distribute_base_optim_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
+
+
+def _test_distribute_module_type_baseoptim_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        model = _make_test_unfolded_model(ctx.device, unfold=True)
+        out = distribute(
+            model,
+            ctx,
+            type_object="module",
+            patch_size=8,
+            overlap=2,
+            max_batch_size=1,
+        )
+        assert out is model
+        assert isinstance(model.prior[0].denoiser, DistributedProcessing)
+        assert all(
+            isinstance(df, DistributedDataFidelity) for df in model.data_fidelity
+        )
+        return "success"
+
+
+def test_distribute_module_type_baseoptim(device_config):
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distribute_module_type_baseoptim_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
+
+
+def _test_distribute_module_type_rejects_non_unfold_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        model = _make_test_unfolded_model(ctx.device, unfold=False)
+        with pytest.raises(TypeError, match="unfold=False"):
+            distribute(model, ctx, type_object="module")
+        return "success"
+
+
+def test_distribute_module_type_rejects_non_unfold(device_config):
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distribute_module_type_rejects_non_unfold_worker,
+        device_config,
+        test_args,
+    )
+    assert all(r == "success" for r in results)
+
+
+def _test_distribute_module_autodetect_rejects_generic_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        module = torch.nn.Linear(4, 1, bias=True).to(ctx.device)
+        with pytest.raises(
+            ValueError, match="Cannot auto-detect generic torch.nn.Module"
+        ):
+            distribute(module, ctx)
+        with pytest.raises(TypeError, match="type_object='module' only supports"):
+            distribute(module, ctx, type_object="module")
+        return "success"
+
+
+def test_distribute_module_autodetect_rejects_generic(device_config):
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distribute_module_autodetect_rejects_generic_worker,
+        device_config,
+        test_args,
     )
     assert all(r == "success" for r in results)
 
