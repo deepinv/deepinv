@@ -6,7 +6,7 @@ from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from .utils import load_state_dict_from_url
+from deepinv.models.utils import load_state_dict_from_url
 
 
 class Prior(Potential):
