@@ -14,6 +14,7 @@ from .utils import (
     maxpool_nd,
     avgpool_nd,
     initialize_3d_from_2d,
+    load_state_dict_from_url,
 )
 from .base import Denoiser
 from collections import OrderedDict
@@ -169,7 +170,7 @@ class DRUNet(Denoiser):
                 elif in_channels == 2:
                     name = "drunet_deepinv_gray_finetune_26k.pth"
                 url = get_weights_url(model_name="drunet", file_name=name)
-                ckpt_drunet = torch.hub.load_state_dict_from_url(
+                ckpt_drunet = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
             else:

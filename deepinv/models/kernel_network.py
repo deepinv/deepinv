@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .utils import get_weights_url
+from .utils import get_weights_url, load_state_dict_from_url
 import warnings
 
 
@@ -131,7 +131,7 @@ class KernelIdentificationNetwork(nn.Module):
                     url = get_weights_url(
                         model_name="kernel_identification", file_name=file_name
                     )
-                    ckpt = torch.hub.load_state_dict_from_url(
+                    ckpt = load_state_dict_from_url(
                         url,
                         map_location=lambda storage, loc: storage,
                         file_name=file_name,

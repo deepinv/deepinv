@@ -11,6 +11,7 @@ import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Reconstructor, Denoiser
+from .utils import load_state_dict_from_url
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
@@ -121,7 +122,7 @@ class RAM(Reconstructor, Denoiser):
                 )
             else:
                 self.load_state_dict(
-                    torch.hub.load_state_dict_from_url(
+                    load_state_dict_from_url(
                         "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar",
                         progress=False,
                     ),
