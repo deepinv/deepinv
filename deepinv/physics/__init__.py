@@ -40,7 +40,7 @@ from .noise import (
     RicianNoise,
     LaplaceNoise,
 )
-from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI
+from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI, NonCartesianMRI
 from .wrappers import PhysicsMultiScaler, LinearPhysicsMultiScaler, PhysicsCropper
 from .tomography import Tomography, TomographyWithAstra
 from .lidar import SinglePhotonLidar

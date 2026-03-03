@@ -63,6 +63,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.MultiCoilMRI`
        | :class:`deepinv.physics.DynamicMRI`
        | :class:`deepinv.physics.SequentialMRI`
+       | :class:`deepinv.physics.NonCartesianMRI`
        | The above all also natively support 3D MRI.
      -
        | :class:`GaussianMaskGenerator <deepinv.physics.generator.GaussianMaskGenerator>`

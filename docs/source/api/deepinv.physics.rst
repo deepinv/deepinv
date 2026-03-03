@@ -48,6 +48,7 @@ Operators
    deepinv.physics.DynamicMRI
    deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI
+   deepinv.physics.NonCartesianMRI
    deepinv.physics.Tomography
    deepinv.physics.TomographyWithAstra
    deepinv.physics.Pansharpen
