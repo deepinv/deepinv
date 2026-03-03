@@ -302,36 +302,7 @@ class SharedUnrolledPnP(torch.nn.Module):
 
 
 # %%
-# Distributed Metric Reduction
-# -----------------------------
-#
-# In distributed training, each process (rank) computes metrics on its local subset of data.
-# To get accurate global metrics, we need to aggregate results across all ranks using weighted averaging.
-#
-# **Why weighted averaging?**
-#
-# - Different ranks may process different numbers of samples (uneven batch sizes)
-# - Simply averaging local averages would give incorrect results
-# - We compute: global_metric = sum(local_metric × local_count) / sum(local_count)
-#
-# The ``_reduce_weighted_scalar`` function performs this aggregation using MPI-style ``all_reduce``
-# operations, ensuring all ranks get the same global result.
-
-
-def _reduce_weighted_scalar(weighted_sum: float, count: int, device, ctx=None) -> float:
-    """Reduce a weighted scalar across all ranks in distributed mode."""
-    if ctx is not None:
-        stats = torch.tensor([weighted_sum, float(count)], device=device)
-        if ctx.use_dist:
-            stats = ctx.all_reduce(stats, op=dist.ReduceOp.SUM)
-        return (stats[0] / stats[1]).item() if stats[1] > 0 else 0.0
-    else:
-        return weighted_sum / count if count > 0 else 0.0
-
-
-# %%
-# We then define a ``evaluate_psnr`` function to evaluate PSNR on the validation set with proper distributed reduction.
-# Each rank computes PSNR on its local data, then we aggregate across all ranks using weighted averaging to get the true global PSNR.
+# We then define a ``evaluate_psnr`` function to evaluate PSNR on the validation set.
 
 
 @torch.no_grad()
@@ -343,11 +314,11 @@ def evaluate_psnr(
     metric: PSNR,
     ctx: DistributedContext,
 ) -> float:
-    """Evaluate PSNR on validation set with proper distributed reduction."""
+    """Evaluate PSNR on validation set."""
     model.eval()
     denoiser.eval()
-    local_psnr_sum = 0.0
-    local_count = 0
+    psnr_sum = 0.0
+    count = 0
     for ground_truth, measurement in loader:
         # Move data to device
         ground_truth = ground_truth.to(ctx.device)
@@ -358,11 +329,10 @@ def evaluate_psnr(
 
         # Accumulate weighted PSNR (weight = batch size)
         b = ground_truth.shape[0]
-        local_psnr_sum += metric(x_hat, ground_truth).item() * b
-        local_count += b
+        psnr_sum += metric(x_hat, ground_truth).item() * b
+        count += b
 
-    # Reduce across all ranks to get global average
-    return _reduce_weighted_scalar(local_psnr_sum, local_count, ctx.device, ctx)
+    return psnr_sum / count if count > 0 else 0.0
 
 
 # %%
@@ -481,8 +451,8 @@ with DistributedContext(seed=0) as ctx:
     for epoch in range(epochs):
         model.train()
         denoiser.train()
-        local_psnr_sum = 0.0
-        local_count = 0
+        psnr_sum = 0.0
+        count = 0
 
         for ground_truth, measurement in train_loader:
             # Move data to device
@@ -499,12 +469,10 @@ with DistributedContext(seed=0) as ctx:
             optimizer.step()
 
             b = ground_truth.shape[0]
-            local_psnr_sum += psnr_metric(x_hat.detach(), ground_truth).item() * b
-            local_count += b
+            psnr_sum += psnr_metric(x_hat.detach(), ground_truth).item() * b
+            count += b
 
-        train_psnr = _reduce_weighted_scalar(
-            local_psnr_sum, local_count, ctx.device, ctx
-        )
+        train_psnr = psnr_sum / count if count > 0 else 0.0
         val_psnr = evaluate_psnr(
             model, denoiser, val_loader, distributed_physics, psnr_metric, ctx
         )
@@ -544,7 +512,6 @@ with DistributedContext(seed=0) as ctx:
             figsize=(16, 4),
             save_fn="distributed_unrolled_result.png",
         )
-
         plot_curves(
             {
                 "train_psnr": [train_psnr_history],
