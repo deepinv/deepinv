@@ -789,13 +789,21 @@ def generate_dataset(
                 )
 
                 for x_batch in dataloader:
-                    index = process_batch(
-                        hf,
-                        x_batch,
-                        split_name,
-                        index,
-                        n_split,
-                    )
+                    try:
+                        index = process_batch(
+                            hf,
+                            x_batch,
+                            split_name,
+                            index,
+                            n_split,
+                        )
+                    except RuntimeError as e:
+                        if "stack expects each tensor to be equal size" in str(e):
+                            raise ValueError(
+                                "generate_dataset expects dataset to return elements of same shape. "
+                                "Use a transform (e.g. torchvision.transforms.Resize) to ensure all images have the same shape."
+                            ) from e
+                        raise
 
                     # for train, once we've filled n_split samples, we stop
                     if split_name == "train" and index >= n_split:

@@ -8,6 +8,7 @@ import torch
 from torch.utils.data import Dataset
 from torch import Tensor
 from torchvision.datasets.folder import IMG_EXTENSIONS
+from torchvision.transforms import ToTensor
 from PIL import Image
 from PIL.Image import Image as PIL_Image
 from deepinv.utils.tensorlist import TensorList
@@ -414,11 +415,14 @@ class ImageFolder(ImageDataset):
                 torch.set_rng_state(state)
                 y = self.transform_y(y)
 
-        # Ensure x is a tensor for downstream estimate_params or model input
-        if not isinstance(x, torch.Tensor):
-            from torchvision.transforms import ToTensor
-
-            x = ToTensor()(x)
+        # Ensure x is a tensor
+        if self.estimate_params is not None:
+            x_for_params = x
+            if not isinstance(x_for_params, torch.Tensor):
+                x_for_params = ToTensor()(x_for_params)
+            params = self.estimate_params(x_for_params, y)
+        else:
+            params = {}
 
         # Estimate parameters if a method is provided
         params = self.estimate_params(x, y) if self.estimate_params is not None else {}
