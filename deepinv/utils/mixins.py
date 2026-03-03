@@ -338,7 +338,14 @@ class TiledMixin2d:
                   [20., 22., 48., 26., 28.],
                   [15., 16., 34., 18., 19.],
                   [20., 21., 44., 23., 24.]]]])
-        >>> # Note that the reconstructed image is not necessarily equal to the original image due to overlapping regions being summed.
+        >>> # Note that by default, the reconstructed image is not necessarily equal to the original image due to overlapping regions being summed. Setting `reduce_overlap="mean"` in `patches_to_image` will average the overlapping regions instead of summing, which can give a closer reconstruction to the original image.
+        >>> reconstructed_image_mean = tiled_mixin.patches_to_image(patches, img_size=(H, W), reduce_overlap="mean")
+        >>> print(reconstructed_image_mean)
+        tensor([[[[ 0.,  1.,  2.,  3.,  4.],
+                  [ 5.,  6.,  7.,  8.,  9.],
+                  [10., 11., 12., 13., 14.],
+                  [15., 16., 17., 18., 19.],
+                  [20., 21., 22., 23., 24.]]]])
     """
 
     def __init__(
@@ -391,7 +398,10 @@ class TiledMixin2d:
         return patches.contiguous()
 
     def patches_to_image(
-        self, patches: Tensor, img_size: tuple[int, int] | None = None
+        self,
+        patches: Tensor,
+        img_size: tuple[int, int] | None = None,
+        reduce_overlap: str = "sum",
     ) -> Tensor:
         r"""
         Reconstruct an image from overlapping patches.
@@ -401,8 +411,15 @@ class TiledMixin2d:
 
         :param torch.Tensor patches: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
         :param img_size: Target output size (height, width). If provided, output is cropped to this size from the top-left corner.
+        :param reduce_overlap: How to handle overlapping regions. Options are `"sum"` or `"mean"`.
+
         :return: Reconstructed image tensor of shape `(B, C, H, W)`.
         """
+        if not reduce_overlap in ["sum", "mean"]:
+            raise ValueError(
+                f"Invalid reduce_overlap option: {reduce_overlap}. Must be 'sum' or 'mean'."
+            )
+
         stride = self.stride
 
         B, C, num_patches_h, num_patches_w, h, w = patches.size()
@@ -426,6 +443,18 @@ class TiledMixin2d:
             kernel_size=(h, w),
             stride=stride,
         )
+
+        if reduce_overlap == "mean":
+            # Create a mask of ones with the same shape as patches to count overlaps
+            mask = torch.ones_like(patches)
+            overlap_count = F.fold(
+                mask,
+                output_size=output_size,
+                kernel_size=(h, w),
+                stride=stride,
+            ).clamp_min_(1)
+            # Average overlapping regions
+            output = output / overlap_count
 
         # Crop to target size if specified
         if img_size is not None:
