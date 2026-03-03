@@ -8,7 +8,6 @@ import torch
 from torch.utils.data import Dataset
 from torch import Tensor
 from torchvision.datasets.folder import IMG_EXTENSIONS
-from torchvision.transforms import ToTensor
 from PIL import Image
 from PIL.Image import Image as PIL_Image
 from deepinv.utils.tensorlist import TensorList
@@ -419,6 +418,8 @@ class ImageFolder(ImageDataset):
         if self.estimate_params is not None:
             x_for_params = x
             if not isinstance(x_for_params, torch.Tensor):
+                from torchvision.transforms import ToTensor
+
                 x_for_params = ToTensor()(x_for_params)
             params = self.estimate_params(x_for_params, y)
         else:
