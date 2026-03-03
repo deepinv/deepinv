@@ -1,7 +1,6 @@
 from __future__ import annotations
 import torch
 from deepinv.physics.generator import PhysicsGenerator
-from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter
 from deepinv.utils.compat import zip_strict
 from deepinv.physics.functional import random_choice
 
@@ -59,6 +58,8 @@ class DownsamplingGenerator(PhysicsGenerator):
         r"""
         Returns the filter associated to a given filter name and factor.
         """
+        from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter
+
         if filter_name == "gaussian":
             filter = torch.nn.Parameter(
                 gaussian_blur(sigma=(factor, factor)), requires_grad=False
