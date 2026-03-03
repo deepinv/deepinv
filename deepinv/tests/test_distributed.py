@@ -2209,7 +2209,9 @@ def _test_processor_backward_worker(rank, world_size, args):
         # Ensure identical initialization across ranks while preserving outer RNG state.
         fork_devices = [ctx.device.index] if ctx.device.type == "cuda" else []
         with torch.random.fork_rng(devices=fork_devices):
-            torch.manual_seed(1234)  # Shared seed (overrides DistributedContext diversity)
+            torch.manual_seed(
+                1234
+            )  # Shared seed (overrides DistributedContext diversity)
             x = torch.randn(1, 3, 16, 16, device=ctx.device, requires_grad=True)
 
         x_ref = x.clone().detach().requires_grad_(True)
