@@ -81,6 +81,7 @@ jobs:
           uv run python -c "import deepinv"
 
       - name: Restore .testmondata # Restore testmon data from main to speed up tests
+        if: matrix.version_python == '3.12' # Only restore cache for Python 3.12 job, as it's the one that runs tests
         uses: actions/cache/restore@v3
         id: restore-cache
         with:
