@@ -273,8 +273,8 @@ for i in range(4):
     )
 
 # %%
-# Space varying blurs
-# --------------------
+# Space varying blurs with Eigen PSFs by product convolution
+# ----------------------------------------------------------
 #
 # Space varying blurs are also available using :class:`deepinv.physics.SpaceVaryingBlur`
 #
@@ -313,6 +313,66 @@ plot(
     rescale_mode="clip",
     figsize=(5, 5),
 )
+
+image = dinv.utils.load_example(
+    "celeba_example.jpg", img_size=img_size, resize_mode="resize", device=device
+)
+blurry_image = physics(image)
+plot(
+    [image, blurry_image],
+    titles=["Original image", "Blurry image"],
+    rescale_mode="clip",
+    figsize=(5, 5),
+)
+
+
+# %%
+# Space varying blur with tiles
+# -----------------------------
+#
+# While the :class:`deepinv.physics.blur.SpaceVaryingBlur` physics uses global eigen-PSFs to define the space varying blur, we also provide a local version of space varying blur with the :class:`deepinv.physics.TiledSpaceVaryingBlur` class. In this case, the image is decomposed into overlapping tiles, and each tile is convolved with a different kernel. The kernels are then blended together with a unity partition to ensure a smooth transition between tiles.
+
+# This physics is particularly useful for large images when one can perform local estimation of the PSFs.
+
+
+from deepinv.physics.blur import TiledSpaceVaryingBlur
+from deepinv.physics.generator import TiledBlurGenerator
+
+img_size = (512, 512)  # size of the image to blur
+patch_size = (128, 128)  # size of the tiles on which local convolution is performed
+stride = (64, 64)  # stride between tiles
+
+psf_generator = MotionBlurGenerator(
+    (25, 25),
+    device=device,
+    dtype=dtype,
+)
+
+generator = TiledBlurGenerator(
+    psf_generator=psf_generator, patch_size=patch_size, stride=stride, device=device
+)
+
+
+filters = generator.step(batch_size=batch_size, img_size=img_size)["filters"]
+
+physics = TiledSpaceVaryingBlur(
+    filters=filters,
+    patch_size=patch_size,
+    stride=stride,
+    device=device,
+    use_fft=True,
+)
+
+dirac_comb = dinv.utils.dirac_comb((1, 1) + img_size, step=32, device=device)
+
+y = physics(dirac_comb)
+
+plot(
+    y.abs() ** 0.5,
+    suptitle="Impulse responses of the tiled space varying blur",
+    figsize=(5, 5),
+)
+
 
 image = dinv.utils.load_example(
     "celeba_example.jpg", img_size=img_size, resize_mode="resize", device=device
