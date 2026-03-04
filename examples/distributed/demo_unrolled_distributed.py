@@ -260,7 +260,6 @@ with DistributedContext(seed=seed, seed_offset=False) as ctx:
     model = distribute(
         model,
         ctx,
-        type_object="module",
         patch_size=patch_size,
         overlap=overlap,
         max_batch_size=1,
