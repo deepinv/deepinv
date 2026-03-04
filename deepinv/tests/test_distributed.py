@@ -2354,11 +2354,13 @@ def _test_processor_backward_worker(rank, world_size, args):
         patch_pairs = strategy.get_local_patches(x_ref, all_indices)
         all_patches = [p for _, p in patch_pairs]
 
-        # Process
-        # Note: denoiser expects (N, C, H, W). patches are (C, H, W) or (N, C, H, W).
-        # strategy.get_local_patches preserves dimensionality appropriately.
-        # If x_ref is (1, C, H, W), patches are (1, C, patch_h, patch_w).
-        processed = [denoiser_ref(p) for p in all_patches]
+        # Process using the same batching path as DistributedProcessing to avoid
+        # backend-dependent numeric drift between batched and per-patch conv calls.
+        batched_patches = strategy.apply_batching(
+            all_patches, max_batch_size=distributed_processor.max_batch_size
+        )
+        processed_batches = [denoiser_ref(batch) for batch in batched_patches]
+        processed = strategy.unpack_batched_results(processed_batches, len(all_patches))
 
         # Reconstruct
         out_ref = torch.zeros_like(x_ref)
@@ -2422,11 +2424,23 @@ def _test_processor_backward_multiple_calls_worker(rank, world_size, args):
         all_patches = [p for _, p in patch_pairs]
 
         out_ref_1 = torch.zeros_like(x_ref)
-        processed_1 = [denoiser_ref(p) for p in all_patches]
+        batched_patches_1 = strategy.apply_batching(
+            all_patches, max_batch_size=distributed_processor.max_batch_size
+        )
+        processed_batches_1 = [denoiser_ref(batch) for batch in batched_patches_1]
+        processed_1 = strategy.unpack_batched_results(
+            processed_batches_1, len(all_patches)
+        )
         strategy.reduce_patches(out_ref_1, list(zip(all_indices, processed_1)))
 
         out_ref_2 = torch.zeros_like(x_ref)
-        processed_2 = [denoiser_ref(p) for p in all_patches]
+        batched_patches_2 = strategy.apply_batching(
+            all_patches, max_batch_size=distributed_processor.max_batch_size
+        )
+        processed_batches_2 = [denoiser_ref(batch) for batch in batched_patches_2]
+        processed_2 = strategy.unpack_batched_results(
+            processed_batches_2, len(all_patches)
+        )
         strategy.reduce_patches(out_ref_2, list(zip(all_indices, processed_2)))
 
         loss_ref = out_ref_1.sum() + out_ref_2.sum()
