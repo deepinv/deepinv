@@ -212,9 +212,10 @@ class GeneratorMixture(PhysicsGenerator):
         self,
         generators: list[PhysicsGenerator],
         probs: list[float],
+        device: str | torch.device = "cpu",
         rng: torch.Generator = None,
     ) -> None:
-        super().__init__(rng=rng)
+        super().__init__(device=device, rng=rng)
         probs = torch.tensor(probs)
         assert torch.sum(probs) == 1, "The sum of the probabilities must be 1."
         self.generators = generators
