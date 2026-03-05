@@ -26,3 +26,10 @@ when training on multiple GPUs. Among other drawbacks of the previous approach, 
 a model within the forward pass, which is required for some deepinv models. In this case, the training loop needs to be
 modified. We point the reader to the `PyTorch documentation <https://pytorch.org/tutorials/intermediate/ddp_tutorial.html>`_
 to extend their training codes to the multi-gpu case.
+
+
+Distributed Reconstruction
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+DeepInverse also provides a simplified API for distributing DeepInverse objects across multiple devices and processes for reconstruction.
+See the :ref:`user guide on distributed reconstruction<distributed>` for more information.

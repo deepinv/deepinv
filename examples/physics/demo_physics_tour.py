@@ -14,14 +14,13 @@ import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.utils import load_example
 
-
 # %%
 # Load image from the internet
 # ----------------------------
 #
 # This example uses an image of the CBSD68 dataset.
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 x = load_example("CBSD_0010.png", grayscale=False).to(device)
 

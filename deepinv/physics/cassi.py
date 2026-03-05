@@ -70,7 +70,7 @@ class CompressiveSpectralImaging(LinearPhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
 
         if len(img_size) != 3:
             raise ValueError("img_size must be (C, H, W)")
@@ -107,9 +107,9 @@ class CompressiveSpectralImaging(LinearPhysics):
         :param torch.Tensor x: input image
         """
         if self.shear_dir == "h":
-            return pad(x, (0, 0, 0, self.C - 1), value=1.0)
+            return pad(x, (0, 0, 0, self.C - 1), value=0.0)
         elif self.shear_dir == "w":
-            return pad(x, (0, self.C - 1), value=1.0)
+            return pad(x, (0, self.C - 1), value=0.0)
 
     def crop(self, x: Tensor) -> Tensor:
         """Crop image on bottom or on right.

@@ -48,8 +48,8 @@ class TestTomographyWithAstra:
             "installed with `conda install -c astra-toolbox -c nvidia astra-toolbox`",
         )
 
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        if device != "cuda":
+        device = dinv.utils.get_device(verbose=False)
+        if str(device) != "cuda":
             monkeypatch.setattr(
                 target=dinv.physics.functional.XrayTransform,
                 name="_forward_projection",
