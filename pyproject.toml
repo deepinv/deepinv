@@ -161,3 +161,16 @@ banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets",
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "torch.norm".msg = "Use torch.linalg.vector_norm, torch.linalg.matrix_norm or torch.linalg.norm instead of the deprecated torch.norm"
  
+# Static type checking
+[tool.mypy]
+ignore_missing_imports = true
+follow_imports = "skip"
+disallow_untyped_defs = true
+
+disable_error_code = [
+  "union-attr",
+  "attr-defined",
+  "call-arg",
+  "arg-type",
+  "assignment",
+]
