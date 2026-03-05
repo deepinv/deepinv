@@ -4,9 +4,10 @@ from torch import ones_like
 
 class MLEMIteration(OptimIterator):
     """
-    Iterator for the Maximum-Likelihood Expectation-Maximization (MLEM) algorithm :footcite:t:`sheppMaximumLikelihoodReconstruction1982` for Poisson inverse problems.
+    Iterator for the Maximum-Likelihood Expectation-Maximization (MLEM) algorithm for Poisson inverse problems.
 
-    Class for a single iteration of the MLEM algorithm, which is a classic baseline reconstruction method for inverse problems with Poisson noise statistics.
+    Class for a single iteration of the MLEM algorithm :footcite:t:`sheppMaximumLikelihoodReconstruction1982`,
+    which is a classic baseline reconstruction method for inverse problems with Poisson noise statistics.
     More details on the algorithm can be found in the documentation of the :class:`deepinv.optim.optimizers.MLEM` optimizer.
     """
 

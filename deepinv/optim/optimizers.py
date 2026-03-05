@@ -2230,9 +2230,9 @@ class PDCP(BaseOptim):
 
 class MLEM(BaseOptim):
     r"""
-    Maximum Likelihood Expectation Maximization (MLEM) algorithm :footcite:t:`sheppMaximumLikelihoodReconstruction1982` for Poisson inverse problems.
+    Maximum Likelihood Expectation Maximization (MLEM) algorithm for Poisson inverse problems.
 
-    This algorithm was originally proposed for deconvolution by Richardson and Lucy :footcite:t:`richardsonBayesianBasedIterativeMethod1972, lucyIterativeTechniqueRectification1974` and was later
+    This algorithm :footcite:t:`sheppMaximumLikelihoodReconstruction1982` was originally proposed for deconvolution by Richardson and Lucy :footcite:t:`richardsonBayesianBasedIterativeMethod1972, lucyIterativeTechniqueRectification1974` and was later
     adapted to tomographic reconstruction by Shepp and Vardi :footcite:t:`sheppMaximumLikelihoodReconstruction1982`.
     It is also widely used in Non-Negative Matrix Factorization (NMF) problems where it is known as the Lee and Seung multiplicative update algorithm :footcite:t:`leeSeungAlgorithmsNonNegativeMatrix2000`.
 
