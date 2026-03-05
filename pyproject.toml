@@ -165,12 +165,9 @@ banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets",
 [tool.mypy]
 ignore_missing_imports = true
 follow_imports = "skip"
+
+# Enforce that every function has annotations
 disallow_untyped_defs = true
 
-disable_error_code = [
-  "union-attr",
-  "attr-defined",
-  "call-arg",
-  "arg-type",
-  "assignment",
-]
+# Only report this specific error
+enable_error_code = ["no-untyped-def"]
