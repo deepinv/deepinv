@@ -4,7 +4,7 @@ from torch import ones_like
 
 class MLEMIteration(OptimIterator):
     """
-    Iterator for the Maximum-Likelihood Expectation-Maximization (MLEM) algorithm :footcite:t:`sheppsheppMaximumLikelihoodReconstruction1982b` for Poisson inverse problems.
+    Iterator for the Maximum-Likelihood Expectation-Maximization (MLEM) algorithm :footcite:t:`sheppMaximumLikelihoodReconstruction1982` for Poisson inverse problems.
 
     Class for a single iteration of the MLEM algorithm, which is a classic baseline reconstruction method for inverse problems with Poisson noise statistics.
     More details on the algorithm can be found in the documentation of the :class:`deepinv.optim.optimizers.MLEM` optimizer.
@@ -59,7 +59,7 @@ class fStepMLEM(fStep):
 class gStepMLEM(gStep):
     """
     Prior step for the MAP-EM variant of the MLEM algorithm.
-    It uses the One-Step-Late (OSL) approach :footcite:t:`greenIterativeImageReconstruction1990`.
+    It uses the One-Step-Late (OSL) approach :footcite:t:`greenUseEmAlgorithm1990`.
     More details on the algorithm can be found in the documentation of the :class:`deepinv.optim.optimizers.MLEM` optimizer.
 
     If the prior is differentiable and ``compute_prox=False``, the gradient is used.
