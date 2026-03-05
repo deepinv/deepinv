@@ -1,0 +1,1728 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.distributed.distrib_framework &#8212; deepinv 0.3.7 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=29d04658"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/distributed/distrib_framework';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/distributed/distrib_framework.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">🎉 We are part of the <a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.</div>
+</aside>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.7 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.7 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.distributed.distrib_framework</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.distributed.distrib_framework</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dist</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Physics</span><span class="p">,</span> <span class="n">LinearPhysics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.data_fidelity</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataFidelity</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.tensorlist</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorList</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed.strategies</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistributedSignalStrategy</span><span class="p">,</span> <span class="n">create_strategy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed.distributed_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">map_reduce_gather</span>
+
+
+<span class="c1"># =========================</span>
+<span class="c1"># Distributed Context</span>
+<span class="c1"># =========================</span>
+<div class="viewcode-block" id="DistributedContext">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedContext.html#deepinv.distributed.DistributedContext">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DistributedContext</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Context manager for distributed computing.</span>
+
+<span class="sd">    Handles:</span>
+<span class="sd">      - Initialization/destruction of the process group (if `RANK` / `WORLD_SIZE` environment variables exist)</span>
+<span class="sd">      - Backend choice: NCCL when one-GPU-per-process per node, else Gloo.</span>
+<span class="sd">      - Device selection based on `LOCAL_RANK` and visible GPUs</span>
+<span class="sd">      - Sharding helpers and tiny communication helpers</span>
+
+<span class="sd">    :param str | None backend: backend to use for distributed communication. If `None` (default), automatically selects NCCL for GPU or Gloo for CPU.</span>
+<span class="sd">    :param bool cleanup: whether to clean up the process group on exit. Default is `True`.</span>
+<span class="sd">    :param int | None seed: random seed for reproducible results. If provided, behavior depends on `seed_offset`. Default is `None`.</span>
+<span class="sd">    :param bool seed_offset: whether to add rank offset to seed (each rank gets `seed + rank`). Default is `True`.</span>
+<span class="sd">        When `True`: each process uses a unique seed for diverse random sequences.</span>
+<span class="sd">        When `False`: all processes share the same seed for synchronized randomness.</span>
+<span class="sd">    :param bool deterministic: whether to use deterministic cuDNN operations. Default is `False`.</span>
+<span class="sd">    :param str | None device_mode: device selection mode. Options are `&#39;cpu&#39;`, `&#39;gpu&#39;`, or `None` for automatic. Default is `None`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">backend</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">cleanup</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">seed_offset</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">deterministic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">device_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the distributed context manager.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backend</span> <span class="o">=</span> <span class="n">backend</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup</span> <span class="o">=</span> <span class="n">cleanup</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seed_offset</span> <span class="o">=</span> <span class="n">seed_offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deterministic</span> <span class="o">=</span> <span class="n">deterministic</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device_mode</span> <span class="o">=</span> <span class="n">device_mode</span>  <span class="c1"># &quot;cpu&quot;, &quot;gpu&quot;, or None (auto)</span>
+
+        <span class="c1"># set in __enter__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">created_dist</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_dist</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_rank</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_world_size</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Detect whether we should initialize a process group</span>
+        <span class="n">env_has_dist</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;RANK&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="s2">&quot;WORLD_SIZE&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">)</span>
+        <span class="n">should_init_pg</span> <span class="o">=</span> <span class="p">(</span><span class="ow">not</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">())</span> <span class="ow">and</span> <span class="n">env_has_dist</span>
+
+        <span class="c1"># Count GPUs *visible to this process* (respects CUDA_VISIBLE_DEVICES)</span>
+        <span class="n">visible_gpus</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span>
+        <span class="n">cuda_ok</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span><span class="n">visible_gpus</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Get number of processes and ranks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_world_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;LOCAL_WORLD_SIZE&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_rank</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;LOCAL_RANK&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;RANK&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;WORLD_SIZE&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">should_init_pg</span><span class="p">:</span>
+            <span class="n">backend</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span>
+            <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Backend decision considering device_mode:</span>
+                <span class="c1">#   - If device_mode is &quot;cpu&quot;, always use Gloo</span>
+                <span class="c1">#   - If device_mode is &quot;gpu&quot;, always use NCCL (will fail if no GPU)</span>
+                <span class="c1">#   - If auto (None), decide based on available resources:</span>
+                <span class="c1">#     * If each node has at least as many *visible* GPUs as processes per node -&gt; NCCL</span>
+                <span class="c1">#     * Otherwise -&gt; Gloo (e.g., GPU oversubscription or CPU)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_mode</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
+                    <span class="n">backend</span> <span class="o">=</span> <span class="s2">&quot;gloo&quot;</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_mode</span> <span class="o">==</span> <span class="s2">&quot;gpu&quot;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_nccl_available</span><span class="p">():</span>
+                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                            <span class="s2">&quot;GPU mode requested but NCCL backend not available&quot;</span>
+                        <span class="p">)</span>
+                    <span class="n">backend</span> <span class="o">=</span> <span class="s2">&quot;nccl&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Auto mode</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">cuda_ok</span>
+                        <span class="ow">and</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_nccl_available</span><span class="p">()</span>
+                        <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_world_size</span> <span class="o">&lt;=</span> <span class="n">visible_gpus</span><span class="p">)</span>
+                    <span class="p">):</span>
+                        <span class="n">backend</span> <span class="o">=</span> <span class="s2">&quot;nccl&quot;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">backend</span> <span class="o">=</span> <span class="s2">&quot;gloo&quot;</span>
+
+            <span class="n">dist</span><span class="o">.</span><span class="n">init_process_group</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">created_dist</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Refresh flags from the actual PG (in case we didn&#39;t init)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_dist</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_dist</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span>
+
+        <span class="c1"># ---- Device selection ----</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_mode</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
+            <span class="c1"># Force CPU mode</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_mode</span> <span class="o">==</span> <span class="s2">&quot;gpu&quot;</span><span class="p">:</span>
+            <span class="c1"># Force GPU mode (require CUDA)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">cuda_ok</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">&quot;GPU mode requested but CUDA not available or no visible GPUs&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">visible_gpus</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># GPU isolation is handled externally - use the only visible GPU</span>
+                <span class="n">dev_index</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Multiple GPUs visible - map local_rank to device index</span>
+                <span class="n">dev_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_rank</span> <span class="o">%</span> <span class="n">visible_gpus</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cuda:</span><span class="si">{</span><span class="n">dev_index</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">set_device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Auto mode</span>
+            <span class="k">if</span> <span class="n">cuda_ok</span><span class="p">:</span>
+                <span class="c1"># When CUDA_VISIBLE_DEVICES is set externally (e.g., by SLURM/submitit),</span>
+                <span class="c1"># each process sees only its assigned GPU(s). In this case, if there&#39;s</span>
+                <span class="c1"># only 1 visible GPU per process, just use cuda:0 for all processes.</span>
+                <span class="c1"># Otherwise, map local_rank onto visible devices.</span>
+                <span class="k">if</span> <span class="n">visible_gpus</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="c1"># GPU isolation is handled externally - use the only visible GPU</span>
+                    <span class="n">dev_index</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Multiple GPUs visible - map local_rank to device index</span>
+                    <span class="n">dev_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_rank</span> <span class="o">%</span> <span class="n">visible_gpus</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cuda:</span><span class="si">{</span><span class="n">dev_index</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">set_device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_post_init_setup</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+        <span class="c1"># Only destroy process group if:</span>
+        <span class="c1"># 1. cleanup=True (caller wants cleanup)</span>
+        <span class="c1"># 2. We initialized it (created_dist=True)</span>
+        <span class="c1"># 3. It&#39;s still initialized</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">created_dist</span> <span class="ow">and</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">dist</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="n">dist</span><span class="o">.</span><span class="n">destroy_process_group</span><span class="p">()</span>
+
+    <span class="c1"># ----------------------</span>
+    <span class="c1"># Post-init knobs</span>
+    <span class="c1"># ----------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_post_init_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Seeding (rank offset for reproducible-but-unique RNG per process)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">use_dist</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed_offset</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed_all</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="c1"># Deterministic cuDNN</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deterministic</span><span class="p">:</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">benchmark</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">deterministic</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># ----------------------</span>
+    <span class="c1"># Sharding</span>
+    <span class="c1"># ----------------------</span>
+<div class="viewcode-block" id="DistributedContext.local_indices">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedContext.html#deepinv.distributed.DistributedContext.local_indices">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">local_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_items</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get local indices for this rank based on round robin sharding.</span>
+
+<span class="sd">        :param int num_items: total number of items to shard.</span>
+<span class="sd">        :return: list of indices assigned to this rank.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_items</span><span class="p">)</span> <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">]</span>
+
+        <span class="c1"># Warning for efficiency, but allow empty indices (don&#39;t raise error)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_dist</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Some ranks have no work items to process &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;(num_items=</span><span class="si">{</span><span class="n">num_items</span><span class="si">}</span><span class="s2">, world_size=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="si">}</span><span class="s2">). &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Consider reducing world_size or increasing the workload for better efficiency.&quot;</span><span class="p">,</span>
+                <span class="ne">UserWarning</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">indices</span></div>
+
+
+    <span class="c1"># ----------------------</span>
+    <span class="c1"># Collectives</span>
+    <span class="c1"># ----------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+
+            <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_dist</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">name</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+            <span class="k">return</span> <span class="n">wrapper</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&#39; object has no attribute &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+        <span class="p">)</span></div>
+
+
+
+<span class="c1"># =========================</span>
+<span class="c1"># Distributed Physics</span>
+<span class="c1"># =========================</span>
+<div class="viewcode-block" id="DistributedStackedPhysics">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedStackedPhysics.html#deepinv.distributed.DistributedStackedPhysics">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DistributedStackedPhysics</span><span class="p">(</span><span class="n">Physics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Holds only local physics operators. Exposes fast local and compatible global APIs.</span>
+
+<span class="sd">    This class distributes a *collection* of physics operators across multiple processes,</span>
+<span class="sd">    where each process owns a subset of the operators.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        It is intended to parallelize models naturally expressed as a stack/list of operators</span>
+<span class="sd">        (e.g., :class:`deepinv.physics.StackedPhysics` or an explicit Python list of</span>
+<span class="sd">        :class:`deepinv.physics.Physics` objects) and is **not** meant to split a</span>
+<span class="sd">        single monolithic physics operator across ranks.</span>
+
+<span class="sd">    If your forward model is a single operator that can be decomposed into multiple</span>
+<span class="sd">    sub-operators, it is up to you to perform that decomposition (e.g., build a</span>
+<span class="sd">    :class:`deepinv.physics.StackedPhysics`) and then pass that collection to</span>
+<span class="sd">    :class:`DistributedStackedPhysics` via the ``factory`` argument.</span>
+
+<span class="sd">    :param DistributedContext ctx: distributed context manager.</span>
+<span class="sd">    :param int num_operators: total number of physics operators.</span>
+<span class="sd">    :param Callable factory: factory function that creates physics operators. Should have signature `factory(index, device, factory_kwargs) -&gt; Physics`.</span>
+<span class="sd">    :param dict | None factory_kwargs: shared data dictionary passed to factory function. Default is `None`.</span>
+<span class="sd">    :param torch.dtype | None dtype: data type for operations. Default is `None`.</span>
+<span class="sd">    :param str gather_strategy: strategy for gathering distributed results. Options are:</span>
+<span class="sd">        - `&#39;naive&#39;`: Simple object serialization (best for small tensors)</span>
+<span class="sd">        - `&#39;concatenated&#39;`: Single concatenated tensor (best for medium/large tensors, minimal communication)</span>
+<span class="sd">        - `&#39;broadcast&#39;`: Per-operator broadcasts (best for heterogeneous sizes or streaming)</span>
+
+<span class="sd">        Default is `&#39;concatenated&#39;`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+        <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">factory</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="n">Physics</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">factory_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">gather_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;concatenated&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize distributed physics operators.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="o">=</span> <span class="n">ctx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span> <span class="o">=</span> <span class="n">num_operators</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">local_indices</span><span class="p">(</span><span class="n">num_operators</span><span class="p">)</span>
+
+        <span class="c1"># Validate and set gather strategy</span>
+        <span class="n">valid_strategies</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;naive&quot;</span><span class="p">,</span> <span class="s2">&quot;concatenated&quot;</span><span class="p">,</span> <span class="s2">&quot;broadcast&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">gather_strategy</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_strategies</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;gather_strategy must be one of </span><span class="si">{</span><span class="n">valid_strategies</span><span class="si">}</span><span class="s2">, got &#39;</span><span class="si">{</span><span class="n">gather_strategy</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gather_strategy</span> <span class="o">=</span> <span class="n">gather_strategy</span>
+
+        <span class="c1"># Broadcast shared object (lightweight) once (root=0) if present</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">factory_kwargs</span> <span class="o">=</span> <span class="n">factory_kwargs</span>
+        <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">use_dist</span> <span class="ow">and</span> <span class="n">factory_kwargs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="p">[</span><span class="n">factory_kwargs</span> <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">broadcast_object_list</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">src</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">factory_kwargs</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Build local physics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_physics</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Physics</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">:</span>
+            <span class="n">p_i</span> <span class="o">=</span> <span class="n">factory</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">factory_kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">local_physics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p_i</span><span class="p">)</span>
+
+    <span class="c1"># -------- Factorized map-reduce logic --------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_map_reduce_gather</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">local_op</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">&quot;sum&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Map-reduce pattern for distributed operations.</span>
+
+<span class="sd">        Delegates to generic implementation in distributed_utils.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">map_reduce_gather</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">,</span>
+            <span class="n">local_items</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_physics</span><span class="p">,</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+            <span class="n">local_op</span><span class="o">=</span><span class="n">local_op</span><span class="p">,</span>
+            <span class="n">local_indices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="p">,</span>
+            <span class="n">gather_strategy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gather_strategy</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="DistributedStackedPhysics.A">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedStackedPhysics.html#deepinv.distributed.DistributedStackedPhysics.A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply forward operator to all distributed physics operators with automatic gathering.</span>
+
+<span class="sd">        Applies the forward operator :math:`A(x)` by computing local measurements and gathering</span>
+<span class="sd">        results from all ranks using the configured gather strategy.</span>
+
+<span class="sd">        :param torch.Tensor x: input signal.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks. If `False`, returns local measurements. Default is `True`.</span>
+<span class="sd">        :param str | None reduce_op: reduction operation to apply across ranks. Default is `None`.</span>
+<span class="sd">        :param kwargs: optional parameters for the forward operator.</span>
+<span class="sd">        :return: complete list of measurements from all operators (or local list if `reduce=False`).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">),</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistributedStackedPhysics.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedStackedPhysics.html#deepinv.distributed.DistributedStackedPhysics.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply full forward model with sensor and noise models to the input signal and gather results.</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            y = N(A(x))</span>
+
+<span class="sd">        :param torch.Tensor x: input signal.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks. If `False`, returns local measurements. Default is `True`.</span>
+<span class="sd">        :param str | None reduce_op: reduction operation to apply across ranks. Default is `None`.</span>
+<span class="sd">        :param kwargs: optional parameters for the forward model.</span>
+<span class="sd">        :return: complete list of noisy measurements from all operators.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">),</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedStackedLinearPhysics.html#deepinv.distributed.DistributedStackedLinearPhysics">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DistributedStackedLinearPhysics</span><span class="p">(</span><span class="n">DistributedStackedPhysics</span><span class="p">,</span> <span class="n">LinearPhysics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Distributed linear physics operators.</span>
+
+<span class="sd">    This class extends :class:`DistributedStackedPhysics` for linear operators. It provides distributed</span>
+<span class="sd">    operations that automatically handle communication and reductions.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This class is intended to distribute a *collection* of linear operators (e.g.,</span>
+<span class="sd">        :class:`deepinv.physics.StackedLinearPhysics` or an explicit Python list of</span>
+<span class="sd">        :class:`deepinv.physics.LinearPhysics` objects) across ranks. It is **not** a</span>
+<span class="sd">        mechanism to shard a single linear operator internally.</span>
+
+<span class="sd">    If you have one linear physics operator that can naturally be split into multiple</span>
+<span class="sd">    operators, you must do that split yourself (build a stacked/list representation) and</span>
+<span class="sd">    provide those operators through the `factory`.</span>
+
+<span class="sd">    All linear operations (`A_adjoint`, `A_vjp`, etc.) support a `reduce` parameter:</span>
+
+<span class="sd">        - If `reduce=True` (default): The method computes the global result by performing a single all-reduce across all ranks.</span>
+<span class="sd">        - If `reduce=False`: The method computes only the local contribution from operators owned by this rank, without any inter-rank communication. This is useful for deferring reductions in custom algorithms.</span>
+
+<span class="sd">    :param DistributedContext ctx: distributed context manager.</span>
+<span class="sd">    :param int num_operators: total number of physics operators to distribute.</span>
+<span class="sd">    :param Callable factory: factory function that creates linear physics operators.</span>
+<span class="sd">        Should have signature `factory(index: int, device: torch.device, factory_kwargs: dict | None) -&gt; LinearPhysics`.</span>
+<span class="sd">    :param dict | None factory_kwargs: shared data dictionary passed to factory function for all operators. Default is `None`.</span>
+<span class="sd">    :param str reduction: reduction mode for distributed operations. Options are `&#39;sum&#39;` (stack operators)</span>
+<span class="sd">        or `&#39;mean&#39;` (average operators). Default is `&#39;sum&#39;`.</span>
+<span class="sd">    :param torch.dtype | None dtype: data type for operations. Default is `None`.</span>
+<span class="sd">    :param str gather_strategy: strategy for gathering distributed results in forward operations.</span>
+<span class="sd">        Options are `&#39;naive&#39;`, `&#39;concatenated&#39;`, or `&#39;broadcast&#39;`. Default is `&#39;concatenated&#39;`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+        <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">factory</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">factory_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;sum&quot;</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">gather_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;concatenated&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize distributed linear physics operators.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reduction_mode</span> <span class="o">=</span> <span class="n">reduction</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="o">=</span><span class="n">num_operators</span><span class="p">,</span>
+            <span class="n">factory</span><span class="o">=</span><span class="n">factory</span><span class="p">,</span>
+            <span class="n">factory_kwargs</span><span class="o">=</span><span class="n">factory_kwargs</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">gather_strategy</span><span class="o">=</span><span class="n">gather_strategy</span><span class="p">,</span>
+            <span class="n">A</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+            <span class="n">A_adjoint</span><span class="o">=</span><span class="k">lambda</span> <span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_physics</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">LinearPhysics</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;factory must return LinearPhysics instances.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics.A_adjoint">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedStackedLinearPhysics.html#deepinv.distributed.DistributedStackedLinearPhysics.A_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute global adjoint operation with automatic reduction.</span>
+
+<span class="sd">        Extracts local measurements, computes local adjoint contributions, and reduces</span>
+<span class="sd">        across all ranks to obtain the complete :math:`A^T y` where :math:`A` is the</span>
+<span class="sd">        stacked operator :math:`A = [A_1, A_2, \ldots, A_n]` and :math:`A_i` are the individual linear operators.</span>
+
+<span class="sd">        :param TensorList | list[torch.Tensor] y: full list of measurements from all operators.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks. If False, returns local contribution. Default is `True`.</span>
+<span class="sd">        :param str | None reduce_op: reduction operation to apply across ranks. If None, uses class default. Default is `None`.</span>
+<span class="sd">        :param kwargs: optional parameters for the adjoint operation.</span>
+<span class="sd">        :return: complete adjoint result :math:`A^T y` (or local contribution if gather=False).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">reduce_op</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">reduce_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_mode</span>
+
+        <span class="c1"># Extract local measurements</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="p">:</span>
+            <span class="n">y_local</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">):</span>
+            <span class="n">y_local</span> <span class="o">=</span> <span class="n">y</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Input y has length </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="si">}</span><span class="s2"> (global) or </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">)</span><span class="si">}</span><span class="s2"> (local).&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Use _map_reduce_gather with per-operator inputs and sum_results=True</span>
+        <span class="c1"># This gathers all A_i^T(y_i) and sums them automatically</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+            <span class="n">y_local</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">y_i</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y_i</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">),</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics.A_vjp">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedStackedLinearPhysics.html#deepinv.distributed.DistributedStackedLinearPhysics.A_vjp">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_vjp</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">v</span><span class="p">:</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute global vector-Jacobian product with automatic reduction.</span>
+
+<span class="sd">        Extracts local cotangent vectors, computes local VJP contributions, and reduces</span>
+<span class="sd">        across all ranks to obtain the complete VJP.</span>
+
+<span class="sd">        :param torch.Tensor x: input tensor.</span>
+<span class="sd">        :param TensorList | list[torch.Tensor] v: full list of cotangent vectors from all operators.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks. If False, returns local contribution. Default is `True`.</span>
+<span class="sd">        :param str | None reduce_op: reduction operation to apply across ranks. If None, uses class default. Default is `None`.</span>
+<span class="sd">        :param kwargs: optional parameters for the VJP operation.</span>
+<span class="sd">        :return: complete VJP result (or local contribution if gather=False).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">reduce_op</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">reduce_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_mode</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="p">:</span>
+            <span class="n">v_local</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">):</span>
+            <span class="n">v_local</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Input v has length </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="si">}</span><span class="s2"> (global) or </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">)</span><span class="si">}</span><span class="s2"> (local).&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+            <span class="n">v_local</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">v_i</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">A_vjp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">v_i</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">),</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics.A_adjoint_A">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedStackedLinearPhysics.html#deepinv.distributed.DistributedStackedLinearPhysics.A_adjoint_A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint_A</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute global :math:`A^T A` operation with automatic reduction.</span>
+
+<span class="sd">        Computes the complete normal operator :math:`A^T A x = \sum_i A_i^T A_i x` by</span>
+<span class="sd">        combining local contributions from all ranks.</span>
+
+<span class="sd">        :param torch.Tensor x: input tensor.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks. If False, returns local contribution. Default is `True`.</span>
+<span class="sd">        :param str | None reduce_op: reduction operation to apply across ranks. If None, uses class default. Default is `None`.</span>
+<span class="sd">        :param kwargs: optional parameters for the operation.</span>
+<span class="sd">        :return: complete :math:`A^T A x` result (or local contribution if gather=False).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">reduce_op</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">reduce_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_mode</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">A_adjoint_A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">),</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics.A_A_adjoint">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedStackedLinearPhysics.html#deepinv.distributed.DistributedStackedLinearPhysics.A_A_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_A_adjoint</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute global :math:`A A^T` operation with automatic reduction.</span>
+
+<span class="sd">        For stacked operators, this computes :math:`A A^T y` where :math:`A^T y = \sum_i A_i^T y_i`</span>
+<span class="sd">        and then applies the forward operator to get :math:`[A_1(A^T y), A_2(A^T y), \ldots, A_n(A^T y)]`.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            Unlike other operations, the adjoint step `A^T y` is always computed globally (with full</span>
+<span class="sd">            reduction across ranks) even when `gather=False`. This is because computing the correct</span>
+<span class="sd">            `A_A_adjoint` requires the full adjoint `sum_i A_i^T y_i`. The `gather` parameter only</span>
+<span class="sd">            controls whether the final forward operation `A(...)` is gathered across ranks.</span>
+
+<span class="sd">        :param TensorList | list[torch.Tensor] y: full list of measurements from all operators.</span>
+<span class="sd">        :param bool gather: whether to gather final results across ranks. If `False`, returns only local</span>
+<span class="sd">            operators&#39; contributions (but still uses the global adjoint). Default is `True`.</span>
+<span class="sd">        :param str | None reduce_op: reduction operation to apply across ranks for the final forward step. Default is `None`.</span>
+<span class="sd">        :param kwargs: optional parameters for the operation.</span>
+<span class="sd">        :return: TensorList with entries :math:`A_i A^T y` for all operators (or local list if `gather=False`).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># First compute A^T y globally (always with reduction to get the full adjoint)</span>
+        <span class="c1"># This is necessary because A_A_adjoint(y) = A(A^T y) and A^T y = sum_i A_i^T y_i</span>
+        <span class="n">x_adjoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">gather</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># Then compute A(A^T y) which returns a TensorList (or list if reduce=False)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x_adjoint</span><span class="p">,</span> <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span> <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics.A_dagger">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedStackedLinearPhysics.html#deepinv.distributed.DistributedStackedLinearPhysics.A_dagger">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_dagger</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">solver</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;CG&quot;</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">local_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Distributed pseudoinverse computation. This method provides two strategies:</span>
+
+<span class="sd">            1. **Local approximation** (`local_only=True`, default): Each rank computes the pseudoinverse</span>
+<span class="sd">            of its local operators independently, then averages the results with a single reduction.</span>
+<span class="sd">            This is efficient (minimal communication) but **provides only an approximation**.</span>
+<span class="sd">            In other words, for stacked operators this computes</span>
+
+<span class="sd">            .. math::</span>
+
+<span class="sd">                A^\dagger y = \frac{1}{n} \sum_i A_i^\dagger y_i</span>
+
+<span class="sd">            2. **Global computation** (`local_only=False`): Uses the full least squares solver</span>
+<span class="sd">            with distributed :meth:`A_adjoint_A` and :meth:`A_A_adjoint` operations.</span>
+<span class="sd">            This computes the exact pseudoinverse but requires communication at every iteration.</span>
+
+<span class="sd">        :param TensorList | list[torch.Tensor] y: measurements to invert.</span>
+<span class="sd">        :param str solver: least squares solver to use (only for `local_only=False`).</span>
+<span class="sd">            Choose between `&#39;CG&#39;`, `&#39;lsqr&#39;`, `&#39;BiCGStab&#39;` and `&#39;minres&#39;`. Default is `&#39;CG&#39;`.</span>
+<span class="sd">        :param int | None max_iter: maximum number of iterations for least squares solver. Default is `None`.</span>
+<span class="sd">        :param float | None tol: relative tolerance for least squares solver. Default is `None`.</span>
+<span class="sd">        :param bool verbose: print information (only on rank 0). Default is `False`.</span>
+<span class="sd">        :param bool local_only: If `True` (default), compute local daggers and sum-reduce (efficient).</span>
+<span class="sd">            If `False`, compute exact global pseudoinverse with full communication (expensive). Default is `True`.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks (only applies if local_only=True). Default is `True`.</span>
+<span class="sd">        :param kwargs: optional parameters for the forward operator.</span>
+
+<span class="sd">        :return: pseudoinverse solution. If `local_only=True`, returns approximation.</span>
+<span class="sd">            If `local_only=False`, returns exact least squares solution.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">local_only</span><span class="p">:</span>
+            <span class="c1"># Efficient local computation with single sum reduction</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">TensorList</span><span class="p">):</span>
+                <span class="n">y_local</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="p">:</span>
+                <span class="n">y_local</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">):</span>
+                <span class="n">y_local</span> <span class="o">=</span> <span class="n">y</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Input y has length </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="si">}</span><span class="s2"> (global) or </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">)</span><span class="si">}</span><span class="s2"> (local).&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+                <span class="n">y_local</span><span class="p">,</span>
+                <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">y_i</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><span class="n">y_i</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">),</span>
+                <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+                <span class="n">reduce_op</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Global computation: call parent class A_dagger which uses least squares</span>
+            <span class="c1"># This will use our distributed A, A_adjoint, A_adjoint_A and A_A_adjoint</span>
+            <span class="c1"># XXX: this could use a dedicated algorithm to faster computations</span>
+            <span class="n">verbose_flag</span> <span class="o">=</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span>
+                <span class="n">y</span><span class="p">,</span>
+                <span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">,</span>
+                <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+                <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose_flag</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics.compute_sqnorm">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedStackedLinearPhysics.html#deepinv.distributed.DistributedStackedLinearPhysics.compute_sqnorm">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_sqnorm</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x0</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">local_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the squared spectral :math:`\ell_2` norm of the distributed operator.</span>
+
+<span class="sd">        This method provides two strategies:</span>
+
+<span class="sd">            1. **Local approximation** (`local_only=True`, default): Each rank computes the norm</span>
+<span class="sd">            of its local operators independently, then a single max-reduction provides an upper bound.</span>
+<span class="sd">            This is efficient (minimal communication) and valid for conservative estimates.</span>
+<span class="sd">            For stacked operators :math:`A = [A_1; A_2; \ldots; A_n]`, we have</span>
+<span class="sd">            :math:`\|A\|^2 \leq \sum_i \|A_i\|^2`, and we use :math:`\max_i \|A_i\|^2` as</span>
+<span class="sd">            a conservative upper bound.</span>
+
+<span class="sd">            2. **Global computation** (`local_only=False`): Uses the full distributed :meth:`A_adjoint_A`</span>
+<span class="sd">            with communication at every power iteration. This computes the exact norm but is</span>
+<span class="sd">            communication-intensive.</span>
+
+<span class="sd">        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate.</span>
+<span class="sd">        :param int max_iter: maximum number of iterations for power method. Default is `50`.</span>
+<span class="sd">        :param float tol: relative variation criterion for convergence. Default is `1e-3`.</span>
+<span class="sd">        :param bool verbose: print information (only on rank 0). Default is `True`.</span>
+<span class="sd">        :param bool local_only: If `True` (default), compute local norms and max-reduce (efficient).</span>
+<span class="sd">            If `False`, compute exact global norm with full communication (expensive). Default is `True`.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks (only applies if local_only=True). Default is `True`.</span>
+<span class="sd">        :param kwargs: optional parameters for the forward operator.</span>
+
+<span class="sd">        :return: Squared spectral norm. If `local_only=True`, returns upper bound.</span>
+<span class="sd">            If `local_only=False`, returns exact value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">local_only</span><span class="p">:</span>
+            <span class="c1"># Efficient local computation with single max reduction</span>
+            <span class="n">local_sqnorm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+                <span class="n">x0</span><span class="p">,</span>
+                <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">compute_sqnorm</span><span class="p">(</span>
+                    <span class="n">x</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span>
+                <span class="p">),</span>
+                <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+                <span class="n">reduce_op</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">gather</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Computed local norm upper bound: ||A||_2^2 ≤ </span><span class="si">{</span><span class="n">local_sqnorm</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">local_sqnorm</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Global computation: call parent class compute_sqnorm which uses power method</span>
+            <span class="c1"># This will use our distributed A_adjoint_A</span>
+            <span class="n">verbose_flag</span> <span class="o">=</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">compute_sqnorm</span><span class="p">(</span>
+                <span class="n">x0</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose_flag</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DistributedProcessing">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedProcessing.html#deepinv.distributed.DistributedProcessing">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DistributedProcessing</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Distributed signal processing using pluggable tiling and reduction strategies.</span>
+
+<span class="sd">    This class enables distributed processing of large signals (images, volumes, etc.) by:</span>
+
+<span class="sd">        1. Splitting the signal into patches using a chosen strategy</span>
+<span class="sd">        2. Distributing patches across multiple processes/GPUs</span>
+<span class="sd">        3. Processing each patch independently using a provided processor function</span>
+<span class="sd">        4. Combining processed patches back into the full signal with proper overlap handling</span>
+
+<span class="sd">    The processor can be any callable that operates on tensors (e.g., denoisers, priors,</span>
+<span class="sd">    neural networks, etc.). The class handles all distributed coordination automatically.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    **Example use cases:**</span>
+
+<span class="sd">        - Distributed denoising of large images/volumes</span>
+<span class="sd">        - Applying neural network priors across multiple GPUs</span>
+<span class="sd">        - Processing signals too large to fit on a single device</span>
+
+<span class="sd">    :param DistributedContext ctx: distributed context manager.</span>
+<span class="sd">    :param Callable[[torch.Tensor], torch.Tensor] processor: processing function to apply to signal patches.</span>
+<span class="sd">        Should accept a batched tensor of shape ``(N, C, ...)`` and return a tensor of the same shape.</span>
+<span class="sd">        Examples: denoiser, neural network, prior gradient function, etc.</span>
+<span class="sd">    :param str | DistributedSignalStrategy | None strategy: signal processing strategy for patch extraction</span>
+<span class="sd">        and reduction. Either a strategy name (``&#39;basic&#39;``, ``&#39;overlap_tiling&#39;``) or a custom strategy instance.</span>
+<span class="sd">        Default is ``&#39;overlap_tiling&#39;`` which handles overlapping patches with smooth blending.</span>
+<span class="sd">    :param dict | None strategy_kwargs: additional keyword arguments passed to the strategy constructor</span>
+<span class="sd">        when using string strategy names. Examples: ``patch_size``, ``overlap``, ``tiling_dims``. Default is `None`.</span>
+<span class="sd">    :param int | None max_batch_size: maximum number of patches to process in a single batch.</span>
+<span class="sd">        If ``None``, all local patches are batched together. Set to ``1`` for sequential processing</span>
+<span class="sd">        (useful for memory-constrained scenarios). Higher values increase throughput but require more memory. Default is `None`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+        <span class="n">processor</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">DistributedSignalStrategy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">strategy_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize distributed signal processor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="o">=</span> <span class="n">ctx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">processor</span> <span class="o">=</span> <span class="n">processor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_batch_size</span> <span class="o">=</span> <span class="n">max_batch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">strategy</span> <span class="o">=</span> <span class="n">strategy</span> <span class="k">if</span> <span class="n">strategy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;overlap_tiling&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">strategy_kwargs</span> <span class="o">=</span> <span class="n">strategy_kwargs</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_shape</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span> <span class="s2">&quot;to&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">processor</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply distributed processing to input signal.</span>
+
+<span class="sd">        :param torch.Tensor x: input signal tensor to process, typically of shape ``(B, C, H, W)`` for 2D</span>
+<span class="sd">            or ``(B, C, D, H, W)`` for 3D signals.</span>
+<span class="sd">        :param args: additional positional arguments passed to the processor.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks. If False, returns local contribution. Default is `True`.</span>
+<span class="sd">        :param kwargs: additional keyword arguments passed to the processor.</span>
+<span class="sd">        :return: processed signal with the same shape as input.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_shape</span> <span class="o">!=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_init_shape_and_strategy</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_shape</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_op</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># ---- internals --------------------------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_init_shape_and_strategy</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">img_size</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize or update the signal shape and processing strategy.</span>
+
+<span class="sd">        This method is called automatically on the first forward pass to set up the</span>
+<span class="sd">        tiling strategy based on the input signal dimensions. It creates the strategy,</span>
+<span class="sd">        determines the number of patches, and assigns patches to ranks.</span>
+
+<span class="sd">        :param Sequence[int] img_size: full shape of the input signal tensor (e.g., ``(B, C, H, W)``).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">(</span><span class="n">img_size</span><span class="p">)</span>
+        <span class="n">tiling_dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategy_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;tiling_dims&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># Create or set the strategy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_strategy</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">create_strategy</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">strategy</span><span class="p">,</span> <span class="n">img_size</span><span class="p">,</span> <span class="n">tiling_dims</span><span class="o">=</span><span class="n">tiling_dims</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">strategy_kwargs</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">strategy</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategy</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strategy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;Distributed strategy is None - failed to create or import strategy&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_patches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strategy</span><span class="o">.</span><span class="n">get_num_patches</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_patches</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Distributed strategy produced zero patches.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># determine local patch indices for this rank</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">local_indices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_patches</span><span class="p">))</span>
+
+        <span class="c1"># Check for insufficient work distribution</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">use_dist</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">ranks_with_work</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+                <span class="mi">1</span>
+                <span class="k">for</span> <span class="n">rank</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">world_size</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">local_indices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_patches</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">ranks_with_work</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">world_size</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Only </span><span class="si">{</span><span class="n">ranks_with_work</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">world_size</span><span class="si">}</span><span class="s2"> ranks have patches to process. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Some ranks will have no work. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Current: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_patches</span><span class="si">}</span><span class="s2"> patches for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">world_size</span><span class="si">}</span><span class="s2"> ranks.&quot;</span><span class="p">,</span>
+                    <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_op</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply processor using the distributed strategy (internal method).</span>
+
+<span class="sd">        This method orchestrates the complete distributed processing pipeline:</span>
+
+<span class="sd">            1. Extracts local patches from the input signal using the strategy</span>
+<span class="sd">            2. Applies batching as defined by the strategy and max_batch_size</span>
+<span class="sd">            3. Applies the processor function to each batch of patches</span>
+<span class="sd">            4. Unpacks batched results back to individual patches</span>
+<span class="sd">            5. Reduces patches back to the output signal using the strategy&#39;s blending</span>
+<span class="sd">            6. All-reduces the final result across ranks to combine overlapping regions</span>
+
+<span class="sd">        :param torch.Tensor x: input signal to process.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks. If False, returns local contribution.</span>
+<span class="sd">        :param args: additional positional arguments passed to the processor.</span>
+<span class="sd">        :param kwargs: additional keyword arguments passed to the processor.</span>
+<span class="sd">        :return: processed signal with the same shape as input.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Handle empty case early</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_indices</span><span class="p">:</span>
+            <span class="n">out_local</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">gather</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">out_local</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">dist</span><span class="o">.</span><span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">out_local</span>
+
+        <span class="c1"># 1. Extract local patches using strategy</span>
+        <span class="n">local_pairs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strategy</span><span class="o">.</span><span class="n">get_local_patches</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_indices</span><span class="p">)</span>
+        <span class="n">patches</span> <span class="o">=</span> <span class="p">[</span><span class="n">patch</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">patch</span> <span class="ow">in</span> <span class="n">local_pairs</span><span class="p">]</span>
+
+        <span class="c1"># 2. Apply batching strategy with max_batch_size</span>
+        <span class="n">batched_patches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strategy</span><span class="o">.</span><span class="n">apply_batching</span><span class="p">(</span>
+            <span class="n">patches</span><span class="p">,</span> <span class="n">max_batch_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_batch_size</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 3. Apply processor to each batch</span>
+        <span class="n">processed_batches</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batched_patches</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">processor</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">processed_batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="c1"># 4. Unpack results back to individual patches</span>
+        <span class="n">processed_patches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strategy</span><span class="o">.</span><span class="n">unpack_batched_results</span><span class="p">(</span>
+            <span class="n">processed_batches</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">patches</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 5. Pair with global indices</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">processed_patches</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indices</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Mismatch between processed patches (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">processed_patches</span><span class="p">)</span><span class="si">}</span><span class="s2">) &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;and local indices (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indices</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">processed_pairs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indices</span><span class="p">,</span> <span class="n">processed_patches</span><span class="p">))</span>
+
+        <span class="c1"># 6. Initialize output tensor and apply reduction strategy</span>
+        <span class="n">out_local</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_strategy</span><span class="o">.</span><span class="n">reduce_patches</span><span class="p">(</span><span class="n">out_local</span><span class="p">,</span> <span class="n">processed_pairs</span><span class="p">)</span>
+
+        <span class="c1"># 7. All-reduce to combine results from all ranks</span>
+        <span class="k">if</span> <span class="n">gather</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">out_local</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">dist</span><span class="o">.</span><span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out_local</span></div>
+
+
+
+<span class="c1"># =========================</span>
+<span class="c1"># Distributed Data Fidelity</span>
+<span class="c1"># =========================</span>
+<div class="viewcode-block" id="DistributedDataFidelity">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedDataFidelity.html#deepinv.distributed.DistributedDataFidelity">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DistributedDataFidelity</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Distributed data fidelity term for use with distributed physics operators.</span>
+
+<span class="sd">    This class wraps a standard DataFidelity object and makes it compatible with</span>
+<span class="sd">    DistributedStackedLinearPhysics by implementing efficient distributed computation patterns.</span>
+<span class="sd">    It computes data fidelity terms and gradients using local operations followed by</span>
+<span class="sd">    a single reduction, avoiding redundant communication.</span>
+
+<span class="sd">    The key operations are:</span>
+
+<span class="sd">        - ``fn(x, y, physics)``: Computes the data fidelity :math:`\sum_i d(A_i(x), y_i)`</span>
+<span class="sd">        - ``grad(x, y, physics)``: Computes the gradient :math:`\sum_i A_i^T \nabla d(A_i(x), y_i)`</span>
+
+<span class="sd">    Both operations use an efficient pattern:</span>
+
+<span class="sd">        1. Compute local forward operations (A_local)</span>
+<span class="sd">        2. Apply distance function and compute gradients locally</span>
+<span class="sd">        3. Perform a single reduction across ranks</span>
+
+<span class="sd">    :param DistributedContext ctx: distributed context manager.</span>
+<span class="sd">    :param DataFidelity | Callable data_fidelity: either a DataFidelity instance</span>
+<span class="sd">        or a factory function that creates DataFidelity instances for each operator.</span>
+<span class="sd">        The factory should have signature</span>
+<span class="sd">        ``factory(index: int, device: torch.device, factory_kwargs: dict | None) -&gt; DataFidelity``.</span>
+<span class="sd">    :param int | None num_operators: number of operators (required if data_fidelity is a factory). Default is `None`.</span>
+<span class="sd">    :param dict | None factory_kwargs: shared data dictionary passed to factory function for all operators. Default is `None`.</span>
+<span class="sd">    :param str reduction: reduction mode matching the distributed physics. Options are ``&#39;sum&#39;`` or ``&#39;mean&#39;``.</span>
+<span class="sd">        Default is ``&#39;sum&#39;``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+        <span class="n">data_fidelity</span><span class="p">:</span> <span class="p">(</span>
+            <span class="n">DataFidelity</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="n">DataFidelity</span><span class="p">]</span>
+        <span class="p">),</span>
+        <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">factory_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;sum&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize distributed data fidelity.</span>
+
+<span class="sd">        :param DistributedContext ctx: distributed context manager.</span>
+<span class="sd">        :param DataFidelity | Callable data_fidelity: data fidelity term or factory.</span>
+<span class="sd">        :param int | None num_operators: number of operators (required if data_fidelity is a factory). Default is `None`.</span>
+<span class="sd">        :param dict | None factory_kwargs: shared data dictionary passed to factory function. Default is `None`.</span>
+<span class="sd">        :param str reduction: reduction mode for distributed operations. Options are ``&#39;sum&#39;`` and ``&#39;mean&#39;``. Default is ``&#39;sum&#39;``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="o">=</span> <span class="n">ctx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reduction_mode</span> <span class="o">=</span> <span class="n">reduction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_data_fidelities</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">single_fidelity</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_fidelity</span><span class="p">,</span> <span class="n">DataFidelity</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">single_fidelity</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">data_fidelity</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">single_fidelity</span><span class="p">,</span> <span class="s2">&quot;to&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">single_fidelity</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="n">data_fidelity</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">num_operators</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;num_operators must be provided when using a factory.&quot;</span><span class="p">)</span>
+            <span class="c1"># Create local data fidelity instances using factory</span>
+            <span class="n">local_indexes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">local_indices</span><span class="p">(</span><span class="n">num_operators</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">local_indexes</span><span class="p">:</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">data_fidelity</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">local_data_fidelities</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;data_fidelity must be a DataFidelity instance or a factory callable.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_fidelity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFidelity</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">single_fidelity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">single_fidelity</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_data_fidelities</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_is_distributed_physics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">DistributedStackedLinearPhysics</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">DistributedStackedLinearPhysics</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;physics must be a DistributedStackedLinearPhysics instance to be used with DistributedDataFidelity.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_op</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">local_op</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">DistributedStackedLinearPhysics</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply a local operation across distributed physics with map-reduce-gather pattern.</span>
+
+<span class="sd">        :param Callable local_op: local operation to apply. Should have signature `local_op(index: int, data: Any, **kwargs) -&gt; torch.Tensor`.</span>
+<span class="sd">        :param torch.Tensor x: input signal.</span>
+<span class="sd">        :param list[torch.Tensor] y: measurements (TensorList or list of tensors).</span>
+<span class="sd">        :param DistributedStackedLinearPhysics physics: distributed physics operator.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks. Default is `True`.</span>
+<span class="sd">        :param args: additional positional arguments passed to the local operation.</span>
+<span class="sd">        :param kwargs: additional keyword arguments passed to the local operation.</span>
+<span class="sd">        :return: result of applying the local operation and reducing across ranks.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_is_distributed_physics</span><span class="p">(</span><span class="n">physics</span><span class="p">)</span>
+
+        <span class="c1"># Get local measurements</span>
+        <span class="n">y_local</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">physics</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">]</span>
+
+        <span class="c1"># Compute A(x) locally</span>
+        <span class="n">Ax_local</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gather</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Zip Ax and y for mapping</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">Ax_local</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_local</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Ax and y local sizes do not match.&quot;</span><span class="p">)</span>
+
+        <span class="n">zipped_data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">Ax_local</span><span class="p">,</span> <span class="n">y_local</span><span class="p">))</span>
+        <span class="c1"># Pseudo items to iterate on</span>
+        <span class="n">local_items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">)))</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">Ax_local</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">local_items</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">zipped_data</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">return</span> <span class="n">map_reduce_gather</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">,</span>
+            <span class="n">local_items</span><span class="o">=</span><span class="n">local_items</span><span class="p">,</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">zipped_data</span><span class="p">,</span>
+            <span class="n">local_op</span><span class="o">=</span><span class="n">local_op</span><span class="p">,</span>
+            <span class="n">local_indices</span><span class="o">=</span><span class="n">physics</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="o">=</span><span class="n">physics</span><span class="o">.</span><span class="n">num_operators</span><span class="p">,</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">reduction_mode</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="DistributedDataFidelity.fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedDataFidelity.html#deepinv.distributed.DistributedDataFidelity.fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fn</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">DistributedStackedLinearPhysics</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the distributed data fidelity term.</span>
+
+<span class="sd">        For distributed physics with operators :math:`\{A_i\}` and measurements :math:`\{y_i\}`,</span>
+<span class="sd">        computes:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            f(x) = \sum_i d(A_i(x), y_i)</span>
+
+<span class="sd">        This is computed efficiently by:</span>
+
+<span class="sd">            1. Each rank computes :math:`A_i(x)` for its local operators</span>
+<span class="sd">            2. Each rank computes :math:`\sum_{i \in \text{local}} d(A_i(x), y_i)`</span>
+<span class="sd">            3. Results are reduced across all ranks</span>
+
+<span class="sd">        :param torch.Tensor x: input signal at which to evaluate the data fidelity.</span>
+<span class="sd">        :param list[torch.Tensor] y: measurements (TensorList or list of tensors).</span>
+<span class="sd">        :param DistributedStackedLinearPhysics physics: distributed physics operator.</span>
+<span class="sd">        :param bool gather: whether to gather (reduce) results across ranks. Default is `True`.</span>
+<span class="sd">        :param args: additional positional arguments passed to the distance function.</span>
+<span class="sd">        :param kwargs: additional keyword arguments passed to the distance function.</span>
+<span class="sd">        :return: scalar data fidelity value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_local_fidelity_op</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+            <span class="n">Ax_i</span><span class="p">,</span> <span class="n">y_i</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_fidelity</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">fn</span><span class="p">(</span><span class="n">Ax_i</span><span class="p">,</span> <span class="n">y_i</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_op</span><span class="p">(</span>
+            <span class="n">local_op</span><span class="o">=</span><span class="n">_local_fidelity_op</span><span class="p">,</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
+            <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistributedDataFidelity.grad">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.DistributedDataFidelity.html#deepinv.distributed.DistributedDataFidelity.grad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">DistributedStackedLinearPhysics</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the gradient of the distributed data fidelity term.</span>
+
+<span class="sd">        For distributed physics with operators :math:`\{A_i\}` and measurements :math:`\{y_i\}`,</span>
+<span class="sd">        computes:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \nabla_x f(x) = \sum_i A_i^T \nabla d(A_i(x), y_i)</span>
+
+<span class="sd">        This is computed efficiently by:</span>
+
+<span class="sd">            1. Each rank computes :math:`A_i(x)` for its local operators</span>
+<span class="sd">            2. Each rank computes :math:`\nabla d(A_i(x), y_i)` for its local operators</span>
+<span class="sd">            3. Each rank computes :math:`\sum_{i \in \text{local}} A_i^T \nabla d(A_i(x), y_i)` using A_vjp_local</span>
+<span class="sd">            4. Results are reduced across all ranks</span>
+
+<span class="sd">        :param torch.Tensor x: input signal at which to compute the gradient.</span>
+<span class="sd">        :param list[torch.Tensor] y: measurements (TensorList or list of tensors).</span>
+<span class="sd">        :param DistributedStackedLinearPhysics physics: distributed physics operator.</span>
+<span class="sd">        :param bool gather: whether to gather (reduce) results across ranks. Default is `True`.</span>
+<span class="sd">        :param args: additional positional arguments passed to the distance function gradient.</span>
+<span class="sd">        :param kwargs: additional keyword arguments passed to the distance function gradient.</span>
+<span class="sd">        :return: gradient with same shape as x.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_local_grad_op</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+            <span class="n">Ax_i</span><span class="p">,</span> <span class="n">y_i</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="n">grad_d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_fidelity</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">Ax_i</span><span class="p">,</span> <span class="n">y_i</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">physics</span><span class="o">.</span><span class="n">local_physics</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">A_vjp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">grad_d</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_op</span><span class="p">(</span>
+            <span class="n">local_op</span><span class="o">=</span><span class="n">_local_grad_op</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span> <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

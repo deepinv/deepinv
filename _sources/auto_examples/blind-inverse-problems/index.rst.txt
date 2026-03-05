@@ -1,0 +1,81 @@
+
+
+.. _sphx_glr_auto_examples_blind-inverse-problems:
+
+Blind Inverse Problems
+----------------------
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example demonstrates blind image deblurring using the pretrained kernel estimation network from the paper :footcitecarbajal2023blind. The network estimates spatially-varying blur kernels from a blurred image, which are then used in a space-varying blur physics model to reconstruct the sharp image using a non-blind deblurring algorithm.">
+
+.. only:: html
+
+  .. image:: /auto_examples/blind-inverse-problems/images/thumb/sphx_glr_demo_blind_deblurring_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/blind-inverse-problems/demo_blind_deblurring`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Blind deblurring with kernel estimation network</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example focuses on blind image Gaussian denoising, i.e. the problem">
+
+.. only:: html
+
+  .. image:: /auto_examples/blind-inverse-problems/images/thumb/sphx_glr_demo_blind_denoising_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/blind-inverse-problems/demo_blind_denoising`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Blind denoising with noise level estimation</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This demo shows you how to use deepinv.physics.Physics together with automatic differentiation to estimate unknown parameters of your forward operator.">
+
+.. only:: html
+
+  .. image:: /auto_examples/blind-inverse-problems/images/thumb/sphx_glr_demo_optimizing_physics_parameter_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/blind-inverse-problems/demo_optimizing_physics_parameter`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Calibrating physics operators</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/blind-inverse-problems/demo_blind_deblurring
+   /auto_examples/blind-inverse-problems/demo_blind_denoising
+   /auto_examples/blind-inverse-problems/demo_optimizing_physics_parameter
+
