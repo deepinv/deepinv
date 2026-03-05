@@ -33,6 +33,7 @@ jobs:
             name: "windows py3.12 all optional dependencies"
     env:
       DEEPINV_MOCK_TESTS: "True"
+      DEEPINV_DOWNLOAD_VERBOSE: "False"
       UV_CACHE_DIR: /tmp/.uv-cache
     steps:
       - uses: actions/checkout@v5
