@@ -214,6 +214,7 @@ class GeneratorMixture(PhysicsGenerator):
         probs: list[float],
         device: str | torch.device = "cpu",
         rng: torch.Generator = None,
+        verbose: bool = False,
     ) -> None:
         super().__init__(device=device, rng=rng)
         probs = torch.tensor(probs)
@@ -221,6 +222,50 @@ class GeneratorMixture(PhysicsGenerator):
         self.generators = generators
         self.probs = probs
         self.cum_probs = torch.cumsum(probs, dim=0)
+
+        self.batch_compatible = self._compatible_generators(generators, verbose=verbose)
+
+    @staticmethod
+    def _compatible_generators(
+        generators: list[PhysicsGenerator], verbose: bool = False
+    ) -> bool:
+        r"""
+        Static method to check if each generator in the mixture produces parameters with the same keys and shapes. If they do, then the mixture can sample a different generator for each element in the batch. If not, then a single generator will be sampled per batch.
+        """
+
+        generators_keys = []
+        generators_params = []
+        for g in generators:
+            params = g.step(batch_size=1)
+            generators_params.append(params)
+            generators_keys.append(set(params.keys()))
+
+        for i in range(len(generators_keys)):
+            for j in range(i + 1, len(generators_keys)):
+                if generators_keys[i] != generators_keys[j]:
+                    if verbose:
+                        print(
+                            f"Generators {i} and {j} have different keys. Got {generators_keys[i]} and {generators_keys[j]}. Generators are not batch-compatible, a single generator will be sampled per batch."
+                        )
+                    return False
+
+                for key in generators_keys[i]:
+                    if (
+                        generators_params[i][key].shape
+                        != generators_params[j][key].shape
+                    ):
+                        if verbose:
+                            print(
+                                f"Generators {i} and {j} have different shapes for key {key}. Got {generators_params[i][key].shape} and {generators_params[j][key].shape}. Generators are not batch-compatible, a single generator will be sampled per batch."
+                            )
+                        return False
+
+        if verbose:
+            print(
+                "All generators have the same keys and shapes. Generators are batch-compatible, the mixture will sample, with replacement, a different generator per batch"
+            )
+
+        return True
 
     def step(self, batch_size: int = 1, seed: int = None, **kwargs):
         r"""
@@ -231,6 +276,39 @@ class GeneratorMixture(PhysicsGenerator):
         :param int seed: the seed for the random number generator.
         :returns: A dictionary with the new parameters, ie ``{param_name: param_value}``.
         """
-        p = torch.rand(1, generator=self.rng).item()  # np.random.uniform()
-        idx = torch.searchsorted(self.cum_probs, p)
-        return self.generators[idx].step(batch_size, seed, **kwargs)
+
+        if self.batch_compatible:
+            # Sample a random generator for EACH element in the batch according to self.probs
+            p = torch.rand(batch_size, generator=self.rng, device=self.device)
+            # Get generator index for each sample
+            generator_indices = torch.searchsorted(self.cum_probs, p)
+
+            # Group batch elements by their assigned generator
+            result = {}
+            for gen_idx, generator in enumerate(self.generators):
+                mask = generator_indices == gen_idx
+                if mask.any():
+                    # Find which batch positions use this generator
+                    batch_positions = torch.where(mask)[0]
+                    num_samples = mask.sum().item()
+
+                    # Generate parameters for just these samples
+                    params = generator.step(batch_size=num_samples, seed=seed, **kwargs)
+
+                    # Store with position information for later reordering
+                    for key, value in params.items():
+                        if key not in result:
+                            result[key] = [None] * batch_size
+
+                        for i, pos in enumerate(batch_positions):
+                            result[key][pos.item()] = value[i]
+
+            # Convert lists back to stacked tensors
+            return {k: torch.stack(v, dim=0) for k, v in result.items()}
+
+        else:
+            p = torch.rand(
+                1, generator=self.rng, device=self.device
+            ).item()  # np.random.uniform()
+            idx = torch.searchsorted(self.cum_probs, p)
+            return self.generators[idx].step(batch_size=batch_size, seed=seed, **kwargs)
