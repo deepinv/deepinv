@@ -3,8 +3,8 @@ Poisson Inverse Problems with Maximum-Likelihood Expectation-Maximization (MLEM)
 ====================================================================================================
 
 This example demonstrates how to solve Poisson inverse problems using the
-**Maximum-Likelihood Expectation-Maximization (MLEM)** algorithm :footcite:`sheppMaximumLikelihoodReconstruction1982b`,
-also known as the Richardson-Lucy algorithm in the deconvolution setting :footcite:`richardsonBayesianBasedIterativeMethod1972a,lucyIterativeTechniqueRectification1974a`.
+**Maximum-Likelihood Expectation-Maximization (MLEM)** algorithm :footcite:t:`sheppMaximumLikelihoodReconstruction1982`,
+also known as the Richardson-Lucy algorithm in the deconvolution setting :footcite:t:`richardsonBayesianBasedIterativeMethod1972,lucyIterativeTechniqueRectification1974`.
 
 The Poisson observation model is:
 

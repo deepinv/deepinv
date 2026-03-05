@@ -2234,7 +2234,7 @@ class MLEM(BaseOptim):
 
     This algorithm was originally proposed for deconvolution by Richardson and Lucy :footcite:t:`richardsonBayesianBasedIterativeMethod1972, lucyIterativeTechniqueRectification1974` and was later
     adapted to tomographic reconstruction by Shepp and Vardi :footcite:t:`sheppMaximumLikelihoodReconstruction1982`.
-    It is also widely used in Non-Negative Matrix Factorization (NMF) problems where it is known as the Lee and Seung multiplicative update algorithm :footcite:t`leeSeungAlgorithmsNonNegativeMatrix2000`.
+    It is also widely used in Non-Negative Matrix Factorization (NMF) problems where it is known as the Lee and Seung multiplicative update algorithm :footcite:t:`leeSeungAlgorithmsNonNegativeMatrix2000`.
 
     The algorithm is traditionally derived from the Expectation-Maximization (EM) framework with specific latent variables.
     Alternatively, it can be seen as a Majorization-Minimization (MM) algorithm where each iteration consists in constructing a surrogate function that majorizes the Poisson negative log-likelihood and then minimizing this surrogate function.
@@ -2255,7 +2255,7 @@ class MLEM(BaseOptim):
     of the provided ``data_fidelity`` argument.
 
     A regularization can be included via the ``prior`` argument, which will lead to a MAP-EM variant of the MLEM algorithm.
-    Our implementation is based on the One-Step-Late (OSL) heuristic of Green :footcite:t`greenUseEmAlgorithm1990`.
+    Our implementation is based on the One-Step-Late (OSL) heuristic of Green :footcite:t:`greenUseEmAlgorithm1990`.
     It leads to the following update rule:
 
     .. math::
