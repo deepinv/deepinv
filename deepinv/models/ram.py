@@ -11,6 +11,7 @@ import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Reconstructor, Denoiser
+from .utils import load_state_dict_from_url
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
@@ -42,15 +43,16 @@ class RAM(Reconstructor, Denoiser):
 
     |sep|
 
-    ::
+    :Examples:
 
-      import deepinv as dinv
-      x = dinv.utils.load_example("butterfly.png")
-      physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
-      y = physics(x)
-      model = dinv.models.RAM()
-      x_hat = model(y, physics) # run model
-      dinv.metric.PSNR()(x_hat, x) > 29.75 # tensor([True])
+        >>> import deepinv as dinv
+        >>> x = dinv.utils.load_example("butterfly.png")
+        >>> physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
+        >>> y = physics(x)
+        >>> model = dinv.models.RAM()
+        >>> x_hat = model(y, physics) # run model
+        >>> dinv.metric.PSNR()(x_hat, x) > 29.75
+        tensor([True])
 
     """
 
@@ -121,7 +123,7 @@ class RAM(Reconstructor, Denoiser):
                 )
             else:
                 self.load_state_dict(
-                    torch.hub.load_state_dict_from_url(
+                    load_state_dict_from_url(
                         "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar",
                         progress=False,
                     ),
