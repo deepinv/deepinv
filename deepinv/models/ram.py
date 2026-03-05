@@ -51,8 +51,8 @@ class RAM(Reconstructor, Denoiser):
         >>> y = physics(x)
         >>> model = dinv.models.RAM()
         >>> x_hat = model(y, physics) # run model
-        >>> dinv.metric.PSNR()(x_hat, x) > 29.75 #
-        ... tensor([True])
+        >>> dinv.metric.PSNR()(x_hat, x) > 29.75
+        tensor([True])
 
     """
 

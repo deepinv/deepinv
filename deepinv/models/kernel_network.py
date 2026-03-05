@@ -46,7 +46,7 @@ class KernelIdentificationNetwork(nn.Module):
         ...     params = kernel_estimator(y)  # this outputs {"filters": ..., "multipliers": ...}
         >>> physics.update(**params) # update physics with estimated kernels
         >>> print(params["filters"].shape, params["multipliers"].shape)
-        ... torch.Size([1, 1, 25, 33, 33]) torch.Size([1, 1, 25, 128, 128])
+        torch.Size([1, 1, 25, 33, 33]) torch.Size([1, 1, 25, 128, 128])
 
     """
 

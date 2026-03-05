@@ -588,7 +588,7 @@ class ComplexDenoiserWrapper(Denoiser):
         >>> with torch.no_grad():
         ...     denoised = complex_denoiser(y, sigma)
         >>> print(denoised.dtype)
-        ... torch.complex64
+        torch.complex64
 
     :param deepinv.models.Denoiser denoiser: Real-valued denoiser :math:`\denoisername` to wrap.
     :param str mode: Either ``'real_imag'`` or ``'abs_angle'``. Default ``'real_imag'``.
