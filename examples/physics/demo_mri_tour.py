@@ -464,13 +464,11 @@ dataset = dinv.datasets.CMRxReconSliceDataset(
 
 x, y, params = next(iter(DataLoader(dataset)))
 
-print(
-    f"""
+print(f"""
     Ground truth: {x.shape} (B, C, T, H, W)
     Measurements: {y.shape}
     Acc. mask: {params["mask"].shape}
-"""
-)
+""")
 
 # %%
 # Dynamic MRI data is directly compatible with existing functionality.
