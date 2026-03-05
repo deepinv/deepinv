@@ -36,6 +36,7 @@ Fixed
 - Dispose of invalid physics parameters in HDF5Dataset loading (:gh:`764` by `Jérémy Scanvic`_)
 - :func:`deepinv.utils.plot_ortho3D` doesn't perform sqrt on images (:gh:`1068` by `Andrew Wang`_)
 - Deprecate `self.device` in :class:`deepinv.physics.LinearPhysics` and remove it from internal logic. Define it as a property until removed. (:gh:`989` by `Romain Vo`_)
+- Add device argument to :class:`deepinv.physics.generator.GeneratorMixture` to fix mismatch with generator's device and extend test suite in `test_generators.py` (:gh:`1093` by `Romain Vo`_)
 
 
 v0.3.7
