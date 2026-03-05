@@ -15,6 +15,7 @@ New Features
 - Add distributed computing framework with :class:`deepinv.distributed.DistributedContext`, :class:`deepinv.distributed.DistributedStackedPhysics`, :class:`deepinv.distributed.DistributedProcessing`, :class:`deepinv.distributed.DistributedDataFidelity` and :func:`deepinv.distributed.distribute` factory function. Supports multi-GPU/multi-process execution with physics-based and spatial tiling distribution strategies (:gh:`790`` by `Benoît Malézieux`_)
 - Add :class:`deepinv.loss.metric.CosineSimilarity` to the metrics (:gh:`944` by `Avithal Lautman`_)
 - New option to initialize 3D networks (DRUNet, DnCNN, DScCP) from pretrained 2D weights (:gh:`958` by `Romain Vo`_)
+- Add :class:`deepinv.physics.TiledSpaceVaryingBlur` physics and :class:`deepinv.physics.generator.TiledBlurGenerator` (:gh:`1033` by `Minh Hai Nguyen`_ and `Paul Escande`_)
 
 Changed
 ^^^^^^^
@@ -34,7 +35,9 @@ Fixed
 - Have test ground truths returned in HDF5Dataset when present (:gh:`764` by `Jérémy Scanvic`_)
 - Dispose of invalid physics parameters in HDF5Dataset loading (:gh:`764` by `Jérémy Scanvic`_)
 - :func:`deepinv.utils.plot_ortho3D` doesn't perform sqrt on images (:gh:`1068` by `Andrew Wang`_)
+- Deprecate `self.device` in :class:`deepinv.physics.LinearPhysics` and remove it from internal logic. Define it as a property until removed. (:gh:`989` by `Romain Vo`_)
 - Add warning when options `reduce="mean"` and `reduce="none"` are used in :class:`deepinv.physics.StackedLinearPhysics`. Remove `reduction` argument from :class:`deepinv.distributed.DistributedStackedLinearPhysics` (:gh:`1071` by `Romain Vo`_)
+
 
 v0.3.7
 ------
@@ -576,3 +579,4 @@ Changed
 .. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
 .. _Tiberiu Sabau: https://github.com/tibisabau
 .. _Benoît Malézieux: https://github.com/bmalezieux
+.. _Paul Escande: https://pescande.perso.math.cnrs.fr/
