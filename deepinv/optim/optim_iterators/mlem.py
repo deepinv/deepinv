@@ -12,9 +12,8 @@ class MLEMIteration(OptimIterator):
 
     def __init__(self, **kwargs):
         super(MLEMIteration, self).__init__(**kwargs)
-        self.g_step = gStepMLEM(**kwargs)
+        self.g_step = gStepMLEM(compute_prox=kwargs.get("compute_prox", False))
         self.f_step = fStepMLEM(**kwargs)
-        self.compute_prox = kwargs.get("compute_prox", False)
 
     def forward(
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
@@ -69,8 +68,9 @@ class gStepMLEM(gStep):
         gStep (_type_): _description_
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, compute_prox: bool = False, **kwargs):
         super(gStepMLEM, self).__init__(**kwargs)
+        self.compute_prox = compute_prox
 
     def forward(self, x, cur_prior, cur_params):
         r"""
