@@ -97,7 +97,7 @@ class PromptIR(Reconstructor, Denoiser):
         LayerNorm_type: str = "WithBias",
         decoder: bool = True,
         device: torch.device | str = None,
-        pretrained: str = "download",
+        pretrained: str | None = "download",
     ):
 
         super(PromptIR, self).__init__()

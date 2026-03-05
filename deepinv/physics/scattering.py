@@ -15,9 +15,7 @@ def hankel1(n, x):
         )
     device = x.device
     dtype = x.dtype
-    return torch.from_numpy(hankel1(n, x.detach().cpu().numpy())).to(
-        device=device, dtype=dtype
-    )
+    return hankel1(n, x.detach().cpu()).to(device=device, dtype=dtype)
 
 
 def jv(n, x):
@@ -30,9 +28,7 @@ def jv(n, x):
         )
     device = x.device
     dtype = x.dtype
-    return torch.from_numpy(jv(n, x.detach().cpu().numpy())).to(
-        device=device, dtype=dtype
-    )
+    return jv(n, x.detach().cpu()).to(device=device, dtype=dtype)
 
 
 class Scattering(Physics):

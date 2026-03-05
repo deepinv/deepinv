@@ -128,7 +128,9 @@ def choose_denoiser(name, imsize):
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "promptir":
-        out = dinv.models.PromptIR(in_channels=imsize[0], out_channels=imsize[0])
+        out = dinv.models.PromptIR(
+            in_channels=imsize[0], out_channels=imsize[0], pretrained=None
+        )
     elif name == "ncsnpp":
         out = dinv.models.NCSNpp(
             in_channels=imsize[0],
