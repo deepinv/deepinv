@@ -2230,11 +2230,15 @@ class PDCP(BaseOptim):
 
 class MLEM(BaseOptim):
     r"""
-    Maximum Likelihood Expectation Maximization (MLEM) algorithm for Poisson inverse problems.
+    Maximum Likelihood Expectation Maximization (MLEM) algorithm :footcite:t:`sheppsheppMaximumLikelihoodReconstruction1982b` for Poisson inverse problems.
 
-    Implements the MLEM iterative algorithm, which is a classic baseline reconstruction method
-    for inverse problems with Poisson noise statistics. At each iteration, the algorithm
-    performs a multiplicative update of the form:
+    This algorithm was originally proposed for deconvolution by Richardson and Lucy :footcite:t:`richardsonBayesianBasedIterativeMethod1972, lucyIterativeTechniqueRectification1974` and was later
+    adapted to tomographic reconstruction by Shepp and Vardi :footcite:t:`sheppsheppMaximumLikelihoodReconstruction1982b`.
+    It is also widely used in Non-Negative Matrix Factorization (NMF) problems where it is known as the Lee and Seung multiplicative update algorithm :footcite:t`leeSeungAlgorithmsNonNegativeMatrix2000`.
+
+    The algorithm is traditionally derived from the Expectation-Maximization (EM) framework with specific latent variables.
+    Alternatively, it can be seen as a Majorization-Minimization (MM) algorithm where each iteration consists in constructing a surrogate function that majorizes the Poisson negative log-likelihood and then minimizing this surrogate function.
+    At each iteration, the algorithm performs a multiplicative update of the form:
 
     .. math::
         x_{k+1} = \frac{x_k}{A^T \mathbf{1}} \odot A^T \left(\frac{y}{A x_k}\right)
@@ -2245,9 +2249,26 @@ class MLEM(BaseOptim):
     The algorithm can be used with a prior term (e.g., for MAP-EM variants) or without
     (standard MLEM). See :class:`deepinv.optim.optim_iterators.MLEMIteration` for the details of the iteration.
 
-    Any data-fidelity can be used but the algorithm only minimizes the Poisson negative log-likelihood data-fidelity.
-    If a different data-fidelity is provided, the algorithm will still perform the MLEM iterations
-    but they might not decrease the provided data-fidelity at each iteration.
+    The MLEM algorithm minimizes the Poisson negative log-likelihood data-fidelity. The ``data_fidelity`` argument
+    can be used to measure progress during optimization (e.g., for early stopping or metrics computation), but it is
+    not used as the objective function to minimize. Only the Poisson negative log-likelihood is minimized regardless
+    of the provided ``data_fidelity`` argument.
+
+    A regularization can be included via the ``prior`` argument, which will lead to a MAP-EM variant of the MLEM algorithm.
+    Our implementation is based on the One-Step-Late (OSL) heuristic of Green :footcite:t`greenIterativeImageRestoration1990`.
+    It leads to the following update rule:
+
+    .. math::
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \nabla g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
+
+        where :math:`g` is the prior function and :math:`\lambda` is the regularization parameter.
+
+    In the case of a non-differentiable prior, the gradient term :math:`\nabla g(x_k)` is replaced by a subgradient:
+
+    .. math::
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \partial g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
+
+        where :math:`\partial g(x_k)` is a subgradient of :math:`g` at point :math:`x_k`.
 
     :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity term.
         If ``None``, the data fidelity term is not used. Default: ``None``.
@@ -2269,10 +2290,9 @@ class MLEM(BaseOptim):
     :param dict params_algo: dictionary of algorithm parameters. If ``None``, the parameters
         are set from ``lambda_reg``, ``stepsize``, and ``g_param``. Default: ``None``.
     :param Callable cost_fn: custom cost function. Default: ``None``.
+    :param bool compute_prox: whether to use the proximal operator of the prior (if ``True``) or its gradient (if ``False``) if both are available. Default: ``False``.
     :param kwargs: additional keyword arguments passed to :class:`deepinv.optim.BaseOptim`.
     """
-
-    r"""MLEM"""
 
     def __init__(
         self,
@@ -2299,6 +2319,7 @@ class MLEM(BaseOptim):
             ],
             torch.Tensor,
         ] = None,
+        compute_prox: bool = False,
         **kwargs,
     ):
         if params_algo is None:
@@ -2307,7 +2328,7 @@ class MLEM(BaseOptim):
                 "g_param": g_param,
             }
         super(MLEM, self).__init__(
-            MLEMIteration(g_first=g_first, cost_fn=cost_fn),
+            MLEMIteration(g_first=g_first, cost_fn=cost_fn, compute_prox=compute_prox),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,

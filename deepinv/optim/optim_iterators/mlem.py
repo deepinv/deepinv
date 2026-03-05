@@ -3,10 +3,18 @@ from torch import ones_like
 
 
 class MLEMIteration(OptimIterator):
+    """
+    Iterator for the Maximum-Likelihood Expectation-Maximization (MLEM) algorithm :footcite:t:`sheppsheppMaximumLikelihoodReconstruction1982b` for Poisson inverse problems.
+
+    Class for a single iteration of the MLEM algorithm, which is a classic baseline reconstruction method for inverse problems with Poisson noise statistics.
+    More details on the algorithm can be found in the documentation of the :class:`deepinv.optim.optimizers.MLEM` optimizer.
+    """
+
     def __init__(self, **kwargs):
         super(MLEMIteration, self).__init__(**kwargs)
         self.g_step = gStepMLEM(**kwargs)
         self.f_step = fStepMLEM(**kwargs)
+        self.compute_prox = kwargs.get("compute_prox", False)
 
     def forward(
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
@@ -50,23 +58,41 @@ class fStepMLEM(fStep):
 
 
 class gStepMLEM(gStep):
+    """
+    Prior step for the MAP-EM variant of the MLEM algorithm.
+    It uses the One-Step-Late (OSL) approach :footcite:t:`greenIterativeImageReconstruction1990`.
+    More details on the algorithm can be found in the documentation of the :class:`deepinv.optim.optimizers.MLEM` optimizer.
+
+    If the prior is differentiable and ``compute_prox=False``, the gradient is used.
+    If the prior is non-differentiable or ``compute_prox=True``, the proximal operator of the prior is used.
+    Args:
+        gStep (_type_): _description_
+    """
+
     def __init__(self, **kwargs):
         super(gStepMLEM, self).__init__(**kwargs)
 
     def forward(self, x, cur_prior, cur_params):
         r"""
         Single iteration step on the prior term :math:`\lambda \regname`.
-
+        It either
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         """
-        if hasattr(cur_prior, "grad") and cur_prior.grad is not None:
+        if (
+            hasattr(cur_prior, "grad")
+            and cur_prior.grad is not None
+            and not self.compute_prox
+        ):
             grad = cur_params["lambda"] * cur_prior.grad(x, cur_params["g_param"])
+
             return grad
-        prox_g = cur_prior.prox(
-            x,
-            cur_params["g_param"],
-            gamma=cur_params["lambda"] * cur_params["stepsize"],
-        )
-        return x - prox_g
+
+        else:
+            prox_g = cur_prior.prox(
+                x,
+                cur_params["g_param"],
+                gamma=cur_params["lambda"] * cur_params["stepsize"],
+            )
+            return x - prox_g
