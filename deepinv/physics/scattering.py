@@ -933,7 +933,6 @@ def green_function(r, remove_nans=False):
 
     :param torch.Tensor r: Radial argument(s) (can be tensor).
     :param bool remove_nans: If True replace NaNs (singularity) with max abs value.
-    :param torch.dtype dtype: torch.dtype used for the returned tensor (matches r.dtype)
     :return: Complex tensor with Green's function values.
     """
     out = 1j / 4 * hankel1(0, r)

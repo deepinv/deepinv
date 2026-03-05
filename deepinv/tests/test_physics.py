@@ -2378,20 +2378,6 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
     dtype = torch.complex128
     angles = 4
     radius_tx = 1.0
-    n_coeffs = 55
-
-    total_field_mie, incident_field_mie = dinv.physics.scattering.mie_theory(
-        wavenumber,
-        cylinder_radius,
-        cylinder_contrast,
-        pixels,
-        wave_type=wave_type,
-        angles=torch.linspace(0, 2 * torch.pi, angles + 1, device=device)[:-1],
-        dtype=dtype,
-        device=device,
-        n_coeffs=n_coeffs,
-        transmitter_radius=radius_tx,
-    )
 
     transmitters, receivers = dinv.physics.scattering.circular_sensors(
         angles, radius=radius_tx, device=device
@@ -2414,6 +2400,21 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
         ).abs()
         < 1e-4
     ), "Adjointness test failed for the Born sub-operator of the Scattering physics."
+
+    n_coeffs = 55
+
+    total_field_mie, incident_field_mie = dinv.physics.scattering.mie_theory(
+        wavenumber,
+        cylinder_radius,
+        cylinder_contrast,
+        pixels,
+        wave_type=wave_type,
+        angles=torch.linspace(0, 2 * torch.pi, angles + 1, device=device)[:-1],
+        dtype=dtype,
+        device=device,
+        n_coeffs=n_coeffs,
+        transmitter_radius=radius_tx,
+    )
 
     # create cylinder contrast
     x = torch.zeros((pixels, pixels), device=device, dtype=dtype)
