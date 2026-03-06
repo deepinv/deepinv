@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader, Subset, Dataset
 from deepinv.utils.tensorlist import TensorList
 from deepinv.physics import StackedPhysics
 from deepinv.datasets.base import ImageDataset
+import h5py
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
@@ -367,48 +368,54 @@ class HDF5Dataset(ImageDataset):
             deprecation_message="The attribute 'data_cache' is deprecated and will be removed in future versions.",
         )
 
-    def __getitem__(self, index: int) -> tuple:
-        r"""Get an entry in the dataset.
-
-        Return the measurement and signal pair ``(x, y)`` at the given index, in
-        the selected split. If forward operator parameters are available, it
-        returns ``(x, y, params)`` where ``params`` is a dict of parameters.
+    def __getitem__(
+        self, index: int
+    ) -> tuple[torch.Tensor, torch.Tensor] | tuple[torch.Tensor, torch.Tensor, dict]:
+        r"""
+        Returns the measurement and signal pair ``(x, y)`` at the given index.
+        If forward operator parameters are available, it returns ``(x, y, params)``.
 
         The method returns a scalar NaN tensor as the ground truth when none is
         present in the dataset, in accordance with the conventions of the
         library (see :ref:`datasets user guide <datasets>`).
 
         :param int index: Index of the pair to return.
+        :return: transformed x, y, and optionally params.
         """
-        import h5py
 
         if self.hd5 is None:  # pragma: no cover
             raise ValueError(
                 "Dataset has been closed. Redefine the dataset to continue."
             )
 
-        # Compute x
+        # 1. Load ground truth x
         if hasattr(self, "x"):
-            x = self.x[index]
-            x = torch.from_numpy(x)
-            x = self.cast(x)
-
-            if self.transform is not None:
-                x = self.transform(x)
+            x = self.cast(torch.from_numpy(self.x[index]))
         else:
-            x = torch.tensor(torch.nan, dtype=torch.float32, device=torch.device("cpu"))
-            x = self.cast(x)
+            x = self.cast(torch.tensor(torch.nan, dtype=torch.float32, device="cpu"))
 
-        # Compute y
-        y = self.y
-        if isinstance(y, h5py.Dataset):
-            y = self.y[index]
-            y = torch.from_numpy(y)
-            y = self.cast(y)
+        # 2. Load measurement y (handles stacked/unstacked)
+        y_data = self.y
+        if isinstance(y_data, h5py.Dataset):
+            y = self.cast(torch.from_numpy(y_data[index]))
         else:
-            y = TensorList([self.cast(torch.from_numpy(yk[index])) for yk in y])
+            y = TensorList([self.cast(torch.from_numpy(yk[index])) for yk in y_data])
 
-        # Compute params
+        # 3. Synchronized Transforms
+        is_supervised = not getattr(self, "unsupervised", False)
+
+        if is_supervised and self.transform is not None:
+            # Capture RNG state to ensure x and y transforms are synchronized
+            state = torch.get_rng_state()
+
+            if hasattr(self, "x"):
+                x = self.transform(x)  # Always transform x
+
+            # Synchronize and transform measurements
+            torch.set_rng_state(state)
+            y = self.transform(y)
+
+        # 4. Load forward operator parameters
         if hasattr(self, "params"):
             params = {
                 k: self.cast(
@@ -423,8 +430,8 @@ class HDF5Dataset(ImageDataset):
 
         if params is not None:
             return x, y, params
-        else:
-            return x, y
+
+        return x, y
 
     def __len__(self) -> int:
         r"""
@@ -500,7 +507,7 @@ def collate(dataset: Dataset) -> Callable[[list[Any]], Tensor] | None:
                     if isinstance(sample, Image.Image):
                         img = sample
                     elif isinstance(sample, (list, tuple)):
-                        # only keeping the first element is same behavior as when dataset returns list of tensors!
+                        # only keeping the first element is same behavior as when dataset returns list of tensors
                         img = sample[0]
                     else:  # pragma: no cover
                         raise ValueError(
@@ -782,13 +789,21 @@ def generate_dataset(
                 )
 
                 for x_batch in dataloader:
-                    index = process_batch(
-                        hf,
-                        x_batch,
-                        split_name,
-                        index,
-                        n_split,
-                    )
+                    try:
+                        index = process_batch(
+                            hf,
+                            x_batch,
+                            split_name,
+                            index,
+                            n_split,
+                        )
+                    except RuntimeError as e:
+                        if "stack expects each tensor to be equal size" in str(e):
+                            raise ValueError(
+                                "generate_dataset expects dataset to return elements of same shape. "
+                                "Use a transform (e.g. torchvision.transforms.Resize) to ensure all images have the same shape."
+                            ) from e
+                        raise
 
                     # for train, once we've filled n_split samples, we stop
                     if split_name == "train" and index >= n_split:
