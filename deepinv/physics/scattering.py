@@ -15,7 +15,7 @@ def hankel1(n, x):
         )
     device = x.device
     dtype = x.dtype
-    return hankel1(n, x.cpu()).to(device=device, dtype=dtype)
+    return hankel1(n, x.detach().cpu()).to(device=device, dtype=dtype)
 
 
 def jv(n, x):
@@ -28,7 +28,7 @@ def jv(n, x):
         )
     device = x.device
     dtype = x.dtype
-    return jv(n, x.cpu()).to(device=device, dtype=dtype)
+    return jv(n, x.detach().cpu()).to(device=device, dtype=dtype)
 
 
 class Scattering(Physics):
@@ -933,7 +933,6 @@ def green_function(r, remove_nans=False):
 
     :param torch.Tensor r: Radial argument(s) (can be tensor).
     :param bool remove_nans: If True replace NaNs (singularity) with max abs value.
-    :param torch.dtype dtype: torch.dtype used for the returned tensor (matches r.dtype)
     :return: Complex tensor with Green's function values.
     """
     out = 1j / 4 * hankel1(0, r)
