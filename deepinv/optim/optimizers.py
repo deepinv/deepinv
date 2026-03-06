@@ -2276,6 +2276,7 @@ class MLEM(BaseOptim):
         Default: ``None``.
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
     :param float g_param: parameter for the prior. Default: ``None``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
     :param int max_iter: maximum number of iterations. Default: ``100``.
     :param str crit_conv: convergence criterion, either ``"residual"`` or ``"cost"``.
         Default: ``"residual"``.
@@ -2285,13 +2286,14 @@ class MLEM(BaseOptim):
     :param dict custom_metrics: dictionary of custom metrics to compute at each iteration.
         Default: ``None``.
     :param Callable custom_init: custom initialization function. Default: ``None``.
-    :param bool g_first: if ``True``, the prior step is applied before the data fidelity step.
-        Default: ``False``.
-    :param dict params_algo: dictionary of algorithm parameters. If ``None``, the parameters
-        are set from ``lambda_reg``, ``stepsize``, and ``g_param``. Default: ``None``.
-    :param Callable cost_fn: custom cost function. Default: ``None``.
-    :param bool compute_prox: whether to use the proximal operator of the prior (if ``True``) or its gradient (if ``False``) if both are available. Default: ``False``.
-    :param kwargs: additional keyword arguments passed to :class:`deepinv.optim.BaseOptim`.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param Callable cost_fn: Custom user input cost function.
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
+    :param dict params_algo: optionally, directly provide the ADMM parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `beta`.
     """
 
     def __init__(
@@ -2300,14 +2302,15 @@ class MLEM(BaseOptim):
         prior: Prior | list[Prior] = None,
         lambda_reg: float = 1.0,
         g_param: float = None,
+        sigma_denoiser: float = None,
         max_iter: int = 100,
         crit_conv: str = "residual",
         thres_conv: float = 1e-5,
         early_stop: bool = False,
         custom_metrics: dict[str, Metric] = None,
         custom_init: Callable[[torch.Tensor, Physics], dict] = None,
-        g_first: bool = False,
-        params_algo: dict[str, float] = None,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
         cost_fn: Callable[
             [
                 torch.Tensor,
@@ -2319,16 +2322,19 @@ class MLEM(BaseOptim):
             ],
             torch.Tensor,
         ] = None,
-        compute_prox: bool = False,
+        params_algo: dict[str, float] = None,
         **kwargs,
     ):
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+
         if params_algo is None:
             params_algo = {
                 "lambda": lambda_reg,
                 "g_param": g_param,
             }
         super(MLEM, self).__init__(
-            MLEMIteration(g_first=g_first, cost_fn=cost_fn, compute_prox=compute_prox),
+            MLEMIteration(cost_fn=cost_fn),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
@@ -2338,5 +2344,7 @@ class MLEM(BaseOptim):
             early_stop=early_stop,
             custom_metrics=custom_metrics,
             custom_init=custom_init,
+            unfold=unfold,
+            trainable_params=trainable_params,
             **kwargs,
         )

@@ -57,8 +57,6 @@ torch.manual_seed(0)
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
-# Load a test image
-# -----------------------------------------------
 # We use a single image from the Set3C dataset.
 
 img_size = 128 if torch.cuda.is_available() else 64
@@ -93,8 +91,6 @@ physics_blur = dinv.physics.BlurFFT(
 y_blur = physics_blur(x)
 
 # %%
-# Run MLEM without prior
-# -----------------------------------------------
 # The :class:`deepinv.optim.MLEM` class wraps the MLEM iterations.
 # Without a prior, and in the case of deconvolution, this is equivalent to the classic Richardson-Lucy algorithm.
 # Note that without prior, the algorithm will create artifacts when noise is present in the observation.
@@ -117,7 +113,6 @@ x_mlem, metrics_mlem = model_no_prior(
 
 # %%
 # Visualize results and PSNR values along with convergence curves
-# -----------------------------------------------------------------------
 
 psnr_input = dinv.metric.PSNR()(x, y_blur)
 psnr_mlem = dinv.metric.PSNR()(x, x_mlem)
@@ -165,8 +160,8 @@ prior_tv = dinv.optim.prior.TVPrior(n_it_max=50)
 model_tv = dinv.optim.MLEM(
     data_fidelity=data_fidelity,
     prior=prior_tv,
-    lambda_reg=5e-2,
-    max_iter=200,
+    lambda_reg=0.02,
+    max_iter=100,
     early_stop=True,
     thres_conv=1e-6,
     crit_conv="residual",
@@ -179,7 +174,6 @@ x_mlem_tv, metrics_mlem_tv = model_tv(
 
 # %%
 # Visualize results — MLEM + TV
-# -------------------------------
 
 psnr_mlem_tv = dinv.metric.PSNR()(x, x_mlem_tv)
 
@@ -187,13 +181,13 @@ plot(
     {
         "Ground Truth": x,
         "Measurement": y_blur,
-        "MLEM": x_mlem,
+        # "MLEM": x_mlem,
         "MLEM with TV": x_mlem_tv,
     },
     subtitles=[
         "Reference",
         f"PSNR: {psnr_input.item():.2f} dB",
-        f"PSNR: {psnr_mlem.item():.2f} dB",
+        # f"PSNR: {psnr_mlem.item():.2f} dB",
         f"PSNR: {psnr_mlem_tv.item():.2f} dB",
     ],
     figsize=(12, 3),
@@ -202,9 +196,8 @@ plot(
 plot_curves(metrics_mlem_tv)
 
 # %%
-# =====================================================================
-# Part 3 — Computed Tomography with MLEM + TV + custom metrics
-# =====================================================================
+# Computed Tomography with MLEM + TV + custom metrics
+# -------------------------------------------------------------
 #
 # In emission tomography (PET/SPECT), the forward model is a Radon transform
 # with Poisson statistics. Here we take the simple Shepp-Logan phantom as ground truth and use MLEM with TV prior to reconstruct it from its noisy sinogram.
@@ -227,12 +220,11 @@ x_ct = load_example(
 
 # %%
 # Set up Tomography physics
-# --------------------------
 # We define a parallel-beam tomography operator with 120 projection angles
 # uniformly distributed between 0° and 180°, and Poisson noise.
 
 num_angles = 120
-gain_ct = 1 / 200
+gain_ct = 1 / 300
 
 physics_ct = dinv.physics.Tomography(
     img_width=img_size,
@@ -251,7 +243,6 @@ x_fbp = physics_ct.A_dagger(y_ct)
 
 # %%
 # Run MLEM + TV on the CT problem
-# ---------------------------------
 
 data_fidelity_ct = dinv.optim.PoissonLikelihood(gain=gain_ct)
 prior_tv_ct = dinv.optim.prior.TVPrior(n_it_max=50)
@@ -271,7 +262,6 @@ x_ct_recon, metrics_ct = model_ct(y_ct, physics_ct, x_gt=x_ct, compute_metrics=T
 
 # %%
 # Visualize CT results and plot convergence curves
-# --------------------------------------------------
 
 psnr_fbp = dinv.metric.PSNR()(x_ct, x_fbp)
 psnr_ct = dinv.metric.PSNR()(x_ct, x_ct_recon)
