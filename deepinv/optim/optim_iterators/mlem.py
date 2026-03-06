@@ -1,6 +1,5 @@
-from .optim_iterator import OptimIterator, fStep, gStep
+from .optim_iterator import OptimIterator
 from torch import ones_like
-from torch.linalg import vector_norm
 
 
 class MLEMIteration(OptimIterator):
