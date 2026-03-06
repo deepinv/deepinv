@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import torch
 from .base import Reconstructor
-from . import deal_impl as deal_lib
+from . import deal_lib
 
 
 class DEAL(Reconstructor):
