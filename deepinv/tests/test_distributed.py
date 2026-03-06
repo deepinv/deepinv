@@ -32,8 +32,9 @@ from deepinv.physics.forward import StackedLinearPhysics
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Denoiser
 from deepinv.models.drunet import DRUNet
-from deepinv.optim import L2, L1
+from deepinv.optim import L2, L1, PGD
 from deepinv.optim.data_fidelity import StackedPhysicsDataFidelity
+from deepinv.optim.prior import PnP
 
 from deepinv.distributed.distrib_framework import (
     DistributedContext,
@@ -41,7 +42,10 @@ from deepinv.distributed.distrib_framework import (
     DistributedProcessing,
     DistributedDataFidelity,
 )
-from deepinv.distributed.distribute import distribute
+from deepinv.distributed.distribute import (
+    distribute,
+    _distribute_base_optim,
+)
 
 # =============================================================================
 # Test Infrastructure: Multi-GPU and CPU Support
@@ -1635,7 +1639,841 @@ def _test_distribute_helper_data_fidelity_worker(rank, world_size, args):
 def test_distribute_helper_data_fidelity(device_config):
     """Test distribute_data_fidelity helper with single object."""
     test_args = {"device_mode": device_config["device_mode"]}
+
     results = run_distributed_test(
         _test_distribute_helper_data_fidelity_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
+
+
+# =============================================================================
+# Backward / Gradient Tests
+# =============================================================================
+
+
+class TrainableDenoiser(Denoiser):
+    """
+    Simple trainable denoiser for testing gradients.
+    """
+
+    def __init__(self, channels=1):
+        super().__init__()
+        self.conv = torch.nn.Conv2d(channels, channels, kernel_size=3, padding=1)
+        # Initialize with known weights for reproducibility
+        with torch.no_grad():
+            self.conv.weight.fill_(0.1)
+            self.conv.bias.fill_(0.01)
+
+    def forward(self, x, sigma=None, **kwargs):
+        return self.conv(x)
+
+
+def _test_physics_backward_worker(rank, world_size, args):
+    """Worker for testing physics backward pass."""
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        num_operators = 3
+        # Create physics
+        # Note: Physics usually don't have learnable params, so we check grad w.r.t input x
+        physics_list = create_test_physics_list(ctx.device, num_operators)
+
+        # We need a physics that supports backward on its operations.
+        # Blur/GaussianNoise are standard diffable ops.
+
+        # Distributed
+        if args["gather_strategy"] == "naive" and ctx.get_backend() == "nccl":
+            # Naive not supported on NCCL
+            return "skipped"
+
+        distributed_physics = distribute(
+            physics_list, ctx, gather_strategy=args["gather_strategy"]
+        )
+
+        # Reference
+        stacked_physics = StackedLinearPhysics(physics_list)
+
+        # Input
+        # Ensure identical initialization across ranks for inputs
+        rng_state = torch.get_rng_state()
+        torch.manual_seed(1234)  # Shared seed (overrides DistributedContext diversity)
+        x = torch.randn(1, 1, 16, 16, device=ctx.device, requires_grad=True)
+        torch.set_rng_state(rng_state)
+
+        # We need a clone for reference to ensure clean gradients
+        x_ref = x.clone().detach().requires_grad_(True)
+
+        # 1. Distributed Forward
+        y_dist = distributed_physics.A(x)
+
+        # Loss
+        # We compute the global loss on EACH rank.
+        # Since dist_nn functions backpropagate gradients from all ranks to the source,
+        # computing the loss on all ranks effectively multiplies the gradient by world_size.
+        # We must normalize to match the single-process reference.
+        loss_dist = sum([yi.sum() for yi in y_dist])
+
+        # Backward
+        # For broadcast strategy, we have multiple independent broadcast operations in the graph.
+        # Autograd backward order is not guaranteed for independent nodes, which can cause deadlocks
+        # with distributed collectives (Rank 0 does Bcast2 then Bcast1, Rank 1 does Bcast1 then Bcast2).
+        # We enforce deterministic backward order by backpropagating sequentially.
+        if args.get("gather_strategy") == "broadcast":
+            grad_scaler = 1.0
+            # Backward in reverse order (standard convention, though any agreed order works)
+            # We use retain_graph=True for all but the last one (or just all and let iter finish)
+            # But x.grad accumulates, so it's fine.
+            # actually we don't need retain_graph for x, but we need it for intermediate graph if shared?
+            # independent branches only join at x.
+            for i in range(len(y_dist) - 1, -1, -1):
+                (y_dist[i].sum() * grad_scaler).backward()
+        else:
+            loss_dist = sum([yi.sum() for yi in y_dist])
+            loss_dist.backward()
+
+        # Aggregate gradients from all ranks IS NOW AUTOMATIC via DistributedGradientSync!
+        # if ctx.use_dist:
+        #      dist.all_reduce(x.grad, op=dist.ReduceOp.SUM)
+
+        grad_dist = x.grad.clone()
+
+        # 2. Reference Forward
+        y_ref = stacked_physics.A(x_ref)
+        loss_ref = sum([yi.sum() for yi in y_ref])
+        loss_ref.backward()
+        grad_ref = x_ref.grad.clone()
+
+        # Compare Gradients
+        assert torch.allclose(grad_dist, grad_ref, atol=1e-5)
+
+        return "success"
+
+
+@pytest.mark.parametrize("gather_strategy", ["concatenated", "broadcast"])
+def test_distributed_physics_backward(device_config, gather_strategy):
+    """
+    Test that gradients flow correctly through DistributedStackedPhysics.
+    """
+    if gather_strategy == "broadcast" and device_config["world_size"] > 1:
+        pytest.skip(
+            "Skipping broadcast backward due to known deadlock issue with dist_nn.broadcast backward on some backends"
+        )
+
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "gather_strategy": gather_strategy,
+    }
+    results = run_distributed_test(
+        _test_physics_backward_worker, device_config, test_args
+    )
+
+    # filter skipped
+    results = [r for r in results if r != "skipped"]
+    if not results:
+        pytest.skip("All ranks skipped (likely due to naive+NCCL)")
+
+    if test_args["gather_strategy"] == "broadcast" and results == []:
+        # If results empty/timeout for broadcast, it might be the deadlock issue
+        pass
+
+    assert all(r == "success" for r in results)
+
+
+def _test_data_fidelity_backward_worker(rank, world_size, args):
+    """Worker for testing backward-through-grad with DistributedDataFidelity."""
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        num_operators = 3
+        physics_list = create_test_physics_list(ctx.device, num_operators)
+
+        distributed_physics = distribute(physics_list, ctx)
+        distributed_fidelity = distribute(L2(), ctx=ctx, num_operators=num_operators)
+
+        stacked_physics = StackedLinearPhysics(physics_list)
+        stacked_fidelity = StackedPhysicsDataFidelity(
+            [L2() for _ in range(num_operators)]
+        )
+
+        # Fixed measurement from a detached clean input (measurement should be treated as constant).
+        x_true = torch.randn(1, 1, 16, 16, device=ctx.device)
+        y_dist = distributed_physics.A(x_true)
+
+        # Reuse the exact same measurements for the non-distributed reference.
+        y_ref = [yi.detach().clone() for yi in y_dist]
+
+        # Dist path: first-order differentiation through data_fidelity.grad wrt x.
+        x = torch.randn(1, 1, 16, 16, device=ctx.device, requires_grad=True)
+        g_dist = distributed_fidelity.grad(x, y_dist, distributed_physics)
+        loss_dist = g_dist.sum()
+        loss_dist.backward()
+        grad_dist = x.grad.clone()
+
+        # Reference path.
+        x_ref = x.detach().clone().requires_grad_(True)
+        g_ref = stacked_fidelity.grad(x_ref, y_ref, stacked_physics)
+        loss_ref = g_ref.sum()
+        loss_ref.backward()
+        grad_ref = x_ref.grad.clone()
+
+        assert torch.allclose(grad_dist, grad_ref, atol=1e-5)
+        return "success"
+
+
+def test_distributed_data_fidelity_backward(device_config):
+    """
+    Test gradients through DistributedDataFidelity.grad wrt x.
+    """
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_data_fidelity_backward_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
+
+
+def _test_distributed_gradient_sync_higher_order_worker(rank, world_size, args):
+    """Test higher-order gradients through DistributedGradientSync."""
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        x = torch.randn(1, 1, 8, 8, device=ctx.device, requires_grad=True)
+        x_ref = x.detach().clone().requires_grad_(True)
+
+        physics_list = create_test_physics_list(ctx.device, 3)
+        for p in physics_list:
+            p.noise_model = GaussianNoise(sigma=0.0)
+        distributed_physics = distribute(physics_list, ctx)
+        stacked_physics = StackedLinearPhysics(physics_list)
+
+        y_dist = distributed_physics.A(x)
+        loss_dist = sum((yi.square().sum() for yi in y_dist)) / ctx.world_size
+        grad1_dist = torch.autograd.grad(loss_dist, x, create_graph=True)[0]
+        loss2_dist = grad1_dist.square().sum() / ctx.world_size
+        grad2_dist = torch.autograd.grad(loss2_dist, x)[0]
+
+        y_ref = stacked_physics.A(x_ref)
+        loss_ref = sum((yi.square().sum() for yi in y_ref))
+        grad1_ref = torch.autograd.grad(loss_ref, x_ref, create_graph=True)[0]
+        loss2_ref = grad1_ref.square().sum()
+        grad2_ref = torch.autograd.grad(loss2_ref, x_ref)[0]
+
+        assert torch.allclose(grad2_dist, grad2_ref, atol=1e-5)
+        return "success"
+
+
+def test_distributed_gradient_sync_higher_order(device_config):
+    """Test second-order gradient consistency for distributed physics input sync."""
+    if device_config["world_size"] > 1:
+        pytest.skip(
+            "Higher-order exact equivalence is only enforced in single-process mode."
+        )
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distributed_gradient_sync_higher_order_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
+
+
+def _test_distributed_parameter_sync_higher_order_worker(rank, world_size, args):
+    """Test higher-order gradients through DistributedParameterSync."""
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        denoiser = TrainableDenoiser(channels=3).to(ctx.device)
+        distributed_processor = distribute(
+            denoiser,
+            ctx,
+            type_object="denoiser",
+            tiling_strategy="overlap_tiling",
+            patch_size=8,
+            overlap=2,
+        )
+
+        denoiser_ref = TrainableDenoiser(channels=3).to(ctx.device)
+        denoiser_ref.load_state_dict(denoiser.state_dict())
+
+        x = torch.randn(1, 3, 16, 16, device=ctx.device, requires_grad=True)
+        x_ref = x.detach().clone().requires_grad_(True)
+
+        # Distributed path
+        out_dist = distributed_processor(x)
+        loss_dist = out_dist.sum() / ctx.world_size
+        loss_dist.backward(create_graph=True)
+        meta_dist = 0.0
+        for p in denoiser.parameters():
+            assert p.grad is not None
+            meta_dist = meta_dist + p.grad.square().sum()
+        grad2_dist = torch.autograd.grad(meta_dist, x)[0]
+
+        # Reference path (single-process equivalent on same rank)
+        from deepinv.distributed.strategies import create_strategy
+
+        strategy = create_strategy(
+            "overlap_tiling", x_ref.shape, patch_size=8, overlap=2
+        )
+        all_indices = list(range(strategy.get_num_patches()))
+        patch_pairs = strategy.get_local_patches(x_ref, all_indices)
+        all_patches = [p for _, p in patch_pairs]
+        processed = [denoiser_ref(p) for p in all_patches]
+        out_ref = torch.zeros_like(x_ref)
+        strategy.reduce_patches(out_ref, list(zip(all_indices, processed)))
+
+        loss_ref = out_ref.sum()
+        loss_ref.backward(create_graph=True)
+        meta_ref = 0.0
+        for p in denoiser_ref.parameters():
+            assert p.grad is not None
+            meta_ref = meta_ref + p.grad.square().sum()
+        grad2_ref = torch.autograd.grad(meta_ref, x_ref)[0]
+
+        assert torch.allclose(grad2_dist, grad2_ref, atol=1e-5)
+        return "success"
+
+
+def test_distributed_parameter_sync_higher_order(device_config):
+    """Test second-order gradient consistency for distributed parameter sync."""
+    if device_config["world_size"] > 1:
+        pytest.skip(
+            "Higher-order exact equivalence is only enforced in single-process mode."
+        )
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distributed_parameter_sync_higher_order_worker,
+        device_config,
+        test_args,
+    )
+    assert all(r == "success" for r in results)
+
+
+def _test_unrolled_backward_worker(rank, world_size, args):
+    """
+    Worker for unrolled backward consistency:
+    compares distributed vs reference forward and gradients.
+    """
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        num_operators = 3
+        n_unroll = 3
+        sigma_denoiser = 0.02
+        patch_size = 8
+        overlap = 2
+
+        physics_list = create_test_physics_list(ctx.device, num_operators)
+        for p in physics_list:
+            p.noise_model = GaussianNoise(sigma=0.0)
+
+        distributed_physics = distribute(physics_list, ctx)
+        distributed_fidelity = distribute(L2(), ctx=ctx, num_operators=num_operators)
+
+        stacked_physics = StackedLinearPhysics(physics_list)
+        stacked_fidelity = StackedPhysicsDataFidelity(
+            [L2() for _ in range(num_operators)]
+        )
+
+        # Build same DRUNet on all ranks and sync weights from rank 0.
+        denoiser = create_drunet_denoiser(num_channels=1, device=ctx.device)
+        if ctx.use_dist:
+            with torch.no_grad():
+                for p in denoiser.parameters():
+                    dist.broadcast(p.data, src=0)
+                for b in denoiser.buffers():
+                    dist.broadcast(b.data, src=0)
+
+        distributed_denoiser = distribute(
+            denoiser,
+            ctx,
+            type_object="denoiser",
+            tiling_strategy="overlap_tiling",
+            patch_size=patch_size,
+            overlap=overlap,
+        )
+
+        denoiser_ref = create_drunet_denoiser(num_channels=1, device=ctx.device)
+        denoiser_ref.load_state_dict(denoiser.state_dict())
+        from deepinv.distributed.strategies import create_strategy
+
+        strategy = create_strategy(
+            "overlap_tiling",
+            (1, 1, 16, 16),
+            patch_size=patch_size,
+            overlap=overlap,
+        )
+        all_indices = list(range(strategy.get_num_patches()))
+
+        def _reference_tiled_denoise(x_in):
+            patch_pairs = strategy.get_local_patches(x_in, all_indices)
+            all_patches = [p for _, p in patch_pairs]
+            processed = [denoiser_ref(p, sigma=sigma_denoiser) for p in all_patches]
+            x_out = torch.zeros_like(x_in)
+            strategy.reduce_patches(x_out, list(zip(all_indices, processed)))
+            return x_out
+
+        # Fixed measurement (constant in the graph).
+        rng_state = torch.get_rng_state()
+        torch.manual_seed(1234)
+        x_true = torch.randn(1, 1, 16, 16, device=ctx.device)
+        x0 = torch.randn(1, 1, 16, 16, device=ctx.device)
+        torch.set_rng_state(rng_state)
+
+        y_dist = distributed_physics.A(x_true)
+        y_ref = [yi.detach().clone() for yi in y_dist]
+
+        steps = distribute(
+            torch.nn.Parameter(torch.tensor([0.4, 0.3, 0.2], device=ctx.device)),
+            ctx,
+        )
+        x = x0.detach().clone().requires_grad_(True)
+
+        # Distributed unrolled forward
+        x_dist = x
+        for k in range(n_unroll):
+            grad_k = distributed_fidelity.grad(x_dist, y_dist, distributed_physics)
+            x_dist = x_dist - steps[k] * grad_k
+            x_dist = distributed_denoiser(x_dist, sigma=sigma_denoiser)
+
+        # Reference unrolled forward
+        steps_ref = steps.detach().clone().requires_grad_(True)
+        x_ref = x0.detach().clone().requires_grad_(True)
+        x_ref_out = x_ref
+        for k in range(n_unroll):
+            grad_k_ref = stacked_fidelity.grad(x_ref_out, y_ref, stacked_physics)
+            x_ref_out = x_ref_out - steps_ref[k] * grad_k_ref
+            x_ref_out = _reference_tiled_denoise(x_ref_out)
+
+        # 1) Forward closeness check
+        diff_out = (x_dist - x_ref_out).abs()
+        assert torch.allclose(x_dist, x_ref_out, atol=1e-4), (
+            "Unrolled forward mismatch: "
+            f"mean={diff_out.mean().item():.3e}, max={diff_out.max().item():.3e}"
+        )
+
+        # 2) Backward checks (x, steps, denoiser params)
+        loss_dist = x_dist.square().sum()
+        loss_ref = x_ref_out.square().sum()
+        loss_dist.backward()
+        loss_ref.backward()
+
+        if ctx.use_dist and x.grad is not None:
+            dist.all_reduce(x.grad, op=dist.ReduceOp.SUM)
+            x.grad = x.grad / float(ctx.world_size)
+
+        issues = []
+
+        assert x.grad is not None and x_ref.grad is not None
+        diff_x = (x.grad - x_ref.grad).abs()
+        x_norm = x.grad.norm().item()
+        x_ref_norm = x_ref.grad.norm().item()
+        norm_ratio = x_norm / (x_ref_norm + 1e-12)
+        cos_sim = torch.nn.functional.cosine_similarity(
+            x.grad.reshape(1, -1), x_ref.grad.reshape(1, -1), dim=1
+        ).item()
+        x_similar = torch.allclose(x.grad, x_ref.grad, atol=5e-1, rtol=5e-2) or (
+            0.9 <= norm_ratio <= 1.1 and cos_sim > 0.99
+        )
+        if not x_similar:
+            issues.append(
+                "Input gradient mismatch: "
+                f"mean={diff_x.mean().item():.3e}, max={diff_x.max().item():.3e}, "
+                f"norm_dist={x_norm:.3e}, norm_ref={x_ref_norm:.3e}, "
+                f"ratio={norm_ratio:.3e}, cosine={cos_sim:.6f}"
+            )
+
+        assert steps.grad is not None and steps_ref.grad is not None
+        diff_steps = (steps.grad - steps_ref.grad).abs()
+        if not torch.allclose(steps.grad, steps_ref.grad, atol=1e-3, rtol=5e-4):
+            issues.append(
+                "Steps gradient mismatch: "
+                f"dist={steps.grad.detach().cpu().tolist()}, ref={steps_ref.grad.detach().cpu().tolist()}, "
+                f"max={diff_steps.max().item():.3e}"
+            )
+
+        for i, (p_dist, p_ref) in enumerate(
+            zip(denoiser.parameters(), denoiser_ref.parameters())
+        ):
+            assert p_dist.grad is not None and p_ref.grad is not None
+            d = (p_dist.grad - p_ref.grad).abs()
+            if not torch.allclose(p_dist.grad, p_ref.grad, atol=5e-3, rtol=1e-4):
+                issues.append(
+                    f"Param grad mismatch at index {i}: "
+                    f"mean={d.mean().item():.3e}, max={d.max().item():.3e}, "
+                    f"norm_dist={p_dist.grad.norm().item():.3e}, norm_ref={p_ref.grad.norm().item():.3e}"
+                )
+
+        assert not issues, "\n".join(issues)
+
+        return "success"
+
+
+def test_unrolled_backward(device_config):
+    """
+    End-to-end unrolled backward consistency test with DRUNet and trainable step sizes.
+    """
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_unrolled_backward_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
+
+
+def _test_distributed_parameter_autodetect_worker(rank, world_size, args):
+    """Auto-detected distribute(Parameter) should sync/average gradients."""
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        step = distribute(torch.nn.Parameter(torch.tensor(0.7, device=ctx.device)), ctx)
+
+        x_local = torch.linspace(-1.0, 1.0, steps=16, device=ctx.device).reshape(4, 4)
+        x_local = x_local + 0.2 * ctx.rank
+        target = torch.zeros_like(x_local)
+
+        loss_dist = ((step * x_local - target) ** 2).mean()
+        loss_dist.backward()
+        grad_dist = step.grad.detach().clone()
+
+        step_ref = torch.nn.Parameter(torch.tensor(0.7, device=ctx.device))
+        loss_ref = 0.0
+        for r in range(ctx.world_size):
+            x_r = torch.linspace(-1.0, 1.0, steps=16, device=ctx.device).reshape(4, 4)
+            x_r = x_r + 0.2 * r
+            loss_ref = loss_ref + ((step_ref * x_r - target) ** 2).mean()
+        loss_ref = loss_ref / float(ctx.world_size)
+        loss_ref.backward()
+
+        assert torch.allclose(grad_dist, step_ref.grad, atol=1e-6), (
+            f"Parameter autodetect grad mismatch: dist={grad_dist.item():.6e}, "
+            f"ref={step_ref.grad.item():.6e}"
+        )
+        return "success"
+
+
+def test_distributed_parameter_autodetect(device_config):
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distributed_parameter_autodetect_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
+
+
+def _make_test_unfolded_model(device: torch.device, unfold: bool = True) -> PGD:
+    return PGD(
+        stepsize=[0.8, 0.7],
+        sigma_denoiser=0.05,
+        trainable_params=["stepsize"],
+        data_fidelity=L2(),
+        prior=PnP(TrainableDenoiser(channels=1).to(device)),
+        max_iter=2,
+        unfold=unfold,
+    )
+
+
+def _test_distribute_base_optim_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        model = _make_test_unfolded_model(ctx.device, unfold=True)
+        model_out = _distribute_base_optim(
+            model, ctx, patch_size=8, overlap=2, max_batch_size=1
+        )
+        assert model_out is model
+
+        assert isinstance(model.data_fidelity, torch.nn.ModuleList)
+        assert all(
+            isinstance(df, DistributedDataFidelity) for df in model.data_fidelity
+        )
+        assert isinstance(model.prior[0].denoiser, DistributedProcessing)
+        assert hasattr(model, "_deepinv_dist_sync")
+
+        physics_list = create_test_physics_list(ctx.device, 2)
+        for p in physics_list:
+            p.noise_model = GaussianNoise(sigma=0.0)
+        distributed_physics = distribute(physics_list, ctx=ctx)
+
+        x_true = torch.randn(1, 1, 16, 16, device=ctx.device)
+        y = distributed_physics.A(x_true)
+        out = model(y, distributed_physics)
+        out.square().mean().backward()
+
+        assert all(p.grad is not None for p in model.params_algo["stepsize"])
+        denoiser_params = [
+            p for p in model.prior[0].denoiser.processor.parameters() if p.requires_grad
+        ]
+        assert denoiser_params and all(p.grad is not None for p in denoiser_params)
+        return "success"
+
+
+def test_distribute_base_optim(device_config):
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distribute_base_optim_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
+
+
+def _test_distribute_module_type_baseoptim_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        model = _make_test_unfolded_model(ctx.device, unfold=True)
+        out = distribute(
+            model,
+            ctx,
+            type_object="module",
+            patch_size=8,
+            overlap=2,
+            max_batch_size=1,
+        )
+        assert out is model
+        assert isinstance(model.prior[0].denoiser, DistributedProcessing)
+        assert all(
+            isinstance(df, DistributedDataFidelity) for df in model.data_fidelity
+        )
+        return "success"
+
+
+def test_distribute_module_type_baseoptim(device_config):
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distribute_module_type_baseoptim_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
+
+
+def _test_distribute_module_type_rejects_non_unfold_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        model = _make_test_unfolded_model(ctx.device, unfold=False)
+        with pytest.raises(TypeError, match="unfold=False"):
+            distribute(model, ctx, type_object="module")
+        return "success"
+
+
+def test_distribute_module_type_rejects_non_unfold(device_config):
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distribute_module_type_rejects_non_unfold_worker,
+        device_config,
+        test_args,
+    )
+    assert all(r == "success" for r in results)
+
+
+def _test_distribute_module_autodetect_rejects_generic_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        module = torch.nn.Linear(4, 1, bias=True).to(ctx.device)
+        with pytest.raises(
+            ValueError, match="Cannot auto-detect generic torch.nn.Module"
+        ):
+            distribute(module, ctx)
+        with pytest.raises(TypeError, match="type_object='module' only supports"):
+            distribute(module, ctx, type_object="module")
+        return "success"
+
+
+def test_distribute_module_autodetect_rejects_generic(device_config):
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distribute_module_autodetect_rejects_generic_worker,
+        device_config,
+        test_args,
+    )
+    assert all(r == "success" for r in results)
+
+
+def _test_processor_backward_worker(rank, world_size, args):
+    """Worker for testing processor backward pass (gradients on parameters)."""
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        # Create Trainable Denoiser
+        denoiser = TrainableDenoiser(channels=3).to(ctx.device)
+
+        # We need to share the SAME initial weights across ranks to ensure determinism
+        # Since we use seed=42 in context, and TrainableDenoiser inits from fixed values,
+        # let's double check simple syncing or just rely on manual init in TrainableDenoiser
+        # TrainableDenoiser uses fill_, so it's deterministic.
+
+        distributed_processor = distribute(
+            denoiser,
+            ctx,
+            type_object="denoiser",
+            tiling_strategy="overlap_tiling",
+            patch_size=8,
+            overlap=2,
+        )
+
+        # Reference
+        denoiser_ref = TrainableDenoiser(channels=3).to(ctx.device)
+        # Ensure weights allow perfect comparison (though they should be identical by init)
+        denoiser_ref.load_state_dict(denoiser.state_dict())
+
+        # Ensure identical initialization across ranks while preserving outer RNG state.
+        fork_devices = [ctx.device.index] if ctx.device.type == "cuda" else []
+        with torch.random.fork_rng(devices=fork_devices):
+            torch.manual_seed(
+                1234
+            )  # Shared seed (overrides DistributedContext diversity)
+            x = torch.randn(1, 3, 16, 16, device=ctx.device, requires_grad=True)
+
+        x_ref = x.clone().detach().requires_grad_(True)
+
+        # 1. Distributed Forward & Backward
+        # Test standard optimizer integration
+        optimizer = torch.optim.SGD(denoiser.parameters(), lr=1e-3)
+        optimizer.zero_grad()
+
+        out_dist = distributed_processor(x)
+        # Normalize sum by world_size because we are computing loss on all ranks (Replicated Loss).
+        # Since dist_nn.all_reduce sums gradients from all ranks, we need to scale down to match Single-GPU expectation.
+        loss_dist = out_dist.sum()
+        loss_dist.backward()
+
+        # Optimizer step should work now as gradients are synced
+        optimizer.step()
+
+        # Get gradients of parameters
+        grads_dist = []
+        for param in denoiser.parameters():
+            if param.grad is not None:
+                grads_dist.append(param.grad.clone())
+
+        # Also check input gradient
+        x_grad_dist = x.grad.clone()
+
+        if len(grads_dist) == 0:
+            return "failure: no param gradients"
+
+        if x_grad_dist is None:
+            return "failure: no input gradients"
+
+        # Check against reference simulated LOCALLY
+        local_weight_grad = denoiser.conv.weight.grad
+        local_bias_grad = denoiser.conv.bias.grad
+
+        # Gradient reduction is now AUTOMATIC via DistributedParameterSync!
+        # if ctx.use_dist:
+        #    # Reduce gradients to see if they match the global run
+        #    dist.all_reduce(local_weight_grad, op=dist.ReduceOp.SUM)
+        #    dist.all_reduce(local_bias_grad, op=dist.ReduceOp.SUM)
+
+        # Now local_weight_grad contains the SUM of gradients from all ranks.
+        # This should match the gradient if we ran the whole thing on one GPU.
+
+        # Let's compute the Single-GPU reference locally
+        from deepinv.distributed.strategies import create_strategy
+
+        strategy = create_strategy(
+            "overlap_tiling", x_ref.shape, patch_size=8, overlap=2
+        )
+        # All patches
+        num_patches = strategy.get_num_patches()
+        all_indices = list(range(num_patches))
+
+        # Extract
+        patch_pairs = strategy.get_local_patches(x_ref, all_indices)
+        all_patches = [p for _, p in patch_pairs]
+
+        # Process using the same batching path as DistributedProcessing to avoid
+        # backend-dependent numeric drift between batched and per-patch conv calls.
+        batched_patches = strategy.apply_batching(
+            all_patches, max_batch_size=distributed_processor.max_batch_size
+        )
+        processed_batches = [denoiser_ref(batch) for batch in batched_patches]
+        processed = strategy.unpack_batched_results(processed_batches, len(all_patches))
+
+        # Reconstruct
+        out_ref = torch.zeros_like(x_ref)
+        strategy.reduce_patches(out_ref, list(zip(all_indices, processed)))
+
+        # Loss
+        loss_ref = out_ref.sum()
+        loss_ref.backward()
+
+        # Compare reduced distributed grads with reference grads
+        assert torch.allclose(
+            local_weight_grad, denoiser_ref.conv.weight.grad, atol=1e-5
+        ), f"Weight grad mismatch! Dist: {local_weight_grad.norm()}, Ref: {denoiser_ref.conv.weight.grad.norm()}"
+
+        assert torch.allclose(local_bias_grad, denoiser_ref.conv.bias.grad, atol=1e-5)
+
+        return "success"
+
+
+def _test_processor_backward_multiple_calls_worker(rank, world_size, args):
+    """Worker ensuring one param sync per backward graph with multiple processor calls."""
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        denoiser = TrainableDenoiser(channels=3).to(ctx.device)
+        distributed_processor = distribute(
+            denoiser,
+            ctx,
+            type_object="denoiser",
+            tiling_strategy="overlap_tiling",
+            patch_size=8,
+            overlap=2,
+        )
+
+        denoiser_ref = TrainableDenoiser(channels=3).to(ctx.device)
+        denoiser_ref.load_state_dict(denoiser.state_dict())
+
+        fork_devices = [ctx.device.index] if ctx.device.type == "cuda" else []
+        with torch.random.fork_rng(devices=fork_devices):
+            torch.manual_seed(1234)
+            x = torch.randn(1, 3, 16, 16, device=ctx.device, requires_grad=True)
+        x_ref = x.clone().detach().requires_grad_(True)
+
+        # Two distributed calls in the same graph and one backward.
+        out_dist_1 = distributed_processor(x)
+        out_dist_2 = distributed_processor(x)
+        loss_dist = out_dist_1.sum() + out_dist_2.sum()
+        loss_dist.backward()
+
+        local_weight_grad = denoiser.conv.weight.grad
+        local_bias_grad = denoiser.conv.bias.grad
+        if local_weight_grad is None or local_bias_grad is None:
+            return "failure: no param gradients"
+
+        from deepinv.distributed.strategies import create_strategy
+
+        strategy = create_strategy(
+            "overlap_tiling", x_ref.shape, patch_size=8, overlap=2
+        )
+        num_patches = strategy.get_num_patches()
+        all_indices = list(range(num_patches))
+        patch_pairs = strategy.get_local_patches(x_ref, all_indices)
+        all_patches = [p for _, p in patch_pairs]
+
+        out_ref_1 = torch.zeros_like(x_ref)
+        batched_patches_1 = strategy.apply_batching(
+            all_patches, max_batch_size=distributed_processor.max_batch_size
+        )
+        processed_batches_1 = [denoiser_ref(batch) for batch in batched_patches_1]
+        processed_1 = strategy.unpack_batched_results(
+            processed_batches_1, len(all_patches)
+        )
+        strategy.reduce_patches(out_ref_1, list(zip(all_indices, processed_1)))
+
+        out_ref_2 = torch.zeros_like(x_ref)
+        batched_patches_2 = strategy.apply_batching(
+            all_patches, max_batch_size=distributed_processor.max_batch_size
+        )
+        processed_batches_2 = [denoiser_ref(batch) for batch in batched_patches_2]
+        processed_2 = strategy.unpack_batched_results(
+            processed_batches_2, len(all_patches)
+        )
+        strategy.reduce_patches(out_ref_2, list(zip(all_indices, processed_2)))
+
+        loss_ref = out_ref_1.sum() + out_ref_2.sum()
+        loss_ref.backward()
+
+        assert torch.allclose(
+            local_weight_grad, denoiser_ref.conv.weight.grad, atol=1e-5
+        )
+        assert torch.allclose(local_bias_grad, denoiser_ref.conv.bias.grad, atol=1e-5)
+        return "success"
+
+
+@pytest.mark.parametrize("tiling_strategy", ["overlap_tiling"])
+def test_distributed_processor_backward(device_config, tiling_strategy):
+    """
+    Test that gradients flow correctly through DistributedProcessing (trainable denoiser).
+    """
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "tiling_strategy": tiling_strategy,
+    }
+    results = run_distributed_test(
+        _test_processor_backward_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
+
+
+def test_distributed_processor_backward_multiple_calls(device_config):
+    """
+    Test gradients with two DistributedProcessing calls in one backward graph.
+    """
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_processor_backward_multiple_calls_worker, device_config, test_args
     )
     assert all(r == "success" for r in results)

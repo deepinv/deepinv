@@ -1,6 +1,7 @@
 from __future__ import annotations
 import torch
 import torch.distributed as dist
+import torch.distributed.nn.functional as dist_nn
 from typing import TYPE_CHECKING, Callable, Any, Sequence
 
 from deepinv.utils.tensorlist import TensorList
@@ -177,7 +178,7 @@ def reduce_local_results(
 
     # 3. Global Reduction
     if ctx.use_dist:
-        ctx.all_reduce(local_val, op=dist.ReduceOp.SUM)
+        local_val = ctx.all_reduce(local_val, op=dist.ReduceOp.SUM)
 
     if reduce_op == "mean":
         if num_operators is None:
@@ -187,6 +188,83 @@ def reduce_local_results(
         local_val = local_val / float(num_operators)
 
     return local_val
+
+
+class DistributedGradientSync(torch.autograd.Function):
+    """
+    Autograd function that performs all_reduce on gradients during backward.
+    Used to synchronize gradients for replicated inputs in distributed physics.
+    """
+
+    @staticmethod
+    def forward(autograd_ctx, x, dist_ctx):
+        autograd_ctx.dist_ctx = dist_ctx
+        return x
+
+    @staticmethod
+    def backward(autograd_ctx, grad_output):
+        if autograd_ctx.dist_ctx.use_dist and grad_output is not None:
+            higher_order_path = grad_output.requires_grad
+            # Use returned tensor so functional all_reduce paths (create_graph=True)
+            # are preserved for higher-order differentiation.
+            grad_output = autograd_ctx.dist_ctx.all_reduce(
+                grad_output, op=dist.ReduceOp.SUM
+            )
+            if autograd_ctx.dist_ctx.world_size > 1 and not higher_order_path:
+                grad_output = grad_output / float(autograd_ctx.dist_ctx.world_size)
+        return grad_output, None
+
+
+class DistributedParameterSync(torch.autograd.Function):
+    """
+    Autograd function that reduces parameters gradients at the end of backward.
+    Used to synchronize model updates in distributed processing.
+    """
+
+    @staticmethod
+    def forward(autograd_ctx, x, dist_ctx, *parameters):
+        autograd_ctx.dist_ctx = dist_ctx
+        autograd_ctx.parameters = parameters
+        return x
+
+    @staticmethod
+    def backward(autograd_ctx, grad_output):
+        if autograd_ctx.dist_ctx.use_dist:
+            # Queue synchronization at end-of-backward, when all grads are accumulated.
+            dist_ctx = autograd_ctx.dist_ctx
+            params = autograd_ctx.parameters
+            graph_task_id = torch._C._current_graph_task_id()
+            scheduled = dist_ctx._param_sync_scheduled_tasks
+            pending = dist_ctx._param_sync_pending.setdefault(graph_task_id, {})
+            for p in params:
+                pending[id(p)] = p
+
+            if graph_task_id not in scheduled:
+                scheduled.add(graph_task_id)
+
+                def _sync_param_grads():
+                    try:
+                        task_params = list(
+                            dist_ctx._param_sync_pending.pop(graph_task_id, {}).values()
+                        )
+                        for p in task_params:
+                            if p.grad is None:
+                                # Keep collectives aligned even for ranks with no local contribution.
+                                p.grad = torch.zeros_like(p)
+                            # Preserve functional all_reduce result when p.grad requires_grad
+                            # (e.g., backward called with create_graph=True).
+                            p.grad = dist_ctx.all_reduce(p.grad, op=dist.ReduceOp.SUM)
+                            if dist_ctx.world_size > 1 and not p.grad.requires_grad:
+                                p.grad = p.grad / float(dist_ctx.world_size)
+                    finally:
+                        scheduled.discard(graph_task_id)
+
+                torch.autograd.Variable._execution_engine.queue_callback(
+                    _sync_param_grads
+                )
+
+        # Return grad_for_x, grad_for_dist_ctx, *grad_for_parameters
+        return (grad_output, None) + (None,) * len(autograd_ctx.parameters)
 
 
 def gather_tensorlist_naive(
@@ -359,18 +437,8 @@ def gather_tensorlist_concatenated(
     # Ensure contiguous memory layout (for Gloo backend)
     local_concat_padded = local_concat_padded.contiguous()
 
-    # All-gather with fixed size - use canonical dtype for consistency
-    tensor_lists = [
-        torch.zeros(
-            (max_local_count, max_numel),
-            dtype=canonical_dtype,
-            device=ctx.device,
-        )
-        for _ in range(ctx.world_size)
-    ]
-
-    # All-gather the actual data
-    ctx.all_gather(tensor_lists, local_concat_padded)
+    # All-gather and return stacked tensor [world_size, max_local_count, max_numel]
+    tensor_lists = ctx.all_gather(local_concat_padded)
 
     # Step 4: Reconstruct TensorList from gathered data
     out: list = [None] * num_operators
@@ -450,11 +518,12 @@ def gather_tensorlist_broadcast(
             local_pos = local_indices.index(idx)
             tensor_to_send = local_results[local_pos].contiguous()
         else:
-            # Create receive buffer
+            # Create receive buffer (needs to be right shape and device)
             tensor_to_send = torch.zeros(shape, dtype=dtype, device=ctx.device)
 
-        # Broadcast from owner to all ranks
-        ctx.broadcast(tensor_to_send, src=responsible_rank)
+        # Broadcast using functional API for autograd support
+        # dist_nn.broadcast returns the tensor (input on src, received on others)
+        tensor_to_send = dist_nn.broadcast(tensor_to_send, src=responsible_rank)
         out[idx] = tensor_to_send
 
     return TensorList(out)
