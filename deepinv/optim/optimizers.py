@@ -2231,9 +2231,9 @@ class PDCP(BaseOptim):
 class SIRT(BaseOptim):
     r"""Simultaneous Iterative Reconstruction Technique (SIRT) optimization module.
 
-    Implementation of the `Simultaneous Iterative Reconstruction Technique (SIRT) <https://www.sciencedirect.com/science/article/pii/0022519372901804>`_
+    Implementation of the `Simultaneous Iterative Reconstruction Technique (SIRT) :footcite:t:`gilbert_iterative_1972`
     algorithm for tomographic reconstruction. This algorithm is especially used in transmission tomography, i.e for X-ray computed tomography.
-    The algorithm minimizes the least-squares data-fidelity term :math:`\|Ax-y\|_2^2` and does not support any regularization.
+    The algorithm minimizes a weighted least-squares problem of the form :math:`\|Ax-y\|_{W}^2` and does not support any regularization.
 
     Iterations are given by
     .. math::

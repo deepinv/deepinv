@@ -1,9 +1,12 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING, Callable
 from .optim_iterator import OptimIterator
 from torch import ones_like
 from torch import Tensor
-from deepinv.physics import LinearPhysics
-from deepinv.optim import DataFidelity, Prior
+
+if TYPE_CHECKING:
+    from deepinv.physics import LinearPhysics
+    from deepinv.optim import DataFidelity, Prior
 
 
 class SIRTIteration(OptimIterator):
@@ -29,16 +32,28 @@ class SIRTIteration(OptimIterator):
         super().__init__(**kwargs)
         self.register_buffer("_cached_row_sum", None)
         self.register_buffer("_cached_col_sum", None)
-        self.sinogram_shape = None
+        self.register_buffer("_sinogram_ptr", None)
 
     def _get_normalizers(
         self, x: Tensor, y: Tensor, physics: LinearPhysics, eps: float
-    ):
-        sinogram_shape = tuple(y.shape)
+    ) -> tuple[Tensor, Tensor]:
+        """Compute the normalizing factors for the SIRT iteration.
+
+        Args:
+            :param torch.Tensor x: Current iterate :math:`x_k`.
+            :param torch.Tensor y: Input data.
+            :param deepinv.physics.LinearPhysics physics: Instance of the linear physics modeling the observation.
+            :param float eps: Small constant to prevent division by zero.
+            :return: Tuple containing the row and column normalizers.
+        """
+        # We cache a pointer to the sinogram to recompute normalizers only when the physics changes.
+        if self._sinogram_ptr is None:
+            self._sinogram_ptr = y.data_ptr()
+
         # We cache the normalizers to avoid recomputing them at every iteration
         # If the physics has changed, the shape of y should change, which will trigger a recomputation of the normalizers
         if (
-            self.sinogram_shape == sinogram_shape
+            self._sinogram_ptr == y.data_ptr()
             and self._cached_row_sum is not None
             and self._cached_col_sum is not None
         ):
@@ -55,7 +70,6 @@ class SIRTIteration(OptimIterator):
 
         self._cached_row_sum = row_sum
         self._cached_col_sum = col_sum
-        self.sinogram_shape = sinogram_shape
 
         return row_sum, col_sum
 
@@ -68,7 +82,18 @@ class SIRTIteration(OptimIterator):
         y: Tensor,
         physics: LinearPhysics,
         **kwargs,
-    ):
+    ) -> dict:
+        """Computes a single iteration of the SIRT algorithm.
+
+        Args:
+            :param dict X: Dictionary containing the current iterate and the estimated cost.
+            :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
+            :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
+            :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+            :param torch.Tensor y: Input data.
+            :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
+            :return: Dictionary `{"est": (x,), "cost": F}` containing the updated current iterate and the estimated current cost.
+        """
         x = X["est"][0]
         k = 0 if "it" not in X else X["it"]
 
