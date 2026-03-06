@@ -3,7 +3,7 @@ from typing import Callable
 import warnings
 import copy
 import inspect
-import collections.abc
+from collections.abc import Mapping, Iterable
 
 import torch
 from torch import Tensor
@@ -12,6 +12,7 @@ from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_backward
 from deepinv.utils.compat import zip_strict
+from deepinv.physics.functional import power_method
 import warnings
 
 
@@ -259,7 +260,20 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     and hasattr(self, key)
                     and isinstance(value, torch.Tensor)
                 ):
-                    self.register_buffer(key, value)
+
+                    if isinstance(getattr(self, key), torch.Tensor):
+                        if value.device.type != getattr(self, key).device.type:
+                            warnings.warn(
+                                f"The provided tensor for parameter '{key}' is on a different device ({value.device}) than the current parameter device ({getattr(self, key).device}). The current device will be used.",
+                                stacklevel=2,
+                            )
+
+                    # Move `value` to the buffer's device before updating
+                    # regardless of where the `value` tensor is located.
+                    # Also performs type casting if necessary.
+                    # If getattr(self, key) is None, torch.Tensor.to will
+                    # ignore the call and just return the original tensor.
+                    setattr(self, key, value.to(getattr(self, key)))
 
     # NOTE: Physics instances can hold instances of torch.Generator as
     # (possibly nested) attributes and they cannot be copied using deepcopy
@@ -309,7 +323,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
             # NOTE: It is necessary to include values for mapping objects for
             # the case of submodules which are stored as entries in a
             # dictionary instead of directly as attributes.
-            if isinstance(node, collections.abc.Mapping):
+            if isinstance(node, Mapping):
                 neighbors += list(node.values())
 
             # 4. Queue the unseen neighbors
@@ -320,6 +334,21 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     traversal_queue.append(neighbor)
 
         return copy.deepcopy(self, memo=memo)
+
+    def compute_norm(self, x, verbose=True):
+        r"""
+        Computes an estimate of the operator norm of the forward operator :math:`\|A\|_2` at point `x`.
+
+        This function uses the power method to compute the operator norm.
+
+        :param torch.Tensor x: input tensor used to estimate the norm.
+        :param bool verbose: if `True`, prints the estimated norm.
+        :return: (:class:`torch.Tensor`) estimated operator norm.
+
+        """
+        linear_operator = lambda v: self.A_vjp(x, self.A_jvp(x, v))
+        norm = power_method(linear_operator, x, max_iter=100, tol=1e-6)
+        return norm
 
 
 class LinearPhysics(Physics):
@@ -357,6 +386,7 @@ class LinearPhysics(Physics):
         is used for computing it, and this parameter fixes the relative tolerance of the least squares algorithm.
     :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.linear.least_squares` for more details.
     :param bool implicit_backward_solver: If `True`, uses implicit differentiation for computing gradients through the :meth:`deepinv.physics.LinearPhysics.A_dagger` and :meth:`deepinv.physics.LinearPhysics.prox_l2`, using :func:`deepinv.optim.linear.least_squares_implicit_backward` instead of :func:`deepinv.optim.linear.least_squares`. This can significantly reduce memory consumption, especially when using many iterations. If `False`, uses the standard autograd mechanism, which can be memory-intensive. Default is `True`.
+    :param torch.device, str device: cpu or cuda, every registered buffer and module parameters are recursively pushed onto the device during initialization.
 
     |sep|
 
@@ -420,6 +450,7 @@ class LinearPhysics(Physics):
         tol=1e-4,
         solver="lsqr",
         implicit_backward_solver: bool = True,
+        device: torch.device | str = "cpu",
         **kwargs,
     ):
         super().__init__(
@@ -440,6 +471,37 @@ class LinearPhysics(Physics):
             warnings.warn(
                 "Using implicit_backward_solver with a low number of iterations may produce inaccurate gradients during the backward pass. If you are not doing backpropagation through `A_dagger` or `prox_l2`, ignore this message. If you are training unfolded models, consider increasing max_iter."
             )
+
+        device_holder = torch.tensor(0.0, device=device)
+        self.register_buffer("_device_holder", device_holder, persistent=False)
+        # pushes all parameters/buffers to the specified device, including `noise_model`
+        self.to(device)
+
+    @property
+    def device(self) -> torch.device | str:
+        r"""
+        Returns the device where the physics parameters/buffers are stored.
+
+        :return: device of the physics parameters.
+        """
+        warnings.warn(
+            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version. To move the module's buffers/parameters to a different device, use the `to()` method."
+        )
+
+        return self._device_holder.device
+
+    @device.setter
+    def device(self, value: torch.device | str):
+        r"""
+        Sets the device where the physics parameters/buffers are stored.
+
+        :param device: device to which the physics parameters will be moved.
+        """
+        warnings.warn(
+            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version, i.e. doing `physics.device = device` will no longer work and throw an `AttributeError`. Use `physics.to(device)` instead."
+        )
+
+        self.to(value)
 
     def A_adjoint(self, y, **kwargs):
         r"""
@@ -477,7 +539,7 @@ class LinearPhysics(Physics):
             A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v = \conj{A} v.
 
         :param torch.Tensor x: signal/image.
-        :param torch.Tensor v: vector.
+        :param torch.Tensor v: vector of the size of the measurements.
         :return: (:class:`torch.Tensor`) the VJP product between :math:`v` and the Jacobian.
         """
         return self.A_adjoint(v)
@@ -506,7 +568,7 @@ class LinearPhysics(Physics):
         """
         return self.A_adjoint(self.A(x, **kwargs), **kwargs)
 
-    def __mul__(self, other):
+    def __mul__(self, other, **kwargs):
         r"""
         Concatenates two linear forward operators :math:`A = A_1 \circ A_2` via the * operation
 
@@ -516,7 +578,7 @@ class LinearPhysics(Physics):
         :return: (:class:`deepinv.physics.LinearPhysics`) concatenated operator
 
         """
-        return compose(other, self, max_iter=self.max_iter, tol=self.tol)
+        return compose(other, self, max_iter=self.max_iter, tol=self.tol, **kwargs)
 
     def stack(self, other):
         r"""
@@ -620,26 +682,14 @@ class LinearPhysics(Physics):
         """
         if rng is None:
             rng = torch.Generator(x0.device)
-        x = torch.randn(x0.shape, device=x0.device, dtype=x0.dtype, generator=rng)
-        x /= torch.linalg.vector_norm(x)
-        zold = torch.zeros_like(x)
-        for it in range(max_iter):
-            y = self.A_adjoint_A(x, **kwargs)
-            z = torch.vdot(x.flatten(), y.flatten()) / torch.linalg.vector_norm(x) ** 2
-
-            rel_var = torch.linalg.vector_norm(z - zold)
-            if rel_var < tol:
-                if verbose:
-                    print(
-                        f"Power iteration converged at iteration {it}, ||A^T A||_2={z.real.item():.2f}"
-                    )
-                break
-            zold = z
-            x = y / torch.linalg.vector_norm(y)
-        else:
-            warnings.warn("Power iteration: convergence not reached")
-
-        return z.real
+        return power_method(
+            operator=self.A_adjoint_A,
+            x0=x0,
+            max_iter=max_iter,
+            tol=tol,
+            verbose=verbose,
+            **kwargs,
+        )
 
     def adjointness_test(self, u, **kwargs):
         r"""
@@ -822,10 +872,10 @@ class ComposedPhysics(Physics):
 
     where :math:`A_i(\cdot)` is the ith physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
-    :param list[deepinv.physics.Physics] *physics: list of physics to compose.
+    :param Iterable[deepinv.physics.Physics] physics: variable number of physics to compose.
     """
 
-    def __init__(self, *physics: Physics, device=None, **kwargs):
+    def __init__(self, *physics: Iterable[Physics], **kwargs):
         super().__init__()
 
         self.physics_list = nn.ModuleList([])
@@ -837,7 +887,6 @@ class ComposedPhysics(Physics):
             )
         self.noise_model = physics[-1].noise_model
         self.sensor_model = physics[-1].sensor_model
-        self.to(device)
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
         r"""
@@ -894,10 +943,10 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
 
     where :math:`A_i(\cdot)` is the i-th physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
-    :param list[deepinv.physics.Physics] *physics: list of physics operators to compose.
+    :param Iterable[deepinv.physics.LinearPhysics] physics: variable number of physics to compose.
     """
 
-    def __init__(self, *physics: Physics, **kwargs):
+    def __init__(self, *physics: Iterable[LinearPhysics], **kwargs):
         super().__init__(*physics, **kwargs)
 
     def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
@@ -916,14 +965,14 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
         return y
 
 
-def compose(*physics: Physics | LinearPhysics, **kwargs):
+def compose(*physics: Iterable[Physics | LinearPhysics], **kwargs):
     r"""
     Composes multiple forward operators :math:`A = A_1\circ A_2\circ \dots \circ A_n`.
 
     The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
     each entry corresponds to the measurements of the corresponding operator.
 
-    :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be composed.
+    :param Iterable[deepinv.physics.Physics | deepinv.physics.LinearPhysics] physics: Physics operators :math:`A_i` to be composed.
     """
     if any(isinstance(phys, DecomposablePhysics) for phys in physics):
         warnings.warn(
@@ -961,7 +1010,8 @@ class DecomposablePhysics(LinearPhysics):
         from the `V_adjoint` function and the `img_size` parameter.
         This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can
         have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter.
-    :param torch.nn.parameter.Parameter, float params: Singular values of the transform
+    :param torch.nn.parameter.Parameter, float mask: Singular values of the transform
+    :param torch.device, str device: cpu or cuda, every registered buffer and module parameters are recursively pushed onto the device during initialization.
 
     |sep|
 
@@ -999,9 +1049,10 @@ class DecomposablePhysics(LinearPhysics):
         U_adjoint=None,
         V=None,
         mask=1.0,
+        device: torch.device | str = "cpu",
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
 
         assert not (
             U is None and not (U_adjoint is None)
@@ -1023,6 +1074,8 @@ class DecomposablePhysics(LinearPhysics):
         mask = torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask
         self.img_size = img_size
         self.register_buffer("mask", mask)
+
+        self.to(device)
 
     def A(self, x, mask=None, **kwargs) -> Tensor:
         r"""
@@ -1207,6 +1260,7 @@ class Denoising(DecomposablePhysics):
     The linear operator is just the identity mapping :math:`A(x)=x`
 
     :param torch.nn.Module noise: noise distribution, e.g., :class:`deepinv.physics.GaussianNoise`, or a user-defined torch.nn.Module. By default, it is set to Gaussian noise with a standard deviation of 0.1.
+    :param torch.device, str device: cpu or cuda, every registered buffer and module parameters are recursively pushed onto the device during initialization.
 
     |sep|
 
@@ -1226,10 +1280,23 @@ class Denoising(DecomposablePhysics):
 
     """
 
-    def __init__(self, noise_model: NoiseModel | None = None, **kwargs):
+    def __init__(
+        self,
+        noise_model: NoiseModel | None = None,
+        device: str | torch.device = "cpu",
+        **kwargs,
+    ):
         if noise_model is None:
             noise_model = GaussianNoise(sigma=0.1)
-        super().__init__(noise_model=noise_model, **kwargs)
+
+        if noise_model.rng is not None:
+            if noise_model.rng.device != device:
+                warnings.warn(
+                    f"argument `device`={device} is different from the random generator device of the noise model, `noise_model.rng.device`={noise_model.rng.device}. This will likely lead to errors during execution. The device argument will be ignored in favor of `noise_model.rng.device`={noise_model.rng.device}."
+                )
+                device = noise_model.rng.device
+
+        super().__init__(noise_model=noise_model, device=device, **kwargs)
 
 
 def adjoint_function(A, input_size, device="cpu", dtype=torch.float):

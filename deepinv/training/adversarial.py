@@ -233,7 +233,7 @@ class AdversarialTrainer(Trainer):
                     epoch=epoch,
                 )
                 loss_total = loss_total + loss.mean()
-                if len(self.losses) > 1 and self.verbose_individual_losses:
+                if len(self.losses) > 1:
                     current_log = (
                         self.logs_losses_train[k] if train else self.logs_losses_eval[k]
                     )
@@ -279,7 +279,7 @@ class AdversarialTrainer(Trainer):
                         epoch=epoch,
                     )
                     loss_total_d += loss.mean()
-                    if len(self.losses_d) > 1 and self.verbose_individual_losses:
+                    if len(self.losses_d) > 1:
                         current_log = (
                             self.logs_losses_train[k + len(self.losses)]
                             if train

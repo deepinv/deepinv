@@ -96,7 +96,7 @@ class Inpainting(DecomposablePhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
 
         if isinstance(mask, torch.Tensor):
             mask = mask.to(device)
@@ -164,7 +164,9 @@ class Inpainting(DecomposablePhysics):
                 device=self.mask.device if self.mask is not None else None,
             )
         else:
-            return super().__mul__(other)
+            return super().__mul__(
+                other, device=self.mask.device if self.mask is not None else None
+            )
 
 
 class Demosaicing(Inpainting):

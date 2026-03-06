@@ -122,7 +122,7 @@ dinv.datasets.check_dataset(dataset5)
 # %%
 # Say you have a DeepInverse problem already set up:
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 physics = dinv.physics.Inpainting(img_size=(3, 256, 256))
 model = dinv.models.RAM(pretrained=True, device=device)
 

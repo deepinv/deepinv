@@ -33,7 +33,7 @@ which includes data from several satellites such as WorldView satellites.
 import deepinv as dinv
 import torch
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 # %%
 # Load raw pan-sharpening measurements
 # ------------------------------------
