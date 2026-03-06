@@ -94,7 +94,7 @@ denoisers = [
     "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
     "spyrit>=3.0.0; platform_system=='Linux'",
     "diffusers>=0.37.0",
-    "transformers>=4.46.0"
+    "transformers>=4.46.0",
     "numba>=0.60.0",
 ]
 
