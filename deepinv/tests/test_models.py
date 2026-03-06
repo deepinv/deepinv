@@ -1323,6 +1323,13 @@ def test_denoiser_perf(device):
 @pytest.mark.parametrize("mode", ["real_imag", "abs_angle"])
 def test_denoiser_perf_noise_map(device, mode):
 
+    # Ensure determinitic behaviour
+    torch.manual_seed(0)
+    torch.cuda.manual_seed_all(0)
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
     # Load 2 example images
     x1 = dinv.utils.load_example(
         "butterfly.png",
@@ -1338,9 +1345,8 @@ def test_denoiser_perf_noise_map(device, mode):
 
     x = torch.cat([x1, x2, x1], dim=0)
     # three different noise levels
-    sigma_values = torch.ones(x.shape, device=device)[:, 0].unsqueeze(1) * torch.tensor(
-        [0.05, 0.1, 0.2]
-    ).to(device).view((3, 1, 1, 1))
+    sigma_values = torch.tensor([0.05, 0.1, 0.2]).to(device).view((3, 1, 1, 1))
+    sigma_cst_map = torch.ones(x.shape, device=device)[:, 0].unsqueeze(1) * sigma_values
     # non uniform noise, gaussian amplitude along the width
     sigma_filter = 25
     gaussian_x = torch.ones(x.shape, device=device)[:, 0].unsqueeze(1) * torch.exp(
@@ -1349,8 +1355,8 @@ def test_denoiser_perf_noise_map(device, mode):
     ).view((1, 1, 1, -1))
 
     rng = torch.Generator(device=device).manual_seed(123)
-    sigma = sigma_values * gaussian_x
-    y = x + sigma * torch.randn(x.shape, generator=rng, device=device)
+    sigma_map = sigma_cst_map * gaussian_x
+    y = x + sigma_map * torch.randn(x.shape, generator=rng, device=device)
 
     psnr_fn = PSNR(max_pixel=1)
 
@@ -1364,12 +1370,17 @@ def test_denoiser_perf_noise_map(device, mode):
         kwargs = {}
 
         with torch.no_grad():
-            x_hat = denoiser(y, sigma=sigma, **kwargs)
-            x_hat_no_map = denoiser(y, sigma=sigma_values, **kwargs)
+            x_hat_map = denoiser(y, sigma=sigma_map, **kwargs)
+            x_hat_cst_map = denoiser(y, sigma=sigma_cst_map, **kwargs)
+            x_hat_values = denoiser(y, sigma=sigma_values, **kwargs)
 
         assert torch.all(
-            psnr_fn(x_hat, x) >= psnr_fn(x_hat_no_map, x)
-        ), f"denoiser={type(denoiser).__name__} didn't perfom better with a noise map : psnr_map={psnr_fn(x_hat, x).tolist()}, psnr_no_map={psnr_fn(x_hat_no_map, x).tolist()}"
+            psnr_fn(x_hat_map, x) >= psnr_fn(x_hat_cst_map, x)
+        ), f"denoiser={type(denoiser).__name__} didn't perfom better with a noise map : psnr_map={psnr_fn(x_hat_map, x).tolist()}, psnr_cst_map={psnr_fn(x_hat_cst_map, x).tolist()}"
+
+        assert torch.all(
+            x_hat_values == x_hat_cst_map
+        ), f"denoiser={type(denoiser).__name__} don't behave the same way with noise level and map of constant noise. max diff : {torch.max(torch.abs(x_hat_values - x_hat_cst_map)).item()}"
 
     for denoiser in learned_denoisers:
         kwargs = {}
@@ -1380,13 +1391,13 @@ def test_denoiser_perf_noise_map(device, mode):
         x_cpx = x.to(torch.complex64)
         y_cpx = y.to(torch.complex64)
         with torch.no_grad():
-            x_hat_cpx = denoiser_cpx(y_cpx, sigma=sigma)
-            x_hat_no_map_cpx = denoiser_cpx(y_cpx, sigma=sigma_values)
-        psnr_map = dinv.metric.PSNR()(x_hat_cpx, x_cpx).mean().item()
-        psnr_no_map = dinv.metric.PSNR()(x_hat_no_map_cpx, x_cpx).mean().item()
-        assert psnr_map > psnr_no_map, (
+            x_hat_map_cpx = denoiser_cpx(y_cpx, sigma=sigma_map)
+            x_hat_cst_map_cpx = denoiser_cpx(y_cpx, sigma=sigma_cst_map)
+        psnr_map = dinv.metric.PSNR()(x_hat_map_cpx, x_cpx).mean().item()
+        psnr_cst_map = dinv.metric.PSNR()(x_hat_cst_map_cpx, x_cpx).mean().item()
+        assert psnr_map > psnr_cst_map, (
             f"Mode={mode}, denoiser={type(denoiser).__name__}, "
-            f"psnr_map={psnr_map:.2f}, psnr_no_map={psnr_no_map:.2f}"
+            f"psnr_map={psnr_map:.2f}, psnr_no_map={psnr_cst_map:.2f}"
         )
 
 
