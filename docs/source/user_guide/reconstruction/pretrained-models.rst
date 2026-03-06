@@ -20,7 +20,7 @@ These models can be set-up in one line and perform inference in another line:
     >>> x = dinv.utils.load_example("butterfly.png")
     >>> physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
     >>> y = physics(x)
-    >>> model = dinv.models.RAM(pretrained=True)  # or any of the models listed below
+    >>> model = dinv.models.RAM(pretrained=True)
     >>> x_hat = model(y, physics) # Model inference
     >>> dinv.metric.PSNR()(x_hat, x) > 29.75
     tensor([True])
@@ -130,6 +130,11 @@ Click on the model name to learn more about the type of model and use `pretraine
      - Weights from `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_:
        `Restormer weights <https://github.com/swz30/Restormer/tree/main>`_,
        also available on the `deepinverse Restormer HuggingfaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
+   * - :class:`deepinv.models.PromptIR`
+     - Reconstructor & Denoiser
+     - Weights from `PromptIR: Prompting for All-in-One Blind Image Restoration <https://arxiv.org/abs/2306.13090>`_:
+       `PromptIR weights <https://github.com/va1shn9v/PromptIR>`_,
+       also available on the `deepinverse Promptir HuggingfaceHub <https://huggingface.co/deepinv/promptir/tree/main>`_.
    * - :class:`deepinv.models.RAM`
      - Reconstructor & Denoiser
      - Weights from `Terris et al. <https://github.com/matthieutrs/ram>`_ :footcite:p:`terris2025reconstruct`. Pretrained weights from `RAM HuggingfaceHub <https://huggingface.co/mterris/ram>`_.

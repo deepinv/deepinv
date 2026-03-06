@@ -1,6 +1,6 @@
 r"""
 Building your diffusion posterior sampling method using SDEs
-============================================================
+==============================================================
 
 This demo shows you how to use
 :class:`deepinv.sampling.PosteriorDiffusion` to perform posterior sampling. It also can be used to perform unconditional image generation with arbitrary denoisers, if the data fidelity term is not specified.
@@ -57,8 +57,9 @@ import torch
 import deepinv as dinv
 from deepinv.models import NCSNpp
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 dtype = torch.float64
+dtype = torch.float32
 figsize = 2.5
 gif_frequency = 10  # Increase this value to save the GIF saving time
 # %%
@@ -67,6 +68,7 @@ from deepinv.sampling import (
     DPSDataFidelity,
     EulerSolver,
     VarianceExplodingDiffusion,
+    VariancePreservingDiffusion,
 )
 from deepinv.optim import ZeroFidelity
 
@@ -75,19 +77,14 @@ from deepinv.optim import ZeroFidelity
 # The network architecture is from Song et al: https://arxiv.org/abs/2011.13456 .
 denoiser = NCSNpp(pretrained="download").to(device)
 
+
 # The solution is obtained by calling the SDE object with a desired solver (here, Euler).
 # The reproducibility of the SDE Solver class can be controlled by providing the pseudo-random number generator.
 num_steps = 150
 rng = torch.Generator(device).manual_seed(42)
 timesteps = torch.linspace(1, 0.001, num_steps)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
-
-sigma_min = 0.005
-sigma_max = 5
 sde = VarianceExplodingDiffusion(
-    sigma_max=sigma_max,
-    sigma_min=sigma_min,
-    alpha=0.5,
     device=device,
     dtype=dtype,
 )
@@ -98,6 +95,7 @@ sde = VarianceExplodingDiffusion(
 #
 # When the data fidelity is not given, the posterior diffusion is equivalent to the unconditional diffusion.
 # Sampling is performed by solving the reverse-time SDE. To do so, we generate a reverse-time trajectory.
+
 
 model = PosteriorDiffusion(
     data_fidelity=ZeroFidelity(),
@@ -112,9 +110,10 @@ x, trajectory = model(
     y=None,
     physics=None,
     x_init=(1, 3, 64, 64),
-    seed=1,
+    seed=10,
     get_trajectory=True,
 )
+
 dinv.utils.plot(
     x,
     titles="Unconditional generation",
@@ -168,14 +167,12 @@ except FileNotFoundError:
 # When the data fidelity is given, together with the measurements and the physics, this class can be used to perform posterior sampling for inverse problems.
 # For example, consider the inpainting problem, where we have a noisy image and we want to recover the original image.
 # We can use the :class:`deepinv.sampling.DPSDataFidelity` as the data fidelity term.
-
-del trajectory  # clean memory
 mask = torch.ones_like(x)
 mask[..., 24:40, 24:40] = 0.0
 physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=mask, device=device)
 y = physics(x)
 
-weight = 3.0  # guidance strength
+weight = 4.0  # guidance strength
 dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=weight)
 
 model = PosteriorDiffusion(
@@ -190,13 +187,17 @@ model = PosteriorDiffusion(
 
 # To perform posterior sampling, we need to provide the measurements, the physics and the solver.
 # Moreover, when the physics is given, the initial point can be inferred from the physics if not given explicitly.
+
 seed_1 = 11
+
 x_hat, trajectory = model(
     y,
     physics,
     seed=seed_1,
     get_trajectory=True,
 )
+
+
 # Here, we plot the original image, the measurement and the posterior sample
 dinv.utils.plot(
     [x, y, x_hat],
@@ -212,6 +213,7 @@ dinv.utils.save_videos(
     save_fn="posterior_trajectory.gif",
     figsize=(figsize, figsize),
 )
+
 # sphinx_gallery_start_ignore
 # cleanup
 import os
@@ -262,10 +264,10 @@ except FileNotFoundError:
 # .. math::
 #     f(x_t, t) = -\frac{1}{2} \beta(t)x_t \qquad \mbox{ and } \qquad g(t) = \beta(t)  \qquad \mbox{ with } \beta(t) = \beta_{\mathrm{min}}  + t \left( \beta_{\mathrm{max}} - \beta_{\mathrm{min}} \right).
 
-from deepinv.sampling import VariancePreservingDiffusion
 
 del trajectory
-sde = VariancePreservingDiffusion(device=device, dtype=dtype)
+
+sde = VariancePreservingDiffusion(alpha=0.01, device=device, dtype=dtype)
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
     denoiser=denoiser,
@@ -280,9 +282,9 @@ x_hat_vp, trajectory = model(
     y,
     physics,
     seed=111,
-    timesteps=torch.linspace(1, 0.001, 150),
     get_trajectory=True,
 )
+x_hat = x
 dinv.utils.plot(
     [x_hat, x_hat_vp],
     titles=[
@@ -349,7 +351,6 @@ except FileNotFoundError:
 # We can also change the underlying SDE, for example change the `sigma_max` value.
 
 del trajectory  # clean memory
-sigma_min = 0.001
 sigma_max = 10.0
 rng = torch.Generator(device)
 dtype = torch.float32
@@ -358,8 +359,9 @@ solver = EulerSolver(timesteps=timesteps, rng=rng)
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
 sde = VarianceExplodingDiffusion(
-    sigma_max=sigma_max, sigma_min=sigma_min, alpha=0.75, device=device, dtype=dtype
+    sigma_max=sigma_max, alpha=0.75, device=device, dtype=dtype
 )
+
 x = dinv.utils.load_example(
     "butterfly.png",
     img_size=256,
@@ -389,7 +391,7 @@ model = PosteriorDiffusion(
 x_hat, trajectory = model(
     y=y,
     physics=physics,
-    seed=12,
+    seed=1,
     get_trajectory=True,
 )
 

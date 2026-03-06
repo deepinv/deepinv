@@ -60,7 +60,7 @@ class HyperSpectralUnmixing(LinearPhysics):
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-        super(HyperSpectralUnmixing, self).__init__()
+        super(HyperSpectralUnmixing, self).__init__(device=device, **kwargs)
 
         if M is None:
             # Simulate random normalized M
