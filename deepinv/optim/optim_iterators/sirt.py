@@ -27,8 +27,8 @@ class SIRTIteration(OptimIterator):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._cached_row_sum = None
-        self._cached_col_sum = None
+        self.register_buffer("_cached_row_sum", None)
+        self.register_buffer("_cached_col_sum", None)
         self.sinogram_shape = None
 
     def _get_normalizers(
