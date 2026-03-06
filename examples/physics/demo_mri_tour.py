@@ -1,3 +1,167 @@
+import torch
+
+from deepinv.physics.forward import LinearPhysics
+from deepinv.utils.mixins import MRIMixin
+
+class NonCartesianMRI(LinearPhysics, MRIMixin):
+    """
+    Non-Cartesian MRI via `mri-nufft`.
+
+    Provides a simple for non-Cartesian linear operators via `mri-nufft`, allowing quick initialisation
+    of spiral and radial sampling trajectories.
+
+    For more advanced trajectories and multi-coil operator, override this function and provide your own
+    `nufft` operator and `density` compensation vector. See `MRI-NUFFT docs <https://mind-inria.github.io/mri-nufft>`_ for more details.
+
+    .. note:
+        This operator handles batching via looping.
+    
+    .. note:
+        This operator uses Voronoi density compensation by default.
+        Optionally set `density_adjointness=True` so that the forward matches the adjoint,
+        by simulating density compensation in the forward too
+        (important for self-adjoint normal operators).
+    
+    :param int num_shots: number of sampling shots.
+    :param int num_samples_per_shot: number of samples per shot.
+    :param tuple[int, int] img_size: reconstructed image size `(H, W)`.
+    :param str backend: mri-nufft backend, defaults to `finufft` (for CPU). Set to `cufinufft` for CUDA.
+        `MRI-NUFFT docs <https://mind-inria.github.io/mri-nufft>`_ for more details.
+    :param str trajectory: mri-nufft trajectory, defaults to "radial".
+        See `MRI-NUFFT docs <https://mind-inria.github.io/mri-nufft>`_ for more details.
+    :param bool normalize: if `True`, normalize operator by its empirical spectral norm.
+    :param str density_mode: if `compensate` (default), apply Voronoi density compensation before adjoint.
+        If `adjointness`, simulate sqrt density in forward and perform sqrt density in adjoint, such that
+        adjointness holds exactly. If `None`, no density compensation performed.
+    :param torch.device device: device on which to calculate norm and initialise density, defaults to "cpu"
+
+    :Example:
+
+    >>> from deepinv.physics import NonCartesianMRI
+    >>> physics = NonCartesianMRI()
+
+    """
+    def __init__(
+        self,
+        num_shots: int,
+        num_samples_per_shot: int,
+        img_size: tuple[int, int] = (320, 320),
+        backend: str = "finufft",
+        trajectory: str = "radial",
+        normalize: bool = True,
+        density_mode: str = "compensate",
+        device: torch.device = "cpu",
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+
+        try:
+            import mrinufft
+        except ImportError:
+            raise ImportError(
+                "mri-nufft is required for NonCartesianMRI. Install it using `pip install mrinufft[finufft]`" \
+                " for CPU (finufft) backend, or `pip install mrinufft[cufinufft]` for GPU backend."
+            )
+        
+        if trajectory == "radial":
+            self.samples_loc = mrinufft.initialize_2D_radial(Nc=num_shots, Ns=num_samples_per_shot)
+        elif trajectory == "spiral":
+            self.samples_loc = mrinufft.initialize_2D_spiral(Nc=num_shots, Ns=num_samples_per_shot, nb_revolutions=1)
+        
+        self.backend = backend
+        self.nufft = mrinufft.get_operator(self.backend)(self.samples_loc, shape=img_size, n_coils=1, n_batchs=1) # we do batching ourselves
+
+        self.density_mode = density_mode
+        if self.density_mode is None:
+            self.density = None
+        elif self.density_mode in ["compensate", "adjointness"]:
+            self.density = torch.from_numpy(mrinufft.density.voronoi(self.samples_loc)).to(device).view(1, 1, -1) # 111S
+        else:
+            raise ValueError("'density_mode' must be None, 'compensate' or 'adjointness'")
+
+        self.operator_norm = 1
+        if normalize:
+            self.operator_norm = self.compute_norm(torch.randn(1, 2, *img_size[-2:], device=device), squared=False)
+
+    def A(self, x: torch.Tensor) -> torch.Tensor: # B2HW -> B2S
+        """
+        Forward NUFFT operator.
+
+        .. note:
+            Handles the finufft and cufinufft cases separately to ensure shapes are correct.
+        
+        :param torch.Tensor x: input gridded image of shape B,2,H,W
+        :return: :class:`torch.Tensor` NUFFT measurements of shape B,2,S where S is number of samples
+        """
+        outs = []
+        
+        for _x in x.double():
+            _x = _x.unsqueeze(0) # 12HW
+
+            if self.backend == "finufft":
+                out = self.from_torch_complex(
+                    self.nufft.op(
+                        self.to_torch_complex(_x) # 1HW
+                    ).unsqueeze(0) # 1S
+                ) # 12S
+            
+            elif self.backend == "cufinufft":
+                out = self.from_torch_complex(
+                    self.nufft.op(
+                        self.to_torch_complex(_x)#.unsqueeze(1) # 11HW # TODO is unsqueeze here needed?
+                    ) # 11S
+                ) # 121S # should be 12S
+            
+            outs += [out]
+
+        y = torch.cat(outs).float() / self.operator_norm
+
+        if self.density_mode and self.density_mode == "adjointness":
+            y *= self.density.sqrt()
+        else:
+            pass
+
+        return y
+
+    def A_adjoint(self, y: torch.Tensor) -> torch.Tensor: # B2S -> B2HW
+        """
+        Adjoint NUFFT operator.
+
+        .. note:
+            Handles the finufft and cufinufft cases separately to ensure shapes are correct.
+        
+        :param torch.Tensor y: NUFFT measurements of shape B,2,S where S is number of samples input
+        :return: :class:`torch.Tensor` gridded image of shape B,2,H,W
+        """
+        if self.density_mode and self.density_mode == "adjointness":
+            y_in = y * self.density.sqrt()
+        elif self.density_mode and self.density_mode == "compensate":
+            y_in = y * self.density
+        else:
+            y_in = y
+
+        outs = []
+        for _y in y_in:
+            _y = _y.unsqueeze(0) # 12S
+
+            if self.backend == "finufft":
+                out = self.from_torch_complex(
+                    self.nufft.adj_op(
+                        self.to_torch_complex(_y) # 1S
+                    ).unsqueeze(0) # 1HW
+                ) # 12HW
+            elif self.backend == "cufinufft":
+                out = self.from_torch_complex(
+                    self.nufft.adj_op(
+                        self.to_torch_complex(_y) # 1S
+                    ) # 1HW
+                ) # 12HW
+            
+            outs += [out]
+
+        return torch.cat(outs).float() / self.operator_norm
+
+
 r"""
 Tour of MRI functionality in DeepInverse
 ========================================
@@ -519,10 +683,15 @@ dinv.utils.plot({"knee": knee_dataset[0], "brain": brain_dataset[0]})
 # %%
 # 6. Non-Cartesian MRI
 # ~~~~~~~~~~~~~~~~~~~~
+# We provide :class:`deepinv.physics.NonCartesianMRI`, a wrapper for `mri-nufft <https://mind-inria.github.io/mri-nufft>`_,
+# to perform non-Cartesian sampling. See the class description for how to use it, and `mri-nufft` docs for more details.
+#
+# Here, we simulate 
+#
 
 x = brain_dataset[0].to(device).unsqueeze(0)  # 1,2,H,W
 
-physics = dinv.physics.NonCartesianMRI(
+physics = NonCartesianMRI(
     num_shots=64,
     num_samples_per_shot=64,
     trajectory="spiral",
@@ -530,7 +699,7 @@ physics = dinv.physics.NonCartesianMRI(
     normalize=False,
     img_size=x.shape[-2:],
     backend="finufft" if str(device) == "cpu" else "cufinufft",
-    noise_model=dinv.physics.ZeroNoise(),  # optionally add noise
+    noise_model=dinv.physics.GaussianNoise(1e-4), # simulate Gaussian noise
     device=device,
 )
 
@@ -551,7 +720,7 @@ dinv.utils.plot(
 # Add density compensation:
 #
 
-physics = dinv.physics.NonCartesianMRI(
+physics = NonCartesianMRI(
     num_shots=64,
     num_samples_per_shot=64,
     trajectory="spiral",
@@ -559,7 +728,7 @@ physics = dinv.physics.NonCartesianMRI(
     normalize=False,
     img_size=x.shape[-2:],
     backend="finufft" if str(device) == "cpu" else "cufinufft",
-    noise_model=dinv.physics.ZeroNoise(),  # optionally add noise
+    noise_model=dinv.physics.GaussianNoise(1e-4),
     device=device,
 )
 
@@ -571,6 +740,43 @@ dinv.utils.plot(
     suptitle="Voronoi density compensated",
 )
 
+# %%
+# Non-Cartesian reconstruction via deep learning
+#
+# The non-Cartesian MRI operator by default is unnormalized (i.e. spectral norm not 1), and
+# its "adjoint" doesn't satisfy the adjoint condition due to the density compensation.
+#
+# We can empirically normalize the operator using the power method, and we can apply the square-root method
+# so that the operators satisfies adjointness.
+#
+# .. note::
+#     The zero-shot performance is subpar. Fine-tune the model on a few images to obtain better results,
+#     e.g. using supervised learning, or self-supervised learning (see :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_scan_specific.py
+#     for an example).
+#
+
+physics = NonCartesianMRI(
+    num_shots=64,
+    num_samples_per_shot=64,
+    trajectory="spiral",
+    density_mode="adjointness",
+    normalize=True,
+    img_size=x.shape[-2:],
+    backend="finufft" if str(device) == "cpu" else "cufinufft",
+    noise_model=dinv.physics.GaussianNoise(1e-4),
+    device=device,
+)
+
+print(physics.adjointness_test(x_adj), physics.compute_norm(x_adj)) # should be ~0, ~1
+
+model = dinv.models.RAM(device=device)
+
+y *= physics.density.sqrt()
+
+with torch.no_grad():
+    x_hat = model(y, physics)
+
+dinv.utils.plot({"GT": x, "Adjoint": x_adj, "Pseudo-inv": x_dag, "RAM zero-shot": x_hat})
 
 # %%
 # :References:

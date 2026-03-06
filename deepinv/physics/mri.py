@@ -669,10 +669,10 @@ class NonCartesianMRI(LinearPhysics, MRIMixin):
     For more advanced trajectories and multi-coil operator, override this function and provide your own
     `nufft` operator and `density` compensation vector. See `MRI-NUFFT docs <https://mind-inria.github.io/mri-nufft>`_ for more details.
 
-    .. note:
+    .. note::
         This operator handles batching via looping.
 
-    .. note:
+    .. note::
         This operator uses Voronoi density compensation by default.
         Optionally set `density_adjointness=True` so that the forward matches the adjoint,
         by simulating density compensation in the forward too
@@ -758,7 +758,7 @@ class NonCartesianMRI(LinearPhysics, MRIMixin):
         """
         Forward NUFFT operator.
 
-        .. note:
+        .. note::
             Handles the finufft and cufinufft cases separately to ensure shapes are correct.
 
         :param torch.Tensor x: input gridded image of shape B,2,H,W
@@ -798,7 +798,7 @@ class NonCartesianMRI(LinearPhysics, MRIMixin):
         """
         Adjoint NUFFT operator.
 
-        .. note:
+        .. note::
             Handles the finufft and cufinufft cases separately to ensure shapes are correct.
 
         :param torch.Tensor y: NUFFT measurements of shape B,2,S where S is number of samples input

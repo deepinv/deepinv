@@ -13,7 +13,7 @@ import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
+from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI, NonCartesianMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
 from deepinv.utils.compat import zip_strict
@@ -67,6 +67,7 @@ OPERATORS = [
     "MultiCoilMRIBirdcage",
     "3DMRI",
     "3DMultiCoilMRI",
+    "NonCartesianMRI",
     "aliased_pansharpen",
     "pansharpen_valid",
     "pansharpen_circular",
@@ -239,6 +240,13 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )  # B,N,D,H,W where N is coils and D is depth
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
         params = ["mask"]
+    elif name == "NonCartesianMRI":
+        img_size = (
+            (2, 17, 11) if imsize is None else imsize
+        )
+        nc = ns = max(img_size)
+        p = NonCartesianMRI(num_shots=nc, num_samples_per_shot=ns, img_size=img_size, backend="finufft", trajectory="radial", normalize=True, density_mode="adjointness", device=device)
+
     elif name == "2DParallelBeamCT":
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
         p = dinv.physics.Tomography(
