@@ -1,20 +1,21 @@
 import torch
 from torch import Tensor
 from deepinv.utils.tensorlist import TensorList
+from typing import Callable
 from .utils import dot
 
 
 def minres(
-    A,
+    A: Callable,
     b: Tensor,
-    init=None,
-    max_iter: int = 1e2,
-    tol=1e-5,
-    eps=1e-6,
-    parallel_dim=0,
-    verbose=False,
-    precon=lambda x: x.clone(),
-):
+    init: Tensor | None = None,
+    max_iter: int = 100,
+    tol: float = 1e-5,
+    eps: float = 1e-6,
+    parallel_dim: None | int | list[int] = 0,
+    verbose: bool = False,
+    precon: Callable = lambda x: x.clone(),
+) -> Tensor:
     """
     Minimal Residual Method for solving symmetric equations.
 

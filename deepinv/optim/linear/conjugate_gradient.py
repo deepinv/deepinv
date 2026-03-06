@@ -1,18 +1,20 @@
 from __future__ import annotations
 import torch
 from .utils import dot
+from typing import Callable
+from torch import Tensor
 
 
 def conjugate_gradient(
-    A,
-    b,
-    max_iter: int = 1e2,
+    A: Callable,
+    b: Tensor,
+    max_iter: int = 100,
     tol: float = 1e-5,
     eps: float = 1e-8,
     parallel_dim: None | int | list[int] = 0,
-    init=None,
+    init: Tensor | None = None,
     verbose: bool = False,
-):
+) -> Tensor:
     r"""
     Standard conjugate gradient algorithm.
 
