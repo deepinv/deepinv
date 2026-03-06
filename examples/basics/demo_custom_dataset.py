@@ -148,7 +148,7 @@ dinv.test(model, DataLoader(dataset2), physics, plot_images=True, device=device)
 #
 # Here only no-reference metrics can be used.
 
-metrics = [dinv.metric.NIQE(device=device)]
+metrics = []  # [dinv.metric.NIQE(device=device)]
 
 dinv.test(
     model,
