@@ -2247,6 +2247,8 @@ class SIRT(BaseOptim):
     - :math:`V = \mathrm{diag}\left(\frac{1}{\sum_{j}a_{ij}}\right)`, a diagonal matrix where each element is the inverse of the column sums of :math:`A`.
 
     The stepsize parameter :math:`\tau`, sometimes called relaxation parameter, should satisfy :math:`0 < \tau < 2` for convergence.
+    
+    The entries of :math:`W` are inversely proportional to the length traveled by each ray. The algorithm tolerates larger errors for measurements induced by rays that intersect a larger portion of the object. The entries of :math:`V` are inversely proportional to the number of rays intersecting each voxel. It balances the update based on the voxels' sensitivity to the measurements.
 
     For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
     The SIRT iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.SIRTIteration`.
