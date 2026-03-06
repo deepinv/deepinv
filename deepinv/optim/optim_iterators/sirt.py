@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 from .optim_iterator import OptimIterator
 from torch import ones_like
 from torch import Tensor
