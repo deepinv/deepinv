@@ -144,11 +144,9 @@ physics.update(**params)
 dinv.test(model, DataLoader(dataset2), physics, plot_images=True, device=device)
 
 # %%
-# Even if the dataset doesn't have ground truth:
-#
-# Here only no-reference metrics can be used.
+# Even if the dataset doesn't have ground truth, no-reference metrics can be used.
 
-metrics = []  # [dinv.metric.NIQE(device=device)]
+metrics = [dinv.metric.SharpnessIndex()]  # dinv.metric.NIQE(device=device)
 
 dinv.test(
     model,
