@@ -21,8 +21,8 @@ class DEAL(Reconstructor):
 
     Parameters
     ----------
-    checkpoint_path : str
-        Path to a pretrained DEAL checkpoint file (e.g. ``deal_gray.pth``).
+    pretrained : str
+        Path to a pretrained DEAL pretrained file (e.g. ``deal_gray.pth``).
     sigma : float, optional
         Noise level parameter expected by the DEAL model (default: 25.0).
     lam : float, optional
@@ -37,7 +37,7 @@ class DEAL(Reconstructor):
     color : bool, optional
         If True, use the color version of DEAL (three channels). If False,
         use the grayscale version (one channel). This must match the
-        checkpoint and the data (default: False).
+        pretrained and the data (default: False).
     device : {"cuda", "cpu"} or None, optional
         Device used for computations. If None, "cuda" is used when available,
         otherwise "cpu".
@@ -48,7 +48,7 @@ class DEAL(Reconstructor):
 
     def __init__(
         self,
-        checkpoint_path: str,
+        pretrained: str,
         sigma: float = 25.0,
         lam: float = 10.0,
         max_iter: int = 50,
@@ -77,13 +77,13 @@ class DEAL(Reconstructor):
         # Underlying DEAL model from the official package
         self.model = deal_lib.DEAL(color=color).to(self.device).eval()
 
-        # Load checkpoint (support both newer and older torch.load signatures)
+        # Load pretrained (support both newer and older torch.load signatures)
         try:
             state = torch.load(
-                checkpoint_path, map_location=self.device, weights_only=True
+                pretrained, map_location=self.device, weights_only=True
             )
         except TypeError:
-            state = torch.load(checkpoint_path, map_location=self.device)
+            state = torch.load(pretrained, map_location=self.device)
 
         self.model.load_state_dict(state["state_dict"])
 
