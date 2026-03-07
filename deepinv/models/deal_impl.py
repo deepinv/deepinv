@@ -7,7 +7,7 @@ from .deal_multi_conv import *
 
 
 class DEAL(nn.Module):
-    def __init__(self, color) -> None:
+    def __init__(self, color: bool) -> None:
         super().__init__()
 
         self.kernel_size = 9
