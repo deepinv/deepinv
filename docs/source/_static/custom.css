@@ -81,7 +81,6 @@ img.sphx-glr-single-img {
     padding: 5px;
 }
 
-/* Ensure the header is clickable and shows pointer */
 table.sortable-table thead th {
     cursor: pointer !important;
     position: relative;

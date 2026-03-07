@@ -1,5 +1,4 @@
 $(document).ready(function () {
-    // Check if the table exists and isn't already initialized
     if ($('.sortable-table').length > 0) {
         $('.sortable-table').DataTable({
             "paging": false,    // Often better for benchmark lists
