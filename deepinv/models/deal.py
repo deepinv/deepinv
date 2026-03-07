@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import torch
+from deepinv.physics import LinearPhysics
 from .base import Reconstructor
 from . import deal_lib
 
@@ -102,7 +103,7 @@ class DEAL(Reconstructor):
             
 
     @torch.no_grad()
-    def forward(self, y, physics):
+    def forward(self, y: torch.Tensor, physics: LinearPhysics) -> torch.Tensor:
         """
         Run the DEAL reconstruction.
 
@@ -110,7 +111,7 @@ class DEAL(Reconstructor):
         ----------
         y : torch.Tensor
             Measurements (e.g. sinogram).
-        physics : object
+        physics : deepinv.physics.LinearPhysics
             DeepInverse physics operator with ``__call__`` and ``A_adjoint``.
 
         Returns
