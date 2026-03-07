@@ -52,12 +52,12 @@ class CPABDiffeomorphism(Transform):
 
         self.constant_batch = constant_batch
 
-        # try:
-        from libcpab import Cpab
-        # except ImportError as e:  # pragma: no cover
-        #     raise ImportError(
-        #         "Install libcpab using pip install libcpab"
-        #     ) from e  # pragma: no cover
+        try:
+            from libcpab import Cpab
+        except ImportError as e:  # pragma: no cover
+            raise ImportError(
+                "Install libcpab using pip install libcpab"
+            ) from e  # pragma: no cover
 
         self.cpab = Cpab(
             [n_tesselation, n_tesselation],
