@@ -415,18 +415,12 @@ math_numfig = True
 numfig = True
 numfig_secnum_depth = 3
 
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
 html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
 html_js_files = [
-    # Load jQuery first
     "https://code.jquery.com/jquery-3.7.1.min.js",
-    # Load DataTables second
     "https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js",
-    # Load your script last
     "main.js",
 ]
 

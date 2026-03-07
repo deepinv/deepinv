@@ -33,9 +33,7 @@ def generate_benchmarks(app):
                 csv_files.append((root, os.path.join(root, file)))
 
     if not csv_files:
-        raise FileNotFoundError(
-            "No .csv files found in the benchmarks repository."
-        )
+        raise FileNotFoundError("No .csv files found in the benchmarks repository.")
 
     # Define the output directory for RST files
     source_dir = os.path.dirname(__file__)
@@ -183,7 +181,6 @@ def process_csv_file(csv_path):
     # Header row
     header_cells = df.columns.tolist()
     lines.append("   * - " + "\n     - ".join(map(str, header_cells)))
-
 
     # Data rows
     for _, row in df.iterrows():
