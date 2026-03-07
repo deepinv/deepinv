@@ -2,7 +2,6 @@ from deepinv.loss.metric.metric import import_pyiqa, Metric
 import torch
 import torch.nn.functional as F
 import math
-import warnings
 
 
 class LPIPS(Metric):
@@ -40,20 +39,16 @@ class LPIPS(Metric):
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
         If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
+    :param str, torch.device device: LPIPS net device.
     """
 
     def __init__(self, net_type="alex", device=None, **kwargs):
         super().__init__(**kwargs)
-        if device is not None:
-            warnings.warn(
-                "LPIPS argument device is deprecated and unused, and will be removed in a future version."
-            )
-        from torchmetrics.functional.image import (
-            learned_perceptual_image_patch_similarity,
-        )
+        from torchmetrics.functional.image.lpips import _lpips_update, _NoTrainLpips
 
-        self.net_type = net_type
-        self.lpips_fn = learned_perceptual_image_patch_similarity
+        # Pre-load LPIPS net
+        self.lpips_fn = _lpips_update
+        self.lpips_net = _NoTrainLpips(net=net_type).to(device=device)
         self.lower_better = True
 
     def metric(self, x_net, x, *args, **kwargs):
@@ -72,7 +67,10 @@ class LPIPS(Metric):
             raise ValueError("LPIPS metric requires x_net and x to be between 0 and 1.")
 
         return self.lpips_fn(
-            x_net, x, net_type=self.net_type, normalize=True, reduction="none"
+            x_net,
+            x,
+            net=self.lpips_net,
+            normalize=True,
         )
 
 
