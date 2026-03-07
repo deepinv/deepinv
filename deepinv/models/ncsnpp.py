@@ -11,7 +11,7 @@ from .utils import (
 from .base import Denoiser
 from torch.nn import Linear, GroupNorm
 from torch import Tensor
-from .utils import get_weights_url
+from .utils import get_weights_url, load_state_dict_from_url
 from typing import Sequence
 
 
@@ -279,7 +279,7 @@ class NCSNpp(Denoiser):
                 url_name = None
             if url_name is not None:
                 url = get_weights_url(model_name="edm", file_name=url_name)
-                ckpt = torch.hub.load_state_dict_from_url(
+                ckpt = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=url_name
                 )
             else:

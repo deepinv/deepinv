@@ -12,7 +12,7 @@ from .base import Denoiser
 from torch.nn import Linear, GroupNorm
 from torch import Tensor
 from math import floor
-from .utils import get_weights_url
+from .utils import get_weights_url, load_state_dict_from_url
 
 
 class ADMUNet(Denoiser):
@@ -190,7 +190,7 @@ class ADMUNet(Denoiser):
             ):
                 name = "adm-imagenet64-cond.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
-                ckpt = torch.hub.load_state_dict_from_url(
+                ckpt = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
 
