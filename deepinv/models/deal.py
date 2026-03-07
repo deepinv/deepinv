@@ -21,8 +21,9 @@ class DEAL(Reconstructor):
 
     Parameters
     ----------
-    pretrained : str
-        Path to a pretrained DEAL pretrained file (e.g. ``deal_gray.pth``).
+    pretrained : str, optional
+        Path to a pretrained DEAL checkpoint file or "download" to automatically
+        download the official pretrained weights.
     sigma : float, optional
         Noise level parameter expected by the DEAL model (default: 25.0).
     lam : float, optional
@@ -77,15 +78,28 @@ class DEAL(Reconstructor):
         # Underlying DEAL model from the official package
         self.model = deal_lib.DEAL(color=color).to(self.device).eval()
 
-        # Load pretrained (support both newer and older torch.load signatures)
-        try:
-            state = torch.load(
-                pretrained, map_location=self.device, weights_only=True
+        
+        # Load pretrained weights
+        if pretrained == "download":
+            if color:
+                url = "https://raw.githubusercontent.com/mehrsapo/DEAL/main/trained_models/deal_color.pth"
+            else:
+                url = "https://raw.githubusercontent.com/mehrsapo/DEAL/main/trained_models/deal_gray.pth"
+            state = torch.hub.load_state_dict_from_url(
+                url,
+                map_location=self.device,
+                file_name=url.split("/")[-1],
             )
-        except TypeError:
-            state = torch.load(pretrained, map_location=self.device)
-
+        else:
+            try:
+                state = torch.load(
+                    pretrained, map_location=self.device, weights_only=True
+                )
+            except TypeError:
+                state = torch.load(pretrained, map_location=self.device)
+                
         self.model.load_state_dict(state["state_dict"])
+            
 
     @torch.no_grad()
     def forward(self, y, physics):
