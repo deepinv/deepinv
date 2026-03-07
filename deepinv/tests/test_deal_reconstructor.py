@@ -64,7 +64,7 @@ def test_deal_model_runs(monkeypatch):
 
     # 3) Create the wrapper model
     model = DEAL(
-        checkpoint_path="dummy.pth",
+        pretrained="dummy.pth",
         sigma=25.0,
         lam=10.0,
         max_iter=1,
