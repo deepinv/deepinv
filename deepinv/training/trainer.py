@@ -821,7 +821,6 @@ class Trainer:
         if self._model_accepts_update_parameters:
             kwargs["update_parameters"] = True
 
-        start_time = time.time()
         if train:
             self.model.train()
             return self.model(y, physics, **kwargs)
