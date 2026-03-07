@@ -22,7 +22,6 @@ import typing
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
 
-
 NO_LEARNING = ["A_dagger", "A_adjoint", "prox_l2", "y"]
 
 

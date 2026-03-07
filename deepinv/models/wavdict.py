@@ -5,7 +5,6 @@ import torch.nn as nn
 from torch import Tensor
 from .base import Denoiser
 
-
 # Coeffs is, depending on the dimension:
 # 2D: [Tensor, list[Tensor], list[Tensor]]
 # 3D: [Tensor, dict[str, Tensor], dict[str, Tensor]]

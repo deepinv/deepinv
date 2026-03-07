@@ -9,10 +9,10 @@ benchmark_mapping = {}
 
 def generate_benchmarks(app):
     r"""
-    Generate RST files for benchmarks from parquet results files.
+    Generate RST files for benchmarks from csv results files.
 
     This function downloads benchmarks from the Hugging Face repository https://huggingface.co/datasets/deepinv/benchmarks
-    and generates one rst file for each results.parquet file found in the repository.
+    and generates one rst file for each results.csv file found in the repository.
     It additionally generates a main benchmarks.rst file listing all benchmarks.
 
     :param Sphinx app: The Sphinx application object.
@@ -25,16 +25,16 @@ def generate_benchmarks(app):
         repo_id="deepinv/benchmarks", repo_type="dataset", local_dir=benchmarks_root
     )
 
-    # Recursively find all results.parquet files
-    parquet_files = []
+    # Recursively find all .csv files
+    csv_files = []
     for root, dirs, files in os.walk(benchmarks_root):
         for file in files:
-            if file == "results.parquet":
-                parquet_files.append((root, os.path.join(root, file)))
+            if file.endswith("csv"):
+                csv_files.append((root, os.path.join(root, file)))
 
-    if not parquet_files:
+    if not csv_files:
         raise FileNotFoundError(
-            "No results.parquet files found in the benchmarks repository."
+            "No .csv files found in the benchmarks repository."
         )
 
     # Define the output directory for RST files
@@ -42,10 +42,10 @@ def generate_benchmarks(app):
     output_dir = os.path.join(source_dir, "auto_benchmarks")
 
     benchmark_info = []
-    # process each parquet file
-    for folder, parquet_file in parquet_files:
-        dataset, physics, noise, benchmark_name = generate_rst_from_parquet(
-            parquet_file, output_dir
+    # process each csv file
+    for folder, csv_file in csv_files:
+        dataset, physics, noise, benchmark_name = generate_rst_from_csv(
+            csv_file, output_dir
         )
         benchmark_info.append((benchmark_name, dataset, physics, noise))
 
@@ -69,17 +69,17 @@ def generate_benchmarks(app):
     generate_main_rst(benchmark_info, source_dir)
 
 
-def process_parquet_file(parquet_path):
+def process_csv_file(csv_path):
     r"""
-    Process a parquet benchmark results file and generate RST lines.
+    Process a csv benchmark results file and generate RST lines.
 
-    :param str, Path parquet_path: Path to the results.parquet file.
+    :param str, Path csv_path: Path to the results.csv file.
     :return: Tuple containing the RST lines, dataset name, physics name, and noise model name.
     :rtype: tuple[list[str], str, str, str]
     """
     import pandas as pd
 
-    df = pd.read_parquet(parquet_path)
+    df = pd.read_csv(csv_path)
 
     dataset = (
         df["dataset_name"][0].split("[")[0]
@@ -137,11 +137,14 @@ def process_parquet_file(parquet_path):
     lines.append("   :header-rows: 1")
     lines.append("")
 
+    # filter duplicated rows by repeated solver_name entries, keeping only the first one
+    df = df.drop_duplicates(subset=["solver_name"], keep="last")
+
     # Add link to 'model' column if exists
     if "solver_name" in df.columns and "file_solver" in df.columns:
         url = (
             "https://github.com/deepinv/benchmarks/tree/main/"
-            + str(Path(parquet_path).parent.name)
+            + str(Path(csv_path).parent.name)
             + "/"
         )
         for i, row in df.iterrows():
@@ -181,6 +184,7 @@ def process_parquet_file(parquet_path):
     header_cells = df.columns.tolist()
     lines.append("   * - " + "\n     - ".join(map(str, header_cells)))
 
+
     # Data rows
     for _, row in df.iterrows():
         row_cells = []
@@ -194,17 +198,17 @@ def process_parquet_file(parquet_path):
     return lines, dataset, physics, noise, benchmark_link
 
 
-def generate_rst_from_parquet(parquet_path, output_dir):
+def generate_rst_from_csv(csv_path, output_dir):
     r"""
-    Generate an .rst file from a parquet benchmark results file.
+    Generate an .rst file from a csv benchmark results file.
 
-    :param str, Path parquet_path: Path to the results.parquet file.
+    :param str, Path csv_path: Path to the results.csv file.
     :param str, Path output_dir: Directory where the rst file will be saved.
     :return: Tuple containing dataset, physics, and noise model names.
     :rtype: tuple[str, str, str]
     """
     # Write rst
-    lines, dataset, physics, noise, benchmark_link = process_parquet_file(parquet_path)
+    lines, dataset, physics, noise, benchmark_link = process_csv_file(csv_path)
     os.makedirs(output_dir, exist_ok=True)
     rst_path = os.path.join(output_dir, f"{benchmark_link}.rst")
     with open(rst_path, "w") as f:
@@ -230,11 +234,11 @@ This section provides benchmark results for various datasets and physics models.
 
 .. note::
 
-    Benchmarks are defined on the https://github.com/deepinv/benchmarks repository.
+    Benchmarks are defined in the https://github.com/deepinv/benchmarks repository.
     To contribute a new benchmark or add your solver to an existing benchmark, please refer to this repository.
 
-You can try your solver on one of the benchmarks, make sure that it receives `(y, physics)` as input and outputs the reconstructed image as `x`,
-then install (or upgrade) the `deepinv_bench` package and run the benchmark as follows:
+You can try your own solver on any benchmark of your choice. Make sure that it receives `(y: torch.Tensor, physics: dinv.physics.Physics)` as input and outputs the reconstructed image as `x: torch.Tensor`,
+then install (or upgrade) the `deepinv_bench` package as follows:
     
 .. code-block:: bash
 
