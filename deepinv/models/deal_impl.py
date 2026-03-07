@@ -84,7 +84,6 @@ class DEAL(nn.Module):
         self.last_cg_iter = 0
         self.max_iter = 1000
 
-        return
 
     def cal_lambda(self, sigma):
         self.lmbda = self.spline_lambda(sigma)
