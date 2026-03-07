@@ -7,7 +7,17 @@ from . import deal_lib
 
 class DEAL(Reconstructor):
     """
-    DeepInverse-compatible wrapper around the official DEAL solver.
+    Deep Equilibrium Attention Least Squares (DEAL) reconstruction model.
+
+    This model solves linear inverse problems using a learned equilibrium-based
+    regularizer combined with conjugate gradient iterations. It can be used for
+    image restoration and reconstruction tasks such as denoising, deblurring,
+    and computed tomography reconstruction.
+
+    This implementation is adapted from the official DEAL repository:
+    https://github.com/mehrsapo/DEAL
+
+    For the original method, see :footcite:t:"pouya2024deal".
 
     Parameters
     ----------
