@@ -26,8 +26,9 @@ Future events
 Past events
 ~~~~~~~~~~~
 
+- Dec 10, 2025: Tutorial at `EPFL Center for Imaging <https://memento.epfl.ch/event/imaging-lunch-deepinverse-a-pytorch-library-for-so/>`_ in Lausanne, Switzerland.
 - Sep 7-10, 2025: Hackathon at `CIRM <https://conferences.cirm-math.fr/3396.html>`_ in Marseille, France.
-- June 9-10, 2025: Summer school tutorial at `Mathematics and Machine Learning for Image Analysis <https://site.unibo.it/mml-imaging/en>`__ in Bologna, Italy.
+- June 9-10, 2025: Summer school tutorial at `Mathematics and Machine Learning for Image Analysis <https://site.unibo.it/mml-imaging/en>`_ in Bologna, Italy.
 - June 4-6, 2025: Summer school tutorial at `International Symposium on Computational Sensing <https://www.iscs2025.com/>`_ in Luxembourg.
 - Apr 15-17, 2025: Software demo at `International Symposium on Biomedical Imaging <https://biomedicalimaging.org/2025/>`_ in Houston, Texas, USA.
 - Feb 24-26 2025: Doctoral school tutorial at `ICMS <https://www.icms.org.uk/>`_ in Edinburgh, UK.

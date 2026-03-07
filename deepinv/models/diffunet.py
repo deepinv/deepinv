@@ -5,7 +5,7 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
-from .utils import get_weights_url, conv_nd, avgpool_nd
+from .utils import get_weights_url, conv_nd, avgpool_nd, load_state_dict_from_url
 from abc import abstractmethod
 import numpy as np
 from .base import Denoiser
@@ -275,7 +275,7 @@ class DiffUNet(Denoiser):
                         "no existing pretrained model matches the requested configuration"
                     )
                 url = get_weights_url(model_name="diffunet", file_name=name)
-                ckpt = torch.hub.load_state_dict_from_url(
+                ckpt = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
             else:

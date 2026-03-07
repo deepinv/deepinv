@@ -1081,7 +1081,6 @@ def test_trainer_speed(device):  # pragma: no cover
         optimizer=optimizer,
         ckp_interval=epochs + 1,
         show_progress_bar=True,
-        verbose_individual_losses=True,
         compute_train_metrics=False,
         verbose=True,
         device=device,

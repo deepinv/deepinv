@@ -38,7 +38,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # Set up the variable to fetch dataset and operators.
 method = "DPIR"
@@ -149,7 +149,7 @@ test(
     model=model,
     test_dataloader=dataloader,
     physics=p,
-    metrics=[dinv.metric.PSNR(), dinv.metric.LPIPS(device=device)],
+    metrics=[dinv.metric.PSNR(), dinv.metric.LPIPS(device=device, norm_inputs="clip")],
     device=device,
     plot_images=plot_images,
     save_folder=save_folder,
