@@ -14,8 +14,8 @@ class UNet(Denoiser):
     r"""
     U-Net convolutional denoiser.
 
-    This network is a fully convolutional denoiser based on the U-Net architecture. The number of stages in the network is
-    controlled by ``scales``. The width of each stage is controlled by ``channels_per_scale``,
+    This network is a fully convolutional denoiser based on the U-Net architecture from :footcite:t:`jin2017deep`.
+    The number of stages in the network is controlled by ``scales``. The width of each stage is controlled by ``channels_per_scale``,
     which gives the number of feature maps at each stage, from shallow to deeper stages.
     The number of trainable parameters increases with both ``scales`` and the values in ``channels_per_scale``.
 
@@ -23,6 +23,13 @@ class UNet(Denoiser):
     ``channels_per_scale=[64, 128, 256, 512]``. If only ``scales`` is specified, ``channels_per_scale=[64 * (2**k) for k in range(scales)]``.
     When both are specified, ``scales`` must match the length of ``channels_per_scale``.
 
+    .. note::
+        This UNet implementation follows the design from :footcite:t:`jin2017deep`, which differs from the original
+        medical segmentation UNet :footcite:t:`ronneberger2015u` in several ways:
+        
+        - Use of zero padding instead of valid padding
+        - Introduction of a global residual connection
+        - Designed for inverse problems in imaging rather than medical segmentation
 
     .. warning::
         When using the bias-free batch norm via ``batch_norm="biasfree"``, NaNs may be encountered
