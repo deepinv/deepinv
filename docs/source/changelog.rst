@@ -22,9 +22,10 @@ Changed
 - (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.
 - Refactor folder structure of least-squares solvers (:gh:`1011` by `Julian Tachella`_)
 - Removed `eps` parameter from :func:`deepinv.optim.linear.conjugate_gradient` (:gh:`1011` by `Julian Tachella`_)
+- :class:`deepinv.loss.metric.LPIPS` uses `torchmetrics` instead of `pyiqa`. (:gh:`1041` by `Andrew Wang`_)
+- Remove `pyiqa` optional dep (:gh:`1041` by `Andrew Wang`_)
 - Deprecated `verbose_individual_losses` parameter in :class:`deepinv.Trainer`. Individual losses are now always added to logs when multiple losses are present (:gh:`928` by `Tiberiu Sabau`_)
 - Deprecate historical attributes in HDF5Dataset (:gh:`764` by `Jérémy Scanvic`_)
-
 
 Fixed
 ^^^^^
