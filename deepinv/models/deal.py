@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import torch
+import torch.nn.functional as F
+import torch.nn.utils.parametrize as P
+from torch import Tensor, nn
+from abc import ABC
+
 from deepinv.physics import LinearPhysics
 from .base import Reconstructor
-from . import deal_impl as deal_lib
 
 
 class DEAL(Reconstructor):
