@@ -11,7 +11,9 @@ class LPIPS(Metric):
     Calculates the LPIPS :math:`\text{LPIPS}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
 
     Computes the perceptual similarity between two images, based on a pre-trained deep neural network.
-    Uses implementation from `pyiqa <https://pypi.org/project/pyiqa/>`_.
+    Uses implementation from `torchmetrics <https://lightning.ai/docs/torchmetrics/stable/image/learned_perceptual_image_patch_similarity.html>`_.
+
+    The inputs `x_net`, `x` must both have 3 channels and be in `[0, 1]`. Optionally use `norm_inputs` argument to clip to `[0, 1]`.
 
     .. note::
 
@@ -21,35 +23,55 @@ class LPIPS(Metric):
 
     >>> from deepinv.utils import load_example
     >>> from deepinv.loss.metric import LPIPS
-    >>> m = LPIPS() # doctest: +IGNORE_RESULT
-    >>> x = load_example("celeba_example.jpg", img_size=128)
+    >>> m = LPIPS()
+    >>> x = torch.ones(2, 3, 32, 32)
     >>> x_net = x - 0.01
     >>> m(x_net, x) # doctest: +ELLIPSIS
     tensor([...])
 
-    :param str device: device to use for the metric computation. Default: 'cpu'.
+    :param str net_type: network architecture to use. Options: 'alex', 'vgg', 'squeeze'. Default: 'alex'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param bool check_input_range: if True, ``pyiqa`` will raise error if inputs aren't in the appropriate range ``[0, 1]``.
-    :param bool as_loss: if True, returns LPIPS as a loss. Default: False.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
         If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
+    :param str, torch.device device: LPIPS net device.
     """
 
-    def __init__(self, device="cpu", check_input_range=False, as_loss=False, **kwargs):
+    def __init__(self, net_type="alex", device=None, **kwargs):
         super().__init__(**kwargs)
-        pyiqa = import_pyiqa()
-        self.lpips = pyiqa.create_metric(
-            "lpips", check_input_range=check_input_range, device=device, as_loss=as_loss
-        ).to(device)
-        self.lower_better = self.lpips.lower_better
+        from torchmetrics.functional.image.lpips import _lpips_update, _NoTrainLpips
+
+        # Pre-load LPIPS net
+        self.lpips_fn = _lpips_update
+        self.lpips_net = _NoTrainLpips(net=net_type).to(device=device)
+        self.lower_better = True
 
     def metric(self, x_net, x, *args, **kwargs):
-        return self.lpips(x_net, x).squeeze(-1)
+        if x_net.ndim != 4 or x.ndim != 4:
+            raise ValueError(
+                f"LPIPS metric requires 4D input (B, C, H, W), but got shapes {x_net.shape}, {x.shape}."
+            )
+
+        if not (x_net.shape[1] == x.shape[1] == 3):
+            raise ValueError(
+                f"LPIPS metric only supports 3-channel input, but got channels for x_net, x as {x_net.shape[1]}, {x.shape[1]}."
+            )
+
+        min_val, max_val = torch.aminmax(torch.cat([x_net, x], dim=0))
+        if not ((min_val >= 0.0) & (max_val <= 1.0)):
+            raise ValueError("LPIPS metric requires x_net and x to be between 0 and 1.")
+
+        return self.lpips_fn(
+            x_net,
+            x,
+            net=self.lpips_net,
+            normalize=True,
+        )
 
 
 class NIQE(Metric):
@@ -72,13 +94,15 @@ class NIQE(Metric):
 
     :Example:
 
-    >>> from deepinv.utils import load_example
-    >>> from deepinv.loss.metric import NIQE
-    >>> m = NIQE() # doctest: +IGNORE_RESULT
-    (...)
-    >>> x_net = load_example("celeba_example.jpg", img_size=128)
-    >>> m(x_net) # doctest: +ELLIPSIS
-    tensor([...])
+    ::
+
+        from deepinv.utils import load_example
+        from deepinv.loss.metric import NIQE
+        m = NIQE()
+        (...)
+        x_net = load_example("celeba_example.jpg", img_size=128)
+        m(x_net)
+        tensor([...])
 
     :param str device: device to use for the metric computation. Default: 'cpu'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,

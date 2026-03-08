@@ -14,6 +14,7 @@ from .utils import (
     maxpool_nd,
     avgpool_nd,
     initialize_3d_from_2d,
+    load_state_dict_from_url,
 )
 from .base import Denoiser
 from collections import OrderedDict
@@ -49,15 +50,17 @@ class DRUNet(Denoiser):
     :param torch.device, str device: Device to put the model on.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
-    ::
+    |sep|
 
-        import deepinv as dinv
-        import torch
-        denoiser = dinv.models.DRUNet()
-        y = torch.randn(1, 3, 32, 32)
-        sigma = 0.1
-        with torch.no_grad():
-            denoised = denoiser(y, sigma)
+    :Examples:
+
+        >>> import deepinv as dinv
+        >>> import torch
+        >>> denoiser = dinv.models.DRUNet()
+        >>> y = torch.randn(1, 3, 32, 32)
+        >>> sigma = 0.1
+        >>> with torch.no_grad():
+        ...     denoised = denoiser(y, sigma)
 
     """
 
@@ -169,10 +172,8 @@ class DRUNet(Denoiser):
                 elif in_channels == 2:
                     name = "drunet_deepinv_gray_finetune_26k.pth"
                 url = get_weights_url(model_name="drunet", file_name=name)
-                ckpt_drunet = torch.hub.load_state_dict_from_url(
-                    url,
-                    map_location=lambda storage, loc: storage,
-                    file_name=name,
+                ckpt_drunet = load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=name
                 )
             else:
                 ckpt_drunet = torch.load(
