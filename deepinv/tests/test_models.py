@@ -1666,6 +1666,7 @@ def test_gaussian_noise_estimators(model_name, mode, channels, sigma, device, rn
         model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-4, atol=1e-6
     )
 
+
 class DummyInnerDEAL(nn.Module):
     """
     Tiny fake version of the internal DEAL class.
@@ -1673,9 +1674,7 @@ class DummyInnerDEAL(nn.Module):
     """
 
     def __init__(self, color: bool = False, *args, **kwargs):
-        # accept `color` and ignore it
         super().__init__()
-        # simple conv so we have parameters in state_dict
         self.conv = nn.Conv2d(1, 1, kernel_size=3, padding=1)
 
     def forward(self, x):
@@ -1715,13 +1714,13 @@ def test_deal_model_runs(monkeypatch):
     """
     import deepinv.models.deal as deal_mod
 
-    #  Replace the internal DEAL implementation by  tiny dummy class
+    # Replace the internal DEAL implementation by a tiny dummy class
     monkeypatch.setattr(deal_mod, "_DEALImpl", DummyInnerDEAL)
 
-    #  Replace torch.load used inside deepinv.models.deal.DEAL.__init__
+    # Replace torch.load used inside deepinv.models.deal.DEAL.__init__
     monkeypatch.setattr(deal_mod.torch, "load", fake_load)
 
-    #  Create the wrapper model
+    # Create the wrapper model
     model = DEAL(
         pretrained="dummy.pth",
         sigma=25.0,
@@ -1734,12 +1733,12 @@ def test_deal_model_runs(monkeypatch):
     # Simple DeepInverse physics (denoising)
     physics = Denoising()
 
-    #  Fake measurement
+    # Fake measurement
     y = torch.randn(1, 1, 32, 32)
 
-    #  Run the forward pass
+    # Run the forward pass
     x_hat = model(y, physics)
 
-    #  Check that output shape matches input shape
+    # Check that output shape matches input shape
     assert isinstance(x_hat, torch.Tensor)
     assert x_hat.shape == y.shape
