@@ -1,7 +1,8 @@
-from deepinv.loss.metric.metric import import_pyiqa, Metric
+import sys, io
+import math
 import torch
 import torch.nn.functional as F
-import math
+from deepinv.loss.metric.metric import import_pyiqa, Metric
 
 
 class LPIPS(Metric):
@@ -48,7 +49,15 @@ class LPIPS(Metric):
 
         # Pre-load LPIPS net
         self.lpips_fn = _lpips_update
-        self.lpips_net = _NoTrainLpips(net=net_type).to(device=device)
+
+        # Load LPIPS. Note torchvision internally uses torch.hub.load_state_dict_from_url which
+        # annoyingly unpredictably prints to stdout, so we suppress this.
+        sys.stdout = io.StringIO()
+        try:
+            self.lpips_net = _NoTrainLpips(net=net_type).to(device=device)
+        finally:
+            sys.stdout = sys.__stdout__
+
         self.lower_better = True
 
     def metric(self, x_net, x, *args, **kwargs):

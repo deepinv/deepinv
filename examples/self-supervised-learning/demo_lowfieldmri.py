@@ -79,7 +79,7 @@ dinv.utils.plot(
 # We define a simple denoising physics with Gaussian noise matching the estimated noise level.
 
 sigma = noise_estimator(y)
-physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma=sigma.to(device)))
+physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma=sigma))
 
 # %%
 # Zero-shot reconstruction
