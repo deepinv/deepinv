@@ -2,6 +2,7 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 from hashlib import sha256
+import warnings
 
 
 def seed_from_string(seed: str) -> int:
@@ -244,7 +245,7 @@ class GeneratorMixture(PhysicsGenerator):
             for j in range(i + 1, len(generators_keys)):
                 if generators_keys[i] != generators_keys[j]:
                     if verbose:
-                        print(
+                        warnings.warn(
                             f"Generators {i} and {j} have different keys. Got {generators_keys[i]} and {generators_keys[j]}. Generators are not batch-compatible, a single generator will be sampled per batch."
                         )
                     return False
@@ -255,13 +256,13 @@ class GeneratorMixture(PhysicsGenerator):
                         != generators_params[j][key].shape
                     ):
                         if verbose:
-                            print(
+                            warnings.warn(
                                 f"Generators {i} and {j} have different shapes for key {key}. Got {generators_params[i][key].shape} and {generators_params[j][key].shape}. Generators are not batch-compatible, a single generator will be sampled per batch."
                             )
                         return False
 
         if verbose:
-            print(
+            warnings.warn(
                 "All generators have the same keys and shapes. Generators are batch-compatible, the mixture will sample, with replacement, a different generator per batch"
             )
 
