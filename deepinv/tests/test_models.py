@@ -1715,13 +1715,13 @@ def test_deal_model_runs(monkeypatch):
     """
     import deepinv.models.deal as deal_mod
 
-    # 1) Replace the internal DEAL implementation by our tiny dummy class
-    deal_mod.deal_lib = types.SimpleNamespace(DEAL=DummyInnerDEAL)
+    #  Replace the internal DEAL implementation by  tiny dummy class
+    monkeypatch.setattr(deal_mod, "_DEALImpl", DummyInnerDEAL)
 
-    # 2) Replace torch.load used inside deepinv.models.deal.DEAL.__init__
+    #  Replace torch.load used inside deepinv.models.deal.DEAL.__init__
     monkeypatch.setattr(deal_mod.torch, "load", fake_load)
 
-    # 3) Create the wrapper model
+    #  Create the wrapper model
     model = DEAL(
         pretrained="dummy.pth",
         sigma=25.0,
@@ -1731,15 +1731,15 @@ def test_deal_model_runs(monkeypatch):
         clamp_output=True,
     )
 
-    # 4) Simple DeepInverse physics (denoising)
+    # Simple DeepInverse physics (denoising)
     physics = Denoising()
 
-    # 5) Fake measurement
+    #  Fake measurement
     y = torch.randn(1, 1, 32, 32)
 
-    # 6) Run the forward pass
+    #  Run the forward pass
     x_hat = model(y, physics)
 
-    # 7) Check that output shape matches input shape
+    #  Check that output shape matches input shape
     assert isinstance(x_hat, torch.Tensor)
     assert x_hat.shape == y.shape
