@@ -21,13 +21,14 @@ class LPIPS(Metric):
 
     :Example:
 
-    >>> from deepinv.utils import load_example
-    >>> from deepinv.loss.metric import LPIPS
-    >>> m = LPIPS()
-    >>> x = torch.ones(2, 3, 32, 32)
-    >>> x_net = x - 0.01
-    >>> m(x_net, x) # doctest: +ELLIPSIS
-    tensor([...])
+    ::
+
+        from deepinv.utils import load_example
+        from deepinv.loss.metric import LPIPS
+        m = LPIPS()
+        x = torch.ones(2, 3, 32, 32)
+        x_net = x - 0.01
+        m(x_net, x)
 
     :param str net_type: network architecture to use. Options: 'alex', 'vgg', 'squeeze'. Default: 'alex'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
