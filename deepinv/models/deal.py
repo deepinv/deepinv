@@ -380,9 +380,7 @@ class LinearSpline(ABC, nn.Module):
         return self.relu_slopes.norm(1, dim=1).sum()
 
 
-def symmetric_pad(
-    tensor: ms.Tensor, pad_size: tuple[int, int, int, int]
-) -> ms.Tensor:
+def symmetric_pad(tensor: ms.Tensor, pad_size: tuple[int, int, int, int]) -> ms.Tensor:
     """
     Pad symmetrically the spatial dimensions of the input tensor.
     """
@@ -399,7 +397,7 @@ def symmetric_pad(
     ] = tensor
 
     if pad_size[0] != 0:
-        out[..., 0:pad_size[0], :] = ms.flip(
+        out[..., 0 : pad_size[0], :] = ms.flip(
             out[..., pad_size[0] : 2 * pad_size[0], :], (-2,)
         )
     if pad_size[1] != 0:
@@ -408,7 +406,7 @@ def symmetric_pad(
             (-2,),
         )
     if pad_size[2] != 0:
-        out[..., :, 0:pad_size[2]] = ms.flip(
+        out[..., :, 0 : pad_size[2]] = ms.flip(
             out[..., :, pad_size[2] : 2 * pad_size[2]], (-1,)
         )
     if pad_size[3] != 0:
@@ -430,7 +428,7 @@ def symmetric_pad_transpose(
 
     if pad_size[0] != 0:
         out[..., pad_size[0] : 2 * pad_size[0], :] += ms.flip(
-            out[..., 0:pad_size[0], :], (-2,)
+            out[..., 0 : pad_size[0], :], (-2,)
         )
     if pad_size[1] != 0:
         out[..., -2 * pad_size[1] : -pad_size[1], :] += ms.flip(
@@ -438,7 +436,7 @@ def symmetric_pad_transpose(
         )
     if pad_size[2] != 0:
         out[..., pad_size[2] : 2 * pad_size[2]] += ms.flip(
-            out[..., 0:pad_size[2]], (-1,)
+            out[..., 0 : pad_size[2]], (-1,)
         )
     if pad_size[3] != 0:
         out[..., -2 * pad_size[3] : -pad_size[3]] += ms.flip(
@@ -1118,9 +1116,18 @@ class DEAL(Reconstructor):
 
         if pretrained == "download":
             if color:
-                url = "https://raw.githubusercontent.com/mehrsapo/DEAL/main/trained_models/deal_color.pth"
+                url = (
+                    "https://raw.githubusercontent.com/mehrsapo/DEAL/main/"
+                    "trained_models/deal_color.pth"
+                )
+                    
             else:
-                url = "https://raw.githubusercontent.com/mehrsapo/DEAL/main/trained_models/deal_gray.pth"
+                url = (
+                    "https://raw.githubusercontent.com/mehrsapo/DEAL/main/"
+                    "trained_models/deal_gray.pth"
+                )
+                    
+                    
             state = torch.hub.load_state_dict_from_url(
                 url,
                 map_location=self.device,
@@ -1155,7 +1162,8 @@ class DEAL(Reconstructor):
         """
         y = y.to(self.device)
 
-        H = lambda z: physics(z)
+        def H(z: torch.Tensor) -> torch.Tensor:
+            return physics(z)   
         Ht = physics.A_adjoint
 
         if self.auto_scale:
