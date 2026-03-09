@@ -62,16 +62,17 @@ class DownsamplingGenerator(PhysicsGenerator):
 
         if filter_name == "gaussian":
             filter = torch.nn.Parameter(
-                gaussian_blur(sigma=(factor, factor), device=self.device), requires_grad=False
+                gaussian_blur(sigma=(factor, factor), device=self.device),
+                requires_grad=False,
             )
         elif filter_name == "bilinear":
             filter = torch.nn.Parameter(
                 bilinear_filter(factor, device=self.device), requires_grad=False
             )
         elif filter_name == "bicubic":
-            filter = torch.nn.Parameter(bicubic_filter(factor, device=self.device), requires_grad=False).to(
-                self.device
-            )
+            filter = torch.nn.Parameter(
+                bicubic_filter(factor, device=self.device), requires_grad=False
+            ).to(self.device)
 
         if self.psf_size is not None:
             dH = self.psf_size[0] - filter.shape[-2]
