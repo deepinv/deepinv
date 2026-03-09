@@ -2399,6 +2399,10 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
     except ImportError:
         pytest.skip("Scipy is required for this test.")
 
+    # skip if windows
+    if os.name == "nt":
+        pytest.skip("Scipy's special functions are not well supported on Windows.")
+
     wavenumber = torch.tensor([wavenumber])
     cylinder_contrast = contrast
     cylinder_radius = 0.25
