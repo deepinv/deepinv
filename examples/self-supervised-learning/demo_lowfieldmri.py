@@ -78,7 +78,7 @@ dinv.utils.plot(
 # -------
 # We define a simple denoising physics with Gaussian noise matching the estimated noise level.
 
-sigma = noise_estimator(y)
+sigma = noise_estimator(y).item()
 physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma=sigma))
 
 # %%

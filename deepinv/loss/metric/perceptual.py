@@ -52,11 +52,12 @@ class LPIPS(Metric):
 
         # Load LPIPS. Note torchvision internally uses torch.hub.load_state_dict_from_url which
         # annoyingly unpredictably prints to stdout, so we suppress this.
+        _stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:
             self.lpips_net = _NoTrainLpips(net=net_type).to(device=device)
         finally:
-            sys.stdout = sys.__stdout__
+            sys.stdout = _stdout
 
         self.lower_better = True
 
