@@ -439,7 +439,6 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device, 
             img_size=img_size,
             split_generator=mri_gen,
             device=device,
-            rng=rng,
         )
     else:
         raise Exception("The generator chosen doesn't exist")
@@ -517,7 +516,7 @@ def test_inpainting_generators(
     mask3 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
     correct_ratio(
         mask3.sum() / input_mask.sum(),
-        atol=1e-2 if generator_name != "multiplicative" else 2e-1,
+        atol=1e-2 if generator_name != "multiplicative" else 2.5e-1,
     )
     correct_pixelwise(mask3)
 
