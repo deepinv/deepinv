@@ -78,8 +78,9 @@ dinv.utils.plot(
 # -------
 # We define a simple denoising physics with Gaussian noise matching the estimated noise level.
 
-sigma = noise_estimator(y).detach().cpu()
-physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma=sigma))
+with torch.no_grad():
+    sigma = noise_estimator(y.to(device))
+physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma=sigma), device=device)
 
 # %%
 # Zero-shot reconstruction
@@ -99,7 +100,7 @@ with torch.no_grad():
 # .. note::
 #     We train for 50 epochs on GPU. For faster execution on CPU, set epochs to a smaller value.
 
-dataset = dinv.datasets.TensorDataset(y=y, params={"sigma": sigma})
+dataset = dinv.datasets.TensorDataset(y=y)
 
 trainer = dinv.Trainer(
     model=model,
