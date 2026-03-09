@@ -369,7 +369,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
                 else coil_maps
             )
 
-        if coil_maps.shape[2:] != self.img_size[1:]:
+        if coil_maps is not None and coil_maps.shape[2:] != self.img_size[1:]:
             warn(
                 f"After updating parameters, img_size {self.img_size} in MultiCoilMRI is incompatible with coil_maps shape {coil_maps.shape} in the spatial dims."
             )
