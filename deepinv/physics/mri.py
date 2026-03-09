@@ -360,7 +360,6 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             mask = (
                 self.check_mask(mask=mask, three_d=self.three_d) if check_mask else mask
             )
-            self.img_size = self.mask.shape[1:]
 
         if coil_maps is not None:
             coil_maps = (
@@ -369,12 +368,15 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
                 else coil_maps
             )
 
-        if coil_maps is not None and coil_maps.shape[2:] != self.img_size[1:]:
+        super().update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
+
+        # Update image size with latest mask shape
+        self.img_size = self.mask.shape[1:]
+
+        if self.coil_maps is not None and self.coil_maps.shape[2:] != self.img_size[1:]:
             warn(
                 f"After updating parameters, img_size {self.img_size} in MultiCoilMRI is incompatible with coil_maps shape {coil_maps.shape} in the spatial dims."
             )
-
-        super().update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
 
     @staticmethod
     def check_coil_maps(coil_maps: Tensor, three_d: bool) -> Tensor:
