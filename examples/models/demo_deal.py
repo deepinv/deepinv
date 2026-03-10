@@ -1,5 +1,6 @@
 """
 DEAL reconstruction demo.
+====================================================================================================
 
 This example shows how to use the DEAL reconstruction model in DeepInverse
 for a simple deblurring problem.
