@@ -134,7 +134,6 @@ class KernelIdentificationNetwork(nn.Module):
                         file_name=file_name,
                         check_hash=True,
                         weights_only=True,
-                        progress=False,
                     )
                     self.load_state_dict(ckpt, strict=True)
                 else:
