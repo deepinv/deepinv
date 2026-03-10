@@ -1669,7 +1669,7 @@ def test_gaussian_noise_estimators(model_name, mode, channels, sigma, device, rn
 
 class DummyInnerDEAL(nn.Module):
     """
-    Tiny fake version of the internal DEAL class.  
+    Tiny fake version of the internal DEAL class.
     """
 
     def __init__(self, color: bool = False, *args, **kwargs):

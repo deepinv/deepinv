@@ -1120,13 +1120,13 @@ class DEAL(Reconstructor):
                     "https://raw.githubusercontent.com/mehrsapo/DEAL/main/"
                     "trained_models/deal_color.pth"
                 )
-                
+
             else:
                 url = (
                     "https://raw.githubusercontent.com/mehrsapo/DEAL/main/"
                     "trained_models/deal_gray.pth"
-                )        
-                
+                )
+
             state = torch.hub.load_state_dict_from_url(
                 url,
                 map_location=self.device,
@@ -1162,8 +1162,8 @@ class DEAL(Reconstructor):
         y = y.to(self.device)
 
         def H(z: torch.Tensor) -> torch.Tensor:
-            return physics(z)   
-            
+            return physics(z)
+
         Ht = physics.A_adjoint
 
         if self.auto_scale:
