@@ -1,5 +1,5 @@
 from __future__ import annotations
-from deepinv.utils import zeros_like
+from deepinv.utils.tensorlist import zeros_like
 import torch
 from torch import Tensor
 from torch.autograd.function import once_differentiable

@@ -10,6 +10,9 @@ import torch.nn.functional as F
 from torch.nn import Linear, GroupNorm
 
 from itertools import chain
+import os
+import io
+import contextlib
 
 
 def tensor2array(img):
@@ -87,6 +90,7 @@ def patchify(
     >>> patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
     >>> print(f"Input shape: {x.shape}, patchified shape: {patches.shape}")
     Input shape: torch.Size([1, 3, 256, 256]), patchified shape: torch.Size([1, 3, 8, 8, 3969])
+    >>> dinv.utils.plot(list(patches[0].permute(3, 0, 1, 2)[:16]), titles=[f"Patch {i} of {patches.shape[-1]}" for i in range(16)])  # doctest: +SKIP
 
     .. plot::
 
@@ -517,7 +521,6 @@ def initialize_3d_from_2d(
     """
     for name, module in model_3d.named_modules():
         if isinstance(module, (nn.Conv3d, nn.ConvTranspose3d)):
-
             module.weight.data[:] = 0.0
             with torch.no_grad():
                 if module.kernel_size[0] % 2 == 1:
@@ -561,3 +564,27 @@ def initialize_3d_from_2d(
 
                 if module.bias is not None:
                     module.bias[:] = ckpt_2d[f"{name}.bias"]
+
+
+def load_state_dict_from_url(*args, **kwargs) -> dict:
+    """
+    A wrapper for :func:`torch.hub.load_state_dict_from_url` that respects the DEEPINV_DOWNLOAD_VERBOSE
+    environment variable. If set to 0, stdout prints are suppressed.
+    """
+    # Read the environment variable. Default to "1" (True/Verbose) if not set.
+    env_value = os.environ.get("DEEPINV_DOWNLOAD_VERBOSE", "1").lower()
+
+    # Check if the user explicitly turned verbosity off
+    is_silent = env_value in ("0", "false", "no", "f")
+
+    # Choose the context manager based on the is_silent flag
+    if is_silent:
+        ctx = contextlib.redirect_stdout(io.StringIO())
+        # Optional: Also force progress=False to hide the stderr progress bar
+        kwargs["progress"] = False
+    else:
+        # nullcontext() does nothing, allowing stdout to print normally
+        ctx = contextlib.nullcontext()
+
+    with ctx:
+        return torch.hub.load_state_dict_from_url(*args, **kwargs)
