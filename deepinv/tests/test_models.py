@@ -3,7 +3,6 @@ import json
 from unittest.mock import patch, MagicMock
 import contextlib
 
-import types
 from deepinv.models import DEAL
 from deepinv.physics import Denoising
 import torch
