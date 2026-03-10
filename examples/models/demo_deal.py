@@ -5,9 +5,6 @@ This example shows how to use the DEAL reconstruction model in DeepInverse
 for a simple deblurring problem.
 """
 
-#! pip install deepinv
-
-import matplotlib.pyplot as plt
 import torch
 
 import deepinv as dinv
@@ -19,7 +16,7 @@ from deepinv.utils import load_example, plot
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Load example image
+# Load a color example image
 x = load_example("celeba_example.jpg", img_size=128).to(device)
 
 # Define blur + Gaussian noise physics
@@ -40,6 +37,7 @@ model = DEAL(
     lam=10.0,
     max_iter=10,
     auto_scale=False,
+    color=True,
     device=device,
     clamp_output=True,
 )
@@ -53,4 +51,3 @@ plot(
     [x, y, x_hat],
     titles=["Ground truth", "Blurred measurement", "DEAL reconstruction"],
 )
-plt.show()
