@@ -2,6 +2,7 @@ from __future__ import annotations
 import torch
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.compat import zip_strict
+from deepinv.physics.functional import random_choice
 
 
 class DownsamplingGenerator(PhysicsGenerator):
@@ -22,7 +23,7 @@ class DownsamplingGenerator(PhysicsGenerator):
 
     .. note::
         If batch size = 1, a random filter and factor is sampled in (filters, factors) at each step.
-        If batch size > 1, a unique factor needs to be sampled for the whole batch, but filters can vary. In this case,
+        If batch size > 1 and multiple factors are provided, a unique factor is sampled for the whole batch, but filters can vary. In this case,
         it is recommended to set the `psf_size` argument to ensure that all filters in the batch have the same shape.
 
     :param list[str] filters: list of filters to use for downsampling. Default is ["gaussian", "bilinear", "bicubic"].
@@ -108,13 +109,19 @@ class DownsamplingGenerator(PhysicsGenerator):
         """
         self.rng_manual_seed(seed)
 
-        factor_indices = torch.randint(
-            low=0,
-            high=len(self.list_factors),
-            size=(batch_size,),
-            generator=self.rng,
-            **self.factory_kwargs,
+        # NOTE: if batch size > 1 and multiple factors are provided, we sample a
+        # unique factor for the whole batch to ensure that all produced measurements
+        # have the same shape.
+        factors = random_choice(
+            torch.as_tensor(self.list_factors),
+            size=(
+                (1,) if batch_size > 1 and len(self.list_factors) > 1 else (batch_size,)
+            ),
+            rng=self.rng,
         )
+        # no-op if factors is already of shape (batch_size,)
+        factors = factors.expand(batch_size)
+
         filter_indices = torch.randint(
             low=0,
             high=len(self.list_filters),
@@ -122,7 +129,6 @@ class DownsamplingGenerator(PhysicsGenerator):
             generator=self.rng,
             **self.factory_kwargs,
         )
-        factors = [self.list_factors[int(i)] for i in factor_indices.tolist()]
         filters = [self.list_filters[int(i)] for i in filter_indices.tolist()]
 
         filters = [
