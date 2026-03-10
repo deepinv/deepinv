@@ -7,19 +7,17 @@ for a simple deblurring problem.
 
 import torch
 
-import deepinv as dinv
 from deepinv.models import DEAL
 from deepinv.physics import Blur, GaussianNoise
 from deepinv.physics.blur import gaussian_blur
 from deepinv.utils import load_example, plot
 
-
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Load a color example image
-x = load_example("celeba_example.jpg", img_size=128).to(device)
+# Load a grayscale example image
+x = load_example("butterfly.png", img_size=128).to(device)[:, 0:1, :, :]
 
-# Define blur + Gaussian noise physics
+# Define blur + noise physics
 noise_std = 0.01
 physics = Blur(
     filter=gaussian_blur(sigma=(2.0, 2.0), angle=0.0),
@@ -37,7 +35,7 @@ model = DEAL(
     lam=10.0,
     max_iter=10,
     auto_scale=False,
-    color=True,
+    color=False,
     device=device,
     clamp_output=True,
 )
