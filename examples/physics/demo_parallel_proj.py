@@ -459,8 +459,8 @@ voxel_size = (2.5, 2.5, 2.5)
 
 x, attenuation = pet_phantom(img_shape, np, "cpu")
 x = torch.from_numpy(x).unsqueeze(0).unsqueeze(0).to(device)
-attenuation = torch.from_numpy(attenuation).unsqueeze(0).unsqueeze(0).to(device)
-
+attenuation = torch.from_numpy(attenuation).to(device)
+attenuation = attenuation
 physics = PositronEmissionTomography(device=device, img_shape=img_shape, radius=radius, radial_trim=radial_trim, max_ring_difference=max_ring_difference,
                                      num_sides=num_sides, num_lor_endpoints_per_side=num_lor_endpoints_per_side,
                                      lor_spacing=lor_spacing, ring_positions=ring_positions, symmetry_axis=symmetry_axis,
@@ -479,6 +479,7 @@ x_adj = physics.A_dagger(y)
 
 sensitivities = physics.A_adjoint(torch.ones_like(y))
 
-
-dinv.utils.plot([y[..., 3], x[...,15], attenuation[...,15], sensitivities[..., 15], x_adj[..., 15]],
-                titles=["measuremnets", "Emission image", "Attenuation image", "sensitivities", "Backprojection of the data"],)
+dinv.utils.plot([y[..., 3].unsqueeze(0), x[...,15], attenuation[...,15].unsqueeze(0).unsqueeze(0),
+                 sensitivities[..., 15], x_adj[..., 15]],
+                titles=["measuremnets", "Emission image",
+                        "Attenuation image", "sensitivities", "Backprojection of the data"],)
