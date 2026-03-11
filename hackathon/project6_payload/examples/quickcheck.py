@@ -7,7 +7,7 @@ from pathlib import Path
 import deepinv as dinv
 import torch
 
-from shared.sirf_deepinv_bridge import (
+from hackathon.project6_payload.bridge import (
     EmissionTomographyWithSIRF,
     adjointness_error,
     build_pet_ray_tracing_example,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import deepinv as dinv
 
-from shared.sirf_deepinv_bridge import (
+from hackathon.project6_payload.bridge import (
     SIRFLinearPhysics,
     build_pet_ray_tracing_example,
     run_deep_image_prior,

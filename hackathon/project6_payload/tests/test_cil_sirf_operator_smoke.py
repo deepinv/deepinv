@@ -3,11 +3,11 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-from shared.sirf_deepinv_bridge import (  # noqa: E402
+from hackathon.project6_payload.bridge import (  # noqa: E402
     SIRFLinearOperatorCIL,
     build_pet_ray_tracing_example,
     relative_dot_error,

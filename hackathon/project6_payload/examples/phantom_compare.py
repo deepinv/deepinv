@@ -9,7 +9,7 @@ import numpy as np
 import sirf.STIR as pet
 from PIL import Image
 
-from shared.sirf_deepinv_bridge import (
+from hackathon.project6_payload.bridge import (
     EmissionTomographyWithSIRF,
     compute_basic_metrics,
     pnp_reconstruct,
