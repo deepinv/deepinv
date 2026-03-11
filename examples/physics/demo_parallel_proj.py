@@ -9,6 +9,164 @@ import array_api_compat.torch as torch
 import parallelproj
 from array_api_compat import device as to_device
 import deepinv as dinv
+from typing import TYPE_CHECKING, Union
+from types import ModuleType
+import array_api_compat.numpy as np
+
+if TYPE_CHECKING:
+    import cupy as cp
+
+    Array = Union[np.ndarray, cp.ndarray]  # Used for type checking
+else:
+    Array = np.ndarray  # Default at runtime
+
+
+def pet_phantom(
+    in_shape: tuple[int, int, int],
+    xp: ModuleType,
+    dev,
+    mu_value: float = 0.01,
+    add_spheres: bool = True,
+    add_inner_cylinder: bool = True,
+    r0=0.45,
+    r1=0.28,
+) -> tuple[Array, Array]:
+    """
+    Generate a 3D PET phantom.
+
+    Parameters
+    ----------
+    in_shape : tuple
+        Shape of the phantom.
+    xp : module
+        Array API module to use.
+    dev : str
+        Device to use.
+    mu_value : float
+        Attenuation coefficient.
+    Returns
+    -------
+    tuple
+        Emission and attenuation images.
+
+    Note
+    ----
+
+    The activity in the background should be 1.
+    """
+    if dev == "cpu":
+        dev = None
+
+    oversampling_factor = 4
+
+    # elliptical phantom on oversampled grid
+    oversampled_shape = tuple(oversampling_factor * x for x in in_shape)
+    x_em_oversampled = xp.zeros(oversampled_shape, device=dev, dtype=xp.float32)
+    x_att_oversampled = xp.zeros(oversampled_shape, device=dev, dtype=xp.float32)
+    c0 = oversampled_shape[0] / 2
+    c1 = oversampled_shape[1] / 2
+    c2 = oversampled_shape[2] / 2
+    a = r0 * oversampled_shape[0]  # semi-major axis
+    b = r1 * oversampled_shape[1]  # semi-minor axis
+
+    rix = oversampled_shape[0] / 25
+    riy = oversampled_shape[1] / 25
+
+    y, x = xp.ogrid[: oversampled_shape[0], : oversampled_shape[1]]
+
+    outer_mask = ((x - c0) / a) ** 2 + ((y - c1) / b) ** 2 <= 1
+    inner_mask = ((x - c0) / rix) ** 2 + ((y - c1) / riy) ** 2 <= 1
+
+    for z in range(oversampled_shape[2]):
+        x_em_oversampled[:, :, z][outer_mask] = 1.0
+        x_att_oversampled[:, :, z][outer_mask] = mu_value
+
+        if add_inner_cylinder:
+            x_em_oversampled[:, :, z][inner_mask] = 0.25
+            x_att_oversampled[:, :, z][inner_mask] = mu_value / 3
+
+    # add a few spheres to the emission image
+
+    if add_spheres:
+        x, y, z = xp.ogrid[
+            : oversampled_shape[0], : oversampled_shape[1], : oversampled_shape[2]
+        ]
+
+        r_sp = 3 * [oversampled_shape[2] / 9]
+        r_sp2 = 3 * [oversampled_shape[2] / 17]
+
+        for z_offset in [c2, 0.45 * c2]:
+            sp_mask = ((x - c0) / r_sp[0]) ** 2 + ((y - 1.4 * c1) / r_sp[1]) ** 2 + (
+                (z - z_offset) / r_sp[2]
+            ) ** 2 <= 1
+            x_em_oversampled[sp_mask] = 2.5
+
+            sp_mask2 = ((x - 1.3 * c0) / r_sp[0]) ** 2 + ((y - c1) / r_sp[1]) ** 2 + (
+                (z - z_offset) / r_sp[2]
+            ) ** 2 <= 1
+            x_em_oversampled[sp_mask2] = 0.25
+
+            sp_mask = ((x - c0) / r_sp2[0]) ** 2 + ((y - 0.6 * c1) / r_sp2[1]) ** 2 + (
+                (z - z_offset) / r_sp2[2]
+            ) ** 2 <= 1
+            x_em_oversampled[sp_mask] = 2.5
+
+            sp_mask2 = ((x - 0.7 * c0) / r_sp2[0]) ** 2 + ((y - c1) / r_sp2[1]) ** 2 + (
+                (z - z_offset) / r_sp2[2]
+            ) ** 2 <= 1
+            x_em_oversampled[sp_mask2] = 0.25
+
+    # downsample to original grid size by averaging
+    x_em_oversampled = (
+        x_em_oversampled[::4, :, :]
+        + x_em_oversampled[1::4, :, :]
+        + x_em_oversampled[2::4, :, :]
+        + x_em_oversampled[3::4, :, :]
+    )
+    x_em_oversampled = (
+        x_em_oversampled[:, ::4, :]
+        + x_em_oversampled[:, 1::4, :]
+        + x_em_oversampled[:, 2::4, :]
+        + x_em_oversampled[:, 3::4, :]
+    )
+    x_em_oversampled = (
+        x_em_oversampled[:, :, ::4]
+        + x_em_oversampled[:, :, 1::4]
+        + x_em_oversampled[:, :, 2::4]
+        + x_em_oversampled[:, :, 3::4]
+    )
+
+    x_att_oversampled = (
+        x_att_oversampled[::4, :, :]
+        + x_att_oversampled[1::4, :, :]
+        + x_att_oversampled[2::4, :, :]
+        + x_att_oversampled[3::4, :, :]
+    )
+    x_att_oversampled = (
+        x_att_oversampled[:, ::4, :]
+        + x_att_oversampled[:, 1::4, :]
+        + x_att_oversampled[:, 2::4, :]
+        + x_att_oversampled[:, 3::4, :]
+    )
+    x_att_oversampled = (
+        x_att_oversampled[:, :, ::4]
+        + x_att_oversampled[:, :, 1::4]
+        + x_att_oversampled[:, :, 2::4]
+        + x_att_oversampled[:, :, 3::4]
+    )
+
+    x_em = x_em_oversampled.copy() / (oversampling_factor**3)
+    x_att = x_att_oversampled.copy() / (oversampling_factor**3)
+
+    x_em[:, :, :3] = 0
+    x_em[:, :, -3:] = 0
+
+    # make the attenuation a bit wider in z (plastic wall)
+    x_att[:, :, :2] = 0
+    x_att[:, :, -2:] = 0
+
+    return x_em, x_att
+
 
 
 class PositronEmissionTomography(dinv.physics.LinearPhysics):
@@ -28,7 +186,7 @@ class PositronEmissionTomography(dinv.physics.LinearPhysics):
     """
     def __init__(self, img_shape : tuple = (20, 5, 20), radius : float =35.0,
                  num_sides : int = 12, num_lor_endpoints_per_side : int = 6, lor_spacing : float = 3.0,
-                 ring_positions : torch.Tensor = torch.linspace(-4, 4, 3),symmetry_axis : int =1, radial_trim : int =10,
+                 ring_positions : torch.Tensor = torch.linspace(-4, 4, 3), symmetry_axis : int =1, radial_trim : int =10,
                  max_ring_difference: int =1, scatter : torch.Tensor | None = None, attenuation : torch.Tensor | None = None,
                  voxel_size: tuple=(2.0, 2.0, 2.0), fwhm_data_mm: float = 5,
                  device : str | torch.device = "cpu", **kwargs):
@@ -285,15 +443,35 @@ class AdjointLinearSingleChannelOperator(torch.autograd.Function):
 # three rings.
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-physics = PositronEmissionTomography(device=device)
+num_rings = 17
+radius = 300.0
+num_sides = 36
+num_lor_endpoints_per_side = 12
+lor_spacing = 4.0
+ring_positions = torch.linspace(
+    -5 * (num_rings - 1) / 2, 5 * (num_rings - 1) / 2, num_rings
+)
+symmetry_axis = 2
+img_shape = (161, 161, 2 * num_rings - 1)
+voxel_size = (2.5, 2.5, 2.5)
 
-x = torch.zeros((2, 1, 20, 5, 20), device=device)
-x[:, 0, 8:12, 2:4, 8:12] = 1.0
-y = physics.A(x)
-x_adj = physics.A_dagger(y, 'lsqr')
+physics = PositronEmissionTomography(device=device, img_shape=img_shape,
+                                     num_sides=num_sides, num_lor_endpoints_per_side=num_lor_endpoints_per_side,
+                                     lor_spacing=lor_spacing, ring_positions=ring_positions, symmetry_axis=symmetry_axis,
+                                     voxel_size=voxel_size,
+                                     noise_model=dinv.physics.PoissonNoise(gain=0.01))
+
+
+x, attenuation = pet_phantom(img_shape, np, "cpu")
+x = torch.from_numpy(x).unsqueeze(0).unsqueeze(0).to(device)
+attenuation = torch.from_numpy(attenuation).unsqueeze(0).unsqueeze(0).to(device)
+
+y = physics(x, attenuation=attenuation)
+x_adj = physics.A_adjoint(y)
 
 # %%
 # Visualize the scanner geometry and image FOV
 # --------------------------------------------
 
-dinv.utils.plot(x_adj[:, :, :, 0, :])
+dinv.utils.plot([y[:, :, :, 3], x[:,:,:,:,15], attenuation[:,:,:,:,15], x_adj[:, :, :, :, 15]],
+                titles=["measuremnets", "Emission image", "Attenuation image", "Backprojection of the data"],)
