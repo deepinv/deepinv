@@ -38,6 +38,7 @@ Fixed
 - :func:`deepinv.utils.plot_ortho3D` doesn't perform sqrt on images (:gh:`1068` by `Andrew Wang`_)
 - Deprecate `self.device` in :class:`deepinv.physics.LinearPhysics` and remove it from internal logic. Define it as a property until removed. (:gh:`989` by `Romain Vo`_)
 - Sample a unique factor per batch in :class:`deepinv.physics.generator.DownsamplingGenerator` (:gh:`1085` by `Romain Vo`_)
+- Add warning when options `reduce="mean"` and `reduce="none"` are used in :class:`deepinv.physics.StackedLinearPhysics`. Remove `reduction` argument from :class:`deepinv.distributed.DistributedStackedLinearPhysics` (:gh:`1071` by `Romain Vo`_)
 
 
 v0.3.7
