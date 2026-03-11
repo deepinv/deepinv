@@ -1,0 +1,13 @@
+[
+  {
+    "name": "dev (latest)",
+    "version": "dev",
+    "url": "https://deepinv.github.io/deepinv/dev/"
+  },
+  {
+    "name": "stable",
+    "version": "stable",
+    "url": "https://deepinv.github.io/deepinv/stable/",
+    "preferred": true
+  }
+]
