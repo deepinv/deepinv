@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import deepinv as dinv
 
-from shared.sirf_deepinv_bridge import SIRFLinearPhysics, build_pet_ray_tracing_example, run_deep_image_prior
+from shared.sirf_deepinv_bridge import (
+    SIRFLinearPhysics,
+    build_pet_ray_tracing_example,
+    run_deep_image_prior,
+)
 
 
 def main():
@@ -30,4 +34,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

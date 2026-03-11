@@ -54,7 +54,9 @@ def _squeeze_singleton_channel(tensor: torch.Tensor) -> torch.Tensor:
     return tensor
 
 
-def tensor_to_sirf_like(template, tensor: torch.Tensor, *, squeeze_channel: bool = True):
+def tensor_to_sirf_like(
+    template, tensor: torch.Tensor, *, squeeze_channel: bool = True
+):
     """Create a SIRF container like ``template`` filled with tensor values."""
     value = tensor.detach().cpu()
     if squeeze_channel:
@@ -82,4 +84,3 @@ def ensure_batch_channel(
     raise ValueError(
         f"Tensor of shape {tuple(tensor.shape)} is incompatible with raw shape {tuple(raw_shape)}."
     )
-

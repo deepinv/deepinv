@@ -22,7 +22,9 @@ def central_slices(volume) -> list[np.ndarray]:
     if array.ndim == 2:
         return [array]
     if array.ndim != 3:
-        raise ValueError(f"Expected 2D or 3D data after squeezing, got shape {array.shape}.")
+        raise ValueError(
+            f"Expected 2D or 3D data after squeezing, got shape {array.shape}."
+        )
     z, y, x = array.shape
     return [array[z // 2], array[:, y // 2, :], array[:, :, x // 2]]
 

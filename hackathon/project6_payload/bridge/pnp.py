@@ -5,7 +5,9 @@ from typing import Callable
 import torch
 
 
-def _call_denoiser(denoiser: Callable | torch.nn.Module | None, x: torch.Tensor, strength: float):
+def _call_denoiser(
+    denoiser: Callable | torch.nn.Module | None, x: torch.Tensor, strength: float
+):
     if denoiser is None:
         return x
     for kwargs in ({"ths": strength}, {"sigma": strength}, {}):
@@ -69,4 +71,3 @@ def pnp_reconstruct(
             }
         )
     return x.detach(), history
-

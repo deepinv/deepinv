@@ -28,9 +28,13 @@ def main():
 
     backprojection_array = np.asarray(backprojection.as_array(), dtype=np.float32)
     denoised_array = np.asarray(denoised.as_array(), dtype=np.float32)
-    diff_norm = float(np.linalg.norm((denoised_array - backprojection_array).reshape(-1)))
+    diff_norm = float(
+        np.linalg.norm((denoised_array - backprojection_array).reshape(-1))
+    )
     if diff_norm <= 0.0:
-        raise SystemExit("CIL denoiser proximal produced no change in the backprojection.")
+        raise SystemExit(
+            "CIL denoiser proximal produced no change in the backprojection."
+        )
 
     print("Acquisition shape:", tuple(example.acquisition_data.shape))
     print("Forward projection shape:", tuple(forward_projection.shape))

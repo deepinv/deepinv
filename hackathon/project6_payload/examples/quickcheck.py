@@ -60,12 +60,18 @@ def main():
         raise SystemExit(
             f"Adjointness error {error:.6e} exceeds threshold {args.max_adjoint_error:.6e}"
         )
-    normalized_measurement = normalized_physics.A(physics.image_tensor_from_sirf(example.image_template))
-    reference_measurement = physics.A_raw(physics.image_tensor_from_sirf(example.image_template))
+    normalized_measurement = normalized_physics.A(
+        physics.image_tensor_from_sirf(example.image_template)
+    )
+    reference_measurement = physics.A_raw(
+        physics.image_tensor_from_sirf(example.image_template)
+    )
     normalization_error = torch.linalg.vector_norm(
         (normalized_measurement - reference_measurement / raw_operator_norm).reshape(-1)
     ) / max(
-        torch.linalg.vector_norm((reference_measurement / raw_operator_norm).reshape(-1)).item(),
+        torch.linalg.vector_norm(
+            (reference_measurement / raw_operator_norm).reshape(-1)
+        ).item(),
         1e-12,
     )
     normalization_error = float(normalization_error)

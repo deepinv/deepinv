@@ -4,11 +4,17 @@ from typing import Any
 
 import torch
 
-from .containers import ensure_batch_channel, infer_tensor_shape, sirf_to_torch, tensor_to_sirf_like
+from .containers import (
+    ensure_batch_channel,
+    infer_tensor_shape,
+    sirf_to_torch,
+    tensor_to_sirf_like,
+)
 
 try:
     from deepinv.physics import LinearPhysics as _DeepInvLinearPhysics
 except Exception:  # pragma: no cover - host machine does not have deepinv installed
+
     class _DeepInvLinearPhysics(torch.nn.Module):
         def __init__(self, *args, **kwargs):
             super().__init__()
@@ -16,7 +22,9 @@ except Exception:  # pragma: no cover - host machine does not have deepinv insta
 
 class _SIRFLinearApply(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, x: torch.Tensor, physics: "EmissionTomographyWithSIRF") -> torch.Tensor:
+    def forward(
+        ctx, x: torch.Tensor, physics: "EmissionTomographyWithSIRF"
+    ) -> torch.Tensor:
         ctx.physics = physics
         with torch.no_grad():
             return physics._apply_operator_impl(x, mode="forward")
@@ -88,19 +96,29 @@ class EmissionTomographyWithSIRF(_DeepInvLinearPhysics):
         return self._call_adjoint(y, **kwargs)
 
     def A_raw(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
-        return self._apply_operator_impl(x, mode="forward", apply_normalization=False, **kwargs)
+        return self._apply_operator_impl(
+            x, mode="forward", apply_normalization=False, **kwargs
+        )
 
     def A_adjoint_raw(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
-        return self._apply_operator_impl(y, mode="adjoint", apply_normalization=False, **kwargs)
+        return self._apply_operator_impl(
+            y, mode="adjoint", apply_normalization=False, **kwargs
+        )
 
     def image_tensor_from_sirf(self, image) -> torch.Tensor:
-        return sirf_to_torch(image, device=self._device, add_batch=True, add_channel=True)
+        return sirf_to_torch(
+            image, device=self._device, add_batch=True, add_channel=True
+        )
 
     def measurement_tensor_from_sirf(self, data) -> torch.Tensor:
-        return sirf_to_torch(data, device=self._device, add_batch=True, add_channel=True)
+        return sirf_to_torch(
+            data, device=self._device, add_batch=True, add_channel=True
+        )
 
     def image_from_tensor(self, tensor: torch.Tensor):
-        return tensor_to_sirf_like(self.image_template, tensor[0] if tensor.ndim >= 1 else tensor)
+        return tensor_to_sirf_like(
+            self.image_template, tensor[0] if tensor.ndim >= 1 else tensor
+        )
 
     def measurement_from_tensor(self, tensor: torch.Tensor):
         return tensor_to_sirf_like(
@@ -139,7 +157,9 @@ class EmissionTomographyWithSIRF(_DeepInvLinearPhysics):
         generator = torch.Generator(device=self._device)
         generator.manual_seed(seed)
         with torch.no_grad():
-            x = torch.randn(shape, generator=generator, device=self._device, dtype=torch.float32)
+            x = torch.randn(
+                shape, generator=generator, device=self._device, dtype=torch.float32
+            )
             x = x / torch.linalg.vector_norm(x)
             last = None
             eig = None
@@ -231,7 +251,9 @@ class EmissionTomographyWithSIRF(_DeepInvLinearPhysics):
             if mode == "forward"
             else self.measurement_tensor_shape[1:]
         )
-        template = self.image_template if mode == "forward" else self.measurement_template
+        template = (
+            self.image_template if mode == "forward" else self.measurement_template
+        )
         batched = ensure_batch_channel(tensor, raw_shape)
         outputs = []
         for sample in batched:
@@ -269,10 +291,20 @@ def adjointness_error(
     generator.manual_seed(seed)
     worst = 0.0
     for _ in range(trials):
-        x = torch.randn((1,) + physics.image_tensor_shape, generator=generator, device=physics._device)
-        y = torch.randn((1,) + physics.measurement_tensor_shape, generator=generator, device=physics._device)
+        x = torch.randn(
+            (1,) + physics.image_tensor_shape,
+            generator=generator,
+            device=physics._device,
+        )
+        y = torch.randn(
+            (1,) + physics.measurement_tensor_shape,
+            generator=generator,
+            device=physics._device,
+        )
         lhs = torch.sum(torch.conj(physics.A(x)) * y)
         rhs = torch.sum(torch.conj(x) * physics.A_adjoint(y))
-        rel = torch.abs(lhs - rhs) / max(torch.abs(lhs).item(), torch.abs(rhs).item(), 1e-12)
+        rel = torch.abs(lhs - rhs) / max(
+            torch.abs(lhs).item(), torch.abs(rhs).item(), 1e-12
+        )
         worst = max(worst, float(rel))
     return worst

@@ -80,4 +80,3 @@ def build_mr_cartesian_example() -> MRExample:
         data_path=data_path,
         raw_data_file=raw_data_file,
     )
-

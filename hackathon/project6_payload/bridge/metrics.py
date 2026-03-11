@@ -30,7 +30,9 @@ def compute_basic_metrics(reference, candidate) -> dict[str, float]:
     ref_norm = float(np.linalg.norm(ref_flat))
     rmse = float(np.sqrt(np.mean(diff_flat**2)))
     ref_range = float(ref.max() - ref.min())
-    covariance = float(np.mean((ref_flat - ref_flat.mean()) * (cand_flat - cand_flat.mean())))
+    covariance = float(
+        np.mean((ref_flat - ref_flat.mean()) * (cand_flat - cand_flat.mean()))
+    )
     denom = float(ref_flat.std() * cand_flat.std())
     correlation = covariance / max(denom, 1e-12)
     return {
@@ -49,4 +51,3 @@ def save_metrics(metrics: dict[str, float], output_path: str | Path) -> Path:
     with output_path.open("w", encoding="utf-8") as handle:
         json.dump(metrics, handle, indent=2)
     return output_path
-

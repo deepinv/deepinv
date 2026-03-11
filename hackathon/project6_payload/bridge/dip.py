@@ -35,4 +35,3 @@ def run_deep_image_prior(
     )
     reconstruction = reconstructor(y, physics=physics)
     return reconstruction.detach(), reconstructor
-

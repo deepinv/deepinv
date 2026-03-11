@@ -42,7 +42,9 @@ def build_cil_parallel_beam_example(
     )(acquisition_data)
     acquisition_data.reorder(order="astra")
     image_geometry = acquisition_data.geometry.get_ImageGeometry()
-    operator = ProjectionOperator(image_geometry, acquisition_data.geometry, device=device)
+    operator = ProjectionOperator(
+        image_geometry, acquisition_data.geometry, device=device
+    )
     image_template = image_geometry.allocate(0.0)
     return CILExample2D(
         acquisition_data=acquisition_data,
@@ -80,7 +82,9 @@ class DeepInvDenoiserProximal(Function):
             return tensor.unsqueeze(0).unsqueeze(0)
         if tensor.ndim == 3:
             return tensor.unsqueeze(0)
-        raise ValueError(f"Unsupported CIL container shape for torch conversion: {array.shape}")
+        raise ValueError(
+            f"Unsupported CIL container shape for torch conversion: {array.shape}"
+        )
 
     def torch_to_cil(self, x_torch: torch.Tensor, out):
         array = x_torch.detach().cpu().numpy()

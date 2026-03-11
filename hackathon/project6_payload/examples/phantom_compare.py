@@ -61,7 +61,9 @@ def _save_comparison_strip(image_paths: list[Path], output_path: Path) -> Path:
 def _save_axial_slice(array, output_path: Path) -> Path:
     volume = np.asarray(array, dtype=np.float32)
     if volume.ndim != 3:
-        raise ValueError(f"Expected 3D volume for axial slice export, got shape {volume.shape}.")
+        raise ValueError(
+            f"Expected 3D volume for axial slice export, got shape {volume.shape}."
+        )
     slc = _normalize(volume[volume.shape[0] // 2])
     image = Image.fromarray((255.0 * slc).astype(np.uint8), mode="L")
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -69,10 +71,14 @@ def _save_axial_slice(array, output_path: Path) -> Path:
     return output_path
 
 
-def _save_axial_triptych(reference, reconstruction, abs_error, output_path: Path) -> Path:
+def _save_axial_triptych(
+    reference, reconstruction, abs_error, output_path: Path
+) -> Path:
     paths = [
         _save_axial_slice(reference, output_path.parent / "phantom_axial.png"),
-        _save_axial_slice(reconstruction, output_path.parent / "reconstruction_axial.png"),
+        _save_axial_slice(
+            reconstruction, output_path.parent / "reconstruction_axial.png"
+        ),
         _save_axial_slice(abs_error, output_path.parent / "abs_error_axial.png"),
     ]
     return _save_comparison_strip(paths, output_path)
@@ -131,7 +137,9 @@ def main():
     else:
         denoiser = None
         if args.tv_strength > 0.0:
-            denoiser = dinv.models.TVDenoiser(ths=args.tv_strength, n_it_max=args.tv_iters)
+            denoiser = dinv.models.TVDenoiser(
+                ths=args.tv_strength, n_it_max=args.tv_iters
+            )
         reconstruction, history = pnp_reconstruct(
             physics,
             simulated_measurement,
@@ -144,8 +152,12 @@ def main():
         )
 
     phantom_array = prepare_array(phantom.as_array())
-    backprojection_array = prepare_array(backprojection.detach().cpu().numpy()).squeeze()
-    reconstruction_array = prepare_array(reconstruction.detach().cpu().numpy()).squeeze()
+    backprojection_array = prepare_array(
+        backprojection.detach().cpu().numpy()
+    ).squeeze()
+    reconstruction_array = prepare_array(
+        reconstruction.detach().cpu().numpy()
+    ).squeeze()
     abs_error_array = np.abs(reconstruction_array - phantom_array)
 
     phantom_path = save_central_slices(phantom_array, args.output_dir / "phantom.png")
@@ -155,7 +167,9 @@ def main():
     reconstruction_path = save_central_slices(
         reconstruction_array, args.output_dir / "reconstruction.png"
     )
-    abs_error_path = save_central_slices(abs_error_array, args.output_dir / "abs_error.png")
+    abs_error_path = save_central_slices(
+        abs_error_array, args.output_dir / "abs_error.png"
+    )
     strip_path = _save_comparison_strip(
         [phantom_path, reconstruction_path, abs_error_path],
         args.output_dir / "phantom_reconstruction_error_strip.png",

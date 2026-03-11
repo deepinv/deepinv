@@ -44,7 +44,9 @@ def _expand_to_shape(array: np.ndarray, target_shape: tuple[int, ...]) -> np.nda
     while out.ndim < len(target_shape):
         out = np.expand_dims(out, axis=0)
     if out.shape != target_shape:
-        raise ValueError(f"Cannot expand shape {array.shape} to match target shape {target_shape}.")
+        raise ValueError(
+            f"Cannot expand shape {array.shape} to match target shape {target_shape}."
+        )
     return out
 
 
@@ -53,7 +55,9 @@ def _squeeze_to_shape(array: np.ndarray, target_shape: tuple[int, ...]) -> np.nd
     while out.ndim > len(target_shape) and out.shape[0] == 1:
         out = out[0]
     if out.shape != target_shape:
-        raise ValueError(f"Cannot squeeze shape {array.shape} to match target shape {target_shape}.")
+        raise ValueError(
+            f"Cannot squeeze shape {array.shape} to match target shape {target_shape}."
+        )
     return out
 
 
@@ -106,13 +110,21 @@ class SIRFLinearOperatorCIL(LinearOperator):
         self.domain_template = domain_template
         self.range_template = range_template
         self.shapes = SIRFCILShapes(
-            domain_shape=tuple(int(v) for v in sirf_to_numpy(domain_template, copy=True).shape),
-            range_shape=tuple(int(v) for v in sirf_to_numpy(range_template, copy=True).shape),
+            domain_shape=tuple(
+                int(v) for v in sirf_to_numpy(domain_template, copy=True).shape
+            ),
+            range_shape=tuple(
+                int(v) for v in sirf_to_numpy(range_template, copy=True).shape
+            ),
         )
         if domain_geometry is None:
-            domain_geometry = cil_geometry_from_shape(self.shapes.domain_shape, dtype=dtype)
+            domain_geometry = cil_geometry_from_shape(
+                self.shapes.domain_shape, dtype=dtype
+            )
         if range_geometry is None:
-            range_geometry = cil_geometry_from_shape(self.shapes.range_shape, dtype=dtype)
+            range_geometry = cil_geometry_from_shape(
+                self.shapes.range_shape, dtype=dtype
+            )
         super().__init__(domain_geometry, range_geometry=range_geometry)
 
     def domain_from_sirf(self, container, out=None):

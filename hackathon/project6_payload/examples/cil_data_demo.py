@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from shared.sirf_deepinv_bridge.cil_data import (
+from shared.sirf_deepinv_bridge.cil_data import (  # noqa: E402
     DeepInvDenoiserProximal,
     build_cil_parallel_beam_example,
     save_cil_image,
@@ -64,7 +64,9 @@ def main():
         "denoised_shape": tuple(int(v) for v in denoised.shape),
         "backprojection_norm": float(np.linalg.norm(backprojection_array.reshape(-1))),
         "denoised_norm": float(np.linalg.norm(denoised_array.reshape(-1))),
-        "difference_norm": float(np.linalg.norm((denoised_array - backprojection_array).reshape(-1))),
+        "difference_norm": float(
+            np.linalg.norm((denoised_array - backprojection_array).reshape(-1))
+        ),
     }
     with (args.output_dir / "summary.json").open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2)

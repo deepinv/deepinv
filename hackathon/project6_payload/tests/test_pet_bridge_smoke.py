@@ -21,7 +21,9 @@ def main():
         raise SystemExit(f"Adjointness error too large: {error}")
     operator_norm = physics.estimate_operator_norm(max_iter=4, tol=1e-4, seed=0)
     if operator_norm <= 0.0:
-        raise SystemExit(f"Estimated operator norm must be positive, got {operator_norm}.")
+        raise SystemExit(
+            f"Estimated operator norm must be positive, got {operator_norm}."
+        )
     normalized = EmissionTomographyWithSIRF(
         example.acquisition_model,
         example.image_template,
@@ -33,7 +35,10 @@ def main():
     normalized_forward = normalized.A(x)
     scale_error = torch.linalg.vector_norm(
         (normalized_forward - raw_forward / operator_norm).reshape(-1)
-    ) / max(torch.linalg.vector_norm((raw_forward / operator_norm).reshape(-1)).item(), 1e-12)
+    ) / max(
+        torch.linalg.vector_norm((raw_forward / operator_norm).reshape(-1)).item(),
+        1e-12,
+    )
     scale_error = float(scale_error)
     if scale_error > 5e-4:
         raise SystemExit(f"Normalisation scaling error too large: {scale_error}")
