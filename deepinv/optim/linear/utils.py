@@ -1,9 +1,10 @@
 from __future__ import annotations
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
+from torch import Tensor
 
 
-def dot(a, b, dim):
+def dot(a: Tensor | TensorList, b: Tensor | TensorList, dim: int | list[int]) -> Tensor:
     r"""
     Computes the batched dot product between two tensors or two TensorLists along specified dimensions.
 

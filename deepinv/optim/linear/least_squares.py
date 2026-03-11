@@ -6,7 +6,7 @@ from torch.autograd.function import once_differentiable
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
 import warnings
-from typing import Callable
+from typing import Any, Callable
 from .bicgstab import bicgstab
 from .conjugate_gradient import conjugate_gradient
 from .lsqr import lsqr
@@ -20,13 +20,13 @@ def least_squares(
     z: Tensor | float | None = 0.0,
     init: Tensor | None = None,
     gamma: float | Tensor | None = None,
-    parallel_dim: int = 0,
+    parallel_dim: None | int | list[int] = 0,
     AAT: Callable | None = None,
     ATA: Callable | None = None,
     solver: str = "CG",
     max_iter: int = 100,
     tol: float = 1e-6,
-    **kwargs,
+    **kwargs: Any,
 ) -> Tensor:
     r"""
     Solves :math:`\min_x \|Ax-y\|^2 + \frac{1}{\gamma}\|x-z\|^2` using the specified solver.
@@ -82,16 +82,21 @@ def least_squares(
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
 
+    if z is None:
+        z = 0.0
+
     if gamma is None:
-        gamma = torch.tensor(0.0, device=y.device)
+        gamma_t = torch.tensor(0.0, device=y.device)
         gamma_provided = False
     else:
         gamma_provided = True
 
         if not isinstance(gamma, Tensor):
-            gamma = torch.tensor(gamma, device=y.device)
+            gamma_t = torch.tensor(gamma, device=y.device)
+        else:
+            gamma_t = gamma
 
-        if torch.any(gamma <= 0):
+        if torch.any(gamma_t <= 0):
             warnings.warn(
                 "Regularization parameter of least squares problem (gamma) should be positive."
                 "Otherwise, the problem can become non-convex and the solvers are not designed for that."
@@ -100,7 +105,7 @@ def least_squares(
 
     Aty = AT(y)
 
-    if gamma.ndim > 0:  # if batched gamma
+    if gamma_t.ndim > 0:  # if batched gamma
         if isinstance(Aty, TensorList):
             batch_size = Aty[0].size(0)
             ndim = Aty[0].ndim
@@ -108,19 +113,19 @@ def least_squares(
             batch_size = Aty.size(0)
             ndim = Aty.ndim
 
-        if gamma.size(0) != batch_size:
+        if gamma_t.size(0) != batch_size:
             raise ValueError(
                 "If gamma is batched, its batch size must match the one of y."
             )
-        elif gamma.ndim == 1:  # expand gamma to ATy
-            gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
-        elif gamma.ndim != ndim:
+        elif gamma_t.ndim == 1:  # expand gamma to ATy
+            gamma_t = gamma_t.view([gamma_t.size(0)] + [1] * (ndim - 1))
+        elif gamma_t.ndim != ndim:
             raise ValueError(
-                f"gamma should either be 0D, 1D, or match same number of dimensions as ATy, but got ndims {gamma.ndim} and {ndim}"
+                f"gamma should either be 0D, 1D, or match same number of dimensions as ATy, but got ndims {gamma_t.ndim} and {ndim}"
             )
 
     if solver == "lsqr":  # rectangular solver
-        eta = 1 / gamma if gamma_provided else None
+        eta = 1 / gamma_t if gamma_provided else None
         x, _ = lsqr(
             A,
             AT,
@@ -147,8 +152,8 @@ def least_squares(
                 ATA = lambda x: AT(A(x))
 
             if gamma_provided:
-                b = AT(y) + 1 / gamma * z
-                H = lambda x: ATA(x) + 1 / gamma * x
+                b = AT(y) + 1 / gamma_t * z
+                H = lambda x: ATA(x) + 1 / gamma_t * x
                 overcomplete = False
             else:
                 if not overcomplete:
@@ -221,15 +226,15 @@ class LeastSquaresSolver(torch.autograd.Function):
     # we add a dummy input tensor `trigger` to trigger backward when needed (i.e. when physics parameters require grad)
     @staticmethod
     def forward(
-        ctx,
-        physics,
+        ctx: Any,
+        physics: Any,
         y: Tensor,
         z: Tensor,
         init: Tensor,
-        gamma: float | Tensor,
-        trigger: Tensor = None,
-        extra_kwargs: dict = None,
-    ):
+        gamma: Tensor,
+        trigger: Tensor | None = None,
+        extra_kwargs: dict[str, Any] | None = None,
+    ) -> Tensor:
 
         kwargs = extra_kwargs if extra_kwargs is not None else {}
 
@@ -268,7 +273,7 @@ class LeastSquaresSolver(torch.autograd.Function):
 
     @staticmethod
     @once_differentiable
-    def backward(ctx, grad_output: Tensor) -> tuple[Tensor, ...]:
+    def backward(ctx: Any, grad_output: Tensor) -> tuple[Any, ...]:
         h, y, z, gamma = ctx.saved_tensors
         physics = ctx.physics
 
@@ -344,12 +349,12 @@ class LeastSquaresSolver(torch.autograd.Function):
 
 # wrapper of the autograd function for easier use
 def least_squares_implicit_backward(
-    physics,
+    physics: Any,
     y: Tensor,
-    z: Tensor = None,
-    init: Tensor = None,
-    gamma: float | Tensor = None,
-    **kwargs,
+    z: Tensor | float | int | None = None,
+    init: Tensor | None = None,
+    gamma: float | Tensor | None = None,
+    **kwargs: Any,
 ) -> Tensor:
     r"""
     Least squares solver with O(1) memory backward propagation using implicit differentiation.
@@ -446,7 +451,7 @@ def least_squares_implicit_backward(
     # When input tensors (y, z, gamma) do not require grad and we want to do backward w.r.t physics parameters, we need to trigger it manually by a dummy tensor.
     trigger_backward = (
         y.requires_grad
-        or z.requires_grad
+        or (isinstance(z, Tensor) and z.requires_grad)
         or (isinstance(gamma, Tensor) and gamma.requires_grad)
         or physics_requires_grad_params
     )
