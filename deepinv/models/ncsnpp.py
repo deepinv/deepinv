@@ -91,7 +91,7 @@ class NCSNpp(Denoiser):
         attn_resolutions: Sequence = (16,),  # List of resolutions with self-attention.
         dropout: float = 0.10,  # Dropout probability of intermediate activations.
         label_dropout: float = 0.0,  # Dropout probability of class labels for classifier-free guidance.
-        pretrained: str = "download",
+        pretrained: str | None = "download",
         _was_trained_on_minus_one_one: bool = False,
         pixel_std: float = 0.75,
         device=None,
