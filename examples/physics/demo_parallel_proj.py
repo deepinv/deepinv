@@ -455,11 +455,11 @@ symmetry_axis = 2
 img_shape = (161, 161, 2 * num_rings - 1)
 voxel_size = (2.5, 2.5, 2.5)
 
-physics = PositronEmissionTomography(device=device, img_shape=img_shape,
+physics = PositronEmissionTomography(device=device, img_shape=img_shape, radius=radius,
                                      num_sides=num_sides, num_lor_endpoints_per_side=num_lor_endpoints_per_side,
                                      lor_spacing=lor_spacing, ring_positions=ring_positions, symmetry_axis=symmetry_axis,
                                      voxel_size=voxel_size,
-                                     noise_model=dinv.physics.PoissonNoise(gain=0.01))
+                                     noise_model=dinv.physics.PoissonNoise(gain=0.1))
 
 
 x, attenuation = pet_phantom(img_shape, np, "cpu")
@@ -467,11 +467,14 @@ x = torch.from_numpy(x).unsqueeze(0).unsqueeze(0).to(device)
 attenuation = torch.from_numpy(attenuation).unsqueeze(0).unsqueeze(0).to(device)
 
 y = physics(x, attenuation=attenuation)
-x_adj = physics.A_adjoint(y)
+x_adj = physics.A_dagger(y)
 
 # %%
 # Visualize the scanner geometry and image FOV
 # --------------------------------------------
 
-dinv.utils.plot([y[:, :, :, 3], x[:,:,:,:,15], attenuation[:,:,:,:,15], x_adj[:, :, :, :, 15]],
-                titles=["measuremnets", "Emission image", "Attenuation image", "Backprojection of the data"],)
+
+sensitivities = physics.A_adjoint(torch.ones_like(y))
+
+dinv.utils.plot([y[..., 3], x[...,15], attenuation[...,15], sensitivities[..., 15], x_adj[..., 15]],
+                titles=["measuremnets", "Emission image", "Attenuation image", "sensitivities", "Backprojection of the data"],)
