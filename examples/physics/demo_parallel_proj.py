@@ -218,13 +218,10 @@ class PositronEmissionTomography(dinv.physics.LinearPhysics):
         scatter = self.proj(torch.zeros(img_shape, device=device)) if scatter is None else scatter.to(device)
         attenuation = attenuation if attenuation is not None else torch.zeros(img_shape, device=device)
 
-        att_sino = torch.exp(-self.proj(attenuation))
-        att_op = parallelproj.ElementwiseMultiplicationOperator(att_sino)
-
         self.res_model = parallelproj.GaussianFilterOperator(
             self.proj.in_shape, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
         )
-        self.pet_lin_op = parallelproj.CompositeLinearOperator((att_op, self.proj, self.res_model))
+        self.pet_lin_op = parallelproj.CompositeLinearOperator((self.proj, self.res_model))
 
         self.register_buffer("scatter", scatter)
         self.register_buffer("attenuation", attenuation)
@@ -234,7 +231,7 @@ class PositronEmissionTomography(dinv.physics.LinearPhysics):
     def A(self, x : torch.Tensor, add_scatter : bool = False, scatter : torch.Tensor | None =None,
           attenuation : torch.Tensor | None =None, **kwargs) -> torch.Tensor:
         self.update_parameters(attenuation=attenuation, scatter=scatter)
-        out = LinearSingleChannelOperator.apply(x, self.pet_lin_op)
+        out = LinearSingleChannelOperator.apply(x, self.pet_lin_op) * self.att_sino
         if add_scatter:
             out = out + self.scatter
         return out
@@ -242,7 +239,7 @@ class PositronEmissionTomography(dinv.physics.LinearPhysics):
     def A_adjoint(self, y : torch.Tensor, attenuation=None, scatter=None,
                   **kwargs) -> torch.Tensor:
         self.update_parameters(attenuation=attenuation, scatter=scatter)
-        return AdjointLinearSingleChannelOperator.apply(y, self.pet_lin_op)
+        return AdjointLinearSingleChannelOperator.apply(y * self.att_sino, self.pet_lin_op)
 
     def forward(self, x: torch.Tensor, attenuation=None, scatter=None, **kwargs) -> torch.Tensor:
         self.update_parameters(attenuation=attenuation, scatter=scatter)
@@ -252,9 +249,8 @@ class PositronEmissionTomography(dinv.physics.LinearPhysics):
                           scatter: torch.Tensor | None = None, **kwargs):
         if attenuation is not None:
             self.attenuation = attenuation
-            att_sino = torch.exp(-self.proj(attenuation))
-            att_op = parallelproj.ElementwiseMultiplicationOperator(att_sino)
-            self.pet_lin_op = parallelproj.CompositeLinearOperator((att_op, self.proj, self.res_model))
+            proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
+            self.att_sino = torch.exp(-proj_att)
         if scatter is not None:
             self.scatter = scatter
 
@@ -459,8 +455,7 @@ voxel_size = (2.5, 2.5, 2.5)
 
 x, attenuation = pet_phantom(img_shape, np, "cpu")
 x = torch.from_numpy(x).unsqueeze(0).unsqueeze(0).to(device)
-attenuation = torch.from_numpy(attenuation).to(device)
-attenuation = attenuation
+attenuation = torch.from_numpy(attenuation).unsqueeze(0).unsqueeze(0).to(device)
 physics = PositronEmissionTomography(device=device, img_shape=img_shape, radius=radius, radial_trim=radial_trim, max_ring_difference=max_ring_difference,
                                      num_sides=num_sides, num_lor_endpoints_per_side=num_lor_endpoints_per_side,
                                      lor_spacing=lor_spacing, ring_positions=ring_positions, symmetry_axis=symmetry_axis,
@@ -479,7 +474,7 @@ x_adj = physics.A_dagger(y)
 
 sensitivities = physics.A_adjoint(torch.ones_like(y))
 
-dinv.utils.plot([y[..., 3].unsqueeze(0), x[...,15], attenuation[...,15].unsqueeze(0).unsqueeze(0),
+dinv.utils.plot([y[..., 3].unsqueeze(0), x[...,15], attenuation[...,15],
                  sensitivities[..., 15], x_adj[..., 15]],
                 titles=["measuremnets", "Emission image",
                         "Attenuation image", "sensitivities", "Backprojection of the data"],)
