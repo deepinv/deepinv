@@ -184,11 +184,11 @@ class PositronEmissionTomography(dinv.physics.LinearPhysics):
         Check the `parallelproj` documentation for more details: https://parallelproj.readthedocs.io/en/stable/.
 
     """
-    def __init__(self, img_shape : tuple = (20, 5, 20), radius : float =35.0,
-                 num_sides : int = 12, num_lor_endpoints_per_side : int = 6, lor_spacing : float = 3.0,
-                 ring_positions : torch.Tensor = torch.linspace(-4, 4, 3), symmetry_axis : int =1, radial_trim : int =10,
-                 max_ring_difference: int =1, scatter : torch.Tensor | None = None, attenuation : torch.Tensor | None = None,
-                 voxel_size: tuple=(2.0, 2.0, 2.0), fwhm_data_mm: float = 5,
+    def __init__(self, img_shape : tuple, radius : float,
+                 num_sides : int, num_lor_endpoints_per_side : int, lor_spacing : float,
+                 ring_positions : torch.Tensor, symmetry_axis : int, radial_trim : int,
+                 max_ring_difference: int, scatter : torch.Tensor | None, attenuation : torch.Tensor | None,
+                 voxel_size: tuple, fwhm_data_mm : float,
                  device : str | torch.device = "cpu", **kwargs):
         super().__init__(**kwargs)
 
@@ -207,7 +207,7 @@ class PositronEmissionTomography(dinv.physics.LinearPhysics):
         lor_desc = parallelproj.RegularPolygonPETLORDescriptor(
             scanner,
             radial_trim=radial_trim,
-            max_ring_difference=max_ring_difference,
+            #max_ring_difference=max_ring_difference,
             sinogram_order=parallelproj.SinogramSpatialAxisOrder.RVP,
         )
 
@@ -231,11 +231,10 @@ class PositronEmissionTomography(dinv.physics.LinearPhysics):
         self.update_parameters(scatter=scatter, attenuation=attenuation)
         self.to(device)
 
-    def A(self, x : torch.Tensor, add_scatter=False, scatter=None,
-          attenuation=None, **kwargs) -> torch.Tensor:
+    def A(self, x : torch.Tensor, add_scatter : bool = False, scatter : torch.Tensor | None =None,
+          attenuation : torch.Tensor | None =None, **kwargs) -> torch.Tensor:
         self.update_parameters(attenuation=attenuation, scatter=scatter)
         out = LinearSingleChannelOperator.apply(x, self.pet_lin_op)
-
         if add_scatter:
             out = out + self.scatter
         return out
@@ -448,23 +447,27 @@ radius = 300.0
 num_sides = 36
 num_lor_endpoints_per_side = 12
 lor_spacing = 4.0
+fmw_data_mm = 4.0
 ring_positions = torch.linspace(
     -5 * (num_rings - 1) / 2, 5 * (num_rings - 1) / 2, num_rings
 )
 symmetry_axis = 2
+radial_trim = 40
+max_ring_difference = 5
 img_shape = (161, 161, 2 * num_rings - 1)
 voxel_size = (2.5, 2.5, 2.5)
-
-physics = PositronEmissionTomography(device=device, img_shape=img_shape, radius=radius,
-                                     num_sides=num_sides, num_lor_endpoints_per_side=num_lor_endpoints_per_side,
-                                     lor_spacing=lor_spacing, ring_positions=ring_positions, symmetry_axis=symmetry_axis,
-                                     voxel_size=voxel_size,
-                                     noise_model=dinv.physics.PoissonNoise(gain=0.1))
-
 
 x, attenuation = pet_phantom(img_shape, np, "cpu")
 x = torch.from_numpy(x).unsqueeze(0).unsqueeze(0).to(device)
 attenuation = torch.from_numpy(attenuation).unsqueeze(0).unsqueeze(0).to(device)
+
+physics = PositronEmissionTomography(device=device, img_shape=img_shape, radius=radius, radial_trim=radial_trim, max_ring_difference=max_ring_difference,
+                                     num_sides=num_sides, num_lor_endpoints_per_side=num_lor_endpoints_per_side,
+                                     lor_spacing=lor_spacing, ring_positions=ring_positions, symmetry_axis=symmetry_axis,
+                                     voxel_size=voxel_size, fwhm_data_mm=fmw_data_mm,
+                                     attenuation=attenuation, scatter=None,
+                                     noise_model=dinv.physics.PoissonNoise(gain=10.))
+
 
 y = physics(x, attenuation=attenuation)
 x_adj = physics.A_dagger(y)
@@ -475,6 +478,7 @@ x_adj = physics.A_dagger(y)
 
 
 sensitivities = physics.A_adjoint(torch.ones_like(y))
+
 
 dinv.utils.plot([y[..., 3], x[...,15], attenuation[...,15], sensitivities[..., 15], x_adj[..., 15]],
                 titles=["measuremnets", "Emission image", "Attenuation image", "sensitivities", "Backprojection of the data"],)
