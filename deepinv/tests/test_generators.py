@@ -718,7 +718,10 @@ def test_diffraction_generator(
 @pytest.mark.parametrize("size", SIZES)
 @pytest.mark.parametrize("num_channels", NUM_CHANNELS)
 @pytest.mark.parametrize("dtype", DTYPES)
-def test_generator_mixture(generators, size, num_channels, dtype, device, rng):
+@pytest.mark.parametrize("use_batch_sampling", [True, False])
+def test_generator_mixture(
+    generators, size, num_channels, dtype, use_batch_sampling, device, rng
+):
 
     generator_pair = []
     for name in generators:
@@ -726,7 +729,12 @@ def test_generator_mixture(generators, size, num_channels, dtype, device, rng):
         generator_pair.append(g)
 
     mixture = dinv.physics.generator.GeneratorMixture(
-        generator_pair, [0.5, 0.5], device=device, rng=rng, verbose=True
+        generator_pair,
+        [0.5, 0.5],
+        use_batch_sampling=use_batch_sampling,
+        device=device,
+        rng=rng,
+        verbose=True,
     )
 
     params = mixture.step(batch_size=4, seed=0)

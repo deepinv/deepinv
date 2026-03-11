@@ -190,7 +190,10 @@ class GeneratorMixture(PhysicsGenerator):
 
     :param list[PhysicsGenerator] generators: the generators instantiated from :class:`deepinv.physics.generator.PhysicsGenerator`.
     :param list[float] probs: the probability of each generator to be used at each step
-
+    :param: bool use_batch_sampling: whether to sample a different generator for each element in the batch. This is only possible if all generators in the mixture produce parameters with the same keys and shapes. If not, a single generator will be sampled per batch. Defaults to True.
+    :param str device: device on which the generator is located, defaults to "cpu"
+    :param torch.Generator rng: a pseudorandom random number generator for the parameter generation. If ``None``, a generator will be created on the specified device with a random seed.
+    :param bool verbose: whether to print warnings about the batch-compatibility of the generators, defaults to False.
     |sep|
 
     :Examples:
@@ -213,6 +216,7 @@ class GeneratorMixture(PhysicsGenerator):
         self,
         generators: list[PhysicsGenerator],
         probs: list[float],
+        use_batch_sampling: bool = True,
         device: str | torch.device = "cpu",
         rng: torch.Generator = None,
         verbose: bool = False,
@@ -224,7 +228,11 @@ class GeneratorMixture(PhysicsGenerator):
         self.probs = probs
         self.cum_probs = torch.cumsum(probs, dim=0)
 
-        self.batch_compatible = self._compatible_generators(generators, verbose=verbose)
+        self.use_batch_sampling = use_batch_sampling
+        if self.use_batch_sampling:
+            self.use_batch_sampling = self._compatible_generators(
+                generators, verbose=verbose
+            )
 
     @staticmethod
     def _compatible_generators(
@@ -278,7 +286,7 @@ class GeneratorMixture(PhysicsGenerator):
         :returns: A dictionary with the new parameters, ie ``{param_name: param_value}``.
         """
 
-        if self.batch_compatible:
+        if self.use_batch_sampling:
             # Sample a random generator for EACH element in the batch according to self.probs
             p = torch.rand(batch_size, generator=self.rng, device=self.device)
             # Get generator index for each sample
