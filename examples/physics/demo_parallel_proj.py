@@ -4,430 +4,140 @@ Positron emission tomography (PET) with parallelproj
 
 
 """
-from __future__ import annotations
-import array_api_compat.torch as torch
-import parallelproj
-from array_api_compat import device as to_device
 import deepinv as dinv
-from typing import TYPE_CHECKING, Union
-from types import ModuleType
-import array_api_compat.numpy as np
+from deepinv.physics import PET
+import torch
 
-if TYPE_CHECKING:
-    import cupy as cp
 
-    Array = Union[np.ndarray, cp.ndarray]  # Used for type checking
-else:
-    Array = np.ndarray  # Default at runtime
-
+# %%
+# Define a phantom and attenuation map
+# ------------------------------------
+#
+# We define a 3D PET phantom with an outer elliptical cylinder, an inner cylindrical region, and two pairs of spheres.
+# The attenuation map is defined as a constant value in the outer cylinder and a lower value in the inner cylinder.
+# The phantom is oversampled by a factor of 4 in each dimension and then downsampled by averaging to reduce aliasing artifacts.
 
 def pet_phantom(
     in_shape: tuple[int, int, int],
-    xp: ModuleType,
-    dev,
+    device: str = "cpu",
     mu_value: float = 0.01,
     add_spheres: bool = True,
     add_inner_cylinder: bool = True,
-    r0=0.45,
-    r1=0.28,
-) -> tuple[Array, Array]:
+    r0: float = 0.45,
+    r1: float = 0.28,
+):
     """
-    Generate a 3D PET phantom.
+    Generate a 3D PET phantom (torch native).
 
-    Parameters
-    ----------
-    in_shape : tuple
-        Shape of the phantom.
-    xp : module
-        Array API module to use.
-    dev : str
-        Device to use.
-    mu_value : float
-        Attenuation coefficient.
     Returns
     -------
-    tuple
-        Emission and attenuation images.
-
-    Note
-    ----
-
-    The activity in the background should be 1.
+    x_em : torch.Tensor
+        Emission image (1,1,D,H,W)
+    x_att : torch.Tensor
+        Attenuation image (1,1,D,H,W)
     """
-    if dev == "cpu":
-        dev = None
 
     oversampling_factor = 4
+    D, H, W = in_shape
+    oD, oH, oW = [oversampling_factor * x for x in in_shape]
 
-    # elliptical phantom on oversampled grid
-    oversampled_shape = tuple(oversampling_factor * x for x in in_shape)
-    x_em_oversampled = xp.zeros(oversampled_shape, device=dev, dtype=xp.float32)
-    x_att_oversampled = xp.zeros(oversampled_shape, device=dev, dtype=xp.float32)
-    c0 = oversampled_shape[0] / 2
-    c1 = oversampled_shape[1] / 2
-    c2 = oversampled_shape[2] / 2
-    a = r0 * oversampled_shape[0]  # semi-major axis
-    b = r1 * oversampled_shape[1]  # semi-minor axis
+    x_em = torch.zeros((oD, oH, oW), dtype=torch.float32, device=device)
+    x_att = torch.zeros_like(x_em)
 
-    rix = oversampled_shape[0] / 25
-    riy = oversampled_shape[1] / 25
+    c0 = oD / 2
+    c1 = oH / 2
+    c2 = oW / 2
 
-    y, x = xp.ogrid[: oversampled_shape[0], : oversampled_shape[1]]
+    a = r0 * oD
+    b = r1 * oH
+
+    rix = oD / 25
+    riy = oH / 25
+
+    y, x = torch.meshgrid(
+        torch.arange(oD, device=device),
+        torch.arange(oH, device=device),
+        indexing="ij",
+    )
 
     outer_mask = ((x - c0) / a) ** 2 + ((y - c1) / b) ** 2 <= 1
     inner_mask = ((x - c0) / rix) ** 2 + ((y - c1) / riy) ** 2 <= 1
 
-    for z in range(oversampled_shape[2]):
-        x_em_oversampled[:, :, z][outer_mask] = 1.0
-        x_att_oversampled[:, :, z][outer_mask] = mu_value
+    for z in range(oW):
+        x_em[:, :, z][outer_mask] = 1.0
+        x_att[:, :, z][outer_mask] = mu_value
 
         if add_inner_cylinder:
-            x_em_oversampled[:, :, z][inner_mask] = 0.25
-            x_att_oversampled[:, :, z][inner_mask] = mu_value / 3
-
-    # add a few spheres to the emission image
+            x_em[:, :, z][inner_mask] = 0.25
+            x_att[:, :, z][inner_mask] = mu_value / 3
 
     if add_spheres:
-        x, y, z = xp.ogrid[
-            : oversampled_shape[0], : oversampled_shape[1], : oversampled_shape[2]
-        ]
+        x, y, z = torch.meshgrid(
+            torch.arange(oD, device=device),
+            torch.arange(oH, device=device),
+            torch.arange(oW, device=device),
+            indexing="ij",
+        )
 
-        r_sp = 3 * [oversampled_shape[2] / 9]
-        r_sp2 = 3 * [oversampled_shape[2] / 17]
+        r_sp = [oW / 9] * 3
+        r_sp2 = [oW / 17] * 3
 
         for z_offset in [c2, 0.45 * c2]:
-            sp_mask = ((x - c0) / r_sp[0]) ** 2 + ((y - 1.4 * c1) / r_sp[1]) ** 2 + (
-                (z - z_offset) / r_sp[2]
-            ) ** 2 <= 1
-            x_em_oversampled[sp_mask] = 2.5
 
-            sp_mask2 = ((x - 1.3 * c0) / r_sp[0]) ** 2 + ((y - c1) / r_sp[1]) ** 2 + (
-                (z - z_offset) / r_sp[2]
-            ) ** 2 <= 1
-            x_em_oversampled[sp_mask2] = 0.25
+            sp_mask = (
+                ((x - c0) / r_sp[0]) ** 2
+                + ((y - 1.4 * c1) / r_sp[1]) ** 2
+                + ((z - z_offset) / r_sp[2]) ** 2
+                <= 1
+            )
+            x_em[sp_mask] = 2.5
 
-            sp_mask = ((x - c0) / r_sp2[0]) ** 2 + ((y - 0.6 * c1) / r_sp2[1]) ** 2 + (
-                (z - z_offset) / r_sp2[2]
-            ) ** 2 <= 1
-            x_em_oversampled[sp_mask] = 2.5
+            sp_mask2 = (
+                ((x - 1.3 * c0) / r_sp[0]) ** 2
+                + ((y - c1) / r_sp[1]) ** 2
+                + ((z - z_offset) / r_sp[2]) ** 2
+                <= 1
+            )
+            x_em[sp_mask2] = 0.25
 
-            sp_mask2 = ((x - 0.7 * c0) / r_sp2[0]) ** 2 + ((y - c1) / r_sp2[1]) ** 2 + (
-                (z - z_offset) / r_sp2[2]
-            ) ** 2 <= 1
-            x_em_oversampled[sp_mask2] = 0.25
+            sp_mask = (
+                ((x - c0) / r_sp2[0]) ** 2
+                + ((y - 0.6 * c1) / r_sp2[1]) ** 2
+                + ((z - z_offset) / r_sp2[2]) ** 2
+                <= 1
+            )
+            x_em[sp_mask] = 2.5
 
-    # downsample to original grid size by averaging
-    x_em_oversampled = (
-        x_em_oversampled[::4, :, :]
-        + x_em_oversampled[1::4, :, :]
-        + x_em_oversampled[2::4, :, :]
-        + x_em_oversampled[3::4, :, :]
-    )
-    x_em_oversampled = (
-        x_em_oversampled[:, ::4, :]
-        + x_em_oversampled[:, 1::4, :]
-        + x_em_oversampled[:, 2::4, :]
-        + x_em_oversampled[:, 3::4, :]
-    )
-    x_em_oversampled = (
-        x_em_oversampled[:, :, ::4]
-        + x_em_oversampled[:, :, 1::4]
-        + x_em_oversampled[:, :, 2::4]
-        + x_em_oversampled[:, :, 3::4]
-    )
+            sp_mask2 = (
+                ((x - 0.7 * c0) / r_sp2[0]) ** 2
+                + ((y - c1) / r_sp2[1]) ** 2
+                + ((z - z_offset) / r_sp2[2]) ** 2
+                <= 1
+            )
+            x_em[sp_mask2] = 0.25
 
-    x_att_oversampled = (
-        x_att_oversampled[::4, :, :]
-        + x_att_oversampled[1::4, :, :]
-        + x_att_oversampled[2::4, :, :]
-        + x_att_oversampled[3::4, :, :]
-    )
-    x_att_oversampled = (
-        x_att_oversampled[:, ::4, :]
-        + x_att_oversampled[:, 1::4, :]
-        + x_att_oversampled[:, 2::4, :]
-        + x_att_oversampled[:, 3::4, :]
-    )
-    x_att_oversampled = (
-        x_att_oversampled[:, :, ::4]
-        + x_att_oversampled[:, :, 1::4]
-        + x_att_oversampled[:, :, 2::4]
-        + x_att_oversampled[:, :, 3::4]
-    )
+    # downsample by averaging
+    f = oversampling_factor
 
-    x_em = x_em_oversampled.copy() / (oversampling_factor**3)
-    x_att = x_att_oversampled.copy() / (oversampling_factor**3)
+    def downsample(v):
+        v = v.view(D, f, H, f, W, f)
+        v = v.sum(dim=(1, 3, 5))
+        return v / (f**3)
+
+    x_em = downsample(x_em)
+    x_att = downsample(x_att)
 
     x_em[:, :, :3] = 0
     x_em[:, :, -3:] = 0
 
-    # make the attenuation a bit wider in z (plastic wall)
     x_att[:, :, :2] = 0
     x_att[:, :, -2:] = 0
 
+    # add batch + channel
+    x_em = x_em.unsqueeze(0).unsqueeze(0)  # (1,1,D,H,W)
+    x_att = x_att.unsqueeze(0).unsqueeze(0)
+
     return x_em, x_att
-
-
-
-class PositronEmissionTomography(dinv.physics.LinearPhysics):
-    r"""
-    Non time-of-flight Positron emission tomography (PET) physics model using the `parallelproj` package.
-
-    .. note::
-
-        This operator requires the `parallelproj` package to be installed. You can install it via conda:
-
-        ::
-
-            conda install -c conda-forge parallelproj
-
-        Check the `parallelproj` documentation for more details: https://parallelproj.readthedocs.io/en/stable/.
-
-    """
-    def __init__(self, img_shape : tuple, radius : float,
-                 num_sides : int, num_lor_endpoints_per_side : int, lor_spacing : float,
-                 ring_positions : torch.Tensor, symmetry_axis : int, radial_trim : int,
-                 max_ring_difference: int, scatter : torch.Tensor | None, attenuation : torch.Tensor | None,
-                 voxel_size: tuple, fwhm_data_mm : float,
-                 device : str | torch.device = "cpu", **kwargs):
-        super().__init__(**kwargs)
-
-        scanner = parallelproj.RegularPolygonPETScannerGeometry(
-            torch,
-            device,
-            radius=radius,
-            num_sides=num_sides,
-            num_lor_endpoints_per_side=num_lor_endpoints_per_side,
-            lor_spacing=lor_spacing,
-            ring_positions=ring_positions,
-            symmetry_axis=symmetry_axis,
-        )
-
-        # setup the LOR descriptor that defines the sinogram
-        lor_desc = parallelproj.RegularPolygonPETLORDescriptor(
-            scanner,
-            radial_trim=radial_trim,
-            #max_ring_difference=max_ring_difference,
-            sinogram_order=parallelproj.SinogramSpatialAxisOrder.RVP,
-        )
-
-        self.proj = parallelproj.RegularPolygonPETProjector(
-            lor_desc, img_shape=img_shape, voxel_size=voxel_size
-        )
-
-        scatter = self.proj(torch.zeros(img_shape, device=device)) if scatter is None else scatter.to(device)
-        attenuation = attenuation if attenuation is not None else torch.zeros(img_shape, device=device)
-
-        self.res_model = parallelproj.GaussianFilterOperator(
-            self.proj.in_shape, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
-        )
-        self.pet_lin_op = parallelproj.CompositeLinearOperator((self.proj, self.res_model))
-
-        self.register_buffer("scatter", scatter)
-        self.register_buffer("attenuation", attenuation)
-        self.update_parameters(scatter=scatter, attenuation=attenuation)
-        self.to(device)
-
-    def A(self, x : torch.Tensor, add_scatter : bool = False, scatter : torch.Tensor | None =None,
-          attenuation : torch.Tensor | None =None, **kwargs) -> torch.Tensor:
-        self.update_parameters(attenuation=attenuation, scatter=scatter)
-        out = LinearSingleChannelOperator.apply(x, self.pet_lin_op) * self.att_sino
-        if add_scatter:
-            out = out + self.scatter
-        return out
-
-    def A_adjoint(self, y : torch.Tensor, attenuation=None, scatter=None,
-                  **kwargs) -> torch.Tensor:
-        self.update_parameters(attenuation=attenuation, scatter=scatter)
-        return AdjointLinearSingleChannelOperator.apply(y * self.att_sino, self.pet_lin_op)
-
-    def forward(self, x: torch.Tensor, attenuation=None, scatter=None, **kwargs) -> torch.Tensor:
-        self.update_parameters(attenuation=attenuation, scatter=scatter)
-        return self.noise_model(self.A(x, **kwargs, add_scater=True))
-
-    def update_parameters(self, attenuation: torch.Tensor | None = None,
-                          scatter: torch.Tensor | None = None, **kwargs):
-        if attenuation is not None:
-            self.attenuation = attenuation
-            proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
-            self.att_sino = torch.exp(-proj_att)
-        if scatter is not None:
-            self.scatter = scatter
-
-
-class LinearSingleChannelOperator(torch.autograd.Function):
-    """
-    Function representing a linear operator acting on a mini batch of single channel images
-    """
-
-    @staticmethod
-    def forward(
-        ctx, x: torch.Tensor, operator: parallelproj.LinearOperator
-    ) -> torch.Tensor:
-        """forward pass of the linear operator
-
-        Parameters
-        ----------
-        ctx : context object
-            that can be used to store information for the backward pass
-        x : torch.Tensor
-            mini batch of 3D images with dimension (batch_size, 1, num_voxels_x, num_voxels_y, num_voxels_z)
-        operator : parallelproj.LinearOperator
-            linear operator that can act on a single 3D image
-
-        Returns
-        -------
-        torch.Tensor
-            mini batch of 3D images with dimension (batch_size, operator.out_shape)
-        """
-
-        # https://pytorch.org/docs/stable/notes/extending.html#how-to-use
-        ctx.set_materialize_grads(False)
-        ctx.operator = operator
-
-        batch_size = x.shape[0]
-        y = torch.zeros(
-            (batch_size,) + operator.out_shape, dtype=x.dtype, device=to_device(x)
-        )
-
-        # loop over all samples in the batch and apply linear operator
-        # to the first channel
-        for i in range(batch_size):
-            y[i, ...] = operator(x[i, 0, ...].detach())
-
-        return y
-
-    @staticmethod
-    def backward(ctx, grad_output: torch.Tensor) -> tuple[torch.Tensor, None]:
-        """backward pass of the forward pass
-
-        Parameters
-        ----------
-        ctx : context object
-            that can be used to obtain information from the forward pass
-        grad_output : torch.Tensor
-            mini batch of dimension (batch_size, operator.out_shape)
-
-        Returns
-        -------
-        torch.Tensor, None
-            mini batch of 3D images with dimension (batch_size, 1, opertor.in_shape)
-        """
-
-        # For details on how to implement the backward pass, see
-        # https://pytorch.org/docs/stable/notes/extending.html#how-to-use
-
-        # since forward takes two input arguments (x, operator)
-        # we have to return two arguments (the latter is None)
-        if grad_output is None:
-            return None, None
-        else:
-            operator = ctx.operator
-
-            batch_size = grad_output.shape[0]
-            x = torch.zeros(
-                (batch_size, 1) + operator.in_shape,
-                dtype=grad_output.dtype,
-                device=to_device(grad_output),
-            )
-
-            # loop over all samples in the batch and apply linear operator
-            # to the first channel
-            for i in range(batch_size):
-                x[i, 0, ...] = operator.adjoint(grad_output[i, ...].detach())
-
-            return x, None
-
-
-# %%
-# Setup the back projection layer
-# -------------------------------
-#
-# We subclass :class:`torch.autograd.Function` to define a custom pytorch layer
-# that is compatible with pytorch's autograd engine.
-# see also: https://pytorch.org/tutorials/beginner/examples_autograd/two_layer_net_custom_function.html
-
-
-class AdjointLinearSingleChannelOperator(torch.autograd.Function):
-    """
-    Function representing the adjoint of a linear operator acting on a mini batch of single channel images
-    """
-
-    @staticmethod
-    def forward(
-        ctx, x: torch.Tensor, operator: parallelproj.LinearOperator
-    ) -> torch.Tensor:
-        """forward pass of the adjoint of the linear operator
-
-        Parameters
-        ----------
-        ctx : context object
-            that can be used to store information for the backward pass
-        x : torch.Tensor
-            mini batch of 3D images with dimension (batch_size, 1, operator.out_shape)
-        operator : parallelproj.LinearOperator
-            linear operator that can act on a single 3D image
-
-        Returns
-        -------
-        torch.Tensor
-            mini batch of 3D images with dimension (batch_size, 1, opertor.in_shape)
-        """
-
-        ctx.set_materialize_grads(False)
-        ctx.operator = operator
-
-        batch_size = x.shape[0]
-        y = torch.zeros(
-            (batch_size, 1) + operator.in_shape, dtype=x.dtype, device=to_device(x)
-        )
-
-        # loop over all samples in the batch and apply linear operator
-        # to the first channel
-        for i in range(batch_size):
-            y[i, 0, ...] = operator.adjoint(x[i, ...].detach())
-
-        return y
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        """backward pass of the forward pass
-
-        Parameters
-        ----------
-        ctx : context object
-            that can be used to obtain information from the forward pass
-        grad_output : torch.Tensor
-            mini batch of dimension (batch_size, 1, operator.in_shape)
-
-        Returns
-        -------
-        torch.Tensor, None
-            mini batch of 3D images with dimension (batch_size, 1, opertor.out_shape)
-        """
-        # For details on how to implement the backward pass, see
-        # https://pytorch.org/docs/stable/notes/extending.html#how-to-use
-
-        # since forward takes two input arguments (x, operator)
-        # we have to return two arguments (the latter is None)
-        if grad_output is None:
-            return None, None
-        else:
-            operator = ctx.operator
-
-            batch_size = grad_output.shape[0]
-            x = torch.zeros(
-                (batch_size,) + operator.out_shape,
-                dtype=grad_output.dtype,
-                device=to_device(grad_output),
-            )
-
-            # loop over all samples in the batch and apply linear operator
-            # to the first channel
-            for i in range(batch_size):
-                x[i, ...] = operator(grad_output[i, 0, ...].detach())
-
-            return x, None
 
 
 # %%
@@ -449,34 +159,59 @@ ring_positions = torch.linspace(
 )
 symmetry_axis = 2
 radial_trim = 40
-max_ring_difference = 5
 img_shape = (161, 161, 2 * num_rings - 1)
 voxel_size = (2.5, 2.5, 2.5)
 
-x, attenuation = pet_phantom(img_shape, np, "cpu")
-x = torch.from_numpy(x).unsqueeze(0).unsqueeze(0).to(device)
-attenuation = torch.from_numpy(attenuation).unsqueeze(0).unsqueeze(0).to(device)
-physics = PositronEmissionTomography(device=device, img_shape=img_shape, radius=radius, radial_trim=radial_trim, max_ring_difference=max_ring_difference,
-                                     num_sides=num_sides, num_lor_endpoints_per_side=num_lor_endpoints_per_side,
-                                     lor_spacing=lor_spacing, ring_positions=ring_positions, symmetry_axis=symmetry_axis,
-                                     voxel_size=voxel_size, fwhm_data_mm=fmw_data_mm,
-                                     attenuation=attenuation, scatter=None,
-                                     noise_model=dinv.physics.PoissonNoise(gain=10.))
+physics = PET(device=device, img_shape=img_shape, radius=radius, radial_trim=radial_trim,
+              num_sides=num_sides, num_lor_endpoints_per_side=num_lor_endpoints_per_side,
+              lor_spacing=lor_spacing, ring_positions=ring_positions, symmetry_axis=symmetry_axis,
+              voxel_size=voxel_size, fwhm_data_mm=fmw_data_mm, normalize=True,
+              noise_model=dinv.physics.PoissonNoise(gain=10.))
+
+# %%
+# Forward projection and backprojection
+# --------------------------------------------
+# We forward project the phantom and then backproject the data to visualize the sensitivity map of the scanner.
+# The sensitivity map is defined as the back-projection of a sinogram of ones, which corresponds to the number of LORs intersecting each voxel.
 
 
-y = physics(x, attenuation=attenuation)
-scatter = torch.ones_like(y) * .1
+x, attenuation = pet_phantom(img_shape, device=device)
+scatter = torch.ones_like(physics.A(x)) * .1
+
 y = physics(x, attenuation=attenuation, scatter=scatter)
 x_adj = physics.A_dagger(y)
 
-# %%
-# Visualize the scanner geometry and image FOV
-# --------------------------------------------
-
-
 sensitivities = physics.A_adjoint(torch.ones_like(y))
+
+print(f"Norm operator: {physics.compute_norm(x):.2f}")
 
 dinv.utils.plot([y[..., 3].unsqueeze(0), x[...,15], attenuation[...,15],
                  sensitivities[..., 15], x_adj[..., 15]],
                 titles=["measuremnets", "Emission image",
                         "Attenuation image", "sensitivities", "Backprojection of the data"],)
+
+# %%
+# Visualize the scanner geometry and image FOV
+# --------------------------------------------
+
+class Denoiser3D(dinv.models.Denoiser):
+    def __init__(self, denoiser):
+        super().__init__()
+        self.denoiser = denoiser
+
+    def forward(self, x, sigma=None):
+        B, C, D, H, W = x.shape
+        # reshape to (B * W, C, D, H)
+        x = x.permute(0, 4, 1, 2, 3).reshape(B * W, C, D, H)
+        x = self.denoiser(x, sigma)
+        # reshape back to (B, C, D, H, W)
+        x = x.reshape(B, W, C, D, H).permute(0, 2, 3, 4, 1)
+        return x
+
+denoiser = Denoiser3D(dinv.models.DRUNet(in_channels=1, out_channels=1, device=device))
+
+DPIR = dinv.optim.DPIR(sigma=0.08,denoiser=denoiser)
+
+x_dpir = DPIR(y, physics)
+
+dinv.utils.plot([x_dpir[..., 15], x[..., 15]], titles=["DPIR reconstruction", "Ground truth"])
