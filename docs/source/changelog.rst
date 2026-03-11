@@ -8,6 +8,18 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+
+v0.3.8
+------
+New Features
+^^^^^^^^^^^^
 - Add :class:`deepinv.models.WaveletNoiseEstimator` and :class:`deepinv.models.PatchCovarianceNoiseEstimator` for noise level estimation (:gh:`1015` by `Matthieu Terris`_)
 - Add :class:`deepinv.physics.Scattering` physics for non-linear inverse scattering problems (:gh:`1020` by `Julian Tachella`_)
 - Add :meth:`deepinv.physics.Physics.compute_norm` local operator norm computation for non-linear physics (:gh:`1020` by `Julian Tachella`_)
@@ -38,6 +50,8 @@ Fixed
 - :func:`deepinv.utils.plot_ortho3D` doesn't perform sqrt on images (:gh:`1068` by `Andrew Wang`_)
 - Deprecate `self.device` in :class:`deepinv.physics.LinearPhysics` and remove it from internal logic. Define it as a property until removed. (:gh:`989` by `Romain Vo`_)
 - Sample a unique factor per batch in :class:`deepinv.physics.generator.DownsamplingGenerator` (:gh:`1085` by `Romain Vo`_)
+
+
 
 
 v0.3.7
