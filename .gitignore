@@ -30,6 +30,8 @@ examples/*/*.gif
 # Folders
 /docs/build/
 /docs/source/auto_examples/
+/docs/source/benchmarks.rst
+/docs/source/auto_benchmarks/*
 /docs/source/gen_modules/
 /docs/source/**/stubs/*
 
