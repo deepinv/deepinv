@@ -29,8 +29,9 @@ class PositronEmissionTomography(dinv.physics.LinearPhysics):
     def __init__(self, img_shape : tuple = (20, 5, 20), radius : float =35.0,
                  num_sides : int = 12, num_lor_endpoints_per_side : int = 6, lor_spacing : float = 3.0,
                  ring_positions : torch.Tensor = torch.linspace(-4, 4, 3),symmetry_axis : int =1, radial_trim : int =10,
-                 max_ring_difference: int =1,
-                 voxel_size: tuple=(2.0, 2.0, 2.0), device : str | torch.device = "cpu", **kwargs):
+                 max_ring_difference: int =1, scatter : torch.Tensor | None = None, attenuation : torch.Tensor | None = None,
+                 voxel_size: tuple=(2.0, 2.0, 2.0), fwhm_data_mm: float = 5,
+                 device : str | torch.device = "cpu", **kwargs):
         super().__init__(**kwargs)
 
         scanner = parallelproj.RegularPolygonPETScannerGeometry(
@@ -56,25 +57,50 @@ class PositronEmissionTomography(dinv.physics.LinearPhysics):
             lor_desc, img_shape=img_shape, voxel_size=voxel_size
         )
 
-    def A(self, x : torch.Tensor, add_scatter=False, **kwargs) -> torch.Tensor:
-        out = LinearSingleChannelOperator.apply(x, self.proj)
-        # use attenuation
-        self.attenuation
+        scatter = self.proj(torch.zeros(img_shape, device=device)) if scatter is None else scatter.to(device)
+        attenuation = attenuation if attenuation is not None else torch.zeros(img_shape, device=device)
+
+        att_sino = torch.exp(-self.proj(attenuation))
+        att_op = parallelproj.ElementwiseMultiplicationOperator(att_sino)
+
+        self.res_model = parallelproj.GaussianFilterOperator(
+            self.proj.in_shape, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
+        )
+        self.pet_lin_op = parallelproj.CompositeLinearOperator((att_op, self.proj, self.res_model))
+
+        self.register_buffer("scatter", scatter)
+        self.register_buffer("attenuation", attenuation)
+        self.update_parameters(scatter=scatter, attenuation=attenuation)
+        self.to(device)
+
+    def A(self, x : torch.Tensor, add_scatter=False, scatter=None,
+          attenuation=None, **kwargs) -> torch.Tensor:
+        self.update_parameters(attenuation=attenuation, scatter=scatter)
+        out = LinearSingleChannelOperator.apply(x, self.pet_lin_op)
 
         if add_scatter:
             out = out + self.scatter
         return out
 
-    def A_adjoint(self, y : torch.Tensor, **kwargs) -> torch.Tensor:
-        return AdjointLinearSingleChannelOperator.apply(y, self.proj)
+    def A_adjoint(self, y : torch.Tensor, attenuation=None, scatter=None,
+                  **kwargs) -> torch.Tensor:
+        self.update_parameters(attenuation=attenuation, scatter=scatter)
+        return AdjointLinearSingleChannelOperator.apply(y, self.pet_lin_op)
 
-    def forward(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, attenuation=None, scatter=None, **kwargs) -> torch.Tensor:
+        self.update_parameters(attenuation=attenuation, scatter=scatter)
         return self.noise_model(self.A(x, **kwargs, add_scater=True))
 
     def update_parameters(self, attenuation: torch.Tensor | None = None,
                           scatter: torch.Tensor | None = None, **kwargs):
         if attenuation is not None:
-            self.proj.set_attenuation(attenuation)
+            self.attenuation = attenuation
+            att_sino = torch.exp(-self.proj(attenuation))
+            att_op = parallelproj.ElementwiseMultiplicationOperator(att_sino)
+            self.pet_lin_op = parallelproj.CompositeLinearOperator((att_op, self.proj, self.res_model))
+        if scatter is not None:
+            self.scatter = scatter
+
 
 class LinearSingleChannelOperator(torch.autograd.Function):
     """
