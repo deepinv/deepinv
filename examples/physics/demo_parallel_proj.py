@@ -465,6 +465,8 @@ physics = PositronEmissionTomography(device=device, img_shape=img_shape, radius=
 
 
 y = physics(x, attenuation=attenuation)
+scatter = torch.ones_like(y) * .1
+y = physics(x, attenuation=attenuation, scatter=scatter)
 x_adj = physics.A_dagger(y)
 
 # %%
