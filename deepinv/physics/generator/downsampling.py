@@ -62,16 +62,17 @@ class DownsamplingGenerator(PhysicsGenerator):
 
         if filter_name == "gaussian":
             filter = torch.nn.Parameter(
-                gaussian_blur(sigma=(factor, factor)), requires_grad=False
-            ).to(self.device)
+                gaussian_blur(sigma=(factor, factor), device=self.device),
+                requires_grad=False,
+            )
         elif filter_name == "bilinear":
             filter = torch.nn.Parameter(
-                bilinear_filter(factor), requires_grad=False
-            ).to(self.device)
-        elif filter_name == "bicubic":
-            filter = torch.nn.Parameter(bicubic_filter(factor), requires_grad=False).to(
-                self.device
+                bilinear_filter(factor, device=self.device), requires_grad=False
             )
+        elif filter_name == "bicubic":
+            filter = torch.nn.Parameter(
+                bicubic_filter(factor, device=self.device), requires_grad=False
+            ).to(self.device)
 
         if self.psf_size is not None:
             dH = self.psf_size[0] - filter.shape[-2]
@@ -113,7 +114,7 @@ class DownsamplingGenerator(PhysicsGenerator):
         # unique factor for the whole batch to ensure that all produced measurements
         # have the same shape.
         factors = random_choice(
-            torch.as_tensor(self.list_factors),
+            torch.as_tensor(self.list_factors).to(self.device),
             size=(
                 (1,) if batch_size > 1 and len(self.list_factors) > 1 else (batch_size,)
             ),
