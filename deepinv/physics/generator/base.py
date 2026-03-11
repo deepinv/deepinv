@@ -194,6 +194,7 @@ class GeneratorMixture(PhysicsGenerator):
     :param str device: device on which the generator is located, defaults to "cpu"
     :param torch.Generator rng: a pseudorandom random number generator for the parameter generation. If ``None``, a generator will be created on the specified device with a random seed.
     :param bool verbose: whether to print warnings about the batch-compatibility of the generators, defaults to False.
+
     |sep|
 
     :Examples:
