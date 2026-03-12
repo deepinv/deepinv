@@ -322,6 +322,27 @@ class Tomography(LinearPhysics):
         return output
 
 
+
+from __future__ import annotations
+from typing import Iterable
+from types import MappingProxyType
+from warnings import warn
+import math
+from deepinv.physics.forward import LinearPhysics, adjoint_function
+from deepinv.physics.functional import (
+    Radon,
+    IRadon,
+    RampFilter,
+    ApplyRadon,
+    XrayTransform,
+)
+from deepinv.physics.functional.astra import (
+    AutogradTransform,
+    create_projection_geometry,
+    create_object_geometry,
+)
+from deepinv.utils.decorators import _deprecated_alias
+
 class TomographyWithAstra(LinearPhysics):
     r"""Computed Tomography operator with `astra-toolbox <https://astra-toolbox.com/>`_ backend.
     It is more memory efficient than the :class:`deepinv.physics.Tomography` operator and support 3D geometries.
@@ -395,7 +416,8 @@ class TomographyWithAstra(LinearPhysics):
 
     :param torch.Tensor, None geometry_vectors: Alternative way to describe a 3D geometry. It is a torch.Tensor of shape [num_angles, 12], where for each angular position of index ``i`` the row consists of a vector of size (12,) with
 
-        - ``(sx, sy, sz)``: the position of the source,
+        - ``(sx, sy, sz)`
+        : the position of the source,
 
         - ``(dx, dy, dz)``: the center of the detector,
 
@@ -406,7 +428,10 @@ class TomographyWithAstra(LinearPhysics):
         When specified, ``geometry_vectors`` overrides ``detector_spacing``, ``angles`` and ``geometry_parameters``. It is particularly useful to build the geometry for the `Walnut-CBCT dataset <https://zenodo.org/records/2686726>`_, where the acquisition parameters are provided via such vectors.
     :param bool normalize: If ``True`` :func:`A` and :func:`A_adjoint` are normalized so that the operator has unit norm. (default: ``True``)
     :param torch.device | str device: The operator only supports CUDA computation. (default: ``torch.device('cuda')``)
-
+    :param Any | astra_object_geom: Alternative way to specify the object geometry, by directly providing an ``astra`` geometry object. When specified, it overrides any other passed values. It must be passed with ``astra_projection_geom`` and ``is_2d``.
+    :param Any | astra_projection_geom: Alternative way to specify the projection geometry, by directly providing an ``astra`` geometry object. When specified, it overrides any other passed values. It must be passed with ``astra_object_geom`` and ``is_2d``.
+    :param bool | is_2d: Only used when ``astra_object_geom`` and ``astra_projection_geom`` are specified, to indicate whether the geometry is 2D or 3D. It is used to correctly parse the provided geometries and set the image size. 
+    
     |sep|
 
     :Examples:
@@ -472,7 +497,7 @@ class TomographyWithAstra(LinearPhysics):
     )
     def __init__(
         self,
-        img_size: tuple[int, ...],
+        img_size: tuple[int, ...] | None = None,
         angles: int | torch.Tensor = 180,
         n_detector_pixels: int | tuple[int, ...] | None = None,
         angular_range: tuple[float, float] = (0, 180),
@@ -489,52 +514,69 @@ class TomographyWithAstra(LinearPhysics):
         geometry_vectors: torch.Tensor | None = None,
         normalize: bool | None = None,
         device: torch.device | str = torch.device("cuda"),
+        astra_object_geom: Any| None = None,
+        astra_projection_geom: Any | None = None,
+        is_2d: bool | None = None,
         **kwargs,
     ):
         super().__init__(device=device, **kwargs)
+        
+        if astra_object_geom is not None or astra_projection_geom is not None:
+            if astra_object_geom is None or astra_projection_geom is None:
+                raise ValueError("Both `astra_object_geom` and `astra_projection_geom` must be specified together.")
+            if is_2d is None:
+                raise ValueError("When `astra_object_geom` and `astra_projection_geom` are specified, `is_2d` must also be specified to indicate whether the geometry is 2D or 3D.")
+            self.object_geometry = astra_object_geom
+            self.projection_geometry = astra_projection_geom
+            self.is_2d = is_2d
+            self.img_size = (self.object_geometry['GridRowCount'], self.object_geometry['GridColCount']) if self.is_2d else (self.object_geometry['GridRowCount'], self.object_geometry['GridColCount'], self.object_geometry['GridSliceCount']) # TODO: Check this for 3D 
 
-        if isinstance(geometry_parameters, MappingProxyType):
-            geometry_parameters = geometry_parameters.copy()
+        else:
+            if self.img_size is None:
+                raise ValueError("`img_size` must be specified when `astra_object_geom` and `astra_projection_geom` are not provided.")
 
-        assert len(img_size) in (
-            2,
-            3,
-        ), f"len(img_size) is {len(img_size)}, must be either 2 or 3 (for 2D and 3D respectively)"
+            if isinstance(geometry_parameters, MappingProxyType):
+                geometry_parameters = geometry_parameters.copy()
 
-        if torch.device(device).type != "cuda":
-            warn(
-                f"TomographyWithAstra only supports CUDA Tensors and CUDA operations, got device={device}",
-                RuntimeWarning,
+            assert len(img_size) in (
+                2,
+                3,
+            ), f"len(img_size) is {len(img_size)}, must be either 2 or 3 (for 2D and 3D respectively)"
+
+            if torch.device(device).type != "cuda":
+                warn(
+                    f"TomographyWithAstra only supports CUDA Tensors and CUDA operations, got device={device}",
+                    RuntimeWarning,
+                )
+
+            self.img_size = img_size
+            self.is_2d = len(img_size) == 2
+            self.n_detector_pixels = (
+                math.ceil(math.sqrt(2) * img_size[0])
+                if n_detector_pixels is None
+                else n_detector_pixels
+            )
+            self.geometry_type = geometry_type
+
+            if isinstance(angles, int):
+                angles = torch.linspace(*angular_range, steps=angles + 1)[:-1]
+
+            self.object_geometry = create_object_geometry(
+                *img_size,
+                bounding_box=bounding_box,
+                pixel_spacing=pixel_spacing,
+                is_2d=self.is_2d,
             )
 
-        self.img_size = img_size
-        self.is_2d = len(img_size) == 2
-        self.n_detector_pixels = (
-            math.ceil(math.sqrt(2) * img_size[0])
-            if n_detector_pixels is None
-            else n_detector_pixels
-        )
-        self.geometry_type = geometry_type
-
-        if isinstance(angles, int):
-            angles = torch.linspace(*angular_range, steps=angles + 1)[:-1]
-
-        self.object_geometry = create_object_geometry(
-            *img_size,
-            bounding_box=bounding_box,
-            pixel_spacing=pixel_spacing,
-            is_2d=self.is_2d,
-        )
-
-        self.projection_geometry = create_projection_geometry(
-            geometry_type=geometry_type,
-            detector_spacing=detector_spacing,
-            n_detector_pixels=self.n_detector_pixels,
-            angles=angles,
-            is_2d=self.is_2d,
-            geometry_parameters=geometry_parameters,
-            geometry_vectors=geometry_vectors,
-        )
+            self.projection_geometry = create_projection_geometry(
+                geometry_type=geometry_type,
+                detector_spacing=detector_spacing,
+                n_detector_pixels=self.n_detector_pixels,
+                angles=angles,
+                is_2d=self.is_2d,
+                geometry_parameters=geometry_parameters,
+                geometry_vectors=geometry_vectors,
+            )
 
         self.xray_transform = XrayTransform(
             object_geometry=self.object_geometry,
@@ -574,6 +616,8 @@ class TomographyWithAstra(LinearPhysics):
     @property
     def num_angles(self) -> int:
         return self.xray_transform.range_shape[1]
+
+
 
     def fbp_weighting(self, sinogram: torch.Tensor) -> torch.Tensor:
         r"""Scales the computation by the inverse number of views and
@@ -642,6 +686,10 @@ class TomographyWithAstra(LinearPhysics):
 
         return sinogram_scaled
 
+
+
+
+
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward projection.
 
@@ -654,6 +702,8 @@ class TomographyWithAstra(LinearPhysics):
 
         return out
 
+
+
     def fbp(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         filtered_y = self.filter(y, dim=-1)
         out = self.A_adjoint(self.fbp_weighting(filtered_y))
@@ -661,6 +711,8 @@ class TomographyWithAstra(LinearPhysics):
             out *= self.operator_norm**2
 
         return out
+
+
 
     def A_dagger(self, y: torch.Tensor, fbp: bool = False, **kwargs) -> torch.Tensor:
         r"""
@@ -678,6 +730,10 @@ class TomographyWithAstra(LinearPhysics):
             return self.fbp(y, **kwargs)
         else:
             return super(TomographyWithAstra, self).A_dagger(y, **kwargs)
+
+
+
+
 
     def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         """Approximation of the adjoint.
