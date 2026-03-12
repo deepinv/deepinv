@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from .base import Denoiser
+from .utils import load_state_dict_from_url
 import warnings
 
 
@@ -762,7 +763,7 @@ class Upsample(nn.Sequential):
             m.append(nn.PixelShuffle(3))
         else:
             raise ValueError(
-                f"scale {scale} is not supported. " "Supported scales: 2^n and 3."
+                f"scale {scale} is not supported. Supported scales: 2^n and 3."
             )
         super(Upsample, self).__init__(*m)
 
@@ -1032,7 +1033,7 @@ class SwinIR(Denoiser):
                         + ".pth"
                     )
 
-                pretrained_weights = torch.hub.load_state_dict_from_url(
+                pretrained_weights = load_state_dict_from_url(
                     weights_url, map_location=lambda storage, loc: storage
                 )
             else:
