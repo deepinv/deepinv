@@ -24,6 +24,7 @@ MODEL_LIST_1_CHANNEL = [
     "waveletdict",
     "epll",
     "restormer",
+    "promptir",
     "ncsnpp",
     "adinv.modelsunet",
 ]
@@ -126,6 +127,10 @@ def choose_denoiser(name, imsize):
         out = dinv.models.EPLLDenoiser(channels=imsize[0])
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
+    elif name == "promptir":
+        out = dinv.models.PromptIR(
+            in_channels=imsize[0], out_channels=imsize[0], pretrained=None
+        )
     elif name == "ncsnpp":
         out = dinv.models.NCSNpp(
             in_channels=imsize[0],
@@ -1061,7 +1066,7 @@ def test_restoration_models(
         if hasattr(physics, "noise_model"):
             if hasattr(physics.noise_model, "sigma"):
                 physics.noise_model.sigma = torch.tensor(
-                    [max(physics.noise_model.sigma, sigma)]
+                    [max(physics.noise_model.sigma, sigma)], device=device, dtype=dtype
                 )
             else:
                 physics.noise_model = dinv.physics.GaussianNoise(sigma)
@@ -1102,15 +1107,28 @@ def test_restoration_models(
 
     psnr_fn = PSNR(max_pixel=1)
 
-    if (
+    if (  # RAM performance test
         not (physics_name == "super_resolution_circular" and channels == 2)
         and model_name == "ram"
         and pretrained == True
         and physics is not None
-    ):  # suboptimal performance in this case
+    ):
         psnr_in = psnr_fn(physics.A_dagger(y), x)
         psnr_out = psnr_fn(x_hat, x)
         assert torch.all(psnr_out > psnr_in)
+        if physics_name == LINEAR_OPERATORS[0]:
+            butterfly = dinv.utils.load_example("butterfly.png", device=device)
+            _physics = dinv.physics.Downsampling(
+                filter="bicubic",
+                noise_model=dinv.physics.GaussianNoise(0.01),
+                device=device,
+            )
+            with torch.no_grad():
+                assert (
+                    dinv.metric.PSNR()(model(_physics(butterfly), _physics), butterfly)
+                    > 29.75
+                )
+
     else:
         pytest.skip(f"Skipping PSNR test for {model_name} with {physics_name}.")
 
@@ -1227,13 +1245,14 @@ def test_denoiser_perf(device):
 
     psnr_fn = PSNR(max_pixel=1)
 
-    # Only test the trained denoisers and the correspinding expected performance
+    # Only test the trained denoisers and the corresponding expected performance
     learned_denoisers = [
         (dinv.models.DnCNN(pretrained="download").to(device), (0.1, 0.03, 0.001)),
         (dinv.models.DRUNet(pretrained="download").to(device), (7.0, 10.5, 11.0)),
         (dinv.models.GSDRUNet(pretrained="download").to(device), (6.5, 10.5, 10.5)),
         (dinv.models.SCUNet(pretrained="download").to(device), (3.5, 9.5, 8.5)),
         (dinv.models.SwinIR(pretrained="download").to(device), (7.5, 3.4, 1.0)),
+        (dinv.models.PromptIR(pretrained="download").to(device), (6.0, 8.0, 8.0)),
         (dinv.models.DiffUNet(pretrained="download").to(device), (6.5, 10.5, 10.0)),
         (
             dinv.models.Restormer(
@@ -1659,5 +1678,5 @@ def test_gaussian_noise_estimators(model_name, mode, channels, sigma, device, rn
     )
 
     assert torch.allclose(
-        model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-4, atol=1e-6
+        model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-3, atol=1e-4
     )

@@ -19,6 +19,7 @@ jobs:
     runs-on: gpu
     env:
       DEEPINV_MOCK_TESTS: "True"
+      DEEPINV_DOWNLOAD_VERBOSE: "False"
       UV_CACHE_DIR: "/local/jtachell/.cache/uv"
       WORKING_DIR: "/local/jtachell"
 

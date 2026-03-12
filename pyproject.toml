@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.10"
-version = "0.3.7"
+version = "0.4.0"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -85,11 +85,11 @@ denoisers = [
     "PyWavelets",
     "ptwt",
     "FrEIA",
-    "pyiqa>=0.1.13",
     "kornia",
     "torchkbnufft",
     "libcpab",
     "sigpy",
+    "scipy",
     "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
     "spyrit>=3.0.0; platform_system=='Linux'",
     "diffusers",
