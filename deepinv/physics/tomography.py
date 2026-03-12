@@ -323,26 +323,6 @@ class Tomography(LinearPhysics):
 
 
 
-from __future__ import annotations
-from typing import Iterable
-from types import MappingProxyType
-from warnings import warn
-import math
-from deepinv.physics.forward import LinearPhysics, adjoint_function
-from deepinv.physics.functional import (
-    Radon,
-    IRadon,
-    RampFilter,
-    ApplyRadon,
-    XrayTransform,
-)
-from deepinv.physics.functional.astra import (
-    AutogradTransform,
-    create_projection_geometry,
-    create_object_geometry,
-)
-from deepinv.utils.decorators import _deprecated_alias
-
 class TomographyWithAstra(LinearPhysics):
     r"""Computed Tomography operator with `astra-toolbox <https://astra-toolbox.com/>`_ backend.
     It is more memory efficient than the :class:`deepinv.physics.Tomography` operator and support 3D geometries.
