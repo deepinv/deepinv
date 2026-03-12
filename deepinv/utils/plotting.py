@@ -1212,12 +1212,9 @@ def plot_ortho3D(
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-            img = img**0.5
 
             ax_XY = axs[r, i]
-            ax_XY.imshow(
-                img[img.shape[0] // 2] ** 0.5, cmap=cmap, interpolation=interpolation
-            )
+            ax_XY.imshow(img[img.shape[0] // 2], cmap=cmap, interpolation=interpolation)
             # ax_XY.set_aspect(1.)
             from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -1226,7 +1223,7 @@ def plot_ortho3D(
                 "bottom", 3 * 0.5 * split_ratios[i, r], sharex=ax_XY
             )  # pad=1.0*split_ratios[i, r], sharex=ax_XY)
             ax_XZ.imshow(
-                img[:, img.shape[1] // 2, :] ** 0.5,
+                img[:, img.shape[1] // 2, :],
                 cmap=cmap,
                 interpolation=interpolation,
             )
@@ -1234,7 +1231,7 @@ def plot_ortho3D(
                 "right", 3 * 0.5 * split_ratios[i, r], sharey=ax_XY
             )  # pad=1.0*split_ratios[i, r]
             ax_ZY.imshow(
-                np.moveaxis(img[:, :, img.shape[2] // 2] ** 0.5, (0, 1, 2), (1, 0, 2)),
+                np.moveaxis(img[:, :, img.shape[2] // 2], (0, 1, 2), (1, 0, 2)),
                 cmap=cmap,
                 interpolation=interpolation,
             )

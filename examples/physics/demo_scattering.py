@@ -8,12 +8,12 @@ The scattering inverse problem consists in reconstructing the contrast of an unk
 from measurements of the scattered wave field resulting from the interaction of an incident
 wave with the object.
 
-For each of the :math:`i=1,\dots,T` transmitters, the 2D forward model is given by inhomogeneous Helmholtz equation (see e.g., :cite:t:`soubies2017efficient`):
+For each of the :math:`i=1,\dots,T` transmitters, the 2D forward model is given by the inhomogeneous Helmholtz equation (see e.g., :cite:t:`soubies2017efficient`):
 
 
 .. math::
 
-    \nabla^2 u_i(\mathbf{r}) + k^2(\mathbf{r})  u_i(\mathbf{r}) = - (k^2(\mathbf{r}) - k^2_b)  v_i(\mathbf{r})  \quad \mathbf{r} \in \mathbb{R}^2
+    \nabla^2 u_i(\mathbf{r}) + k_b^2  u_i(\mathbf{r}) = - (k^2(\mathbf{r}) - k^2_b)  v_i(\mathbf{r})  \quad \mathbf{r} \in \mathbb{R}^2
 
 where :math:`u_i` is the (unknown) scattered field, :math:`k_b` is the (known scalar) wavenumber of the incident wave in the background medium,
 :math:`k(\mathbf{r})` is the (unknown) spatially-varying wavenumber of the object to be recovered,
@@ -30,8 +30,8 @@ the forward problem can be reformulated in the **Lippmann-Schwinger** integral e
     y_i &= G_s \left( x \circ (u_i+v_i) \right)
 
 where :math:`g(\mathbf{r}) = k_b^2 \frac{i}{4} H_0^1(k_b\|\mathbf{r}\|)` is Green's function in 2D (normalized by :math:`k_b^2`),
-:math:`y \in \mathbb{C}^{R}` are the measurements at the receivers for the ith transmitter,
-and :math:`G_s` denotes the convolution with Green's operator plus sampling at the :math:`R` different receiver locations.
+:math:`y_i \in \mathbb{C}^{R}` are the measurements at the receivers for the ith transmitter,
+and :math:`G_s` denotes the convolution with Green's operator and sampling at the :math:`R` different receiver locations.
 
 .. tip::
 
@@ -41,7 +41,7 @@ and :math:`G_s` denotes the convolution with Green's operator plus sampling at t
     In **optical diffraction tomography**, the scattering potential is related to the refractive index :math:`n` as :math:`x(\mathbf{r}) = n^2(\mathbf{r}) - 1`.
 
     Moreover, the wavenumber can be also provided in a dimensionless form by normalizing it with respect to the box length :math:`L` as :math:`k_b = 2 \pi L / \lambda`,
-    where :math:`\lambda` is the wavelength of the incident wave.
+    where :math:`\lambda` is the wavelength of the incident wave and :math:`L` is the length of the box where the object is located (i.e., the square of length 1 in the example below).
 
 This example shows how to define the scattering forward model, generate measurements,
 and perform reconstructions (i.e., recover the contrast of the object) using both a linear (Born approximation) solver and a non-linear
@@ -90,12 +90,12 @@ psnr = dinv.metric.PSNR(max_pixel=contrast)
 #
 # .. math::
 #
-#         \left(I - G_s \text{diag}(x)\right) u_i = b_i
+#         \left(I - G \text{diag}(x)\right) u_i = b_i
 #
-# where :math:`G_s` is the convolution operator with Green's function :math:`g`, and :math:`b_i = G_s (x \circ v_i)`.
+# where :math:`G` is the convolution operator with Green's function :math:`g`, and :math:`b_i = G (x \circ v_i)`.
 #
 # This linear system becomes highly ill-conditioned for high contrast objects (i.e., large :math:`\|x\|_{\infty}`) and/or high wavenumber
-# (which induces a high spectral norm of the Green operator :math:`\|G_s\|_2`), and the solver
+# (which induces a high spectral norm of the Green operator :math:`\|G\|_2`), and the solver
 # may fail to converge. In that case, one can try to increase the number of iterations, or change the solver (see
 # :class:`deepinv.physics.Scattering.SolverConfig` for more details).
 #
@@ -127,7 +127,7 @@ y = physics(x)
 # %%
 # Visualize sensor positions
 # ---------------------------
-# In this example, we assume we have 64 sensors that can be used both as transmitters and receivers,
+# In this example, we assume we have 32 sensors that can be used both as transmitters and receivers,
 # placed on a circle of radius 1 around the object. Each transmitter emits a cylindrical wave, and the rest of the sensors
 # measure the scattered field.
 # We first visualize the position of the first transmitter and its associated receivers.

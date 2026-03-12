@@ -303,7 +303,8 @@ physics = dinv.physics.MultiCoilMRI(
     device=device,
 )
 
-x_rss = physics.A_adjoint(y, rss=True, crop=True)
+x_rss = physics.A_adjoint(y, rss=True)
+x_rss = physics.crop(x_rss, shape=x.shape)  # FastMRI provided RSS is cropped
 
 assert torch.allclose(x, x_rss)
 
