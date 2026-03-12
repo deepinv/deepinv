@@ -11,6 +11,8 @@ from .convolution import (
     conv_transpose3d_fft,
 )
 
+from .blur import gaussian_blur_nd
+
 from .product_convolution import product_convolution2d, product_convolution2d_adjoint
 
 from .multiplier import (

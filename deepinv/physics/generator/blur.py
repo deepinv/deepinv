@@ -1,9 +1,9 @@
 from __future__ import annotations
 import torch
 import numpy as np
-from math import ceil, floor, sqrt, pi
+from math import ceil, floor, pi
 from deepinv.physics.generator import PhysicsGenerator
-from deepinv.physics.functional import histogramdd, conv2d
+from deepinv.physics.functional import histogramdd, conv2d, gaussian_blur_nd
 from deepinv.physics.functional.interp import ThinPlateSpline
 from deepinv.utils.decorators import _deprecated_alias
 from deepinv.transform.rotate import rotate_via_shear
@@ -33,154 +33,6 @@ class PSFGenerator(PhysicsGenerator):
         self.shape = (num_channels,) + psf_size
         self.psf_size = psf_size
         self.num_channels = num_channels
-
-def gaussian_blur_nd(
-    psf_size: tuple[int, ...] | None = None,
-    sigma: int | float | tuple[float, ...] | torch.Tensor = (1., 1.),
-    angle: int | float | tuple[float, ...] | torch.Tensor = 0.0,
-    device: str = "cpu",
-    dtype: torch.dtype = torch.float32,
-) -> torch.Tensor:
-    """
-    Creates a batch of N-dimensional anisotropic Gaussian kernels (1D, 2D, or 3D) with independent sigma ranges and rotation angles for each kernel.
-
-    Args:
-        psf_size: List of kernel sizes for each dimension (e.g., [31] for 1D, [31, 31] for 2D, [31, 31, 31] for 3D).
-        sigma: List of std deviation values for each dimension. If a single float is provided, the same sigma will be used for all dimensions.
-        : Rotation angle(s) for each kernel in the batch (radians). For 3D, this is the angle around the z-axis.
-        batch_size: Number of kernels in the batch.
-        device: Device to create the tensor on.
-
-    Returns:
-        A batched N-dimensional Gaussian kernel as a PyTorch tensor of shape (batch_size, *psf_size).
-    """
-    
-    if psf_size is None:
-        dim = 1 if isinstance(sigma, (int, float)) else len(sigma)
-
-        s = sigma if isinstance(sigma, (int,float)) else max(sigma)
-        c = int(s / 0.3 + 1)
-        psf_size = (2 * c + 1,) * dim
-
-    else:
-        dim = len(psf_size)
-    
-    if dim not in {1, 2, 3}:
-        raise ValueError("Only 1D, 2D, and 3D kernels are supported.")
-
-    # Standard deviation components
-    # -----------------------------
-    
-    # batch size of 1 with isotropic kernel
-    if isinstance(sigma, (int, float)):
-        sigma = torch.tensor([[torch.tensor([sigma])] * dim], device=device, dtype=dtype)  # Shape: (batch_size=1, dim)
-        
-    # batch size of 1 with potentially anisotropic kernel
-    elif isinstance(sigma, (list, tuple)):
-        if len(sigma) != dim:
-            raise ValueError(f"Length of sigma tuple must match the number of dimensions {dim}.")
-        sigma = torch.tensor([sigma], device=device, dtype=dtype)  # Shape: (batch_size=1, dim)
-
-    B = sigma.shape[0]  # batch size inferred from sigma
-
-
-    # Rotation angles
-    # ---------------
-    # For 3D, angles is a list of three angles (alpha, beta, gamma)
-    if dim == 2:
-        if isinstance(angle, (int, float)):
-            angle = torch.tensor([angle] * B, device=device, dtype=dtype) # Shape: (batch_size,)
-        elif isinstance(angle, torch.Tensor) and angle.dim() == 1 and angle.shape[0] == B:
-            pass  # Assume shape (batch_size,)
-        else:
-            raise ValueError(f"For 2D, angle must be a single value or a tensor of shape (batch_size,). Got angle.shape = {angle.shape}.")
-    elif dim == 3:
-        if isinstance(angle, (int, float)):
-            angles = torch.tensor([[angle, 0.0, 0.0]] * B, device=device, dtype=dtype) # Shape: (batch_size, 3)
-        elif isinstance(angle, (list, tuple)) and len(angle) == 3:
-            angles = torch.tensor([angle] * B, device=device, dtype=dtype) # Shape: (batch_size, 3)
-        elif isinstance(angle, torch.Tensor) and angle.dim() == 2 and angle.shape[1] == 3:
-            angles = angle # Assume shape (batch_size, 3)
-        else:
-            raise ValueError(f"For 3D, angles must be a list of three angles (alpha, beta, gamma) or a tensor of shape (batch_size, 3). Got angle.shape = {angle.shape}.")
-        
-    # Create a grid for each dimension
-    grids = []
-    for d in range(dim):
-        ax = torch.linspace(
-            -((psf_size[d] - 1) / 2), (psf_size[d] - 1) / 2, psf_size[d], device=device
-        )
-        grids.append(ax)
-
-    # Create a meshgrid for the coordinates
-    x, y = torch.meshgrid(*[grids[d] for d in range(dim)], indexing='xy')
-    coords = torch.stack([x,y], dim=-1)  # Shape: (*psf_size, dim)
-    
-    # sigma is passed in (depth, height, width) order, but we want (x,y,z) order for the Gaussian formula, so we flip it
-    sigma = torch.flip(sigma, dims=[-1])  # Shape: (batch_size, dim)
-
-    # Reshape for batch processing: (batch_size, *psf_size, dim)
-    coords = coords.unsqueeze(0).expand(B, *psf_size, dim)
-
-    if dim == 2:
-        # Rotation matrix for 2D
-        cos_theta = torch.cos(angle).view(-1)
-        sin_theta = torch.sin(angle).view(-1)
-        rot_mat = torch.zeros((B, 2, 2), device=device)
-        rot_mat[:, 0, 0] = cos_theta.squeeze()
-        rot_mat[:, 0, 1] = -sin_theta.squeeze()
-        rot_mat[:, 1, 0] = sin_theta.squeeze()
-        rot_mat[:, 1, 1] = cos_theta.squeeze()
-
-        # Apply rotation: (batch_size, *psf_size, 2)
-        coords = torch.einsum('bij,b...j->b...i', rot_mat, coords)
-
-    elif dim == 3:
-
-        # Rotation matrices for x, y, z axes
-        alpha, beta, gamma = angles[:, 0], angles[:, 1], angles[:, 2]
-
-        # Rotation around x-axis
-        Rx = torch.zeros((B, 3, 3), device=device)
-        Rx[:, 0, 0] = 1.0
-        Rx[:, 1, 1] = torch.cos(alpha)
-        Rx[:, 1, 2] = -torch.sin(alpha)
-        Rx[:, 2, 1] = torch.sin(alpha)
-        Rx[:, 2, 2] = torch.cos(alpha)
-
-        # Rotation around y-axis
-        Ry = torch.zeros((B, 3, 3), device=device)
-        Ry[:, 0, 0] = torch.cos(beta)
-        Ry[:, 0, 2] = torch.sin(beta)
-        Ry[:, 1, 1] = 1.0
-        Ry[:, 2, 0] = -torch.sin(beta)
-        Ry[:, 2, 2] = torch.cos(beta)
-
-        # Rotation around z-axis
-        Rz = torch.zeros((B, 3, 3), device=device)
-        Rz[:, 0, 0] = torch.cos(gamma)
-        Rz[:, 0, 1] = -torch.sin(gamma)
-        Rz[:, 1, 0] = torch.sin(gamma)
-        Rz[:, 1, 1] = torch.cos(gamma)
-        Rz[:, 2, 2] = 1.0
-
-        # Combined rotation matrix: R = Rz @ Ry @ Rx
-        R = torch.bmm(Rz, torch.bmm(Ry, Rx))
-        # Apply rotation: (batch_size, *psf_size, 3)
-        coords = torch.einsum('bij,b...j->b...i', R, coords)
-
-    # Compute the N-dimensional Gaussian
-    kernel = torch.ones((B, *psf_size), device=device)
-    for d in range(dim):
-        kernel *= torch.exp(
-            -0.5 * (coords[..., d] ** 2) / (sigma[:,-d].view(-1, *[1] * dim) ** 2)
-        ) / (sqrt(2 * pi) * sigma[:,d].view(-1, *[1] * dim))
-
-    # Normalize each kernel
-    kernel = kernel / torch.sum(kernel, dim=tuple(range(1, dim + 1)), keepdim=True)
-
-    return kernel
-
         
 class GaussianBlurGenerator(PSFGenerator):
     def __init__(
@@ -196,6 +48,20 @@ class GaussianBlurGenerator(PSFGenerator):
         device: str = "cpu",
         dtype: type = torch.float32,
     ):
+        r"""
+        Random Gaussian blur generator. Generates 1D, 2D, or 3D Gaussian kernels with random standard deviations and rotation angles.
+        
+        :param tuple[int, ...] psf_size: the shape of the generated point spread function (PSF).
+        :param float | tuple[float, ...] sigma_min: the minimum standard deviation(s) for the Gaussian kernel. If a single value is provided, it is applied to all dimensions. If a tuple is provided, it should have the same length as the number of dimensions and specify the minimum sigma for each dimension.
+        :param float | tuple[float, ...] sigma_max: the maximum standard deviation(s) for the Gaussian kernel. Follows the same format as ``sigma_min``.
+        :param bool isotropic: If True, the generated Gaussian kernels will be isotropic (same sigma for all dimensions). If False, the kernels can be anisotropic (different sigma for each dimension). Defaults to True.
+        :param float | tuple[float, ...] angle_min: the minimum rotation angle(s) for the Gaussian kernel in radians. For 2D kernels, this is a single angle of rotation in the plane. For 3D kernels, this can be a tuple of three angles (alpha, beta, gamma) representing minimum rotation values around the x, y, and z axes respectively. In 3D, if a single angle is provided, it is used as minimum value for all axes.
+        :param float | tuple[float, ...] angle_max: the maximum rotation angle(s) for the Gaussian kernel in radians. Follows the same format as ``angle_min``.
+        :param int num_channels: number of images channels. Defaults to 1.
+        :param torch.Generator rng: PyTorch random number generator for reproducibility. If ``None``, a torch.Generator will be created on the specified device.
+        :param str device: the device to create the tensors on. Defaults to "cpu".
+        :param type dtype: the data type of the generated tensors. Defaults to torch.float32.
+        """
         
         dim = len(psf_size)
         if dim not in {1, 2, 3}:
