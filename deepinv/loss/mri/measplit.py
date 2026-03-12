@@ -14,7 +14,6 @@ from deepinv.models.dynamic import TimeAveragingNet
 from deepinv.utils.mixins import TimeMixin
 from deepinv.models.base import Reconstructor
 from deepinv.loss.measplit import SplittingLoss
-from deepinv.utils.decorators import _deprecated_alias
 
 
 class WeightedSplittingLoss(SplittingLoss):
@@ -382,7 +381,6 @@ class Phase2PhaseLoss(SplittingLoss):
 
     """
 
-    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
         img_size: tuple[int],
@@ -570,7 +568,6 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
 
     """
 
-    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
         img_size: tuple[int],
