@@ -1,26 +1,31 @@
 from __future__ import annotations
-import array_api_compat.torch as torch
-import parallelproj
-from array_api_compat import device as to_device
-from typing import TYPE_CHECKING, Union
 from .forward import LinearPhysics
-import array_api_compat.numpy as np
+from .noise import PoissonNoise
+import torch
 
-if TYPE_CHECKING:
-    import cupy as cp
-    Array = Union[np.ndarray, cp.ndarray]  # Used for type checking
-else:
-    Array = np.ndarray  # Default at runtime
 
 class PET(LinearPhysics):
     r"""
     Non time-of-flight Positron emission tomography (PET) physics model.
 
-    This operator relies on the `parallelproj` library :cite:t:`schramm2024parallelproj`.
+    This operator relies on the `parallelproj` library :footcite:t:`schramm2024parallelproj`.
 
     The forward model is defined as
 
     .. math::
+
+        y \sim \gamma \mathcal{P}(\frac{\text{diag}(c)PGx + s}{\gamma})
+
+    where :math:`P \in \mathbb{R}_{+}^{m \times n}` is the projection operator,
+    :math:`G \in \mathbb{R}_{+}^{m \times n}` is a blurring operator, :math:`x\in\mathbb{R}_{+}^{n}`
+    is the emission image, :math:`s \in \mathbb{R}_{+}^{m}` is a bias term related to scatter,
+    :math:`\mathcal{P}` denotes Poisson noise with gain :math:`\gamma`,
+    :math:`c=\exp(-P\mu)\in \mathbb{R}_{+}^{m}` is an (optional) attenuation term
+    with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained through an auxiliary CT scan).
+
+    The operator relies on parameters `scatter` and `attenuation` that can be updated through the
+    :meth:`physics.update <deepinv.physics.Physics.update>` method or when evaluating
+    :meth:`physics.update <deepinv.physics.Physics.A>` or :meth:`physics.update <deepinv.physics.LinearPhysics.A_adjoint>`.
 
     .. note::
 
@@ -32,45 +37,71 @@ class PET(LinearPhysics):
 
         Check the `parallelproj` documentation for more details: https://parallelproj.readthedocs.io/en/stable/.
 
+
     :param tuple img_shape: shape of the input 3D volumes, e.g. (D, H, W).
-    :param float radius: radius of the regular polygon PET scanner.
-    :param int num_sides: number of sides of the regular polygon PET scanner.
-    :param int num_lor_endpoints_per_side: number of LOR endpoints per side of the regular polygon PET scanner.
-    :param float lor_spacing: spacing between LOR endpoints in mm.
-    :param torch.Tensor ring_positions: positions of the rings in mm.
-    :param int symmetry_axis: symmetry axis of the scanner, e.g. 2 for z-axis.
-    :param int radial_trim: radial trim in mm, i.e. maximum distance of LORs from the center of the scanner
-    :param tuple voxel_size: voxel size in mm.
+    :param None scanner: Scanner configuration. If None, the default scanner from parallelproj is used.
+    :param int radial_trim: radial trim of rays on the sides of the volume to improve efficiency.
+    :param tuple voxel_size: voxel size in mm. Default is 4.0 mm.
     :param float fwhm_data_mm: full width at half maximum (FWHM) of the data in mm, used for the Gaussian resolution model.
+    :param float gain: gain factor for the Poisson noise model.
+    :param float normalize_counts: If `False` the measurements are integers, i.e. non normalized.
     :param torch.Tensor scatter: scatter sinogram, i.e. the expected number of scatter events in each LOR, with shape (num_lors,)
     :param torch.Tensor attenuation: attenuation map, i.e. the linear attenuation coefficient in each voxel, with shape (D, H, W)
     :param str | torch.device device: device to run the computations on, e.g. "cpu" or "cuda"
+
+    |sep|
+
+    :Example:
+
+    >>> from deepinv.physics import PET
+    >>> img_shape = (64, 64, 64)
+    >>> physics = PET(img_shape=img_shape)
+    >>> x = torch.randn((1, 1) + img_shape)
+    >>> scatter = torch.ones_like(physics.A_adjoint(x))
+    >>> attenuation = torch.rand((1, 1,) + img_shape)  # (B, 1, D, H, W)
+    >>> y = physics(x, attenuation=attenuation, scatter=scatter)
+    >>> y.shape
+
     """
-    def __init__(self, img_shape : tuple, radius : float,
-                 num_sides : int, num_lor_endpoints_per_side : int, lor_spacing : float,
-                 ring_positions : torch.Tensor, symmetry_axis : int, radial_trim : int,
-                 voxel_size: tuple, fwhm_data_mm : float,
-                 scatter: torch.Tensor | None = None, attenuation: torch.Tensor | None = None,
-                 normalize: bool = False,
-                 device : str | torch.device = "cpu", **kwargs):
+
+    def __init__(
+        self,
+        img_shape: tuple,
+        voxel_size: tuple = (2.5, 2.5, 2.5),
+        fwhm_data_mm: float | tuple = 4.0,
+        scanner: None = None,
+        radial_trim: int = 0,
+        scatter: torch.Tensor | None = None,
+        attenuation: torch.Tensor | None = None,
+        normalize: bool = False,
+        gain: float = 1.0,
+        normalize_counts: bool = False,
+        device: str | torch.device = "cpu",
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         if not isinstance(img_shape, tuple) or len(img_shape) != 3:
             raise ValueError("img_shape must be a tuple of length 3, e.g. (D, H, W)")
-        scanner = parallelproj.RegularPolygonPETScannerGeometry(
-            torch,
-            device,
-            radius=radius,
-            num_sides=num_sides,
-            num_lor_endpoints_per_side=num_lor_endpoints_per_side,
-            lor_spacing=lor_spacing,
-            ring_positions=ring_positions,
-            symmetry_axis=symmetry_axis,
-        )
+
+        try:
+            import parallelproj
+            from array_api_compat import torch as torch_compat
+        except ImportError:
+            raise ImportError(
+                "parallelproj package is required for PET physics model. "
+                "You can install it via conda: conda install -c conda-forge parallelproj. "
+                "Check the parallelproj documentation for more details: https://parallelproj.readthedocs.io/en/stable/."
+            )
+
+        if scanner is None:
+            scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
+                torch_compat, dev=device
+            )
 
         # setup the LOR descriptor that defines the sinogram
         lor_desc = parallelproj.RegularPolygonPETLORDescriptor(
             scanner,
-            radial_trim=radial_trim,
+            radial_trim=radial_trim,  # removes rays that don't touch the object
             sinogram_order=parallelproj.SinogramSpatialAxisOrder.RVP,
         )
 
@@ -78,13 +109,32 @@ class PET(LinearPhysics):
             lor_desc, img_shape=img_shape, voxel_size=voxel_size
         )
 
-        scatter = self.proj(torch.zeros((1, 1,) + img_shape, device=device)) if scatter is None else scatter.to(device)
-        attenuation = attenuation if attenuation is not None else torch.zeros((1, 1) + img_shape, device=device)
+        scatter = (
+            self.proj(
+                torch.zeros(
+                    (
+                        1,
+                        1,
+                    )
+                    + img_shape,
+                    device=device,
+                )
+            )
+            if scatter is None
+            else scatter.to(device)
+        )
+        attenuation = (
+            attenuation
+            if attenuation is not None
+            else torch.zeros((1, 1) + img_shape, device=device)
+        )
 
         self.res_model = parallelproj.GaussianFilterOperator(
             self.proj.in_shape, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
         )
-        self.pet_lin_op = parallelproj.CompositeLinearOperator((self.proj, self.res_model))
+        self.pet_lin_op = parallelproj.CompositeLinearOperator(
+            (self.proj, self.res_model)
+        )
 
         self.normalize = normalize
         self.norm = 1
@@ -92,10 +142,17 @@ class PET(LinearPhysics):
         self.register_buffer("scatter", scatter)
         self.register_buffer("attenuation", attenuation)
         self.update_parameters(scatter=scatter, attenuation=attenuation)
+        self.noise_model = PoissonNoise(gain=gain, normalize=normalize_counts)
         self.to(device)
 
-    def A(self, x : torch.Tensor, add_scatter : bool = False, scatter : torch.Tensor | None =None,
-          attenuation : torch.Tensor | None =None, **kwargs) -> torch.Tensor:
+    def A(
+        self,
+        x: torch.Tensor,
+        add_scatter: bool = False,
+        scatter: torch.Tensor | None = None,
+        attenuation: torch.Tensor | None = None,
+        **kwargs,
+    ) -> torch.Tensor:
         self.update_parameters(attenuation=attenuation, scatter=scatter)
         out = LinearSingleChannelOperator.apply(x, self.pet_lin_op) * self.att_sino
         out /= self.norm
@@ -103,27 +160,41 @@ class PET(LinearPhysics):
             out = out + self.scatter
         return out
 
-    def A_adjoint(self, y : torch.Tensor, attenuation=None, scatter=None,
-                  **kwargs) -> torch.Tensor:
+    def A_adjoint(
+        self, y: torch.Tensor, attenuation=None, scatter=None, **kwargs
+    ) -> torch.Tensor:
         self.update_parameters(attenuation=attenuation, scatter=scatter)
-        return AdjointLinearSingleChannelOperator.apply(y * self.att_sino, self.pet_lin_op) / self.norm
+        return (
+            AdjointLinearSingleChannelOperator.apply(y * self.att_sino, self.pet_lin_op)
+            / self.norm
+        )
 
-    def forward(self, x: torch.Tensor, attenuation=None, scatter=None, **kwargs) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, attenuation=None, scatter=None, **kwargs
+    ) -> torch.Tensor:
         self.update_parameters(attenuation=attenuation, scatter=scatter)
         return self.noise_model(self.A(x, **kwargs, add_scater=True))
 
-    def update_parameters(self, attenuation: torch.Tensor | None = None,
-                          scatter: torch.Tensor | None = None, **kwargs):
+    def update_parameters(
+        self,
+        attenuation: torch.Tensor | None = None,
+        scatter: torch.Tensor | None = None,
+        **kwargs,
+    ):
         if attenuation is not None:
             self.attenuation = attenuation
             proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
             self.att_sino = torch.exp(-proj_att)
             if self.normalize:
                 self.norm = 1
-                self.norm = self.compute_norm(torch.ones_like(attenuation), squared=False)
+                self.norm = self.compute_norm(
+                    torch.ones_like(attenuation), squared=False
+                )
         if scatter is not None:
             self.scatter = scatter
 
+
+# def get_scanner(name=):
 
 
 class LinearSingleChannelOperator(torch.autograd.Function):
@@ -151,14 +222,13 @@ class LinearSingleChannelOperator(torch.autograd.Function):
         torch.Tensor
             mini batch of 3D images with dimension (batch_size, operator.out_shape)
         """
-
         # https://pytorch.org/docs/stable/notes/extending.html#how-to-use
         ctx.set_materialize_grads(False)
         ctx.operator = operator
 
         batch_size = x.shape[0]
         y = torch.zeros(
-            (batch_size,) + operator.out_shape, dtype=x.dtype, device=to_device(x)
+            (batch_size,) + operator.out_shape, dtype=x.dtype, device=x.device
         )
 
         # loop over all samples in the batch and apply linear operator
@@ -184,7 +254,6 @@ class LinearSingleChannelOperator(torch.autograd.Function):
         torch.Tensor, None
             mini batch of 3D images with dimension (batch_size, 1, opertor.in_shape)
         """
-
         # For details on how to implement the backward pass, see
         # https://pytorch.org/docs/stable/notes/extending.html#how-to-use
 
@@ -199,7 +268,7 @@ class LinearSingleChannelOperator(torch.autograd.Function):
             x = torch.zeros(
                 (batch_size, 1) + operator.in_shape,
                 dtype=grad_output.dtype,
-                device=to_device(grad_output),
+                device=grad_output.device,
             )
 
             # loop over all samples in the batch and apply linear operator
@@ -250,7 +319,7 @@ class AdjointLinearSingleChannelOperator(torch.autograd.Function):
 
         batch_size = x.shape[0]
         y = torch.zeros(
-            (batch_size, 1) + operator.in_shape, dtype=x.dtype, device=to_device(x)
+            (batch_size, 1) + operator.in_shape, dtype=x.dtype, device=x.device
         )
 
         # loop over all samples in the batch and apply linear operator
@@ -290,7 +359,7 @@ class AdjointLinearSingleChannelOperator(torch.autograd.Function):
             x = torch.zeros(
                 (batch_size,) + operator.out_shape,
                 dtype=grad_output.dtype,
-                device=to_device(grad_output),
+                device=grad_output.device,
             )
 
             # loop over all samples in the batch and apply linear operator

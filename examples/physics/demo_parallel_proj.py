@@ -4,10 +4,10 @@ Positron emission tomography (PET) with parallelproj
 
 
 """
+
 import deepinv as dinv
 from deepinv.physics import PET
 import torch
-
 
 # %%
 # Define a phantom and attenuation map
@@ -16,6 +16,7 @@ import torch
 # We define a 3D PET phantom with an outer elliptical cylinder, an inner cylindrical region, and two pairs of spheres.
 # The attenuation map is defined as a constant value in the outer cylinder and a lower value in the inner cylinder.
 # The phantom is oversampled by a factor of 4 in each dimension and then downsampled by averaging to reduce aliasing artifacts.
+
 
 def pet_phantom(
     in_shape: tuple[int, int, int],
@@ -84,36 +85,24 @@ def pet_phantom(
 
         for z_offset in [c2, 0.45 * c2]:
 
-            sp_mask = (
-                ((x - c0) / r_sp[0]) ** 2
-                + ((y - 1.4 * c1) / r_sp[1]) ** 2
-                + ((z - z_offset) / r_sp[2]) ** 2
-                <= 1
-            )
+            sp_mask = ((x - c0) / r_sp[0]) ** 2 + ((y - 1.4 * c1) / r_sp[1]) ** 2 + (
+                (z - z_offset) / r_sp[2]
+            ) ** 2 <= 1
             x_em[sp_mask] = 2.5
 
-            sp_mask2 = (
-                ((x - 1.3 * c0) / r_sp[0]) ** 2
-                + ((y - c1) / r_sp[1]) ** 2
-                + ((z - z_offset) / r_sp[2]) ** 2
-                <= 1
-            )
+            sp_mask2 = ((x - 1.3 * c0) / r_sp[0]) ** 2 + ((y - c1) / r_sp[1]) ** 2 + (
+                (z - z_offset) / r_sp[2]
+            ) ** 2 <= 1
             x_em[sp_mask2] = 0.25
 
-            sp_mask = (
-                ((x - c0) / r_sp2[0]) ** 2
-                + ((y - 0.6 * c1) / r_sp2[1]) ** 2
-                + ((z - z_offset) / r_sp2[2]) ** 2
-                <= 1
-            )
+            sp_mask = ((x - c0) / r_sp2[0]) ** 2 + ((y - 0.6 * c1) / r_sp2[1]) ** 2 + (
+                (z - z_offset) / r_sp2[2]
+            ) ** 2 <= 1
             x_em[sp_mask] = 2.5
 
-            sp_mask2 = (
-                ((x - 0.7 * c0) / r_sp2[0]) ** 2
-                + ((y - c1) / r_sp2[1]) ** 2
-                + ((z - z_offset) / r_sp2[2]) ** 2
-                <= 1
-            )
+            sp_mask2 = ((x - 0.7 * c0) / r_sp2[0]) ** 2 + ((y - c1) / r_sp2[1]) ** 2 + (
+                (z - z_offset) / r_sp2[2]
+            ) ** 2 <= 1
             x_em[sp_mask2] = 0.25
 
     # downsample by averaging
@@ -148,25 +137,8 @@ def pet_phantom(
 # three rings.
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-num_rings = 17
-radius = 300.0
-num_sides = 36
-num_lor_endpoints_per_side = 12
-lor_spacing = 4.0
-fmw_data_mm = 4.0
-ring_positions = torch.linspace(
-    -5 * (num_rings - 1) / 2, 5 * (num_rings - 1) / 2, num_rings
-)
-symmetry_axis = 2
-radial_trim = 40
-img_shape = (161, 161, 2 * num_rings - 1)
-voxel_size = (2.5, 2.5, 2.5)
-
-physics = PET(device=device, img_shape=img_shape, radius=radius, radial_trim=radial_trim,
-              num_sides=num_sides, num_lor_endpoints_per_side=num_lor_endpoints_per_side,
-              lor_spacing=lor_spacing, ring_positions=ring_positions, symmetry_axis=symmetry_axis,
-              voxel_size=voxel_size, fwhm_data_mm=fmw_data_mm, normalize=True,
-              noise_model=dinv.physics.PoissonNoise(gain=10.))
+img_shape = (161, 161, 33)
+physics = PET(device=device, img_shape=img_shape, normalize=True, gain=0.01)
 
 # %%
 # Forward projection and backprojection
@@ -174,25 +146,35 @@ physics = PET(device=device, img_shape=img_shape, radius=radius, radial_trim=rad
 # We forward project the phantom and then backproject the data to visualize the sensitivity map of the scanner.
 # The sensitivity map is defined as the back-projection of a sinogram of ones, which corresponds to the number of LORs intersecting each voxel.
 
-
 x, attenuation = pet_phantom(img_shape, device=device)
-scatter = torch.ones_like(physics.A(x)) * .1
-
-y = physics(x, attenuation=attenuation, scatter=scatter)
+scatter = torch.ones_like(physics.A(x)) * 0.1
+physics.update(attenuation=attenuation, scatter=scatter)
+y = physics(x)
 x_adj = physics.A_dagger(y)
-
 sensitivities = physics.A_adjoint(torch.ones_like(y))
 
 print(f"Norm operator: {physics.compute_norm(x):.2f}")
-
-dinv.utils.plot([y[..., 3].unsqueeze(0), x[...,15], attenuation[...,15],
-                 sensitivities[..., 15], x_adj[..., 15]],
-                titles=["measuremnets", "Emission image",
-                        "Attenuation image", "sensitivities", "Backprojection of the data"],)
+dinv.utils.plot(
+    [
+        y[..., 3].unsqueeze(0),
+        x[..., 15],
+        attenuation[..., 15],
+        sensitivities[..., 15],
+        x_adj[..., 15],
+    ],
+    titles=[
+        "measurements",
+        "Emission image",
+        "Attenuation image",
+        "sensitivities",
+        "Backprojection of the data",
+    ],
+)
 
 # %%
 # Visualize the scanner geometry and image FOV
 # --------------------------------------------
+
 
 class Denoiser3D(dinv.models.Denoiser):
     def __init__(self, denoiser):
@@ -208,10 +190,26 @@ class Denoiser3D(dinv.models.Denoiser):
         x = x.reshape(B, W, C, D, H).permute(0, 2, 3, 4, 1)
         return x
 
+
 denoiser = Denoiser3D(dinv.models.DRUNet(in_channels=1, out_channels=1, device=device))
 
-DPIR = dinv.optim.DPIR(sigma=0.08,denoiser=denoiser)
+data_fidelity = dinv.optim.PoissonLikelihood(
+    bkg=physics.scatter * physics.noise_model.gain,
+    gain=physics.noise_model.gain,
+    denormalize=True,
+)
+prior = dinv.optim.PnP(denoiser=denoiser)
+stepsize = 1.0
+x_pnp = torch.ones_like(x)
+gain = physics.noise_model.gain
+with torch.no_grad():
+    for i in range(50):
+        # grad_hand =  physics.A_adjoint((1 - (y / gain) / physics.A(x_pnp / gain, add_scatter=True)))
+        grad = data_fidelity.grad(x=x_pnp, y=y, physics=physics) / gain
+        x_pnp = x_pnp - stepsize * (x_pnp + 1e-9) / (sensitivities) * grad
+        x_pnp = x_pnp * 0.9 + 0.1 * prior.prox(x_pnp, sigma_denoiser=0.03)
+        x_pnp = torch.clamp(x_pnp, min=0)
 
-x_dpir = DPIR(y, physics)
-
-dinv.utils.plot([x_dpir[..., 15], x[..., 15]], titles=["DPIR reconstruction", "Ground truth"])
+dinv.utils.plot(
+    [x_pnp[..., 15], x[..., 15]], titles=["DPIR reconstruction", "Ground truth"]
+)
