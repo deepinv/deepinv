@@ -4,9 +4,11 @@ on:
   push:
     branches:
     - main
+    - project6-sirf-wrapper-draft
   pull_request:
     branches:
     - main
+  workflow_dispatch:
 
 jobs:
   lint:

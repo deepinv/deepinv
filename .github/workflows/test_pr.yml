@@ -1,9 +1,13 @@
 name: Test PRs
 
 on:
+  push:
+    branches:
+    - project6-sirf-wrapper-draft
   pull_request:
     branches:
     - main
+  workflow_dispatch:
 
 # Cancel in-progress runs when pushing a new commit on the PR
 concurrency:
