@@ -1,3 +1,5 @@
+import math
+
 import pytest
 import torch
 from torch.utils.data import DataLoader
@@ -1209,3 +1211,32 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
             )
 
     torch.use_deterministic_algorithms(prev_deterministic)
+
+
+def test_sirt(device):
+    # Tests that the SIRT algorithm converges to the least-squares solution for a linear inverse problem.
+
+    test_sample = torch.ones((1, 1, 16, 16), device=device)
+    # Use a simple tomography geometry
+    physics = dinv.physics.Tomography(
+        angles=180,
+        img_width=test_sample.shape[-1],
+        normalize=True,
+    )
+
+    y = physics(test_sample)
+
+    # SIRT algorithm
+    sirt = dinv.optim.SIRT(
+        data_fidelity=L2(),
+        max_iter=500,
+        crit_conv="residual",
+        thres_conv=1e-5,
+        verbose=False,
+        early_stop=True,
+    )
+
+    x_sirt = sirt(y, physics)
+
+    assert sirt.has_converged
+    assert x_sirt is not None

@@ -32,7 +32,7 @@ class SIRTIteration(OptimIterator):
         super().__init__(**kwargs)
         self.register_buffer("_cached_row_sum", None)
         self.register_buffer("_cached_col_sum", None)
-        self.register_buffer("_sinogram_ptr", None)
+        self._sinogram_ptr = None
 
     def _get_normalizers(
         self, x: Tensor, y: Tensor, physics: LinearPhysics, eps: float
