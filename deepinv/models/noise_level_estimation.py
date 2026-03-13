@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
 
-from deepinv.models.utils import patchify
-
+from deepinv.utils.mixins import TiledMixin2d
 
 class WaveletNoiseEstimator(nn.Module):
     r"""
@@ -85,9 +84,9 @@ class WaveletNoiseEstimator(nn.Module):
         return self.estimate_noise(x)
 
 
-class PatchCovarianceNoiseEstimator(nn.Module):
+class PatchCovarianceNoiseEstimator(TiledMixin2d, nn.Module):
     r"""
-    Pach Covariance Gaussian noise level estimator.
+    Patch Covariance Gaussian noise level estimator.
 
     This method was initially proposed in :footcite:t:`chen2015efficient`. Given a noisy image :math:`y = x + n` where
     :math:`n \sim \mathcal{N}(0, \sigma^2)`, this estimator computes an estimate of :math:`\sigma` based on the
@@ -117,16 +116,18 @@ class PatchCovarianceNoiseEstimator(nn.Module):
         super(PatchCovarianceNoiseEstimator, self).__init__()
 
     @staticmethod
-    def estimate_noise(x: torch.Tensor, pch_size=8) -> torch.Tensor:
+    def estimate_noise(x: torch.Tensor, patch_size: int | tuple[int, int] = 8, stride: int | tuple[int, int] = 3) -> torch.Tensor:
         """
         Estimates noise level in image im.
 
         :param torch.Tensor x: input image
-        :param (int, int) pch_size: patch size
+        :param (int, int) patch_size: patch size
         :return: (:class:`torch.Tensor`) estimated noise level
         """
         # Convert image to patches
-        pch = patchify(x, pch_size, stride=3)  # C x pch_size x pch_size x num_pch
+        processor = TiledMixin2d(patch_size=patch_size, stride=stride, pad_if_needed=True)
+        
+        pch = processor.image_to_patches(x)  # B x C x n_rows x n_cols x patch_size x patch_size
         B, num_pch = pch.shape[0], pch.shape[-1]
         pch = pch.reshape(B, -1, num_pch)  # d x num_pch matrix
         d = pch.shape[1]

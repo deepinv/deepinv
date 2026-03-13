@@ -31,10 +31,9 @@ class PatchDataset(TiledMixin2d, ImageDataset):
         self.transform = transform
         self.shape = shape
         all_patches = self.image_to_patches(imgs)
-        B, C, pH, pW, N = all_patches.shape
+        from einops import rearrange
         # Reshape to (B * num_pch, C, patch_size, patch_size)
-        # permute so patch index comes before spatial dims, then flatten batch & patch
-        self.all_patches = all_patches.permute(0, 4, 1, 2, 3).reshape(B * N, C, pH, pW)
+        self.all_patches = rearrange(all_patches, "B C n_rows n_cols pH pW -> (B n_rows n_cols) C pH pW")
 
     def __len__(self):
         return self.all_patches.shape[0]
