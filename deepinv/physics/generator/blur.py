@@ -37,7 +37,7 @@ class PSFGenerator(PhysicsGenerator):
 class GaussianBlurGenerator(PSFGenerator):
     def __init__(
         self,
-        psf_size: tuple[int, ...] = (31, 31),
+        psf_size: tuple[int, ...],
         sigma_min: float | tuple[float, ...] = 0.5,
         sigma_max: float | tuple[float, ...] = 5.0,
         isotropic: bool = True,
@@ -77,25 +77,20 @@ class GaussianBlurGenerator(PSFGenerator):
             sigma_max = sigma_max * dim
         
         else:
-            if isotropic and (len(set(sigma_min)) != 1 or len(set(sigma_max)) != 1):
-                raise ValueError("For isotropic kernels, sigma_min and sigma_max should have the same value for all dimensions. Either provide a single value or ensure all values are the same. Got sigma_min = {sigma_min} and sigma_max = {sigma_max}.")
+            if dim == 1:
+                raise ValueError(f"For 1D kernels, sigma_min and sigma_max should be single values. Got sigma_min = {sigma_min} and sigma_max = {sigma_max}.")
             
             if len(sigma_min) != len(sigma_max):
                 raise ValueError(f"sigma_min and sigma_max should have the same length. Got {len(sigma_min)} and {len(sigma_max)}.")
             
             if len(sigma_min) != dim or len(sigma_max) != dim:
                 raise ValueError(f"Length of sigma_min and sigma_max should be either 1 or {dim}.")
-        
-        if dim == 3:
-            if isinstance(angle_min, (int, float)):
-                angle_min = (angle_min, ) * 3
-            if isinstance(angle_max, (int, float)):
-                angle_max = (angle_max, ) * 3
-        
-            if len(angle_min) != 3 or len(angle_max) != 3:
-                raise ValueError(f"For 3D kernels, angle_min and angle_max should have three values corresponding to rotations around x, y, and z axes. Got angle_min = {angle_min} and angle_max = {angle_max}.")
-
-        elif dim == 2:
+          
+        for smin, smax in zip(sigma_min, sigma_max):
+            if smin > smax:
+                raise ValueError(f"Each component of sigma_min should be less than or equal to the corresponding component of sigma_max. Got sigma_min = {sigma_min} and sigma_max = {sigma_max}.")
+            
+        if dim == 2:
             if isinstance(angle_min, (tuple, list)):
                 if len(angle_min) != 1:
                     raise ValueError(f"For 2D kernels, angle_min should be a single value or a tuple/list of length 1. Got angle_min = {angle_min}.")
@@ -105,9 +100,25 @@ class GaussianBlurGenerator(PSFGenerator):
                 if len(angle_max) != 1:
                     raise ValueError(f"For 2D kernels, angle_max should be a single value or a tuple/list of length 1. Got angle_max = {angle_max}.")
                 angle_max = angle_max[0]
+                
+            if angle_min > angle_max:
+                raise ValueError(f"angle_min should be less than or equal to angle_max. Got angle_min = {angle_min} and angle_max = {angle_max}.")
 
+        elif dim == 3:
+            if isinstance(angle_min, (int, float)):
+                angle_min = (angle_min, ) * 3
+            if isinstance(angle_max, (int, float)):
+                angle_max = (angle_max, ) * 3
+        
+            if len(angle_min) != 3 or len(angle_max) != 3:
+                raise ValueError(f"For 3D kernels, angle_min and angle_max should have three values corresponding to rotations around x, y, and z axes. Got angle_min = {angle_min} and angle_max = {angle_max}.")
+            
+            for amin, amax in zip(angle_min, angle_max):
+                if amin > amax:
+                    raise ValueError(f"Each component of angle_min should be less than or equal to the corresponding component of angle_max. Got angle_min = {angle_min} and angle_max = {angle_max}.")
 
         kwargs = {
+            "dim": dim,
             "psf_size": psf_size,
             "num_channels": num_channels,
             "isotropic": isotropic,
@@ -153,7 +164,7 @@ class GaussianBlurGenerator(PSFGenerator):
                     for amin, amax in zip(self.angle_min, self.angle_max)
                 ], dim=-1) # Shape: (batch_size, 3)
         
-        filters = gaussian_blur_nd(self.psf_size, sigma, angle, device=self.device)
+        filters = gaussian_blur_nd(self.psf_size, sigma, angle, batch_size=batch_size, device=self.device)
         return {"filter": filters[:, None].expand(-1, self.num_channels, *(-1,) * dim)}
 
 

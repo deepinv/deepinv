@@ -67,8 +67,9 @@ def gaussian_blur_nd(
             angles = torch.tensor([[angle, 0.0, 0.0]] * B, device=device, dtype=dtype) # Shape: (batch_size, 3)
         elif isinstance(angle, (list, tuple)) and len(angle) == 3:
             angles = torch.tensor([angle] * B, device=device, dtype=dtype) # Shape: (batch_size, 3)
-        elif isinstance(angle, torch.Tensor) and angle.dim() == 2 and angle.shape[1] == 3:
-            angles = angle # Assume shape (batch_size, 3)
+        elif isinstance(angle, torch.Tensor) and angle.dim() == 2 and angle.shape[1] == 3 and angle.shape[0] == B:
+            angles = angle  # Shape: (batch_size, 3)
+            # Check that angle is effectively of shape (batch_size, 3)
         else:
             raise ValueError(f"For 3D, angles must be a list of three angles (alpha, beta, gamma) or a tensor of shape (batch_size, 3). Got angle.shape = {angle.shape}.")
         
