@@ -195,7 +195,7 @@ class SKRock(BaseSampling):
         seed: None | int = None,
         x_init: None | Tensor = None,
         g_statistics: list[Callable] | Callable = lambda d: d["x"],
-    ) -> tuple[Tensor, Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""
         Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
 

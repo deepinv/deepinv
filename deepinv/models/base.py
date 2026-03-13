@@ -30,7 +30,7 @@ class Denoiser(torch.nn.Module):
         super().__init__()
         self.to(device)
 
-    def forward(self, x: Tensor, sigma: float | Tensor, **kwargs) -> Tensor:
+    def forward(self, x: Tensor, sigma: float | Tensor, **kwargs) -> torch.Tensor:
         r"""
         Applies denoiser :math:`\denoiser{x}{\sigma}`.
         The input `x` is expected to be with pixel values in `[0, 1]` range, up to random noise. The output is also expected to be in `[0, 1]` range.
@@ -53,7 +53,7 @@ class Denoiser(torch.nn.Module):
         dtype: torch.dtype = torch.float32,
         *args,
         **kwarg,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Convert various noise level types to the appropriate format for batch processing.
             If `sigma` is a single float or int, the same value will be used for each sample in the batch.

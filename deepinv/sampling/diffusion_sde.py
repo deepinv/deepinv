@@ -79,7 +79,7 @@ class BaseSDE(nn.Module):
 
     def discretize(
         self, x: Tensor, t: Tensor | float, *args, **kwargs
-    ) -> tuple[Tensor, Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""
         Discretize the SDE at the given time step.
 
@@ -88,13 +88,13 @@ class BaseSDE(nn.Module):
         :param \*args: additional arguments for the drift.
         :param \*\*kwargs: additional keyword arguments for the drift.
 
-        :return tuple[Tensor, Tensor]: discretized drift and diffusion.
+        :return tuple[torch.Tensor, torch.Tensor]: discretized drift and diffusion.
         """
         return self.drift(x, t, *args, **kwargs), self.diffusion(t)
 
     def sample_init(
         self, shape: list | tuple | torch.Size, rng: torch.Generator = None
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Sample from the end-time distribution of the forward diffusion.
 
@@ -201,7 +201,7 @@ class DiffusionSDE(BaseSDE):
         )
         self.minus_one_one = minus_one_one
 
-    def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
+    def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> torch.Tensor:
         r"""
         Approximating the score function :math:`\nabla \log p_t` by the denoiser.
 
@@ -222,7 +222,7 @@ class DiffusionSDE(BaseSDE):
     def sigma_t(
         self,
         t: Tensor | float,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         The :math:`\sigma(t)` of the condition distribution :math:`p(x_t \vert x_0) \sim \mathcal{N}(s(t)x_0, s(t)^2 \sigma_t^2 \mathrm{Id})`.
 
@@ -233,7 +233,7 @@ class DiffusionSDE(BaseSDE):
         """
         raise NotImplementedError
 
-    def scale_t(self, t: Tensor | float) -> Tensor:
+    def scale_t(self, t: Tensor | float) -> torch.Tensor:
         r"""
         The scale :math:`s(t)` of the condition distribution :math:`p(x_t \vert x_0) \sim \mathcal{N}(s(t)x_0, s(t)^2 \sigma_t^2 \mathrm{Id})`.
 
@@ -426,7 +426,7 @@ class EDMDiffusionSDE(DiffusionSDE):
             *kwargs,
         )
 
-    def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
+    def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> torch.Tensor:
         r"""
         Approximating the score function :math:`\nabla \log p_t` by the denoiser.
 
@@ -451,12 +451,12 @@ class EDMDiffusionSDE(DiffusionSDE):
 
     def _score_from_model_output(
         self, x: Tensor, model_output: Tensor, sigma: Tensor, scale: Tensor
-    ) -> Tensor:
+    ) -> torch.Tensor:
         denoised = scale * model_output
         score = (denoised - x.to(self.dtype)) / (scale * sigma).pow(2)
         return score
 
-    def sample_init(self, shape, rng: torch.Generator) -> Tensor:
+    def sample_init(self, shape, rng: torch.Generator) -> torch.Tensor:
         r"""
         Sample from the initial distribution of the reverse-time diffusion SDE, which is a Gaussian with zero mean and covariance matrix :math:` s(T)^2 \sigma(T)^2 \operatorname{Id}`.
 
@@ -683,7 +683,7 @@ class FlowMatching(EDMDiffusionSDE):
             **kwargs,
         )
 
-    def velocity(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
+    def velocity(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the velocity field of the flow matching process, which is defined as the drift of the backward SDE.
 
@@ -984,7 +984,7 @@ class PosteriorDiffusion(Reconstructor):
         t: Tensor | float,
         *args,
         **kwargs,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Approximating the conditional score :math:`\nabla_{x_t} \log p_t(x_t \vert y)`.
 

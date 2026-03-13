@@ -86,7 +86,7 @@ class BaseSDESolver(nn.Module):
         *args,
         add_noise: bool = True,
         **kwargs,
-    ) -> tuple[Tensor, int]:
+    ) -> tuple[torch.Tensor, int]:
         r"""
         Perform a single step with step size from time `t0` to time `t1`, with current state `x0`.
 
@@ -188,7 +188,7 @@ class BaseSDESolver(nn.Module):
         """
         self.rng.set_state(self.initial_random_state)
 
-    def randn_like(self, input: torch.Tensor, seed: int = None) -> Tensor:
+    def randn_like(self, input: torch.Tensor, seed: int = None) -> torch.Tensor:
         r"""
         Equivalent to :func:`torch.randn_like` but supports a pseudorandom number generator argument.
 
@@ -231,7 +231,7 @@ class EulerSolver(BaseSDESolver):
 
     def step(
         self, sde, t0, t1, x0: Tensor, *args, add_noise: bool = True, **kwargs
-    ) -> tuple[Tensor, int]:
+    ) -> tuple[torch.Tensor, int]:
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5 if add_noise else 0.0
         drift, diffusion = sde.discretize(x0, t0, *args, **kwargs)
@@ -270,7 +270,7 @@ class HeunSolver(BaseSDESolver):
         *args,
         add_noise: bool = True,
         **kwargs,
-    ) -> tuple[Tensor, int]:
+    ) -> tuple[torch.Tensor, int]:
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5 if add_noise else 0.0
         drift_0, diffusion_0 = sde.discretize(x0, t0, *args, **kwargs)
