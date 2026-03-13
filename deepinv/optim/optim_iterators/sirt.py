@@ -21,7 +21,9 @@ class SIRTIteration(OptimIterator):
         \begin{equation*}
         x_{k+1} = x_k + \tau V A^{\top} W (y - A x_k)
         \end{equation*}
+
     where
+
     - :math:`\tau` is a stepsize parameter which should satisfy :math:`0 < \tau < 2`
     - :math:`W = \mathrm{diag}\left(\frac{1}{\sum_{i}a_{ij}}\right)`, a diagonal matrix where each element is the inverse of the row sums of :math:`A`,
     - :math:`V = \mathrm{diag}\left(\frac{1}{\sum_{j}a_{ij}}\right)`, a diagonal matrix where each element is the inverse of the column sums of :math:`A`.
