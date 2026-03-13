@@ -1,10 +1,11 @@
 from deepinv.datasets.base import ImageDataset
 from deepinv.utils.decorators import _deprecated_alias
 
-from deepinv.models.utils import patchify
+from deepinv.utils.mixins import TiledMixin2d
+from typing import Callable
 
 
-class PatchDataset(ImageDataset):
+class PatchDataset(TiledMixin2d, ImageDataset):
     r"""
     Builds the dataset of all patches from a tensor of images.
 
@@ -18,11 +19,18 @@ class PatchDataset(ImageDataset):
 
     @_deprecated_alias(transforms="transform")
     @_deprecated_alias(shapes="shape")
-    def __init__(self, imgs, patch_size=6, stride=1, transform=None, shape=(-1,)):
+    def __init__(
+        self,
+        imgs,
+        patch_size: int | tuple[int, int] = 6,
+        stride: int | tuple[int, int] = 1,
+        transform: Callable = None,
+        shape: tuple[int, ...] = (-1,),
+    ):
+        super().__init__(patch_size=patch_size, stride=stride, pad_if_needed=True)
         self.transform = transform
         self.shape = shape
-        # patchify returns (B, C, patch_size, patch_size, num_pch)
-        all_patches = patchify(imgs, patch_size, stride)
+        all_patches = self.image_to_patches(imgs)
         B, C, pH, pW, N = all_patches.shape
         # Reshape to (B * num_pch, C, patch_size, patch_size)
         # permute so patch index comes before spatial dims, then flatten batch & patch
