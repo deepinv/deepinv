@@ -7,10 +7,6 @@ from typing import Any
 from numpy import ndarray
 from tqdm import tqdm
 from deepinv.utils.compat import zip_strict
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from deepinv.sampling.diffusion_sde import BaseSDE
 
 
 class SDEOutput(dict):
@@ -77,16 +73,7 @@ class BaseSDESolver(nn.Module):
             self.initial_random_state = rng.get_state()
             self.timesteps = self.timesteps.to(rng.device)
 
-    def step(
-        self,
-        sde: BaseSDE,
-        t0: float,
-        t1: float,
-        x0: Tensor,
-        *args,
-        add_noise: bool = True,
-        **kwargs,
-    ) -> tuple[Tensor, int]:
+    def step(self, sde, t0: float, t1: float, x0: Tensor, *args, **kwargs) -> Tensor:
         r"""
         Perform a single step with step size from time `t0` to time `t1`, with current state `x0`.
 
@@ -94,23 +81,22 @@ class BaseSDESolver(nn.Module):
         :param float or torch.Tensor t0: Time at the start of the step, of size (,).
         :param float or torch.Tensor t1: Time at the end of the step, of size (,).
         :param torch.Tensor x0: Current state of the system, of size (batch_size, d).
-        :param bool add_noise: whether to add the stochastic noise term for this step.
+        :return: Updated state of the system after the step.
 
-        :return torch.Tensor, int: Updated state of the system after the step and number of function evaluations (NFE) performed during the step.
+        :rtype: torch.Tensor
         """
         raise NotImplementedError
 
     @torch.no_grad()
     def sample(
         self,
-        sde: BaseSDE,
+        sde,
         x_init: Tensor,
         seed: int = None,
         *args,
         timesteps: Tensor | ndarray = None,
         get_trajectory: bool = False,
         verbose: bool = False,
-        add_noise_at_last_step: bool = False,
         **kwargs,
     ) -> SDEOutput:
         r"""
@@ -125,7 +111,6 @@ class BaseSDESolver(nn.Module):
         :param torch.Tensor, numpy.ndarray, list timesteps: A sequence of time points at which to solve the SDE. If None, default timesteps will be used.
         :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False.
         :param bool verbose: whether to display a progress bar during the sampling process, optional. Default to False.
-        :param bool add_noise_at_last_step: whether to add noise at the last step of the integration, optional. Default to `False`.
         :param \*args: Variable length argument list to be passed to the step function.
         :param \*\*kwargs: Arbitrary keyword arguments to be passed to the step function.
 
@@ -143,17 +128,12 @@ class BaseSDESolver(nn.Module):
                 timesteps = torch.from_numpy(timesteps.copy())
             timesteps = timesteps.to(sde.device, sde.dtype)
 
-        n_steps = len(timesteps) - 1
-        for i, (t_cur, t_next) in tqdm(
-            enumerate(zip_strict(timesteps[:-1], timesteps[1:])),
-            total=n_steps,
+        for t_cur, t_next in tqdm(
+            zip_strict(timesteps[:-1], timesteps[1:]),
+            total=len(timesteps) - 1,
             disable=not verbose,
         ):
-            is_last_step = i == n_steps - 1
-            add_noise = add_noise_at_last_step or not is_last_step
-            x, cur_nfe = self.step(
-                sde, t_cur, t_next, x, *args, add_noise=add_noise, **kwargs
-            )
+            x, cur_nfe = self.step(sde, t_cur, t_next, x, *args, **kwargs)
             nfe += cur_nfe
             if get_trajectory:
                 trajectory.append(x.clone())
@@ -188,7 +168,7 @@ class BaseSDESolver(nn.Module):
         """
         self.rng.set_state(self.initial_random_state)
 
-    def randn_like(self, input: torch.Tensor, seed: int = None) -> Tensor:
+    def randn_like(self, input: torch.Tensor, seed: int = None):
         r"""
         Equivalent to :func:`torch.randn_like` but supports a pseudorandom number generator argument.
 
@@ -226,14 +206,12 @@ class EulerSolver(BaseSDESolver):
     :param torch.Generator rng: A random number generator for reproducibility.
     """
 
-    def __init__(self, timesteps: Tensor | ndarray, rng: torch.Generator = None):
+    def __init__(self, timesteps, rng: torch.Generator = None):
         super().__init__(timesteps, rng=rng)
 
-    def step(
-        self, sde, t0, t1, x0: Tensor, *args, add_noise: bool = True, **kwargs
-    ) -> tuple[Tensor, int]:
+    def step(self, sde, t0, t1, x0: Tensor, *args, **kwargs):
         dt = abs(t1 - t0)
-        dW = self.randn_like(x0) * dt**0.5 if add_noise else torch.zeros_like(x0)
+        dW = self.randn_like(x0) * dt**0.5
         drift, diffusion = sde.discretize(x0, t0, *args, **kwargs)
         return x0 + drift * dt + diffusion * dW, 1
 
@@ -256,23 +234,14 @@ class HeunSolver(BaseSDESolver):
 
     def __init__(
         self,
-        timesteps: Tensor | ndarray,
+        timesteps,
         rng: torch.Generator = None,
     ):
         super().__init__(timesteps, rng=rng)
 
-    def step(
-        self,
-        sde: BaseSDE,
-        t0: float,
-        t1: float,
-        x0: Tensor,
-        *args,
-        add_noise: bool = True,
-        **kwargs,
-    ) -> tuple[Tensor, int]:
+    def step(self, sde, t0, t1, x0: Tensor, *args, **kwargs):
         dt = abs(t1 - t0)
-        dW = self.randn_like(x0) * dt**0.5 if add_noise else torch.zeros_like(x0)
+        dW = self.randn_like(x0) * dt**0.5
         drift_0, diffusion_0 = sde.discretize(x0, t0, *args, **kwargs)
         x_euler = x0 + drift_0 * dt + diffusion_0 * dW
         drift_1, diffusion_1 = sde.discretize(x_euler, t1, *args, **kwargs)
