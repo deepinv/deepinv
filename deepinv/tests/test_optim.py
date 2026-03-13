@@ -1209,3 +1209,72 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
             )
 
     torch.use_deterministic_algorithms(prev_deterministic)
+
+
+def test_sirt(device):
+    # Tests that the SIRT algorithm converges to the least-squares solution for a linear inverse problem.
+
+    # 2D test
+    test_sample = torch.ones((1, 1, 16, 16)).to(device)
+    physics = dinv.physics.Tomography(
+        angles=180,
+        img_width=test_sample.shape[-1],
+        normalize=True,
+    )
+
+    y = physics(test_sample)
+
+    # SIRT algorithm
+    sirt = dinv.optim.SIRT(
+        data_fidelity=L2(),
+        max_iter=500,
+        crit_conv="residual",
+        thres_conv=1e-5,
+        verbose=False,
+        early_stop=True,
+    )
+
+    x_sirt = sirt(y, physics)
+
+    assert sirt.has_converged
+    assert x_sirt is not None
+
+    # Check that the change in physics is taken into account
+    x_sirt = sirt(y, physics)
+
+    physics_modified = dinv.physics.Tomography(
+        angles=120,
+        img_width=test_sample.shape[-1],
+        normalize=True,
+    )
+
+    y_modified = physics_modified(test_sample)
+    x_sirt_modified = sirt(y_modified, physics_modified)
+
+    assert sirt.has_converged
+    assert x_sirt_modified is not None
+
+    # 3D test with Astra
+    if device.type != "cpu":
+        test_sample = torch.ones((1, 1, 16, 16, 16)).to(device)
+        physics = dinv.physics.TomographyWithAstra(
+            img_size=(16, 16, 16),
+            angles=180,
+            angular_range=(0, 360),
+            n_detector_pixels=16,
+            normalize=True,
+        )
+        y = physics(test_sample)
+        sirt = dinv.optim.SIRT(
+            data_fidelity=L2(),
+            max_iter=500,
+            crit_conv="residual",
+            thres_conv=1e-5,
+            verbose=False,
+            early_stop=True,
+        )
+
+        x_sirt = sirt(y, physics)
+
+        assert sirt.has_converged
+        assert x_sirt is not None
