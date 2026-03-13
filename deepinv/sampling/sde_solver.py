@@ -233,7 +233,7 @@ class EulerSolver(BaseSDESolver):
         self, sde, t0, t1, x0: Tensor, *args, add_noise: bool = True, **kwargs
     ) -> tuple[Tensor, int]:
         dt = abs(t1 - t0)
-        dW = self.randn_like(x0) * dt**0.5 if add_noise else torch.zeros_like(x0)
+        dW = self.randn_like(x0) * dt**0.5 if add_noise else 0.0
         drift, diffusion = sde.discretize(x0, t0, *args, **kwargs)
         return x0 + drift * dt + diffusion * dW, 1
 
@@ -272,7 +272,7 @@ class HeunSolver(BaseSDESolver):
         **kwargs,
     ) -> tuple[Tensor, int]:
         dt = abs(t1 - t0)
-        dW = self.randn_like(x0) * dt**0.5 if add_noise else torch.zeros_like(x0)
+        dW = self.randn_like(x0) * dt**0.5 if add_noise else 0.0
         drift_0, diffusion_0 = sde.discretize(x0, t0, *args, **kwargs)
         x_euler = x0 + drift_0 * dt + diffusion_0 * dW
         drift_1, diffusion_1 = sde.discretize(x_euler, t1, *args, **kwargs)
