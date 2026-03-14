@@ -9,12 +9,12 @@ class PatchDataset(TiledMixin2d, ImageDataset):
     r"""
     Builds the dataset of all patches from a tensor of images.
 
-    :param torch.Tensor imgs: Tensor of images, size: batch size x channels x height x width
-    :param int patch_size: size of patches
-    :param int stride: stride between patches
-    :param Callable transform: data augmentation. callable object, None for no augmentation.
-    :param tuple shape: shape of the returned tensor. None returns C x patch_size x patch_size.
-            The default shape is (-1,).
+    :param torch.Tensor imgs: Tensor of images of shape `(B, C, H, W)`.
+    :param int | tuple[int, int] patch_size: size of patches to extract. If `int`, the same value is used for height and width.
+    :param int | tuple[int, int] stride: stride between patches. If `int`, the same value is used for height and width.
+    :param Callable transform: data augmentation. A callable object, set to `None` for no augmentation.
+    :param tuple shape: shape of the returned tensor. If `None`, returns `(C, h, w)` where `h` and `w` are height and width of the patch.
+            The default shape is `(-1,)` (flatten).
     """
 
     @_deprecated_alias(transforms="transform")
@@ -32,8 +32,11 @@ class PatchDataset(TiledMixin2d, ImageDataset):
         self.shape = shape
         all_patches = self.image_to_patches(imgs)
         from einops import rearrange
+
         # Reshape to (B * num_pch, C, patch_size, patch_size)
-        self.all_patches = rearrange(all_patches, "B C n_rows n_cols pH pW -> (B n_rows n_cols) C pH pW")
+        self.all_patches = rearrange(
+            all_patches, "B C n_rows n_cols pH pW -> (B n_rows n_cols) C pH pW"
+        )
 
     def __len__(self):
         return self.all_patches.shape[0]

@@ -3,6 +3,7 @@ import torch.nn as nn
 
 from deepinv.utils.mixins import TiledMixin2d
 
+
 class WaveletNoiseEstimator(nn.Module):
     r"""
     Wavelet Gaussian noise level estimator.
@@ -84,7 +85,7 @@ class WaveletNoiseEstimator(nn.Module):
         return self.estimate_noise(x)
 
 
-class PatchCovarianceNoiseEstimator(TiledMixin2d, nn.Module):
+class PatchCovarianceNoiseEstimator(nn.Module):
     r"""
     Patch Covariance Gaussian noise level estimator.
 
@@ -116,18 +117,26 @@ class PatchCovarianceNoiseEstimator(TiledMixin2d, nn.Module):
         super(PatchCovarianceNoiseEstimator, self).__init__()
 
     @staticmethod
-    def estimate_noise(x: torch.Tensor, patch_size: int | tuple[int, int] = 8, stride: int | tuple[int, int] = 3) -> torch.Tensor:
+    def estimate_noise(
+        x: torch.Tensor,
+        patch_size: int | tuple[int, int] = 8,
+        stride: int | tuple[int, int] = 3,
+    ) -> torch.Tensor:
         """
-        Estimates noise level in image im.
+        Estimates noise level from the image by computing the covariance of image patches.
 
         :param torch.Tensor x: input image
         :param (int, int) patch_size: patch size
         :return: (:class:`torch.Tensor`) estimated noise level
         """
         # Convert image to patches
-        processor = TiledMixin2d(patch_size=patch_size, stride=stride, pad_if_needed=True)
-        
-        pch = processor.image_to_patches(x)  # B x C x n_rows x n_cols x patch_size x patch_size
+        processor = TiledMixin2d(
+            patch_size=patch_size, stride=stride, pad_if_needed=True
+        )
+
+        pch = processor.image_to_patches(
+            x
+        )  # B x C x n_rows x n_cols x patch_size x patch_size
         B, num_pch = pch.shape[0], pch.shape[-1]
         pch = pch.reshape(B, -1, num_pch)  # d x num_pch matrix
         d = pch.shape[1]
