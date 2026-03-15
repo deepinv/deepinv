@@ -13,6 +13,7 @@ from itertools import chain
 import os
 import io
 import contextlib
+from deepinv.utils.patch_extractor import image_to_patches
 
 
 def tensor2array(img):
@@ -71,54 +72,14 @@ def patchify(
     x: torch.Tensor,
     patch_size: int | tuple[int, int],
     stride: int | tuple[int, int] = 1,
+    pad_if_needed: bool = True,
 ) -> torch.Tensor:
     r"""
-    Patchifying images.
-
-    This function takes in a batch of images and extracts overlapping patches of specified size and stride,
-    returning them in a format suitable for processing by patch-based models.
-
-    :param torch.Tensor x: input image
-    :param int | tuple[int, int] patch_size: patch size `(h, w)`. If `int`, the same value is used for both dimensions.
-    :param int | tuple[int, int] stride: stride between patches. If `int`, the same value is used for both dimensions.
-    :return: (:class:`torch.Tensor`) patched image of shape `(B, C, h, w, num_pch)` where `num_pch` is the number of patches extracted from each image.
-
-    |sep|
-
-    :Examples:
-
-    >>> import deepinv as dinv
-    >>> x = dinv.utils.load_example('butterfly.png')
-    >>> patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
-    >>> print(f"Input shape: {x.shape}, patchified shape: {patches.shape}")
-    Input shape: torch.Size([1, 3, 256, 256]), patchified shape: torch.Size([1, 3, 8, 8, 3969])
-    >>> dinv.utils.plot(list(patches[0].permute(3, 0, 1, 2)[:16]), titles=[f"Patch {i} of {patches.shape[-1]}" for i in range(16)])  # doctest: +SKIP
-
-    .. plot::
-
-        import deepinv as dinv
-
-        x = dinv.utils.load_example('butterfly.png')
-        patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
-        dinv.utils.plot(list(patches[0].permute(3, 0, 1, 2)[:16]), titles=[f"Patch {i} of {patches.shape[-1]}" for i in range(16)])
-
+    Alias of :func:`deepinv.utils.image_to_patches`. Extracts overlapping 2D patches from images.
     """
-    B, C, H, W = x.shape
-    num_H = (H - patch_size) // stride + 1
-    num_W = (W - patch_size) // stride + 1
-    num_pch = num_H * num_W
-
-    # Use unfold to extract patches
-    patches = x.unfold(2, patch_size, stride).unfold(
-        3, patch_size, stride
-    )  # B x C x num_H x num_W x patch_size x patch_size
-
-    # Rearrange and reshape to match the desired output
-    patches = patches.permute(0, 1, 4, 5, 2, 3).reshape(
-        B, C, patch_size, patch_size, num_pch
+    return image_to_patches(
+        x, patch_size=patch_size, stride=stride, pad_if_needed=pad_if_needed
     )
-
-    return patches
 
 
 def test_onesplit(model, L, refield=32, sf=1):

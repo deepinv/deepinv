@@ -113,6 +113,20 @@ Demo Utils
     deepinv.utils.load_dataset
     deepinv.utils.load_degradation
 
+Tiling / Untiling (Patching and Unpatching)
+-------------------------------------------
+
+.. userguide:: tiling
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+    deepinv.utils.image_to_patches
+    deepinv.utils.patches_to_image
+    deepinv.utils.patchify
+
 Other
 -----
 

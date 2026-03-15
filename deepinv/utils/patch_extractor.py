@@ -159,7 +159,7 @@ def patchify(
     stride: int | tuple[int, int] | None = None,
     pad_if_needed: bool = True,
 ) -> torch.Tensor:
-    r"""Backward-compatible alias for :func:`image_to_patches`."""
+    """Alias of :func:`deepinv.utils.image_to_patches`. Extracts overlapping 2D patches from images."""
     return image_to_patches(
         image=image,
         patch_size=patch_size,

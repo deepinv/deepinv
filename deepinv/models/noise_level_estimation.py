@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from deepinv.utils.mixins import TiledMixin2d
+from deepinv.utils.patch_extractor import image_to_patches
 
 
 class WaveletNoiseEstimator(nn.Module):
@@ -130,14 +130,9 @@ class PatchCovarianceNoiseEstimator(nn.Module):
         :return: (:class:`torch.Tensor`) estimated noise level
         """
         # Convert image to patches
-        processor = TiledMixin2d(
-            patch_size=patch_size,
-            stride=stride,
-            pad_if_needed=False,  # No padding, as it can bias the noise estimation.
-        )
-        pch = processor.image_to_patches(
-            x
-        )  # B x C x n_rows x n_cols x patch_size x patch_size
+        pch = image_to_patches(
+            x, patch_size=patch_size, stride=stride, pad_if_needed=False
+        )  # no padding to avoid biasing the covariance estimation
         from einops import rearrange
 
         pch = rearrange(pch, "B C n_rows n_cols p1 p2 -> B (C p1 p2) (n_rows n_cols)")
