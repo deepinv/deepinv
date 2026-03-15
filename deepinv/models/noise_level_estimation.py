@@ -131,15 +131,18 @@ class PatchCovarianceNoiseEstimator(nn.Module):
         """
         # Convert image to patches
         processor = TiledMixin2d(
-            patch_size=patch_size, stride=stride, pad_if_needed=True
+            patch_size=patch_size,
+            stride=stride,
+            pad_if_needed=False,  # No padding, as it can bias the noise estimation.
         )
-
         pch = processor.image_to_patches(
             x
         )  # B x C x n_rows x n_cols x patch_size x patch_size
-        B, num_pch = pch.shape[0], pch.shape[-1]
-        pch = pch.reshape(B, -1, num_pch)  # d x num_pch matrix
-        d = pch.shape[1]
+        from einops import rearrange
+
+        pch = rearrange(pch, "B C n_rows n_cols p1 p2 -> B (C p1 p2) (n_rows n_cols)")
+
+        B, d, num_pch = pch.shape
 
         # Compute covariance matrix eigenvalues
         mu = pch.mean(dim=-1, keepdim=True)  # B x d x 1

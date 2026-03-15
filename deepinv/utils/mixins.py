@@ -6,9 +6,15 @@ import torch
 from torch import Tensor, zeros_like
 from torch.nn import Module
 from torchvision.transforms import CenterCrop, Resize
-import torch.nn.functional as F
 from deepinv.utils.decorators import _deprecated_argument
-from ._internal import _as_pair, _add_tuple
+from ._internal import _as_pair
+from ._tiling import (
+    _compute_compatible_img_size,
+    _compute_needed_pad,
+    _compute_num_patches,
+    _image_to_patches_impl,
+    _patches_to_image_impl,
+)
 
 
 class TimeMixin:
@@ -378,22 +384,12 @@ class TiledMixin2d:
         :param torch.Tensor image: Input image tensor of shape `(B, C, H, W)`.
         :return: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
         """
-        patch_size = self.patch_size
-        stride = self.stride
-
-        img_size = image.shape[-2:]
-
-        # Pad image if necessary for even patch extraction
-        if self.pad_if_needed:
-            pad_h, pad_w = self.get_needed_pad(img_size)
-            if pad_h > 0 or pad_w > 0:
-                image = F.pad(image, (0, pad_w, 0, pad_h), mode="constant", value=0)
-
-        # Extract patches using unfold
-        patches = image.unfold(2, patch_size[0], stride[0]).unfold(
-            3, patch_size[1], stride[1]
+        return _image_to_patches_impl(
+            image=image,
+            patch_size=self.patch_size,
+            stride=self.stride,
+            pad_if_needed=self.pad_if_needed,
         )
-        return patches.contiguous()
 
     def patches_to_image(
         self,
@@ -413,53 +409,12 @@ class TiledMixin2d:
 
         :return: Reconstructed image tensor of shape `(B, C, H, W)`.
         """
-        if not reduce_overlap in ["sum", "mean"]:
-            raise ValueError(
-                f"Invalid reduce_overlap option: {reduce_overlap}. Must be 'sum' or 'mean'."
-            )
-
-        stride = self.stride
-
-        B, C, num_patches_h, num_patches_w, h, w = patches.size()
-
-        output_size = (
-            h + (num_patches_h - 1) * stride[0],
-            w + (num_patches_w - 1) * stride[1],
+        return _patches_to_image_impl(
+            patches=patches,
+            stride=self.stride,
+            img_size=img_size,
+            reduce_overlap=reduce_overlap,
         )
-
-        # Reshape: (B, C, n_h, n_w, h, w) -> (B, n_h*n_w, C, h, w) -> (B, C*h*w, n_h*n_w)
-        num_patches = num_patches_h * num_patches_w
-        patches = (
-            patches.permute(0, 2, 3, 1, 4, 5).contiguous().view(B, num_patches, C, h, w)
-        )
-        patches = patches.view(B, num_patches, C * h * w).permute(0, 2, 1)
-
-        # Fold patches back into image
-        output = F.fold(
-            patches,
-            output_size=output_size,
-            kernel_size=(h, w),
-            stride=stride,
-        )
-
-        if reduce_overlap == "mean":
-            # Create a mask of ones with the same shape as patches to count overlaps
-            mask = torch.ones_like(patches)
-            overlap_count = F.fold(
-                mask,
-                output_size=output_size,
-                kernel_size=(h, w),
-                stride=stride,
-            ).clamp_min_(1)
-            # Average overlapping regions
-            output = output / overlap_count
-
-        # Crop to target size if specified
-        if img_size is not None:
-            img_size = _as_pair(img_size)
-            output = output[:, :, : img_size[0], : img_size[1]]
-
-        return output.contiguous()
 
     def get_needed_pad(self, img_size: tuple[int, int]) -> tuple[int, int]:
         """
@@ -468,20 +423,7 @@ class TiledMixin2d:
         :param img_size: Original image size (height, width).
         :return: Tuple of (compatible_size, padding).
         """
-        # Compute number of maximum patches that can fit without padding
-        # Note that this number of patches can be not sufficient to cover the whole image, which is why we need padding
-        n_h = abs(img_size[0] - self.patch_size[0]) // self.stride[0] + 1
-        n_w = abs(img_size[1] - self.patch_size[1]) // self.stride[1] + 1
-
-        # Compute required padding to fit an integer number of patches
-        pad_h = (self.patch_size[0] + n_h * self.stride[0] - img_size[0]) % self.stride[
-            0
-        ]
-        pad_w = (self.patch_size[1] + n_w * self.stride[1] - img_size[1]) % self.stride[
-            1
-        ]
-
-        return pad_h, pad_w
+        return _compute_needed_pad(img_size, self.patch_size, self.stride)
 
     def get_compatible_img_size(self, img_size: tuple[int, int]) -> tuple[int, int]:
         """
@@ -490,7 +432,7 @@ class TiledMixin2d:
         :param img_size: Original image size (height, width).
         :return: Compatible image size (height, width).
         """
-        return _add_tuple(img_size, self.get_needed_pad(img_size))
+        return _compute_compatible_img_size(img_size, self.patch_size, self.stride)
 
     def get_num_patches(self, img_size: tuple[int, int]) -> tuple[int, int]:
         """
@@ -501,11 +443,9 @@ class TiledMixin2d:
         :param img_size: Image size (height, width).
         :return: Number of patches (n_h, n_w).
         """
-        if self.pad_if_needed:
-            compatible_size = self.get_compatible_img_size(img_size)
-        else:
-            compatible_size = img_size
-
-        n_h = (compatible_size[0] - self.patch_size[0]) // self.stride[0] + 1
-        n_w = (compatible_size[1] - self.patch_size[1]) // self.stride[1] + 1
-        return n_h, n_w
+        return _compute_num_patches(
+            img_size=img_size,
+            patch_size=self.patch_size,
+            stride=self.stride,
+            pad_if_needed=self.pad_if_needed,
+        )

@@ -68,7 +68,9 @@ def test_pad(model, L, modulo=16):
 
 
 def patchify(
-    x: torch.Tensor, patch_size: tuple[int, int], stride: int = 1
+    x: torch.Tensor,
+    patch_size: int | tuple[int, int],
+    stride: int | tuple[int, int] = 1,
 ) -> torch.Tensor:
     r"""
     Patchifying images.
@@ -77,9 +79,9 @@ def patchify(
     returning them in a format suitable for processing by patch-based models.
 
     :param torch.Tensor x: input image
-    :param (int, int) patch_size: patch size
-    :param int stride: stride
-    :return: (:class:`torch.Tensor`) patched image of shape (B, C, patch_size, patch_size, num_pch)
+    :param int | tuple[int, int] patch_size: patch size `(h, w)`. If `int`, the same value is used for both dimensions.
+    :param int | tuple[int, int] stride: stride between patches. If `int`, the same value is used for both dimensions.
+    :return: (:class:`torch.Tensor`) patched image of shape `(B, C, h, w, num_pch)` where `num_pch` is the number of patches extracted from each image.
 
     |sep|
 
