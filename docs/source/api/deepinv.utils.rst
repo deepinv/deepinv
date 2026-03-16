@@ -116,7 +116,7 @@ Demo Utils
 Tiling / Untiling (Patching and Unpatching)
 -------------------------------------------
 
-.. userguide:: tiling
+.. userguide:: tiling-utils
 
 .. autosummary::
    :toctree: stubs

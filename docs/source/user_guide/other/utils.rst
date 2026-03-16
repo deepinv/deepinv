@@ -89,6 +89,22 @@ We provide utilities for loading images and data from various sources:
    * - :func:`deepinv.utils.load_ismrmd`
      - Load raw MRI data in ISMRMD format using `h5py`.
 
+.. _tiling-utils:
+Tiling / Untiling (Patching and Unpatching)
+-------------------------------------------
+We provide utilities for extracting and merging tiles (patches) from 2D images:
+.. list-table:: Tiling and Untiling Functions
+   :header-rows: 1
+
+   * - **Function**
+     - **Description**
+   * - :func:`deepinv.utils.image_to_patches`
+     - Extracts tiles (patches) from a 2D image tensor.
+   * - :func:`deepinv.utils.patches_to_image`
+     - Merges tiles (patches) back into a 2D image tensor.
+   * - :func:`deepinv.utils.patchify`
+     - An alias for :func:`deepinv.utils.image_to_patches` for backward compatibility.
+
 .. _demo-utils:
 
 Demo Utils

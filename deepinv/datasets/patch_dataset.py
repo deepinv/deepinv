@@ -1,3 +1,4 @@
+from __future__ import annotations
 from deepinv.datasets.base import ImageDataset
 from deepinv.utils.decorators import _deprecated_alias
 
