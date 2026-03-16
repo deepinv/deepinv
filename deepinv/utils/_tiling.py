@@ -10,20 +10,18 @@ from ._internal import _add_tuple, _as_pair
 def _resolve_tiling_params(
     patch_size: int | tuple[int, int],
     stride: int | tuple[int, int] | None = None,
-    padding: int | tuple[int, int] = 0,
-) -> tuple[tuple[int, int], tuple[int, int], tuple[int, int]]:
+) -> tuple[tuple[int, int], tuple[int, int]]:
     patch_size_2d = _as_pair(patch_size)
     stride_2d = (
         _as_pair(stride) if stride is not None else tuple(p // 2 for p in patch_size_2d)
     )
-    padding_2d = _as_pair(padding)
 
     if stride_2d[0] > patch_size_2d[0] or stride_2d[1] > patch_size_2d[1]:
         raise ValueError(
             f"Stride {stride_2d} must be smaller or equal than patch_size {patch_size_2d}."
         )
 
-    return patch_size_2d, stride_2d, padding_2d
+    return patch_size_2d, stride_2d
 
 
 def _compute_needed_pad(
@@ -68,16 +66,12 @@ def _image_to_patches_impl(
     image: Tensor,
     patch_size: tuple[int, int],
     stride: tuple[int, int],
-    padding: tuple[int, int] = (0, 0),
     pad_if_needed: bool = True,
 ) -> Tensor:
     if image.ndim != 4:
         raise ValueError(
             f"Input image must have shape (B, C, H, W), got {tuple(image.shape)}."
         )
-
-    if padding[0] > 0 or padding[1] > 0:
-        image = F.pad(image, (padding[1], padding[1], padding[0], padding[0]))
 
     if pad_if_needed:
         pad_h, pad_w = _compute_needed_pad(image.shape[-2:], patch_size, stride)

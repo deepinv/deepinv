@@ -1270,16 +1270,6 @@ def test_patchify_pad_if_needed_behavior():
     assert with_pad.shape == (1, 1, 2, 3, 4, 4)
 
 
-def test_patchify_padding_keyword():
-    """The padding keyword is accepted and matches default behavior for zero padding."""
-    imgs = torch.randn(1, 2, 10, 10)
-    default = image_to_patches(imgs, patch_size=4, stride=2, pad_if_needed=False)
-    explicit_zero_padding = image_to_patches(
-        imgs, patch_size=4, stride=2, padding=0, pad_if_needed=False
-    )
-    assert torch.equal(default, explicit_zero_padding)
-
-
 @pytest.mark.parametrize("B, C, H, W, patch_size, stride", PATCH_CONFIGS)
 def test_patch_dataset_matches_patchify(B, C, H, W, patch_size, stride):
     """PatchDataset items are consistent with image_to_patches output."""

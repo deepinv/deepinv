@@ -70,7 +70,6 @@ def patch_extractor(
 def image_to_patches(
     image: Tensor,
     patch_size: int | tuple[int, int],
-    padding: int | tuple[int, int] = 0,
     stride: int | tuple[int, int] | None = None,
     pad_if_needed: bool = True,
 ) -> torch.Tensor:
@@ -114,13 +113,11 @@ def image_to_patches(
     patch_size_2d, stride_2d, padding_2d = _resolve_tiling_params(
         patch_size=patch_size,
         stride=stride,
-        padding=padding,
     )
     return _image_to_patches_impl(
         image=image,
         patch_size=patch_size_2d,
         stride=stride_2d,
-        padding=padding_2d,
         pad_if_needed=pad_if_needed,
     )
 
@@ -144,7 +141,7 @@ def patches_to_images(
     :return: Reconstructed images of shape ``(B, C, H, W)``.
     """
     _, stride_2d, _ = _resolve_tiling_params(
-        patch_size=patches.shape[-2:], stride=stride, padding=0
+        patch_size=patches.shape[-2:], stride=stride
     )
     return _patches_to_image_impl(
         patches=patches,
@@ -157,7 +154,6 @@ def patches_to_images(
 def patchify(
     image: Tensor,
     patch_size: int | tuple[int, int],
-    padding: int | tuple[int, int] = 0,
     stride: int | tuple[int, int] | None = None,
     pad_if_needed: bool = True,
 ) -> torch.Tensor:
@@ -165,7 +161,6 @@ def patchify(
     return image_to_patches(
         image=image,
         patch_size=patch_size,
-        padding=padding,
         stride=stride,
         pad_if_needed=pad_if_needed,
     )
