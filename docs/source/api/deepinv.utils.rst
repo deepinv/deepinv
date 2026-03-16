@@ -122,7 +122,8 @@ Tiling / Untiling (Patching and Unpatching)
    :toctree: stubs
    :template: myfunc_template.rst
    :nosignatures:
-
+    
+    deepinv.utils.patch_extractor 
     deepinv.utils.image_to_patches
     deepinv.utils.patches_to_image
     deepinv.utils.patchify

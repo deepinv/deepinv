@@ -45,7 +45,7 @@ from .phantoms import RandomPhantomDataset, SheppLoganDataset
 from .patch_extractor import (
     patch_extractor,
     image_to_patches,
-    patches_to_images,
+    patches_to_image,
     patchify,
 )
 from .parameters import get_GSPnP_params

@@ -11,18 +11,27 @@ from ._tiling import (
 
 
 def patch_extractor(
-    imgs, n_patches, patch_size, duplicates=False, position_inds_linear=None
-):
+    imgs: Tensor,
+    n_patches: int,
+    patch_size: int,
+    duplicates: bool = False,
+    position_inds_linear: Tensor | None = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
     r"""
-    This function takes a B x C x N x M tensor as input and extracts n_patches random patches
-    of size C x patch_size x patch_size from each C x N x M image (C=1 for gray value, C=3 for RGB).
-    Hence, the output is of shape B x n_patches x C x patch_size x patch_size.
+    This function takes a `B x C x H x W` tensor as input and extracts `n_patches` random patches
+    of size `C x patch_size x patch_size` from each `C x H x W` image.
+    Hence, the output is of shape `B x n_patches x C x patch_size x patch_size`.
+
+    It returns a tuple of the extracted patches and the linear indices of the patches in the original image.
 
     :param torch.Tensor imgs: Images for cutting out patches. Shape batch size x channels x height x width
-    :param int patch_size: size of the patches
+    :param int patch_size: size of the patches. The patches are square, so this is the height and width of the patch.
+    :param int n_patches: number of patches to cut out from each image. If -1, all possible patches are cut out.
     :param bool duplicates: determines if a patch can appear twice.
     :param torch.Tensor position_inds_linear: allows it to cut patches with specific indices (required for the EPLL reconstruction).
         dtype of the tensor should be torch.long.
+
+    :return: tuple of (patches, linear_indices)
     """
 
     B, C, N, M = imgs.shape
@@ -110,7 +119,7 @@ def image_to_patches(
         dinv.utils.plot([x, make_grid(list_patch, nrow=patches.shape[2])], titles=["Original", "Overlapping patches"])
 
     """
-    patch_size_2d, stride_2d, padding_2d = _resolve_tiling_params(
+    patch_size_2d, stride_2d = _resolve_tiling_params(
         patch_size=patch_size,
         stride=stride,
     )
@@ -122,7 +131,7 @@ def image_to_patches(
     )
 
 
-def patches_to_images(
+def patches_to_image(
     patches: Tensor,
     stride: int | tuple[int, int],
     img_size: tuple[int, int] | None = None,
@@ -140,9 +149,7 @@ def patches_to_images(
         ``"mean"``.
     :return: Reconstructed images of shape ``(B, C, H, W)``.
     """
-    _, stride_2d, _ = _resolve_tiling_params(
-        patch_size=patches.shape[-2:], stride=stride
-    )
+    _, stride_2d = _resolve_tiling_params(patch_size=patches.shape[-2:], stride=stride)
     return _patches_to_image_impl(
         patches=patches,
         stride=stride_2d,

@@ -26,7 +26,7 @@ import sys
 from conftest import non_blocking_plots  # noqa: F401
 
 from deepinv.tests.test_datasets import check_dataset_format
-from deepinv.utils import image_to_patches, patches_to_images
+from deepinv.utils import image_to_patches, patches_to_image
 from deepinv.datasets import PatchDataset
 
 
@@ -1245,7 +1245,7 @@ def test_patchify_non_overlapping_reconstruction():
     """Non-overlapping patches tile and perfectly reconstruct the image."""
     imgs = torch.randn(1, 1, 8, 8)
     patches = image_to_patches(imgs, patch_size=4, stride=4)
-    reconstructed = patches_to_images(patches, stride=4)
+    reconstructed = patches_to_image(patches, stride=4)
     assert torch.equal(reconstructed, imgs)
 
 
@@ -1254,7 +1254,7 @@ def test_patchify_overlapping_reconstruction_mean():
     torch.manual_seed(0)
     imgs = torch.randn(1, 2, 8, 8)
     patches = image_to_patches(imgs, patch_size=4, stride=2)
-    reconstructed = patches_to_images(patches, stride=2, reduce_overlap="mean")
+    reconstructed = patches_to_image(patches, stride=2, reduce_overlap="mean")
     assert torch.allclose(reconstructed, imgs)
 
 
