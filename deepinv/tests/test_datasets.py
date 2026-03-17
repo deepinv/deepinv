@@ -92,21 +92,23 @@ def check_dataset_format(
     if not skip_check:
         check_dataset(dataset, allow_non_tensor=allow_non_tensor)
 
-    if dtype in (
-        Tensor,
-        np.ndarray,
-        int,
-        float,
-        str,
-        dict,
-        list,
-        tuple,  # but not "tuple_of_pils", because that is not collatable
-        bytes,
-        Mapping,
-        NamedTuple,
-        Sequence,
+    if (
+        dtype
+        in (
+            Tensor,
+            np.ndarray,
+            int,
+            float,
+            str,
+            dict,
+            list,
+            tuple,  # but not "tuple_of_pils", because that is not collatable
+            bytes,
+            Mapping,
+            NamedTuple,
+            Sequence,
+        )
     ):  # from https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.default_collate
-
         # Define dataloader with random data sample
         dataloader = torch.utils.data.DataLoader(
             torch.utils.data.Subset(
@@ -155,9 +157,9 @@ def check_dataset_format(
                     raise
 
     if length is not None:
-        assert (
-            len(dataset) == length
-        ), f"Dataset should be length {length} but got {len(dataset)}."
+        assert len(dataset) == length, (
+            f"Dataset should be length {length} but got {len(dataset)}."
+        )
 
     # The below tests are for datasets that return images only (and not tuples)
     if dtype is not None:
@@ -165,14 +167,14 @@ def check_dataset_format(
             # This is a workaround for Python not having ability to check a variable is a `tuple[xxx]`.
             assert all(isinstance(d, PIL_Image) for d in dataset[0])
         else:
-            assert isinstance(
-                dataset[0], dtype
-            ), f"Dataset should return data of type {dtype} but got type {type(dataset[0])}."
+            assert isinstance(dataset[0], dtype), (
+                f"Dataset should return data of type {dtype} but got type {type(dataset[0])}."
+            )
 
     if shape is not None:
-        assert (
-            dataset[0].shape == shape
-        ), f"Dataset should return data of shape {shape} but got shape {dataset[0].shape}"
+        assert dataset[0].shape == shape, (
+            f"Dataset should return data of shape {shape} but got shape {dataset[0].shape}"
+        )
 
 
 class MyDataset(ImageDataset):
@@ -307,17 +309,17 @@ def test_hdf5dataset(
     )
 
     # Test HDF5Dataset.__len__
-    assert (
-        len(dataset) == length
-    ), f"Dataset length should be {length} but got {len(dataset)}."
+    assert len(dataset) == length, (
+        f"Dataset length should be {length} but got {len(dataset)}."
+    )
 
     # Test HDF5Dataset.__getitem__
     idx = 0
     entry = dataset[idx]
     expected_entry_length = 3 if load_physics_generator_params else 2
-    assert (
-        len(entry) == expected_entry_length
-    ), f"Dataset entry should have length {expected_entry_length} but got {len(entry)}."
+    assert len(entry) == expected_entry_length, (
+        f"Dataset entry should have length {expected_entry_length} but got {len(entry)}."
+    )
 
     x, y = entry[:2]
     if len(entry) == 3:
@@ -357,19 +359,19 @@ def test_hdf5dataset(
         assert "kernel" in params, "Params should contain kernel."
 
         if stack_size > 1:
-            assert (
-                "y0" not in params
-            ), "Params should not contain y0 (stacked measurements)."
+            assert "y0" not in params, (
+                "Params should not contain y0 (stacked measurements)."
+            )
             expected_num_params = 1
         else:
-            assert (
-                "y0" in params
-            ), "Params might contain y0 if the measurements are not stacked."
+            assert "y0" in params, (
+                "Params might contain y0 if the measurements are not stacked."
+            )
             expected_num_params = 2
 
-        assert (
-            len(params) == expected_num_params
-        ), f"Params should contain {expected_num_params} tensors but got {len(params)}."
+        assert len(params) == expected_num_params, (
+            f"Params should contain {expected_num_params} tensors but got {len(params)}."
+        )
 
         assert torch.allclose(
             params["kernel"],
@@ -377,9 +379,9 @@ def test_hdf5dataset(
         ), f"Dataset params tensor has incorrect values."
 
     if transform is not None:
-        assert transform.called == (
-            not unsupervised
-        ), "Transform should be called if and only if it is supervised."
+        assert transform.called == (not unsupervised), (
+            "Transform should be called if and only if it is supervised."
+        )
 
     # Test HDF5Dataset.unsupervised
     assert dataset.unsupervised == unsupervised, "Dataset supervision label mismatch."
@@ -438,14 +440,14 @@ def test_hdf5dataset_generate_dataset(tmpdir, physgen, stacked, supervised):
         assert torch.isnan(x_train).all(), "Unsupervised train split should have NaN x."
 
     if stacked:
-        assert isinstance(
-            y_train, TensorList
-        ), "Stacked physics should return TensorList."
+        assert isinstance(y_train, TensorList), (
+            "Stacked physics should return TensorList."
+        )
         assert len(y_train) == 2, "Stacked measurements should have two elements."
     else:
-        assert isinstance(
-            y_train, torch.Tensor
-        ), "Unstacked physics should return Tensor."
+        assert isinstance(y_train, torch.Tensor), (
+            "Unstacked physics should return Tensor."
+        )
 
     if physgen is None:
         assert params_train == {}, "Params should be empty when no generator is used."
@@ -467,14 +469,14 @@ def test_hdf5dataset_generate_dataset(tmpdir, physgen, stacked, supervised):
     assert not torch.isnan(x_test).all(), "Test split should have x."
 
     if stacked:
-        assert isinstance(
-            y_test, TensorList
-        ), "Stacked physics should return TensorList."
+        assert isinstance(y_test, TensorList), (
+            "Stacked physics should return TensorList."
+        )
         assert len(y_test) == 2, "Stacked measurements should have two elements."
     else:
-        assert isinstance(
-            y_test, torch.Tensor
-        ), "Unstacked physics should return Tensor."
+        assert isinstance(y_test, torch.Tensor), (
+            "Unstacked physics should return Tensor."
+        )
 
     if physgen is None:
         assert params_test == {}, "Params should be empty when no generator is used."
@@ -518,9 +520,9 @@ def test_generate_dataset(tmp_path):
     hdf_ds = HDF5Dataset(hdf_path)
     for sample_hdf, sample in zip(hdf_ds, ds):
         sample = ToTensor()(sample)
-        assert sample_hdf[0].equal(
-            sample
-        ), "Ground-truth from HDF5 does not match original dataset, despite going through the same preprocessing."
+        assert sample_hdf[0].equal(sample), (
+            "Ground-truth from HDF5 does not match original dataset, despite going through the same preprocessing."
+        )
     hdf_ds.hd5.close()
     shutil.rmtree(tmp_data_dir)
     os.remove(hdf_path)
@@ -539,9 +541,9 @@ def test_tensordataset():
     _ = TensorDataset(x=x, y=y, params=params)
     _ = TensorDataset(x=x, params=params)
     dataset = TensorDataset(y=y, params=params)
-    assert math.isnan(
-        dataset[0][0]
-    ), "Dataset return tuple's first element must be NaN or single-element NaN tensor."
+    assert math.isnan(dataset[0][0]), (
+        "Dataset return tuple's first element must be NaN or single-element NaN tensor."
+    )
 
     for bad_dataset_input in (
         {},
@@ -831,17 +833,17 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering):
 
     for sharp_frame, blurry_shot in data_points:
         if frames != "all":
-            assert (
-                type(sharp_frame) == PIL.PngImagePlugin.PngImageFile
-            ), "The sharp frame is unexpectedly not a PIL image."
+            assert type(sharp_frame) == PIL.PngImagePlugin.PngImageFile, (
+                "The sharp frame is unexpectedly not a PIL image."
+            )
         else:
-            assert isinstance(
-                sharp_frame, list
-            ), "The sharp frames are unexpectedly not a list."
+            assert isinstance(sharp_frame, list), (
+                "The sharp frames are unexpectedly not a list."
+            )
 
-        assert (
-            type(blurry_shot) == PIL.PngImagePlugin.PngImageFile
-        ), "The blurry frame is unexpectedly not a PIL image."
+        assert type(blurry_shot) == PIL.PngImagePlugin.PngImageFile, (
+            "The blurry frame is unexpectedly not a PIL image."
+        )
 
 
 @pytest.fixture
@@ -1020,9 +1022,9 @@ def test_load_nbu_dataset(download_nbu):
 
     dataset = NBUDataset(download_nbu, satellite="gaofen-1", download=False)
     check_dataset_format(dataset, length=5, dtype=Tensor, shape=(4, 256, 256))
-    assert torch.all(
-        (0 <= dataset[0]) & (dataset[0] <= 1)
-    ), "Dataset image should be Tensor between 0-1."
+    assert torch.all((0 <= dataset[0]) & (dataset[0] <= 1)), (
+        "Dataset image should be Tensor between 0-1."
+    )
 
     # Check pan band
     check_dataset_format(
@@ -1419,8 +1421,8 @@ def make_data(tmp_path, request):
     # 3D volumes
     shape3d = (40, 40, 40)
     fmt = getattr(request, "param")
-    dx = root / f"{fmt.strip('.').replace('.','_')}_x"
-    dy = root / f"{fmt.strip('.').replace('.','_')}_y"
+    dx = root / f"{fmt.strip('.').replace('.', '_')}_x"
+    dy = root / f"{fmt.strip('.').replace('.', '_')}_y"
     dx.mkdir()
     dy.mkdir()
     for i in range(2):
