@@ -15,7 +15,7 @@ def hankel1(n, x):
         )
     device = x.device
     dtype = x.dtype
-    return hankel1(n, x.cpu()).to(device=device, dtype=dtype)
+    return hankel1(n, x.detach().cpu()).to(device=device, dtype=dtype)
 
 
 def jv(n, x):
@@ -28,7 +28,7 @@ def jv(n, x):
         )
     device = x.device
     dtype = x.dtype
-    return jv(n, x.cpu()).to(device=device, dtype=dtype)
+    return jv(n, x.detach().cpu()).to(device=device, dtype=dtype)
 
 
 class Scattering(Physics):
@@ -39,7 +39,7 @@ class Scattering(Physics):
 
     .. math::
 
-        \nabla^2 u_i(\mathbf{r}) + k^2(\mathbf{r})  u_i(\mathbf{r}) = - (k^2(\mathbf{r}) - k^2_b)  v_i(\mathbf{r})  \quad \mathbf{r} \in \mathbb{R}^2
+        \nabla^2 u_i(\mathbf{r}) + k_b^2  u_i(\mathbf{r}) = - (k^2(\mathbf{r}) - k^2_b)  v_i(\mathbf{r})  \quad \mathbf{r} \in \mathbb{R}^2
 
     where :math:`u_i` is the (unknown) scattered field, :math:`k_b` is the (known scalar) wavenumber of the incident wave in the background medium,
     :math:`k(\mathbf{r})` is the (unknown) spatially-varying wavenumber of the object to be recovered,
@@ -54,11 +54,11 @@ class Scattering(Physics):
     .. math::
 
         u_i &= g * \left( x \circ (u_i+v_i) \right) \\
-        y_i &= G_s \left( x \circ (u_i+v_i) \right)
+        y_i &= G \left( x \circ (u_i+v_i) \right)
 
     where :math:`g(\mathbf{r}) = k_b^2 \frac{i}{4} H_0^1(k_b\|\mathbf{r}\|)` is Green's function in 2D (normalized by :math:`k_b^2`),
-    :math:`y \in \mathbb{C}^{R}` are the measurements at the receivers for the ith transmitter,
-    and :math:`G_s` denotes the convolution with Green's operator plus sampling at the :math:`R` different receiver locations.
+    :math:`y_i \in \mathbb{C}^{R}` are the measurements at the receivers for the ith transmitter,
+    and :math:`G` denotes the convolution with Green's operator and sampling at the :math:`R` different receiver locations.
 
 
     .. tip::
@@ -97,6 +97,11 @@ class Scattering(Physics):
         .. math::
 
                 g_L(\mathbf{r}) = g(\mathbf{r}) * \text{rect}\left(\frac{\|\mathbf{r}\|}{L}\right),
+
+
+    .. warning::
+
+        The operator is not well-supported in Windows operating systems.
 
 
     :param int img_width: Number of pixels per image side (`H=W`). The minimum required number of pixels depends on the background wavenumber to avoid spatial aliasing.
@@ -407,12 +412,12 @@ class Scattering(Physics):
         self, x: torch.Tensor, total_field: torch.Tensor
     ) -> torch.Tensor:
         """
-        Compute sensor outputs :math:`y = G_s * \text{diag}(x) u`.
+        Compute sensor outputs :math:`y = G * \text{diag}(x) u`.
 
         :param torch.Tensor x: Scattering potential `(B,1,H,W)`.
         :param torch.Tensor total_field: Total field u `(B,T,H,W)`.
         """
-        # This computes y = G_s*diag(x)*Et
+        # This computes y = G*diag(x)*Et
         self.born_operator.register_buffer("total_field", total_field)
         return self.born_operator.A(x)
 
@@ -519,9 +524,9 @@ class BornOperator(LinearPhysics):
 
     .. math::
 
-        y = G_s \left( x \circ u \right)
+        y = G \left( x \circ u \right)
 
-    where :x: is the scattering potential, :math:`u` is the (here known) total field (scattered + incident), and :math:`G_s` is the Green's operator plus sampling at the receiver locations.
+    where :x: is the scattering potential, :math:`u` is the (here known) total field (scattered + incident), and :math:`G` is the Green's operator plus sampling at the receiver locations.
 
     :param torch.Tensor total_field: Total field tensor `(1,T,H,W)` or `(B,T,H,W)`.
     :param torch.Tensor receivers: Receiver positions of shape `(2, T, R)`.
@@ -560,12 +565,12 @@ class BornOperator(LinearPhysics):
         self.verbose = verbose
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
-        """
+        r"""
         Linear forward operation
 
         This operator computes the following operation:
 
-        :math:`y = G_s (u \circ x)`
+        :math:`y = G (u \circ x)`
 
         where :math:`u` is the total field stored in the object.
 
@@ -933,7 +938,6 @@ def green_function(r, remove_nans=False):
 
     :param torch.Tensor r: Radial argument(s) (can be tensor).
     :param bool remove_nans: If True replace NaNs (singularity) with max abs value.
-    :param torch.dtype dtype: torch.dtype used for the returned tensor (matches r.dtype)
     :return: Complex tensor with Green's function values.
     """
     out = 1j / 4 * hankel1(0, r)
