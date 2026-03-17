@@ -31,6 +31,8 @@ OPERATORS = [
     "deblur_valid",
     "deblur_circular",
     "deblur_reflect",
+    "pet_2d",
+    "pet_3d",
     "deblur_replicate",
     "deblur_constant",
     "composition",
@@ -238,6 +240,14 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )  # B,N,D,H,W where N is coils and D is depth
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
         params = ["mask"]
+    elif name == "pet_2d":
+        img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
+        p = dinv.physics.PET(img_size, normalize=True, device=device)
+        params = ["attenuation", "background"]
+    elif name == "pet_3d":
+        img_size = (1, 16, 16, 16) if imsize is None else imsize  # C,H,W
+        p = dinv.physics.PET(img_size, normalize=True, device=device)
+        params = ["attenuation", "background"]
     elif name == "2DParallelBeamCT":
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
         p = dinv.physics.Tomography(
@@ -687,11 +697,10 @@ def test_stacking(device):
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operators_adjointness(name, device, rng):
     r"""
-    Tests if a linear forward operator has a well defined adjoint.
+    Tests if a linear forward operator has a well-defined adjoint.
     Warning: Only test linear operators, non-linear ones will fail the test.
 
     :param name: operator name (see find_operator)
-    :param imsize: image size tuple in (C, H, W)
     :param device: (torch.device) cpu or cuda:x
     :return: asserts adjointness
     """
@@ -705,7 +714,7 @@ def test_operators_adjointness(name, device, rng):
     assert error < 1e-3
 
     if (
-        "pansharpen" in name or "radio" in name
+        "pansharpen" in name or "radio" in name or "pet" in name
     ):  # automatic adjoint does not work for inputs that are not torch.tensors
         return
     f = adjoint_function(physics.A, x.shape, x.device, x.dtype)
