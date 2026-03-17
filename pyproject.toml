@@ -162,3 +162,5 @@ banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets",
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "torch.norm".msg = "Use torch.linalg.vector_norm, torch.linalg.matrix_norm or torch.linalg.norm instead of the deprecated torch.norm"
  
+[tool.pixi.dependencies]
+cuda-toolkit = ">=12.0" # for conda-only packages (eg parallelproj)
