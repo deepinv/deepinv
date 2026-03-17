@@ -5,6 +5,7 @@ from pathlib import Path
 from deepinv.datasets.utils import calculate_md5, download_archive, extract_zipfile
 from deepinv.datasets.base import ImageDataset
 from natsort import natsorted
+from .utils import resolve_root
 
 
 class BSDS500(ImageDataset):
@@ -56,11 +57,7 @@ class BSDS500(ImageDataset):
                 splits = ["train", "test"]
             else:
                 splits = ["val"]
-        if root is None:
-            from deepinv.utils.demo import get_data_home
-
-            root = get_data_home() / "BSDS500"
-        self.base_path = root
+        self.base_path = resolve_root(root, "BSDS500")
         self.rotate = rotate
         self.transforms = transform
         if not os.path.exists(self.base_path):

@@ -11,6 +11,7 @@ from deepinv.utils.mixins import MRIMixin
 from deepinv.utils.compat import zip_strict
 
 from natsort import natsorted
+from .utils import resolve_root
 
 
 class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
@@ -84,8 +85,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
         metadata_cache_file: str | Path = "skmtea_dataset_cache.pkl",
         filter_id: Callable = None,
     ):
-
-        self.root = Path(root)
+        self.root = resolve_root(root)
         self.echo = echo
         self.acc = acc
 

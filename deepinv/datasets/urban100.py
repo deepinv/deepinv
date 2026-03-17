@@ -7,6 +7,7 @@ from deepinv.datasets.utils import (
     extract_tarball,
 )
 from deepinv.datasets.base import ImageFolder
+from .utils import resolve_root
 
 
 class Urban100HR(ImageFolder):
@@ -70,11 +71,7 @@ class Urban100HR(ImageFolder):
         download: bool = False,
         transform: Callable = None,
     ) -> None:
-        if root is None:
-            from deepinv.utils.demo import get_data_home
-
-            root = get_data_home() / self.__class__.__name__
-        self.root = root
+        self.root = resolve_root(root, self.__class__.__name__)
         self.transform = transform
         self.img_dir = os.path.join(self.root, "Urban100_HR")
 

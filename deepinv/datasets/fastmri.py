@@ -44,6 +44,7 @@ from deepinv.utils.demo import get_image_url
 from deepinv.physics.generator.mri import BaseMaskGenerator, ceildiv
 from deepinv.physics.mri import MultiCoilMRI
 from deepinv.utils.mixins import MRIMixin
+from .utils import resolve_root
 
 
 class SimpleFastMRISliceDataset(ImageDataset):
@@ -110,13 +111,8 @@ class SimpleFastMRISliceDataset(ImageDataset):
         elif anatomy is None and file_name is None:
             raise ValueError("Either anatomy or file_name must be passed.")
 
-        if root_dir is None:
-            from deepinv.utils.demo import get_data_home
-
-            root_dir = get_data_home() / self.__class__.__name__
-
+        root_dir = resolve_root(root_dir, self.__class__.__name__)
         os.makedirs(root_dir, exist_ok=True)
-        root_dir = Path(root_dir)
         file_name = (
             file_name
             if file_name is not None
@@ -353,11 +349,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         filter_id: Callable | None = None,
         rng: torch.Generator | None = None,
     ) -> None:
-        if root is None:
-            from deepinv.utils.demo import get_data_home
-
-            root = get_data_home() / self.__class__.__name__
-        self.root = root
+        self.root = resolve_root(root, self.__class__.__name__)
         self.transform = transform if transform is not None else MRISliceTransform()
         self.load_metadata_from_cache = load_metadata_from_cache
         self.save_metadata_to_cache = save_metadata_to_cache

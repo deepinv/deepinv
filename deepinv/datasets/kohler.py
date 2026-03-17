@@ -10,6 +10,7 @@ from types import MappingProxyType
 from pathlib import Path
 
 from deepinv.datasets.base import ImageDataset
+from .utils import resolve_root
 
 
 def url_basename(url: str) -> str:
@@ -129,11 +130,7 @@ class Kohler(ImageDataset):
         transform: Callable = None,
         download: bool = False,
     ) -> None:
-        if root is None:
-            from deepinv.utils.demo import get_data_home
-
-            root = get_data_home() / self.__class__.__name__
-        self.root = root
+        self.root = resolve_root(root, self.__class__.__name__)
         self.frames = frames
         self.ordering = ordering
         self.transform = transform

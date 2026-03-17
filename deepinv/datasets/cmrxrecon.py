@@ -19,6 +19,7 @@ from deepinv.utils.io import load_mat
 from deepinv.utils.mixins import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
 from deepinv.physics.noise import NoiseModel
+from .utils import resolve_root
 
 
 class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
@@ -111,12 +112,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         pad_size: tuple[int, int] = (512, 256),
         noise_model: NoiseModel = None,
     ):
-        if root is None:
-            from deepinv.utils.demo import get_data_home
-
-            root = get_data_home() / self.__class__.__name__
-
-        self.root = Path(root)
+        self.root = resolve_root(root, self.__class__.__name__)
         self.data_dir = data_dir
         self.mask_dir = mask_dir
         self.transform = transform

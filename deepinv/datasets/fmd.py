@@ -11,6 +11,7 @@ from deepinv.datasets.utils import (
     extract_tarball,
 )
 from deepinv.datasets.base import ImageDataset
+from .utils import resolve_root
 
 
 class FMD(ImageDataset):
@@ -123,11 +124,7 @@ class FMD(ImageDataset):
         transform: Callable = None,
         target_transform: Callable = None,
     ) -> None:
-        if root is None:
-            from deepinv.utils.demo import get_data_home
-
-            root = get_data_home() / self.__class__.__name__
-        self.root = root
+        self.root = resolve_root(root, self.__class__.__name__)
         if img_types is None:
             raise ValueError("img_types is required")
         self.img_types = img_types
