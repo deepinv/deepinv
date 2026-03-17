@@ -99,7 +99,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
     def __init__(
         self,
-        root: str | Path,
+        root: str | Path = None,
         data_dir: str | Path = "SingleCoil/Cine/TrainingSet/FullSample",
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
@@ -111,6 +111,10 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         pad_size: tuple[int, int] = (512, 256),
         noise_model: NoiseModel = None,
     ):
+        if root is None:
+            from deepinv.utils.demo import get_data_home
+
+            root = get_data_home() / self.__class__.__name__
 
         self.root = Path(root)
         self.data_dir = data_dir
@@ -245,8 +249,9 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         # Pad
         if self.pad_size is not None:
-            w, h = (self.pad_size[0] - target.shape[-2]), (
-                self.pad_size[1] - target.shape[-1]
+            w, h = (
+                (self.pad_size[0] - target.shape[-2]),
+                (self.pad_size[1] - target.shape[-1]),
             )
             target = F.pad(target, (h // 2, h // 2, w // 2, w // 2))
             mask = F.pad(mask, (h // 2, h // 2, w // 2, w // 2))

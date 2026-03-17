@@ -82,12 +82,16 @@ class LidcIdriSliceDataset(ImageDataset):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         transform: Callable | None = None,
         hounsfield_units: bool = False,
     ) -> None:
         import pandas as pd
 
+        if root is None:
+            from deepinv.utils.demo import get_data_home
+
+            root = get_data_home() / self.__class__.__name__
         self.root = root
         self.transform = transform
         self.hounsfield_units = hounsfield_units

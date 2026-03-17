@@ -76,7 +76,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         echo: int = 0,
         acc: int = 6,
         load_metadata_from_cache: bool = False,

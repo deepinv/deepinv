@@ -43,7 +43,7 @@ class BSDS500(ImageDataset):
 
     def __init__(
         self,
-        root,
+        root=None,
         download=False,
         train=True,
         splits=None,
@@ -56,6 +56,10 @@ class BSDS500(ImageDataset):
                 splits = ["train", "test"]
             else:
                 splits = ["val"]
+        if root is None:
+            from deepinv.utils.demo import get_data_home
+
+            root = get_data_home() / "BSDS500"
         self.base_path = root
         self.rotate = rotate
         self.transforms = transform

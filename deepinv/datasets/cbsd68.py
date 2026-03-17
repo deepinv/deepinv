@@ -61,7 +61,7 @@ class CBSD68(ImageDataset):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         download: bool = False,
         transform: Callable = None,
         rotate=False,
@@ -73,6 +73,10 @@ class CBSD68(ImageDataset):
                 "The library 'datasets' is required to for the CBSD68 dataset. Install it using pip install datasets"
             )
 
+        if root is None:
+            from deepinv.utils.demo import get_data_home
+
+            root = get_data_home() / self.__class__.__name__
         self.root = root
         self.transform = transform
         self.rotate = rotate

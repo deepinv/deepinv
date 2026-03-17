@@ -96,7 +96,7 @@ class SimpleFastMRISliceDataset(ImageDataset):
 
     def __init__(
         self,
-        root_dir: str | Path,
+        root_dir: str | Path = None,
         anatomy: str = "knee",
         file_name: str | Path = None,
         train: bool = True,
@@ -109,6 +109,11 @@ class SimpleFastMRISliceDataset(ImageDataset):
             raise ValueError("anatomy must be either 'knee' or 'brain' or None.")
         elif anatomy is None and file_name is None:
             raise ValueError("Either anatomy or file_name must be passed.")
+
+        if root_dir is None:
+            from deepinv.utils.demo import get_data_home
+
+            root_dir = get_data_home() / self.__class__.__name__
 
         os.makedirs(root_dir, exist_ok=True)
         root_dir = Path(root_dir)
@@ -337,7 +342,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
 
     def __init__(
         self,
-        root: str | Path,
+        root: str | Path = None,
         target_root: str | Path | None = None,
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
@@ -348,6 +353,10 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         filter_id: Callable | None = None,
         rng: torch.Generator | None = None,
     ) -> None:
+        if root is None:
+            from deepinv.utils.demo import get_data_home
+
+            root = get_data_home() / self.__class__.__name__
         self.root = root
         self.transform = transform if transform is not None else MRISliceTransform()
         self.load_metadata_from_cache = load_metadata_from_cache

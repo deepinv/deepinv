@@ -115,15 +115,21 @@ class FMD(ImageDataset):
 
     def __init__(
         self,
-        root: str,
-        img_types: list[str],
+        root: str = None,
+        img_types: list[str] = None,
         noise_levels: Sequence[int] = (1, 2, 4, 8, 16),
         fovs: Sequence[int] = tuple(range(1, 20 + 1)),
         download: bool = False,
         transform: Callable = None,
         target_transform: Callable = None,
     ) -> None:
+        if root is None:
+            from deepinv.utils.demo import get_data_home
+
+            root = get_data_home() / self.__class__.__name__
         self.root = root
+        if img_types is None:
+            raise ValueError("img_types is required")
         self.img_types = img_types
         self.noise_levels = noise_levels
         self.fovs = fovs

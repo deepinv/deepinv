@@ -74,11 +74,15 @@ class DIV2K(ImageFolder):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         mode: str = "train",
         download: bool = False,
         transform: Callable = None,
     ) -> None:
+        if root is None:
+            from deepinv.utils.demo import get_data_home
+
+            root = get_data_home() / self.__class__.__name__
         self.root = root
         self.mode = mode
 

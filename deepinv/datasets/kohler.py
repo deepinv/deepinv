@@ -123,12 +123,16 @@ class Kohler(ImageDataset):
 
     def __init__(
         self,
-        root: str | Path,
+        root: str | Path = None,
         frames: int | str | list[int | str] = "middle",
         ordering: str = "printout_first",
         transform: Callable = None,
         download: bool = False,
     ) -> None:
+        if root is None:
+            from deepinv.utils.demo import get_data_home
+
+            root = get_data_home() / self.__class__.__name__
         self.root = root
         self.frames = frames
         self.ordering = ordering

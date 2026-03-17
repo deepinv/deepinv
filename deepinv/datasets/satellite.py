@@ -87,7 +87,7 @@ class NBUDataset(ImageDataset):
 
     def __init__(
         self,
-        root_dir: str | Path,
+        root_dir: str | Path = None,
         satellite: str = "gaofen-1",
         return_pan: bool = False,
         transform_ms: Callable = None,
