@@ -100,7 +100,7 @@ class NBUDataset(ImageDataset):
                 'satellite must be "ikonos", "gaofen-1", "quickbird", "worldview-2", "worldview-3", or "worldview-4".'
             )
 
-        self.data_dir = resolve_root(root_dir, f"NBU/{satellite}")
+        self.data_dir = resolve_root(root_dir, "NBU") / satellite
         self.normalize = lambda x: (
             x / (1023 if satellite == "gaofen-1" else 2047)
         ).astype(np.float32)
@@ -110,7 +110,7 @@ class NBUDataset(ImageDataset):
 
         if not self.check_dataset_exists():
             if download:
-                dl_file = str(self.data_dir) + ".zip"
+                dl_file = self.data_dir.as_posix() + ".zip"
                 print(f"Downloading {dl_file}")
                 download_archive(get_image_url(f"nbu_{satellite}.zip"), dl_file)
                 extract_zipfile(dl_file, self.data_dir.parent)
