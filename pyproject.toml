@@ -165,6 +165,10 @@ banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets",
 channels = ["conda-forge", "pytorch"]
 platforms = ["linux-64", "win-64", "osx-arm64"]
 
+[tool.pixi.dependencies]
+parallelproj = "*"  # Pixi will now look for this in conda-forge
+python = ">=3.10"   # It's good practice to pin python here too
+
 [tool.pixi.pypi-dependencies]
 deepinv = { path = ".", editable = true }
 
