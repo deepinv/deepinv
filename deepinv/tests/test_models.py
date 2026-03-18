@@ -1692,8 +1692,9 @@ class DummyInnerDEAL(nn.Module):
 
     def __init__(self, color: bool = False, *args, **kwargs):
         super().__init__()
-        self.conv = nn.Conv2d(1, 1, kernel_size=3, padding=1)
-
+        channels = 3 if color else 1
+        self.conv = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
+        
     def forward(self, x):
         return self.conv(x)
 
@@ -1714,17 +1715,17 @@ class DummyInnerDEAL(nn.Module):
         Dummy solve_inverse_problem. Ignore arguments and just return
         something with the right shape.
         """
-        return x_init + y
+        return x_init 
 
 
 def fake_load(path, map_location=None, weights_only=False):
     """
     Return a dummy state_dict so load_state_dict() does not fail.
     """
-    return {"state_dict": DummyInnerDEAL().state_dict()}
+    return {"state_dict": DummyInnerDEAL(color=False).state_dict()}
 
 
-def test_deal_model_runs(monkeypatch):
+def test_deal_model_runs(monkeypatch, device):
     """
     Basic smoke test: check that the DEAL wrapper can be constructed
     and that a forward pass runs and returns the right shape.
@@ -1745,13 +1746,15 @@ def test_deal_model_runs(monkeypatch):
         max_iter=1,
         auto_scale=False,
         clamp_output=True,
+        color=False,
+        device=device,
     )
 
     # Simple DeepInverse physics (denoising)
-    physics = Denoising()
+    physics = Denoising().to(device)
 
     # Fake measurement
-    y = torch.randn(1, 1, 32, 32)
+    y = torch.randn(1, 1, 32, 32, device=device)
 
     # Run the forward pass
     x_hat = model(y, physics)
