@@ -90,7 +90,7 @@ def load_dataset(
     if data_dir is None:
         from deepinv.datasets.utils import resolve_root
 
-        data_dir = resolve_root()
+        data_dir = resolve_root(None, dataset_name)
 
     if isinstance(data_dir, str):
         data_dir = Path(data_dir)
