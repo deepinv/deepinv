@@ -24,8 +24,8 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.8.1
         with:
           pixi-version: latest
-          cache: true
-          frozen: false
+          #cache: true
+          #frozen: false
           environments: docs
 
       - name: Fetch base branch
