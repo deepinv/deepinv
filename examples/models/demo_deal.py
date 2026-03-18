@@ -17,7 +17,7 @@ official DEAL repository:
 https://github.com/mehrsapo/DEAL
 """
 
-#%%
+# %%
 # Import packages and load a grayscale example image from Set3C.
 
 import torch
@@ -33,7 +33,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # We use the grayscale DEAL checkpoint in this demo, so we keep one channel.
 x = load_example("butterfly.png", img_size=128).to(device)[:, 0:1, :, :]
 
-#%%
+# %%
 # Define the blur + noise forward model and generate the measurement.
 
 noise_std = 0.01
@@ -45,7 +45,7 @@ physics = Blur(
 
 y = physics(x)
 
-#%%
+# %%
 # Load pretrained DEAL weights from the original repository.
 #
 # Both grayscale and color pretrained checkpoints are available. Here we use
@@ -62,7 +62,7 @@ model = DEAL(
     clamp_output=True,
 )
 
-#%%
+# %%
 # Reconstruct the image, compare with a linear baseline, and display PSNR.
 
 with torch.no_grad():

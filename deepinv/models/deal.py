@@ -502,7 +502,8 @@ class MultiConv2d(nn.Module):
             )
             dirac[0, 0, 2 * self.padding_total, 2 * self.padding_total] = 1
 
-        self.register_buffer("dirac", dirac)  
+        self.register_buffer("dirac", dirac)
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Apply the stacked convolution operator."""
         return self.convolution(x)

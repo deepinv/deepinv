@@ -1694,7 +1694,7 @@ class DummyInnerDEAL(nn.Module):
         super().__init__()
         channels = 3 if color else 1
         self.conv = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
-        
+
     def forward(self, x):
         return self.conv(x)
 
@@ -1715,7 +1715,7 @@ class DummyInnerDEAL(nn.Module):
         Dummy solve_inverse_problem. Ignore arguments and just return
         something with the right shape.
         """
-        return x_init 
+        return x_init
 
 
 def fake_load(path, map_location=None, weights_only=False):
