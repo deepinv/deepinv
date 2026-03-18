@@ -41,6 +41,19 @@ jobs:
         with:
           python-version: ${{ matrix.version_python }}
 
+      - name: Install Micromamba
+        if: matrix.version_python == '3.12'
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          cache-environment: true
+          cache-downloads: false
+          generate-run-shell: true
+
+      - name: Install parallelproj
+        if: matrix.version_python == '3.12'
+        shell: micromamba-shell {0}
+        run: mamba install parallelproj cupy
+
       - name: Install uv
         uses: astral-sh/setup-uv@v6
 
@@ -60,7 +73,7 @@ jobs:
           sed -i "s/>=3.10/>=3.9/" pyproject.toml
 
       - name: Install deepinv and its dependencies
-        shell: bash
+        shell: micromamba-shell {0}
         run: |
           uv venv --python ${{ matrix.version_python }}
           EXTRAS=""
