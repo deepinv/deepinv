@@ -111,7 +111,7 @@ class SimpleFastMRISliceDataset(ImageDataset):
         elif anatomy is None and file_name is None:
             raise ValueError("Either anatomy or file_name must be passed.")
 
-        root_dir = resolve_root(root_dir, self.__class__.__name__)
+        root_dir = resolve_root(root_dir, "SimpleFastMRISlice")
         os.makedirs(root_dir, exist_ok=True)
         file_name = (
             file_name
@@ -349,7 +349,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         filter_id: Callable | None = None,
         rng: torch.Generator | None = None,
     ) -> None:
-        self.root = resolve_root(root, self.__class__.__name__)
+        self.root = resolve_root(root, "FastMRISlice")
         self.transform = transform if transform is not None else MRISliceTransform()
         self.load_metadata_from_cache = load_metadata_from_cache
         self.save_metadata_to_cache = save_metadata_to_cache

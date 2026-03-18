@@ -67,7 +67,7 @@ class Flickr2kHR(ImageFolder):
         download: bool = False,
         transform: Callable = None,
     ) -> None:
-        self.root = resolve_root(root, self.__class__.__name__)
+        self.root = resolve_root(root)
         self.img_dir = os.path.join(self.root, "Flickr2K")
 
         # download dataset, we check first that dataset isn't already downloaded

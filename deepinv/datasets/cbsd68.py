@@ -74,7 +74,7 @@ class CBSD68(ImageDataset):
                 "The library 'datasets' is required to for the CBSD68 dataset. Install it using pip install datasets"
             )
 
-        self.root = resolve_root(root, self.__class__.__name__)
+        self.root = resolve_root(root, "CBSD68")
         self.transform = transform
         self.rotate = rotate
 

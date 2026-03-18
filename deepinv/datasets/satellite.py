@@ -100,7 +100,7 @@ class NBUDataset(ImageDataset):
                 'satellite must be "ikonos", "gaofen-1", "quickbird", "worldview-2", "worldview-3", or "worldview-4".'
             )
 
-        self.data_dir = resolve_root(root_dir) / "nbu" / satellite
+        self.data_dir = resolve_root(root_dir, f"NBU/{satellite}")
         self.normalize = lambda x: (
             x / (1023 if satellite == "gaofen-1" else 2047)
         ).astype(np.float32)

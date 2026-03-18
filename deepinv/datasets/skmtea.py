@@ -85,7 +85,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
         metadata_cache_file: str | Path = "skmtea_dataset_cache.pkl",
         filter_id: Callable = None,
     ):
-        self.root = resolve_root(root)
+        self.root = resolve_root(root, "SKMTEASlice")
         self.echo = echo
         self.acc = acc
 

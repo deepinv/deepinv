@@ -104,7 +104,7 @@ class LsdirHR(ImageFolder):
         download: bool = False,
         transform: Callable = None,
     ) -> None:
-        self.root = resolve_root(root, self.__class__.__name__)
+        self.root = resolve_root(root, "LSDIR")
         self.mode = mode
 
         if self.mode == "train":

@@ -130,7 +130,7 @@ class Kohler(ImageDataset):
         transform: Callable = None,
         download: bool = False,
     ) -> None:
-        self.root = resolve_root(root, self.__class__.__name__)
+        self.root = resolve_root(root, "Kohler")
         self.frames = frames
         self.ordering = ordering
         self.transform = transform

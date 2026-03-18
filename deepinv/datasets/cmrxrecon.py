@@ -112,7 +112,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         pad_size: tuple[int, int] = (512, 256),
         noise_model: NoiseModel = None,
     ):
-        self.root = resolve_root(root, self.__class__.__name__)
+        self.root = resolve_root(root, "CMRxReconSlice")
         self.data_dir = data_dir
         self.mask_dir = mask_dir
         self.transform = transform

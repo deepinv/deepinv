@@ -101,7 +101,7 @@ def extract_tarball(file_path: str | Path, extract_dir: str | Path) -> None:
             tar_ref.extract(file_to_be_extracted, extract_dir)
 
 
-def resolve_root(root: str | Path | None, dataset_name: str) -> Path:
+def resolve_root(root: str | Path | None, dataset_name: str = None) -> Path:
     """Resolve the root directory for a dataset.
 
     If root is None, it defaults to the global cache directory defined by
@@ -113,7 +113,11 @@ def resolve_root(root: str | Path | None, dataset_name: str) -> Path:
     :return: pathlib Path for the dataset root.
     """
     if root is None:
-        return get_data_home() / "datasets" / dataset_name
+        return (
+            get_data_home() / "datasets" / dataset_name
+            if dataset_name is not None
+            else get_data_home() / "datasets"
+        )
     return Path(root)
 
 

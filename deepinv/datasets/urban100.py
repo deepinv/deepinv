@@ -71,7 +71,7 @@ class Urban100HR(ImageFolder):
         download: bool = False,
         transform: Callable = None,
     ) -> None:
-        self.root = resolve_root(root, self.__class__.__name__)
+        self.root = resolve_root(root, "Urban100")
         self.transform = transform
         self.img_dir = os.path.join(self.root, "Urban100_HR")
 

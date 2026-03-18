@@ -89,7 +89,7 @@ class LidcIdriSliceDataset(ImageDataset):
     ) -> None:
         import pandas as pd
 
-        self.root = resolve_root(root, self.__class__.__name__)
+        self.root = resolve_root(root, "LIDC-IDRI-Slice")
         self.transform = transform
         self.hounsfield_units = hounsfield_units
 

@@ -124,7 +124,7 @@ class FMD(ImageDataset):
         transform: Callable = None,
         target_transform: Callable = None,
     ) -> None:
-        self.root = resolve_root(root, self.__class__.__name__)
+        self.root = resolve_root(root, "FMD")
         if img_types is None:
             raise ValueError("img_types is required")
         self.img_types = img_types

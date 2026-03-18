@@ -88,7 +88,9 @@ def load_dataset(
     from deepinv.datasets.base import ImageFolder
 
     if data_dir is None:
-        data_dir = get_data_home()
+        from deepinv.datasets.utils import resolve_root
+
+        data_dir = resolve_root()
 
     if isinstance(data_dir, str):
         data_dir = Path(data_dir)

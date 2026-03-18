@@ -70,7 +70,7 @@ class Set14HR(ImageFolder):
         download: bool = False,
         transform: Callable = None,
     ) -> None:
-        self.root = resolve_root(root, self.__class__.__name__)
+        self.root = resolve_root(root, "Set14")
         self.img_dir = os.path.join(self.root, "Set14_HR")
 
         # download dataset, we check first that dataset isn't already downloaded
