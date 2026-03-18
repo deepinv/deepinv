@@ -43,6 +43,10 @@ jobs:
         run: |
           sed -i "s/>=3.10/>=3.9/" pyproject.toml
 
+      - name: Enable long paths for pixi with windows
+        if: runner.os == 'Windows'
+        run: git config --system core.longpaths true
+
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.8.1
         with:
@@ -74,7 +78,7 @@ jobs:
       - name: Test with pytest
         if: matrix.version_python == '3.12'
         run: |
-          pixi run -e ${{ matrix.environment }} pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -v --testmon
+          pixi run -e ${{ matrix.environment }} pytest  -q -rf -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -v --testmon
 
       - name: Upload coverage to Codecov
         if: runner.os == 'Linux' && matrix.version_python == '3.12'

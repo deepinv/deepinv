@@ -36,7 +36,7 @@ class PET(LinearPhysics):
     .. note::
 
         This operator requires the `parallelproj` package to be installed.
-        You can install it via conda:
+        You can install it via conda/mamba:
 
         ::
 
@@ -57,7 +57,7 @@ class PET(LinearPhysics):
     :param int radial_trim: radial trim of rays on the sides of the volume to improve efficiency.
     :param float gain: gain factor :math:`\gamma` for the Poisson noise model.
     :param bool normalize: If `True` the forward operator is normalized such that :math:`\|A\|=1`.
-    :param bool normalize_counts: If `False` the :meth:`\gamma` term in from of the Poisson noise is removed,
+    :param bool normalize_counts: If `False` the :math:`\gamma` term in from of the Poisson noise is removed,
         that is the measurements are true counts.
     :param str | torch.device device: device to run the computations on, e.g. `"cpu"` or `"cuda"`
     :param torch.Tensor background: background sinogram, i.e. the expected number of background events in each LOR, with shape `(num_lors,)`
@@ -170,8 +170,8 @@ class PET(LinearPhysics):
         )
 
         self.normalize = normalize
-        self.norm = 1.0
 
+        self.register_buffer("operator_norm", torch.ones(1, device=device))
         self.register_buffer("background", background)
         self.register_buffer("attenuation", attenuation)
         self.update_parameters(background=background, attenuation=attenuation)
@@ -202,7 +202,7 @@ class PET(LinearPhysics):
         if self.is_2d:
             out = out.squeeze(-1)
 
-        out /= self.norm
+        out /= self.operator_norm
 
         if add_background:
             out = out + self.background
@@ -225,7 +225,7 @@ class PET(LinearPhysics):
             AdjointLinearSingleChannelOperator.apply(
                 y * self.attenuation, self.pet_lin_op
             )
-            / self.norm
+            / self.operator_norm
         )
         if self.is_2d:
             out = out.squeeze(-1)
@@ -284,8 +284,8 @@ class PET(LinearPhysics):
 
             self.attenuation = torch.exp(-proj_att)
             if self.normalize:
-                self.norm = 1
-                self.norm = self.compute_norm(
+                self.operator_norm = 1
+                self.operator_norm = self.compute_norm(
                     torch.ones_like(attenuation), squared=False, verbose=False
                 )
         if background is not None:

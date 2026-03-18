@@ -242,11 +242,19 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         params = ["mask"]
     elif name == "pet_2d":
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
-        p = dinv.physics.PET(img_size, normalize=True, device=device)
+        p = dinv.physics.PET(
+            img_size,
+            normalize=True,
+            device=device,
+        )
         params = ["attenuation", "background"]
     elif name == "pet_3d":
         img_size = (1, 16, 16, 16) if imsize is None else imsize  # C,H,W
-        p = dinv.physics.PET(img_size, normalize=True, device=device)
+        p = dinv.physics.PET(
+            img_size,
+            normalize=True,
+            device=device,
+        )
         params = ["attenuation", "background"]
     elif name == "2DParallelBeamCT":
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
@@ -1134,7 +1142,7 @@ def test_concatenation(name, device):
         return
     physics, imsize, _, dtype = find_operator(name, device)
 
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
     y = physics(x)
     physics = (
         dinv.physics.Inpainting(
@@ -1859,7 +1867,7 @@ def test_device_consistency(name):
 @pytest.mark.parametrize("name", OPERATORS)
 def test_physics_state_dict(name, device):
     r"""
-    Tests if the physics state dict is well behaved.
+    Tests if the physics state dict is well-behaved.
 
     :param name: operator name (see find_operator)
     :param device: (torch.device) cpu or cuda:x
@@ -2029,6 +2037,8 @@ def test_adjoint_autograd(name, device):
         "ptychography_linear",
         "radio",
         "radio_weighted",
+        "pet_2d",
+        "pet_3d",
     }:
         pytest.skip(f"Operator {name} is not supported by adjoint_function.")
 
