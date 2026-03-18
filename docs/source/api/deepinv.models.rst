@@ -66,6 +66,7 @@ Deep Architectures
    deepinv.models.NCSNpp
    deepinv.models.DScCP
    deepinv.models.RAM
+   deepinv.models.DEAL
    deepinv.models.ArtifactRemoval
 
 Model Utils
