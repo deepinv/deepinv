@@ -167,7 +167,7 @@ platforms = ["linux-64", "win-64", "osx-arm64"]
 
 [tool.pixi.dependencies]
 python = ">=3.9"
-parallelproj = "*"  # This fixes your previous error
+parallelproj = "*"
 
 [tool.pixi.environments]
 default = { solve-group = "default" }
