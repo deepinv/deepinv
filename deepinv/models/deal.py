@@ -30,6 +30,7 @@ class LinearSpline_Func(torch.autograd.Function):
         num_knots: int,
         zero_knot_indexes: torch.Tensor,
     ) -> torch.Tensor:
+        """Evaluate the linear spline activation."""
         step_size = (x_max - x_min) / (num_knots - 1)
         x_clamped = x.clamp(min=x_min.item(), max=x_max.item() - step_size.item())
         floored_x = torch.floor((x_clamped - x_min) / step_size)
@@ -48,6 +49,7 @@ class LinearSpline_Func(torch.autograd.Function):
     def backward(
         ctx: Any, grad_out: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, None, None, None, None]:
+        """Backpropagate through the active linear spline coefficients."""
         fracs, coefficients, indexes, step_size = ctx.saved_tensors
         coefficients_vect = coefficients.view(-1)
 
@@ -87,6 +89,7 @@ class LinearSplineDerivative_Func(torch.autograd.Function):
         num_knots: int,
         zero_knot_indexes: torch.Tensor,
     ) -> torch.Tensor:
+        """Evaluate the derivative of the linear spline activation."""
         step_size = (x_max - x_min) / (num_knots - 1)
         x_clamped = x.clamp(min=x_min.item(), max=x_max.item() - step_size.item())
         floored_x = torch.floor((x_clamped - x_min) / step_size)
@@ -105,6 +108,7 @@ class LinearSplineDerivative_Func(torch.autograd.Function):
     def backward(
         ctx: Any, grad_out: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, None, None, None, None]:
+        """Backpropagate through the active spline-derivative coefficients."""
         fracs, coefficients, indexes, step_size = ctx.saved_tensors
         grad_x = 0 * grad_out
 
@@ -135,6 +139,7 @@ class Quadratic_Spline_Func(torch.autograd.Function):
         num_knots: int,
         zero_knot_indexes: torch.Tensor,
     ) -> torch.Tensor:
+        """Evaluate the quadratic spline activation."""
         step_size = (x_max - x_min) / (num_knots - 1)
         x_clamped = x.clamp(min=x_min.item(), max=x_max.item() - 2 * step_size.item())
         floored_x = torch.floor((x_clamped - x_min) / step_size)
@@ -170,6 +175,7 @@ class Quadratic_Spline_Func(torch.autograd.Function):
     def backward(
         ctx: Any, grad_out: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, None, None, None, None]:
+        """Backpropagate through the active quadratic spline coefficients."""
         grad_x, frac1, frac2, frac3, coefficients, indexes, grid = ctx.saved_tensors
 
         coefficients_vect = coefficients.view(-1)
@@ -220,12 +226,14 @@ class LinearSpline(ABC, nn.Module):
         self.num_knots = int(num_knots)
         self.num_activations = int(num_activations)
         self.init = init
-        self.x_min = torch.tensor([x_min])
-        self.x_max = torch.tensor([x_max])
         self.slope_min = slope_min
         self.slope_max = slope_max
 
-        self.step_size = (self.x_max - self.x_min) / (self.num_knots - 1)
+        self.register_buffer("x_min", torch.tensor([x_min]))
+        self.register_buffer("x_max", torch.tensor([x_max]))
+        self.register_buffer(
+            "step_size", (self.x_max - self.x_min) / (self.num_knots - 1)
+        )
         self.clamp = clamp
         self.no_constraints = slope_max is None and slope_min is None and not clamp
 
@@ -242,7 +250,7 @@ class LinearSpline(ABC, nn.Module):
     def init_zero_knot_indexes(self) -> None:
         """Initialize indexes of zero knots of each activation."""
         activation_arange = torch.arange(0, self.num_activations)
-        self.zero_knot_indexes = activation_arange * self.num_knots
+        self.register_buffer("zero_knot_indexes", activation_arange * self.num_knots)
 
     def initialize_coeffs(self) -> torch.Tensor:
         """Initialize spline coefficients."""
@@ -288,22 +296,10 @@ class LinearSpline(ABC, nn.Module):
         """Return parameter device."""
         return self.coefficients.device
 
-    def hyper_param_to_device(self) -> None:
-        """Move spline hyper-parameters to the module device."""
-        device = self.device
-        self.x_min, self.x_max, self.step_size, self.zero_knot_indexes = (
-            self.x_min.to(device),
-            self.x_max.to(device),
-            self.step_size.to(device),
-            self.zero_knot_indexes.to(device),
-        )
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Apply the linear spline activation.
         """
-        self.hyper_param_to_device()
-
         in_shape = x.shape
         in_channels = in_shape[1]
 
@@ -496,20 +492,23 @@ class MultiConv2d(nn.Module):
         self.padding_total = sum(kernel_size // 2 for kernel_size in size_kernels)
 
         if color:
-            self.dirac = torch.zeros(
+            dirac = torch.zeros(
                 (1, 3, 4 * self.padding_total + 1, 4 * self.padding_total + 1)
             )
-            self.dirac[0, 1, 2 * self.padding_total, 2 * self.padding_total] = 1
+            dirac[0, 1, 2 * self.padding_total, 2 * self.padding_total] = 1
         else:
-            self.dirac = torch.zeros(
+            dirac = torch.zeros(
                 (1, 1, 4 * self.padding_total + 1, 4 * self.padding_total + 1)
             )
-            self.dirac[0, 0, 2 * self.padding_total, 2 * self.padding_total] = 1
+            dirac[0, 0, 2 * self.padding_total, 2 * self.padding_total] = 1
 
+        self.register_buffer("dirac", dirac)  
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply the stacked convolution operator."""
         return self.convolution(x)
 
     def convolution(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply the normalized forward convolution."""
         x = x / torch.sqrt(self.L)
 
         for conv in self.conv_layers:
@@ -526,6 +525,7 @@ class MultiConv2d(nn.Module):
         return x
 
     def transpose(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply the adjoint stacked convolution operator."""
         x = x / torch.sqrt(self.L)
 
         for conv in reversed(self.conv_layers):
@@ -610,6 +610,7 @@ class MultiConv2d(nn.Module):
             print(f"ratio: {ps_1.item() / ps_2.item()}")
 
     def spectrum(self) -> torch.Tensor:
+        """Return the Fourier spectrum of the normal operator kernel."""
         kernel = self.get_kernel_WtW()
         padding = (self.sn_size - 1) // 2 - self.padding_total
         return torch.fft.fft2(
@@ -617,7 +618,7 @@ class MultiConv2d(nn.Module):
         )
 
     def get_filters(self) -> torch.Tensor:
-        self.dirac = self.dirac.to(self.conv_layers[0].weight.device)
+        """Return the effective filters of the stacked convolution."""
         kernel = self.convolution(self.dirac)[
             :,
             :,
@@ -627,16 +628,16 @@ class MultiConv2d(nn.Module):
         return kernel
 
     def get_kernel_WtW(self) -> torch.Tensor:
-        self.dirac = self.dirac.to(self.conv_layers[0].weight.device).type(
-            self.conv_layers[0].weight.dtype
-        )
-        return self.transpose(self.convolution(self.dirac))
+        """Return the kernel of the normal operator W^T W."""
+        dirac = self.dirac.to(dtype=self.conv_layers[0].weight.dtype)
+        return self.transpose(self.convolution(dirac))
 
 
 class ZeroMean(nn.Module):
     """Enforce zero-mean kernels for each output channel."""
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Project kernels to have zero mean per output channel."""
         return x - torch.mean(x, dim=(1, 2, 3)).unsqueeze(1).unsqueeze(2).unsqueeze(3)
 
 
@@ -1058,7 +1059,7 @@ class DEAL(Reconstructor):
     This implementation is adapted from the official DEAL repository:
     https://github.com/mehrsapo/DEAL
 
-    For the original method see the DEAL paper.
+    For the original method, see \footcite:t:pourya2025dealing.
 
     Parameters
     ----------
