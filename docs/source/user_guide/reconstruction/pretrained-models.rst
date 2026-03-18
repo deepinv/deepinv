@@ -40,7 +40,7 @@ These models can be set-up in one line and perform inference in another line:
      - :ref:`Plug-and-play <iterative>` w/ pretrained denoiser
      - General
      - Medium
-   * - :class:`DEAL <deepinv.optim.DEAL>`
+   * - :class:`DEAL <deepinv.models.DEAL>`
      - Feedforward
      - General; physics must be linear
      - Fast
