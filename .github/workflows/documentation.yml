@@ -25,7 +25,7 @@ jobs:
         with:
           pixi-version: latest
           cache: true
-          # This installs the 'docs' environment defined in pyproject.toml
+          frozen: false
           environments: docs
 
       - name: Fetch base branch

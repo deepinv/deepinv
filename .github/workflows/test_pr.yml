@@ -47,10 +47,8 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.8.1
         with:
           pixi-version: latest
-          # This automatically handles caching based on pixi.lock
           cache: true
-          # Select the environment from our matrix
-          environments: ${{ matrix.environment }}
+          frozen: false
 
       # Debugging
       - name: Check Environment
