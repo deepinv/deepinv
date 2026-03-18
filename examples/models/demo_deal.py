@@ -22,7 +22,7 @@ https://github.com/mehrsapo/DEAL
 
 import torch
 
-from deepinv.metric import PSNR
+from deepinv.loss.metric import PSNR
 from deepinv.models import DEAL
 from deepinv.physics import Blur, GaussianNoise
 from deepinv.physics.blur import gaussian_blur
@@ -40,6 +40,7 @@ noise_std = 0.01
 physics = Blur(
     filter=gaussian_blur(sigma=(2.0, 2.0), angle=0.0),
     noise_model=GaussianNoise(sigma=noise_std),
+    padding="circular",
     device=device,
 )
 
@@ -68,7 +69,6 @@ model = DEAL(
 with torch.no_grad():
     x_lin = physics.A_dagger(y)
     x_hat = model(y, physics)
-
 psnr = PSNR()
 psnr_y = psnr(y, x).item()
 psnr_lin = psnr(x_lin, x).item()
@@ -78,8 +78,15 @@ plot(
     [x, y, x_lin, x_hat],
     titles=[
         "Ground truth",
-        f"Blurred measurement\nPSNR: {psnr_y:.2f} dB",
-        f"Linear reconstruction\nPSNR: {psnr_lin:.2f} dB",
-        f"DEAL reconstruction\nPSNR: {psnr_hat:.2f} dB",
+        f"Blurred measurement",
+        f"Linear reconstruction",
+        f"DEAL reconstruction",
     ],
+    subtitles=[
+        "PSNR:",
+        f"{psnr_y:.2f} dB",
+        f"{psnr_lin:.2f} dB",
+        f"{psnr_hat:.2f} dB",
+    ],
+    figsize=(10, 3),
 )

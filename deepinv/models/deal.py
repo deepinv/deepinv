@@ -1142,7 +1142,22 @@ class DEAL(Reconstructor):
             except TypeError:
                 state = torch.load(pretrained, map_location=self.device)
 
-        self.model.load_state_dict(state["state_dict"])
+        raw_state_dict = state.get("state_dict", state)
+
+        model_state_dict = self.model.state_dict()
+
+        # Older DEAL checkpoints do not contain newly introduced buffers.
+        # Merge them with the current defaults while keeping pretrained weights.
+        merged_state_dict = model_state_dict.copy()
+        merged_state_dict.update(
+            {
+                key: value
+                for key, value in raw_state_dict.items()
+                if key in model_state_dict
+            }
+        )
+
+        self.model.load_state_dict(merged_state_dict, strict=True)
 
     @torch.no_grad()
     def forward(self, y: torch.Tensor, physics: LinearPhysics) -> torch.Tensor:
