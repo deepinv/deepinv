@@ -1254,7 +1254,10 @@ def test_sirt(device):
     assert sirt.has_converged
     assert x_sirt_modified is not None
 
-    pytest.importorskip("astra", reason="This test requires the Astra toolbox. It should be installed with `pip install astra-toolbox`")
+    pytest.importorskip(
+        "astra",
+        reason="This test requires the Astra toolbox. It should be installed with `pip install astra-toolbox`",
+    )
 
     # 3D test with Astra
     if device.type != "cpu":
