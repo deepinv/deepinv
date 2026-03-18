@@ -1060,7 +1060,7 @@ class DEAL(Reconstructor):
     This implementation is adapted from the official DEAL repository:
     https://github.com/mehrsapo/DEAL
 
-    For the original method, see \footcite:t:pourya2025dealing.
+    For the original method, see :footcite:t:`pourya2025dealing`.
 
     Parameters
     ----------
