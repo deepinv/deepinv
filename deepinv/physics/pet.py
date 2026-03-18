@@ -2,7 +2,6 @@ from __future__ import annotations
 from .forward import LinearPhysics
 from .noise import PoissonNoise
 import torch
-import matplotlib.pyplot as plt
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -237,6 +236,8 @@ class PET(LinearPhysics):
         Plot the scanner geometry.
 
         """
+        import matplotlib.pyplot as plt
+
         fig = plt.figure(figsize=(16, 8))
         ax = fig.add_subplot(1, 1, 1, projection="3d")
         self.proj.show_geometry(ax)
