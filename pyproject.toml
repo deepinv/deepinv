@@ -161,3 +161,16 @@ banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets",
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "torch.norm".msg = "Use torch.linalg.vector_norm, torch.linalg.matrix_norm or torch.linalg.norm instead of the deprecated torch.norm"
 
+[tool.pixi.project]
+channels = ["conda-forge", "pytorch"]
+platforms = ["linux-64", "win-64", "osx-arm64"]
+
+[tool.pixi.dependencies]
+python = ">=3.9"
+parallelproj = "*"  # This fixes your previous error
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+test = { features = ["test"], solve-group = "default" }
+full = { features = ["dataset", "denoisers", "test", "training"], solve-group = "default" }
+docs = { features = ["dataset", "denoisers", "doc", "training", "test"], solve-group = "default" }
