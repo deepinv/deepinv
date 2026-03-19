@@ -1068,25 +1068,25 @@ class DEAL(Reconstructor):
         Path to a pretrained DEAL checkpoint file or ``"download"`` to
         automatically download the official pretrained weights.
     sigma : float, default=25.0
-        Noise level parameter expected by the DEAL model. 
+        Noise level parameter expected by the DEAL model.
     lam : float, default=10.0
-        Regularization strength used by the DEAL solver. 
+        Regularization strength used by the DEAL solver.
     max_iter : int, default=50
-        Maximum number of outer iterations in the inverse solver. 
+        Maximum number of outer iterations in the inverse solver.
     auto_scale : bool, default=False
         If ``True``, rescale the measurements ``y`` so that their standard
-        deviation is close to ``target_y_std``. 
+        deviation is close to ``target_y_std``.
     target_y_std : float, default=25.0
-        Target standard deviation used for automatic scaling. 
+        Target standard deviation used for automatic scaling.
     color : bool, default=False
         If ``True``, use the color version of DEAL. If ``False``, use the
-        grayscale version. 
+        grayscale version.
     device : str or None, default=None
         Device used for computations. If ``None``, uses ``"cuda"`` when
         available, otherwise ``"cpu"``.
     clamp_output : bool, default=True
         If ``True``, clamp the reconstructed image to ``[0, 1]`` before
-        returning it. 
+        returning it.
     """
 
     def __init__(
