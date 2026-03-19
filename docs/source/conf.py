@@ -82,6 +82,10 @@ intersphinx_mapping = {
 # for python3 type hints
 autodoc_typehints = "description"
 autodoc_typehints_description_target = "documented"
+autodoc_type_aliases = {
+    "Tensor": "torch.Tensor",
+    "ndarray": "numpy.ndarray",
+}  # For type hints with Tensor and ndarray, link to the respective documentation.
 # to handle functions as default input arguments
 autodoc_preserve_defaults = True
 # Warn about broken links
@@ -229,7 +233,7 @@ def add_references_block_to_examples():
             # Add References block if footcite appears
             if ":footcite:" in content:
                 references_block = (
-                    "\n# %%\n" "# :References:\n" "#\n" "# .. footbibliography::\n"
+                    "\n# %%\n# :References:\n#\n# .. footbibliography::\n"
                 )
                 content += references_block
 

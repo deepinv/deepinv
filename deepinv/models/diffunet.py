@@ -336,7 +336,7 @@ class DiffUNet(Denoiser):
         y: Tensor = None,
         type_t: str = "noise_level",
         patch_size: int = 512,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Splits an image tensor into patches (without overlapping), applies the model to each patch, and reconstructs the full image.
 
@@ -408,7 +408,7 @@ class DiffUNet(Denoiser):
 
     def forward_diffusion(
         self, x: Tensor, timesteps: Tensor, y: Tensor = None
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Apply the model to an input batch.
 
@@ -485,7 +485,7 @@ class DiffUNet(Denoiser):
 
     def forward_denoise(
         self, x: Tensor, sigma: float | Tensor, y: Tensor = None
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Applies the denoising model to an input batch.
 
