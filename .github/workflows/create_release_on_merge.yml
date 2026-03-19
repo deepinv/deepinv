@@ -1,0 +1,50 @@
+name: Create Release on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    # Trigger when release PR is merged (from release-branch with release label)
+    if: |
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.ref == 'release-branch' &&
+      contains(github.event.pull_request.labels.*.name, 'release')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: main  # Checkout the merged main branch
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+
+      - name: Get version from pyproject.toml
+        id: version
+        run: |
+          pip install tomlkit
+          VERSION=$(python .github/scripts/get_version.py pyproject.toml)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Release version: $VERSION"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body: |
+            Release v${{ steps.version.outputs.version }}
+            
+            See the [changelog](https://deepinv.github.io/deepinv/stable/changelog.html) for details.
+          generate_release_notes: true
