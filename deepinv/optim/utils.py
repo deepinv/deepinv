@@ -5,6 +5,12 @@ from tqdm import tqdm
 import torch.nn as nn
 from torch.linalg import vector_norm
 import warnings
+from typing import Any, Callable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .data_fidelity import DataFidelity
+    from .prior import Prior
 
 from deepinv.optim.linear import (
     least_squares,
@@ -25,7 +31,14 @@ __all__ = [
 ]  # for backward compatibility
 
 
-def objective_function(x, data_fidelity, prior, cur_params, y, physics):
+def objective_function(
+    x: Tensor,
+    data_fidelity: DataFidelity,
+    prior: Prior | None,
+    cur_params: dict[str, Any],
+    y: Tensor,
+    physics: Any,
+) -> Tensor:
     r"""
     Computes the objective function :math:`F = f + \lambda \regname` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
     and :math:`\regname` is a regularizer.
@@ -48,7 +61,13 @@ def objective_function(x, data_fidelity, prior, cur_params, y, physics):
         return data_fidelity(x, y, physics)
 
 
-def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
+def gradient_descent(
+    grad_f: Callable[[Tensor], Tensor],
+    x: Tensor,
+    step_size: Tensor | float = 1.0,
+    max_iter: int = 100,
+    tol: float = 1e-5,
+) -> Tensor:
     """
     Standard gradient descent algorithm`.
 
@@ -69,22 +88,32 @@ def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
 
 
 def check_conv(
-    X_prev: Tensor | dict[str, Tensor | tuple[Tensor, ...]],
-    X: Tensor | dict[str, Tensor] | dict[str, Tensor | tuple[Tensor, ...]],
-    it,
-    crit_conv="residual",
-    thres_conv=1e-3,
-    verbose=False,
-):
+    X_prev: Tensor | dict[str, Any],
+    X: Tensor | dict[str, Any],
+    it: int,
+    crit_conv: str = "residual",
+    thres_conv: float = 1e-3,
+    verbose: bool = False,
+) -> bool:
     if crit_conv == "residual":
         if isinstance(X_prev, dict):
-            X_prev = X_prev["est"][0]
+            X_prev = X_prev["est"]
+            if isinstance(X_prev, tuple):
+                X_prev = X_prev[0]
         if isinstance(X, dict):
-            X = X["est"][0]
+            X = X["est"]
+            if isinstance(X, tuple):
+                X = X[0]
         crit_cur = vector_norm(X_prev - X) / (vector_norm(X) + 1e-06)
     elif crit_conv == "cost":
+        if not isinstance(X_prev, dict) or not isinstance(X, dict):
+            raise ValueError("Expected dict inputs for cost convergence criterion.")
         F_prev = X_prev["cost"]
         F = X["cost"]
+        if isinstance(F_prev, tuple):
+            F_prev = F_prev[0]
+        if isinstance(F, tuple):
+            F = F[0]
         crit_cur = vector_norm(F_prev - F) / (vector_norm(F) + 1e-06)
 
     else:
@@ -111,7 +140,7 @@ class GaussianMixtureModel(nn.Module):
     :param str device: gpu or cpu.
     """
 
-    def __init__(self, n_components, dimension, device="cpu"):
+    def __init__(self, n_components: int, dimension: int, device: str = "cpu") -> None:
         super(GaussianMixtureModel, self).__init__()
         self._covariance_regularization = None
         self.n_components = n_components
@@ -147,7 +176,7 @@ class GaussianMixtureModel(nn.Module):
         self._logdet_cov_reg = nn.Parameter(self._weights.clone(), requires_grad=False)
         self.set_cov(self._cov)
 
-    def set_cov(self, cov):
+    def set_cov(self, cov: Tensor) -> None:
         r"""
         Sets the covariance parameters to cov and maintains their log-determinants and inverses
 
@@ -167,7 +196,7 @@ class GaussianMixtureModel(nn.Module):
             self._logdet_cov_reg.data = torch.logdet(self._cov_reg).detach().clone()
             self._cov_inv_reg.data = torch.linalg.inv(self._cov_reg).detach().clone()
 
-    def set_cov_reg(self, reg):
+    def set_cov_reg(self, reg: float) -> None:
         r"""
         Sets covariance regularization parameter for evaluating
         Needed for EPLL.
@@ -185,19 +214,19 @@ class GaussianMixtureModel(nn.Module):
         self._logdet_cov_reg.data = torch.logdet(self._cov_reg).detach().clone()
         self._cov_inv_reg.data = torch.linalg.inv(self._cov_reg).detach().clone()
 
-    def get_cov(self):
+    def get_cov(self) -> Tensor:
         r"""
         get method for covariances
         """
         return self._cov.clone()
 
-    def get_cov_inv_reg(self):
+    def get_cov_inv_reg(self) -> Tensor:
         r"""
         get method for covariances
         """
         return self._cov_inv_reg.clone()
 
-    def set_weights(self, weights):
+    def set_weights(self, weights: Tensor) -> None:
         r"""
         sets weight parameter while ensuring non-negativity and summation to one
 
@@ -207,13 +236,13 @@ class GaussianMixtureModel(nn.Module):
         assert torch.sum(weights) > 0.0
         self._weights.data = (weights / torch.sum(weights)).detach().to(self._weights)
 
-    def get_weights(self):
+    def get_weights(self) -> Tensor:
         r"""
         get method for weights
         """
         return self._weights.clone()
 
-    def load_state_dict(self, *args, **kwargs):
+    def load_state_dict(self, *args: Any, **kwargs: Any) -> Any:
         r"""
         Override load_state_dict to maintain internal parameters.
         """
@@ -221,7 +250,9 @@ class GaussianMixtureModel(nn.Module):
         self.set_cov(self._cov)
         self.set_weights(self._weights)
 
-    def component_log_likelihoods(self, x, cov_regularization=False):
+    def component_log_likelihoods(
+        self, x: Tensor, cov_regularization: bool = False
+    ) -> Tensor:
         r"""
         returns a tensor containing the log likelihood values of x for each component
 
@@ -243,7 +274,7 @@ class GaussianMixtureModel(nn.Module):
         )
         return component_log_likelihoods.T
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         r"""
         evaluate negative log likelihood function
 
@@ -256,7 +287,7 @@ class GaussianMixtureModel(nn.Module):
         log_likelihoods = torch.logsumexp(component_log_likelihoods, -1)
         return -log_likelihoods
 
-    def classify(self, x, cov_regularization=False):
+    def classify(self, x: Tensor, cov_regularization: bool = False) -> Tensor:
         """
         returns the index of the most likely component
 
@@ -274,13 +305,13 @@ class GaussianMixtureModel(nn.Module):
 
     def fit(
         self,
-        dataloader,
-        max_iters=100,
-        stopping_criterion=None,
-        data_init=True,
-        cov_regularization=1e-5,
-        verbose=False,
-    ):
+        dataloader: Any,
+        max_iters: int = 100,
+        stopping_criterion: float | None = None,
+        data_init: bool = True,
+        cov_regularization: float = 1e-5,
+        verbose: bool = False,
+    ) -> None:
         """
         Batched Expectation Maximization algorithm for parameter estimation.
 
@@ -331,7 +362,9 @@ class GaussianMixtureModel(nn.Module):
                 "Step {}, Objective {:.4f}".format(step + 1, objective.item())
             )
 
-    def _EM_step(self, dataloader, verbose):
+    def _EM_step(
+        self, dataloader: Any, verbose: bool
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         """
         one step of the EM algorithm
 

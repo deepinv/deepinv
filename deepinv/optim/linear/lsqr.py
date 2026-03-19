@@ -1,7 +1,7 @@
 from __future__ import annotations
 import torch
 from torch import Tensor
-from typing import Callable
+from typing import Any, Callable
 from deepinv.utils.tensorlist import TensorList, zeros_like
 from deepinv.utils.compat import zip_strict
 
@@ -11,14 +11,14 @@ def lsqr(
     AT: Callable,
     b: Tensor,
     eta: float | torch.Tensor = 0.0,
-    x0: Tensor = None,
+    x0: Tensor | float | None = None,
     tol: float = 1e-6,
     conlim: float = 1e8,
     max_iter: int = 100,
     parallel_dim: None | int | list[int] = 0,
     verbose: bool = False,
-    **kwargs,
-) -> Tensor:
+    **kwargs: Any,
+) -> tuple[Tensor, Tensor]:
     r"""
     LSQR algorithm for solving linear systems.
 
@@ -31,13 +31,13 @@ def lsqr(
     :param Callable AT: Adjoint operator as a callable function.
     :param torch.Tensor b: input tensor of shape (B, ...)
     :param float, torch.Tensor eta: damping parameter :math:`eta \geq 0`. Can be batched (shape (B, ...)) or a scalar.
-    :param None, torch.Tensor x0: Optional :math:`x_0`, which is also used as the initial guess.
+    :param None, float, torch.Tensor x0: Optional :math:`x_0`, which is also used as the initial guess.
     :param float tol: relative tolerance for stopping the LSQR algorithm.
     :param float conlim: maximum value of the condition number of the system.
     :param int max_iter: maximum number of LSQR iterations.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
-    :retrun: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), (:class:`torch.Tensor`) condition number of the system.
+    :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), (:class:`torch.Tensor`) condition number of the system.
     """
 
     xt = AT(b)
@@ -52,9 +52,9 @@ def lsqr(
     else:
         device = b.device
 
-    def normf(u):
+    def normf(u: Tensor | TensorList) -> Tensor:
         if isinstance(u, TensorList):
-            total = 0.0
+            total = torch.zeros((), device=device)
             dims = [[i for i in range(bi.ndim) if i not in parallel_dim] for bi in b]
             for k in range(len(u)):
                 total += torch.linalg.vector_norm(
@@ -65,7 +65,7 @@ def lsqr(
             dim = [i for i in range(u.ndim) if i not in parallel_dim]
             return torch.linalg.vector_norm(u, dim=dim, keepdim=False)
 
-    b_shape = []
+    b_shape: list[Any] = []
     if isinstance(b, TensorList):
         for j in range(len(b)):
             b_shape.append([])
@@ -75,11 +75,13 @@ def lsqr(
         for i in range(len(b.shape)):
             b_shape.append(b.shape[i] if i in parallel_dim else 1)
 
-    Atb_shape = []
+    Atb_shape: list[int] = []
     for i in range(len(xt.shape)):
         Atb_shape.append(xt.shape[i] if i in parallel_dim else 1)
 
-    def scalar(v, alpha, b_domain):
+    def scalar(
+        v: Tensor | TensorList, alpha: Tensor, b_domain: bool
+    ) -> Tensor | TensorList:
         if b_domain:
             if isinstance(v, TensorList):
                 return TensorList(

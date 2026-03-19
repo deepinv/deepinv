@@ -9,13 +9,13 @@ from typing import Callable
 def bicgstab(
     A: Callable,
     b: Tensor,
-    init: Tensor = None,
-    max_iter: int = 1e2,
+    init: Tensor | None = None,
+    max_iter: int = 100,
     tol: float = 1e-5,
     parallel_dim: None | int | list[int] = 0,
     verbose: bool = False,
-    left_precon=lambda x: x,
-    right_precon=lambda x: x,
+    left_precon: Callable = lambda x: x,
+    right_precon: Callable = lambda x: x,
 ) -> Tensor:
     """
     Biconjugate gradient stabilized algorithm.
