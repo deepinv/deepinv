@@ -10,6 +10,7 @@ from types import MappingProxyType
 from pathlib import Path
 
 from deepinv.datasets.base import ImageDataset
+from .utils import resolve_root
 
 
 def url_basename(url: str) -> str:
@@ -123,13 +124,13 @@ class Kohler(ImageDataset):
 
     def __init__(
         self,
-        root: str | Path,
+        root: str | Path = None,
         frames: int | str | list[int | str] = "middle",
         ordering: str = "printout_first",
         transform: Callable = None,
         download: bool = False,
     ) -> None:
-        self.root = root
+        self.root = resolve_root(root, "Kohler")
         self.frames = frames
         self.ordering = ordering
         self.transform = transform
