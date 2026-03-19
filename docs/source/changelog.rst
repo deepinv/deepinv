@@ -9,12 +9,15 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add :class:`deepinv.optim.SIRT` algorithm for tomographic reconstruction (:gh:`985` by `Thibaut Modrzyk`_`)
+- Add :class:`deepinv.models.DEAL` model (:gh:`939` by `Hossein Alimohammadi`_)
 
 Changed
 ^^^^^^^
 
 Fixed
 ^^^^^
+- Add warning when options `reduce="mean"` and `reduce="none"` are used in :class:`deepinv.physics.StackedLinearPhysics`. Remove `reduction` argument from :class:`deepinv.distributed.DistributedStackedLinearPhysics` (:gh:`1071` by `Romain Vo`_)
+
 
 
 v0.4.0
@@ -51,7 +54,6 @@ Fixed
 - :func:`deepinv.utils.plot_ortho3D` doesn't perform sqrt on images (:gh:`1068` by `Andrew Wang`_)
 - Deprecate `self.device` in :class:`deepinv.physics.LinearPhysics` and remove it from internal logic. Define it as a property until removed. (:gh:`989` by `Romain Vo`_)
 - Sample a unique factor per batch in :class:`deepinv.physics.generator.DownsamplingGenerator` (:gh:`1085` by `Romain Vo`_)
-
 
 
 
@@ -596,3 +598,4 @@ Changed
 .. _Tiberiu Sabau: https://github.com/tibisabau
 .. _Benoît Malézieux: https://github.com/bmalezieux
 .. _Paul Escande: https://pescande.perso.math.cnrs.fr/
+.. _Hossein Alimohammadi: https://github.com/Holimmo7
