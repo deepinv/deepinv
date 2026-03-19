@@ -284,7 +284,7 @@ class PET(LinearPhysics):
 
             self.attenuation = torch.exp(-proj_att)
             if self.normalize:
-                self.operator_norm = 1
+                self.operator_norm = torch.ones(1, device=self.device)
                 self.operator_norm = self.compute_norm(
                     torch.ones_like(attenuation), squared=False, verbose=False
                 )
