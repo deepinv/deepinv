@@ -1062,31 +1062,17 @@ class DEAL(Reconstructor):
 
     For the original method, see :footcite:t:`pourya2025dealing`.
 
-    Parameters
-    ----------
-    pretrained : str, default=None
-        Path to a pretrained DEAL checkpoint file or ``"download"`` to
-        automatically download the official pretrained weights.
-    sigma : float, default=25.0
-        Noise level parameter expected by the DEAL model.
-    lam : float, default=10.0
-        Regularization strength used by the DEAL solver.
-    max_iter : int, default=50
-        Maximum number of outer iterations in the inverse solver.
-    auto_scale : bool, default=False
-        If ``True``, rescale the measurements ``y`` so that their standard
-        deviation is close to ``target_y_std``.
-    target_y_std : float, default=25.0
-        Target standard deviation used for automatic scaling.
-    color : bool, default=False
-        If ``True``, use the color version of DEAL. If ``False``, use the
-        grayscale version.
-    device : str or None, default=None
-        Device used for computations. If ``None``, uses ``"cuda"`` when
-        available, otherwise ``"cpu"``.
-    clamp_output : bool, default=True
-        If ``True``, clamp the reconstructed image to ``[0, 1]`` before
-        returning it.
+    A pretrained network can be loaded by setting ``pretrained='download'``.
+
+    :param str pretrained: checkpoint path or ``'download'``.
+    :param float sigma: noise-level parameter used by DEAL.
+    :param float lam: regularization strength used by the DEAL solver.
+    :param int max_iter: maximum number of outer fixed-point iterations.
+    :param bool auto_scale: if ``True``, rescales measurements based on their std.
+    :param float target_y_std: target std for auto-scaling when enabled.
+    :param bool color: if ``True``, use the color DEAL variant; otherwise grayscale.
+    :param str, None device: compute device. If ``None``, use CUDA if available.
+    :param bool clamp_output: if ``True``, clamp output to ``[0, 1]``.
     """
 
     def __init__(
