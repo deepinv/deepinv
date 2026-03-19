@@ -53,3 +53,8 @@ from .bilateral import BilateralFilter
 from .noise_level_estimation import WaveletNoiseEstimator, PatchCovarianceNoiseEstimator
 
 from .third_party import PromptIR
+
+from .vae import VAE
+from .cae import MbtCAE
+from .latent_optimizer import MAPzOptimizer, VBLEzOptimizer, VBLExzOptimizer
+
