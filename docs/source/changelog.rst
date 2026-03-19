@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.optim.SIRT` algorithm for tomographic reconstruction (:gh:`985` by `Thibaut Modrzyk`_`)
 - Add :class:`deepinv.models.DEAL` model (:gh:`939` by `Hossein Alimohammadi`_)
 
 Changed
