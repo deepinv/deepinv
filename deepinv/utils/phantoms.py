@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -127,3 +128,125 @@ class SheppLoganDataset(Dataset):
             x = self.transform(x)
 
         return x
+
+
+def generate_pet_phantom(
+    img_shape: tuple[int, int, int] | tuple[int, int],
+    device: str = "cpu",
+    mu_value: float = 0.01,
+    add_spheres: bool = True,
+    add_inner_cylinder: bool = True,
+    r0: float = 0.45,
+    r1: float = 0.28,
+    oversampling_factor=4,
+):
+    """
+    Generate a 3D PET phantom and attenuation.
+
+    :param tuple img_shape: Shape of the input image `(H, W)` or volume `(H, W, D)`
+    :param tuple device: Device to use
+    :param float mu_value: Initial mu value
+    :param bool add_spheres: Whether to add spheres
+    :param bool add_inner_cylinder: Whether to add cylinders
+    :param float r0: Radius of the sphere
+    :param float r1: Radius of the cylinder
+    :param float oversampling_factor: Oversampling factor
+    :returns: PET phantom and attenuation tensor of shape `(1, 1, H, W)` or `(1, 1, H, W, D)`
+    """
+    if len(img_shape) == 2:
+        keep_center_slice = True
+        img_shape = img_shape + (32,)
+    else:
+        keep_center_slice = False
+
+    D, H, W = img_shape
+    od, oh, ow = [oversampling_factor * x for x in img_shape]
+    x_em = torch.zeros((od, oh, ow), dtype=torch.float32, device=device)
+    x_att = torch.zeros_like(x_em)
+
+    c0 = od / 2
+    c1 = oh / 2
+    c2 = ow / 2
+
+    a = r0 * od
+    b = r1 * oh
+
+    rix = od / 25
+    riy = oh / 25
+
+    y, x = torch.meshgrid(
+        torch.arange(od, device=device),
+        torch.arange(oh, device=device),
+        indexing="ij",
+    )
+
+    outer_mask = ((x - c0) / a) ** 2 + ((y - c1) / b) ** 2 <= 1
+    inner_mask = ((x - c0) / rix) ** 2 + ((y - c1) / riy) ** 2 <= 1
+
+    for z in range(ow):
+        x_em[:, :, z][outer_mask] = 1.0
+        x_att[:, :, z][outer_mask] = mu_value
+
+        if add_inner_cylinder:
+            x_em[:, :, z][inner_mask] = 0.25
+            x_att[:, :, z][inner_mask] = mu_value / 3
+
+    if add_spheres:
+        x, y, z = torch.meshgrid(
+            torch.arange(od, device=device),
+            torch.arange(oh, device=device),
+            torch.arange(ow, device=device),
+            indexing="ij",
+        )
+
+        r_sp = [ow / 9] * 3
+        r_sp2 = [ow / 17] * 3
+
+        for z_offset in [c2, 0.45 * c2]:
+
+            sp_mask = ((x - c0) / r_sp[0]) ** 2 + ((y - 1.4 * c1) / r_sp[1]) ** 2 + (
+                (z - z_offset) / r_sp[2]
+            ) ** 2 <= 1
+            x_em[sp_mask] = 2.5
+
+            sp_mask2 = ((x - 1.3 * c0) / r_sp[0]) ** 2 + ((y - c1) / r_sp[1]) ** 2 + (
+                (z - z_offset) / r_sp[2]
+            ) ** 2 <= 1
+            x_em[sp_mask2] = 0.25
+
+            sp_mask = ((x - c0) / r_sp2[0]) ** 2 + ((y - 0.6 * c1) / r_sp2[1]) ** 2 + (
+                (z - z_offset) / r_sp2[2]
+            ) ** 2 <= 1
+            x_em[sp_mask] = 2.5
+
+            sp_mask2 = ((x - 0.7 * c0) / r_sp2[0]) ** 2 + ((y - c1) / r_sp2[1]) ** 2 + (
+                (z - z_offset) / r_sp2[2]
+            ) ** 2 <= 1
+            x_em[sp_mask2] = 0.25
+
+    # downsample by averaging
+    f = oversampling_factor
+
+    def downsample(v):
+        v = v.view(D, f, H, f, W, f)
+        v = v.sum(dim=(1, 3, 5))
+        return v / (f**3)
+
+    x_em = downsample(x_em)
+    x_att = downsample(x_att)
+
+    x_em[:, :, :3] = 0
+    x_em[:, :, -3:] = 0
+
+    x_att[:, :, :2] = 0
+    x_att[:, :, -2:] = 0
+
+    if keep_center_slice:
+        x_em = x_em[..., x_em.size(-1) // 2]
+        x_att = x_att[..., x_att.size(-1) // 2]
+
+    # add batch + channel
+    x_em = x_em.unsqueeze(0).unsqueeze(0)  # (1,1,D,H,W) or (1,1,
+    x_att = x_att.unsqueeze(0).unsqueeze(0)
+
+    return x_em, x_att

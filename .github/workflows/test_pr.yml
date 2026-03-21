@@ -5,7 +5,6 @@ on:
     branches:
     - main
 
-# Cancel in-progress runs when pushing a new commit on the PR
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -15,76 +14,55 @@ jobs:
     name: Test ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
-          # Ubuntu tests
           - os: ubuntu-latest
             version_python: "3.9"
-            extra: test
+            environment: "test" # Matches [tool.pixi.environments]
             name: "ubuntu py3.9 no optional dependencies"
           - os: ubuntu-latest
             version_python: "3.12"
-            extra: dataset,denoisers,test,training
+            environment: "full"
             name: "ubuntu py3.12 all optional dependencies"
-          # Windows tests
           - os: windows-latest
             version_python: "3.12"
-            extra: dataset,denoisers,test,training
+            environment: "full"
             name: "windows py3.12 all optional dependencies"
     env:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
-      UV_CACHE_DIR: /tmp/.uv-cache
+
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.version_python }}
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-
-      - name: Restore uv cache
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.uv-cache
-          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
-          restore-keys: |
-            uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
-            uv-${{ runner.os }}
-
-      # Make sure it uses dependencies compatible with Python 3.9 (only affects the Python 3.9 job)
-      - name: Fake the minimum supported version for Python 3.9
+      # Pixi needs the pyproject.toml to be valid for the version we want BEFORE setup
+      - name: Patch Python version for 3.9 compatibility
         if: matrix.version_python == '3.9'
+        shell: bash
         run: |
           sed -i "s/>=3.10/>=3.9/" pyproject.toml
 
-      - name: Install deepinv and its dependencies
-        shell: bash
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          pixi-version: latest
+          #cache: true
+          #frozen: false
+
+      - name: Check Environment
         run: |
-          uv venv --python ${{ matrix.version_python }}
-          EXTRAS=""
-          for extra in $(echo "${{ matrix.extra }}" | tr ',' ' '); do
-            EXTRAS+=" --extra $extra"
-          done
-          uv sync $EXTRAS
-
-      # For debugging purposes
-      - name: Check Python version
-        run: uv run python --version
-
-      - name: Check installed packages
-        run: uv pip list
+          pixi run -e ${{ matrix.environment }} python --version
+          pixi run -e ${{ matrix.environment }} pip list
 
       - name: Python 3.9 check import warning
         if: matrix.version_python == '3.9'
         run: |
-          uv run python -c "import deepinv"
+          pixi run -e ${{ matrix.environment }} python -c "import deepinv"
 
-      - name: Restore .testmondata # Restore testmon data from main to speed up tests
-        if: matrix.version_python == '3.12' # Only restore cache for Python 3.12 job, as it's the one that runs tests
+      - name: Restore .testmondata
+        if: matrix.version_python == '3.12'
         uses: actions/cache/restore@v3
-        id: restore-cache
         with:
           path: .testmondata
           key: testmon-cpu-main-${{ matrix.os }}-${{ matrix.version_python }}-${{ github.run_id }}
@@ -92,19 +70,15 @@ jobs:
             testmon-cpu-main-${{ matrix.os }}-${{ matrix.version_python }}
             testmon-cpu-main-${{ matrix.os }}
 
-      - name: Test with pytest and generate coverage report
-        if: ${{matrix.version_python == '3.12' }}
+      - name: Test with pytest
+        if: matrix.version_python == '3.12'
         run: |
-          uv run python -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v --testmon
+          pixi run -e ${{ matrix.environment }} pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml --testmon
 
       - name: Upload coverage to Codecov
-        # Only upload coverage on Linux
-        if: ${{ runner.os == 'Linux' && matrix.version_python == '3.12' }}
+        if: runner.os == 'Linux' && matrix.version_python == '3.12'
         uses: codecov/codecov-action@v5
 
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() && runner.os == 'Linux' && matrix.version_python == '3.12'}}
+        if: (!cancelled()) && runner.os == 'Linux' && matrix.version_python == '3.12'
         uses: codecov/test-results-action@v1
-      
-      - name: Minimize uv cache
-        run: uv cache prune --ci

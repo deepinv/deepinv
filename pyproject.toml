@@ -77,7 +77,7 @@ lint = [
     "ruff"
 ]
 
-# optional dependencies for specific denoisers, physics or transforms
+# optional dependencies for specific denoisers, or transforms
 denoisers = [
     "bm3d",
     "bm4d<4.2.4",
@@ -86,15 +86,19 @@ denoisers = [
     "ptwt",
     "FrEIA",
     "kornia",
-    "torchkbnufft",
     "libcpab",
-    "sigpy",
     "scipy",
-    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
-    "spyrit>=3.0.0; platform_system=='Linux'",
     "diffusers",
     "transformers",
-    "numba>=0.60.0",
+    #"numba>=0.60.0",
+]
+
+physics = [
+    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
+    "spyrit>=3.0.0; platform_system=='Linux'",
+    "torchkbnufft",
+    "array_api_compat",
+    "sigpy",
 ]
 
 # optional dependencies for specific datasets
@@ -115,9 +119,27 @@ training = [
     "mlflow",
 ]
 
+##############################################################
+# Pixi configuration for managing conda optional dependencies
 
+[tool.pixi.workspace]
+channels = ["conda-forge", "pytorch"]
+platforms = ["linux-64", "win-64", "osx-arm64"]
 
-#####################################################################
+[tool.pixi.dependencies]
+parallelproj = "*"  # look in conda-forge for this dependency
+python = ">=3.10"
+
+[tool.pixi.pypi-dependencies]
+deepinv = { path = ".", editable = true }
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+test = { features = ["test"], solve-group = "default" }
+docs = { features = ["doc", "dataset", "denoisers", "physics", "training"], solve-group = "default" }
+full = { features = ["test", "dataset", "denoisers", "physics", "training"], solve-group = "default" }
+
+##############################################
 # Pytest configuration and coverage reporting
 
 [tool.pytest.ini_options]
@@ -159,4 +181,4 @@ banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets",
 # Deprecated functions that should be replaced
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "torch.norm".msg = "Use torch.linalg.vector_norm, torch.linalg.matrix_norm or torch.linalg.norm instead of the deprecated torch.norm"
- 
+
