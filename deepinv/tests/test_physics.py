@@ -246,6 +246,10 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size,
             normalize=True,
             device=device,
+            noise_model=dinv.physics.ZeroNoise(),
+        )
+        p.normalize = (
+            False  # stop auto-normalize to compute gradients wrt to attn and bkg
         )
         params = ["attenuation", "background"]
     elif name == "pet_3d":
@@ -254,6 +258,10 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size,
             normalize=True,
             device=device,
+            noise_model=dinv.physics.ZeroNoise(),
+        )
+        p.normalize = (
+            False  # stop auto-normalize to compute gradients wrt to attn and bkg
         )
         params = ["attenuation", "background"]
     elif name == "2DParallelBeamCT":
@@ -1713,7 +1721,8 @@ def test_unmixing(device):
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operators_differentiability(name, device):
     r"""
-    Tests if a forward operator is differentiable (can perform back-propagation).
+    Tests if a forward operator is differentiable (can perform back-propagation)
+    with respect to the input and its physics parameters (if they exist and are floating point tensors).
 
     :param name: operator name (see find_operator)
     :param device: (torch.device) cpu or cuda:x
@@ -2066,6 +2075,8 @@ def test_adjoint_autograd(name, device):
 def test_clone(name, device):
     if name in OPERATORS:
         physics, imsize, _, dtype = find_operator(name, device)
+        if "pet" in name:
+            pytest.skip("PET operators cannot be cloned due to parallelproj.")
     elif name in NONLINEAR_OPERATORS:
         if name == "haze":
             pytest.skip(

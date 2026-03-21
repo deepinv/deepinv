@@ -195,10 +195,12 @@ class PET(LinearPhysics):
         :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`s` of the operator.
         """
         self.update_parameters(attenuation=attenuation, background=background)
-
+        attenuation = self.attenuation
         if self.is_2d:
             x = x.unsqueeze(-1)
-        out = LinearSingleChannelOperator.apply(x, self.pet_lin_op) * self.attenuation
+            attenuation = attenuation.unsqueeze(-1)
+
+        out = LinearSingleChannelOperator.apply(x, self.pet_lin_op) * attenuation
         if self.is_2d:
             out = out.squeeze(-1)
 
@@ -219,12 +221,12 @@ class PET(LinearPhysics):
         :param torch.Tensor background: If not `None`, update the background
         """
         self.update_parameters(attenuation=attenuation, background=background)
+        attenuation = self.attenuation
         if self.is_2d:
             y = y.unsqueeze(-1)
+            attenuation = attenuation.unsqueeze(-1)
         out = (
-            AdjointLinearSingleChannelOperator.apply(
-                y * self.attenuation, self.pet_lin_op
-            )
+            AdjointLinearSingleChannelOperator.apply(y * attenuation, self.pet_lin_op)
             / self.operator_norm
         )
         if self.is_2d:
@@ -280,11 +282,13 @@ class PET(LinearPhysics):
                 attenuation = attenuation.unsqueeze(-1)
             proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
             if self.is_2d:
-                attenuation = attenuation.squeeze(-1)
+                proj_att = proj_att.squeeze(-1)
 
             self.attenuation = torch.exp(-proj_att)
             if self.normalize:
-                self.operator_norm = torch.ones(1, device=self.device)
+                self.operator_norm = torch.ones(1, device=self.attenuation.device)
+                if self.is_2d:
+                    attenuation = attenuation.squeeze(-1)
                 self.operator_norm = self.compute_norm(
                     torch.ones_like(attenuation), squared=False, verbose=False
                 )

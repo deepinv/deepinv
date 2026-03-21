@@ -43,10 +43,6 @@ jobs:
         run: |
           sed -i "s/>=3.10/>=3.9/" pyproject.toml
 
-      - name: Enable long paths for pixi with windows
-        if: runner.os == 'Windows'
-        run: git config --system core.longpaths true
-
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.8.1
         with:
@@ -54,7 +50,6 @@ jobs:
           #cache: true
           #frozen: false
 
-      # Debugging
       - name: Check Environment
         run: |
           pixi run -e ${{ matrix.environment }} python --version
