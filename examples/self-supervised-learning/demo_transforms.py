@@ -117,9 +117,24 @@ t = dinv.transform.projective.PanTiltRotate(n_trans=2, theta_max=10, theta_z_max
 # Symmetrize function with respect to transform
 f_s = t.symmetrize(f, average=True)
 dinv.utils.plot(
-    [x, f(x), f_s(x)], titles=["Orig", "$f(x)$", "$\\sum_i T_i^{-1}f(T_ix)$"]
+    [x, f(x), f_s(x)], titles=["Orig", "$f(x)$", "$\\sum_i T_g^{-1}f(T_g x)$"]
 )
 
+# %%
+# Reconstructors can also be made equivariant in a similar way using :class:`deepinv.models.EquivariantReconstructor`.
+
+sigma = 0.1
+physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=sigma))
+y = physics(Resize(128)(x))
+
+rotate = dinv.transform.Rotate(multiples=90, positive=True, n_trans=4)
+transform = rotate * dinv.transform.Reflect(dim=[-1], n_trans=2)
+
+denoiser = dinv.models.MedianFilter()
+model = dinv.models.ArtifactRemoval(denoiser, mode="pinv")
+model_eq = dinv.models.EquivariantReconstructor(model, train_transform=transform)
+
+dinv.utils.plot([x, y, model(y, physics=physics), model_eq(y, physics=physics)])
 
 # %%
 # 3. Equivariant imaging
