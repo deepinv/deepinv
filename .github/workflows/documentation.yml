@@ -92,7 +92,7 @@ jobs:
             mkdir -p "$out_dir"
             base="$(basename "$rel" .py)"
             out_path="$out_dir/$base.ipynb"
-            pixi run -e docs python .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
+            pixi run -e doctest python .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
           done
 
       - name: Upload Documentation Artifact

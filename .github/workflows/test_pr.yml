@@ -73,7 +73,6 @@ jobs:
       - name: Test with pytest
         if: matrix.version_python == '3.12'
         run: |
-          set -e
           pixi run -e ${{ matrix.environment }} pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml --testmon
 
       - name: Upload coverage to Codecov
