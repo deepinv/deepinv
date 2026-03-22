@@ -1,0 +1,75 @@
+name: Test Install Methods
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"  # every Monday at 06:00 UTC
+
+jobs:
+  pip:
+    name: "pip"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+
+      - name: Install deepinv via pip
+        run: pip install deepinv
+
+      - name: Test import
+        run: python -c "import deepinv; print('deepinv', deepinv.__version__)"
+
+  uv:
+    name: "uv"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install deepinv via uv
+        run: |
+          uv venv
+          uv pip install deepinv
+
+      - name: Test import
+        run: uv run python -c "import deepinv; print('deepinv', deepinv.__version__)"
+
+  pixi:
+    name: "pixi"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          pixi-version: latest
+          run-install: false  # do not install from the repo's pyproject.toml
+
+      - name: Install deepinv via pixi
+        run: |
+          mkdir test_project
+          cd test_project
+          pixi init
+          pixi add --pypi deepinv
+          pixi run python -c "import deepinv; print('deepinv', deepinv.__version__)"
+
+  conda:
+    name: "conda"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.10"
+          activate-environment: test-env
+          auto-activate-base: false
+
+      - name: Install deepinv via conda
+        shell: bash -el {0}
+        run: conda install -c conda-forge deepinv -y
+
+      - name: Test import
+        shell: bash -el {0}
+        run: python -c "import deepinv; print('deepinv', deepinv.__version__)"
+
