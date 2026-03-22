@@ -130,11 +130,8 @@ parallelproj = "*"  # look in conda-forge for this dependency
 python = ">=3.9"
 
 [tool.pixi.pypi-dependencies]
-# 2. Pixi gets your libraries from PyPI here:
 torch = ">=2.0.0"
 torchvision = "*"
-
-[tool.pixi.pypi-dependencies]
 deepinv = { path = ".", editable = true }
 
 [tool.pixi.environments]
