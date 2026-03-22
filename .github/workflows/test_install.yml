@@ -93,7 +93,7 @@ jobs:
           cd test_project
           pixi init
           pixi add python
-          pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
+            pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
           pixi run python -c "import deepinv; print('deepinv', deepinv.__version__)"
 
   conda:
@@ -117,6 +117,14 @@ jobs:
         # TODO: requests is missing from the conda-forge recipe for deepinv;
         # install it explicitly until the recipe is fixed upstream.
         run: conda install -c conda-forge deepinv requests -y
+
+      - name: Pre-install pytorch from conda-forge (git source)
+        if: matrix.source == 'git'
+        shell: bash -el {0}
+        # Install torch/torchvision from conda-forge first so that the pip install
+        # below finds them already satisfied and does not pull in a PyPI-built torch
+        # that bundles conflicting native libraries (e.g. libprotobuf on macOS).
+        run: conda install -c conda-forge pytorch torchvision -y
 
       - name: Install deepinv from git
         if: matrix.source == 'git'

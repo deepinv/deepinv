@@ -106,6 +106,13 @@ Or, to also install optional dependencies:
 
             pip install deepinv[dataset,denoisers,physics]
 
+    .. tab-item:: conda
+        :sync: conda
+
+        .. code-block:: bash
+
+            conda install -c conda-forge deepinv
+
     .. tab-item:: uv
         :sync: uv
 
@@ -120,12 +127,6 @@ Or, to also install optional dependencies:
 
             pixi add --pypi "deepinv[dataset,denoisers,physics]"
 
-    .. tab-item:: conda
-        :sync: conda
-
-        .. code-block:: bash
-
-            conda install -c conda-forge deepinv
 
 
 Since ``deepinv`` is under active development, you can install the latest nightly version using:
@@ -138,6 +139,14 @@ Since ``deepinv`` is under active development, you can install the latest nightl
 
         .. code-block:: bash
 
+            pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: conda
+        :sync: conda
+
+        .. code-block:: bash
+
+            # requires pre-installing torch and torchvision with conda
             pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
     .. tab-item:: uv
@@ -154,12 +163,6 @@ Since ``deepinv`` is under active development, you can install the latest nightl
 
             pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
 
-    .. tab-item:: conda
-        :sync: conda
-
-        .. code-block:: bash
-
-            pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
 Or, for updating an existing installation:
 
@@ -168,6 +171,13 @@ Or, for updating an existing installation:
 
     .. tab-item:: pip
         :sync: pip
+
+        .. code-block:: bash
+
+            pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: conda
+        :sync: conda
 
         .. code-block:: bash
 
@@ -186,13 +196,6 @@ Or, for updating an existing installation:
         .. code-block:: bash
 
             pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
-
-    .. tab-item:: conda
-        :sync: conda
-
-        .. code-block:: bash
-
-            pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
 
 
