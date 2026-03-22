@@ -73,15 +73,6 @@ jobs:
         run: |
           pixi run -e docs sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
 
-      - name: Run doctests
-        env:
-          SPHINX_DOCTEST: "1"
-          TQDM_DISABLE: 1
-          HF_HUB_DISABLE_PROGRESS_BARS: 1
-          DEEPINV_DOWNLOAD_VERBOSE: 0
-        run: |
-          pixi run -e doctest pytest --doctest-modules --doctest-glob="*.rst"
-
       - name: Notebook generation
         run: |
           set -euo pipefail
@@ -106,3 +97,12 @@ jobs:
         if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
         run: |
           echo "Documentation artifact URL: ${{ steps.upload-artifact.outputs.artifact-url }}"
+
+      - name: Run doctests
+        env:
+          SPHINX_DOCTEST: "1"
+          TQDM_DISABLE: 1
+          HF_HUB_DISABLE_PROGRESS_BARS: 1
+          DEEPINV_DOWNLOAD_VERBOSE: 0
+        run: |
+          pixi run -e doctest pytest --doctest-glob="*.rst" docs/

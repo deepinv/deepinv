@@ -18,10 +18,6 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            version_python: "3.9"
-            environment: "test" # Matches [tool.pixi.environments]
-            name: "ubuntu py3.9 no optional dependencies"
-          - os: ubuntu-latest
             version_python: "3.12"
             environment: "full"
             name: "ubuntu py3.12 all optional dependencies"
@@ -36,24 +32,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # Pixi needs the pyproject.toml to be valid for the version we want BEFORE setup
-      - name: Patch Python version for 3.9 compatibility
-        if: matrix.version_python == '3.9'
-        shell: bash
-        run: |
-          sed -i "s/>=3.10/>=3.9/" pyproject.toml
-
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.8.1
         with:
           pixi-version: latest
           #cache: true
           #frozen: false
-
-      - name: Python 3.9 check import warning
-        if: matrix.version_python == '3.9'
-        run: |
-          pixi run -e ${{ matrix.environment }} python -c "import deepinv"
 
       - name: Restore .testmondata
         if: matrix.version_python == '3.12'
@@ -67,11 +51,8 @@ jobs:
 
       - name: Test with pytest
         if: matrix.version_python == '3.12'
-        shell: bash
-        env:
-          KMP_DUPLICATE_LIB_OK: "TRUE"
         run: |
-          pixi run -e ${{ matrix.environment }} pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml --testmon
+          pixi run -e ${{ matrix.environment }} pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml --testmon --doctest-modules
 
       - name: Upload coverage to Codecov
         if: runner.os == 'Linux' && matrix.version_python == '3.12'
