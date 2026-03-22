@@ -68,6 +68,8 @@ jobs:
       - name: Test with pytest
         if: matrix.version_python == '3.12'
         shell: bash
+        env:
+          KMP_DUPLICATE_LIB_OK: "TRUE"
         run: |
           pixi run -e ${{ matrix.environment }} pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml --testmon
 
