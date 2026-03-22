@@ -246,16 +246,18 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size,
             normalize=True,
             device=device,
+            projected_attenuation=True,
         )
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
-        params = ["attenuation", "background"]
+        params = ["background", "attenuation"]
     elif name == "pet_3d":
         img_size = (1, 16, 16, 16) if imsize is None else imsize  # C,H,W
         p = dinv.physics.PET(
             img_size,
             normalize=True,
             device=device,
+            projected_attenuation=True,
         )
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
@@ -1774,7 +1776,7 @@ def test_operators_differentiability(name, device):
                     parameters[k] = v.requires_grad_(True)
 
             with torch.enable_grad():
-                y_hat = physics.A(x, **parameters)
+                y_hat = physics(x, **parameters)
                 if isinstance(y_hat, TensorList):
                     for y_hat_item, y_item in zip_strict(y_hat.x, y.x):
                         loss = torch.nn.functional.mse_loss(y_hat_item, y_item)

@@ -59,6 +59,9 @@ class PET(LinearPhysics):
     :param bool normalize: If `True` the forward operator is normalized such that :math:`\|A\|=1`.
     :param bool normalize_counts: If `False` the :math:`\gamma` term in from of the Poisson noise is removed,
         that is the measurements are true counts.
+    :param bool projected_attenuation: If `False` (default), the attenuation should be provided in image space as :math:`\mu` (ie auxiliary CT scan).
+        If `True`, the attenuation should be provided in the image space as :math:`c`. This should be set as `False` to efficiently compute
+        gradients wrt the attenuation.
     :param str | torch.device device: device to run the computations on, e.g. `"cpu"` or `"cuda"`
     :param torch.Tensor background: background sinogram, i.e. the expected number of background events in each LOR, with shape `(num_lors,)`
     :param torch.Tensor attenuation: attenuation map, i.e. the linear attenuation coefficient in each voxel, with shape `(H,W)` for 2D and `(D, H, W)` for 3D.
@@ -91,6 +94,7 @@ class PET(LinearPhysics):
         gain: float = 1.0,
         normalize: bool = False,
         normalize_counts: bool = False,
+        projected_attenuation: bool = False,
         device: str | torch.device = "cpu",
         background: torch.Tensor | None = None,
         attenuation: torch.Tensor | None = None,
@@ -121,6 +125,8 @@ class PET(LinearPhysics):
         elif len(voxel_size) == 2:
             voxel_size = voxel_size + (voxel_size[-1],)
 
+        self.img_size = img_size
+
         if len(img_size) == 2:
             img_size = img_size + (1,)
             self.is_2d = True
@@ -131,6 +137,8 @@ class PET(LinearPhysics):
             scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
                 torch_compat, dev=device, num_rings=1 if self.is_2d else 16
             )
+
+        self.projected_attenuation = projected_attenuation
 
         # setup the LOR descriptor that defines the sinogram
         lor_desc = parallelproj.RegularPolygonPETLORDescriptor(
@@ -154,13 +162,16 @@ class PET(LinearPhysics):
             if self.is_2d:
                 background = background.squeeze(-1)
 
-        attenuation = (
-            attenuation
-            if attenuation is not None
-            else torch.zeros((1, 1) + img_size, device=device)
-        )
-        if self.is_2d:
-            attenuation = attenuation.squeeze(-1)
+        if not projected_attenuation:
+            attenuation = (
+                attenuation
+                if attenuation is not None
+                else torch.zeros((1, 1) + img_size, device=device)
+            )
+            if self.is_2d:
+                attenuation = attenuation.squeeze(-1)
+        else:
+            attenuation = torch.ones_like(background)
 
         self.res_model = parallelproj.GaussianFilterOperator(
             img_size, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
@@ -278,19 +289,23 @@ class PET(LinearPhysics):
         **kwargs,
     ):
         if attenuation is not None:
-            if self.is_2d:
-                attenuation = attenuation.unsqueeze(-1)
-            proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
-            if self.is_2d:
-                proj_att = proj_att.squeeze(-1)
+            if not self.projected_attenuation:
+                if self.is_2d:
+                    attenuation = attenuation.unsqueeze(-1)
 
-            self.attenuation = torch.exp(-proj_att)
+                proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
+                if self.is_2d:
+                    proj_att = proj_att.squeeze(-1)
+                self.attenuation = torch.exp(-proj_att)
+            else:
+                self.attenuation = attenuation
+
             if self.normalize:
                 self.operator_norm = torch.ones(1, device=self.attenuation.device)
-                if self.is_2d:
-                    attenuation = attenuation.squeeze(-1)
                 self.operator_norm = self.compute_norm(
-                    torch.ones_like(attenuation), squared=False, verbose=False
+                    torch.ones((1, 1) + self.img_size, device=self.attenuation.device),
+                    squared=False,
+                    verbose=False,
                 )
         if background is not None:
             self.background = background
