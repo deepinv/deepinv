@@ -27,12 +27,14 @@ Classical Denoisers
    :nosignatures:
 
    deepinv.models.BM3D
+   deepinv.models.BilateralFilter
    deepinv.models.MedianFilter
    deepinv.models.TVDenoiser
    deepinv.models.TGVDenoiser
    deepinv.models.WaveletDenoiser
    deepinv.models.WaveletDictDenoiser
    deepinv.models.EPLLDenoiser
+   deepinv.models.MMSE
 
 
 Deep Architectures
@@ -53,6 +55,7 @@ Deep Architectures
    deepinv.models.SCUNet
    deepinv.models.GSDRUNet
    deepinv.models.SwinIR
+   deepinv.models.PromptIR
    deepinv.models.DiffUNet
    deepinv.models.Restormer
    deepinv.models.ICNN
@@ -63,6 +66,7 @@ Deep Architectures
    deepinv.models.NCSNpp
    deepinv.models.DScCP
    deepinv.models.RAM
+   deepinv.models.DEAL
    deepinv.models.ArtifactRemoval
 
 Model Utils
@@ -86,6 +90,30 @@ Model Utils
 
    deepinv.models.complex.to_complex_denoiser
 
+Utility functions for model inference
+-------------------------------------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.models.utils.patchify
+
+
+Wrappers 
+--------
+.. userguide:: model-wrappers
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.ScoreModelWrapper
+   deepinv.models.DiffusersDenoiserWrapper
+   deepinv.models.ComplexDenoiserWrapper
+   deepinv.models.MinusOneOneDenoiserWrapper
 
 Deep Image Prior
 ----------------
@@ -98,6 +126,8 @@ Deep Image Prior
 
    deepinv.models.DeepImagePrior
    deepinv.models.ConvDecoder
+   deepinv.models.Poisson2Sparse
+   deepinv.models.ConvLista
 
 
 Adversarial Networks
@@ -114,3 +144,17 @@ Adversarial Networks
    deepinv.models.DCGANGenerator
    deepinv.models.DCGANDiscriminator
    deepinv.models.CSGMGenerator
+
+
+Identification Models
+---------------------
+.. userguide:: blind
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.KernelIdentificationNetwork
+   deepinv.models.WaveletNoiseEstimator
+   deepinv.models.PatchCovarianceNoiseEstimator

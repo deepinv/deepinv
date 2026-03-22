@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 
 from deepinv.physics import Physics, LinearPhysics
@@ -26,7 +27,7 @@ class PhysicsMultiScaler(Physics):
     :param tuple img_shape: shape of the input image (C, H, W).
     :param str filter: type of filter to use for upsampling, e.g., 'sinc', 'nearest', 'bilinear'.
     :param Sequence[int] factors: list of factors to use for upsampling.
-    :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
+    :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'mps', 'cuda'.
     """
 
     def __init__(
@@ -38,7 +39,8 @@ class PhysicsMultiScaler(Physics):
         device="cpu",
         **kwargs,
     ):
-        super().__init__(noise_model=physics.noise_model, **kwargs)
+        # NOTE: `device` is passed to super().__init__ (even if Physics does not use it) for proper variable propagation during Method Resolution Order (MRO: https://docs.python.org/3/howto/mro.html) when inherited jointly with another class, e.g., with LinearPhysics
+        super().__init__(noise_model=physics.noise_model, device=device, **kwargs)
         self.base = physics
         self.factors = factors
         self.img_shape = img_shape
@@ -100,7 +102,7 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
     :param tuple img_shape: shape of the input image (C, H, W).
     :param str filter: type of filter to use for upsampling, e.g., 'sinc', 'nearest', 'bilinear'.
     :param list[int] factors: list of factors to use for upsampling.
-    :param str, torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
+    :param str, torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'mps', 'cuda'.
     """
 
     def __init__(
@@ -129,6 +131,78 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
         else:
             return self.Upsamplings[self.scale - 1].A_adjoint(y)
 
+    def A_dagger(self, y, scale=None, **kwargs):
+        r"""
+        Computes the pseudo-inverse of the linear operator :math:`A`.
+
+        If the scale is set to 0, it uses the base physics pseudo-inverse, which might have a more efficient implementation.
+
+        :param torch.Tensor y: measurements tensor
+        :return: (:class:`torch.Tensor`) estimated signal tensor
+        """
+        self.set_scale(scale)
+        if self.scale == 0:
+            # use efficient implementation if available (eg SVD-based)
+            return self.base.A_dagger(y, **kwargs)
+        else:
+            return self.super().A_dagger(y, **kwargs)
+
+    def prox_l2(
+        self,
+        z,
+        y,
+        gamma,
+        solver="CG",
+        max_iter=None,
+        tol=None,
+        verbose=False,
+        scale=None,
+        **kwargs,
+    ):
+        r"""
+        Computes proximal operator of :math:`f(x) = \frac{1}{2}\|Ax-y\|^2`, i.e.,
+
+        .. math::
+
+            \underset{x}{\arg\min} \; \frac{\gamma}{2}\|Ax-y\|^2 + \frac{1}{2}\|x-z\|^2
+
+        If the scale is set to 0, it uses the base physics proximal operator, which might have a more efficient implementation.
+
+        :param torch.Tensor y: measurements tensor
+        :param torch.Tensor z: signal tensor
+        :param float gamma: hyperparameter of the proximal operator
+        :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.linear.least_squares` for details
+        :param int max_iter: maximum number of iterations for iterative solvers
+        :param float tol: tolerance for iterative solvers
+        :param bool verbose: whether to print information during the solver execution
+        :param int scale: scale at which to apply the physics operator
+        :return: (:class:`torch.Tensor`) estimated signal tensor
+
+        """
+        self.set_scale(scale)
+        if self.scale == 0:
+            return self.base.prox_l2(
+                z,
+                y,
+                gamma,
+                solver=solver,
+                max_iter=max_iter,
+                tol=tol,
+                verbose=verbose,
+                **kwargs,
+            )
+        else:
+            return super().prox_l2(
+                z,
+                y,
+                gamma,
+                solver=solver,
+                max_iter=max_iter,
+                tol=tol,
+                verbose=verbose,
+                **kwargs,
+            )
+
 
 class PhysicsCropper(LinearPhysics):
     r"""
@@ -138,26 +212,43 @@ class PhysicsCropper(LinearPhysics):
     The adjoint operator is defined as :math:`\tilde{A}^{\top} = C^{\top} \circ A^{\top}` and :math:`C^{\top}` is a padding operator that pads the input tensor to the original size.
 
     :param deepinv.physics.LinearPhysics physics: base linear physics operator.
-    :param tuple crop: padding to apply to the input tensor, e.g., (pad_height, pad_width).
+    :param tuple crop: padding to apply to the input tensor, e.g., `(pad_height, pad_width)` or `(pad_z, pad_height, pad_weight)` where `pad_z` is either channel or depth dimension pad.
+    :param torch.device, str device: cpu or cuda, every registered buffer and module parameters are recursively pushed onto the device during initialization.
+
     """
 
-    def __init__(self, physics, crop):
-        super().__init__(noise_model=physics.noise_model)
+    def __init__(
+        self,
+        physics,
+        crop,
+        device: torch.device | str = "cpu",
+    ):
+        super().__init__(noise_model=physics.noise_model, device=device)
         self.base = physics
         self.crop = crop
+        if len(self.crop) not in (2, 3):
+            raise ValueError("Crop must be a tuple of length 2 or 3.")
 
-    def A(self, x):
-        return self.base.A(self.remove_pad(x))
+    def A(self, x, **kwargs):
+        return self.base.A(self.remove_pad(x), **kwargs)
 
-    def A_adjoint(self, y):
-        y = self.pad(self.base.A_adjoint(y))
+    def A_adjoint(self, y, **kwargs):
+        y = self.pad(self.base.A_adjoint(y, **kwargs))
         return y
 
     def remove_pad(self, x):
-        return x[..., self.crop[0] :, self.crop[1] :]
+        if len(self.crop) == 2:
+            return x[..., self.crop[0] :, self.crop[1] :]
+        elif len(self.crop) == 3:
+            return x[..., self.crop[0] :, self.crop[1] :, self.crop[2] :]
 
     def pad(self, x):
-        return torch.nn.functional.pad(x, (self.crop[1], 0, self.crop[0], 0))
+        if len(self.crop) == 3:
+            return torch.nn.functional.pad(
+                x, (self.crop[2], 0, self.crop[1], 0, self.crop[0], 0)
+            )
+        else:
+            return torch.nn.functional.pad(x, (self.crop[1], 0, self.crop[0], 0))
 
     def update_parameters(self, **kwargs):
         self.base.update_parameters(**kwargs)

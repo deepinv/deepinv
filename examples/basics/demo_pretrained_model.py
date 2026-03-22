@@ -23,7 +23,7 @@ See :ref:`pretrained models <pretrained-models>` for a principled comparison bet
 import deepinv as dinv
 import torch
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Let's say you want to reconstruct a butterfly from noisy, blurry measurements:

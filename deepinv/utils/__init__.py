@@ -29,20 +29,23 @@ from .demo import (
     load_torch_url,
     load_np_url,
 )
-from .nn import get_freer_gpu
+from .nn import get_freer_gpu, get_device
 from .tensorlist import (
     TensorList,
     rand_like,
     zeros_like,
     randn_like,
     ones_like,
+    dirac,
+    dirac_comb,
     dirac_like,
+    dirac_comb_like,
 )
 from .phantoms import RandomPhantomDataset, SheppLoganDataset
 from .patch_extractor import patch_extractor
 from .parameters import get_GSPnP_params
 from .signals import normalize_signal, complex_abs
-from .mixins import TimeMixin, MRIMixin
+from .mixins import TimeMixin, MRIMixin, TiledMixin2d
 from .compat import zip_strict
 from .io import (
     load_dicom,

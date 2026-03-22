@@ -1,11 +1,18 @@
 from __future__ import annotations
-import torch
-import torch.nn as nn
 import numpy as np
-from torch.nn.functional import silu
+
+import torch
 from torch import Tensor
+
+import torch.nn as nn
+import torch.nn.functional as F
+
 from torch.nn import Linear, GroupNorm
+
 from itertools import chain
+import os
+import io
+import contextlib
 
 
 def tensor2array(img):
@@ -16,6 +23,23 @@ def tensor2array(img):
 
 def array2tensor(img):
     return torch.from_numpy(img).permute(2, 0, 1)
+
+
+def tensor2array(img: Tensor) -> np.ndarray:
+    img = img.cpu().detach().numpy()
+    if img.shape[0] == 3:  # Color case: cast to numpy format (W,H,C)
+        img = np.transpose(img, (1, 2, 0))
+    else:  # Grayscale case: cast to numpy format (W,H)
+        img = img[0]
+    return img
+
+
+def array2tensor(img: np.ndarray) -> Tensor:
+    if len(img.shape) == 3:  # Color case: back to (C,W,H)
+        out = torch.from_numpy(img).permute(2, 0, 1)
+    else:  # Grayscale case: back to (1,W,H)
+        out = torch.from_numpy(img).unsqueeze(0)
+    return out
 
 
 def get_weights_url(model_name, file_name):
@@ -41,6 +65,58 @@ def test_pad(model, L, modulo=16):
     E = model(L)
     E = E[(...,) + tuple(slice(0, s) for s in spatials)]
     return E
+
+
+def patchify(
+    x: torch.Tensor, patch_size: tuple[int, int], stride: int = 1
+) -> torch.Tensor:
+    r"""
+    Patchifying images.
+
+    This function takes in a batch of images and extracts overlapping patches of specified size and stride,
+    returning them in a format suitable for processing by patch-based models.
+
+    :param torch.Tensor x: input image
+    :param (int, int) patch_size: patch size
+    :param int stride: stride
+    :return: (:class:`torch.Tensor`) patched image of shape (B, C, patch_size, patch_size, num_pch)
+
+    |sep|
+
+    :Examples:
+
+    >>> import deepinv as dinv
+    >>> x = dinv.utils.load_example('butterfly.png')
+    >>> patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
+    >>> print(f"Input shape: {x.shape}, patchified shape: {patches.shape}")
+    Input shape: torch.Size([1, 3, 256, 256]), patchified shape: torch.Size([1, 3, 8, 8, 3969])
+    >>> dinv.utils.plot(list(patches[0].permute(3, 0, 1, 2)[:16]), titles=[f"Patch {i} of {patches.shape[-1]}" for i in range(16)])  # doctest: +SKIP
+
+    .. plot::
+
+        import deepinv as dinv
+
+        x = dinv.utils.load_example('butterfly.png')
+        patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
+        dinv.utils.plot(list(patches[0].permute(3, 0, 1, 2)[:16]), titles=[f"Patch {i} of {patches.shape[-1]}" for i in range(16)])
+
+    """
+    B, C, H, W = x.shape
+    num_H = (H - patch_size) // stride + 1
+    num_W = (W - patch_size) // stride + 1
+    num_pch = num_H * num_W
+
+    # Use unfold to extract patches
+    patches = x.unfold(2, patch_size, stride).unfold(
+        3, patch_size, stride
+    )  # B x C x num_H x num_W x patch_size x patch_size
+
+    # Rearrange and reshape to match the desired output
+    patches = patches.permute(0, 1, 4, 5, 2, 3).reshape(
+        B, C, patch_size, patch_size, num_pch
+    )
+
+    return patches
 
 
 def test_onesplit(model, L, refield=32, sf=1):
@@ -108,7 +184,7 @@ def fix_dim(dim: str | int) -> int:
 
 
 def conv_nd(dim: int) -> nn.Module:
-    return {2: nn.Conv2d, 3: nn.Conv3d}[dim]
+    return {1: nn.Conv1d, 2: nn.Conv2d, 3: nn.Conv3d}[dim]
 
 
 def batchnorm_nd(dim: int) -> nn.Module:
@@ -124,7 +200,7 @@ def maxpool_nd(dim: int) -> nn.Module:
 
 
 def avgpool_nd(dim: int) -> nn.Module:
-    return {2: nn.AvgPool2d, 3: nn.AvgPool3d}[dim]
+    return {1: nn.AvgPool1d, 2: nn.AvgPool2d, 3: nn.AvgPool3d}[dim]
 
 
 def instancenorm_nd(dim: int) -> nn.Module:
@@ -216,17 +292,17 @@ class UpDownConv2d(torch.nn.Module):
         f_pad = (f.shape[-1] - 1) // 2 if f is not None else 0
 
         if self.fused_resample and self.up and w is not None:
-            x = torch.nn.functional.conv_transpose2d(
+            x = F.conv_transpose2d(
                 x,
                 f.mul(4).tile([self.in_channels, 1, 1, 1]),
                 groups=self.in_channels,
                 stride=2,
                 padding=max(f_pad - w_pad, 0),
             )
-            x = torch.nn.functional.conv2d(x, w, padding=max(w_pad - f_pad, 0))
+            x = F.conv2d(x, w, padding=max(w_pad - f_pad, 0))
         elif self.fused_resample and self.down and w is not None:
-            x = torch.nn.functional.conv2d(x, w, padding=w_pad + f_pad)
-            x = torch.nn.functional.conv2d(
+            x = F.conv2d(x, w, padding=w_pad + f_pad)
+            x = F.conv2d(
                 x,
                 f.tile([self.out_channels, 1, 1, 1]),
                 groups=self.out_channels,
@@ -234,7 +310,7 @@ class UpDownConv2d(torch.nn.Module):
             )
         else:
             if self.up:
-                x = torch.nn.functional.conv_transpose2d(
+                x = F.conv_transpose2d(
                     x,
                     f.mul(4).tile([self.in_channels, 1, 1, 1]),
                     groups=self.in_channels,
@@ -242,7 +318,7 @@ class UpDownConv2d(torch.nn.Module):
                     padding=f_pad,
                 )
             if self.down:
-                x = torch.nn.functional.conv2d(
+                x = F.conv2d(
                     x,
                     f.tile([self.in_channels, 1, 1, 1]),
                     groups=self.in_channels,
@@ -250,49 +326,10 @@ class UpDownConv2d(torch.nn.Module):
                     padding=f_pad,
                 )
             if w is not None:
-                x = torch.nn.functional.conv2d(x, w, padding=w_pad)
+                x = F.conv2d(x, w, padding=w_pad)
         if b is not None:
             x = x.add_(b.reshape(1, -1, 1, 1))
         return x
-
-
-# ----------------------------------------------------------------------------
-# Attention weight computation, i.e., softmax(Q^T * K).
-# Performs all computation using FP32, but uses the original datatype for
-# inputs/outputs/gradients to conserve memory.
-
-
-class AttentionOp(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, q, k):
-        w = (
-            torch.einsum(
-                "ncq,nck->nqk",
-                q.to(torch.float32),
-                (k / np.sqrt(k.shape[1])).to(torch.float32),
-            )
-            .softmax(dim=2)
-            .to(q.dtype)
-        )
-        ctx.save_for_backward(q, k, w)
-        return w
-
-    @staticmethod
-    def backward(ctx, dw):
-        q, k, w = ctx.saved_tensors
-        db = torch._softmax_backward_data(
-            grad_output=dw.to(torch.float32),
-            output=w.to(torch.float32),
-            dim=2,
-            input_dtype=torch.float32,
-        )
-        dq = torch.einsum("nck,nqk->ncq", k.to(torch.float32), db).to(
-            q.dtype
-        ) / np.sqrt(k.shape[1])
-        dk = torch.einsum("ncq,nqk->nck", q.to(torch.float32), db).to(
-            k.dtype
-        ) / np.sqrt(k.shape[1])
-        return dq, dk
 
 
 # ----------------------------------------------------------------------------
@@ -392,18 +429,16 @@ class UNetBlock(torch.nn.Module):
 
     def forward(self, x, emb):
         orig = x
-        x = self.conv0(silu(self.norm0(x)))
+        x = self.conv0(F.silu(self.norm0(x)))
 
         params = self.affine(emb).unsqueeze(2).unsqueeze(3).to(x.dtype)
         if self.adaptive_scale:
             scale, shift = params.chunk(chunks=2, dim=1)
-            x = silu(torch.addcmul(shift, self.norm1(x), scale + 1))
+            x = F.silu(torch.addcmul(shift, self.norm1(x), scale + 1))
         else:
-            x = silu(self.norm1(x.add_(params)))
+            x = F.silu(self.norm1(x.add_(params)))
 
-        x = self.conv1(
-            torch.nn.functional.dropout(x, p=self.dropout, training=self.training)
-        )
+        x = self.conv1(F.dropout(x, p=self.dropout, training=self.training))
         x = x.add_(self.skip(orig) if self.skip is not None else orig)
         x = x * self.skip_scale
 
@@ -415,8 +450,17 @@ class UNetBlock(torch.nn.Module):
                 )
                 .unbind(2)
             )
-            w = AttentionOp.apply(q, k)
-            a = torch.einsum("nqk,nck->ncq", w, v)
+
+            a = F.scaled_dot_product_attention(
+                q.transpose(1, 2),  # [N, Q, C]
+                k.transpose(1, 2),  # [N, K, C]
+                v.transpose(1, 2),  # [N, K, C]
+                dropout_p=0.0,
+                is_causal=False,
+            ).transpose(
+                1, 2
+            )  # back to [N, C, Q]
+
             x = self.proj(a.reshape(*x.shape)).add_(x)
             x = x * self.skip_scale
         return x
@@ -459,3 +503,88 @@ class FourierEmbedding(torch.nn.Module):
         x = x.outer((2 * np.pi * self.freqs).to(x.dtype))
         x = torch.cat([x.cos(), x.sin()], dim=1)
         return x
+
+
+def initialize_3d_from_2d(
+    model_3d: nn.Module, ckpt_2d: dict[str, torch.Tensor], isotropic: bool = False
+) -> None:
+    r"""
+    Initialize a 3D model's Conv3d and ConvTranspose3d layers from a its 2D counterpart layers.
+    Useful when no pretrained 3D weights are available.
+
+    :param nn.Module model_3d: 3D model to be initialized.
+    :param dict[str, torch.Tensor] ckpt_2d: state_dict of the 2D counterpart of model_3d.
+    :param bool isotropic: If True, for odd kernel sizes, the weights are copied to the center slice
+        of all three dimensions and averaged. For even kernel sizes, the 2D weights are
+        divided by the kernel size and copied to all slices in all three dimensions. Otherwise,
+        only the depth dimension is considered.
+    """
+    for name, module in model_3d.named_modules():
+        if isinstance(module, (nn.Conv3d, nn.ConvTranspose3d)):
+            module.weight.data[:] = 0.0
+            with torch.no_grad():
+                if module.kernel_size[0] % 2 == 1:
+                    if isotropic:
+                        module.weight[:, :, module.kernel_size[0] // 2 + 1] = ckpt_2d[
+                            f"{name}.weight"
+                        ]
+
+                        module.weight[
+                            :, :, :, module.kernel_size[1] // 2 + 1, :
+                        ] += ckpt_2d[f"{name}.weight"]
+
+                        module.weight[..., module.kernel_size[2] // 2 + 1] += ckpt_2d[
+                            f"{name}.weight"
+                        ]
+
+                        module.weight /= 3.0
+                    else:
+                        module.weight[:, :, module.kernel_size[0] // 2 + 1] = ckpt_2d[
+                            f"{name}.weight"
+                        ]
+                else:
+                    if isotropic:
+                        module.weight[:] = (
+                            ckpt_2d[f"{name}.weight"][:, :, None]
+                            / module.kernel_size[0]
+                        )
+                        module.weight[:] += (
+                            ckpt_2d[f"{name}.weight"][:, :, :, None]
+                            / module.kernel_size[1]
+                        )
+                        module.weight[:] += (
+                            ckpt_2d[f"{name}.weight"][..., None] / module.kernel_size[2]
+                        )
+                        module.weight /= 3.0
+                    else:
+                        module.weight[:] = (
+                            ckpt_2d[f"{name}.weight"][:, :, None]
+                            / module.kernel_size[0]
+                        )
+
+                if module.bias is not None:
+                    module.bias[:] = ckpt_2d[f"{name}.bias"]
+
+
+def load_state_dict_from_url(*args, **kwargs) -> dict:
+    """
+    A wrapper for :func:`torch.hub.load_state_dict_from_url` that respects the DEEPINV_DOWNLOAD_VERBOSE
+    environment variable. If set to 0, stdout prints are suppressed.
+    """
+    # Read the environment variable. Default to "1" (True/Verbose) if not set.
+    env_value = os.environ.get("DEEPINV_DOWNLOAD_VERBOSE", "1").lower()
+
+    # Check if the user explicitly turned verbosity off
+    is_silent = env_value in ("0", "false", "no", "f")
+
+    # Choose the context manager based on the is_silent flag
+    if is_silent:
+        ctx = contextlib.redirect_stdout(io.StringIO())
+        # Optional: Also force progress=False to hide the stderr progress bar
+        kwargs["progress"] = False
+    else:
+        # nullcontext() does nothing, allowing stdout to print normally
+        ctx = contextlib.nullcontext()
+
+    with ctx:
+        return torch.hub.load_state_dict_from_url(*args, **kwargs)

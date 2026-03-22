@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from torch import Tensor
 from deepinv.transform import Transform, Rotate, Reflect
 from .base import Denoiser, Reconstructor
 from deepinv.physics.forward import LinearPhysics
@@ -46,7 +48,10 @@ class EquivariantDenoiser(Denoiser):
     """
 
     def __init__(
-        self, denoiser: Denoiser, transform: Transform | None = None, random=True
+        self,
+        denoiser: Denoiser,
+        transform: Transform | None = None,
+        random: bool = True,
     ):
         super().__init__()
         self.denoiser = denoiser
@@ -63,7 +68,7 @@ class EquivariantDenoiser(Denoiser):
                     n_trans=4, multiples=90, positive=True
                 ) * Reflect(n_trans=2, dims=[-1])
 
-    def forward(self, x, *denoiser_args, **denoiser_kwargs):
+    def forward(self, x: Tensor, *denoiser_args, **denoiser_kwargs) -> Tensor:
         r"""
         Symmetrize the denoiser by the transformation to create an equivariant denoiser and apply to input.
 

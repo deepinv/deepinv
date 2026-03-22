@@ -30,7 +30,7 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 import deepinv as dinv
 import torch
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # 2. Physics
@@ -297,6 +297,7 @@ dinv.test(
 #    :ref:`how to inference a pretrained model <sphx_glr_auto_examples_basics_demo_pretrained_model.py>`,
 #    :ref:`how to use your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>`, or
 #    :ref:`how to use your custom physics operator <sphx_glr_auto_examples_basics_demo_custom_physics.py>`.
+# -  Checkout a YouTube tutorial on our `YouTube Channel <https://www.youtube.com/@deepinv>`_.
 # -  Dive deeper into our full library of examples.
 # -  Read the :ref:`User Guide <user_guide>` for further details on the
 #    concepts introduced here.

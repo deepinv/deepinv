@@ -8,11 +8,12 @@ import deepinv.physics
 from deepinv.sampling import BaseSampling
 from deepinv.sampling.sampling_iterators import DiffusionIterator
 from deepinv.utils.compat import zip_strict
+from deepinv.optim.data_fidelity import L2
 
 
 class DiffusionSampler(BaseSampling):
     r"""
-    Turns a diffusion method into a Monte Carlo sampler
+    Turns a diffusion method into a Monte Carlo sampler.
 
     Unlike diffusion methods, the resulting sampler computes the mean and variance of the distribution
     by running the diffusion multiple times.
@@ -68,7 +69,7 @@ class DiffusionSampler(BaseSampling):
         :param torch.Tensor y: Measurements
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param float seed: Random seed for generating the samples
-        :return: (tuple of torch.tensor) containing the posterior mean and variance.
+        :return: (tuple of torch.Tensor) containing the posterior mean and variance.
         """
         return self.sample(y, physics, seed=seed, g_statistics=self.g_statistics)
 
@@ -97,22 +98,23 @@ class DDRM(Reconstructor):
 
         Denoising diffusion restoration model using a pretrained DRUNet denoiser:
 
-        >>> import deepinv as dinv
-        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu'
-        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> seed = torch.cuda.manual_seed(0) # Random seed for reproducibility on GPU
-        >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define plain gray 32x32 image
-        >>> physics = dinv.physics.Inpainting(
-        ...   mask=0.5, img_size=(3, 32, 32),
-        ...   noise_model=dinv.physics.GaussianNoise(0.1),
-        ...   device=device,
-        ... )
-        >>> y = physics(x) # measurements
-        >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)  # doctest: +IGNORE_RESULT
-        >>> model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
-        >>> xhat = model(y, physics) # sample from the posterior distribution
-        >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
-        tensor([True])
+    ::
+
+        import deepinv as dinv
+        device = dinv.utils.get_device(verbose=False)
+        seed = torch.manual_seed(0) # Random seed for reproducibility
+        seed = torch.cuda.manual_seed(0) # Random seed for reproducibility on GPU
+        x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define plain gray 32x32 image
+        physics = dinv.physics.Inpainting(
+           mask=0.5, img_size=(3, 32, 32),
+           noise_model=dinv.physics.GaussianNoise(0.1),
+           device=device,
+        )
+        y = physics(x) # measurements
+        denoiser = dinv.models.DRUNet(pretrained="download").to(device)  # doctest: +IGNORE_RESULT
+        model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
+        xhat = model(y, physics) # sample from the posterior distribution
+        (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # tensor([True])
 
 
 
@@ -265,25 +267,19 @@ class DiffPIR(Reconstructor):
 
         Denoising diffusion restoration model using a pretrained DRUNet denoiser:
 
-        >>> import deepinv as dinv
-        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu'
-        >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define a plain gray 32x32 image
-        >>> physics = dinv.physics.Inpainting(
-        ...   mask=0.5, img_size=(3, 32, 32),
-        ...   noise_model=dinv.physics.GaussianNoise(0.1),
-        ...   device=device
-        ... )
-        >>> y = physics(x) # Measurements
-        >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-        >>> model = dinv.sampling.DiffPIR(
-        ...   model=denoiser,
-        ...   data_fidelity=dinv.optim.data_fidelity.L2(),
-        ...   device=device,
-        ... ) # Define the DiffPIR model
-        >>> xhat = model(y, physics) # Run the DiffPIR algorithm
-        >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
-        tensor([True])
+    ::
 
+        import deepinv as dinv
+        device = dinv.utils.get_device(verbose=False)
+        x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define a plain gray 32x32 image
+        physics = dinv.physics.Inpainting(mask=0.5, img_size=(3, 32, 32),
+           noise_model=dinv.physics.GaussianNoise(0.1), device=device)
+        y = physics(x) # Measurements
+        denoiser = dinv.models.DRUNet(device=device)
+        model = dinv.sampling.DiffPIR(model=denoiser, data_fidelity=dinv.optim.data_fidelity.L2(),
+           device=device) # Define the DiffPIR model
+        xhat = model(y, physics) # Run the DiffPIR algorithm
+        print((dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x))) # should be True
 
 
     """
@@ -557,7 +553,7 @@ class DPS(Reconstructor):
             \end{equation*}
 
     :param torch.nn.Module model: a denoiser network that can handle different noise levels
-    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator
+    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator, if kept to `None`, defaults to :class:`deepinv.optim.L2` (the choice in the paper).
     :param int max_iter: the number of diffusion iterations to run the algorithm (default: 1000)
     :param float eta: DDIM hyperparameter which controls the stochasticity
     :param bool verbose: if True, print progress
@@ -568,7 +564,7 @@ class DPS(Reconstructor):
     def __init__(
         self,
         model,
-        data_fidelity,
+        data_fidelity=None,
         max_iter=1000,
         eta=1.0,
         verbose=False,
@@ -578,6 +574,8 @@ class DPS(Reconstructor):
         super(DPS, self).__init__()
         self.model = model
         self.model.requires_grad_(True)
+        if data_fidelity is None:
+            data_fidelity = L2()
         self.data_fidelity = data_fidelity
         self.max_iter = max_iter
         self.eta = eta
@@ -612,6 +610,15 @@ class DPS(Reconstructor):
         return a
 
     def forward(self, y, physics: deepinv.physics.Physics, seed=None, x_init=None):
+        r"""
+        Computes a random sample from the posterior distribution using the DPS algorithm.
+
+        :param torch.Tensor y: the measurements.
+        :param deepinv.physics.Physics physics: the physics operator.
+        :param int seed: the seed for the random number generator.
+        :param torch.Tensor x_init: the initial guess for the reconstruction, if not provided
+            the algorithm initializes with random noise in image space.
+        """
         if seed:
             torch.manual_seed(seed)
 
@@ -623,7 +630,12 @@ class DPS(Reconstructor):
         time_pairs = list(zip_strict(reversed(seq), reversed(seq_next)))
 
         # Initial sample from x_T
-        x = torch.randn_like(y) if x_init is None else (2 * x_init - 1)
+        if x_init is not None:
+            x = 2 * x_init - 1
+        elif isinstance(physics, deepinv.physics.LinearPhysics):
+            x = torch.randn_like(physics.A_adjoint(y))
+        else:
+            x = torch.randn_like(physics.A_dagger(y))
 
         if self.save_iterates:
             xs = [x]

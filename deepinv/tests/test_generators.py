@@ -101,6 +101,13 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None):
             filters=["bilinear", "bicubic", "gaussian"], factors=[4], psf_size=psf_size
         )
         keys = ["filters", "factors"]
+    elif name == "DownsamplingGenerator[2, 4]":
+        g = dinv.physics.generator.DownsamplingGenerator(
+            filters=["bilinear", "bicubic", "gaussian"],
+            factors=[2, 4],
+            psf_size=psf_size,
+        )
+        keys = ["filters", "factors"]
     elif name == "SigmaGenerator":
         g = dinv.physics.generator.SigmaGenerator(device=device, dtype=dtype)
         keys = ["sigma"]
@@ -223,7 +230,7 @@ def test_average(name, device, dtype):
 @pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("psf_size", [None, (31, 31)])
-@pytest.mark.parametrize("fact", [None, 2, 4])
+@pytest.mark.parametrize("fact", [None, 2, 4, [2, 4]])
 def test_downsampling_generator(num_channels, device, dtype, psf_size, fact):
     r"""
     Test downsampling generator.
@@ -266,7 +273,7 @@ def test_downsampling_generator(num_channels, device, dtype, psf_size, fact):
 
         assert y.shape[-1] == x.shape[-1] // params["factor"].unique().item()
 
-        if fact is not None:
+        if fact is not None and not isinstance(fact, list):
             assert fact == params["factor"].unique().item()
 
 
@@ -549,3 +556,86 @@ def test_string_seed():
     # Assert generators different
     states = [torch.Generator().manual_seed(s).get_state() for s in seeds]
     assert len(set(states)) == len(states)
+
+
+@pytest.mark.parametrize("apodize", [True, False])
+@pytest.mark.parametrize("random_rotate", [True, False])
+@pytest.mark.parametrize("num_channels", [1, 3])
+@pytest.mark.parametrize("convention", ["noll", "ansi"])
+@pytest.mark.parametrize("is_3d", [True, False])
+def test_diffraction_generator(
+    device, apodize, random_rotate, num_channels, convention, is_3d
+):
+    r"""
+    Test diffraction generator.
+    """
+
+    dtype = torch.float32
+    zernike_index = tuple(range(1, 36))  # All Zernike index up to 7th order
+    pupil_size = (256, 256)
+    if is_3d:
+        size = (5, 5, 5)
+        generator = dinv.physics.generator.DiffractionBlurGenerator3D(
+            psf_size=size,
+            device=device,
+            num_channels=num_channels,
+            zernike_index=zernike_index,
+            index_convention=convention,
+            apodize=apodize,
+            random_rotate=random_rotate,
+            dtype=dtype,
+            pupil_size=pupil_size,
+        )
+
+    else:
+        pupil_size = (256, 256)
+        size = (5, 5)
+        generator = dinv.physics.generator.DiffractionBlurGenerator(
+            psf_size=size,
+            device=device,
+            num_channels=num_channels,
+            zernike_index=zernike_index,
+            index_convention=convention,
+            apodize=apodize,
+            random_rotate=random_rotate,
+            dtype=dtype,
+            pupil_size=pupil_size,
+        )
+
+    batch_sizes = (1, 2)
+    expected_keys = set(
+        ["filter", "coeff", "pupil"] + (["angle"] if random_rotate else [])
+    )
+    for batch_size in batch_sizes:
+        params = generator.step(
+            batch_size=batch_size,
+            seed=0,
+            focal_length=0.004,
+            aperture_diameter=0.002,
+            apodize=apodize,
+            random_rotate=random_rotate,
+        )
+
+        # Test keys and shapes
+        assert set(params.keys()) == expected_keys
+        assert params["filter"].shape == (batch_size, num_channels, *size)
+        assert params["coeff"].shape == (batch_size, len(zernike_index))
+        assert params["pupil"].shape == (batch_size, *pupil_size)
+        if random_rotate:
+            assert params["angle"].shape == (batch_size,)
+
+        # Test generator consistency
+        params2 = generator.step(
+            batch_size=batch_size,
+            seed=0,
+        )
+        for key in params.keys():
+            assert torch.allclose(params[key], params2[key])
+
+        # Test generator variability
+        params3 = generator.step(
+            batch_size=batch_size,
+            seed=1,
+        )
+        for key in params.keys():
+            assert not torch.allclose(params[key], params3[key])

@@ -1,9 +1,21 @@
+from __future__ import annotations
 import torch
 import numpy as np
 from deepinv.loss.loss import Loss
 
+from typing import TYPE_CHECKING, Callable
 
-def hutch_div(y, physics, f, mc_iter=1, rng=None):
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
+
+
+def hutch_div(
+    y: torch.Tensor,
+    physics: Physics,
+    f: torch.nn.Module,
+    mc_iter: int = 1,
+    rng: torch.Generator = None,
+) -> torch.Tensor:
     r"""
     Hutch divergence for A(f(x)).
 
@@ -12,12 +24,12 @@ def hutch_div(y, physics, f, mc_iter=1, rng=None):
     :param torch.nn.Module f: Reconstruction network.
     :param int mc_iter: number of iterations. Default=1.
     :param torch.Generator rng: Random number generator. Default is None.
-    :return: (float) hutch divergence.
+    :return: torch.Tensor hutch divergence.
     """
     input = y.requires_grad_(True)
     output = physics.A(f(input, physics))
     out = 0
-    for i in range(mc_iter):
+    for _ in range(mc_iter):
         b = torch.empty_like(y).normal_(generator=rng)
         x = torch.autograd.grad(output, input, b, retain_graph=True, create_graph=True)[
             0
@@ -27,14 +39,15 @@ def hutch_div(y, physics, f, mc_iter=1, rng=None):
     return out / mc_iter
 
 
-def exact_div(y, physics, model):
+def exact_div(
+    y: torch.Tensor, physics: Physics, model: torch.nn.Module
+) -> torch.Tensor:
     r"""
     Exact divergence for A(f(x)).
 
     :param torch.Tensor y: Measurements.
     :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
     :param torch.nn.Module model: Reconstruction network.
-    :param int mc_iter: number of iterations. Default=1.
     :return: (float) exact divergence.
     """
     input = y.requires_grad_(True)
@@ -54,26 +67,39 @@ def exact_div(y, physics, model):
     return out / (c * h * w)
 
 
-def mc_div(y1, y, f, physics, tau, precond=lambda x: x, rng: torch.Generator = None):
+def mc_div(
+    y1: torch.Tensor,
+    y: torch.Tensor,
+    f: torch.nn.Module,
+    physics: Physics,
+    tau: float,
+    precond: Callable = lambda x: x,
+    rng: torch.Generator = None,
+) -> torch.Tensor:
     r"""
     Monte-Carlo estimation for the divergence of A(f(x)).
 
     :param torch.Tensor y: Measurements.
     :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
     :param torch.nn.Module f: Reconstruction network.
-    :param int mc_iter: number of iterations. Default=1.
     :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
-    :param bool pinv: If ``True``, the pseudo-inverse of the forward operator is used. Default ``False``.
     :param Callable precond: Preconditioner. Default is the identity.
     :param torch.Generator rng: Random number generator. Default is None.
-    :return: (float) Ramani MC divergence.
+    :return: torch.Tensor Ramani MC divergence.
     """
     b = torch.empty_like(y).normal_(generator=rng)
     y2 = physics.A(f(y + b * tau, physics))
     return (precond(b) * precond(y2 - y1) / tau).reshape(y.size(0), -1).mean(1)
 
 
-def unsure_gradient_step(loss, param, saved_grad, init_flag, step_size, momentum):
+def unsure_gradient_step(
+    loss: torch.Tensor,
+    param: torch.Tensor,
+    saved_grad: torch.Tensor,
+    init_flag: bool,
+    step_size: float,
+    momentum: float,
+) -> tuple[torch.Tensor, torch.Tensor, bool]:
     r"""
     Gradient step for estimating the noise level in the UNSURE loss.
 
@@ -149,9 +175,9 @@ class SureGaussianLoss(Loss):
 
     def __init__(
         self,
-        sigma,
-        tau=1e-2,
-        B=lambda x: x,
+        sigma: float,
+        tau: float = 1e-2,
+        B: str | Callable = lambda x: x,
         unsure=False,
         step_size=1e-4,
         momentum=0.9,
@@ -171,7 +197,14 @@ class SureGaussianLoss(Loss):
         if unsure:
             self.sigma2 = torch.tensor(self.sigma2, requires_grad=True)
 
-    def forward(self, y, x_net, physics, model, **kwargs):
+    def forward(
+        self,
+        y: torch.Tensor,
+        x_net: torch.Tensor,
+        physics: Physics,
+        model: torch.Tensor,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Computes the SURE Loss.
 
@@ -179,7 +212,7 @@ class SureGaussianLoss(Loss):
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction network.
-        :return: torch.nn.Tensor loss of size (batch_size,)
+        :return: torch.Tensor loss of size (batch_size,)
         """
 
         if self.metric == "A_dagger":
@@ -243,14 +276,21 @@ class SurePoissonLoss(Loss):
     :param torch.Generator rng: Optional random number generator. Default is None.
     """
 
-    def __init__(self, gain, tau=1e-3, rng: torch.Generator = None):
+    def __init__(self, gain: float, tau: float = 1e-3, rng: torch.Generator = None):
         super(SurePoissonLoss, self).__init__()
         self.name = "SurePoisson"
         self.gain = gain
         self.tau = tau
         self.rng = rng
 
-    def forward(self, y, x_net, physics, model, **kwargs):
+    def forward(
+        self,
+        y: torch.Tensor,
+        x_net: torch.Tensor,
+        physics: Physics,
+        model: torch.nn.Module,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Computes the SURE loss.
 
@@ -258,7 +298,7 @@ class SurePoissonLoss(Loss):
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param torch.nn.Module model: Reconstruction network
-        :return: torch.nn.Tensor loss of size (batch_size,)
+        :return: torch.Tensor loss of size (batch_size,)
         """
 
         # generate a random vector b
@@ -336,15 +376,15 @@ class SurePGLoss(Loss):
 
     def __init__(
         self,
-        sigma,
-        gain,
-        tau1=1e-3,
-        tau2=1e-2,
-        second_derivative=False,
-        unsure=False,
-        step_size=(1e-4, 1e-4),
-        momentum=(0.9, 0.9),
-        rng=None,
+        sigma: float,
+        gain: float,
+        tau1: float = 1e-3,
+        tau2: float = 1e-2,
+        second_derivative: bool = False,
+        unsure: bool = False,
+        step_size: tuple[float, float] = (1e-4, 1e-4),
+        momentum: tuple[float, float] = (0.9, 0.9),
+        rng: torch.Generator = None,
     ):
         super(SurePGLoss, self).__init__()
         self.name = "SurePG"
@@ -365,7 +405,14 @@ class SurePGLoss(Loss):
             self.sigma2 = torch.tensor(self.sigma2, requires_grad=True)
             self.gain = torch.tensor(self.gain, requires_grad=True)
 
-    def forward(self, y, x_net, physics, model, **kwargs):
+    def forward(
+        self,
+        y: torch.Tensor,
+        x_net: torch.Tensor,
+        physics: Physics,
+        model: torch.nn.Module,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Computes the SURE loss.
 
@@ -373,7 +420,7 @@ class SurePGLoss(Loss):
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param torch.nn.Module f: Reconstruction network
-        :return: torch.nn.Tensor loss of size (batch_size,)
+        :return: torch.Tensor loss of size (batch_size,)
         """
 
         b1 = torch.empty_like(y).uniform_(generator=self.rng)

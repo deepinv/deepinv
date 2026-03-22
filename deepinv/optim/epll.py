@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch
 from deepinv.utils import patch_extractor
 from deepinv.optim.utils import conjugate_gradient
-from deepinv.models.utils import get_weights_url
+from deepinv.models.utils import get_weights_url, load_state_dict_from_url
 from deepinv.optim.utils import GaussianMixtureModel
 from deepinv.models.base import Denoiser
 
@@ -26,8 +26,7 @@ class EPLL(nn.Module):
     where the first term is a standard :math:`\ell_2` data-fidelity, and the second term represents a patch prior via
     Gaussian mixture models, where :math:`P_i` is a patch operator that extracts the ith (overlapping) patch from the image.
 
-    The reconstruction function is based on the approximated half-quadratic splitting method as in Zoran, D., and Weiss,
-    Y.  "From learning models of natural image patches to whole image restoration." (ICCV 2011).
+    The reconstruction function is based on the approximated half-quadratic splitting method as in :cite:t:`zoran2011learning`.
 
     :param None, deepinv.optim.utils.GaussianMixtureModel GMM: Gaussian mixture defining the distribution on the patch space.
         ``None`` creates a GMM with n_components components of dimension accordingly to the arguments patch_size and channels.
@@ -83,7 +82,7 @@ class EPLL(nn.Module):
                         "No pretrained weights found for this configuration!"
                     )
                 url = get_weights_url(model_name="EPLL", file_name=file_name)
-                ckpt = torch.hub.load_state_dict_from_url(
+                ckpt = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=file_name
                 )
             self.load_state_dict(ckpt)

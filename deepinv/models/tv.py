@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from .base import Denoiser
 
@@ -29,6 +30,7 @@ class TVDenoiser(Denoiser):
     :param float crit: Convergence criterion. Default: 1e-5.
     :param torch.Tensor, None x2: Primary variable for warm restart. Default: None.
     :param torch.Tensor, None u2: Dual variable for warm restart. Default: None.
+    :param float, torch.Tensor ths: Regularization parameter :math:`\gamma`. Can also be passed to ``forward``. Default: None
 
     .. note::
         The regularization term :math:`\|Dx\|_{1,2}` is implicitly normalized by its Lipschitz constant, i.e.
@@ -42,13 +44,14 @@ class TVDenoiser(Denoiser):
 
     def __init__(
         self,
-        verbose=False,
-        tau=0.01,
-        rho=1.99,
-        n_it_max=1000,
-        crit=1e-5,
-        x2=None,
-        u2=None,
+        verbose: bool = False,
+        tau: float = 0.01,
+        rho: float = 1.99,
+        n_it_max: int = 1000,
+        crit: float = 1e-5,
+        x2: torch.Tensor = None,
+        u2: torch.Tensor = None,
+        ths: float | torch.Tensor = None,
     ):
         super(TVDenoiser, self).__init__()
 
@@ -56,6 +59,7 @@ class TVDenoiser(Denoiser):
         self.n_it_max = n_it_max
         self.crit = crit
         self.restart = True
+        self.ths = ths
 
         self.tau = tau
         self.rho = rho
@@ -65,13 +69,13 @@ class TVDenoiser(Denoiser):
 
         self.has_converged = False
 
-    def prox_tau_fx(self, x, y):
+    def prox_tau_fx(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         r"""
         Proximal operator of the function :math:`\frac{1}{2}\|x-y\|_2^2`.
         """
         return (x + self.tau * y) / (1 + self.tau)
 
-    def prox_sigma_g_conj(self, u, lambda2):
+    def prox_sigma_g_conj(self, u: torch.Tensor, lambda2: torch.Tensor | float):
         return u / (
             torch.clamp(
                 torch.linalg.vector_norm(u, dim=-1, ord=2, keepdim=True) / lambda2,
@@ -79,24 +83,29 @@ class TVDenoiser(Denoiser):
             )
         )
 
-    def forward(self, y, ths=None, **kwargs):
+    def forward(
+        self, y: torch.Tensor, ths: float | torch.Tensor = None, **kwargs
+    ) -> torch.Tensor:
         r"""
         Computes the proximity operator of the TV norm.
 
         :param torch.Tensor y: Noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
-        :param float, torch.Tensor ths: Regularization parameter :math:`\gamma`.
+        :param float, torch.Tensor ths: Regularization parameter :math:`\gamma`. Takes priority over ``ths`` passed at initialization.
         :return: Denoised image.
         """
 
-        restart = (
-            True
-            if (
-                self.restart
-                or self.x2 is None
-                or self.u2 is None
-                or self.x2.shape != y.shape
+        if ths is None and self.ths is None:  # pragma: no cover
+            raise RuntimeError(
+                "Regularization parameter (ths) was not passed at init nor at forward. Please provide ths to one of these methods."
             )
-            else False
+        elif ths is None:
+            ths = self.ths
+
+        restart = (
+            self.restart
+            or self.x2 is None
+            or self.u2 is None
+            or self.x2.shape != y.shape
         )
 
         if restart:
@@ -111,14 +120,13 @@ class TVDenoiser(Denoiser):
             1 / self.tau / 2 ** (y.ndim - 1)
         )  # square of the Lipschitz constant of nabla
 
-        if ths is not None:
-            lambd = self._handle_sigma(
-                ths,
-                batch_size=y.size(0),
-                ndim=y.ndim + 1,
-                device=y.device,
-                dtype=y.dtype,
-            )
+        lambd = self._handle_sigma(
+            ths,
+            batch_size=y.size(0),
+            ndim=y.ndim + 1,
+            device=y.device,
+            dtype=y.dtype,
+        )
 
         for _ in range(self.n_it_max):
             x_prev = x2
@@ -143,7 +151,7 @@ class TVDenoiser(Denoiser):
         return x2
 
     @staticmethod
-    def nabla(x):
+    def nabla(x: torch.Tensor) -> torch.Tensor:
         r"""
         Applies the finite differences operator associated with tensors of the same shape as x, in either 2D or 3D.
         """
@@ -173,7 +181,7 @@ class TVDenoiser(Denoiser):
         return u
 
     @staticmethod
-    def nabla_adjoint(x):
+    def nabla_adjoint(x: torch.Tensor) -> torch.Tensor:
         r"""
         Applies the adjoint of the finite difference operator.
         """

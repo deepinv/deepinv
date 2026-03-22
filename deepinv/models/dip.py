@@ -186,16 +186,16 @@ class DeepImagePrior(Reconstructor):
             for layer in self.generator.children():
                 if hasattr(layer, "reset_parameters"):
                     layer.reset_parameters()
+        with torch.enable_grad():
+            self.generator.requires_grad_(True)
+            z = torch.randn(self.img_size, device=y.device).unsqueeze(0)
+            optimizer = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
 
-        self.generator.requires_grad_(True)
-        z = torch.randn(self.img_size, device=y.device).unsqueeze(0)
-        optimizer = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
+            for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
+                x = self.generator(z)
+                error = self.loss(y=y, x_net=x, physics=physics)
+                optimizer.zero_grad()
+                error.backward()
+                optimizer.step()
 
-        for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
-            x = self.generator(z)
-            error = self.loss(y=y, x_net=x, physics=physics)
-            optimizer.zero_grad()
-            error.backward()
-            optimizer.step()
-
-        return self.generator(z)
+            return self.generator(z)

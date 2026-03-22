@@ -14,7 +14,10 @@ NOISES = [
     "LogPoisson",
     "SaltPepper",
     "RicianNoise",
+    "Laplace",
 ]
+
+
 DEVICES = [torch.device("cpu")]
 if torch.cuda.is_available():
     DEVICES.append(torch.device("cuda"))
@@ -44,6 +47,8 @@ def choose_noise(noise_type, rng):
         noise_model = dinv.physics.SaltPepperNoise(p=p, s=s, rng=rng)
     elif noise_type == "RicianNoise":
         noise_model = dinv.physics.RicianNoise(sigma=sigma, rng=rng)
+    elif noise_type == "Laplace":
+        noise_model = dinv.physics.LaplaceNoise(b=sigma, rng=rng)
     else:
         raise Exception("Noise model not found")
 
@@ -76,6 +81,27 @@ def test_rng(name, device, rng, dtype):
     y_3 = noise_model(x, seed=0)
     assert torch.allclose(y_1, y_3)
     assert not torch.allclose(y_1, y_2)
+
+
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_laplace_noise_moments(device, dtype, rng):
+    imsize = (1, 3, 7, 16)
+    b = 0.1
+    x = torch.zeros(imsize, device=device, dtype=dtype)
+    noise_model = dinv.physics.LaplaceNoise(b=b, rng=rng)
+    b = noise_model.b.item()
+    y = noise_model(x, seed=0)
+    noise = y - x
+
+    true_mean = x.mean().item()
+    true_var = 2 * (b**2)
+
+    empirical_mean = noise.mean().item()
+    empirical_var = noise.var().item()
+
+    assert math.isclose(empirical_mean, true_mean, abs_tol=1e-1)
+    assert math.isclose(empirical_var, true_var, abs_tol=1e-1)
 
 
 @pytest.mark.parametrize("device", DEVICES)

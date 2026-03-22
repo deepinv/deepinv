@@ -27,10 +27,6 @@ from deepinv import utils
 
 __all__ += ["utils"]
 
-from deepinv import models
-
-__all__ += ["iterative"]
-
 from deepinv import physics
 
 __all__ += ["physics"]
@@ -72,5 +68,7 @@ import warnings
 # Check Python version
 if sys.version_info < (3, 10):  # pragma: no cover
     warnings.warn(
-        "You are using a Python version lower than 3.10. deepinv officially supports Python >= 3.10. Running on < 3.10 may work, but it is unsupported, unstable and may lead to unexpected bugs. For more information on updating to Python 3.10, see https://www.python.org/downloads"
+        "You are using a Python version lower than 3.10. deepinv officially supports Python >= 3.10. "
+        "Running on < 3.10 may work, but it is unsupported, unstable and may lead to unexpected bugs. "
+        "For more information on updating to Python 3.10, see https://www.python.org/downloads"
     )

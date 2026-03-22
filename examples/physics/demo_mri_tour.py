@@ -32,7 +32,7 @@ import deepinv as dinv
 import torch, torchvision
 from torch.utils.data import DataLoader
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 rng = torch.Generator(device=device).manual_seed(0)
 
 
@@ -303,7 +303,8 @@ physics = dinv.physics.MultiCoilMRI(
     device=device,
 )
 
-x_rss = physics.A_adjoint(y, rss=True, crop=True)
+x_rss = physics.A_adjoint(y, rss=True)
+x_rss = physics.crop(x_rss, shape=x.shape)  # FastMRI provided RSS is cropped
 
 assert torch.allclose(x, x_rss)
 
@@ -464,13 +465,11 @@ dataset = dinv.datasets.CMRxReconSliceDataset(
 
 x, y, params = next(iter(DataLoader(dataset)))
 
-print(
-    f"""
+print(f"""
     Ground truth: {x.shape} (B, C, T, H, W)
     Measurements: {y.shape}
     Acc. mask: {params["mask"].shape}
-"""
-)
+""")
 
 # %%
 # Dynamic MRI data is directly compatible with existing functionality.

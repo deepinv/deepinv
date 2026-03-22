@@ -7,6 +7,7 @@ from .blur import (
     DiffractionBlurGenerator3D,
     ConfocalBlurGenerator3D,
     bump_function,
+    TiledBlurGenerator,
 )
 from .mri import (
     BaseMaskGenerator,
@@ -24,3 +25,4 @@ from .inpainting import (
     MultiplicativeSplittingMaskGenerator,
 )
 from .downsampling import DownsamplingGenerator
+from .zernike import Zernike

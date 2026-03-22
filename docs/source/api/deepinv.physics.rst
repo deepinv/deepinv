@@ -18,6 +18,8 @@ Base Classes
    deepinv.physics.DecomposablePhysics
    deepinv.physics.StackedPhysics
    deepinv.physics.StackedLinearPhysics
+   deepinv.physics.ComposedPhysics
+   deepinv.physics.ComposedLinearPhysics
    deepinv.physics.PhysicsMultiScaler
    deepinv.physics.LinearPhysicsMultiScaler
    deepinv.physics.PhysicsCropper
@@ -39,6 +41,7 @@ Operators
    deepinv.physics.Blur
    deepinv.physics.BlurFFT
    deepinv.physics.SpaceVaryingBlur
+   deepinv.physics.TiledSpaceVaryingBlur
    deepinv.physics.Downsampling
    deepinv.physics.Upsampling
    deepinv.physics.DownsamplingMatlab
@@ -63,6 +66,7 @@ Operators
    deepinv.physics.StructuredRandomPhaseRetrieval
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
+   deepinv.physics.Scattering
 
 
 Generators
@@ -87,7 +91,9 @@ Generators
    deepinv.physics.generator.DiffractionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator3D
    deepinv.physics.generator.ProductConvolutionBlurGenerator
+   deepinv.physics.generator.TiledBlurGenerator
    deepinv.physics.generator.ConfocalBlurGenerator3D
+   deepinv.physics.generator.Zernike
    deepinv.physics.generator.BaseMaskGenerator
    deepinv.physics.generator.GaussianMaskGenerator
    deepinv.physics.generator.RandomMaskGenerator
@@ -106,6 +112,7 @@ Generators
    deepinv.physics.blur.sinc_filter
    deepinv.physics.phase_retrieval.build_probe
    deepinv.physics.phase_retrieval.generate_shifts
+   deepinv.physics.scattering.circular_sensors
 
 Noise distributions
 -------------------
@@ -122,6 +129,7 @@ Noise distributions
    deepinv.physics.LogPoissonNoise
    deepinv.physics.PoissonNoise
    deepinv.physics.PoissonGaussianNoise
+   deepinv.physics.LaplaceNoise
    deepinv.physics.UniformNoise
    deepinv.physics.UniformGaussianNoise
    deepinv.physics.GammaNoise
@@ -139,6 +147,7 @@ Noise distributions
 
     deepinv.physics.adjoint_function
     deepinv.physics.stack
+    deepinv.physics.compose
 
 
 Functional
@@ -154,6 +163,8 @@ Functional
    deepinv.physics.functional.conv_transpose2d
    deepinv.physics.functional.conv2d_fft
    deepinv.physics.functional.conv_transpose2d_fft
+   deepinv.physics.functional.conv3d
+   deepinv.physics.functional.conv_transpose3d
    deepinv.physics.functional.conv3d_fft
    deepinv.physics.functional.conv_transpose3d_fft
    deepinv.physics.functional.product_convolution2d
@@ -167,6 +178,8 @@ Functional
    deepinv.physics.functional.dct_2d
    deepinv.physics.functional.idct_2d
    deepinv.physics.functional.imresize_matlab
+   deepinv.physics.functional.random_choice
+   deepinv.physics.functional.power_method
 
 
 .. autosummary::

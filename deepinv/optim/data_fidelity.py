@@ -17,7 +17,6 @@ from deepinv.optim.distance import (
 from deepinv.optim.potential import Potential
 from deepinv.physics.functional import dct_2d, idct_2d
 
-
 if TYPE_CHECKING:
     from deepinv.physics import Physics, StackedPhysics
 

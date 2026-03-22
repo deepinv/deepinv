@@ -7,7 +7,9 @@ from .blur import (
     SpaceVaryingBlur,
     Upsampling,
     DownsamplingMatlab,
+    TiledSpaceVaryingBlur,
 )
+from .scattering import Scattering
 from .range import Decolorize
 from .haze import Haze
 from .unmixing import HyperSpectralUnmixing
@@ -15,11 +17,14 @@ from .forward import (
     Denoising,
     Physics,
     StackedPhysics,
+    ComposedPhysics,
     LinearPhysics,
     StackedLinearPhysics,
+    ComposedLinearPhysics,
     DecomposablePhysics,
     adjoint_function,
     stack,
+    compose,
 )
 from .noise import (
     NoiseModel,
@@ -32,9 +37,9 @@ from .noise import (
     LogPoissonNoise,
     GammaNoise,
     SaltPepperNoise,
-    ZeroNoise,
     FisherTippettNoise,
     RicianNoise,
+    LaplaceNoise,
 )
 from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI
 from .wrappers import PhysicsMultiScaler, LinearPhysicsMultiScaler, PhysicsCropper
