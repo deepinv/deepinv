@@ -128,7 +128,7 @@ platforms = ["linux-64", "win-64", "osx-arm64"]
 
 [tool.pixi.dependencies]
 parallelproj = "*"  # look in conda-forge for this dependency
-python = ">=3.10,<=3.13"  # specify the Python version range
+python = ">=3.10,<3.13"  # specify the Python version range
 
 [tool.pixi.pypi-dependencies]
 deepinv = { path = ".", editable = true }
