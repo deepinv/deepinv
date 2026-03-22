@@ -61,7 +61,7 @@ Join our **mailing list** for occasional updates on releases and new features:
 Install
 -------
 
-Install the latest stable release of ``deepinv``:
+Install the latest **stable release** of ``deepinv``:
 
 .. tab-set::
     :sync-group: install
@@ -85,6 +85,7 @@ Install the latest stable release of ``deepinv``:
 
         .. code-block:: bash
 
+           pixi init && pixi add python
            pixi add --pypi deepinv
 
     .. tab-item:: conda
@@ -94,7 +95,7 @@ Install the latest stable release of ``deepinv``:
 
            conda install -c conda-forge deepinv
 
-Or, to also install optional dependencies:
+Or, to also install **all optional dependencies**:
 
 .. tab-set::
     :sync-group: install
@@ -129,7 +130,7 @@ Or, to also install optional dependencies:
 
 
 
-Since ``deepinv`` is under active development, you can install the latest nightly version using:
+Since ``deepinv`` is under active development, you can install the **latest nightly version** using:
 
 .. tab-set::
     :sync-group: install
@@ -164,7 +165,7 @@ Since ``deepinv`` is under active development, you can install the latest nightl
             pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
 
 
-Or, for updating an existing installation:
+Or, for **updating** an existing installation:
 
 .. tab-set::
     :sync-group: install

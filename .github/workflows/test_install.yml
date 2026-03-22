@@ -11,112 +11,162 @@ on:
 
 jobs:
   pip:
-    name: "pip (${{ matrix.os }}, ${{ matrix.source }})"
+    name: "pip (${{ matrix.os }}, ${{ matrix.source }}, ${{ matrix.deps }})"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         source: [pypi, git]
+        deps: [core, full]
     steps:
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: "3.10"
 
-      - name: Install deepinv from PyPI
-        if: matrix.source == 'pypi'
+      - name: Install deepinv (core) from PyPI
+        if: matrix.source == 'pypi' && matrix.deps == 'core'
         run: pip install deepinv
 
-      - name: Install deepinv from git
-        if: matrix.source == 'git'
+      - name: Install deepinv (full) from PyPI
+        if: matrix.source == 'pypi' && matrix.deps == 'full'
+        run: pip install "deepinv[dataset,denoisers,physics]"
+
+      - name: Install deepinv (core) from git
+        if: matrix.source == 'git' && matrix.deps == 'core'
         run: pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+      - name: Install deepinv (full) from git
+        if: matrix.source == 'git' && matrix.deps == 'full'
+        run: pip install "deepinv[dataset,denoisers,physics] @ git+https://github.com/deepinv/deepinv.git"
 
       - name: Test import
         run: python -c "import deepinv; print('deepinv', deepinv.__version__)"
 
   uv:
-    name: "uv (${{ matrix.os }}, ${{ matrix.source }})"
+    name: "uv (${{ matrix.os }}, ${{ matrix.source }}, ${{ matrix.deps }})"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         source: [pypi, git]
+        deps: [core, full]
     steps:
       - uses: astral-sh/setup-uv@v6
 
-      - name: Install deepinv from PyPI
-        if: matrix.source == 'pypi'
+      - name: Install deepinv (core) from PyPI
+        if: matrix.source == 'pypi' && matrix.deps == 'core'
         run: |
           uv venv
           uv pip install deepinv
 
-      - name: Install deepinv from git
-        if: matrix.source == 'git'
+      - name: Install deepinv (full) from PyPI
+        if: matrix.source == 'pypi' && matrix.deps == 'full'
+        run: |
+          uv venv
+          uv pip install "deepinv[dataset,denoisers,physics]"
+
+      - name: Install deepinv (core) from git
+        if: matrix.source == 'git' && matrix.deps == 'core'
         run: |
           uv venv
           uv pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+      - name: Install deepinv (full) from git
+        if: matrix.source == 'git' && matrix.deps == 'full'
+        run: |
+          uv venv
+          uv pip install "deepinv[dataset,denoisers,physics] @ git+https://github.com/deepinv/deepinv.git"
 
       - name: Test import
         run: uv run python -c "import deepinv; print('deepinv', deepinv.__version__)"
 
   pixi:
-    name: "pixi (${{ matrix.os }}, ${{ matrix.source }})"
+    name: "pixi (${{ matrix.os }}, ${{ matrix.source }}, ${{ matrix.deps }})"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         source: [pypi, git]
+        deps: [core, full]
     steps:
+      # Always check out: needed for git source (pyproject.toml defines the environments),
+      # and harmless for pypi source (we work inside a subdirectory).
+      - uses: actions/checkout@v5
+
       - uses: prefix-dev/setup-pixi@v0.8.1
         with:
           pixi-version: latest
-          run-install: false  # do not install from the repo's pyproject.toml
+          run-install: false  # we drive installation manually below
 
-      - name: Install deepinv from PyPI
-        if: matrix.source == 'pypi'
+      # --- PyPI source: spin up a temporary project and pull from PyPI ---
+
+      - name: Install deepinv (pypi, core)
+        if: matrix.source == 'pypi' && matrix.deps == 'core'
         shell: bash
         run: |
-          mkdir test_project
-          cd test_project
-          pixi init
-          pixi add python
+          mkdir test_project && cd test_project
+          pixi init && pixi add python
           pixi add --pypi deepinv
           pixi run python -c "import deepinv; print('deepinv', deepinv.__version__)"
 
-      - name: Install deepinv from git
-        if: matrix.source == 'git'
+      - name: Install deepinv (pypi, full)
+        if: matrix.source == 'pypi' && matrix.deps == 'full'
         shell: bash
         run: |
-          mkdir test_project
-          cd test_project
-          pixi init
-          pixi add python
-            pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
+          mkdir test_project && cd test_project
+          pixi init && pixi add python
+          pixi add --pypi "deepinv[dataset,denoisers,physics]"
           pixi run python -c "import deepinv; print('deepinv', deepinv.__version__)"
 
+      # --- Git source: use the environments already defined in pyproject.toml ---
+      # 'default' = core deps only; 'full' = test + dataset + denoisers + physics + training
+
+      - name: Install and test (git, core) via 'default' environment
+        if: matrix.source == 'git' && matrix.deps == 'core'
+        run: |
+          pixi install -e default
+          pixi run -e default python -c "import deepinv; print('deepinv', deepinv.__version__)"
+
+      - name: Install and test (git, full) via 'full' environment
+        if: matrix.source == 'git' && matrix.deps == 'full'
+        run: |
+          pixi install -e full
+          pixi run -e full python -c "import deepinv; print('deepinv', deepinv.__version__)"
+
   conda:
-    name: "conda (${{ matrix.os }}, ${{ matrix.source }})"
+    name: "conda (${{ matrix.os }}, ${{ matrix.source }}, ${{ matrix.deps }})"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         source: [pypi, git]
+        deps: [core, full]
     steps:
       - uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: "3.12"
+          python-version: "3.10"
           activate-environment: test-env
           auto-activate-base: false
 
-      - name: Install deepinv from conda-forge
-        if: matrix.source == 'pypi'
+      - name: Install deepinv (core) from conda-forge
+        if: matrix.source == 'pypi' && matrix.deps == 'core'
         shell: bash -el {0}
         # TODO: requests is missing from the conda-forge recipe for deepinv;
         # install it explicitly until the recipe is fixed upstream.
         run: conda install -c conda-forge deepinv requests -y
+
+      - name: Install deepinv (full) from conda-forge
+        if: matrix.source == 'pypi' && matrix.deps == 'full'
+        shell: bash -el {0}
+        # conda does not support extras; install deepinv from conda-forge then
+        # use pip for the optional dependencies.
+        run: |
+          conda install -c conda-forge deepinv requests -y
+          pip install "deepinv[dataset,denoisers,physics]"
 
       - name: Pre-install pytorch from conda-forge (git source)
         if: matrix.source == 'git'
@@ -126,10 +176,15 @@ jobs:
         # that bundles conflicting native libraries (e.g. libprotobuf on macOS).
         run: conda install -c conda-forge pytorch torchvision -y
 
-      - name: Install deepinv from git
-        if: matrix.source == 'git'
+      - name: Install deepinv (core) from git
+        if: matrix.source == 'git' && matrix.deps == 'core'
         shell: bash -el {0}
         run: pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+      - name: Install deepinv (full) from git
+        if: matrix.source == 'git' && matrix.deps == 'full'
+        shell: bash -el {0}
+        run: pip install "deepinv[dataset,denoisers,physics] @ git+https://github.com/deepinv/deepinv.git"
 
       - name: Test import
         shell: bash -el {0}
