@@ -233,7 +233,7 @@ if __name__ == "__main__":
                 )
             backbone = dinv.models.UNet(in_channels=2, out_channels=2, scales=4)
             model = dinv.models.ArtifactRemoval(backbone_net=backbone, mode="adjoint")
-            model = _EquivariantReconstructor(
+            model = dinv.models.EquivariantReconstructor(
                 model=model,
                 train_transform=train_transform,
                 eval_transform=eval_transform,
