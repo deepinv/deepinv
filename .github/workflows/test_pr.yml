@@ -65,17 +65,6 @@ jobs:
             testmon-cpu-main-${{ matrix.os }}-${{ matrix.version_python }}
             testmon-cpu-main-${{ matrix.os }}
 
-      - name: Install MSVC Redistributable (Fixes Torch WinError 127)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: choco install vcredist140 -y
-
-      - name: Smoke Test DeepInv Imports
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          pixi run -e full python -c "import os, sys; torch_dll_path = os.path.join(os.path.dirname(sys.executable), 'Lib', 'site-packages', 'torch', 'lib'); os.add_dll_directory(torch_dll_path) if os.path.exists(torch_dll_path) else print('Folder not found'); import torch; print('PyTorch successfully hot-loaded on Windows!')"
-
       - name: Test with pytest
         if: matrix.version_python == '3.12'
         shell: bash
