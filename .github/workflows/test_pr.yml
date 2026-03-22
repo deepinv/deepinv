@@ -69,7 +69,7 @@ jobs:
         if: matrix.version_python == '3.12'
         shell: bash
         run: |
-          pixi run -e ${{ matrix.environment }} pytest
+          pixi run -e ${{ matrix.environment }} python -m pytest --tb=short
 
       - name: Upload coverage to Codecov
         if: runner.os == 'Linux' && matrix.version_python == '3.12'
