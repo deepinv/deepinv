@@ -246,10 +246,10 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size,
             normalize=True,
             device=device,
-            noise_model=dinv.physics.ZeroNoise(),
         )
+        p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = (
-            False  # stop auto-normalize to compute gradients wrt to attn and bkg
+            False  # stop auto-normalize to compute gradients wrt to attn
         )
         params = ["attenuation", "background"]
     elif name == "pet_3d":
@@ -258,10 +258,10 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size,
             normalize=True,
             device=device,
-            noise_model=dinv.physics.ZeroNoise(),
         )
+        p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = (
-            False  # stop auto-normalize to compute gradients wrt to attn and bkg
+            False  # stop auto-normalize to compute gradients wrt to attn
         )
         params = ["attenuation", "background"]
     elif name == "2DParallelBeamCT":
