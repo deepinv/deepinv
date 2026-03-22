@@ -70,6 +70,10 @@ jobs:
             testmon-cpu-main-${{ matrix.os }}-${{ matrix.version_python }}
             testmon-cpu-main-${{ matrix.os }}
 
+      - name: Pre-install Full Environment
+        if: matrix.version_python == '3.12'
+        run: pixi run -e full python --version # Forces pixi to resolve 'full' cleanly first
+
       - name: Test with pytest
         if: matrix.version_python == '3.12'
         run: |
