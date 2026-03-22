@@ -50,11 +50,6 @@ jobs:
           #cache: true
           #frozen: false
 
-      - name: Check Environment
-        run: |
-          pixi run -e ${{ matrix.environment }} python --version
-          pixi run -e ${{ matrix.environment }} pip list
-
       - name: Python 3.9 check import warning
         if: matrix.version_python == '3.9'
         run: |
@@ -74,7 +69,7 @@ jobs:
         if: matrix.version_python == '3.12'
         shell: bash
         run: |
-          pixi run -e ${{ matrix.environment }} pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml --testmon
+          pixi run -e ${{ matrix.environment }} pytest
 
       - name: Upload coverage to Codecov
         if: runner.os == 'Linux' && matrix.version_python == '3.12'
