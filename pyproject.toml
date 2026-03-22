@@ -128,9 +128,10 @@ platforms = ["linux-64", "win-64", "osx-arm64"]
 
 [tool.pixi.dependencies]
 parallelproj = { version = "*", channel = "conda-forge" }
+pip = "*"
 python = ">=3.10"
 
-[tool.pixi.pypi-dependencies]
+[tool.pixi.pypi-dependencies] # install from PyPI for all environments
 deepinv = { path = ".", editable = true }
 
 [tool.pixi.environments]
