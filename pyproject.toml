@@ -121,7 +121,6 @@ training = [
 
 ##############################################################
 # Pixi configuration for managing conda optional dependencies
-
 [tool.pixi.workspace]
 channels = ["conda-forge"]
 platforms = ["linux-64", "win-64", "osx-arm64"]
@@ -129,6 +128,11 @@ platforms = ["linux-64", "win-64", "osx-arm64"]
 [tool.pixi.dependencies]
 parallelproj = "*"  # look in conda-forge for this dependency
 python = ">=3.9"
+
+[tool.pixi.pypi-dependencies]
+# 2. Pixi gets your libraries from PyPI here:
+torch = ">=2.0.0"
+torchvision = "*"
 
 [tool.pixi.pypi-dependencies]
 deepinv = { path = ".", editable = true }
@@ -162,6 +166,9 @@ skip_covered = true
 exclude_also = [
     "if self.mlflow_vis",
 ]
+
+##############################################
+# Ruff configuration for linting and import management
 
 [tool.ruff]
 target-version = "py39"
