@@ -59,7 +59,6 @@ jobs:
             else
               BASE_REF="origin/${{ github.event.pull_request.base.ref }}"
               HEAD_REF="HEAD"
-              # Swapped 'uv run' for 'pixi run -e docs python'
               PATTERN=$(pixi run -e docs python .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
               echo "Conditional PR Pattern: $PATTERN"
             fi
@@ -72,7 +71,6 @@ jobs:
         env:
           SG_PATTERN: ${{ steps.get_pattern.outputs.SG_PATTERN }}
         run: |
-          # Use pixi run to execute sphinx within the docs environment
           pixi run -e docs sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
 
       - name: Run doctests
@@ -82,7 +80,8 @@ jobs:
           HF_HUB_DISABLE_PROGRESS_BARS: 1
           DEEPINV_DOWNLOAD_VERBOSE: 0
         run: |
-          pixi run -e docs sphinx-build -M doctest docs/source docs/build -D plot_gallery=0 -v
+      #    pixi run -e docs sphinx-build -M doctest docs/source docs/build -D plot_gallery=0 -v
+          pixi run -e docs pytest --doctest-modules --doctest-glob="*.rst"
 
       - name: Notebook generation
         run: |
@@ -94,7 +93,6 @@ jobs:
             mkdir -p "$out_dir"
             base="$(basename "$rel" .py)"
             out_path="$out_dir/$base.ipynb"
-            # Swapped 'uv run' for 'pixi run -e docs python'
             pixi run -e docs python .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
           done
 
