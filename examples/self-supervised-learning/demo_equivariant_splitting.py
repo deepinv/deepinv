@@ -109,7 +109,15 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # See :class:`deepinv.models.MoDL` for details.
 #
 
-model = MoDL().to(device)
+backbone = dinv.models.UNet(
+    in_channels=2,
+    out_channels=2,
+    scales=4,
+    bias=True,
+    residual=True,
+    batch_norm=True,
+)
+model = MoDL(backbone).to(device)
 
 
 # %%
