@@ -132,17 +132,18 @@ class ESLoss(Loss):
         return loss_value
 
     def adapt_model(self, model):
-        # if the model is not already equivariant, we make it so using Reynolds averaging
-        if not self._equivariant_model:
-            model = dinv.models.EquivariantReconstructor(
-                model=model,
-                train_transform=self._train_transform,
-                eval_transform=self._eval_transform,
-            )
-        if self._split_r2r_loss is not None:
-            model = self._split_r2r_loss.adapt_model(model)
-        else:
-            model = self._splitting_loss.adapt_model(model)
+        if not isinstance(model, dinv.loss.SplittingLoss.SplittingModel):
+            # if the model is not already equivariant, we make it so using Reynolds averaging
+            if not self._equivariant_model:
+                model = dinv.models.EquivariantReconstructor(
+                    model=model,
+                    train_transform=self._train_transform,
+                    eval_transform=self._eval_transform,
+                )
+            if self._split_r2r_loss is not None:
+                model = self._split_r2r_loss.adapt_model(model)
+            else:
+                model = self._splitting_loss.adapt_model(model)
         return model
 
 

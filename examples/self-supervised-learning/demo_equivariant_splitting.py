@@ -171,6 +171,7 @@ losses = [
         eval_transform=eval_transform,
     )
 ]
+_ = losses[-1].adapt_model(model)
 
 # choose optimizer and scheduler
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-8)
