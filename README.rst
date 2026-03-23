@@ -39,17 +39,12 @@ Mailing list
 Install
 -------
 
-Install the latest stable release of ``deepinv``:
+Install the latest stable release of ``deepinv``
+(see `the documentation <https://deepinv.github.io/deepinv/#install>`_ for other installation options, including `uv`, `pixi` and `conda`):
 
 .. code-block:: bash
 
    pip install deepinv
-
-Or, use `uv` for a faster install:
-
-.. code-block:: bash
-
-   uv pip install deepinv
 
 Or, to also install optional dependencies:
 
