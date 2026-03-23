@@ -123,7 +123,6 @@ Phantoms
 
     deepinv.utils.phantoms.generate_shepp_logan
     deepinv.utils.phantoms.generate_random_phantom
-    deepinv.utils.phantoms.generate_pet_phantom
 
 
 .. autosummary::

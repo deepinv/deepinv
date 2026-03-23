@@ -79,11 +79,6 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.TomographyWithAstra`
      -
 
-   * - Positron Emission Tomography
-     -
-       | :class:`deepinv.physics.PET`
-     -
-
    * - Remote Sensing & Multispectral
      -
        | :class:`deepinv.physics.Pansharpen`
