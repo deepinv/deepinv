@@ -151,7 +151,9 @@ train_transform = dinv.transform.Rotate(
     n_trans=1, multiples=90, positive=True
 ) * dinv.transform.Reflect(n_trans=1, dim=[-1])
 # # All of the transformations from the group D4
-eval_transform = None  # use same as train
+eval_transform = dinv.transform.Rotate(
+    n_trans=4, multiples=90, positive=True
+) * dinv.transform.Reflect(n_trans=2, dim=[-1])
 
 losses = [
     dinv.loss.ESLoss(
