@@ -108,18 +108,33 @@ def _symmetrize(
 
     def symmetrized_reconstructor(y, physics, *args, **kwargs):
         params = transform.get_params(physics.A_adjoint(y))
+        # transform.transform and transform.inverse
+        # behave differently - we stick to transform.inverse
+        # with inverted params to avoid a failure case
+        params_inv = transform.invert_params(params)
         if transform.constant_shape and collate_batch:
             # construct n_tran problems and solve them in parallel
             B = y.size(0)
+            # Compute the effective n_trans by traversing the nested composed transforms
+            n_trans = 1
+            ts = [transform]
+            while ts:
+                t_cur = ts.pop()
+                if hasattr(t_cur, "t1") and hasattr(t_cur, "t2"):
+                    t1, t2 = t_cur.t1, t_cur.t2
+                    ts += [t1, t2]
+                else:
+                    n_trans *= t_cur.n_trans
+            transform.n_trans = n_trans
             y = torch.cat([y] * transform.n_trans)
             t = LinearPhysics(
-                A=lambda x: transform.transform(x, batchwise=False, **params),
+                A=lambda x: transform.inverse(x, batchwise=False, **params_inv),
                 A_adjoint=lambda x: transform.inverse(x, batchwise=False, **params),
             )
-            xt = transform.transform(
+            xt = transform.inverse(
                 f(y, physics=physics * t, *args, **kwargs),
                 batchwise=False,
-                **params,
+                **params_inv,
             )
             return xt.reshape((-1, B) + xt.size()[1:]).mean(axis=0) if average else xt
         else:
