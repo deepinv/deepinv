@@ -1,10 +1,6 @@
 name: Test Install Methods
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
   schedule:
     - cron: "0 6 * * 1"  # every Monday at 06:00 UTC
