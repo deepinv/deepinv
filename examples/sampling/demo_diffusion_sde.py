@@ -112,6 +112,7 @@ x, trajectory = model(
     x_init=(1, 3, 64, 64),
     seed=10,
     get_trajectory=True,
+    add_noise_at_last_step=False,  # We set this to False to skip the noise addition at the last sampling step
 )
 
 dinv.utils.plot(
@@ -195,6 +196,7 @@ x_hat, trajectory = model(
     physics,
     seed=seed_1,
     get_trajectory=True,
+    add_noise_at_last_step=False,  # We set this to False to skip the noise addition at the last sampling step
 )
 
 
@@ -283,6 +285,7 @@ x_hat_vp, trajectory = model(
     physics,
     seed=111,
     get_trajectory=True,
+    add_noise_at_last_step=False,  # We set this to False to skip the noise addition at the last sampling step
 )
 x_hat = x
 dinv.utils.plot(
@@ -393,6 +396,7 @@ x_hat, trajectory = model(
     physics=physics,
     seed=1,
     get_trajectory=True,
+    add_noise_at_last_step=False,
 )
 
 # Here, we plot the original image, the measurement and the posterior sample

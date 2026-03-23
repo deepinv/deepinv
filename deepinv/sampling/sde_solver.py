@@ -110,7 +110,7 @@ class BaseSDESolver(nn.Module):
         timesteps: Tensor | ndarray = None,
         get_trajectory: bool = False,
         verbose: bool = False,
-        add_noise_at_last_step: bool = False,
+        add_noise_at_last_step: bool = True,
         **kwargs,
     ) -> SDEOutput:
         r"""
@@ -125,7 +125,7 @@ class BaseSDESolver(nn.Module):
         :param torch.Tensor, numpy.ndarray, list timesteps: A sequence of time points at which to solve the SDE. If None, default timesteps will be used.
         :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False.
         :param bool verbose: whether to display a progress bar during the sampling process, optional. Default to False.
-        :param bool add_noise_at_last_step: whether to add noise at the last step of the integration, optional. Default to `False`.
+        :param bool add_noise_at_last_step: whether to add noise at the last step of the integration, optional. Default to `True`.
         :param \*args: Variable length argument list to be passed to the step function.
         :param \*\*kwargs: Arbitrary keyword arguments to be passed to the step function.
 
