@@ -32,7 +32,7 @@ set_default_plot_fontsize(12)
 
 metadata = importlib_metadata("deepinv")
 project = str(metadata["Name"])
-copyright = "deepinverse contributors 2025"
+copyright = "deepinverse contributors 2026"
 author = str(metadata["Author"])
 release = str(metadata["Version"])
 
@@ -181,23 +181,6 @@ def setup(app):
 
 
 # ---------- doctest configuration -----------------------------------------
-# Add a IGNORE_RESULT option to skip some line output
-# From: https://stackoverflow.com/a/69780437/2642845
-
-IGNORE_RESULT = doctest.register_optionflag("IGNORE_RESULT")
-
-OutputChecker = doctest.OutputChecker
-
-
-class CustomOutputChecker(OutputChecker):
-    def check_output(self, want, got, optionflags):
-        if IGNORE_RESULT & optionflags:
-            return True
-        return OutputChecker.check_output(self, want, got, optionflags)
-
-
-doctest.OutputChecker = CustomOutputChecker
-
 doctest_global_setup = """
 import torch
 import numpy as np

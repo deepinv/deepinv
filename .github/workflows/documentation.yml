@@ -24,8 +24,7 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.8.1
         with:
           pixi-version: latest
-          #cache: true
-          #frozen: false
+          cache: true
           environments: docs
 
       - name: Fetch base branch
@@ -100,7 +99,6 @@ jobs:
 
       - name: Run doctests
         env:
-          SPHINX_DOCTEST: "1"
           TQDM_DISABLE: 1
           HF_HUB_DISABLE_PROGRESS_BARS: 1
           DEEPINV_DOWNLOAD_VERBOSE: 0
