@@ -44,6 +44,8 @@ jobs:
         with:
           pixi-version: latest
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+          global-cache: true
+          cache: true
 
       - name: Restore .testmondata
         uses: actions/cache/restore@v3
