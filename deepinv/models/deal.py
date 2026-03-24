@@ -10,7 +10,7 @@ from torch import Tensor, nn
 
 from deepinv.physics import LinearPhysics
 from deepinv.optim.linear import conjugate_gradient
-from deepinv.optim import Prior
+from deepinv.optim.prior import Prior
 from .base import Reconstructor
 
 ms = torch
