@@ -15,6 +15,7 @@ from .base import Reconstructor
 
 ms = torch
 
+
 class DEAL(Reconstructor):
     """
     Deep Equilibrium Attention Least Squares (DEAL) reconstruction model.
@@ -198,7 +199,6 @@ class DEAL(Reconstructor):
         )
 
         return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
-
 
 
 class LinearSpline_Func(torch.autograd.Function):
@@ -828,6 +828,7 @@ class ZeroMean(nn.Module):
         """Project kernels to have zero mean per output channel."""
         return x - torch.mean(x, dim=(1, 2, 3)).unsqueeze(1).unsqueeze(2).unsqueeze(3)
 
+
 class DEALRegularizer(Prior):
     """
     DEAL adaptive regularizer as a standalone Prior.
@@ -862,6 +863,7 @@ class DEALRegularizer(Prior):
 
         # gradient ≈ λ * L^T L x
         return self.model.lmbda * self.model.Lt(self.model.L(x, idx), idx)
+
 
 class _DEALImpl(nn.Module):
     """
