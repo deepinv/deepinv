@@ -10,6 +10,7 @@ from torch import Tensor, nn
 
 from deepinv.physics import LinearPhysics
 from deepinv.optim.linear import conjugate_gradient
+from deepinv.optim import Prior
 from .base import Reconstructor
 
 ms = torch
@@ -642,6 +643,40 @@ class ZeroMean(nn.Module):
         """Project kernels to have zero mean per output channel."""
         return x - torch.mean(x, dim=(1, 2, 3)).unsqueeze(1).unsqueeze(2).unsqueeze(3)
 
+class DEALRegularizer(Prior):
+    """
+    DEAL adaptive regularizer as a standalone Prior.
+
+    This class exposes the learned regularization term of DEAL,
+    allowing it to be used independently in optimization algorithms.
+    """
+
+    def __init__(self, model: "_DEALImpl"):
+        super().__init__()
+        self.model = model
+
+    def grad(self, x: torch.Tensor, sigma: float | torch.Tensor) -> torch.Tensor:
+        """
+        Compute the gradient of the DEAL regularizer.
+
+        :param x: input image
+        :param sigma: noise level
+        :return: gradient of the regularizer at x
+        """
+        if not isinstance(sigma, torch.Tensor):
+            sigma = torch.tensor([[sigma]], device=x.device, dtype=x.dtype)
+
+        # initialize internal parameters
+        self.model.cal_lambda(sigma)
+        self.model.cal_scaling(sigma)
+
+        # compute mask based on current x
+        self.model.cal_mask(x)
+
+        idx = [i for i in range(x.size(0))]
+
+        # gradient ≈ λ * L^T L x
+        return self.model.lmbda * self.model.Lt(self.model.L(x, idx), idx)
 
 class _DEALImpl(nn.Module):
     """
