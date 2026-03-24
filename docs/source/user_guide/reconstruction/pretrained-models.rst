@@ -41,7 +41,7 @@ These models can be set-up in one line and perform inference in another line:
      - General
      - Medium
    * - :class:`DEAL <deepinv.models.DEAL>`
-     - Feedforward
+     - Iterative
      - General; physics must be linear
      - Fast
    * - :class:`DDRM <deepinv.sampling.DDRM>`
