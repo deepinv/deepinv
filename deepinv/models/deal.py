@@ -154,17 +154,14 @@ class DEAL(Reconstructor):
         """
         Run the DEAL reconstruction.
 
-        Parameters
-        ----------
-        y : torch.Tensor
-            Measurements (e.g. sinogram).
-        physics : deepinv.physics.LinearPhysics
-            DeepInverse linear physics operator with ``__call__`` and ``A_adjoint``.
+        :param y: input measurements (e.g. sinogram)
+        :type y: torch.Tensor
 
-        Returns
-        -------
-        torch.Tensor
-            Reconstructed image with the same spatial shape as ``H^T y``.
+        :param physics: forward operator
+        :type physics: deepinv.physics.LinearPhysics
+
+        :return: reconstructed image
+        :rtype: torch.Tensor
         """
         y = y.to(self.device)
 
