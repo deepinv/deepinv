@@ -7,7 +7,6 @@
 # as a simple list of paths will be enough.
 import sys
 import os
-import doctest
 from importlib.metadata import metadata as importlib_metadata
 from docutils import nodes
 from docutils.parsers.rst import Directive
