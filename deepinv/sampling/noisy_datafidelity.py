@@ -20,9 +20,7 @@ class NoisyDataFidelity(DataFidelity):
 
     .. math::
 
-        \begin{equation*}
-            \nabla_{x_t} \log p(y|x + \sigma(t) \omega) = P(\forw{x_t'}-y),
-        \end{equation*}
+         \nabla_{x_t} \log p(y|x + \sigma(t) \omega) = P(\forw{x_t'}-y),
 
 
     where :math:`P` is a preconditioner and :math:`x_t'` is an estimation of the image :math:`x`.

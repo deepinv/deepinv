@@ -11,13 +11,11 @@ class CPIteration(OptimIterator):
     If the attribute ``g_first`` is set to ``False`` (by default), the iteration is given by
 
     .. math::
-        \begin{equation*}
         \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\sigma F^*}(u_k + \sigma K z_k) \\
         x_{k+1} &= \operatorname{prox}_{\tau \lambda G}(x_k-\tau K^\top u_{k+1}) \\
         z_{k+1} &= x_{k+1} + \beta(x_{k+1}-x_k) \\
         \end{aligned}
-        \end{equation*}
 
     where :math:`F^*` is the Fenchel-Legendre conjugate of :math:`F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
     satisfy :math:`\sigma \tau \|K\|^2 \leq 1`.
@@ -28,9 +26,7 @@ class CPIteration(OptimIterator):
 
     .. math::
 
-        \begin{equation*}
         \underset{x}{\operatorname{min}} \,\,  \distancename(Ax, y) + \lambda \regname(x)
-        \end{equation*}
 
 
     with a splitting on :math:`\distancename`, with not differentiability assumption needed on :math:`\distancename`
