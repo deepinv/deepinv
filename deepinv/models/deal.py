@@ -1064,6 +1064,26 @@ class DEAL(Reconstructor):
 
     A pretrained network can be loaded by setting ``pretrained='download'``.
 
+    The reconstruction is obtained by solving a regularized least-squares problem
+
+    .. math::
+
+        \hat{x} = \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda R_\theta(x),
+
+    where :math:`A` is the forward operator, :math:`y` the measurements,
+    and :math:`R_\theta(x)` a learned, spatially adaptive regularizer.
+
+    The optimization is performed iteratively using a fixed-point scheme.
+    At each outer iteration, the algorithm updates the reconstruction by solving
+    a linearized least-squares subproblem using conjugate gradient:
+
+    .. math::
+
+        x^{(k+1)} \approx \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda \nabla R_\theta(x^{(k)})^\top x.
+
+    The regularizer is parameterized by a neural network which produces
+    spatially varying weights, allowing the model to adapt to local image structure.
+
     :param pretrained: checkpoint path or ``'download'``.
     :type pretrained: str
 
