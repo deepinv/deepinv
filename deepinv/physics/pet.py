@@ -338,14 +338,14 @@ class LinearSingleChannelOperator(torch.autograd.Function):
         ctx.operator = operator
 
         batch_size = x.shape[0]
+        c = x.shape[1]
         y = torch.zeros(
-            (batch_size,) + operator.out_shape, dtype=x.dtype, device=x.device
+            (batch_size, c) + operator.out_shape, dtype=x.dtype, device=x.device
         )
 
-        # loop over all samples in the batch and apply linear operator
-        # to the first channel
         for i in range(batch_size):
-            y[i, ...] = operator(x[i, 0, ...].detach())
+            for j in range(c):
+                y[i, j, ...] = operator(x[i, j, ...].detach())
 
         return y
 
@@ -373,16 +373,16 @@ class LinearSingleChannelOperator(torch.autograd.Function):
             operator = ctx.operator
 
             batch_size = grad_output.shape[0]
+            c = grad_output.shape[1]
             x = torch.zeros(
-                (batch_size, 1) + operator.in_shape,
+                (batch_size, c) + operator.in_shape,
                 dtype=grad_output.dtype,
                 device=grad_output.device,
             )
 
-            # loop over all samples in the batch and apply linear operator
-            # to the first channel
             for i in range(batch_size):
-                x[i, 0, ...] = operator.adjoint(grad_output[i, ...].detach())
+                for j in range(c):
+                    x[i, j, ...] = operator.adjoint(grad_output[i, j, ...].detach())
 
             return x, None
 
