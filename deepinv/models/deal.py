@@ -1064,15 +1064,32 @@ class DEAL(Reconstructor):
 
     A pretrained network can be loaded by setting ``pretrained='download'``.
 
-    :param str pretrained: checkpoint path or ``'download'``.
-    :param float sigma: noise-level parameter used by DEAL.
-    :param float lam: regularization strength used by the DEAL solver.
-    :param int max_iter: maximum number of outer fixed-point iterations.
-    :param bool auto_scale: if ``True``, rescales measurements based on their std.
-    :param float target_y_std: target std for auto-scaling when enabled.
-    :param bool color: if ``True``, use the color DEAL variant; otherwise grayscale.
-    :param str, None device: compute device. If ``None``, use CUDA if available.
-    :param bool clamp_output: if ``True``, clamp output to ``[0, 1]``.
+    :param pretrained: checkpoint path or ``'download'``.
+    :type pretrained: str
+
+    :param sigma: noise-level parameter used by DEAL.
+    :type sigma: float
+
+    :param lam: regularization strength used by the DEAL solver.
+    :type lam: float
+
+    :param max_iter: maximum number of outer fixed-point iterations.
+    :type max_iter: int
+
+    :param auto_scale: if ``True``, rescales measurements based on their std.
+    :type auto_scale: bool
+
+    :param target_y_std: target std for auto-scaling when enabled.
+    :type target_y_std: float
+
+    :param color: if ``True``, use the color DEAL variant; otherwise grayscale.
+    :type color: bool
+
+    :param device: compute device. If ``None``, use CUDA if available.
+    :type device: str or None
+
+    :param clamp_output: if ``True``, clamp output to ``[0, 1]``.
+    :type clamp_output: bool
     """
 
     def __init__(
