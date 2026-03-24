@@ -1029,14 +1029,17 @@ class _DEALImpl(nn.Module):
                     c_ks.append(c_k)
 
                 self.cal_mask(c_k)
-                c_k, cg_iters = self.cg(
-                    Ht(y),
-                    c_k_old,
-                    max_cg_iters,
-                    eps=eps_in,
-                    H=H,
-                    Ht=Ht,
+                b = Ht(y) 
+                A_op = lambda x: self.BtB(x, H, Ht, [i for i in range(x.size(0))])
+                c_k = self.cg_official(
+                    A=A_op,
+                    b=b,
+                    x0=c_k_old,
+                    max_iter=max_cg_iters,
+                    tol=eps_in,
+                    eps=1e-8,
                 )
+                cg_iters = max_cg_iters
 
                 res = torch.linalg.norm(c_k - c_k_old) / torch.linalg.norm(c_k_old)
                 c_k_old = c_k.clone()
