@@ -15,6 +15,17 @@ combining a learned spatially-varying regularizer with the solution of
 a linear least-squares subproblem. This implementation is adapted from the
 official DEAL repository:
 https://github.com/mehrsapo/DEAL
+The DEAL algorithm solves the following optimization problem:
+
+.. math::
+
+    \hat{x} = \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda R_\theta(x),
+
+where :math:`R_\theta(x)` is a learned spatially adaptive regularizer.
+
+The reconstruction is obtained iteratively using a fixed-point scheme.
+At each iteration, a linearized least-squares subproblem is solved using
+conjugate gradient.
 """
 
 # %%
