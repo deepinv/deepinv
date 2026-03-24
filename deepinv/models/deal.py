@@ -9,6 +9,7 @@ import torch.nn.utils.parametrize as P
 from torch import Tensor, nn
 
 from deepinv.physics import LinearPhysics
+from deepinv.optim.linear import conjugate_gradient
 from .base import Reconstructor
 
 ms = torch
