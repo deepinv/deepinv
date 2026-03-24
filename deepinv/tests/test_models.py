@@ -142,7 +142,7 @@ def choose_denoiser(name, imsize):
             img_resolution=imsize[1],
             pretrained=None,
         )
-    
+
     elif name == "adinv.modelsunet":
         out = dinv.models.ADMUNet(
             in_channels=imsize[0],

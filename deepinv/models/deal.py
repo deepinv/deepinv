@@ -1151,7 +1151,6 @@ class _DEALImpl(nn.Module):
 
         return output, i
 
-
     def denoise(self, y: torch.Tensor, sigma: torch.Tensor) -> torch.Tensor:
         """Run DEAL in denoising mode."""
         self.W1.spectral_norm()
