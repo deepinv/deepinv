@@ -929,6 +929,17 @@ class _DEALImpl(nn.Module):
 
         return output, i
 
+
+    def cg_official(self, A, b, x0, max_iter, tol, eps):
+        return conjugate_gradient(
+            A=A,
+            b=b,
+            init=x0,
+            max_iter=max_iter,
+            tol=tol,
+            eps=eps,
+        )
+
     def denoise(self, y: torch.Tensor, sigma: torch.Tensor) -> torch.Tensor:
         """Run DEAL in denoising mode."""
         self.W1.spectral_norm()
