@@ -1201,8 +1201,13 @@ class DEAL(Reconstructor):
         """
         y = y.to(self.device)
 
+        if physics.__class__.__name__ == "Denoising":
+            sigma = torch.tensor([[self.sigma]], device=self.device)
+            x_hat = self.model.denoise(y, sigma)
+            return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
+
         def H(z: torch.Tensor) -> torch.Tensor:
-            return physics(z)
+            return physics.A(z)
 
         Ht = physics.A_adjoint
 
