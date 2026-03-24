@@ -20,6 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Create dummy lockfile for cache engine
+        run: touch pixi.lock
+
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
