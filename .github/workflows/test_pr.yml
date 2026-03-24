@@ -36,14 +36,6 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
-          # hash your manifest instead of the missing lock file
-          cache-key: pixi-toml-${{ hashFiles('**/pixi.toml') }}
-          # if it can't find that exact cache (fallback)
-          cache-restore-keys: |
-            pixi-toml-
-
-          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
-          cache: true
 
       - name: Restore .testmondata
         if: matrix.version_python == '3.12'
