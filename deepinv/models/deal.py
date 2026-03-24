@@ -15,6 +15,194 @@ from .base import Reconstructor
 
 ms = torch
 
+class DEAL(Reconstructor):
+    """
+    Deep Equilibrium Attention Least Squares (DEAL) reconstruction model.
+
+    This model solves linear inverse problems using a learned equilibrium-based
+    regularizer combined with iterative conjugate gradient least-squares updates. It can be used for
+    image restoration and reconstruction tasks such as denoising, deblurring,
+    and computed tomography reconstruction.
+
+    This implementation is adapted from the official DEAL repository:
+    https://github.com/mehrsapo/DEAL
+
+    For the original method, see :footcite:t:`pourya2025dealing`.
+
+    A pretrained network can be loaded by setting ``pretrained='download'``.
+
+    The reconstruction is obtained by solving a regularized least-squares problem
+
+    .. math::
+
+        \hat{x} = \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda R_\theta(x),
+
+    where :math:`A` is the forward operator, :math:`y` the measurements,
+    and :math:`R_\theta(x)` a learned, spatially adaptive regularizer.
+
+    The optimization is performed iteratively using a fixed-point scheme.
+    At each outer iteration, the algorithm updates the reconstruction by solving
+    a linearized least-squares subproblem using conjugate gradient:
+
+    .. math::
+
+        x^{(k+1)} \approx \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda \nabla R_\theta(x^{(k)})^\top x.
+
+    The regularizer is parameterized by a neural network which produces
+    spatially varying weights, allowing the model to adapt to local image structure.
+
+    :param pretrained: checkpoint path or ``'download'``.
+    :type pretrained: str
+
+    :param sigma: noise-level parameter used by DEAL.
+    :type sigma: float
+
+    :param lam: regularization strength used by the DEAL solver.
+    :type lam: float
+
+    :param max_iter: maximum number of outer fixed-point iterations.
+    :type max_iter: int
+
+    :param auto_scale: if ``True``, rescales measurements based on their std.
+    :type auto_scale: bool
+
+    :param target_y_std: target std for auto-scaling when enabled.
+    :type target_y_std: float
+
+    :param color: if ``True``, use the color DEAL variant; otherwise grayscale.
+    :type color: bool
+
+    :param device: compute device. If ``None``, use CUDA if available.
+    :type device: str or None
+
+    :param clamp_output: if ``True``, clamp output to ``[0, 1]``.
+    :type clamp_output: bool
+    """
+
+    def __init__(
+        self,
+        pretrained: str,
+        sigma: float = 25.0,
+        lam: float = 10.0,
+        max_iter: int = 50,
+        auto_scale: bool = False,
+        target_y_std: float = 25.0,
+        color: bool = False,
+        device: str | None = None,
+        clamp_output: bool = True,
+    ) -> None:
+        super().__init__()
+
+        self.device = torch.device(
+            device or ("cuda" if torch.cuda.is_available() else "cpu")
+        )
+
+        self.sigma = float(sigma)
+        self.lam = float(lam)
+        self.max_iter = int(max_iter)
+        self.auto_scale = bool(auto_scale)
+        self.target_y_std = float(target_y_std)
+        self.clamp_output = bool(clamp_output)
+
+        self.model = _DEALImpl(color=color).to(self.device).eval()
+
+        if pretrained == "download":
+            if color:
+                url = (
+                    "https://raw.githubusercontent.com/mehrsapo/DEAL/main/"
+                    "trained_models/deal_color.pth"
+                )
+
+            else:
+                url = (
+                    "https://raw.githubusercontent.com/mehrsapo/DEAL/main/"
+                    "trained_models/deal_gray.pth"
+                )
+
+            state = torch.hub.load_state_dict_from_url(
+                url,
+                map_location=self.device,
+                file_name=url.split("/")[-1],
+            )
+        else:
+            try:
+                state = torch.load(
+                    pretrained, map_location=self.device, weights_only=True
+                )
+            except TypeError:
+                state = torch.load(pretrained, map_location=self.device)
+
+        raw_state_dict = state.get("state_dict", state)
+
+        model_state_dict = self.model.state_dict()
+
+        # Older DEAL checkpoints do not contain newly introduced buffers.
+        # Merge them with the current defaults while keeping pretrained weights.
+        merged_state_dict = model_state_dict.copy()
+        merged_state_dict.update(
+            {
+                key: value
+                for key, value in raw_state_dict.items()
+                if key in model_state_dict
+            }
+        )
+
+        self.model.load_state_dict(merged_state_dict, strict=True)
+
+    @torch.no_grad()
+    def forward(self, y: torch.Tensor, physics: LinearPhysics) -> torch.Tensor:
+        """
+        Run the DEAL reconstruction.
+
+        Parameters
+        ----------
+        y : torch.Tensor
+            Measurements (e.g. sinogram).
+        physics : deepinv.physics.LinearPhysics
+            DeepInverse linear physics operator with ``__call__`` and ``A_adjoint``.
+
+        Returns
+        -------
+        torch.Tensor
+            Reconstructed image with the same spatial shape as ``H^T y``.
+        """
+        y = y.to(self.device)
+
+        if physics.__class__.__name__ == "Denoising":
+            sigma = torch.tensor([[self.sigma]], device=self.device)
+            x_hat = self.model.denoise(y, sigma)
+            return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
+
+        def H(z: torch.Tensor) -> torch.Tensor:
+            return physics.A(z)
+
+        Ht = physics.A_adjoint
+
+        if self.auto_scale:
+            y_std = float(y.std().detach().cpu())
+            if 0.0 < y_std < 5.0:
+                scale = self.target_y_std / (y_std + 1e-12)
+                y = y * scale
+
+        x_init = torch.zeros_like(Ht(y))
+
+        if hasattr(self.model, "max_iter"):
+            self.model.max_iter = max(int(self.max_iter), 1)
+
+        x_hat = self.model.solve_inverse_problem(
+            y,
+            H=H,
+            Ht=Ht,
+            sigma=self.sigma,
+            lmbda=self.lam,
+            x_init=x_init,
+            verbose=False,
+            path=False,
+        )
+
+        return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
+
+
 
 class LinearSpline_Func(torch.autograd.Function):
     """
@@ -1086,191 +1274,3 @@ class _DEALImpl(nn.Module):
             c_ks.append(c_k)
             return torch.clip(c_k, 0, 1), c_ks
         return torch.clip(c_k, 0, 1)
-
-
-class DEAL(Reconstructor):
-    """
-    Deep Equilibrium Attention Least Squares (DEAL) reconstruction model.
-
-    This model solves linear inverse problems using a learned equilibrium-based
-    regularizer combined with iterative conjugate gradient least-squares updates. It can be used for
-    image restoration and reconstruction tasks such as denoising, deblurring,
-    and computed tomography reconstruction.
-
-    This implementation is adapted from the official DEAL repository:
-    https://github.com/mehrsapo/DEAL
-
-    For the original method, see :footcite:t:`pourya2025dealing`.
-
-    A pretrained network can be loaded by setting ``pretrained='download'``.
-
-    The reconstruction is obtained by solving a regularized least-squares problem
-
-    .. math::
-
-        \hat{x} = \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda R_\theta(x),
-
-    where :math:`A` is the forward operator, :math:`y` the measurements,
-    and :math:`R_\theta(x)` a learned, spatially adaptive regularizer.
-
-    The optimization is performed iteratively using a fixed-point scheme.
-    At each outer iteration, the algorithm updates the reconstruction by solving
-    a linearized least-squares subproblem using conjugate gradient:
-
-    .. math::
-
-        x^{(k+1)} \approx \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda \nabla R_\theta(x^{(k)})^\top x.
-
-    The regularizer is parameterized by a neural network which produces
-    spatially varying weights, allowing the model to adapt to local image structure.
-
-    :param pretrained: checkpoint path or ``'download'``.
-    :type pretrained: str
-
-    :param sigma: noise-level parameter used by DEAL.
-    :type sigma: float
-
-    :param lam: regularization strength used by the DEAL solver.
-    :type lam: float
-
-    :param max_iter: maximum number of outer fixed-point iterations.
-    :type max_iter: int
-
-    :param auto_scale: if ``True``, rescales measurements based on their std.
-    :type auto_scale: bool
-
-    :param target_y_std: target std for auto-scaling when enabled.
-    :type target_y_std: float
-
-    :param color: if ``True``, use the color DEAL variant; otherwise grayscale.
-    :type color: bool
-
-    :param device: compute device. If ``None``, use CUDA if available.
-    :type device: str or None
-
-    :param clamp_output: if ``True``, clamp output to ``[0, 1]``.
-    :type clamp_output: bool
-    """
-
-    def __init__(
-        self,
-        pretrained: str,
-        sigma: float = 25.0,
-        lam: float = 10.0,
-        max_iter: int = 50,
-        auto_scale: bool = False,
-        target_y_std: float = 25.0,
-        color: bool = False,
-        device: str | None = None,
-        clamp_output: bool = True,
-    ) -> None:
-        super().__init__()
-
-        self.device = torch.device(
-            device or ("cuda" if torch.cuda.is_available() else "cpu")
-        )
-
-        self.sigma = float(sigma)
-        self.lam = float(lam)
-        self.max_iter = int(max_iter)
-        self.auto_scale = bool(auto_scale)
-        self.target_y_std = float(target_y_std)
-        self.clamp_output = bool(clamp_output)
-
-        self.model = _DEALImpl(color=color).to(self.device).eval()
-
-        if pretrained == "download":
-            if color:
-                url = (
-                    "https://raw.githubusercontent.com/mehrsapo/DEAL/main/"
-                    "trained_models/deal_color.pth"
-                )
-
-            else:
-                url = (
-                    "https://raw.githubusercontent.com/mehrsapo/DEAL/main/"
-                    "trained_models/deal_gray.pth"
-                )
-
-            state = torch.hub.load_state_dict_from_url(
-                url,
-                map_location=self.device,
-                file_name=url.split("/")[-1],
-            )
-        else:
-            try:
-                state = torch.load(
-                    pretrained, map_location=self.device, weights_only=True
-                )
-            except TypeError:
-                state = torch.load(pretrained, map_location=self.device)
-
-        raw_state_dict = state.get("state_dict", state)
-
-        model_state_dict = self.model.state_dict()
-
-        # Older DEAL checkpoints do not contain newly introduced buffers.
-        # Merge them with the current defaults while keeping pretrained weights.
-        merged_state_dict = model_state_dict.copy()
-        merged_state_dict.update(
-            {
-                key: value
-                for key, value in raw_state_dict.items()
-                if key in model_state_dict
-            }
-        )
-
-        self.model.load_state_dict(merged_state_dict, strict=True)
-
-    @torch.no_grad()
-    def forward(self, y: torch.Tensor, physics: LinearPhysics) -> torch.Tensor:
-        """
-        Run the DEAL reconstruction.
-
-        Parameters
-        ----------
-        y : torch.Tensor
-            Measurements (e.g. sinogram).
-        physics : deepinv.physics.LinearPhysics
-            DeepInverse linear physics operator with ``__call__`` and ``A_adjoint``.
-
-        Returns
-        -------
-        torch.Tensor
-            Reconstructed image with the same spatial shape as ``H^T y``.
-        """
-        y = y.to(self.device)
-
-        if physics.__class__.__name__ == "Denoising":
-            sigma = torch.tensor([[self.sigma]], device=self.device)
-            x_hat = self.model.denoise(y, sigma)
-            return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
-
-        def H(z: torch.Tensor) -> torch.Tensor:
-            return physics.A(z)
-
-        Ht = physics.A_adjoint
-
-        if self.auto_scale:
-            y_std = float(y.std().detach().cpu())
-            if 0.0 < y_std < 5.0:
-                scale = self.target_y_std / (y_std + 1e-12)
-                y = y * scale
-
-        x_init = torch.zeros_like(Ht(y))
-
-        if hasattr(self.model, "max_iter"):
-            self.model.max_iter = max(int(self.max_iter), 1)
-
-        x_hat = self.model.solve_inverse_problem(
-            y,
-            H=H,
-            Ht=Ht,
-            sigma=self.sigma,
-            lmbda=self.lam,
-            x_init=x_init,
-            verbose=False,
-            path=False,
-        )
-
-        return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
