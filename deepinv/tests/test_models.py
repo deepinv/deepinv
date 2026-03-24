@@ -152,7 +152,7 @@ def choose_denoiser(name, imsize):
         )
 
     elif name == "deal":
-        out = dinv.models.DEAL(
+        base_model = dinv.models.DEAL(
             pretrained="download",
             sigma=25.0,
             lam=10.0,
@@ -160,6 +160,28 @@ def choose_denoiser(name, imsize):
             auto_scale=False,
             color=(imsize[0] == 3),
         )
+
+        class DEALDenoiserWrapper(nn.Module):
+            def __init__(self, model):
+                super().__init__()
+                self.model = model
+
+            def forward(self, y, sigma):
+                if isinstance(sigma, torch.Tensor):
+                    if sigma.numel() == 1:
+                        sigma_value = float(sigma.item())
+                    else:
+                        sigma_value = float(sigma.flatten()[0].item())
+                else:
+                    sigma_value = float(sigma)
+
+                physics = dinv.physics.Denoising(
+                    dinv.physics.GaussianNoise(sigma_value)
+                )
+                return self.model(y, physics)
+
+        out = DEALDenoiserWrapper(base_model)
+          
     elif name == "dsccp":
         out = dinv.models.DScCP()
     elif name == "bilateral":
@@ -1709,6 +1731,9 @@ class DummyInnerDEAL(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
+
+    def denoise(self, y, sigma):
+        return self.forward(y)
 
     def solve_inverse_problem(
         self,
