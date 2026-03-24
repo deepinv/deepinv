@@ -1019,7 +1019,7 @@ class _DEALImpl(nn.Module):
                     c_ks.append(c_k)
 
                 self.cal_mask(c_k)
-                b = Ht(y) 
+                b = Ht(y)
                 A_op = lambda x: self.BtB(x, H, Ht, [i for i in range(x.size(0))])
                 c_k = conjugate_gradient(
                     A=A_op,
