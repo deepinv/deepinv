@@ -89,6 +89,7 @@ def _symmetrize(
     f: Callable[[torch.Tensor, Any], torch.Tensor],
     average: bool = False,
     collate_batch: bool = True,
+    pinv_impl: str = "closed_form",
 ) -> Callable[[torch.Tensor, Any], torch.Tensor]:
     r"""
     Symmetrise a function with a transform and its inverse.
@@ -131,8 +132,17 @@ def _symmetrize(
                 A=lambda x: transform.inverse(x, batchwise=False, **params_inv),
                 A_adjoint=lambda x: transform.inverse(x, batchwise=False, **params),
             )
+            At = physics * t
+
+            if pinv_impl == "closed_form":
+                # Overwrite A_dagger to use (A T_g)^\dagger = T_g^{-1} A^\dagger
+                # instead of using an iterative solver
+                At.A_dagger = lambda x: transform.inverse(physics.A_dagger(x), batchwise=False, **params)
+            elif pinv_impl != "fallback":
+                raise ValueError(f"Invalid pinv_impl {pinv_impl}, should be 'closed_form' or 'fallback'")
+
             xt = transform.inverse(
-                f(y, physics=physics * t, *args, **kwargs),
+                f(y, physics=At, *args, **kwargs),
                 batchwise=False,
                 **params_inv,
             )
