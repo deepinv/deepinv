@@ -35,6 +35,7 @@ import torch
 
 from deepinv.loss.metric import PSNR
 from deepinv.models import DEAL
+from deepinv.models.deal import DEALRegularizer
 from deepinv.physics import Blur, GaussianNoise
 from deepinv.physics.blur import gaussian_blur
 from deepinv.utils import load_example, plot
@@ -74,6 +75,16 @@ model = DEAL(
     clamp_output=True,
 )
 
+n_params = sum(p.numel() for p in model.parameters())
+print(f"DEAL number of parameters: {n_params:,}")
+prior = DEALRegularizer(model.model)
+
+with torch.no_grad():
+    grad_prior = prior.grad(x, sigma=25.0)
+    mask = model.model.mask.mean(dim=1, keepdim=True)
+
+print(f"Standalone DEAL prior gradient shape: {tuple(grad_prior.shape)}")
+
 # %%
 # Reconstruct the image, compare with a linear baseline, and display PSNR.
 
@@ -86,18 +97,20 @@ psnr_lin = psnr(x_lin, x).item()
 psnr_hat = psnr(x_hat, x).item()
 
 plot(
-    [x, y, x_lin, x_hat],
+    [x, y, x_lin, x_hat, mask],
     titles=[
         "Ground truth",
-        f"Blurred measurement",
-        f"Linear reconstruction",
-        f"DEAL reconstruction",
+        "Blurred measurement",
+        "Linear reconstruction",
+        "DEAL reconstruction",
+        "DEAL mask",
     ],
     subtitles=[
-        "PSNR:",
-        f"{psnr_y:.2f} dB",
-        f"{psnr_lin:.2f} dB",
-        f"{psnr_hat:.2f} dB",
+        "",
+        f"PSNR: {psnr_y:.2f} dB",
+        f"PSNR: {psnr_lin:.2f} dB",
+        f"PSNR: {psnr_hat:.2f} dB",
+        "Mean over channels",
     ],
-    figsize=(10, 3),
+    figsize=(13, 3),
 )
