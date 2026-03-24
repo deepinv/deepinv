@@ -37,9 +37,6 @@ jobs:
           global-cache: true
           cache: true
 
-          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
-          cache: true
-
       - name: Fetch base branch
         run: git fetch origin ${{ github.event.pull_request.base.ref }}
 
