@@ -181,7 +181,7 @@ def choose_denoiser(name, imsize):
                 return self.model(y, physics)
 
         out = DEALDenoiserWrapper(base_model)
-          
+
     elif name == "dsccp":
         out = dinv.models.DScCP()
     elif name == "bilateral":
