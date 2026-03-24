@@ -930,16 +930,6 @@ class _DEALImpl(nn.Module):
         return output, i
 
 
-    def cg_official(self, A, b, x0, max_iter, tol, eps):
-        return conjugate_gradient(
-            A=A,
-            b=b,
-            init=x0,
-            max_iter=max_iter,
-            tol=tol,
-            eps=eps,
-        )
-
     def denoise(self, y: torch.Tensor, sigma: torch.Tensor) -> torch.Tensor:
         """Run DEAL in denoising mode."""
         self.W1.spectral_norm()
@@ -1031,10 +1021,10 @@ class _DEALImpl(nn.Module):
                 self.cal_mask(c_k)
                 b = Ht(y) 
                 A_op = lambda x: self.BtB(x, H, Ht, [i for i in range(x.size(0))])
-                c_k = self.cg_official(
+                c_k = conjugate_gradient(
                     A=A_op,
                     b=b,
-                    x0=c_k_old,
+                    init=c_k_old,
                     max_iter=max_cg_iters,
                     tol=eps_in,
                     eps=1e-8,
