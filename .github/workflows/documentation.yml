@@ -24,11 +24,18 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
-          # hash your manifest instead of the missing lock file
+
+          # Force both cache engines to use pixi.toml instead of pixi.lock
           cache-key: pixi-toml-${{ hashFiles('**/pixi.toml') }}
-          # if it can't find that exact cache (fallback)
-          cache-restore-keys: |
-            pixi-toml-
+          global-cache-key: pixi-global-toml-${{ hashFiles('**/pixi.toml') }}
+
+          # Allow the run to complete without a lock file
+          locked: false
+          frozen: false
+
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+          global-cache: true
+          cache: true
 
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
           cache: true
