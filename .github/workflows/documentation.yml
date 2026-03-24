@@ -25,17 +25,17 @@ jobs:
         with:
           pixi-version: latest
 
-          # Force both cache engines to use pixi.toml instead of pixi.lock
+          # 1. Cache project dependencies based on the manifest file
           cache-key: pixi-toml-${{ hashFiles('**/pixi.toml') }}
-          global-cache-key: pixi-global-toml-${{ hashFiles('**/pixi.toml') }}
+          cache: true
+          cache-write: false
 
-          # Allow the run to complete without a lock file
+          # 2. Tell the action it's okay that there is no lock file
           locked: false
           frozen: false
 
-          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
-          global-cache: true
-          cache: true
+          # 3. Turn off global caching since we aren't using global-environments
+          global-cache: false
 
       - name: Fetch base branch
         run: git fetch origin ${{ github.event.pull_request.base.ref }}
