@@ -117,7 +117,7 @@ backbone = dinv.models.UNet(
     residual=True,
     batch_norm=True,
 )
-model = MoDL(backbone).to(device)
+model = MoDL(backbone, num_iter=2).to(device)
 
 
 # %%
@@ -230,6 +230,8 @@ model = trainer.train()
 # and we compute the PSNR between the denoised images and the clean ground truth images.
 #
 
+trainer.compute_eval_losses = False
+trainer.early_stop_on_losses = False
 trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 # %%
