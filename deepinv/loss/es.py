@@ -90,7 +90,7 @@ class ESLoss(Loss):
         alpha: float = 0.2,
         weight: float = 1.0,
         eval_n_samples: int = 10,
-        train_transform,
+        transform,
         eval_transform=None,
         equivariant_model: bool = False,
     ):
@@ -109,7 +109,7 @@ class ESLoss(Loss):
             # Use only the splitting loss
             split_r2r_loss = None
         self.split_r2r_loss = split_r2r_loss
-        self.train_transform = train_transform
+        self.transform = transform
         self.eval_transform = eval_transform
         self.equivariant_model = equivariant_model
 
@@ -137,7 +137,7 @@ class ESLoss(Loss):
             if not self.equivariant_model:
                 model = dinv.models.EquivariantReconstructor(
                     model=model,
-                    train_transform=self.train_transform,
+                    transform=self.transform,
                     eval_transform=self.eval_transform,
                 )
             if self.split_r2r_loss is not None:
