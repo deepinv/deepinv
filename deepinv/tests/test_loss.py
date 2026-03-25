@@ -135,6 +135,9 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         train_transform = dinv.transform.Rotate(
             n_trans=1, multiples=90, positive=True
         ) * dinv.transform.Reflect(n_trans=1, dim=[-1])
+        eval_transform = dinv.transform.Rotate(
+            n_trans=4, multiples=90, positive=True
+        ) * dinv.transform.Reflect(n_trans=2, dim=[-1])
 
         loss.append(
             dinv.loss.ESLoss(
@@ -144,7 +147,7 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
                 weight=1.0,
                 eval_n_samples=10,
                 train_transform=train_transform,
-                eval_transform=None,  # use same as train
+                eval_transform=eval_transform,
             )
         )
     elif loss_name == "splittv":

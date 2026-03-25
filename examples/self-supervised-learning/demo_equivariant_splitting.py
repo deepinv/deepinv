@@ -23,6 +23,14 @@ from deepinv.models import MoDL
 # ---------------------------------------------------------------
 #
 
+import numpy as np
+import random
+random.seed(0)  # set random seed for reproducibility
+np.random.seed(0)  # set random seed for reproducibility
+torch.manual_seed(0)  # set random seed for reproducibility
+torch.cuda.manual_seed_all(0)
+torch.backends.cudnn.deterministic = True
+
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
 CKPT_DIR = BASE_DIR / "ckpts"
@@ -53,17 +61,18 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 #       We reduce to the size to 128x128 for faster training in the demo.
 #
 
-operation = "MRI"
-img_size = 128
+operation = "ES"
+channels = 3
+img_size = 64
 
-transform = transforms.Compose([transforms.Resize(img_size)])
+transform = transforms.Compose([
+    transforms.Resize(img_size),
+    transforms.CenterCrop(img_size),
+])
 
-train_dataset = SimpleFastMRISliceDataset(
-    get_data_home(), transform=transform, train_percent=0.5, train=True, download=True
-)
-test_dataset = SimpleFastMRISliceDataset(
-    get_data_home(), transform=transform, train_percent=0.5, train=False
-)
+dataset = dinv.datasets.Urban100HR(root="Urban100", transform=transform, download=True)
+print(len(dataset))
+train_dataset, test_dataset = torch.utils.data.random_split(dataset, [90, 10], generator=torch.Generator().manual_seed(0))
 
 # %%
 # Generate a dataset of knee images and load it.
@@ -71,29 +80,24 @@ test_dataset = SimpleFastMRISliceDataset(
 #
 #
 
-mask = load_degradation("mri_mask_128x128.npy")
-
 # defined physics
-physics = dinv.physics.MRI(mask=mask, device=device)
+physics = dinv.physics.Inpainting(mask=0.7, img_size=(channels, img_size, img_size), device=device)
 
 # Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
-n_images_max = (
-    900 if torch.cuda.is_available() else 5
-)  # number of images used for training
 
-my_dataset_name = "demo_equivariant_imaging"
-measurement_dir = DATA_DIR / "fastmri" / operation
+my_dataset_name = "demo_equivariant_splitting"
+measurement_dir = DATA_DIR
 deepinv_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
     test_dataset=test_dataset,
     physics=physics,
     device=device,
     save_dir=measurement_dir,
-    train_datapoints=n_images_max,
     num_workers=num_workers,
     dataset_filename=str(my_dataset_name),
+    overwrite_existing=False,
 )
 
 train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True)
@@ -110,14 +114,16 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 #
 
 backbone = dinv.models.UNet(
-    in_channels=2,
-    out_channels=2,
-    scales=4,
+    in_channels=channels,
+    out_channels=channels,
+    scales=2,
     bias=True,
+    cat=True,
     residual=True,
     batch_norm=True,
 )
-model = MoDL(backbone, num_iter=2).to(device)
+# model = MoDL(backbone, num_iter=2).to(device)
+model = dinv.models.ArtifactRemoval(backbone, mode="adjoint").to(device)
 
 
 # %%
@@ -138,21 +144,30 @@ model = MoDL(backbone, num_iter=2).to(device)
 #       for 150 epochs using a larger knee dataset of ~1000 images.
 
 epochs = 10  # choose training epochs
-learning_rate = 1e-4
-batch_size = 4 if torch.cuda.is_available() else 1
+epochs = 10  # debugging
+learning_rate = 1.6e-3
+weight_decay = 1.5e2
+batch_size = 90
 
 # choose self-supervised training losses
 # generates 4 random rotations per image in the batch
+
+class DeterministSplittingMaskGenerator(dinv.physics.generator.base.PhysicsGenerator):
+    def __init__(self, tensor_size, split_ratio, device):
+        super().__init__(device=device)
+        self.tensor_size = tensor_size
+        self.split_ratio = split_ratio
+        self.img_size = tensor_size[1:] if len(tensor_size) > 1 else tensor_size
+
+    def step(self, batch_size: int = 1, seed: int = None, **kwargs):
+        mask = torch.ones(self.tensor_size, dtype=torch.int, device=self.device)
+        aux = torch.rand(self.tensor_size, device=self.device)
+        mask[:, aux[0, ...] > self.split_ratio] = 0
+        return {"mask": mask.unsqueeze(0)}
+
 rng = torch.Generator(device).manual_seed(0)
-split_generator = dinv.physics.generator.GaussianMaskGenerator(
-    img_size=(img_size, img_size),
-    acceleration=2,
-    center_fraction=0.0,
-    rng=rng,
-    device=device,
-)
-mask_generator = dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
-    (1, img_size, img_size), split_generator, device=device
+mask_generator = DeterministSplittingMaskGenerator(
+    tensor_size=(1, img_size, img_size), split_ratio=0.9, device=device,
 )
 # A random transformation from the group D4
 train_transform = dinv.transform.Rotate(
@@ -171,11 +186,16 @@ losses = [
         eval_transform=eval_transform,
     )
 ]
-_ = losses[-1].adapt_model(model)
+# losses = [
+#         dinv.loss.SupLoss(metric=dinv.metric.MSE()),
+# ]  # DEBUGGING
+if len(losses) == 1 and isinstance(losses[0], dinv.loss.ESLoss):
+    _ = losses[-1].adapt_model(model)
 
 # choose optimizer and scheduler
-optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-8)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
+optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
+scheduler = None
 
 # %%
 # Train the network
@@ -198,6 +218,15 @@ test_dataloader = DataLoader(
     test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
 
+# Inspect train and test dataloaders
+x_train, y_train = next(iter(train_dataloader))
+print(f"Train batch shapes: x={x_train.shape}, y={y_train.shape}")
+x_test, y_test = next(iter(test_dataloader))
+print(f"Test batch shapes: x={x_test.shape}, y={y_test.shape}")
+
+dinv.utils.plot([x_train[0], y_train[0], x_test[0], y_test[0]], ["train measurement", "train image", "test measurement", "test image"])
+
+
 # Initialize the trainer
 trainer = dinv.Trainer(
     model,
@@ -208,19 +237,21 @@ trainer = dinv.Trainer(
     optimizer=optimizer,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
-    compute_eval_losses=True,  # use self-supervised loss for evaluation
-    early_stop_on_losses=True,  # stop using self-supervised eval loss
-    metrics=None,  # no supervised metrics
-    early_stop=2,  # early stop using the self-supervised loss on the test set
+    metrics=[dinv.metric.PSNR()],
     plot_images=False,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     ckp_interval=10,
+    no_learning_method="A_adjoint",
+    early_stop=2,
 )
 
-model = trainer.train()
+_ = trainer.train()
+
+_ = trainer.load_best_model()
+
 
 # %%
 # Test the network
@@ -233,6 +264,13 @@ model = trainer.train()
 trainer.compute_eval_losses = False
 trainer.early_stop_on_losses = False
 trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
+
+# Show reconstructions on test set
+x_test, y_test = next(iter(test_dataloader))
+model.eval()
+with torch.no_grad():
+    x_rec = model(y_test.to(device), physics=physics)
+dinv.utils.plot([y_test[0], x_rec[0].cpu(), x_test[0]], ["measurement", "reconstruction", "ground truth"])
 
 # %%
 # :References:

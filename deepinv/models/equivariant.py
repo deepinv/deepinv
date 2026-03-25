@@ -84,117 +84,31 @@ class EquivariantDenoiser(Denoiser):
         )
 
 
-def _symmetrize(
-    transform,
-    f: Callable[[torch.Tensor, Any], torch.Tensor],
-    average: bool = False,
-    collate_batch: bool = True,
-    pinv_impl: str = "closed_form",
-) -> Callable[[torch.Tensor, Any], torch.Tensor]:
-    r"""
-    Symmetrise a function with a transform and its inverse.
+# A virtual operator is an operator of the form A' = A T where A is a linear
+# operator and T is an invertible linear operator. The operator T is to be
+# thought of as a specific transform, e.g., a rotation with a specific angle,
+# or a shift with a specific displacement.
+# Unlike general composition of linear operators, the invertibility of T allows
+# to compute the pseudo-inverse of A' in a computationally efficient closed
+# form, i.e., A'^\dagger = T^{-1} A^\dagger.
+class VirtualOperator(LinearPhysics):
+    def __init__(self, *, physics: LinearPhysics, T: Callable, T_inv: Callable):
+        super().__init__()
+        self.physics = physics
+        self.T = T
+        self.T_inv = T_inv
 
-    Given a function :math:`f(\cdot):X\rightarrow X` and a transform :math:`T_g`, returns the group averaged function  :math:`\sum_{i=1}^N T_{g_i}^{-1} f(T_{g_i} \cdot)` where :math:`N` is the number of random transformations.
+    def A(self, x, **kwargs):
+        Tx = self.T(x)  # T
+        return self.physics.A(Tx, **kwargs)  # A
 
-    For example, this is useful for Reynolds averaging a function over a group. Set ``average=True`` to average over ``n_trans``.
-    For example, use ``Rotate(n_trans=4, positive=True, multiples=90).symmetrize(f)`` to symmetrize f over the entire group.
+    def A_adjoint(self, y, **kwargs):
+        x = self.physics.A_adjoint(y, **kwargs)  # A^*
+        return self.T_inv(x)  # T^{-1}
 
-    :param Callable[[torch.Tensor, Any], torch.Tensor] f: function acting on tensors.
-    :param bool average: monte carlo average over all random transformations (in range ``n_trans``) when symmetrising to get same number of output images as input images. No effect when ``n_trans=1``.
-    :param bool collate_batch: if ``True``, collect ``n_trans`` transformed images in batch dim and evaluate ``f`` only once.
-        However, this requires ``n_trans`` extra memory. If ``False``, evaluate ``f`` for each transformation.
-        Always will be ``False`` when transformed images aren't constant shape.
-    :return Callable[[torch.Tensor, Any], torch.Tensor]: decorated function.
-    """
-
-    def symmetrized_reconstructor(y, physics, *args, **kwargs):
-        params = transform.get_params(physics.A_adjoint(y))
-        # transform.transform and transform.inverse
-        # behave differently - we stick to transform.inverse
-        # with inverted params to avoid a failure case
-        params_inv = transform.invert_params(params)
-        if transform.constant_shape and collate_batch:
-            # construct n_tran problems and solve them in parallel
-            B = y.size(0)
-            # Compute the effective n_trans by traversing the nested composed transforms
-            n_trans = 1
-            ts = [transform]
-            while ts:
-                t_cur = ts.pop()
-                if hasattr(t_cur, "t1") and hasattr(t_cur, "t2"):
-                    t1, t2 = t_cur.t1, t_cur.t2
-                    ts += [t1, t2]
-                else:
-                    n_trans *= t_cur.n_trans
-            transform.n_trans = n_trans
-            y = torch.cat([y] * transform.n_trans)
-            t = LinearPhysics(
-                A=lambda x: transform.inverse(x, batchwise=False, **params_inv),
-                A_adjoint=lambda x: transform.inverse(x, batchwise=False, **params),
-            )
-            At = physics * t
-
-            if pinv_impl == "closed_form":
-                # Overwrite A_dagger to use (A T_g)^\dagger = T_g^{-1} A^\dagger
-                # instead of using an iterative solver
-                At.A_dagger = lambda x: transform.inverse(physics.A_dagger(x), batchwise=False, **params)
-            elif pinv_impl != "fallback":
-                raise ValueError(f"Invalid pinv_impl {pinv_impl}, should be 'closed_form' or 'fallback'")
-
-            xt = transform.inverse(
-                f(y, physics=At, *args, **kwargs),
-                batchwise=False,
-                **params_inv,
-            )
-            return xt.reshape((-1, B) + xt.size()[1:]).mean(axis=0) if average else xt
-        else:
-            out = []
-            for _params in transform.iterate_params(params):
-                # Step through n_trans (or combinations) one-by-one
-                t = LinearPhysics(
-                    A=lambda x: transform.transform(x, **_params),
-                    A_adjoint=lambda x: transform.inverse(x, **_params),
-                )
-                out.append(
-                    transform.transform(
-                        f(y, physics=physics * t, *args, **kwargs), **_params
-                    )
-                )
-            return torch.stack(out, dim=1).mean(dim=1) if average else torch.cat(out)
-
-    def symmetrized(x, *args, **kwargs):
-        params = transform.get_params(x)
-        if transform.constant_shape and collate_batch:
-            # Collect over n_trans
-            xt = transform.inverse(
-                f(transform.transform(x, **params), *args, **kwargs),
-                batchwise=False,
-                **params,
-            )
-            return xt.reshape(-1, *x.shape).mean(axis=0) if average else xt
-        else:
-            # Step through n_trans (or combinations) one-by-one
-            out = []
-            for _params in transform.iterate_params(params):
-                print(_params)
-                out.append(
-                    transform.inverse(
-                        f(transform.transform(x, **_params), *args, **kwargs), **_params
-                    )
-                )
-
-            return torch.stack(out, dim=1).mean(dim=1) if average else torch.cat(out)
-
-    if isinstance(f, Reconstructor):
-        return lambda y, physics, *args, **kwargs: symmetrized_reconstructor(
-            y, physics, *args, **kwargs
-        )
-    else:
-        return lambda x, *args, **kwargs: (
-            transform.wrap_flatten_C(symmetrized)(x, *args, **kwargs)
-            if transform._check_x_5D(x) and transform.flatten_video_input
-            else symmetrized(x, *args, **kwargs)
-        )
+    def A_dagger(self, y, **kwargs):
+        x = self.physics.A_dagger(y, **kwargs)  # A^\dagger
+        return self.T_inv(x)  # T^{-1}
 
 
 class EquivariantReconstructor(Reconstructor):
@@ -230,10 +144,6 @@ class EquivariantReconstructor(Reconstructor):
     :param Callable model: Reconstruction model :math:`\inversef{y}{A}`.
     :param Transform transform: geometric transformation. If None, defaults to rotations of multiples of 90 with horizontal flips (see note above).
         See :ref:`docs <transform>` for list of available transforms.
-    :param bool random: if True, the model is applied to a randomly transformed version of the input image
-        each time i.e. a Monte-Carlo approximation of an equivariant denoiser.
-        If False, the model is applied to the average of all the transformed images, turning the reconstructor into an
-        equivariant reconstructor with respect to the chosen group of transformations. Ignored if ``transform`` is provided.
     """
 
     def __init__(
@@ -247,6 +157,7 @@ class EquivariantReconstructor(Reconstructor):
 
         if eval_transform is None:
             eval_transform = train_transform
+
         self._transform = train_transform
         self._eval_transform = eval_transform
 
@@ -261,10 +172,35 @@ class EquivariantReconstructor(Reconstructor):
         :param \**denoiser_kwargs: kwargs for denoiser function e.g. sigma noise level.
         :return: denoised image.
         """
+        # Different transforms can be used for training and evaluation to allow
+        # for true Reynolds averaging at evaluation time, and Monte Carlo
+        # estimation at training time.
         if self.training:
             transform = self._transform
         else:
             transform = self._eval_transform
-        return _symmetrize(transform, self._model, average=True)(
-            y, physics, *reconstructor_args, **reconstructor_kwargs
-        )
+
+        # The reconstructor is saved as an attribute.
+        model = self._model
+
+        # NOTE: We assume that transform.get_params returns either all of the
+        # group elements (true Reynolds averaging) or a single one (Monte Carlo
+        # estimation).
+        x0 = physics.A_adjoint(y)  # Used for inferring the group
+        G_params = transform.get_params(x0)
+
+        # Compute the terms in the sum, i.e., T_g(f(y, AT_g)) for each g
+        terms = []
+        for g_params in transform.iterate_params(G_params):
+            Tg = lambda x: transform.transform(x, **g_params)
+            Tg_inv = lambda x: transform.inverse(x, **g_params)
+
+            ATg = VirtualOperator(physics=physics, T=Tg, T_inv=Tg_inv)
+
+            fyATg = model(y, ATg, *reconstructor_args, **reconstructor_kwargs)  # f(y, AT_g)
+            TgfyATg = transform.transform(fyATg, **g_params)  # T_g(f(y, AT_g))
+            terms.append(TgfyATg)
+
+        # Average over the group elements
+        terms = torch.stack(terms, dim=1)  # (B, G, C, H, W)
+        return terms.mean(dim=1)  # (B, C, H, W)
