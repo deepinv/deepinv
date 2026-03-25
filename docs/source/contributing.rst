@@ -215,7 +215,7 @@ Below is a minimal working example of a typical docstring that includes all thes
         >>> import torch
         >>> import deepinv as dinv
         >>> model = dinv.models.DRUNet()
-        >>> x = torch.ones((1, 1, 8, 8))
+        >>> x = torch.ones((1, 3, 8, 8))
         >>> y = model(x, sigma=0.01)
 
         :param int in_channels: number of input channels.
