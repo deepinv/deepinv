@@ -168,13 +168,27 @@ def choose_denoiser(name, imsize):
 
             def forward(self, y, sigma):
                 if isinstance(sigma, torch.Tensor):
-                    if sigma.numel() == 1:
-                        sigma_value = float(sigma.item())
-                    else:
-                        sigma_value = float(sigma.flatten()[0].item())
-                else:
-                    sigma_value = float(sigma)
+                    sigma_flat = sigma.view(-1)
 
+                    if sigma_flat.numel() == 1:
+                        sigma_value = float(sigma_flat[0].item())
+                        physics = dinv.physics.Denoising(
+                            dinv.physics.GaussianNoise(sigma_value)
+                        )
+                        return self.model(y, physics)
+
+                    outputs = []
+                    for i in range(y.shape[0]):
+                        sigma_value = float(sigma_flat[i].item())
+                        physics = dinv.physics.Denoising(
+                            dinv.physics.GaussianNoise(sigma_value)
+                        )
+                        out = self.model(y[i : i + 1], physics)
+                        outputs.append(out)
+
+                    return torch.cat(outputs, dim=0)
+
+                sigma_value = float(sigma)
                 physics = dinv.physics.Denoising(
                     dinv.physics.GaussianNoise(sigma_value)
                 )
