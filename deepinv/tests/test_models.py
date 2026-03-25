@@ -170,6 +170,7 @@ def choose_denoiser(name, imsize):
                 if isinstance(sigma, torch.Tensor):
                     sigma_flat = sigma.view(-1)
 
+                    # CASE 1: single sigma → broadcast to all batch
                     if sigma_flat.numel() == 1:
                         sigma_value = float(sigma_flat[0].item())
                         physics = dinv.physics.Denoising(
@@ -177,6 +178,7 @@ def choose_denoiser(name, imsize):
                         )
                         return self.model(y, physics)
 
+                    # CASE 2: per-sample sigma
                     outputs = []
                     for i in range(y.shape[0]):
                         sigma_value = float(sigma_flat[i].item())
@@ -188,6 +190,7 @@ def choose_denoiser(name, imsize):
 
                     return torch.cat(outputs, dim=0)
 
+                # scalar sigma
                 sigma_value = float(sigma)
                 physics = dinv.physics.Denoising(
                     dinv.physics.GaussianNoise(sigma_value)
