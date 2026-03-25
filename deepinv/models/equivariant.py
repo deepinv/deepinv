@@ -4,7 +4,7 @@ from torch import Tensor
 from deepinv.transform import Transform, Rotate, Reflect
 from .base import Denoiser, Reconstructor
 from deepinv.physics.forward import LinearPhysics
-from typing import Any, Callable
+from typing import Callable
 import torch
 
 
@@ -197,7 +197,9 @@ class EquivariantReconstructor(Reconstructor):
 
             ATg = VirtualOperator(physics=physics, T=Tg, T_inv=Tg_inv)
 
-            fyATg = model(y, ATg, *reconstructor_args, **reconstructor_kwargs)  # f(y, AT_g)
+            fyATg = model(
+                y, ATg, *reconstructor_args, **reconstructor_kwargs
+            )  # f(y, AT_g)
             TgfyATg = transform.transform(fyATg, **g_params)  # T_g(f(y, AT_g))
             terms.append(TgfyATg)
 

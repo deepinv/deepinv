@@ -14,9 +14,6 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 import deepinv as dinv
-from deepinv.datasets import SimpleFastMRISliceDataset
-from deepinv.utils import get_data_home, load_degradation
-from deepinv.models import MoDL
 
 # %%
 # Setup paths for data loading and results.
@@ -25,6 +22,7 @@ from deepinv.models import MoDL
 
 import numpy as np
 import random
+
 random.seed(0)  # set random seed for reproducibility
 np.random.seed(0)  # set random seed for reproducibility
 torch.manual_seed(0)  # set random seed for reproducibility
@@ -65,14 +63,18 @@ operation = "ES"
 channels = 3
 img_size = 64
 
-transform = transforms.Compose([
-    transforms.Resize(img_size),
-    transforms.CenterCrop(img_size),
-])
+transform = transforms.Compose(
+    [
+        transforms.Resize(img_size),
+        transforms.CenterCrop(img_size),
+    ]
+)
 
 dataset = dinv.datasets.Urban100HR(root="Urban100", transform=transform, download=True)
 print(len(dataset))
-train_dataset, test_dataset = torch.utils.data.random_split(dataset, [90, 10], generator=torch.Generator().manual_seed(0))
+train_dataset, test_dataset = torch.utils.data.random_split(
+    dataset, [90, 10], generator=torch.Generator().manual_seed(0)
+)
 
 # %%
 # Generate a dataset of knee images and load it.
@@ -81,7 +83,9 @@ train_dataset, test_dataset = torch.utils.data.random_split(dataset, [90, 10], g
 #
 
 # defined physics
-physics = dinv.physics.Inpainting(mask=0.7, img_size=(channels, img_size, img_size), device=device)
+physics = dinv.physics.Inpainting(
+    mask=0.7, img_size=(channels, img_size, img_size), device=device
+)
 
 # Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -152,6 +156,7 @@ batch_size = 90
 # choose self-supervised training losses
 # generates 4 random rotations per image in the batch
 
+
 class DeterministSplittingMaskGenerator(dinv.physics.generator.base.PhysicsGenerator):
     def __init__(self, tensor_size, split_ratio, device):
         super().__init__(device=device)
@@ -165,9 +170,12 @@ class DeterministSplittingMaskGenerator(dinv.physics.generator.base.PhysicsGener
         mask[:, aux[0, ...] > self.split_ratio] = 0
         return {"mask": mask.unsqueeze(0)}
 
+
 rng = torch.Generator(device).manual_seed(0)
 mask_generator = DeterministSplittingMaskGenerator(
-    tensor_size=(1, img_size, img_size), split_ratio=0.9, device=device,
+    tensor_size=(1, img_size, img_size),
+    split_ratio=0.9,
+    device=device,
 )
 # A random transformation from the group D4
 train_transform = dinv.transform.Rotate(
@@ -193,7 +201,9 @@ if len(losses) == 1 and isinstance(losses[0], dinv.loss.ESLoss):
     _ = losses[-1].adapt_model(model)
 
 # choose optimizer and scheduler
-optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+optimizer = torch.optim.AdamW(
+    model.parameters(), lr=learning_rate, weight_decay=weight_decay
+)
 # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 scheduler = None
 
@@ -224,7 +234,10 @@ print(f"Train batch shapes: x={x_train.shape}, y={y_train.shape}")
 x_test, y_test = next(iter(test_dataloader))
 print(f"Test batch shapes: x={x_test.shape}, y={y_test.shape}")
 
-dinv.utils.plot([x_train[0], y_train[0], x_test[0], y_test[0]], ["train measurement", "train image", "test measurement", "test image"])
+dinv.utils.plot(
+    [x_train[0], y_train[0], x_test[0], y_test[0]],
+    ["train measurement", "train image", "test measurement", "test image"],
+)
 
 
 # Initialize the trainer
@@ -270,7 +283,10 @@ x_test, y_test = next(iter(test_dataloader))
 model.eval()
 with torch.no_grad():
     x_rec = model(y_test.to(device), physics=physics)
-dinv.utils.plot([y_test[0], x_rec[0].cpu(), x_test[0]], ["measurement", "reconstruction", "ground truth"])
+dinv.utils.plot(
+    [y_test[0], x_rec[0].cpu(), x_test[0]],
+    ["measurement", "reconstruction", "ground truth"],
+)
 
 # %%
 # :References:
