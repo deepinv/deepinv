@@ -236,7 +236,7 @@ if __name__ == "__main__":
             model = dinv.models.ArtifactRemoval(backbone_net=backbone, mode="adjoint")
             model = dinv.models.EquivariantReconstructor(
                 model=model,
-                train_transform=train_transform,
+                transform=train_transform,
                 eval_transform=eval_transform,
             )
             model = loss[-1].adapt_model(model)

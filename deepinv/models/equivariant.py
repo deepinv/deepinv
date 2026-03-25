@@ -121,17 +121,17 @@ class EquivariantReconstructor(Reconstructor):
     def __init__(
         self,
         model: Reconstructor,
-        train_transform,
-        eval_transform=None,
+        transform: Transform,
+        eval_transform: Transform | None = None,
     ):
         super().__init__()
-        self._model = model
+        self.model = model
 
         if eval_transform is None:
-            eval_transform = train_transform
+            eval_transform = transform
 
-        self._transform = train_transform
-        self._eval_transform = eval_transform
+        self.transform = transform
+        self.eval_transform = eval_transform
 
     def forward(self, y, physics, *reconstructor_args, **reconstructor_kwargs):
         r"""
@@ -148,12 +148,9 @@ class EquivariantReconstructor(Reconstructor):
         # for true Reynolds averaging at evaluation time, and Monte Carlo
         # estimation at training time.
         if self.training:
-            transform = self._transform
+            transform = self.transform
         else:
-            transform = self._eval_transform
-
-        # The reconstructor is saved as an attribute.
-        model = self._model
+            transform = self.eval_transform
 
         # NOTE: We assume that transform.get_params returns either all of the
         # group elements (true Reynolds averaging) or a single one (Monte Carlo
@@ -169,7 +166,7 @@ class EquivariantReconstructor(Reconstructor):
 
             ATg = VirtualOperator(physics=physics, T=Tg, T_inv=Tg_inv)
 
-            fyATg = model(
+            fyATg = self.model(
                 y, ATg, *reconstructor_args, **reconstructor_kwargs
             )  # f(y, AT_g)
             TgfyATg = transform.transform(fyATg, **g_params)  # T_g(f(y, AT_g))

@@ -132,7 +132,7 @@ transform = rotate * dinv.transform.Reflect(dim=[-1], n_trans=2)
 
 denoiser = dinv.models.MedianFilter()
 model = dinv.models.ArtifactRemoval(denoiser, mode="pinv")
-model_eq = dinv.models.EquivariantReconstructor(model, train_transform=transform)
+model_eq = dinv.models.EquivariantReconstructor(model, transform=transform)
 
 dinv.utils.plot([x, y, model(y, physics=physics), model_eq(y, physics=physics)])
 
