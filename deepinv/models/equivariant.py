@@ -195,7 +195,7 @@ class EquivariantReconstructor(Reconstructor):
             Tg = lambda x: transform.transform(x, **g_params)
             Tg_inv = lambda x: transform.inverse(x, **g_params)
 
-            ATg = VirtualOperator(physics=physics, T=Tg, T_inv=Tg_inv)
+            ATg = dinv.physics.VirtualOperator(physics=physics, T=Tg, T_inv=Tg_inv)
 
             fyATg = model(
                 y, ATg, *reconstructor_args, **reconstructor_kwargs
