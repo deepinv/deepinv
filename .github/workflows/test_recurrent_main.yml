@@ -43,9 +43,6 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
-          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
-          global-cache: true
-          cache: true
 
       - name: Restore .testmondata
         uses: actions/cache/restore@v3
