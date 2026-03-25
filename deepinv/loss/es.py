@@ -95,7 +95,7 @@ class ESLoss(Loss):
         equivariant_model: bool = False,
     ):
         super().__init__()
-        self._splitting_loss = SplittingLoss()
+        self.splitting_loss = SplittingLoss()
         if not isinstance(noise_model, dinv.physics.ZeroNoise):
             # Use R2R Splitting loss
             split_r2r_loss = _SplitR2RLoss(
@@ -108,21 +108,21 @@ class ESLoss(Loss):
         else:
             # Use only the splitting loss
             split_r2r_loss = None
-        self._split_r2r_loss = split_r2r_loss
-        self._train_transform = train_transform
-        self._eval_transform = eval_transform
-        self._equivariant_model = equivariant_model
+        self.split_r2r_loss = split_r2r_loss
+        self.train_transform = train_transform
+        self.eval_transform = eval_transform
+        self.equivariant_model = equivariant_model
 
     def forward(self, x_net, y, physics, model, **kwargs):
-        loss_value = self._splitting_loss(
+        loss_value = self.splitting_loss(
             x_net=x_net,
             y=y,
             physics=physics,
             model=model,
             **kwargs,
         )
-        if self._split_r2r_loss is not None:
-            loss_value = loss_value + self._split_r2r_loss(
+        if self.split_r2r_loss is not None:
+            loss_value = loss_value + self.split_r2r_loss(
                 x_net=x_net,
                 y=y,
                 physics=physics,
@@ -134,14 +134,14 @@ class ESLoss(Loss):
     def adapt_model(self, model):
         if not isinstance(model, dinv.loss.SplittingLoss.SplittingModel):
             # if the model is not already equivariant, we make it so using Reynolds averaging
-            if not self._equivariant_model:
+            if not self.equivariant_model:
                 model = dinv.models.EquivariantReconstructor(
                     model=model,
-                    train_transform=self._train_transform,
-                    eval_transform=self._eval_transform,
+                    train_transform=self.train_transform,
+                    eval_transform=self.eval_transform,
                 )
-            if self._split_r2r_loss is not None:
-                model = self._split_r2r_loss.adapt_model(model)
+            if self.split_r2r_loss is not None:
+                model = self.split_r2r_loss.adapt_model(model)
             else:
-                model = self._splitting_loss.adapt_model(model)
+                model = self.splitting_loss.adapt_model(model)
         return model
