@@ -1,6 +1,7 @@
 from deepinv.physics.forward import LinearPhysics
 from typing import Callable
 
+
 # A virtual operator is an operator of the form A' = A T where A is a linear
 # operator and T is an invertible linear operator. The operator T is to be
 # thought of as a specific transform, e.g., a rotation with a specific angle,
