@@ -1,12 +1,15 @@
 # code borrowed from https://github.com/2y7c3/Super-Resolution-Neural-Operator
 from __future__ import annotations
 
+import warnings
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from deepinv.models.base import Reconstructor
 from deepinv.models.utils import get_weights_url
+from deepinv.physics import Downsampling
 
 
 def make_coord(shape, ranges=None, flatten=True):
@@ -61,7 +64,7 @@ class ResBlock(nn.Module):
 
 
 class EDSR(nn.Module):
-    """EDSR encoder (baseline version)
+    """EDSR encoder (baseline version, from "Enhanced Deep Residual Networks for Single Image Super-Resolution" by Bee Lim et al.)
 
     Note: in the original EDSR implementation, a MeanShift layer is used, but this is not used in SRNO.
     """
@@ -141,7 +144,9 @@ class RDB(nn.Module):
 
 
 class RDN(nn.Module):
-    """RDN encoder"""
+    """RDN (Residual Dense Network) encoder
+    Based on https://github.com/yulunzhang/RDN
+    """
 
     def __init__(
         self, G0=64, RDNkSize=3, RDNconfig="B", scale=2, no_upsampling=False, n_colors=3
@@ -258,24 +263,33 @@ class SRNO(Reconstructor):
     Super-Resolution Neural Operator model.
 
     SRNO is a super-resolution model that was proposed in :footcite:t:`wei2023super`.
-    It relies on two possible encoders, either RDN or EDSR, followed by Galerkin attention layers to process the
-    features and finally a decoder to output the high-resolution image.
+    It relies on two possible encoders, either RDN (Residual Dense Network) or EDSR (Enhanced Deep Residual Networks),
+    followed by Galerkin attention layers to process the features and finally a decoder to output the high-resolution
+    image.
+
+    This model was trained on downsampling factors of 2, 3, 4 with bicubic interpolation factor.
 
     |sep|
 
     :Example:
 
-    >>> import torch
-    >>> import deepinv as dinv
-    >>> scale = 5.8
-    >>> x = dinv.utils.load_example("butterfly.png", img_size=(128, 128))
-    >>> physics = dinv.physics.Downsampling(img_size=x.shape[1:], filter='bilinear', factor=scale, padding='constant')
-    >>> model = dinv.models.SRNO(encoder_type='rdn', pretrained='download', device='cpu')
-    >>> y = physics(x)  # downsample for faster testing
-    >>> out = model(y, physics=physics)  # can either provide physics
-    >>> out = model(y, scale=scale)  # or scale
+    ::
 
-    :param str encoder_type: Type of encoder to use, either 'rdn' or 'edsr'.
+        import torch
+        import deepinv as dinv
+        scale = 5.8
+        x = dinv.utils.load_example("butterfly.png", img_size=(128, 128))
+        physics = dinv.physics.Downsampling(img_size=x.shape[1:], filter='bilinear', factor=scale, padding='constant')
+        model = dinv.models.SRNO(encoder_type='rdn', pretrained='download', device='cpu')
+        y = physics(x)  # downsample for faster testing
+        out = model(y, physics=physics)  # can either provide physics
+        out = model(y, scale=scale)  # or scale
+
+    .. note::
+        Pretrained weights are only available for the RDN encoder with 3 input channels (RGB images).
+
+
+    :param str encoder_type: Type of encoder to use, either 'rdn' (residual dense network) or 'edsr' (enhanced deep residual networks). Default is 'rdn'.
     :param int in_channels: Number of input channels. Default is 3 for RGB images.
     :param int encoder_n_feats: Number of features in the encoder.
     :param int width: Width of the Galerkin attention layers.
@@ -291,12 +305,13 @@ class SRNO(Reconstructor):
         encoder_n_feats: int = 64,
         width: int = 256,
         blocks: int = 16,
-        pretrained: str = None,
+        pretrained: str = "download",
         device: torch.device | str = "cpu",
     ):
         super().__init__()
         self.width = width
         self.encoder_type = encoder_type
+        self.in_channels = in_channels
 
         if encoder_type == "rdn":
             encoder = RDN(
@@ -339,6 +354,9 @@ class SRNO(Reconstructor):
 
     def load_pretrained(self, checkpoint_path):
 
+        assert (
+            self.in_channels == 3
+        ), "Pretrained weights are only available for 3 input channels (RGB images)."
         # Load checkpoint
         if checkpoint_path == "download":
             name = "srno_" + self.encoder_type + ".ckpt"
@@ -476,7 +494,7 @@ class SRNO(Reconstructor):
 
     def forward(self, y, physics=None, scale=None):
         r"""
-        Forward pass of SRNO model.
+        Apply the super-resolution network.
 
         :param torch.Tensor y: Low-resolution input image of shape (B, C, H_lr, W_lr) with values in [0, 1].
         :param physics: (optional) Physics operator with 'factor' attribute indicating the upscaling factor.
@@ -497,6 +515,13 @@ class SRNO(Reconstructor):
                 physics, "factor"
             ), "Physics must have 'factor' attribute, e.g. Downsampling physics."
             scale = int(physics.factor)
+
+        if not isinstance(physics, Downsampling) or (
+            isinstance(physics, Downsampling) and physics.filter != "bicubic"
+        ):
+            warnings.warn(
+                "Using SRNO with a physics other than bicubic downsampling may lead to suboptimal results, as the model was trained on bicubic downsampling."
+            )
 
         batch_size, _, h_lr, w_lr = y.shape
         h_hr, w_hr = int(h_lr * scale), int(w_lr * scale)

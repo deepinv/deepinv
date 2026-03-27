@@ -128,10 +128,6 @@ def choose_denoiser(name, imsize):
         out = dinv.models.EPLLDenoiser(channels=imsize[0])
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
-    elif name == "srno_rdn":
-        out = dinv.models.SRNO(encoder_type="rdn")
-    elif name == "srno_edsr":
-        out = dinv.models.SRNO(encoder_type="edsr")
     elif name == "ncsnpp":
         out = dinv.models.NCSNpp(
             in_channels=imsize[0],
@@ -174,6 +170,11 @@ def choose_restoration_model(name, in_channels=3, out_channels=3, pretrained=Non
     elif name == "pannet":
         hrms_shape = (8, 16, 16)  # manually adjust
         out = dinv.models.PanNet(hrms_shape=hrms_shape, scale_factor=4)
+    elif "srno" in name:
+        if "rdn" in name:
+            out = dinv.models.SRNO(encoder_type="rdn")
+        elif "edsr" in name:
+            out = dinv.models.SRNO(encoder_type="edsr")
     else:
         raise Exception("Unknown restoration model")
     return out.eval()
@@ -1027,8 +1028,8 @@ LIST_IMAGE_WHSIZE = [(32, 37), (25, 129)]
 
 @pytest.mark.parametrize("pretrained", [True, None])
 @pytest.mark.parametrize("whsize", LIST_IMAGE_WHSIZE)
-# @pytest.mark.parametrize("model_name", REST_MODEL_LIST)
-@pytest.mark.parametrize("model_name", ["ram"])
+@pytest.mark.parametrize("model_name", REST_MODEL_LIST)
+# @pytest.mark.parametrize("model_name", ["ram"])
 @pytest.mark.parametrize("physics_name", LINEAR_OPERATORS + [None])
 @pytest.mark.parametrize("channels", CHANNELS)
 def test_restoration_models(
@@ -1110,7 +1111,7 @@ def test_restoration_models(
 
     if (
         not (physics_name == "super_resolution_circular" and channels == 2)
-        and model_name == "ram"
+        and (model_name == "ram" or "srno" in model_name)
         and pretrained == True
         and physics is not None
     ):  # suboptimal performance in this case
