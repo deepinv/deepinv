@@ -248,7 +248,7 @@ class SplittingLoss(Loss):
             self.model = model
             self.split_ratio = split_ratio
             self.eval_n_samples = eval_n_samples
-            self.mask = 0
+            self.masks = None
             self.mask_generator = mask_generator
             self.eval_split_input = eval_split_input
             self.eval_split_output = eval_split_output
@@ -358,12 +358,36 @@ class SplittingLoss(Loss):
 
             return out
 
+        @property
+        def mask(self):
+            warn(
+                "The 'mask' property is deprecated. Use get_masks() instead.",
+                DeprecationWarning,
+                stacklevel=1,
+            )
+            if self.masks:
+                return self.masks[-1]
+            else:
+                return 0
+
         def get_masks(self):
-            if not hasattr(self, "masks"):
+            if not self.masks:
                 raise ValueError(
                     "Mask not generated during forward pass - use model(y, physics, update_parameters=True)"
                 )
             return self.masks
+
+        def get_mask(self):
+            warn(
+                "The 'get_mask' method is deprecated. Use get_masks() instead.",
+                DeprecationWarning,
+                stacklevel=1,
+            )
+            if not self.masks:
+                raise ValueError(
+                    "Mask not generated during forward pass - use model(y, physics, update_parameters=True)"
+                )
+            return self.masks[-1]
 
 
 class Neighbor2Neighbor(Loss):

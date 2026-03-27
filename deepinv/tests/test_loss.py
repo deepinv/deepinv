@@ -146,7 +146,7 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
                 alpha=0.2,
                 weight=1.0,
                 eval_n_samples=10,
-                train_transform=train_transform,
+                transform=train_transform,
                 eval_transform=eval_transform,
             )
         )
