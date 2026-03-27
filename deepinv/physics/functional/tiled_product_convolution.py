@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Literal
 from torch import Tensor
 import torch
-from deepinv.utils._internal import _as_pair, _add_tuple
+from deepinv.utils._internal import _as_pair
 
 
 def _unity_partition_function_1d(
