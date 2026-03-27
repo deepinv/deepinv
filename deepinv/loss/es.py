@@ -32,9 +32,17 @@ class _SplitR2RLoss(R2RLoss):
         ya = model.get_corruption()
         yb = (y - ya * (1 - self.alpha)) / self.alpha
 
-        mask = model.get_mask() * getattr(physics, "mask", 1.0)
-        r2rloss = self.metric(mask * physics.A(x_net), mask * yb)
-        return self.weight * r2rloss / mask.mean()
+        masks = model.get_masks()
+        loss_total = 0
+        N_masks = 0
+        for mask in masks:
+            mask = mask * getattr(physics, "mask", 1.0)
+            r2rloss = self.metric(mask * physics.A(x_net), mask * yb)
+            loss = self.weight * r2rloss / mask.mean()
+            loss_total = loss_total + loss
+            N_masks += 1
+
+        return loss_total / N_masks
 
     def adapt_model(self, model):
         return (
@@ -76,6 +84,9 @@ class _SplitR2RLoss(R2RLoss):
 
 class ESLoss(Loss):
 
+    consistency_loss: Loss
+    prediction_loss: Loss
+
     def __init__(
         self,
         *,
@@ -99,31 +110,41 @@ class ESLoss(Loss):
                 weight=weight,
                 eval_n_samples=eval_n_samples,
             )
+            consistency_loss = R2RLoss(alpha=alpha, eval_n_samples=eval_n_samples)
         else:
             # Use only the splitting loss
             split_r2r_loss = None
+            consistency_loss = None
         self.split_r2r_loss = split_r2r_loss
+        self.consistency_loss = consistency_loss
         self.transform = transform
         self.eval_transform = eval_transform
         self.equivariant_model = equivariant_model
 
     def forward(self, x_net, y, physics, model, **kwargs):
-        loss_value = self.splitting_loss(
-            x_net=x_net,
-            y=y,
-            physics=physics,
-            model=model,
-            **kwargs,
-        )
-        if self.split_r2r_loss is not None:
-            loss_value = loss_value + self.split_r2r_loss(
-                x_net=x_net,
-                y=y,
-                physics=physics,
-                model=model,
-                **kwargs,
-            )
-        return loss_value
+        masks = model.get_masks()
+        loss_total = 0
+        N_masks = 0
+        for mask in masks:
+            mask = mask * getattr(physics, "mask", 1.0)
+            mask2 = getattr(physics, "mask", 1.0) - mask
+            y2, physics2 = self.splitting_loss.split(mask2, y, physics)
+            l = self.splitting_loss.metric(physics2.A(x_net), y2)
+
+            loss_value = l / mask2.mean() if self.splitting_loss.normalize_loss else l
+
+            if self.consistency_loss is not None:
+                y1, physics1 = self.splitting_loss.split(mask, y, physics)
+                loss_value = loss_value + self.consistency_loss(
+                    x_net=x_net,
+                    y=y1,
+                    physics=physics1,
+                    model=model,
+                    **kwargs,
+                )
+            loss_total = loss_total + loss_value
+            N_masks += 1
+        return loss_total / N_masks
 
     def adapt_model(self, model):
         if not isinstance(model, dinv.loss.SplittingLoss.SplittingModel):

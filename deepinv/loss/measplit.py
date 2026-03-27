@@ -306,6 +306,8 @@ class SplittingLoss(Loss):
             eval_n_samples = 1 if self.training else self.eval_n_samples
             out = 0
 
+            masks = []
+
             for _ in range(eval_n_samples):
                 # Perform input masking
 
@@ -318,8 +320,9 @@ class SplittingLoss(Loss):
                 # Forward pass
                 out += self.model(y1, physics1) / eval_n_samples
 
-            if self.training and update_parameters:
-                self.mask = mask.clone()
+                masks += [mask.clone()]
+
+            self.masks = masks
 
             return out
 
@@ -355,12 +358,12 @@ class SplittingLoss(Loss):
 
             return out
 
-        def get_mask(self):
-            if not isinstance(self.mask, torch.Tensor):
+        def get_masks(self):
+            if not hasattr(self, "masks"):
                 raise ValueError(
                     "Mask not generated during forward pass - use model(y, physics, update_parameters=True)"
                 )
-            return self.mask
+            return self.masks
 
 
 class Neighbor2Neighbor(Loss):
