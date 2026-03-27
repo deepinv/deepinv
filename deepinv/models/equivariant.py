@@ -169,7 +169,7 @@ class EquivariantReconstructor(Reconstructor):
             fyATg = self.model(
                 y, ATg, *reconstructor_args, **reconstructor_kwargs
             )  # f(y, AT_g)
-            TgfyATg = transform.transform(fyATg, **g_params)  # T_g(f(y, AT_g))
+            TgfyATg = Tg(fyATg)  # T_g(f(y, AT_g))
             terms.append(TgfyATg)
 
         # Average over the group elements
