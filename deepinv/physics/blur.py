@@ -994,7 +994,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         pad = self._get_pad(h_size)
 
         # Extract patches: (B, C, K1, K2, P1, P2)
-        patches = self.image_to_patches(x, patch_extension=pad)
+        patches = self.image_to_patches(x, pad=pad)
         n_rows, n_cols = patches.size(2), patches.size(3)
         if n_rows * n_cols != h.size(2):
             raise ValueError(
