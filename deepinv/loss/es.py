@@ -1,16 +1,11 @@
-import torch
 import deepinv as dinv
-import torchvision
 import math
-import torch
 import deepinv as dinv
 
-from deepinv.transform import Rotate, Reflect
 from deepinv.loss.loss import Loss
 from deepinv.loss.measplit import SplittingLoss
 from deepinv.loss.r2r import R2RLoss
 
-import torch
 
 
 # A R2R-like loss to be used in conjunction with the splitting loss
