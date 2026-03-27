@@ -369,13 +369,14 @@ class TiledMixin2d:
 
         self.pad_if_needed = pad_if_needed
 
-    def image_to_patches(self, image: Tensor) -> Tensor:
+    def image_to_patches(self, image: Tensor, patch_extension: int | tuple[int, int, int, int]=(0,0,0,0)) -> Tensor:
         r"""
         Split an image into overlapping patches.
 
         The image will be padded if necessary to ensure all patches have the same size.
 
         :param torch.Tensor image: Input image tensor of shape `(B, C, H, W)`.
+        :param int | tuple[int, int, int, int] patch_extension: Optional, if provided, the patches will be extended by this amount on each side (left, right, top, bottom) when extracted.
         :return: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
         """
         patch_size = self.patch_size
@@ -389,9 +390,13 @@ class TiledMixin2d:
             if pad_h > 0 or pad_w > 0:
                 image = F.pad(image, (0, pad_w, 0, pad_h), mode="constant", value=0)
 
+        # Pad image if patch_extension is provided
+        image = F.pad(image,
+                      patch_extension,
+                      mode="constant",value=0)
         # Extract patches using unfold
-        patches = image.unfold(2, patch_size[0], stride[0]).unfold(
-            3, patch_size[1], stride[1]
+        patches = image.unfold(2, patch_size[0] + patch_extension[2] + patch_extension[3], stride[0]).unfold(
+            3, patch_size[1] + patch_extension[0] + patch_extension[1], stride[1]
         )
         return patches.contiguous()
 
@@ -422,6 +427,7 @@ class TiledMixin2d:
 
         B, C, num_patches_h, num_patches_w, h, w = patches.size()
 
+
         output_size = (
             h + (num_patches_h - 1) * stride[0],
             w + (num_patches_w - 1) * stride[1],
@@ -433,7 +439,6 @@ class TiledMixin2d:
             patches.permute(0, 2, 3, 1, 4, 5).contiguous().view(B, num_patches, C, h, w)
         )
         patches = patches.view(B, num_patches, C * h * w).permute(0, 2, 1)
-
         # Fold patches back into image
         output = F.fold(
             patches,
@@ -458,6 +463,7 @@ class TiledMixin2d:
         if img_size is not None:
             img_size = _as_pair(img_size)
             output = output[:, :, : img_size[0], : img_size[1]]
+        
 
         return output.contiguous()
 

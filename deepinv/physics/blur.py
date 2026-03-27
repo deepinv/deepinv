@@ -988,13 +988,14 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         """
         img_size = x.shape[-2:]
         self.update_parameters(filters, img_size=img_size, device=x.device, **kwargs)
-
         w = self.multipliers  # (B, C, K, H, W)
         h = self.filters  # (B, C, K, h, w)
+        h_size = h.shape[-2:]
+        pad = self._get_pad(h_size)
+
 
         # Extract patches: (B, C, K1, K2, P1, P2)
-        patches = self.image_to_patches(x)
-
+        patches = self.image_to_patches(x, patch_extension=pad)
         n_rows, n_cols = patches.size(2), patches.size(3)
         if n_rows * n_cols != h.size(2):
             raise ValueError(
@@ -1004,17 +1005,12 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         # Flatten K1 and K2 to: (B, C, K, P1, P2)
         patches = patches.flatten(2, 3)
-        patches = patches * w
 
         # Pad each patch for local convolution: so that local convolution produce image of same size
-        h_size = h.shape[-2:]
-        pad = self._get_pad(h_size)
-        patches = self._pad(patches, pad)
 
         # Apply convolution per patch
         B, C = patches.shape[:2]
         h = dF.convolution._prepare_filter_for_grouped(h, B=B, C=C)
-
         result = self.conv2d_fn(
             self.rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
             self.rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
@@ -1023,6 +1019,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         result = self.rearrange(
             result, "(b k) c h w -> b c k h w", b=patches.size(0), k=h.size(2)
         )
+        result = result * w
 
         B, C, K, H, W = result.size()
         result = self.patches_to_image(
@@ -1071,6 +1068,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         # Extract patches
         patches = self.image_to_patches(y)
+        # print(patches.shape, w.shape)
 
         n_rows, n_cols = patches.size(2), patches.size(3)
         if n_rows * n_cols != h.size(2):
@@ -1081,6 +1079,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         # Apply transpose convolution per patch
         patches = patches.flatten(2, 3)
+        patches = patches * w
         B, C = patches.shape[:2]
         h = dF.convolution._prepare_filter_for_grouped(h, B=B, C=C)
 
@@ -1092,17 +1091,21 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         result = self.rearrange(result, "(b k) c h w -> b c k h w", b=B, k=h.size(2))
 
-        # Remove pad and apply weights
-        result = self._crop(result, pad)
-        result = result * w
+        # Remove pad 
 
         # Reconstruct image using overlapping patches
         B, C, _, H, W = result.size()
-        return self.patches_to_image(
+        result = self.patches_to_image(
             result.view(B, C, n_rows, n_cols, H, W),
-            img_size=original_img_size,
         )
+        
+        # crop due to padding for convolution
+        result = self._crop(result, pad)
 
+        # crop due to padding for fitting integer number of patches
+        result = result[..., : original_img_size[-2], : original_img_size[-1]]
+
+        return result
     def update_parameters(
         self,
         filters: Tensor = None,

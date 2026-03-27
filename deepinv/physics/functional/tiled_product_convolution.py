@@ -26,8 +26,9 @@ def _unity_partition_function_1d(
     :param str mode: Blending mode - 'bump' (smooth) or 'linear'.
     :return: Tensor of shape (n_patches, max_size) with partition masks.
     """
-    n_patch = (image_size - patch_size) // (patch_size - overlap) + 1
-    max_size = patch_size + (n_patch - 1) * (patch_size - overlap)
+    stride = patch_size - overlap
+    n_patch = (image_size - patch_size) // stride + 1
+    max_size = patch_size + (n_patch - 1) * stride
     t = torch.linspace(
         -max_size // 2, max_size // 2, max_size, device=device, dtype=dtype
     )
@@ -48,12 +49,12 @@ def _unity_partition_function_1d(
 
     # Create masks for each patch
     masks = torch.stack(
-        [mask.roll(shifts=(patch_size - overlap) * i) for i in range(n_patch)], dim=0
+        [mask.roll(shifts=stride * i) for i in range(n_patch)], dim=0
     )
 
     # Handle boundary patches
-    masks[0, :overlap] = 1.0
-    masks[-1, -overlap:] = 1.0
+    masks[0, :stride] = 1.0
+    masks[-1, -stride:] = 1.0
 
     # Normalize to sum to 1
     masks = masks / (masks.sum(dim=0, keepdims=True) + 1e-8)

@@ -2492,6 +2492,13 @@ def test_squared_or_non_squared_norms(device):
 @pytest.mark.parametrize("stride", [4, 5, (4, 5)])
 @pytest.mark.parametrize("psf_size", [(5, 5), (6, 6), (5, 6)])
 @pytest.mark.parametrize("use_fft", [False, True])
+# @pytest.mark.parametrize("batch_size", [1])
+# @pytest.mark.parametrize("n_channels", [1])
+# @pytest.mark.parametrize("img_size", [(32, 32)])
+# @pytest.mark.parametrize("patch_size", [32])
+# @pytest.mark.parametrize("stride", [1])
+# @pytest.mark.parametrize("psf_size", [(5,6)])
+# @pytest.mark.parametrize("use_fft", [False, True])
 def test_tiled_product_physics_adjointness(
     batch_size, n_channels, img_size, patch_size, psf_size, stride, use_fft, device
 ):
