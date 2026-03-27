@@ -7,7 +7,6 @@ from deepinv.loss.measplit import SplittingLoss
 from deepinv.loss.r2r import R2RLoss
 
 
-
 # A R2R-like loss to be used in conjunction with the splitting loss
 class _SplitR2RLoss(R2RLoss):
 
