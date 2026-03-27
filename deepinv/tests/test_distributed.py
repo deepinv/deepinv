@@ -1948,6 +1948,8 @@ def _test_unrolled_backward_worker(rank, world_size, args):
         sigma_denoiser = 0.02
         patch_size = 8
         overlap = 2
+        max_batch_size = args.get("max_batch_size", None)
+        checkpoint_batches = args.get("checkpoint_batches", "auto")
 
         physics_list = create_test_physics_list(ctx.device, num_operators)
         for p in physics_list:
@@ -1977,6 +1979,8 @@ def _test_unrolled_backward_worker(rank, world_size, args):
             tiling_strategy="overlap_tiling",
             patch_size=patch_size,
             overlap=overlap,
+            max_batch_size=max_batch_size,
+            checkpoint_batches=checkpoint_batches,
         )
 
         denoiser_ref = create_drunet_denoiser(num_channels=1, device=ctx.device)
@@ -1989,12 +1993,25 @@ def _test_unrolled_backward_worker(rank, world_size, args):
             patch_size=patch_size,
             overlap=overlap,
         )
-        all_indices = list(range(strategy.get_num_patches()))
+        num_patches = strategy.get_num_patches()
+        all_indices = list(range(num_patches))
+        if max_batch_size is not None and max_batch_size > 0:
+            assert (
+                max_batch_size < num_patches
+            ), f"Expected max_batch_size < num_patches, got {max_batch_size} >= {num_patches}"
 
         def _reference_tiled_denoise(x_in):
             patch_pairs = strategy.get_local_patches(x_in, all_indices)
             all_patches = [p for _, p in patch_pairs]
-            processed = [denoiser_ref(p, sigma=sigma_denoiser) for p in all_patches]
+            batched_patches = strategy.apply_batching(
+                all_patches, max_batch_size=max_batch_size
+            )
+            processed_batches = [
+                denoiser_ref(batch, sigma=sigma_denoiser) for batch in batched_patches
+            ]
+            processed = strategy.unpack_batched_results(
+                processed_batches, len(all_patches)
+            )
             x_out = torch.zeros_like(x_in)
             strategy.reduce_patches(x_out, list(zip(all_indices, processed)))
             return x_out
@@ -2100,6 +2117,24 @@ def test_unrolled_backward(device_config):
     End-to-end unrolled backward consistency test with DRUNet and trainable step sizes.
     """
     test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_unrolled_backward_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
+
+
+def test_unrolled_backward_checkpointed_batches(device_config):
+    """
+    End-to-end unrolled backward consistency with checkpointed patch-batches.
+
+    Uses max_batch_size smaller than the total patch count and checks that
+    distributed gradients match the non-distributed reference.
+    """
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "max_batch_size": 1,
+        "checkpoint_batches": "always",
+    }
     results = run_distributed_test(
         _test_unrolled_backward_worker, device_config, test_args
     )

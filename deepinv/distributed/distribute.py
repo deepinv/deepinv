@@ -111,6 +111,9 @@ def _distribute_processor(
     overlap: int = 64,
     tiling_dims: int | tuple[int, ...] | None = None,
     max_batch_size: int | None = None,
+    checkpoint_batches: str = "auto",
+    checkpoint_use_reentrant: bool = False,
+    checkpoint_preserve_rng_state: bool = True,
     gather_strategy: str = "concatenated",
     **kwargs,
 ) -> DistributedProcessing:
@@ -129,6 +132,13 @@ def _distribute_processor(
             - If an int ``N``, only tiles over the specified dimension.
             - If a tuple, specifies exact dimensions to tile.
     :param int | None max_batch_size: maximum number of patches to process in a single batch. If `None`, all patches are batched together. Set to `1` for sequential processing. Default is `None`.
+    :param str checkpoint_batches: activation checkpointing mode for patch-batches during backward.
+        Supported values are ``'auto'``, ``'always'`` and ``'never'``.
+        Default is ``'auto'``.
+    :param bool checkpoint_use_reentrant: reentrant mode forwarded to
+        :func:`torch.utils.checkpoint.checkpoint`. Default is ``False``.
+    :param bool checkpoint_preserve_rng_state: whether to preserve RNG state during
+        checkpoint recomputation. Default is ``True``.
     :param str gather_strategy: strategy for gathering distributed results (currently unused for processors, kept for API consistency). Default is `'concatenated'`.
     :param kwargs: additional keyword arguments for DistributedProcessing.
 
@@ -146,6 +156,9 @@ def _distribute_processor(
             "tiling_dims": tiling_dims,
         },
         max_batch_size=max_batch_size,
+        checkpoint_batches=checkpoint_batches,
+        checkpoint_use_reentrant=checkpoint_use_reentrant,
+        checkpoint_preserve_rng_state=checkpoint_preserve_rng_state,
     )
 
 
@@ -256,6 +269,9 @@ def _distribute_base_optim(
     overlap: int = 64,
     tiling_dims: int | tuple | None = None,
     max_batch_size: int | None = None,
+    checkpoint_batches: str = "auto",
+    checkpoint_use_reentrant: bool = False,
+    checkpoint_preserve_rng_state: bool = True,
     dtype: torch.dtype | None = torch.float32,
     gather_strategy: str = "concatenated",
 ) -> BaseOptim:
@@ -298,6 +314,13 @@ def _distribute_base_optim(
         Default ``64``.
     :param int | tuple | None tiling_dims: tiling dimensions. Default ``None``.
     :param int | None max_batch_size: maximum patches per batch. Default ``None``.
+    :param str checkpoint_batches: activation checkpointing mode for
+        patch-batches during backward. Supported values are ``'auto'``,
+        ``'always'`` and ``'never'``. Default ``'auto'``.
+    :param bool checkpoint_use_reentrant: reentrant mode for activation
+        checkpointing. Default ``False``.
+    :param bool checkpoint_preserve_rng_state: preserve RNG state during
+        activation checkpoint recomputation. Default ``True``.
     :param torch.dtype | None dtype: dtype override. Default ``torch.float32``.
     :param str gather_strategy: gather strategy (forwarded, currently unused for
         processors).
@@ -319,6 +342,9 @@ def _distribute_base_optim(
         overlap=overlap,
         tiling_dims=tiling_dims,
         max_batch_size=max_batch_size,
+        checkpoint_batches=checkpoint_batches,
+        checkpoint_use_reentrant=checkpoint_use_reentrant,
+        checkpoint_preserve_rng_state=checkpoint_preserve_rng_state,
     )
 
     # 1. Distribute each DataFidelity in the list.
@@ -388,6 +414,9 @@ def distribute(
     patch_size: int = 256,
     overlap: int = 64,
     max_batch_size: int | None = None,
+    checkpoint_batches: str = "auto",
+    checkpoint_use_reentrant: bool = False,
+    checkpoint_preserve_rng_state: bool = True,
     **kwargs,
 ) -> (
     DistributedStackedPhysics
@@ -450,6 +479,14 @@ def distribute(
     :param int overlap: receptive field size for overlap in tiling strategies (for Denoiser).
         Can be an int (same size for all tiled dims) or a tuple (per-dimension size). Default is `64`.
     :param int | None max_batch_size: maximum number of patches to process in a single batch (for Denoiser). If `None`, all patches are batched together. Set to `1` for sequential processing. Default is `None`.
+    :param str checkpoint_batches: activation checkpointing mode for
+        patch-batches during backward (for Denoiser).
+        Supported values are ``'auto'``, ``'always'`` and ``'never'``.
+        Default is ``'auto'``.
+    :param bool checkpoint_use_reentrant: reentrant mode for activation
+        checkpointing in denoiser processing. Default is ``False``.
+    :param bool checkpoint_preserve_rng_state: preserve RNG state during
+        checkpoint recomputation in denoiser processing. Default is ``True``.
     :param kwargs: additional keyword arguments for specific distributed classes.
 
     :return: Distributed version of the input object.
@@ -566,6 +603,9 @@ def distribute(
             overlap=overlap,
             tiling_dims=tiling_dims,
             max_batch_size=max_batch_size,
+            checkpoint_batches=checkpoint_batches,
+            checkpoint_use_reentrant=checkpoint_use_reentrant,
+            checkpoint_preserve_rng_state=checkpoint_preserve_rng_state,
             **kwargs,
         )
     elif type_object == "data_fidelity":
@@ -606,6 +646,9 @@ def distribute(
             overlap=overlap,
             tiling_dims=tiling_dims,
             max_batch_size=max_batch_size,
+            checkpoint_batches=checkpoint_batches,
+            checkpoint_use_reentrant=checkpoint_use_reentrant,
+            checkpoint_preserve_rng_state=checkpoint_preserve_rng_state,
         )
     else:
         raise ValueError(f"Unsupported type_object: {type_object}")

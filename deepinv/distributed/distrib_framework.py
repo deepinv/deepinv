@@ -8,6 +8,7 @@ import warnings
 import torch
 import torch.distributed as dist
 import torch.distributed.nn.functional as dist_nn
+from torch.utils.checkpoint import checkpoint as torch_checkpoint
 
 from deepinv.physics import Physics, LinearPhysics
 from deepinv.optim.data_fidelity import DataFidelity
@@ -866,6 +867,15 @@ class DistributedProcessing(torch.nn.Module):
     :param int | None max_batch_size: maximum number of patches to process in a single batch.
         If ``None``, all local patches are batched together. Set to ``1`` for sequential processing
         (useful for memory-constrained scenarios). Higher values increase throughput but require more memory. Default is `None`.
+    :param str checkpoint_batches: activation checkpointing mode for patch-batches during backward.
+        Supported values are ``'auto'``, ``'always'`` and ``'never'``.
+        - ``'auto'`` (default): enable checkpointing only when gradients are enabled and there are multiple local patch-batches.
+        - ``'always'``: always checkpoint patch-batches when gradients are enabled.
+        - ``'never'``: disable checkpointing.
+    :param bool checkpoint_use_reentrant: reentrant mode passed to :func:`torch.utils.checkpoint.checkpoint`.
+        Default is ``False`` (recommended by PyTorch).
+    :param bool checkpoint_preserve_rng_state: whether to preserve RNG state across forward recomputation when
+        checkpointing. Default is ``True``.
     """
 
     def __init__(
@@ -876,6 +886,9 @@ class DistributedProcessing(torch.nn.Module):
         strategy: str | DistributedSignalStrategy | None = None,
         strategy_kwargs: dict | None = None,
         max_batch_size: int | None = None,
+        checkpoint_batches: str = "auto",
+        checkpoint_use_reentrant: bool = False,
+        checkpoint_preserve_rng_state: bool = True,
         **kwargs,
     ):
         r"""
@@ -885,6 +898,15 @@ class DistributedProcessing(torch.nn.Module):
         self.ctx = ctx
         self.processor = processor
         self.max_batch_size = max_batch_size
+        valid_checkpoint_modes = ("auto", "always", "never")
+        if checkpoint_batches not in valid_checkpoint_modes:
+            raise ValueError(
+                "checkpoint_batches must be one of "
+                f"{valid_checkpoint_modes}, got '{checkpoint_batches}'."
+            )
+        self.checkpoint_batches = checkpoint_batches
+        self.checkpoint_use_reentrant = checkpoint_use_reentrant
+        self.checkpoint_preserve_rng_state = checkpoint_preserve_rng_state
         self.strategy = strategy if strategy is not None else "overlap_tiling"
         self.strategy_kwargs = strategy_kwargs or {}
         self.current_shape: torch.Size | None = None
@@ -1015,10 +1037,33 @@ class DistributedProcessing(torch.nn.Module):
             patches, max_batch_size=self.max_batch_size
         )
 
+        processor_has_trainable_params = False
+        if isinstance(self.processor, torch.nn.Module):
+            processor_has_trainable_params = any(
+                p.requires_grad for p in self.processor.parameters()
+            )
+        grad_enabled = torch.is_grad_enabled() and (
+            x.requires_grad or processor_has_trainable_params
+        )
+        use_batch_checkpointing = False
+        if grad_enabled:
+            if self.checkpoint_batches == "always":
+                use_batch_checkpointing = True
+            elif self.checkpoint_batches == "auto":
+                use_batch_checkpointing = len(batched_patches) > 1
+
         # 3. Apply processor to each batch
         processed_batches = []
         for batch in batched_patches:
-            result = self.processor(batch, *args, **kwargs)
+            if use_batch_checkpointing:
+                result = torch_checkpoint(
+                    lambda b: self.processor(b, *args, **kwargs),
+                    batch,
+                    use_reentrant=self.checkpoint_use_reentrant,
+                    preserve_rng_state=self.checkpoint_preserve_rng_state,
+                )
+            else:
+                result = self.processor(batch, *args, **kwargs)
             processed_batches.append(result)
 
         # 4. Unpack results back to individual patches
