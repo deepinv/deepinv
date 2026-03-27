@@ -51,3 +51,4 @@ degradations/
 results/
 tmp/
 sg_execution_times.rst
+examples/evaluation
