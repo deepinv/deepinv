@@ -86,6 +86,7 @@ train_dataset, test_dataset = torch.utils.data.random_split(
 physics = dinv.physics.Inpainting(
     mask=0.7, img_size=(channels, img_size, img_size), device=device
 )
+physics.noise_model = dinv.physics.GaussianNoise(sigma=0.01)
 
 # Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -190,7 +191,7 @@ losses = [
     dinv.loss.ESLoss(
         mask_generator=mask_generator,
         noise_model=physics.noise_model,
-        train_transform=train_transform,
+        transform=train_transform,
         eval_transform=eval_transform,
     )
 ]

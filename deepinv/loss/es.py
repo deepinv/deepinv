@@ -100,7 +100,7 @@ class ESLoss(Loss):
             # Use R2R Splitting loss
             split_r2r_loss = _SplitR2RLoss(
                 mask_generator=mask_generator,
-                noise_model=physics.noise_model,
+                noise_model=noise_model,
                 alpha=alpha,
                 weight=weight,
                 eval_n_samples=eval_n_samples,
