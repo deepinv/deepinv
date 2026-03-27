@@ -60,7 +60,13 @@ def objective_function(
         return data_fidelity(x, y, physics)
 
 
-def gradient_descent(grad_f: Callable, x: Tensor, step_size: float = 1.0, max_iter: int = 100, tol: float = 1e-5):
+def gradient_descent(
+    grad_f: Callable,
+    x: Tensor,
+    step_size: float = 1.0,
+    max_iter: int = 100,
+    tol: float = 1e-5,
+):
     """
     Standard gradient descent algorithm`.
 
@@ -83,7 +89,7 @@ def gradient_descent(grad_f: Callable, x: Tensor, step_size: float = 1.0, max_it
 def check_conv(
     X_prev: Tensor | dict[str, Tensor | tuple[Tensor, ...]],
     X: Tensor | dict[str, Tensor] | dict[str, Tensor | tuple[Tensor, ...]],
-    it:int,
+    it: int,
     crit_conv="residual",
     thres_conv=1e-3,
     verbose=False,
