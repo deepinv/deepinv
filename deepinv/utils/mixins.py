@@ -369,34 +369,35 @@ class TiledMixin2d:
 
         self.pad_if_needed = pad_if_needed
 
-    def image_to_patches(self, image: Tensor, patch_extension: int | tuple[int, int, int, int]=(0,0,0,0)) -> Tensor:
+    def image_to_patches(
+        self, image: Tensor, pad: int | tuple[int, int, int, int] = (0, 0, 0, 0)
+    ) -> Tensor:
         r"""
         Split an image into overlapping patches.
 
         The image will be padded if necessary to ensure all patches have the same size.
 
         :param torch.Tensor image: Input image tensor of shape `(B, C, H, W)`.
-        :param int | tuple[int, int, int, int] patch_extension: Optional, if provided, the patches will be extended by this amount on each side (left, right, top, bottom) when extracted.
+        :param int | tuple[int, int, int, int] pad: Optional, if provided, the image will be padded by this amount on each side (left, right, top, bottom) before patch extraction.
         :return: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
         """
         patch_size = self.patch_size
         stride = self.stride
+        if isinstance(pad, int):
+            pad = (pad, pad, pad, pad)
 
         img_size = image.shape[-2:]
 
         # Pad image if necessary for even patch extraction
         if self.pad_if_needed:
             pad_h, pad_w = self.get_needed_pad(img_size)
-            if pad_h > 0 or pad_w > 0:
-                image = F.pad(image, (0, pad_w, 0, pad_h), mode="constant", value=0)
+            pad = (pad[0], pad[1] + pad_w, pad[2], pad[3] + pad_h)
 
-        # Pad image if patch_extension is provided
-        image = F.pad(image,
-                      patch_extension,
-                      mode="constant",value=0)
+        # Pad image
+        image = F.pad(image, pad, mode="constant", value=0)
         # Extract patches using unfold
-        patches = image.unfold(2, patch_size[0] + patch_extension[2] + patch_extension[3], stride[0]).unfold(
-            3, patch_size[1] + patch_extension[0] + patch_extension[1], stride[1]
+        patches = image.unfold(2, patch_size[0] + pad[2] + pad[3], stride[0]).unfold(
+            3, patch_size[1] + pad[0] + pad[1], stride[1]
         )
         return patches.contiguous()
 
@@ -426,7 +427,6 @@ class TiledMixin2d:
         stride = self.stride
 
         B, C, num_patches_h, num_patches_w, h, w = patches.size()
-
 
         output_size = (
             h + (num_patches_h - 1) * stride[0],
@@ -463,7 +463,6 @@ class TiledMixin2d:
         if img_size is not None:
             img_size = _as_pair(img_size)
             output = output[:, :, : img_size[0], : img_size[1]]
-        
 
         return output.contiguous()
 

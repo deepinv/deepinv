@@ -9,7 +9,7 @@ from deepinv.utils._internal import _as_pair, _add_tuple
 def _unity_partition_function_1d(
     image_size: int,
     patch_size: int,
-    overlap: int,
+    stride: int,
     mode: Literal["bump", "linear"] = "bump",
     device="cpu",
     dtype=torch.float32,
@@ -22,13 +22,13 @@ def _unity_partition_function_1d(
 
     :param int image_size: Size of the image dimension.
     :param int patch_size: Size of each patch.
-    :param int overlap: Overlap between adjacent patches.
+    :param int stride: Stride between adjacent patches.
     :param str mode: Blending mode - 'bump' (smooth) or 'linear'.
     :return: Tensor of shape (n_patches, max_size) with partition masks.
     """
-    stride = patch_size - overlap
     n_patch = (image_size - patch_size) // stride + 1
     max_size = patch_size + (n_patch - 1) * stride
+    overlap = patch_size - stride
     t = torch.linspace(
         -max_size // 2, max_size // 2, max_size, device=device, dtype=dtype
     )
@@ -48,9 +48,7 @@ def _unity_partition_function_1d(
         raise ValueError(f"Unknown mode: {mode}. Use 'bump' or 'linear'.")
 
     # Create masks for each patch
-    masks = torch.stack(
-        [mask.roll(shifts=stride * i) for i in range(n_patch)], dim=0
-    )
+    masks = torch.stack([mask.roll(shifts=stride * i) for i in range(n_patch)], dim=0)
 
     # Handle boundary patches
     masks[0, :stride] = 1.0
