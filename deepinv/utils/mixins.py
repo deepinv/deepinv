@@ -378,7 +378,7 @@ class TiledMixin2d:
         The image will be padded if necessary to ensure all patches have the same size.
 
         :param torch.Tensor image: Input image tensor of shape `(B, C, H, W)`.
-        :param int | tuple[int, int, int, int] pad: Optional, if provided, the image will be padded by this amount on each side (left, right, top, bottom) before patch extraction.
+        :param int | tuple[int, int, int, int] pad: Optional, if provided, the image will be additionally padded by this amount on each side (left, right, top, bottom) before patch extraction.
         :return: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
         """
         patch_size = self.patch_size
@@ -391,10 +391,11 @@ class TiledMixin2d:
         # Pad image if necessary for even patch extraction
         if self.pad_if_needed:
             pad_h, pad_w = self.get_needed_pad(img_size)
-            pad = (pad[0], pad[1] + pad_w, pad[2], pad[3] + pad_h)
-
+            pad_pad = (pad[0], pad[1] + pad_w, pad[2], pad[3] + pad_h)
+        else:
+            pad_pad = pad
         # Pad image
-        image = F.pad(image, pad, mode="constant", value=0)
+        image = F.pad(image, pad_pad, mode="constant", value=0)
         # Extract patches using unfold
         patches = image.unfold(2, patch_size[0] + pad[2] + pad[3], stride[0]).unfold(
             3, patch_size[1] + pad[0] + pad[1], stride[1]

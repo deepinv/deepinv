@@ -124,13 +124,12 @@ def generate_tiled_multipliers(
     img_size = _as_pair(img_size)
     patch_size = _as_pair(patch_size)
     stride = _as_pair(stride)
-    overlap = _add_tuple(patch_size, stride, -1)
 
     masks_x = _unity_partition_function_1d(
-        img_size[0], patch_size[0], overlap[0], mode, device=device, dtype=dtype
+        img_size[0], patch_size[0], stride[0], mode, device=device, dtype=dtype
     )
     masks_y = _unity_partition_function_1d(
-        img_size[1], patch_size[1], overlap[1], mode, device=device, dtype=dtype
+        img_size[1], patch_size[1], stride[1], mode, device=device, dtype=dtype
     )
 
     # Combine 1D masks into 2D via outer product
