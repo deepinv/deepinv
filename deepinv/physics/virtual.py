@@ -9,7 +9,7 @@ from typing import Callable
 # Unlike general composition of linear operators, the invertibility of T allows
 # to compute the pseudo-inverse of A' in a computationally efficient closed
 # form, i.e., A'^\dagger = T^{-1} A^\dagger.
-class VirtualOperator(LinearPhysics):
+class VirtualPhysics(LinearPhysics):
     def __init__(self, *, physics: LinearPhysics, T: Callable, T_inv: Callable):
         super().__init__()
         self.physics = physics

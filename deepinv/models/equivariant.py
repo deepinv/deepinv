@@ -3,7 +3,7 @@ from __future__ import annotations
 from torch import Tensor
 from deepinv.transform import Transform, Rotate, Reflect
 from .base import Denoiser, Reconstructor
-from deepinv.physics.virtual import VirtualOperator
+from deepinv.physics.virtual import VirtualPhysics
 import torch
 
 
@@ -164,7 +164,7 @@ class EquivariantReconstructor(Reconstructor):
             Tg = lambda x: transform.transform(x, **g_params)
             Tg_inv = lambda x: transform.inverse(x, **g_params)
 
-            ATg = VirtualOperator(physics=physics, T=Tg, T_inv=Tg_inv)
+            ATg = VirtualPhysics(physics=physics, T=Tg, T_inv=Tg_inv)
 
             fyATg = self.model(
                 y, ATg, *reconstructor_args, **reconstructor_kwargs

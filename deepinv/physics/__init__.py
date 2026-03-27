@@ -26,7 +26,7 @@ from .forward import (
     stack,
     compose,
 )
-from .virtual import VirtualOperator
+from .virtual import VirtualPhysics
 from .noise import (
     NoiseModel,
     ZeroNoise,
