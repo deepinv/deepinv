@@ -7,6 +7,8 @@ from deepinv.loss.metric.distortion import MSE
 from deepinv.loss.measplit import SplittingLoss
 from deepinv.loss.r2r import R2RLoss
 
+import weakref
+
 
 class ESLoss(Loss):
 
@@ -35,9 +37,17 @@ class ESLoss(Loss):
         self.transform = transform
         self.eval_transform = eval_transform
         self.equivariant_model = equivariant_model
+        # Store the SplittingModel possibly wrapped in the adapted model
+        # It is also used to avoid adapting the same model more than once.
+        self._splitting_model_mapping = weakref.WeakKeyDictionary()
 
     def forward(self, x_net, y, physics, model, **kwargs):
-        splitting_model = getattr(model, "_splitting_model")
+        if model in self._splitting_model_mapping:
+            splitting_model = self._splitting_model_mapping[model]
+        else:
+            raise RuntimeError(
+                f"Unregistered model {type(model)}. Make sure to adapt the model using `adapt_model` before computing the loss."
+            )
         masks = splitting_model.get_masks()
         loss_total = 0
         N_masks = 0
@@ -69,7 +79,7 @@ class ESLoss(Loss):
         return loss_total / N_masks
 
     def adapt_model(self, model):
-        if not hasattr(model, "_splitting_model"):
+        if model not in self._splitting_model_mapping:
             # if the model is not already equivariant, we make it so using Reynolds averaging
             if not self.equivariant_model:
                 model = dinv.models.EquivariantReconstructor(
@@ -93,5 +103,5 @@ class ESLoss(Loss):
             else:
                 model = splitting_model
 
-            setattr(model, "_splitting_model", splitting_model)
+            self._splitting_model_mapping[model] = splitting_model
         return model
