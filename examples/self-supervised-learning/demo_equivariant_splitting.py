@@ -187,10 +187,20 @@ eval_transform = dinv.transform.Rotate(
     n_trans=4, multiples=90, positive=True
 ) * dinv.transform.Reflect(n_trans=2, dim=[-1])
 
+# consistency_loss = None
+# consistency_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
+consistency_loss = dinv.loss.R2RLoss(alpha=0.2, eval_n_samples=10)
+# consistency_loss = dinv.loss.SureGaussianLoss(sigma=physics.noise_model.sigma, tau=physics.noise_model.sigma / 100)
+# prediction_loss = None
+prediction_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
+# prediction_loss = dinv.loss.R2RLoss(alpha=0.2, eval_n_samples=10)
+# prediction_loss = dinv.loss.SureGaussianLoss(sigma=physics.noise_model.sigma, tau=physics.noise_model.sigma / 100)
+
 losses = [
     dinv.loss.ESLoss(
         mask_generator=mask_generator,
-        noise_model=physics.noise_model,
+        consistency_loss=consistency_loss,
+        prediction_loss=prediction_loss,
         transform=train_transform,
         eval_transform=eval_transform,
     )

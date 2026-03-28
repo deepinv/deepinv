@@ -2,10 +2,7 @@ import deepinv as dinv
 import deepinv as dinv
 
 from deepinv.loss.loss import Loss
-from deepinv.loss.mc import MCLoss
-from deepinv.loss.metric.distortion import MSE
 from deepinv.loss.measplit import SplittingLoss
-from deepinv.loss.r2r import R2RLoss
 
 import weakref
 
@@ -19,21 +16,16 @@ class ESLoss(Loss):
         self,
         *,
         mask_generator,
-        noise_model,
-        alpha: float = 0.2,
-        weight: float = 1.0,
+        consistency_loss: Loss,
+        prediction_loss: Loss,
         eval_n_samples: int = 10,
         transform,
         eval_transform=None,
         equivariant_model: bool = False,
     ):
         super().__init__()
-        if not isinstance(noise_model, dinv.physics.ZeroNoise):
-            consistency_loss = R2RLoss(alpha=alpha, eval_n_samples=eval_n_samples)
-        else:
-            consistency_loss = None
         self.consistency_loss = consistency_loss
-        self.prediction_loss = MCLoss(metric=MSE())
+        self.prediction_loss = prediction_loss
         self.transform = transform
         self.eval_transform = eval_transform
         self.equivariant_model = equivariant_model
