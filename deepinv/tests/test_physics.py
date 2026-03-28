@@ -15,6 +15,8 @@ from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
 from deepinv.utils.compat import zip_strict
+from deepinv.transform.rotate import Rotate
+from deepinv.transform.reflect import Reflect
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -259,10 +261,17 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         base_physics = dinv.physics.Inpainting(
             img_size=img_size, mask=0.5, device=device, rng=rng
         )
+        transform = Rotate(n_trans=4, multiples=90, positive=True) * Reflect(
+            n_trans=2, dim=[-1]
+        )
+        x0 = torch.zeros(1, *img_size, device=device)
+        G_params = transform.get_params(x0)
+        G_params = transform.iterate_params(G_params)
+        g_params = next(iter(G_params))
         p = dinv.physics.VirtualPhysics(
             physics=base_physics,
-            T=lambda x: torch.rot90(x, k=2, dims=(-2, -1)),
-            T_inv=lambda x: torch.rot90(x, k=-2, dims=(-2, -1)),
+            transform=transform,
+            g_params=g_params,
         )
         params = []
     elif name == "composition":
@@ -716,9 +725,9 @@ def test_operators_adjointness(name, device, rng):
     assert error < 1e-3
 
     if (
-        "pansharpen" in name or "radio" in name
+        "pansharpen" in name or "radio" in name or name == "VirtualPhysics"
     ):  # automatic adjoint does not work for inputs that are not torch.tensors
-        return
+        pytest.skip()
     f = adjoint_function(physics.A, x.shape, x.device, x.dtype)
 
     y = physics.A(x)
@@ -2020,7 +2029,8 @@ def test_composed_physics(device):
 def test_adjoint_autograd(name, device):
     # NOTE: The current implementation of adjoint_function does not support
     # physics that return tensor lists or complex tensors. It also does not
-    # support RadioInterferometry although it is not entirely clear why.
+    # support RadioInterferometry and VirtualPhysics although it is not
+    # entirely clear why.
     if name in {
         "aliased_pansharpen",
         "pansharpen_valid",
@@ -2031,6 +2041,7 @@ def test_adjoint_autograd(name, device):
         "ptychography_linear",
         "radio",
         "radio_weighted",
+        "VirtualPhysics",
     }:
         pytest.skip(f"Operator {name} is not supported by adjoint_function.")
 

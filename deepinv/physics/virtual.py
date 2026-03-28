@@ -1,5 +1,5 @@
 from deepinv.physics.forward import LinearPhysics
-from typing import Callable
+from deepinv.transform.base import Transform
 
 
 # A virtual operator is an operator of the form A' = A T where A is a linear
@@ -10,20 +10,20 @@ from typing import Callable
 # to compute the pseudo-inverse of A' in a computationally efficient closed
 # form, i.e., A'^\dagger = T^{-1} A^\dagger.
 class VirtualPhysics(LinearPhysics):
-    def __init__(self, *, physics: LinearPhysics, T: Callable, T_inv: Callable):
+    def __init__(self, *, physics: LinearPhysics, transform: Transform, g_params: dict):
         super().__init__()
         self.physics = physics
-        self.T = T
-        self.T_inv = T_inv
+        self.T = lambda x: transform.transform(x, **g_params)
+        self.T_inv = lambda x: transform.inverse(x, **g_params)
 
     def A(self, x, **kwargs):
         Tx = self.T(x)  # T
-        return self.physics.A(Tx, **kwargs)  # A
+        return self.physics.A(Tx)  # A
 
     def A_adjoint(self, y, **kwargs):
-        x = self.physics.A_adjoint(y, **kwargs)  # A^*
+        x = self.physics.A_adjoint(y)  # A^*
         return self.T_inv(x)  # T^{-1}
 
     def A_dagger(self, y, **kwargs):
-        x = self.physics.A_dagger(y, **kwargs)  # A^\dagger
+        x = self.physics.A_dagger(y)  # A^\dagger
         return self.T_inv(x)  # T^{-1}

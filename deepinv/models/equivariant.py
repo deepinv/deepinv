@@ -169,15 +169,15 @@ class EquivariantReconstructor(Reconstructor):
         # Compute the terms in the sum, i.e., T_g(f(y, AT_g)) for each g
         terms = []
         for g_params in transform.iterate_params(G_params):
-            Tg = lambda x: transform.transform(x, **g_params)
-            Tg_inv = lambda x: transform.inverse(x, **g_params)
-
-            ATg = VirtualPhysics(physics=physics, T=Tg, T_inv=Tg_inv)
+            ATg = VirtualPhysics(
+                physics=physics, transform=transform, g_params=g_params
+            )
 
             fyATg = self.model(
                 y, ATg, *reconstructor_args, **reconstructor_kwargs
             )  # f(y, AT_g)
-            TgfyATg = Tg(fyATg)  # T_g(f(y, AT_g))
+
+            TgfyATg = transform.transform(fyATg, **g_params)  # T_g(f(y, AT_g))
             terms.append(TgfyATg)
 
         # Average over the group elements
