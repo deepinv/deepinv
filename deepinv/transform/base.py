@@ -323,7 +323,10 @@ class Transform(torch.nn.Module, TimeMixin):
 
         class ChainTransform(Transform):
             def __init__(self, t1: Transform, t2: Transform):
-                super().__init__(flatten_video_input=t1.flatten_video_input)
+                n_trans = t1.n_trans * t2.n_trans
+                super().__init__(
+                    n_trans=n_trans, flatten_video_input=t1.flatten_video_input
+                )
                 self.t1 = t1
                 self.t2 = t2
                 self.constant_shape = t1.constant_shape and t2.constant_shape
