@@ -72,6 +72,8 @@ class EquivariantDenoiser(Denoiser):
         if eval_transform is None:
             eval_transform = transform
 
+        self.eval_transform = eval_transform
+
     def forward(self, x: Tensor, *denoiser_args, **denoiser_kwargs) -> Tensor:
         r"""
         Symmetrize the denoiser by the transformation to create an equivariant denoiser and apply to input.
