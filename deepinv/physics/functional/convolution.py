@@ -702,7 +702,9 @@ def _apply_transpose_padding(
     assert n_spatial in (2, 3), "Only 2D or 3D supported"
 
     # Build center crop
-    center_slices = tuple(_center_crop_slice_1d(pk, ik) for pk, ik in zip(p, i, strict=False))
+    center_slices = tuple(
+        _center_crop_slice_1d(pk, ik) for pk, ik in zip(p, i, strict=False)
+    )
     index = (slice(None), slice(None), *center_slices)
     out = x[index]
 

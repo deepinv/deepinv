@@ -37,7 +37,8 @@ def map_reduce_gather(
                 f"got {len(x)}, expected {len(local_items)}"
             )
         local_results = [
-            local_op(item, xi, **kwargs) for item, xi in zip(local_items, x, strict=False)
+            local_op(item, xi, **kwargs)
+            for item, xi in zip(local_items, x, strict=False)
         ]
     else:
         local_results = [local_op(item, x, **kwargs) for item in local_items]

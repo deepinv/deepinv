@@ -162,7 +162,9 @@ class UNet(Denoiser):
             x = block(x) if i == 0 else block(self.Maxpool(x))
             enc_feats.append(x)
 
-        for i, (up_name, upc_name) in enumerate(zip(self._up_names, self._upc_names, strict=False)):
+        for i, (up_name, upc_name) in enumerate(
+            zip(self._up_names, self._upc_names, strict=False)
+        ):
             x = getattr(self, up_name)(x)
             if self.cat:
                 skip = enc_feats[-2 - i]

@@ -8,7 +8,9 @@ def create_circular_spherical_mask(imsize, center=None, radius=None):
     if center is None:  # use the middle of the image
         center = tuple(int(s / 2) for s in imsize)
     if radius is None:  # use the smallest distance between the center and image walls
-        radius = min(*center, *tuple(s - c for s, c in zip(imsize, center, strict=False)))
+        radius = min(
+            *center, *tuple(s - c for s, c in zip(imsize, center, strict=False))
+        )
 
     coords = np.ogrid[tuple(slice(0, s) for s in imsize)]
     dist_from_center = np.sqrt(
