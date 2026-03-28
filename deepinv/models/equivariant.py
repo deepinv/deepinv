@@ -40,6 +40,7 @@ class EquivariantDenoiser(Denoiser):
     :param Callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
     :param Transform transform: geometric transformation. If None, defaults to rotations of multiples of 90 with horizontal flips (see note above).
         See :ref:`docs <transform>` for list of available transforms.
+    :param Transform eval_transform: transformations to be used in evaluation mode. It can be used to have true Reynolds averaging at evaluation time and efficient Monte Carlo estimation at training time. If set to `None`, evaluation transformations are the same as training transformations.
     :param bool random: if True, the denoiser is applied to a randomly transformed version of the input image
         each time i.e. a Monte-Carlo approximation of an equivariant denoiser.
         If False, the denoiser is applied to the average of all the transformed images, turning the denoiser into an
@@ -50,22 +51,26 @@ class EquivariantDenoiser(Denoiser):
         self,
         denoiser: Denoiser,
         transform: Transform | None = None,
+        eval_transform: Transform | None = None,
         random: bool = True,
     ):
         super().__init__()
         self.denoiser = denoiser
 
-        if transform is not None:
-            self.transform = transform
-        else:
+        if transform is None:
             if random:
-                self.transform = Rotate(
-                    n_trans=1, multiples=90, positive=True
-                ) * Reflect(n_trans=1, dims=[-1])
+                transform = Rotate(n_trans=1, multiples=90, positive=True) * Reflect(
+                    n_trans=1, dims=[-1]
+                )
             else:
-                self.transform = Rotate(
-                    n_trans=4, multiples=90, positive=True
-                ) * Reflect(n_trans=2, dims=[-1])
+                transform = Rotate(n_trans=4, multiples=90, positive=True) * Reflect(
+                    n_trans=2, dims=[-1]
+                )
+
+        self.transform = transform
+
+        if eval_transform is None:
+            eval_transform = transform
 
     def forward(self, x: Tensor, *denoiser_args, **denoiser_kwargs) -> Tensor:
         r"""
@@ -78,7 +83,8 @@ class EquivariantDenoiser(Denoiser):
         :param \**denoiser_kwargs: kwargs for denoiser function e.g. sigma noise level.
         :return: denoised image.
         """
-        return self.transform.symmetrize(self.denoiser, average=True)(
+        transform = self.transform if self.training else self.eval_transform
+        return transform.symmetrize(self.denoiser, average=True)(
             x, *denoiser_args, **denoiser_kwargs
         )
 
