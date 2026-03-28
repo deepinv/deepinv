@@ -1150,9 +1150,9 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         stride = _as_pair(stride)
 
         # Using the same logic as in TiledMixin2d, but a static method here to help users compute the number of filters needed beforehand
-        num = [(i - p) // s + 1 for i, p, s in zip(img_size, patch_size, stride)]
+        num = [(i - p) // s + 1 for i, p, s in zip(img_size, patch_size, stride, strict=False)]
         pad = [
-            (p + n * s - i) % s for p, n, s, i in zip(patch_size, num, stride, img_size)
+            (p + n * s - i) % s for p, n, s, i in zip(patch_size, num, stride, img_size, strict=False)
         ]
         compatible_size = _add_tuple(img_size, pad)
         n_h = (compatible_size[0] - patch_size[0]) // stride[0] + 1

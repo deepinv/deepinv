@@ -202,7 +202,7 @@ def tiling_splitting_strategy(
         "target_slices": target_slices,
         "global_padding": tuple(pads),
         "pad_mode": pad_mode,
-        "window_shape": tuple(p + 2 * rf for p, rf in zip(p_sizes, rf_sizes)),
+        "window_shape": tuple(p + 2 * rf for p, rf in zip(p_sizes, rf_sizes, strict=False)),
         "inner_patch_size": p_sizes,
         "grid_shape": tuple(len(s) for s in dim_starts),
         "overlap": rf_sizes if len(set(rf_sizes)) > 1 else rf_sizes[0],

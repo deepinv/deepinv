@@ -516,7 +516,7 @@ def test_generate_dataset():
     from torchvision.transforms import ToTensor
 
     hdf_ds = HDF5Dataset(hdf_path)
-    for sample_hdf, sample in zip(hdf_ds, ds):
+    for sample_hdf, sample in zip(hdf_ds, ds, strict=False):
         sample = ToTensor()(sample)
         assert sample_hdf[0].equal(
             sample

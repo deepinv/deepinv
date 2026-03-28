@@ -10,7 +10,7 @@ from .base import Denoiser
 # 3D: [Tensor, dict[str, Tensor], dict[str, Tensor]]
 
 Wavcoef = Union[
-    list[Union[Tensor, list[Tensor]]], list[Union[Tensor, dict[str, Tensor]]]
+    list[Tensor | list[Tensor]], list[Tensor | dict[str, Tensor]]
 ]
 
 
