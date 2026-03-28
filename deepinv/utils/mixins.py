@@ -378,7 +378,7 @@ class TiledMixin2d:
         The image will be padded if necessary to ensure all patches have the same size.
 
         :param torch.Tensor image: Input image tensor of shape `(B, C, H, W)`.
-        :param int | tuple[int, int, int, int] pad: Optional, if provided, the image will be additionally padded by this amount on each side (left, right, top, bottom) before patch extraction.
+        :param int | tuple[int, int, int, int] pad: Optional, if provided, the patch size will be increased by this padding on each side. Can be a single int for symmetric padding or a tuple of 4 ints for (left, right, top, bottom) padding. Defaults to `(0, 0, 0, 0)` for no additional padding.
         :return: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
         """
         patch_size = self.patch_size
