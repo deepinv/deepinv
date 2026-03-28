@@ -139,7 +139,7 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
             n_trans=4, multiples=90, positive=True
         ) * dinv.transform.Reflect(n_trans=2, dim=[-1])
 
-        consistency_loss = dinv.loss.R2RLoss(alpha=0.2, eval_n_samples=10)
+        consistency_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
         prediction_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
 
         loss.append(
