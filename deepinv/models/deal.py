@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import torch.nn.utils.parametrize as P
 from torch import Tensor, nn
 
-from deepinv.physics import LinearPhysics
+from deepinv.physics import Denoising, LinearPhysics
 from deepinv.optim.linear import conjugate_gradient
 from deepinv.optim.prior import Prior
 from .base import Reconstructor
@@ -93,7 +93,7 @@ class DEAL(Reconstructor):
     ) -> None:
         super().__init__()
 
-        self.device = torch.device(
+        init_device = torch.device(
             device or ("cuda" if torch.cuda.is_available() else "cpu")
         )
 
@@ -104,7 +104,7 @@ class DEAL(Reconstructor):
         self.target_y_std = float(target_y_std)
         self.clamp_output = bool(clamp_output)
 
-        self.model = _DEALImpl(color=color).to(self.device).eval()
+        self.model = _DEALImpl(color=color).to(init_device).eval()
 
         if pretrained == "download":
             if color:
@@ -149,6 +149,11 @@ class DEAL(Reconstructor):
 
         self.model.load_state_dict(merged_state_dict, strict=True)
 
+    @property
+    def device(self) -> torch.device:
+        """Return the current device of the internal DEAL module."""
+        return next(self.model.parameters()).device
+	
     @torch.no_grad()
     def forward(self, y: torch.Tensor, physics: LinearPhysics) -> torch.Tensor:
         """
