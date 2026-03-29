@@ -155,7 +155,6 @@ class DEAL(Reconstructor):
         """Return the current device of the internal DEAL module."""
         return next(self.model.parameters()).device
 	
-    @torch.no_grad()
     def forward(self, y: torch.Tensor, physics: LinearPhysics) -> torch.Tensor:
         """
         Run the DEAL reconstruction.
@@ -181,26 +180,21 @@ class DEAL(Reconstructor):
             x_hat = self.model.denoise(y, sigma)
             return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
 
-        def H(z: torch.Tensor) -> torch.Tensor:
-            return physics.A(z)
-
-        Ht = physics.A_adjoint
-
         if self.auto_scale:
             y_std = float(y.std().detach().cpu())
             if 0.0 < y_std < 5.0:
                 scale = self.target_y_std / (y_std + 1e-12)
                 y = y * scale
 
-        x_init = torch.zeros_like(Ht(y))
+        x_init = torch.zeros_like(physics.A_adjoint(y))
 
         if hasattr(self.model, "max_iter"):
             self.model.max_iter = max(int(self.max_iter), 1)
 
         x_hat = self.model.solve_inverse_problem(
             y,
-            H=H,
-            Ht=Ht,
+            H=physics.A,
+            Ht=physics.A_adjoint,
             sigma=self.sigma,
             lmbda=self.lam,
             x_init=x_init,
