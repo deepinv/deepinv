@@ -207,6 +207,7 @@ losses = [
         prediction_loss=prediction_loss,
         transform=train_transform,
         eval_transform=eval_transform,
+        eval_n_samples=5,
     )
 ]
 # losses = [

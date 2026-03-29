@@ -18,7 +18,7 @@ class ESLoss(Loss):
         mask_generator,
         consistency_loss: Loss,
         prediction_loss: Loss,
-        eval_n_samples: int = 10,
+        eval_n_samples: int = 5,
         transform,
         eval_transform=None,
         equivariant_model: bool = False,
@@ -29,6 +29,7 @@ class ESLoss(Loss):
         self.transform = transform
         self.eval_transform = eval_transform
         self.equivariant_model = equivariant_model
+        self.eval_n_samples = eval_n_samples
         # Store the SplittingModel possibly wrapped in the adapted model
         # It is also used to avoid adapting the same model more than once.
         self._splitting_model_mapping = weakref.WeakKeyDictionary()
@@ -84,7 +85,7 @@ class ESLoss(Loss):
                 model,
                 split_ratio=0.9,
                 mask_generator=None,
-                eval_n_samples=5,
+                eval_n_samples=self.eval_n_samples,
                 eval_split_input=True,
                 eval_split_output=False,
                 pixelwise=True,
