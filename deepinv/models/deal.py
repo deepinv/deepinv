@@ -25,8 +25,7 @@ class DEAL(Reconstructor):
     image restoration and reconstruction tasks such as denoising, deblurring,
     and computed tomography reconstruction.
 
-    This implementation is adapted from the official DEAL repository:
-    https://github.com/mehrsapo/DEAL
+    This implementation is adapted from the official `DEAL repository<https://github.com/mehrsapo/DEAL>`_.
 
     For the original method, see :footcite:t:`pourya2025dealing`.
 
