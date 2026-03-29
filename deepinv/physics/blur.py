@@ -185,7 +185,7 @@ class Downsampling(LinearPhysics):
             if device is None and not isinstance(filter, Tensor):
                 _self_device = self._device_holder.device
                 warn(
-                    "The current filter is None and no device is provided."
+                    "The current filter is None and no device is provided. "
                     f"Will proceed with self.device={_self_device}"
                     "The self.device attribute is deprecated and will be removed. Please pass the `device` argument to update_parameters. In future versions, device will be set to'cpu'.",
                     stacklevel=2,
@@ -501,8 +501,7 @@ class Blur(LinearPhysics):
         device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
-        super().__init__(**kwargs)
-        self.device = device
+        super().__init__(device=device, **kwargs)
         self.padding = padding
         assert (
             isinstance(filter, Tensor) or filter is None
