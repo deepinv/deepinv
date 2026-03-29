@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import Callable
+from collections.abc import Callable, Mapping
+
 import warnings
 import copy
 import inspect
-from collections.abc import Mapping, Iterable
 
 import torch
 from torch import Tensor
@@ -13,6 +13,8 @@ from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_backward
 from deepinv.utils.compat import zip_strict
 from deepinv.physics.functional import power_method
+
+from deepinv.utils.decorators import _deprecated_alias, warn_kwargs_use_params
 import warnings
 
 
@@ -104,7 +106,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         """
         return stack(self, other)
 
-    def forward(self, x, **kwargs):
+    def forward(self, x: Tensor, **kwargs) -> Tensor:
         r"""
         Computes forward operator
 
@@ -113,28 +115,28 @@ class Physics(torch.nn.Module):  # parent class for forward models
                 y = N(A(x), \sigma)
 
 
-        :param torch.Tensor, list[torch.Tensor] x: signal/image
-        :return: (:class:`torch.Tensor`) noisy measurements
+        :param torch.Tensor x: signal/image
+        :return: noisy measurements
 
         """
         return self.sensor(self.noise(self.A(x, **kwargs), **kwargs))
 
-    def A(self, x, **kwargs):
+    def A(self, x: Tensor, **kwargs) -> Tensor:
         r"""
         Computes forward operator :math:`y = A(x)` (without noise and/or sensor non-linearities)
 
         :param torch.Tensor,list[torch.Tensor] x: signal/image
-        :return: (:class:`torch.Tensor`) clean measurements
+        :return: clean measurements
 
         """
         return self.forw(x, **kwargs)
 
-    def sensor(self, x):
+    def sensor(self, x: Tensor) -> Tensor:
         r"""
         Computes sensor non-linearities :math:`y = \eta(y)`
 
         :param torch.Tensor,list[torch.Tensor] x: signal/image
-        :return: (:class:`torch.Tensor`) clean measurements
+        :return: clean measurements
         """
         return self.sensor_model(x)
 
@@ -146,7 +148,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         """
         self.noise_model = noise_model
 
-    def noise(self, x, **kwargs) -> Tensor:
+    def noise(self, x: Tensor, **kwargs) -> Tensor:
         r"""
         Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
 
@@ -158,7 +160,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         return self.noise_model(x, **kwargs)
 
-    def A_dagger(self, y, x_init=None):
+    def A_dagger(self, y: Tensor, x_init: Tensor | None = None) -> Tensor:
         r"""
         Computes an inverse as:
 
@@ -170,7 +172,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
         :param None, torch.Tensor x_init: initial guess for the reconstruction. If `None` (default) it is set to the adjoint of the forward operator (it it exists) applied to the measurements :math:`y`, i.e., :math:`x_0 = A^{\top}y`.
-        :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.
+        :return: The reconstructed image :math:`x`.
 
         """
         if self.solver == "gradient_descent":
@@ -219,7 +221,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
             self.tol = tol
         self.solver = solver
 
-    def A_vjp(self, x, v):
+    def A_vjp(self, x: Tensor, v: Tensor) -> Tensor:
         r"""
         Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` evaluated at :math:`x`, defined as:
 
@@ -231,7 +233,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         :param torch.Tensor x: signal/image.
         :param torch.Tensor v: vector.
-        :return: (:class:`torch.Tensor`) the VJP product between :math:`v` and the Jacobian.
+        :return: the VJP product between :math:`v` and the Jacobian.
         """
         _, vjpfunc = torch.func.vjp(self.A, x)
         return vjpfunc(v)[0]
@@ -282,7 +284,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
     # https://github.com/pytorch/pytorch/issues/43672
     # https://github.com/pytorch/pytorch/pull/49840
     # https://discuss.pytorch.org/t/deepcopy-typeerror-cant-pickle-torch-c-generator-objects/104464
-    def clone(self):
+    def clone(self) -> Physics:
         r"""
         Clone the forward operator by performing deepcopy to copy all attributes to new memory.
 
@@ -335,7 +337,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         return copy.deepcopy(self, memo=memo)
 
-    def compute_norm(self, x, verbose=True):
+    def compute_norm(self, x: Tensor, verbose=True) -> Tensor:
         r"""
         Computes an estimate of the operator norm of the forward operator :math:`\|A\|_2` at point `x`.
 
@@ -343,7 +345,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         :param torch.Tensor x: input tensor used to estimate the norm.
         :param bool verbose: if `True`, prints the estimated norm.
-        :return: (:class:`torch.Tensor`) estimated operator norm.
+        :return: estimated operator norm.
 
         """
         linear_operator = lambda v: self.A_vjp(x, self.A_jvp(x, v))
@@ -860,6 +862,27 @@ class LinearPhysics(Physics):
             )
 
 
+def _create_params_mapping(
+    params: Mapping[int, Mapping] | list[Mapping] | None,
+) -> Mapping[int, Mapping]:
+    r"""
+    Helper function to create a mapping of parameters for each physics in a
+    parent container, i.e. a :class:`deepinv.physics.ComposedPhysics` or :class:`deepinv.physics.StackedPhysics`.
+    """
+
+    if params is None:
+        return {}
+    elif isinstance(params, Mapping):
+        return params
+    else:
+        try:
+            return {i: params for i, params in enumerate(params)}
+        except TypeError:
+            raise ValueError(
+                f"Invalid type for params. Expected a mapping or a list of mappings. Got type(params) = {type(params)}"
+            )
+
+
 class ComposedPhysics(Physics):
     r"""
     Composes multiple physics operators into a single operator.
@@ -872,10 +895,10 @@ class ComposedPhysics(Physics):
 
     where :math:`A_i(\cdot)` is the ith physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
-    :param Iterable[deepinv.physics.Physics] physics: variable number of physics to compose.
+    :param list[deepinv.physics.Physics] physics: variable number of physics to compose.
     """
 
-    def __init__(self, *physics: Iterable[Physics], **kwargs):
+    def __init__(self, *physics: list[Physics | ComposedPhysics], **kwargs):
         super().__init__()
 
         self.physics_list = nn.ModuleList([])
@@ -888,7 +911,13 @@ class ComposedPhysics(Physics):
         self.noise_model = physics[-1].noise_model
         self.sensor_model = physics[-1].sensor_model
 
-    def A(self, x: Tensor, **kwargs) -> Tensor:
+    @warn_kwargs_use_params
+    def A(
+        self,
+        x: Tensor,
+        params: list[Mapping] | Mapping[int, Mapping] | None = None,
+        **kwargs,
+    ) -> Tensor:
         r"""
         Computes forward of composed operator
 
@@ -897,20 +926,66 @@ class ComposedPhysics(Physics):
             y = A_k(\dots(A_1(x)))
 
         :param torch.Tensor x: signal/image
+        :param Mapping[int, Mapping] | list[Mapping] | None params: (Optional) list or Mapping of parameters dictionnary per physics.
         :return: measurements
         """
+        self.update_parameters(params=params)
+
         for physics in self.physics_list:
-            x = physics.A(x, **kwargs)
+            x = physics.A(x)
         return x
-
-    def update_parameters(self, **kwargs):
+    
+    # NOTE: we override the forward method of the StackedPhysics class because 
+    # it has a different signature than Physics and more importantly routes
+    # the parameter update differently. 
+    def forward(
+        self,
+        x: Tensor,
+        params: list[Mapping] | Mapping[int, Mapping] | None = None,
+        **kwargs,
+    ) -> Tensor:
         r"""
-        Updates the parameters of each operator in the composed operator.
+        Alias for :func:`A` method.
 
-        :param dict kwargs: dictionary of parameters to update.
+        :param torch.Tensor x: signal/image
+        :param Mapping[int, Mapping] | list[Mapping] | None params: (Optional) list or Mapping of parameters dictionnary per physics.
+        :param Mapping[str, Any] kwargs: (Optional) additional parameters for the noise_model of the composition.
+        :return: measurements
         """
-        for physics in self.physics_list:
-            physics.update_parameters(**kwargs)
+        return self.sensor(self.noise_model(self.A(x, params=params), **kwargs))
+
+    @warn_kwargs_use_params
+    def update_parameters(
+        self, params: Mapping[int, Mapping] | list[Mapping] | None = None, **kwargs
+    ):
+        r"""
+        Updates the parameters of the composed operator. The `update_parameters` method accepts two types of input for the `params` argument:
+
+        - A mapping of parameters dictionnary per physics, where keys in the outer dictionary are the indices of the physics in the list of composed physics, and values are dictionaries of parameters for each physics.
+
+        - A list of parameters dictionnary, where each entry corresponds to the parameters for the physics with equivalent index in `self.physics_list`. If the length of the list is smaller than the number of physics in `self.physics_list`, the remaining physics are not updated.
+        :param Mapping[int, Mapping] | list[Mapping] | None params: (Optional) list or mapping of parameters dictionnary per physics.
+
+        |sep|
+
+        :Examples:
+
+            Composition of 2 physics operators, where we update the parameters of a single physics operator using a mapping of parameters dictionnary per physics:
+
+            >>> from deepinv.physics import Blur, Inpainting
+            >>> physics = Blur(img_size=(1,16,16)) * Inpainting(img_size=(1,16,16), mask=0.5))
+            >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
+            >>> physics.update_parameters(params={0: {"filter": w}}) # Update the filter of the physics operator at index 0 in the list
+            >>> physics[0].filter
+            tensor([[[[0.2500, 0.2500],
+                      [0.2500, 0.2500]]]])
+
+        """
+        if params is None: return None
+        
+        params_dict = _create_params_mapping(params)
+        for i, physics in enumerate(self.physics_list):
+            physics.update_parameters(**params_dict.get(i, {}))
 
     def __str__(self):
         return (
@@ -922,13 +997,14 @@ class ComposedPhysics(Physics):
     def __repr__(self):
         return self.__str__()
 
-    def __getitem__(self, item):
+    @_deprecated_alias(item="index")
+    def __getitem__(self, index):
         r"""
-        Returns the physics operator at index `item`.
+        Returns the physics operator at index `index`.
 
-        :param int item: index of the physics operator
+        :param int index: index of the physics operator
         """
-        return self.physics_list[item]
+        return self.physics_list[index]
 
 
 class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
@@ -943,13 +1019,14 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
 
     where :math:`A_i(\cdot)` is the i-th physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
-    :param Iterable[deepinv.physics.LinearPhysics] physics: variable number of physics to compose.
+    :param list[deepinv.physics.LinearPhysics | deepinv.physics.ComposedLinearPhysics] physics: variable number of physics to compose.
     """
 
-    def __init__(self, *physics: Iterable[LinearPhysics], **kwargs):
+    def __init__(self, *physics: list[LinearPhysics | ComposedLinearPhysics], **kwargs):
         super().__init__(*physics, **kwargs)
 
-    def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
+    @warn_kwargs_use_params
+    def A_adjoint(self, y: Tensor, params: Mapping[int, Mapping] | list[Mapping] | None = None, **kwargs) -> Tensor:
         r"""
         Computes adjoint of composed operator
 
@@ -958,21 +1035,24 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
             x = A_1^{\top} A_2^{\top} \dots A_k^{\top} y
 
         :param torch.Tensor y: measurements
+        :param Mapping[int, Mapping] | list[Mapping] | None params: (Optional) list or mapping of parameters dictionnary per physics.
         :return: signal/image
         """
+        self.update_parameters(params=params)
+        
         for physics in reversed(self.physics_list):
-            y = physics.A_adjoint(y, **kwargs)
+            y = physics.A_adjoint(y)
         return y
 
 
-def compose(*physics: Iterable[Physics | LinearPhysics], **kwargs):
+def compose(*physics: list[Physics | LinearPhysics], **kwargs):
     r"""
     Composes multiple forward operators :math:`A = A_1\circ A_2\circ \dots \circ A_n`.
 
     The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
     each entry corresponds to the measurements of the corresponding operator.
 
-    :param Iterable[deepinv.physics.Physics | deepinv.physics.LinearPhysics] physics: Physics operators :math:`A_i` to be composed.
+    :param list[deepinv.physics.Physics | deepinv.physics.LinearPhysics] physics: Physics operators :math:`A_i` to be composed.
     """
     if any(isinstance(phys, DecomposablePhysics) for phys in physics):
         warnings.warn(
@@ -1362,7 +1442,7 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     return Adjoint.apply
 
 
-def stack(*physics: Physics | LinearPhysics):
+def stack(*physics: Physics | LinearPhysics) -> StackedPhysics | StackedLinearPhysics:
     r"""
     Stacks multiple forward operators :math:`A = \begin{bmatrix} A_1(x) \\ A_2(x) \\ \vdots \\ A_n(x) \end{bmatrix}`.
 
@@ -1386,21 +1466,27 @@ class StackedPhysics(Physics):
 
     See :ref:`physics_combining` for more information.
 
-    :param list[deepinv.physics.Physics] physics_list: list of physics operators to stack.
+    :param list[deepinv.physics.Physics | deepinv.physics.StackedPhysics] physics_list: list of physics operators to stack.
     """
 
-    def __init__(self, physics_list: list[Physics], **kwargs):
-        super(StackedPhysics, self).__init__()
+    def __init__(self, physics_list: list[Physics | StackedPhysics], **kwargs):
+        super(StackedPhysics, self).__init__(**kwargs)
 
-        self.physics_list = []
-        for physics in physics_list:
+        self.physics_list = nn.ModuleList()
+        for physics_item in physics_list:
             self.physics_list.extend(
-                [physics]
-                if not isinstance(physics, StackedPhysics)
-                else physics.physics_list
+                [physics_item]
+                if not isinstance(physics_item, StackedPhysics)
+                else physics_item.physics_list
             )
 
-    def A(self, x: Tensor, **kwargs) -> TensorList:
+    @warn_kwargs_use_params
+    def A(
+        self,
+        x: Tensor,
+        params: list[Mapping] | Mapping[int, Mapping] | None = None,
+        **kwargs,
+    ) -> TensorList:
         r"""
         Computes forward of stacked operator
 
@@ -1409,25 +1495,29 @@ class StackedPhysics(Physics):
             y = \begin{bmatrix} A_1(x) \\ A_2(x) \\ \vdots \\ A_n(x) \end{bmatrix}
 
         :param torch.Tensor x: signal/image
+        :param Mapping[int, Mapping] | list[Mapping] | None params: (Optional) list or mapping of parameters dictionnary per physics.
         :return: measurements
         """
-        return TensorList([physics.A(x, **kwargs) for physics in self.physics_list])
+        self.update_parameters(params=params)
+
+        return TensorList([physics.A(x) for i, physics in enumerate(self.physics_list)])
 
     def __str__(self):
+        return "StackedPhysics(" + "\n".join([f"{p}" for p in self.physics_list]) + ")"
         return "StackedPhysics(" + "\n".join([f"{p}" for p in self.physics_list]) + ")"
 
     def __repr__(self):
         return self.__str__()
 
-    def __getitem__(self, item):
+    def __getitem__(self, index: int):
         r"""
-        Returns the physics operator at index `item`.
+        Returns the physics operator at `index`.
 
-        :param int item: index of the physics operator
+        :param int index: index of the physics operator
         """
-        return self.physics_list[item]
+        return self.physics_list[index]
 
-    def sensor(self, y: TensorList, **kwargs) -> TensorList:
+    def sensor(self, y: TensorList) -> TensorList:
         r"""
         Applies sensor non-linearities to the measurements per physics operator
         in the stacked operator.
@@ -1435,8 +1525,9 @@ class StackedPhysics(Physics):
         :param deepinv.utils.TensorList y: measurements
         :return: measurements
         """
+
         for i, physics in enumerate(self.physics_list):
-            y[i] = physics.sensor(y[i], **kwargs)
+            y[i] = physics.sensor(y[i])
         return y
 
     def __len__(self):
@@ -1445,35 +1536,95 @@ class StackedPhysics(Physics):
 
         """
         return len(self.physics_list)
+        return len(self.physics_list)
 
-    def noise(self, y: TensorList, **kwargs) -> TensorList:
+    @warn_kwargs_use_params
+    def noise(
+        self,
+        y: TensorList,
+        params: Mapping[int, Mapping] | list[Mapping] | None = None,
+        **kwargs,
+    ) -> TensorList:
         r"""
         Applies noise to the measurements per physics operator in the stacked operator.
 
         :param deepinv.utils.TensorList y: measurements
+        :param Mapping[int, Mapping] | list[Mapping] | None params: (Optional) list or mapping of parameters dictionnary per physics.
         :return: noisy measurements
         """
+        params_dicts = _create_params_mapping(params)
+
         for i, physics in enumerate(self.physics_list):
-            y[i] = physics.noise(y[i], **kwargs)
+            y[i] = physics.noise(y[i], **params_dicts.get(i, {}))
         return y
 
-    def set_noise_model(self, noise_model, item=0):
+    @_deprecated_alias(item="index")
+    def set_noise_model(self, noise_model: NoiseModel, index: int = None):
         r"""
-        Sets the noise model for the physics operator at index `item`.
+        Sets the noise model for the physics operator at `index`.
 
         :param Callable, deepinv.physics.NoiseModel noise_model: noise model for the physics operator.
-        :param int item: index of the physics operator
+        :param int index: index of the physics operator
         """
-        self.physics_list[item].set_noise_model(noise_model)
+        # NOTE: if index is None, we set the noise model for all physics in the stack. This contrasts with the previous implementation where if index is None, we set the noise model for the first physics in the stack.
+        if index is None:
+            for physics in self.physics_list:
+                physics.set_noise_model(noise_model)
+        else:
+            self.physics_list[index].set_noise_model(noise_model)
 
-    def update_parameters(self, **kwargs):
+    @warn_kwargs_use_params
+    def update_parameters(
+        self, params: Mapping[int, Mapping] | list[Mapping] | None = None, **kwargs
+    ):
         r"""
-        Updates the parameters of the stacked operator.
+        Updates the parameters of the stacked operator. The `update_parameters` method accepts two types of input for the `params` argument:
 
-        :param dict kwargs: dictionary of parameters to update.
+        - A mapping of parameters dictionnary per physics, where keys in the outer dictionary are the indices of the physics in the stack, and values are dictionaries of parameters for each physics.
+
+        - A list of parameters dictionnary, where each entry corresponds to the parameters for the physics with equivalent index in the stack. If the length of the list is smaller than the number of physics in the stack, the remaining physics are not updated.
+        :param Mapping[int, Mapping] | list[Mapping] | None params: (Optional) list or mapping of parameters dictionnary per physics.
+
+        |sep|
+
+        :Examples:
+
+            Stack of 3 physics operators, where we update the parameters of a single physics operator using a mapping of parameters dictionnary per physics:
+
+            >>> from deepinv.physics import stack, Blur
+            >>> physics = stack(Blur(img_size=(1,16,16)), Blur(img_size=(1,16,16)), Blur(img_size=(1,16,16)))
+            >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
+            >>> physics.update_parameters(params={1: {"filter": w}}) # Update the filter of the physics operator at index 1 in the stack
+            >>> physics[1].filter
+            tensor([[[[0.2500, 0.2500],
+                      [0.2500, 0.2500]]]])
+            >>> physics.update_parameters(params=[{"filter": w}, {"filter": w}, {"filter": w}]) # Update the filter of all physics operators in the stack
+            >>> physics[0].filter
+            tensor([[[[0.2500, 0.2500],
+                      [0.2500, 0.2500]]]])
+
         """
-        for physics in self.physics_list:
-            physics.update_parameters(**kwargs)
+        if params is None: return None
+        
+        params_dict = _create_params_mapping(params)
+        for i, physics in enumerate(self.physics_list):
+            physics.update_parameters(**params_dict.get(i, {}))
+
+    @warn_kwargs_use_params
+    def update(
+        self, params: Mapping[int, Mapping] | list[Mapping] | None = None, **kwargs
+    ):
+        r"""
+        Updates all the parameters of the stacked physics: calls the `update_parameters` method of each physics, and, if it exists,the `update_parameters` method of each physics' noise model.
+
+        :param Mapping[int, Mapping] | list[Mapping] | None params: (Optional) list or mapping of parameters dictionnary per physics.
+        """
+        if params is None: return None
+
+        params_dict = _create_params_mapping(params)
+        for i, physics in enumerate(self.physics_list):
+            physics.update_parameters(**params_dict.get(i, {}))
+            physics.noise.update_parameters(**params_dict.get(i, {}))
 
 
 class StackedLinearPhysics(StackedPhysics, LinearPhysics):
@@ -1485,13 +1636,19 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
 
     See :ref:`physics_combining` for more information.
 
-    :param list[deepinv.physics.Physics] physics_list: list of physics operators to stack.
+    :param list[deepinv.physics.LinearPhysics | deepinv.physics.StackedLinearPhysics] physics_list: list of linear physics operators to stack.
     :param str reduction: how to combine tensorlist outputs of adjoint operators into single
         adjoint output. Choose between ``sum``, ``mean`` or ``None``.
     """
 
-    def __init__(self, physics_list, reduction="sum", **kwargs):
+    def __init__(
+        self,
+        physics_list: list[LinearPhysics, StackedLinearPhysics],
+        reduction="sum",
+        **kwargs,
+    ):
         super(StackedLinearPhysics, self).__init__(physics_list, **kwargs)
+
         if reduction == "sum":
             self.reduction = sum
         elif reduction == "mean":
@@ -1501,14 +1658,13 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
         else:
             raise ValueError("reduction must be either sum, mean or none.")
 
-        if reduction != "sum":
-            warnings.warn(
-                f"Using `reduction={reduction}` is deprecated and will be removed in a future version. Using `reduction={reduction}` breaks the adjointness property of the operator, and can lead to suboptimal performance of certain algorithms. Use `reduction='sum'` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-    def A_adjoint(self, y: TensorList, **kwargs) -> torch.Tensor:
+    @warn_kwargs_use_params
+    def A_adjoint(
+        self,
+        y: TensorList,
+        params: list[Mapping] | Mapping[int, Mapping] | None = None,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Computes the adjoint of the stacked operator, defined as
 
@@ -1517,10 +1673,10 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
             A^{\top}y = \sum_{i=1}^{n} A_i^{\top}y_i.
 
         :param deepinv.utils.TensorList y: measurements
+        :param Mapping[int, Mapping] | list[Mapping] | None params: (Optional) list or Mapping of parameters dictionnary per physics.
         """
+        self.update_parameters(params=params)
+
         return self.reduction(
-            [
-                physics.A_adjoint(y[i], **kwargs)
-                for i, physics in enumerate(self.physics_list)
-            ]
+            [physics.A_adjoint(y[i]) for i, physics in enumerate(self.physics_list)]
         )
