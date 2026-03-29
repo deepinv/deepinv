@@ -158,30 +158,6 @@ learning_rate = 5e-4
 weight_decay = 1e-8
 batch_size = 4
 
-# choose self-supervised training losses
-# generates 4 random rotations per image in the batch
-
-
-class DeterministSplittingMaskGenerator(dinv.physics.generator.base.PhysicsGenerator):
-    def __init__(self, tensor_size, split_ratio, device):
-        super().__init__(device=device)
-        self.tensor_size = tensor_size
-        self.split_ratio = split_ratio
-        self.img_size = tensor_size[1:] if len(tensor_size) > 1 else tensor_size
-
-    def step(self, batch_size: int = 1, seed: int = None, **kwargs):
-        mask = torch.ones(self.tensor_size, dtype=torch.int, device=self.device)
-        aux = torch.rand(self.tensor_size, device=self.device)
-        mask[:, aux[0, ...] > self.split_ratio] = 0
-        return {"mask": mask.unsqueeze(0)}
-
-
-rng = torch.Generator(device).manual_seed(0)
-mask_generator = DeterministSplittingMaskGenerator(
-    tensor_size=(1, img_size, img_size),
-    split_ratio=0.9,
-    device=device,
-)
 # A random transformation from the group D4
 train_transform = dinv.transform.Rotate(
     n_trans=1, multiples=90, positive=True
@@ -199,6 +175,13 @@ consistency_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
 prediction_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
 # prediction_loss = dinv.loss.R2RLoss(alpha=0.2, eval_n_samples=10)
 # prediction_loss = dinv.loss.SureGaussianLoss(sigma=physics.noise_model.sigma, tau=physics.noise_model.sigma / 100)
+
+mask_generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+    img_size=(1, img_size, img_size),
+    split_ratio=0.9,
+    pixelwise=True,
+    device=device,
+)
 
 losses = [
     dinv.loss.ESLoss(

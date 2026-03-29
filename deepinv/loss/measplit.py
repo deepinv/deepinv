@@ -272,6 +272,10 @@ class SplittingLoss(Loss):
             """
 
             if self.mask_generator is None:
+                if self.split_ratio is None:
+                    raise ValueError(
+                        f"Neither mask_generator nor split_ratio defined. Please provide one of them to generate splitting masks."
+                    )
                 warn(
                     f"Mask generator not defined. Using new Bernoulli mask generator with shape {y.shape[-2:]}."
                 )

@@ -3,6 +3,7 @@ import deepinv as dinv
 
 from deepinv.loss.loss import Loss
 from deepinv.loss.measplit import SplittingLoss
+from deepinv.physics.generator.base import PhysicsGenerator
 
 import weakref
 
@@ -15,7 +16,7 @@ class ESLoss(Loss):
     def __init__(
         self,
         *,
-        mask_generator,
+        mask_generator: PhysicsGenerator,
         consistency_loss: Loss,
         prediction_loss: Loss,
         eval_n_samples: int = 5,
@@ -83,12 +84,13 @@ class ESLoss(Loss):
 
             splitting_model = SplittingLoss.SplittingModel(
                 model,
-                split_ratio=0.9,
-                mask_generator=None,
+                mask_generator=self.mask_generator,
                 eval_n_samples=self.eval_n_samples,
                 eval_split_input=True,
                 eval_split_output=False,
-                pixelwise=True,
+                # Necessary but unused when mask_generator is specified
+                split_ratio=None,
+                pixelwise=None,
             )
 
             if self.consistency_loss is not None:
