@@ -165,7 +165,7 @@ class DEAL(Reconstructor):
         """
         y = y.to(self.device)
 
-        if physics.__class__.__name__ == "Denoising":
+        if isinstance(physics, Denoising):
             sigma = torch.full(
                 (y.size(0), 1, 1, 1),
                 float(self.sigma),
