@@ -104,7 +104,7 @@ physics = [
 
 # optional dependencies for specific datasets
 dataset = [
-    "datasets>=3.0.0",
+    "datasets>=3.5.0",
     "pandas",
     "pydicom",
     "mat73",
