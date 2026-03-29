@@ -1,17 +1,14 @@
 from __future__ import annotations
+import math, sys, io, requests
+from pathlib import Path
+from typing import Optional
+import numpy as np
 import torch
-import sys, io
-import math
-import torch
-import torch.nn.functional as F
 import torch.nn.functional as F
 
-from deepinv.loss.metric.metric import Metric, import_pyiqa
+from deepinv.loss.metric.metric import Metric
 from deepinv.physics.functional.convolution import conv2d
 from deepinv.physics.functional.imresize import imresize_matlab
-
-import io, requests, math
-import numpy as np
 
 
 class LPIPS(Metric):
@@ -98,13 +95,7 @@ class NIQE(Metric):
     r"""
     Natural Image Quality Evaluator (NIQE) metric.
 
-    Calculates the no-reference metric :math:`\text{NIQE}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
-
-    This metric was introduced by :cite:t:`saad2012blind`, and
-    relies on a natural scene statistics model of video DCT coefficients, as well as a temporal model of motion coherency.
-
-    Lower values indicate better perceptual quality.
-
+    Calculates the NIQE :math:`\text{NIQE}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
     It is a no-reference image quality metric that estimates the quality of images.
 
     .. note::
@@ -112,34 +103,19 @@ class NIQE(Metric):
         By default, no reduction is performed in the batch dimension.
 
 
-    :Example:
-
-    ::
-
-        from deepinv.utils import load_example
-        from deepinv.loss.metric import NIQE
-        m = NIQE()
-        (...)
-        x_net = load_example("celeba_example.jpg", img_size=128)
-        m(x_net)
-        tensor([...])
-
+    :param str, Path weights_path: Path to weights created with `.create_weights`. If None (default), downloads the weights provided by :footcite:t:`mittal2012making`
     :param float denominator: stabilizer to add to the std in the image normalization step (eq.1). Defaults to 1
     :param bool round_tensor: whether to round the input. The original NIQE implementation used rounding and requires input to be range [0, 255]. Do not set round_tensor if incoming tensors will be in [0,1] style ranges. Defaults to False.
     :param torch.device, str device: device to use for the metric computation. Default: 'cpu'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
-    :param bool check_input_range: if True, ``pyiqa`` will raise error if inputs aren't in the appropriate range ``[0, 1]``.
-    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
-        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
-        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
 
     def __init__(
         self,
+        weights_path: Optional[str | Path] = None,
         denominator: float = 1,
         round_tensor: bool = False,
         patch_size: int = 96,
@@ -156,28 +132,21 @@ class NIQE(Metric):
         self.n_scales = 2
         self.patch_overlap = patch_overlap
         self.denominator = denominator
+        if weights_path is None:
+            raise NotImplementedError()
+            resp = requests.get(
+                "https://huggingface.co/deepinv/IQA-Models/resolve/main/niqe_original.pt",  # TO DO for this PR: add this
+                timeout=2.5,
+            )
+            resp.raise_for_status()
 
-        try:
-            from scipy.io import loadmat
-        except:  # pragma: no cover
-            raise ImportError("NIQE requires scipy. Please install it")
-        resp = requests.get(
-            "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/niqe_modelparameters.mat",
-            timeout=2.5,
-        )
-        resp.raise_for_status()
+            params = torch.load(io.BytesIO(resp.content))
+        else:
+            params = torch.load(weights_path)
+        mu, cov = params["mu"], params["cov"]
+        self.mu_p = mu.to(dtype=dtype, device=device)
 
-        params = loadmat(io.BytesIO(resp.content))
-
-        self.mu_p = (
-            torch.from_numpy(params["mu_prisparam"])
-            .to(dtype=dtype, device=device)
-            .squeeze(0)
-        )
-
-        self.cov_p = torch.from_numpy(params["cov_prisparam"]).to(
-            dtype=dtype, device=device
-        )
+        self.cov_p = cov.to(dtype=dtype, device=device)
         self.dtype = dtype
 
     def estimate_aggd_param(self, vecs: torch.Tensor, eps: float = 1e-12):
@@ -363,7 +332,14 @@ class NIQE(Metric):
             raise RuntimeError(
                 f"NIQE requires images to have height and width larger than or equal to its patch size {self.patch_size}, but got batch of shape {x_net.shape}"
             )
-
+        stride = self.patch_size - self.patch_overlap
+        n_patches_h = (H - self.patch_size) // stride + 1
+        n_patches_w = (W - self.patch_size) // stride + 1
+        if n_patches_h * n_patches_w < 2:  # pragma: no cover
+            raise RuntimeError(
+                f"NIQE requires more than 1 patch to compute covariance, but got only {n_patches_h * n_patches_w} patch "
+                f"for batch of shape {x_net.shape} with patch_size={self.patch_size} and patch_overlap={self.patch_overlap}. "
+            )
         if C == 3:
             luminance_weights = torch.tensor(
                 [0.29893602, 0.58704307, 0.11402090],
@@ -388,16 +364,24 @@ class NIQE(Metric):
         n = self.niqe(x_net).float()
         return n.unsqueeze(0) if n.dim() == 0 else n
 
-    def create_weights(self, dataset, sharpness_threshold: float = 0.75):
+    def create_weights(
+        self,
+        dataset: torch.utils.data.Dataset,
+        sharpness_threshold: float = 0.75,
+        save_path: Optional[str | Path] = None,
+    ):
         r"""
-        Fit NIQE model parameters (mu_prisparam, cov_prisparam) from a dataset of pristine images,
+        Fit NIQE model parameters (mu_prisparam, cov_prisparam) from a dataset of 'pristine' images,
         following the original MATLAB pipeline with two scales and sharpness-based patch selection.
+        `patch_size`, `patch_overlap`, and `denominator` used are those passed at init (unless modified by the user)
 
         :param Dataset dataset: for each item, should give a torch.Tensor or PIL.Image representing a
-            distortion-free high quality image.
+            distortion-free (pristine) image.
         :param float sharpness_threshold: only patches whose sharpness is at least
             sharpness_threshold of the per-image peak sharpness (measured from σ at scale 1) are kept.
-        :returns: (mu_prisparam, cov_prisparam) as torch.float32 on self.device, and updates self.mu_p/self.cov_p.
+        :param str, Path save_path: Path to which weights are to be saved. Must have `.pt` extension. If not passed, weights are returned without saving.
+
+        :return: (mu_prisparam, cov_prisparam) as torch.float32 on self.device, and updates self.mu_p/self.cov_p.
         """
         try:
             from PIL import Image
@@ -507,12 +491,17 @@ class NIQE(Metric):
         prisparam = torch.cat(all_feats, dim=0).to(device=device, dtype=dtype)  # (N,36)
 
         mu = prisparam.double().mean(dim=0)  # (36,)
-        Xc = prisparam.double() - mu.unsqueeze(0)
+        xc = prisparam.double() - mu.unsqueeze(0)
         denom = max(1, prisparam.shape[0] - 1)
-        cov = (Xc.t() @ Xc) / denom  # (36,36)
+        cov = (xc.t() @ xc) / denom  # (36,36)
 
-        self.mu_p = mu.to(dtype=torch.float32)
-        self.cov_p = cov.to(dtype=torch.float32)
+        self.mu_p = mu.to(dtype=self.dtype)
+        self.cov_p = cov.to(dtype=self.dtype)
+
+        if save_path is not None:
+            self.mu_p.requires_grad_(False)
+            self.cov_p.requires_grad_(False)
+            torch.save({"mu": self.mu_p.cpu(), "cov": self.cov_p.cpu()}, save_path)
 
         return self.mu_p, self.cov_p
 

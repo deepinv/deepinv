@@ -1,5 +1,4 @@
 from __future__ import annotations
-from types import ModuleType
 from typing import Callable
 
 import torch
@@ -8,17 +7,6 @@ from torch.nn import Module
 
 from deepinv.loss.metric.functional import norm
 from deepinv.utils.signals import normalize_signal, complex_abs
-
-
-def import_pyiqa() -> ModuleType:
-    try:
-        import pyiqa
-
-        return pyiqa
-    except ImportError:
-        raise ImportError(
-            "Metric not available. Please install the pyiqa package with `pip install pyiqa`."
-        )
 
 
 class Metric(Module):
