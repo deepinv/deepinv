@@ -86,7 +86,8 @@ train_dataset, test_dataset = torch.utils.data.random_split(
 physics = dinv.physics.Inpainting(
     mask=0.7, img_size=(channels, img_size, img_size), device=device
 )
-physics.noise_model = dinv.physics.GaussianNoise(sigma=0.01)
+# physics.noise_model = dinv.physics.GaussianNoise(sigma=0.01)
+physics.noise_model = dinv.physics.ZeroNoise()
 
 # Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -118,17 +119,18 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # See :class:`deepinv.models.MoDL` for details.
 #
 
-backbone = dinv.models.UNet(
-    in_channels=channels,
-    out_channels=channels,
-    scales=2,
-    bias=True,
-    cat=True,
-    residual=True,
-    batch_norm=True,
-)
+# backbone = dinv.models.UNet(
+#     in_channels=channels,
+#     out_channels=channels,
+#     scales=2,
+#     bias=True,
+#     cat=True,
+#     residual=True,
+#     batch_norm=True,
+# )
 # model = MoDL(backbone, num_iter=2).to(device)
-model = dinv.models.ArtifactRemoval(backbone, mode="adjoint").to(device)
+# model = dinv.models.ArtifactRemoval(backbone, mode="adjoint").to(device)
+model = dinv.models.RAM(pretrained=True).to(device)
 
 
 # %%
@@ -148,11 +150,13 @@ model = dinv.models.ArtifactRemoval(backbone, mode="adjoint").to(device)
 #       We use a pretrained model to reduce training time. You can get the same results by training from scratch
 #       for 150 epochs using a larger knee dataset of ~1000 images.
 
-epochs = 10  # choose training epochs
-epochs = 10  # debugging
-learning_rate = 1.6e-3
-weight_decay = 1.5e2
-batch_size = 90
+epochs = 30  # choose training epochs
+# epochs = 10  # debugging
+# epochs = 2
+# epochs = 0
+learning_rate = 5e-4
+weight_decay = 1e-8
+batch_size = 4
 
 # choose self-supervised training losses
 # generates 4 random rotations per image in the batch
@@ -188,8 +192,8 @@ eval_transform = dinv.transform.Rotate(
 ) * dinv.transform.Reflect(n_trans=2, dim=[-1])
 
 # consistency_loss = None
-# consistency_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
-consistency_loss = dinv.loss.R2RLoss(alpha=0.2, eval_n_samples=10)
+consistency_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
+# consistency_loss = dinv.loss.R2RLoss(alpha=0.2, eval_n_samples=10)
 # consistency_loss = dinv.loss.SureGaussianLoss(sigma=physics.noise_model.sigma, tau=physics.noise_model.sigma / 100)
 # prediction_loss = None
 prediction_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
@@ -269,12 +273,12 @@ trainer = dinv.Trainer(
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     ckp_interval=10,
     no_learning_method="A_adjoint",
-    early_stop=2,
 )
 
 _ = trainer.train()
 
-_ = trainer.load_best_model()
+if epochs > 0:
+    _ = trainer.load_best_model()
 
 
 # %%
