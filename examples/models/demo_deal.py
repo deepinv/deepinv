@@ -1,27 +1,30 @@
 """
-DEAL reconstruction demo.
+DEAL denoising demo.
 ====================================================================================================
 
 This example shows how to use the Deep Equilibrium Attention Least Squares
-(DEAL) reconstruction model in DeepInverse for a simple deblurring problem.
+(DEAL) reconstruction model in DeepInverse for grayscale image denoising.
 
 DEAL solves linear inverse problems using a learned equilibrium-based
-regularizer combined with conjugate gradient iterations. It can be used for
+regularizer combined with iterative least-squares updates. It can be used for
 image restoration and reconstruction tasks such as denoising, deblurring,
 and computed tomography reconstruction.
 
-Given measurements :math:`y = Ax + n`, DEAL computes a reconstruction by
+The pretrained checkpoints used in this integration are trained for denoising.
+This demo therefore illustrates the pretrained model in its native setting.
+
+Given measurements :math:`y = x + n`, DEAL computes a reconstruction by
 combining a learned spatially-varying regularizer with the solution of
-a linear least-squares subproblem. This implementation is adapted from the
-official DEAL repository:
-https://github.com/mehrsapo/DEAL
+a regularized least-squares subproblem. This implementation is adapted from the
+official `DEAL repository <https://github.com/mehrsapo/DEAL>`_.
+
 The DEAL algorithm solves the following optimization problem:
 
 .. math::
 
-    \hat{x} = \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda R_\theta(x),
+    \hat{x} = \arg\min_x \frac{1}{2}\|x - y\|^2 + \lambda g_\theta(x),
 
-where :math:`R_\theta(x)` is a learned spatially adaptive regularizer.
+where :math:`g_\theta(x)` is a learned spatially adaptive regularizer.
 
 The reconstruction is obtained iteratively using a fixed-point scheme.
 At each iteration, a linearized least-squares subproblem is solved using
@@ -34,10 +37,8 @@ conjugate gradient.
 import torch
 
 from deepinv.loss.metric import PSNR
-from deepinv.models import DEAL
-from deepinv.models.deal import DEALRegularizer
-from deepinv.physics import Blur, GaussianNoise
-from deepinv.physics.blur import gaussian_blur
+from deepinv.models import DEAL, DEALRegularizer
+from deepinv.physics import Denoising, GaussianNoise
 from deepinv.utils import load_example, plot
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -46,15 +47,12 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 x = load_example("butterfly.png", img_size=128).to(device)[:, 0:1, :, :]
 
 # %%
-# Define the blur + noise forward model and generate the measurement.
+# Define the denoising forward model and generate the measurement.
 
-noise_std = 0.01
-physics = Blur(
-    filter=gaussian_blur(sigma=(2.0, 2.0), angle=0.0),
-    noise_model=GaussianNoise(sigma=noise_std),
-    padding="circular",
-    device=device,
-)
+sigma255 = 25.0
+noise_std = sigma255 / 255.0
+
+physics = Denoising(GaussianNoise(sigma=noise_std)).to(device)
 
 y = physics(x)
 
@@ -66,7 +64,7 @@ y = physics(x)
 
 model = DEAL(
     pretrained="download",
-    sigma=25.0,
+    sigma=sigma255,
     lam=10.0,
     max_iter=10,
     auto_scale=False,
@@ -77,20 +75,22 @@ model = DEAL(
 
 n_params = sum(p.numel() for p in model.parameters())
 print(f"DEAL number of parameters: {n_params:,}")
+
 prior = DEALRegularizer(model.model)
 
 with torch.no_grad():
-    grad_prior = prior.grad(x, sigma=25.0)
+    grad_prior = prior.grad(x, sigma=sigma255)
     mask = model.model.mask.mean(dim=1, keepdim=True)
 
 print(f"Standalone DEAL prior gradient shape: {tuple(grad_prior.shape)}")
 
 # %%
-# Reconstruct the image, compare with a linear baseline, and display PSNR.
+# Reconstruct the image, compare with a baseline, and display PSNR.
 
 with torch.no_grad():
-    x_lin = physics.A_dagger(y)
+    x_lin = y.clone()
     x_hat = model(y, physics)
+
 psnr = PSNR()
 psnr_y = psnr(y, x).item()
 psnr_lin = psnr(x_lin, x).item()
@@ -100,8 +100,8 @@ plot(
     [x, y, x_lin, x_hat, mask],
     titles=[
         "Ground truth",
-        "Blurred measurement",
-        "Linear reconstruction",
+        "Noisy measurement",
+        "Identity baseline",
         "DEAL reconstruction",
         "DEAL mask",
     ],
