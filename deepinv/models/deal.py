@@ -25,7 +25,7 @@ class DEAL(Reconstructor):
     image restoration and reconstruction tasks such as denoising, deblurring,
     and computed tomography reconstruction.
 
-    This implementation is adapted from the official `DEAL repository<https://github.com/mehrsapo/DEAL>`_.
+    This implementation is adapted from the official `DEAL repository <https://github.com/mehrsapo/DEAL>`_.
 
     For the original method, see :footcite:t:`pourya2025dealing`.
 
@@ -35,10 +35,10 @@ class DEAL(Reconstructor):
 
     .. math::
 
-        \hat{x} = \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda R_\theta(x)
+        \hat{x} = \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda g_\theta(x)
 
     where :math:`A` is the forward operator, :math:`y` the measurements,
-    and :math:`R_\theta(x)` a learned, spatially adaptive regularizer.
+    and :math:`g_\theta(x)` a learned, spatially adaptive regularizer.
 
     The optimization is performed iteratively using a fixed-point scheme.
     At each outer iteration, the algorithm updates the reconstruction by solving
@@ -46,7 +46,7 @@ class DEAL(Reconstructor):
 
     .. math::
 
-        x^{(k+1)} \approx \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda \nabla R_\theta(x^{(k)})^\top x
+        x^{(k+1)} \approx \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda \nabla g_\theta(x^{(k)})^\top x
 
     The regularizer is parameterized by a neural network which produces
     spatially varying weights, allowing the model to adapt to local image structure.
