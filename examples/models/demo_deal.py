@@ -96,6 +96,10 @@ psnr_y = psnr(y, x).item()
 psnr_lin = psnr(x_lin, x).item()
 psnr_hat = psnr(x_hat, x).item()
 
+print(f"PSNR noisy: {psnr_y:.2f} dB")
+print(f"PSNR linear: {psnr_lin:.2f} dB")
+print(f"PSNR DEAL: {psnr_hat:.2f} dB")
+
 plot(
     [x, y, x_lin, x_hat, mask],
     titles=[
