@@ -548,7 +548,7 @@ class LinearSpline(ABC, nn.Module):
 
         new_cs = torch.zeros(self.coefficients.shape, device=device, dtype=cs.dtype)
         new_cs[:, 1:] = torch.cumsum(new_slopes, dim=1) * self.step_size
-        new_cs = new_cs + (cs - new_cs).mean(dim=1).unsqueeze(1)
+        new_cs = new_cs + (cs - new_cs).mean(dim=1, keepdim=True)
         return new_cs
 
     @property
