@@ -38,7 +38,6 @@ jobs:
           pixi-version: latest
 
       - name: Restore .testmondata
-        if: matrix.version_python == '3.12'
         uses: actions/cache/restore@v3
         with:
           path: .testmondata
@@ -48,12 +47,11 @@ jobs:
             testmon-cpu-main-${{ matrix.os }}
 
       - name: Test with pytest
-        if: matrix.version_python == '3.12'
         run: |
           pixi run -e ${{ matrix.environment }} pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml --junitxml=junit.xml --testmon --doctest-modules
 
       - name: Upload coverage to Codecov
-        if: runner.os == 'Linux' && matrix.version_python == '3.12'
+        if: runner.os == 'Linux'
         uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
@@ -61,7 +59,7 @@ jobs:
           files: ./coverage.xml
 
       - name: Upload test results to Codecov
-        if: (!cancelled()) && runner.os == 'Linux' && matrix.version_python == '3.12'
+        if: (!cancelled()) && runner.os == 'Linux'
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
