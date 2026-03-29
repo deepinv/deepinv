@@ -104,7 +104,7 @@ physics = [
 
 # optional dependencies for specific datasets
 dataset = [
-    "datasets>=3.5.0",
+    "datasets",
     "pandas",
     "pydicom",
     "mat73",
@@ -130,6 +130,7 @@ platforms = ["linux-64", "win-64", "osx-arm64"]
 pytorch = "*"
 torchvision = "*"
 python = ">=3.10"
+datasets = "*"
 
 [tool.pixi.pypi-dependencies] # install from PyPI for all environments
 deepinv = { path = ".", editable = true }
