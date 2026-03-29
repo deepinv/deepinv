@@ -130,7 +130,9 @@ platforms = ["linux-64", "win-64", "osx-arm64"]
 pytorch = "*"
 torchvision = "*"
 python = ">=3.10"
-datasets = "*"
+
+[tool.pixi.feature.dataset.dependencies]
+datasets = ">=3.5.0"
 
 [tool.pixi.pypi-dependencies] # install from PyPI for all environments
 deepinv = { path = ".", editable = true }
