@@ -25,6 +25,7 @@ class ESLoss(Loss):
         equivariant_model: bool = False,
     ):
         super().__init__()
+        self.mask_generator = mask_generator
         self.consistency_loss = consistency_loss
         self.prediction_loss = prediction_loss
         self.transform = transform
