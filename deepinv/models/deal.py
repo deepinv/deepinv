@@ -830,7 +830,7 @@ class ZeroMean(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Project kernels to have zero mean per output channel."""
-        return x - torch.mean(x, dim=(1, 2, 3)).unsqueeze(1).unsqueeze(2).unsqueeze(3)
+        return x - torch.mean(x, dim=(1, 2, 3), keepdim=True)
 
 
 class DEALRegularizer(Prior):
