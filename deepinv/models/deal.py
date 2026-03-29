@@ -186,7 +186,7 @@ class DEAL(Reconstructor):
                 scale = self.target_y_std / (y_std + 1e-12)
                 y = y * scale
 
-        x_init = torch.zeros_like(physics.A_adjoint(y))
+        x_init = physics.A_adjoint(y)
 
         if hasattr(self.model, "max_iter"):
             self.model.max_iter = max(int(self.max_iter), 1)
@@ -205,7 +205,7 @@ class DEAL(Reconstructor):
         return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
 
 
-class LinearSpline_Func(torch.autograd.Function):
+class LinearSplineFunc(torch.autograd.Function):
     """
     Autograd function to only backpropagate through the B-splines that were
     used to calculate output = activation(input), for each element of the input.
@@ -221,6 +221,14 @@ class LinearSpline_Func(torch.autograd.Function):
         num_knots: int,
         zero_knot_indexes: torch.Tensor,
     ) -> torch.Tensor:
+        if num_knots == 1:
+            indexes = zero_knot_indexes.view(1, -1, 1, 1, 1).long()
+            coefficients_vect = coefficients.view(-1)
+            activation_output = coefficients_vect[indexes].expand_as(x)
+            step_size = torch.ones_like(x_min)
+            fracs = torch.zeros_like(x)
+            ctx.save_for_backward(fracs, coefficients, indexes, step_size)
+            return activation_output
         """Evaluate the linear spline activation."""
         step_size = (x_max - x_min) / (num_knots - 1)
         x_clamped = x.clamp(min=x_min.item(), max=x_max.item() - step_size.item())
@@ -280,6 +288,13 @@ class LinearSplineDerivativeFunc(torch.autograd.Function):
         num_knots: int,
         zero_knot_indexes: torch.Tensor,
     ) -> torch.Tensor:
+        if num_knots == 1:
+            indexes = zero_knot_indexes.view(1, -1, 1, 1, 1).long()
+            fracs = torch.zeros_like(x)
+            step_size = torch.ones_like(x_min)
+            activation_output = torch.zeros_like(x)
+            ctx.save_for_backward(fracs, coefficients, indexes, step_size)
+            return activation_output
         """Evaluate the derivative of the linear spline activation."""
         step_size = (x_max - x_min) / (num_knots - 1)
         x_clamped = x.clamp(min=x_min.item(), max=x_max.item() - step_size.item())
@@ -506,7 +521,7 @@ class LinearSpline(ABC, nn.Module):
             *x.shape[2:],
         )
 
-        x = LinearSpline_Func.apply(
+        x = LinearSplineFunc.apply(
             x,
             self.projected_coefficients,
             self.x_min,
@@ -1244,7 +1259,7 @@ class _DEALImpl(nn.Module):
                     c_ks.append(c_k)
 
                 self.cal_mask(c_k)
-                b = Ht(y)
+                b = Ht(y) / (1 + self.lmbda)
                 A_op = lambda x: self.BtB(x, H, Ht, [i for i in range(x.size(0))])
                 c_k = conjugate_gradient(
                     A=A_op,
