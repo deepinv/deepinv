@@ -12,6 +12,7 @@ from deepinv.physics import Denoising, LinearPhysics
 from deepinv.optim.linear import conjugate_gradient
 from deepinv.optim.prior import Prior
 from .base import Reconstructor
+from .utils import load_state_dict_from_url
 
 ms = torch
 
@@ -119,7 +120,7 @@ class DEAL(Reconstructor):
                     "trained_models/deal_gray.pth"
                 )
 
-            state = torch.hub.load_state_dict_from_url(
+            state = load_state_dict_from_url(
                 url,
                 map_location=self.device,
                 file_name=url.split("/")[-1],
