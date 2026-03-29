@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Sequence, Any, Union
+from typing import Sequence, Any
 import torch
 import torch.nn as nn
 from torch import Tensor
