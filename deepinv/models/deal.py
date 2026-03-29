@@ -1107,6 +1107,14 @@ class _DEALImpl(nn.Module):
         self.cal_lambda(sigma)
         self.cal_scaling(sigma)
 
+        # Hyperparameters for the internal fixed-point and CG iterations.
+        # n_in: number of conjugate gradient iterations for inner problems
+        # eps_in: stopping tolerance for inner CG
+        # eps_out: stopping tolerance for outer fixed-point iterations
+        # eps_bck: tolerance used during backward implicit differentiation
+        # These values follow the original DEAL implementation and were
+        # chosen empirically to balance convergence and computational cost.
+
         if self.training:
             self.c_k_list = []
             grad_steps = 1
