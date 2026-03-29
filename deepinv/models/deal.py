@@ -264,7 +264,7 @@ class LinearSpline_Func(torch.autograd.Function):
         return grad_x, grad_coefficients, None, None, None, None
 
 
-class LinearSplineDerivative_Func(torch.autograd.Function):
+class LinearSplineDerivativeFunc(torch.autograd.Function):
     """
     Autograd function to only backpropagate through the B-splines that were
     used to calculate output = activation(input), for each element of the input.
