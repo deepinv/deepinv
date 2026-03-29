@@ -684,7 +684,7 @@ class MultiConv2d(nn.Module):
             if zero_mean and j == 0:
                 P.register_parametrization(self.conv_layers[-1], "weight", ZeroMean())
 
-        self.L = torch.tensor(1.0, requires_grad=True)
+        self.register_buffer("L", torch.tensor(1.0))
         self.padding_total = sum(kernel_size // 2 for kernel_size in size_kernels)
 
         if color:
@@ -743,7 +743,7 @@ class MultiConv2d(nn.Module):
         Compute the spectral norm of the convolutional layer.
         """
         if mode == "Fourier":
-            self.L = torch.tensor([1.0], device=self.conv_layers[0].weight.device)
+            self.L.fill_(1.0)
             kernel = self.get_kernel_WtW()
             padding = (self.sn_size - 1) // 2 - self.padding_total
             if self.color:
@@ -752,13 +752,13 @@ class MultiConv2d(nn.Module):
                         kernel, (padding, padding, padding, padding)
                     )
                 ).abs()
-                self.L = (
+                self.L.copy_(
                     fft_kernel[:, 0].max()
                     + fft_kernel[:, 1].max()
                     + fft_kernel[:, 2].max()
                 )
             else:
-                self.L = (
+                self.L.copy_(
                     torch.fft.fft2(
                         torch.nn.functional.pad(
                             kernel, (padding, padding, padding, padding)
@@ -774,7 +774,7 @@ class MultiConv2d(nn.Module):
         else:
             n = 1
 
-        self.L = torch.tensor([1.0], device=self.conv_layers[0].weight.device)
+        self.L.fill_(1.0)
         u = torch.empty(
             (1, n, self.sn_size, self.sn_size),
             device=self.conv_layers[0].weight.device,
@@ -785,7 +785,7 @@ class MultiConv2d(nn.Module):
                 u = u / torch.linalg.norm(u)
 
             sn = torch.linalg.norm(self.transpose(self.convolution(u)))
-            self.L = sn
+            self.L.copy_(sn)
             return sn
 
     def check_tranpose(self) -> None:
