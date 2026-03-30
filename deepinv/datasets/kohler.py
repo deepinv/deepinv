@@ -139,7 +139,7 @@ class Kohler(ImageDataset):
             self.download(self.root)
 
     @classmethod
-    def download(cls, root: str | Path, remove_finished: bool = False) -> None:
+    def download(cls, root: str | Path = None, remove_finished: bool = False) -> None:
         """Download the dataset.
 
         :param Union[str, pathlib.Path] root: Root directory of the dataset.
@@ -154,6 +154,7 @@ class Kohler(ImageDataset):
                 from deepinv.datasets import Kohler
                 Kohler.download("datasets/Kohler")
         """
+        root = resolve_root(root, "Kohler")
         for url in cls._archive_urls:
             archive_name = url_basename(url)
             checksum = cls._archive_checksums[archive_name]
