@@ -1,12 +1,11 @@
 import torch
-from torch import Tensor
 from deepinv.utils.tensorlist import TensorList
 from .utils import dot
 
 
 def minres(
     A,
-    b: Tensor,
+    b: torch.Tensor,
     init=None,
     max_iter: int = 1e2,
     tol=1e-5,

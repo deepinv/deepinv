@@ -1,5 +1,4 @@
 from __future__ import annotations
-from torch import Tensor
 from deepinv.models import DRUNet
 from deepinv.models.base import Denoiser
 from deepinv.optim.data_fidelity import L2
@@ -59,7 +58,7 @@ class DPIR(BaseOptim):
 
     def __init__(
         self,
-        sigma: float | Tensor = 0.1,
+        sigma: float | torch.Tensor = 0.1,
         denoiser: Denoiser = None,
         device: str | torch.device = "cpu",
     ):

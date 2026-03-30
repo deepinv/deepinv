@@ -1,7 +1,6 @@
 from __future__ import annotations
 from deepinv.utils.tensorlist import zeros_like
 import torch
-from torch import Tensor
 from torch.autograd.function import once_differentiable
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
@@ -16,10 +15,10 @@ from .minres import minres
 def least_squares(
     A: Callable,
     AT: Callable,
-    y: Tensor,
-    z: Tensor | float | None = 0.0,
-    init: Tensor | None = None,
-    gamma: float | Tensor | None = None,
+    y: torch.Tensor,
+    z: torch.Tensor | float | None = 0.0,
+    init: torch.Tensor | None = None,
+    gamma: float | torch.Tensor | None = None,
     parallel_dim: int = 0,
     AAT: Callable | None = None,
     ATA: Callable | None = None,
@@ -27,7 +26,7 @@ def least_squares(
     max_iter: int = 100,
     tol: float = 1e-6,
     **kwargs,
-) -> Tensor:
+) -> torch.Tensor:
     r"""
     Solves :math:`\min_x \|Ax-y\|^2 + \frac{1}{\gamma}\|x-z\|^2` using the specified solver.
 
@@ -88,7 +87,7 @@ def least_squares(
     else:
         gamma_provided = True
 
-        if not isinstance(gamma, Tensor):
+        if not isinstance(gamma, torch.Tensor):
             gamma = torch.tensor(gamma, device=y.device)
 
         if torch.any(gamma <= 0):
@@ -223,11 +222,11 @@ class LeastSquaresSolver(torch.autograd.Function):
     def forward(
         ctx,
         physics,
-        y: Tensor,
-        z: Tensor,
-        init: Tensor,
-        gamma: float | Tensor,
-        trigger: Tensor = None,
+        y: torch.Tensor,
+        z: torch.Tensor,
+        init: torch.Tensor,
+        gamma: float | torch.Tensor,
+        trigger: torch.Tensor = None,
         extra_kwargs: dict = None,
     ):
 

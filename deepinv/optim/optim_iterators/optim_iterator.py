@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Callable
 if TYPE_CHECKING:
     from deepinv.optim import DataFidelity, Prior
     from deepinv.physics import Physics
-    from torch import Tensor
+    import torch
 
 
 class OptimIterator(nn.Module):
@@ -71,7 +71,9 @@ class OptimIterator(nn.Module):
         self.f_step = fStep(g_first=self.g_first)
         self.g_step = gStep(g_first=self.g_first)
 
-    def relaxation_step(self, u: Tensor, v: Tensor, beta: float) -> Tensor:
+    def relaxation_step(
+        self, u: torch.Tensor, v: torch.Tensor, beta: float
+    ) -> torch.Tensor:
         r"""
         Performs a relaxation step of the form :math:`\beta u + (1-\beta) v`.
 
@@ -84,22 +86,22 @@ class OptimIterator(nn.Module):
 
     def forward(
         self,
-        X: dict[str, tuple[Tensor, Tensor] | Tensor],
+        X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
         cur_data_fidelity: DataFidelity,
         cur_prior: Prior,
         cur_params: dict,
-        y: Tensor,
+        y: torch.Tensor,
         physics: Physics,
         *args,
         **kwargs,
-    ) -> dict[str, tuple[Tensor, Tensor] | Tensor]:
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]:
         r"""
         General form of a single iteration of splitting algorithms for minimizing :math:`F =  f + \lambda \regname`, alternating
         between a step on :math:`f` and a step on :math:`\regname`.
         The primal and dual variables as well as the estimated cost at the current iterate are stored in a dictionary
         `X` of the form `{'est': (x,z), 'cost': F}`.
 
-        :param dict[str, tuple[Tensor, Tensor]] X: Dictionary containing the current iterate and the estimated cost.
+        :param dict[str, tuple[torch.Tensor, torch.Tensor]] X: Dictionary containing the current iterate and the estimated cost.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
@@ -144,10 +146,10 @@ class fStep(nn.Module):
 
         def forward(
             self,
-            x: Tensor,
+            x: torch.Tensor,
             cur_data_fidelity: DataFidelity,
             cur_params: dict,
-            y: Tensor,
+            y: torch.Tensor,
             physics: Physics,
             *args,
             **kwargs,
@@ -177,7 +179,7 @@ class gStep(nn.Module):
         self.g_first = g_first
 
         def forward(
-            self, x: Tensor, cur_prior: Prior, cur_params: dict, *args, **kwargs
+            self, x: torch.Tensor, cur_prior: Prior, cur_params: dict, *args, **kwargs
         ):
             r"""
             Single iteration step on the prior term :math:`\regname`.

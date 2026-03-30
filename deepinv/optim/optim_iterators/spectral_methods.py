@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from deepinv.optim import Prior
     from deepinv.physics import Physics
-    from torch import Tensor
 
 
 class SMIteration(OptimIterator):
@@ -51,13 +50,13 @@ class SMIteration(OptimIterator):
 
     def forward(
         self,
-        x: Tensor,
+        x: torch.Tensor,
         cur_prior: Prior,
         cur_params: dict,
-        y: Tensor,
+        y: torch.Tensor,
         physics: Physics,
         *args,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Single iteration of the spectral method.
 
