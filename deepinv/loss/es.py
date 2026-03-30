@@ -44,34 +44,35 @@ class ESLoss(Loss):
                 f"Unregistered model {type(model)}. Make sure to adapt the model using `adapt_model` before computing the loss."
             )
         masks = splitting_model.get_masks()
-        loss_total = 0
-        N_masks = 0
-        for mask in masks:
-            mask = mask * getattr(physics, "mask", 1.0)
-            mask2 = getattr(physics, "mask", 1.0) - mask
+        loss_values = []
+        for mask1 in masks:
+            mask1 = mask1 * getattr(physics, "mask", 1.0)
+            mask2 = getattr(physics, "mask", 1.0) - mask1
             y2, physics2 = SplittingLoss.split(mask2, y, physics)
-            loss_value = self.prediction_loss(
+            prediction_loss_value = self.prediction_loss(
                 x_net=x_net,
                 y=y2,
                 physics=physics2,
                 model=model,
                 **kwargs,
             )
-            # Normalization
-            loss_value = loss_value / mask2.mean()
+            prediction_loss_value = prediction_loss_value / mask2.mean()
 
             if self.consistency_loss is not None:
-                y1, physics1 = SplittingLoss.split(mask, y, physics)
-                loss_value = loss_value + self.consistency_loss(
+                y1, physics1 = SplittingLoss.split(mask1, y, physics)
+                consistency_loss_value = self.consistency_loss(
                     x_net=x_net,
                     y=y1,
                     physics=physics1,
                     model=model,
                     **kwargs,
                 )
-            loss_total = loss_total + loss_value
-            N_masks += 1
-        return loss_total / N_masks
+                consistency_loss_value = consistency_loss_value / mask1.mean()
+
+            loss_value = prediction_loss_value + consistency_loss_value
+            loss_values.append(loss_value)
+        loss_values = torch.stack(loss_values, dim=0)
+        return loss_values.mean(0)
 
     def adapt_model(self, model):
         if model not in self._splitting_model_mapping:
