@@ -2261,7 +2261,7 @@ class MLEM(BaseOptim):
     .. math::
         x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \nabla g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
 
-        where :math:`g` is the prior function and :math:`\lambda` is the regularization parameter.
+    where :math:`g` is the prior function and :math:`\lambda` is the regularization parameter.
 
     In the case of a non-differentiable prior, the gradient term :math:`\nabla g(x_k)` is replaced by a subgradient:
 
