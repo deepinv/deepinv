@@ -1,3 +1,4 @@
+from __future__ import annotations
 import deepinv as dinv
 import deepinv as dinv
 
@@ -5,6 +6,8 @@ from deepinv.loss.loss import Loss
 from deepinv.loss.measplit import SplittingLoss
 from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.transform.base import Transform
+
+import torch
 
 import weakref
 
