@@ -1,11 +1,10 @@
 r"""
-Self-supervised learning with Equivariant Imaging for MRI.
-====================================================================================================
+Self-supervised learning with Equivariant Splitting
+===================================================
 
-This example shows you how to train a reconstruction network for an MRI inverse problem on a fully self-supervised way, i.e., using measurement data only.
+This example shows you how to train a reconstruction network in a fully self-supervised way, i.e., using measurement data only.
 
-The equivariant imaging loss is presented in :footcite:t:`chen2021equivariant`.
-
+The equivariant splitting loss is presented in :footcite:t:`sechaud26Equivariant`.
 """
 
 from pathlib import Path
