@@ -11,9 +11,9 @@ This document describes all CI/CD workflows of the library.
 
 Runs the full test suite on every pull request. Installs `deepinv` using [`pixi`](https://pixi.sh).
 We use pixi to manage both `conda` and `pip` dependencies in a single workflow.
-Tests are executed in parallel (`-n 2`) on both **Ubuntu** and **Windows** with Python 3.12 and all optional dependencies.
+Tests are executed in parallel (`-n 2`) on both **Ubuntu** and **Windows** without and with all optional dependencies.
 Uses [pytest-testmon](https://github.com/tarpas/pytest-testmon) to skip tests unaffected by the changes, speeding up CI.
-Coverage reports are uploaded to [Codecov](https://codecov.io). Also runs doctests from inline module docstrings (`--doctest-modules`).
+Coverage reports are uploaded to [Codecov](https://codecov.io). Also runs doctests in `.py` files from inline module docstrings (`--doctest-modules`).
 
 ---
 
