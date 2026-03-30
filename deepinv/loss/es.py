@@ -4,11 +4,84 @@ import deepinv as dinv
 from deepinv.loss.loss import Loss
 from deepinv.loss.measplit import SplittingLoss
 from deepinv.physics.generator.base import PhysicsGenerator
+from deepinv.transform.base import Transform
 
 import weakref
 
 
 class ESLoss(Loss):
+    r"""
+    Equivariant splitting loss.
+
+    Implements the measurement splitting loss proposed by :footcite:t:`sechaud26Equivariant`. It generalizes the regular :class:`deepinv.loss.SplittingLoss` by providing an additional measurement consistency term supporting noise-less losses like :class:`deepinv.loss.MCLoss`, but also noise-aware losses including :class:`deepinv.loss.R2RLoss` and :class:`deepinv.loss.SureGaussianLoss`. Moreover, it automatically renders the base reconstructor equivariant using the Reynolds averaging implemented in :class:`deepinv.models.EquivariantReconstructor`.
+
+    The training loss takes the general form:
+
+    .. math::
+
+        \mathcal{L}_{mathrm{ES}} (y, A, f) = \mathbb{E}_g \left{ \mathbb{E}_{y_1, A_1 \mid y, A T_g} \left{ \| A_1 f(y_1, A_1) - A_1 x \|^2 + \| A_2 f(y_1, A_1) - A_2 x \|^2 \right} \} \right}
+
+    where :math:`f` denotes the reconstructor, :math:`A` the physics operator, :math:`x` the ground truth image, :math:`y` the measurement, :math:`T_g` a group action (e.g., rotations).
+
+    The second expectation is taken over the distribution specified by ``mask_generator`` of all possible splittings of :math:`A T_g`, i.e., :math:`A T_g = (A_1^top, A_2^top)^top`, with the associated measurements denoted as :math:`y_1` and :math:`y_2`.
+
+    The main idea behind equivariant splitting is that the more the reconstructor is equivariant to suitable transformations, the better the final performance will be. A general way to make a reconstructor equivariant is to add a Reynolds averaging step in the reconstructor, which is generally estimated using a Monte Carlo approach at training time. For this reason, :class:`ESLoss` takes two different instances of :class:`Transform` as input: one for training ``transform`` and one for evaluation ``eval_transform``.
+
+    It is also possible to design an equivariant reconstructor without Reynolds averaging, using equivariant layers. In that case, Reynolds averaging can be disabled to avoid its additional computational cost by setting ``equivariant_model`` to True. Note that in that case, the parameters ``transform`` and ``eval_transform`` are ignored.
+
+    The training loss consists in two terms, a consistency term where the comparison is performed against :math:`A_1 x` and a prediction term where the comparison is performed against :math:`A_2 x`. Two parameters control the way these two terms are computed: ``consistency_loss`` and ``prediction_loss``.
+
+    In the absence of noise, the equivariant splitting loss :math:`\mathcal{L}_{mathrm{ES}}` can be computed exactly without having access to ground truth images. Indeed, in that case, :math:`A_1 x = y_1` and :math:`A_2 x = y_2`. Setting ``consistency_loss`` and ``prediction_loss`` to ``deepinv.loss.MCLoss(metric=deepinv.metric.MSE())`` allows to compute the loss this way.
+
+    In the presence of noise, as long as the splitting scheme is chosen so that the resulting noise components are independent, the prediction term can be estimated without bias using ``deepinv.loss.MCLoss(metric=deepinv.metric.MSE())`` for ``prediction_loss``. This is notably the case for typical splitting schemes, e.g., :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` when the noise is pixel-wise independent, e.g., :class:`deepinv.physics.GaussianNoise`.
+
+    The consistency term can be estimated using a self-supervised denoising loss, e.g., :class:`deepinv.loss.R2RLoss` or :class:`deepinv.loss.SureGaussianLoss` if the noise distribution is known exactly. If the noise parameters are unknown, UNSURE can be used instead, i.e., :class:`deepinv.loss.SureGaussianLoss` with the option ``unsure`` enabled, and if the noise distribution is unknown altogether, the consistency term can be estimated using the Noise2x family of losses.
+
+    At training time, a single splitting is performed for each sample in the batch, however, at evaluation time, the reconstructions are averaged over multiple splittings as specified by ``eval_n_samples``.
+
+    :param PhysicsGenerator mask_generator: the generator specifying the distribution of splittings.
+    :param Loss consistency_loss: the loss used to compute the consistency term.
+    :param Loss prediction_loss: the loss used to compute the prediction term.
+    :param Transform transform: transformations to be used in training mode for Reynolds averaging. Ignored if ``equivariant_model`` is set to True.
+    :param Transform eval_transform: transformations to be used in evaluation mode for Reynolds averaging. It can be used to have true Reynolds averaging at evaluation time and efficient Monte Carlo estimation at training time. Ignored if ``equivariant_model`` is set to True. If left unspecified, the value of ``transform`` is used at evaluation time as well.
+    :param bool equivariant_model: if True, the model is assumed to be already equivariant and no Reynolds averaging is performed. If False, the model is made equivariant using Reynolds averaging. Note that in that case, the parameters ``transform`` and ``eval_transform`` are used to specify the transformations for Reynolds averaging.
+
+    |sep|
+
+    :Example:
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> physics = dinv.physics.Inpainting(img_size=(1, 8, 8), mask=0.5)
+    >>> model = dinv.models.RAM(pretrained=True)
+    >>> mask_generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+    ...     img_size=(1, 8, 8),
+    ...     split_ratio=0.9,
+    ...     pixelwise=True,
+    ... )
+    >>> train_transform = dinv.transform.Rotate(
+    ...     n_trans=1, multiples=90, positive=True
+    ... ) * dinv.transform.Reflect(n_trans=1, dim=[-1])
+    >>> eval_transform = dinv.transform.Rotate(
+    ...     n_trans=4, multiples=90, positive=True
+    ... ) * dinv.transform.Reflect(n_trans=2, dim=[-1])
+    >>> loss = dinv.loss.ESLoss(
+    ...     mask_generator=mask_generator,
+    ...     consistency_loss=dinv.loss.MCLoss(metric=dinv.metric.MSE()),
+    ...     prediction_loss=dinv.loss.MCLoss(metric=dinv.metric.MSE()),
+    ...     transform=train_transform,
+    ...     eval_transform=eval_transform,
+    ...     eval_n_samples=5,
+    ... )
+    >>> model = loss.adapt_model(model)
+    >>> x = torch.ones((1, 1, 8, 8))
+    >>> y = physics(x)
+    >>> x_net = model(y, physics)
+    >>> l = loss(x_net, y, physics, model)
+    >>> print(l.item() > 0)
+    True
+
+    """
 
     consistency_loss: Loss
     prediction_loss: Loss
@@ -20,23 +93,44 @@ class ESLoss(Loss):
         consistency_loss: Loss,
         prediction_loss: Loss,
         eval_n_samples: int = 5,
-        transform,
-        eval_transform=None,
+        transform: Transform | None = None,
+        eval_transform: Transform | None = None,
         equivariant_model: bool = False,
     ):
         super().__init__()
+
+        self.name = "es"
+
+        if transform is None and not equivariant_model:
+            raise ValueError(
+                f"Either the base reconstructor is assumed to be equivariant and equivariant_model should be set to True, or transform should be specified to make the base reconstructor equivariant using Reynolds averaging. Got transform={transform} and equivariant_model={equivariant_model}."
+            )
+        self.transform = transform
+        if eval_transform is None:
+            eval_transform = transform
+        self.eval_transform = eval_transform
+        self.equivariant_model = equivariant_model
+
         self.mask_generator = mask_generator
         self.consistency_loss = consistency_loss
         self.prediction_loss = prediction_loss
-        self.transform = transform
-        self.eval_transform = eval_transform
-        self.equivariant_model = equivariant_model
+
         self.eval_n_samples = eval_n_samples
         # Store the SplittingModel possibly wrapped in the adapted model
         # It is also used to avoid adapting the same model more than once.
         self._splitting_model_mapping = weakref.WeakKeyDictionary()
 
     def forward(self, x_net, y, physics, model, **kwargs):
+        r"""
+        Compute the equivariant splitting loss.
+
+        :param torch.Tensor x_net: the reconstructed image.
+        :param torch.Tensor y: the measurement.
+        :param Physics physics: the physics operator.
+        :param Reconstructor model: the reconstruction function.
+        :return: (:class:`torch.Tensor`) the loss value.
+        """
+
         if model in self._splitting_model_mapping:
             splitting_model = self._splitting_model_mapping[model]
         else:
@@ -75,6 +169,14 @@ class ESLoss(Loss):
         return loss_values.mean(0)
 
     def adapt_model(self, model):
+        r"""
+        Adapt the reconstructor for equivariant splitting.
+
+        It wraps the input reconstructor in a :class:`deepinv.models.SplittingLoss.SplittingModel` and optionally in a :class:`deepinv.models.EquivariantReconstructor` if the option ``equivariant_model`` is set to False.
+
+        :param Reconstructor model: the reconstructor to adapt.
+        :return: the adapted reconstructor.
+        """
         if model not in self._splitting_model_mapping:
             # if the model is not already equivariant, we make it so using Reynolds averaging
             if not self.equivariant_model:
