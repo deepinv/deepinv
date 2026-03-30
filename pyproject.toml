@@ -150,7 +150,8 @@ full = { features = ["test", "dataset", "denoisers", "physics", "training"], sol
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = [
-    "deepinv/tests",
+    "deepinv/tests", # main test directory
+    "deepinv", # for doctests in the codebase
 ]
 markers = [
     "slow",

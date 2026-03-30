@@ -18,13 +18,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            version_python: "3.12"
             environment: "full"
-            name: "ubuntu py3.12 all optional dependencies"
+            name: "ubuntu all optional dependencies"
           - os: windows-latest
-            version_python: "3.12"
             environment: "full"
-            name: "windows py3.12 all optional dependencies"
+            name: "windows all optional dependencies"
     env:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
@@ -41,14 +39,14 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: .testmondata
-          key: testmon-cpu-main-${{ matrix.os }}-${{ matrix.version_python }}-${{ github.run_id }}
+          key: testmon-cpu-main-${{ matrix.os }}-${{ github.run_id }}
           restore-keys: |
-            testmon-cpu-main-${{ matrix.os }}-${{ matrix.version_python }}
+            testmon-cpu-main-${{ matrix.os }}
             testmon-cpu-main-${{ matrix.os }}
 
       - name: Test with pytest
         run: |
-          pixi run -e ${{ matrix.environment }} pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml --junitxml=junit.xml --testmon --doctest-modules
+          pixi run -e ${{ matrix.environment }} pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml --junitxml=junit.xml --testmon --doctest-modules 
 
       - name: Upload coverage to Codecov
         if: runner.os == 'Linux'
