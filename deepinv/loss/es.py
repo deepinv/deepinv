@@ -28,7 +28,7 @@ class ESLoss(Loss):
 
     The second expectation is taken over the distribution specified by ``mask_generator`` of all possible splittings of :math:`A T_g`, i.e., :math:`A T_g = (A_1^top, A_2^top)^top`, with the associated measurements denoted as :math:`y_1` and :math:`y_2`.
 
-    The main idea behind equivariant splitting is that the more the reconstructor is equivariant to suitable transformations, the better the final performance will be. A general way to make a reconstructor equivariant is to add a Reynolds averaging step in the reconstructor, which is generally estimated using a Monte Carlo approach at training time. For this reason, :class:`ESLoss` takes two different instances of :class:`Transform` as input: one for training ``transform`` and one for evaluation ``eval_transform``.
+    The main idea behind equivariant splitting is that the more the reconstructor is equivariant to suitable transformations, the better the final performance will be. A general way to make a reconstructor equivariant is to add a Reynolds averaging step in the reconstructor, which is generally estimated using a Monte Carlo approach at training time. For this reason, :class:`ESLoss` takes two different instances of :class:`deepinv.transform.Transform` as input: one for training ``transform`` and one for evaluation ``eval_transform``.
 
     It is also possible to design an equivariant reconstructor without Reynolds averaging, using equivariant layers. In that case, Reynolds averaging can be disabled to avoid its additional computational cost by setting ``equivariant_model`` to True. Note that in that case, the parameters ``transform`` and ``eval_transform`` are ignored.
 
@@ -175,7 +175,7 @@ class ESLoss(Loss):
         r"""
         Adapt the reconstructor for equivariant splitting.
 
-        It wraps the input reconstructor in a :class:`deepinv.models.SplittingLoss.SplittingModel` and optionally in a :class:`deepinv.models.EquivariantReconstructor` if the option ``equivariant_model`` is set to False.
+        It wraps the input reconstructor in a splitting model and optionally in a :class:`deepinv.models.EquivariantReconstructor` if the option ``equivariant_model`` is set to False.
 
         :param Reconstructor model: the reconstructor to adapt.
         :return: the adapted reconstructor.
