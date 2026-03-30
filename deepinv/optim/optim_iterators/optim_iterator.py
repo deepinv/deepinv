@@ -2,6 +2,7 @@ import torch.nn as nn
 from deepinv.optim.utils import objective_function
 import warnings
 from typing import TYPE_CHECKING, Callable
+from __future__ import annotations
 
 if TYPE_CHECKING:
     from deepinv.optim import DataFidelity, Prior

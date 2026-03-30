@@ -4,7 +4,7 @@ from .optim_iterator import OptimIterator, fStep, gStep
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from deepinv.optim import DataFidelity, Prior
+    from deepinv.optim import Prior
     from deepinv.physics import Physics
     from torch import Tensor
 
