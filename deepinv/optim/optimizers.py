@@ -2268,7 +2268,7 @@ class MLEM(BaseOptim):
     .. math::
         x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \partial g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
 
-        where :math:`\partial g(x_k)` is a subgradient of :math:`g` at point :math:`x_k`.
+    where :math:`\partial g(x_k)` is a subgradient of :math:`g` at point :math:`x_k`.
 
     :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity term.
         If ``None``, the data fidelity term is not used. Default: ``None``.
