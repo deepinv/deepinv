@@ -785,10 +785,10 @@ def test_load_bsds500_dataset(download_bsds500, train, totensor, rotate):
 
 
 @pytest.fixture
-def download_Kohler():
+def download_Kohler(tmp_path):
     """Download the Köhler dataset before a test and remove it after completion."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        root = "Kohler"
+        root = str(tmp_path / "Kohler")
         Kohler.download(root)
 
         # Return the control flow to the test function
