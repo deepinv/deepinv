@@ -9,7 +9,6 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add :class:`deepinv.optim.SIRT` algorithm for tomographic reconstruction (:gh:`985` by `Thibaut Modrzyk`_`)
-- Add :class:`deepinv.models.DEAL` model (:gh:`939` by `Hossein Alimohammadi`_)
 
 Changed
 ^^^^^^^
@@ -598,4 +597,3 @@ Changed
 .. _Tiberiu Sabau: https://github.com/tibisabau
 .. _Benoît Malézieux: https://github.com/bmalezieux
 .. _Paul Escande: https://pescande.perso.math.cnrs.fr/
-.. _Hossein Alimohammadi: https://github.com/Holimmo7
