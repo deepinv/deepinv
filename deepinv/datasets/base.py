@@ -376,20 +376,7 @@ class ImageFolder(ImageDataset):
     def __len__(self):
         return len(self.x_paths) if self.x_paths is not None else len(self.y_paths)
 
-    def __getitem__(
-        self, idx: int
-    ) -> (
-        tuple[torch.Tensor, torch.Tensor]
-        | tuple[torch.Tensor, torch.Tensor, dict]
-        | torch.Tensor
-    ):
-        """
-        Returns the sample at the given index.
-
-        :param int idx: index of the sample to load.
-        :return: transformed x, y, and optionally params.
-        """
-
+    def __getitem__(self, idx):
         # Load x and y
         x = torch.nan if self.x_paths is None else self.loader(self.x_paths[idx])
         y = None if self.y_paths is None else self.loader(self.y_paths[idx])
@@ -405,11 +392,11 @@ class ImageFolder(ImageDataset):
             y = self.transform_y(y)
 
         params = self.estimate_params(x, y) if self.estimate_params is not None else {}
-
-        # Construct the output tuple
         out = (x,)
+
         if y is not None:
             out += (y,)
+
         if params:
             out += (params,)
 
