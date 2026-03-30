@@ -40,7 +40,7 @@ Install
 -------
 
 Install the latest stable release of ``deepinv``
-(see `the documentation <https://deepinv.github.io/deepinv/#install>`_ for other installation options, including `uv`, `pixi` and `conda`):
+(see `docs <https://deepinv.github.io/deepinv/#install>`_ installing with `uv`, `pixi` and `conda`):
 
 .. code-block:: bash
 
