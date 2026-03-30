@@ -6,7 +6,7 @@ This document describes all CI/CD workflows of the library.
 
 ## Testing
 
-### `test_pr.yml` — Test PRs
+### `test_cpu.yml` — Test CPU
 **Trigger:** Pull requests targeting `main`.
 
 Runs the full test suite on every pull request. Installs `deepinv` using [`pixi`](https://pixi.sh).
@@ -15,18 +15,6 @@ Tests are executed in parallel (`-n 2`) on both **Ubuntu** and **Windows** witho
 Uses [pytest-testmon](https://github.com/tarpas/pytest-testmon) to skip tests unaffected by the changes, speeding up CI.
 Coverage reports are uploaded to [Codecov](https://codecov.io). Also runs doctests in `.py` files from inline module docstrings (`--doctest-modules`).
 
----
-
-### `test_recurrent_main.yml` — Test main
-**Trigger:** Daily schedule (03:30 UTC) and every push to `main`.
-
-Nightly full test suite run on the `main` branch. Covers three configurations:
-- Ubuntu with all optional dependencies
-- Ubuntu with no optional dependencies
-- Windows with all optional dependencies
-
-Saves testmon cache to accelerate repeated PR runs, and uploads coverage + test results to Codecov.
-Only runs on the `deepinv/main` repository (not forks).
 
 ---
 

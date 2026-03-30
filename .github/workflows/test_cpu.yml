@@ -1,4 +1,4 @@
-name: Test PRs
+name: Test CPU
 
 on:
   pull_request:
@@ -20,6 +20,9 @@ jobs:
           - os: ubuntu-latest
             environment: "full"
             name: "ubuntu all optional dependencies"
+          - os: ubuntu-latest
+            environment: "test"
+            name: "ubuntu no optional dependencies"
           - os: windows-latest
             environment: "full"
             name: "windows all optional dependencies"
@@ -47,6 +50,13 @@ jobs:
       - name: Test with pytest
         run: |
           pixi run -e ${{ matrix.environment }} pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml --junitxml=junit.xml --testmon --doctest-modules 
+
+      - name: Save .testmondata # only when pushed to main, not for PRs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v3
+        with:
+          path: .testmondata
+          key: testmon-cpu-main-${{ matrix.os }}-${{ github.run_id }}
 
       - name: Upload coverage to Codecov
         if: runner.os == 'Linux'
