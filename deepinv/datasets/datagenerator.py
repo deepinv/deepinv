@@ -388,17 +388,13 @@ class HDF5Dataset(ImageDataset):
             )
 
         state = None
+        supervised = hasattr(self, "x")
 
         # Compute x
-        if hasattr(self, "x"):
+        if supervised:
             x = self.x[index]
             x = torch.from_numpy(x)
             x = self.cast(x)
-
-            if self.transform is not None:
-                state = torch.get_rng_state()
-                x = self.transform(x)
-                torch.set_rng_state(state)
         else:
             x = torch.tensor(torch.nan, dtype=torch.float32, device=torch.device("cpu"))
             x = self.cast(x)
@@ -412,10 +408,10 @@ class HDF5Dataset(ImageDataset):
         else:
             y = TensorList([self.cast(torch.from_numpy(yk[index])) for yk in y])
 
-        # Apply transform to y with same RNG state as x
-        if self.transform is not None:
-            if state is None:
-                state = torch.get_rng_state()
+        # Apply transform only in supervised mode; sync RNG across x and y
+        if supervised and self.transform is not None:
+            state = torch.get_rng_state()
+            x = self.transform(x)
             torch.set_rng_state(state)
             y = self.transform(y)
 
