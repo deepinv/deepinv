@@ -430,9 +430,9 @@ class TomographyWithAstra(LinearPhysics):
             ...                 'detector_radius': 20.
             ...             },
             ...             normalize=False
-            ...    )
-            >>>    sinogram = physics(x)
-            >>>    print(sinogram.shape)
+            ...     )
+            >>>     sinogram = physics(x)
+            >>>     print(sinogram.shape)
             torch.Size([1, 1, 10, 5])
 
         Tomography operator with a 3D ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0, 360]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
@@ -454,9 +454,9 @@ class TomographyWithAstra(LinearPhysics):
             ...                 'detector_radius': 20.
             ...            },
             ...            normalize=False
-            ...    )
-            >>>    sinogram = physics(x)
-            >>>    print(sinogram.shape)
+            ...     )
+            >>>     sinogram = physics(x)
+            >>>     print(sinogram.shape)
             torch.Size([1, 1, 5, 3, 5])
 
 
