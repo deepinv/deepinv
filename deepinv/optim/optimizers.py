@@ -872,10 +872,13 @@ class BaseOptim(Reconstructor):
 def create_iterator(
     iteration: OptimIterator,
     prior: Prior | list[Prior] = None,
-    cost_fn: Callable[
-        [Tensor, DataFidelity, Prior, dict[str, float], Tensor, Physics],
-        Tensor,
-    ] = None,
+    cost_fn: (
+        Callable[
+            [Tensor, DataFidelity, Prior, dict[str, float], Tensor, Physics],
+            Tensor,
+        ]
+        | None
+    ) = None,
     g_first: bool = False,
     bregman_potential: Bregman = None,
     **kwargs,
@@ -1036,7 +1039,7 @@ def optim_builder(
     ).eval()
 
 
-def str_to_class(classname):
+def str_to_class(classname: str) -> type:
     return getattr(_optim_iterators, classname)
 
 
