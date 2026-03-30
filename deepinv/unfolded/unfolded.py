@@ -182,7 +182,7 @@ def unfolded_builder(
         >>> import deepinv as dinv
         >>>
         >>> # Create a trainable unfolded architecture
-        >>> model = dinv.unfolded.unfolded_builder(  # doctest: +IGNORE_RESULT
+        >>> model = dinv.unfolded.unfolded_builder(
         ...     iteration="PGD",
         ...     data_fidelity=dinv.optim.data_fidelity.L2(),
         ...     prior=dinv.optim.PnP(dinv.models.DnCNN(in_channels=1, out_channels=1)),
