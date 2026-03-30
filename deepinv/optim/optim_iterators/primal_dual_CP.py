@@ -1,6 +1,6 @@
+from __future__ import annotations
 from .optim_iterator import OptimIterator, fStep, gStep
 from typing import TYPE_CHECKING
-from __future__ import annotations
 
 if TYPE_CHECKING:
     from deepinv.optim import DataFidelity, Prior
