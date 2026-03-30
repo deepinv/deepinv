@@ -163,7 +163,7 @@ class UNet(Denoiser):
             enc_feats.append(x)
 
         for i, (up_name, upc_name) in enumerate(
-            zip(self._up_names, self._upc_names, strict=False)
+            zip(self._up_names, self._upc_names, strict=True)
         ):
             x = getattr(self, up_name)(x)
             if self.cat:

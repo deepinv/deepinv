@@ -64,7 +64,7 @@ class ConvDecoder(nn.Module):
         # compute up-sampling factor from one layer to another
         scales = tuple(
             (out_s / in_s) ** (1.0 / (layers - 1))
-            for out_s, in_s in zip(out_size, in_size, strict=False)
+            for out_s, in_s in zip(out_size, in_size, strict=True)
         )
 
         hidden_size = [

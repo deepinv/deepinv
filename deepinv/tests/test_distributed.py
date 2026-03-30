@@ -810,7 +810,7 @@ def test_consistency_single_vs_multiprocess(device_config):
     y_norms_ref = [yi.norm().item() for yi in y_single]
     for r in results:
         assert all(
-            abs(a - b) < 1e-4 for a, b in zip(r["y_norms"], y_norms_ref, strict=False)
+            abs(a - b) < 1e-4 for a, b in zip(r["y_norms"], y_norms_ref, strict=True)
         )
         assert abs(r["x_adj_norm"] - x_adj_single.norm().item()) < 1e-4
 

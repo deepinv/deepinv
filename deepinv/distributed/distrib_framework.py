@@ -936,7 +936,7 @@ class DistributedProcessing:
                 f"and local indices ({len(self.local_indices)})"
             )
 
-        processed_pairs = list(zip(self.local_indices, processed_patches, strict=False))
+        processed_pairs = list(zip(self.local_indices, processed_patches, strict=True))
 
         # 6. Initialize output tensor and apply reduction strategy
         out_local = torch.zeros(self.img_size, device=self.ctx.device, dtype=x.dtype)
@@ -1071,7 +1071,7 @@ class DistributedDataFidelity:
         if len(Ax_local) != len(y_local):
             raise ValueError("Ax and y local sizes do not match.")
 
-        zipped_data = list(zip(Ax_local, y_local, strict=False))
+        zipped_data = list(zip(Ax_local, y_local, strict=True))
         # Pseudo items to iterate on
         local_items = list(range(len(physics.local_indexes)))
 

@@ -703,7 +703,7 @@ def _apply_transpose_padding(
 
     # Build center crop
     center_slices = tuple(
-        _center_crop_slice_1d(pk, ik) for pk, ik in zip(p, i, strict=False)
+        _center_crop_slice_1d(pk, ik) for pk, ik in zip(p, i, strict=True)
     )
     index = (slice(None), slice(None), *center_slices)
     out = x[index]
@@ -791,7 +791,7 @@ def filter_fft(
     f_shape = filter.shape
     f_size = tuple(f_shape[d] for d in dims)
     i_size = tuple(img_size[d] for d in dims)
-    pad = tuple(i - f for f, i in zip(reversed(f_size), reversed(i_size), strict=False))
+    pad = tuple(i - f for f, i in zip(reversed(f_size), reversed(i_size), strict=True))
     pad = tuple(
         chain.from_iterable((0, v) for v in pad)
     )  # (0, W_right, 0, H_bottom, 0, D_back, ...)

@@ -11,7 +11,7 @@ import torch.nn as nn
 from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_backward
-from deepinv.utils.compat import zip_strict
+
 from deepinv.physics.functional import power_method
 import warnings
 
@@ -707,7 +707,7 @@ class LinearPhysics(Physics):
             V = [randn_like(au) for au in Au]
             Atv = self.A_adjoint(V, **kwargs)
             s1 = 0
-            for au, v in zip_strict(Au, V):
+            for au, v in zip(Au, V, strict=True):
                 s1 += (v.conj() * au).flatten().sum()
 
         else:

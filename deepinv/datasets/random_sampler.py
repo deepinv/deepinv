@@ -130,7 +130,7 @@ class RandomPatchSampler(ImageDataset):
 
         start_coords = [
             torch.randint(0, s - p, (1,)).item() if p is not None else p
-            for p, s in zip(self.patch_size, shape, strict=False)
+            for p, s in zip(self.patch_size, shape, strict=True)
         ]
 
         fname = self.imgs[idx]
@@ -208,7 +208,7 @@ class RandomPatchSampler(ImageDataset):
                 )
             if not all(
                 s >= p if p is not None else True
-                for s, p in zip(shape, self.patch_size, strict=False)
+                for s, p in zip(shape, self.patch_size, strict=True)
             ):  # pragma: no cover
                 raise RuntimeError(
                     f"Patch size {self.patch_size} is too large for image {im} with shape {shape}"
@@ -242,7 +242,7 @@ class RandomPatchSampler(ImageDataset):
         arr = self._load(f, as_memmap=True)
         slices = tuple(
             slice(start, start + size) if size is not None else slice(None)
-            for start, size in zip(start_coords, self.patch_size, strict=False)
+            for start, size in zip(start_coords, self.patch_size, strict=True)
         )
         arr = arr[slices]
         if isinstance(arr, torch.Tensor):

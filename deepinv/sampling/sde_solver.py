@@ -6,7 +6,6 @@ import warnings
 from typing import Any
 from numpy import ndarray
 from tqdm import tqdm
-from deepinv.utils.compat import zip_strict
 
 
 class SDEOutput(dict):
@@ -129,7 +128,7 @@ class BaseSDESolver(nn.Module):
             timesteps = timesteps.to(sde.device, sde.dtype)
 
         for t_cur, t_next in tqdm(
-            zip_strict(timesteps[:-1], timesteps[1:]),
+            zip(timesteps[:-1], timesteps[1:], strict=True),
             total=len(timesteps) - 1,
             disable=not verbose,
         ):

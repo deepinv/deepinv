@@ -259,7 +259,7 @@ class BasicStrategy(DistributedSignalStrategy):
             # Create slice tuple
             slices = [slice(None)] * len(self.img_size)
             for i, (dim, pos) in enumerate(
-                zip(self.tiling_dims, positions, strict=False)
+                zip(self.tiling_dims, positions, strict=True)
             ):
                 start, end = ranges[i][pos]
                 slices[dim] = slice(start, end)

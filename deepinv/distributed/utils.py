@@ -203,7 +203,7 @@ def tiling_splitting_strategy(
         "global_padding": tuple(pads),
         "pad_mode": pad_mode,
         "window_shape": tuple(
-            p + 2 * rf for p, rf in zip(p_sizes, rf_sizes, strict=False)
+            p + 2 * rf for p, rf in zip(p_sizes, rf_sizes, strict=True)
         ),
         "inner_patch_size": p_sizes,
         "grid_shape": tuple(len(s) for s in dim_starts),
