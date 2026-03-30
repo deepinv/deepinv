@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 import torch
 from torch import Tensor
 from tqdm import tqdm
@@ -16,9 +16,10 @@ from deepinv.optim.linear import (
     least_squares_implicit_backward,
 )
 
-from deepinv.optim.data_fidelity import DataFidelity
-from deepinv.optim.prior import Prior
-from deepinv.physics import Physics
+if TYPE_CHECKING:
+    from deepinv.optim.data_fidelity import DataFidelity
+    from deepinv.optim.prior import Prior
+    from deepinv.physics import Physics
 
 __all__ = [
     "least_squares",
@@ -87,8 +88,8 @@ def gradient_descent(
 
 
 def check_conv(
-    X_prev: Tensor | dict[str, Tensor | tuple[Tensor, ...]],
-    X: Tensor | dict[str, Tensor] | dict[str, Tensor | tuple[Tensor, ...]],
+    X_prev: Tensor | dict[str, Tensor] | tuple[Tensor, ...],
+    X: Tensor | dict[str, Tensor] | dict[str, Tensor] | tuple[Tensor, ...],
     it: int,
     crit_conv="residual",
     thres_conv=1e-3,
