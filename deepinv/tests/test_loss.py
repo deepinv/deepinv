@@ -121,20 +121,17 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         loss.append(dinv.loss.MCLoss())
         loss.append(dinv.loss.EILoss(dinv.transform.Homography(device=device)))
     elif loss_name == "es":
-        # A random transformation from the group D4
-        split_generator = dinv.physics.generator.GaussianMaskGenerator(
+        mask_generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
             img_size=imsize,
-            acceleration=2,
-            center_fraction=0.0,
-            rng=torch.Generator(device).manual_seed(0),
+            split_ratio=0.9,
+            pixelwise=True,
             device=device,
         )
-        mask_generator = dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
-            (1, *imsize), split_generator, device=device
-        )
+
         train_transform = dinv.transform.Rotate(
             n_trans=1, multiples=90, positive=True
         ) * dinv.transform.Reflect(n_trans=1, dim=[-1])
+
         eval_transform = dinv.transform.Rotate(
             n_trans=4, multiples=90, positive=True
         ) * dinv.transform.Reflect(n_trans=2, dim=[-1])
@@ -149,6 +146,7 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
                 prediction_loss=prediction_loss,
                 transform=train_transform,
                 eval_transform=eval_transform,
+                eval_n_samples=5,
             )
         )
     elif loss_name == "splittv":
