@@ -983,9 +983,9 @@ class ComposedPhysics(Physics):
         """
         if params is None: return None
         
-        params_dict = _create_params_mapping(params)
+        params_dicts = _create_params_mapping(params)
         for i, physics in enumerate(self.physics_list):
-            physics.update_parameters(**params_dict.get(i, {}))
+            physics.update_parameters(**params_dicts.get(i, {}))
 
     def __str__(self):
         return (
@@ -1504,7 +1504,6 @@ class StackedPhysics(Physics):
 
     def __str__(self):
         return "StackedPhysics(" + "\n".join([f"{p}" for p in self.physics_list]) + ")"
-        return "StackedPhysics(" + "\n".join([f"{p}" for p in self.physics_list]) + ")"
 
     def __repr__(self):
         return self.__str__()
@@ -1535,7 +1534,6 @@ class StackedPhysics(Physics):
         Returns the number of physics operators in the stacked operator
 
         """
-        return len(self.physics_list)
         return len(self.physics_list)
 
     @warn_kwargs_use_params
@@ -1606,9 +1604,9 @@ class StackedPhysics(Physics):
         """
         if params is None: return None
         
-        params_dict = _create_params_mapping(params)
+        params_dicts = _create_params_mapping(params)
         for i, physics in enumerate(self.physics_list):
-            physics.update_parameters(**params_dict.get(i, {}))
+            physics.update_parameters(**params_dicts.get(i, {}))
 
     @warn_kwargs_use_params
     def update(
@@ -1621,10 +1619,10 @@ class StackedPhysics(Physics):
         """
         if params is None: return None
 
-        params_dict = _create_params_mapping(params)
+        params_dicts = _create_params_mapping(params)
         for i, physics in enumerate(self.physics_list):
-            physics.update_parameters(**params_dict.get(i, {}))
-            physics.noise.update_parameters(**params_dict.get(i, {}))
+            physics.update_parameters(**params_dicts.get(i, {}))
+            physics.noise.update_parameters(**params_dicts.get(i, {}))
 
 
 class StackedLinearPhysics(StackedPhysics, LinearPhysics):
