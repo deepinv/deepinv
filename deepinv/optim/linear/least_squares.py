@@ -267,7 +267,7 @@ class LeastSquaresSolver(torch.autograd.Function):
 
     @staticmethod
     @once_differentiable
-    def backward(ctx, grad_output: Tensor) -> tuple[Tensor, ...]:
+    def backward(ctx, grad_output: torch.Tensor) -> tuple[torch.Tensor, ...]:
         h, y, z, gamma = ctx.saved_tensors
         physics = ctx.physics
 
@@ -344,12 +344,12 @@ class LeastSquaresSolver(torch.autograd.Function):
 # wrapper of the autograd function for easier use
 def least_squares_implicit_backward(
     physics,
-    y: Tensor,
-    z: Tensor = None,
-    init: Tensor = None,
-    gamma: float | Tensor = None,
+    y: torch.Tensor,
+    z: torch.Tensor = None,
+    init: torch.Tensor = None,
+    gamma: float | torch.Tensor = None,
     **kwargs,
-) -> Tensor:
+) -> torch.Tensor:
     r"""
     Least squares solver with O(1) memory backward propagation using implicit differentiation.
     The function is similar to :func:`deepinv.optim.linear.least_squares` for the forward pass, but uses implicit differentiation for the backward pass, which reduces memory consumption to O(1) in the number of iterations.
@@ -446,7 +446,7 @@ def least_squares_implicit_backward(
     trigger_backward = (
         y.requires_grad
         or z.requires_grad
-        or (isinstance(gamma, Tensor) and gamma.requires_grad)
+        or (isinstance(gamma, torch.Tensor) and gamma.requires_grad)
         or physics_requires_grad_params
     )
     if trigger_backward:
@@ -459,11 +459,11 @@ def least_squares_implicit_backward(
     dtype = y.dtype if not torch.is_complex(y) else y.real.dtype
     if gamma is None:
         gamma = torch.zeros((), device=y.device, dtype=dtype)
-    if isinstance(gamma, Tensor) and gamma.ndim > 0:
+    if isinstance(gamma, torch.Tensor) and gamma.ndim > 0:
         if gamma.size(0) != y.size(0):
             raise ValueError(
                 "If gamma is batched, its batch size must match the one of y."
             )
-    if not isinstance(gamma, Tensor):
+    if not isinstance(gamma, torch.Tensor):
         gamma = torch.as_tensor(gamma, device=y.device, dtype=dtype)
     return LeastSquaresSolver.apply(physics, y, z, init, gamma, trigger, extra_kwargs)

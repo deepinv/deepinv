@@ -231,7 +231,9 @@ def lsqr(
     return x, acond.sqrt()
 
 
-def _sym_ortho(a: Tensor, b: Tensor) -> tuple[Tensor, ...]:
+def _sym_ortho(
+    a: torch.Tensor, b: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Stable implementation of Givens rotation.
 
