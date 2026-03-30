@@ -161,15 +161,18 @@ class SplittingLoss(Loss):
         :return: (:class:`torch.Tensor`) loss.
         """
         # Get splitting mask and make sure it is subsampled from physics mask, if it exists
-        mask = model.get_mask() * getattr(physics, "mask", 1.0)
-
-        # Create output mask M_2 = I - M_1
-        mask2 = getattr(physics, "mask", 1.0) - mask
-        y2, physics2 = self.split(mask2, y, physics)
-
-        l = self.metric(physics2.A(x_net), y2)
-
-        return l / mask2.mean() if self.normalize_loss else l
+        masks = model.get_masks()
+        loss_values = []
+        for mask1 in masks:
+            mask1 = mask1 * getattr(physics, "mask", 1.0)
+            mask2 = getattr(physics, "mask", 1.0) - mask1
+            y2, physics2 = self.split(mask2, y, physics)
+            loss_value = self.metric(physics2.A(x_net), y2)
+            if self.normalize_loss:
+                loss_value = loss_value / mask2.mean()
+            loss_values.append(loss_value)
+        loss_values = torch.stack(loss_values, dim=0)
+        return loss_values.mean(0)
 
     def adapt_model(
         self, model: torch.nn.Module, eval_n_samples=None
