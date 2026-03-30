@@ -535,15 +535,17 @@ class ImageFolder(ImageDataset):
         return len(self.x_paths) if self.x_paths is not None else len(self.y_paths)
 
     def __getitem__(self, idx):
-        if self.x_paths is None:
-            x = torch.nan
-        else:
-            x = self.transform_x(self.loader(self.x_paths[idx]))
+        x = torch.nan if self.x_paths is None else self.loader(self.x_paths[idx])
+        y = None if self.y_paths is None else self.loader(self.y_paths[idx])
 
-        if self.y_paths is None:
-            y = None
-        else:
-            y = self.transform_y(self.loader(self.y_paths[idx]))
+        state = torch.get_rng_state()
+
+        if self.x_paths is not None:
+            x = self.transform_x(x)
+
+        if y is not None:
+            torch.set_rng_state(state)
+            y = self.transform_y(y)
 
         params = self.estimate_params(x, y) if self.estimate_params is not None else {}
 
