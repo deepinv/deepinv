@@ -9,7 +9,11 @@ This document describes all CI/CD workflows of the library.
 ### `test_pr.yml` — Test PRs
 **Trigger:** Pull requests targeting `main`.
 
-Runs the full test suite on every pull request using [Pixi](https://pixi.sh) environments. Tests are executed in parallel (`-n 2`) on both **Ubuntu** and **Windows** with Python 3.12 and all optional dependencies. Uses [pytest-testmon](https://github.com/tarpas/pytest-testmon) to skip tests unaffected by the changes, speeding up CI. Coverage reports are uploaded to [Codecov](https://codecov.io). Also runs doctests from inline module docstrings (`--doctest-modules`).
+Runs the full test suite on every pull request. Installs `deepinv` using [`pixi`](https://pixi.sh).
+We use pixi to manage both `conda` and `pip` dependencies in a single workflow.
+Tests are executed in parallel (`-n 2`) on both **Ubuntu** and **Windows** with Python 3.12 and all optional dependencies.
+Uses [pytest-testmon](https://github.com/tarpas/pytest-testmon) to skip tests unaffected by the changes, speeding up CI.
+Coverage reports are uploaded to [Codecov](https://codecov.io). Also runs doctests from inline module docstrings (`--doctest-modules`).
 
 ---
 
@@ -21,14 +25,18 @@ Nightly full test suite run on the `main` branch. Covers three configurations:
 - Ubuntu with no optional dependencies
 - Windows with all optional dependencies
 
-Uses testmon caching to accelerate repeated runs, and uploads coverage + test results to Codecov. Only runs on the `deepinv/deepinv` repository (not forks).
+Saves testmon cache to accelerate repeated PR runs, and uploads coverage + test results to Codecov.
+Only runs on the `deepinv/main` repository (not forks).
 
 ---
 
 ### `test_gpu.yml` — Test GPU
-**Trigger:** Daily schedule (02:30 UTC), pushes to `main`, or manual dispatch specifying a PR number.
+**Triggers:** 
 
-Runs the full test suite on a **self-hosted GPU runner**. The PR to test can be specified via `workflow_dispatch` (e.g., triggered by `gpu_trigger.yml`). Uses testmon caching, saves cache only on `main`. Posts a success/failure comment back to the PR when triggered for a specific PR number.
+- PRs: Maintainer writing `gpu-tests` on a PR comment (via `gpu_trigger.yml`), or manual dispatch specifying a PR number.
+- `main`: pushes, daily schedule (02:30 UTC)
+
+Runs the full test suite on a **self-hosted GPU runner**. Uses testmon caching, saves cache only on `main`. Posts a success/failure comment back to the PR when triggered for a specific PR number.
 
 ---
 
@@ -36,9 +44,11 @@ Runs the full test suite on a **self-hosted GPU runner**. The PR to test can be 
 ## Documentation
 
 ### `documentation.yml` — Build Docs (CPU)
-**Trigger:** Pushes to `main` and pull requests targeting `main`.
+**Trigger:** Pushes to `main` and PRs.
 
-Builds the Sphinx documentation using the `docs` Pixi environment. For pull requests, it intelligently determines which gallery examples need to be rebuilt by running a diff script (`.github/scripts/diff_sphinx_gallery.py`) against the base branch — unless a maintainer has posted a `test-examples` comment on the PR, in which case all examples are rebuilt. Also:
+Builds the Sphinx documentation. For PRs, it intelligently determines which gallery examples need to be rebuilt by
+running a diff script (`.github/scripts/diff_sphinx_gallery.py`) against the base branch — unless a maintainer has
+posted a `test-examples` comment on the PR, in which case all examples are rebuilt. Also:
 - Converts all Python examples in `examples/` to Jupyter notebooks.
 - Uploads the built docs as a GitHub Actions artifact.
 - Runs doctests on `.rst` files under `docs/`.
@@ -46,11 +56,13 @@ Builds the Sphinx documentation using the `docs` Pixi environment. For pull requ
 ---
 
 ### `gpu_docs.yml` — GPU Docs
-**Trigger:** Daily schedule (02:30 UTC), pushes to `main`, or manual dispatch specifying a PR number.
+**Trigger:** 
+
+- `main`: pushes, daily schedule (02:30 UTC).
+- PRs: manual dispatch specifying a PR number or maintainer writing `gpu-tests` on a PR comment (via `gpu_trigger.yml`).
 
 Builds the full documentation on a **self-hosted GPU runner**, ensuring that all examples run correctly in a GPU environment. Follows the same smart diff logic as `documentation.yml` for selective example rebuilding. Additionally:
-- Runs Sphinx doctests.
-- Converts examples to notebooks.
+- Runs Sphinx doctests (with support to Colab examples).
 - Deploys the built docs to **GitHub Pages** (`gh-pages` branch) on pushes to `main`.
 - Posts a success/failure comment with artifact and run links back to the PR when triggered for a specific PR.
 
@@ -62,22 +74,22 @@ Builds the full documentation on a **self-hosted GPU runner**, ensuring that all
 **Trigger:** Pushes to `main` and pull requests targeting `main`.
 
 Enforces code style and quality:
-- **[Black](https://black.readthedocs.io):** Checks code formatting.
-- **[Ruff](https://docs.astral.sh/ruff/):** Fast Python linter for common errors and style issues.
+- **[black](https://black.readthedocs.io):** Checks code formatting.
+- **[ruff](https://docs.astral.sh/ruff/):** Fast Python linter for common errors and style issues.
 
 ---
 
 ## Install & Import Checks
 
 ### `test_install.yml` — Test Install Methods
-**Trigger:** Manual dispatch or quarterly schedule (1st of every 4th month).
+**Trigger:** Manual dispatch or monthly schedule.
 
-Verifies that `deepinv` installs correctly across a broad matrix of:
+Verifies that `deepinv` installs correctly across the following combinations:
 - **Package managers:** `pip`, `uv`, `pixi`, `conda`
 - **Sources:** PyPI and the Git repository
 - **Dependency sets:** core and full (`dataset`, `denoisers`, `physics` extras)
 - **Platforms:** Ubuntu, Windows, macOS
-- **Python versions:** 3.10–3.14
+- **Python versions:** 3.10–3.13
 
 Each combination installs the package and verifies a successful `import deepinv`.
 
