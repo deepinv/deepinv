@@ -19,7 +19,6 @@ import PIL
 import io
 import copy
 import math
-import sys
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
