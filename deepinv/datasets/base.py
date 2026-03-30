@@ -223,6 +223,7 @@ class TensorDataset(ImageDataset):
         """
         Check if x is None or is nan
         """
+
         return x is None or (isinstance(x, float) and math.isnan(x))
 
     def __len__(self) -> int:
@@ -247,7 +248,6 @@ class ImageFolder(ImageDataset):
     """Dataset loading images from files.
 
     By default, the images are loaded from image files (png, jpg etc.) located in `root`.
-
     For more flexibility, set `x_path` or `y_path` to load ground truth `x` and/or measurements `y` from specific file patterns.
 
     .. tip::
