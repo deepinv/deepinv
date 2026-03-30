@@ -73,6 +73,13 @@ Install the latest **stable release** of ``deepinv``:
 
            pip install deepinv
 
+    .. tab-item:: conda
+        :sync: conda
+
+        .. code-block:: bash
+
+           conda install -c conda-forge deepinv
+
     .. tab-item:: uv
         :sync: uv
 
@@ -88,12 +95,6 @@ Install the latest **stable release** of ``deepinv``:
            pixi init && pixi add python
            pixi add --pypi deepinv
 
-    .. tab-item:: conda
-        :sync: conda
-
-        .. code-block:: bash
-
-           conda install -c conda-forge deepinv
 
 Or, to also install **all optional dependencies**:
 
@@ -113,6 +114,9 @@ Or, to also install **all optional dependencies**:
         .. code-block:: bash
 
             conda install -c conda-forge deepinv
+            # fallback to pip for optional dependencies
+            pip install deepinv[dataset,denoisers,physics]
+
 
     .. tab-item:: uv
         :sync: uv

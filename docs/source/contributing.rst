@@ -263,7 +263,7 @@ Once the implementation, the tests and the mocking code are written, that they p
 Maintainers commands
 --------------------
 
-Maintainers can use the following slash commands as comments on a pull request to trigger specific tests:
+Maintainers can use the following slash commands as comments on a pull request to trigger specific tests (see `workflows summary <https://github.com/deepinv/deepinv/blob/main/.github/workflows.md>`_ for more details):
 
 - `/test-examples`: runs **all** sphinx gallery examples on CPU using CPU-enabled runners.
 - `/gpu-tests`: runs tests and generates docs on GPU using GPU-enabled runners.
