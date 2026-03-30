@@ -1,6 +1,12 @@
 from __future__ import annotations
 from .optim_iterator import OptimIterator, fStep, gStep
 from deepinv.optim.bregman import Bregman, BregmanL2
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.optim import DataFidelity, Prior
+    from deepinv.physics import Physics
+    from torch import Tensor
 
 
 class GDIteration(OptimIterator):
@@ -31,8 +37,16 @@ class GDIteration(OptimIterator):
         self.f_step = fStepGD(**kwargs)
 
     def forward(
-        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
-    ):
+        self,
+        X: dict[str, tuple[Tensor, Tensor] | Tensor],
+        cur_data_fidelity: DataFidelity,
+        cur_prior: Prior,
+        cur_params: dict,
+        y: Tensor,
+        physics: Physics,
+        *args,
+        **kwargs,
+    ) -> dict[str, tuple[Tensor, Tensor] | Tensor]:
         r"""
         Single gradient descent iteration on the objective :math:`f(x) + \lambda \regname(x)`.
 
@@ -92,8 +106,16 @@ class MDIteration(OptimIterator):
         self.bregman_potential = bregman_potential
 
     def forward(
-        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
-    ):
+        self,
+        X: dict[str, tuple[Tensor, Tensor] | Tensor],
+        cur_data_fidelity: DataFidelity,
+        cur_prior: Prior,
+        cur_params: dict,
+        y: Tensor,
+        physics: Physics,
+        *args,
+        **kwargs,
+    ) -> dict[str, tuple[Tensor, Tensor] | Tensor]:
         r"""
         Single mirror descent iteration on the objective :math:`f(x) + \lambda g(x)`.
         The Bregman potential, which is an intance of the deepinv.optim.Bregman class, is used to compute the mirror descent step.
@@ -131,7 +153,14 @@ class fStepGD(fStep):
     def __init__(self, **kwargs):
         super(fStepGD, self).__init__(**kwargs)
 
-    def forward(self, x, cur_data_fidelity, cur_params, y, physics):
+    def forward(
+        self,
+        x: Tensor,
+        cur_data_fidelity: DataFidelity,
+        cur_params: dict,
+        y: Tensor,
+        physics: Physics,
+    ) -> Tensor:
         r"""
         Single gradient descent iteration on the data fit term :math:`f`.
 
@@ -140,6 +169,7 @@ class fStepGD(fStep):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the data-fidelity term.
         """
         return cur_data_fidelity.grad(x, y, physics)
 
@@ -152,12 +182,13 @@ class gStepGD(gStep):
     def __init__(self, **kwargs):
         super(gStepGD, self).__init__(**kwargs)
 
-    def forward(self, x, cur_prior, cur_params):
+    def forward(self, x: Tensor, cur_prior: Prior, cur_params: dict) -> Tensor:
         r"""
         Single iteration step on the prior term :math:`\lambda g`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the prior term.
         """
         return cur_params["lambda"] * cur_prior.grad(x, cur_params["g_param"])

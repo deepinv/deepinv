@@ -116,7 +116,7 @@ class FixedPoint(nn.Module):
             self.early_stop = False
 
     def init_anderson_acceleration(
-        self, X: dict[str, tuple[torch.Tensor, torch.Tensor]]
+        self, X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]
     ):
         r"""
         Initialize the Anderson acceleration algorithm.
@@ -127,7 +127,7 @@ class FixedPoint(nn.Module):
         H is initialized as a (m+1)x(m+1) matrix where m is the history size, with first row and column set to 1.
         Q is initialized as a (m+1)x1 vector with first element set to 1.
 
-        :param dict[str, tuple[torch.Tensor, torch.Tensor]] X: initial iterate.
+        :param dict X: initial iterate.
         """
         x = X["est"][0]
         b = x.shape[0]
@@ -170,13 +170,13 @@ class FixedPoint(nn.Module):
     def anderson_acceleration_step(
         self,
         it: int,
-        X_prev: dict[str, tuple[torch.Tensor, torch.Tensor]],
-        TX_prev: dict[str, tuple[torch.Tensor, torch.Tensor]],
+        X_prev: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        TX_prev: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
         cur_data_fidelity: deepinv.optim.DataFidelity,
         cur_prior: deepinv.optim.Prior,
         cur_params: dict,
         *args,
-    ) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]:
         r"""
         Anderson acceleration step.
 
@@ -274,7 +274,10 @@ class FixedPoint(nn.Module):
         compute_metrics: bool = False,
         x_gt: torch.Tensor = None,
         **kwargs,
-    ) -> tuple[dict[str, tuple[torch.Tensor, torch.Tensor]], dict[str, list] | None]:
+    ) -> tuple[
+        dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        dict[str, list] | None,
+    ]:
         r"""
         Loops over the fixed-point iterator as (1) and returns the fixed point.
 
@@ -358,8 +361,12 @@ class FixedPoint(nn.Module):
         return X, metrics
 
     def single_iteration(
-        self, X: dict[str, tuple[torch.Tensor, torch.Tensor]], it: int, *args, **kwargs
-    ) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
+        self,
+        X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        it: int,
+        *args,
+        **kwargs,
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]:
         """
         Performs a single iteration of the fixed-point algorithm, including Anderson acceleration and backtracking if specified.
 

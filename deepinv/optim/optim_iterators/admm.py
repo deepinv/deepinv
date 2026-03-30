@@ -1,5 +1,10 @@
 import torch
 from .optim_iterator import OptimIterator, fStep, gStep
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.optim import DataFidelity, Prior
+    from deepinv.physics import Physics
 
 
 class ADMMIteration(OptimIterator):
@@ -33,7 +38,15 @@ class ADMMIteration(OptimIterator):
         self.g_step = gStepADMM(**kwargs)
         self.f_step = fStepADMM(**kwargs)
 
-    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def forward(
+        self,
+        X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        cur_data_fidelity: DataFidelity,
+        cur_prior: Prior,
+        cur_params: dict,
+        y: torch.Tensor,
+        physics: Physics,
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]:
         r"""
         Single iteration of the ADMM algorithm.
 
@@ -75,7 +88,15 @@ class fStepADMM(fStep):
     def __init__(self, **kwargs):
         super(fStepADMM, self).__init__(**kwargs)
 
-    def forward(self, x, z, cur_data_fidelity, cur_params, y, physics):
+    def forward(
+        self,
+        x: torch.Tensor,
+        z: torch.Tensor,
+        cur_data_fidelity: DataFidelity,
+        cur_params: dict,
+        y: torch.Tensor,
+        physics: Physics,
+    ) -> torch.Tensor:
         r"""
         Single iteration step on the data-fidelity term :math:`f`.
 
@@ -85,6 +106,7 @@ class fStepADMM(fStep):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the data-fidelity term.
         """
         if self.g_first:
             p = x + z
@@ -101,7 +123,13 @@ class gStepADMM(gStep):
     def __init__(self, **kwargs):
         super(gStepADMM, self).__init__(**kwargs)
 
-    def forward(self, x, z, cur_prior, cur_params):
+    def forward(
+        self,
+        x: torch.Tensor,
+        z: torch.Tensor,
+        cur_prior: Prior,
+        cur_params: dict,
+    ) -> torch.Tensor:
         r"""
         Single iteration step on the prior term :math:`\lambda g`.
 
@@ -109,6 +137,7 @@ class gStepADMM(gStep):
         :param torch.Tensor z: current second variable
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the prior term.
         """
         if self.g_first:
             p = x - z
