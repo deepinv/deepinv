@@ -1508,6 +1508,7 @@ class StackedPhysics(Physics):
     def __repr__(self):
         return self.__str__()
 
+    @_deprecated_alias(item="index")
     def __getitem__(self, index: int):
         r"""
         Returns the physics operator at `index`.
