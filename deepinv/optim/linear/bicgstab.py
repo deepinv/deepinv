@@ -8,7 +8,7 @@ from typing import Callable
 def bicgstab(
     A: Callable,
     b: torch.Tensor,
-    init: torch.Tensor = None,
+    init: torch.Tensor | None = None,
     max_iter: int = 1e2,
     tol: float = 1e-5,
     parallel_dim: None | int | list[int] = 0,
