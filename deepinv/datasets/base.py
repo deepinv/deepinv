@@ -535,6 +535,7 @@ class ImageFolder(ImageDataset):
         return len(self.x_paths) if self.x_paths is not None else len(self.y_paths)
 
     def __getitem__(self, idx):
+        # Load x and y
         x = torch.nan if self.x_paths is None else self.loader(self.x_paths[idx])
         y = None if self.y_paths is None else self.loader(self.y_paths[idx])
 
