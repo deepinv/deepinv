@@ -1034,7 +1034,7 @@ def test_load_nbu_dataset(download_nbu):
     # Test ImageFolder with globs
     dataset = ImageFolder(
         download_nbu,
-        x_path="nbu/gaofen-1/MS_256/*.mat",
+        x_path="gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
         loader=lambda f: load_mat(f)["imgMS"],
     )
@@ -1042,7 +1042,7 @@ def test_load_nbu_dataset(download_nbu):
 
     dataset = ImageFolder(
         download_nbu,
-        y_path="nbu/gaofen-1/MS_256/*.mat",
+        y_path="gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
         loader=lambda f: load_mat(f)["imgMS"],
     )
