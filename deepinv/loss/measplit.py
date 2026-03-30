@@ -310,7 +310,7 @@ class SplittingLoss(Loss):
             eval_n_samples = 1 if self.training else self.eval_n_samples
             out = 0
 
-            masks = []
+            masks = [] if update_parameters else None
 
             for _ in range(eval_n_samples):
                 # Perform input masking
@@ -324,9 +324,11 @@ class SplittingLoss(Loss):
                 # Forward pass
                 out += self.model(y1, physics1) / eval_n_samples
 
-                masks += [mask.clone()]
+                if masks is not None:
+                    masks += [mask.clone()]
 
-            self.masks = masks
+            if masks is not None:
+                self.masks = masks
 
             return out
 
