@@ -348,13 +348,18 @@ class HDF5Dataset(ImageDataset):
                 "Dataset has been closed. Redefine the dataset to continue."
             )
 
-        supervised = hasattr(self, "x")
+        state = None
 
         # Compute x
-        if supervised:
+        if hasattr(self, "x"):
             x = self.x[index]
             x = torch.from_numpy(x)
             x = self.cast(x)
+
+            if self.transform is not None:
+                state = torch.get_rng_state()
+                x = self.transform(x)
+                torch.set_rng_state(state)
         else:
             x = torch.tensor(torch.nan, dtype=torch.float32, device=torch.device("cpu"))
             x = self.cast(x)
@@ -368,10 +373,10 @@ class HDF5Dataset(ImageDataset):
         else:
             y = TensorList([self.cast(torch.from_numpy(yk[index])) for yk in y])
 
-        # Apply the same random transform to paired ground truth and measurement.
-        if supervised and self.transform is not None:
-            state = torch.get_rng_state()
-            x = self.transform(x)
+        # Apply transform to y with same RNG state as x
+        if self.transform is not None:
+            if state is None:
+                state = torch.get_rng_state()
             torch.set_rng_state(state)
             y = self.transform(y)
 
