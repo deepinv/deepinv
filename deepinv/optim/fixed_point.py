@@ -75,9 +75,9 @@ class FixedPoint(nn.Module):
     def __init__(
         self,
         iterator: deepinv.optim.OptimIterator = None,
-        update_params_fn: Callable[int, dict[str, float | Iterable]] = None,
-        update_data_fidelity_fn: Callable[int, deepinv.optim.DataFidelity] = None,
-        update_prior_fn: Callable[int, deepinv.optim.Prior] = None,
+        update_params_fn: Callable[[int], dict[str, float | Iterable]] = None,
+        update_data_fidelity_fn: Callable[[int], deepinv.optim.DataFidelity] = None,
+        update_prior_fn: Callable[[int], deepinv.optim.Prior] = None,
         init_iterate_fn: Callable[..., dict] = None,
         init_metrics_fn: Callable[[dict, torch.Tensor], dict[str, list]] = None,
         update_metrics_fn: Callable[
