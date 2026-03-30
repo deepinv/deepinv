@@ -81,7 +81,7 @@ OPERATORS = [
     "ptychography_linear",
     "2DParallelBeamCT",
     "2DFanBeamCT",
-    "VirtualPhysics",
+    "VirtualLinearPhysics",
 ]
 
 NONLINEAR_OPERATORS = [
@@ -256,7 +256,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = []
-    elif name == "VirtualPhysics":
+    elif name == "VirtualLinearPhysics":
         base_physics = dinv.physics.Inpainting(
             img_size=img_size, mask=0.5, device=device, rng=rng
         )
@@ -265,7 +265,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         G_params = transform.get_params(x0)
         G_params = transform.iterate_params(G_params)
         g_params = next(iter(G_params))
-        p = dinv.physics.VirtualPhysics(
+        p = dinv.physics.VirtualLinearPhysics(
             physics=base_physics,
             transform=transform,
             g_params=g_params,
