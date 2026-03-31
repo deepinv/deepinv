@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 from deepinv.models import Reconstructor, Denoiser
 
-import deepinv
+import deepinv as dinv
 from deepinv.sampling import BaseSampling
 from deepinv.sampling.sampling_iterators import DiffusionIterator
 from deepinv.sampling.diffusion_sde import (
@@ -145,7 +145,7 @@ class DDRM(Reconstructor):
         self.etab = etab
         self.eps = eps
 
-    def forward(self, y, physics: deepinv.physics.DecomposablePhysics, seed=None):
+    def forward(self, y, physics: dinv.physics.DecomposablePhysics, seed=None):
         r"""
         Runs the diffusion to obtain a random sample of the posterior distribution.
 
@@ -164,7 +164,7 @@ class DDRM(Reconstructor):
             else:
                 sigma_noise = 0.01
 
-            if physics.__class__ == deepinv.physics.Denoising:
+            if not isinstance(physics, dinv.physics.Denoising):
                 mask = torch.ones_like(
                     y
                 )  # TODO: fix for economic SVD decompositions (eg. Decolorize)
@@ -426,7 +426,7 @@ class DiffPIR(Reconstructor):
     def forward(
         self,
         y,
-        physics: deepinv.physics.LinearPhysics,
+        physics: dinv.physics.LinearPhysics,
         seed=None,
         x_init=None,
     ):
