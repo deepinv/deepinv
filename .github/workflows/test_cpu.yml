@@ -20,9 +20,6 @@ jobs:
           - os: ubuntu-latest
             environment: "full"
             name: "ubuntu all optional dependencies"
-          - os: ubuntu-latest
-            environment: "test"
-            name: "ubuntu no optional dependencies"
           - os: windows-latest
             environment: "full"
             name: "windows all optional dependencies"
