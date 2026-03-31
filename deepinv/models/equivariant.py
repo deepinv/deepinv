@@ -35,6 +35,10 @@ class EquivariantDenoiser(Denoiser):
 
         ``Rotate(n_trans=4, multiples=90, positive=True) * Reflect(n_trans=2, dims=[-1])``
 
+    .. note::
+
+        It is customary to sample a single transformation at training time and do a full averaging at evaluation time to ensure true equivariance. This can be done by setting a ``eval_transform`` that averages over the whole group, while leaving ``transform`` computing a single random transformation.
+
     See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_transforms.py` for an example.
 
     :param Callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
@@ -92,40 +96,6 @@ class EquivariantDenoiser(Denoiser):
 
 
 class EquivariantReconstructor(Reconstructor):
-    r"""
-    Turns the reconstructor model into an equivariant reconstructor with respect to geometric transforms.
-
-    Recall that a reconstructor is equivariant with respect to a group of transformations if it commutes with the action of
-    the group. More precisely, let :math:`\mathcal{G}` be a group of transformations :math:`\{T_g\}_{g\in \mathcal{G}}`
-    and :math:`\inversename` a reconstruction model. Then, :math:`\inversename` is equivariant with respect to :math:`\mathcal{G}`
-    if :math:`\inversef{y,AT_g} = T_g\inversef{y,A}` for any measurement :math:`y` and any :math:`g\in \mathcal{G}`.
-
-    The reconstruction model can be turned into an equivariant denoiser by averaging over the group of transforms, i.e.
-
-    .. math::
-        \operatorname{R}^{\text{eq}}(y,A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g(\inversef{y}{AT_g}).
-
-    Otherwise, as proposed in https://arxiv.org/abs/2312.01831, a Monte Carlo approximation can be obtained by
-    sampling :math:`g \sim \mathcal{G}` at random and applying
-
-    .. math::
-        \operatorname{R}^{\text{MC}}(y,A) = T_g(\inversef{y}{AT_g}).
-
-    .. note::
-
-        We have implemented many popular geometric transforms, see :ref:`docs <transform>`. You can set the number of Monte Carlo samples by passing ``n_trans``
-        into the transforms, for example ``Rotate(n_trans=2)`` will average over 2 samples per call. For rotate and reflect, by setting ``n_trans``
-        to the maximum (e.g. 4 for 90 degree rotations, 2 for 1D reflections), it will average over the whole group, for example:
-
-        ``Rotate(n_trans=4, multiples=90, positive=True) * Reflect(n_trans=2, dims=[-1])``
-
-    See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_transforms.py` for an example.
-
-    :param Callable model: Reconstruction model :math:`\inversef{y}{A}`.
-    :param Transform transform: geometric transformation. If None, defaults to rotations of multiples of 90 with horizontal flips (see note above).
-        See :ref:`docs <transform>` for list of available transforms.
-    """
-
     def __init__(
         self,
         model: Reconstructor,
@@ -142,16 +112,6 @@ class EquivariantReconstructor(Reconstructor):
         self.eval_transform = eval_transform
 
     def forward(self, y, physics, *reconstructor_args, **reconstructor_kwargs):
-        r"""
-        Symmetrize the reconstructor by the transformation to create an equivariant reconstructor and apply to input.
-
-        The symmetrization collects the average if multiple samples are used (controlled with ``n_trans`` in the transform).
-
-        :param torch.Tensor x: input image.
-        :param \*denoiser_args: args for denoiser function e.g. sigma noise level.
-        :param \**denoiser_kwargs: kwargs for denoiser function e.g. sigma noise level.
-        :return: denoised image.
-        """
         # Different transforms can be used for training and evaluation to allow
         # for true Reynolds averaging at evaluation time, and Monte Carlo
         # estimation at training time.
