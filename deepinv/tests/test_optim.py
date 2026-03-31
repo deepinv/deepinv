@@ -1093,7 +1093,7 @@ def test_condition_number(device):
 
 
 def test_correct_global_phase(device):
-    x1 = torch.randn((2, 3, 32, 32), device=device, dtype=torch.complex64)
+    x1 = torch.randn((2, 3, 8, 8), device=device, dtype=torch.complex64)
     x2 = x1 * torch.rand((2, 3, 1, 1), device=device)
     x2 = x2 * torch.exp(1j * torch.rand((2, 3, 1, 1), device=device))
 
