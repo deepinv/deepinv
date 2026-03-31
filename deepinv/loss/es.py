@@ -79,7 +79,7 @@ class ESLoss(Loss):
     >>> model = loss.adapt_model(model)
     >>> x = torch.ones((1, 1, 8, 8))
     >>> y = physics(x)
-    >>> x_net = model(y, physics)
+    >>> x_net = model(y, physics, update_parameters=True)
     >>> l = loss(x_net, y, physics, model)
     >>> print(l.item() > 0)
     True
