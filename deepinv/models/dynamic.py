@@ -63,6 +63,7 @@ class TimeAveragingNet(
 
     :Example:
 
+    >>> import torch
     >>> from deepinv.models import UNet, TimeAveragingNet
     >>> model = UNet(scales=2)
     >>> model = TimeAveragingNet(model)
