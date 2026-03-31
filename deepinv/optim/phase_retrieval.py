@@ -32,7 +32,7 @@ def correct_global_phase(
     r"""
     Corrects the global phase shift (and optionally magnitude scaling) of reconstructed complex images to match the references.
 
-    The optimal global phase shift and magnitude scaling is computed per image and channel as:
+    The optimal global phase shift and magnitude scaling is computed per batch entry and channel as:
 
     .. math::
         \theta = \arg \langle \hat{x}, x \rangle, \quad r = \frac{|\langle \hat{x}, x \rangle|}{\|\hat{x}\|^2},
