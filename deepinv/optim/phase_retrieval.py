@@ -54,7 +54,7 @@ def correct_global_phase(
     with :math:`r' = r` if ``correct_magnitude`` is ``True`` and :math:`r' = 1` otherwise.
 
     :param torch.Tensor x_est: Estimated images of shape ``(N, C, H, W)``.
-    :param torch.Tensor x_ref: Reference images of shape ``(N, C, H, W)``.
+    :param torch.Tensor x_ref: Reference signals of shape ``(N, C, ...)``.
     :param bool correct_magnitude: If ``True``, also corrects the magnitude scaling in addition to the phase. Default is ``False``.
     :param bool verbose: If ``True``, prints the applied phase shift and scale factor. Default is ``False``.
 
