@@ -34,11 +34,8 @@ Base Class
    deepinv.optim.MD
    deepinv.optim.PMD
    deepinv.optim.PDCP
-<<<<<<< HEAD
    deepinv.optim.SIRT
-=======
    deepinv.optim.MLEM
->>>>>>> 362330ed6af04fb4e8f7ba323de2207e57d8a3d3
 
 
 Potentials
