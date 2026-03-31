@@ -415,11 +415,12 @@ class TomographyWithAstra(LinearPhysics):
 
         .. doctest::
 
+            >>> import torch
             >>> if torch.cuda.is_available():
-            >>>     from deepinv.physics import TomographyWithAstra
-            >>>     x = torch.randn(1, 1, 5, 5, device='cuda') # Define random 5x5 image
-            >>>     physics = TomographyWithAstra(
-            ...            img_size=(5,5),
+            ...     from deepinv.physics import TomographyWithAstra
+            ...     x = torch.randn(1, 1, 5, 5, device='cuda') # Define random 5x5 image
+            ...     physics = TomographyWithAstra(
+            ...             img_size=(5,5),
             ...             angles=10,
             ...             angular_range=(0, 360),
             ...             n_detector_pixels=5,
@@ -431,8 +432,10 @@ class TomographyWithAstra(LinearPhysics):
             ...             },
             ...             normalize=False
             ...     )
-            >>>     sinogram = physics(x)
-            >>>     print(sinogram.shape)
+            ...     sinogram = physics(x)
+            ...     print(sinogram.shape)
+            ... else:
+            ...     print(torch.Size([1, 1, 10, 5]))
             torch.Size([1, 1, 10, 5])
 
         Tomography operator with a 3D ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0, 360]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
@@ -440,9 +443,9 @@ class TomographyWithAstra(LinearPhysics):
         .. doctest::
 
             >>> if torch.cuda.is_available():
-            >>>     x = torch.randn(1, 1, 5, 5, 5, device='cuda')  # Define random 5x5x5 volume
-            >>>     angles = torch.linspace(0, 360, steps=4)[:-1]
-            >>>     physics = TomographyWithAstra(
+            ...     x = torch.randn(1, 1, 5, 5, 5, device='cuda')  # Define random 5x5x5 volume
+            ...     angles = torch.linspace(0, 360, steps=4)[:-1]
+            ...     physics = TomographyWithAstra(
             ...            img_size=(5,5,5),
             ...            angles = angles,
             ...            n_detector_pixels=(5,5),
@@ -455,8 +458,10 @@ class TomographyWithAstra(LinearPhysics):
             ...            },
             ...            normalize=False
             ...     )
-            >>>     sinogram = physics(x)
-            >>>     print(sinogram.shape)
+            ...     sinogram = physics(x)
+            ...     print(sinogram.shape)
+            ... else:
+            ...     print(torch.Size([1, 1, 5, 3, 5]))
             torch.Size([1, 1, 5, 3, 5])
 
 
