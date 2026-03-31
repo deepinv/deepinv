@@ -263,9 +263,16 @@ Some predefined optimizers are provided:
        | :math:`u_{k} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})`
        | :math:`x_{k+1} = \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)`
 
+<<<<<<< HEAD
    * - :class:`deepinv.optim.SIRT`
      - | :math:`x_{k+1} = x_k + \tau V (A^{\top} W (y - A x_k))`
      
+=======
+   * - :class:`deepinv.optim.MLEM`
+     - | :math:`x_{k+1} = \frac{x_k}{A^{\top} 1} \odot A^{\top} \frac{y}{A x_k}`
+
+
+>>>>>>> 362330ed6af04fb4e8f7ba323de2207e57d8a3d3
 .. _initialization:
     
 Initialization

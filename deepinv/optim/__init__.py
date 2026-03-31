@@ -26,6 +26,7 @@ from .optimizers import (
     FISTA,
     PMD,
     SIRT,
+    MLEM,
 )
 from .fixed_point import FixedPoint
 from .prior import (
@@ -55,6 +56,7 @@ from .optim_iterators import (
     MDIteration,
     SMIteration,
     SIRTIteration,
+    MLEMIteration,
 )
 from .epll import EPLL
 from .dpir import DPIR

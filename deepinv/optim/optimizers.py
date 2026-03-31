@@ -16,6 +16,7 @@ from deepinv.optim.optim_iterators import (
     DRSIteration,
     GDIteration,
     MDIteration,
+    MLEMIteration,
     SIRTIteration,
 )
 from deepinv.optim.fixed_point import FixedPoint
@@ -2222,6 +2223,128 @@ class PDCP(BaseOptim):
             thres_conv=thres_conv,
             early_stop=early_stop,
             custom_metrics=custom_metrics,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            **kwargs,
+        )
+
+
+class MLEM(BaseOptim):
+    r"""
+    Maximum Likelihood Expectation Maximization (MLEM) algorithm for Poisson inverse problems.
+
+    This algorithm :footcite:t:`sheppMaximumLikelihoodReconstruction1982` was originally proposed for deconvolution by Richardson and Lucy :footcite:t:`richardsonBayesianBasedIterativeMethod1972, lucyIterativeTechniqueRectification1974` and was later
+    adapted to tomographic reconstruction by Shepp and Vardi :footcite:t:`sheppMaximumLikelihoodReconstruction1982`.
+    It is also widely used in Non-Negative Matrix Factorization (NMF) problems where it is known as the Lee and Seung multiplicative update algorithm :footcite:t:`leeSeungAlgorithmsNonNegativeMatrix2000`.
+
+    The algorithm is traditionally derived from the Expectation-Maximization (EM) framework with specific latent variables.
+    Alternatively, it can be seen as a Majorization-Minimization (MM) algorithm where each iteration consists in constructing a surrogate function that majorizes the Poisson negative log-likelihood and then minimizing this surrogate function.
+    At each iteration, the algorithm performs a multiplicative update of the form:
+
+    .. math::
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1}} \odot A^T \left(\frac{y}{A x_k}\right)
+
+    where :math:`A` is the forward operator, :math:`y` is the observed data,
+    :math:`\mathbf{1}` is a tensor of ones, and :math:`\odot` denotes element-wise multiplication.
+
+    The algorithm can be used with a prior term (e.g., for MAP-EM variants) or without
+    (standard MLEM). See :class:`deepinv.optim.optim_iterators.MLEMIteration` for the details of the iteration.
+
+    The MLEM algorithm minimizes the Poisson negative log-likelihood data-fidelity. The ``data_fidelity`` argument
+    can be used to measure progress during optimization (e.g., for early stopping or metrics computation), but it is
+    not used as the objective function to minimize. Only the Poisson negative log-likelihood is minimized regardless
+    of the provided ``data_fidelity`` argument.
+
+    A regularization can be included via the ``prior`` argument, which will lead to a MAP-EM variant of the MLEM algorithm.
+    Our implementation is based on the One-Step-Late (OSL) heuristic of Green :footcite:t:`greenUseEmAlgorithm1990`.
+    It leads to the following update rule:
+
+    .. math::
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \nabla g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
+
+    where :math:`g` is the prior function and :math:`\lambda` is the regularization parameter.
+
+    In the case of a non-differentiable prior, the gradient term :math:`\nabla g(x_k)` is replaced by a subgradient:
+
+    .. math::
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \partial g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
+
+    where :math:`\partial g(x_k)` is a subgradient of :math:`g` at point :math:`x_k`.
+
+    :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity term.
+        If ``None``, the data fidelity term is not used. Default: ``None``.
+    :param deepinv.optim.Prior, list[Prior] prior: prior term. If ``None``, no prior is used.
+        Default: ``None``.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float g_param: parameter for the prior. Default: ``None``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
+    :param int max_iter: maximum number of iterations. Default: ``100``.
+    :param str crit_conv: convergence criterion, either ``"residual"`` or ``"cost"``.
+        Default: ``"residual"``.
+    :param float thres_conv: convergence threshold. Default: ``1e-5``.
+    :param bool early_stop: if ``True``, the algorithm stops when the convergence criterion is met.
+        Default: ``False``.
+    :param dict custom_metrics: dictionary of custom metrics to compute at each iteration.
+        Default: ``None``.
+    :param Callable custom_init: custom initialization function. Default: ``None``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param Callable cost_fn: Custom user input cost function.
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
+    :param dict params_algo: optionally, directly provide the ADMM parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `beta`.
+    """
+
+    def __init__(
+        self,
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        **kwargs,
+    ):
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "g_param": g_param,
+            }
+        super(MLEM, self).__init__(
+            MLEMIteration(cost_fn=cost_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
             **kwargs,

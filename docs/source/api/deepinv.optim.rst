@@ -34,7 +34,11 @@ Base Class
    deepinv.optim.MD
    deepinv.optim.PMD
    deepinv.optim.PDCP
+<<<<<<< HEAD
    deepinv.optim.SIRT
+=======
+   deepinv.optim.MLEM
+>>>>>>> 362330ed6af04fb4e8f7ba323de2207e57d8a3d3
 
 
 Potentials
@@ -160,6 +164,7 @@ Iterators
    deepinv.optim.optim_iterators.MDIteration
    deepinv.optim.optim_iterators.PMDIteration
    deepinv.optim.optim_iterators.SMIteration
+   deepinv.optim.optim_iterators.MLEMIteration
    deepinv.optim.optim_iterators.SIRTIteration
 
 
