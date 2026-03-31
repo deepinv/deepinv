@@ -755,6 +755,7 @@ class SpaceVaryingBlur(LinearPhysics):
     :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
+    :param bool use_fft: whether to use FFT-based convolutions. If ``True``, it uses FFT-based convolutions which can be faster for large kernels.
     :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     |sep|
@@ -785,6 +786,7 @@ class SpaceVaryingBlur(LinearPhysics):
         filters: Tensor = None,
         multipliers: Tensor = None,
         padding: str = "valid",
+        use_fft: bool = False,
         device: torch.device | str = "cpu",
         **kwargs,
     ):
@@ -793,7 +795,7 @@ class SpaceVaryingBlur(LinearPhysics):
         self.register_buffer("filters", filters)
         self.register_buffer("multipliers", multipliers)
         self.padding = padding
-
+        self.use_fft = use_fft
         self.to(device)
 
     def A(
@@ -813,7 +815,9 @@ class SpaceVaryingBlur(LinearPhysics):
         :param str device: cpu or cuda
         """
         self.update_parameters(filters, multipliers, padding, **kwargs)
-        return dF.product_convolution2d(x, self.multipliers, self.filters, self.padding)
+        return dF.product_convolution2d(
+            x, self.multipliers, self.filters, self.padding, use_fft=self.use_fft
+        )
 
     def A_adjoint(
         self,
@@ -839,7 +843,7 @@ class SpaceVaryingBlur(LinearPhysics):
             filters=filters, multipliers=multipliers, padding=padding, **kwargs
         )
         return dF.product_convolution2d_adjoint(
-            y, self.multipliers, self.filters, self.padding
+            y, self.multipliers, self.filters, self.padding, use_fft=self.use_fft
         )
 
     def update_parameters(
