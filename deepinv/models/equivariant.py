@@ -96,6 +96,30 @@ class EquivariantDenoiser(Denoiser):
 
 
 class EquivariantReconstructor(Reconstructor):
+    r"""
+    Equivariant reconstructor
+
+    Make a base reconstructor equivariant by averaging over the transformations
+
+    An equivariant reconstructor is a reconstructor that satisfies :footcite:p:`sechaud26Equivariant`
+
+    .. math::
+
+        f(y, A T_g) = T_g^{-1} f(y, A)
+
+    for all :math:`g \in \mathcal{G}` where :math:`T_g` is a group action.
+
+    Any reconstructor :math:`\tilde{f}` can be turned into an equivariant reconstructor by averaging over the transformations:
+
+    .. math::
+
+        f(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{f}(y, A T_g)
+
+    :param Reconstructor model: base reconstructor to be made equivariant.
+    :param Transform transform: geometric transformation.
+    :param Transform eval_transform: transformations to be used in evaluation mode. It can be used to have true Reynolds averaging at evaluation time and efficient Monte Carlo estimation at training time. If set to `None`, evaluation transformations are the same as training transformations.
+    """
+
     def __init__(
         self,
         model: Reconstructor,
@@ -111,7 +135,18 @@ class EquivariantReconstructor(Reconstructor):
         self.transform = transform
         self.eval_transform = eval_transform
 
-    def forward(self, y, physics, *reconstructor_args, **reconstructor_kwargs):
+    def forward(
+        self, y: torch.Tensor, physics, *reconstructor_args, **reconstructor_kwargs
+    ) -> torch.Tensor:
+        r"""
+        Apply the reconstructor to an input
+
+        :param torch.Tensor y: input measurement.
+        :param deepinv.physics.Physics physics: physics operator associated with the measurements.
+        :param \*reconstructor_args: args for reconstructor function.
+        :param \**reconstructor_kwargs: kwargs for reconstructor function.
+        :return: (:class:`torch.Tensor`) output of the reconstructor.
+        """
         # Different transforms can be used for training and evaluation to allow
         # for true Reynolds averaging at evaluation time, and Monte Carlo
         # estimation at training time.

@@ -27,6 +27,7 @@ class VirtualLinearPhysics(LinearPhysics):
     :param Transform transform: transformation :math:`T_g`
     :param dict g_params: parameters of the transformation :math:`g`.
     """
+
     def __init__(self, *, physics: LinearPhysics, transform: Transform, g_params: dict):
         super().__init__()
         self.physics = physics
