@@ -497,7 +497,9 @@ class DiffPIR(Reconstructor):
 
                     eps = (
                         x - self.sqrt_alphas_cumprod[t_i] * x0
-                    ) / self.sqrt_1m_alphas_cumprod[t_i]  # effective noise
+                    ) / self.sqrt_1m_alphas_cumprod[
+                        t_i
+                    ]  # effective noise
 
                     x = (
                         self.sqrt_alphas_cumprod[t_im1] * x0
