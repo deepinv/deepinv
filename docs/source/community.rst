@@ -11,6 +11,10 @@ and we welcome contributions from the community. :ref:`Check out how you can con
 .. note::
    Attending **MICCAI 2026**? Find details of the :ref:`DeepInverse tutorial at MICCAI here <miccai2026>`.
 
+.. toctree::
+   :hidden:
+   miccai-2026
+
 .. image:: figures/hackathon_2025.jpg
    :width: 100%
    :alt: deepinverse Hackathon 2025 at CIRM, Marseille, France
@@ -25,6 +29,7 @@ Future events
 
 - Oct 4-8, 2026: Hands-on tutorial at `International Conference on Medical Image Computing and Computer Assisted Intervention (MICCAI) <https://conferences.miccai.org/2026/en/default.asp>`_, Abu Dhabi, UAE. :ref:`Find the tutorial page here <miccai2026>`
 - June 17-19, 2026: Keynote lecture at `Grenoble AI for Physical Sciences Workshop <https://indico.math.cnrs.fr/event/15724/>`_ in Grenoble, France.
+- June 4-10, 2026: Summer school tutorial at `Mathematics and Machine Learning for Image Analysis <https://site.unibo.it/mml-imaging/en>`_ in Bologna, Italy.
 - Apr 7, 2026: Talk at `PyTorch Conference Europe <https://events.linuxfoundation.org/pytorch-conference-europe/>`_ in Paris, France.
 
 Past events

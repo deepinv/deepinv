@@ -19,7 +19,6 @@ DeepInverse: a Python library for imaging with deep learning
    contributing
    community
    changelog
-   miccai-2026
 
 DeepInverse is an open-source PyTorch-based library for solving imaging inverse problems with deep learning. ``deepinv`` accelerates deep learning research across imaging domains, enhances research reproducibility via a common modular framework of problems and algorithms, and lowers the entrance bar to new practitioners.
 
