@@ -234,7 +234,7 @@ class DiffPIR(Reconstructor):
     for :math:`t` decreasing from :math:`T` to :math:`1`:
 
      .. math::
-             \begin{equation*}
+
              \begin{aligned}
              x_{0}^{t} &= D_{\theta}(x_t, \frac{\sqrt{1-\overline{\alpha}_t}}{\sqrt{\overline{\alpha}_t}}) \\
              \widehat{x}_{0}^{t} &= \operatorname{prox}_{2 f(y, \cdot) /{\rho_t}}(x_{0}^{t}) \\
@@ -244,7 +244,6 @@ class DiffPIR(Reconstructor):
              x_{t-1} &= \sqrt{\overline{\alpha}_t} \,\, \widehat{x}_{0}^t + \sqrt{1-\overline{\alpha}_t}
              \left(\sqrt{1-\zeta} \,\, \widehat{\varepsilon} + \sqrt{\zeta} \,\, \varepsilon_t\right),
              \end{aligned}
-             \end{equation*}
 
     where :math:`D_\theta(\cdot,\sigma)` is a Gaussian denoiser network with noise level :math:`\sigma`
     and :math:`f(y, \cdot)` is the data fidelity
@@ -530,25 +529,27 @@ class DPS(PosteriorDiffusion):
 
     .. math::
 
-            \widehat{\mathbf{x}}_{t} &= D_{\theta}(\mathbf{x}_t, \sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t})
-            \\
-            \mathbf{g}_t &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{t}(\mathbf{x}_t) | \mathbf{y} ) \\
-            \mathbf{\varepsilon}_t &= \mathcal{N}(0, \mathbf{I}) \\
-            \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t
-            + b_t \, \, \widehat{\mathbf{x}}_t
-            + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t + \mathbf{g}_t,
-
+            \begin{aligned}
+                \widehat{\mathbf{x}}_{t} &= D_{\theta}(\mathbf{x}_t, \sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t})\\
+                \mathbf{g}_t &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{t}(\mathbf{x}_t) | \mathbf{y} ) \\
+                \mathbf{\varepsilon}_t &= \mathcal{N}(0, \mathbf{I}) \\
+                \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t + b_t \, \, \widehat{\mathbf{x}}_t
+                + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t + \mathbf{g}_t,
+            \end{aligned}
+            
     where :math:`\denoiser{\cdot}{\sigma}` is a denoising network for noise level :math:`\sigma`,
     :math:`\eta` is a hyperparameter, and the constants :math:`\tilde{\sigma}_t, a_t, b_t` are defined as
 
     .. math::
-    
-              \tilde{\sigma}_t &= \eta \sqrt{ (1 - \frac{\overline{\alpha}_t}{\overline{\alpha}_{t-1}})
-              \frac{1 - \overline{\alpha}_{t-1}}{1 - \overline{\alpha}_t}} \\
-              a_t &= \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}/\sqrt{1-\overline{\alpha}_t} \\
-              b_t &= \sqrt{\overline{\alpha}_{t-1}} - \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}
-              \frac{\sqrt{\overline{\alpha}_{t}}}{\sqrt{1 - \overline{\alpha}_{t}}}.
-
+             
+            \begin{aligned}
+                \tilde{\sigma}_t &= \eta \sqrt{ (1 - \frac{\overline{\alpha}_t}{\overline{\alpha}_{t-1}})
+                \frac{1 - \overline{\alpha}_{t-1}}{1 - \overline{\alpha}_t}} \\
+                a_t &= \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}/\sqrt{1-\overline{\alpha}_t} \\
+                b_t &= \sqrt{\overline{\alpha}_{t-1}} - \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}
+                \frac{\sqrt{\overline{\alpha}_{t}}}{\sqrt{1 - \overline{\alpha}_{t}}}.
+            \end{aligned}
+            
     :param deepinv.models.Denoiser denoiser: a denoiser network that can handle different noise levels
     :param int num_steps: the number of diffusion iterations to run the algorithm (default: 1000)
     :param float eta: DDIM hyperparameter which controls the stochasticity
