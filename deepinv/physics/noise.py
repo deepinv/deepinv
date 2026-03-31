@@ -545,18 +545,16 @@ class PoissonNoise(NoiseModel):
         if self.clip_positive:
             z = torch.clip(x / gain, min=0.0)
         else:
-            # NOTE: PyTorch operations are generally run asynchronously on CUDA
-            # devices and the underlying CUDA kernel under
-            # torch.poisson typically raises a CUDA-level assertion error
-            # when its input has negative entries. Those errors can't be
-            # recovered from using Python's exception system due to their
-            # asynchronous nature. For this reason we add a manual check if the
-            # RNG is on a CUDA device.
-            if self.rng is not None and self.rng.device.type == "cuda":
-                assert gain > 0, "Gain must be positive"
-                assert torch.all(x >= 0), "Input tensor must be non-negative"
-
             z = x / gain
+
+            if torch.any(z < 0):
+                raise ValueError(
+                    "PoissonNoise received negative input values. This can happen "
+                    "when using FFT-based operators (e.g. BlurFFT) due to numerical "
+                    "precision errors. Set `clip_positive=True` in PoissonNoise to "
+                    "clamp negative values before applying Poisson noise, e.g.:\n"
+                    "  noise_model = PoissonNoise(gain=gain, clip_positive=True)"
+                )
 
         y = torch.poisson(z, generator=self.rng)
         if self.normalize:
