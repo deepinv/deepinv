@@ -84,7 +84,7 @@ denoiser = dinv.models.DRUNet(device=device)
 #
 # where we use the reparametrization trick.
 #
-#  In continuous time, this schedule corresponds to the Variance Preserving (VP) SDE, see :class:`deepinv.sampling.VariancePreservingSDE`.
+#  In continuous time, this schedule corresponds to the Variance Preserving (VP) SDE, see :class:`deepinv.sampling.VariancePreservingDiffusion`.
 
 # %%
 # The DPS algorithm
@@ -179,7 +179,7 @@ plot(
 #       -\frac{\|\mathbf{y} - A\widehat{\mathbf{x}}_0((\mathbf{x_t})\|_2^2}{2\sigma_y^2}.
 #
 # Moreover, taking the gradient w.r.t. :math:`\mathbf{x}_t` can be performed through automatic differentiation.
-# We provide an implementation of this approximation in :class:`deepinv.sampling.DPSDataFidelity`, which is a subclass of :class:`deepinv.optim.data_fidelity.NoisyDataFidelity`.
+# We provide an implementation of this approximation in :class:`deepinv.sampling.DPSDataFidelity`, which is a subclass of :class:`deepinv.sampling.NoisyDataFidelity`.
 #
 # .. note::
 #           The DPS algorithm assumes that the images are in the range [-1, 1], whereas standard denoisers

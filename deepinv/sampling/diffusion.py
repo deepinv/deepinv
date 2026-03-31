@@ -164,7 +164,7 @@ class DDRM(Reconstructor):
             else:
                 sigma_noise = 0.01
 
-            if not isinstance(physics, dinv.physics.Denoising):
+            if isinstance(physics, dinv.physics.Denoising):
                 mask = torch.ones_like(
                     y
                 )  # TODO: fix for economic SVD decompositions (eg. Decolorize)

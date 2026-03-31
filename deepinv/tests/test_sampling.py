@@ -168,7 +168,7 @@ def test_algo_inpaint(name_algo, device):
             model, likelihood, max_iter=20, verbose=False, device=device, sigma=0.01
         )
     elif name_algo == "DPS":
-        algorithm = DPS(model, likelihood, max_iter=100, verbose=False, device=device)
+        algorithm = DPS(model, num_steps=100, verbose=False, device=device)
     elif name_algo == "DDRM":
         algorithm = DDRM(model)
 
