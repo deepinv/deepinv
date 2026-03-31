@@ -1,3 +1,5 @@
+:orphan:
+
 .. _miccai2026:
 
 DeepInverse Tutorial @ MICCAI 2026
