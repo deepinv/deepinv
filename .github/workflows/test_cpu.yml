@@ -44,6 +44,12 @@ jobs:
             testmon-cpu-main-${{ matrix.os }}
             testmon-cpu-main-${{ matrix.os }}
 
+      - name: Support long paths
+        if: runner.os == 'Windows'
+        run: |
+          git config --system core.longpaths true
+          reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f
+
       - name: Test with pytest
         run: |
           pixi run -e ${{ matrix.environment }} pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml --junitxml=junit.xml --testmon --doctest-modules 
