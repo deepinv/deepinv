@@ -139,10 +139,10 @@ deepinv = { path = ".", editable = true }
 
 [tool.pixi.environments]
 default = { solve-group = "default" }
-test = { features = ["test"], solve-group = "default" }
-docs = { features = ["doc", "dataset", "denoisers", "physics", "training"], solve-group = "default" }
-doctest = { features = ["doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "default" }
-full = { features = ["test", "dataset", "denoisers", "physics", "training"], solve-group = "default" }
+test = { features = ["test"]}
+docs = { features = ["doc", "dataset", "denoisers", "physics", "training"]}
+doctest = { features = ["doc", "test", "dataset", "denoisers", "physics", "training"]}
+full = { features = ["test", "dataset", "denoisers", "physics", "training"]}
 
 ##############################################
 # Pytest configuration and coverage reporting
