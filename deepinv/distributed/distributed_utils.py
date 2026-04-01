@@ -10,6 +10,55 @@ if TYPE_CHECKING:
     from deepinv.distributed.distrib_framework import DistributedContext
 
 
+def _any_rank_requires_grad(
+    ctx: DistributedContext, local_tensors: Sequence[torch.Tensor]
+) -> bool:
+    """Return True if any rank has a tensor participating in autograd."""
+    local_has_grad = any(getattr(t, "requires_grad", False) for t in local_tensors)
+    if not ctx.use_dist:
+        return local_has_grad
+    flag = torch.tensor([1 if local_has_grad else 0], device=ctx.device, dtype=torch.long)
+    global_flag = ctx.all_reduce(flag, op=dist.ReduceOp.SUM)
+    return bool(int(global_flag.item()) > 0)
+
+
+def _ensure_functional_collective_input(
+    ctx: DistributedContext,
+    collective_input: torch.Tensor,
+    local_tensors: Sequence[torch.Tensor],
+) -> torch.Tensor:
+    """
+    Force functional collectives on all ranks when any rank needs autograd support.
+    """
+    if _any_rank_requires_grad(ctx, local_tensors) and not collective_input.requires_grad:
+        collective_input = collective_input.requires_grad_()
+    return collective_input
+
+
+def _anchor_output_to_input_graph(
+    out: TensorList | torch.Tensor,
+    anchor_tensor: torch.Tensor | None,
+    has_local_items: bool,
+) -> TensorList | torch.Tensor:
+    """
+    On empty ranks, add a zero-valued dependency on `x` so backward hooks run on all ranks.
+    """
+    if (
+        has_local_items
+        or not isinstance(anchor_tensor, torch.Tensor)
+        or not anchor_tensor.requires_grad
+    ):
+        return out
+
+    anchor = 0.0 * anchor_tensor.reshape(-1)[0]
+    if isinstance(out, torch.Tensor):
+        return out + anchor
+
+    if len(out) > 0:
+        out[0] = out[0] + anchor
+    return out
+
+
 def map_reduce_gather(
     ctx: DistributedContext,
     local_items: Sequence[Any],
@@ -21,6 +70,7 @@ def map_reduce_gather(
     dtype: torch.dtype = torch.float32,
     gather: bool = True,
     reduce_op: str | None = None,
+    graph_anchor: torch.Tensor | None = None,
     **kwargs,
 ) -> TensorList | list[torch.Tensor] | torch.Tensor:
     r"""
@@ -29,6 +79,7 @@ def map_reduce_gather(
     Iterates over local items and input data, applies a local operation, and then
     computes the result globally using reduction or gathering.
     """
+    anchor_tensor = graph_anchor if graph_anchor is not None else x
 
     # Handle inputs
     if isinstance(x, (list, tuple)):
@@ -45,13 +96,16 @@ def map_reduce_gather(
 
     if reduce_op is not None:
         # Map-Reduce path
-        return reduce_local_results(
+        reduced = reduce_local_results(
             ctx,
             local_results,
             reduce_op=reduce_op,
             reduce_globally=gather,
             dtype=dtype,
             num_operators=num_operators,
+        )
+        return _anchor_output_to_input_graph(
+            reduced, anchor_tensor, has_local_items=len(local_items) > 0
         )
 
     if not gather:
@@ -90,20 +144,9 @@ def map_reduce_gather(
 
 
     out = TensorList([gathered[i] for i in range(num_operators)])
-    
-    # When world_size > num_operators, some ranks will have "dummy" gathered 
-    # results, since they have no local operators to contribute. These dummy
-    # results are filtered-out to maintain consistency with the true mathematical
-    # operator.
-    # Nevertheless, to keep collectives aligned and ensure these ranks stay in 
-    # the autograd graph (if needed), we anchor the dummy result to the 
-    # graph by using a zero-contribution from it. 
-    if len(gathered) > num_operators:
-        for idx in range(num_operators, len(gathered)):
-            if isinstance(gathered[idx], torch.Tensor):
-                out = out + gathered[idx].sum() * 0.0
-
-    return out
+    return _anchor_output_to_input_graph(
+        out, anchor_tensor, has_local_items=len(local_items) > 0
+    )
 
 def single_process_fallback(
     local_indices: list[int],
@@ -186,17 +229,7 @@ def reduce_local_results(
                     local_val = torch.zeros(
                         target_shape, device=ctx.device, dtype=local_val.dtype
                     )
-                    print(f"    [rank={ctx.rank}] Resized local zero-scalar to shape {local_val.shape} for reduction.")
-
-    # Ensure functional collectives are used consistently:
-    # if any local result requires grad, all local_results must require grad, so
-    # that the graph is evenly preserved across ranks. This is required to ensure the autograd graph is preserved correctly across ranks, even if some ranks have no local results (empty local_results).
-    if ctx.use_dist:
-        local_has_grad = any(getattr(t, "requires_grad", False) for t in local_results)
-        flag = torch.tensor(1 if local_has_grad else 0, device=ctx.device, dtype=torch.long)
-        global_has_grad = bool(int(ctx.all_reduce(flag, op=dist.ReduceOp.SUM).item()))
-        if global_has_grad and not local_val.requires_grad:
-            local_val = local_val.requires_grad_()
+    local_val = _ensure_functional_collective_input(ctx, local_val, local_results)
 
     if not reduce_globally:
         return local_val
@@ -462,16 +495,9 @@ def gather_tensorlist_concatenated(
     # Ensure contiguous memory layout (for Gloo backend)
     local_concat_padded = local_concat_padded.contiguous()
 
-    # Ensure functional collectives are used consistently:
-    # if any local result requires grad, all local_results must require grad, so
-    # that the graph is evenly preserved across ranks. This is required to ensure the autograd graph is preserved correctly across ranks, even if some ranks have no local results (empty local_results).
-    if ctx.use_dist:
-        local_has_grad = any(getattr(t, "requires_grad", False) for t in local_results)
-        flag = torch.tensor([1 if local_has_grad else 0], device=ctx.device, dtype=torch.long)
-        global_flag = ctx.all_reduce(flag, op=dist.ReduceOp.SUM)
-        global_has_grad = bool(int(global_flag.item()) > 0)
-        if global_has_grad and not local_concat_padded.requires_grad:
-            local_concat_padded = local_concat_padded.requires_grad_()
+    local_concat_padded = _ensure_functional_collective_input(
+        ctx, local_concat_padded, local_results
+    )
 
     # All-gather and return stacked tensor [world_size, max_local_count, max_numel]
     tensor_lists = ctx.all_gather(local_concat_padded)

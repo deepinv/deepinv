@@ -1297,6 +1297,7 @@ class DistributedDataFidelity(torch.nn.Module):
             num_operators=physics.num_operators,
             gather=gather,
             reduce_op=self.reduction_mode,
+            graph_anchor=x,
             **kwargs,
         )
 
