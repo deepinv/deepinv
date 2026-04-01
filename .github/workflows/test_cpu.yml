@@ -30,12 +30,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Support long paths
-        if: runner.os == 'Windows'
-        run: |
-          git config --system core.longpaths true
-          reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f
-
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
