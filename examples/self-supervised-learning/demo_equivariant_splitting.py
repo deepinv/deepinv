@@ -10,8 +10,6 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import os
-import hashlib
-from warnings import warn
 
 import deepinv as dinv
 
@@ -50,7 +48,7 @@ physics = dinv.physics.Inpainting(
 # Create the imaging dataset
 # --------------------------
 #
-# Using the forward model and a base dataset, here :class:`deepinv.datasets.Urban100HR`, we generate an imaging dataset that we further split into a 80 training samples, 10 evaluation samples and 10 test samples.
+# Using the forward model and a base dataset, here :class:`deepinv.datasets.Urban100HR`, we generate an imaging dataset that we further split into a 80 training samples, 19 evaluation samples and 1 test sample.
 #
 
 transform = transforms.Compose(
@@ -64,7 +62,7 @@ dataset = dinv.datasets.Urban100HR(
     root=dinv.utils.get_data_home() / "Urban100", transform=transform, download=True
 )
 train_dataset, eval_dataset, test_dataset = torch.utils.data.random_split(
-    dataset, [80, 10, 10], generator=torch.Generator().manual_seed(0)
+    dataset, [80, 19, 1], generator=torch.Generator().manual_seed(0)
 )
 
 batch_size = 4
@@ -73,7 +71,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 dataset_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
     val_dataset=eval_dataset,
-    test_dataset=eval_dataset,
+    test_dataset=test_dataset,
     physics=physics,
     device=device,
     save_dir="Urban100",
@@ -197,41 +195,34 @@ model = es_loss.adapt_model(model)
 #
 
 # Cached checkpoint after training to avoid doing the computation over and over
-cached_checkpoint = {
-    "url": "https://huggingface.co/jscanvic/deepinv/resolve/main/ES/demo/ckp_best.pth.tar",
-    "checksum": "149851842625cfde25d59ff645b635ff75a9cf57835ef1bb320b43730e9139d1",
-}
+cached_checkpoint = (
+    "https://huggingface.co/jscanvic/deepinv/resolve/main/ES/demo/ckp_best.pth.tar"
+)
 
 if cached_checkpoint is None:
     epochs = 20
     ckpt_pretrained = None
 else:
     epochs = 0
-    url, checksum = cached_checkpoint["url"], cached_checkpoint["checksum"]
     ckpt_pretrained = (
         dinv.utils.get_data_home() / "examples" / "ES" / "ckp_best.pth.tar"
     )
     os.makedirs(ckpt_pretrained.parent, exist_ok=True)
 
-    # Run an integrity check to determine if the file should be re-downloaded
-    if ckpt_pretrained.exists():
-        hash_sha256 = hashlib.sha256()
-        with open(ckpt_pretrained, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                hash_sha256.update(chunk)
-        if hash_sha256.hexdigest() != checksum:
-            warn(
-                f"Checksum mismatch for {ckpt_pretrained}. Re-downloading the file.",
-                UserWarning,
-            )
-            download = True
-        else:
-            download = False
+    # Download if not found
+    if not ckpt_pretrained.exists():
+        torch.hub.download_url_to_file(cached_checkpoint, ckpt_pretrained)
     else:
-        download = True
+        print(f"Checkpoint found at {ckpt_pretrained}, skipping download.")
 
-    if download:
-        torch.hub.download_url_to_file(url, ckpt_pretrained, hash_prefix=checksum)
+    # Ignore RNG states from the checkpoint
+    ckpt = torch.load(ckpt_pretrained, map_location=device, weights_only=True)
+    state_dict = ckpt["state_dict"]
+    current_state_dict = model.state_dict()
+    for key in list(state_dict.keys()):
+        if "initial_random_state" in key:
+            state_dict[key] = current_state_dict[key]
+    torch.save(ckpt, ckpt_pretrained)
 
 trainer = dinv.Trainer(
     model,
