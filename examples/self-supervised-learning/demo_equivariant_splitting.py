@@ -106,7 +106,10 @@ psnr_fn = dinv.metric.PSNR()
 psnr_y = psnr_fn(y, x).item()
 
 dinv.utils.plot(
-    [y, x], ["Measurements", "Ground truth"], subtitles=[f"PSNR={psnr_y:.1f}dB", ""]
+    [y, x],
+    ["Measurements", "Ground truth"],
+    subtitles=[f"PSNR={psnr_y:.1f}dB", ""],
+    fontsize=10,
 )
 
 # %%
@@ -131,6 +134,7 @@ dinv.utils.plot(
     [y, x_pretrained, x],
     ["Measurement", "RAM (Pre-trained)", "Ground truth"],
     subtitles=[f"PSNR={psnr_y:.1f}dB", f"PSNR={psnr_pretrained:.1f}dB", ""],
+    fontsize=10,
 )
 
 # %%
@@ -282,6 +286,7 @@ dinv.utils.plot(
         f"PSNR={psnr:.1f}dB",
         "",
     ],
+    fontsize=10,
 )
 
 # %%
