@@ -188,12 +188,21 @@ model = es_loss.adapt_model(model)
 #
 # Starting from the pre-trained model, we fine-tune it on the imaging dataset using the equivariant splitting loss:
 #
+# .. note:
+#
+#    We skip the training and directly load the cached checkpoint to avoid making the documentation longer to build but you can get the same results by running the training locally.
+#
+
+# Cached checkpoint after training to avoid doing the computation over and over
+cached_checkpoint = "https://huggingface.co/jscanvic/deepinv/resolve/main/ES/demo/ckp_best.pth.tar"
+
+epochs = 20 if cached_checkpoint is None else 0
 
 trainer = dinv.Trainer(
     model,
     physics=physics,
-    epochs=20,
-    ckp_interval=20,
+    epochs=epochs,
+    ckp_interval=epochs,
     scheduler=None,
     losses=[es_loss],
     optimizer=torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=1e-8),
@@ -213,7 +222,15 @@ trainer = dinv.Trainer(
 )
 
 trainer.train()
-trainer.load_best_model()
+if cached_checkpoint is None:
+    trainer.load_best_model()
+else:
+    cached_checkpoint_path = dinv.utils.get_data_home() / "examples" / "ES" / "ckp_best.pth.tar"
+    torch.hub.download_url_to_file(
+        cached_checkpoint,
+        cached_checkpoint_path,
+    )
+    trainer.load_model(cached_checkpoint_path)
 
 # %%
 # Evaluation of the trained model
