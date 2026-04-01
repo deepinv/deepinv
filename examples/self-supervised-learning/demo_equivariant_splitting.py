@@ -39,7 +39,9 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 channels = 3
 img_size = 64
-physics = dinv.physics.Inpainting(mask=0.7, img_size=(channels, img_size, img_size), device=device)
+physics = dinv.physics.Inpainting(
+    mask=0.7, img_size=(channels, img_size, img_size), device=device
+)
 
 # %%
 # Create the imaging dataset
@@ -48,10 +50,12 @@ physics = dinv.physics.Inpainting(mask=0.7, img_size=(channels, img_size, img_si
 # Using the forward model and a base dataset, here :class:`deepinv.datasets.Urban100HR`, we generate an imaging dataset that we further split into a 80 training samples, 10 evaluation samples and 10 test samples.
 #
 
-transform = transforms.Compose([
-    transforms.Resize(img_size),
-    transforms.CenterCrop(img_size),
-])
+transform = transforms.Compose(
+    [
+        transforms.Resize(img_size),
+        transforms.CenterCrop(img_size),
+    ]
+)
 
 dataset = dinv.datasets.Urban100HR(root=".", transform=transform, download=True)
 train_dataset, eval_dataset, test_dataset = torch.utils.data.random_split(
@@ -97,7 +101,9 @@ x, y = x.unsqueeze(0), y.unsqueeze(0)
 psnr_fn = dinv.metric.PSNR()
 psnr_y = psnr_fn(y, x)
 
-dinv.utils.plot([ y, x ], ["Measurements", "Ground truth"], subtitles=[f"PSNR={psnr_y:.1f}dB", ""])
+dinv.utils.plot(
+    [y, x], ["Measurements", "Ground truth"], subtitles=[f"PSNR={psnr_y:.1f}dB", ""]
+)
 
 # %%
 # Create the base model
@@ -116,7 +122,7 @@ x_pretrained = model_no_learning(y, physics)
 psnr_pretrained = psnr_fn(x_pretrained, x)
 
 dinv.utils.plot(
-    [ y, x_pretrained, x ],
+    [y, x_pretrained, x],
     ["Measurement", "RAM (Pre-trained)", "Ground truth"],
     subtitles=[f"PSNR={psnr_y:.1f}dB", f"PSNR={psnr_pretrained:.1f}dB", ""],
 )
@@ -184,11 +190,13 @@ trainer = dinv.Trainer(
     epochs=10,
     ckp_interval=10,
     scheduler=None,
-    losses=losses,
+    losses=[es_loss],
     optimizer=torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=1e-8),
     train_dataloader=train_dataloader,
     eval_dataloader=eval_dataloader,
-    metrics=[dinv.metric.PSNR()],  # Supervised oracle metric for monitoring, not used for training and early stopping
+    metrics=[
+        dinv.metric.PSNR()
+    ],  # Supervised oracle metric for monitoring, not used for training and early stopping
     plot_images=False,
     device=device,
     verbose=True,
@@ -226,9 +234,14 @@ psnr = psnr_fn(x_hat, x)
 psnr_pretrained = psnr_fn(x_pretrained, x)
 
 dinv.utils.plot(
-    [ y, x_pretrained, x_hat, x ],
+    [y, x_pretrained, x_hat, x],
     ["Measurement", "RAM (Pre-trained)", "Equivariant Splitting", "Ground truth"],
-    subtitles=[f"PSNR={psnr_y:.1f}dB", f"PSNR={psnr_pretrained:.1f}dB", f"PSNR={psnr:.1f}dB", ""],
+    subtitles=[
+        f"PSNR={psnr_y:.1f}dB",
+        f"PSNR={psnr_pretrained:.1f}dB",
+        f"PSNR={psnr:.1f}dB",
+        "",
+    ],
 )
 
 # %%
