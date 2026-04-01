@@ -21,14 +21,17 @@ jobs:
             environment: "full"
             name: "ubuntu all optional dependencies"
             doctest: "--doctest-modules"
+            pytest_args: "-n 2 --dist=loadgroup"
           - os: ubuntu-latest
             environment: "test"
             name: "ubuntu no optional dependencies"
             doctest: ""
+            pytest_args: "-n 2 --dist=loadgroup"
           - os: windows-latest
             environment: "full"
             name: "windows all optional dependencies"
             doctest: "--doctest-modules"
+            pytest_args: "-n 0"
     env:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
@@ -58,7 +61,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pixi run -e ${{ matrix.environment }} pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml --junitxml=junit.xml --testmon ${{ matrix.doctest }}
+          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml --junitxml=junit.xml --testmon ${{ matrix.doctest }}
 
       - name: Save .testmondata # only when pushed to main, not for PRs
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
