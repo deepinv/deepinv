@@ -132,7 +132,7 @@ psnr_pretrained = psnr_fn(x_pretrained, x).item()
 
 dinv.utils.plot(
     [y, x_pretrained, x],
-    ["Measurement", "RAM (Pre-trained)", "Ground truth"],
+    ["Measurements", "RAM (Pre-trained)", "Ground truth"],
     subtitles=[f"PSNR={psnr_y:.1f}dB", f"PSNR={psnr_pretrained:.1f}dB", ""],
     fontsize=10,
 )
@@ -279,7 +279,7 @@ psnr = psnr_fn(x_hat, x).item()
 
 dinv.utils.plot(
     [y, x_pretrained, x_hat, x],
-    ["Measurement", "RAM (Pre-trained)", "Equivariant Splitting", "Ground truth"],
+    ["Measurements", "RAM (Pre-trained)", "Equivariant Splitting", "Ground truth"],
     subtitles=[
         f"PSNR={psnr_y:.1f}dB",
         f"PSNR={psnr_pretrained:.1f}dB",
