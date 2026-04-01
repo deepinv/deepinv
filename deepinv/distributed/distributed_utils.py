@@ -17,7 +17,9 @@ def _any_rank_requires_grad(
     local_has_grad = any(getattr(t, "requires_grad", False) for t in local_tensors)
     if not ctx.use_dist:
         return local_has_grad
-    flag = torch.tensor([1 if local_has_grad else 0], device=ctx.device, dtype=torch.long)
+    flag = torch.tensor(
+        [1 if local_has_grad else 0], device=ctx.device, dtype=torch.long
+    )
     global_flag = ctx.all_reduce(flag, op=dist.ReduceOp.SUM)
     return bool(int(global_flag.item()) > 0)
 
@@ -30,7 +32,10 @@ def _ensure_functional_collective_input(
     """
     Force functional collectives on all ranks when any rank needs autograd support.
     """
-    if _any_rank_requires_grad(ctx, local_tensors) and not collective_input.requires_grad:
+    if (
+        _any_rank_requires_grad(ctx, local_tensors)
+        and not collective_input.requires_grad
+    ):
         collective_input = collective_input.requires_grad_()
     return collective_input
 
@@ -142,11 +147,11 @@ def map_reduce_gather(
     else:
         raise ValueError(f"Unknown gather strategy: {gather_strategy}")
 
-
     out = TensorList([gathered[i] for i in range(num_operators)])
     return _anchor_output_to_input_graph(
         out, anchor_tensor, has_local_items=len(local_items) > 0
     )
+
 
 def single_process_fallback(
     local_indices: list[int],

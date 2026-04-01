@@ -64,10 +64,11 @@ def _get_gpu_count():
     return torch.cuda.device_count() if torch.cuda.is_available() else 0
 
 
-@pytest.fixture(params=[1,2,3])
+@pytest.fixture(params=[1, 2, 3])
 def num_operators(request):
-    """Parameterized fixture for number of operators. Tests edges cases when load is imbalanced across ranks, i.e., when num_operators < world_size and num_operators > world_size """
+    """Parameterized fixture for number of operators. Tests edges cases when load is imbalanced across ranks, i.e., when num_operators < world_size and num_operators > world_size"""
     return request.param
+
 
 @pytest.fixture(params=["naive", "concatenated", "broadcast"])
 def gather_strategy(request):
@@ -1821,11 +1822,15 @@ def _test_data_fidelity_backward_worker(rank, world_size, args):
         assert torch.allclose(grad_dist, grad_ref, atol=1e-5)
         return "success"
 
+
 def test_distributed_data_fidelity_backward(device_config, num_operators):
     """
     Test gradients through DistributedDataFidelity.grad wrt x.
     """
-    test_args = {"device_mode": device_config["device_mode"], "num_operators": num_operators}
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "num_operators": num_operators,
+    }
     results = run_distributed_test(
         _test_data_fidelity_backward_worker, device_config, test_args
     )
@@ -1926,13 +1931,17 @@ def _test_distributed_parameter_sync_higher_order_worker(rank, world_size, args)
         assert torch.allclose(grad2_dist, grad2_ref, atol=1e-5)
         return "success"
 
+
 def test_distributed_parameter_sync_higher_order(device_config, num_operators):
     """Test second-order gradient consistency for distributed parameter sync."""
     if device_config["world_size"] > 1:
         pytest.skip(
             "Higher-order exact equivalence is only enforced in single-process mode."
         )
-    test_args = {"device_mode": device_config["device_mode"], "num_operators": num_operators}
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "num_operators": num_operators,
+    }
     results = run_distributed_test(
         _test_distributed_parameter_sync_higher_order_worker,
         device_config,
@@ -2120,7 +2129,10 @@ def test_unrolled_backward(device_config, num_operators):
     """
     End-to-end unrolled backward consistency test with DRUNet and trainable step sizes.
     """
-    test_args = {"device_mode": device_config["device_mode"], "num_operators": num_operators}
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "num_operators": num_operators,
+    }
     results = run_distributed_test(
         _test_unrolled_backward_worker, device_config, test_args
     )
@@ -2229,7 +2241,10 @@ def _test_distribute_base_optim_worker(rank, world_size, args):
 
 
 def test_distribute_base_optim(device_config, num_operators):
-    test_args = {"device_mode": device_config["device_mode"], "num_operators": num_operators}
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "num_operators": num_operators,
+    }
     results = run_distributed_test(
         _test_distribute_base_optim_worker, device_config, test_args
     )
