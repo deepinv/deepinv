@@ -31,7 +31,7 @@ Runs the full test suite on a **self-hosted GPU runner**. Uses testmon caching, 
 
 ## Documentation
 
-### `documentation.yml` — Build Docs (CPU)
+### `docs_cpu.yml` — Build Docs (CPU)
 **Trigger:** Pushes to `main` and PRs.
 
 Builds the Sphinx documentation. For PRs, it intelligently determines which gallery examples need to be rebuilt by
@@ -43,13 +43,13 @@ posted a `test-examples` comment on the PR, in which case all examples are rebui
 
 ---
 
-### `gpu_docs.yml` — GPU Docs
+### `docs_gpu.yml` — GPU Docs
 **Trigger:** 
 
 - `main`: pushes, daily schedule (02:30 UTC).
 - PRs: manual dispatch specifying a PR number or maintainer writing `gpu-tests` on a PR comment (via `gpu_trigger.yml`).
 
-Builds the full documentation on a **self-hosted GPU runner**, ensuring that all examples run correctly in a GPU environment. Follows the same smart diff logic as `documentation.yml` for selective example rebuilding. Additionally:
+Builds the full documentation on a **self-hosted GPU runner**, ensuring that all examples run correctly in a GPU environment. Follows the same smart diff logic as `docs_cpu.yml` for selective example rebuilding. Additionally:
 - Runs Sphinx doctests (with support to Colab examples).
 - Deploys the built docs to **GitHub Pages** (`gh-pages` branch) on pushes to `main`.
 - Posts a success/failure comment with artifact and run links back to the PR when triggered for a specific PR.
@@ -123,8 +123,8 @@ Publishes the package to PyPI after a release PR is merged:
 
 A dispatcher workflow that lets maintainers trigger expensive GPU workflows from PR comments, without requiring direct access to `workflow_dispatch`. Two comment commands are supported:
 
-- **`/gpu-tests`** — Triggers `test_gpu.yml` and `gpu_docs.yml` for the commented PR, then posts a confirmation comment. Only users with `write` or `admin` repository permissions can trigger this.
-- **`/test-examples`** — Triggers `documentation.yml` to rebuild all documentation examples for the PR.
+- **`/gpu-tests`** — Triggers `test_gpu.yml` and `docs_gpu.yml` for the commented PR, then posts a confirmation comment. Only users with `write` or `admin` repository permissions can trigger this.
+- **`/test-examples`** — Triggers `docs_cpu.yml` to rebuild all documentation examples for the PR.
 
 Adds a 🚀 reaction to the triggering comment as acknowledgement.
 

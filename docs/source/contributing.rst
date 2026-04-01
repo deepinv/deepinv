@@ -124,7 +124,7 @@ Writing good documentation is also crucial for helping other users use your code
   Note that if the build process fails, supplementary additional libraries may need to be manually installed (e.g. ``sphinx-gallery``): please follow instructions in the log.
 
 .. tip::
-  If the `Build Docs` GitHub action has run successfully, you can download the documentation as a zip file from the `Actions page <https://github.com/deepinv/deepinv/actions/workflows/documentation.yml>`_. Look for the workflow run corresponding to your pull request.
+  If the `Build Docs` GitHub action has run successfully, you can download the documentation as a zip file from the `Actions page <https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml>`_. Look for the workflow run corresponding to your pull request.
 
 .. _code_quality:
 
