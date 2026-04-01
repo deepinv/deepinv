@@ -30,7 +30,7 @@ class ESLoss(Loss):
 
     The main idea behind equivariant splitting is that the more the reconstructor is equivariant to suitable transformations, the better the final performance will be. A general way to make a reconstructor equivariant is to add a Reynolds averaging step in the reconstructor, which is generally estimated using a Monte Carlo approach at training time. For this reason, :class:`ESLoss` takes two different instances of :class:`deepinv.transform.Transform` as input: one for training ``transform`` and one for evaluation ``eval_transform``.
 
-    It is also possible to design an equivariant reconstructor without Reynolds averaging, using equivariant layers. In that case, Reynolds averaging can be disabled to avoid its additional computational cost by setting ``equivariant_model`` to True. Note that in that case, the parameters ``transform`` and ``eval_transform`` are ignored.
+    It is also possible to design an equivariant reconstructor without Reynolds averaging, using equivariant layers. In that case, Reynolds averaging can be disabled to avoid its additional computational cost by leaving ``transform`` and ``eval_transform`` to ``None``.
 
     The training loss consists in two terms, a consistency term where the comparison is performed against :math:`A_1 x` and a prediction term where the comparison is performed against :math:`A_2 x`. Two parameters control the way these two terms are computed: ``consistency_loss`` and ``prediction_loss``.
 
@@ -45,9 +45,8 @@ class ESLoss(Loss):
     :param PhysicsGenerator mask_generator: the generator specifying the distribution of splittings.
     :param Loss consistency_loss: the loss used to compute the consistency term.
     :param Loss prediction_loss: the loss used to compute the prediction term.
-    :param Transform transform: transformations to be used in training mode for Reynolds averaging. Ignored if ``equivariant_model`` is set to True.
-    :param Transform eval_transform: transformations to be used in evaluation mode for Reynolds averaging. It can be used to have true Reynolds averaging at evaluation time and efficient Monte Carlo estimation at training time. Ignored if ``equivariant_model`` is set to True. If left unspecified, the value of ``transform`` is used at evaluation time as well.
-    :param bool equivariant_model: if True, the model is assumed to be already equivariant and no Reynolds averaging is performed. If False, the model is made equivariant using Reynolds averaging. Note that in that case, the parameters ``transform`` and ``eval_transform`` are used to specify the transformations for Reynolds averaging.
+    :param Transform transform: transformations to be used in training mode for Reynolds averaging.
+    :param Transform eval_transform: transformations to be used in evaluation mode for Reynolds averaging. It can be used to have true Reynolds averaging at evaluation time and efficient Monte Carlo estimation at training time. If left unspecified, the value of ``transform`` is used at evaluation time as well.
 
     |sep|
 
@@ -98,21 +97,20 @@ class ESLoss(Loss):
         eval_n_samples: int = 5,
         transform: Transform | None = None,
         eval_transform: Transform | None = None,
-        equivariant_model: bool = False,
     ):
         super().__init__()
 
         self.name = "es"
 
-        if transform is None and not equivariant_model:
-            raise ValueError(
-                f"Either the base reconstructor is assumed to be equivariant and equivariant_model should be set to True, or transform should be specified to make the base reconstructor equivariant using Reynolds averaging. Got transform={transform} and equivariant_model={equivariant_model}."
-            )
-        self.transform = transform
         if eval_transform is None:
             eval_transform = transform
+        elif transform is None:
+            raise ValueError(
+                "If eval_transform is specified, transform must also be specified."
+            )
+
+        self.transform = transform
         self.eval_transform = eval_transform
-        self.equivariant_model = equivariant_model
 
         self.mask_generator = mask_generator
         self.consistency_loss = consistency_loss
@@ -175,14 +173,14 @@ class ESLoss(Loss):
         r"""
         Adapt the reconstructor for equivariant splitting.
 
-        It wraps the input reconstructor in a splitting model and optionally in a :class:`deepinv.models.EquivariantReconstructor` if the option ``equivariant_model`` is set to False.
+        It wraps the input reconstructor in a splitting model and optionally in a :class:`deepinv.models.EquivariantReconstructor` if requested.
 
         :param Reconstructor model: the reconstructor to adapt.
         :return: the adapted reconstructor.
         """
         if model not in self._splitting_model_mapping:
-            # if the model is not already equivariant, we make it so using Reynolds averaging
-            if not self.equivariant_model:
+            # Apply Reynolds averaging if requested
+            if self.transform is not None:
                 model = dinv.models.EquivariantReconstructor(
                     model=model,
                     transform=self.transform,
