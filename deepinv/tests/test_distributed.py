@@ -64,6 +64,11 @@ def _get_gpu_count():
     return torch.cuda.device_count() if torch.cuda.is_available() else 0
 
 
+@pytest.fixture(params=[1,2,3])
+def num_operators(request):
+    """Parameterized fixture for number of operators. Tests edges cases when load is imbalanced across ranks, i.e., when num_operators < world_size and num_operators > world_size """
+    return request.param
+
 @pytest.fixture(params=["naive", "concatenated", "broadcast"])
 def gather_strategy(request):
     """Parameterized fixture for gather strategy."""
@@ -1671,7 +1676,7 @@ class TrainableDenoiser(Denoiser):
 def _test_physics_backward_worker(rank, world_size, args):
     """Worker for testing physics backward pass."""
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
-        num_operators = 3
+        num_operators = args["num_operators"]
         # Create physics
         # Note: Physics usually don't have learnable params, so we check grad w.r.t input x
         physics_list = create_test_physics_list(ctx.device, num_operators)
@@ -1748,7 +1753,7 @@ def _test_physics_backward_worker(rank, world_size, args):
 
 
 @pytest.mark.parametrize("gather_strategy", ["concatenated", "broadcast"])
-def test_distributed_physics_backward(device_config, gather_strategy):
+def test_distributed_physics_backward(device_config, gather_strategy, num_operators):
     """
     Test that gradients flow correctly through DistributedStackedPhysics.
     """
@@ -1758,6 +1763,7 @@ def test_distributed_physics_backward(device_config, gather_strategy):
         )
 
     test_args = {
+        "num_operators": num_operators,
         "device_mode": device_config["device_mode"],
         "gather_strategy": gather_strategy,
     }
@@ -1780,7 +1786,7 @@ def test_distributed_physics_backward(device_config, gather_strategy):
 def _test_data_fidelity_backward_worker(rank, world_size, args):
     """Worker for testing backward-through-grad with DistributedDataFidelity."""
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
-        num_operators = 3
+        num_operators = args["num_operators"]
         physics_list = create_test_physics_list(ctx.device, num_operators)
 
         distributed_physics = distribute(physics_list, ctx)
@@ -1815,12 +1821,11 @@ def _test_data_fidelity_backward_worker(rank, world_size, args):
         assert torch.allclose(grad_dist, grad_ref, atol=1e-5)
         return "success"
 
-
-def test_distributed_data_fidelity_backward(device_config):
+def test_distributed_data_fidelity_backward(device_config, num_operators):
     """
     Test gradients through DistributedDataFidelity.grad wrt x.
     """
-    test_args = {"device_mode": device_config["device_mode"]}
+    test_args = {"device_mode": device_config["device_mode"], "num_operators": num_operators}
     results = run_distributed_test(
         _test_data_fidelity_backward_worker, device_config, test_args
     )
@@ -1921,14 +1926,13 @@ def _test_distributed_parameter_sync_higher_order_worker(rank, world_size, args)
         assert torch.allclose(grad2_dist, grad2_ref, atol=1e-5)
         return "success"
 
-
-def test_distributed_parameter_sync_higher_order(device_config):
+def test_distributed_parameter_sync_higher_order(device_config, num_operators):
     """Test second-order gradient consistency for distributed parameter sync."""
     if device_config["world_size"] > 1:
         pytest.skip(
             "Higher-order exact equivalence is only enforced in single-process mode."
         )
-    test_args = {"device_mode": device_config["device_mode"]}
+    test_args = {"device_mode": device_config["device_mode"], "num_operators": num_operators}
     results = run_distributed_test(
         _test_distributed_parameter_sync_higher_order_worker,
         device_config,
@@ -1943,7 +1947,7 @@ def _test_unrolled_backward_worker(rank, world_size, args):
     compares distributed vs reference forward and gradients.
     """
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
-        num_operators = 3
+        num_operators = args["num_operators"]
         n_unroll = 3
         sigma_denoiser = 0.02
         patch_size = 8
@@ -2112,18 +2116,18 @@ def _test_unrolled_backward_worker(rank, world_size, args):
         return "success"
 
 
-def test_unrolled_backward(device_config):
+def test_unrolled_backward(device_config, num_operators):
     """
     End-to-end unrolled backward consistency test with DRUNet and trainable step sizes.
     """
-    test_args = {"device_mode": device_config["device_mode"]}
+    test_args = {"device_mode": device_config["device_mode"], "num_operators": num_operators}
     results = run_distributed_test(
         _test_unrolled_backward_worker, device_config, test_args
     )
     assert all(r == "success" for r in results)
 
 
-def test_unrolled_backward_checkpointed_batches(device_config):
+def test_unrolled_backward_checkpointed_batches(device_config, num_operators):
     """
     End-to-end unrolled backward consistency with checkpointed patch-batches.
 
@@ -2132,6 +2136,7 @@ def test_unrolled_backward_checkpointed_batches(device_config):
     """
     test_args = {
         "device_mode": device_config["device_mode"],
+        "num_operators": num_operators,
         "max_batch_size": 1,
         "checkpoint_batches": "always",
     }
@@ -2205,7 +2210,7 @@ def _test_distribute_base_optim_worker(rank, world_size, args):
         assert isinstance(model.prior[0].denoiser, DistributedProcessing)
         assert hasattr(model, "_deepinv_dist_sync")
 
-        physics_list = create_test_physics_list(ctx.device, 2)
+        physics_list = create_test_physics_list(ctx.device, args["num_operators"])
         for p in physics_list:
             p.noise_model = GaussianNoise(sigma=0.0)
         distributed_physics = distribute(physics_list, ctx=ctx)
@@ -2223,8 +2228,8 @@ def _test_distribute_base_optim_worker(rank, world_size, args):
         return "success"
 
 
-def test_distribute_base_optim(device_config):
-    test_args = {"device_mode": device_config["device_mode"]}
+def test_distribute_base_optim(device_config, num_operators):
+    test_args = {"device_mode": device_config["device_mode"], "num_operators": num_operators}
     results = run_distributed_test(
         _test_distribute_base_optim_worker, device_config, test_args
     )

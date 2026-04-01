@@ -210,9 +210,9 @@ class DistributedContext:
         indices = [i for i in range(num_items) if (i % self.world_size) == self.rank]
 
         # Warning for efficiency, but allow empty indices (don't raise error)
-        if self.use_dist and len(indices) == 0 and self.rank == 0:
+        if self.use_dist and len(indices) == 0: # and self.rank == 0:
             warnings.warn(
-                f"Some ranks have no work items to process "
+                f"Rank {self.rank} has no work items to process "
                 f"(num_items={num_items}, world_size={self.world_size}). "
                 f"Consider reducing world_size or increasing the workload for better efficiency.",
                 UserWarning,

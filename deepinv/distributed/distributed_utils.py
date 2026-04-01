@@ -88,8 +88,22 @@ def map_reduce_gather(
     else:
         raise ValueError(f"Unknown gather strategy: {gather_strategy}")
 
-    return TensorList([gathered[i] for i in range(num_operators)])
 
+    out = TensorList([gathered[i] for i in range(num_operators)])
+    
+    # When world_size > num_operators, some ranks will have "dummy" gathered 
+    # results, since they have no local operators to contribute. These dummy
+    # results are filtered-out to maintain consistency with the true mathematical
+    # operator.
+    # Nevertheless, to keep collectives aligned and ensure these ranks stay in 
+    # the autograd graph (if needed), we anchor the dummy result to the 
+    # graph by using a zero-contribution from it. 
+    if len(gathered) > num_operators:
+        for idx in range(num_operators, len(gathered)):
+            if isinstance(gathered[idx], torch.Tensor):
+                out = out + gathered[idx].sum() * 0.0
+
+    return out
 
 def single_process_fallback(
     local_indices: list[int],
@@ -172,6 +186,17 @@ def reduce_local_results(
                     local_val = torch.zeros(
                         target_shape, device=ctx.device, dtype=local_val.dtype
                     )
+                    print(f"    [rank={ctx.rank}] Resized local zero-scalar to shape {local_val.shape} for reduction.")
+
+    # Ensure functional collectives are used consistently:
+    # if any local result requires grad, all local_results must require grad, so
+    # that the graph is evenly preserved across ranks. This is required to ensure the autograd graph is preserved correctly across ranks, even if some ranks have no local results (empty local_results).
+    if ctx.use_dist:
+        local_has_grad = any(getattr(t, "requires_grad", False) for t in local_results)
+        flag = torch.tensor(1 if local_has_grad else 0, device=ctx.device, dtype=torch.long)
+        global_has_grad = bool(int(ctx.all_reduce(flag, op=dist.ReduceOp.SUM).item()))
+        if global_has_grad and not local_val.requires_grad:
+            local_val = local_val.requires_grad_()
 
     if not reduce_globally:
         return local_val
@@ -436,6 +461,17 @@ def gather_tensorlist_concatenated(
 
     # Ensure contiguous memory layout (for Gloo backend)
     local_concat_padded = local_concat_padded.contiguous()
+
+    # Ensure functional collectives are used consistently:
+    # if any local result requires grad, all local_results must require grad, so
+    # that the graph is evenly preserved across ranks. This is required to ensure the autograd graph is preserved correctly across ranks, even if some ranks have no local results (empty local_results).
+    if ctx.use_dist:
+        local_has_grad = any(getattr(t, "requires_grad", False) for t in local_results)
+        flag = torch.tensor([1 if local_has_grad else 0], device=ctx.device, dtype=torch.long)
+        global_flag = ctx.all_reduce(flag, op=dist.ReduceOp.SUM)
+        global_has_grad = bool(int(global_flag.item()) > 0)
+        if global_has_grad and not local_concat_padded.requires_grad:
+            local_concat_padded = local_concat_padded.requires_grad_()
 
     # All-gather and return stacked tensor [world_size, max_local_count, max_numel]
     tensor_lists = ctx.all_gather(local_concat_padded)
