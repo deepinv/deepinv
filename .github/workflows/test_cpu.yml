@@ -30,8 +30,8 @@ jobs:
           - os: windows-latest
             environment: "full"
             name: "windows all optional dependencies"
-            doctest: "--doctest-modules"
-            pytest_args: "-n 0"
+            doctest: ""
+            pytest_args: "-n 2 --dist=loadgroup"
     env:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
