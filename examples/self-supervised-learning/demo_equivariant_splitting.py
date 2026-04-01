@@ -71,7 +71,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 dataset_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
-    eval_dataset=eval_dataset,
+    val_dataset=eval_dataset,
     test_dataset=eval_dataset,
     physics=physics,
     device=device,
@@ -81,7 +81,7 @@ dataset_path = dinv.datasets.generate_dataset(
 )
 
 train_dataset = dinv.datasets.HDF5Dataset(path=dataset_path, split="train")
-eval_dataset = dinv.datasets.HDF5Dataset(path=dataset_path, split="eval")
+eval_dataset = dinv.datasets.HDF5Dataset(path=dataset_path, split="val")
 test_dataset = dinv.datasets.HDF5Dataset(path=dataset_path, split="test")
 
 train_dataloader = DataLoader(
@@ -101,9 +101,10 @@ test_dataloader = DataLoader(
 
 x, y = test_dataset[0]
 x, y = x.unsqueeze(0), y.unsqueeze(0)
+x, y = x.to(device), y.to(device)
 
 psnr_fn = dinv.metric.PSNR()
-psnr_y = psnr_fn(y, x)
+psnr_y = psnr_fn(y, x).item()
 
 dinv.utils.plot(
     [y, x], ["Measurements", "Ground truth"], subtitles=[f"PSNR={psnr_y:.1f}dB", ""]
@@ -121,9 +122,11 @@ dinv.utils.plot(
 model = dinv.models.RAM(pretrained=True).to(device)
 model_no_learning = dinv.models.RAM(pretrained=True).to(device)
 
-x_pretrained = model_no_learning(y, physics)
+model_no_learning.eval()
+with torch.no_grad():
+    x_pretrained = model_no_learning(y, physics)
 
-psnr_pretrained = psnr_fn(x_pretrained, x)
+psnr_pretrained = psnr_fn(x_pretrained, x).item()
 
 dinv.utils.plot(
     [y, x_pretrained, x],
@@ -191,8 +194,8 @@ model = es_loss.adapt_model(model)
 trainer = dinv.Trainer(
     model,
     physics=physics,
-    epochs=10,
-    ckp_interval=10,
+    epochs=20,
+    ckp_interval=20,
     scheduler=None,
     losses=[es_loss],
     optimizer=torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=1e-8),
@@ -206,6 +209,7 @@ trainer = dinv.Trainer(
     verbose=True,
     show_progress_bar=False,
     no_learning_method=model_no_learning,
+    compute_eval_losses=True,  # Compute eval losses
     early_stop=3,  # Patience parameter, stop if there is no improvement for multiple epochs
     early_stop_on_losses=True,  # Use the evaluation loss as a self-supervised stopping criterion
 )
@@ -228,14 +232,11 @@ trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 # Display the reconstructions for a single test sample
 model.eval()
-model_no_learning.eval()
 
 with torch.no_grad():
     x_hat = model(y, physics)
-    x_pretrained = model_no_learning(y, physics)
 
-psnr = psnr_fn(x_hat, x)
-psnr_pretrained = psnr_fn(x_pretrained, x)
+psnr = psnr_fn(x_hat, x).item()
 
 dinv.utils.plot(
     [y, x_pretrained, x_hat, x],
