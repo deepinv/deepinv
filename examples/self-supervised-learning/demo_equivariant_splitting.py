@@ -9,6 +9,9 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import os
+import hashlib
+from warnings import warn
 
 import deepinv as dinv
 
@@ -194,14 +197,47 @@ model = es_loss.adapt_model(model)
 #
 
 # Cached checkpoint after training to avoid doing the computation over and over
-cached_checkpoint = "https://huggingface.co/jscanvic/deepinv/resolve/main/ES/demo/ckp_best.pth.tar"
+cached_checkpoint = {
+    "url": "https://huggingface.co/jscanvic/deepinv/resolve/main/ES/demo/ckp_best.pth.tar",
+    "checksum": "149851842625cfde25d59ff645b635ff75a9cf57835ef1bb320b43730e9139d1",
+}
 
-epochs = 20 if cached_checkpoint is None else 0
+if cached_checkpoint is None:
+    epochs = 20
+    ckpt_pretrained = None
+else:
+    epochs = 0
+    url, checksum = cached_checkpoint["url"], cached_checkpoint["checksum"]
+    ckpt_pretrained = (
+        dinv.utils.get_data_home() / "examples" / "ES" / "ckp_best.pth.tar"
+    )
+    os.makedirs(ckpt_pretrained.parent, exist_ok=True)
+
+    # Run an integrity check to determine if the file should be re-downloaded
+    if ckpt_pretrained.exists():
+        hash_sha256 = hashlib.sha256()
+        with open(ckpt_pretrained, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_sha256.update(chunk)
+        if hash_sha256.hexdigest() != checksum:
+            warn(
+                f"Checksum mismatch for {ckpt_pretrained}. Re-downloading the file.",
+                UserWarning,
+            )
+            download = True
+        else:
+            download = False
+    else:
+        download = True
+
+    if download:
+        torch.hub.download_url_to_file(url, ckpt_pretrained, hash_prefix=checksum)
 
 trainer = dinv.Trainer(
     model,
     physics=physics,
     epochs=epochs,
+    ckpt_pretrained=ckpt_pretrained,
     ckp_interval=epochs,
     scheduler=None,
     losses=[es_loss],
@@ -222,15 +258,8 @@ trainer = dinv.Trainer(
 )
 
 trainer.train()
-if cached_checkpoint is None:
+if epochs > 0:
     trainer.load_best_model()
-else:
-    cached_checkpoint_path = dinv.utils.get_data_home() / "examples" / "ES" / "ckp_best.pth.tar"
-    torch.hub.download_url_to_file(
-        cached_checkpoint,
-        cached_checkpoint_path,
-    )
-    trainer.load_model(cached_checkpoint_path)
 
 # %%
 # Evaluation of the trained model
