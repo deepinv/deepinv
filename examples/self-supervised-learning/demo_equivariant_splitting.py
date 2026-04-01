@@ -57,7 +57,11 @@ transform = transforms.Compose(
     ]
 )
 
-dataset = dinv.datasets.Urban100HR(root=".", transform=transform, download=True)
+dataset = dinv.datasets.Urban100HR(
+    root=dinv.utils.get_data_home() / "Urban100",
+    transform=transform,
+    download=True
+)
 train_dataset, eval_dataset, test_dataset = torch.utils.data.random_split(
     dataset, [80, 10, 10], generator=torch.Generator().manual_seed(0)
 )
@@ -71,7 +75,7 @@ dataset_path = dinv.datasets.generate_dataset(
     test_dataset=eval_dataset,
     physics=physics,
     device=device,
-    save_dir=".",
+    save_dir="Urban100",
     batch_size=batch_size,
     num_workers=num_workers,
 )
