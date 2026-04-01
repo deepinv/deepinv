@@ -61,7 +61,7 @@ Join our **mailing list** for occasional updates on releases and new features:
 Install
 -------
 
-Install the latest **stable release** of ``deepinv``:
+Install the latest **stable release** of ``deepinv`` with python 3.10 or higher:
 
 .. tab-set::
     :sync-group: install
