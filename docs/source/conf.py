@@ -362,6 +362,9 @@ sphinx_gallery_conf = {
         ]
     ),
     "within_subsection_order": MySortKey,
+    "image_scrapers": ("matplotlib",),
+    "matplotlib_animations": True,
+    "capture_repr": ("_repr_html_", "__repr__"),    # for capturing matplotlib animations
     "first_notebook_cell": (
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),

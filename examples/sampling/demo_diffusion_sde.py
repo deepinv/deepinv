@@ -54,6 +54,7 @@ We implement various data-fidelity terms in `the user guide <https://deepinv.git
 #     d\, x_t = g(t) d\, w_t \quad \mbox{where } g(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t\sqrt{2\log\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} }.
 
 import torch
+import matplotlib as mpl
 import deepinv as dinv
 from deepinv.models import NCSNpp
 
@@ -62,6 +63,8 @@ dtype = torch.float64
 dtype = torch.float32
 figsize = 2.5
 gif_frequency = 10  # Increase this value to save the GIF saving time
+mpl.rcParams["animation.html"] = "jshtml"
+animations = []
 # %%
 from deepinv.sampling import (
     PosteriorDiffusion,
@@ -122,15 +125,17 @@ dinv.utils.plot(
     figsize=(figsize, figsize),
 )
 
-# %% We can also save the trajectory of the sample
-gif = dinv.utils.plot_videos(
+# %%
+# We can also save the trajectory of the sample
+anim = dinv.utils.plot_videos(
     trajectory.cpu()[::gif_frequency],
     time_dim=0,
     titles=["VE-SDE Trajectory"],
     figsize=(figsize, figsize),
     return_anim=True,
 )
-gif
+animations.append(anim)
+anim
 
 # %%
 #
@@ -176,15 +181,17 @@ dinv.utils.plot(
     figsize=(figsize * 3, figsize),
 )
 
-# %% We can also save the trajectory of the posterior sample
-gif = dinv.utils.plot_videos(
+# %%
+# We can also save the trajectory of the posterior sample
+anim = dinv.utils.plot_videos(
     trajectory[::gif_frequency],
     time_dim=0,
     titles=["Posterior sample with VE"],
     figsize=(figsize, figsize),
     return_anim=True,
 )
-gif
+animations.append(anim)
+anim
 
 
 # %%
@@ -239,15 +246,17 @@ dinv.utils.plot(
 )
 
 
-# %% We can also save the trajectory of the posterior sample
-gif = dinv.utils.plot_videos(
+# %%
+# We can also save the trajectory of the posterior sample
+anim = dinv.utils.plot_videos(
     trajectory[::gif_frequency],
     time_dim=0,
     titles=["Posterior sample with VP"],
     figsize=(figsize, figsize),
     return_anim=True,
 )
-gif
+animations.append(anim)
+anim
 # %%
 # Plug-and-play Posterior Sampling with arbitrary denoisers
 # ---------------------------------------------------------
@@ -309,12 +318,14 @@ dinv.utils.plot(
     figsize=(figsize * 3, figsize),
 )
 
-# %% We can also save the trajectory of the posterior sample
-gif = dinv.utils.plot_videos(
+# %%
+# We can also save the trajectory of the posterior sample
+anim = dinv.utils.plot_videos(
     trajectory[::gif_frequency].clip(0, 1),
     time_dim=0,
     titles=["Posterior trajectory DRUNet"],
     figsize=(figsize, figsize),
     return_anim=True,
 )
-gif
+animations.append(anim)
+anim
