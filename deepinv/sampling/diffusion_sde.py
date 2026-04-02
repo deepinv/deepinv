@@ -926,6 +926,7 @@ class PosteriorDiffusion(Reconstructor):
         x_init: Tensor | None = None,
         seed: int = None,
         timesteps: Tensor = None,
+        denoise: bool = True,
         get_trajectory: bool = False,
         *args,
         **kwargs,
@@ -938,6 +939,7 @@ class PosteriorDiffusion(Reconstructor):
         :param torch.Tensor, tuple x_init: the initial value for the sampling, can be a :class:`torch.Tensor` or a tuple `(B, C, H, W)`, indicating the shape of the initial point, matching the shape of `physics` and `y`. In this case, the initial value is taken randomly following the end-point distribution of the `sde`.
         :param int seed: the random seed for reproducibility, the same samples will be generated for the same seed. Default to `None`.
         :param torch.Tensor timesteps: the time steps for the solver. If `None`, the default time steps in the solver will be used. Default to `None`.
+        :param bool denoise: whether to perform an additional denoising step at the end of the sampling process, optional. Default to `True`.
         :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to `False`.
         :param \*args: the additional arguments for the solver.
         :param \*\*kwargs: the additional keyword arguments for the solver.
@@ -967,6 +969,20 @@ class PosteriorDiffusion(Reconstructor):
             *args,
             **kwargs,
         )
+        # Denoising step at the end of sampling
+        if denoise:
+            final_sample = solution.sample
+            sigma = self.sde.sigma_t(timesteps[-1] if timesteps is not None else 1e-3)
+            scale = self.sde.scale_t(timesteps[-1] if timesteps is not None else 1e-3)
+            if sigma > 0 and scale > 0:
+                x_in = final_sample / scale
+                model_output = self.sde.denoiser(
+                    x_in.to(torch.float32),
+                    sigma.to(torch.float32),
+                    *args,
+                    **kwargs,
+                ).to(self.dtype)
+                solution.sample = model_output
         # Scale the output back to [0, 1]
         sample = solution.sample
         if self.minus_one_one:
