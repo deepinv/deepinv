@@ -1048,11 +1048,9 @@ class ADMM(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the ADMM iterations write (see :footcite:t:`boyd2011distributed` for more details):
 
     .. math::
-        \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\gamma f}(x_k - z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_{k+1} + z_k) \\
         z_{k+1} &= z_k + \beta (u_{k+1} - x_{k+1})
-        \end{aligned}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.  If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`\regname` are
     inverted in the previous iterations. The ADMM iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.ADMMIteration`.
@@ -1179,11 +1177,9 @@ class DRS(BaseOptim):
      If the attribute ``g_first`` is set to False (by default), the DRS iterations are given by
 
     .. math::
-        \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\gamma f}(z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k) \\
         z_{k+1} &= z_k + \beta (x_{k+1} - u_{k+1})
-        \end{aligned}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter. If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The DRS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.DRSIteration`.
@@ -1446,10 +1442,8 @@ class HQS(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the HQS iterations are given by
     
     .. math::
-        \begin{aligned}
         u_{k} &= \operatorname{prox}_{\gamma f}(x_k) \\
         x_{k+1} &= \operatorname{prox}_{\sigma \lambda \regname}(u_k).
-        \end{aligned}
     
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The HQS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.HQSIteration`.
@@ -1717,11 +1711,9 @@ class FISTA(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the FISTA iterations are given by
     
     .. math::
-        \begin{aligned}
         u_{k} &= z_k -  \gamma \nabla f(z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_k) \\
         z_{k+1} &= x_{k+1} + \alpha_k (x_{k+1} - x_k),
-        \end{aligned}
     
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
     :math:`\alpha_k = (k+a-1)/(k+a)`,  with :math:`a` a parameter that should be strictly greater than 2.
@@ -1839,10 +1831,8 @@ class MD(BaseOptim):
     Mirror Descent (MD) or Bregman variant of the Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
     
     .. math::
-        \begin{aligned}
         v_{k} &= \nabla f(x_k) + \lambda \nabla g(x_k) \\
         x_{k+1} &= \nabla h^*(\nabla h(x_k) - \gamma v_{k})
-        \end{aligned}
     
     where :math:`\gamma>0` is a stepsize and :math:`h^*` is the convex conjugate of :math:`h`.
     The Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.MDIteration`.
@@ -1954,10 +1944,8 @@ class PMD(BaseOptim):
     Proximal Mirror Descent (PMD) or Bregman variant of the Proximal Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
     
     .. math::
-        \begin{aligned}
         u_{k} &= \nabla h^*(\nabla h(x_k) - \gamma \nabla f(x_k)) \\
         x_{k+1} &= \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)
-        \end{aligned}
     
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex. 
     :math:`\operatorname{prox^h}_{\gamma \lambda \regname}` is the Bregman proximal operator, detailed in the method :meth:`deepinv.optim.Potential.bregman_prox`.
