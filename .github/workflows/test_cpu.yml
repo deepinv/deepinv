@@ -19,7 +19,7 @@ jobs:
         include:
           - os: ubuntu-latest
             environment: "full"
-            name: "ubuntu all optional dependencies"
+            name: "ubuntu all optional dependencies and doctests"
             pytest_args: "-n 2 --dist=loadgroup --doctest-modules"
           - os: ubuntu-latest
             environment: "test"

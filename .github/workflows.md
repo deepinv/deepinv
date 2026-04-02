@@ -9,9 +9,13 @@ This document describes all CI/CD workflows of the library.
 ### `test_cpu.yml` — Test CPU
 **Trigger:** Pull requests targeting `main`.
 
-Runs the full test suite on every pull request. Installs `deepinv` using [`pixi`](https://pixi.sh).
+Runs the test suite on every pull request. Installs `deepinv` using [`pixi`](https://pixi.sh).
 We use pixi to manage both `conda` and `pip` dependencies in a single workflow.
-Tests are executed in parallel (`-n 2`) on both **Ubuntu** and **Windows** without and with all optional dependencies.
+Tests are executed in parallel (`-n 2`) on 
+- **Ubuntu** without optional dependencies.
+- **Ubuntu** with all optional dependencies and doctests.
+- **Windows** with all optional dependencies.
+
 Uses [pytest-testmon](https://github.com/tarpas/pytest-testmon) to skip tests unaffected by the changes, speeding up CI.
 Coverage reports are uploaded to [Codecov](https://codecov.io). Also runs doctests in `.py` files from inline module docstrings (`--doctest-modules`).
 
