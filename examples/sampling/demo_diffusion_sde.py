@@ -122,14 +122,15 @@ dinv.utils.plot(
     figsize=(figsize, figsize),
 )
 
-dinv.utils.plot_videos(
+# %% We can also save the trajectory of the sample
+gif = dinv.utils.plot_videos(
     trajectory.cpu()[::gif_frequency],
     time_dim=0,
     titles=["VE-SDE Trajectory"],
     figsize=(figsize, figsize),
-    display=True,
+    return_anim=True,
 )
-
+gif
 
 # %%
 #
@@ -174,14 +175,16 @@ dinv.utils.plot(
     titles=["Original", "Measurement", "Posterior sample"],
     figsize=(figsize * 3, figsize),
 )
-# We can also save the trajectory of the posterior sample
-dinv.utils.plot_videos(
+
+# %% We can also save the trajectory of the posterior sample
+gif = dinv.utils.plot_videos(
     trajectory[::gif_frequency],
     time_dim=0,
     titles=["Posterior sample with VE"],
     figsize=(figsize, figsize),
-    display=True,
+    return_anim=True,
 )
+gif
 
 
 # %%
@@ -236,15 +239,15 @@ dinv.utils.plot(
 )
 
 
-# We can also save the trajectory of the posterior sample
-dinv.utils.plot_videos(
+# %% We can also save the trajectory of the posterior sample
+gif = dinv.utils.plot_videos(
     trajectory[::gif_frequency],
     time_dim=0,
     titles=["Posterior sample with VP"],
     figsize=(figsize, figsize),
-    display=True,
+    return_anim=True,
 )
-
+gif
 # %%
 # Plug-and-play Posterior Sampling with arbitrary denoisers
 # ---------------------------------------------------------
@@ -306,11 +309,12 @@ dinv.utils.plot(
     figsize=(figsize * 3, figsize),
 )
 
-# We can also save the trajectory of the posterior sample
-dinv.utils.plot_videos(
+# %% We can also save the trajectory of the posterior sample
+gif = dinv.utils.plot_videos(
     trajectory[::gif_frequency].clip(0, 1),
     time_dim=0,
     titles=["Posterior trajectory DRUNet"],
     figsize=(figsize, figsize),
-    display=True,
+    return_anim=True,
 )
+gif

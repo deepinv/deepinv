@@ -221,7 +221,7 @@ class EulerSolver(BaseSDESolver):
         super().__init__(timesteps, rng=rng)
 
     def step(
-        self, sde, t0, t1, x0: Tensor, *args, **kwargs
+        self, sde: BaseSDE, t0: float, t1: float, x0: torch.Tensor, *args, **kwargs
     ) -> tuple[torch.Tensor, int]:
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5
@@ -257,7 +257,7 @@ class HeunSolver(BaseSDESolver):
         sde: BaseSDE,
         t0: float,
         t1: float,
-        x0: Tensor,
+        x0: torch.Tensor,
         *args,
         **kwargs,
     ) -> tuple[torch.Tensor, int]:
