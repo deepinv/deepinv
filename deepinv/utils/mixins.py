@@ -394,7 +394,11 @@ class TiledMixin2d:
                 f"Invalid pad argument: {pad}. Must be int or tuple of 4 ints."
             )
 
-        patch_size = _add_tuple(self.patch_size, (pad[2] + pad[3], pad[0] + pad[1]))
+        if any(p > 0 for p in pad):
+            image = torch.nn.functional.pad(image, pad, mode="constant", value=0)
+            patch_size = _add_tuple(self.patch_size, (pad[2] + pad[3], pad[0] + pad[1]))
+        else:
+            patch_size = self.patch_size
         return _image_to_patches_impl(
             image=image,
             patch_size=patch_size,
