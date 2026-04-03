@@ -755,6 +755,7 @@ class SpaceVaryingBlur(LinearPhysics):
     :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
+    :param bool use_fft: whether to use FFT-based convolutions. If ``True``, it uses FFT-based convolutions which can be faster for large kernels.
     :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     |sep|
@@ -785,6 +786,7 @@ class SpaceVaryingBlur(LinearPhysics):
         filters: Tensor = None,
         multipliers: Tensor = None,
         padding: str = "valid",
+        use_fft: bool = False,
         device: torch.device | str = "cpu",
         **kwargs,
     ):
@@ -793,7 +795,7 @@ class SpaceVaryingBlur(LinearPhysics):
         self.register_buffer("filters", filters)
         self.register_buffer("multipliers", multipliers)
         self.padding = padding
-
+        self.use_fft = use_fft
         self.to(device)
 
     def A(
@@ -813,7 +815,9 @@ class SpaceVaryingBlur(LinearPhysics):
         :param str device: cpu or cuda
         """
         self.update_parameters(filters, multipliers, padding, **kwargs)
-        return dF.product_convolution2d(x, self.multipliers, self.filters, self.padding)
+        return dF.product_convolution2d(
+            x, self.multipliers, self.filters, self.padding, use_fft=self.use_fft
+        )
 
     def A_adjoint(
         self,
@@ -839,7 +843,7 @@ class SpaceVaryingBlur(LinearPhysics):
             filters=filters, multipliers=multipliers, padding=padding, **kwargs
         )
         return dF.product_convolution2d_adjoint(
-            y, self.multipliers, self.filters, self.padding
+            y, self.multipliers, self.filters, self.padding, use_fft=self.use_fft
         )
 
     def update_parameters(
@@ -988,13 +992,13 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         """
         img_size = x.shape[-2:]
         self.update_parameters(filters, img_size=img_size, device=x.device, **kwargs)
-
         w = self.multipliers  # (B, C, K, H, W)
         h = self.filters  # (B, C, K, h, w)
+        h_size = h.shape[-2:]
+        pad = self._get_pad(h_size)
 
         # Extract patches: (B, C, K1, K2, P1, P2)
-        patches = self.image_to_patches(x)
-
+        patches = self.image_to_patches(x, pad=pad)
         n_rows, n_cols = patches.size(2), patches.size(3)
         if n_rows * n_cols != h.size(2):
             raise ValueError(
@@ -1004,17 +1008,12 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         # Flatten K1 and K2 to: (B, C, K, P1, P2)
         patches = patches.flatten(2, 3)
-        patches = patches * w
 
         # Pad each patch for local convolution: so that local convolution produce image of same size
-        h_size = h.shape[-2:]
-        pad = self._get_pad(h_size)
-        patches = self._pad(patches, pad)
 
         # Apply convolution per patch
         B, C = patches.shape[:2]
         h = dF.convolution._prepare_filter_for_grouped(h, B=B, C=C)
-
         result = self.conv2d_fn(
             self.rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
             self.rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
@@ -1023,6 +1022,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         result = self.rearrange(
             result, "(b k) c h w -> b c k h w", b=patches.size(0), k=h.size(2)
         )
+        result = result * w
 
         B, C, K, H, W = result.size()
         result = self.patches_to_image(
@@ -1081,6 +1081,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         # Apply transpose convolution per patch
         patches = patches.flatten(2, 3)
+        patches = patches * w
         B, C = patches.shape[:2]
         h = dF.convolution._prepare_filter_for_grouped(h, B=B, C=C)
 
@@ -1092,16 +1093,19 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         result = self.rearrange(result, "(b k) c h w -> b c k h w", b=B, k=h.size(2))
 
-        # Remove pad and apply weights
-        result = self._crop(result, pad)
-        result = result * w
-
         # Reconstruct image using overlapping patches
         B, C, _, H, W = result.size()
-        return self.patches_to_image(
+        result = self.patches_to_image(
             result.view(B, C, n_rows, n_cols, H, W),
-            img_size=original_img_size,
         )
+
+        # crop due to padding for convolution
+        result = self._crop(result, pad)
+
+        # crop due to padding for fitting integer number of patches
+        result = result[..., : original_img_size[-2], : original_img_size[-1]]
+
+        return result
 
     def update_parameters(
         self,

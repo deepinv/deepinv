@@ -7,7 +7,7 @@ from torch import Tensor, zeros_like
 from torch.nn import Module
 from torchvision.transforms import CenterCrop, Resize
 from deepinv.utils.decorators import _deprecated_argument
-from ._internal import _as_pair
+from ._internal import _as_pair, _add_tuple
 from ._tiling import (
     _compute_compatible_img_size,
     _compute_needed_pad,
@@ -375,18 +375,29 @@ class TiledMixin2d:
 
         self.pad_if_needed = pad_if_needed
 
-    def image_to_patches(self, image: Tensor) -> Tensor:
+    def image_to_patches(
+        self, image: Tensor, pad: int | tuple[int, int, int, int] = (0, 0, 0, 0)
+    ) -> Tensor:
         r"""
         Split an image into overlapping patches.
 
         The image will be padded if necessary to ensure all patches have the same size.
 
         :param torch.Tensor image: Input image tensor of shape `(B, C, H, W)`.
+        :param int | tuple[int, int, int, int] pad: Optional, if provided, the patch size will be increased by this padding on each side. Can be a single int for symmetric padding or a tuple of 4 ints for (left, right, top, bottom) padding. Defaults to `(0, 0, 0, 0)` for no additional padding.
         :return: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
         """
+        if isinstance(pad, int):
+            pad = (pad, pad, pad, pad)
+        elif not isinstance(pad, (list, tuple)) and len(pad) != 4:
+            raise ValueError(
+                f"Invalid pad argument: {pad}. Must be int or tuple of 4 ints."
+            )
+
+        patch_size = _add_tuple(self.patch_size, (pad[2] + pad[3], pad[0] + pad[1]))
         return _image_to_patches_impl(
             image=image,
-            patch_size=self.patch_size,
+            patch_size=patch_size,
             stride=self.stride,
             pad_if_needed=self.pad_if_needed,
         )
