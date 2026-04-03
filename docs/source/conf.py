@@ -387,6 +387,7 @@ html_sidebars = {  # pages with no sidebar
     "contributing": [],
     "finding_help": [],
     "community": [],
+    "miccai-2026": [],
 }
 html_theme_options = {
     "logo": {
