@@ -114,7 +114,7 @@ x, trajectory = model(
     x_init=(1, 3, 64, 64),
     seed=10,
     get_trajectory=True,
-    denoise=True,  # We set this to True to perform an additional denoising step at the end of the sampling process, which can improve the sample quality when the diffusion term is large at the end of the sampling process.
+    denoise_output=True,  # We set this to True to perform an additional denoising step at the end of the sampling process, which can improve the sample quality when the diffusion term is large at the end of the sampling process.
 )
 
 dinv.utils.plot(
@@ -168,7 +168,7 @@ x_hat, trajectory = model(
     physics,
     seed=seed_1,
     get_trajectory=True,
-    denoise=True,  # We set this to True to perform an additional denoising step at the end
+    denoise_output=True,  # We set this to True to perform an additional denoising step at the end
 )
 
 # Here, we plot the original image, the measurement and the posterior sample
@@ -230,7 +230,7 @@ x_hat_vp, trajectory = model(
     physics,
     seed=111,
     get_trajectory=True,
-    denoise=True,  # We set this to True to perform an additional denoising step at the end
+    denoise_output=True,  # We set this to True to perform an additional denoising step at the end
 )
 x_hat = x
 dinv.utils.plot(
@@ -304,7 +304,7 @@ x_hat, trajectory = model(
     physics=physics,
     seed=1,
     get_trajectory=True,
-    denoise=True,
+    denoise_output=True,
 )
 
 # Here, we plot the original image, the measurement and the posterior sample
