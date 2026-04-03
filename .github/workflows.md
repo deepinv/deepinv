@@ -114,7 +114,7 @@ The `dev` bump type skips the PR and GitHub Release steps (for debugging).
 
 Publishes the package to PyPI after a release PR is merged:
 1. Builds the distribution with `python -m build`.
-2. Uploads to **TestPyPI** and verifies the install.
+2. Uploads to **TestPyPI** and verifies the installation.
 3. Uploads to **PyPI**.
 
 
