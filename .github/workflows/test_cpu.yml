@@ -48,7 +48,6 @@ jobs:
           key: testmon-cpu-main-${{ matrix.os }}-${{ github.run_id }}
           restore-keys: |
             testmon-cpu-main-${{ matrix.os }}
-            testmon-cpu-main-${{ matrix.os }}
 
       - name: Test with pytest
         run: |
