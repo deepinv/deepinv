@@ -904,6 +904,38 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     )  # Optimality condition
 
 
+# Specific test for MLEM because the data-fidelity can only be the Poisson likelihood,
+# contrary to e.g mirror descent which can be tested on L2
+def test_MLEM(imsize, dummy_dataset, device):
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
+    test_sample = next(iter(dataloader)).to(device)
+
+    physics = dinv.physics.Blur(
+        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        device=device,
+        noise_model=dinv.physics.PoissonNoise(gain=1 / 60),
+        padding="circular",
+    )
+    y = physics(test_sample)
+
+    data_fidelity = dinv.optim.PoissonLikelihood()
+
+    # without prior MLEM does not converge in residual, but it does in cost
+    optimalgo = dinv.optim.MLEM(
+        data_fidelity=data_fidelity,
+        prior=dinv.optim.prior.ZeroPrior(),
+        lambda_reg=1.0,
+        max_iter=1000,
+        crit_conv="cost",
+        thres_conv=1e-4,
+        verbose=True,
+        early_stop=True,
+    )
+    x = optimalgo(y, physics)
+
+    assert optimalgo.has_converged
+
+
 def test_patch_prior(imsize, dummy_dataset, device):
     pytest.importorskip(
         "FrEIA",
@@ -1209,3 +1241,77 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
             )
 
     torch.use_deterministic_algorithms(prev_deterministic)
+
+
+def test_sirt(device):
+    # Tests that the SIRT algorithm converges to the least-squares solution for a linear inverse problem.
+
+    # 2D test
+    test_sample = torch.ones((1, 1, 16, 16)).to(device)
+    physics = dinv.physics.Tomography(
+        angles=180,
+        img_width=test_sample.shape[-1],
+        normalize=True,
+    )
+
+    y = physics(test_sample)
+
+    # SIRT algorithm
+    sirt = dinv.optim.SIRT(
+        data_fidelity=L2(),
+        max_iter=500,
+        crit_conv="residual",
+        thres_conv=1e-5,
+        verbose=False,
+        early_stop=True,
+    )
+
+    x_sirt = sirt(y, physics)
+
+    assert sirt.has_converged
+    assert x_sirt is not None
+
+    # Check that the change in physics is taken into account
+    x_sirt = sirt(y, physics)
+
+    physics_modified = dinv.physics.Tomography(
+        angles=120,
+        img_width=test_sample.shape[-1],
+        normalize=True,
+    )
+
+    y_modified = physics_modified(test_sample)
+    x_sirt_modified = sirt(y_modified, physics_modified)
+
+    assert sirt.has_converged
+    assert x_sirt_modified is not None
+
+    pytest.importorskip(
+        "astra",
+        reason="This test requires the Astra toolbox. It should be installed with `pip install astra-toolbox`",
+    )
+
+    # 3D test with Astra
+    if device.type != "cpu":
+        test_sample = torch.ones((1, 1, 16, 16, 16)).to(device)
+        physics = dinv.physics.TomographyWithAstra(
+            img_size=(16, 16, 16),
+            angles=180,
+            angular_range=(0, 360),
+            n_detector_pixels=16,
+            normalize=True,
+        )
+        y = physics(test_sample)
+        sirt = dinv.optim.SIRT(
+            data_fidelity=L2(),
+            max_iter=500,
+            crit_conv="residual",
+            thres_conv=1e-5,
+            verbose=False,
+            early_stop=True,
+        )
+
+        x_sirt = sirt(y, physics)
+
+        assert sirt.has_converged
+        assert x_sirt is not None
