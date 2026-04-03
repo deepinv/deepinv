@@ -64,7 +64,6 @@ dtype = torch.float32
 figsize = 2.5
 gif_frequency = 10  # Increase this value to save the GIF saving time
 mpl.rcParams["animation.html"] = "jshtml"
-animations = []
 # %%
 from deepinv.sampling import (
     PosteriorDiffusion,
@@ -134,7 +133,6 @@ anim = dinv.utils.plot_videos(
     figsize=(figsize, figsize),
     return_anim=True,
 )
-animations.append(anim)
 anim
 
 # %%
@@ -190,7 +188,6 @@ anim = dinv.utils.plot_videos(
     figsize=(figsize, figsize),
     return_anim=True,
 )
-animations.append(anim)
 anim
 
 
@@ -255,7 +252,6 @@ anim = dinv.utils.plot_videos(
     figsize=(figsize, figsize),
     return_anim=True,
 )
-animations.append(anim)
 anim
 # %%
 # Plug-and-play Posterior Sampling with arbitrary denoisers
@@ -327,5 +323,4 @@ anim = dinv.utils.plot_videos(
     figsize=(figsize, figsize),
     return_anim=True,
 )
-animations.append(anim)
 anim
