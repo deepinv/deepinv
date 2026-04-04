@@ -279,7 +279,8 @@ class ScoreModelWrapper(Denoiser):
         device = x.device
         dtype = x.dtype
 
-        assert t is not None, "Please provide a time step t."
+        if t is None:  # pragma: no cover
+            raise ValueError("A time step t must be provided.")
 
         # Handle time step
         t = self._handle_sigma(
@@ -326,7 +327,8 @@ class ScoreModelWrapper(Denoiser):
         device = x.device
         dtype = x.dtype
 
-        assert sigma is not None, "Please provide a noise level sigma."
+        if sigma is None:
+            raise ValueError("A noise level sigma must be provided.")
 
         # Handle sigma
         sigma = self._handle_sigma(
@@ -420,9 +422,10 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         *args,
         **kwargs,
     ):
-        assert (
-            mode_id is not None
-        ), "Provide a diffusers model id. E.g., 'google/ddpm-cat-256'"
+        if mode_id is None:  # pragma: no cover
+            raise ValueError(
+                "mode_id is None, Provide a diffusers model id. E.g., 'google/ddpm-cat-256'"
+            )
 
         try:
             from diffusers import (
