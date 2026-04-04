@@ -18,7 +18,8 @@ def hadamard_1d(u: torch.Tensor, normalize: bool = True) -> torch.Tensor:
     """
     n = u.shape[-1]
     m = int(math.log2(n))
-    assert n == 1 << m, "n must be a power of 2"
+    if n != 1 << m:  # pragma: no cover
+        raise ValueError("n must be a power of 2")
     x = u.unsqueeze(-1)
     for d in range(m)[::-1]:
         x = torch.cat(
@@ -389,9 +390,8 @@ class SinglePixelCamera(DecomposablePhysics):
             self.rng = torch.Generator(device=device)
         else:
             # Make sure that the random generator is on the same device as the physic generator
-            assert rng.device == torch.device(
-                device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+            if rng.device != torch.device(device):  # pragma: no cover
+                raise ValueError(f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}.")
             self.rng = rng
         self.register_buffer("initial_random_state", self.rng.get_state())
 
@@ -399,8 +399,10 @@ class SinglePixelCamera(DecomposablePhysics):
 
             _, H, W = img_size
 
-            assert H == 1 << int(math.log2(H)), "image height must be a power of 2"
-            assert W == 1 << int(math.log2(W)), "image width must be a power of 2"
+            if H != 1 << int(math.log2(H)):  # pragma: no cover
+                raise ValueError("image height must be a power of 2")
+            if W != 1 << int(math.log2(W)):  # pragma: no cover
+                raise ValueError("image width must be a power of 2")
 
             if ordering == "sequency":
                 mask = sequency_mask(img_size, m)
