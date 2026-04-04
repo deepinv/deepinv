@@ -67,7 +67,8 @@ def conv2d(
         For large kernels, :func:`deepinv.physics.functional.conv2d_fft` is usually faster but requires more memory.
 
     """
-    assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
+    if (x.dim() != filter.dim()) or filter.dim() != 4:  # pragma: no cover
+        raise ValueError("Input and filter must be 4D tensors")
     padding = _raise_value_error_padding_messages(padding)
 
     filter = _flip_filter_if_needed(filter, correlation, dims=(-2, -1))
@@ -131,7 +132,8 @@ def conv_transpose2d(
 
     """
 
-    assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
+    if (y.dim() != filter.dim()) or filter.dim() != 4:  # pragma: no cover
+        raise ValueError("Input and filter must be 4D tensors")
     padding = _raise_value_error_padding_messages(padding)
     filter = _flip_filter_if_needed(filter, correlation, dims=(-2, -1))
 
@@ -186,7 +188,8 @@ def conv2d_fft(
         Note that ``'constant'`` and ``'zeros'`` are equivalent. Default is ``'valid'``.
     :return: :class:`torch.Tensor`: the output of the convolution of the shape size as `x`.
     """
-    assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
+    if (x.dim() != filter.dim()) or filter.dim() != 4:  # pragma: no cover
+        raise ValueError("Input and filter must be 4D tensors")
     padding = _raise_value_error_padding_messages(padding)
 
     # Get dimensions of the input and the filter
@@ -262,7 +265,8 @@ def conv_transpose2d_fft(
         For small kernels, consider using :func:`deepinv.physics.functional.conv_transpose2d`.
     """
 
-    assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
+    if (y.dim() != filter.dim()) or filter.dim() != 4:  # pragma: no cover
+        raise ValueError("Input and filter must be 4D tensors")
     padding = _raise_value_error_padding_messages(padding)
 
     # Get dimensions of the input and the filter
@@ -346,7 +350,8 @@ def conv3d(
         Contrary to Pytorch's :func:`torch.nn.functional.conv3d`, which performs a cross-correlation, this function performs a convolution by default unless ``correlation=True``.
 
     """
-    assert x.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
+    if (x.dim() != filter.dim()) or filter.dim() != 5:  # pragma: no cover
+        raise ValueError("Input and filter must be 5D tensors")
     padding = _raise_value_error_padding_messages(padding)
 
     B, C, D, H, W = x.shape
@@ -404,7 +409,8 @@ def conv_transpose3d(
     :return: :class:`torch.Tensor`: the output of the convolution, which has the shape ``(B, C, D+d-1, W+w-1, H+h-1)`` if ``padding = 'valid'`` and the same shape as ``y`` otherwise.
     """
 
-    assert y.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
+    if (y.dim() != filter.dim()) or filter.dim() != 5:  # pragma: no cover
+        raise ValueError("Input and filter must be 5D tensors")
     padding = _raise_value_error_padding_messages(padding)
     B, C, D, H, W = y.shape
     b, c, d, h, w = filter.shape
@@ -460,7 +466,8 @@ def conv3d_fft(
     :return: :class:`torch.Tensor`: the output of the convolution, which has the same shape as :math:`x` if ``padding = 'circular'``, ``(B, C, D-d+1, W-w+1, H-h+1)`` otherwise.
     """
 
-    assert x.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
+    if (x.dim() != filter.dim()) or filter.dim() != 5:  # pragma: no cover
+        raise ValueError("Input and filter must be 5D tensors")
     padding = _raise_value_error_padding_messages(padding)
 
     B, C, D, H, W = x.size()
@@ -556,7 +563,8 @@ def conv_transpose3d_fft(
     :return: :class:`torch.Tensor`: the output of the transposed convolution, which has the same shape as ``y`` if ``padding = 'circular'``, ``(B, C, D+d-1, W+w-1, H+h-1)`` otherwise.
     """
 
-    assert y.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
+    if (y.dim() != filter.dim()) or filter.dim() != 5:  # pragma: no cover
+        raise ValueError("Input and filter must be 5D tensors")
     padding = _raise_value_error_padding_messages(padding)
     # Get dimensions of the input and the filter
     B, C, D, H, W = y.size()
@@ -699,7 +707,8 @@ def _apply_transpose_padding(
         return x.contiguous()
 
     n_spatial = len(p)
-    assert n_spatial in (2, 3), "Only 2D or 3D supported"
+    if n_spatial not in (2, 3):  # pragma: no cover
+        raise ValueError("Only 2D or 3D supported")
 
     # Build center crop
     center_slices = tuple(_center_crop_slice_1d(pk, ik) for pk, ik in zip(p, i))
