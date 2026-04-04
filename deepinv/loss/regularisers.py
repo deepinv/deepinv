@@ -105,7 +105,7 @@ class JacobianSpectralNorm(Loss):
 
         x, y = self._reduce_batch(x, y)
 
-        if x.shape[0] == y.shape[0]:  # pragma: no cover
+        if x.shape[0] != y.shape[0]:  # pragma: no cover
             raise ValueError(
                 f"x and y should have the same number of instances. Got {x.shape[0]} vs. {y.shape[0]}"
             )
