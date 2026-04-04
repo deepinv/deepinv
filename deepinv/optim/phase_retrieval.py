@@ -58,10 +58,10 @@ def correct_global_phase(
 
         :return: The corrected image.
     """
-    assert x_recon.shape == x.shape, "The shapes of the images should be the same."
-    assert (
-        len(x_recon.shape) == 4
-    ), "The images should be input with shape (N, C, H, W) "
+    if x_recon.shape != x.shape:  # pragma: no cover
+        raise ValueError("The shapes of the images should be the same.")
+    if len(x_recon.shape) != 4:  # pragma: no cover
+        raise ValueError("The images should be input with shape (N, C, H, W)")
 
     n_imgs = x_recon.shape[0]
     n_channels = x_recon.shape[1]
@@ -96,7 +96,10 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     :param torch.Tensor a: First image.
     :param torch.Tensor b: Second image.
     :return: The cosine similarity between the two images."""
-    assert a.shape == b.shape
+    if a.shape != b.shape:
+        raise ValueError(
+            f"Shape of a and b should be same, but got ({a.shape}), ({b.shape})"
+        )
     a = a.flatten()
     b = b.flatten()
     norm_a = torch.sqrt(torch.dot(a.conj(), a).real)
