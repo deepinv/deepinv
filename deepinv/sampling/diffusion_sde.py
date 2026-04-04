@@ -326,9 +326,10 @@ class EDMDiffusionSDE(DiffusionSDE):
 
         self.sigma_t = sigma_t
 
-        assert not (
-            variance_preserving and variance_exploding
-        ), "Cannot set both variance_preserving and variance_exploding to True."
+        if variance_preserving and variance_exploding:  # pragma: no cover
+            raise ValueError(
+                "Cannot set both variance_preserving and variance_exploding to True."
+            )
 
         if scale_t is None:
             if variance_preserving:
@@ -879,9 +880,8 @@ class PosteriorDiffusion(Reconstructor):
         self.data_fidelity = data_fidelity
         self.sde = sde
         self.minus_one_one = minus_one_one
-        assert (
-            denoiser is not None or sde.denoiser is not None
-        ), "A denoiser must be specified."
+        if denoiser is None and sde.denoiser is None:  # pragma: no cover
+            raise ValueError("A denoiser must be specified.")
         if denoiser is None:
             denoiser = sde.denoiser
 
@@ -889,9 +889,8 @@ class PosteriorDiffusion(Reconstructor):
         if hasattr(self.data_fidelity, "denoiser"):
             self.data_fidelity.denoiser = denoiser
 
-        assert (
-            solver is not None or sde.solver is not None
-        ), "A SDE solver must be specified."
+        if solver is None and sde.solver is None:  # pragma: no cover
+            raise ValueError("A SDE solver must be specified.")
         if solver is not None:
             self.solver = solver
         else:
