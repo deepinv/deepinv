@@ -251,7 +251,7 @@ class UpDownConv2d(torch.nn.Module):
         init_weight: float = 1,
         init_bias: float = 0,
     ):
-        if up and down:  # pragmna: no cover
+        if up and down:  # pragma: no cover
             raise ValueError("up and down cannot both be True")
         super().__init__()
         self.in_channels = in_channels
