@@ -391,7 +391,9 @@ class SinglePixelCamera(DecomposablePhysics):
         else:
             # Make sure that the random generator is on the same device as the physic generator
             if rng.device != torch.device(device):  # pragma: no cover
-                raise ValueError(f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}.")
+                raise ValueError(
+                    f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+                )
             self.rng = rng
         self.register_buffer("initial_random_state", self.rng.get_state())
 
