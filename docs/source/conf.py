@@ -355,6 +355,7 @@ sphinx_gallery_conf = {
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
             "../../examples/distributed",
+            "../../examples/evaluation",
         ]
     ),
     "within_subsection_order": MySortKey,

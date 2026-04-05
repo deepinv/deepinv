@@ -1,7 +1,6 @@
 from __future__ import annotations
 import math, sys, io, requests
 from pathlib import Path
-from typing import Optional
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -103,7 +102,7 @@ class NIQE(Metric):
         By default, no reduction is performed in the batch dimension.
 
 
-    :param str, Path weights_path: Path to weights created with `.create_weights`. If None (default), downloads the weights provided by :footcite:t:`mittal2012making`
+    :param str weights_path: Path to weights created with `.create_weights`. If 'download' (default), downloads the weights provided by :footcite:t:`mittal2012making`. If None, mu and cov are not initialized (useful when fitting custom weights).
     :param float denominator: stabilizer to add to the std in the image normalization step (eq.1). Defaults to 1
     :param bool round_tensor: whether to round the input. The original NIQE implementation used rounding and requires input to be range [0, 255]. Do not set round_tensor if incoming tensors will be in [0,1] style ranges. Defaults to False.
     :param torch.device, str device: device to use for the metric computation. Default: 'cpu'.
@@ -115,7 +114,7 @@ class NIQE(Metric):
 
     def __init__(
         self,
-        weights_path: Optional[str | Path] = None,
+        weights_path: str | Path | None = "download",
         denominator: float = 1,
         round_tensor: bool = False,
         patch_size: int = 96,
@@ -132,7 +131,8 @@ class NIQE(Metric):
         self.n_scales = 2
         self.patch_overlap = patch_overlap
         self.denominator = denominator
-        if weights_path is None:
+        self.dtype = dtype
+        if weights_path == "download":
             raise NotImplementedError()
             resp = requests.get(
                 "https://huggingface.co/deepinv/IQA-Models/resolve/main/niqe_original.pt",  # TO DO for this PR: add this
@@ -141,13 +141,15 @@ class NIQE(Metric):
             resp.raise_for_status()
 
             params = torch.load(io.BytesIO(resp.content))
-        else:
+        elif weights_path is not None:
             params = torch.load(weights_path)
-        mu, cov = params["mu"], params["cov"]
-        self.mu_p = mu.to(dtype=dtype, device=device)
+        else:
+            self.mu_p, self.cov_p = None, None
+        if weights_path is not None:
+            mu, cov = params["mu"], params["cov"]
+            self.mu_p = mu.to(dtype=dtype, device=device)
 
-        self.cov_p = cov.to(dtype=dtype, device=device)
-        self.dtype = dtype
+            self.cov_p = cov.to(dtype=dtype, device=device)
 
     def estimate_aggd_param(self, vecs: torch.Tensor, eps: float = 1e-12):
         v = vecs
@@ -321,6 +323,10 @@ class NIQE(Metric):
         (i) Originally, the image was converted to float64. Here we convert to dtype specified at init, but always use float64 when calculating pseudoinverse.
 
         """
+        if self.mu_p is None or self.cov_p is None:
+            raise RuntimeError(
+                "NIQE weights not loaded. Either pass weights_path at init or call create_weights first."
+            )
         if x_net.ndim != 4:  # pragma: no cover
             raise RuntimeError(
                 f"NIQE expects batched, 2D data, but got tensor with {x_net.ndim} dimensions (shape: {x_net.shape})"
@@ -368,20 +374,20 @@ class NIQE(Metric):
         self,
         dataset: torch.utils.data.Dataset,
         sharpness_threshold: float = 0.75,
-        save_path: Optional[str | Path] = None,
+        save_path: str | Path | None = None,
     ):
         r"""
         Fit NIQE model parameters (mu_prisparam, cov_prisparam) from a dataset of 'pristine' images,
         following the original MATLAB pipeline with two scales and sharpness-based patch selection.
         `patch_size`, `patch_overlap`, and `denominator` used are those passed at init (unless modified by the user)
 
-        :param Dataset dataset: for each item, should give a torch.Tensor or PIL.Image representing a
+        :param torch.utils.data.Dataset dataset: for each item, should give a torch.Tensor or PIL.Image representing a
             distortion-free (pristine) image.
         :param float sharpness_threshold: only patches whose sharpness is at least
             sharpness_threshold of the per-image peak sharpness (measured from σ at scale 1) are kept.
-        :param str, Path save_path: Path to which weights are to be saved. Must have `.pt` extension. If not passed, weights are returned without saving.
+        :param str save_path: Path to which weights are to be saved. Must have `.pt` extension. If not passed, weights are returned without saving.
 
-        :return: (mu_prisparam, cov_prisparam) as torch.float32 on self.device, and updates self.mu_p/self.cov_p.
+        :return: (mu_prisparam, cov_prisparam) as self.dtype on self.device, and updates self.mu_p/self.cov_p.
         """
         try:
             from PIL import Image
