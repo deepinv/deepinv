@@ -27,10 +27,11 @@ def correct_global_phase(
     x_est: torch.Tensor,
     x_ref: torch.Tensor,
     correct_magnitude: bool = False,
+    dim: tuple[int, ...] = (-2, -1),
     verbose: bool = False,
 ) -> torch.Tensor:
     r"""
-    Corrects the global phase shift (and optionally magnitude scaling) of reconstructed complex images to match the references.
+    Corrects the global phase shift (and optionally magnitude scaling) of reconstructed complex signals to match the references.
 
     The optimal global phase shift and magnitude scaling is computed per batch entry and channel as:
 
@@ -44,9 +45,9 @@ def correct_global_phase(
     .. math::
         \min_{c} \|c \cdot \hat{x} - x\|^2,
 
-    where :math:`\hat{x}` is the reconstructed image and :math:`x` is the reference image.
+    where :math:`\hat{x}` is the reconstructed signal and :math:`x` is the reference signal.
 
-    The correction is then applied to the reconstructed image per image and channel as:
+    The correction is then applied to the reconstructed signal per signal and channel as:
 
     .. math::
         \hat{x} \leftarrow r' \mathrm{e}^{\mathrm{i} \theta} \cdot \hat{x},
@@ -56,24 +57,24 @@ def correct_global_phase(
     :param torch.Tensor x_est: Estimated signals of shape ``(N, C, ...)``.
     :param torch.Tensor x_ref: Reference signals of shape ``(N, C, ...)``.
     :param bool correct_magnitude: If ``True``, also corrects the magnitude scaling in addition to the phase. Default is ``False``.
+    :param tuple dim: Dimensions of the signals over which the inner product is computed. Default is ``(-2, -1)``.
     :param bool verbose: If ``True``, prints the applied phase shift and scale factor. Default is ``False``.
 
-    :return: The phase-corrected (and optionally magnitude-corrected) images of the same shape as ``x_est``.
+    :return: The phase-corrected (and optionally magnitude-corrected) signals of the same shape as ``x_est``.
     """
-    assert x_est.shape == x_ref.shape, "The shapes of the images should be the same."
-    assert len(x_est.shape) == 4, "The images should be input with shape (N, C, H, W) "
+    assert x_est.shape == x_ref.shape, "The shapes of the signals should be the same."
 
-    inner = (x_est.conj() * x_ref).sum(dim=(-2, -1), keepdim=True)
+    inner = (x_est.conj() * x_ref).sum(dim=dim, keepdim=True)
     if correct_magnitude:
-        energy = (x_est.abs() ** 2).sum(dim=(-2, -1), keepdim=True)
+        energy = (x_est.abs() ** 2).sum(dim=dim, keepdim=True)
         c = inner / (energy + 1e-12)
     else:
         c = inner / (inner.abs() + 1e-12)
     if verbose:
         print(
-            f"Applying global phase shift (radians):\n{c.angle().squeeze(-1).squeeze(-1)}"
+            f"Applying global phase shift (radians):\n{c.angle().squeeze(dim)}"
         )
-        print(f"Scaling factor:\n{c.abs().squeeze(-1).squeeze(-1)}")
+        print(f"Scaling factor:\n{c.abs().squeeze(dim)}")
     return c * x_est
 
 
