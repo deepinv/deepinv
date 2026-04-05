@@ -47,7 +47,7 @@ def correct_global_phase(
 
     where :math:`\hat{x}` is the reconstructed signal and :math:`x` is the reference signal.
 
-    The correction is then applied to the reconstructed signal per signal and channel as:
+    The correction is then applied to the reconstructed signal per batch entry and channel as:
 
     .. math::
         \hat{x} \leftarrow r' \mathrm{e}^{\mathrm{i} \theta} \cdot \hat{x},
