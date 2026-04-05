@@ -71,9 +71,7 @@ def correct_global_phase(
     else:
         c = inner / (inner.abs() + 1e-12)
     if verbose:
-        print(
-            f"Applying global phase shift (radians):\n{c.angle().squeeze(dim)}"
-        )
+        print(f"Applying global phase shift (radians):\n{c.angle().squeeze(dim)}")
         print(f"Scaling factor:\n{c.abs().squeeze(dim)}")
     return c * x_est
 

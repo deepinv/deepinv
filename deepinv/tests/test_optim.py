@@ -1094,8 +1094,8 @@ def test_condition_number(device):
 
 def test_correct_global_phase(device):
     shapes_and_dims = [
-        ((2, 3, 64), (-1,)),           # 1D signals
-        ((2, 3, 8, 8), (-2, -1)),      # 2D signals
+        ((2, 3, 64), (-1,)),  # 1D signals
+        ((2, 3, 8, 8), (-2, -1)),  # 2D signals
         ((2, 3, 4, 8, 8), (-3, -2, -1)),  # 3D signals
     ]
     for shape, dim in shapes_and_dims:
@@ -1106,7 +1106,9 @@ def test_correct_global_phase(device):
         x2 = dinv.optim.phase_retrieval.correct_global_phase(
             x2, x1, correct_magnitude=True, dim=dim, verbose=False
         )
-        assert torch.allclose(x1, x2, atol=1e-6), f"correct_global_phase failed for shape {shape}"
+        assert torch.allclose(
+            x1, x2, atol=1e-6
+        ), f"correct_global_phase failed for shape {shape}"
 
 
 @pytest.mark.parametrize("batch_size", [2])
