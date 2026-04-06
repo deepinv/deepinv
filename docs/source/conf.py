@@ -7,7 +7,6 @@
 # as a simple list of paths will be enough.
 import sys
 import os
-import doctest
 from importlib.metadata import metadata as importlib_metadata
 from docutils import nodes
 from docutils.parsers.rst import Directive
@@ -32,7 +31,7 @@ set_default_plot_fontsize(12)
 
 metadata = importlib_metadata("deepinv")
 project = str(metadata["Name"])
-copyright = "deepinverse contributors 2025"
+copyright = "deepinverse contributors 2026"
 author = str(metadata["Author"])
 release = str(metadata["Version"])
 
@@ -184,23 +183,6 @@ def setup(app):
 
 
 # ---------- doctest configuration -----------------------------------------
-# Add a IGNORE_RESULT option to skip some line output
-# From: https://stackoverflow.com/a/69780437/2642845
-
-IGNORE_RESULT = doctest.register_optionflag("IGNORE_RESULT")
-
-OutputChecker = doctest.OutputChecker
-
-
-class CustomOutputChecker(OutputChecker):
-    def check_output(self, want, got, optionflags):
-        if IGNORE_RESULT & optionflags:
-            return True
-        return OutputChecker.check_output(self, want, got, optionflags)
-
-
-doctest.OutputChecker = CustomOutputChecker
-
 doctest_global_setup = """
 import torch
 import numpy as np
@@ -245,12 +227,6 @@ add_references_block_to_examples()
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
-
-# Only add extra exclusions during doctest runs
-if os.environ.get("SPHINX_DOCTEST") == "1":
-    exclude_patterns.extend(
-        ["user_guide/training/multigpu.rst", "user_guide/training/datasets.rst"]
-    )
 
 add_module_names = True  # include the module path in the function name
 
@@ -436,8 +412,8 @@ html_theme_options = {
         ],
     },
     "announcement": (
-        "🎉 We are part of the "
-        "<a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>"
+        "We are currently "
+        "<a href='https://jobs.inria.fr/public/classic/en/offres/2026-09919' target='_blank'> hiring!</a><br>"
         "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates."
     ),
     "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
