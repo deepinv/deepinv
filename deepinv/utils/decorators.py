@@ -2,6 +2,28 @@ import warnings
 import functools
 
 
+def warn_kwargs_use_params(func):
+    r"""
+    Decorator to warn users when they try to pass standard keyword arguments
+    to update :class:`deepinv.physics.StackedPhysics` or :class:`deepinv.physics.ComposedPhysics` parameters, instead of using
+    the `params` keyword argument.
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        bad = [k for k in kwargs if k != "params"]
+        # if kwargs is not empty
+        if bad:
+            warnings.warn(
+                f" The following keyword arguments were ignored: {bad}. Passing keyword arguments to update parameters of StackedPhysics or ComposedPhysics is no longer supported. Please use the ``params`` keyword argument instead, and pass a list or mapping of parameters dictionnary, e.g. ``params``={ {0: kwargs} } will update the parameters of the first physics in the stack with the provided kwargs.",
+                category=UserWarning,
+                stacklevel=2,
+            )
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 def _deprecated_argument(*arg_names):
     """
     Decorator to mark specific arguments of a function or method as deprecated, with no replacement.
@@ -49,6 +71,41 @@ def _deprecated_alias(**aliases):
                         stacklevel=2,
                     )
                     kwargs[new] = kwargs.pop(old)
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def _deprecated_attribute(*old_arg, **alias):
+    """
+    Decorator to mark specific attributes of a class as deprecated, with optional replacement.
+
+    :param tuple[str] old_arg: name of the deprecated attribute with no replacement. If empty, alias is expected.
+    :param dict[str, str] alias: mapping of old_attr='new_attr' for deprecated attributes with replacement. If empty, old_arg is expected.
+
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if len(old_arg) > 0:
+                warnings.warn(
+                    f"Attribute '{old_arg[0]}' is deprecated with no replacement and will be removed in a future version.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+            elif len(alias) > 0:
+                for old, new in alias.items():
+                    warnings.warn(
+                        f"Attribute '{old}' is deprecated and will be removed in a future version. Please use '{new}' instead.",
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
+            else:
+                raise ValueError("Either old_arg or alias must be provided.")
+
             return func(*args, **kwargs)
 
         return wrapper
