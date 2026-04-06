@@ -100,7 +100,7 @@ def choose_no_reference_metric(metric_name, device, **kwargs) -> metric.Metric:
         raise ValueError("Incorrect no-reference metric name.")
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def test_image(device):
     return load_example(
         "celeba_example.jpg",
