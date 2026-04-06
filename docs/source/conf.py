@@ -81,6 +81,10 @@ intersphinx_mapping = {
 # for python3 type hints
 autodoc_typehints = "description"
 autodoc_typehints_description_target = "documented"
+autodoc_type_aliases = {
+    "Tensor": "torch.Tensor",
+    "ndarray": "numpy.ndarray",
+}  # For type hints with Tensor and ndarray, link to the respective documentation.
 # to handle functions as default input arguments
 autodoc_preserve_defaults = True
 # Warn about broken links
@@ -211,7 +215,7 @@ def add_references_block_to_examples():
             # Add References block if footcite appears
             if ":footcite:" in content:
                 references_block = (
-                    "\n# %%\n" "# :References:\n" "#\n" "# .. footbibliography::\n"
+                    "\n# %%\n# :References:\n#\n# .. footbibliography::\n"
                 )
                 content += references_block
 
@@ -334,6 +338,9 @@ sphinx_gallery_conf = {
         ]
     ),
     "within_subsection_order": MySortKey,
+    "image_scrapers": ("matplotlib",),
+    "matplotlib_animations": True,
+    "capture_repr": ("_repr_html_", "__repr__"),  # for capturing matplotlib animations
     "first_notebook_cell": (
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),

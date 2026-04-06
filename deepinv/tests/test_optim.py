@@ -1124,6 +1124,25 @@ def test_condition_number(device):
     assert rel_error < 0.1
 
 
+def test_correct_global_phase(device):
+    shapes_and_dims = [
+        ((2, 3, 64), (-1,)),  # 1D signals
+        ((2, 3, 8, 8), (-2, -1)),  # 2D signals
+        ((2, 3, 4, 8, 8), (-3, -2, -1)),  # 3D signals
+    ]
+    for shape, dim in shapes_and_dims:
+        global_phase_shape = shape[: -len(dim)] + (1,) * len(dim)
+        x1 = torch.randn(shape, device=device, dtype=torch.complex64)
+        x2 = x1 * torch.rand(global_phase_shape, device=device)
+        x2 = x2 * torch.exp(1j * torch.rand(global_phase_shape, device=device))
+        x2 = dinv.optim.phase_retrieval.correct_global_phase(
+            x2, x1, correct_magnitude=True, dim=dim, verbose=False
+        )
+        assert torch.allclose(
+            x1, x2, atol=1e-6
+        ), f"correct_global_phase failed for shape {shape}"
+
+
 @pytest.mark.parametrize("batch_size", [2])
 @pytest.mark.parametrize(
     "physics_name",

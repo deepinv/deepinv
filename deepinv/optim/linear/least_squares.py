@@ -27,7 +27,7 @@ def least_squares(
     max_iter: int = 100,
     tol: float = 1e-6,
     **kwargs,
-) -> Tensor:
+) -> torch.Tensor:
     r"""
     Solves :math:`\min_x \|Ax-y\|^2 + \frac{1}{\gamma}\|x-z\|^2` using the specified solver.
 
@@ -230,7 +230,6 @@ class LeastSquaresSolver(torch.autograd.Function):
         trigger: Tensor = None,
         extra_kwargs: dict = None,
     ):
-
         kwargs = extra_kwargs if extra_kwargs is not None else {}
 
         with torch.no_grad():
@@ -347,7 +346,7 @@ def least_squares_implicit_backward(
     init: Tensor = None,
     gamma: float | Tensor = None,
     **kwargs,
-) -> Tensor:
+) -> torch.Tensor:
     r"""
     Least squares solver with O(1) memory backward propagation using implicit differentiation.
     The function is similar to :func:`deepinv.optim.linear.least_squares` for the forward pass, but uses implicit differentiation for the backward pass, which reduces memory consumption to O(1) in the number of iterations.
