@@ -21,13 +21,11 @@ import torch
 
 import deepinv as dinv
 from deepinv.utils.plotting import plot
-from deepinv.optim.data_fidelity import L2
 from deepinv.utils import load_example
-from tqdm import tqdm  # to visualize progress
 
 device = dinv.utils.get_device()
 
-x_true = load_example("butterfly.png", img_size=64).to(device)
+x_true = load_example("butterfly.png", img_size=64, device=device)
 x = x_true.clone()
 
 # %%
@@ -41,6 +39,7 @@ physics = dinv.physics.Inpainting(
     img_size=(3, x.shape[-2], x.shape[-1]),
     mask=0.1,
     pixelwise=True,
+    noise_model=dinv.physics.GaussianNoise(sigma),
     device=device,
 )
 
@@ -64,7 +63,7 @@ plot(
 # ``DPS`` generalizes sufficiently well even in such case.
 
 
-model = dinv.models.DiffUNet(large_model=False).to(device)
+denoiser = dinv.models.DRUNet(device=device)
 
 # %%
 # Define diffusion schedule
@@ -84,12 +83,8 @@ model = dinv.models.DiffUNet(large_model=False).to(device)
 #           \mathbf{x}_t = \sqrt{\bar\alpha_t}\mathbf{x}_0 + \sqrt{1 - \bar\alpha_t}\mathbf{\epsilon}
 #
 # where we use the reparametrization trick.
-
-num_train_timesteps = 1000  # Number of timesteps used during training
-
-
-betas = torch.linspace(1e-4, 2e-2, num_train_timesteps).to(device)
-alphas = (1 - betas).cumprod(dim=0)
+#
+#  In continuous time, this schedule corresponds to the Variance Preserving (VP) SDE, see :class:`deepinv.sampling.VariancePreservingDiffusion`.
 
 # %%
 # The DPS algorithm
@@ -136,15 +131,16 @@ alphas = (1 - betas).cumprod(dim=0)
 #
 
 
-t = 200  # choose some arbitrary timestep
-at = alphas[t]
-sigmat = (1 - at).sqrt() / at.sqrt()
+t = 200
+# choose some arbitrary noise level
+sigma_t = 0.2
 
 x0 = x_true
-xt = x0 + sigmat * torch.randn_like(x0)
+xt = x0 + sigma_t * torch.randn_like(x0)
 
 # apply denoiser
-x0_t = model(xt, sigmat)
+with torch.no_grad():
+    x0_t = denoiser(xt, sigma_t)
 
 # Visualize
 plot(
@@ -183,35 +179,27 @@ plot(
 #       -\frac{\|\mathbf{y} - A\widehat{\mathbf{x}}_0((\mathbf{x_t})\|_2^2}{2\sigma_y^2}.
 #
 # Moreover, taking the gradient w.r.t. :math:`\mathbf{x}_t` can be performed through automatic differentiation.
-# Let's see how this can be done in PyTorch. Note that when we are taking the gradient w.r.t. a tensor,
-# we first have to enable the gradient computation by ``tensor.requires_grad_()``
+# We provide an implementation of this approximation in :class:`deepinv.sampling.DPSDataFidelity`, which is a subclass of :class:`deepinv.sampling.NoisyDataFidelity`.
 #
 # .. note::
 #           The DPS algorithm assumes that the images are in the range [-1, 1], whereas standard denoisers
 #           usually output images in the range [0, 1]. This is why we rescale the images before applying the steps.
 
+from deepinv.sampling import DPSDataFidelity
 
 x0 = x_true * 2.0 - 1.0  # [0, 1] -> [-1, 1]
 
-data_fidelity = L2()
+data_fidelity = DPSDataFidelity(denoiser=denoiser, clip=(-1.0, 1.0))
 
-# xt ~ q(xt|x0)
-t = 200  # choose some arbitrary timestep
-at = alphas[t]
-sigma_cur = (1 - at).sqrt() / at.sqrt()
-xt = x0 + sigma_cur * torch.randn_like(x0)
+# choose some arbitrary noise level
+sigma_t = 0.2
+xt = x0 + sigma_t * torch.randn_like(x0)
 
 # DPS
-with torch.enable_grad():
-    # Turn on gradient
-    xt.requires_grad_()
+grad, x0_t = data_fidelity.grad(
+    xt / 2 + 0.5, y=y, physics=physics, sigma=sigma_t / 2, get_model_outputs=True
+)  # Set get_model_outputs to True to also retrieve the denoised output
 
-    # normalize to [0, 1], denoise, and rescale to [-1, 1]
-    x0_t = model(xt / 2 + 0.5, sigma_cur / 2) * 2 - 1
-    # Log-likelihood
-    ll = data_fidelity(x0_t, y, physics).sqrt().sum()
-    # Take gradient w.r.t. xt
-    grad_ll = torch.autograd.grad(outputs=ll, inputs=xt)[0]
 
 # Visualize
 plot(
@@ -219,7 +207,7 @@ plot(
         "Ground Truth": x0,
         "Noisy": xt,
         "Posterior Mean": x0_t,
-        "Gradient": grad_ll,
+        "Gradient": grad,
     }
 )
 
@@ -249,7 +237,10 @@ plot(
 #           \nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\hat{\mathbf{x}}_{t}(\mathbf{x}_t)) \simeq
 #           \rho \nabla_{\mathbf{x}_t} \|\mathbf{y} - \mathbf{A}\hat{\mathbf{x}}_{t}\|_2
 #
-# With these in mind, let us solve the inverse problem with DPS!
+# With DeepInverse, we can use the :class:`deepinv.sampling.DPS` class to perform the above steps with minimal code, with some important parameters:
+#   - `weight`: corresponds to the :math:`\rho` parameter in the above equation, which controls the strength of the gradient step.
+#   - `eta`: corresponds to the :math:`\eta` parameter in the DDIM, which controls the strength of the noise in the reverse diffusion sampling step.
+#   - `num_steps`: corresponds to the number of denoising steps, which is usually set to 1000 for best performance, but can be reduced to 200 for faster sampling.
 
 
 # %%
@@ -259,89 +250,36 @@ plot(
 #   algorithm works best with ``num_steps = 1000``.
 #
 
-num_steps = 200
+# Instantiate the model
+model = dinv.sampling.DPS(
+    denoiser=denoiser,
+    num_steps=200,
+    weight=2.0,
+    eta=1.0,
+    verbose=True,
+    device=device,
+    dtype=torch.float32,
+)
 
-skip = num_train_timesteps // num_steps
-
-batch_size = 1
-eta = 1.0  # DDPM scheme; use eta < 1 for DDIM
-
-
-# measurement
-x0 = x_true * 2.0 - 1.0
-# x0 = x_true.clone()
-y = physics(x0.to(device))
-
-# initial sample from x_T
-x = torch.randn_like(x0)
-
-xs = [x]
-x0_preds = []
-
-for t in tqdm(reversed(range(0, num_train_timesteps, skip))):
-    at = alphas[t]
-    at_next = alphas[t - skip] if t - skip >= 0 else torch.tensor(1)
-    # we cannot use bt = betas[t] if skip > 1:
-    bt = 1 - at / at_next
-
-    xt = xs[-1].to(device)
-
-    with torch.enable_grad():
-        xt.requires_grad_()
-
-        # 1. denoising step
-        aux_x = xt / (2 * at.sqrt()) + 0.5  # renormalize in [0, 1]
-        sigma_cur = (1 - at).sqrt() / at.sqrt()  # sigma_t
-
-        x0_t = 2 * model(aux_x, sigma_cur / 2) - 1
-        x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
-
-        # 2. likelihood gradient approximation
-        l2_loss = data_fidelity(x0_t, y, physics).sqrt().sum()
-
-    norm_grad = torch.autograd.grad(outputs=l2_loss, inputs=xt)[0]
-    norm_grad = norm_grad.detach()
-
-    sigma_tilde = (bt * (1 - at_next) / (1 - at)).sqrt() * eta
-    c2 = ((1 - at_next) - sigma_tilde**2).sqrt()
-
-    # 3. noise step
-    epsilon = torch.randn_like(xt)
-
-    # 4. DDIM(PM) step
-    xt_next = (
-        (at_next.sqrt() - c2 * at.sqrt() / (1 - at).sqrt()) * x0_t
-        + sigma_tilde * epsilon
-        + c2 * xt / (1 - at).sqrt()
-        - norm_grad
-    )
-    x0_preds.append(x0_t.to("cpu"))
-    xs.append(xt_next.to("cpu"))
-
-recon = xs[-1]
-
+# Run the sampling
+sample, trajectory = model(
+    y,
+    physics,
+    seed=123,  # for reproducibility!
+    get_trajectory=True,
+)
 # plot the results
-x = recon / 2 + 0.5
 plot(
     {
         "Measurement": y,
-        "Model Output": x,
+        "Model Output": sample,
         "Ground Truth": x_true,
     }
 )
 
-
-# %%
-# Using DPS in your inverse problem
-# ---------------------------------
-# You can readily use this algorithm via the :class:`deepinv.sampling.DPS` class.
-#
-# ::
-#
-#       y = physics(x)
-#       model = dinv.sampling.DPS(dinv.models.DiffUNet(), data_fidelity=dinv.optim.data_fidelity.L2())
-#       xhat = model(y, physics)
-#
+dinv.utils.plot_videos(
+    trajectory[::10], time_dim=0, suptitle="DPS Trajectory", display=True
+)
 
 # %%
 # :References:

@@ -17,7 +17,7 @@ Changed
 Fixed
 ^^^^^
 - Add warning when options `reduce="mean"` and `reduce="none"` are used in :class:`deepinv.physics.StackedLinearPhysics`. Remove `reduction` argument from :class:`deepinv.distributed.DistributedStackedLinearPhysics` (:gh:`1071` by `Romain Vo`_)
-
+- Fix :class:`deepinv.sampling.DPS` instantiation and refactor to use new SDE interface (:gh:`1127` by `Minh Hai Nguyen`_) 
 
 
 v0.4.0

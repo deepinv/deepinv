@@ -885,6 +885,9 @@ class PosteriorDiffusion(Reconstructor):
         if denoiser is None:
             denoiser = sde.denoiser
 
+        denoiser = (
+            denoiser if not self.minus_one_one else MinusOneOneDenoiserWrapper(denoiser)
+        )
         self.sde.denoiser = denoiser
         if hasattr(self.data_fidelity, "denoiser"):
             self.data_fidelity.denoiser = denoiser
