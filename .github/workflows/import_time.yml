@@ -1,9 +1,13 @@
 name: "⏰ Import Time vs main"
 
 on:
+  push:
+      branches:
+      - project6-sirf-wrapper-draft
   pull_request:
       branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
