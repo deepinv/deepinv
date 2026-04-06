@@ -6,6 +6,10 @@ import warnings
 from typing import Any
 from numpy import ndarray
 from tqdm import tqdm
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.sampling.diffusion_sde import BaseSDE
 
 
 class SDEOutput(dict):
@@ -72,7 +76,15 @@ class BaseSDESolver(nn.Module):
             self.initial_random_state = rng.get_state()
             self.timesteps = self.timesteps.to(rng.device)
 
-    def step(self, sde, t0: float, t1: float, x0: Tensor, *args, **kwargs) -> Tensor:
+    def step(
+        self,
+        sde: BaseSDE,
+        t0: float,
+        t1: float,
+        x0: Tensor,
+        *args,
+        **kwargs,
+    ) -> tuple[torch.Tensor, int]:
         r"""
         Perform a single step with step size from time `t0` to time `t1`, with current state `x0`.
 
@@ -80,16 +92,15 @@ class BaseSDESolver(nn.Module):
         :param float or torch.Tensor t0: Time at the start of the step, of size (,).
         :param float or torch.Tensor t1: Time at the end of the step, of size (,).
         :param torch.Tensor x0: Current state of the system, of size (batch_size, d).
-        :return: Updated state of the system after the step.
 
-        :rtype: torch.Tensor
+        :return torch.Tensor, int: Updated state of the system after the step and number of function evaluations (NFE) performed during the step.
         """
         raise NotImplementedError
 
     @torch.no_grad()
     def sample(
         self,
-        sde,
+        sde: BaseSDE,
         x_init: Tensor,
         seed: int = None,
         *args,
@@ -167,7 +178,7 @@ class BaseSDESolver(nn.Module):
         """
         self.rng.set_state(self.initial_random_state)
 
-    def randn_like(self, input: torch.Tensor, seed: int = None):
+    def randn_like(self, input: torch.Tensor, seed: int = None) -> torch.Tensor:
         r"""
         Equivalent to :func:`torch.randn_like` but supports a pseudorandom number generator argument.
 
@@ -205,10 +216,12 @@ class EulerSolver(BaseSDESolver):
     :param torch.Generator rng: A random number generator for reproducibility.
     """
 
-    def __init__(self, timesteps, rng: torch.Generator = None):
+    def __init__(self, timesteps: Tensor | ndarray, rng: torch.Generator = None):
         super().__init__(timesteps, rng=rng)
 
-    def step(self, sde, t0, t1, x0: Tensor, *args, **kwargs):
+    def step(
+        self, sde: BaseSDE, t0: float, t1: float, x0: torch.Tensor, *args, **kwargs
+    ) -> tuple[torch.Tensor, int]:
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5
         drift, diffusion = sde.discretize(x0, t0, *args, **kwargs)
@@ -233,12 +246,20 @@ class HeunSolver(BaseSDESolver):
 
     def __init__(
         self,
-        timesteps,
+        timesteps: Tensor | ndarray,
         rng: torch.Generator = None,
     ):
         super().__init__(timesteps, rng=rng)
 
-    def step(self, sde, t0, t1, x0: Tensor, *args, **kwargs):
+    def step(
+        self,
+        sde: BaseSDE,
+        t0: float,
+        t1: float,
+        x0: torch.Tensor,
+        *args,
+        **kwargs,
+    ) -> tuple[torch.Tensor, int]:
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5
         drift_0, diffusion_0 = sde.discretize(x0, t0, *args, **kwargs)
