@@ -1,8 +1,13 @@
-import sys, io
-import math
+from __future__ import annotations
+import math, sys, io, requests
+from pathlib import Path
+import numpy as np
 import torch
 import torch.nn.functional as F
-from deepinv.loss.metric.metric import import_pyiqa, Metric
+
+from deepinv.loss.metric.metric import Metric
+from deepinv.physics.functional.convolution import conv2d
+from deepinv.physics.functional.imresize import imresize_matlab
 
 
 class LPIPS(Metric):
@@ -89,55 +94,422 @@ class NIQE(Metric):
     r"""
     Natural Image Quality Evaluator (NIQE) metric.
 
-    Calculates the no-reference metric :math:`\text{NIQE}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
-
-    This metric was introduced by :cite:t:`saad2012blind`, and
-    relies on a natural scene statistics model of video DCT coefficients, as well as a temporal model of motion coherency.
-
-    Lower values indicate better perceptual quality.
-
+    Calculates the NIQE :math:`\text{NIQE}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
     It is a no-reference image quality metric that estimates the quality of images.
-    Uses implementation from `pyiqa <https://pypi.org/project/pyiqa/>`_.
 
     .. note::
 
         By default, no reduction is performed in the batch dimension.
 
-    :Example:
 
-    ::
-
-        from deepinv.utils import load_example
-        from deepinv.loss.metric import NIQE
-        m = NIQE()
-        (...)
-        x_net = load_example("celeba_example.jpg", img_size=128)
-        m(x_net)
-        tensor([...])
-
-    :param str device: device to use for the metric computation. Default: 'cpu'.
+    :param str weights_path: Path to weights created with `.create_weights`. If 'download' (default), downloads the weights provided by :footcite:t:`mittal2012making`. If None, mu and cov are not initialized (useful when fitting custom weights).
+    :param float denominator: stabilizer to add to the std in the image normalization step (eq.1). Defaults to 1
+    :param bool round_tensor: whether to round the input. The original NIQE implementation used rounding and requires input to be range [0, 255]. Do not set round_tensor if incoming tensors will be in [0,1] style ranges. Defaults to False.
+    :param torch.device, str device: device to use for the metric computation. Default: 'cpu'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
-    :param bool check_input_range: if True, ``pyiqa`` will raise error if inputs aren't in the appropriate range ``[0, 1]``.
-    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
-        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
-        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
 
-    def __init__(self, device="cpu", check_input_range=False, **kwargs):
+    def __init__(
+        self,
+        weights_path: str | Path | None = "download",
+        denominator: float = 1,
+        round_tensor: bool = False,
+        patch_size: int = 96,
+        patch_overlap: int = 0,
+        device: str | torch.device = "cpu",
+        dtype=torch.float32,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
-        pyiqa = import_pyiqa()
-        self.niqe = pyiqa.create_metric(
-            "niqe", check_input_range=check_input_range, device=device
-        ).to(device)
-        self.lower_better = self.niqe.lower_better
+        self.round = round_tensor
+        self.lower_better = True
+        self.patch_size = patch_size
+        self.device = device
+        self.n_scales = 2
+        self.patch_overlap = patch_overlap
+        self.denominator = denominator
+        self.dtype = dtype
+        if weights_path == "download":
+            raise NotImplementedError()
+            resp = requests.get(
+                "https://huggingface.co/deepinv/IQA-Models/resolve/main/niqe_original.pt",  # TO DO for this PR: add this
+                timeout=2.5,
+            )
+            resp.raise_for_status()
 
-    def metric(self, x_net, *args, **kwargs):
+            params = torch.load(io.BytesIO(resp.content))
+        elif weights_path is not None:
+            params = torch.load(weights_path)
+        else:
+            self.mu_p, self.cov_p = None, None
+        if weights_path is not None:
+            mu, cov = params["mu"], params["cov"]
+            self.mu_p = mu.to(dtype=dtype, device=device)
+
+            self.cov_p = cov.to(dtype=dtype, device=device)
+
+    def estimate_aggd_param(self, vecs: torch.Tensor, eps: float = 1e-12):
+        v = vecs
+        neg = v < 0
+        pos = v > 0
+
+        cnt_neg = neg.sum(dim=1)
+        cnt_pos = pos.sum(dim=1)
+
+        # Allocate outputs as NaN by default (MATLAB mean([]) -> NaN)
+        left_ms = torch.full(
+            (v.shape[0],), float("nan"), device=v.device, dtype=v.dtype
+        )
+        right_ms = torch.full(
+            (v.shape[0],), float("nan"), device=v.device, dtype=v.dtype
+        )
+
+        # Only compute where there are samples
+        if (cnt_neg > 0).any():
+            left_ms[cnt_neg > 0] = ((v * v) * neg).sum(dim=1)[cnt_neg > 0] / cnt_neg.to(
+                v.dtype
+            )[cnt_neg > 0]
+        if (cnt_pos > 0).any():
+            right_ms[cnt_pos > 0] = ((v * v) * pos).sum(dim=1)[
+                cnt_pos > 0
+            ] / cnt_pos.to(v.dtype)[cnt_pos > 0]
+
+        leftstd = torch.sqrt(left_ms)
+        rightstd = torch.sqrt(right_ms)
+
+        gammahat = leftstd / torch.clamp(rightstd, min=eps)
+        rhat = (v.abs().mean(dim=1) ** 2) / torch.clamp(v.pow(2).mean(dim=1), min=eps)
+
+        gam = torch.arange(0.2, 10.0 + 1e-9, 0.001, device=v.device, dtype=v.dtype)
+        r_gam = (self._gamma(2.0 / gam) ** 2) / (
+            self._gamma(1.0 / gam) * self._gamma(3.0 / gam)
+        )
+
+        rhatnorm = (rhat * (gammahat**3 + 1.0) * (gammahat + 1.0)) / torch.clamp(
+            (gammahat**2 + 1.0) ** 2, min=eps
+        )
+
+        diff = (r_gam.unsqueeze(0) - rhatnorm.unsqueeze(1)).pow(2)
+        idx = diff.argmin(dim=1)
+        alpha = gam[idx]
+
+        beta_factor = torch.sqrt(self._gamma(1.0 / alpha) / self._gamma(3.0 / alpha))
+        betal = leftstd * beta_factor
+        betar = rightstd * beta_factor
+        return alpha, betal, betar
+
+    def _patch_features(
+        self, structdis: torch.Tensor, k: int, stride: int
+    ) -> torch.Tensor:
+        """
+        structdis: (B,1,H,W)
+        returns: (B, L, 18), L is #patches
+        """
+        B, C, H, W = structdis.shape
+        assert C == 1
+        base_u = F.unfold(
+            structdis, kernel_size=(k, k), stride=(stride, stride)
+        )  # (B, k*k, L)
+
+        L = base_u.shape[-1]
+        base = base_u.transpose(1, 2).contiguous().view(B * L, k * k)
+
+        a0, bl0, br0 = self.estimate_aggd_param(base)
+        feat_cols = [a0, (bl0 + br0) * 0.5]
+
+        patches = base_u.transpose(1, 2).contiguous().view(B * L, 1, k, k)
+        shifts = [(0, 1), (1, 0), (1, 1), (1, -1)]
+        for dr, dc in shifts:
+            shifted = torch.roll(patches, shifts=(dr, dc), dims=(2, 3))
+            pair_vec = (patches * shifted).view(B * L, k * k)
+
+            a, bl, br = self.estimate_aggd_param(pair_vec)
+            meanparam = (br - bl) * (self._gamma(2.0 / a) / self._gamma(1.0 / a))
+            feat_cols += [a, meanparam, bl, br]
+
+        feats = torch.stack(feat_cols, dim=1)  # (B*L, 18)
+        return feats.view(B, L, 18)
+
+    def niqe(self, x_net: torch.Tensor) -> torch.Tensor:
+        kernel = self._gen_gauss_kernel()
+
+        all_feats = []
+
+        for scale in range(1, self.n_scales + 1):
+            mu = conv2d(x_net, kernel, "replicate")
+            mu_sq = mu * mu
+            sigma = torch.sqrt(
+                torch.abs(conv2d(x_net * x_net, kernel, "replicate") - mu_sq)
+            )
+            structdis = (x_net - mu) / (sigma + self.denominator)
+            k = max(1, self.patch_size // scale)
+            ov = self.patch_overlap // scale
+            strd = max(1, k - ov)
+
+            feats = self._patch_features(structdis, k, strd)  # (B, L, 18)
+            all_feats.append(feats)
+
+            if scale < self.n_scales:
+                x_net = imresize_matlab(
+                    x_net,
+                    scale=0.5,
+                    kernel="cubic",
+                    antialiasing=True,
+                    padding_type="reflect",
+                )
+
+        X = torch.cat(all_feats, dim=2)  # (B, L, 36)
+        mu_d, cov_d = self._nanstats_rowdrop(X)  # MATLAB-like nanmean/nancov
+
+        cov_p = self.cov_p.expand_as(cov_d)  # (B,36,36)
+        mu_p = self.mu_p  # (36,)
+        invcov = torch.linalg.pinv(
+            0.5 * (cov_d.to(torch.float64) + cov_p.to(torch.float64))
+        ).to(
+            self.dtype
+        )  # (B,36,36)
+        diff = (mu_p.unsqueeze(0) - mu_d).unsqueeze(1)  # (B,1,36)
+        score = torch.sqrt((diff @ invcov @ diff.transpose(1, 2)).squeeze())
+        return score
+
+    def _gen_gauss_kernel(self):
+        # sigma per original code: 7/6, window size 7
+        sigma = 7 / 6
+        radius = 3
+        ax = torch.arange(-radius, radius + 1, device=self.device, dtype=self.dtype)
+        xx, yy = torch.meshgrid(ax, ax, indexing="ij")
+        kernel = torch.exp(-(xx**2 + yy**2) / (2 * sigma * sigma))
+        kernel /= kernel.sum()
+        return kernel.unsqueeze(0).unsqueeze(0)
+
+    def _gamma(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.exp(torch.lgamma(x))
+
+    def _nanstats_rowdrop(self, X: torch.Tensor):
+        """
+        Returns:
+        mu:  (B, F)
+        cov: (B, F, F)
+        Drops rows (patches) with any non-finite feature, per batch item.
+        """
+        B, L, Fdim = X.shape
+        mu = X.new_full((B, Fdim), float("nan"))
+        cov = X.new_full((B, Fdim, Fdim), float("nan"))
+
+        for b in range(B):
+            Xb = X[b]  # (L,F)
+            valid = torch.isfinite(Xb).all(dim=1)
+            Xv = Xb[valid]  # (Lv,F)
+
+            Lv = Xv.shape[0]
+            if Lv == 0:
+                continue  # leave as NaN like MATLAB nanmean/nancov on all-NaN
+            mu_b = Xv.mean(dim=0)
+            mu[b] = mu_b
+
+            if Lv < 2:
+                continue  # covariance undefined -> NaN (match MATLAB behavior)
+            Xc = Xv - mu_b
+            cov[b] = (Xc.t() @ Xc) / (Lv - 1)
+
+        return mu, cov
+
+    def metric(self, x_net: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        """We base ourselves on the original Matlab code (available at http://live.ece.utexas.edu/research/quality/niqe_release.zip), but allow some exceptions:
+
+        (i) Originally, the image was converted to float64. Here we convert to dtype specified at init, but always use float64 when calculating pseudoinverse.
+
+        """
+        if self.mu_p is None or self.cov_p is None:
+            raise RuntimeError(
+                "NIQE weights not loaded. Either pass weights_path at init or call create_weights first."
+            )
+        if x_net.ndim != 4:  # pragma: no cover
+            raise RuntimeError(
+                f"NIQE expects batched, 2D data, but got tensor with {x_net.ndim} dimensions (shape: {x_net.shape})"
+            )
+
+        _, C, H, W = x_net.shape
+
+        if H < self.patch_size or W < self.patch_size:  # pragma: no cover
+            raise RuntimeError(
+                f"NIQE requires images to have height and width larger than or equal to its patch size {self.patch_size}, but got batch of shape {x_net.shape}"
+            )
+        stride = self.patch_size - self.patch_overlap
+        n_patches_h = (H - self.patch_size) // stride + 1
+        n_patches_w = (W - self.patch_size) // stride + 1
+        if n_patches_h * n_patches_w < 2:  # pragma: no cover
+            raise RuntimeError(
+                f"NIQE requires more than 1 patch to compute covariance, but got only {n_patches_h * n_patches_w} patch "
+                f"for batch of shape {x_net.shape} with patch_size={self.patch_size} and patch_overlap={self.patch_overlap}. "
+            )
+        if C == 3:
+            luminance_weights = torch.tensor(
+                [0.29893602, 0.58704307, 0.11402090],
+                dtype=x_net.dtype,
+                device=x_net.device,
+            ).view(
+                1, 3, 1, 1
+            )  # this matches https://github.com/mattools/matlab-image-class/blob/master/src/%40Image/rgb2gray.m
+            x_net = F.conv2d(x_net, luminance_weights)
+        if x_net.shape[1] != 1:  # pragma: no cover
+            raise RuntimeError(
+                f"NIQE only operates on single channel images. 3 channel (RGB) gets converted to relative luminance, but got {C}-channel input"
+            )
+        if self.round:
+            x_net = x_net.round()
+        block_hnum = math.floor(H / self.patch_size)
+        block_wnum = math.floor(W / self.patch_size)
+        x_net = x_net[
+            :, :, : block_hnum * self.patch_size, : block_wnum * self.patch_size
+        ]
+
         n = self.niqe(x_net).float()
         return n.unsqueeze(0) if n.dim() == 0 else n
+
+    def create_weights(
+        self,
+        dataset: torch.utils.data.Dataset,
+        sharpness_threshold: float = 0.75,
+        save_path: str | Path | None = None,
+    ):
+        r"""
+        Fit NIQE model parameters (mu_prisparam, cov_prisparam) from a dataset of 'pristine' images,
+        following the original MATLAB pipeline with two scales and sharpness-based patch selection.
+        `patch_size`, `patch_overlap`, and `denominator` used are those passed at init (unless modified by the user)
+
+        :param torch.utils.data.Dataset dataset: for each item, should give a torch.Tensor or PIL.Image representing a
+            distortion-free (pristine) image.
+        :param float sharpness_threshold: only patches whose sharpness is at least
+            sharpness_threshold of the per-image peak sharpness (measured from σ at scale 1) are kept.
+        :param str save_path: Path to which weights are to be saved. Must have `.pt` extension. If not passed, weights are returned without saving.
+
+        :return: (mu_prisparam, cov_prisparam) as self.dtype on self.device, and updates self.mu_p/self.cov_p.
+        """
+        try:
+            from PIL import Image
+        except:
+            raise ImportError(
+                "create_weights requires PIL, but it is not installed"
+            )  # temporary req for testing with Set14HR
+        device = self.device
+        dtype = torch.float32
+        kernel = self._gen_gauss_kernel().to(device=device, dtype=dtype)
+
+        all_feats = []
+
+        for sample in dataset:
+            if isinstance(sample, torch.Tensor):
+                x = sample
+            elif isinstance(sample, Image.Image):
+                x = torch.from_numpy(np.array(sample))
+            else:
+                raise TypeError(
+                    "Each dataset sample must be a torch.Tensor or PIL.Image."
+                )
+
+            if x.ndim == 2:
+                x = x.unsqueeze(0)
+            if x.ndim == 3 and x.shape[0] in (1, 3):
+                pass
+            elif x.ndim == 3:
+                x = x.permute(2, 0, 1)
+            else:
+                raise RuntimeError(f"Unsupported input shape {tuple(x.shape)}")
+
+            x = x.to(device=device, dtype=dtype).unsqueeze(0)
+
+            if x.shape[1] == 3:
+                luminance_weights = torch.tensor(
+                    [0.29893602, 0.58704307, 0.11402090], dtype=x.dtype, device=x.device
+                ).view(1, 3, 1, 1)
+                x = F.conv2d(x, luminance_weights)
+            elif x.shape[1] != 1:
+                raise RuntimeError(
+                    f"NIQE only operates on single channel images. Got {x.shape[1]} channels."
+                )
+
+            if self.round:
+                x = x.round()
+
+            _, _, H, W = x.shape
+            if H < self.patch_size or W < self.patch_size:
+                continue  # too small -> should we raise a warning here?
+            block_hnum = math.floor(H / self.patch_size)
+            block_wnum = math.floor(W / self.patch_size)
+            x = x[:, :, : block_hnum * self.patch_size, : block_wnum * self.patch_size]
+
+            feats_scales = []
+            sharpness = None
+
+            x_scale = x
+            for scale in range(1, self.n_scales + 1):
+                mu = conv2d(x_scale, kernel, "replicate")
+                mu_sq = mu * mu
+                sigma = torch.sqrt(
+                    torch.abs(conv2d(x_scale * x_scale, kernel, "replicate") - mu_sq)
+                )
+                structdis = (x_scale - mu) / (sigma + self.denominator)
+
+                k = max(1, self.patch_size // scale)
+                ov = self.patch_overlap // scale
+                stride = max(1, k - ov)
+                feats = self._patch_features(structdis, k, stride)  # (1, L, 18)
+                feats_scales.append(feats)
+
+                if scale == 1:
+                    U = F.unfold(
+                        sigma, kernel_size=(k, k), stride=(stride, stride)
+                    )  # (1, k*k, L)
+                    sharpness = U.mean(dim=1).squeeze(0)  # (L,)
+
+                if scale < self.n_scales:
+                    x_scale = imresize_matlab(
+                        x_scale,
+                        scale=0.5,
+                        kernel="cubic",
+                        antialiasing=True,
+                        padding_type="reflect",
+                    )
+
+            feats_2scales = torch.cat(feats_scales, dim=2).squeeze(0)  # (L,36)
+
+            if sharpness is None or sharpness.numel() == 0:
+                continue
+            th = sharpness_threshold * sharpness.max()
+            keep_idx = (sharpness > th).nonzero(as_tuple=False).flatten()
+            if keep_idx.numel() == 0:
+                continue
+            feats_kept = feats_2scales.index_select(0, keep_idx)
+            feats_kept = feats_kept[torch.isfinite(feats_kept).all(dim=1)]
+            if feats_kept.numel() == 0:
+                continue
+            all_feats.append(feats_kept)
+
+        if not all_feats:
+            raise RuntimeError(
+                "No patches collected. Consider lowering sharpness_threshold or checking dataset."
+            )
+
+        prisparam = torch.cat(all_feats, dim=0).to(device=device, dtype=dtype)  # (N,36)
+
+        mu = prisparam.double().mean(dim=0)  # (36,)
+        xc = prisparam.double() - mu.unsqueeze(0)
+        denom = max(1, prisparam.shape[0] - 1)
+        cov = (xc.t() @ xc) / denom  # (36,36)
+
+        self.mu_p = mu.to(dtype=self.dtype)
+        self.cov_p = cov.to(dtype=self.dtype)
+
+        if save_path is not None:
+            self.mu_p.requires_grad_(False)
+            self.cov_p.requires_grad_(False)
+            torch.save({"mu": self.mu_p.cpu(), "cov": self.cov_p.cpu()}, save_path)
+
+        return self.mu_p, self.cov_p
 
 
 class BlurStrength(Metric):

@@ -85,11 +85,12 @@ denoisers = [
     "PyWavelets",
     "ptwt",
     "FrEIA",
+    "pyiqa>=0.1.13",
+    "scipy",
     "kornia",
     "torchkbnufft",
     "libcpab",
     "sigpy",
-    "scipy",
     "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
     "spyrit>=3.0.0; platform_system=='Linux'",
     "diffusers",
@@ -159,4 +160,3 @@ banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets",
 # Deprecated functions that should be replaced
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "torch.norm".msg = "Use torch.linalg.vector_norm, torch.linalg.matrix_norm or torch.linalg.norm instead of the deprecated torch.norm"
- 
