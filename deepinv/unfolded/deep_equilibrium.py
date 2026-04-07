@@ -2,7 +2,7 @@ from __future__ import annotations
 import warnings
 import torch
 from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.optim_iterators import *
+from deepinv.optim.optim_iterators import OptimIterator
 from deepinv.unfolded.unfolded import BaseUnfold
 from deepinv.optim.optimizers import create_iterator
 from deepinv.optim.data_fidelity import DataFidelity, L2

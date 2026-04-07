@@ -20,9 +20,36 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 #
 # First, install and import the latest stable release of `deepinv`:
 #
-# .. code:: bash
+# .. tab-set::
+#     :sync-group: install
 #
-#    pip install deepinv
+#     .. tab-item:: pip
+#         :sync: pip
+#
+#         .. code-block:: bash
+#
+#            pip install deepinv
+#
+#     .. tab-item:: uv
+#         :sync: uv
+#
+#         .. code-block:: bash
+#
+#            uv pip install deepinv
+#
+#     .. tab-item:: pixi
+#         :sync: pixi
+#
+#         .. code-block:: bash
+#
+#            pixi add --pypi deepinv
+#
+#     .. tab-item:: conda
+#         :sync: conda
+#
+#         .. code-block:: bash
+#
+#            conda install -c conda-forge deepinv
 #
 # We then get the device (CPU in the case of this example).
 #
@@ -30,7 +57,7 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 import deepinv as dinv
 import torch
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # 2. Physics

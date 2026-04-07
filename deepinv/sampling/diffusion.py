@@ -7,13 +7,13 @@ from deepinv.models import Reconstructor
 import deepinv.physics
 from deepinv.sampling import BaseSampling
 from deepinv.sampling.sampling_iterators import DiffusionIterator
-from deepinv.utils.compat import zip_strict
+
 from deepinv.optim.data_fidelity import L2
 
 
 class DiffusionSampler(BaseSampling):
     r"""
-    Turns a diffusion method into a Monte Carlo sampler
+    Turns a diffusion method into a Monte Carlo sampler.
 
     Unlike diffusion methods, the resulting sampler computes the mean and variance of the distribution
     by running the diffusion multiple times.
@@ -98,22 +98,23 @@ class DDRM(Reconstructor):
 
         Denoising diffusion restoration model using a pretrained DRUNet denoiser:
 
-        >>> import deepinv as dinv
-        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu'
-        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> seed = torch.cuda.manual_seed(0) # Random seed for reproducibility on GPU
-        >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define plain gray 32x32 image
-        >>> physics = dinv.physics.Inpainting(
-        ...   mask=0.5, img_size=(3, 32, 32),
-        ...   noise_model=dinv.physics.GaussianNoise(0.1),
-        ...   device=device,
-        ... )
-        >>> y = physics(x) # measurements
-        >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)  # doctest: +IGNORE_RESULT
-        >>> model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
-        >>> xhat = model(y, physics) # sample from the posterior distribution
-        >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
-        tensor([True])
+    ::
+
+        import deepinv as dinv
+        device = dinv.utils.get_device(verbose=False)
+        seed = torch.manual_seed(0) # Random seed for reproducibility
+        seed = torch.cuda.manual_seed(0) # Random seed for reproducibility on GPU
+        x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define plain gray 32x32 image
+        physics = dinv.physics.Inpainting(
+           mask=0.5, img_size=(3, 32, 32),
+           noise_model=dinv.physics.GaussianNoise(0.1),
+           device=device,
+        )
+        y = physics(x) # measurements
+        denoiser = dinv.models.DRUNet(pretrained="download").to(device)  # doctest: +IGNORE_RESULT
+        model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
+        xhat = model(y, physics) # sample from the posterior distribution
+        (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # tensor([True])
 
 
 
@@ -228,17 +229,13 @@ class DiffPIR(Reconstructor):
     for :math:`t` decreasing from :math:`T` to :math:`1`:
 
      .. math::
-             \begin{equation*}
-             \begin{aligned}
              x_{0}^{t} &= D_{\theta}(x_t, \frac{\sqrt{1-\overline{\alpha}_t}}{\sqrt{\overline{\alpha}_t}}) \\
              \widehat{x}_{0}^{t} &= \operatorname{prox}_{2 f(y, \cdot) /{\rho_t}}(x_{0}^{t}) \\
              \widehat{\varepsilon} &= \left(x_t - \sqrt{\overline{\alpha}_t} \,\,
              \widehat{x}_{0}^t\right)/\sqrt{1-\overline{\alpha}_t} \\
              \varepsilon_t &= \mathcal{N}(0, \mathbf{I}) \\
              x_{t-1} &= \sqrt{\overline{\alpha}_t} \,\, \widehat{x}_{0}^t + \sqrt{1-\overline{\alpha}_t}
-             \left(\sqrt{1-\zeta} \,\, \widehat{\varepsilon} + \sqrt{\zeta} \,\, \varepsilon_t\right),
-             \end{aligned}
-             \end{equation*}
+             \left(\sqrt{1-\zeta} \,\, \widehat{\varepsilon} + \sqrt{\zeta} \,\, \varepsilon_t\right)
 
     where :math:`D_\theta(\cdot,\sigma)` is a Gaussian denoiser network with noise level :math:`\sigma`
     and :math:`f(y, \cdot)` is the data fidelity
@@ -266,25 +263,19 @@ class DiffPIR(Reconstructor):
 
         Denoising diffusion restoration model using a pretrained DRUNet denoiser:
 
-        >>> import deepinv as dinv
-        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu'
-        >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define a plain gray 32x32 image
-        >>> physics = dinv.physics.Inpainting(
-        ...   mask=0.5, img_size=(3, 32, 32),
-        ...   noise_model=dinv.physics.GaussianNoise(0.1),
-        ...   device=device
-        ... )
-        >>> y = physics(x) # Measurements
-        >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-        >>> model = dinv.sampling.DiffPIR(
-        ...   model=denoiser,
-        ...   data_fidelity=dinv.optim.data_fidelity.L2(),
-        ...   device=device,
-        ... ) # Define the DiffPIR model
-        >>> xhat = model(y, physics) # Run the DiffPIR algorithm
-        >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
-        tensor([True])
+    ::
 
+        import deepinv as dinv
+        device = dinv.utils.get_device(verbose=False)
+        x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define a plain gray 32x32 image
+        physics = dinv.physics.Inpainting(mask=0.5, img_size=(3, 32, 32),
+           noise_model=dinv.physics.GaussianNoise(0.1), device=device)
+        y = physics(x) # Measurements
+        denoiser = dinv.models.DRUNet(device=device)
+        model = dinv.sampling.DiffPIR(model=denoiser, data_fidelity=dinv.optim.data_fidelity.L2(),
+           device=device) # Define the DiffPIR model
+        xhat = model(y, physics) # Run the DiffPIR algorithm
+        print((dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x))) # should be True
 
 
     """
@@ -531,31 +522,23 @@ class DPS(Reconstructor):
 
     .. math::
 
-            \begin{equation*}
-            \begin{aligned}
-            \widehat{\mathbf{x}}_{t} &= D_{\theta}(\mathbf{x}_t, \sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t})
-            \\
-            \mathbf{g}_t &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{t}(\mathbf{x}_t) | \mathbf{y} ) \\
-            \mathbf{\varepsilon}_t &= \mathcal{N}(0, \mathbf{I}) \\
-            \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t
-            + b_t \, \, \widehat{\mathbf{x}}_t
-            + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t + \mathbf{g}_t,
-            \end{aligned}
-            \end{equation*}
+        \widehat{\mathbf{x}}_{t} &= D_{\theta}(\mathbf{x}_t, \sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t})
+        \\
+        \mathbf{g}_t &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{t}(\mathbf{x}_t) | \mathbf{y} ) \\
+        \mathbf{\varepsilon}_t &= \mathcal{N}(0, \mathbf{I}) \\
+        \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t
+        + b_t \, \, \widehat{\mathbf{x}}_t
+        + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t + \mathbf{g}_t,
 
     where :math:`\denoiser{\cdot}{\sigma}` is a denoising network for noise level :math:`\sigma`,
     :math:`\eta` is a hyperparameter, and the constants :math:`\tilde{\sigma}_t, a_t, b_t` are defined as
 
     .. math::
-            \begin{equation*}
-            \begin{aligned}
               \tilde{\sigma}_t &= \eta \sqrt{ (1 - \frac{\overline{\alpha}_t}{\overline{\alpha}_{t-1}})
               \frac{1 - \overline{\alpha}_{t-1}}{1 - \overline{\alpha}_t}} \\
               a_t &= \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}/\sqrt{1-\overline{\alpha}_t} \\
               b_t &= \sqrt{\overline{\alpha}_{t-1}} - \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}
               \frac{\sqrt{\overline{\alpha}_{t}}}{\sqrt{1 - \overline{\alpha}_{t}}}.
-            \end{aligned}
-            \end{equation*}
 
     :param torch.nn.Module model: a denoiser network that can handle different noise levels
     :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator, if kept to `None`, defaults to :class:`deepinv.optim.L2` (the choice in the paper).
@@ -632,7 +615,7 @@ class DPS(Reconstructor):
 
         seq = range(0, self.num_train_timesteps, skip)
         seq_next = [-1] + list(seq[:-1])
-        time_pairs = list(zip_strict(reversed(seq), reversed(seq_next)))
+        time_pairs = list(zip(reversed(seq), reversed(seq_next), strict=True))
 
         # Initial sample from x_T
         if x_init is not None:

@@ -33,7 +33,7 @@ FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr", "signal_noise_ratio"]
 
 
 def choose_full_reference_metric(metric_name, device, **kwargs) -> metric.Metric:
-    if metric_name in ("LPIPS", "NIQE"):
+    if metric_name in ("NIQE",):
         pytest.importorskip(
             "pyiqa",
             reason="This test requires pyiqa. It should be "
@@ -63,7 +63,7 @@ def choose_full_reference_metric(metric_name, device, **kwargs) -> metric.Metric
     elif metric_name == "L1L2":
         return metric.L1L2(**kwargs)
     elif metric_name == "LPIPS":
-        return metric.LPIPS(**kwargs, device=device)
+        return metric.LPIPS(device=device, **kwargs)
     elif metric_name == "ERGAS":
         return metric.ERGAS(factor=4, **kwargs)
     elif metric_name == "SAM":
@@ -100,13 +100,12 @@ def choose_no_reference_metric(metric_name, device, **kwargs) -> metric.Metric:
         raise ValueError("Incorrect no-reference metric name.")
 
 
-@pytest.fixture
-def test_image(device):
+@pytest.fixture(scope="session")
+def test_image():
     return load_example(
         "celeba_example.jpg",
         img_size=128,
         resize_mode="resize",
-        device=device,
     )
 
 
@@ -131,7 +130,7 @@ def test_full_reference_metrics(
         "complex_abs": channels == 2,
         "train_loss": train_loss,
         "norm_inputs": norm_inputs,
-        "reduction": "mean",
+        "reduction": "mean",  # 'none' is tested below
     }
     if metric_name in ("SSIM", "PSNR"):
         metric_kwargs |= {"max_pixel": max_pixel, "min_pixel": min_pixel}
@@ -140,6 +139,7 @@ def test_full_reference_metrics(
 
     m = choose_full_reference_metric(metric_name, device, **metric_kwargs)
 
+    test_image = test_image.to(device)
     x = test_image.clone()
 
     x = x[:, :channels]
@@ -148,6 +148,12 @@ def test_full_reference_metrics(
         pytest.skip("ERGAS or SAM must have multichannels.")
 
     x_hat = dinv.physics.GaussianNoise(sigma=0.1, rng=rng)(x)
+
+    if metric_name == "LPIPS":
+        x = x.clip(min=0.0, max=1.0)
+        x_hat = x_hat.clip(min=0.0, max=1.0)
+        if channels != 3:
+            pytest.skip("LPIPS requires 3 channel input.")
 
     # Test metric worse when image worse
     # In general, metrics can be either lower or higher = better
@@ -200,6 +206,7 @@ def test_no_reference_metrics(
 
     m = choose_no_reference_metric(metric_name, device, **metric_kwargs)
 
+    test_image = test_image.to(device)
     x = test_image.clone()
 
     if metric_name == "QNR":

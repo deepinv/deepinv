@@ -92,9 +92,9 @@ class ArtifactRemoval(Reconstructor):
             physics = physics.module
 
         if self.mode == "adjoint":
-            x_hat = physics.A_adjoint(y)
+            x_hat = physics.A_adjoint(y, **kwargs)
         elif self.mode == "pinv":
-            x_hat = physics.A_dagger(y)
+            x_hat = physics.A_dagger(y, **kwargs)
         elif self.mode == "direct":
             x_hat = y
         else:

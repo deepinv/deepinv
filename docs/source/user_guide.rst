@@ -84,6 +84,14 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         Introduction and summary of reconstruction algorithms.
 
     .. grid-item-card::
+        :link: least_squares
+        :link-type: ref
+
+        :octicon:`square` **Pseudoinverse**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Simplest reconstruction without priors or training.
+
+    .. grid-item-card::
         :link: pretrained-models
         :link-type: ref
 
@@ -149,14 +157,21 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Conditional, unconditional GANs and deep image prior.
 
-
     .. grid-item-card::
         :link: blind
         :link-type: ref
 
-        :octicon:`webhook` **Blind Inverse Problems**
+        :octicon:`diamond` **Blind Inverse Problems**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Reconstruction with misspecified physics and/or noise level.
+
+    .. grid-item-card::
+        :link: distributed
+        :link-type: ref
+
+        :octicon:`server` **Distributed Computing**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Large-scale image reconstruction using distributed computing.
 
 .. toctree::
    :maxdepth: 2
@@ -164,6 +179,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
    :caption: Reconstruction Methods
 
    user_guide/reconstruction/introduction
+   user_guide/reconstruction/least-squares
    user_guide/reconstruction/pretrained-models
    user_guide/reconstruction/denoisers
    user_guide/reconstruction/deep-reconstructors
@@ -173,6 +189,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
    user_guide/reconstruction/unfolded
    user_guide/reconstruction/adversarial
    user_guide/reconstruction/blind
+   user_guide/reconstruction/distributed
 
 
 Training, Testing and Utilities

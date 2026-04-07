@@ -41,6 +41,7 @@ We consider the following two choices of :math:`h`:
 """
 
 import torch
+import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.datasets import PatchDataset
 from deepinv import Trainer
@@ -51,7 +52,7 @@ from deepinv.utils import plot
 from deepinv.utils import load_torch_url
 from tqdm import tqdm
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 dtype = torch.float32
 
 # %%

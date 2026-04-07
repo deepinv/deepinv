@@ -263,6 +263,12 @@ Some predefined optimizers are provided:
        | :math:`u_{k} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})`
        | :math:`x_{k+1} = \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)`
 
+   * - :class:`deepinv.optim.SIRT`
+     - | :math:`x_{k+1} = x_k + \tau V (A^{\top} W (y - A x_k))`
+     
+   * - :class:`deepinv.optim.MLEM`
+     - | :math:`x_{k+1} = \frac{x_k}{A^{\top} 1} \odot A^{\top} \frac{y}{A x_k}`
+
 
 .. _initialization:
     
@@ -371,7 +377,7 @@ which defines the parameters for backtracking line-search. The :class:`deepinv.o
         max_iter: int = 10
             # Maximum number of backtracking iterations
 
-By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
+By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtracking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
 
 .. note::
   To use backtracking, the optimized function (i.e., both the the data-fidelity and prior) must be explicit and provide a computable cost for the current iterate.
@@ -412,5 +418,4 @@ Utils
 -----
 We provide some useful routines for optimization algorithms.
 
-- :class:`deepinv.optim.utils.conjugate_gradient` implements the conjugate gradient algorithm for solving linear systems.
-- :class:`deepinv.optim.utils.gradient_descent` implements the gradient descent algorithm.
+- :func:`deepinv.optim.utils.gradient_descent` implements the gradient descent algorithm.

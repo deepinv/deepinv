@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "deepinv"
 authors = [{name="DeepInverse maintainers (see https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md)"}]
-license = "BSD-3-Clause"
+license = { text = "BSD-3-Clause" }
 description = "DeepInverse: a PyTorch library for imaging with deep learning"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.10"
-version = "0.3.7"
+version = "0.4.0"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -77,7 +77,7 @@ lint = [
     "ruff"
 ]
 
-# optional dependencies for specific denoisers, physics or transforms
+# optional dependencies for specific denoisers, or transforms
 denoisers = [
     "bm3d",
     "bm4d<4.2.4",
@@ -85,16 +85,21 @@ denoisers = [
     "PyWavelets",
     "ptwt",
     "FrEIA",
-    "pyiqa",
     "kornia",
-    "torchkbnufft",
     "libcpab",
-    "sigpy",
-    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
-    "spyrit>=3.0.0; platform_system=='Linux'",
-    "diffusers", 
+    "scipy",
+    "diffusers",
     "transformers",
     "numba>=0.60.0",
+]
+
+# optional dependencies for advanced forward operators
+physics = [
+    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
+    "spyrit>=3.0.0; platform_system=='Linux'",
+    "torchkbnufft",
+    "array_api_compat",
+    "sigpy",
 ]
 
 # optional dependencies for specific datasets
@@ -115,15 +120,38 @@ training = [
     "mlflow",
 ]
 
+##############################################################
+# Pixi configuration for managing conda optional dependencies
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64", "win-64", "osx-arm64"]
 
+[tool.pixi.dependencies] # install from conda-forge for all environments
+pytorch = "*"
+torchvision = "*"
+python = ">=3.10"
 
-#####################################################################
+[tool.pixi.feature.dataset.dependencies]
+datasets = ">=3.5.0"
+
+[tool.pixi.pypi-dependencies] # install from PyPI for all environments
+deepinv = { path = ".", editable = true }
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+test = { features = ["test"], solve-group = "default" }
+docs = { features = ["doc", "dataset", "denoisers", "physics", "training"], solve-group = "default" }
+doctest = { features = ["doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "default" }
+full = { features = ["test", "dataset", "denoisers", "physics", "training"], solve-group = "default" }
+
+##############################################
 # Pytest configuration and coverage reporting
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = [
-    "deepinv/tests",
+    "deepinv/tests", # main test directory
+    "deepinv", # for doctests in the codebase
 ]
 markers = [
     "slow",
@@ -140,11 +168,14 @@ exclude_also = [
     "if self.mlflow_vis",
 ]
 
+##############################################
+# Ruff configuration for linting and import management
+
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
-select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251", "N805", "E402"]
+select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251", "N805", "E402", "F821", "F822", "F823"]
 
 [tool.ruff.lint.per-file-ignores]
 # NOTE: Rule F401 is ruff's unused imports rule.
@@ -159,4 +190,4 @@ banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets",
 # Deprecated functions that should be replaced
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "torch.norm".msg = "Use torch.linalg.vector_norm, torch.linalg.matrix_norm or torch.linalg.norm instead of the deprecated torch.norm"
- 
+

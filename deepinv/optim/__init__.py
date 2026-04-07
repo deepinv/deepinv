@@ -25,6 +25,7 @@ from .optimizers import (
     PGD,
     FISTA,
     PMD,
+    SIRT,
     MLEM,
 )
 from .fixed_point import FixedPoint
@@ -54,6 +55,7 @@ from .optim_iterators import (
     GDIteration,
     MDIteration,
     SMIteration,
+    SIRTIteration,
     MLEMIteration,
 )
 from .epll import EPLL
@@ -70,5 +72,5 @@ from .distance import (
     LogPoissonLikelihoodDistance,
     ZeroDistance,
 )
-
 from . import utils
+from .linear import least_squares

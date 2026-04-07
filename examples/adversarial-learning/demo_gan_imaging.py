@@ -40,7 +40,7 @@ from deepinv.loss import adversarial
 from deepinv.utils import get_data_home
 from deepinv.physics.generator import MotionBlurGenerator
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurments"

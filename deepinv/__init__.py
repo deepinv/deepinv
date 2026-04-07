@@ -27,10 +27,6 @@ from deepinv import utils
 
 __all__ += ["utils"]
 
-from deepinv import models
-
-__all__ += ["iterative"]
-
 from deepinv import physics
 
 __all__ += ["physics"]

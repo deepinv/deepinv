@@ -5,17 +5,11 @@ import torchvision
 import torch
 import torch.fft as fft
 from torch import Tensor
+import torch.nn.functional as F
 from deepinv.physics.forward import LinearPhysics, DecomposablePhysics, adjoint_function
-from deepinv.physics.functional import (
-    conv2d,
-    conv_transpose2d,
-    filter_fft,
-    product_convolution2d,
-    product_convolution2d_adjoint,
-    conv3d_fft,
-    conv_transpose3d_fft,
-    imresize_matlab,
-)
+import deepinv.physics.functional as dF
+from deepinv.utils.mixins import TiledMixin2d
+from deepinv.utils._internal import _as_pair, _add_tuple
 
 
 class Downsampling(LinearPhysics):
@@ -40,7 +34,7 @@ class Downsampling(LinearPhysics):
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
-    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to Downsampling's device.
+    :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     |sep|
 
@@ -75,15 +69,188 @@ class Downsampling(LinearPhysics):
                 stacklevel=2,
             )
             filter = None
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         self.imsize = tuple(img_size) if isinstance(img_size, list) else img_size
         self.imsize_dynamic = (3, 128, 128)  # placeholder
         self.padding = padding
-        self.device = device
 
-        self.register_buffer("filter", None)
-        self.update_parameters(filter=filter, factor=factor, **kwargs)
+        imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
+        filter_parameters = self.get_filter_parameters(
+            img_size=imsize, filter=filter, factor=factor, device=device
+        )
+        self.factor = filter_parameters["factor"]
+
+        self.register_buffer("filter", filter_parameters["filter"])
+
+        # Used for prox_l2 computation when `use_fft=True` and `padding='circular'`
+        self.register_buffer("Fh", filter_parameters["Fh"])
+        self.register_buffer("Fhc", filter_parameters["Fhc"])
+        self.register_buffer("Fh2", filter_parameters["Fh2"])
+
         self.to(device)
+
+    @staticmethod
+    def get_filter_parameters(
+        img_size: tuple[int, ...] | None = None,
+        filter: Tensor | str | list[str] | None = None,
+        factor: int | float | Tensor | None = None,
+        device: torch.device | str = "cpu",
+    ) -> dict[str, torch.Tensor]:
+        r"""
+        Create a filter tensor with specified downsampling factor
+
+        :param tuple[int] img_size: size of the high resolution image `(C, H, W)`.
+        :param torch.Tensor, str, list[str] filter: Filter name or tensor
+         to be applied to the input image before downsampling.
+        :param int, float, torch.Tensor factor: Downsampling factor to be applied to the input image.
+        :param torch.device, str device: Device where the filter tensor will be created or pushed to.
+        """
+
+        parameters = {}
+
+        if factor is not None:
+            factor = Downsampling.check_factor(factor=factor)
+            parameters["factor"] = factor
+        else:
+            parameters["factor"] = None
+
+        if filter is not None:
+            assert (
+                factor is not None
+            ), "factor must be provided when filter is not None."
+            assert (
+                img_size is not None
+            ), "img_size must be provided when filter is not None."
+
+            if isinstance(filter, list):
+                # Batched filter strings
+                if len(set(filter)) == 1 and isinstance(filter[0], str):
+                    filter = filter[0]
+                else:
+                    raise ValueError(
+                        f"Downsampling supports filter string lists if they are identical, but got unique filters {set(filter)}."
+                    )
+
+            if isinstance(filter, torch.Tensor):
+                filter = filter.to(device)
+            elif filter == "gaussian":
+                filter = gaussian_blur(sigma=(factor, factor), device=device)
+            elif filter == "bilinear":
+                filter = bilinear_filter(factor, device=device)
+            elif filter == "bicubic":
+                filter = bicubic_filter(factor, device=device)
+            elif filter == "sinc":
+                filter = sinc_filter(factor, length=4 * factor, device=device)
+
+            # `Fh` is initialized on `filter.device`
+            Fh = dF.filter_fft(filter, img_size, real_fft=False)
+            Fhc = torch.conj(Fh)
+            Fh2 = Fhc * Fh
+
+            parameters["filter"] = filter
+            parameters["Fh"] = Fh
+            parameters["Fhc"] = Fhc
+            parameters["Fh2"] = Fh2
+        else:
+            parameters["filter"] = None
+            parameters["Fh"] = None
+            parameters["Fhc"] = None
+            parameters["Fh2"] = None
+
+        return parameters
+
+    def update_parameters(
+        self,
+        filter: Tensor | str | list[str] = None,
+        factor: int | float | Tensor = None,
+        device: torch.device | str = None,
+        **kwargs,
+    ):
+        r"""
+        Updates the current filter and/or factor.
+
+        :param torch.Tensor, str, list[str] filter: New filter to be applied to the input image.
+        :param int, float, torch.Tensor factor: New downsampling factor to be applied to the input image.
+        :param torch.device, str device: When``self.filter`` is ``None`` and if ``filter`` is a ``str`, specifies the device where the new filter will be created. When``self.filter`` is ``None`` and ``filter`` is a ``torch.Tensor``, the device is inferred from the provided ``filter`` tensor. Ignored otherwise.
+        """
+        if factor is not None and filter is None and self.filter is not None:
+            warn(
+                "Updating factor but not filter. Filter will not be valid for new factor. Pass filter string or new filter to resolve this."
+            )
+
+        imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
+
+        # self.filter can be None after initialization
+        if self.filter is None:
+            if device is None and not isinstance(filter, Tensor):
+                _self_device = self._device_holder.device
+                warn(
+                    "The current filter is None and no device is provided."
+                    f"Will proceed with self.device={_self_device}"
+                    "The self.device attribute is deprecated and will be removed. Please pass the `device` argument to update_parameters. In future versions, device will be set to'cpu'.",
+                    stacklevel=2,
+                )
+
+                device = _self_device
+
+            if isinstance(filter, Tensor):
+                if device is not None:
+                    warn(
+                        f"Got device={device}. The device argument is ignored since the provided ``filter`` is a Tensor. To change the device of the underlying filter, please use physics.to(device).",
+                        stacklevel=2,
+                    )
+
+                device = filter.device
+
+                # NOTE: to properly handle self._device_holder, which tracks the
+                # deprecated self.device property.
+                # When self.device is no longer supported, this line can be removed
+                # as no "implicit" device will be tied to self when self.filter is None.
+                self.to(device)
+
+        # the device of self.filter (which is equal to self._device_holder.device) takes precedence
+        elif isinstance(self.filter, Tensor):
+            if isinstance(filter, Tensor):
+                if self.filter.device.type != filter.device.type:
+                    warn(
+                        "The provided ``filter`` is on a different device than the current filter ``self.filter``. The current underlying self.filter.device={self.filter.device} will be used.",
+                        stacklevel=2,
+                    )
+
+            device = self.filter.device
+
+        # filter_parameters contains keys "factor", "filter", "Fh", "Fhc", "Fh2"
+        # "filter", "Fh", "Fhc", "Fh2" are Tensor arguments
+        filter_parameters = self.get_filter_parameters(
+            img_size=imsize,
+            filter=filter,
+            factor=factor if factor is not None else self.factor,
+            device=device,
+        )
+        if filter_parameters["factor"] is not None:
+            self.factor = filter_parameters.pop("factor")
+
+        # IF filter_parameters["filter"] is not None then update of "Fh", "Fhc", "Fh2" has
+        # already been triggered in `self.get_filter_parameters`
+        # ELSE, computation of "Fh", "Fhc", "Fh2" is triggered here in case a
+        # change of domain size (imsize_dynamic) has occured
+        # FIXME: When `self.imsize` is None, need to track changes of `self.imsize_dynamic`
+        # to avoid recomputation of "Fh" when not needed
+        if filter_parameters["filter"] is None and self.filter is not None:
+            imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
+
+            filter_parameters["Fh"] = dF.filter_fft(
+                self.filter, imsize, real_fft=False, dims=(-2, -1)
+            ).to(device)
+            filter_parameters["Fhc"] = torch.conj(filter_parameters["Fh"])
+            filter_parameters["Fh2"] = (
+                filter_parameters["Fhc"] * filter_parameters["Fh"]
+            )
+
+        # user is allowed to override parameters updates
+        filter_parameters.update(**kwargs)
+
+        super().update_parameters(**filter_parameters)
 
     def A(
         self,
@@ -106,10 +273,10 @@ class Downsampling(LinearPhysics):
 
         """
         self.imsize_dynamic = x.shape[-3:]
-        self.update_parameters(filter=filter, factor=factor, **kwargs)
+        self.update_parameters(filter=filter, factor=factor, device=x.device, **kwargs)
 
         if self.filter is not None:
-            x = conv2d(x, self.filter, padding=self.padding)
+            x = dF.conv2d(x, self.filter, padding=self.padding)
 
         x = x[:, :, :: self.factor, :: self.factor]  # downsample
 
@@ -135,16 +302,12 @@ class Downsampling(LinearPhysics):
             If `factor` is passed, `filter` must also be passed as a `str` or `Tensor`, in order to update the filter to the new factor.
 
         """
-        if factor is not None:
-            self.factor = self.check_factor(factor)
-
         self.imsize_dynamic = (
             y.shape[-3],
             y.shape[-2] * self.factor,
             y.shape[-1] * self.factor,
         )
-
-        self.update_parameters(filter=filter, factor=factor, **kwargs)
+        self.update_parameters(filter=filter, factor=factor, device=y.device, **kwargs)
 
         imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
 
@@ -160,7 +323,7 @@ class Downsampling(LinearPhysics):
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
-            x = conv_transpose2d(
+            x = dF.conv_transpose2d(
                 x, self.filter, padding=self.padding
             )  # Note: this may be slow against x = conv_transpose2d_fft(x, self.filter) in the case of circular padding
 
@@ -199,7 +362,8 @@ class Downsampling(LinearPhysics):
         else:
             return LinearPhysics.prox_l2(self, z, y, gamma, **kwargs)
 
-    def check_factor(self, factor: int | float | Tensor) -> int:
+    @staticmethod
+    def check_factor(factor: int | float | Tensor) -> int:
         """Check new downsampling factor.
 
         :param int, float, torch.Tensor factor: downsampling factor to be checked and cast to `int`. If :class:`torch.Tensor`,
@@ -224,67 +388,6 @@ class Downsampling(LinearPhysics):
                 f"Factor must be an integer, got {factor} of type {type(factor)}."
             )
 
-    def update_parameters(
-        self,
-        filter: Tensor | str | list[str] = None,
-        factor: int | float | Tensor = None,
-        **kwargs,
-    ):
-        r"""
-        Updates the current filter and/or factor.
-
-        :param torch.Tensor, str, list[str] filter: New filter to be applied to the input image.
-        :param int, float, torch.Tensor factor: New downsampling factor to be applied to the input image.
-        """
-        if factor is not None and filter is None and self.filter is not None:
-            warn(
-                "Updating factor but not filter. Filter will not be valid for new factor. Pass filter string or new filter to resolve this."
-            )
-
-        if factor is not None:
-            self.factor = self.check_factor(factor=factor)
-
-        if filter is not None:
-            if isinstance(filter, list):
-                # Batched filter strings
-                if len(set(filter)) == 1 and isinstance(filter[0], str):
-                    filter = filter[0]
-                else:
-                    raise ValueError(
-                        f"Downsampling supports filter string lists if they are identical, but got unique filters {set(filter)}."
-                    )
-
-            if isinstance(filter, torch.Tensor):
-                filter = filter.to(self.device)
-            elif filter == "gaussian":
-                filter = gaussian_blur(
-                    sigma=(self.factor, self.factor), device=self.device
-                )
-            elif filter == "bilinear":
-                filter = bilinear_filter(self.factor, device=self.device)
-            elif filter == "bicubic":
-                filter = bicubic_filter(self.factor, device=self.device)
-            elif filter == "sinc":
-                filter = sinc_filter(
-                    self.factor, length=4 * self.factor, device=self.device
-                )
-
-            self.register_buffer("filter", filter)
-
-        if self.filter is not None:
-            imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
-
-            self.register_buffer(
-                "Fh",
-                filter_fft(self.filter, imsize, real_fft=False, dims=(-2, -1)).to(
-                    self.device
-                ),
-            )
-            self.register_buffer("Fhc", torch.conj(self.Fh))
-            self.register_buffer("Fh2", self.Fhc * self.Fh)
-
-        super().update_parameters(**kwargs)
-
 
 class Upsampling(Downsampling):
     r"""
@@ -302,7 +405,7 @@ class Upsampling(Downsampling):
     :param tuple[int] img_size: size of the output image
     :param int factor: upsampling factor
     :param str padding: options are ``'circular'``, ``'replicate'`` and ``'reflect'``.
-    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to Upsampling's device.
+    :param torch.device, str device: Device on which the physics' buffers will be created. To change the device of the physics, please use ``physics.to(device)``.
     """
 
     def __init__(
@@ -314,7 +417,6 @@ class Upsampling(Downsampling):
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-
         assert (
             padding != "valid"
         ), "Padding 'valid' is not supported for Upsampling operator."
@@ -357,8 +459,9 @@ class Blur(LinearPhysics):
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image. (default is ``'valid'``).
         Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
-    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to Blur's device.
-
+    :param bool use_fft: whether to use FFT-based convolutions. If ``True``, it uses FFT-based convolutions which can be faster for large kernels.
+        If ``False``, it uses the standard convolution functions from ``torch.nn.functional``.
+    :param torch.device, str device: Device on which the physics' buffers will be created. When a buffer is updated via ``physics.update_parameters()``, if the current buffer is None, use the device of the incoming value, else, the incoming value is casted to the device of the current buffer. To change the device of all buffers, please use ``physics.to(device)``.
 
     .. note::
 
@@ -367,9 +470,8 @@ class Blur(LinearPhysics):
 
     .. note::
 
-        This class uses the highly optimized :func:`torch.nn.functional.conv2d` for performing the convolutions in 2D
-        and FFT for performing the convolutions in 3D as implemented in :func:`deepinv.physics.functional.conv3d_fft`.
-        It uses FFT based convolutions in 3D since :func:`torch.nn.functional.conv3d` is slow for large kernels.
+        This class performs a true convolution, not a cross-correlation as the standard convolution functions in ``torch.nn.functional``.
+        It is recommended to use ``use_fft=True`` for large filters, and ``use_fft=False`` for small filters, since FFT-based convolutions can be faster for large kernels but slower for small kernels.
 
     |sep|
 
@@ -391,14 +493,31 @@ class Blur(LinearPhysics):
 
     """
 
-    def __init__(self, filter=None, padding="valid", device="cpu", **kwargs):
+    def __init__(
+        self,
+        filter: Tensor = None,
+        padding: str = "valid",
+        use_fft: bool = False,
+        device: torch.device = torch.device("cpu"),
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.device = device
         self.padding = padding
         assert (
             isinstance(filter, Tensor) or filter is None
         ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
+
         self.register_buffer("filter", filter)
+        self.use_fft = use_fft
+        self.conv = {
+            2: dF.conv2d_fft if use_fft else dF.conv2d,
+            3: dF.conv3d_fft if use_fft else dF.conv3d,
+        }
+        self.conv_transpose = {
+            2: dF.conv_transpose2d_fft if use_fft else dF.conv_transpose2d,
+            3: dF.conv_transpose3d_fft if use_fft else dF.conv_transpose3d,
+        }
         self.to(device)
 
     def A(self, x: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
@@ -409,15 +528,17 @@ class Blur(LinearPhysics):
         :param torch.Tensor filter: Filter :math:`w` to be applied to the input image.
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
+        :raises ValueError: if the input tensor does not have 4 or 5 dimensions.
         """
-        self.update_parameters(
-            filter=filter.to(self.device) if filter is not None else filter, **kwargs
-        )
+        self.update_parameters(filter=filter, **kwargs)
 
-        if x.dim() == 4:
-            return conv2d(x, filter=self.filter, padding=self.padding)
-        elif x.dim() == 5:
-            return conv3d_fft(x, filter=self.filter, padding=self.padding)
+        dim = (
+            x.dim() - 2
+        )  # get the spatial dimensions to select the right convolution function
+        if dim in [2, 3]:  # either 2D or 3D convolution
+            return self.conv[dim](x, filter=self.filter, padding=self.padding)
+        else:
+            raise ValueError(f"Expected Tensor dimension to be 4 or 5, is {x.dim()}")
 
     def A_adjoint(self, y: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
         r"""
@@ -427,15 +548,17 @@ class Blur(LinearPhysics):
         :param torch.Tensor filter: Filter :math:`w` to be applied to the input image.
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
+        :raises ValueError: if the input tensor does not have 4 or 5 dimensions.
         """
-        self.update_parameters(
-            filter=filter.to(self.device) if filter is not None else filter, **kwargs
-        )
+        self.update_parameters(filter=filter, **kwargs)
 
-        if y.dim() == 4:
-            return conv_transpose2d(y, filter=self.filter, padding=self.padding)
-        elif y.dim() == 5:
-            return conv_transpose3d_fft(y, filter=self.filter, padding=self.padding)
+        dim = (
+            y.dim() - 2
+        )  # get the spatial dimensions to select the right convolution function
+        if dim in [2, 3]:  # either 2D or 3D convolution
+            return self.conv_transpose[dim](y, filter=self.filter, padding=self.padding)
+        else:
+            raise ValueError(f"Expected Tensor dimension to be 4 or 5, is {y.dim()}")
 
 
 class BlurFFT(DecomposablePhysics):
@@ -459,8 +582,7 @@ class BlurFFT(DecomposablePhysics):
     :param tuple img_size: Input image size in the form `(C, H, W)`.
     :param torch.Tensor filter: torch.Tensor of size `(1, c, h, w)` containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
         :func:`deepinv.physics.blur.gaussian_blur`.
-    :param torch.device, str device: Device this physics lives on. If `filter` is modified via `physics.update_parameters()`, it will be automatically casted to BlurFFT's device.
-    :param str, torch.dtype dtype: data type of the tensors. Default is ``torch.float32``.
+    :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     |sep|
 
@@ -485,27 +607,32 @@ class BlurFFT(DecomposablePhysics):
     def __init__(
         self,
         img_size: tuple[int, ...],
-        filter: Tensor = None,
+        filter: Tensor | None = None,
         device: str | torch.device = "cpu",
-        dtype: str | torch.dtype = torch.float32,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         self.img_size = img_size
-        self.device = device
         assert (
             isinstance(filter, Tensor) or filter is None
         ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
-        self.update_parameters(filter=filter, **kwargs)
-        self.to(device=device)
 
-    def A(self, x: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
-        self.update_parameters(filter=filter, **kwargs)
-        return super().A(x)
+        filter_parameters = self.get_filter_parameters(
+            img_size=img_size, filter=filter, device=device
+        )
+        self.register_buffer("filter", filter_parameters["filter"])
+        self.register_buffer("angle", filter_parameters["angle"])
+        self.register_buffer("mask", filter_parameters["mask"])
 
-    def A_adjoint(self, x: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
-        self.update_parameters(filter=filter, **kwargs)
-        return super().A_adjoint(x)
+        self.to(device)
+
+    def A(self, x: Tensor, filter: Tensor | None = None, **kwargs) -> Tensor:
+        # updating the parameters is already handled in DecomposablePhysics.A
+        return super().A(x, filter=filter)
+
+    def A_adjoint(self, x: Tensor, filter: Tensor | None = None, **kwargs) -> Tensor:
+        # updating the parameters is already handled in DecomposablePhysics.A_adjoint
+        return super().A_adjoint(x, filter=filter)
 
     def V_adjoint(self, x: Tensor) -> Tensor:
         return torch.view_as_real(
@@ -527,26 +654,85 @@ class BlurFFT(DecomposablePhysics):
     def V(self, x: Tensor) -> Tensor:
         return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:])
 
-    def update_parameters(self, filter: Tensor = None, **kwargs):
+    @staticmethod
+    def get_filter_parameters(
+        img_size: tuple[int, ...], filter: Tensor, device: torch.device | str = "cpu"
+    ) -> dict[str, torch.Tensor]:
+        r"""
+        Create filter parameters for BlurFFT operator.
+
+        :param tuple[int] img_size: size of the input image `(C, H, W)`.
+        :param torch.Tensor filter: Filter to be applied to the input image.
+        :param torch.device, str device: Device where the filter tensor will be created.
+        """
+
+        parameters = {}
+
+        if filter is not None and isinstance(filter, Tensor):
+            filter = filter.to(device)
+            if img_size[0] > filter.shape[1]:
+                filter = filter.repeat(1, img_size[0], 1, 1)
+            mask = dF.filter_fft(filter, img_size, dims=(-2, -1), real_fft=True)
+            angle = torch.angle(mask)
+            mask = torch.abs(mask).unsqueeze(-1)
+            mask = torch.cat([mask, mask], dim=-1)
+
+            parameters = {
+                "filter": filter,
+                "angle": torch.exp(1.0j * angle),  # phase: e^{i*angle}
+                "mask": mask,
+            }
+        else:
+            parameters["filter"] = None
+            parameters["angle"] = None
+            parameters["mask"] = None
+
+        return parameters
+
+    def update_parameters(self, filter: Tensor | None = None, **kwargs):
         r"""
         Updates the current filter.
 
         :param torch.Tensor filter: New filter to be applied to the input image.
         """
-        if filter is not None and isinstance(filter, Tensor):
-            filter = filter.to(self.device)
-            if self.img_size[0] > filter.shape[1]:
-                filter = filter.repeat(1, self.img_size[0], 1, 1)
-            mask = filter_fft(filter, self.img_size, dims=(-2, -1), real_fft=True)
-            angle = torch.angle(mask)
-            mask = torch.abs(mask).unsqueeze(-1)
-            mask = torch.cat([mask, mask], dim=-1)
 
-            self.register_buffer("filter", filter)
-            self.register_buffer("angle", torch.exp(1.0j * angle))  # phase: e^{i*angle}
-            self.register_buffer("mask", mask)
+        # self.filter can be None after initialization
+        if self.filter is None:
+            if isinstance(filter, Tensor):
+                device = filter.device
 
-        super().update_parameters(**kwargs)
+                # NOTE: to properly handle self._device_holder, which tracks the
+                # deprecated self.device property.
+                # When self.device is no longer supported, this line can be removed
+                # as no "implicit" device will be tied to self when self.filter is None.
+                self.to(device)
+
+            # elif filter is None:
+            #   `self.get_filter_parameters` will return
+            #   parameters with None values
+            #   so no update is performed and device is not needed
+
+        elif isinstance(self.filter, Tensor):
+            if isinstance(filter, Tensor):
+                if self.filter.device != filter.device:
+                    warn(
+                        "The provided ``filter`` is on a different device than the current filter ``self.filter``. The current underlying self.filter.device={self.filter.device} will be used.",
+                        stacklevel=2,
+                    )
+            device = self.filter.device
+
+        filter_parameters = self.get_filter_parameters(
+            img_size=self.img_size, filter=filter, device=device
+        )
+
+        # In BlurFFT.A, `update_parameters` is called from DecomposablePhysics.A
+        # with mask=None if not specified otherwise by user.
+        # Pop "mask" from kwargs if kwargs.get("mask") is None to avoid overwriting
+        # filter_parameters["mask"] with None
+        if kwargs.get("mask") is None and "mask" in kwargs:
+            kwargs.pop("mask")
+
+        super().update_parameters(**filter_parameters)
 
 
 class SpaceVaryingBlur(LinearPhysics):
@@ -569,7 +755,8 @@ class SpaceVaryingBlur(LinearPhysics):
     :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
-    :param torch.device, str device: Device this physics lives on. If filter or multipliers is updated, it will be cast to SpaceVaryingBlur's device.
+    :param bool use_fft: whether to use FFT-based convolutions. If ``True``, it uses FFT-based convolutions which can be faster for large kernels.
+    :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     |sep|
 
@@ -599,12 +786,16 @@ class SpaceVaryingBlur(LinearPhysics):
         filters: Tensor = None,
         multipliers: Tensor = None,
         padding: str = "valid",
+        use_fft: bool = False,
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-        super().__init__(**kwargs)
-        self.device = device
-        self.update_parameters(filters, multipliers, padding, **kwargs)
+        super().__init__(device=device, **kwargs)
+
+        self.register_buffer("filters", filters)
+        self.register_buffer("multipliers", multipliers)
+        self.padding = padding
+        self.use_fft = use_fft
         self.to(device)
 
     def A(
@@ -624,7 +815,9 @@ class SpaceVaryingBlur(LinearPhysics):
         :param str device: cpu or cuda
         """
         self.update_parameters(filters, multipliers, padding, **kwargs)
-        return product_convolution2d(x, self.multipliers, self.filters, self.padding)
+        return dF.product_convolution2d(
+            x, self.multipliers, self.filters, self.padding, use_fft=self.use_fft
+        )
 
     def A_adjoint(
         self,
@@ -649,8 +842,8 @@ class SpaceVaryingBlur(LinearPhysics):
         self.update_parameters(
             filters=filters, multipliers=multipliers, padding=padding, **kwargs
         )
-        return product_convolution2d_adjoint(
-            y, self.multipliers, self.filters, self.padding
+        return dF.product_convolution2d_adjoint(
+            y, self.multipliers, self.filters, self.padding, use_fft=self.use_fft
         )
 
     def update_parameters(
@@ -667,13 +860,343 @@ class SpaceVaryingBlur(LinearPhysics):
         :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         """
-        if filters is not None and isinstance(filters, Tensor):
-            self.register_buffer("filters", filters.to(self.device))
-        if multipliers is not None and isinstance(filters, Tensor):
-            self.register_buffer("multipliers", multipliers.to(self.device))
         if padding is not None:
             self.padding = padding
+
+        super().update_parameters(filters=filters, multipliers=multipliers, **kwargs)
+
+
+class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
+    r"""
+    Space varying blur via tiled-convolution.
+
+    This forward operator performs the space-varying blur using local convolutions on overlapping patches (tiles) of the image.
+    The resulting images is then reconstructed using a smooth blending of the overlapping patches (`blending_mode`).
+
+    Given an input image :math:`x`, this linear operator performs
+
+    .. math::
+
+        y = \sum_{k=1}^K h_k \star (m_k \odot x)
+
+    where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`m_k` are binary masks defining the tiles and :math:`h_k` are filters.
+    When the size of the image minus `stride` is not perfectly divisible by the `patch_size`, the image is padded with zeros to fit an integer number of patches and the extra padding is removed afterwards automatically.
+
+    The number of patches (tiles) :math:`K` is determined by the `patch_size` and `stride` parameters: it is the product of the number of patches along each spatial dimension.
+    A helper class method `num_filters(img_size, patch_size, stride)` is provided to compute the number of filters needed for a given image size, patch size and stride.
+
+    .. note::
+
+        For simplicity, we also provide the generator class :class:`deepinv.physics.generator.TiledBlurGenerator` to generate the filters, for example during training.
+
+
+    .. note::
+
+        This class supports both FFT-based convolutions and direct convolutions, see :func:`deepinv.physics.functional.conv2d_fft` and :func:`deepinv.physics.functional.conv2d`.
+        FFT-based convolutions are typically faster for large filters. This can be selected via the `use_fft` parameter (default: `True`).
+
+    .. note::
+
+        This class supports broadcast between of batch and channel dimensions of the filters and the input image.
+        See :func:`deepinv.physics.functional.conv2d` for more details.
+
+
+    :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(B, C, K, h, w)` where
+        `B` is the batch size, `C` the number of channels, `K` the number of filters, `h` and `w` the filter height and width which should be smaller or equal than the image :math:`x` height and width respectively.
+        If `None`, filters must be provided during the forward pass.
+    :param str blending_mode: Blending mode for overlapping patches. Options are `'bump'` (default) and `'linear'`.
+    :param int, tuple[int, int] patch_size: Size of the patches (tiles). If `int`, the same size is used for both spatial dimensions.
+
+    |sep|
+
+    .. note::
+
+        This class only supports `'valid'` padding. If you need other padding options, please raise an issue.
+
+    |sep|
+
+    :Examples:
+
+    >>> import torch
+    >>> from deepinv.physics import TiledSpaceVaryingBlur
+    >>> from deepinv.physics.generator import MotionBlurGenerator, TiledBlurGenerator
+    >>> import deepinv as dinv
+    >>> img_size = (256, 256)
+    >>> patch_size = (64, 64)
+    >>> stride = (32, 32)
+    >>> x = dinv.utils.load_example(
+    ...        "butterfly.png", img_size=img_size, resize_mode="resize"
+    ...    )
+    >>> psf_generator = MotionBlurGenerator(psf_size=(31, 31))
+    >>> generator = TiledBlurGenerator(
+    ...     psf_generator=psf_generator,
+    ...     patch_size=patch_size,
+    ...     stride=stride,
+    ... )
+    >>> filters = generator.step(batch_size=1, img_size=img_size)["filters"]
+    >>> physics = TiledSpaceVaryingBlur(patch_size=patch_size, stride=stride)
+    >>> y = physics(x, filters=filters)
+    >>> print(x.shape, y.shape)
+    torch.Size([1, 3, 256, 256]) torch.Size([1, 3, 226, 226])
+    >>> dinv.utils.plot([x, y], titles=["Original", "Blurred"])   # doctest: +SKIP
+    """
+
+    def __init__(
+        self,
+        filters: Tensor = None,
+        patch_size: int | tuple[int, int] = None,
+        stride: int | tuple[int, int] = None,
+        blending_mode: str = "bump",
+        use_fft: bool = True,
+        device: torch.device | str = "cpu",
+        dtype: str | torch.dtype = torch.float32,
+        **kwargs,
+    ):
+        super().__init__(
+            patch_size=patch_size, stride=stride, pad_if_needed=True, **kwargs
+        )
+        # Always use pad_if_needed=True to ensure that the image is padded to fit an integer number of patches, and the extra padding is removed automatically after processing.
+
+        try:
+            from einops import rearrange
+        except ImportError:
+            raise ImportError(
+                "einops is required for TiledSpaceVaryingBlur. Please install it via 'pip install einops'."
+            )
+
+        self.rearrange = rearrange
+        self._dynamic_img_size = None  # To track image size changes
+        self._dynamic_psf_size = (
+            filters.shape[-2:] if filters is not None else None
+        )  # To track psf size changes
+
+        self.use_fft = use_fft
+        self.conv2d_fn = dF.conv2d if not use_fft else dF.conv2d_fft
+        self.conv2d_adjoint_fn = (
+            dF.conv_transpose2d if not use_fft else dF.conv_transpose2d_fft
+        )
+        self.blending_mode = blending_mode
+
+        self.register_buffer("filters", filters)
+        self.register_buffer("multipliers", None)
+        self.to(device=device, dtype=dtype)
+
+    def A(self, x: Tensor, filters: Tensor = None, **kwargs) -> torch.Tensor:
+        r"""
+        Applies the space varying blur operator to the input image.
+
+        :param torch.Tensor x: input image.
+        :param torch.Tensor filters: Filters :math:`h_k`.
+
+        :return: torch.Tensor: Space varying blurred image.
+        """
+        img_size = x.shape[-2:]
+        self.update_parameters(filters, img_size=img_size, device=x.device, **kwargs)
+        w = self.multipliers  # (B, C, K, H, W)
+        h = self.filters  # (B, C, K, h, w)
+        h_size = h.shape[-2:]
+        pad = self._get_pad(h_size)
+
+        # Extract patches: (B, C, K1, K2, P1, P2)
+        patches = self.image_to_patches(x, pad=pad)
+        n_rows, n_cols = patches.size(2), patches.size(3)
+        if n_rows * n_cols != h.size(2):
+            raise ValueError(
+                f"The total number of patches must be equal to the number of PSFs, "
+                f"got {n_rows * n_cols} and {h.size(2)}"
+            )
+
+        # Flatten K1 and K2 to: (B, C, K, P1, P2)
+        patches = patches.flatten(2, 3)
+
+        # Pad each patch for local convolution: so that local convolution produce image of same size
+
+        # Apply convolution per patch
+        B, C = patches.shape[:2]
+        h = dF.convolution._prepare_filter_for_grouped(h, B=B, C=C)
+        result = self.conv2d_fn(
+            self.rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
+            self.rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
+            padding="valid",
+        )
+        result = self.rearrange(
+            result, "(b k) c h w -> b c k h w", b=patches.size(0), k=h.size(2)
+        )
+        result = result * w
+
+        B, C, K, H, W = result.size()
+        result = self.patches_to_image(
+            result.view(B, C, n_rows, n_cols, H, W),
+            img_size=img_size,
+        )
+        # Remove pad
+        result = self._crop(result, pad)
+        return result
+
+    def A_adjoint(
+        self,
+        y: Tensor,
+        filters: Tensor = None,
+        **kwargs,
+    ) -> Tensor:
+        r"""
+        Applies the adjoint operator.
+
+        :param torch.Tensor y: blurry image :math:`y`. Tensor of size `(B, C, H', W')`.
+        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(b, c, K, h, w)`.
+
+        :return: torch.Tensor: Adjoint result.
+        """
+        if filters is None:
+            filters = self.filters
+
+        # Infer original image size from y and filters, since the padding is 'valid'
+        h_size = filters.shape[-2:]
+        original_img_size = _add_tuple(y.shape[-2:], _add_tuple(h_size, (-1, -1)))
+
+        self.update_parameters(
+            filters=filters,
+            img_size=original_img_size,
+            device=y.device,
+            dtype=y.dtype,
+            **kwargs,
+        )
+
+        w = self.multipliers  # (B, C, K, H, W)
+        h = self.filters  # (B, C, K, h, w)
+
+        # Pad input
+        pad = self._get_pad(h_size)
+        y = self._pad(y, pad)
+
+        # Extract patches
+        patches = self.image_to_patches(y)
+
+        n_rows, n_cols = patches.size(2), patches.size(3)
+        if n_rows * n_cols != h.size(2):
+            raise ValueError(
+                f"The total number of patches must be equal to the number of PSFs, "
+                f"got {n_rows * n_cols} and {h.size(2)}"
+            )
+
+        # Apply transpose convolution per patch
+        patches = patches.flatten(2, 3)
+        patches = patches * w
+        B, C = patches.shape[:2]
+        h = dF.convolution._prepare_filter_for_grouped(h, B=B, C=C)
+
+        result = self.conv2d_adjoint_fn(
+            self.rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
+            self.rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
+            padding="valid",
+        )
+
+        result = self.rearrange(result, "(b k) c h w -> b c k h w", b=B, k=h.size(2))
+
+        # Reconstruct image using overlapping patches
+        B, C, _, H, W = result.size()
+        result = self.patches_to_image(
+            result.view(B, C, n_rows, n_cols, H, W),
+        )
+
+        # crop due to padding for convolution
+        result = self._crop(result, pad)
+
+        # crop due to padding for fitting integer number of patches
+        result = result[..., : original_img_size[-2], : original_img_size[-1]]
+
+        return result
+
+    def update_parameters(
+        self,
+        filters: Tensor = None,
+        img_size: int | tuple[int, int] = None,
+        device: torch.device = None,
+        dtype: torch.dtype = torch.float32,
+        **kwargs,
+    ):
+        if filters is not None and isinstance(filters, Tensor):
+            self.register_buffer("filters", filters.to(device))
+            self._dynamic_psf_size = filters.shape[-2:]
+
+        # Only generate multipliers if the image size changed
+        if getattr(self, "multipliers", None) is None or (
+            img_size is not None and img_size != self._dynamic_img_size
+        ):
+            multipliers = dF.generate_tiled_multipliers(
+                self.get_compatible_img_size(img_size),
+                self.patch_size,
+                self.stride,
+                mode=self.blending_mode,
+                device=device,
+                dtype=dtype,
+            )
+            self.register_buffer("multipliers", multipliers)
+            self._dynamic_img_size = img_size
+
         super().update_parameters(**kwargs)
+
+    @staticmethod
+    def num_filters(
+        img_size: tuple[int, int], patch_size: tuple[int, int], stride: tuple[int, int]
+    ) -> tuple[int, int]:
+        r"""
+        Computes the number of filters (tiles) required for a given image size, patch size and stride.
+        Can be used to determine the required number of filters when instantiating the class.
+
+        :param tuple[int, int] img_size: Image size `(H, W)`.
+        :param tuple[int, int] patch_size: Patch size `(h, w)`.
+        :param tuple[int, int] stride: Stride size `(sh, sw)`.
+        :return: Number of filters (tiles) required in each spatial dimension.
+        """
+        img_size = _as_pair(img_size)
+        patch_size = _as_pair(patch_size)
+        stride = _as_pair(stride)
+
+        # Using the same logic as in TiledMixin2d, but a static method here to help users compute the number of filters needed beforehand
+        num = [
+            (i - p) // s + 1
+            for i, p, s in zip(img_size, patch_size, stride, strict=True)
+        ]
+        pad = [
+            (p + n * s - i) % s
+            for p, n, s, i in zip(patch_size, num, stride, img_size, strict=True)
+        ]
+        compatible_size = _add_tuple(img_size, pad)
+        n_h = (compatible_size[0] - patch_size[0]) // stride[0] + 1
+        n_w = (compatible_size[1] - patch_size[1]) // stride[1] + 1
+
+        return n_h, n_w
+
+    @staticmethod
+    def _get_pad(filter_size: tuple[int, int]) -> tuple[int, int]:
+        r"""
+        Computes padding from the filters size: (left, right, top, bottom).
+        """
+        h, w = filter_size
+
+        left = w // 2
+        right = w - left - 1
+        top = h // 2
+        bottom = h - top - 1
+        return (left, right, top, bottom)
+
+    @staticmethod
+    def _pad(x: Tensor, pad: tuple[int, int, int, int]) -> Tensor:
+        r"""
+        Pads the input tensor `x` with padding `pad`, in the order (left, right, top, bottom).
+        """
+        return F.pad(x, pad=pad, mode="constant", value=0)
+
+    @staticmethod
+    def _crop(x: Tensor, pad: tuple[int, int, int, int]) -> Tensor:
+        r"""
+        Removes padding from the input tensor `x` with padding `pad`, in the order (left, right, top, bottom).
+        """
+        left, right, top, bottom = pad
+        h_slice = slice(top, -bottom if bottom > 0 else None)  # top, bottom
+        w_slice = slice(left, -right if right > 0 else None)  # left, right
+        return x[..., h_slice, w_slice]
 
 
 def gaussian_blur(
@@ -687,19 +1210,14 @@ def gaussian_blur(
     Defined as
 
     .. math::
-        \begin{equation*}
             G(x, y) = \frac{1}{2\pi\sigma_x\sigma_y} \exp{\left(-\frac{x'^2}{2\sigma_x^2} - \frac{y'^2}{2\sigma_y^2}\right)}
-        \end{equation*}
 
     where :math:`x'` and :math:`y'` are the rotated coordinates obtained by rotating $(x, y)$ around the origin
     by an angle :math:`\theta`:
 
     .. math::
-
-        \begin{align*}
             x' &= x \cos(\theta) - y \sin(\theta) \\
             y' &= x \sin(\theta) + y \cos(\theta)
-        \end{align*}
 
     with :math:`\sigma_x` and :math:`\sigma_y`  the standard deviations along the :math:`x'` and :math:`y'` axes.
 
@@ -775,13 +1293,11 @@ def sinc_filter(
 
     .. math::
 
-        \begin{equation*}
             \beta = \begin{cases}
                 0 & \text{if } A \leq 21 \\
                 0.5842 \cdot (A - 21)^{0.4} + 0.07886 \cdot (A - 21) & \text{if } 21 < A \leq 50 \\
                 0.1102 \cdot (A - 8.7) & \text{otherwise}
             \end{cases}
-        \end{equation*}
 
     :param float, torch.Tensor factor: Downsampling factor. If Tensor, can only have one element.
     :param int length: Length of the filter.
@@ -822,12 +1338,10 @@ def bilinear_filter(factor: int = 2, device: torch.device | str = "cpu") -> Tens
 
     .. math::
 
-        \begin{equation*}
             w(x, y) = \begin{cases}
                 (1 - |x|) \cdot (1 - |y|) & \text{if } |x| \leq 1 \text{ and } |y| \leq 1 \\
                 0 & \text{otherwise}
             \end{cases}
-        \end{equation*}
 
     for :math:`x, y \in {-\text{factor} + 0.5, -\text{factor} + 0.5 + 1/\text{factor}, \ldots, \text{factor} - 0.5}`.
 
@@ -895,6 +1409,7 @@ class DownsamplingMatlab(Downsampling):
     :param str padding: MATLAB padding type, supports only `reflect` for reflect padding.
     :param bool antialiasing: whether to perform antialiasing in MATLAB downsampling.
         Recommended to set to `True` to match MATLAB.
+    :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
     """
 
     def __init__(
@@ -903,9 +1418,10 @@ class DownsamplingMatlab(Downsampling):
         kernel: str = "cubic",
         padding: str = "reflect",
         antialiasing: bool = True,
+        device: torch.device | str = "cpu",
         **kwargs,
     ):
-        super().__init__(filter=None, factor=factor, **kwargs)
+        super().__init__(filter=None, factor=factor, device=device, **kwargs)
 
         self.kernel = kernel
         self.padding = padding
@@ -917,9 +1433,9 @@ class DownsamplingMatlab(Downsampling):
         :param torch.Tensor x: input image
         :param int, float factor: downsampling factor. If not `None`, use this factor and store it as current factor.
         """
-        self.update_parameters(factor=factor, **kwargs)
+        self.update_parameters(factor=factor, device=x.device, **kwargs)
         # Clone because of in-place ops
-        return imresize_matlab(
+        return dF.imresize_matlab(
             x.clone(),
             scale=1 / self.factor,
             antialiasing=self.antialiasing,
@@ -933,7 +1449,7 @@ class DownsamplingMatlab(Downsampling):
         :param torch.Tensor y: input measurement
         :param int, float factor: downsampling factor. If not `None`, use this factor and store it as current factor.
         """
-        self.update_parameters(factor=factor, **kwargs)
+        self.update_parameters(factor=factor, device=y.device, **kwargs)
 
         adj = adjoint_function(
             self.A,

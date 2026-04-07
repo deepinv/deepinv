@@ -23,7 +23,7 @@ from deepinv.utils import load_np_url, get_image_url, get_degradation_url
 from deepinv.utils.tensorlist import dirac_like
 from deepinv.optim import FISTA
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # The RI measurement operator
@@ -81,7 +81,9 @@ class RadioInterferometry(LinearPhysics):
     ):
         super(RadioInterferometry, self).__init__(**kwargs)
 
-        self.device = device
+        if dataWeight is None:
+            dataWeight = torch.tensor([1.0], device=device)
+
         self.k_oversampling = k_oversampling
         self.interp_points = interp_points
         self.img_size = img_size
@@ -96,20 +98,20 @@ class RadioInterferometry(LinearPhysics):
             int(img_size[1] * self.k_oversampling),
         )
 
-        self.samples_loc = samples_loc.to(self.device)
-        self.dataWeight = dataWeight.to(self.device)
+        self.register_buffer("samples_loc", samples_loc.to(device))
+        self.register_buffer("dataWeight", dataWeight.to(device))
 
         self.nufftObj = tkbn.KbNufft(
             im_size=self.img_size,
             grid_size=self.grid_size,
             numpoints=self.interp_points,
-            device=self.device,
+            device=device,
         )
         self.adjnufftObj = tkbn.KbNufftAdjoint(
             im_size=self.img_size,
             grid_size=self.grid_size,
             numpoints=self.interp_points,
-            device=self.device,
+            device=device,
         )
 
         # Define adjoint operator projection
@@ -118,8 +120,10 @@ class RadioInterferometry(LinearPhysics):
         else:
             self.adj_projection = lambda x: x
 
+        self.to(device)
+
     def setWeight(self, w):
-        self.dataWeight = w.to(self.device)
+        self.dataWeight = w.to(self.dataWeight)
 
     def A(self, x):
         return (
