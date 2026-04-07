@@ -54,7 +54,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml --junitxml=junit.xml --testmon
+          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml --testmon
 
       - name: Save .testmondata # only when pushed to main, not for PRs
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -64,16 +64,9 @@ jobs:
           key: testmon-cpu-main-${{ matrix.os }}-${{ github.run_id }}
 
       - name: Upload coverage to Codecov
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.environment == 'full'
         uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
-
-      - name: Upload test results to Codecov
-        if: (!cancelled()) && runner.os == 'Linux'
-        uses: codecov/test-results-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./junit.xml
