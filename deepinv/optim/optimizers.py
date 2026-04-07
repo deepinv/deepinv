@@ -826,7 +826,7 @@ class BaseOptim(Reconstructor):
             | torch.Tensor
             | dict
         ) = None,
-        x_gt: Tensor = None,
+        x_gt: torch.Tensor = None,
         compute_metrics: bool = False,
         **kwargs,
     ):
