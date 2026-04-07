@@ -22,62 +22,62 @@ class DEAL(Reconstructor):
     Deep Equilibrium Attention Least Squares (DEAL) reconstruction model.
 
     This model solves linear inverse problems using a learned equilibrium-based
-    regularizer combined with iterative conjugate gradient least-squares updates. It can be used for
-    image restoration and reconstruction tasks such as denoising, deblurring,
-    and computed tomography reconstruction.
+    regularizer combined with iterative conjugate gradient least-squares updates.
+    It can be used for image restoration and reconstruction tasks such as
+    denoising, deblurring, and computed tomography reconstruction.
 
-    This implementation is adapted from the official `DEAL repository <https://github.com/mehrsapo/DEAL>`_.
+    This implementation is adapted from the official
+    `DEAL repository <https://github.com/mehrsapo/DEAL>`_.
 
     For the original method, see :footcite:t:`pourya2025dealing`.
 
     A pretrained network can be loaded by setting ``pretrained='download'``.
 
-    The reconstruction is obtained by solving a regularized least-squares problem.
+    The reconstruction is obtained by solving a regularized least-squares problem
 
     .. math::
 
         \hat{x} = \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda g_\theta(x)
 
-    where :math:`A` is the forward operator, :math:`y` the measurements,
-    and :math:`g_\theta(x)` a learned, spatially adaptive regularizer.
+    where :math:`A` is the forward operator, :math:`y` the measurements, and
+    :math:`g_\theta` is the learned adaptive regularizer.
 
-    The optimization is performed iteratively using a fixed-point scheme.
-    At each outer iteration, the algorithm updates the reconstruction by solving
-    a linearized least-squares subproblem using conjugate gradient.
+    In the implementation, the learned regularizer is induced by a masked linear
+    operator of the form
 
     .. math::
 
-        x^{(k+1)} \approx \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda \nabla g_\theta(x^{(k)})^\top x
+        L_\theta(x) = m_\theta(x) \odot K_\theta x,
 
-    The regularizer is parameterized by a neural network which produces
-    spatially varying weights, allowing the model to adapt to local image structure.
+    so that the regularization term can be written as
+
+    .. math::
+
+        g_\theta(x) = \frac{1}{2}\|L_\theta(x)\|_2^2
+        = \frac{1}{2}\|m_\theta(x) \odot K_\theta x\|_2^2,
+
+    where :math:`K_\theta` is a learned linear operator,
+    :math:`m_\theta(x)` is a spatially varying mask predicted by the network,
+    and :math:`\odot` denotes element-wise multiplication.
+
+    The optimization is performed iteratively using a fixed-point scheme.
+    At each outer iteration, the algorithm updates the reconstruction by solving
+    a linearized least-squares subproblem using conjugate gradient:
+
+    .. math::
+
+        x^{(k+1)} \approx \arg\min_x \frac{1}{2}\|Ax - y\|^2
+        + \lambda \nabla g_\theta(x^{(k)})^\top x
 
     :param str pretrained: checkpoint path or ``'download'``
-    :type pretrained: str
-
-    :param sigma: noise-level parameter used by DEAL.
-    :type sigma: float
-
-    :param lam: regularization strength used by the DEAL solver.
-    :type lam: float
-
-    :param max_iter: maximum number of outer fixed-point iterations.
-    :type max_iter: int
-
-    :param auto_scale: if ``True``, rescales measurements based on their std.
-    :type auto_scale: bool
-
-    :param target_y_std: target std for auto-scaling when enabled.
-    :type target_y_std: float
-
-    :param color: if ``True``, use the color DEAL variant; otherwise grayscale.
-    :type color: bool
-
-    :param device: compute device. If ``None``, use CUDA if available.
-    :type device: str or None
-
-    :param clamp_output: if ``True``, clamp output to ``[0, 1]``.
-    :type clamp_output: bool
+    :param float sigma: noise-level parameter used by DEAL
+    :param float lam: regularization strength used by the DEAL solver
+    :param int max_iter: maximum number of outer fixed-point iterations
+    :param bool auto_scale: if ``True``, rescales measurements based on their std
+    :param float target_y_std: target std for auto-scaling when enabled
+    :param bool color: if ``True``, use the color DEAL variant; otherwise grayscale
+    :param str | None device: compute device. If ``None``, use CUDA if available
+    :param bool clamp_output: if ``True``, clamp output to ``[0, 1]``
     """
 
     def __init__(
@@ -159,12 +159,8 @@ class DEAL(Reconstructor):
         """
         Run the DEAL reconstruction.
 
-        :param y: input measurements (e.g. sinogram)
-        :type y: torch.Tensor
-
-        :param physics: forward operator
-        :type physics: deepinv.physics.LinearPhysics
-
+        :param torch.Tensor y: input measurements
+        :param LinearPhysics physics: forward operator
         :return: reconstructed image
         :rtype: torch.Tensor
         """
