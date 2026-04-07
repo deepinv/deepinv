@@ -83,7 +83,7 @@ class DEAL(Reconstructor):
     def __init__(
         self,
         pretrained: str,
-        sigma: float = .1,
+        sigma: float = 0.1,
         lam: float = 10.0,
         max_iter: int = 50,
         auto_scale: bool = False,
