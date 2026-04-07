@@ -44,7 +44,7 @@ from deepinv.utils import load_example, plot
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # We use the grayscale DEAL checkpoint in this demo, so we keep one channel.
-x = load_example("butterfly.png", img_size=128).to(device)[:, 0:1, :, :]
+x = load_example("butterfly.png", img_size=128, device=device, grayscale=True)
 
 # %%
 # Define the denoising forward model and generate the measurement.
