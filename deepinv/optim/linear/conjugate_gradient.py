@@ -11,7 +11,7 @@ def conjugate_gradient(
     tol: float = 1e-5,
     eps: float = 1e-8,
     parallel_dim: None | int | list[int] = 0,
-    init=None,
+    init: torch.Tensor | None = None,
     verbose: bool = False,
 ) -> torch.Tensor:
     r"""
