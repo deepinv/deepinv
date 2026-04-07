@@ -80,7 +80,7 @@ jobs:
       - name: Run doctests
         env:
           SPHINX_DOCTEST: "1"
-          PYTHONFAULTHANDLER: "1"  # TODO: remove when finished debugging GPU OOM issues in doctests
+          PYTHONFAULTHANDLER: "1"  # TODO: remove when finished  debugging GPU OOM issues in doctests
         run: |
           pixi run -e docs python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v
 
