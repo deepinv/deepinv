@@ -8,12 +8,18 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+<<<<<<< deal-new-pr
 - Add :class:`deepinv.models.DEAL` model (:gh:`939` by `Hossein Alimohammadi`_)
+=======
+- Add install guidelines for different platforms (`pixi`, `conda`, `pip`, `uv`) in docs (:gh:`1108` by `Julian Tachella`_)
+>>>>>>> main
 - Add :class:`deepinv.optim.SIRT` algorithm for tomographic reconstruction (:gh:`985` by `Thibaut Modrzyk`_`)
 - Add :class:`deepinv.optim.MLEM` algorithm for Poisson inverse problems (:gh:`1051` by `Thibaut Modrzyk`_)
 
 Changed
 ^^^^^^^
+- Refactor CI to use `pixi` for compatibility with mixed conda/pip environments (:gh:`1108` by `Julian Tachella`_)
+
 
 Fixed
 ^^^^^

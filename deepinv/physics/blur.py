@@ -1154,9 +1154,13 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         stride = _as_pair(stride)
 
         # Using the same logic as in TiledMixin2d, but a static method here to help users compute the number of filters needed beforehand
-        num = [(i - p) // s + 1 for i, p, s in zip(img_size, patch_size, stride)]
+        num = [
+            (i - p) // s + 1
+            for i, p, s in zip(img_size, patch_size, stride, strict=True)
+        ]
         pad = [
-            (p + n * s - i) % s for p, n, s, i in zip(patch_size, num, stride, img_size)
+            (p + n * s - i) % s
+            for p, n, s, i in zip(patch_size, num, stride, img_size, strict=True)
         ]
         compatible_size = _add_tuple(img_size, pad)
         n_h = (compatible_size[0] - patch_size[0]) // stride[0] + 1
@@ -1206,19 +1210,14 @@ def gaussian_blur(
     Defined as
 
     .. math::
-        \begin{equation*}
             G(x, y) = \frac{1}{2\pi\sigma_x\sigma_y} \exp{\left(-\frac{x'^2}{2\sigma_x^2} - \frac{y'^2}{2\sigma_y^2}\right)}
-        \end{equation*}
 
     where :math:`x'` and :math:`y'` are the rotated coordinates obtained by rotating $(x, y)$ around the origin
     by an angle :math:`\theta`:
 
     .. math::
-
-        \begin{align*}
             x' &= x \cos(\theta) - y \sin(\theta) \\
             y' &= x \sin(\theta) + y \cos(\theta)
-        \end{align*}
 
     with :math:`\sigma_x` and :math:`\sigma_y`  the standard deviations along the :math:`x'` and :math:`y'` axes.
 
@@ -1294,13 +1293,11 @@ def sinc_filter(
 
     .. math::
 
-        \begin{equation*}
             \beta = \begin{cases}
                 0 & \text{if } A \leq 21 \\
                 0.5842 \cdot (A - 21)^{0.4} + 0.07886 \cdot (A - 21) & \text{if } 21 < A \leq 50 \\
                 0.1102 \cdot (A - 8.7) & \text{otherwise}
             \end{cases}
-        \end{equation*}
 
     :param float, torch.Tensor factor: Downsampling factor. If Tensor, can only have one element.
     :param int length: Length of the filter.
@@ -1341,12 +1338,10 @@ def bilinear_filter(factor: int = 2, device: torch.device | str = "cpu") -> Tens
 
     .. math::
 
-        \begin{equation*}
             w(x, y) = \begin{cases}
                 (1 - |x|) \cdot (1 - |y|) & \text{if } |x| \leq 1 \text{ and } |y| \leq 1 \\
                 0 & \text{otherwise}
             \end{cases}
-        \end{equation*}
 
     for :math:`x, y \in {-\text{factor} + 0.5, -\text{factor} + 0.5 + 1/\text{factor}, \ldots, \text{factor} - 0.5}`.
 
