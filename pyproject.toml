@@ -132,7 +132,10 @@ torchvision = "*"
 python = ">=3.10"
 
 [tool.pixi.feature.dataset.dependencies]
-datasets = ">=3.5.0"
+astra-toolbox = "*"
+
+[tool.pixi.feature.physics.dependencies]
+astra = ">=3.5.0"
 
 [tool.pixi.pypi-dependencies] # install from PyPI for all environments
 deepinv = { path = ".", editable = true }

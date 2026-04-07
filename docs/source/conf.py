@@ -7,6 +7,9 @@
 # as a simple list of paths will be enough.
 import sys
 import os
+import matplotlib
+
+matplotlib.use("Agg")  # avoid segfaults
 from importlib.metadata import metadata as importlib_metadata
 from docutils import nodes
 from docutils.parsers.rst import Directive
@@ -438,3 +441,7 @@ nitpick_ignore = [
     ("py:class", "torchvision.transforms.InterpolationMode"),
     ("py:class", "nib.arrayproxy.ArrayProxy"),
 ]
+
+import matplotlib
+
+matplotlib.use("Agg")
