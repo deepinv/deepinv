@@ -52,7 +52,7 @@ class DEAL(Reconstructor):
     The regularizer is parameterized by a neural network which produces
     spatially varying weights, allowing the model to adapt to local image structure.
 
-    :param pretrained: checkpoint path or ``'download'``.
+    :param str pretrained: checkpoint path or ``'download'``
     :type pretrained: str
 
     :param sigma: noise-level parameter used by DEAL.
