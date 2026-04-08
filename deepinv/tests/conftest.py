@@ -28,6 +28,38 @@ def toymatrix():
 def dummy_dataset(imsize, device):
     return DummyCircles(samples=2, imsize=imsize)
 
+@pytest.fixture(scope="session")
+def _example_image_cache():
+    """Session-scoped cache so each (name, img_size) pair is downloaded at most once."""
+    return {}
+
+
+@pytest.fixture
+def load_example_image(_example_image_cache):
+    """Return a loader that caches images by (name, img_size, extra kwargs) for the full test session.
+
+    Usage::
+
+        img = load_example_image("butterfly.png", img_size=64, resize_mode="resize")
+        img = load_example_image("celeba_example.jpg")   # default img_size
+
+    The returned tensor is on CPU; call ``.to(device)`` yourself when needed.
+    ``device`` is intentionally excluded from the cache key so one cached copy
+    serves all devices.
+    """
+    def _load(name, img_size=None, **kwargs):
+        key = (name, img_size, tuple(sorted(kwargs.items())))
+        if key not in _example_image_cache:
+            _example_image_cache[key] = dinv.utils.load_example(
+                name, img_size=img_size, **kwargs
+            )
+        return _example_image_cache[key]
+    return _load
+
+
+@pytest.fixture
+def butterfly_image(img_size, load_example_image):
+    return load_example_image("butterfly.png", img_size=img_size)
 
 @pytest.fixture
 def imsize():
