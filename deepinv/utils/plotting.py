@@ -241,7 +241,7 @@ def preprocess_img(
             # wrap in a list so scales is always a list of (min, max) pairs.
             if not isinstance(mins, list):
                 mins, maxs = [mins], [maxs]
-            scales = list(zip(mins, maxs), strict=True)
+            scales = list(zip(mins, maxs, strict=True))
         else:  # clip
             v0 = vmin if vmin is not None else 0.0
             v1 = vmax if vmax is not None else 1.0
