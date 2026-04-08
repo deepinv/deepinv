@@ -7,9 +7,6 @@
 # as a simple list of paths will be enough.
 import sys
 import os
-import matplotlib
-
-matplotlib.use("Agg")  # avoid segfaults
 from importlib.metadata import metadata as importlib_metadata
 from docutils import nodes
 from docutils.parsers.rst import Directive
@@ -305,6 +302,16 @@ ignore_pattern = (
     else r"__init__\.py"
 )
 
+
+def reset_pytorch(gallery_conf, fname):
+    import torch
+    import gc
+
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
@@ -347,7 +354,12 @@ sphinx_gallery_conf = {
     "first_notebook_cell": (
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),
+    "reset_modules": (
+        "matplotlib",
+        reset_pytorch,
+    ),  # Forces GC and clears CUDA after each .py file
 }
+
 
 # Custom sort key above throws new warning in Sphinx 7.3.0, so ignore this. See https://github.com/sphinx-doc/sphinx/issues/12300
 suppress_warnings = ["config.cache"]
