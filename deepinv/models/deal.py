@@ -161,26 +161,43 @@ class DEAL(Reconstructor):
         return self.model.mask
 
     def forward(
-        self, y: torch.Tensor, physics: LinearPhysics | None, sigma: float = None
+        self, y: torch.Tensor, physics: LinearPhysics | None = None, sigma: float = None
     ) -> torch.Tensor:
         """
-        Run the DEAL reconstruction.
+        Run DEAL as either a denoiser or a reconstructor.
 
         :param torch.Tensor y: input measurements
-        :param LinearPhysics physics: forward operator
-        :return: reconstructed image
+        :param LinearPhysics | None physics: forward operator for reconstruction. If
+            ``None``, DEAL is applied as a denoiser.
+        :param float | None sigma: denoising noise level used when ``physics`` is
+            ``None``
+        :return: reconstructed or denoised image
         :rtype: torch.Tensor
         """
         y = y.to(self.device)
 
+        if physics is None:
+            if sigma is None:
+                raise ValueError(
+                    "For denoising, sigma must be provided when physics is None."
+                )
+            sigma_tensor = torch.full(
+                (y.size(0), 1, 1, 1),
+                float(sigma),
+                device=self.device,
+                dtype=y.dtype,
+            )
+            x_hat = self.model.denoise(y, sigma_tensor)
+            return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
+
         if isinstance(physics, Denoising):
-            sigma = torch.full(
+            sigma_tensor = torch.full(
                 (y.size(0), 1, 1, 1),
                 float(self.sigma_denoiser),
                 device=self.device,
                 dtype=y.dtype,
             )
-            x_hat = self.model.denoise(y, sigma)
+            x_hat = self.model.denoise(y, sigma_tensor)
             return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
 
         if self.auto_scale:
