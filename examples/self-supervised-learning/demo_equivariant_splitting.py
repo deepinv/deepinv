@@ -35,7 +35,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # Forward model
 # -------------
 #
-# First, we define the forward model, here an inpainting problem with a fixed mask:
+# First, we define the forward model, here an inpainting problem with a fixed mask keeping 70% of pixels:
 #
 
 channels = 3
