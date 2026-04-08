@@ -67,7 +67,7 @@ class DEAL(Reconstructor):
     .. math::
 
         x^{(k+1)} \approx \arg\min_x \frac{1}{2}\|Ax - y\|^2
-        + \lambda \nabla g_\theta(x^{(k)})^\top x
+        + \lambda \nabla_{x} g_\theta(u=x^{(k)},x)^\top x
 
     :param str pretrained: checkpoint path or ``'download'``
     :param float sigma: noise-level parameter used by DEAL
