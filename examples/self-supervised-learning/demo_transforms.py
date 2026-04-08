@@ -144,7 +144,13 @@ dinv.utils.plot(
 )
 
 # %%
-# Reconstructors can also be made equivariant in a similar way using :class:`deepinv.models.EquivariantReconstructor`.
+# Reconstructors can also be made equivariant in a similar way using :class:`deepinv.models.EquivariantReconstructor`. This amounts to averaging the base reconstructor :math:`\tilde{f}` over the transformations to get an equivariant reconstructor
+#
+# .. math::
+#
+#    f(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{f}(y, A T_g)
+#
+# which is computed using a Monte Carlo sampling where a random subset of transformations is used, typically a single one at training time and the full set at evaluation time.
 
 sigma = 0.1
 physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=sigma))

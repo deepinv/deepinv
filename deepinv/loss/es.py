@@ -28,7 +28,13 @@ class EquivariantSplittingLoss(Loss):
 
     The second expectation is taken over the distribution specified by ``mask_generator`` of all possible splittings of :math:`A T_g`, i.e., :math:`A T_g = [A_1^\top, A_2^\top]^\top`, with the associated measurements denoted as :math:`y_1` and :math:`y_2`.
 
-    The main idea behind equivariant splitting is that the more the reconstructor is equivariant to suitable transformations, the better the final performance will be. A general way to make a reconstructor equivariant is to add a Reynolds averaging step in the reconstructor, which is generally estimated using a Monte Carlo approach at training time. For this reason, :class:`EquivariantSplittingLoss` takes two different instances of :class:`deepinv.transform.Transform` as input: one for training ``transform`` and one for evaluation ``eval_transform``.
+    The main idea behind equivariant splitting is that the more the reconstructor is equivariant to suitable transformations, the better the final performance will be. A general way to make a reconstructor :math:`\tilde{f}` equivariant is to add a group averaging step in the reconstructor,
+
+    .. math::
+
+        f(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{f}(y, A T_g)
+
+    which is generally estimated using a Monte Carlo approach at training time. For this reason, :class:`ESLoss` takes two different instances of :class:`deepinv.transform.Transform` as input: one for training ``transform`` and one for evaluation ``eval_transform``.
 
     It is also possible to design an equivariant reconstructor without Reynolds averaging, using equivariant layers. In that case, Reynolds averaging can be disabled to avoid its additional computational cost by leaving ``transform`` and ``eval_transform`` to ``None``.
 
