@@ -145,7 +145,7 @@ dinv.utils.plot(
 #
 # The equivariant splitting loss requires the definition of a splitting scheme similarly to :class:`deepinv.loss.SplittingLoss`. Here, we choose a pixel-wise Bernoulli splitting scheme with a split ratio of ``0.9`` using :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator`.
 #
-# Equivariant splitting requires choosing a set of transformations based on the forward matrix. For inpainting, valid choices include shifts, rotations and reflections :footcite:p:`sechaud26Equivariant`. Here, we choose rotations and reflections.
+# Equivariant splitting requires choosing a set of transformations based on the forward operator. For inpainting, valid choices include shifts, rotations and reflections :footcite:p:`sechaud26Equivariant`. Here, we choose rotations and reflections.
 #
 # Since the base model RAM is not already equivariant to these transformations, we use Reynolds averaging by passing in ``transform`` and ``eval_transform`` to the loss. Internally, it wraps the input model in a :class:`deepinv.models.EquivariantReconstructor` when calling ``ESLoss.adapt_model``.
 #
