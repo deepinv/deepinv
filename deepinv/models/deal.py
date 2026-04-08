@@ -47,7 +47,7 @@ class DEAL(Reconstructor):
 
     .. math::
 
-        L_\theta(x) = m_\theta(x) \odot K_\theta x,
+        L_{\theta,c}(u, x) = m_{\theta,c}(u) \odot K_{\theta,c} x,
 
     so that the regularization term can be written as
 
