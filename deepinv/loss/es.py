@@ -34,7 +34,7 @@ class EquivariantSplittingLoss(Loss):
 
         R(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{R}(y, A T_g)
 
-    which is generally estimated using a Monte Carlo approach at training time. For this reason, :class:`ESLoss` takes two different instances of :class:`deepinv.transform.Transform` as input: one for training ``transform`` and one for evaluation ``eval_transform``.
+    which is generally estimated using a Monte Carlo approach at training time. For this reason, :class:`EquivariantSplittingLoss` takes two different instances of :class:`deepinv.transform.Transform` as input: one for training ``transform`` and one for evaluation ``eval_transform``.
 
     It is also possible to design an equivariant reconstructor without Reynolds averaging, using equivariant layers. In that case, Reynolds averaging can be disabled to avoid its additional computational cost by leaving ``transform`` and ``eval_transform`` to ``None``.
 
