@@ -870,3 +870,22 @@ def test_reducedresolution_shapes(physics_name, device):
     x_hat_train = model(y, physics)
     assert x_hat_train.shape == y.shape
     assert metric(x_hat_train, y) < 50
+
+
+# NOTE: Test that Loss.name is correctly deprecated.
+def test_name_deprecation(
+    non_blocking_plots, tmp_path, dataset, physics, imsize, device, rng
+):
+    (loss,) = choose_loss("sup", rng, imsize=imsize, device=device)
+
+    # Deprecated getter
+    with pytest.warns(DeprecationWarning):
+        _ = loss.name
+
+    # Deprecated setter
+    with pytest.warns(DeprecationWarning):
+        loss.name = "new_name"
+
+    # Deprecated deleter
+    with pytest.warns(DeprecationWarning):
+        del loss.name

@@ -100,7 +100,7 @@ class EquivariantSplittingLoss(Loss):
     ):
         super().__init__()
 
-        self.name = "es"
+        self._name = "es"
 
         if eval_transform is None:
             eval_transform = transform

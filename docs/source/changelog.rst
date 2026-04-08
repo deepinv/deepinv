@@ -18,6 +18,7 @@ Changed
 - Refactor CI to use `pixi` for compatibility with mixed conda/pip environments (:gh:`1108` by `Julian Tachella`_)
 - Add support for arbitrary learning-free reconstructors in the trainer (:gh:`881` by `Jérémy Scanvic`_)
 - Make available every mask used at evaluation for splitting models :class:`deepinv.loss.SplittingLoss.SplittingModel` when ``eval_n_samples > 1`` (:gh:`881` by `Jérémy Scanvic`_)
+- Deprecate `Loss.name` in favor of the class name as done in the trainer (:gh:`881` by `Jérémy Scanvic`_)
 
 
 Fixed

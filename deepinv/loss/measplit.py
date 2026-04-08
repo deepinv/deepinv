@@ -107,7 +107,7 @@ class SplittingLoss(Loss):
         if metric is None:
             metric = torch.nn.MSELoss()
         super().__init__()
-        self.name = "ms"
+        self._name = "ms"
         self.metric = metric
         self.mask_generator = mask_generator
         self.split_ratio = split_ratio
@@ -431,7 +431,7 @@ class Neighbor2Neighbor(Loss):
         if metric is None:
             metric = torch.nn.MSELoss()
         super().__init__()
-        self.name = "neigh2neigh"
+        self._name = "neigh2neigh"
         self.metric = metric
         self.gamma = gamma
 
