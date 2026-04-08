@@ -107,7 +107,7 @@ class EquivariantReconstructor(Reconstructor):
 
         f(y, A T_g) = T_g^{-1} f(y, A)
 
-    for all :math:`g \in \mathcal{G}` where :math:`T_g` is a group action.
+    for all :math:`g \in \mathcal{G}` where :math:`T_g` is a transform (eg shifts, rotations, etc).
 
     Any reconstructor :math:`\tilde{f}` can be turned into an equivariant reconstructor by averaging over the transformations:
 
