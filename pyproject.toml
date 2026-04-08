@@ -131,6 +131,7 @@ pytorch = "*"
 torchvision = "*"
 python = ">=3.10"
 
+# fix python version for the docs environment to avoid issues with Sphinx and Python 3.14
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
 

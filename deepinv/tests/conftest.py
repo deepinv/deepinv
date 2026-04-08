@@ -61,11 +61,6 @@ def load_example_image(_example_image_cache):
 
 
 @pytest.fixture
-def butterfly_image(img_size, load_example_image):
-    return load_example_image("butterfly.png", img_size=img_size)
-
-
-@pytest.fixture
 def imsize():
     h = 37
     w = 31
