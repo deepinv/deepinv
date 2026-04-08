@@ -131,6 +131,9 @@ pytorch = "*"
 torchvision = "*"
 python = ">=3.10"
 
+[tool.pixi.feature.physics.dependencies]
+parallelproj = "*"
+
 [tool.pixi.feature.dataset.dependencies]
 datasets = ">=3.5.0"
 
