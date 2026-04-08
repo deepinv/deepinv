@@ -34,7 +34,7 @@ class ESLoss(Loss):
 
     The training loss consists in two terms, a consistency term where the comparison is performed against :math:`A_1 x` and a prediction term where the comparison is performed against :math:`A_2 x`. Two parameters control the way these two terms are computed: ``consistency_loss`` and ``prediction_loss``.
 
-    In the absence of noise, the equivariant splitting loss :math:`\mathcal{L}_{mathrm{ES}}` can be computed exactly without having access to ground truth images. Indeed, in that case, :math:`A_1 x = y_1` and :math:`A_2 x = y_2`. Setting ``consistency_loss`` and ``prediction_loss`` to ``deepinv.loss.MCLoss(metric=deepinv.metric.MSE())`` allows to compute the loss this way.
+    In the absence of noise, the equivariant splitting loss :math:`\mathcal{L}_{\mathrm{ES}}` can be computed exactly without having access to ground truth images. Indeed, in that case, :math:`A_1 x = y_1` and :math:`A_2 x = y_2`. Setting ``consistency_loss`` and ``prediction_loss`` to ``deepinv.loss.MCLoss(metric=deepinv.metric.MSE())`` allows to compute the loss this way.
 
     In the presence of noise, as long as the splitting scheme is chosen so that the resulting noise components are independent, the prediction term can be estimated without bias using ``deepinv.loss.MCLoss(metric=deepinv.metric.MSE())`` for ``prediction_loss``. This is notably the case for typical splitting schemes, e.g., :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` when the noise is pixel-wise independent, e.g., :class:`deepinv.physics.GaussianNoise`.
 
