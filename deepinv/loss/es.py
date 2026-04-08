@@ -38,7 +38,7 @@ class EquivariantSplittingLoss(Loss):
 
     In the presence of noise, as long as the splitting scheme is chosen so that the resulting noise components are independent, the prediction term can be estimated without bias using ``deepinv.loss.MCLoss(metric=deepinv.metric.MSE())`` for ``prediction_loss``. This is notably the case for typical splitting schemes, e.g., :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` when the noise is pixel-wise independent, e.g., :class:`deepinv.physics.GaussianNoise`.
 
-    The consistency term can be estimated using a self-supervised denoising loss, e.g., :class:`deepinv.loss.R2RLoss` or :class:`deepinv.loss.SureGaussianLoss` if the noise distribution is known exactly. If the noise parameters are unknown, UNSURE can be used instead, i.e., :class:`deepinv.loss.SureGaussianLoss` with the option ``unsure`` enabled, and if the noise distribution is unknown altogether, the consistency term can be estimated using the Noise2x family of losses.
+    The consistency term can be estimated using one of the self-supervised denoising losses listed in :ref:`self-supervised-losses`, e.g., :class:`deepinv.loss.R2RLoss` or :class:`deepinv.loss.SureGaussianLoss` if the noise distribution is known exactly. If the noise parameters are unknown, UNSURE can be used instead, i.e., :class:`deepinv.loss.SureGaussianLoss` with the option ``unsure`` enabled, and if the noise distribution is unknown altogether, the consistency term can be estimated using the Noise2x family of losses.
 
     At training time, a single splitting is performed for each sample in the batch, however, at evaluation time, the reconstructions are averaged over multiple splittings as specified by ``eval_n_samples``.
 
