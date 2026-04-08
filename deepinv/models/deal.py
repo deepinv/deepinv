@@ -71,7 +71,7 @@ class DEAL(Reconstructor):
 
     :param str pretrained: checkpoint path or ``'download'``
     :param float sigma: noise-level parameter used by DEAL
-    :param float lam: regularization strength used by the DEAL solver
+    :param float lambda_reg: regularization strength :math:`\lambda` used by the DEAL solver
     :param int max_iter: maximum number of outer fixed-point iterations
     :param bool auto_scale: if ``True``, rescales measurements based on their std
     :param float target_y_std: target std for auto-scaling when enabled
