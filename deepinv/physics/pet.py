@@ -84,6 +84,7 @@ class PET(LinearPhysics):
     >>> attenuation = torch.rand((1, 1,) + img_size)
     >>> y = physics(x, attenuation=attenuation, background=background)
     >>> y.shape
+    torch.Size([1, 1, 539, 272])
 
     """
 
