@@ -34,6 +34,7 @@ jobs:
         with:
           pixi-version: latest
           pixi-bin-path: /local/jtachell/pixi/bin/pixi
+          environments: docs doctest
 
       - name: Check import
         run: |

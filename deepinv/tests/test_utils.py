@@ -588,7 +588,7 @@ def test_deprecated_metric_functions(fn_name):
 @pytest.mark.parametrize("index", [1])
 @pytest.mark.parametrize("download", [False, True])
 def test_load_degradation(
-    tmp_path, with_data_dir, data_dir_type, name, index, download
+    tmp_path, with_data_dir, data_dir_type, name, index, download, monkeypatch
 ):
     if with_data_dir:
         assert data_dir_type in [
@@ -597,6 +597,9 @@ def test_load_degradation(
         ], "data_dir_type should be str or pathlib.Path."
         data_dir = data_dir_type(tmp_path)
     else:
+        # Redirect the default data-home to tmp_path so that parallel xdist
+        # workers don't race over the same relative ./datasets/ directory.
+        monkeypatch.setenv("DEEPINV_DATA", str(tmp_path))
         data_dir = None
 
     args = [name, data_dir]
