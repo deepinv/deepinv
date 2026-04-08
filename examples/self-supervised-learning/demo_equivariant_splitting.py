@@ -2,7 +2,19 @@ r"""
 Self-supervised learning with Equivariant Splitting
 ===================================================
 
-This example demonstrates how to train a reconstruction model in a fully self-supervised way using equivariant splitting :footcite:p:`sechaud26Equivariant`.
+Equivariant splitting consists in minimizing a self-supervised loss to train a reconstruction model using measurement data only :footcite:p:`sechaud26Equivariant`.
+
+It is based on the same assumption of invariance as equivariant imaging :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py`. Namely, the distribution of ground truth images is assumed to be invariant to certain transformations such as translations, rotations and flips.
+
+Moreover, it is also based on splitting methods which separate measurements into inputs and targets :math:`y = [y_1^\top, y_2^\top]^\top`. The target measurements are not fed to the network and guide the network to learn to predict information that is not present in the input measurements.
+
+The equivariant splitting loss combines the two approaches as:
+
+.. math::
+
+    \mathcal{L}_{\mathrm{ES}} (y, A, f) = \mathbb{E}_g \Big\{ \mathbb{E}_{y_1, A_1 \mid y, A T_g} \Big\{ \underbrace{\| A_1 f(y_1, A_1) - A_1 x \|^2}_{\text{Consistency term}} + \underbrace{\| A_2 f(y_1, A_1) - A_2 x \|^2}_{\text{Prediction term}} \Big\} \Big\}
+
+where :math:`T_g` denote a transformation and :math:`A T_g` the associated virtual physics represented in the library by the class :class:`deepinv.physics.VirtualLinearPhysics`. The loss itself is implemented in :class:`deepinv.loss.EquivariantSplittingLoss` and this example shows how to use it to train a reconstruction model in a fully self-supervised way.
 """
 
 from pathlib import Path
