@@ -57,7 +57,7 @@ class DEAL(Reconstructor):
         = \sum_{c=1}^{C} \frac{1}{2}\|m_{\theta,c}(u) \odot K_{\theta,c} x\|_2^2,
 
     where :math:`K_\theta` is a learned linear operator,
-    :math:`m_\theta(x)` is a spatially varying mask predicted by the network,
+    :math:`m_{\theta,c}(u)` are spatially varying masks predicted by the network,
     and :math:`\odot` denotes element-wise multiplication.
 
     The optimization is performed iteratively using a fixed-point scheme.
