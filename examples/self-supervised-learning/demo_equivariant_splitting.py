@@ -191,7 +191,7 @@ model = es_loss.adapt_model(model)
 # Train the model
 # ---------------
 #
-# Starting from the pre-trained model, we fine-tune it on the imaging dataset using the equivariant splitting loss:
+# We fine-tune the pre-trained model using the equivariant splitting loss and early stopping with the validation loss as criterion. This makes the whole training fully self-supervised and usable when no ground truth image is available.
 #
 # .. note::
 #
