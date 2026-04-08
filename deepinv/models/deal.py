@@ -53,7 +53,7 @@ class DEAL(Reconstructor):
 
     .. math::
 
-        g_\theta(x) = \frac{1}{2}\|L_\theta(x)\|_2^2
+        g_{\theta}(u, x) = \sum_{c=1}^{C} \frac{1}{2}\|L_{\theta,c}(u, x)\|_2^2
         = \frac{1}{2}\|m_\theta(x) \odot K_\theta x\|_2^2,
 
     where :math:`K_\theta` is a learned linear operator,
