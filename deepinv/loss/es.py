@@ -26,7 +26,7 @@ class ESLoss(Loss):
 
     where :math:`f` denotes the reconstructor, :math:`A` the physics operator, :math:`x` the ground truth image, :math:`y` the measurement, :math:`T_g` a group action (e.g., rotations).
 
-    The second expectation is taken over the distribution specified by ``mask_generator`` of all possible splittings of :math:`A T_g`, i.e., :math:`A T_g = (A_1^top, A_2^top)^top`, with the associated measurements denoted as :math:`y_1` and :math:`y_2`.
+    The second expectation is taken over the distribution specified by ``mask_generator`` of all possible splittings of :math:`A T_g`, i.e., :math:`A T_g = [A_1^\top, A_2^\top]^\top`, with the associated measurements denoted as :math:`y_1` and :math:`y_2`.
 
     The main idea behind equivariant splitting is that the more the reconstructor is equivariant to suitable transformations, the better the final performance will be. A general way to make a reconstructor equivariant is to add a Reynolds averaging step in the reconstructor, which is generally estimated using a Monte Carlo approach at training time. For this reason, :class:`ESLoss` takes two different instances of :class:`deepinv.transform.Transform` as input: one for training ``transform`` and one for evaluation ``eval_transform``.
 
