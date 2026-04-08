@@ -155,7 +155,14 @@ class DEAL(Reconstructor):
         """Return the current device of the internal DEAL module."""
         return next(self.model.parameters()).device
 
-    def forward(self, y: torch.Tensor, physics: LinearPhysics | None, sigma: float = None) -> torch.Tensor:
+    @property
+    def mask(self) -> torch.Tensor:
+        """Return the current DEAL mask."""
+        return self.model.mask
+
+    def forward(
+        self, y: torch.Tensor, physics: LinearPhysics | None, sigma: float = None
+    ) -> torch.Tensor:
         """
         Run the DEAL reconstruction.
 

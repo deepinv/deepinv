@@ -25,7 +25,7 @@ This implementation is adapted from the official
 import torch
 
 from deepinv.loss.metric import PSNR
-from deepinv.models import DEAL, DEALRegularizer
+from deepinv.models import DEAL
 from deepinv.physics import Denoising, GaussianNoise, Inpainting
 from deepinv.utils import load_example, plot
 
@@ -59,23 +59,21 @@ model = DEAL(
 n_params = sum(p.numel() for p in model.parameters())
 print(f"DEAL number of parameters: {n_params:,}")
 
-prior = DEALRegularizer(model.model)
 psnr = PSNR()
 
 # %%
-# ------------------------------------------------------------
-# 1) DENOISING
-# ------------------------------------------------------------
+# Denoising with DEAL
+# We first illustrate Gaussian denoising with DEAL. The model is applied with a
+# denoising operator, and the plotted mask corresponds to the spatially varying
+# regularization weights from the last iteration.
 
 physics_denoise = Denoising(GaussianNoise(sigma=sigma01)).to(device)
 y_denoise = physics_denoise(x)
 
 with torch.no_grad():
-    grad_prior = prior.grad(x, sigma=sigma255)
     x_hat_denoise = model(y_denoise, physics_denoise)
     mask_denoise = model.model.mask.mean(dim=1, keepdim=True)
 
-print(f"Standalone DEAL prior gradient shape: {tuple(grad_prior.shape)}")
 
 psnr_noisy = psnr(y_denoise, x).item()
 psnr_denoise = psnr(x_hat_denoise, x).item()
@@ -103,9 +101,10 @@ plot(
 )
 
 # %%
-# ------------------------------------------------------------
-# 2) RECONSTRUCTION: INPAINTING
-# ------------------------------------------------------------
+# Reconstruction example with inpainting
+# We next illustrate a simple inpainting problem where a random subset of
+# pixels is removed. DEAL combines data fidelity and its learned adaptive
+# regularization to recover the missing content.
 
 # Create random mask (50% missing pixels)
 mask = (torch.rand(1, 1, 128, 128, device=device) > 0.5).float()
@@ -121,7 +120,7 @@ y_inpaint = physics_inpaint(x)
 with torch.no_grad():
     x_lin = physics_inpaint.A_adjoint(y_inpaint)
     x_hat_inpaint = model(y_inpaint, physics_inpaint)
-    mask_inpaint = model.model.mask.mean(dim=1, keepdim=True)
+    mask_inpaint = model.mask.mean(dim=1, keepdim=True)
 
 psnr_meas_inpaint = psnr(y_inpaint, x).item()
 psnr_lin_inpaint = psnr(x_lin, x).item()

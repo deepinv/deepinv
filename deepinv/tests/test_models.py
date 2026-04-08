@@ -154,7 +154,7 @@ def choose_denoiser(name, imsize):
     elif name == "deal":
         base_model = dinv.models.DEAL(
             pretrained="download",
-            sigma=25.0,
+            sigma=0.1,
             lam=10.0,
             max_iter=5,
             auto_scale=False,
