@@ -5,18 +5,26 @@ Positron emission tomography (PET) in 3D
 This demo shows how to define a non time-of-flight PET scanner, simulate measurements
 and reconstruct a volume from them.
 
-The PET forward model is defined as
+The (unnormalized) PET forward model is defined as
 
 .. math::
 
-    y \sim \gamma \mathcal{P}(\frac{c \circ H(g*x) + s}{\gamma})
+    y \sim \gamma \mathcal{P}(c \circ H(g*x) + s)
 
 where :math:`H \in \mathbb{R}_{+}^{m \times n}` is the projection operator,
 :math:`g \in \mathbb{R}_{+}^{n}` is a Gaussian blur kernel, :math:`x\in\mathbb{R}_{+}^{n}`
 is the emission image, :math:`s \in \mathbb{R}_{+}^{m}` is the (expected) background,
-:math:`\mathcal{P}` denotes Poisson noise with gain :math:`\gamma > 0`,
+:math:`\mathcal{P}` denotes Poisson noise,
 :math:`c=\exp(-H\mu)\in \mathbb{R}_{+}^{m}` is an (optional) attenuation term
 with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained through an auxiliary CT scan).
+
+.. note::
+
+    In this example, we consider the unnormalized case, which allows to obtain quantitative reconstructions (i.e., :math:`x` has real
+    physical units). The operator also can be used in a normalized setting (forcing :math:`\|A\|_2=1` and normalizing counts to be between 0 and 1).
+    See also the :ref:`normalized 2D PET example <sphx_glr_auto_examples_physics_demo_pet2d.py>`.
+    When using deep learning-based reconstruction methods, is often easier to consider the normalized case, but a special attention is required
+    to denormalize the reconstructions and obtain physical units.
 
 .. tip::
 
@@ -44,6 +52,9 @@ from array_api_compat import torch as torch_compat
 # such that the total volume to reconstruct is of size :math:`38.4\times 38.4\times 7.2` cm
 # which fits approximately a portion of a human chest.
 #
+# The maximum achievable resolution (in high count settings) is typically proportional to the full-width at half
+# maximum (FWHM) of the Gaussian blur kernel, which here is set to 4 mm.
+#
 # We use a PET scanner with 8 rings of detectors, each ring being a polygon of
 # 32 sides, and each side containing 16 detectors. This gives us a total of 32*16=512 detectors per ring.
 #
@@ -52,12 +63,6 @@ from array_api_compat import torch as torch_compat
 #       You can play with different geometries and voxel sizes to get a good grasp of
 #       the scanner geometry.
 #
-# .. note::
-#
-#      In this example, we normalize the forward operator :math:`\|A\|=1` (`normalize=True`) and
-#      the Poisson counts to be between 0 and 1 (`normalize_counts=True`), to simplify reconstruction.
-#      If you want to use the operator with real PET measurements, you will need to
-#      carefully handle the normalization.
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 img_size = (128, 128, 24)
@@ -80,18 +85,18 @@ scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
     num_lor_endpoints_per_side=num_lor_endpoints_per_side,
 )
 
-# gain of the device (associated with amount of dose/acq. time)
-# larger gain -> more poisson noise -> harder reconstruction
-gain = 0.001
+# FWHM of the Gaussian blur kernel in mm
+fwhm_data_mm = 4
+
 
 physics = PET(
     device=device,
     voxel_size=voxel_size,
     scanner=scanner,
+    fwhm_data_mm=fwhm_data_mm,
     img_size=img_size,
-    normalize_counts=True,
-    normalize=True,
-    gain=gain,
+    normalize_counts=False,
+    normalize=False,
 )
 
 physics.plot_geometry()
@@ -106,6 +111,10 @@ physics.plot_geometry()
 
 x, attenuation = generate_pet_phantom(img_size, device=device)
 mid_slice = img_size[-1] // 2
+
+# longer acquisition times -> more counts -> easier reconstruction
+acquisition_time_factor = 10.0
+x = x * acquisition_time_factor
 
 dinv.utils.plot(
     [x[..., mid_slice], attenuation[..., mid_slice]],
@@ -185,26 +194,35 @@ dinv.utils.plot(sensitivities[..., mid_slice], ["sensitivities"])
 #
 # We run the standard MLEM reconstruction algorithm
 # to obtain a reconstructed emission volume.
+#
+# The algorithm can be seen as a preconditioned gradient descent on the negative log-likelihood of the Poisson model:
+#
+# .. math::
+#
+#   x^{(k+1)} = x^{(k)} - P \nabla f(Ax^{(k)}+b,y)
+#
+# where :math:`f` is the Poisson data-fidelity term, :math:`P=\mathrm{diag}(\frac{x}{A^T\mathbf{1}})` is a preconditioner
+# and :math:`b` is the background.
+#
 # We compare MLEM with the least-squares reconstruction.
 
-gain = physics.noise_model.gain
 data_fidelity = dinv.optim.PoissonLikelihood(
-    bkg=background / gain,
-    gain=gain,
-    denormalize=True,
+    bkg=background,
+    denormalize=False,
 )
 
-stepsize = 1.0
 x_mlem = torch.ones_like(x)
 with torch.no_grad():
-    for i in range(100):
-        grad = data_fidelity.grad(x=x_mlem, y=y, physics=physics) / gain
-        x_mlem = x_mlem - stepsize * (x_mlem + 1e-9) / sensitivities * grad
-        x_mlem = torch.clamp(x_mlem, min=0.0, max=5.0)
+    for i in range(50):
+        grad = data_fidelity.grad(x=x_mlem, y=y, physics=physics)
+        preconditioner = (x_mlem + 1e-9) / (sensitivities + 1e-9)
+        x_mlem = x_mlem - preconditioner * grad
+        x_mlem = torch.clamp(x_mlem, min=0.0)
 
 dinv.utils.plot(
     [x[..., mid_slice], x_mlem[..., mid_slice], x_dag[..., mid_slice]],
     ["Ground truth", "MLEM rec.", "L2 pseudoinv."],
+    cbar=True,
 )
 
 

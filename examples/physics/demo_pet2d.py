@@ -40,6 +40,9 @@ from array_api_compat import torch as torch_compat
 # such that the total area to reconstruct is of size :math:`38.4\times 38.4` cm
 # which fits approximately a slice of a human chest.
 #
+# The maximum achievable resolution (in high count settings) is typically proportional to the full-width at half
+# maximum (FWHM) of the Gaussian blur kernel, which here is set to 4 mm.
+#
 # We use a PET scanner with a single ring of detectors, which is a polygon of
 # 32 sides, with each side containing 16 detectors. This gives us a total of 32*16=512 detectors in total.
 #
@@ -53,7 +56,7 @@ from array_api_compat import torch as torch_compat
 #      In this example, we normalize the forward operator :math:`\|A\|=1` (`normalize=True`) and
 #      the Poisson counts to be between 0 and 1 (`normalize_counts=True`), to simplify reconstruction.
 #      If you want to use the operator with real PET measurements, you will need to
-#      carefully handle the normalization.
+#      carefully handle the normalization. See also the :ref:`normalized 2D PET example <sphx_glr_auto_examples_physics_demo_pet2d.py>`.
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 img_size = (128, 128)
@@ -80,9 +83,13 @@ scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
 # larger gain -> more poisson noise -> harder reconstruction
 gain = 0.001
 
+# FWHM of the Gaussian blur kernel in mm
+fwhm_data_mm = 4
+
 physics = PET(
     device=device,
     voxel_size=voxel_size,
+    fwhm_data_mm=fwhm_data_mm,
     scanner=scanner,
     img_size=img_size,
     normalize_counts=True,
@@ -174,6 +181,16 @@ dinv.utils.plot(sensitivities, ["sensitivities"])
 #
 # We run the standard MLEM reconstruction algorithm
 # to obtain a reconstructed emission volume.
+#
+# The algorithm can be seen as a preconditioned gradient descent on the negative log-likelihood of the Poisson model:
+#
+# .. math::
+#
+#   x^{(k+1)} = x^{(k)} - P \nabla f(Ax^{(k)}+b,y)
+#
+# where :math:`f` is the Poisson data-fidelity term, :math:`P=\mathrm{diag}(\frac{x}{A^T\mathbf{1}})` is a preconditioner
+# and :math:`b` is the background.
+#
 # We compare MLEM with the least-squares reconstruction.
 
 gain = physics.noise_model.gain
@@ -188,7 +205,8 @@ x_mlem = torch.ones_like(x)
 with torch.no_grad():
     for i in range(100):
         grad = data_fidelity.grad(x=x_mlem, y=y, physics=physics) / gain
-        x_mlem = x_mlem - stepsize * (x_mlem + 1e-9) / sensitivities * grad
+        preconditioner = (x_mlem + 1e-9) / (sensitivities + 1e-9)
+        x_mlem = x_mlem - preconditioner * grad
         x_mlem = torch.clamp(x_mlem, min=0.0, max=5.0)
 
 

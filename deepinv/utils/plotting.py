@@ -190,7 +190,12 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
 
 @torch.no_grad()
 def preprocess_img(
-    im, rescale_mode="min_max", *, vmin: float | None = None, vmax: float | None = None
+    im,
+    rescale_mode="min_max",
+    *,
+    vmin: float | None = None,
+    vmax: float | None = None,
+    return_scale: bool = False,
 ):
     r"""
     Prepare a batch of images for plotting.
@@ -209,7 +214,13 @@ def preprocess_img(
     :param str rescale_mode: the normalization mode, either 'min_max' or 'clip'.
     :param float, None vmin: minimum value for clipping when using 'clip' rescaling.
     :param float, None vmax: maximum value for clipping when using 'clip' rescaling.
-    :return: the batch of pre-processed images.
+    :param bool return_scale: if ``True``, also return the per-element ``(vmin_orig, vmax_orig)``
+        tuples representing the true data range **before** normalization, as a list of length B.
+        For ``'min_max'`` mode these are the per-element min/max values; for ``'clip'`` mode
+        they are the clipping bounds (``vmin``/``vmax`` or their defaults 0/1).
+        Defaults to ``False``.
+    :return: the batch of pre-processed images, or a ``(images, scales)`` tuple when
+        ``return_scale=True``.
     """
     # Apply the modulus function if the image is inferred to be complex
     if torch.is_complex(im) or im.shape[1] == 2:
@@ -219,9 +230,28 @@ def preprocess_img(
     # NOTE: Why is it needed?
     im = im.type(torch.float32)
 
+    # Capture true data range before normalization
+    scales = []
+    if return_scale:
+        if rescale_mode == "min_max":
+            non_batched_dims = list(range(1, im.ndim))
+            mins = im.amin(dim=non_batched_dims).tolist()
+            maxs = im.amax(dim=non_batched_dims).tolist()
+            # tolist() returns a plain Python scalar when the tensor is 0-d;
+            # wrap in a list so scales is always a list of (min, max) pairs.
+            if not isinstance(mins, list):
+                mins, maxs = [mins], [maxs]
+            scales = list(zip(mins, maxs))
+        else:  # clip
+            v0 = vmin if vmin is not None else 0.0
+            v1 = vmax if vmax is not None else 1.0
+            scales = [(v0, v1)] * im.shape[0]
+
     # Normalize signal between 0 and 1
     im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
 
+    if return_scale:
+        return im, scales
     return im
 
 
@@ -382,14 +412,25 @@ def plot(
         titles = [titles]
 
     imgs = []
+    img_scales = []  # true (vmin, vmax) per column and row, used for colorbar labels
     for im in img_list:
         row_imgs = []
-        im = preprocess_img(im, rescale_mode=rescale_mode, vmin=vmin, vmax=vmax)
+        row_scales = []
+        if cbar:
+            im, batch_scales = preprocess_img(
+                im, rescale_mode=rescale_mode, vmin=vmin, vmax=vmax, return_scale=True
+            )
+        else:
+            im = preprocess_img(im, rescale_mode=rescale_mode, vmin=vmin, vmax=vmax)
+            batch_scales = None
         for i in range(min(im.shape[0], max_imgs)):
             row_imgs.append(
                 im[i, ...].detach().permute(1, 2, 0).squeeze().cpu().numpy()
             )
+            if batch_scales is not None:
+                row_scales.append(batch_scales[i])
         imgs.append(row_imgs)
+        img_scales.append(row_scales)
 
     if figsize is None:
         figsize = (len(imgs) * 2, len(imgs[0]) * 2)
@@ -419,6 +460,14 @@ def plot(
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 colbar = fig.colorbar(im, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
+                # Relabel ticks with the true (pre-normalisation) data values
+                if img_scales[i]:
+                    vmin_true, vmax_true = img_scales[i][r]
+                    ticks = colbar.get_ticks()
+                    true_labels = [
+                        f"{t * (vmax_true - vmin_true) + vmin_true:.3g}" for t in ticks
+                    ]
+                    colbar.set_ticklabels(true_labels)
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], wrap=True)
             if subtitles is not None:

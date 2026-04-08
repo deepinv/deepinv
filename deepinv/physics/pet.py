@@ -52,7 +52,8 @@ class PET(LinearPhysics):
 
     :param tuple img_size: shape of the input 2D `(H, W)` or 3D volumes `(D, H, W)`.
     :param tuple voxel_size: voxel size in mm. Default is 2 x 2 x 2 mm.
-    :param float fwhm_data_mm: full width at half maximum (FWHM) of the Gaussian blur :math:`g`.
+    :param float fwhm_data_mm: full width at half maximum (FWHM) of the Gaussian blur :math:`g`. It has a crucial impact on the maximum achievable resolution,
+        which is typically a fraction of the FWHM.
     :param None, parallelproj.pet_scanners.ModularizedPETScannerGeometry scanner: Scanner configuration. If None, the default scanner from parallelproj is used.
     :param int radial_trim: radial trim of rays on the sides of the volume to improve efficiency.
     :param float gain: gain factor :math:`\gamma` for the Poisson noise model.
