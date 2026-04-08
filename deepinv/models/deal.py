@@ -70,7 +70,7 @@ class DEAL(Reconstructor):
         + \lambda \nabla_{x} g_\theta(u=x^{(k)},x)^\top x
 
     :param str pretrained: checkpoint path or ``'download'``
-    :param float sigma: noise-level parameter used by DEAL
+    :param float sigma_denoiser: denoiser noise level parameter
     :param float lambda_reg: regularization strength :math:`\lambda` used by the DEAL solver
     :param int max_iter: maximum number of outer fixed-point iterations
     :param bool auto_scale: if ``True``, rescales measurements based on their std
@@ -83,8 +83,8 @@ class DEAL(Reconstructor):
     def __init__(
         self,
         pretrained: str,
-        sigma: float = 0.1,
-        lam: float = 10.0,
+        sigma_denoiser: float = 0.1,
+        lambda_reg: float = 10.0,
         max_iter: int = 50,
         auto_scale: bool = False,
         target_y_std: float = 25.0,
@@ -98,8 +98,8 @@ class DEAL(Reconstructor):
             device or ("cuda" if torch.cuda.is_available() else "cpu")
         )
 
-        self.sigma = float(sigma)
-        self.lam = float(lam)
+        self.sigma_denoiser = float(sigma_denoiser)
+        self.lambda_reg = float(lambda_reg)
         self.max_iter = int(max_iter)
         self.auto_scale = bool(auto_scale)
         self.target_y_std = float(target_y_std)
@@ -176,7 +176,7 @@ class DEAL(Reconstructor):
         if isinstance(physics, Denoising):
             sigma = torch.full(
                 (y.size(0), 1, 1, 1),
-                float(self.sigma),
+                float(self.sigma_denoiser),
                 device=self.device,
                 dtype=y.dtype,
             )
@@ -198,8 +198,8 @@ class DEAL(Reconstructor):
             y,
             H=physics.A,
             Ht=physics.A_adjoint,
-            sigma=self.sigma,
-            lmbda=self.lam,
+            sigma=self.sigma_denoiser,
+            lmbda=self.lambda_reg,
             x_init=x_init,
             verbose=False,
             path=False,

@@ -47,8 +47,8 @@ sigma01 = sigma255 / 255.0
 
 model = DEAL(
     pretrained="download",
-    sigma=sigma255,  # IMPORTANT: must be in [0,255]
-    lam=10.0,
+    sigma_denoiser=sigma255,
+    lambda_reg=10.0,
     max_iter=10,
     auto_scale=False,
     color=False,

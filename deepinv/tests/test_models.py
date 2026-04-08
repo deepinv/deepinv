@@ -154,8 +154,8 @@ def choose_denoiser(name, imsize):
     elif name == "deal":
         base_model = dinv.models.DEAL(
             pretrained="download",
-            sigma=0.1,
-            lam=10.0,
+            sigma_denoiser=0.1,
+            lambda_reg=10.0,
             max_iter=5,
             auto_scale=False,
             color=(imsize[0] == 3),
@@ -1795,8 +1795,8 @@ def test_deal_model_runs(monkeypatch, device):
     # Create the wrapper model
     model = DEAL(
         pretrained="dummy.pth",
-        sigma=25.0,
-        lam=10.0,
+        sigma_denoiser=25.0,
+        lambda_reg=10.0,
         max_iter=1,
         auto_scale=False,
         clamp_output=True,
