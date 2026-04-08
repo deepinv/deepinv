@@ -116,20 +116,28 @@ class EquivariantReconstructor(Reconstructor):
         f(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{f}(y, A T_g)
 
     :param Reconstructor model: base reconstructor to be made equivariant.
-    :param Transform transform: geometric transformation.
-    :param Transform eval_transform: transformations to be used in evaluation mode. It can be used to have true Reynolds averaging at evaluation time and efficient Monte Carlo estimation at training time. If set to `None`, evaluation transformations are the same as training transformations.
+    :param Transform, None transform: geometric transformation. By default, it is set to a single random 90° rotation and flip.
+    :param Transform eval_transform: transformations to be used in evaluation mode. It can be used to have true Reynolds averaging at evaluation time and efficient Monte Carlo estimation at training time. By default, if training transformations are specified, evaluation transformations default to them, otherwise they default to the eight 90° rotations and flips.
     """
 
     def __init__(
         self,
         model: Reconstructor,
-        transform: Transform,
+        transform: Transform | None = None,
         eval_transform: Transform | None = None,
     ):
         super().__init__()
         self.model = model
 
-        if eval_transform is None:
+        if transform is None:
+            transform = Rotate(n_trans=1, multiples=90, positive=True) * Reflect(
+                n_trans=1, dims=[-1]
+            )
+            eval_transform = Rotate(n_trans=4, multiples=90, positive=True) * Reflect(
+                n_trans=2, dims=[-1]
+            )
+        elif eval_transform is None:
+            # NOTE: It does not do a full averaging automatically in this case.
             eval_transform = transform
 
         self.transform = transform
