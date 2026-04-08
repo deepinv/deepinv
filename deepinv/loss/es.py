@@ -22,7 +22,7 @@ class ESLoss(Loss):
 
     .. math::
 
-        \mathcal{L}_{mathrm{ES}} (y, A, f) = \mathbb{E}_g \left\{ \mathbb{E}_{y_1, A_1 \mid y, A T_g} \left\{ \| A_1 f(y_1, A_1) - A_1 x \|^2 + \| A_2 f(y_1, A_1) - A_2 x \|^2 \right\} \right\}
+        \mathcal{L}_{\mathrm{ES}} (y, A, f) = \mathbb{E}_g \left\{ \mathbb{E}_{y_1, A_1 \mid y, A T_g} \left\{ \| A_1 f(y_1, A_1) - A_1 x \|^2 + \| A_2 f(y_1, A_1) - A_2 x \|^2 \right\} \right\}
 
     where :math:`f` denotes the reconstructor, :math:`A` the physics operator, :math:`x` the ground truth image, :math:`y` the measurement, :math:`T_g` a group action (e.g., rotations).
 
