@@ -8,13 +8,18 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add the equivariant splitting loss :class:`deepinv.loss.EquivariantSplittingLoss` with equivariant reconstructors :class:`deepinv.models.EquivariantReconstructor` and virtual physics :class:`deepinv.physics.VirtualLinearPhysics` (:gh:`881` by `Jérémy Scanvic`_)
 
 Changed
 ^^^^^^^
+- Add support for arbitrary learning-free reconstructors in the trainer (:gh:`881` by `Jérémy Scanvic`_)
+- Make available every mask used at evaluation for splitting models :class:`deepinv.loss.SplittingLoss.SplittingModel` when ``eval_n_samples > 1`` (:gh:`881` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
 - Add warning when options `reduce="mean"` and `reduce="none"` are used in :class:`deepinv.physics.StackedLinearPhysics`. Remove `reduction` argument from :class:`deepinv.distributed.DistributedStackedLinearPhysics` (:gh:`1071` by `Romain Vo`_)
+- Correct the value of ``Transform.n_trans`` in composed transformations (:gh:`881` by `Jérémy Scanvic`_)
+- Add support for computing the evaluation loss for splitting losses like :class:`deepinv.loss.SplittingLoss` in the trainer (:gh:`881` by `Jérémy Scanvic`_)
 
 
 
