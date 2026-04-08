@@ -453,7 +453,3 @@ nitpick_ignore = [
     ("py:class", "torchvision.transforms.InterpolationMode"),
     ("py:class", "nib.arrayproxy.ArrayProxy"),
 ]
-
-import matplotlib
-
-matplotlib.use("Agg")
