@@ -6,17 +6,18 @@ This example shows how to use the Deep Equilibrium Attention Least Squares
 (DEAL) model in DeepInverse for both denoising and a simple reconstruction
 setting.
 
-The pretrained DEAL model is primarily designed for denoising (with noise
-levels expressed in the [0,255] scale). We therefore demonstrate:
-
-1) Denoising (native setting of the pretrained model)
-2) Reconstruction (inpainting) using the same model
-
-DEAL solves inverse problems by combining a learned spatially adaptive
-regularizer with iterative least-squares updates.
+DEAL solves inverse problems by minimizing a data-fidelity term together with
+a learned adaptive regularizer. In the implementation, this regularizer is
+induced by a masked linear operator, where learned filters are modulated by
+spatially varying masks predicted by the network. The reconstruction is then
+refined through iterative least-squares updates, where the regularizer is
+recomputed from the current iterate.
 
 This implementation is adapted from the official
 `DEAL repository <https://github.com/mehrsapo/DEAL>`_.
+
+Here, the model is illustrated first for Gaussian denoising, and then for a
+simple inpainting reconstruction problem.
 """
 
 # %%
@@ -36,18 +37,16 @@ torch.manual_seed(0)
 x = load_example("butterfly.png", img_size=128, device=device, grayscale=True)
 
 # %%
-# IMPORTANT: sigma handling
-# physics uses [0,1], model uses [0,255]
+# Noise level in the normalized [0,1] convention used by DeepInverse.
 
-sigma255 = 25.0
-sigma01 = sigma255 / 255.0
+sigma = 0.1
 
 # %%
 # Load pretrained DEAL model
 
 model = DEAL(
     pretrained="download",
-    sigma_denoiser=sigma255,
+    sigma_denoiser=sigma,
     lambda_reg=10.0,
     max_iter=10,
     auto_scale=False,
@@ -67,7 +66,7 @@ psnr = PSNR()
 # denoising operator, and the plotted mask corresponds to the spatially varying
 # regularization weights from the last iteration.
 
-physics_denoise = Denoising(GaussianNoise(sigma=sigma01)).to(device)
+physics_denoise = Denoising(GaussianNoise(sigma=sigma)).to(device)
 y_denoise = physics_denoise(x)
 
 with torch.no_grad():

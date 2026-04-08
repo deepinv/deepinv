@@ -10,7 +10,6 @@ from torch import Tensor, nn
 
 from deepinv.physics import Denoising, LinearPhysics
 from deepinv.optim.linear import conjugate_gradient
-from deepinv.optim.prior import Prior
 from .base import Reconstructor
 from .utils import load_state_dict_from_url
 
@@ -67,7 +66,7 @@ class DEAL(Reconstructor):
     .. math::
 
         x^{(k+1)} \approx \arg\min_x \frac{1}{2}\|Ax - y\|^2
-        + \lambda \nabla_{x} g_\theta(u=x^{(k)},x)^\top x
+        + \lambda \nabla_x g_\theta(u=x^{(k)}, x)^\top x
 
     :param str pretrained: checkpoint path or ``'download'``
     :param float sigma_denoiser: denoiser noise level parameter
@@ -183,7 +182,7 @@ class DEAL(Reconstructor):
                 )
             sigma_tensor = torch.full(
                 (y.size(0), 1, 1, 1),
-                float(sigma),
+                255.0 * float(sigma),
                 device=self.device,
                 dtype=y.dtype,
             )
@@ -193,7 +192,7 @@ class DEAL(Reconstructor):
         if isinstance(physics, Denoising):
             sigma_tensor = torch.full(
                 (y.size(0), 1, 1, 1),
-                float(self.sigma_denoiser),
+                255.0 * float(self.sigma_denoiser),
                 device=self.device,
                 dtype=y.dtype,
             )
@@ -215,7 +214,7 @@ class DEAL(Reconstructor):
             y,
             H=physics.A,
             Ht=physics.A_adjoint,
-            sigma=self.sigma_denoiser,
+            sigma=255.0 * self.sigma_denoiser,
             lmbda=self.lambda_reg,
             x_init=x_init,
             verbose=False,
@@ -797,42 +796,6 @@ class ZeroMean(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Project kernels to have zero mean per output channel."""
         return x - torch.mean(x, dim=(1, 2, 3), keepdim=True)
-
-
-class DEALRegularizer(Prior):
-    """
-    DEAL adaptive regularizer as a standalone Prior.
-
-    This class exposes the learned regularization term of DEAL,
-    allowing it to be used independently in optimization algorithms.
-    """
-
-    def __init__(self, model: "_DEALImpl"):
-        super().__init__()
-        self.model = model
-
-    def grad(self, x: torch.Tensor, sigma: float | torch.Tensor) -> torch.Tensor:
-        """
-        Compute the gradient of the DEAL regularizer.
-
-        :param x: input image
-        :param sigma: noise level
-        :return: gradient of the regularizer at x
-        """
-        if not isinstance(sigma, torch.Tensor):
-            sigma = torch.tensor([[sigma]], device=x.device, dtype=x.dtype)
-
-        # initialize internal parameters
-        self.model.cal_lambda(sigma)
-        self.model.cal_scaling(sigma)
-
-        # compute mask based on current x
-        self.model.cal_mask(x)
-
-        idx = [i for i in range(x.size(0))]
-
-        # gradient ≈ λ * L^T L x
-        return self.model.lmbda * self.model.Lt(self.model.L(x, idx), idx)
 
 
 class _DEALImpl(nn.Module):

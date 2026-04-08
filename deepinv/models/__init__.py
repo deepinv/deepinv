@@ -37,7 +37,7 @@ from .guided_diffusion import ADMUNet
 from .precond import EDMPrecond
 from .ram import RAM
 from .client import Client
-from .deal import DEAL, DEALRegularizer
+from .deal import DEAL
 from .mmse import MMSE
 from .wrapper import (
     ScoreModelWrapper,
