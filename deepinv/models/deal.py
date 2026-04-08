@@ -54,7 +54,7 @@ class DEAL(Reconstructor):
     .. math::
 
         g_{\theta}(u, x) = \sum_{c=1}^{C} \frac{1}{2}\|L_{\theta,c}(u, x)\|_2^2
-        = \frac{1}{2}\|m_\theta(x) \odot K_\theta x\|_2^2,
+        = \sum_{c=1}^{C} \frac{1}{2}\|m_{\theta,c}(u) \odot K_{\theta,c} x\|_2^2,
 
     where :math:`K_\theta` is a learned linear operator,
     :math:`m_\theta(x)` is a spatially varying mask predicted by the network,
