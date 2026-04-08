@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.10"
-version = "0.3.7"
+version = "0.4.0"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -127,10 +127,12 @@ channels = ["conda-forge"]
 platforms = ["linux-64", "win-64", "osx-arm64"]
 
 [tool.pixi.dependencies] # install from conda-forge for all environments
-parallelproj = "*"
 pytorch = "*"
 torchvision = "*"
 python = ">=3.10"
+
+[tool.pixi.feature.dataset.dependencies]
+datasets = ">=3.5.0"
 
 [tool.pixi.pypi-dependencies] # install from PyPI for all environments
 deepinv = { path = ".", editable = true }
@@ -148,7 +150,8 @@ full = { features = ["test", "dataset", "denoisers", "physics", "training"], sol
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = [
-    "deepinv/tests",
+    "deepinv/tests", # main test directory
+    "deepinv", # for doctests in the codebase
 ]
 markers = [
     "slow",
@@ -169,7 +172,7 @@ exclude_also = [
 # Ruff configuration for linting and import management
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251", "N805", "E402", "F821", "F822", "F823"]

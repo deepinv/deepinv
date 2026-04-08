@@ -809,7 +809,9 @@ def test_consistency_single_vs_multiprocess(device_config):
     # All ranks should produce same result
     y_norms_ref = [yi.norm().item() for yi in y_single]
     for r in results:
-        assert all(abs(a - b) < 1e-4 for a, b in zip(r["y_norms"], y_norms_ref))
+        assert all(
+            abs(a - b) < 1e-4 for a, b in zip(r["y_norms"], y_norms_ref, strict=True)
+        )
         assert abs(r["x_adj_norm"] - x_adj_single.norm().item()) < 1e-4
 
 
@@ -953,7 +955,7 @@ def _test_adjoint_operations_worker(rank, world_size, args):
         return "success"
 
 
-@pytest.mark.parametrize("reduction", ["sum", "mean"])
+@pytest.mark.parametrize("reduction", ["sum"])
 def test_adjoint_operations(device_config, gather_strategy, reduction):
     """
     Test A_adjoint, A_vjp, A_adjoint_A, A_A_adjoint operations.

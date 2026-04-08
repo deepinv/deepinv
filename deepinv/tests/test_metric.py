@@ -100,13 +100,12 @@ def choose_no_reference_metric(metric_name, device, **kwargs) -> metric.Metric:
         raise ValueError("Incorrect no-reference metric name.")
 
 
-@pytest.fixture
-def test_image(device):
+@pytest.fixture(scope="session")
+def test_image():
     return load_example(
         "celeba_example.jpg",
         img_size=128,
         resize_mode="resize",
-        device=device,
     )
 
 
@@ -140,6 +139,7 @@ def test_full_reference_metrics(
 
     m = choose_full_reference_metric(metric_name, device, **metric_kwargs)
 
+    test_image = test_image.to(device)
     x = test_image.clone()
 
     x = x[:, :channels]
@@ -206,6 +206,7 @@ def test_no_reference_metrics(
 
     m = choose_no_reference_metric(metric_name, device, **metric_kwargs)
 
+    test_image = test_image.to(device)
     x = test_image.clone()
 
     if metric_name == "QNR":

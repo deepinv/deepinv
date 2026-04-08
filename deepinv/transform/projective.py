@@ -8,7 +8,6 @@ import torch
 from PIL import Image
 
 from deepinv.transform.base import Transform, TransformParam
-from deepinv.utils.compat import zip_strict
 
 
 def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
@@ -275,7 +274,7 @@ class Homography(Transform):
                     interpolation=self.interpolation,
                     device=self.device,
                 )
-                for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip_strict(
+                for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip(
                     theta_x,
                     theta_y,
                     theta_z,
@@ -285,6 +284,7 @@ class Homography(Transform):
                     skew,
                     stretch_x,
                     stretch_y,
+                    strict=True,
                 )
             ],
             dim=0,

@@ -20,7 +20,6 @@ jobs:
     env:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
-      UV_CACHE_DIR: "/local/jtachell/.cache/uv"
       WORKING_DIR: "/local/jtachell"
 
     steps:
@@ -29,31 +28,16 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha
                   || (inputs.pr_number && format('refs/pull/{0}/head', inputs.pr_number))
                   || github.sha }}
-                  
-      # See https://docs.astral.sh/uv/guides/integration/github
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
+
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@v0.9.3
         with:
-          enable-cache: true
-          version: "0.8.22"
-          python-version: "3.11"
-          cache-local-path: ${{ env.UV_CACHE_DIR }}
-
-      - name: Set up Python
-        run: |
-          uv python install
-          uv run python --version
-
-      - name: Install the project
-        run: uv sync --extra dataset --extra denoisers --extra test --extra training --extra doc
-
-      - name: Check installed packages
-        run: |
-          uv pip list
+          pixi-version: latest
+          pixi-bin-path: /local/jtachell/pixi/bin/pixi
 
       - name: Check import
         run: |
-          uv run python -c "import deepinv"
+          pixi run -e docs python -c "import deepinv"
 
       - name: Determine which examples to run
         id: get_pattern
@@ -73,7 +57,7 @@ jobs:
               HEAD_REF="HEAD"
               echo "Analyzing changes between $BASE_REF and $HEAD_REF..."
               # Execute the Python script to find affected examples
-              PATTERN=$(uv run .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
+              PATTERN=$(pixi run -e docs python .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
               echo "Conditional PR Pattern: $PATTERN"
             fi
           else
@@ -89,16 +73,15 @@ jobs:
       - name: Build documentation with chosen examples
         env:
           SG_PATTERN: ${{ steps.get_pattern.outputs.SG_PATTERN }}
-
         run: |
           echo "Running Sphinx with filename_pattern: $SG_PATTERN"
-          uv run sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
+          pixi run -e docs sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
 
       - name: Run doctests
         env:
           SPHINX_DOCTEST: "1"
         run: |
-          uv run python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v
+          pixi run -e docs python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v
 
       - name: Notebook generation
         run: |
@@ -111,7 +94,7 @@ jobs:
             mkdir -p "$out_dir"
             base="$(basename "$rel" .py)"
             out_path="$out_dir/$base.ipynb"
-            uv run .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
+            pixi run -e docs python .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
           done
 
       - name: Upload Documentation Artifact
@@ -155,3 +138,7 @@ jobs:
               body,
             });
 
+      - name: Cleanup Pixi
+        if: always()
+        run: |
+          rm -rf /local/jtachell/pixi

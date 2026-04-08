@@ -20,9 +20,7 @@ class NoisyDataFidelity(DataFidelity):
 
     .. math::
 
-        \begin{equation*}
-            \nabla_{x_t} \log p(y|x + \sigma(t) \omega) = P(\forw{x_t'}-y),
-        \end{equation*}
+         \nabla_{x_t} \log p(y|x + \sigma(t) \omega) = P(\forw{x_t'}-y),
 
 
     where :math:`P` is a preconditioner and :math:`x_t'` is an estimation of the image :math:`x`.
@@ -105,9 +103,7 @@ class DPSDataFidelity(NoisyDataFidelity):
     This corresponds to the :math:`p(y|x_t)` approximation proposed in `Diffusion Posterior Sampling for General Noisy Inverse Problems <https://arxiv.org/abs/2209.14687>`_.
 
     .. math::
-            \begin{aligned}
-            \nabla_x \log p_t(y|x) &= \nabla_x \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|
-            \end{aligned}
+            \nabla_x \log p_t(y|x) = \nabla_x \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|
 
     where :math:`\sigma = \sigma(t)` is the noise level, :math:`m` is the number of measurements (size of :math:`y`),
     and :math:`\lambda` controls the strength of the approximation.

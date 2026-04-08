@@ -2,7 +2,6 @@ import deepinv
 import torch
 import pytest
 from deepinv.utils.decorators import _deprecated_alias
-from deepinv.utils.compat import zip_strict
 import warnings
 import numpy as np
 import contextlib
@@ -20,7 +19,6 @@ import PIL
 import io
 import copy
 import math
-import sys
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -187,11 +185,11 @@ def test_dirac_like(shape, length, device):
     y = deepinv.utils.TensorList(
         [
             deepinv.physics.functional.conv2d(xi, hi, padding="circular")
-            for hi, xi in zip_strict(h, x)
+            for hi, xi in zip(h, x, strict=True)
         ]
     )
 
-    for xi, hi, yi in zip_strict(x, h, y):
+    for xi, hi, yi in zip(x, h, y, strict=True):
         assert (
             hi.shape == xi.shape
         ), "Dirac delta should have the same shape as the input tensor."
@@ -247,7 +245,7 @@ def test_plot(
     img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
     subtitles = ["subtitle"] * n_images
-    img_list = {k: v for k, v in zip_strict(titles, img_list)}
+    img_list = {k: v for k, v in zip(titles, img_list, strict=True)}
     if not with_titles:
         titles = None
     if not with_subtitles:
@@ -706,7 +704,7 @@ def test_AverageMeter(to_float):
     ), "Sum2 value is incorrect."
     assert all(
         math.isclose(a, b, rel_tol=1e-10)
-        for a, b in zip_strict(meter.vals, vals.tolist())
+        for a, b in zip(meter.vals, vals.tolist(), strict=True)
     ), "Retained values are incorrect."
 
     # Scalar aggregates should be instances of the builtin float type
@@ -864,7 +862,7 @@ def test_normalize_signals(batch_size, img_size, mode, seed):
     # Tests specific to min-max normalization
     if mode == "min_max":
         # Test the edge case of constant signals
-        for inp_s, out_s in zip_strict(inp, out):
+        for inp_s, out_s in zip(inp, out, strict=True):
             inp_unique = torch.unique(inp_s)
             is_inp_constant = inp_unique.numel() == 1
             if is_inp_constant:
@@ -952,55 +950,6 @@ def test_prepare_images_shapes(seed):
 
 # Module-level fixtures
 pytestmark = [pytest.mark.usefixtures("non_blocking_plots")]
-
-
-@pytest.mark.parametrize("force_polyfill", [False, True])
-def test_zip_strict_behavior(force_polyfill):
-    # Test correct pairing
-    a = [1, 2, 3]
-    b = ["x", object(), "z"]
-    c = [True, False, object()]
-
-    result = list(zip_strict(a, b, c, force_polyfill=force_polyfill))
-
-    # If Python >= 3.10, compare with zip(strict=True)
-    if sys.version_info >= (3, 10):
-        expected = list(zip(a, b, c, strict=True))  # novermin
-        assert result == expected
-
-    # Test ValueError for different lengths
-    d = [1, 2]
-    with pytest.raises(ValueError):
-        list(zip_strict(a, d, force_polyfill=force_polyfill))
-
-    # If Python >= 3.10, confirm zip(strict=True) also raises
-    if sys.version_info >= (3, 10):
-        with pytest.raises(ValueError):
-            list(zip(a, d, strict=True))  # novermin
-
-    # Test consumption behavior
-    def spy(iterable):
-        it = iter(iterable)
-        for x in it:
-            yield x
-
-    a = spy([1, 2, 3])
-    b = spy([10, 20, 30, 40])
-    c = spy([100, 200, 300, 400])
-
-    try:
-        _ = list(zip_strict(a, b, c, force_polyfill=force_polyfill))
-    except ValueError:
-        pass
-
-    assert next(a, None) is None, "Iterator a should be fully consumed."
-    assert next(b, None) is None, "Iterator b should be fully consumed."
-    assert next(c, None) == 400, "Iterator c should have one item left."
-
-    # Test empty input
-    assert (
-        list(zip_strict(force_polyfill=force_polyfill)) == []
-    ), "Empty input should yield empty output."
 
 
 @pytest.mark.parametrize("latex_exists", [True, False])

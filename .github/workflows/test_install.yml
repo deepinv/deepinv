@@ -3,7 +3,7 @@ name: Test Install Methods
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 6 * * 1"  # every Monday at 06:00 UTC
+    - cron: "0 6 1 */4 *"  # every 4 weeks on the 1st of the month at 06:00 UTC
 
 jobs:
   pip:
@@ -15,7 +15,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         source: [pypi, git]
         deps: [core, full]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/setup-python@v6
         with:

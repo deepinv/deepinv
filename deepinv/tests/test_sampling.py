@@ -5,7 +5,6 @@ import numpy as np
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.sampling import ULA, SKRock, DiffPIR, DPS, sampling_builder, DDRM
-from deepinv.utils.compat import zip_strict
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
@@ -316,7 +315,7 @@ def test_sde(device):
         VariancePreservingDiffusion,
         EDMDiffusionSDE,
     ]
-    for denoiser, kwargs in zip_strict(denoisers, list_kwargs):
+    for denoiser, kwargs in zip(denoisers, list_kwargs, strict=True):
         for solver in solvers:
             for sde_class in sde_classes:
                 if sde_class == EDMDiffusionSDE:

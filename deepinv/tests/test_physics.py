@@ -14,7 +14,6 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
-from deepinv.utils.compat import zip_strict
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -1591,7 +1590,7 @@ def test_mri_fft():
         return torch.cat((right, left), dim=dim)
 
     def roll(x: torch.Tensor, shift: list[int], dim: list[int]) -> torch.Tensor:
-        for s, d in zip_strict(shift, dim):
+        for s, d in zip(shift, dim, strict=True):
             x = roll_one_dim(x, s, d)
 
         return x
@@ -1751,7 +1750,7 @@ def test_operators_differentiability(name, device):
         with torch.enable_grad():
             y_hat = physics.A(x_hat)
             if isinstance(y_hat, TensorList):
-                for y_hat_item, y_item in zip_strict(y_hat.x, y.x):
+                for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
                     loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                     loss.backward()
                     assert x_hat.requires_grad == True
@@ -1778,7 +1777,7 @@ def test_operators_differentiability(name, device):
             with torch.enable_grad():
                 y_hat = physics(x, **parameters)
                 if isinstance(y_hat, TensorList):
-                    for y_hat_item, y_item in zip_strict(y_hat.x, y.x):
+                    for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
                         loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                         loss.backward()
 
@@ -1865,7 +1864,7 @@ def test_device_consistency(name):
             # skip denoising that adds random noise in each forward call
             if not isinstance(physics, dinv.physics.Denoising):
                 if isinstance(y2, TensorList):
-                    for y11, y22 in zip_strict(y1, y2):
+                    for y11, y22 in zip(y1, y2, strict=True):
                         assert torch.linalg.norm((y11.to(cuda) - y22).ravel()) < 1e-5
                 else:
                     assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5
@@ -1946,7 +1945,7 @@ def test_physics_state_dict(name, device):
         y1 = physics(x)
         y2 = new_physics(x)
         if isinstance(y1, TensorList):
-            for y1, y2 in zip_strict(physics(x), new_physics(x)):
+            for y1, y2 in zip(physics(x), new_physics(x), strict=True):
                 assert torch.allclose(y1, y2)
         else:
             assert torch.allclose(y1, y2)
