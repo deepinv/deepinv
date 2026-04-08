@@ -23,6 +23,10 @@ class VirtualLinearPhysics(LinearPhysics):
 
     Virtual operators are used in :class:`deepinv.models.EquivariantReconstructor`. For more details, see :footcite:t:`sechaud26Equivariant`.
 
+    .. warning::
+
+        The adjoint and pseudo-inverse might be incorrect if the transformation is not invertible, for instance due to boundary effects.
+
     :param LinearPhysics physics: linear physics operator :math:`\tilde{A}`.
     :param Transform transform: transformation :math:`T_g`
     :param dict g_params: parameters of the transformation :math:`g`.
