@@ -22,17 +22,17 @@ class EquivariantSplittingLoss(Loss):
 
     .. math::
 
-        \mathcal{L}_{\mathrm{ES}} (y, A, f) = \mathbb{E}_g \Big\{ \mathbb{E}_{y_1, A_1 \mid y, A T_g} \Big\{ \underbrace{\| A_1 f(y_1, A_1) - A_1 x \|^2}_{\text{Consistency term}} + \underbrace{\| A_2 f(y_1, A_1) - A_2 x \|^2}_{\text{Prediction term}} \Big\} \Big\}
+        \mathcal{L}_{\mathrm{ES}} (y, A, f) = \mathbb{E}_g \Big\{ \mathbb{E}_{y_1, A_1 \mid y, A T_g} \Big\{ \underbrace{\| A_1 R(y_1, A_1) - A_1 x \|^2}_{\text{Consistency term}} + \underbrace{\| A_2 R(y_1, A_1) - A_2 x \|^2}_{\text{Prediction term}} \Big\} \Big\}
 
-    where :math:`f` denotes the reconstructor, :math:`A` the physics operator, :math:`x` the ground truth image, :math:`y` the measurement, :math:`T_g` a group action (e.g., rotations).
+    where :math:`R` denotes the reconstructor, :math:`A` the physics operator, :math:`x` the ground truth image, :math:`y` the measurement, :math:`T_g` a group action (e.g., rotations).
 
     The second expectation is taken over the distribution specified by ``mask_generator`` of all possible splittings of :math:`A T_g`, i.e., :math:`A T_g = [A_1^\top, A_2^\top]^\top`, with the associated measurements denoted as :math:`y_1` and :math:`y_2`.
 
-    The main idea behind equivariant splitting is that the more the reconstructor is equivariant to suitable transformations, the better the final performance will be. A general way to make a reconstructor :math:`\tilde{f}` equivariant is to add a group averaging step in the reconstructor,
+    The main idea behind equivariant splitting is that the more the reconstructor is equivariant to suitable transformations, the better the final performance will be. A general way to make a reconstructor :math:`\tilde{R}` equivariant is to add a group averaging step in the reconstructor,
 
     .. math::
 
-        f(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{f}(y, A T_g)
+        R(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{R}(y, A T_g)
 
     which is generally estimated using a Monte Carlo approach at training time. For this reason, :class:`ESLoss` takes two different instances of :class:`deepinv.transform.Transform` as input: one for training ``transform`` and one for evaluation ``eval_transform``.
 

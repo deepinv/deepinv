@@ -105,15 +105,15 @@ class EquivariantReconstructor(Reconstructor):
 
     .. math::
 
-        f(y, A T_g) = T_g^{-1} f(y, A)
+        R(y, A T_g) = T_g^{-1} R(y, A)
 
     for all :math:`g \in \mathcal{G}` where :math:`T_g` is a transform (eg shifts, rotations, etc).
 
-    Any reconstructor :math:`\tilde{f}` can be turned into an equivariant reconstructor by averaging over the transformations:
+    Any reconstructor :math:`\tilde{R}` can be turned into an equivariant reconstructor by averaging over the transformations:
 
     .. math::
 
-        f(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{f}(y, A T_g)
+        R(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{R}(y, A T_g)
 
     :param Reconstructor model: base reconstructor to be made equivariant.
     :param Transform, None transform: geometric transformation. By default, it is set to a single random 90° rotation and flip.
@@ -169,7 +169,7 @@ class EquivariantReconstructor(Reconstructor):
         x0 = physics.A_adjoint(y)  # Used for inferring the group
         G_params = transform.get_params(x0)
 
-        # Compute the terms in the sum, i.e., T_g(f(y, AT_g)) for each g
+        # Compute the terms in the sum, i.e., T_g(R(y, AT_g)) for each g
         terms = []
         for g_params in transform.iterate_params(G_params):
             ATg = VirtualLinearPhysics(
@@ -178,9 +178,9 @@ class EquivariantReconstructor(Reconstructor):
 
             fyATg = self.model(
                 y, ATg, *reconstructor_args, **reconstructor_kwargs
-            )  # f(y, AT_g)
+            )  # R(y, AT_g)
 
-            TgfyATg = transform.transform(fyATg, **g_params)  # T_g(f(y, AT_g))
+            TgfyATg = transform.transform(fyATg, **g_params)  # T_g(R(y, AT_g))
             terms.append(TgfyATg)
 
         # Average over the group elements

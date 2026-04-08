@@ -12,7 +12,7 @@ The equivariant splitting loss combines the two approaches as:
 
 .. math::
 
-    \mathcal{L}_{\mathrm{ES}} (y, A, f) = \mathbb{E}_g \Big\{ \mathbb{E}_{y_1, A_1 \mid y, A T_g} \Big\{ \underbrace{\| A_1 f(y_1, A_1) - A_1 x \|^2}_{\text{Consistency term}} + \underbrace{\| A_2 f(y_1, A_1) - A_2 x \|^2}_{\text{Prediction term}} \Big\} \Big\}
+    \mathcal{L}_{\mathrm{ES}} (y, A, f) = \mathbb{E}_g \Big\{ \mathbb{E}_{y_1, A_1 \mid y, A T_g} \Big\{ \underbrace{\| A_1 R(y_1, A_1) - A_1 x \|^2}_{\text{Consistency term}} + \underbrace{\| A_2 R(y_1, A_1) - A_2 x \|^2}_{\text{Prediction term}} \Big\} \Big\}
 
 where :math:`T_g` denote a transformation and :math:`A T_g` the associated virtual physics represented in the library by the class :class:`deepinv.physics.VirtualLinearPhysics`. The loss itself is implemented in :class:`deepinv.loss.EquivariantSplittingLoss` and this example shows how to use it to train a reconstruction model in a fully self-supervised way.
 """
@@ -159,10 +159,10 @@ dinv.utils.plot(
 #
 # Equivariant splitting requires choosing a set of transformations based on the forward operator. For inpainting, valid choices include shifts, rotations and reflections :footcite:p:`sechaud26Equivariant`. Here, we choose rotations and reflections.
 #
-# Since the base model RAM is not already equivariant to these transformations, we use group averaging by passing in ``transform`` and ``eval_transform`` to the loss. Namely, we swap the base reconstructor :math:`\tilde{f}` for the equivariant reconstructor defined by
+# Since the base model RAM is not already equivariant to these transformations, we use group averaging by passing in ``transform`` and ``eval_transform`` to the loss. Namely, we swap the base reconstructor :math:`\tilde{R}` for the equivariant reconstructor defined by
 # .. math::
 #
-#      f(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{f}(y, A T_g)
+#      R(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{R}(y, A T_g)
 #
 # which is estimated using a Monte Carlo sampling where a subset of transformations is used, typically a single one at training time and the full set at evaluation time. Internally, the input model is wrapped in an :class:`deepinv.models.EquivariantReconstructor` when calling ``EquivariantSplittingLoss.adapt_model``.
 #

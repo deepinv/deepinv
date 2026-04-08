@@ -127,28 +127,28 @@ dinv.utils.plot(
 
 # %%
 # What's going on under the hood? We use the ``transform.symmetrize``
-# method to symmetrize the function :math:`f` with respect to a projective
+# method to symmetrize the function :math:`D` with respect to a projective
 # transform (with a Monte Carlo approach of ``n_trans=2`` transforms per call):
 #
 
 # Example non-equivariant function
-f = lambda x: x[..., [0]] * x
+D = lambda x: x[..., [0]] * x
 
 # Example non-linear transform with n=2
 t = dinv.transform.projective.PanTiltRotate(n_trans=2, theta_max=10, theta_z_max=0)
 
 # Symmetrize function with respect to transform
-f_s = t.symmetrize(f, average=True)
+D_s = t.symmetrize(D, average=True)
 dinv.utils.plot(
-    [x, f(x), f_s(x)], titles=["Orig", "$f(x)$", "$\\sum_i T_g^{-1}f(T_g x)$"]
+    [x, D(x), D_s(x)], titles=["Orig", "$D(x)$", "$\\sum_i T_g^{-1}D(T_g x)$"]
 )
 
 # %%
-# Reconstructors can also be made equivariant in a similar way using :class:`deepinv.models.EquivariantReconstructor`. This amounts to averaging the base reconstructor :math:`\tilde{f}` over the transformations to get an equivariant reconstructor
+# Reconstructors can also be made equivariant in a similar way using :class:`deepinv.models.EquivariantReconstructor`. This amounts to averaging the base reconstructor :math:`\tilde{R}` over the transformations to get an equivariant reconstructor
 #
 # .. math::
 #
-#    f(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{f}(y, A T_g)
+#    R(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{R}(y, A T_g)
 #
 # which is computed using a Monte Carlo sampling where a random subset of transformations is used, typically a single one at training time and the full set at evaluation time.
 
