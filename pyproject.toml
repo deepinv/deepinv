@@ -131,6 +131,9 @@ pytorch = "*"
 torchvision = "*"
 python = ">=3.10"
 
+[tool.pixi.feature.py312.dependencies]
+python = "3.12.*"
+
 [tool.pixi.feature.dataset.dependencies]
 datasets = ">=3.5.0"
 
@@ -140,8 +143,8 @@ deepinv = { path = ".", editable = true }
 [tool.pixi.environments]
 default = { solve-group = "default" }
 test = { features = ["test"], solve-group = "default" }
-docs = { features = ["doc", "dataset", "denoisers", "physics", "training"], solve-group = "default" }
-doctest = { features = ["doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "default" }
+docs = { features = ["doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "docs" }
+doctest = { features = ["doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "docs" }
 full = { features = ["test", "dataset", "denoisers", "physics", "training"], solve-group = "default" }
 
 ##############################################

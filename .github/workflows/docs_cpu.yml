@@ -68,12 +68,7 @@ jobs:
         env:
           SG_PATTERN: ${{ steps.get_pattern.outputs.SG_PATTERN }}
         run: |
-          find examples -type f -name '*.py' | while read -r f; do
-            if echo "$f" | grep -Eq "$SG_PATTERN"; then
-              echo "--- Building example: $f ---"
-              pixi run -e docs sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$(basename "$f")"
-            fi
-          done
+            pixi run -e docs sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
 
       - name: Notebook generation
         run: |
