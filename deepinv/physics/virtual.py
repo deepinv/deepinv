@@ -37,6 +37,7 @@ class VirtualLinearPhysics(LinearPhysics):
         self.physics = physics
         self.T = lambda x: transform.transform(x, **g_params)
         self.T_inv = lambda x: transform.inverse(x, **g_params)
+        self.noise_model = physics.noise_model
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""

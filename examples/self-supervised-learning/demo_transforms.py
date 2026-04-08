@@ -32,6 +32,7 @@ First, load a sample image.
 """
 
 import deepinv as dinv
+import torch
 from torchvision.transforms import Compose, ColorJitter, RandomErasing, Resize
 
 x = dinv.utils.load_example("celeba_example.jpg")
@@ -94,12 +95,34 @@ transform = rotate * dinv.transform.Reflect(dim=[-1], n_trans=2)
 
 sigma = 0.1
 physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=sigma))
-y = physics(Resize(128)(x))
+x = Resize(128)(x)
+# Put the image in an unusual orientation to show the benefits of equivariance
+x = torch.rot90(x, k=1, dims=[-2, -1])
+y = physics(x)
 
-model = dinv.models.MedianFilter()
+model = dinv.models.RAM(pretrained=True)
 model_eq = dinv.models.EquivariantDenoiser(model, transform=transform)
 
-dinv.utils.plot([x, y, model(y, sigma=sigma), model_eq(y, sigma=sigma)])
+with torch.no_grad():
+    x_hat = model(y, sigma=sigma)
+    x_eq = model_eq(y, sigma=sigma)
+
+psnr_fn = dinv.metric.PSNR()
+psnr = psnr_fn(x_hat, x).item()
+psnr_eq = psnr_fn(x_eq, x).item()
+psnr_y = psnr_fn(y, x).item()
+
+dinv.utils.plot(
+    [y, x_hat, x_eq, x],
+    ["Measurements", "Regular Denoiser", "Equivariant Denoiser", "Ground truth"],
+    subtitles=[
+        f"PSNR={psnr_y:.1f}dB",
+        f"PSNR={psnr:.1f}dB",
+        f"PSNR={psnr_eq:.1f}dB",
+        "",
+    ],
+    fontsize=10,
+)
 
 
 # %%
@@ -125,16 +148,38 @@ dinv.utils.plot(
 
 sigma = 0.1
 physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=sigma))
-y = physics(Resize(128)(x))
+y = physics(x)
 
 rotate = dinv.transform.Rotate(multiples=90, positive=True, n_trans=4)
 transform = rotate * dinv.transform.Reflect(dim=[-1], n_trans=2)
 
-denoiser = dinv.models.MedianFilter()
-model = dinv.models.ArtifactRemoval(denoiser, mode="pinv")
+model = dinv.models.RAM(pretrained=True)
 model_eq = dinv.models.EquivariantReconstructor(model, transform=transform)
 
-dinv.utils.plot([x, y, model(y, physics=physics), model_eq(y, physics=physics)])
+with torch.no_grad():
+    x_hat = model(y, physics=physics)
+    x_eq = model_eq(y, physics=physics)
+
+psnr = psnr_fn(x_hat, x).item()
+psnr_eq = psnr_fn(x_eq, x).item()
+psnr_y = psnr_fn(y, x).item()
+
+dinv.utils.plot(
+    [y, x_hat, x_eq, x],
+    [
+        "Measurements",
+        "Regular Reconstructor",
+        "Equivariant Reconstructor",
+        "Ground truth",
+    ],
+    subtitles=[
+        f"PSNR={psnr_y:.1f}dB",
+        f"PSNR={psnr:.1f}dB",
+        f"PSNR={psnr_eq:.1f}dB",
+        "",
+    ],
+    fontsize=10,
+)
 
 # %%
 # 3. Equivariant imaging
