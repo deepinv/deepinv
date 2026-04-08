@@ -1021,7 +1021,6 @@ def test_ram_scale(scale, device, use_physics):
     assert torch.all(psnr > 30)  # they should be almost equal
 
 
-
 LIST_IMAGE_WHSIZE = [(32, 37), (25, 129)]
 
 
@@ -1032,7 +1031,14 @@ LIST_IMAGE_WHSIZE = [(32, 37), (25, 129)]
 @pytest.mark.parametrize("physics_name", LINEAR_OPERATORS + [None])
 @pytest.mark.parametrize("channels", CHANNELS)
 def test_restoration_models(
-    device, pretrained, model_name, physics_name, channels, rng, whsize, load_example_image
+    device,
+    pretrained,
+    model_name,
+    physics_name,
+    channels,
+    rng,
+    whsize,
+    load_example_image,
 ):
 
     if channels == 1 and physics_name in ["demosaicing", "MRI", "MultiCoilMRI"]:
@@ -1638,7 +1644,9 @@ def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_iso
 @pytest.mark.parametrize("mode", ["image", "synthetic"])
 @pytest.mark.parametrize("channels", [1, 2, 3])
 @pytest.mark.parametrize("sigma", [0.1, 0.5, 0.01])
-def test_gaussian_noise_estimators(model_name, mode, channels, sigma, device, rng, load_example_image):
+def test_gaussian_noise_estimators(
+    model_name, mode, channels, sigma, device, rng, load_example_image
+):
     if model_name == "pca":
         model = dinv.models.PatchCovarianceNoiseEstimator().to(device)
     elif model_name == "wavelets":
