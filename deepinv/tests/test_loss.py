@@ -140,7 +140,7 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         prediction_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
 
         loss.append(
-            dinv.loss.ESLoss(
+            dinv.loss.EquivariantSplittingLoss(
                 mask_generator=mask_generator,
                 consistency_loss=consistency_loss,
                 prediction_loss=prediction_loss,

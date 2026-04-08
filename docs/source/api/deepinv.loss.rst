@@ -41,7 +41,7 @@ Self-Supervised Learning
 
     deepinv.loss.MCLoss
     deepinv.loss.EILoss
-    deepinv.loss.ESLoss
+    deepinv.loss.EquivariantSplittingLoss
     deepinv.loss.MOILoss
     deepinv.loss.MOEILoss
     deepinv.loss.Neighbor2Neighbor
