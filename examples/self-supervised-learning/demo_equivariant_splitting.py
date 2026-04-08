@@ -193,7 +193,7 @@ model = es_loss.adapt_model(model)
 #
 # Starting from the pre-trained model, we fine-tune it on the imaging dataset using the equivariant splitting loss:
 #
-# .. note:
+# .. note::
 #
 #    We skip the training and directly load the cached checkpoint to avoid making the documentation longer to build but you can get the same results by running the training locally.
 #
