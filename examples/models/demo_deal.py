@@ -1,5 +1,5 @@
 """
-DEAL denoising and reconstruction demo.
+DEAL denoising and reconstruction
 ====================================================================================================
 
 This example shows how to use the Deep Equilibrium Attention Least Squares
