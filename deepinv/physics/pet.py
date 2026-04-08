@@ -3,6 +3,8 @@ from .forward import LinearPhysics
 from .noise import PoissonNoise
 import torch
 from typing import TYPE_CHECKING
+import contextlib
+import io
 
 if TYPE_CHECKING:
     import parallelproj
@@ -111,9 +113,10 @@ class PET(LinearPhysics):
                 "img_size must be a tuple of length 2 or 3, e.g. (H, W) or (D, H, W)"
             )
 
-        try:
-            import parallelproj
-            from array_api_compat import torch as torch_compat
+        try:  # avoids doctest failing when parallelproj prints banner
+            with contextlib.redirect_stdout(io.StringIO()):
+                import parallelproj
+                from array_api_compat import torch as torch_compat
         except ImportError:
             raise ImportError(
                 "parallelproj package is required for PET physics model. "
