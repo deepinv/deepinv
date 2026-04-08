@@ -171,8 +171,8 @@ class SplittingLoss(Loss):
             if self.normalize_loss:
                 loss_value = loss_value / mask2.mean()
             loss_values.append(loss_value)
-        loss_values = torch.stack(loss_values, dim=1)
-        return loss_values.mean(1)
+        loss_values = torch.stack(loss_values, dim=-1)
+        return loss_values.mean(-1)
 
     def adapt_model(
         self, model: torch.nn.Module, eval_n_samples=None
