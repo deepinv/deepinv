@@ -303,6 +303,7 @@ ignore_pattern = (
     else r"__init__\.py"
 )
 
+
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
