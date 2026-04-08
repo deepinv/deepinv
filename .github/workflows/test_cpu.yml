@@ -1,0 +1,72 @@
+name: Test CPU
+
+on:
+  pull_request:
+    branches:
+    - main
+  push:
+    branches:
+    - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            environment: "full"
+            name: "ubuntu all optional dependencies and doctests"
+            pytest_args: "-n 2 --dist=loadgroup --doctest-modules"
+          - os: ubuntu-latest
+            environment: "test"
+            name: "ubuntu no optional dependencies"
+            pytest_args: "-n 2 --dist=loadgroup"
+          - os: windows-latest
+            environment: "full"
+            name: "windows all optional dependencies"
+            pytest_args: "-n 2 --dist=loadgroup"
+    env:
+      DEEPINV_MOCK_TESTS: "True"
+      DEEPINV_DOWNLOAD_VERBOSE: "False"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@v0.9.3
+        with:
+          pixi-version: latest
+
+      - name: Restore .testmondata
+        uses: actions/cache/restore@v3
+        with:
+          path: .testmondata
+          key: testmon-cpu-main-${{ matrix.os }}-${{ github.run_id }}
+          restore-keys: |
+            testmon-cpu-main-${{ matrix.os }}
+
+      - name: Test with pytest
+        run: |
+          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml --testmon
+
+      - name: Save .testmondata # only when pushed to main, not for PRs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v3
+        with:
+          path: .testmondata
+          key: testmon-cpu-main-${{ matrix.os }}-${{ github.run_id }}
+
+      - name: Upload coverage to Codecov
+        if: runner.os == 'Linux' && matrix.environment == 'full'
+        uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
