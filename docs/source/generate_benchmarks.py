@@ -100,17 +100,12 @@ def process_csv_file(csv_path):
 {benchmark_name}
 {'=' * len(benchmark_name)}
 
-
-
-.. dropdown:: Benchmark information 
-    :chevron: down-up
-
-    """,
+""",
     ]
 
-    lines.append(f"    - *Dataset*: :sclass:`deepinv.datasets.{dataset}` \n")
-    lines.append(f"    - *Physics*: :sclass:`deepinv.physics.{physics}` \n")
-    lines.append(f"    - *Noise model*: :sclass:`deepinv.physics.{noise}` \n")
+    lines.append(f"- *Dataset*: :sclass:`deepinv.datasets.{dataset}` \n")
+    lines.append(f"- *Physics*: :sclass:`deepinv.physics.{physics}` \n")
+    lines.append(f"- *Noise model*: :sclass:`deepinv.physics.{noise}` \n")
 
     # search for entries starting as "objective_" except for "objective_name"
     dataset_cols = [
@@ -125,9 +120,19 @@ def process_csv_file(csv_path):
         value = df.at[0, col]
         col_name = col.replace("p_dataset_", "")
         if col_name != "debug":
-            lines.append(f"    - *{col_name}*: {value} \n")
+            lines.append(f"- *{col_name}*: {value} \n")
 
     lines.append("\n")
+
+    lines.append(f"Run this benchmark with\n")
+    lines.append(
+        f".. code-block:: python\n"
+        f"\n"
+        f'   from deepinv_bench import run_benchmark\n'
+        f"   my_solver = lambda y, physics: ...  # your solver here\n"
+        f'   results = run_benchmark(my_solver, "{benchmark_link}")\n'
+        f"\n"
+    )
 
     # Table directive
     lines.append(".. list-table::")
@@ -141,8 +146,8 @@ def process_csv_file(csv_path):
     # Add link to 'model' column if exists
     if "solver_name" in df.columns and "file_solver" in df.columns:
         url = (
-            "https://github.com/deepinv/benchmarks/tree/main/"
-            + str(Path(csv_path).parent.name)
+            "https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/"
+            + benchmark_link
             + "/"
         )
         for i, row in df.iterrows():
@@ -218,9 +223,39 @@ def generate_main_rst(benchmark_info, output_dir):
     r"""
     Generate the main benchmarks.rst file listing all benchmarks.
 
+    Benchmarks are grouped by physics name in the toctree, each physics group
+    getting its own intermediate page under ``auto_benchmarks/``.
+
     :param list[tuple] benchmark_info: List of tuples containing (benchmark_name, dataset, physics, noise).
     :param str, Path output_dir: Directory where the benchmarks.rst file will be saved.
     """
+    from collections import defaultdict
+
+    auto_benchmarks_dir = os.path.join(output_dir, "auto_benchmarks")
+    os.makedirs(auto_benchmarks_dir, exist_ok=True)
+
+    # Group benchmarks by physics name
+    physics_groups = defaultdict(list)
+    for name, dataset, physics, noise in benchmark_info:
+        physics_groups[physics].append((name, dataset, noise))
+
+    # Generate one intermediate RST page per physics group
+    physics_pages = []  # list of (physics, physics_slug)
+    for physics in sorted(physics_groups.keys()):
+        benchmarks = physics_groups[physics]
+        physics_slug = physics.lower() + "_benchmarks"
+        physics_pages.append((physics, physics_slug))
+
+        physics_rst_path = os.path.join(auto_benchmarks_dir, f"{physics_slug}.rst")
+        content = f".. _{physics_slug}:\n\n{physics}\n{'=' * len(physics)}\n\n"
+        content += ".. toctree::\n   :maxdepth: 1\n\n"
+        for name, _, _ in benchmarks:
+            content += f"   {name}\n"
+
+        with open(physics_rst_path, "w") as f:
+            f.write(content)
+
+    # Generate main benchmarks.rst
     benchmarks_rst_path = os.path.join(output_dir, "benchmarks.rst")
     benchmarks_content = """.. _benchmarks:
 
@@ -234,20 +269,35 @@ This section provides benchmark results for various datasets and physics models.
     Benchmarks are defined in the https://github.com/deepinv/benchmarks repository.
     To contribute a new benchmark or add your solver to an existing benchmark, please refer to this repository.
 
-You can try your own solver on any benchmark of your choice. Make sure that it receives `(y: torch.Tensor, physics: dinv.physics.Physics)` as input and outputs the reconstructed image as `x: torch.Tensor`,
-then install (or upgrade) the `deepinv_bench` package as follows:
-    
+To evaluate your own reconstruction methods on these benchmarks, install `deepinv_bench`:
+
 .. code-block:: bash
 
-   pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/benchmarks.git#egg=deepinv_bench
+    pip install git+https://github.com/deepinv/benchmarks.git#egg=deepinv_bench
 
-Once installed, you can run the benchmark with the following code:
+
+If you have already installed benchmarks, you can update it with:
+
+.. code-block:: bash
+
+    pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/benchmarks.git#egg=deepinv_bench
+
+
+and then run on python:
 
 .. code-block:: python
 
     from deepinv_bench import run_benchmark
-    my_solver = lambda y, physics: ...  # your solver here
+    import deepinv as dinv
+    my_solver = ... # replace with your reconstruction method
     results = run_benchmark(my_solver, "benchmark_name")
+
+where  `benchmark_name` is the name of the benchmark and `my_solver` is your reconstruction method which receives `(y, physics, **kwargs)` where
+
+- `y` is a :class:`torch.Tensor` containing the measurements,
+- `physics` is the :class:`forward operator <deepinv.physics.Physics>`
+
+and outputs a :class:`torch.Tensor` containing the reconstructed image.
 
 
 .. list-table::
@@ -262,9 +312,11 @@ Once installed, you can run the benchmark with the following code:
     for name, dataset, physics, noise in benchmark_info:
         benchmarks_content += f"    * - :ref:`{name}`\n      - :sclass:`deepinv.datasets.{dataset}`\n      - :sclass:`deepinv.physics.{physics}`\n      - :sclass:`deepinv.physics.{noise}`\n"
 
+    # Toctree: first level is physics group pages, each of which contains
+    # the individual benchmark pages in its own toctree.
     benchmarks_content += "\n.. toctree::\n   :maxdepth: 2\n   :hidden:\n\n"
-    for name, _, _, _ in benchmark_info:
-        benchmarks_content += f"   auto_benchmarks/{name}\n"
+    for _, physics_slug in physics_pages:
+        benchmarks_content += f"   auto_benchmarks/{physics_slug}\n"
 
     with open(benchmarks_rst_path, "w") as f:
         f.write(benchmarks_content)
