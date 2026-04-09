@@ -9,7 +9,7 @@ from .utils import get_weights_url, conv_nd, avgpool_nd, load_state_dict_from_ur
 from abc import abstractmethod
 import numpy as np
 from .base import Denoiser
-from deepinv.utils.compat import zip_strict
+
 import math
 import math
 
@@ -336,7 +336,7 @@ class DiffUNet(Denoiser):
         y: Tensor = None,
         type_t: str = "noise_level",
         patch_size: int = 512,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Splits an image tensor into patches (without overlapping), applies the model to each patch, and reconstructs the full image.
 
@@ -408,7 +408,7 @@ class DiffUNet(Denoiser):
 
     def forward_diffusion(
         self, x: Tensor, timesteps: Tensor, y: Tensor = None
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Apply the model to an input batch.
 
@@ -485,7 +485,7 @@ class DiffUNet(Denoiser):
 
     def forward_denoise(
         self, x: Tensor, sigma: float | Tensor, y: Tensor = None
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Applies the denoising model to an input batch.
 
@@ -899,7 +899,7 @@ def update_ema(target_params, source_params, rate=0.99):
     :param source_params: the source parameter sequence.
     :param rate: the EMA rate (closer to 1 means slower).
     """
-    for targ, src in zip_strict(target_params, source_params):
+    for targ, src in zip(target_params, source_params, strict=True):
         targ.detach().mul_(rate).add_(src, alpha=1 - rate)
 
 

@@ -21,10 +21,8 @@ class BaseUnfold(BaseOptim):
     following form (see :class:`deepinv.optim.OptimIterator`):
 
     .. math::
-        \begin{aligned}
         z_{k+1} &= \operatorname{step}_f(x_k, z_k, y, A, \gamma, ...)\\
         x_{k+1} &= \operatorname{step}_g(x_k, z_k, y, A, \lambda, \sigma, ...)
-        \end{aligned}
 
     where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are learnable modules.
     These modules encompass trainable parameters of the algorithm (e.g. stepsize :math:`\gamma`, regularization parameter :math:`\lambda`, prior parameter (`g_param`) :math:`\sigma` ...)
@@ -182,7 +180,7 @@ def unfolded_builder(
         >>> import deepinv as dinv
         >>>
         >>> # Create a trainable unfolded architecture
-        >>> model = dinv.unfolded.unfolded_builder(  # doctest: +IGNORE_RESULT
+        >>> model = dinv.unfolded.unfolded_builder(
         ...     iteration="PGD",
         ...     data_fidelity=dinv.optim.data_fidelity.L2(),
         ...     prior=dinv.optim.PnP(dinv.models.DnCNN(in_channels=1, out_channels=1)),

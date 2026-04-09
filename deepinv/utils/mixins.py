@@ -369,29 +369,36 @@ class TiledMixin2d:
 
         self.pad_if_needed = pad_if_needed
 
-    def image_to_patches(self, image: Tensor) -> Tensor:
+    def image_to_patches(
+        self, image: Tensor, pad: int | tuple[int, int, int, int] = (0, 0, 0, 0)
+    ) -> Tensor:
         r"""
         Split an image into overlapping patches.
 
         The image will be padded if necessary to ensure all patches have the same size.
 
         :param torch.Tensor image: Input image tensor of shape `(B, C, H, W)`.
+        :param int | tuple[int, int, int, int] pad: Optional, if provided, the patch size will be increased by this padding on each side. Can be a single int for symmetric padding or a tuple of 4 ints for (left, right, top, bottom) padding. Defaults to `(0, 0, 0, 0)` for no additional padding.
         :return: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
         """
         patch_size = self.patch_size
         stride = self.stride
+        if isinstance(pad, int):
+            pad = (pad, pad, pad, pad)
 
         img_size = image.shape[-2:]
 
         # Pad image if necessary for even patch extraction
         if self.pad_if_needed:
             pad_h, pad_w = self.get_needed_pad(img_size)
-            if pad_h > 0 or pad_w > 0:
-                image = F.pad(image, (0, pad_w, 0, pad_h), mode="constant", value=0)
-
+            pad_pad = (pad[0], pad[1] + pad_w, pad[2], pad[3] + pad_h)
+        else:
+            pad_pad = pad
+        # Pad image
+        image = F.pad(image, pad_pad, mode="constant", value=0)
         # Extract patches using unfold
-        patches = image.unfold(2, patch_size[0], stride[0]).unfold(
-            3, patch_size[1], stride[1]
+        patches = image.unfold(2, patch_size[0] + pad[2] + pad[3], stride[0]).unfold(
+            3, patch_size[1] + pad[0] + pad[1], stride[1]
         )
         return patches.contiguous()
 
@@ -433,7 +440,6 @@ class TiledMixin2d:
             patches.permute(0, 2, 3, 1, 4, 5).contiguous().view(B, num_patches, C, h, w)
         )
         patches = patches.view(B, num_patches, C * h * w).permute(0, 2, 1)
-
         # Fold patches back into image
         output = F.fold(
             patches,
