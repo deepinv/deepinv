@@ -3,7 +3,10 @@ import json
 from unittest.mock import patch, MagicMock
 import contextlib
 
+from deepinv.models import DEAL
+from deepinv.physics import Denoising
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 
 import deepinv as dinv
@@ -27,6 +30,7 @@ MODEL_LIST_1_CHANNEL = [
     "promptir",
     "ncsnpp",
     "adinv.modelsunet",
+    "deal",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -138,6 +142,7 @@ def choose_denoiser(name, imsize):
             img_resolution=imsize[1],
             pretrained=None,
         )
+
     elif name == "adinv.modelsunet":
         out = dinv.models.ADMUNet(
             in_channels=imsize[0],
@@ -145,6 +150,55 @@ def choose_denoiser(name, imsize):
             img_resolution=imsize[1],
             pretrained=None,
         )
+
+    elif name == "deal":
+        base_model = dinv.models.DEAL(
+            pretrained="download",
+            sigma_denoiser=0.1,
+            lambda_reg=10.0,
+            max_iter=5,
+            auto_scale=False,
+            color=(imsize[0] == 3),
+        )
+
+        class DEALDenoiserWrapper(nn.Module):
+            def __init__(self, model):
+                super().__init__()
+                self.model = model
+
+            def forward(self, y, sigma):
+                if isinstance(sigma, torch.Tensor):
+                    sigma_flat = sigma.view(-1)
+
+                    # CASE 1: single sigma → broadcast to all batch
+                    if sigma_flat.numel() == 1:
+                        sigma_value = float(sigma_flat[0].item())
+                        physics = dinv.physics.Denoising(
+                            dinv.physics.GaussianNoise(sigma_value)
+                        )
+                        return self.model(y, physics)
+
+                    # CASE 2: per-sample sigma
+                    outputs = []
+                    for i in range(y.shape[0]):
+                        sigma_value = float(sigma_flat[i].item())
+                        physics = dinv.physics.Denoising(
+                            dinv.physics.GaussianNoise(sigma_value)
+                        )
+                        out = self.model(y[i : i + 1], physics)
+                        outputs.append(out)
+
+                    return torch.cat(outputs, dim=0)
+
+                # scalar sigma
+                sigma_value = float(sigma)
+                physics = dinv.physics.Denoising(
+                    dinv.physics.GaussianNoise(sigma_value)
+                )
+                return self.model(y, physics)
+
+        out = DEALDenoiserWrapper(base_model)
+
     elif name == "dsccp":
         out = dinv.models.DScCP()
     elif name == "bilateral":
@@ -1689,3 +1743,85 @@ def test_gaussian_noise_estimators(
     assert torch.allclose(
         model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-3, atol=1e-4
     )
+
+
+class DummyInnerDEAL(nn.Module):
+    """
+    Tiny fake version of the internal DEAL class.
+    """
+
+    def __init__(self, color: bool = False, *args, **kwargs):
+        super().__init__()
+        channels = 3 if color else 1
+        self.conv = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
+
+    def forward(self, x):
+        return self.conv(x)
+
+    def denoise(self, y, sigma):
+        return self.forward(y)
+
+    def solve_inverse_problem(
+        self,
+        y,
+        H,
+        Ht,
+        sigma,
+        lmbda,
+        x_init,
+        verbose: bool = False,
+        path: bool = False,
+        *args,
+        **kwargs,
+    ):
+        """
+        Dummy solve_inverse_problem. Ignore arguments and just return
+        something with the right shape.
+        """
+        return x_init
+
+
+def fake_load(path, map_location=None, weights_only=False):
+    """
+    Return a dummy state_dict so load_state_dict() does not fail.
+    """
+    return {"state_dict": DummyInnerDEAL(color=False).state_dict()}
+
+
+def test_deal_model_runs(monkeypatch, device):
+    """
+    Basic smoke test: check that the DEAL wrapper can be constructed
+    and that a forward pass runs and returns the right shape.
+    """
+    import deepinv.models.deal as deal_mod
+
+    # Replace the internal DEAL implementation by a tiny dummy class
+    monkeypatch.setattr(deal_mod, "_DEALImpl", DummyInnerDEAL)
+
+    # Replace torch.load used inside deepinv.models.deal.DEAL.__init__
+    monkeypatch.setattr(deal_mod.torch, "load", fake_load)
+
+    # Create the wrapper model
+    model = DEAL(
+        pretrained="dummy.pth",
+        sigma_denoiser=25.0,
+        lambda_reg=10.0,
+        max_iter=1,
+        auto_scale=False,
+        clamp_output=True,
+        color=False,
+        device=device,
+    )
+
+    # Simple DeepInverse physics (denoising)
+    physics = Denoising().to(device)
+
+    # Fake measurement
+    y = torch.randn(1, 1, 32, 32, device=device)
+
+    # Run the forward pass
+    x_hat = model(y, physics)
+
+    # Check that output shape matches input shape
+    assert isinstance(x_hat, torch.Tensor)
+    assert x_hat.shape == y.shape
