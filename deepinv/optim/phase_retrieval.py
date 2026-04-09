@@ -101,16 +101,16 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 
 def spectral_methods(
     y: torch.Tensor,
-    physics,
+    physics: Physics,
     x: torch.Tensor = None,
     n_iter: int = 50,
     preprocessing: Callable[
         [torch.Tensor, torch.Tensor], torch.Tensor
     ] = default_preprocessing,
     lamb: float = 10.0,
-    x_true=None,
+    x_true: torch.Tensor = None,
     log: bool = False,
-    log_metric=cosine_similarity,
+    log_metric: Callable = cosine_similarity,
     early_stop: bool = True,
     rtol: float = 1e-5,
     verbose: bool = False,

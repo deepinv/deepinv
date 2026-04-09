@@ -1,4 +1,11 @@
+from __future__ import annotations
 from .optim_iterator import OptimIterator, fStep, gStep
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.optim import DataFidelity, Prior
+    from deepinv.physics import Physics
+    import torch
 
 
 class DRSIteration(OptimIterator):
@@ -26,8 +33,16 @@ class DRSIteration(OptimIterator):
         self.f_step = fStepDRS(**kwargs)
 
     def forward(
-        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
-    ):
+        self,
+        X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        cur_data_fidelity: DataFidelity,
+        cur_prior: Prior,
+        cur_params: dict,
+        y: torch.Tensor,
+        physics: Physics,
+        *args,
+        **kwargs,
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]:
         r"""
         Single iteration of the DRS algorithm.
 
@@ -69,7 +84,15 @@ class fStepDRS(fStep):
     def __init__(self, **kwargs):
         super(fStepDRS, self).__init__(**kwargs)
 
-    def forward(self, x, z, cur_data_fidelity, cur_params, y, physics):
+    def forward(
+        self,
+        x: torch.Tensor,
+        z: torch.Tensor,
+        cur_data_fidelity: DataFidelity,
+        cur_params: dict,
+        y: torch.Tensor,
+        physics: Physics,
+    ) -> torch.Tensor:
         r"""
         Single iteration step on the data-fidelity term :math:`f`.
 
@@ -79,6 +102,7 @@ class fStepDRS(fStep):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
+        :return: (:class:`torch.Tensor`)  Updated variable after one step on the data-fidelity term.
         """
         if self.g_first:
             p = 2 * x - z
@@ -95,7 +119,13 @@ class gStepDRS(gStep):
     def __init__(self, **kwargs):
         super(gStepDRS, self).__init__(**kwargs)
 
-    def forward(self, x, z, cur_prior, cur_params):
+    def forward(
+        self,
+        x: torch.Tensor,
+        z: torch.Tensor,
+        cur_prior: Prior,
+        cur_params: dict,
+    ) -> torch.Tensor:
         r"""
         Single iteration step on the prior term :math:`\lambda g`.
 
@@ -103,6 +133,7 @@ class gStepDRS(gStep):
         :param torch.Tensor z: Current second variable.
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the prior term.
         """
         if self.g_first:
             p = z

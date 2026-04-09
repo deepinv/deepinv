@@ -1,6 +1,12 @@
+from __future__ import annotations
 import torch
 
 from .optim_iterator import OptimIterator, fStep, gStep
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.optim import Prior
+    from deepinv.physics import Physics
 
 
 class SMIteration(OptimIterator):
@@ -26,8 +32,8 @@ class SMIteration(OptimIterator):
 
     def __init__(
         self,
-        lamb=10,
-        n_iter=50,
+        lamb: int = 10,
+        n_iter: int = 50,
         preprocessing=lambda x: torch.max(1 - 1 / x, torch.tensor(-5.0)),
         **kwargs,
     ):
@@ -36,7 +42,15 @@ class SMIteration(OptimIterator):
         self.f_step = fStepSM(lamb, preprocessing=preprocessing, **kwargs)
         self.g_step = gStepSM(**kwargs)
 
-    def forward(self, x, cur_prior, cur_params, y, physics, *args):
+    def forward(
+        self,
+        x: torch.Tensor,
+        cur_prior: Prior,
+        cur_params: dict,
+        y: torch.Tensor,
+        physics: Physics,
+        *args,
+    ) -> torch.Tensor:
         r"""
         Single iteration of the spectral method.
 
@@ -45,7 +59,7 @@ class SMIteration(OptimIterator):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: Instance of the physics containing the forward operator.
-        :return: The new iterate :math:`x_{k+1}`.
+        :return: (:class:`torch.Tensor`) The new iterate :math:`x_{k+1}`.
         """
         assert hasattr(
             physics, "B"
@@ -73,13 +87,16 @@ class fStepSM(fStep):
         self.preprocessing = preprocessing
         self.lamb = lamb
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, physics):
+    def forward(
+        self, x: torch.Tensor, y: torch.Tensor, physics: Physics
+    ) -> torch.Tensor:
         r"""
         Single power iteration step for spectral methods.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Instance of the physics modeling the forward matrix.
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the data-fidelity term.
         """
         x = x.to(torch.cfloat)
         # normalize every image in x
@@ -104,13 +121,16 @@ class gStepSM(gStep):
     def __init__(self, **kwargs):
         super(gStepSM, self).__init__(**kwargs)
 
-    def forward(self, x: torch.Tensor, cur_prior, cur_params):
+    def forward(
+        self, x: torch.Tensor, cur_prior: Prior, cur_params: dict
+    ) -> torch.Tensor:
         r"""
         Single iteration step on the prior term :math:`g`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param dict cur_prior: Dictionary containing the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the prior term.
         """
         return cur_prior.prox(
             x,

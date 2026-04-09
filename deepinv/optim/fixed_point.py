@@ -75,9 +75,9 @@ class FixedPoint(nn.Module):
     def __init__(
         self,
         iterator: deepinv.optim.OptimIterator = None,
-        update_params_fn: Callable[int, dict[str, float | Iterable]] = None,
-        update_data_fidelity_fn: Callable[int, deepinv.optim.DataFidelity] = None,
-        update_prior_fn: Callable[int, deepinv.optim.Prior] = None,
+        update_params_fn: Callable[[int], dict[str, float | Iterable]] = None,
+        update_data_fidelity_fn: Callable[[int], deepinv.optim.DataFidelity] = None,
+        update_prior_fn: Callable[[int], deepinv.optim.Prior] = None,
         init_iterate_fn: Callable[..., dict] = None,
         init_metrics_fn: Callable[[dict, torch.Tensor], dict[str, list]] = None,
         update_metrics_fn: Callable[
@@ -115,7 +115,9 @@ class FixedPoint(nn.Module):
             )
             self.early_stop = False
 
-    def init_anderson_acceleration(self, X: dict):
+    def init_anderson_acceleration(
+        self, X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]
+    ):
         r"""
         Initialize the Anderson acceleration algorithm.
         Code inspired from `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_.
@@ -168,13 +170,13 @@ class FixedPoint(nn.Module):
     def anderson_acceleration_step(
         self,
         it: int,
-        X_prev: dict,
-        TX_prev: dict,
+        X_prev: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        TX_prev: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
         cur_data_fidelity: deepinv.optim.DataFidelity,
         cur_prior: deepinv.optim.Prior,
         cur_params: dict,
         *args,
-    ):
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]:
         r"""
         Anderson acceleration step.
 
@@ -187,6 +189,8 @@ class FixedPoint(nn.Module):
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param args: arguments for the iterator.
+
+        :return dict: new iterates after Anderson acceleration step (same form as input iterates X_prev and TX_prev).
         """
         x_prev = X_prev["est"][0]  # current iterate x
         Tx_prev = TX_prev["est"][0]  # current iterate Tx
@@ -270,7 +274,10 @@ class FixedPoint(nn.Module):
         compute_metrics: bool = False,
         x_gt: torch.Tensor = None,
         **kwargs,
-    ):
+    ) -> tuple[
+        dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        dict[str, list] | None,
+    ]:
         r"""
         Loops over the fixed-point iterator as (1) and returns the fixed point.
 
@@ -353,7 +360,25 @@ class FixedPoint(nn.Module):
 
         return X, metrics
 
-    def single_iteration(self, X: dict, it: int, *args, **kwargs):
+    def single_iteration(
+        self,
+        X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        it: int,
+        *args,
+        **kwargs,
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]:
+        """
+        Performs a single iteration of the fixed-point algorithm, including Anderson acceleration and backtracking if specified.
+
+        The iterates are stored in a dictionary of the form ``X = {'est': (x_k, u_k), 'cost': F_k}`` where:
+
+            * ``est`` is a tuple containing the current primal and auxiliary iterates,
+            * ``cost`` is the value of the cost function at the current iterate.
+
+        :param dict X: current iterate of the algorithm.
+        :param int it: current iteration number.
+        :return: new iterate after one step of the algorithm.
+        """
         cur_params = self.update_params_fn(it) if self.update_params_fn else None
         cur_data_fidelity = (
             self.update_data_fidelity_fn(it) if self.update_data_fidelity_fn else None

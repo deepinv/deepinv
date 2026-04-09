@@ -1,4 +1,11 @@
+from __future__ import annotations
 from .optim_iterator import OptimIterator, fStep, gStep
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.optim import DataFidelity, Prior
+    from deepinv.physics import Physics
+    import torch
 
 
 class HQSIteration(OptimIterator):
@@ -35,7 +42,16 @@ class fStepHQS(fStep):
     def __init__(self, **kwargs):
         super(fStepHQS, self).__init__(**kwargs)
 
-    def forward(self, x, cur_data_fidelity, cur_params, y, physics, *args, **kwargs):
+    def forward(
+        self,
+        x: torch.Tensor,
+        cur_data_fidelity: DataFidelity,
+        cur_params: dict,
+        y: torch.Tensor,
+        physics: Physics,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Single proximal step on the data-fidelity term :math:`f`.
 
@@ -44,6 +60,7 @@ class fStepHQS(fStep):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the data-fidelity term.
         """
         return cur_data_fidelity.prox(
             x, y, physics, gamma=cur_params["stepsize"], *args, **kwargs
@@ -58,13 +75,16 @@ class gStepHQS(gStep):
     def __init__(self, **kwargs):
         super(gStepHQS, self).__init__(**kwargs)
 
-    def forward(self, x, cur_prior, cur_params, *args, **kwargs):
+    def forward(
+        self, x: torch.Tensor, cur_prior: Prior, cur_params: dict, *args, **kwargs
+    ) -> torch.Tensor:
         r"""
         Single proximal step on the prior term :math:`\lambda \regname`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param dict cur_prior: Class containing the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the prior term.
         """
         return cur_prior.prox(
             x,
