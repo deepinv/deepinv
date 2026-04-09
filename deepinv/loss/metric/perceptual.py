@@ -32,25 +32,26 @@ class LPIPS(Metric):
         m(x_net, x)
 
     :param str net_type: network architecture to use. Options: 'alex', 'vgg', 'squeeze'. Default: 'alex'.
+    :param bool check_input_range: if True (default), the metric will raise error if inputs aren't in the appropriate range ``[0, 1]``.
+    :param str, torch.device device: LPIPS net device.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
-    :param bool check_input_range: if True, ``pyiqa`` will raise error if inputs aren't in the appropriate range ``[0, 1]``.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
         If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
-    :param str, torch.device device: LPIPS net device.
     """
 
-    def __init__(self, net_type="alex", device=None, **kwargs):
+    def __init__(self, net_type="alex", device=None, check_input_range=False, **kwargs):
         super().__init__(**kwargs)
         from torchmetrics.functional.image.lpips import _lpips_update, _NoTrainLpips
 
         # Pre-load LPIPS net
         self.lpips_fn = _lpips_update
 
+        self.check_input_range = check_input_range
         # Load LPIPS. Note torchvision internally uses torch.hub.load_state_dict_from_url which
         # annoyingly unpredictably prints to stdout, so we suppress this.
         _stdout = sys.stdout
@@ -74,8 +75,11 @@ class LPIPS(Metric):
             )
 
         min_val, max_val = torch.aminmax(torch.cat([x_net, x], dim=0))
-        if not ((min_val >= 0.0) & (max_val <= 1.0)):
-            raise ValueError("LPIPS metric requires x_net and x to be between 0 and 1.")
+        if self.check_input_range and not ((min_val >= 0.0) & (max_val <= 1.0)):
+            raise ValueError(
+                "LPIPS metric requires x_net and x to be between 0 and 1."
+                "You can deactivate this check by setting check_input_range=False"
+            )
 
         return self.lpips_fn(
             x_net,
