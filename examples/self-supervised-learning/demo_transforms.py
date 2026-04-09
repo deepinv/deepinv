@@ -32,6 +32,7 @@ First, load a sample image.
 """
 
 import deepinv as dinv
+import torch
 from torchvision.transforms import Compose, ColorJitter, RandomErasing, Resize
 
 x = dinv.utils.load_example("celeba_example.jpg")
@@ -94,32 +95,97 @@ transform = rotate * dinv.transform.Reflect(dim=[-1], n_trans=2)
 
 sigma = 0.1
 physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=sigma))
-y = physics(Resize(128)(x))
+x = Resize(128)(x)
+# Put the image in an unusual orientation to show the benefits of equivariance
+x = torch.rot90(x, k=1, dims=[-2, -1])
+y = physics(x)
 
-model = dinv.models.MedianFilter()
+model = dinv.models.RAM(pretrained=True)
 model_eq = dinv.models.EquivariantDenoiser(model, transform=transform)
 
-dinv.utils.plot([x, y, model(y, sigma=sigma), model_eq(y, sigma=sigma)])
+with torch.no_grad():
+    x_hat = model(y, sigma=sigma)
+    x_eq = model_eq(y, sigma=sigma)
+
+psnr_fn = dinv.metric.PSNR()
+psnr = psnr_fn(x_hat, x).item()
+psnr_eq = psnr_fn(x_eq, x).item()
+psnr_y = psnr_fn(y, x).item()
+
+dinv.utils.plot(
+    [y, x_hat, x_eq, x],
+    ["Measurements", "Regular Denoiser", "Equivariant Denoiser", "Ground truth"],
+    subtitles=[
+        f"PSNR={psnr_y:.1f}dB",
+        f"PSNR={psnr:.1f}dB",
+        f"PSNR={psnr_eq:.1f}dB",
+        "",
+    ],
+    fontsize=10,
+)
 
 
 # %%
 # What's going on under the hood? We use the ``transform.symmetrize``
-# method to symmetrize the function :math:`f` with respect to a projective
+# method to symmetrize the function :math:`D` with respect to a projective
 # transform (with a Monte Carlo approach of ``n_trans=2`` transforms per call):
 #
 
 # Example non-equivariant function
-f = lambda x: x[..., [0]] * x
+D = lambda x: x[..., [0]] * x
 
 # Example non-linear transform with n=2
 t = dinv.transform.projective.PanTiltRotate(n_trans=2, theta_max=10, theta_z_max=0)
 
 # Symmetrize function with respect to transform
-f_s = t.symmetrize(f, average=True)
+D_s = t.symmetrize(D, average=True)
 dinv.utils.plot(
-    [x, f(x), f_s(x)], titles=["Orig", "$f(x)$", "$\\sum_i T_i^{-1}f(T_ix)$"]
+    [x, D(x), D_s(x)], titles=["Orig", "$D(x)$", "$\\sum_i T_g^{-1}D(T_g x)$"]
 )
 
+# %%
+# Reconstructors can also be made equivariant in a similar way using :class:`deepinv.models.EquivariantReconstructor`. This amounts to averaging the base reconstructor :math:`\tilde{R}` over the transformations to get an equivariant reconstructor
+#
+# .. math::
+#
+#    R(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{R}(y, A T_g)
+#
+# which is computed using a Monte Carlo sampling where a random subset of transformations is used, typically a single one at training time and the full set at evaluation time.
+
+sigma = 0.1
+physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=sigma))
+y = physics(x)
+
+rotate = dinv.transform.Rotate(multiples=90, positive=True, n_trans=4)
+transform = rotate * dinv.transform.Reflect(dim=[-1], n_trans=2)
+
+model = dinv.models.RAM(pretrained=True)
+model_eq = dinv.models.EquivariantReconstructor(model, transform=transform)
+
+with torch.no_grad():
+    x_hat = model(y, physics=physics)
+    x_eq = model_eq(y, physics=physics)
+
+psnr = psnr_fn(x_hat, x).item()
+psnr_eq = psnr_fn(x_eq, x).item()
+psnr_y = psnr_fn(y, x).item()
+
+dinv.utils.plot(
+    [y, x_hat, x_eq, x],
+    [
+        "Measurements",
+        "Regular Reconstructor",
+        "Equivariant Reconstructor",
+        "Ground truth",
+    ],
+    subtitles=[
+        f"PSNR={psnr_y:.1f}dB",
+        f"PSNR={psnr:.1f}dB",
+        f"PSNR={psnr_eq:.1f}dB",
+        "",
+    ],
+    fontsize=10,
+)
 
 # %%
 # 3. Equivariant imaging

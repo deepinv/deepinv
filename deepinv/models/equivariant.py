@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from torch import Tensor
 from deepinv.transform import Transform, Rotate, Reflect
-from .base import Denoiser
+from .base import Denoiser, Reconstructor
+from deepinv.physics.virtual import VirtualLinearPhysics
+import torch
 
 
 class EquivariantDenoiser(Denoiser):
@@ -33,11 +35,16 @@ class EquivariantDenoiser(Denoiser):
 
         ``Rotate(n_trans=4, multiples=90, positive=True) * Reflect(n_trans=2, dims=[-1])``
 
+    .. note::
+
+        It is customary to sample a single transformation at training time and do a full averaging at evaluation time to ensure true equivariance. This can be done by setting a ``eval_transform`` that averages over the whole group, while leaving ``transform`` computing a single random transformation.
+
     See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_transforms.py` for an example.
 
     :param Callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
     :param Transform transform: geometric transformation. If None, defaults to rotations of multiples of 90 with horizontal flips (see note above).
         See :ref:`docs <transform>` for list of available transforms.
+    :param Transform eval_transform: transformations to be used in evaluation mode. It can be used to have true Reynolds averaging at evaluation time and efficient Monte Carlo estimation at training time. If set to `None`, evaluation transformations are the same as training transformations.
     :param bool random: if True, the denoiser is applied to a randomly transformed version of the input image
         each time i.e. a Monte-Carlo approximation of an equivariant denoiser.
         If False, the denoiser is applied to the average of all the transformed images, turning the denoiser into an
@@ -48,22 +55,28 @@ class EquivariantDenoiser(Denoiser):
         self,
         denoiser: Denoiser,
         transform: Transform | None = None,
+        eval_transform: Transform | None = None,
         random: bool = True,
     ):
         super().__init__()
         self.denoiser = denoiser
 
-        if transform is not None:
-            self.transform = transform
-        else:
+        if transform is None:
             if random:
-                self.transform = Rotate(
-                    n_trans=1, multiples=90, positive=True
-                ) * Reflect(n_trans=1, dims=[-1])
+                transform = Rotate(n_trans=1, multiples=90, positive=True) * Reflect(
+                    n_trans=1, dims=[-1]
+                )
             else:
-                self.transform = Rotate(
-                    n_trans=4, multiples=90, positive=True
-                ) * Reflect(n_trans=2, dims=[-1])
+                transform = Rotate(n_trans=4, multiples=90, positive=True) * Reflect(
+                    n_trans=2, dims=[-1]
+                )
+
+        self.transform = transform
+
+        if eval_transform is None:
+            eval_transform = transform
+
+        self.eval_transform = eval_transform
 
     def forward(self, x: Tensor, *denoiser_args, **denoiser_kwargs) -> Tensor:
         r"""
@@ -76,6 +89,100 @@ class EquivariantDenoiser(Denoiser):
         :param \**denoiser_kwargs: kwargs for denoiser function e.g. sigma noise level.
         :return: denoised image.
         """
-        return self.transform.symmetrize(self.denoiser, average=True)(
+        transform = self.transform if self.training else self.eval_transform
+        return transform.symmetrize(self.denoiser, average=True)(
             x, *denoiser_args, **denoiser_kwargs
         )
+
+
+class EquivariantReconstructor(Reconstructor):
+    r"""
+    Equivariant reconstructor
+
+    Make a base reconstructor equivariant by averaging over the transformations
+
+    An equivariant reconstructor is a reconstructor that satisfies :footcite:p:`sechaud26Equivariant`
+
+    .. math::
+
+        R(y, A T_g) = T_g^{-1} R(y, A)
+
+    for all :math:`g \in \mathcal{G}` where :math:`T_g` is a transform (eg shifts, rotations, etc).
+
+    Any reconstructor :math:`\tilde{R}` can be turned into an equivariant reconstructor by averaging over the transformations:
+
+    .. math::
+
+        R(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{R}(y, A T_g)
+
+    :param Reconstructor model: base reconstructor to be made equivariant.
+    :param Transform, None transform: geometric transformation. By default, it is set to a single random 90° rotation and flip.
+    :param Transform eval_transform: transformations to be used in evaluation mode. It can be used to have true Reynolds averaging at evaluation time and efficient Monte Carlo estimation at training time. By default, if training transformations are specified, evaluation transformations default to them, otherwise they default to the eight 90° rotations and flips.
+    """
+
+    def __init__(
+        self,
+        model: Reconstructor,
+        transform: Transform | None = None,
+        eval_transform: Transform | None = None,
+    ):
+        super().__init__()
+        self.model = model
+
+        if transform is None:
+            transform = Rotate(n_trans=1, multiples=90, positive=True) * Reflect(
+                n_trans=1, dims=[-1]
+            )
+            eval_transform = Rotate(n_trans=4, multiples=90, positive=True) * Reflect(
+                n_trans=2, dims=[-1]
+            )
+        elif eval_transform is None:
+            # NOTE: It does not do a full averaging automatically in this case.
+            eval_transform = transform
+
+        self.transform = transform
+        self.eval_transform = eval_transform
+
+    def forward(
+        self, y: torch.Tensor, physics, *reconstructor_args, **reconstructor_kwargs
+    ) -> torch.Tensor:
+        r"""
+        Apply the reconstructor to an input
+
+        :param torch.Tensor y: input measurement.
+        :param deepinv.physics.Physics physics: physics operator associated with the measurements.
+        :param \*reconstructor_args: args for reconstructor function.
+        :param \**reconstructor_kwargs: kwargs for reconstructor function.
+        :return: (:class:`torch.Tensor`) output of the reconstructor.
+        """
+        # Different transforms can be used for training and evaluation to allow
+        # for true Reynolds averaging at evaluation time, and Monte Carlo
+        # estimation at training time.
+        if self.training:
+            transform = self.transform
+        else:
+            transform = self.eval_transform
+
+        # NOTE: We assume that transform.get_params returns either all of the
+        # group elements (true Reynolds averaging) or a single one (Monte Carlo
+        # estimation).
+        x0 = physics.A_adjoint(y)  # Used for inferring the group
+        G_params = transform.get_params(x0)
+
+        # Compute the terms in the sum, i.e., T_g(R(y, AT_g)) for each g
+        terms = []
+        for g_params in transform.iterate_params(G_params):
+            ATg = VirtualLinearPhysics(
+                physics=physics, transform=transform, g_params=g_params
+            )
+
+            fyATg = self.model(
+                y, ATg, *reconstructor_args, **reconstructor_kwargs
+            )  # R(y, AT_g)
+
+            TgfyATg = transform.transform(fyATg, **g_params)  # T_g(R(y, AT_g))
+            terms.append(TgfyATg)
+
+        # Average over the group elements
+        terms = torch.stack(terms, dim=1)  # (B, G, C, H, W)
+        return terms.mean(dim=1)  # (B, C, H, W)

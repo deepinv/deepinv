@@ -56,7 +56,7 @@ class EILoss(Loss):
         if metric is None:
             metric = nn.MSELoss()
         super(EILoss, self).__init__(*args, **kwargs)
-        self.name = "ei"
+        self._name = "ei"
         self.metric = metric
         self.weight = weight
         self.T = transform
