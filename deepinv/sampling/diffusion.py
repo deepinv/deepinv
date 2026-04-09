@@ -592,6 +592,5 @@ class DPS(PosteriorDiffusion):
             verbose=verbose,
             device=device,
             dtype=dtype,
-            minus_one_one=True,
             **kwargs,
         )

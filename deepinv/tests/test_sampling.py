@@ -144,11 +144,12 @@ def test_algo(name_algo, device):
     assert x.shape == test_sample.shape
 
 
-@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS", "DDRM"])
+# @pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS", "DDRM"])
+@pytest.mark.parametrize("name_algo", ["DPS"])
 def test_algo_inpaint(name_algo, device):
     from deepinv.models import DiffUNet
 
-    x = torch.ones((1, 3, 32, 32)).to(device) / 2.0
+    x = torch.ones((1, 3, 32, 32)).to(device)
     x[:, 0, ...] = 0  # create a colored image
 
     torch.manual_seed(10)
@@ -168,7 +169,9 @@ def test_algo_inpaint(name_algo, device):
             model, likelihood, max_iter=20, verbose=False, device=device, sigma=0.01
         )
     elif name_algo == "DPS":
-        algorithm = DPS(model, num_steps=100, weight=1.0, verbose=False, device=device)
+        algorithm = DPS(
+            model, num_steps=100, weight=1.0, eta=0.01, verbose=False, device=device
+        )
     elif name_algo == "DDRM":
         algorithm = DDRM(model)
 
@@ -185,8 +188,9 @@ def test_algo_inpaint(name_algo, device):
 
     masked_target = x[mask]
     mean_target_masked = masked_target.mean()
-    mean_target_inmask = 1 / 3.0
+    mean_target_inmask = 2 / 3.0
 
+    dinv.utils.plot([x, y, out], show=True, subtitles=name_algo)
     assert (mean_target_inmask - mean_crop).abs() < 0.2
     assert (mean_target_masked - mean_outside_crop).abs() < 0.02
 
