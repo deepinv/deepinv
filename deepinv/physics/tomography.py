@@ -524,16 +524,8 @@ class TomographyWithAstra(LinearPhysics):
         if isinstance(angles, int):
             angles = torch.linspace(*angular_range, steps=angles + 1)[:-1]
 
-        if self.is_2d:
-            n_rows, n_cols = img_size
-            n_slices = 1
-        else:
-            n_slices, n_rows, n_cols = img_size
-
         self.object_geometry = create_object_geometry(
-            n_rows=n_rows,
-            n_cols=n_cols,
-            n_slices=n_slices,
+            *img_size,
             bounding_box=bounding_box,
             pixel_spacing=pixel_spacing,
             is_2d=self.is_2d,

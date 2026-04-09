@@ -51,14 +51,14 @@ class XrayTransform:
         """The shape of the input volume."""
         import astra
 
-        return astra.geom_size(self.object_geometry)
+        return tuple(np.roll(astra.geom_size(self.object_geometry), shift=2))
 
     @property
     def range_shape(self) -> tuple:
         """The shape of the output projection."""
         import astra
 
-        return astra.geom_size(self.projection_geometry)
+        return tuple(np.roll(astra.geom_size(self.projection_geometry), shift=2))
 
     @property
     def object_cell_volume(self) -> float:
@@ -257,6 +257,8 @@ def _create_astra_link(data: torch.Tensor) -> object:
     :return: GPULink, instance of a utility class which holds the pointer of the underlying CUDA array, its shape and the the stride of the data.
     """
     import astra
+
+    data = torch.movedim(data, (0, 1, 2), (1, 2, 0))
 
     assert (
         data.device.type == "cuda"
