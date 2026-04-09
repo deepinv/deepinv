@@ -32,7 +32,6 @@ class LPIPS(Metric):
         m(x_net, x)
 
     :param str net_type: network architecture to use. Options: 'alex', 'vgg', 'squeeze'. Default: 'alex'.
-    :param bool check_input_range: if True (default), the metric will raise error if inputs aren't in the appropriate range ``[0, 1]``.
     :param str, torch.device device: LPIPS net device.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
@@ -44,14 +43,13 @@ class LPIPS(Metric):
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def __init__(self, net_type="alex", device=None, check_input_range=True, **kwargs):
+    def __init__(self, net_type="alex", device=None, **kwargs):
         super().__init__(**kwargs)
         from torchmetrics.functional.image.lpips import _lpips_update, _NoTrainLpips
 
         # Pre-load LPIPS net
         self.lpips_fn = _lpips_update
 
-        self.check_input_range = check_input_range
         # Load LPIPS. Note torchvision internally uses torch.hub.load_state_dict_from_url which
         # annoyingly unpredictably prints to stdout, so we suppress this.
         _stdout = sys.stdout
@@ -78,7 +76,7 @@ class LPIPS(Metric):
         if self.check_input_range and not ((min_val >= 0.0) & (max_val <= 1.0)):
             raise ValueError(
                 "LPIPS metric requires x_net and x to be between 0 and 1."
-                "You can deactivate this check by setting check_input_range=False"
+                "Optionally use `norm_inputs` argument to clip to `[0, 1]`."
             )
 
         return self.lpips_fn(
