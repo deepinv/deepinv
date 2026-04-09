@@ -577,7 +577,20 @@ class BlurFFT(DecomposablePhysics):
     Blur operator based on ``torch.fft`` operations, which assumes a circular padding of the input, and allows for
     the singular value decomposition via ``deepinv.Physics.DecomposablePhysics`` and has fast pseudo-inverse and prox operators.
 
+    .. warning::
 
+        Due to the nature of FFT-based convolution (circular convolution computed via
+        multiplication in the frequency domain), the output may contain small negative
+        values caused by numerical precision errors, even when both the input image and
+        the blur kernel are non-negative. This is not a bug in the implementation but
+        an inherent limitation of floating-point FFT arithmetic.
+
+        If you combine ``BlurFFT`` with :class:`~deepinv.physics.PoissonNoise`, set
+        ``clip_positive=True`` in the noise model to avoid errors from negative rates:
+
+        .. code-block:: python
+
+            noise_model = deepinv.physics.PoissonNoise(gain=gain, clip_positive=True)
 
     :param tuple img_size: Input image size in the form `(C, H, W)`.
     :param torch.Tensor filter: torch.Tensor of size `(1, c, h, w)` containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
