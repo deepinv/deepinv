@@ -44,7 +44,7 @@ class LPIPS(Metric):
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def __init__(self, net_type="alex", device=None, check_input_range=False, **kwargs):
+    def __init__(self, net_type="alex", device=None, check_input_range=True, **kwargs):
         super().__init__(**kwargs)
         from torchmetrics.functional.image.lpips import _lpips_update, _NoTrainLpips
 
