@@ -240,6 +240,11 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
         params = ["mask"]
     elif name == "pet_2d":
+        pytest.importorskip(
+            "parallelproj",
+            reason="This test requires parallelproj. It should be "
+            "installed with `conda install -c conda-forge parallelproj`",
+        )
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
         p = dinv.physics.PET(
             img_size,
@@ -251,6 +256,11 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
         params = ["background", "attenuation"]
     elif name == "pet_3d":
+        pytest.importorskip(
+            "parallelproj",
+            reason="This test requires parallelproj. It should be "
+            "installed with `conda install -c conda-forge parallelproj`",
+        )
         img_size = (1, 16, 16, 16) if imsize is None else imsize  # C,H,W
         p = dinv.physics.PET(
             img_size,
