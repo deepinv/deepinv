@@ -8,48 +8,7 @@ from tqdm import tqdm
 from matplotlib import pyplot as plt
 
 device = get_freer_gpu() if torch.cuda.is_available() else "cpu"
-
-
-def richardson_lucy(
-    y: torch.Tensor,
-    x0: torch.Tensor,
-    physics: deepinv.physics.LinearPhysics,
-    steps: int,
-    verbose: bool = True,
-    keep_inter: bool = False,
-    filter_epsilon: float = 1e-20,
-) -> torch.Tensor:
-    """
-    Performs Richardson-Lucy deconvolution on an observed image.
-
-    Args:
-        y (torch.Tensor): The observed image
-        x0 (torch.Tensor): The initial estimate
-        physics (deepinv.physics.LinearPhysics): The physics operator
-        steps (int): Number of iterations
-        verbose (bool): Whether to show progress bar
-        keep_inter (bool): Whether to keep intermediate results
-
-    Returns:
-        torch.Tensor or tuple: The deconvolved image, and if keep_inter=True, list of intermediate results
-    """
-    xs = [x0.cpu().clone()] if keep_inter else None
-
-    with torch.no_grad():
-        recon = x0.clone()
-        recon = recon.clamp(min=filter_epsilon)
-        s = physics.A_adjoint(torch.ones_like(y))
-
-        for step in tqdm(range(steps), desc="MLEM", disable=not verbose):
-            recon = (recon / s) * physics.A_adjoint(
-                y / physics.A(recon).clamp(min=filter_epsilon)
-            )
-
-            if keep_inter:
-                xs.append(recon.cpu().clone())
-
-        return (recon, xs) if keep_inter else recon
-
+psnr = deepinv.loss.metric.PSNR()
 
 img_size = 256
 x = load_example(
@@ -69,18 +28,12 @@ physics = deepinv.physics.Blur(
 
 y = physics.forward(x)
 
-x_mlem, xs_mlem = richardson_lucy(
-    y=y,
-    x0=y,
-    physics=physics,
-    steps=500,
-    keep_inter=True,
+mlem = deepinv.optim.MLEM(
+    data_fidelity=deepinv.optim.PoissonLikelihood(gain=1),
+    prior=None,
+    max_iter=500,
 )
-psnr = deepinv.loss.metric.PSNR()
-mae = deepinv.loss.metric.MAE()
-vmin = 0
-vmax = 1
-
+x_mlem = mlem(y=y, physics=physics)
 plot(
     [x, y, x_mlem],
     titles=["Ground Truth", "Blurry image", "Richardson-Lucy\nDeconvolution"],
@@ -91,18 +44,9 @@ plot(
     ],
     figsize=(12, 4),
     rescale_mode="clip",
-    vmin=vmin,
-    vmax=vmax,
+    vmin=0,
+    vmax=1,
 )
-x = x.cpu()
-psnr_values = [psnr(x, x_iter).item() for x_iter in xs_mlem]
-plt.plot(
-    psnr_values,
-)
-plt.xlabel("Iteration")
-plt.ylabel("PSNR (dB)")
-plt.title("Richardson-Lucy Deconvolution\nPSNR vs Iterations")
-plt.show()
 # %%
 # Example with the blurFFT physics and noise-free observations
 x = x.to(device)
@@ -114,18 +58,8 @@ physics = deepinv.physics.BlurFFT(
 
 y = physics.forward(x)
 
-
-x_mlem, xs_mlem = richardson_lucy(
-    y=y,
-    x0=y,
-    physics=physics,
-    steps=500,
-    keep_inter=True,
-)
+x_mlem = mlem(y=y, physics=physics)
 psnr = deepinv.loss.metric.PSNR()
-
-vmin = 0
-vmax = 1
 
 plot(
     [x, y, x_mlem],
@@ -137,18 +71,9 @@ plot(
     ],
     figsize=(12, 4),
     rescale_mode="clip",
-    vmin=vmin,
-    vmax=vmax,
+    vmin=0,
+    vmax=1,
 )
-x = x.cpu()
-psnr_values = [psnr(x, x_iter).item() for x_iter in xs_mlem]
-plt.plot(
-    psnr_values,
-)
-plt.xlabel("Iteration")
-plt.ylabel("PSNR (dB)")
-plt.title("Richardson-Lucy Deconvolution\nPSNR vs Iterations")
-plt.show()
 
 # %%
 # Example with Poisson-corrupted observations
@@ -164,20 +89,11 @@ physics = deepinv.physics.Blur(
 )
 
 
-y = physics.forward(x)
+y = physics(x)
 
 
-x_mlem, xs_mlem = richardson_lucy(
-    y=y,
-    x0=y,
-    physics=physics,
-    steps=500,
-    keep_inter=True,
-)
+x_mlem = mlem(y=y, physics=physics)
 psnr = deepinv.loss.metric.PSNR()
-
-vmin = 0
-vmax = 1
 
 plot(
     [x, y, x_mlem],
@@ -189,19 +105,9 @@ plot(
     ],
     figsize=(12, 4),
     rescale_mode="clip",
-    vmin=vmin,
-    vmax=vmax,
+    vmin=0,
+    vmax=1,
 )
-x = x.cpu()
-psnr_values = [psnr(x, x_iter).item() for x_iter in xs_mlem]
-plt.plot(
-    psnr_values,
-)
-plt.xlabel("Iteration")
-plt.ylabel("PSNR (dB)")
-plt.title("Richardson-Lucy Deconvolution\nPSNR vs Iterations")
-plt.show()
-
 
 # %%
 # Blind setting
@@ -371,7 +277,6 @@ def blind_richardson_lucy(
             k = k.clamp_min(0.0)
             if normalize_kernel:
                 k = _normalize_kernel(k, eps=filter_epsilon)
-        plot(k)
         # Image update
         physics.update_parameters(filter=k)
         s = physics.A_adjoint(torch.ones_like(y)).clamp_min(filter_epsilon)
@@ -481,7 +386,12 @@ x = load_example(
 )
 # True physics (unknown kernel in blind setting)
 kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
-physics = deepinv.physics.Blur(filter=kernel_true, padding="circular", device=device)
+physics = deepinv.physics.Blur(
+    filter=kernel_true,
+    padding="circular",
+    noise_model=deepinv.physics.PoissonNoise(gain=1 / 100),
+    device=device,
+)
 # Broken ?
 # physics = deepinv.physics.BlurFFT(
 #     img_size=(1, img_size, img_size),
@@ -493,15 +403,14 @@ y = physics(x)
 
 # Initial guesses
 k0 = torch.ones_like(kernel_true)
-max_iter = 500
+max_iter = 22
 x_hat, k_hat, xs, ks = blind_richardson_lucy(
     y=y,
     x0=y,
     k0=k0,
-    physics=physics,
     steps=max_iter,
     x_steps=1,
-    k_steps=1,
+    k_steps=2,
     verbose=True,
     keep_inter=True,
     fft=True,
