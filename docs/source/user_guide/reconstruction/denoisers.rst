@@ -215,7 +215,7 @@ Any diffusion model from the `HuggingFace Diffusers library <https://huggingface
 using the :class:`deepinv.models.DiffusersDenoiserWrapper` class. A model can be instantiated as simply as follows:
 
     >>> from deepinv.models import DiffusersDenoiserWrapper
-    >>> denoiser = DiffusersDenoiserWrapper(mode_id="google/ddpm-ema-celebahq-256")
+    >>> denoiser = DiffusersDenoiserWrapper(model_id="google/ddpm-ema-celebahq-256")
 
 It can be used as any other DeepInv denoiser ``denoised_image = denoiser(noisy_image, sigma)``. It also supports conditional denoising as long as the underlying model does. 
 This wrapper allows you to leverage state-of-the-art diffusion models for other inverse problems beyond image generation, in particular for posterior sampling. 
