@@ -546,7 +546,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
 
     :param deepinv.physics.generator.PSFGenerator psf_generator: A PSF generator, such as :class:`motion blur <deepinv.physics.generator.MotionBlurGenerator>` or
         :class:`diffraction blur generator <deepinv.physics.generator.DiffractionBlurGenerator>`.
-    :param tuple img_size: image size ``(H,W)``.
+    :param tuple img_size: input image size ``(H,W)``.
     :param int n_eigen_psf: each PSF in the field of view will be a linear combination of ``n_eigen_psf`` eigen PSF grids.
         Defaults to 10.
     :param tuple spacing: steps between the PSF grids used for interpolation (defaults ``(H//8, W//8)``).
