@@ -51,20 +51,17 @@ def get_image_url(file_name: str, dataset: str = "images") -> str:
 def get_data_home() -> Path:
     """Return a folder to store deepinv datasets.
 
-    This folder can be specified by setting the environment variable``DEEPINV_DATA``,
-    or ``XDG_DATA_HOME``. By default, it is ``./datasets``.
+    This folder can be specified by setting the environment variable ``DEEPINV_CACHE_DIR``.
+    By default, it is ``~/.cache/deepinv``.
 
     :return: pathlib Path for data home
     """
-    data_home = os.environ.get("DEEPINV_DATA")
+    data_home = os.environ.get("DEEPINV_CACHE_DIR", None)
+
     if data_home is not None:
         path = Path(data_home)
     else:
-        data_home = os.environ.get("XDG_DATA_HOME")
-        if data_home is not None:
-            path = Path(data_home) / "deepinv"
-        else:
-            path = Path(".") / "datasets"
+        path = Path.home() / ".cache" / "deepinv"
 
     path.mkdir(parents=True, exist_ok=True)
     return path
@@ -91,7 +88,7 @@ def load_dataset(
     from deepinv.datasets.base import ImageFolder
 
     if data_dir is None:
-        data_dir = get_data_home()
+        data_dir = get_data_home() / "datasets" / dataset_name
 
     if isinstance(data_dir, str):
         data_dir = Path(data_dir)

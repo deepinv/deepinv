@@ -9,6 +9,7 @@ import os
 import numpy as np
 from deepinv.datasets.base import ImageDataset
 from deepinv.utils.io import load_dicom
+from .utils import resolve_root
 
 
 class LidcIdriSliceDataset(ImageDataset):
@@ -82,13 +83,13 @@ class LidcIdriSliceDataset(ImageDataset):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         transform: Callable | None = None,
         hounsfield_units: bool = False,
     ) -> None:
         import pandas as pd
 
-        self.root = root
+        self.root = resolve_root(root, "LIDC-IDRI-Slice")
         self.transform = transform
         self.hounsfield_units = hounsfield_units
 
