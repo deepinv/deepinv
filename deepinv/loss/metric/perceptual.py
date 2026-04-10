@@ -73,7 +73,7 @@ class LPIPS(Metric):
             )
 
         min_val, max_val = torch.aminmax(torch.cat([x_net, x], dim=0))
-        if self.check_input_range and not ((min_val >= 0.0) & (max_val <= 1.0)):
+        if not ((min_val >= 0.0) & (max_val <= 1.0)):
             raise ValueError(
                 "LPIPS metric requires x_net and x to be between 0 and 1."
                 "Optionally use `norm_inputs` argument to clip to `[0, 1]`."

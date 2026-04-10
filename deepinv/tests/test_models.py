@@ -100,7 +100,9 @@ def choose_denoiser(name, imsize):
     elif name == "scunet":
         out = dinv.models.SCUNet(in_nc=imsize[0])
     elif name == "gsdrunet":
-        out = dinv.models.GSDRUNet(in_channels=imsize[0], out_channels=imsize[0])
+        out = dinv.models.GSDRUNet(
+            in_channels=imsize[0], out_channels=imsize[0], pretrained=None
+        )
     elif name == "bm3d":
         out = dinv.models.BM3D()
     elif name == "dncnn":
