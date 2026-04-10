@@ -2,7 +2,9 @@ from __future__ import annotations
 import numpy as np
 import torch
 import torch.nn as nn
+
 from .utils import get_weights_url
+
 from deepinv.optim.potential import Potential
 from deepinv.models.ridge_regularizer import RidgeRegularizer as RidgeRegularizerModel
 from deepinv.models.tv import TVDenoiser
@@ -806,16 +808,16 @@ class LeastSquaresResidual(Prior):
 
     This prior is based on the model :class:`deepinv.models.GSPnP`, with the additional optional learnable input and output scalings.
 
-    :param torch.nn.Module denoiser: Denoising network :math:`D` which is used in the architecture. 
+    :param torch.nn.Module denoiser: Denoising network :math:`D` which is used in the architecture.
     :param bool use_input_output_scaling: If ``True``, use learnable input and output scaling parameters.
         If ``False``, these parameters are fixed to zero and are not trained. Default: `False`
-    :param str, None pretrained: use pretrained weights. 
-        When `use_input_output_scaling` is ``True``, the pretrained weights are applied to the prior. 
+    :param str, None pretrained: use pretrained weights.
+        When `use_input_output_scaling` is ``True``, the pretrained weights are applied to the prior.
         When `use_input_output_scaling` is ``False``, the pretrained weights are applied to the underlying denoiser, but not to the prior itself.
         If ``pretrained=None``, the input and output scalings (if `use_input_output_scaling` is ``True``) will be initialized at one.
-        If ``pretrained='download'``, the denoiser becomes by default a DRUNet denoising model (see :class:`deepinv.models.DRUNet`) 
-        trained for color images (3 channels); with `nb=2`; `nc=(32, 64, 128, 256)` and softmax activations. 
-        If ``pretrained='download_gray'``, the denoiser is the same but trained for grayscale images (1 channel). 
+        If ``pretrained='download'``, the denoiser becomes by default a DRUNet denoising model (see :class:`deepinv.models.DRUNet`)
+        trained for color images (3 channels); with `nb=2`; `nc=(32, 64, 128, 256)` and softmax activations.
+        If ``pretrained='download_gray'``, the denoiser is the same but trained for grayscale images (1 channel).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
     :param str device: Device for the weights. Default: `"cpu"`
     """
@@ -842,7 +844,11 @@ class LeastSquaresResidual(Prior):
             self.input_scaling.requires_grad_(False)
             self.output_scaling.requires_grad_(False)
 
-        if pretrained is not None and isinstance(denoiser, DRUNet) and self.use_input_output_scaling:
+        if (
+            pretrained is not None
+            and isinstance(denoiser, DRUNet)
+            and self.use_input_output_scaling
+        ):
             if pretrained == "download":
                 denoiser = DRUNet(
                     in_channels=3,
@@ -909,6 +915,4 @@ class LeastSquaresResidual(Prior):
         """
         return torch.exp(
             self.output_scaling + self.input_scaling
-        ) * self.model.potential(
-            torch.exp(self.input_scaling) * x.contiguous(), sigma
-        )
+        ) * self.model.potential(torch.exp(self.input_scaling) * x.contiguous(), sigma)

@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from .utils import get_weights_url
 
+
 class RidgeRegularizer(nn.Module):
     r"""
     (Weakly) Convex Ridge Regularizer model :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`.
@@ -90,9 +91,9 @@ class RidgeRegularizer(nn.Module):
         )
         self.input_scaling = nn.Parameter(torch.tensor(0.0, device=device))
         self.beta = nn.Parameter(torch.tensor(4.0, device=device))
-        self.output_scaling = nn.Parameter(torch.tensor(0.0, device=device)).requires_grad_(
-            weak_convexity == 0.0
-        )
+        self.output_scaling = nn.Parameter(
+            torch.tensor(0.0, device=device)
+        ).requires_grad_(weak_convexity == 0.0)
         self.weak_cvx = weak_convexity
 
         if pretrained is not None:
@@ -109,7 +110,9 @@ class RidgeRegularizer(nn.Module):
                     raise ValueError(
                         "Weights are only available for weak_convexity equal to 0.0 or 1.0 and in_channels in [1, 3]!"
                     )
-                url = get_weights_url(model_name="RidgeRegularizer ", file_name=file_name)
+                url = get_weights_url(
+                    model_name="RidgeRegularizer ", file_name=file_name
+                )
                 ckpt = torch.hub.load_state_dict_from_url(
                     url,
                     map_location=lambda storage, loc: storage,
