@@ -832,12 +832,10 @@ class LeastSquaresResidual(Prior):
         super(LeastSquaresResidual, self).__init__()
         self.use_input_output_scaling = use_input_output_scaling
 
+
         weights = None
 
-        if (
-            pretrained is not None
-            and self.use_input_output_scaling
-        ):
+        if pretrained is not None and self.use_input_output_scaling:
             if pretrained == "download":
                 denoiser = DRUNet(
                     in_channels=3,
