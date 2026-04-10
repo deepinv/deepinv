@@ -20,6 +20,7 @@ Changed
 Fixed
 ^^^^^
 - Add warning when options `reduce="mean"` and `reduce="none"` are used in :class:`deepinv.physics.StackedLinearPhysics`. Remove `reduction` argument from :class:`deepinv.distributed.DistributedStackedLinearPhysics` (:gh:`1071` by `Romain Vo`_)
+- Fix dimensions mismatch in `Tomography` with 3D phantoms (:gh:`1137` by `Baptiste Legouix`_)
 
 
 
@@ -601,3 +602,4 @@ Changed
 .. _Tiberiu Sabau: https://github.com/tibisabau
 .. _Benoît Malézieux: https://github.com/bmalezieux
 .. _Paul Escande: https://pescande.perso.math.cnrs.fr/
+.. _Baptiste Legouix: https://github.com/blegouix
