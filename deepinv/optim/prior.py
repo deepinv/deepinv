@@ -832,21 +832,10 @@ class LeastSquaresResidual(Prior):
         super(LeastSquaresResidual, self).__init__()
         self.use_input_output_scaling = use_input_output_scaling
 
-        self.model = GSPnP(denoiser, alpha=1.0)
-        self.model.detach = True
-
-        self.input_scaling = nn.Parameter(torch.tensor(0.0, device=device))
-        self.output_scaling = nn.Parameter(torch.tensor(0.0, device=device))
-
-        if not self.use_input_output_scaling:
-            self.input_scaling.data.zero_()
-            self.output_scaling.data.zero_()
-            self.input_scaling.requires_grad_(False)
-            self.output_scaling.requires_grad_(False)
+        weights = None
 
         if (
             pretrained is not None
-            and isinstance(denoiser, DRUNet)
             and self.use_input_output_scaling
         ):
             if pretrained == "download":
@@ -859,14 +848,11 @@ class LeastSquaresResidual(Prior):
                     pretrained=None,
                     device=device,
                 )
-                self.model = GSPnP(denoiser, alpha=1.0)
-                self.model.detach = True
                 file_name = "LSR_bilevel_color.pt"
                 url = get_weights_url(model_name="gradientstep", file_name=file_name)
-                weights = torch.hub.load_state_dict_from_url(
+                weights = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=file_name
                 )
-                self.load_state_dict(weights, strict=True)
             elif pretrained == "download_gray":
                 denoiser = DRUNet(
                     in_channels=1,
@@ -877,16 +863,32 @@ class LeastSquaresResidual(Prior):
                     pretrained=None,
                     device=device,
                 )
-                self.model = GSPnP(denoiser, alpha=1.0)
-                self.model.detach = True
                 file_name = "LSR_bilevel_gray.pt"
                 url = get_weights_url(model_name="gradientstep", file_name=file_name)
-                weights = torch.hub.load_state_dict_from_url(
+                weights = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=file_name
                 )
-                self.load_state_dict(weights, strict=True)
             else:
-                self.load_state_dict(torch.load(pretrained, map_location=device))
+                denoiser.load_state_dict(torch.load(pretrained, map_location=device))
+
+        self.model = GSPnP(denoiser, alpha=1.0)
+        self.model.detach = True
+
+        self.input_scaling = nn.Parameter(torch.tensor(0.0, device=device))
+        self.output_scaling = nn.Parameter(torch.tensor(0.0, device=device))
+
+        if not self.use_input_output_scaling:
+            self.input_scaling.data.zero_()
+            self.output_scaling.data.zero_()
+            self.input_scaling.requires_grad_(False)
+            self.output_scaling.requires_grad_(False)
+
+        if weights is not None:
+            self.load_state_dict(weights, strict=True)
+
+    @property
+    def denoiser(self):
+        return self.model.student_grad.model
 
     def grad(self, x, sigma, *args, get_energy=False, **kwargs):
         r"""
