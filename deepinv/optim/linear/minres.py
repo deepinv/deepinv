@@ -1,6 +1,6 @@
 import torch
 from torch import Tensor
-from deepinv.utils import TensorList
+from deepinv.utils.tensorlist import TensorList
 from .utils import dot
 
 

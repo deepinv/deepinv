@@ -5,7 +5,7 @@ import warnings
 import torch
 
 from deepinv.physics.generator import PhysicsGenerator
-from deepinv.physics.functional import random_choice
+from deepinv.physics.functional.rand import random_choice
 
 
 def ceildiv(a: float, b: float) -> float:

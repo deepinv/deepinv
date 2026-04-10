@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from warnings import warn
 import torch
 from deepinv.physics.generator.base import PhysicsGenerator
-from deepinv.physics.functional import random_choice
+from deepinv.physics.functional.rand import random_choice
 from deepinv.utils.decorators import _deprecated_alias
 
 if TYPE_CHECKING:

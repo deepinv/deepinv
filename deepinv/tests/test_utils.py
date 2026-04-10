@@ -2,7 +2,6 @@ import deepinv
 import torch
 import pytest
 from deepinv.utils.decorators import _deprecated_alias
-from deepinv.utils.compat import zip_strict
 import warnings
 import numpy as np
 import contextlib
@@ -20,12 +19,13 @@ import PIL
 import io
 import copy
 import math
-import sys
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
 
 from deepinv.tests.test_datasets import check_dataset_format
+from deepinv.models.utils import patchify
+from deepinv.datasets import PatchDataset
 
 
 @pytest.fixture
@@ -185,11 +185,11 @@ def test_dirac_like(shape, length, device):
     y = deepinv.utils.TensorList(
         [
             deepinv.physics.functional.conv2d(xi, hi, padding="circular")
-            for hi, xi in zip_strict(h, x)
+            for hi, xi in zip(h, x, strict=True)
         ]
     )
 
-    for xi, hi, yi in zip_strict(x, h, y):
+    for xi, hi, yi in zip(x, h, y, strict=True):
         assert (
             hi.shape == xi.shape
         ), "Dirac delta should have the same shape as the input tensor."
@@ -245,7 +245,7 @@ def test_plot(
     img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
     subtitles = ["subtitle"] * n_images
-    img_list = {k: v for k, v in zip_strict(titles, img_list)}
+    img_list = {k: v for k, v in zip(titles, img_list, strict=True)}
     if not with_titles:
         titles = None
     if not with_subtitles:
@@ -588,7 +588,7 @@ def test_deprecated_metric_functions(fn_name):
 @pytest.mark.parametrize("index", [1])
 @pytest.mark.parametrize("download", [False, True])
 def test_load_degradation(
-    tmp_path, with_data_dir, data_dir_type, name, index, download
+    tmp_path, with_data_dir, data_dir_type, name, index, download, monkeypatch
 ):
     if with_data_dir:
         assert data_dir_type in [
@@ -597,6 +597,9 @@ def test_load_degradation(
         ], "data_dir_type should be str or pathlib.Path."
         data_dir = data_dir_type(tmp_path)
     else:
+        # Redirect the default data-home to tmp_path so that parallel xdist
+        # workers don't race over the same relative ./datasets/ directory.
+        monkeypatch.setenv("DEEPINV_DATA", str(tmp_path))
         data_dir = None
 
     args = [name, data_dir]
@@ -704,7 +707,7 @@ def test_AverageMeter(to_float):
     ), "Sum2 value is incorrect."
     assert all(
         math.isclose(a, b, rel_tol=1e-10)
-        for a, b in zip_strict(meter.vals, vals.tolist())
+        for a, b in zip(meter.vals, vals.tolist(), strict=True)
     ), "Retained values are incorrect."
 
     # Scalar aggregates should be instances of the builtin float type
@@ -862,7 +865,7 @@ def test_normalize_signals(batch_size, img_size, mode, seed):
     # Tests specific to min-max normalization
     if mode == "min_max":
         # Test the edge case of constant signals
-        for inp_s, out_s in zip_strict(inp, out):
+        for inp_s, out_s in zip(inp, out, strict=True):
             inp_unique = torch.unique(inp_s)
             is_inp_constant = inp_unique.numel() == 1
             if is_inp_constant:
@@ -950,55 +953,6 @@ def test_prepare_images_shapes(seed):
 
 # Module-level fixtures
 pytestmark = [pytest.mark.usefixtures("non_blocking_plots")]
-
-
-@pytest.mark.parametrize("force_polyfill", [False, True])
-def test_zip_strict_behavior(force_polyfill):
-    # Test correct pairing
-    a = [1, 2, 3]
-    b = ["x", object(), "z"]
-    c = [True, False, object()]
-
-    result = list(zip_strict(a, b, c, force_polyfill=force_polyfill))
-
-    # If Python >= 3.10, compare with zip(strict=True)
-    if sys.version_info >= (3, 10):
-        expected = list(zip(a, b, c, strict=True))  # novermin
-        assert result == expected
-
-    # Test ValueError for different lengths
-    d = [1, 2]
-    with pytest.raises(ValueError):
-        list(zip_strict(a, d, force_polyfill=force_polyfill))
-
-    # If Python >= 3.10, confirm zip(strict=True) also raises
-    if sys.version_info >= (3, 10):
-        with pytest.raises(ValueError):
-            list(zip(a, d, strict=True))  # novermin
-
-    # Test consumption behavior
-    def spy(iterable):
-        it = iter(iterable)
-        for x in it:
-            yield x
-
-    a = spy([1, 2, 3])
-    b = spy([10, 20, 30, 40])
-    c = spy([100, 200, 300, 400])
-
-    try:
-        _ = list(zip_strict(a, b, c, force_polyfill=force_polyfill))
-    except ValueError:
-        pass
-
-    assert next(a, None) is None, "Iterator a should be fully consumed."
-    assert next(b, None) is None, "Iterator b should be fully consumed."
-    assert next(c, None) == 400, "Iterator c should have one item left."
-
-    # Test empty input
-    assert (
-        list(zip_strict(force_polyfill=force_polyfill)) == []
-    ), "Empty input should yield empty output."
 
 
 @pytest.mark.parametrize("latex_exists", [True, False])
@@ -1197,3 +1151,92 @@ def test_io_blosc2():
 
         out_memmap = deepinv.io.load_blosc2(pathlib.Path("fake.b2"), as_memmap=True)
         assert out_memmap is mock_arr
+
+
+PATCH_CONFIGS = [
+    (2, 3, 16, 16, 6, 1),
+    (1, 1, 8, 8, 4, 2),
+    (4, 3, 32, 32, 8, 4),
+    (1, 3, 10, 10, 5, 5),  # non-overlapping
+    (3, 1, 7, 9, 3, 2),  # non-square image
+]
+
+
+@pytest.mark.parametrize("B, C, H, W, patch_size, stride", PATCH_CONFIGS)
+def test_patchify_shape_and_content(B, C, H, W, patch_size, stride):
+    """Output shape is correct and each patch matches the manual slice."""
+    torch.manual_seed(0)
+    imgs = torch.randn(B, C, H, W)
+    patches = patchify(imgs, patch_size=patch_size, stride=stride)
+
+    num_H = (H - patch_size) // stride + 1
+    num_W = (W - patch_size) // stride + 1
+    assert patches.shape == (B, C, patch_size, patch_size, num_H * num_W)
+
+    for b in range(B):
+        for i in range(num_H):
+            for j in range(num_W):
+                expected = imgs[
+                    b,
+                    :,
+                    i * stride : i * stride + patch_size,
+                    j * stride : j * stride + patch_size,
+                ]
+                assert torch.equal(patches[b, :, :, :, i * num_W + j], expected)
+
+
+def test_patchify_single_patch():
+    """patch_size == image size => 1 patch identical to the image."""
+    imgs = torch.randn(1, 3, 8, 8)
+    patches = patchify(imgs, patch_size=8, stride=1)
+    assert patches.shape == (1, 3, 8, 8, 1)
+    assert torch.equal(patches[0, :, :, :, 0], imgs[0])
+
+
+def test_patchify_non_overlapping_reconstruction():
+    """Non-overlapping patches tile and perfectly reconstruct the image."""
+    imgs = torch.randn(1, 1, 8, 8)
+    patches = patchify(imgs, patch_size=4, stride=4)
+    reconstructed = torch.zeros_like(imgs)
+    idx = 0
+    for i in range(2):
+        for j in range(2):
+            reconstructed[0, :, i * 4 : (i + 1) * 4, j * 4 : (j + 1) * 4] = patches[
+                0, :, :, :, idx
+            ]
+            idx += 1
+    assert torch.equal(reconstructed, imgs)
+
+
+@pytest.mark.parametrize("B, C, H, W, patch_size, stride", PATCH_CONFIGS)
+def test_patch_dataset_matches_patchify(B, C, H, W, patch_size, stride):
+    """PatchDataset items are consistent with patchify output."""
+    torch.manual_seed(42)
+    imgs = torch.randn(B, C, H, W)
+    ds = PatchDataset(imgs, patch_size=patch_size, stride=stride, shape=None)
+    patches = patchify(imgs, patch_size=patch_size, stride=stride)
+    num_pch = patches.shape[-1]
+
+    assert len(ds) == B * num_pch
+    for b in range(B):
+        for p in range(num_pch):
+            assert torch.equal(ds[b * num_pch + p], patches[b, :, :, :, p])
+
+
+def test_patch_dataset_shape_flat():
+    """With shape=(-1,), each item is flattened."""
+    imgs = torch.randn(2, 3, 12, 12)
+    ds = PatchDataset(imgs, patch_size=4, stride=2, shape=(-1,))
+    assert ds[0].shape == (3 * 4 * 4,)
+
+
+def test_patch_dataset_transform():
+    """Transform is applied to each patch."""
+    torch.manual_seed(0)
+    imgs = torch.randn(1, 1, 8, 8)
+    transform = lambda x: x * 2 + 1
+    ds = PatchDataset(imgs, patch_size=4, stride=4, transform=transform, shape=None)
+    ds_raw = PatchDataset(imgs, patch_size=4, stride=4, shape=None)
+
+    for i in range(len(ds)):
+        assert torch.equal(ds[i], ds_raw[i] * 2 + 1)

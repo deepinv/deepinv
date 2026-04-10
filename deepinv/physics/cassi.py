@@ -70,7 +70,7 @@ class CompressiveSpectralImaging(LinearPhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
 
         if len(img_size) != 3:
             raise ValueError("img_size must be (C, H, W)")

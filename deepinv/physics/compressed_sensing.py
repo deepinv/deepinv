@@ -110,13 +110,12 @@ class CompressedSensing(LinearPhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         self.name = f"CS_m{m}"
         self.img_size = img_size
         self.fast = fast
         self.channelwise = channelwise
         self.dtype = dtype
-        self.device = device
 
         if rng is None:
             self.rng = torch.Generator(device=device)
@@ -124,7 +123,7 @@ class CompressedSensing(LinearPhysics):
             # Make sure that the random generator is on the same device as the physic generator
             assert rng.device == torch.device(
                 device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
+            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
             self.rng = rng
         self.register_buffer("initial_random_state", self.rng.get_state())
 

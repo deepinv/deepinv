@@ -3,7 +3,32 @@ import torch
 from deepinv.optim.linear import least_squares
 from dataclasses import dataclass
 from deepinv.physics.forward import Physics, LinearPhysics
-from deepinv.physics.functional.special import hankel1, bessel_j
+
+
+def hankel1(n, x):
+    try:
+        from scipy.special import hankel1
+    except ImportError:
+        raise ImportError(
+            "SciPy is required for Green's function computation in the scattering physics model."
+            "Install scipy with `pip install scipy` to use this physics model."
+        )
+    device = x.device
+    dtype = x.dtype
+    return hankel1(n, x.detach().cpu()).to(device=device, dtype=dtype)
+
+
+def jv(n, x):
+    try:
+        from scipy.special import jv
+    except ImportError:
+        raise ImportError(
+            "SciPy is required for Green's function computation in the scattering physics model."
+            "Install scipy with `pip install scipy` to use this physics model."
+        )
+    device = x.device
+    dtype = x.dtype
+    return jv(n, x.detach().cpu()).to(device=device, dtype=dtype)
 
 
 class Scattering(Physics):
@@ -14,7 +39,7 @@ class Scattering(Physics):
 
     .. math::
 
-        \nabla^2 u_i(\mathbf{r}) + k^2(\mathbf{r})  u_i(\mathbf{r}) = - (k^2(\mathbf{r}) - k^2_b)  v_i(\mathbf{r})  \quad \mathbf{r} \in \mathbb{R}^2
+        \nabla^2 u_i(\mathbf{r}) + k_b^2  u_i(\mathbf{r}) = - (k^2(\mathbf{r}) - k^2_b)  v_i(\mathbf{r})  \quad \mathbf{r} \in \mathbb{R}^2
 
     where :math:`u_i` is the (unknown) scattered field, :math:`k_b` is the (known scalar) wavenumber of the incident wave in the background medium,
     :math:`k(\mathbf{r})` is the (unknown) spatially-varying wavenumber of the object to be recovered,
@@ -29,11 +54,11 @@ class Scattering(Physics):
     .. math::
 
         u_i &= g * \left( x \circ (u_i+v_i) \right) \\
-        y_i &= G_s \left( x \circ (u_i+v_i) \right)
+        y_i &= G \left( x \circ (u_i+v_i) \right)
 
     where :math:`g(\mathbf{r}) = k_b^2 \frac{i}{4} H_0^1(k_b\|\mathbf{r}\|)` is Green's function in 2D (normalized by :math:`k_b^2`),
-    :math:`y \in \mathbb{C}^{R}` are the measurements at the receivers for the ith transmitter,
-    and :math:`G_s` denotes the convolution with Green's operator plus sampling at the :math:`R` different receiver locations.
+    :math:`y_i \in \mathbb{C}^{R}` are the measurements at the receivers for the ith transmitter,
+    and :math:`G` denotes the convolution with Green's operator and sampling at the :math:`R` different receiver locations.
 
 
     .. tip::
@@ -72,6 +97,11 @@ class Scattering(Physics):
         .. math::
 
                 g_L(\mathbf{r}) = g(\mathbf{r}) * \text{rect}\left(\frac{\|\mathbf{r}\|}{L}\right),
+
+
+    .. warning::
+
+        The operator is not well-supported in Windows operating systems.
 
 
     :param int img_width: Number of pixels per image side (`H=W`). The minimum required number of pixels depends on the background wavenumber to avoid spatial aliasing.
@@ -120,7 +150,8 @@ class Scattering(Physics):
 
         if (2 * box_length * self.wavenumber.real / (2 * torch.pi)) > img_width:
             raise ValueError(
-                "The number of img_width is not enough to sample the largest background wavenumber. Increase the number of img_width or decrease the wavenumber."
+                "The number of img_width is not enough to sample the largest background wavenumber. "
+                "Increase the number of img_width or decrease the wavenumber."
             )
 
         if solver_config is None:
@@ -315,7 +346,8 @@ class Scattering(Physics):
                 y_transmitters, y_domain, indexing="ij"
             )
             dist_transmitter_circles = torch.sqrt(
-                (circle_x - transmitter_x) ** 2 + (circle_y - transmitter_y) ** 2
+                (circle_x - transmitter_x).abs() ** 2
+                + (circle_y - transmitter_y).abs() ** 2
             )
 
             # multiply distances by scalar wavenumber
@@ -380,12 +412,12 @@ class Scattering(Physics):
         self, x: torch.Tensor, total_field: torch.Tensor
     ) -> torch.Tensor:
         """
-        Compute sensor outputs :math:`y = G_s * \text{diag}(x) u`.
+        Compute sensor outputs :math:`y = G * \text{diag}(x) u`.
 
         :param torch.Tensor x: Scattering potential `(B,1,H,W)`.
         :param torch.Tensor total_field: Total field u `(B,T,H,W)`.
         """
-        # This computes y = G_s*diag(x)*Et
+        # This computes y = G*diag(x)*Et
         self.born_operator.register_buffer("total_field", total_field)
         return self.born_operator.A(x)
 
@@ -492,9 +524,9 @@ class BornOperator(LinearPhysics):
 
     .. math::
 
-        y = G_s \left( x \circ u \right)
+        y = G \left( x \circ u \right)
 
-    where :x: is the scattering potential, :math:`u` is the (here known) total field (scattered + incident), and :math:`G_s` is the Green's operator plus sampling at the receiver locations.
+    where :x: is the scattering potential, :math:`u` is the (here known) total field (scattered + incident), and :math:`G` is the Green's operator plus sampling at the receiver locations.
 
     :param torch.Tensor total_field: Total field tensor `(1,T,H,W)` or `(B,T,H,W)`.
     :param torch.Tensor receivers: Receiver positions of shape `(2, T, R)`.
@@ -533,12 +565,12 @@ class BornOperator(LinearPhysics):
         self.verbose = verbose
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
-        """
+        r"""
         Linear forward operation
 
         This operator computes the following operation:
 
-        :math:`y = G_s (u \circ x)`
+        :math:`y = G (u \circ x)`
 
         where :math:`u` is the total field stored in the object.
 
@@ -646,7 +678,8 @@ class BornOperator(LinearPhysics):
                 y_domain, receivers_t[1, :], indexing="ij"
             )
             dist_receivers_circles = torch.sqrt(
-                (x_circles - x_receivers) ** 2 + (y_circles - y_receivers) ** 2
+                (x_circles - x_receivers).abs() ** 2
+                + (y_circles - y_receivers).abs() ** 2
             )
             dist_receivers_circles = dist_receivers_circles.T  # (R, H*W)
 
@@ -905,7 +938,6 @@ def green_function(r, remove_nans=False):
 
     :param torch.Tensor r: Radial argument(s) (can be tensor).
     :param bool remove_nans: If True replace NaNs (singularity) with max abs value.
-    :param torch.dtype dtype: torch.dtype used for the returned tensor (matches r.dtype)
     :return: Complex tensor with Green's function values.
     """
     out = 1j / 4 * hankel1(0, r)
@@ -940,8 +972,8 @@ def green_fourier(
     # use Vico's paper correction
     L = 1.5 * box_length  # for d=2
     constant = 1j * torch.pi * L / 2
-    filterf = filterf + constant * s * bessel_j(1, L * s) * hankel1(0, L * k)
-    filterf = filterf - constant * k * bessel_j(0, L * s) * hankel1(1, L * k)
+    filterf = filterf + constant * s * jv(1, L * s) * hankel1(0, L * k)
+    filterf = filterf - constant * k * jv(0, L * s) * hankel1(1, L * k)
 
     filterf = filterf / (s**2 - k**2)
     filterf = filterf / 2
@@ -1030,7 +1062,7 @@ def mie_theory(
         1, angles.shape[0], img_width, img_width, device=device, dtype=dtype
     )
     total_field = torch.zeros_like(incident_field)
-    jv_prime = lambda n, x: 0.5 * (bessel_j(n - 1, x) - bessel_j(n + 1, x))
+    jv_prime = lambda n, x: 0.5 * (jv(n - 1, x) - jv(n + 1, x))
     hankel1_prime = lambda n, x: 0.5 * (hankel1(n - 1, x) - hankel1(n + 1, x))
 
     list_n = [0]
@@ -1044,9 +1076,9 @@ def mie_theory(
     for p in range(angles.shape[0]):
         for n in list_n:
             # calculate incident and total fields
-            jvn = bessel_j(n, w * extra_contrast * cylinder_radius)
+            jvn = jv(n, w * extra_contrast * cylinder_radius)
             jvn_prime = jv_prime(n, w * extra_contrast * cylinder_radius)
-            jv0n = bessel_j(n, w * cylinder_radius)
+            jv0n = jv(n, w * cylinder_radius)
             jv0n_prime = jv_prime(n, w * cylinder_radius)
             hn = hankel1(n, w * cylinder_radius)
             hn_prime = hankel1_prime(n, w * cylinder_radius)
@@ -1066,7 +1098,7 @@ def mie_theory(
             incident_coeff *= torch.exp(-1j * n * angles[p])
 
             # incident field
-            term = incident_coeff * bessel_j(n, w * r) * torch.exp(1j * n * theta)
+            term = incident_coeff * jv(n, w * r) * torch.exp(1j * n * theta)
             if torch.isnan(term).any():
                 print("incident field is nan", n)
                 break
@@ -1079,7 +1111,7 @@ def mie_theory(
 
             term = (
                 coeff
-                * bessel_j(n, w * extra_contrast * r[ind])
+                * jv(n, w * extra_contrast * r[ind])
                 * torch.exp(1j * n * theta[ind])
             )
             if torch.isnan(term).any():
@@ -1091,7 +1123,7 @@ def mie_theory(
             # add incident field
             coeff = incident_coeff
             total_field[0, p, ~ind] += (
-                coeff * bessel_j(n, w * r[~ind]) * torch.exp(1j * n * (theta[~ind]))
+                coeff * jv(n, w * r[~ind]) * torch.exp(1j * n * (theta[~ind]))
             )
 
             # add scattered field

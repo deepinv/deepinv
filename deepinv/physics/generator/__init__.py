@@ -7,6 +7,7 @@ from .blur import (
     DiffractionBlurGenerator3D,
     ConfocalBlurGenerator3D,
     bump_function,
+    TiledBlurGenerator,
 )
 from .mri import (
     BaseMaskGenerator,

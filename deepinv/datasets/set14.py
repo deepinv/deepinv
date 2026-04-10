@@ -36,6 +36,7 @@ class Set14HR(ImageFolder):
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param Callable transform:: (optional)  A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
+    :param bool verbose: Print a message if the dataset has been correctly downloaded. Default ``True``.
 
     |sep|
 
@@ -68,6 +69,7 @@ class Set14HR(ImageFolder):
         root: str,
         download: bool = False,
         transform: Callable = None,
+        verbose: bool = True,
     ) -> None:
         self.root = root
         self.img_dir = os.path.join(self.root, "Set14_HR")
@@ -89,7 +91,7 @@ class Set14HR(ImageFolder):
                     )
                     extract_tarball(os.path.join(self.root, filename), self.root)
 
-                if self.check_dataset_exists():
+                if self.check_dataset_exists() and verbose:
                     print("Dataset has been successfully downloaded.")
                 else:
                     raise ValueError("There is an issue with the data downloaded.")

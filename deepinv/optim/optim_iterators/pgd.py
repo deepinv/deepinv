@@ -12,12 +12,8 @@ class PGDIteration(OptimIterator):
     The iteration is given by
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         u_{k} &= x_k -  \gamma \nabla f(x_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_k),
-        \end{aligned}
-        \end{equation*}
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_k)
 
 
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/\operatorname{Lip}(\|\nabla f\|)`.
@@ -39,13 +35,9 @@ class FISTAIteration(OptimIterator):
     The iteration is given by
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         u_{k} &= z_k -  \gamma \nabla f(z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_k) \\
-        z_{k+1} &= x_{k+1} + \alpha_k (x_{k+1} - x_k),
-        \end{aligned}
-        \end{equation*}
+        z_{k+1} &= x_{k+1} + \alpha_k (x_{k+1} - x_k)
 
 
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
@@ -167,12 +159,8 @@ class PMDIteration(OptimIterator):
     For a given Bregman convex potential :math:`h`, the iteration is given by
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         u_{k} &= \nabla h^*(\nabla h(x_k) - \gamma \nabla f(x_k)) \\
         x_{k+1} &= \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)
-        \end{aligned}
-        \end{equation*}
 
 
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex.

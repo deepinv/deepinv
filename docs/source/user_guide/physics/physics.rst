@@ -44,6 +44,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Blur`
        | :class:`deepinv.physics.BlurFFT`
        | :class:`deepinv.physics.SpaceVaryingBlur`
+       | :class:`deepinv.physics.TiledSpaceVaryingBlur`
        | :class:`deepinv.physics.Downsampling`
        | :class:`deepinv.physics.Upsampling`
        | :class:`deepinv.physics.DownsamplingMatlab`
@@ -52,6 +53,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`DownsamplingGenerator <deepinv.physics.generator.DownsamplingGenerator>`
        | :class:`DiffractionBlurGenerator <deepinv.physics.generator.DiffractionBlurGenerator>`
        | :class:`ProductConvolutionBlurGenerator <deepinv.physics.generator.ProductConvolutionBlurGenerator>`
+       | :class:`TiledBlurGenerator <deepinv.physics.generator.TiledBlurGenerator>`
        | :class:`ConfocalBlurGenerator3D <deepinv.physics.generator.ConfocalBlurGenerator3D>`
        | :class:`gaussian_blur <deepinv.physics.blur.gaussian_blur>`, :class:`sinc_filter <deepinv.physics.blur.sinc_filter>`
        | :class:`bilinear_filter <deepinv.physics.blur.bilinear_filter>`, :class:`bicubic_filter <deepinv.physics.blur.bicubic_filter>`

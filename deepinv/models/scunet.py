@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from .utils import get_weights_url
+from .utils import get_weights_url, load_state_dict_from_url
 from .base import Denoiser
 
 
@@ -439,7 +439,7 @@ class SCUNet(Denoiser):
             if pretrained == "download":
                 name = "scunet_color_real_psnr.pth"
                 url = get_weights_url(model_name="scunet", file_name=name)
-                ckpt = torch.hub.load_state_dict_from_url(
+                ckpt = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
             else:

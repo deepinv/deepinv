@@ -1,6 +1,6 @@
 from __future__ import annotations
 from .utils import dot
-from deepinv.utils import TensorList, zeros_like
+from deepinv.utils.tensorlist import TensorList, zeros_like
 import torch
 from torch import Tensor
 from typing import Callable

@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .utils import get_weights_url, test_pad
+from .utils import get_weights_url, test_pad, load_state_dict_from_url
 from .base import Denoiser
 
 
@@ -326,7 +326,7 @@ class Restormer(Denoiser):
             url = get_weights_url(
                 model_name="restormer", file_name=weights_pth_filename
             )
-            ckpt_restormer = torch.hub.load_state_dict_from_url(
+            ckpt_restormer = load_state_dict_from_url(
                 url,
                 map_location=lambda storage, loc: storage,
                 file_name=weights_pth_filename,

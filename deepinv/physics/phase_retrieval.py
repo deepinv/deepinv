@@ -159,14 +159,13 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         self.img_size = img_size
         self.channelwise = channelwise
         self.dtype = dtype
-        self.device = device
         if rng is None:
             self.rng = torch.Generator(device=device)
         else:
             # Make sure that the random generator is on the same device as the physic generator
             assert rng.device == torch.device(
                 device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
+            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
             self.rng = rng
 
         B = CompressedSensing(
@@ -240,7 +239,6 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         self.shared_weights = shared_weights
 
         self.dtype = dtype
-        self.device = device
 
         self.mode = compare(img_size, output_size)
 
@@ -254,14 +252,14 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
                         shape=self.output_size,
                         mode=diagonal_mode,
                         dtype=self.dtype,
-                        device=self.device,
+                        device=device,
                     )
                 else:
                     diagonal = generate_diagonal(
                         shape=self.img_size,
                         mode=diagonal_mode,
                         dtype=self.dtype,
-                        device=self.device,
+                        device=device,
                     )
                 self.diagonals.append(diagonal)
         else:
@@ -270,14 +268,14 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
                     shape=self.output_size,
                     mode=diagonal_mode,
                     dtype=self.dtype,
-                    device=self.device,
+                    device=device,
                 )
             else:
                 diagonal = generate_diagonal(
                     shape=self.img_size,
                     mode=diagonal_mode,
                     dtype=self.dtype,
-                    device=self.device,
+                    device=device,
                 )
             self.diagonals = self.diagonals + [diagonal] * math.floor(self.n_layers)
 
@@ -357,7 +355,6 @@ class PtychographyLinearOperator(LinearPhysics):
     ):
         super().__init__(**kwargs)
 
-        self.device = device
         self.img_size = img_size
 
         if shifts is None:
@@ -491,7 +488,6 @@ class Ptychography(PhaseRetrieval):
         )
         self.probe = B.probe
         self.shifts = B.shifts
-        self.device = device
         self.img_size = img_size
         super().__init__(B, **kwargs)
         self.name = f"Ptychography_PR"

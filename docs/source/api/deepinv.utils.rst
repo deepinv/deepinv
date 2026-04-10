@@ -71,6 +71,7 @@ Mixins
 
         deepinv.utils.MRIMixin
         deepinv.utils.TimeMixin
+        deepinv.utils.TiledMixin2d
 
 Image Loading
 -------------
@@ -111,6 +112,26 @@ Demo Utils
     deepinv.utils.get_degradation_url
     deepinv.utils.load_dataset
     deepinv.utils.load_degradation
+
+Phantoms
+--------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+    deepinv.utils.phantoms.generate_shepp_logan
+    deepinv.utils.phantoms.generate_random_phantom
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.utils.phantoms.SheppLoganDataset
+    deepinv.utils.phantoms.RandomPhantomDataset
 
 Other
 -----

@@ -142,7 +142,7 @@ class StructuredRandom(LinearPhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
 
         if len(img_size) == 3:
             self.mode = compare(img_size, output_size)

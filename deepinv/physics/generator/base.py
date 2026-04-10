@@ -64,14 +64,13 @@ class PhysicsGenerator(nn.Module):
         self.step_func = step
         self.kwargs = kwargs
         self.factory_kwargs = {"device": device, "dtype": dtype}
-        self.device = device
         if rng is None:
             self.rng = torch.Generator(device=device)
         else:
             # Make sure that the random generator is on the same device as the physics generator
             assert rng.device == torch.device(
                 device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator named {self.__class__.__name__} on {self.device}."
+            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator named {self.__class__.__name__} on {device}."
             self.rng = rng
 
         # NOTE: There is no use in moving RNG states from one device to another
@@ -87,6 +86,10 @@ class PhysicsGenerator(nn.Module):
         # Set attributes
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+    @property
+    def device(self) -> torch.device:
+        return self.rng.device
 
     def step(self, batch_size: int = 1, seed: int = None, **kwargs) -> dict:
         r"""
