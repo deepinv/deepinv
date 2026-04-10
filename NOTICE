@@ -1,0 +1,30 @@
+===============================================================================
+deepinv - Third-Party Components Notice
+===============================================================================
+
+deepinv is primarily licensed under the BSD-3-Clause License (see LICENSE).
+
+However, this repository includes third-party components with different 
+license terms. All users must comply with the applicable licenses.
+
+===============================================================================
+Third-Party Components
+===============================================================================
+
+1. PromptIR
+   Location: deepinv/models/promptir/
+   License: Non-Commercial Use Only
+   License File: deepinv/models/promptir/LICENSE
+   Source: https://github.com/va1shn9v/PromptIR
+   Authors: Vaishnav Potlapalli, et al.
+   
+   Description: All-in-One Blind Image Restoration model
+   
+   License Summary: Free for academic research and educational use.
+   Commercial use requires separate licensing.
+   
+   Citation: Potlapalli et al., "PromptIR: Prompting for All-in-One 
+   Image Restoration", NeurIPS 2023
+   
+   Contact for commercial licensing: pvaishnav2718@gmail.com
+

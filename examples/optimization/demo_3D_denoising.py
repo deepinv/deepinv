@@ -187,14 +187,11 @@ assert psnr_tv > 29.5
 # A convenient algorithm in this situation is the Dykstra-like algorithm proposed by :footcite:t:`combettes2009iterative`, writing
 #
 # .. math::
-#     \begin{equation}
-#     \begin{aligned}
+#
 #     &\text{For}\;n=0,1,\ldots \\
 #     &\quad x_{n+1} = \sum_{\ell=1}^L \omega_{\ell} \operatorname{prox}_{g_\ell}z_{\ell,n}, \\
 #     &\quad \text{For}\;\ell=1,\ldots,L \\
 #     &\quad \quad z_{\ell,n+1} = x_{n+1} + z_{\ell,n} - \operatorname{prox}_{g_\ell}z_{\ell,n},
-#     \end{aligned}
-#     \end{equation}
 #
 #
 # where :math:`\omega_{\ell} = 1/L` for all :math:`\ell` and :math:`g_{\ell} = \lambda_{\ell} \|\Psi_{\ell} \cdot\|_1`.

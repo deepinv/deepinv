@@ -1,7 +1,8 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .utils import get_weights_url
+from .utils import get_weights_url, load_state_dict_from_url
 import warnings
 
 
@@ -34,34 +35,40 @@ class KernelIdentificationNetwork(nn.Module):
 
     |sep|
 
-    Example usage:
+    :Examples:
 
-    >>> import deepinv as dinv
-    >>> import torch
-    >>> device = "cuda" if torch.cuda.is_available() else "cpu"
-    >>> kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device)
-    ...
-    >>> physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
-    >>> y = torch.randn(1, 3, 128, 128).to(device)  # random blurry image for demonstration
-    >>> with torch.no_grad():
-    ...     params = kernel_estimator(y)  # this outputs {"filters": ..., "multipliers": ...}
-    >>> physics.update(**params) # update physics with estimated kernels
-    >>> print(params["filters"].shape, params["multipliers"].shape)
-    torch.Size([1, 1, 25, 33, 33]) torch.Size([1, 1, 25, 128, 128])
-
+        >>> import deepinv as dinv
+        >>> import torch
+        >>> device = "cuda" if torch.cuda.is_available() else "cpu"
+        >>> kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device)
+        >>> physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
+        >>> y = torch.randn(1, 3, 128, 128).to(device)  # random blurry image for demonstration
+        >>> with torch.no_grad():
+        ...     params = kernel_estimator(y)  # this outputs {"filters": ..., "multipliers": ...}
+        >>> physics.update(**params) # update physics with estimated kernels
+        >>> print(params["filters"].shape, params["multipliers"].shape)
+        torch.Size([1, 1, 25, 33, 33]) torch.Size([1, 1, 25, 128, 128])
 
     """
 
     def __init__(
         self,
-        filters=25,
-        blur_kernel_size=33,
-        bilinear=False,
-        no_softmax=False,
-        pretrained="download",
-        device="cpu",
+        filters: int = 25,
+        blur_kernel_size: int = 33,
+        bilinear: bool = False,
+        no_softmax: bool = False,
+        pretrained: str = "download",
+        device: torch.device | str = "cpu",
     ):
         super(KernelIdentificationNetwork, self).__init__()
+        if blur_kernel_size not in [33, 65]:
+            raise ValueError(
+                f"Only blur_kernel_size of 33 and 65 are currently supported, got {blur_kernel_size}."
+            )
+        if blur_kernel_size == 65 and pretrained == "download":
+            raise ValueError(
+                "Pretrained weights are not available for blur_kernel_size=65. Please set pretrained to None or provide your own pretrained weights."
+            )
 
         self.no_softmax = no_softmax
         self.inc_rgb = nn.Sequential(
@@ -130,13 +137,12 @@ class KernelIdentificationNetwork(nn.Module):
                     url = get_weights_url(
                         model_name="kernel_identification", file_name=file_name
                     )
-                    ckpt = torch.hub.load_state_dict_from_url(
+                    ckpt = load_state_dict_from_url(
                         url,
                         map_location=lambda storage, loc: storage,
                         file_name=file_name,
                         check_hash=True,
                         weights_only=True,
-                        progress=False,
                     )
                     self.load_state_dict(ckpt, strict=True)
                 else:
@@ -148,7 +154,7 @@ class KernelIdentificationNetwork(nn.Module):
 
         self.to(device)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
         r"""
         Forward pass of the kernel estimation network.
 
@@ -189,7 +195,7 @@ class KernelIdentificationNetwork(nn.Module):
         else:
             k = self.kernels_end(k5)
 
-        N, F, H, W = k.shape  # H and W should be one
+        N = k.shape[0]  # H and W should be one
         k = k.view(N, self.K, self.blur_kernel_size * self.blur_kernel_size)
 
         if self.no_softmax:

@@ -64,8 +64,7 @@ plot(
 # The algorithm writes as follows, for :math:`t` decreasing from :math:`T` to :math:`1`:
 #
 # .. math::
-#         \begin{equation*}
-#         \begin{aligned}
+#
 #         \mathbf{x}_{0}^{t} &= \denoiser{\mathbf{x}_t}{\sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t}} \\
 #         \widehat{\mathbf{x}}_{0}^{t} &= \operatorname{prox}_{2 f(y, \cdot) /{\rho_t}}(\mathbf{x}_{0}^{t}) \\
 #         \widehat{\mathbf{\varepsilon}} &= \left(\mathbf{x}_t - \sqrt{\overline{\alpha}_t} \,\,
@@ -73,8 +72,7 @@ plot(
 #         \mathbf{\varepsilon}_t &= \mathcal{N}(0, \mathbf{I}) \\
 #         \mathbf{x}_{t-1} &= \sqrt{\overline{\alpha}_t} \,\, \widehat{\mathbf{x}}_{0}^t + \sqrt{1-\overline{\alpha}_t}
 #         \left(\sqrt{1-\zeta} \,\, \widehat{\mathbf{\varepsilon}} + \sqrt{\zeta} \,\, \mathbf{\varepsilon}_t\right),
-#         \end{aligned}
-#         \end{equation*}
+#
 #
 # where :math:`\denoiser{\cdot}{\sigma}` is a denoising network with noise level :math:`\sigma`,
 # :math:`\mathcal{N}(0, \mathbf{I})` is a Gaussian noise

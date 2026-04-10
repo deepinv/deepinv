@@ -34,6 +34,7 @@ Classical Denoisers
    deepinv.models.WaveletDenoiser
    deepinv.models.WaveletDictDenoiser
    deepinv.models.EPLLDenoiser
+   deepinv.models.MMSE
 
 
 Deep Architectures
@@ -54,6 +55,7 @@ Deep Architectures
    deepinv.models.SCUNet
    deepinv.models.GSDRUNet
    deepinv.models.SwinIR
+   deepinv.models.PromptIR
    deepinv.models.DiffUNet
    deepinv.models.Restormer
    deepinv.models.ICNN
@@ -87,6 +89,17 @@ Model Utils
 
    deepinv.models.complex.to_complex_denoiser
 
+Utility functions for model inference
+-------------------------------------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.models.utils.patchify
+
+
 Wrappers 
 --------
 .. userguide:: model-wrappers
@@ -96,8 +109,10 @@ Wrappers
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.models.ScoreModelWrapper
    deepinv.models.DiffusersDenoiserWrapper
    deepinv.models.ComplexDenoiserWrapper
+   deepinv.models.MinusOneOneDenoiserWrapper
 
 Deep Image Prior
 ----------------
@@ -140,3 +155,5 @@ Identification Models
    :nosignatures:
 
    deepinv.models.KernelIdentificationNetwork
+   deepinv.models.WaveletNoiseEstimator
+   deepinv.models.PatchCovarianceNoiseEstimator

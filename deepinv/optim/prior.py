@@ -12,7 +12,7 @@ from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.models.drunet import DRUNet
 from deepinv.utils import patch_extractor
 from deepinv.models.GSPnP import GSPnP
-from deepinv.optim.utils import nonmonotone_accelerated_proximal_gradient
+from deepinv.models.utils import load_state_dict_from_url
 
 
 class Prior(Potential):
@@ -625,7 +625,7 @@ class PatchNR(Prior):
                     url = "https://drive.google.com/uc?export=download&id=1Z2us9ZHjDGOlU6r1Jee0s2BBej2XV5-i"
                 else:
                     raise ValueError("Pretrained weights not found!")
-                weights = torch.hub.load_state_dict_from_url(
+                weights = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=file_name
                 )
             self.normalizing_flow.load_state_dict(weights)

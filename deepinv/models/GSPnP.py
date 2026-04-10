@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from .utils import get_weights_url
+from .utils import get_weights_url, load_state_dict_from_url
 from .base import Denoiser
 
 
@@ -131,7 +131,7 @@ def GSDRUNet(
             elif in_channels == 1:
                 file_name = "GSDRUNet_grayscale_torch.ckpt"
             url = get_weights_url(model_name="gradientstep", file_name=file_name)
-            ckpt = torch.hub.load_state_dict_from_url(
+            ckpt = load_state_dict_from_url(
                 url,
                 map_location=lambda storage, loc: storage,
                 file_name=file_name,
@@ -142,6 +142,6 @@ def GSDRUNet(
         if "state_dict" in ckpt:
             ckpt = ckpt["state_dict"]
 
-        GSmodel.load_state_dict(ckpt, strict=False)
+        GSmodel.load_state_dict(ckpt, strict=True)
         GSmodel.eval()
     return GSmodel

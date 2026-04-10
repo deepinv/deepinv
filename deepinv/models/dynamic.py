@@ -18,6 +18,7 @@ class TimeAgnosticNet(Reconstructor, TimeMixin):
 
     :Example:
 
+    >>> import torch
     >>> from deepinv.models import UNet, TimeAgnosticNet
     >>> model = UNet(scales=2)
     >>> model = TimeAgnosticNet(model)
@@ -62,6 +63,7 @@ class TimeAveragingNet(
 
     :Example:
 
+    >>> import torch
     >>> from deepinv.models import UNet, TimeAveragingNet
     >>> model = UNet(scales=2)
     >>> model = TimeAveragingNet(model)
@@ -85,8 +87,15 @@ class TimeAveragingNet(
         :param y: measurements
         :parameter physics: forward operator acting on dynamic inputs
         """
+
+        static_physics = (
+            physics.to_static(device=y.device)
+            if hasattr(physics, "to_static")
+            else physics
+        )
+
         return self.backbone_net(
             self.average(y, getattr(physics, "mask", None)),
-            getattr(physics, "to_static", lambda: physics)(),
+            static_physics,
             **kwargs,
         )
