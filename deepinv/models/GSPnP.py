@@ -87,7 +87,7 @@ def GSDRUNet(
     nb=2,
     nc=(64, 128, 256, 512),
     act_mode="E",
-    pretrained=None,
+    pretrained="download",
     device=torch.device("cpu"),
 ):
     """
@@ -105,7 +105,7 @@ def GSDRUNet(
         "strideconv" for convolution with stride 2.
     :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelsuffle" for pixel
         shuffling, and "upconv" for nearest neighbour upsampling with additional convolution.
-    :param bool download: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
+    :param str pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (only available for the default architecture with 3 or 1 input/output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
