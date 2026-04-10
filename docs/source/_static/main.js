@@ -1,15 +1,34 @@
 // Custom DataTables type for "mean ± std" formatted cells.
 // Detects strings like "26.68 ± 1.47" and sorts numerically by the mean value.
+
+// Sphinx wraps list-table cells in <p> tags, so DataTables receives HTML like
+// "<p>26.68 ± 1.47</p>". We strip tags and decode common HTML entities before
+// matching, so that the type detection and sort order work on the plain text.
+function _stripHtml(str) {
+    return str
+        .replace(/<[^>]+>/g, '')          // remove all HTML tags
+        .replace(/&plusmn;/gi, '\u00B1')  // &plusmn; -> ±
+        .replace(/&amp;/gi,   '&')
+        .replace(/&lt;/gi,    '<')
+        .replace(/&gt;/gi,    '>')
+        .replace(/&nbsp;/gi,  ' ')
+        .trim();
+}
+
 $.fn.dataTable.ext.type.detect.unshift(function (data) {
-    if (typeof data === 'string' && /^[-+]?\d+(\.\d+)?\s*\u00B1\s*\d+(\.\d+)?$/.test(data.trim())) {
-        return 'mean-std';
+    if (typeof data === 'string') {
+        var text = _stripHtml(data);
+        if (/^[-+]?\d+(\.\d+)?\s*\u00B1\s*\d+(\.\d+)?$/.test(text)) {
+            return 'mean-std';
+        }
     }
     return null;
 });
 
 $.fn.dataTable.ext.type.order['mean-std-pre'] = function (data) {
     if (typeof data === 'string') {
-        var match = data.match(/^([-+]?\d+(?:\.\d+)?)/);
+        var text = _stripHtml(data);
+        var match = text.match(/^([-+]?\d+(?:\.\d+)?)/);
         if (match) {
             return parseFloat(match[1]);
         }

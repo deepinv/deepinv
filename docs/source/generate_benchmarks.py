@@ -269,6 +269,33 @@ This section provides benchmark results for various datasets and physics models.
     Benchmarks are defined in the https://github.com/deepinv/benchmarks repository.
     To contribute a new benchmark or add your solver to an existing benchmark, please refer to this repository.
 
+
+List of benchmarks
+^^^^^^^^^^^^^^^^^^^
+
+.. list-table::
+    :class: sortable-table
+    :header-rows: 1
+
+    * - Benchmark
+      - Dataset
+      - Physics
+      - Noise Model
+"""
+    for name, dataset, physics, noise in benchmark_info:
+        benchmarks_content += f"    * - :ref:`{name}`\n      - :sclass:`deepinv.datasets.{dataset}`\n      - :sclass:`deepinv.physics.{physics}`\n      - :sclass:`deepinv.physics.{noise}`\n"
+
+    # Toctree: first level is physics group pages, each of which contains
+    # the individual benchmark pages in its own toctree.
+    benchmarks_content += "\n.. toctree::\n   :maxdepth: 2\n   :hidden:\n\n"
+    for _, physics_slug in physics_pages:
+        benchmarks_content += f"   auto_benchmarks/{physics_slug}\n"
+
+    benchmarks_content += r"""
+    
+Testing your method on benchmarks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    
 To evaluate your own reconstruction methods on these benchmarks, install `deepinv_bench`:
 
 .. code-block:: bash
@@ -299,24 +326,7 @@ where  `benchmark_name` is the name of the benchmark and `my_solver` is your rec
 
 and outputs a :class:`torch.Tensor` containing the reconstructed image.
 
-
-.. list-table::
-    :class: sortable-table
-    :header-rows: 1
-
-    * - Benchmark
-      - Dataset
-      - Physics
-      - Noise Model
 """
-    for name, dataset, physics, noise in benchmark_info:
-        benchmarks_content += f"    * - :ref:`{name}`\n      - :sclass:`deepinv.datasets.{dataset}`\n      - :sclass:`deepinv.physics.{physics}`\n      - :sclass:`deepinv.physics.{noise}`\n"
-
-    # Toctree: first level is physics group pages, each of which contains
-    # the individual benchmark pages in its own toctree.
-    benchmarks_content += "\n.. toctree::\n   :maxdepth: 2\n   :hidden:\n\n"
-    for _, physics_slug in physics_pages:
-        benchmarks_content += f"   auto_benchmarks/{physics_slug}\n"
 
     with open(benchmarks_rst_path, "w") as f:
         f.write(benchmarks_content)
