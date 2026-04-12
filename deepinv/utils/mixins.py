@@ -7,7 +7,7 @@ from torch import Tensor, zeros_like
 from torch.nn import Module
 from torchvision.transforms import CenterCrop, Resize
 from deepinv.utils.decorators import _deprecated_argument
-from ._internal import _as_pair
+from ._internal import _as_pair, _add_tuple
 from ._tiling import (
     _compute_compatible_img_size,
     _compute_needed_pad,
@@ -387,8 +387,6 @@ class TiledMixin2d:
         :param int | tuple[int, int, int, int] pad: Optional, if provided, the patch size will be increased by this padding on each side. Can be a single int for symmetric padding or a tuple of 4 ints for (left, right, top, bottom) padding. Defaults to `(0, 0, 0, 0)` for no additional padding.
         :return: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
         """
-        if isinstance(pad, int):
-            pad = (pad, pad, pad, pad)
 
         return _image_to_patches_impl(
             image=image,

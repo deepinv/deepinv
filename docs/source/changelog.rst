@@ -15,7 +15,7 @@ New Features
 Changed
 ^^^^^^^
 - Refactor CI to use `pixi` for compatibility with mixed conda/pip environments (:gh:`1108` by `Julian Tachella`_)
-- Unify patching / tiling utility functions (:gh:`1104` by `Minh Hai Nguyen`_)
+- Unify patching / tiling and unpatching / un-tiling logic in physics and utils, with support for padding and non-overlapping patches. Add :func:`deepinv.utils.image_to_patches` and :func:`deepinv.utils.patches_to_image` utility functions, and refactor physics to use them instead of `unfold` (:gh:`1104` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
