@@ -8,10 +8,15 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add install guidelines for different platforms (`pixi`, `conda`, `pip`, `uv`) in docs (:gh:`1108` by `Julian Tachella`_)
+- Add :class:`deepinv.optim.SIRT` algorithm for tomographic reconstruction (:gh:`985` by `Thibaut Modrzyk`_`)
+- Add :class:`deepinv.optim.MLEM` algorithm for Poisson inverse problems (:gh:`1051` by `Thibaut Modrzyk`_)
 - Add `DEEPINV_CACHE_DIR` environment variable to set the cache directory for datasets and pretrained weights (:gh:`1105` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
+- Refactor CI to use `pixi` for compatibility with mixed conda/pip environments (:gh:`1108` by `Julian Tachella`_)
+
 
 Fixed
 ^^^^^

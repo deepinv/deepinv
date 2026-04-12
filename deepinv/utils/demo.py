@@ -181,6 +181,7 @@ def load_degradation(
         data_dir.mkdir(parents=True, exist_ok=True)
         url = get_degradation_url(name)
         with requests.get(url, stream=True) as r:
+            r.raise_for_status()
             with open(str(data_dir / name), "wb") as f:
                 shutil.copyfileobj(r.raw, f)
         print(f"{name} degradation downloaded in {data_dir}")
