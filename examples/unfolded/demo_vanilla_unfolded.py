@@ -24,7 +24,7 @@ from deepinv.datasets import BSDS500
 # ----------------------------------------------------------------------------------------
 #
 
-BASE_DIR = get_cache_home()
+BASE_DIR = get_cache_home() / "demo_unfolded_sr"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 CKPT_DIR = BASE_DIR / "ckpts"
@@ -59,12 +59,8 @@ train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
 # Define the base train and test datasets of clean images.
-train_base_dataset = BSDS500(
-    BASE_DIR, download=True, train=True, transform=train_transform
-)
-test_base_dataset = BSDS500(
-    BASE_DIR, download=False, train=False, transform=test_transform
-)
+train_base_dataset = BSDS500(download=True, train=True, transform=train_transform)
+test_base_dataset = BSDS500(download=False, train=False, transform=test_transform)
 
 # Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous
 # dataloading.

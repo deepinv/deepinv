@@ -44,7 +44,7 @@ device = dinv.utils.get_device()
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurments"
-ORGINAL_DATA_DIR = get_cache_home() / "Urban100"
+ORGINAL_DATA_DIR = get_cache_home() / "datasets" / "Urban100"
 
 
 # %%

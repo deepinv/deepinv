@@ -32,7 +32,7 @@ device = dinv.utils.get_device()
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
-ORIGINAL_DATA_HOME = get_cache_home()
+ORIGINAL_DATA_HOME = get_cache_home() / "datasets" / "MNIST"
 
 
 # %%

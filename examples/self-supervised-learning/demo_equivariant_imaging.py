@@ -15,7 +15,7 @@ from torchvision import transforms
 
 import deepinv as dinv
 from deepinv.datasets import SimpleFastMRISliceDataset
-from deepinv.utils import get_cache_home, load_degradation
+from deepinv.utils import load_degradation
 from deepinv.models.utils import get_weights_url
 from deepinv.models import MoDL
 
@@ -60,10 +60,10 @@ img_size = 128
 transform = transforms.Compose([transforms.Resize(img_size)])
 
 train_dataset = SimpleFastMRISliceDataset(
-    get_cache_home(), transform=transform, train_percent=0.5, train=True, download=True
+    transform=transform, train_percent=0.5, train=True, download=True
 )
 test_dataset = SimpleFastMRISliceDataset(
-    get_cache_home(), transform=transform, train_percent=0.5, train=False
+    transform=transform, train_percent=0.5, train=False
 )
 
 # %%

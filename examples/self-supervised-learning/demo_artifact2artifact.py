@@ -28,7 +28,6 @@ from torchvision import transforms
 
 import deepinv as dinv
 from deepinv.datasets import SimpleFastMRISliceDataset
-from deepinv.utils import get_cache_home
 from deepinv.models.utils import get_weights_url
 from deepinv.models import MoDL
 from deepinv.physics.generator import (
@@ -69,10 +68,10 @@ H = 128
 transform = transforms.Compose([transforms.Resize(H)])
 
 train_dataset = SimpleFastMRISliceDataset(
-    get_cache_home(), transform=transform, train=True, download=True, train_percent=0.5
+    transform=transform, train=True, download=True, train_percent=0.5
 )
 test_dataset = SimpleFastMRISliceDataset(
-    get_cache_home(), transform=transform, train=False, train_percent=0.5
+    transform=transform, train=False, train_percent=0.5
 )
 
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)

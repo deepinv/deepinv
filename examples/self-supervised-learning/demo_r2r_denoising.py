@@ -26,7 +26,7 @@ from deepinv.models.utils import get_weights_url
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
 CKPT_DIR = BASE_DIR / "ckpts"
-ORIGINAL_DATA_DIR = get_cache_home()
+ORIGINAL_DATA_DIR = get_cache_home() / "datasets" / "MNIST"
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)

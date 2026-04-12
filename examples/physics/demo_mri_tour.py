@@ -61,14 +61,12 @@ rng = torch.Generator(device=device).manual_seed(0)
 
 transform = torchvision.transforms.Resize(128)
 knee_dataset = dinv.datasets.SimpleFastMRISliceDataset(
-    dinv.utils.get_cache_home(),
     anatomy="knee",
     transform=transform,
     train=True,
     download=True,
 )
 brain_dataset = dinv.datasets.SimpleFastMRISliceDataset(
-    dinv.utils.get_cache_home(),
     anatomy="brain",
     transform=transform,
     train=True,
