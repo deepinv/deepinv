@@ -51,7 +51,6 @@ from .patch_extractor import (
 from .parameters import get_GSPnP_params
 from .signals import normalize_signal, complex_abs
 from .mixins import TimeMixin, MRIMixin, TiledMixin2d
-from .compat import zip_strict
 from .io import (
     load_dicom,
     load_nifti,

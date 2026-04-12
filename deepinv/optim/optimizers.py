@@ -16,6 +16,8 @@ from deepinv.optim.optim_iterators import (
     DRSIteration,
     GDIteration,
     MDIteration,
+    MLEMIteration,
+    SIRTIteration,
 )
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import ZeroPrior, Prior
@@ -1047,11 +1049,9 @@ class ADMM(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the ADMM iterations write (see :footcite:t:`boyd2011distributed` for more details):
 
     .. math::
-        \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\gamma f}(x_k - z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_{k+1} + z_k) \\
         z_{k+1} &= z_k + \beta (u_{k+1} - x_{k+1})
-        \end{aligned}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.  If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`\regname` are
     inverted in the previous iterations. The ADMM iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.ADMMIteration`.
@@ -1178,11 +1178,9 @@ class DRS(BaseOptim):
      If the attribute ``g_first`` is set to False (by default), the DRS iterations are given by
 
     .. math::
-        \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\gamma f}(z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k) \\
         z_{k+1} &= z_k + \beta (x_{k+1} - u_{k+1})
-        \end{aligned}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter. If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The DRS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.DRSIteration`.
@@ -1445,10 +1443,8 @@ class HQS(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the HQS iterations are given by
     
     .. math::
-        \begin{aligned}
         u_{k} &= \operatorname{prox}_{\gamma f}(x_k) \\
         x_{k+1} &= \operatorname{prox}_{\sigma \lambda \regname}(u_k).
-        \end{aligned}
     
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The HQS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.HQSIteration`.
@@ -1716,11 +1712,9 @@ class FISTA(BaseOptim):
     If the attribute ``g_first`` is set to False (by default), the FISTA iterations are given by
     
     .. math::
-        \begin{aligned}
         u_{k} &= z_k -  \gamma \nabla f(z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_k) \\
         z_{k+1} &= x_{k+1} + \alpha_k (x_{k+1} - x_k),
-        \end{aligned}
     
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
     :math:`\alpha_k = (k+a-1)/(k+a)`,  with :math:`a` a parameter that should be strictly greater than 2.
@@ -1838,10 +1832,8 @@ class MD(BaseOptim):
     Mirror Descent (MD) or Bregman variant of the Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
     
     .. math::
-        \begin{aligned}
         v_{k} &= \nabla f(x_k) + \lambda \nabla g(x_k) \\
         x_{k+1} &= \nabla h^*(\nabla h(x_k) - \gamma v_{k})
-        \end{aligned}
     
     where :math:`\gamma>0` is a stepsize and :math:`h^*` is the convex conjugate of :math:`h`.
     The Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.MDIteration`.
@@ -1953,10 +1945,8 @@ class PMD(BaseOptim):
     Proximal Mirror Descent (PMD) or Bregman variant of the Proximal Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
     
     .. math::
-        \begin{aligned}
         u_{k} &= \nabla h^*(\nabla h(x_k) - \gamma \nabla f(x_k)) \\
         x_{k+1} &= \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)
-        \end{aligned}
     
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex. 
     :math:`\operatorname{prox^h}_{\gamma \lambda \regname}` is the Bregman proximal operator, detailed in the method :meth:`deepinv.optim.Potential.bregman_prox`.
@@ -2223,5 +2213,192 @@ class PDCP(BaseOptim):
             custom_metrics=custom_metrics,
             unfold=unfold,
             trainable_params=trainable_params,
+            **kwargs,
+        )
+
+
+class MLEM(BaseOptim):
+    r"""
+    Maximum Likelihood Expectation Maximization (MLEM) algorithm for Poisson inverse problems.
+
+    This algorithm :footcite:t:`sheppMaximumLikelihoodReconstruction1982` was originally proposed for deconvolution by Richardson and Lucy :footcite:t:`richardsonBayesianBasedIterativeMethod1972, lucyIterativeTechniqueRectification1974` and was later
+    adapted to tomographic reconstruction by Shepp and Vardi :footcite:t:`sheppMaximumLikelihoodReconstruction1982`.
+    It is also widely used in Non-Negative Matrix Factorization (NMF) problems where it is known as the Lee and Seung multiplicative update algorithm :footcite:t:`leeSeungAlgorithmsNonNegativeMatrix2000`.
+
+    The algorithm is traditionally derived from the Expectation-Maximization (EM) framework with specific latent variables.
+    Alternatively, it can be seen as a Majorization-Minimization (MM) algorithm where each iteration consists in constructing a surrogate function that majorizes the Poisson negative log-likelihood and then minimizing this surrogate function.
+    At each iteration, the algorithm performs a multiplicative update of the form:
+
+    .. math::
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1}} \odot A^T \left(\frac{y}{A x_k}\right)
+
+    where :math:`A` is the forward operator, :math:`y` is the observed data,
+    :math:`\mathbf{1}` is a tensor of ones, and :math:`\odot` denotes element-wise multiplication.
+
+    The algorithm can be used with a prior term (e.g., for MAP-EM variants) or without
+    (standard MLEM). See :class:`deepinv.optim.optim_iterators.MLEMIteration` for the details of the iteration.
+
+    The MLEM algorithm minimizes the Poisson negative log-likelihood data-fidelity. The ``data_fidelity`` argument
+    can be used to measure progress during optimization (e.g., for early stopping or metrics computation), but it is
+    not used as the objective function to minimize. Only the Poisson negative log-likelihood is minimized regardless
+    of the provided ``data_fidelity`` argument.
+
+    A regularization can be included via the ``prior`` argument, which will lead to a MAP-EM variant of the MLEM algorithm.
+    Our implementation is based on the One-Step-Late (OSL) heuristic of Green :footcite:t:`greenUseEmAlgorithm1990`.
+    It leads to the following update rule:
+
+    .. math::
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \nabla g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
+
+    where :math:`g` is the prior function and :math:`\lambda` is the regularization parameter.
+
+    In the case of a non-differentiable prior, the gradient term :math:`\nabla g(x_k)` is replaced by a subgradient:
+
+    .. math::
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \partial g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
+
+    where :math:`\partial g(x_k)` is a subgradient of :math:`g` at point :math:`x_k`.
+
+    :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity term.
+        If ``None``, the data fidelity term is not used. Default: ``None``.
+    :param deepinv.optim.Prior, list[Prior] prior: prior term. If ``None``, no prior is used.
+        Default: ``None``.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float g_param: parameter for the prior. Default: ``None``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
+    :param int max_iter: maximum number of iterations. Default: ``100``.
+    :param str crit_conv: convergence criterion, either ``"residual"`` or ``"cost"``.
+        Default: ``"residual"``.
+    :param float thres_conv: convergence threshold. Default: ``1e-5``.
+    :param bool early_stop: if ``True``, the algorithm stops when the convergence criterion is met.
+        Default: ``False``.
+    :param dict custom_metrics: dictionary of custom metrics to compute at each iteration.
+        Default: ``None``.
+    :param Callable custom_init: custom initialization function. Default: ``None``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param Callable cost_fn: Custom user input cost function.
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
+    :param dict params_algo: optionally, directly provide the ADMM parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `beta`.
+    """
+
+    def __init__(
+        self,
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        **kwargs,
+    ):
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "g_param": g_param,
+            }
+        super(MLEM, self).__init__(
+            MLEMIteration(cost_fn=cost_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            **kwargs,
+        )
+
+
+class SIRT(BaseOptim):
+    r"""Simultaneous Iterative Reconstruction Technique (SIRT) optimization module.
+
+    Implementation of the Simultaneous Iterative Reconstruction Technique (SIRT)
+    :footcite:t:`gilbert_iterative_1972`
+    algorithm for tomographic reconstruction. This algorithm is especially used in transmission tomography, i.e for X-ray computed tomography.
+    The algorithm minimizes a weighted least-squares problem of the form :math:`\|Ax-y\|_{W}^2` and does not support any regularization.
+
+    Iterations are given by
+
+    .. math::
+        \begin{equation*}
+        x_{k+1} = x_k + \tau V A^{\top} W (y - A x_k)
+        \end{equation*}
+
+    where
+
+    - :math:`\tau` is a stepsize parameter,
+    - :math:`W = \mathrm{diag}\left(\frac{1}{\sum_{i}a_{ij}}\right)`, a diagonal matrix where each element is the inverse of the row sums of :math:`A`,
+    - :math:`V = \mathrm{diag}\left(\frac{1}{\sum_{j}a_{ij}}\right)`, a diagonal matrix where each element is the inverse of the column sums of :math:`A`.
+
+    The stepsize parameter :math:`\tau`, sometimes called relaxation parameter, should satisfy :math:`0 < \tau < 2` for convergence.
+
+    The entries of :math:`W` are inversely proportional to the length traveled by each ray. The algorithm tolerates larger errors for measurements induced by rays that intersect a larger portion of the object. The entries of :math:`V` are inversely proportional to the number of rays intersecting each voxel. It balances the update based on the voxels' sensitivity to the measurements.
+
+    For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
+    The SIRT iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.SIRTIteration`.
+
+    :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`. Note that SIRT only decreases the least-squares data-fidelity term :math:`\|Ax-y\|_2^2`, but other data-fidelities can still be measured along the iterations.
+    :param float stepsize: stepsize parameter :math:`\tau`. Default: ``1.0``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``.
+    :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
+    :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
+    :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
+    :param Callable custom_init:  Custom initialization of the algorithm.
+    """
+
+    def __init__(
+        self,
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        stepsize: float = 1.0,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        **kwargs,
+    ):
+        super(SIRT, self).__init__(
+            SIRTIteration(),
+            data_fidelity=data_fidelity,
+            params_algo={"stepsize": stepsize},
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             **kwargs,
         )

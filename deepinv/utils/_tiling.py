@@ -67,6 +67,7 @@ def _image_to_patches_impl(
     patch_size: tuple[int, int],
     stride: tuple[int, int],
     pad_if_needed: bool = True,
+    extra_pad: tuple[int, int, int, int] = (0, 0, 0, 0),
 ) -> Tensor:
     if image.ndim != 4:
         raise ValueError(
@@ -75,8 +76,14 @@ def _image_to_patches_impl(
 
     if pad_if_needed:
         pad_h, pad_w = _compute_needed_pad(image.shape[-2:], patch_size, stride)
-        if pad_h > 0 or pad_w > 0:
-            image = F.pad(image, (0, pad_w, 0, pad_h), mode="constant", value=0)
+        extra_pad = (
+            extra_pad[0],
+            extra_pad[1] + pad_w,
+            extra_pad[2],
+            extra_pad[3] + pad_h,
+        )
+    if any(p > 0 for p in extra_pad):
+        image = F.pad(image, extra_pad, mode="constant", value=0)
 
     patches = image.unfold(2, patch_size[0], stride[0]).unfold(
         3, patch_size[1], stride[1]
