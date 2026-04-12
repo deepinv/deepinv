@@ -3,6 +3,7 @@ from deepinv.physics.generator import (
     EquispacedMaskGenerator,
     RandomMaskGenerator,
     PolyOrderMaskGenerator,
+    GeneratorMixture,
 )
 from deepinv.physics.generator.base import seed_from_string
 import pytest
@@ -639,3 +640,30 @@ def test_diffraction_generator(
         )
         for key in params.keys():
             assert not torch.allclose(params[key], params3[key])
+
+
+def test_generator_mixture(device):
+    r"""
+    Test generator mixture.
+    """
+    g1, _, keys_1 = find_generator(
+        "MotionBlurGenerator", (5, 5), 1, device, torch.float32
+    )
+    g2, _, keys_2 = find_generator(
+        "DiffractionBlurGenerator", (5, 5), 1, device, torch.float32
+    )
+
+    generator = GeneratorMixture(
+        [g1, g2], [0.5, 0.5], device=device, rng=torch.Generator(device)
+    )
+
+    batch_size = 2
+    coeff = torch.rand(
+        batch_size,
+        len(g2.zernike_index),
+        device=device,
+    )
+    l = 0.1
+
+    params = generator.step(batch_size=2, coeff=coeff, l=l, seed=0)
+    assert set(params.keys()).issubset(set(keys_1).union(set(keys_2)))

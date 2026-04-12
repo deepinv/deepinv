@@ -213,15 +213,17 @@ class GeneratorMixture(PhysicsGenerator):
         generators: list[PhysicsGenerator],
         probs: list[float],
         rng: torch.Generator = None,
+        **kwargs,
     ) -> None:
-        super().__init__(rng=rng)
+        super().__init__(rng=rng, **kwargs)
         probs = torch.tensor(probs)
-        assert torch.sum(probs) == 1, "The sum of the probabilities must be 1."
+        if torch.sum(probs) != 1:
+            raise ValueError("The sum of the probabilities must be 1.")
         self.generators = generators
         self.probs = probs
         self.cum_probs = torch.cumsum(probs, dim=0)
 
-    def step(self, batch_size: int = 1, seed: int = None, **kwargs):
+    def step(self, batch_size: int = 1, *args, seed: int = None, **kwargs):
         r"""
         Returns a new set of physics' parameters,
         according to the probabilities given in the constructor.
@@ -230,6 +232,6 @@ class GeneratorMixture(PhysicsGenerator):
         :param int seed: the seed for the random number generator.
         :returns: A dictionary with the new parameters, ie ``{param_name: param_value}``.
         """
-        p = torch.rand(1, generator=self.rng).item()  # np.random.uniform()
+        p = torch.rand(1, generator=self.rng, device=self.device).item()
         idx = torch.searchsorted(self.cum_probs, p)
-        return self.generators[idx].step(batch_size, seed, **kwargs)
+        return self.generators[idx].step(batch_size, *args, seed=seed, **kwargs)
