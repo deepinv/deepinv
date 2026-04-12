@@ -77,8 +77,8 @@ class SimpleFastMRISliceDataset(ImageDataset):
         Load mini demo knee dataset:
 
         >>> from deepinv.datasets import SimpleFastMRISliceDataset
-        >>> from deepinv.utils import get_data_home
-        >>> dataset = SimpleFastMRISliceDataset(get_data_home(), anatomy="knee", download=True)
+        >>> from deepinv.utils import get_cache_home
+        >>> dataset = SimpleFastMRISliceDataset(get_cache_home(), anatomy="knee", download=True)
         >>> len(dataset)
         2
 
@@ -232,9 +232,9 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         Instantiate dataset with sample data (from a demo multicoil brain volume):
 
         >>> from deepinv.datasets import FastMRISliceDataset, download_archive
-        >>> from deepinv.utils import get_image_url, get_data_home
+        >>> from deepinv.utils import get_image_url, get_cache_home
         >>> url = get_image_url("demo_fastmri_brain_multicoil.h5")
-        >>> root = get_data_home() / "fastmri" / "brain"
+        >>> root = get_cache_home() / "fastmri" / "brain"
         >>> download_archive(url, root / "demo.h5")
         >>> dataset = FastMRISliceDataset(root=root, slice_index="all")
         >>> len(dataset)

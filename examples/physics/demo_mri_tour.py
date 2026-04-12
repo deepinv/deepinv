@@ -61,14 +61,14 @@ rng = torch.Generator(device=device).manual_seed(0)
 
 transform = torchvision.transforms.Resize(128)
 knee_dataset = dinv.datasets.SimpleFastMRISliceDataset(
-    dinv.utils.get_data_home(),
+    dinv.utils.get_cache_home(),
     anatomy="knee",
     transform=transform,
     train=True,
     download=True,
 )
 brain_dataset = dinv.datasets.SimpleFastMRISliceDataset(
-    dinv.utils.get_data_home(),
+    dinv.utils.get_cache_home(),
     anatomy="brain",
     transform=transform,
     train=True,
@@ -125,7 +125,7 @@ dataset_path = dinv.datasets.generate_dataset(
     save_physics_generator_params=True,
     overwrite_existing=False,
     device=device,
-    save_dir=dinv.utils.get_data_home(),
+    save_dir=dinv.utils.get_cache_home(),
     batch_size=1,
 )
 
@@ -271,11 +271,11 @@ _ = trainer.test(DataLoader(test_dataset))
 
 dinv.datasets.download_archive(
     dinv.utils.get_image_url("demo_fastmri_brain_multicoil.h5"),
-    dinv.utils.get_data_home() / "brain" / "fastmri.h5",
+    dinv.utils.get_cache_home() / "brain" / "fastmri.h5",
 )
 
 dataset = dinv.datasets.FastMRISliceDataset(
-    dinv.utils.get_data_home() / "brain", slice_index="middle"
+    dinv.utils.get_cache_home() / "brain", slice_index="middle"
 )
 
 x, y = next(iter(DataLoader(dataset)))
@@ -313,7 +313,7 @@ assert torch.allclose(x, x_rss)
 #
 
 dataset = dinv.datasets.FastMRISliceDataset(
-    dinv.utils.get_data_home() / "brain",
+    dinv.utils.get_cache_home() / "brain",
     slice_index="middle",
     transform=dinv.datasets.MRISliceTransform(
         estimate_coil_maps=True,
@@ -337,7 +337,7 @@ dinv.utils.plot(
 #
 
 dataset = dinv.datasets.FastMRISliceDataset(
-    dinv.utils.get_data_home() / "brain",
+    dinv.utils.get_cache_home() / "brain",
     slice_index="middle",
     transform=dinv.datasets.MRISliceTransform(
         mask_generator=dinv.physics.generator.GaussianMaskGenerator(
@@ -455,12 +455,12 @@ dinv.utils.plot_ortho3D([x, physics(x)], titles=["x", "y"])
 
 dinv.datasets.download_archive(
     dinv.utils.get_image_url("CMRxRecon.zip"),
-    dinv.utils.get_data_home() / "CMRxRecon.zip",
+    dinv.utils.get_cache_home() / "CMRxRecon.zip",
     extract=True,
 )
 
 dataset = dinv.datasets.CMRxReconSliceDataset(
-    dinv.utils.get_data_home() / "CMRxRecon",
+    dinv.utils.get_cache_home() / "CMRxRecon",
 )
 
 x, y, params = next(iter(DataLoader(dataset)))
@@ -489,7 +489,7 @@ physics_generator = dinv.physics.generator.EquispacedMaskGenerator(
 physics = dinv.physics.DynamicMRI(img_size=(512, 256), device=device)
 
 dataset = dinv.datasets.CMRxReconSliceDataset(
-    dinv.utils.get_data_home() / "CMRxRecon",
+    dinv.utils.get_cache_home() / "CMRxRecon",
     mask_generator=physics_generator,
     mask_dir=None,
 )

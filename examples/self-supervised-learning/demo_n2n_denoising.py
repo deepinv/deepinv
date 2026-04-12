@@ -24,7 +24,7 @@ from torchvision import transforms, datasets
 
 import deepinv as dinv
 from deepinv.models.utils import get_weights_url
-from deepinv.utils import get_data_home
+from deepinv.utils import get_cache_home
 
 # %%
 # Setup paths for data loading and results.
@@ -34,7 +34,7 @@ from deepinv.utils import get_data_home
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
 CKPT_DIR = BASE_DIR / "ckpts"
-ORIGINAL_DATA_DIR = get_data_home()
+ORIGINAL_DATA_DIR = get_cache_home()
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)

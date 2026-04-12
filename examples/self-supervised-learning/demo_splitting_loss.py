@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
 import deepinv as dinv
-from deepinv.utils import get_data_home
+from deepinv.utils import get_cache_home
 from deepinv.models.utils import get_weights_url
 
 torch.manual_seed(0)
@@ -32,7 +32,7 @@ device = dinv.utils.get_device()
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
-ORIGINAL_DATA_HOME = get_data_home()
+ORIGINAL_DATA_HOME = get_cache_home()
 
 
 # %%

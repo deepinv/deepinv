@@ -16,7 +16,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim import DRS
 from torchvision import transforms
-from deepinv.utils import get_data_home
+from deepinv.utils import get_cache_home
 from deepinv.datasets import BSDS500
 
 # %%
@@ -24,7 +24,7 @@ from deepinv.datasets import BSDS500
 # ----------------------------------------------------------------------------------------
 #
 
-BASE_DIR = get_data_home()
+BASE_DIR = get_cache_home()
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 CKPT_DIR = BASE_DIR / "ckpts"

@@ -14,7 +14,7 @@ from torch.nn import Module
 from torchvision.transforms.functional import crop as torchvision_crop
 
 from deepinv.datasets.base import ImageDataset
-from deepinv.utils import normalize_signal, get_data_home
+from deepinv.utils import normalize_signal, get_cache_home
 
 
 def check_path_is_a_folder(folder_path: str) -> bool:
@@ -105,7 +105,7 @@ def resolve_root(root: str | Path | None, dataset_name: str = None) -> Path:
     """Resolve the root directory for a dataset.
 
     If root is None, it defaults to the global cache directory defined by
-    `get_data_home()` under a subdirectory named `dataset_name`.
+    `get_cache_home()` under a subdirectory named `dataset_name`.
     Otherwise, it returns the provided root as a Path.
 
     :param str, pathlib.Path, None root: directory of the dataset.
@@ -114,9 +114,9 @@ def resolve_root(root: str | Path | None, dataset_name: str = None) -> Path:
     """
     if root is None:
         return (
-            get_data_home() / "datasets" / dataset_name
+            get_cache_home() / "datasets" / dataset_name
             if dataset_name is not None
-            else get_data_home() / "datasets"
+            else get_cache_home() / "datasets"
         )
     return Path(root)
 

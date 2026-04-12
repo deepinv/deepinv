@@ -37,14 +37,14 @@ from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize
 
 import deepinv as dinv
 from deepinv.loss import adversarial
-from deepinv.utils import get_data_home
+from deepinv.utils import get_cache_home
 from deepinv.physics.generator import MotionBlurGenerator
 
 device = dinv.utils.get_device()
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurments"
-ORGINAL_DATA_DIR = get_data_home() / "Urban100"
+ORGINAL_DATA_DIR = get_cache_home() / "Urban100"
 
 
 # %%

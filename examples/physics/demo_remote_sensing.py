@@ -53,7 +53,7 @@ device = dinv.utils.get_device()
 # Note also that the linear adjoint must assume the unknown spectral response function (SRF).
 #
 
-DATA_DIR = dinv.utils.get_data_home()
+DATA_DIR = dinv.utils.get_cache_home()
 dataset = dinv.datasets.NBUDataset(DATA_DIR, return_pan=True, download=True)
 
 y = dataset[0].unsqueeze(0).to(device)  # MS (1,4,256,256), PAN (1,1,1024,1024)

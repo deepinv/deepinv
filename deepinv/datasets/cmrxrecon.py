@@ -66,14 +66,14 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     Example:
 
     >>> from deepinv.datasets import CMRxReconSliceDataset, download_archive
-    >>> from deepinv.utils import get_image_url, get_data_home
+    >>> from deepinv.utils import get_image_url, get_cache_home
     >>> from torch.utils.data import DataLoader
     >>> download_archive(
     ...     get_image_url("CMRxRecon.zip"),
-    ...     get_data_home() / "CMRxRecon.zip",
+    ...     get_cache_home() / "CMRxRecon.zip",
     ...     extract=True,
     ... )
-    >>> dataset = CMRxReconSliceDataset(get_data_home() / "CMRxRecon")
+    >>> dataset = CMRxReconSliceDataset(get_cache_home() / "CMRxRecon")
     >>> x, y, params = next(iter(DataLoader(dataset)))
     >>> x.shape # (B, C, T, H, W)
     torch.Size([1, 2, 12, 512, 256])
