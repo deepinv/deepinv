@@ -18,13 +18,9 @@ class DRSIteration(OptimIterator):
     If the attribute ``g_first`` is set to False (by default), the iteration is given by
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\gamma f}(z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k) \\
         z_{k+1} &= z_k + \beta (x_{k+1} - u_{k+1})
-        \end{aligned}
-        \end{equation*}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.
 

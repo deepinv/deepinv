@@ -3,7 +3,7 @@ from deepinv.utils.tensorlist import zeros_like
 import torch
 from torch.autograd.function import once_differentiable
 from deepinv.utils.tensorlist import TensorList
-from deepinv.utils.compat import zip_strict
+
 import warnings
 from typing import Callable
 from .bicgstab import bicgstab
@@ -229,7 +229,6 @@ class LeastSquaresSolver(torch.autograd.Function):
         trigger: torch.Tensor = None,
         extra_kwargs: dict = None,
     ):
-
         kwargs = extra_kwargs if extra_kwargs is not None else {}
 
         with torch.no_grad():
@@ -328,10 +327,7 @@ class LeastSquaresSolver(torch.autograd.Function):
             g_params = torch.autograd.grad(
                 pseudo, params, retain_graph=False, allow_unused=True
             )
-            for p, g in zip_strict(
-                params,
-                g_params,
-            ):
+            for p, g in zip(params, g_params, strict=True):
                 if g is not None:
                     if p.grad is None:
                         p.grad = g.detach()

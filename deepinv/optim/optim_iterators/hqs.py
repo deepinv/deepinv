@@ -17,12 +17,8 @@ class HQSIteration(OptimIterator):
 
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         u_{k} &= \operatorname{prox}_{\gamma f}(x_k) \\
         x_{k+1} &= \operatorname{prox}_{\sigma \lambda \regname}(u_k).
-        \end{aligned}
-        \end{equation*}
 
 
     where :math:`\gamma` and :math:`\sigma` are step-sizes. Note that this algorithm does not converge to

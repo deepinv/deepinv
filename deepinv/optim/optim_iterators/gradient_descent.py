@@ -19,12 +19,8 @@ class GDIteration(OptimIterator):
 
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         v_{k} &= \nabla f(x_k) + \lambda \nabla \regname(x_k) \\
         x_{k+1} &= x_k-\gamma v_{k}
-        \end{aligned}
-        \end{equation*}
 
 
     where :math:`\gamma` is a stepsize.
@@ -84,12 +80,8 @@ class MDIteration(OptimIterator):
 
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         v_{k} &= \nabla f(x_k) + \lambda \nabla g(x_k) \\
         x_{k+1} &= \nabla h^*(\nabla h(x_k) - \gamma v_{k})
-        \end{aligned}
-        \end{equation*}
 
 
     where :math:`\gamma` is a stepsize.

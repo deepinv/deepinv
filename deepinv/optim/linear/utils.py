@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from deepinv.utils.tensorlist import TensorList
-from deepinv.utils.compat import zip_strict
 
 if TYPE_CHECKING:
     from torch import Tensor
@@ -18,7 +17,7 @@ def dot(a: Tensor | TensorList, b: Tensor | TensorList, dim: int) -> Tensor:
     """
     if isinstance(a, TensorList):
         aux = 0
-        for ai, bi in zip_strict(a.x, b.x):
+        for ai, bi in zip(a.x, b.x, strict=True):
             aux += (ai.conj() * bi).sum(
                 dim=dim, keepdim=True
             )  # performs batched dot product
