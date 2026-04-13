@@ -4,6 +4,7 @@ import warnings
 from collections.abc import Iterable
 from types import MappingProxyType
 import torch
+from torch import Tensor
 from deepinv.optim import optim_iterators as _optim_iterators
 from deepinv.optim.optim_iterators import (
     OptimIterator,
@@ -494,26 +495,24 @@ class BaseOptim(Reconstructor):
 
     def init_iterate_fn(
         self,
-        y: torch.Tensor,
+        y: Tensor,
         physics: Physics,
         init: (
-            Callable[
-                [torch.Tensor, Physics], Iterable[torch.Tensor] | torch.Tensor | dict
-            ]
-            | Iterable[torch.Tensor]
-            | torch.Tensor
+            Callable[[Tensor, Physics], Iterable[Tensor] | Tensor | dict]
+            | Iterable[Tensor]
+            | Tensor
             | dict
         ) = None,
         cost_fn: Callable[
             [
-                torch.Tensor,
+                Tensor,
                 DataFidelity,
                 Prior,
                 dict[str, float | Iterable],
-                torch.Tensor,
+                Tensor,
                 Physics,
             ],
-            torch.Tensor,
+            Tensor,
         ] = None,
     ) -> dict:
         r"""
@@ -549,7 +548,7 @@ class BaseOptim(Reconstructor):
         if init is not None:
             if callable(init):
                 init = init(y, physics)
-            if isinstance(init, torch.Tensor):
+            if isinstance(init, Tensor):
                 init_X = {"est": (init,)}
             elif isinstance(init, tuple):
                 init_X = {"est": init}
@@ -578,7 +577,7 @@ class BaseOptim(Reconstructor):
         return init_X
 
     def init_metrics_fn(
-        self, X_init: dict[str, list[list[float]]], x_gt: torch.Tensor = None
+        self, X_init: dict[str, list[list[float]]], x_gt: Tensor = None
     ) -> dict[str, list]:
         r"""
         Initializes the metrics.
@@ -614,9 +613,9 @@ class BaseOptim(Reconstructor):
     def update_metrics_fn(
         self,
         metrics: dict[str, list[list[float]]],
-        X_prev: dict[str, torch.Tensor | tuple[torch.Tensor, ...]],
-        X: dict[str, torch.Tensor] | dict[str, torch.Tensor | tuple[torch.Tensor, ...]],
-        x_gt: torch.Tensor = None,
+        X_prev: dict[str, Tensor | tuple[Tensor, ...]],
+        X: dict[str, Tensor] | dict[str, Tensor | tuple[Tensor, ...]],
+        x_gt: Tensor = None,
     ) -> dict[str, list]:
         r"""
         Function that compute all the metrics, across all batches, for the current iteration.
@@ -658,8 +657,8 @@ class BaseOptim(Reconstructor):
 
     def backtracking_check_fn(
         self,
-        X_prev: dict[str, torch.Tensor | tuple[torch.Tensor, ...]],
-        X: dict[str, torch.Tensor | tuple[torch.Tensor, ...]],
+        X_prev: dict[str, Tensor | tuple[Tensor, ...]],
+        X: dict[str, Tensor | tuple[Tensor, ...]],
     ) -> bool:
         r"""
         Performs stepsize backtracking if the sufficient decrease condition is not verified.
@@ -694,8 +693,8 @@ class BaseOptim(Reconstructor):
     def check_conv_fn(
         self,
         it: int,
-        X_prev: dict[str, torch.Tensor | tuple[torch.Tensor, ...]],
-        X: dict[str, torch.Tensor | tuple[torch.Tensor, ...]],
+        X_prev: dict[str, Tensor | tuple[Tensor, ...]],
+        X: dict[str, Tensor | tuple[Tensor, ...]],
     ) -> bool:
         r"""
         Checks the convergence of the algorithm.
@@ -816,17 +815,15 @@ class BaseOptim(Reconstructor):
 
     def forward(
         self,
-        y: torch.Tensor,
+        y: Tensor,
         physics: Physics,
         init: (
-            Callable[
-                [torch.Tensor, Physics], Iterable[torch.Tensor] | torch.Tensor | dict
-            ]
-            | Iterable[torch.Tensor]
-            | torch.Tensor
+            Callable[[Tensor, Physics], Iterable[Tensor] | Tensor | dict]
+            | Iterable[Tensor]
+            | Tensor
             | dict
         ) = None,
-        x_gt: torch.Tensor = None,
+        x_gt: Tensor = None,
         compute_metrics: bool = False,
         **kwargs,
     ):
@@ -878,14 +875,14 @@ def create_iterator(
     cost_fn: (
         Callable[
             [
-                torch.Tensor,
+                Tensor,
                 DataFidelity,
                 Prior,
                 dict[str, float],
-                torch.Tensor,
+                Tensor,
                 Physics,
             ],
-            torch.Tensor,
+            Tensor,
         ]
         | None
     ) = None,
@@ -972,14 +969,14 @@ def optim_builder(
     prior: Prior | list[Prior] = None,
     cost_fn: Callable[
         [
-            torch.Tensor,
+            Tensor,
             DataFidelity,
             Prior,
             dict[str, float | Iterable],
-            torch.Tensor,
+            Tensor,
             Physics,
         ],
-        torch.Tensor,
+        Tensor,
     ] = None,
     g_first: bool = False,
     bregman_potential: Bregman = None,
@@ -1137,20 +1134,20 @@ class ADMM(BaseOptim):
         thres_conv: float = 1e-5,
         early_stop: bool = False,
         custom_metrics: dict[str, Metric] = None,
-        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        custom_init: Callable[[Tensor, Physics], dict] = None,
         unfold: bool = False,
         trainable_params: list[str] = None,
         g_first: bool = False,
         cost_fn: Callable[
             [
-                torch.Tensor,
+                Tensor,
                 DataFidelity,
                 Prior,
                 dict[str, float],
-                torch.Tensor,
+                Tensor,
                 Physics,
             ],
-            torch.Tensor,
+            Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
         **kwargs,
@@ -1267,20 +1264,20 @@ class DRS(BaseOptim):
         thres_conv: float = 1e-5,
         early_stop: bool = False,
         custom_metrics: dict[str, Metric] = None,
-        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        custom_init: Callable[[Tensor, Physics], dict] = None,
         unfold: bool = False,
         trainable_params: list[str] = None,
         g_first: bool = False,
         cost_fn: Callable[
             [
-                torch.Tensor,
+                Tensor,
                 DataFidelity,
                 Prior,
                 dict[str, float],
-                torch.Tensor,
+                Tensor,
                 Physics,
             ],
-            torch.Tensor,
+            Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
         **kwargs,
@@ -1403,21 +1400,21 @@ class GD(BaseOptim):
         early_stop: bool = False,
         backtracking: BacktrackingConfig | bool = None,
         custom_metrics: dict[str, Metric] = None,
-        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        custom_init: Callable[[Tensor, Physics], dict] = None,
         unfold: bool = False,
         trainable_params: list[str] = None,
         DEQ: DEQConfig | bool = None,
         anderson_acceleration: AndersonAccelerationConfig | bool = None,
         cost_fn: Callable[
             [
-                torch.Tensor,
+                Tensor,
                 DataFidelity,
                 Prior,
                 dict[str, float],
-                torch.Tensor,
+                Tensor,
                 Physics,
             ],
-            torch.Tensor,
+            Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
         **kwargs,
@@ -1542,7 +1539,7 @@ class HQS(BaseOptim):
         thres_conv: float = 1e-5,
         early_stop: bool = False,
         custom_metrics: dict[str, Metric] = None,
-        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        custom_init: Callable[[Tensor, Physics], dict] = None,
         g_first: bool = False,
         unfold: bool = False,
         trainable_params: list[str] = None,
@@ -1550,14 +1547,14 @@ class HQS(BaseOptim):
         anderson_acceleration: AndersonAccelerationConfig | bool = None,
         cost_fn: Callable[
             [
-                torch.Tensor,
+                Tensor,
                 DataFidelity,
                 Prior,
                 dict[str, float],
-                torch.Tensor,
+                Tensor,
                 Physics,
             ],
-            torch.Tensor,
+            Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
         **kwargs,
@@ -1682,7 +1679,7 @@ class PGD(BaseOptim):
         early_stop: bool = False,
         backtracking: BacktrackingConfig | bool = None,
         custom_metrics: dict[str, Metric] = None,
-        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        custom_init: Callable[[Tensor, Physics], dict] = None,
         g_first: bool = False,
         unfold: bool = False,
         trainable_params: list[str] = None,
@@ -1690,14 +1687,14 @@ class PGD(BaseOptim):
         anderson_acceleration: AndersonAccelerationConfig | bool = None,
         cost_fn: Callable[
             [
-                torch.Tensor,
+                Tensor,
                 DataFidelity,
                 Prior,
                 dict[str, float],
-                torch.Tensor,
+                Tensor,
                 Physics,
             ],
-            torch.Tensor,
+            Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
         **kwargs,
@@ -1809,20 +1806,20 @@ class FISTA(BaseOptim):
         thres_conv: float = 1e-5,
         early_stop: bool = False,
         custom_metrics: dict[str, Metric] = None,
-        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        custom_init: Callable[[Tensor, Physics], dict] = None,
         g_first: bool = False,
         unfold: bool = False,
         trainable_params: list[str] = None,
         cost_fn: Callable[
             [
-                torch.Tensor,
+                Tensor,
                 DataFidelity,
                 Prior,
                 dict[str, float],
-                torch.Tensor,
+                Tensor,
                 Physics,
             ],
-            torch.Tensor,
+            Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
         **kwargs,
@@ -1926,19 +1923,19 @@ class MD(BaseOptim):
         thres_conv: float = 1e-5,
         early_stop: bool = False,
         custom_metrics: dict[str, Metric] = None,
-        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        custom_init: Callable[[Tensor, Physics], dict] = None,
         unfold: bool = False,
         trainable_params: list[str] = None,
         cost_fn: Callable[
             [
-                torch.Tensor,
+                Tensor,
                 DataFidelity,
                 Prior,
                 dict[str, float],
-                torch.Tensor,
+                Tensor,
                 Physics,
             ],
-            torch.Tensor,
+            Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
         **kwargs,
@@ -2043,20 +2040,20 @@ class PMD(BaseOptim):
         thres_conv: float = 1e-5,
         early_stop: bool = False,
         custom_metrics: dict[str, Metric] = None,
-        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        custom_init: Callable[[Tensor, Physics], dict] = None,
         g_first: bool = False,
         unfold: bool = False,
         trainable_params: list[str] = None,
         cost_fn: Callable[
             [
-                torch.Tensor,
+                Tensor,
                 DataFidelity,
                 Prior,
                 dict[str, float],
-                torch.Tensor,
+                Tensor,
                 Physics,
             ],
-            torch.Tensor,
+            Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
         **kwargs,
@@ -2171,8 +2168,8 @@ class PDCP(BaseOptim):
 
     def __init__(
         self,
-        K: Callable[[torch.Tensor], torch.Tensor] = lambda x: x,
-        K_adjoint: Callable[[torch.Tensor], torch.Tensor] = lambda x: x,
+        K: Callable[[Tensor], Tensor] = lambda x: x,
+        K_adjoint: Callable[[Tensor], Tensor] = lambda x: x,
         data_fidelity: DataFidelity | list[DataFidelity] = None,
         prior: Prior | list[Prior] = None,
         lambda_reg: float = 1.0,
@@ -2186,20 +2183,20 @@ class PDCP(BaseOptim):
         thres_conv: float = 1e-5,
         early_stop: bool = False,
         custom_metrics: dict[str, Metric] = None,
-        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        custom_init: Callable[[Tensor, Physics], dict] = None,
         g_first: bool = False,
         unfold: bool = False,
         trainable_params: list[str] = None,
         cost_fn: Callable[
             [
-                torch.Tensor,
+                Tensor,
                 DataFidelity,
                 Prior,
                 dict[str, float],
-                torch.Tensor,
+                Tensor,
                 Physics,
             ],
-            torch.Tensor,
+            Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
         **kwargs,

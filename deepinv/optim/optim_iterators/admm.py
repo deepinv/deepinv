@@ -1,5 +1,6 @@
 from __future__ import annotations
 import torch
+from torch import Tensor
 from .optim_iterator import OptimIterator, fStep, gStep
 from typing import TYPE_CHECKING
 
@@ -41,13 +42,13 @@ class ADMMIteration(OptimIterator):
 
     def forward(
         self,
-        X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        X: dict[str, tuple[Tensor, Tensor] | Tensor],
         cur_data_fidelity: DataFidelity,
         cur_prior: Prior,
         cur_params: dict,
-        y: torch.Tensor,
+        y: Tensor,
         physics: Physics,
-    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]:
+    ) -> dict[str, tuple[Tensor, Tensor] | Tensor]:
         r"""
         Single iteration of the ADMM algorithm.
 
@@ -91,13 +92,13 @@ class fStepADMM(fStep):
 
     def forward(
         self,
-        x: torch.Tensor,
-        z: torch.Tensor,
+        x: Tensor,
+        z: Tensor,
         cur_data_fidelity: DataFidelity,
         cur_params: dict,
-        y: torch.Tensor,
+        y: Tensor,
         physics: Physics,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         r"""
         Single iteration step on the data-fidelity term :math:`f`.
 
@@ -126,11 +127,11 @@ class gStepADMM(gStep):
 
     def forward(
         self,
-        x: torch.Tensor,
-        z: torch.Tensor,
+        x: Tensor,
+        z: Tensor,
         cur_prior: Prior,
         cur_params: dict,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         r"""
         Single iteration step on the prior term :math:`\lambda g`.
 

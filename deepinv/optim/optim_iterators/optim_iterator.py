@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Callable
 if TYPE_CHECKING:
     from deepinv.optim import DataFidelity, Prior
     from deepinv.physics import Physics
-    import torch
+    from torch import Tensor
 
 
 class OptimIterator(nn.Module):
@@ -71,9 +71,7 @@ class OptimIterator(nn.Module):
         self.f_step = fStep(g_first=self.g_first)
         self.g_step = gStep(g_first=self.g_first)
 
-    def relaxation_step(
-        self, u: torch.Tensor, v: torch.Tensor, beta: float
-    ) -> torch.Tensor:
+    def relaxation_step(self, u: Tensor, v: Tensor, beta: float) -> Tensor:
         r"""
         Performs a relaxation step of the form :math:`\beta u + (1-\beta) v`.
 
@@ -86,15 +84,15 @@ class OptimIterator(nn.Module):
 
     def forward(
         self,
-        X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        X: dict[str, tuple[Tensor, Tensor] | Tensor],
         cur_data_fidelity: DataFidelity,
         cur_prior: Prior,
         cur_params: dict,
-        y: torch.Tensor,
+        y: Tensor,
         physics: Physics,
         *args,
         **kwargs,
-    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]:
+    ) -> dict[str, tuple[Tensor, Tensor] | Tensor]:
         r"""
         General form of a single iteration of splitting algorithms for minimizing :math:`F =  f + \lambda \regname`, alternating
         between a step on :math:`f` and a step on :math:`\regname`.
@@ -146,10 +144,10 @@ class fStep(nn.Module):
 
         def forward(
             self,
-            x: torch.Tensor,
+            x: Tensor,
             cur_data_fidelity: DataFidelity,
             cur_params: dict,
-            y: torch.Tensor,
+            y: Tensor,
             physics: Physics,
             *args,
             **kwargs,
@@ -179,7 +177,7 @@ class gStep(nn.Module):
         self.g_first = g_first
 
         def forward(
-            self, x: torch.Tensor, cur_prior: Prior, cur_params: dict, *args, **kwargs
+            self, x: Tensor, cur_prior: Prior, cur_params: dict, *args, **kwargs
         ):
             r"""
             Single iteration step on the prior term :math:`\regname`.

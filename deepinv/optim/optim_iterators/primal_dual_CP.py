@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from deepinv.optim import DataFidelity, Prior
     from deepinv.physics import Physics
-    import torch
+    from torch import Tensor
 
 
 class CPIteration(OptimIterator):
@@ -53,15 +53,15 @@ class CPIteration(OptimIterator):
 
     def forward(
         self,
-        X: dict[str, tuple[torch.Tensor, torch.Tensor, torch.Tensor] | torch.Tensor],
+        X: dict[str, tuple[Tensor, Tensor, Tensor] | Tensor],
         cur_data_fidelity: DataFidelity,
         cur_prior: Prior,
         cur_params: dict,
-        y: torch.Tensor,
+        y: Tensor,
         physics: Physics,
         *args,
         **kwargs,
-    ) -> dict[str, tuple[torch.Tensor, torch.Tensor, torch.Tensor] | torch.Tensor]:
+    ) -> dict[str, tuple[Tensor, Tensor, Tensor] | Tensor]:
         r"""
         Single iteration of the Chambolle-Pock algorithm.
 
@@ -110,13 +110,13 @@ class fStepCP(fStep):
 
     def forward(
         self,
-        x: torch.Tensor,
-        w: torch.Tensor,
+        x: Tensor,
+        w: Tensor,
         cur_data_fidelity: DataFidelity,
-        y: torch.Tensor,
+        y: Tensor,
         physics: Physics,
         cur_params: dict,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         r"""
         Single Chambolle-Pock iteration step on the data-fidelity term :math:`f`.
 
@@ -148,11 +148,11 @@ class gStepCP(gStep):
 
     def forward(
         self,
-        x: torch.Tensor,
-        w: torch.Tensor,
+        x: Tensor,
+        w: Tensor,
         cur_prior: Prior,
         cur_params: dict,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         r"""
         Single Chambolle-Pock iteration step on the prior term :math:`\lambda g`.
 

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from deepinv.optim import DataFidelity, Prior
     from deepinv.physics import Physics
-    import torch
+    from torch import Tensor
 
 
 class GDIteration(OptimIterator):
@@ -38,15 +38,15 @@ class GDIteration(OptimIterator):
 
     def forward(
         self,
-        X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        X: dict[str, tuple[Tensor, Tensor] | Tensor],
         cur_data_fidelity: DataFidelity,
         cur_prior: Prior,
         cur_params: dict,
-        y: torch.Tensor,
+        y: Tensor,
         physics: Physics,
         *args,
         **kwargs,
-    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]:
+    ) -> dict[str, tuple[Tensor, Tensor] | Tensor]:
         r"""
         Single gradient descent iteration on the objective :math:`f(x) + \lambda \regname(x)`.
 
@@ -107,15 +107,15 @@ class MDIteration(OptimIterator):
 
     def forward(
         self,
-        X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        X: dict[str, tuple[Tensor, Tensor] | Tensor],
         cur_data_fidelity: DataFidelity,
         cur_prior: Prior,
         cur_params: dict,
-        y: torch.Tensor,
+        y: Tensor,
         physics: Physics,
         *args,
         **kwargs,
-    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]:
+    ) -> dict[str, tuple[Tensor, Tensor] | Tensor]:
         r"""
         Single mirror descent iteration on the objective :math:`f(x) + \lambda g(x)`.
         The Bregman potential, which is an intance of the deepinv.optim.Bregman class, is used to compute the mirror descent step.
@@ -155,12 +155,12 @@ class fStepGD(fStep):
 
     def forward(
         self,
-        x: torch.Tensor,
+        x: Tensor,
         cur_data_fidelity: DataFidelity,
         cur_params: dict,
-        y: torch.Tensor,
+        y: Tensor,
         physics: Physics,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         r"""
         Single gradient descent iteration on the data fit term :math:`f`.
 
@@ -182,9 +182,7 @@ class gStepGD(gStep):
     def __init__(self, **kwargs):
         super(gStepGD, self).__init__(**kwargs)
 
-    def forward(
-        self, x: torch.Tensor, cur_prior: Prior, cur_params: dict
-    ) -> torch.Tensor:
+    def forward(self, x: Tensor, cur_prior: Prior, cur_params: dict) -> Tensor:
         r"""
         Single iteration step on the prior term :math:`\lambda g`.
 

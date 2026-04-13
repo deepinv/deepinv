@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from deepinv.optim import DataFidelity, Prior
     from deepinv.physics import Physics
-    import torch
+    from torch import Tensor
 
 
 class HQSIteration(OptimIterator):
@@ -48,14 +48,14 @@ class fStepHQS(fStep):
 
     def forward(
         self,
-        x: torch.Tensor,
+        x: Tensor,
         cur_data_fidelity: DataFidelity,
         cur_params: dict,
-        y: torch.Tensor,
+        y: Tensor,
         physics: Physics,
         *args,
         **kwargs,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         r"""
         Single proximal step on the data-fidelity term :math:`f`.
 
@@ -80,8 +80,8 @@ class gStepHQS(gStep):
         super(gStepHQS, self).__init__(**kwargs)
 
     def forward(
-        self, x: torch.Tensor, cur_prior: Prior, cur_params: dict, *args, **kwargs
-    ) -> torch.Tensor:
+        self, x: Tensor, cur_prior: Prior, cur_params: dict, *args, **kwargs
+    ) -> Tensor:
         r"""
         Single proximal step on the prior term :math:`\lambda \regname`.
 

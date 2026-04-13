@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-
+from torch import Tensor
 from .optim_iterator import OptimIterator, fStep, gStep
 from typing import TYPE_CHECKING
 
@@ -50,13 +50,13 @@ class SMIteration(OptimIterator):
 
     def forward(
         self,
-        x: torch.Tensor,
+        x: Tensor,
         cur_prior: Prior,
         cur_params: dict,
-        y: torch.Tensor,
+        y: Tensor,
         physics: Physics,
         *args,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         r"""
         Single iteration of the spectral method.
 
@@ -93,9 +93,7 @@ class fStepSM(fStep):
         self.preprocessing = preprocessing
         self.lamb = lamb
 
-    def forward(
-        self, x: torch.Tensor, y: torch.Tensor, physics: Physics
-    ) -> torch.Tensor:
+    def forward(self, x: Tensor, y: Tensor, physics: Physics) -> Tensor:
         r"""
         Single power iteration step for spectral methods.
 
@@ -127,9 +125,7 @@ class gStepSM(gStep):
     def __init__(self, **kwargs):
         super(gStepSM, self).__init__(**kwargs)
 
-    def forward(
-        self, x: torch.Tensor, cur_prior: Prior, cur_params: dict
-    ) -> torch.Tensor:
+    def forward(self, x: Tensor, cur_prior: Prior, cur_params: dict) -> Tensor:
         r"""
         Single iteration step on the prior term :math:`g`.
 

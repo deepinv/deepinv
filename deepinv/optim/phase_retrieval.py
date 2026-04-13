@@ -1,12 +1,13 @@
 from __future__ import annotations
 import torch
+from torch import Tensor
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
 
 
-def default_preprocessing(y: torch.Tensor, physics: Physics) -> torch.Tensor:
+def default_preprocessing(y: Tensor, physics: Physics) -> Tensor:
     r"""
     Default preprocessing function for spectral methods.
 
@@ -24,11 +25,11 @@ def default_preprocessing(y: torch.Tensor, physics: Physics) -> torch.Tensor:
 
 
 def correct_global_phase(
-    x_recon: torch.Tensor,
-    x: torch.Tensor,
+    x_recon: Tensor,
+    x: Tensor,
     threshold: float = 1e-5,
     verbose: bool = False,
-) -> torch.Tensor:
+) -> Tensor:
     r"""
         Corrects the global phase of the reconstructed image.
 
@@ -81,7 +82,7 @@ def correct_global_phase(
     return x_recon
 
 
-def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+def cosine_similarity(a: Tensor, b: Tensor) -> Tensor:
     r"""
     Compute the cosine similarity between two images.
 
@@ -105,15 +106,13 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 
 
 def spectral_methods(
-    y: torch.Tensor,
+    y: Tensor,
     physics: Physics,
-    x: torch.Tensor = None,
+    x: Tensor = None,
     n_iter: int = 50,
-    preprocessing: Callable[
-        [torch.Tensor, torch.Tensor], torch.Tensor
-    ] = default_preprocessing,
+    preprocessing: Callable[[Tensor, Tensor], Tensor] = default_preprocessing,
     lamb: float = 10.0,
-    x_true: torch.Tensor = None,
+    x_true: Tensor = None,
     log: bool = False,
     log_metric: Callable = cosine_similarity,
     early_stop: bool = True,
@@ -197,8 +196,8 @@ def spectral_methods(
 
 
 def spectral_methods_wrapper(
-    y: torch.Tensor, physics: Physics, n_iter: int = 5000, **kwargs
-) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
+    y: Tensor, physics: Physics, n_iter: int = 5000, **kwargs
+) -> dict[str, tuple[Tensor, Tensor]]:
     r"""
     Wrapper for spectral methods.
 
