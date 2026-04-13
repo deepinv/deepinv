@@ -7,7 +7,7 @@ from torch import Tensor, zeros_like
 from torch.nn import Module
 from torchvision.transforms import CenterCrop, Resize
 from deepinv.utils.decorators import _deprecated_argument
-from ._internal import _as_pair
+from ._internal import _as_pair, _add_tuple
 from ._tiling import (
     _compute_compatible_img_size,
     _compute_needed_pad,
@@ -384,13 +384,25 @@ class TiledMixin2d:
         The image will be padded if necessary to ensure all patches have the same size.
 
         :param torch.Tensor image: Input image tensor of shape `(B, C, H, W)`.
-        :param int | tuple[int, int, int, int] pad: Optional, if provided, the patch size will be increased by this padding on each side. Can be a single int for symmetric padding or a tuple of 4 ints for (left, right, top, bottom) padding. Defaults to `(0, 0, 0, 0)` for no additional padding.
+        :param int | tuple[int, int, int, int] pad: Optional, if provided, the patch size will be increased by this padding on each side. Can be a single int for symmetric padding or a tuple of 4 ints for (left, right, top, bottom) padding. Defaults to `(0, 0, 0, 0)` for no additional padding. If provided, this padding is added on top of any padding that may be needed to ensure compatible patch extraction. So the effective patch size will become `patch_size + pad`.
         :return: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
-        """
 
+        .. note::
+
+            The `pad` argument allows you to specify additional padding to be added to the patch size. This can be useful if you want to include some context around each patch. For example, if you have a patch size of (3, 3) and you set `pad=1`, then the effective patch size will become (5, 5). This is useful when you want perform operations that require context around the patch, such as convolutional operations.
+
+        """
+        if isinstance(pad, int):
+            pad = (pad, pad, pad, pad)
+        elif isinstance(pad, tuple) and len(pad) != 4:
+            raise ValueError(
+                "Pad must be an int or a tuple of 4 ints (left, right, top, bottom)."
+            )
+
+        patch_size = _add_tuple(self.patch_size, (pad[2] + pad[3], pad[0] + pad[1]))
         return _image_to_patches_impl(
             image=image,
-            patch_size=self.patch_size,
+            patch_size=patch_size,
             stride=self.stride,
             pad_if_needed=self.pad_if_needed,
             extra_pad=pad,
@@ -410,7 +422,7 @@ class TiledMixin2d:
 
         :param torch.Tensor patches: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
         :param img_size: Target output size (height, width). If provided, output is cropped to this size from the top-left corner.
-        :param reduce_overlap: How to handle overlapping regions. Options are `"sum"` or `"mean"`.
+        :param reduce_overlap: How to handle overlapping regions. Options are `"sum"` or `"mean"`. If `"sum"`, overlapping regions are summed (default). If `"mean"`, overlapping regions are averaged, which can give an identical reconstruction to the original image.
 
         :return: Reconstructed image tensor of shape `(B, C, H, W)`.
         """
