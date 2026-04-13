@@ -99,42 +99,54 @@ sde = VariancePreservingDiffusion(
     device=device,
 )
 
-prior_sampler = PosteriorDiffusion(
-    data_fidelity=ZeroFidelity(),
-    sde=sde,
-    denoiser=denoiser,
-    solver=solver,
-    dtype=torch.float32,
-    device=device,
-    verbose=True,
-)
+# prior_sampler = PosteriorDiffusion(
+#     data_fidelity=ZeroFidelity(),
+#     sde=sde,
+#     denoiser=denoiser,
+#     solver=solver,
+#     dtype=torch.float32,
+#     device=device,
+#     verbose=True,
+# )
 
-with torch.no_grad():
-    x_prior_slices = []
-    for i in range(n_slices):
-        x_prior_slices.append(
-            prior_sampler(
-                y=None,
-                physics=None,
-                x_init=(1, 1, img_width, img_width),
-                seed=i,
-                get_trajectory=False,
-            )
-        )
-    x_prior = torch.cat(x_prior_slices, dim=0)
+# with torch.no_grad():
+#     x_prior_slices = []
+#     for i in range(n_slices):
+#         x_prior_slices.append(
+#             prior_sampler(
+#                 y=None,
+#                 physics=None,
+#                 x_init=(1, 1, img_width, img_width),
+#                 seed=i,
+#                 get_trajectory=False,
+#             )
+#         )
+#     x_prior = torch.cat(x_prior_slices, dim=0)
 
-dinv.utils.plot(
-    [x_prior],
-    titles=["Unconditional prior sample"],
-    figsize=(4, 4),
-)
+# dinv.utils.plot(
+#     [x_prior],
+#     titles=["Unconditional prior sample"],
+#     figsize=(4, 4),
+# )
+
 # %% 5) Reconstruction / posterior sampling from projections (DPS)
 # ---------------------------------------------------------------
 # We use diffusion posterior sampling to condition the diffusion prior on the measurements.
+num_steps = 100
+timesteps = torch.linspace(1.0, 1e-3, num_steps, device=device)
+solver = EulerSolver(timesteps=timesteps, rng=torch.Generator(device=device))
+
+sde = VariancePreservingDiffusion(
+    denoiser=denoiser,
+    solver=solver,
+    dtype=torch.float64,
+    device=device,
+)
+
 posterior_sampler = PosteriorDiffusion(
     data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=1.0),
-    sde=sde,
     denoiser=denoiser,
+    sde=sde,
     solver=solver,
     dtype=torch.float32,
     device=device,
@@ -161,22 +173,18 @@ dinv.utils.plot(
     titles=["DPS posterior sample"],
     figsize=(4, 4),
 )
-# %% 6) Visualize one slice
-# ------------------------
-# For simplicity, we show a single slice from the volume.
-idx = n_slices // 2
+# %%
+# Show the results
 
-# Filtered back-projection baseline
 x_fbp = physics.A_dagger(y)
 
 dinv.utils.plot(
     [
-        x[idx : idx + 1],
-        x_fbp[idx : idx + 1],
-        x_prior[idx : idx + 1],
-        x_rec[idx : idx + 1],
+        x,
+        x_fbp,
+        x_rec,
     ],
-    titles=["Ground truth", "FBP", "Prior sample", "DPS posterior sample"],
+    titles=["Ground truth", "FBP", "DPS posterior sample"],
     figsize=(10, 3),
 )
 
