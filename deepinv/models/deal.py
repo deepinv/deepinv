@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC
-from typing import Any, Callable
-
 import torch
 import torch.nn.functional as F
 import torch.nn.utils.parametrize as P
@@ -415,7 +412,7 @@ class QuadraticSplineFunc(torch.autograd.Function):
         return grad_x, grad_coefficients, None, None, None, None
 
 
-class LinearSpline(ABC, nn.Module):
+class LinearSpline(nn.Module):
     """
     Class for LinearSpline activation functions.
 
