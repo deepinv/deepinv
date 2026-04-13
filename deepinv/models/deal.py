@@ -9,6 +9,7 @@ from deepinv.physics import Denoising, LinearPhysics
 from deepinv.optim.linear import conjugate_gradient
 from .base import Reconstructor
 from .utils import load_state_dict_from_url
+from typing import Any, Callable
 
 
 class DEAL(Reconstructor):
