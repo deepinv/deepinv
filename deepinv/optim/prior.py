@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
@@ -528,22 +529,8 @@ class PatchPrior(Prior):
 
     def fn(self, x, *args, **kwargs):
         if self.pad:
-            x = torch.cat(
-                (
-                    torch.flip(x[:, :, -self.patch_size : -1, :], (2,)),
-                    x,
-                    torch.flip(x[:, :, 1 : self.patch_size, :], (2,)),
-                ),
-                2,
-            )
-            x = torch.cat(
-                (
-                    torch.flip(x[:, :, :, -self.patch_size : -1], (3,)),
-                    x,
-                    torch.flip(x[:, :, :, 1 : self.patch_size], (3,)),
-                ),
-                3,
-            )
+            pad = self.patch_size - 1
+            x = F.pad(x, (pad, pad, pad, pad), mode="reflect")
 
         patches, _ = patch_extractor(x, self.n_patches, self.patch_size)
         reg = self.negative_patch_log_likelihood(patches)
