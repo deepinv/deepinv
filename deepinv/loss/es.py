@@ -1,6 +1,5 @@
 from __future__ import annotations
 import deepinv as dinv
-import deepinv as dinv
 
 from deepinv.loss.loss import Loss
 from deepinv.loss.measplit import SplittingLoss
@@ -10,6 +9,7 @@ from deepinv.transform.base import Transform
 import torch
 
 import weakref
+import warnings
 
 
 class EquivariantSplittingLoss(Loss):
@@ -48,11 +48,12 @@ class EquivariantSplittingLoss(Loss):
 
     At training time, a single splitting is performed for each sample in the batch, however, at evaluation time, the reconstructions are averaged over multiple splittings as specified by ``eval_n_samples``.
 
-    :param PhysicsGenerator mask_generator: the generator specifying the distribution of splittings.
-    :param Loss consistency_loss: the loss used to compute the consistency term.
-    :param Loss prediction_loss: the loss used to compute the prediction term.
-    :param Transform transform: transformations to be used in training mode for Reynolds averaging.
-    :param Transform eval_transform: transformations to be used in evaluation mode for Reynolds averaging. It can be used to have true Reynolds averaging at evaluation time and efficient Monte Carlo estimation at training time. If left unspecified, the value of ``transform`` is used at evaluation time as well.
+    :param PhysicsGenerator, None mask_generator: the generator specifying the distribution of splittings. Defaults to a :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` with image size specified by ``img_size``.
+    :param Loss, None consistency_loss: the loss used to compute the consistency term. Defaults to a :class:`deepinv.loss.MCLoss`.
+    :param Loss, None prediction_loss: the loss used to compute the prediction term. Defaults to a :class:`deepinv.loss.MCLoss`.
+    :param Transform, None transform: transformations to be used in training mode for Reynolds averaging (optional).
+    :param Transform, None eval_transform: transformations to be used in evaluation mode for Reynolds averaging. It can be used to have true Reynolds averaging at evaluation time and efficient Monte Carlo estimation at training time. If left unspecified, the value of ``transform`` is used at evaluation time as well.
+    :param tuple[int, ...] img_size: the image size for the fallback splitting scheme (optional). It is only used if ``mask_generator`` is not specified.
 
     |sep|
 
@@ -97,12 +98,13 @@ class EquivariantSplittingLoss(Loss):
     def __init__(
         self,
         *,
-        mask_generator: PhysicsGenerator,
-        consistency_loss: Loss,
-        prediction_loss: Loss,
+        mask_generator: PhysicsGenerator | None = None,
+        consistency_loss: Loss | None = None,
+        prediction_loss: Loss | None = None,
         eval_n_samples: int = 5,
         transform: Transform | None = None,
         eval_transform: Transform | None = None,
+        img_size: tuple[int, ...] | None = None,
     ):
         super().__init__()
 
@@ -118,8 +120,33 @@ class EquivariantSplittingLoss(Loss):
         self.transform = transform
         self.eval_transform = eval_transform
 
+        if mask_generator is None:
+            if img_size is None:
+                raise ValueError(
+                    "Either `mask_generator` or `img_size` must be specified to determine the splitting scheme."
+                )
+            mask_generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+                img_size=img_size,
+                split_ratio=0.9,
+                pixelwise=True,
+            )
+        elif img_size is not None:
+            warnings.warn(
+                "The `img_size` argument is ignored when `mask_generator` is specified. Make sure to specify the image size in the `mask_generator` if necessary.",
+                UserWarning,
+                stacklevel=2,
+            )
+
         self.mask_generator = mask_generator
+
+        if consistency_loss is None:
+            consistency_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
+
         self.consistency_loss = consistency_loss
+
+        if prediction_loss is None:
+            prediction_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
+
         self.prediction_loss = prediction_loss
 
         self.eval_n_samples = eval_n_samples
