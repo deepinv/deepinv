@@ -1803,6 +1803,7 @@ def test_deal_model_runs(monkeypatch, device):
         color=False,
         device=device,
     )
+    model.eval()
 
     # Simple DeepInverse physics (denoising)
     physics = Denoising().to(device)
@@ -1810,9 +1811,46 @@ def test_deal_model_runs(monkeypatch, device):
     # Fake measurement
     y = torch.randn(1, 1, 32, 32, device=device)
 
-    # Run the forward pass
+    # Reconstruction / physics branch
     x_hat = model(y, physics)
-
-    # Check that output shape matches input shape
     assert isinstance(x_hat, torch.Tensor)
     assert x_hat.shape == y.shape
+
+    # Denoiser branch with sigma argument
+    x_hat_sigma = model(y, sigma=0.1)
+    assert isinstance(x_hat_sigma, torch.Tensor)
+    assert x_hat_sigma.shape == y.shape
+
+    # Auto-scale branch
+    model_auto = DEAL(
+        pretrained="dummy.pth",
+        sigma_denoiser=25.0,
+        lambda_reg=10.0,
+        max_iter=1,
+        auto_scale=True,
+        clamp_output=True,
+        color=False,
+        device=device,
+    )
+    model_auto.eval()
+
+    x_hat_auto = model_auto(y, physics)
+    assert isinstance(x_hat_auto, torch.Tensor)
+    assert x_hat_auto.shape == y.shape
+
+    # pretrained=None branch
+    model_no_pretrained = DEAL(
+        pretrained=None,
+        sigma_denoiser=25.0,
+        lambda_reg=10.0,
+        max_iter=1,
+        auto_scale=False,
+        clamp_output=True,
+        color=False,
+        device=device,
+    )
+    model_no_pretrained.eval()
+
+    x_hat_no_pretrained = model_no_pretrained(y, physics)
+    assert isinstance(x_hat_no_pretrained, torch.Tensor)
+    assert x_hat_no_pretrained.shape == y.shape
