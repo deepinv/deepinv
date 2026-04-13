@@ -54,6 +54,7 @@ model = DEAL(
     device=device,
     clamp_output=True,
 )
+model.eval()
 
 n_params = sum(p.numel() for p in model.parameters())
 print(f"DEAL number of parameters: {n_params:,}")

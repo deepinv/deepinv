@@ -13,8 +13,6 @@ from deepinv.optim.linear import conjugate_gradient
 from .base import Reconstructor
 from .utils import load_state_dict_from_url
 
-ms = torch
-
 
 class DEAL(Reconstructor):
     r"""
@@ -93,10 +91,6 @@ class DEAL(Reconstructor):
     ) -> None:
         super().__init__()
 
-        init_device = torch.device(
-            device or ("cuda" if torch.cuda.is_available() else "cpu")
-        )
-
         self.sigma_denoiser = float(sigma_denoiser)
         self.lambda_reg = float(lambda_reg)
         self.max_iter = int(max_iter)
@@ -104,15 +98,16 @@ class DEAL(Reconstructor):
         self.target_y_std = float(target_y_std)
         self.clamp_output = bool(clamp_output)
 
-        self.model = _DEALImpl(color=color).to(init_device).eval()
+        self.model = _DEALImpl(color=color).to(device)
 
-        if pretrained == "download":
+        if pretrained is None:
+            state = None
+        elif pretrained == "download":
             if color:
                 url = (
                     "https://raw.githubusercontent.com/mehrsapo/DEAL/main/"
                     "trained_models/deal_color.pth"
                 )
-
             else:
                 url = (
                     "https://raw.githubusercontent.com/mehrsapo/DEAL/main/"
@@ -132,22 +127,21 @@ class DEAL(Reconstructor):
             except TypeError:
                 state = torch.load(pretrained, map_location=self.device)
 
-        raw_state_dict = state.get("state_dict", state)
+        if state is not None:
+            raw_state_dict = state.get("state_dict", state)
 
-        model_state_dict = self.model.state_dict()
+            model_state_dict = self.model.state_dict()
 
-        # Older DEAL checkpoints do not contain newly introduced buffers.
-        # Merge them with the current defaults while keeping pretrained weights.
-        merged_state_dict = model_state_dict.copy()
-        merged_state_dict.update(
-            {
-                key: value
-                for key, value in raw_state_dict.items()
-                if key in model_state_dict
-            }
-        )
+            merged_state_dict = model_state_dict.copy()
+            merged_state_dict.update(
+                {
+                    key: value
+                    for key, value in raw_state_dict.items()
+                    if key in model_state_dict
+                }
+            )
 
-        self.model.load_state_dict(merged_state_dict, strict=True)
+            self.model.load_state_dict(merged_state_dict, strict=True)
 
     @property
     def device(self) -> torch.device:
@@ -200,7 +194,7 @@ class DEAL(Reconstructor):
             return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
 
         if self.auto_scale:
-            y_std = float(y.std().detach().cpu())
+            y_std = float(y.detach().std())
             if 0.0 < y_std < 5.0:
                 scale = self.target_y_std / (y_std + 1e-12)
                 y = y * scale
