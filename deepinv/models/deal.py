@@ -740,24 +740,6 @@ class MultiConv2d(nn.Module):
             self.L.copy_(sn)
             return sn
 
-    def check_tranpose(self) -> None:
-        """
-        Check that the convolutional layer is indeed the transpose.
-        """
-        device = self.conv_layers[0].weight.device
-
-        for _ in range(1):
-            x1 = torch.empty((1, 1, 40, 40), device=device).normal_()
-            x2 = torch.empty(
-                (1, self.num_channels[-1], 40, 40), device=device
-            ).normal_()
-
-            ps_1 = (self(x1) * x2).sum()
-            ps_2 = (self.transpose(x2) * x1).sum()
-            print(f"ps_1: {ps_1.item()}")
-            print(f"ps_2: {ps_2.item()}")
-            print(f"ratio: {ps_1.item() / ps_2.item()}")
-
     def spectrum(self) -> torch.Tensor:
         """Return the Fourier spectrum of the normal operator kernel."""
         kernel = self.get_kernel_WtW()
