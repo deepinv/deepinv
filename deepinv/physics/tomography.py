@@ -656,8 +656,11 @@ class TomographyWithAstra(LinearPhysics):
         return sinogram_scaled
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
-        """Forward projection.
-
+        """Forward projection. In 2D, the output is a sinogram of shape [B,C,A,N],
+        with A the number of angular positions, and N the number of detector cells.
+        In 3D, the output is a stack of sinograms of shape [B,C,V,A,N], with A the
+        number of angular positions, and (V,N) the shape of the 2D detector grid,
+        where V is the number of rows of the detector and N the number of columns.
         :param torch.Tensor x: input of shape [B,C,...,H,W]
         :return: projection of shape [B,C,...,A,N]
         """
@@ -693,7 +696,11 @@ class TomographyWithAstra(LinearPhysics):
             return super(TomographyWithAstra, self).A_dagger(y, **kwargs)
 
     def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
-        """Approximation of the adjoint.
+        """Approximation of the adjoint. In 2D, expected input is a sinogram of
+        shape [B,C,A,N], with A the number of angular positions, and N the number
+        of detector cells. In 3D, expected input is a stack of sinograms of shape [B,C,V,A,N],
+        with A the number of angular positions, and (V,N) the shape of the 2D detector grid,
+        where V is the number of rows of the detector and N the number of columns.
 
         :param torch.Tensor y: input of shape [B,C,...,A,N]
         :return: scaled back-projection of shape [B,C,...,H,W]
