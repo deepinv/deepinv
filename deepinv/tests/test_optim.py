@@ -1262,6 +1262,77 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
     torch.use_deterministic_algorithms(prev_deterministic)
 
 
+def test_least_squares_implicit_backward_nonleaf_buffer_grad(device):
+    """Compare explicit vs implicit gradient on an intermediate non-leaf physics buffer."""
+    torch.manual_seed(0)
+    dtype = torch.float64
+
+    batch_size = 2
+    dim = 12
+
+    # A simple physics for faster test
+    class DummyPhysics(dinv.physics.LinearPhysics):
+        def __init__(self, mat):
+            super().__init__()
+            self.register_buffer("mat", mat)
+
+        def A(self, x):
+            return x @ self.mat.transpose(0, 1)
+
+        def A_adjoint(self, y):
+            return y @ self.mat
+
+    mat = torch.randn((dim, dim), device=device, dtype=dtype)
+    physics = DummyPhysics(mat)
+
+    # Fixed inputs for a fair branch-to-branch comparison.
+    x = torch.randn((batch_size, dim), device=device, dtype=dtype)
+    y = physics.A(x)
+    y = y + 0.01 * torch.randn_like(y)
+    z = physics.A_adjoint(y)
+
+    # Tiny dummy net that outputs an operator matrix from measurements.
+    kernel_net = torch.nn.Sequential(
+        torch.nn.Linear(dim, 2 * dim),
+        torch.nn.Tanh(),
+        torch.nn.Linear(2 * dim, dim * dim),
+    ).to(device=device, dtype=dtype)
+
+    # Explicit gradient (reference)
+    physics.implicit_backward_solver = False
+    for p in kernel_net.parameters():
+        p.grad = None
+    mat_hat = kernel_net(y).mean(dim=0).view(dim, dim)
+
+    physics.update_parameters(mat=mat_hat)
+    x_hat = physics.prox_l2(z, y, solver="CG", tol=1e-6, max_iter=50, gamma=1e-3)
+    loss = (x_hat - x).pow(2).mean()
+    physics.mat.retain_grad()
+    loss.backward()
+    explicit_grad = physics.mat.grad.detach().clone()
+
+    # Implicit gradient
+    physics.implicit_backward_solver = True
+    # First reset all gradients
+    for p in kernel_net.parameters():
+        p.grad = None
+
+    mat_hat = kernel_net(y).mean(dim=0).view(dim, dim)
+    physics.update_parameters(mat=mat_hat)
+    x_hat = physics.prox_l2(z, y, solver="CG", tol=1e-6, max_iter=50, gamma=1e-3)
+    loss = (x_hat - x).pow(2).mean()
+    loss.backward()
+    implicit_grad = physics.mat.grad.detach().clone()
+
+    torch.testing.assert_close(
+        implicit_grad,
+        explicit_grad,
+        rtol=1e-2,
+        atol=1e-2,
+        msg=f"Implicit gradient {implicit_grad} does not match explicit gradient {explicit_grad}",
+    )
+
+
 def test_sirt(device):
     # Tests that the SIRT algorithm converges to the least-squares solution for a linear inverse problem.
 
