@@ -160,11 +160,12 @@ dinv.utils.plot(
 # Equivariant splitting requires choosing a set of transformations for which the forward operator is *not* equivariant. For inpainting, valid choices include shifts, rotations and reflections :footcite:p:`sechaud26Equivariant`. Here, we choose rotations and reflections.
 #
 # Since the base model RAM is not already equivariant to these transformations, we use group averaging by passing in ``transform`` and ``eval_transform`` to the loss. Namely, we swap the base reconstructor :math:`\tilde{R}` for the equivariant reconstructor defined by
+#
 # .. math::
 #
 #      R(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{R}(y, A T_g)
 #
-# which is estimated using a Monte Carlo sampling where a subset of transformations is used, typically a single one at training time and the full set at evaluation time. Internally, the input model is wrapped in an :class:`deepinv.models.EquivariantReconstructor` when calling ``EquivariantSplittingLoss.adapt_model``.
+# which is estimated using a Monte Carlo sampling where a subset of transformations is used, typically a single one at training time and the full set at evaluation time. Internally, the input model is wrapped in an :class:`deepinv.models.EquivariantReconstructor` when calling :meth:`deepinv.loss.EquivariantSplittingLoss.adapt_model`.
 #
 # .. note::
 #

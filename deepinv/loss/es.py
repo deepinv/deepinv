@@ -85,7 +85,7 @@ class EquivariantSplittingLoss(Loss):
     >>> x = torch.ones((1, 1, 8, 8))
     >>> y = physics(x)
     >>> x_net = eq_model(y, physics, update_parameters=True)
-    >>> l = loss(x_net, y, physics, model)
+    >>> l = loss(x_net, y, physics, eq_model)
     >>> print(l.item() > 0)
     True
 
