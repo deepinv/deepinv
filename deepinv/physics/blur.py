@@ -24,12 +24,16 @@ class Downsampling(LinearPhysics):
 
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
+    Supports n-dimensional signals: ``img_size=(C, *spatial_dims)`` where ``spatial_dims``
+    can be e.g. ``(H, W)`` for 2D or ``(D, H, W)`` for 3D.
+
     :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
         , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied. Bicubic downsampling is a sensible default if you are not sure which filter to use.
-    :param tuple[int], None img_size: optional size of the high resolution image `(C, H, W)`.
+    :param tuple[int], None img_size: optional size of the high resolution image ``(C, *spatial_dims)``.
         If `tuple`, use this fixed image size.
         If `None`, override on-the-fly using input data size and `factor` (note that here, `A_adjoint` will
-        only produce even img shapes).
+        only produce even img shapes). Only 2D dynamic mode is supported (``img_size=None``);
+        for 3D or higher, please provide ``img_size``.
     :param int factor: downsampling factor
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
@@ -71,7 +75,7 @@ class Downsampling(LinearPhysics):
             filter = None
         super().__init__(device=device, **kwargs)
         self.imsize = tuple(img_size) if isinstance(img_size, list) else img_size
-        self.imsize_dynamic = (3, 128, 128)  # placeholder
+        self.imsize_dynamic = (3, 128, 128)  # placeholder for 2D dynamic mode
         self.padding = padding
 
         imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
@@ -97,9 +101,12 @@ class Downsampling(LinearPhysics):
         device: torch.device | str = "cpu",
     ) -> dict[str, torch.Tensor]:
         r"""
-        Create a filter tensor with specified downsampling factor
+        Create a filter tensor with specified downsampling factor.
 
-        :param tuple[int] img_size: size of the high resolution image `(C, H, W)`.
+        Supports n-dimensional signals. The number of spatial dimensions is inferred from
+        ``img_size``: ``ndim_spatial = len(img_size) - 1``.
+
+        :param tuple[int] img_size: size of the high resolution image ``(C, *spatial_dims)``.
         :param torch.Tensor, str, list[str] filter: Filter name or tensor
          to be applied to the input image before downsampling.
         :param int, float, torch.Tensor factor: Downsampling factor to be applied to the input image.
@@ -131,19 +138,30 @@ class Downsampling(LinearPhysics):
                         f"Downsampling supports filter string lists if they are identical, but got unique filters {set(filter)}."
                     )
 
+            # Infer spatial dimensionality from img_size: (C, *spatial_dims)
+            ndim_spatial = len(img_size) - 1
+
             if isinstance(filter, torch.Tensor):
                 filter = filter.to(device)
             elif filter == "gaussian":
-                filter = gaussian_blur(sigma=(factor, factor), device=device)
+                filter = gaussian_blur(
+                    sigma=(factor,) * ndim_spatial,
+                    ndim=ndim_spatial,
+                    device=device,
+                )
             elif filter == "bilinear":
-                filter = bilinear_filter(factor, device=device)
+                filter = bilinear_filter(factor, ndim=ndim_spatial, device=device)
             elif filter == "bicubic":
-                filter = bicubic_filter(factor, device=device)
+                filter = bicubic_filter(factor, ndim=ndim_spatial, device=device)
             elif filter == "sinc":
-                filter = sinc_filter(factor, length=4 * factor, device=device)
+                filter = sinc_filter(
+                    factor, length=4 * factor, ndim=ndim_spatial, device=device
+                )
 
+            # Compute FFT dimensions based on spatial dimensionality
+            dims = tuple(range(-ndim_spatial, 0))
             # `Fh` is initialized on `filter.device`
-            Fh = dF.filter_fft(filter, img_size, real_fft=False)
+            Fh = dF.filter_fft(filter, img_size, real_fft=False, dims=dims)
             Fhc = torch.conj(Fh)
             Fh2 = Fhc * Fh
 
@@ -238,9 +256,12 @@ class Downsampling(LinearPhysics):
         # to avoid recomputation of "Fh" when not needed
         if filter_parameters["filter"] is None and self.filter is not None:
             imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
+            # Determine FFT dims from spatial dimensionality of imsize
+            ndim_spatial = len(imsize) - 1
+            dims = tuple(range(-ndim_spatial, 0))
 
             filter_parameters["Fh"] = dF.filter_fft(
-                self.filter, imsize, real_fft=False, dims=(-2, -1)
+                self.filter, imsize, real_fft=False, dims=dims
             ).to(device)
             filter_parameters["Fhc"] = torch.conj(filter_parameters["Fh"])
             filter_parameters["Fh2"] = (
@@ -262,6 +283,9 @@ class Downsampling(LinearPhysics):
         r"""
         Applies the downsampling operator to the input image.
 
+        Supports n-dimensional inputs: ``x`` can be 4D ``(B, C, H, W)`` for 2D or
+        5D ``(B, C, D, H, W)`` for 3D, etc.
+
         :param torch.Tensor x: input image.
         :param None, str, torch.Tensor, list[str] filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
@@ -272,13 +296,28 @@ class Downsampling(LinearPhysics):
             If `factor` is passed, `filter` must also be passed as a `str` or `Tensor`, in order to update the filter to the new factor.
 
         """
-        self.imsize_dynamic = x.shape[-3:]
+        # imsize_dynamic = (C, *spatial_dims) for any spatial dimensionality
+        self.imsize_dynamic = x.shape[1:]
         self.update_parameters(filter=filter, factor=factor, device=x.device, **kwargs)
 
-        if self.filter is not None:
-            x = dF.conv2d(x, self.filter, padding=self.padding)
+        ndim_spatial = x.dim() - 2  # number of spatial dimensions
 
-        x = x[:, :, :: self.factor, :: self.factor]  # downsample
+        if self.filter is not None:
+            if ndim_spatial == 2:
+                x = dF.conv2d(x, self.filter, padding=self.padding)
+            elif ndim_spatial == 3:
+                x = dF.conv3d(x, self.filter, padding=self.padding)
+            else:
+                raise ValueError(
+                    f"Unsupported spatial dimensionality {ndim_spatial}. "
+                    "Only 2D and 3D spatial inputs are supported."
+                )
+
+        # n-D downsampling: take every factor-th element along each spatial dimension
+        slices = (slice(None), slice(None)) + (
+            slice(None, None, self.factor),
+        ) * ndim_spatial
+        x = x[slices]
 
         return x
 
@@ -292,6 +331,10 @@ class Downsampling(LinearPhysics):
         r"""
         Adjoint operator of the downsampling operator.
 
+        Supports n-dimensional inputs: ``y`` can be 4D ``(B, C, H', W')`` for 2D or
+        5D ``(B, C, D', H', W')`` for 3D, etc., where the primed dimensions are the
+        downsampled spatial dimensions.
+
         :param torch.Tensor y: downsampled image.
         :param None, str, torch.Tensor, list[str] filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
@@ -302,30 +345,45 @@ class Downsampling(LinearPhysics):
             If `factor` is passed, `filter` must also be passed as a `str` or `Tensor`, in order to update the filter to the new factor.
 
         """
-        self.imsize_dynamic = (
-            y.shape[-3],
-            y.shape[-2] * self.factor,
-            y.shape[-1] * self.factor,
+        ndim_spatial = y.dim() - 2  # number of spatial dimensions
+
+        # imsize_dynamic = (C, *original_spatial_dims) — upsample each spatial dim by factor
+        self.imsize_dynamic = (y.shape[1],) + tuple(
+            s * self.factor for s in y.shape[2:]
         )
         self.update_parameters(filter=filter, factor=factor, device=y.device, **kwargs)
 
         imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
 
         if self.filter is not None and self.padding == "valid":
-            imsize = (
-                imsize[0],
-                imsize[1] - self.filter.shape[-2] + 1,
-                imsize[2] - self.filter.shape[-1] + 1,
+            # For valid padding the blurred (pre-downsampled) spatial size is smaller
+            # than the original: each spatial dim i shrinks by (filter_size[i] - 1).
+            spatial_adj = tuple(
+                imsize[1 + i] - self.filter.shape[-(ndim_spatial - i)] + 1
+                for i in range(ndim_spatial)
             )
-        else:
-            imsize = imsize[:3]
+            imsize = (imsize[0],) + spatial_adj
 
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
-        x[:, :, :: self.factor, :: self.factor] = y  # upsample
+
+        # n-D upsampling: insert y into the stride-factor positions
+        slices = (slice(None), slice(None)) + (
+            slice(None, None, self.factor),
+        ) * ndim_spatial
+        x[slices] = y
+
         if self.filter is not None:
-            x = dF.conv_transpose2d(
-                x, self.filter, padding=self.padding
-            )  # Note: this may be slow against x = conv_transpose2d_fft(x, self.filter) in the case of circular padding
+            if ndim_spatial == 2:
+                x = dF.conv_transpose2d(
+                    x, self.filter, padding=self.padding
+                )  # Note: this may be slow against x = conv_transpose2d_fft(x, self.filter) in the case of circular padding
+            elif ndim_spatial == 3:
+                x = dF.conv_transpose3d(x, self.filter, padding=self.padding)
+            else:
+                raise ValueError(
+                    f"Unsupported spatial dimensionality {ndim_spatial}. "
+                    "Only 2D and 3D spatial inputs are supported."
+                )
 
         return x
 
@@ -333,12 +391,15 @@ class Downsampling(LinearPhysics):
         self, z: Tensor, y: Tensor, gamma: float, use_fft: bool = True, **kwargs
     ) -> Tensor:
         r"""
-        If the padding is circular, it computes the proximal operator with the closed-formula of :footcite:t:`zhu2014fast`.
+        If the padding is circular and input is a 2D image, i.e., of size `(B, C, H, W)`,
+        it computes the proximal operator with the closed-formula of :footcite:t:`zhu2014fast`.
 
         Otherwise, it computes it using the conjugate gradient algorithm which can be slow if applied many times.
         """
 
-        if use_fft and self.padding == "circular":  # Formula from (Zhao, 2016)
+        if (
+            y.ndim == 4 and use_fft and self.padding == "circular"
+        ):  # Formula from (Zhao, 2016)
             z_hat = self.A_adjoint(y) + 1 / gamma * z
             Fz_hat = fft.fft2(z_hat)
 
@@ -834,7 +895,7 @@ class SpaceVaryingBlur(LinearPhysics):
         as the current parameters.
 
         :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
-        :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
+        :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}``
         :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
             If `padding = 'valid'` the blurred output is smaller than the image (no padding),
             otherwise the blurred output has the same size as the image.
@@ -857,7 +918,7 @@ class SpaceVaryingBlur(LinearPhysics):
         Updates the current parameters.
 
         :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
-        :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
+        :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}``
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         """
         if padding is not None:
@@ -1202,33 +1263,42 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 def gaussian_blur(
     sigma: float | tuple[float, ...] = (1, 1),
     angle: float = 0,
+    ndim: int = 2,
     device: torch.device | str = "cpu",
 ) -> Tensor:
     r"""
     Gaussian blur filter.
 
-    Defined as
+    For 2D (``ndim=2``), defined as
 
     .. math::
             G(x, y) = \frac{1}{2\pi\sigma_x\sigma_y} \exp{\left(-\frac{x'^2}{2\sigma_x^2} - \frac{y'^2}{2\sigma_y^2}\right)}
 
     where :math:`x'` and :math:`y'` are the rotated coordinates obtained by rotating $(x, y)$ around the origin
-    by an angle :math:`\theta`:
+    by an angle :math:`\theta`. For ``ndim > 2`` the ``angle`` parameter is ignored.
+
+    For n-D (``ndim >= 2``), defined as
 
     .. math::
-            x' &= x \cos(\theta) - y \sin(\theta) \\
-            y' &= x \sin(\theta) + y \cos(\theta)
+            G(x_1, \ldots, x_n) = \exp\!\left(-\sum_{i=1}^n \frac{x_i^2}{2\sigma_i^2}\right)
 
-    with :math:`\sigma_x` and :math:`\sigma_y`  the standard deviations along the :math:`x'` and :math:`y'` axes.
+    normalised to sum to 1.
 
-
-    :param float, tuple[float] sigma: standard deviation of the gaussian filter. If sigma is a float the filter is isotropic, whereas
-        if sigma is a tuple of floats (sigma_x, sigma_y) the filter is anisotropic.
-    :param float angle: rotation angle of the filter in degrees (only useful for anisotropic filters)
+    :param float, tuple[float] sigma: standard deviation of the Gaussian filter. If a scalar, the filter is
+        isotropic. If a tuple, it specifies per-axis standard deviations (must have ``ndim`` elements; if
+        shorter, the last value is repeated to fill remaining dimensions).
+    :param float angle: rotation angle of the filter in degrees (only used for ``ndim=2``).
+    :param int ndim: number of spatial dimensions (default ``2``).
     :param torch.device, str device: device to put the filter on (cpu or cuda)
     """
     if isinstance(sigma, (int, float)):
-        sigma = (sigma, sigma)
+        sigma = tuple([float(sigma)] * ndim)
+    else:
+        sigma = tuple(sigma)
+        # Pad sigma to ndim elements if needed
+        if len(sigma) < ndim:
+            sigma = sigma + (sigma[-1],) * (ndim - len(sigma))
+        sigma = sigma[:ndim]
 
     s = max(sigma)
     c = int(s / 0.3 + 1)
@@ -1236,26 +1306,43 @@ def gaussian_blur(
 
     delta = torch.arange(k_size, device=device)
 
-    x, y = torch.meshgrid(delta, delta, indexing="ij")
-    x = x - c
-    y = y - c
-    filt = (x / sigma[0]).pow(2)
-    filt += (y / sigma[1]).pow(2)
-    filt = torch.exp(-filt / 2.0)
+    if ndim == 2:
+        # Original 2D implementation with rotation support
+        x, y = torch.meshgrid(delta, delta, indexing="ij")
+        x = x - c
+        y = y - c
+        filt = (x / sigma[0]).pow(2)
+        filt += (y / sigma[1]).pow(2)
+        filt = torch.exp(-filt / 2.0)
 
-    filt = (
-        rotate(
-            filt.unsqueeze(0).unsqueeze(0),
-            angle,
-            interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
+        filt = (
+            rotate(
+                filt.unsqueeze(0).unsqueeze(0),
+                angle,
+                interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
+            )
+            .squeeze(0)
+            .squeeze(0)
         )
-        .squeeze(0)
-        .squeeze(0)
-    )
 
-    filt = filt / filt.flatten().sum()
+        filt = filt / filt.flatten().sum()
+        return filt.unsqueeze(0).unsqueeze(0)
+    else:
+        # n-D Gaussian (angle parameter not supported for ndim != 2)
+        if angle != 0:
+            warn(
+                "The `angle` parameter is only supported for ndim=2 Gaussian blur. "
+                "It will be ignored for ndim != 2.",
+                stacklevel=2,
+            )
 
-    return filt.unsqueeze(0).unsqueeze(0)
+        delta_centered = delta - c
+        # Build n-D coordinate grids and compute squared sum
+        grids = torch.meshgrid(*([delta_centered] * ndim), indexing="ij")
+        filt = sum((g / sigma[i]).pow(2) for i, g in enumerate(grids))
+        filt = torch.exp(-filt / 2.0)
+        filt = filt / filt.flatten().sum()
+        return filt.unsqueeze(0).unsqueeze(0)
 
 
 def kaiser_window(
@@ -1278,6 +1365,7 @@ def sinc_filter(
     factor: float | Tensor = 2,
     length: int = 11,
     windowed: bool = True,
+    ndim: int = 2,
     device: torch.device | str = "cpu",
 ) -> Tensor:
     r"""
@@ -1299,9 +1387,13 @@ def sinc_filter(
                 0.1102 \cdot (A - 8.7) & \text{otherwise}
             \end{cases}
 
+    For ``ndim > 1``, the n-D filter is computed as the outer product of ``ndim`` 1D sinc filters
+    along each spatial dimension.
+
     :param float, torch.Tensor factor: Downsampling factor. If Tensor, can only have one element.
     :param int length: Length of the filter.
     :param bool windowed: Whether to multiply by Kaiser window.
+    :param int ndim: number of spatial dimensions (default ``2``).
     :param torch.device, str device: device to put the filter on (cpu or cuda)
     """
     if isinstance(factor, torch.Tensor):
@@ -1310,7 +1402,7 @@ def sinc_filter(
     deltaf = 2 * (2 - 1.4142136) / factor
 
     n = torch.arange(length, device=device) - (length - 1) / 2
-    filter = torch.sinc(n / factor)
+    filter1d = torch.sinc(n / factor)
 
     if windowed:
         A = 2.285 * (length - 1) * 3.14159 * deltaf + 7.95
@@ -1321,61 +1413,78 @@ def sinc_filter(
         else:
             beta = 0.1102 * (A - 8.7)
 
-        filter = filter * kaiser_window(beta, length, device=device)
+        filter1d = filter1d * kaiser_window(beta, length, device=device)
 
-    filter = filter.unsqueeze(0)
-    filter = filter * filter.T
-    filter = filter.unsqueeze(0).unsqueeze(0)
-    filter = filter / filter.sum()
-    return filter
+    # Build n-D filter as the outer product of ndim 1D filters
+    grids = torch.meshgrid(*([filter1d] * ndim), indexing="ij")
+    w = grids[0]
+    for g in grids[1:]:
+        w = w * g
+
+    w = w / w.sum()
+    return w.unsqueeze(0).unsqueeze(0)
 
 
-def bilinear_filter(factor: int = 2, device: torch.device | str = "cpu") -> Tensor:
+def bilinear_filter(
+    factor: int = 2, ndim: int = 2, device: torch.device | str = "cpu"
+) -> Tensor:
     r"""
     Bilinear filter.
 
-    It has size (2*factor, 2*factor) and is defined as
+    It has size ``(2*factor,) * ndim`` and is defined as the outer product of ``ndim`` 1D bilinear
+    kernels along each spatial dimension:
 
     .. math::
 
-            w(x, y) = \begin{cases}
-                (1 - |x|) \cdot (1 - |y|) & \text{if } |x| \leq 1 \text{ and } |y| \leq 1 \\
+            w_{1D}(x) = \begin{cases}
+                1 - |x| & \text{if } |x| \leq 1 \\
                 0 & \text{otherwise}
             \end{cases}
 
-    for :math:`x, y \in {-\text{factor} + 0.5, -\text{factor} + 0.5 + 1/\text{factor}, \ldots, \text{factor} - 0.5}`.
+    for :math:`x \in \{-\text{factor} + 0.5, \ldots, \text{factor} - 0.5\} / \text{factor}`.
 
     :param int factor: downsampling factor
+    :param int ndim: number of spatial dimensions (default ``2``).
     :param torch.device, str device: device to put the filter on (cpu or cuda)
     """
     if isinstance(factor, torch.Tensor):
         factor = factor.cpu().item()
     x = torch.arange(start=-factor + 0.5, end=factor, step=1, device=device) / factor
-    w = 1 - x.abs()
-    w = torch.outer(w, w)
+    w1d = 1 - x.abs()
+
+    # Build n-D filter as the outer product of ndim 1D bilinear kernels
+    grids = torch.meshgrid(*([w1d] * ndim), indexing="ij")
+    w = grids[0]
+    for g in grids[1:]:
+        w = w * g
+
     w = w / torch.sum(w)
     return w.unsqueeze(0).unsqueeze(0)
 
 
-def bicubic_filter(factor: int = 2, device: torch.device | str = "cpu") -> Tensor:
+def bicubic_filter(
+    factor: int = 2, ndim: int = 2, device: torch.device | str = "cpu"
+) -> Tensor:
     r"""
     Bicubic filter.
 
-    It has size (4*factor, 4*factor) and is defined as
+    It has size ``(4*factor,) * ndim`` and is defined as the outer product of ``ndim`` 1D bicubic
+    kernels along each spatial dimension:
 
     .. math::
 
         \begin{equation*}
-            w(x, y) = \begin{cases}
+            w_{1D}(x) = \begin{cases}
                 (a + 2)|x|^3 - (a + 3)|x|^2 + 1 & \text{if } |x| \leq 1 \\
                 a|x|^3 - 5a|x|^2 + 8a|x| - 4a & \text{if } 1 < |x| < 2 \\
                 0 & \text{otherwise}
             \end{cases}
         \end{equation*}
 
-    for :math:`x, y \in {-2\text{factor} + 0.5, -2\text{factor} + 0.5 + 1/\text{factor}, \ldots, 2\text{factor} - 0.5}`.
+    for :math:`x \in \{-2\text{factor} + 0.5, \ldots, 2\text{factor} - 0.5\} / \text{factor}`.
 
     :param int factor: downsampling factor
+    :param int ndim: number of spatial dimensions (default ``2``).
     :param torch.device, str device: device to put the filter on (cpu or cuda)
     """
     if isinstance(factor, torch.Tensor):
@@ -1386,9 +1495,15 @@ def bicubic_filter(factor: int = 2, device: torch.device | str = "cpu") -> Tenso
     )
     a = -0.5
     x = x.abs()
-    w = ((a + 2) * x.pow(3) - (a + 3) * x.pow(2) + 1) * (x <= 1)
-    w += (a * x.pow(3) - 5 * a * x.pow(2) + 8 * a * x - 4 * a) * (x > 1) * (x < 2)
-    w = torch.outer(w, w)
+    w1d = ((a + 2) * x.pow(3) - (a + 3) * x.pow(2) + 1) * (x <= 1)
+    w1d += (a * x.pow(3) - 5 * a * x.pow(2) + 8 * a * x - 4 * a) * (x > 1) * (x < 2)
+
+    # Build n-D filter as the outer product of ndim 1D bicubic kernels
+    grids = torch.meshgrid(*([w1d] * ndim), indexing="ij")
+    w = grids[0]
+    for g in grids[1:]:
+        w = w * g
+
     w = w / torch.sum(w)
     return w.unsqueeze(0).unsqueeze(0)
 
