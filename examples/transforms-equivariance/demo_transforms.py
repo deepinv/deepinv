@@ -184,7 +184,7 @@ dinv.utils.plot(
         f"PSNR={psnr_eq:.1f}dB",
         "",
     ],
-    fontsize=10,
+    fontsize=9,
 )
 
 # %%
