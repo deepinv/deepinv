@@ -99,7 +99,11 @@ class EquivariantReconstructor(Reconstructor):
     r"""
     Equivariant reconstructor
 
-    Make a base reconstructor equivariant by averaging over the transformations
+    Make a base reconstructor :math:`\tilde{R}` equivariant by averaging over the transformations, i.e.,
+
+    .. math::
+
+        R(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{R}(y, A T_g)
 
     An equivariant reconstructor is a reconstructor that satisfies :footcite:p:`sechaud26Equivariant`
 
@@ -108,12 +112,6 @@ class EquivariantReconstructor(Reconstructor):
         R(y, A T_g) = T_g^{-1} R(y, A)
 
     for all :math:`g \in \mathcal{G}` where :math:`T_g` is a transform (eg shifts, rotations, etc).
-
-    Any reconstructor :math:`\tilde{R}` can be turned into an equivariant reconstructor by averaging over the transformations:
-
-    .. math::
-
-        R(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g \tilde{R}(y, A T_g)
 
     :param Reconstructor model: base reconstructor to be made equivariant.
     :param Transform, None transform: geometric transformation. By default, it is set to a single random 90° rotation and flip.
