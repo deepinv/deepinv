@@ -24,6 +24,7 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
+          environments: docs doctest
 
       - name: Fetch base branch
         run: git fetch origin ${{ github.event.pull_request.base.ref }}
@@ -68,7 +69,8 @@ jobs:
         env:
           SG_PATTERN: ${{ steps.get_pattern.outputs.SG_PATTERN }}
         run: |
-          pixi run -e docs sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
+           echo "Running Sphinx with filename_pattern: $SG_PATTERN"
+           pixi run -e docs sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
 
       - name: Notebook generation
         run: |

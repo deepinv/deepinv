@@ -23,7 +23,7 @@ Changed
 Fixed
 ^^^^^
 - Add warning when options `reduce="mean"` and `reduce="none"` are used in :class:`deepinv.physics.StackedLinearPhysics`. Remove `reduction` argument from :class:`deepinv.distributed.DistributedStackedLinearPhysics` (:gh:`1071` by `Romain Vo`_)
-
+- Add a deprecation warning in :func:`deepinv.utils.plot_inset` in favor of :func:`deepinv.utils.plot` with `plot_inset=True` (:gh:`1148` by `Paul Bernard`_).
 
 
 v0.4.0
@@ -605,3 +605,4 @@ Changed
 .. _Benoît Malézieux: https://github.com/bmalezieux
 .. _Paul Escande: https://pescande.perso.math.cnrs.fr/
 .. _Hossein Alimohammadi: https://github.com/Holimmo7
+.. _Paul Bernard: https://github.com/PAUL-BERNARD
