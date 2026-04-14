@@ -186,7 +186,9 @@ def test_generation_seed(name, device, dtype):
     generator, size, _ = find_generator(name, size, 1, device, dtype)
     batch_size = 1
 
-    if name == "MotionBlurGenerator":
+    if name == "GaussianBlurGenerator":
+        param_key = ["filter"]
+    elif name == "MotionBlurGenerator":
         param_key = ["filter"]
     elif name == "DiffractionBlurGenerator":
         param_key = ["filter"]

@@ -79,11 +79,11 @@ def gaussian_blur_nd(
             )
     elif dim == 3:
         if isinstance(angle, (int, float)):
-            angles = torch.tensor(
+            angle = torch.tensor(
                 [[angle, 0.0, 0.0]] * B, device=device, dtype=dtype
             )  # Shape: (batch_size, 3)
         elif isinstance(angle, (list, tuple)) and len(angle) == 3:
-            angles = torch.tensor(
+            angle = torch.tensor(
                 [angle] * B, device=device, dtype=dtype
             )  # Shape: (batch_size, 3)
         elif (
@@ -92,16 +92,18 @@ def gaussian_blur_nd(
             and angle.shape[1] == 3
             and angle.shape[0] == B
         ):
-            angles = angle  # Shape: (batch_size, 3)
+            pass
+            # angle.shape: (batch_size, 3)
             # Check that angle is effectively of shape (batch_size, 3)
         else:
             raise ValueError(
                 f"For 3D, angles must be a list of three angles (alpha, beta, gamma) or a tensor of shape (batch_size, 3). Got angle.shape = {angle.shape}."
             )
 
-    angle = torch.deg2rad(
-        angle
-    )  # Convert angles from degrees to radians for rotation calculations
+    if dim in (2, 3):
+        angle = torch.deg2rad(
+            angle
+        )  # Convert angles from degrees to radians for rotation calculations
 
     # Create a grid for each dimension
     grids = []
@@ -138,7 +140,7 @@ def gaussian_blur_nd(
     elif dim == 3:
 
         # Rotation matrices for x, y, z axes
-        alpha, beta, gamma = angles[:, 0], angles[:, 1], angles[:, 2]
+        alpha, beta, gamma = angle[:, 0], angle[:, 1], angle[:, 2]
 
         # Rotation around x-axis
         Rx = torch.zeros((B, 3, 3), device=device)
