@@ -1,7 +1,7 @@
 from __future__ import annotations
 import torch
 import numpy as np
-from math import ceil, floor, pi
+from math import ceil, floor
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.functional import gaussian_blur_nd
 from deepinv.physics.functional.hist import histogramdd
@@ -96,7 +96,7 @@ class GaussianBlurGenerator(PSFGenerator):
                     f"Length of sigma_min and sigma_max should be either 1 or {dim}."
                 )
 
-        for smin, smax in zip(sigma_min, sigma_max):
+        for smin, smax in zip(sigma_min, sigma_max, strict=True):
             if smin > smax:
                 raise ValueError(
                     f"Each component of sigma_min should be less than or equal to the corresponding component of sigma_max. Got sigma_min = {sigma_min} and sigma_max = {sigma_max}."
@@ -133,7 +133,7 @@ class GaussianBlurGenerator(PSFGenerator):
                     f"For 3D kernels, angle_min and angle_max should have three values corresponding to rotations around x, y, and z axes. Got angle_min = {angle_min} and angle_max = {angle_max}."
                 )
 
-            for amin, amax in zip(angle_min, angle_max):
+            for amin, amax in zip(angle_min, angle_max, strict=True):
                 if amin > amax:
                     raise ValueError(
                         f"Each component of angle_min should be less than or equal to the corresponding component of angle_max. Got angle_min = {angle_min} and angle_max = {angle_max}."
@@ -185,7 +185,9 @@ class GaussianBlurGenerator(PSFGenerator):
                         )
                         * (smax - smin)
                         + smin
-                        for smin, smax in zip(self.sigma_min, self.sigma_max)
+                        for smin, smax in zip(
+                            self.sigma_min, self.sigma_max, strict=True
+                        )
                     ],
                     dim=-1,
                 )  # Shape: (batch_size, dim)
@@ -205,7 +207,9 @@ class GaussianBlurGenerator(PSFGenerator):
                         )
                         * (amax - amin)
                         + amin
-                        for amin, amax in zip(self.angle_min, self.angle_max)
+                        for amin, amax in zip(
+                            self.angle_min, self.angle_max, strict=True
+                        )
                     ],
                     dim=-1,
                 )  # Shape: (batch_size, 3)

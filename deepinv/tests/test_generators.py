@@ -713,7 +713,7 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
         # In 2D, generator can accept float, integer, length-1 or length-2 tuple for sigma_min/max. If different than length-2 tuple, the same min/max will be applied to both dimensions.
 
         for sigma_min, sigma_max in zip(
-            [0.5, (0.5,), (0.5, 0.6)], [1.0, (1.0,), (1.0, 1.1)]
+            [0.5, (0.5,), (0.5, 0.6)], [1.0, (1.0,), (1.0, 1.1)], strict=True
         ):
             generator = dinv.physics.generator.GaussianBlurGenerator(
                 psf_size=psf_size,
@@ -793,7 +793,7 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
         # In 3D, generator can accept float, integer, length-1 or length-3 tuple for sigma_min/max. If different than length-3 tuple, the same min/max will be applied to all dimensions.
 
         for sigma_min, sigma_max in zip(
-            [0.5, (0.5,), (0.5, 0.6, 0.7)], [1.0, (1.0,), (1.0, 1.1, 1.2)]
+            [0.5, (0.5,), (0.5, 0.6, 0.7)], [1.0, (1.0,), (1.0, 1.1, 1.2)], strict=True
         ):
             generator = dinv.physics.generator.GaussianBlurGenerator(
                 psf_size=psf_size,
