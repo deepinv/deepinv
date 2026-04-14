@@ -15,7 +15,7 @@ New Features
 Changed
 ^^^^^^^
 - Refactor CI to use `pixi` for compatibility with mixed conda/pip environments (:gh:`1108` by `Julian Tachella`_)
-
+- Update references for single pixel demo (:gh:`1151` by `Laura C. Diaz-Delgado`_)
 
 Fixed
 ^^^^^
@@ -601,3 +601,4 @@ Changed
 .. _Tiberiu Sabau: https://github.com/tibisabau
 .. _Benoît Malézieux: https://github.com/bmalezieux
 .. _Paul Escande: https://pescande.perso.math.cnrs.fr/
+.. _Laura C. Diaz-Delgado: https://github.com/LauraCD2
