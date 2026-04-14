@@ -107,6 +107,13 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None):
             filters=["bilinear", "bicubic", "gaussian"], factors=[4], psf_size=psf_size
         )
         keys = ["filters", "factors"]
+    elif name == "DownsamplingGenerator[2, 4]":
+        g = dinv.physics.generator.DownsamplingGenerator(
+            filters=["bilinear", "bicubic", "gaussian"],
+            factors=[2, 4],
+            psf_size=psf_size,
+        )
+        keys = ["filters", "factors"]
     elif name == "SigmaGenerator":
         g = dinv.physics.generator.SigmaGenerator(device=device, dtype=dtype)
         keys = ["sigma"]
@@ -231,7 +238,7 @@ def test_average(name, device, dtype):
 @pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("psf_size", [None, (31, 31)])
-@pytest.mark.parametrize("fact", [None, 2, 4])
+@pytest.mark.parametrize("fact", [None, 2, 4, [2, 4]])
 def test_downsampling_generator(num_channels, device, dtype, psf_size, fact):
     r"""
     Test downsampling generator.
@@ -274,7 +281,7 @@ def test_downsampling_generator(num_channels, device, dtype, psf_size, fact):
 
         assert y.shape[-1] == x.shape[-1] // params["factor"].unique().item()
 
-        if fact is not None:
+        if fact is not None and not isinstance(fact, list):
             assert fact == params["factor"].unique().item()
 
 

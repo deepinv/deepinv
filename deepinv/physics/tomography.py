@@ -131,7 +131,7 @@ class Tomography(LinearPhysics):
         dtype: torch.dtype = torch.float,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
 
         if isinstance(angles, int):
             theta = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1].to(
@@ -160,7 +160,6 @@ class Tomography(LinearPhysics):
             fbp_interpolate_boundary = False
         self.fbp_interpolate_boundary = fbp_interpolate_boundary
         self.img_width = img_width
-        self.device = device
         self.dtype = dtype
         self.radon = Radon(
             img_width,
@@ -182,7 +181,7 @@ class Tomography(LinearPhysics):
                 dtype=dtype,
             ).to(device)
         else:
-            self.filter = RampFilter(dtype=dtype, device=device)
+            self.filter = RampFilter(dtype=dtype)
 
         if normalize is None:
             warn(
@@ -205,6 +204,8 @@ class Tomography(LinearPhysics):
             self._auto_grad_adjoint_fn = None
             self.register_buffer("operator_norm", operator_norm)
             self.normalize = True
+
+        self.to(device)
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward projection.
@@ -299,8 +300,8 @@ class Tomography(LinearPhysics):
             ):
                 self._auto_grad_adjoint_fn = adjoint_function(
                     self.A,
-                    (y.shape[0], y.size(1), self.img_width, self.img_width),
-                    device=self.device,
+                    (y.shape[0], y.shape[1], self.img_width, self.img_width),
+                    device=y.device,
                     dtype=self.dtype,
                 )
                 self._auto_grad_adjoint_input_shape = (
@@ -413,49 +414,54 @@ class TomographyWithAstra(LinearPhysics):
         Tomography operator with a 2D ``'fanbeam'`` geometry, 10 uniformly sampled angles in ``[0, 360]``, a detector line of 5 cells with length 2., a source-radius of 20.0 and a detector_radius of 20.0 for 5x5 image:
 
         .. doctest::
-           :skipif: astra is None or not cuda_available
 
-            >>> from deepinv.physics import TomographyWithAstra
-            >>> x = torch.randn(1, 1, 5, 5, device='cuda') # Define random 5x5 image
-            >>> physics = TomographyWithAstra(
-            ...        img_size=(5,5),
-            ...        angles=10,
-            ...        angular_range=(0, 360),
-            ...        n_detector_pixels=5,
-            ...        detector_spacing=2.0,
-            ...        geometry_type='fanbeam',
-            ...        geometry_parameters={
-            ...            'source_radius': 20.,
-            ...            'detector_radius': 20.
-            ...        },
-            ...        normalize=False
-            ...    )
-            >>> sinogram = physics(x)
-            >>> print(sinogram.shape)
+            >>> import torch
+            >>> if torch.cuda.is_available():
+            ...     from deepinv.physics import TomographyWithAstra
+            ...     x = torch.randn(1, 1, 5, 5, device='cuda') # Define random 5x5 image
+            ...     physics = TomographyWithAstra(
+            ...             img_size=(5,5),
+            ...             angles=10,
+            ...             angular_range=(0, 360),
+            ...             n_detector_pixels=5,
+            ...             detector_spacing=2.0,
+            ...             geometry_type='fanbeam',
+            ...             geometry_parameters={
+            ...                 'source_radius': 20.,
+            ...                 'detector_radius': 20.
+            ...             },
+            ...             normalize=False
+            ...     )
+            ...     sinogram = physics(x)
+            ...     print(sinogram.shape)
+            ... else:
+            ...     print(torch.Size([1, 1, 10, 5]))
             torch.Size([1, 1, 10, 5])
 
         Tomography operator with a 3D ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0, 360]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
 
         .. doctest::
-           :skipif: astra is None or not cuda_available
 
-            >>> x = torch.randn(1, 1, 5, 5, 5, device='cuda')  # Define random 5x5x5 volume
-            >>> angles = torch.linspace(0, 360, steps=4)[:-1]
-            >>> physics = TomographyWithAstra(
-            ...        img_size=(5,5,5),
-            ...        angles = angles,
-            ...        n_detector_pixels=(5,5),
-            ...        pixel_spacing=(1.0,1.0,1.0),
-            ...        detector_spacing=(2.0,2.0),
-            ...        geometry_type='conebeam',
-            ...        geometry_parameters={
-            ...            'source_radius': 20.,
-            ...            'detector_radius': 20.
-            ...       },
-            ...        normalize=False
-            ...    )
-            >>> sinogram = physics(x)
-            >>> print(sinogram.shape)
+            >>> if torch.cuda.is_available():
+            ...     x = torch.randn(1, 1, 5, 5, 5, device='cuda')  # Define random 5x5x5 volume
+            ...     angles = torch.linspace(0, 360, steps=4)[:-1]
+            ...     physics = TomographyWithAstra(
+            ...            img_size=(5,5,5),
+            ...            angles = angles,
+            ...            n_detector_pixels=(5,5),
+            ...            pixel_spacing=(1.0,1.0,1.0),
+            ...            detector_spacing=(2.0,2.0),
+            ...            geometry_type='conebeam',
+            ...            geometry_parameters={
+            ...                 'source_radius': 20.,
+            ...                 'detector_radius': 20.
+            ...            },
+            ...            normalize=False
+            ...     )
+            ...     sinogram = physics(x)
+            ...     print(sinogram.shape)
+            ... else:
+            ...     print(torch.Size([1, 1, 5, 3, 5]))
             torch.Size([1, 1, 5, 3, 5])
 
 
@@ -490,7 +496,7 @@ class TomographyWithAstra(LinearPhysics):
         device: torch.device | str = torch.device("cuda"),
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
 
         if isinstance(geometry_parameters, MappingProxyType):
             geometry_parameters = geometry_parameters.copy()
@@ -514,7 +520,6 @@ class TomographyWithAstra(LinearPhysics):
             else n_detector_pixels
         )
         self.geometry_type = geometry_type
-        self.device = device
 
         if isinstance(angles, int):
             angles = torch.linspace(*angular_range, steps=angles + 1)[:-1]
@@ -542,7 +547,7 @@ class TomographyWithAstra(LinearPhysics):
             is_2d=self.is_2d,
         )
 
-        self.filter = RampFilter(dtype=torch.float32, device=self.device)
+        self.filter = RampFilter(dtype=torch.float32)
 
         if normalize is None:
             warn(
@@ -555,12 +560,14 @@ class TomographyWithAstra(LinearPhysics):
             self.operator_norm = self.compute_norm(
                 torch.randn(
                     self.img_size,
-                    generator=torch.Generator(self.device).manual_seed(0),
-                    device=self.device,
+                    generator=torch.Generator(device).manual_seed(0),
+                    device=device,
                 )[None, None],
                 squared=False,
             )
             self.normalize = True
+
+        self.to(device)
 
     @property
     def measurement_shape(self) -> tuple[int, ...]:

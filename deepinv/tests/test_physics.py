@@ -5,8 +5,6 @@ import copy
 from math import sqrt
 import pytest
 import warnings
-import random
-
 import torch
 
 import numpy as np
@@ -16,7 +14,6 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
-from deepinv.utils.compat import zip_strict
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -42,6 +39,7 @@ OPERATORS = [
     "space_deblur_reflect",
     "space_deblur_replicate",
     "space_deblur_constant",
+    "tiled_space_deblur_valid",
     "hyperspectral_unmixing",
     "3Ddeblur_valid",
     "3Ddeblur_circular",
@@ -300,7 +298,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size=img_size, device=device, filter=None, use_brovey=False
         )
         norm = 1.4
-        params = ["filter"]
+        params = []  # no filter in aliased case
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
             m=20, fast=True, img_size=img_size, device=device, rng=rng
@@ -387,6 +385,25 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = ["filters", "multipliers"]
+    elif name == "tiled_space_deblur_valid":
+        img_size = (3, 20, 13) if imsize is None else imsize
+        h = dinv.physics.blur.bilinear_filter(factor=2).to(device)
+        h = h.unsqueeze(2)  # shape (1,1,1,Hf,Wf)
+        num_filters = dinv.physics.TiledSpaceVaryingBlur.num_filters(
+            img_size=img_size[-2:],
+            patch_size=(8, 5),
+            stride=(4, 3),
+        )
+        h = h.repeat(1, 3, num_filters[0] * num_filters[1], 1, 1)  # shape (1,3,K,Hf,Wf)
+        p = dinv.physics.TiledSpaceVaryingBlur(
+            filters=h,
+            patch_size=(8, 5),
+            stride=(4, 3),
+            device=device,
+        )
+
+        params = ["filters", "multipliers"]
+
     elif name == "hyperspectral_unmixing":
         img_size = (15, 32, 32) if imsize is None else imsize  # x (E, H, W)
         p = dinv.physics.HyperSpectralUnmixing(E=15, C=64, device=device)
@@ -589,7 +606,7 @@ def wrap_physics(wrapper_name, physics, img_size, device):
         img_size_out = (img_size[0], img_size[-2] // 4, img_size[-1] // 4)
     elif wrapper_name == "PhysicsCropper":
         crop = (2, 4)
-        p = dinv.physics.PhysicsCropper(physics=physics, crop=crop)
+        p = dinv.physics.PhysicsCropper(physics=physics, crop=crop, device=device)
         img_size_out = (
             *img_size[:-2],
             img_size[-2] + crop[-2],
@@ -669,11 +686,10 @@ def test_stacking(device):
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operators_adjointness(name, device, rng):
     r"""
-    Tests if a linear forward operator has a well defined adjoint.
+    Tests if a linear forward operator has a well-defined adjoint.
     Warning: Only test linear operators, non-linear ones will fail the test.
 
     :param name: operator name (see find_operator)
-    :param imsize: image size tuple in (C, H, W)
     :param device: (torch.device) cpu or cuda:x
     :return: asserts adjointness
     """
@@ -825,10 +841,7 @@ def test_operator_cropper(name, device, rng):
     padding_shape = (2, 5)
     x_new = torch.nn.functional.pad(x, (padding_shape[1], 0, padding_shape[0], 0))
 
-    new_physics = dinv.physics.PhysicsCropper(
-        physics,
-        padding_shape,
-    )
+    new_physics = dinv.physics.PhysicsCropper(physics, padding_shape, device=device)
     y = new_physics(x_new)
     Aty = new_physics.A_adjoint(y)
 
@@ -1110,7 +1123,7 @@ def test_concatenation(name, device):
         return
     physics, imsize, _, dtype = find_operator(name, device)
 
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
     y = physics(x)
     physics = (
         dinv.physics.Inpainting(
@@ -1553,7 +1566,7 @@ def test_mri_fft():
         return torch.cat((right, left), dim=dim)
 
     def roll(x: torch.Tensor, shift: list[int], dim: list[int]) -> torch.Tensor:
-        for s, d in zip_strict(shift, dim):
+        for s, d in zip(shift, dim, strict=True):
             x = roll_one_dim(x, s, d)
 
         return x
@@ -1681,7 +1694,8 @@ def test_unmixing(device):
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operators_differentiability(name, device):
     r"""
-    Tests if a forward operator is differentiable (can perform back-propagation).
+    Tests if a forward operator is differentiable (can perform back-propagation)
+    with respect to the input and its physics parameters (if they exist and are floating point tensors).
 
     :param name: operator name (see find_operator)
     :param device: (torch.device) cpu or cuda:x
@@ -1694,6 +1708,9 @@ def test_operators_differentiability(name, device):
 
     if name == "radio":
         dtype = torch.cfloat
+
+    if "composition" in name:
+        pytest.skip("Skip composition operators for differentiability test.")
 
     # Only test for floating point tensor
     valid_dtype = [torch.float16, torch.float32, torch.float64]
@@ -1709,7 +1726,7 @@ def test_operators_differentiability(name, device):
         with torch.enable_grad():
             y_hat = physics.A(x_hat)
             if isinstance(y_hat, TensorList):
-                for y_hat_item, y_item in zip_strict(y_hat.x, y.x):
+                for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
                     loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                     loss.backward()
                     assert x_hat.requires_grad == True
@@ -1723,9 +1740,8 @@ def test_operators_differentiability(name, device):
                 assert torch.all(~torch.isnan(x_hat.grad))
 
         # Differentiate w.r.t to physics parameters
-        if (
-            not physics._buffers == dict() and len(params) > 0
-        ):  # If the buffers are not empty (i.e. there is a parameter)
+        # if the buffers are not empty (i.e. there is a parameter)
+        if len(physics.state_dict()) > 0 and len(params) > 0:
             x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
             buffers = copy.deepcopy(dict(physics.named_buffers()))
             parameters = {k: v for k, v in buffers.items() if k in params}
@@ -1735,9 +1751,9 @@ def test_operators_differentiability(name, device):
                     parameters[k] = v.requires_grad_(True)
 
             with torch.enable_grad():
-                y_hat = physics.A(x, **parameters)
+                y_hat = physics(x, **parameters)
                 if isinstance(y_hat, TensorList):
-                    for y_hat_item, y_item in zip_strict(y_hat.x, y.x):
+                    for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
                         loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                         loss.backward()
 
@@ -1824,7 +1840,7 @@ def test_device_consistency(name):
             # skip denoising that adds random noise in each forward call
             if not isinstance(physics, dinv.physics.Denoising):
                 if isinstance(y2, TensorList):
-                    for y11, y22 in zip_strict(y1, y2):
+                    for y11, y22 in zip(y1, y2, strict=True):
                         assert torch.linalg.norm((y11.to(cuda) - y22).ravel()) < 1e-5
                 else:
                     assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5
@@ -1833,7 +1849,7 @@ def test_device_consistency(name):
 @pytest.mark.parametrize("name", OPERATORS)
 def test_physics_state_dict(name, device):
     r"""
-    Tests if the physics state dict is well behaved.
+    Tests if the physics state dict is well-behaved.
 
     :param name: operator name (see find_operator)
     :param device: (torch.device) cpu or cuda:x
@@ -1856,6 +1872,11 @@ def test_physics_state_dict(name, device):
                 and name not in module._non_persistent_buffers_set
             ):
                 tensor_attrs[full_name] = attr
+            elif isinstance(attr, torch.nn.ModuleList):
+                for i, submodule in enumerate(attr):
+                    tensor_attrs.update(
+                        get_all_tensor_attrs(submodule, prefix=f"{full_name}.{i}")
+                    )
             elif isinstance(attr, torch.nn.Module):
                 # Recurse into submodules
                 tensor_attrs.update(get_all_tensor_attrs(attr, prefix=full_name))
@@ -1871,7 +1892,7 @@ def test_physics_state_dict(name, device):
     os.makedirs(cache_dir, exist_ok=True)
 
     # If the buffers are not empty (i.e. there is a parameter)
-    if not physics._buffers == dict():
+    if len(physics.state_dict()) > 0:
         state_dict = physics.state_dict()
         # Check that all tensor attributes are in the state dict
         params = get_all_tensor_attrs(physics)
@@ -1897,7 +1918,13 @@ def test_physics_state_dict(name, device):
 
         # Check two physics have the same output
         x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
-        assert torch.allclose(physics(x), new_physics(x))
+        y1 = physics(x)
+        y2 = new_physics(x)
+        if isinstance(y1, TensorList):
+            for y1, y2 in zip(physics(x), new_physics(x), strict=True):
+                assert torch.allclose(y1, y2)
+        else:
+            assert torch.allclose(y1, y2)
 
         # Remove the cache dir
         shutil.rmtree(cache_dir)
@@ -2371,6 +2398,10 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
     except ImportError:
         pytest.skip("Scipy is required for this test.")
 
+    # skip if windows
+    if os.name == "nt":
+        pytest.skip("Scipy's special functions are not well supported on Windows.")
+
     wavenumber = torch.tensor([wavenumber])
     cylinder_contrast = contrast
     cylinder_radius = 0.25
@@ -2378,20 +2409,6 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
     dtype = torch.complex128
     angles = 4
     radius_tx = 1.0
-    n_coeffs = 55
-
-    total_field_mie, incident_field_mie = dinv.physics.scattering.mie_theory(
-        wavenumber,
-        cylinder_radius,
-        cylinder_contrast,
-        pixels,
-        wave_type=wave_type,
-        angles=torch.linspace(0, 2 * torch.pi, angles + 1, device=device)[:-1],
-        dtype=dtype,
-        device=device,
-        n_coeffs=n_coeffs,
-        transmitter_radius=radius_tx,
-    )
 
     transmitters, receivers = dinv.physics.scattering.circular_sensors(
         angles, radius=radius_tx, device=device
@@ -2415,6 +2432,21 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
         < 1e-4
     ), "Adjointness test failed for the Born sub-operator of the Scattering physics."
 
+    n_coeffs = 55
+
+    total_field_mie, incident_field_mie = dinv.physics.scattering.mie_theory(
+        wavenumber,
+        cylinder_radius,
+        cylinder_contrast,
+        pixels,
+        wave_type=wave_type,
+        angles=torch.linspace(0, 2 * torch.pi, angles + 1, device=device)[:-1],
+        dtype=dtype,
+        device=device,
+        n_coeffs=n_coeffs,
+        transmitter_radius=radius_tx,
+    )
+
     # create cylinder contrast
     x = torch.zeros((pixels, pixels), device=device, dtype=dtype)
     yy, xx = torch.meshgrid(
@@ -2437,19 +2469,54 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
     ).abs().mean() < 1e-1, "theoretical and empirical total fields do not match"
 
 
-@pytest.mark.parametrize("seed", [0])
-def test_squared_or_non_squared_norms(seed, device):
-    random.seed(seed)
-    name = random.choice(OPERATORS)
+def test_squared_or_non_squared_norms(device):
+    name = "fftdeblur"
     physics, imsize, _, dtype = find_operator(name, device)
-
-    rng = torch.Generator(device).manual_seed(seed)
+    rng = torch.Generator(device)
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
-    sqnorm1 = physics.compute_sqnorm(x, max_iter=1, tol=1e-9)
-    norm = physics.compute_norm(x, max_iter=1, tol=1e-9, squared=False)
+    sqnorm1 = physics.compute_sqnorm(x, max_iter=1000, tol=1e-9)
+    norm = physics.compute_norm(x, max_iter=1000, tol=1e-9, squared=False)
 
     with pytest.warns(DeprecationWarning, match="compute_sqnorm"):
-        sqnorm2 = physics.compute_norm(x, max_iter=1, tol=1e-9, squared=True)
+        sqnorm2 = physics.compute_norm(x, max_iter=1000, tol=1e-9, squared=True)
 
-    assert torch.allclose(sqnorm1, sqnorm2, rtol=1e-5), "squared norms do not match"
-    assert torch.allclose(sqnorm1, norm**2, rtol=1e-5), "norms do not match"
+    assert torch.allclose(sqnorm1, sqnorm2, rtol=1e-4), "squared norms do not match"
+    assert torch.allclose(sqnorm1, norm**2, rtol=1e-4), "norms do not match"
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("n_channels", [1, 3])
+@pytest.mark.parametrize("img_size", [(32, 32), (33, 33), (32, 33)])
+@pytest.mark.parametrize("patch_size", [8, 9, (8, 9)])
+@pytest.mark.parametrize("stride", [4, 5, (4, 5)])
+@pytest.mark.parametrize("psf_size", [(5, 5), (6, 6), (5, 6)])
+@pytest.mark.parametrize("use_fft", [False, True])
+def test_tiled_product_physics_adjointness(
+    batch_size, n_channels, img_size, patch_size, psf_size, stride, use_fft, device
+):
+    from deepinv.physics.blur import TiledSpaceVaryingBlur
+
+    x = torch.randn(batch_size, n_channels, *img_size).to(device)
+
+    n_filters = TiledSpaceVaryingBlur.num_filters(
+        img_size=img_size, patch_size=patch_size, stride=stride
+    )
+    h = torch.rand(1, n_channels, n_filters[0] * n_filters[1], *psf_size).to(device)
+
+    physics = TiledSpaceVaryingBlur(
+        filters=h,
+        patch_size=patch_size,
+        stride=stride,
+        use_fft=use_fft,
+        device=device,
+    )
+
+    Ax = physics.A(x)
+    y = torch.randn_like(Ax)
+    Aty = physics.A_adjoint(y)
+    # Lower a bit the tolerence on Windows. It seems that there is a small numerical error on Windows
+    is_windows = os.name == "nt"
+    tol = 1e-2 if is_windows else 1e-3
+    lhs = torch.sum(Ax * y)
+    rhs = torch.sum(Aty * x)
+    assert torch.allclose(lhs, rhs, rtol=tol, atol=1e-5)

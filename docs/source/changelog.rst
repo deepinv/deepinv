@@ -8,6 +8,25 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add install guidelines for different platforms (`pixi`, `conda`, `pip`, `uv`) in docs (:gh:`1108` by `Julian Tachella`_)
+- Add :class:`deepinv.optim.SIRT` algorithm for tomographic reconstruction (:gh:`985` by `Thibaut Modrzyk`_`)
+- Add :class:`deepinv.optim.MLEM` algorithm for Poisson inverse problems (:gh:`1051` by `Thibaut Modrzyk`_)
+
+Changed
+^^^^^^^
+- Refactor CI to use `pixi` for compatibility with mixed conda/pip environments (:gh:`1108` by `Julian Tachella`_)
+
+
+Fixed
+^^^^^
+- Add warning when options `reduce="mean"` and `reduce="none"` are used in :class:`deepinv.physics.StackedLinearPhysics`. Remove `reduction` argument from :class:`deepinv.distributed.DistributedStackedLinearPhysics` (:gh:`1071` by `Romain Vo`_)
+- Add a deprecation warning in :func:`deepinv.utils.plot_inset` in favor of :func:`deepinv.utils.plot` with `plot_inset=True` (:gh:`1148` by `Paul Bernard`_).
+
+
+v0.4.0
+------
+New Features
+^^^^^^^^^^^^
 - Add :class:`deepinv.models.WaveletNoiseEstimator` and :class:`deepinv.models.PatchCovarianceNoiseEstimator` for noise level estimation (:gh:`1015` by `Matthieu Terris`_)
 - Add :class:`deepinv.physics.Scattering` physics for non-linear inverse scattering problems (:gh:`1020` by `Julian Tachella`_)
 - Add :meth:`deepinv.physics.Physics.compute_norm` local operator norm computation for non-linear physics (:gh:`1020` by `Julian Tachella`_)
@@ -15,15 +34,17 @@ New Features
 - Add distributed computing framework with :class:`deepinv.distributed.DistributedContext`, :class:`deepinv.distributed.DistributedStackedPhysics`, :class:`deepinv.distributed.DistributedProcessing`, :class:`deepinv.distributed.DistributedDataFidelity` and :func:`deepinv.distributed.distribute` factory function. Supports multi-GPU/multi-process execution with physics-based and spatial tiling distribution strategies (:gh:`790`` by `Benoît Malézieux`_)
 - Add :class:`deepinv.loss.metric.CosineSimilarity` to the metrics (:gh:`944` by `Avithal Lautman`_)
 - New option to initialize 3D networks (DRUNet, DnCNN, DScCP) from pretrained 2D weights (:gh:`958` by `Romain Vo`_)
+- Add :class:`deepinv.physics.TiledSpaceVaryingBlur` physics and :class:`deepinv.physics.generator.TiledBlurGenerator` (:gh:`1033` by `Minh Hai Nguyen`_ and `Paul Escande`_)
 
 Changed
 ^^^^^^^
 - (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.
 - Refactor folder structure of least-squares solvers (:gh:`1011` by `Julian Tachella`_)
 - Removed `eps` parameter from :func:`deepinv.optim.linear.conjugate_gradient` (:gh:`1011` by `Julian Tachella`_)
+- :class:`deepinv.loss.metric.LPIPS` uses `torchmetrics` instead of `pyiqa`. (:gh:`1041` by `Andrew Wang`_)
+- Remove `pyiqa` optional dep (:gh:`1041` by `Andrew Wang`_)
 - Deprecated `verbose_individual_losses` parameter in :class:`deepinv.Trainer`. Individual losses are now always added to logs when multiple losses are present (:gh:`928` by `Tiberiu Sabau`_)
 - Deprecate historical attributes in HDF5Dataset (:gh:`764` by `Jérémy Scanvic`_)
-
 
 Fixed
 ^^^^^
@@ -34,6 +55,10 @@ Fixed
 - Have test ground truths returned in HDF5Dataset when present (:gh:`764` by `Jérémy Scanvic`_)
 - Dispose of invalid physics parameters in HDF5Dataset loading (:gh:`764` by `Jérémy Scanvic`_)
 - :func:`deepinv.utils.plot_ortho3D` doesn't perform sqrt on images (:gh:`1068` by `Andrew Wang`_)
+- Deprecate `self.device` in :class:`deepinv.physics.LinearPhysics` and remove it from internal logic. Define it as a property until removed. (:gh:`989` by `Romain Vo`_)
+- Sample a unique factor per batch in :class:`deepinv.physics.generator.DownsamplingGenerator` (:gh:`1085` by `Romain Vo`_)
+
+
 
 v0.3.7
 ------
@@ -575,3 +600,5 @@ Changed
 .. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
 .. _Tiberiu Sabau: https://github.com/tibisabau
 .. _Benoît Malézieux: https://github.com/bmalezieux
+.. _Paul Escande: https://pescande.perso.math.cnrs.fr/
+.. _Paul Bernard: https://github.com/PAUL-BERNARD
