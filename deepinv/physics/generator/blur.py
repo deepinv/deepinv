@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from math import ceil, floor, pi
 from deepinv.physics.generator import PhysicsGenerator
-from deepinv.physics.functional gaussian_blur_nd
+from deepinv.physics.functional import gaussian_blur_nd
 from deepinv.physics.functional.hist import histogramdd
 from deepinv.physics.functional.convolution import conv2d
 from deepinv.physics.functional.interp import ThinPlateSpline
@@ -36,7 +36,8 @@ class PSFGenerator(PhysicsGenerator):
         self.shape = (num_channels,) + psf_size
         self.psf_size = psf_size
         self.num_channels = num_channels
-        
+
+
 class GaussianBlurGenerator(PSFGenerator):
     def __init__(
         self,
@@ -53,7 +54,7 @@ class GaussianBlurGenerator(PSFGenerator):
     ):
         r"""
         Random Gaussian blur generator. Generates 1D, 2D, or 3D Gaussian kernels with random standard deviations and rotation angles.
-        
+
         :param tuple[int, ...] psf_size: the shape of the generated point spread function (PSF).
         :param float | tuple[float, ...] sigma_min: the minimum standard deviation(s) for the Gaussian kernel. If a single value is provided, it is applied to all dimensions. If a tuple is provided, it should have the same length as the number of dimensions and specify the minimum sigma for each dimension.
         :param float | tuple[float, ...] sigma_max: the maximum standard deviation(s) for the Gaussian kernel. Follows the same format as ``sigma_min``.
@@ -65,60 +66,78 @@ class GaussianBlurGenerator(PSFGenerator):
         :param str device: the device to create the tensors on. Defaults to "cpu".
         :param type dtype: the data type of the generated tensors. Defaults to torch.float32.
         """
-        
+
         dim = len(psf_size)
         if dim not in {1, 2, 3}:
             raise ValueError("Only 1D, 2D, and 3D kernels are supported.")
-        
+
         if isinstance(sigma_min, (int, float)):
-            sigma_min = (sigma_min, )
+            sigma_min = (sigma_min,)
         if isinstance(sigma_max, (int, float)):
-            sigma_max = (sigma_max, )
-        
+            sigma_max = (sigma_max,)
+
         if len(sigma_min) == 1 and len(sigma_max) == 1:
             sigma_min = sigma_min * dim
             sigma_max = sigma_max * dim
-        
+
         else:
             if dim == 1:
-                raise ValueError(f"For 1D kernels, sigma_min and sigma_max should be single values. Got sigma_min = {sigma_min} and sigma_max = {sigma_max}.")
-            
+                raise ValueError(
+                    f"For 1D kernels, sigma_min and sigma_max should be single values. Got sigma_min = {sigma_min} and sigma_max = {sigma_max}."
+                )
+
             if len(sigma_min) != len(sigma_max):
-                raise ValueError(f"sigma_min and sigma_max should have the same length. Got {len(sigma_min)} and {len(sigma_max)}.")
-            
+                raise ValueError(
+                    f"sigma_min and sigma_max should have the same length. Got {len(sigma_min)} and {len(sigma_max)}."
+                )
+
             if len(sigma_min) != dim or len(sigma_max) != dim:
-                raise ValueError(f"Length of sigma_min and sigma_max should be either 1 or {dim}.")
-          
+                raise ValueError(
+                    f"Length of sigma_min and sigma_max should be either 1 or {dim}."
+                )
+
         for smin, smax in zip(sigma_min, sigma_max):
             if smin > smax:
-                raise ValueError(f"Each component of sigma_min should be less than or equal to the corresponding component of sigma_max. Got sigma_min = {sigma_min} and sigma_max = {sigma_max}.")
-            
+                raise ValueError(
+                    f"Each component of sigma_min should be less than or equal to the corresponding component of sigma_max. Got sigma_min = {sigma_min} and sigma_max = {sigma_max}."
+                )
+
         if dim == 2:
             if isinstance(angle_min, (tuple, list)):
                 if len(angle_min) != 1:
-                    raise ValueError(f"For 2D kernels, angle_min should be a single value or a tuple/list of length 1. Got angle_min = {angle_min}.")
+                    raise ValueError(
+                        f"For 2D kernels, angle_min should be a single value or a tuple/list of length 1. Got angle_min = {angle_min}."
+                    )
                 angle_min = angle_min[0]
-                
+
             if isinstance(angle_max, (tuple, list)):
                 if len(angle_max) != 1:
-                    raise ValueError(f"For 2D kernels, angle_max should be a single value or a tuple/list of length 1. Got angle_max = {angle_max}.")
+                    raise ValueError(
+                        f"For 2D kernels, angle_max should be a single value or a tuple/list of length 1. Got angle_max = {angle_max}."
+                    )
                 angle_max = angle_max[0]
-                
+
             if angle_min > angle_max:
-                raise ValueError(f"angle_min should be less than or equal to angle_max. Got angle_min = {angle_min} and angle_max = {angle_max}.")
+                raise ValueError(
+                    f"angle_min should be less than or equal to angle_max. Got angle_min = {angle_min} and angle_max = {angle_max}."
+                )
 
         elif dim == 3:
             if isinstance(angle_min, (int, float)):
-                angle_min = (angle_min, ) * 3
+                angle_min = (angle_min,) * 3
             if isinstance(angle_max, (int, float)):
-                angle_max = (angle_max, ) * 3
-        
+                angle_max = (angle_max,) * 3
+
             if len(angle_min) != 3 or len(angle_max) != 3:
-                raise ValueError(f"For 3D kernels, angle_min and angle_max should have three values corresponding to rotations around x, y, and z axes. Got angle_min = {angle_min} and angle_max = {angle_max}.")
-            
+                raise ValueError(
+                    f"For 3D kernels, angle_min and angle_max should have three values corresponding to rotations around x, y, and z axes. Got angle_min = {angle_min} and angle_max = {angle_max}."
+                )
+
             for amin, amax in zip(angle_min, angle_max):
                 if amin > amax:
-                    raise ValueError(f"Each component of angle_min should be less than or equal to the corresponding component of angle_max. Got angle_min = {angle_min} and angle_max = {angle_max}.")
+                    raise ValueError(
+                        f"Each component of angle_min should be less than or equal to the corresponding component of angle_max. Got angle_min = {angle_min} and angle_max = {angle_max}."
+                    )
 
         kwargs = {
             "dim": dim,
@@ -134,43 +153,68 @@ class GaussianBlurGenerator(PSFGenerator):
 
     def step(
         self,
-        batch_size: int = 1, 
+        batch_size: int = 1,
         sigma: torch.Tensor = None,
         angle: torch.Tensor = None,
-        seed: int = None, 
-        **kwargs
+        seed: int = None,
+        **kwargs,
     ):
         self.rng_manual_seed(seed)
         dim = len(self.psf_size)
 
         if sigma is None:
             if self.isotropic:
-                sigma = torch.stack([
-                    torch.rand(batch_size, generator=self.rng, **self.factory_kwargs) * (self.sigma_max[0] - self.sigma_min[0]) + self.sigma_min[0]
-                ] * dim, dim=-1)  # Shape: (batch_size, dim)
-                    
+                sigma = torch.stack(
+                    [
+                        torch.rand(
+                            batch_size, generator=self.rng, **self.factory_kwargs
+                        )
+                        * (self.sigma_max[0] - self.sigma_min[0])
+                        + self.sigma_min[0]
+                    ]
+                    * dim,
+                    dim=-1,
+                )  # Shape: (batch_size, dim)
+
             else:
                 # Sample sigmas for each dimension and each kernel in the batch
-                sigma = torch.stack([
-                    torch.rand(batch_size, generator=self.rng, **self.factory_kwargs) * (smax - smin) + smin
-                    for smin, smax in zip(self.sigma_min, self.sigma_max)
-                ], dim=-1) # Shape: (batch_size, dim)        
+                sigma = torch.stack(
+                    [
+                        torch.rand(
+                            batch_size, generator=self.rng, **self.factory_kwargs
+                        )
+                        * (smax - smin)
+                        + smin
+                        for smin, smax in zip(self.sigma_min, self.sigma_max)
+                    ],
+                    dim=-1,
+                )  # Shape: (batch_size, dim)
 
         if angle is None and dim > 1:
             if dim == 2:
-                angle = torch.rand(batch_size, generator=self.rng, **self.factory_kwargs) * (
-                    self.angle_max - self.angle_min
-                ) + self.angle_min # Shape: (batch_size,)
+                angle = (
+                    torch.rand(batch_size, generator=self.rng, **self.factory_kwargs)
+                    * (self.angle_max - self.angle_min)
+                    + self.angle_min
+                )  # Shape: (batch_size,)
             elif dim == 3:
-                angle = torch.stack([
-                    torch.rand(batch_size, generator=self.rng, **self.factory_kwargs) * (amax - amin) + amin
-                    for amin, amax in zip(self.angle_min, self.angle_max)
-                ], dim=-1) # Shape: (batch_size, 3)
-        
-        # filter.shape = (batch_size, 1, *psf_size)
-        filters = gaussian_blur_nd(self.psf_size, sigma, angle, batch_size=batch_size, device=self.device)
-        return {"filter": filters.expand(-1, self.num_channels, *(-1,) * dim)}
+                angle = torch.stack(
+                    [
+                        torch.rand(
+                            batch_size, generator=self.rng, **self.factory_kwargs
+                        )
+                        * (amax - amin)
+                        + amin
+                        for amin, amax in zip(self.angle_min, self.angle_max)
+                    ],
+                    dim=-1,
+                )  # Shape: (batch_size, 3)
 
+        # filter.shape = (batch_size, 1, *psf_size)
+        filters = gaussian_blur_nd(
+            self.psf_size, sigma, angle, batch_size=batch_size, device=self.device
+        )
+        return {"filter": filters.expand(-1, self.num_channels, *(-1,) * dim)}
 
 
 class MotionBlurGenerator(PSFGenerator):
