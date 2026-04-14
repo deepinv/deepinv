@@ -121,7 +121,7 @@ model = dinv.models.ArtifactRemoval(
 #       L2R learns an internal trainable re-corruption network and does not require
 #       explicit knowledge of the measurement noise distribution during optimization.
 
-epochs = 500  # choose training epochs
+epochs = 3  # choose training epochs
 learning_rate = 1e-3
 batch_size = 64 if torch.cuda.is_available() else 1
 
