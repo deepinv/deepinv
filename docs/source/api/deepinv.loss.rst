@@ -50,6 +50,7 @@ Self-Supervised Learning
     deepinv.loss.SurePGLoss
     deepinv.loss.TVLoss
     deepinv.loss.R2RLoss
+    deepinv.loss.L2RLoss
     deepinv.loss.ScoreLoss
     deepinv.loss.AugmentConsistencyLoss
     deepinv.loss.ReducedResolutionLoss
