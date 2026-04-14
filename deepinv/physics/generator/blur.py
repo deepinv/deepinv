@@ -42,7 +42,7 @@ class GaussianBlurGenerator(PSFGenerator):
         sigma_max: float | tuple[float, ...] = 5.0,
         isotropic: bool = True,
         angle_min: float | tuple[float, ...] = 0.0,
-        angle_max: float | tuple[float, ...] = 2 * pi,
+        angle_max: float | tuple[float, ...] = 360.0,
         num_channels: int = 1,
         rng: torch.Generator = None,
         device: str = "cpu",
@@ -55,8 +55,8 @@ class GaussianBlurGenerator(PSFGenerator):
         :param float | tuple[float, ...] sigma_min: the minimum standard deviation(s) for the Gaussian kernel. If a single value is provided, it is applied to all dimensions. If a tuple is provided, it should have the same length as the number of dimensions and specify the minimum sigma for each dimension.
         :param float | tuple[float, ...] sigma_max: the maximum standard deviation(s) for the Gaussian kernel. Follows the same format as ``sigma_min``.
         :param bool isotropic: If True, the generated Gaussian kernels will be isotropic (same sigma for all dimensions). If False, the kernels can be anisotropic (different sigma for each dimension). Defaults to True.
-        :param float | tuple[float, ...] angle_min: the minimum rotation angle(s) for the Gaussian kernel in radians. For 2D kernels, this is a single angle of rotation in the plane. For 3D kernels, this can be a tuple of three angles (alpha, beta, gamma) representing minimum rotation values around the x, y, and z axes respectively. In 3D, if a single angle is provided, it is used as minimum value for all axes.
-        :param float | tuple[float, ...] angle_max: the maximum rotation angle(s) for the Gaussian kernel in radians. Follows the same format as ``angle_min``.
+        :param float | tuple[float, ...] angle_min: the minimum rotation angle(s) for the Gaussian kernel in degrees. For 2D kernels, this is a single angle of rotation in the plane. For 3D kernels, this can be a tuple of three angles (alpha, beta, gamma) representing minimum rotation values around the x, y, and z axes respectively. In 3D, if a single angle is provided, it is used as minimum value for all axes.
+        :param float | tuple[float, ...] angle_max: the maximum rotation angle(s) for the Gaussian kernel in degrees. Follows the same format as ``angle_min``.
         :param int num_channels: number of images channels. Defaults to 1.
         :param torch.Generator rng: PyTorch random number generator for reproducibility. If ``None``, a torch.Generator will be created on the specified device.
         :param str device: the device to create the tensors on. Defaults to "cpu".
@@ -164,8 +164,9 @@ class GaussianBlurGenerator(PSFGenerator):
                     for amin, amax in zip(self.angle_min, self.angle_max)
                 ], dim=-1) # Shape: (batch_size, 3)
         
+        # filter.shape = (batch_size, 1, *psf_size)
         filters = gaussian_blur_nd(self.psf_size, sigma, angle, batch_size=batch_size, device=self.device)
-        return {"filter": filters[:, None].expand(-1, self.num_channels, *(-1,) * dim)}
+        return {"filter": filters.expand(-1, self.num_channels, *(-1,) * dim)}
 
 
 

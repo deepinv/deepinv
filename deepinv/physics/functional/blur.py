@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-from math import ceil, floor, sqrt, pi
+from math import sqrt, pi
 
 def gaussian_blur_nd(
     psf_size: tuple[int, ...] | None = None,
@@ -17,7 +17,7 @@ def gaussian_blur_nd(
 
     :param tuple[int, ...] psf_size: Shape of the point spread function for the batch, it can be a tuple specifying the size for each dimension (e.g., (7, 3) for 2D), or None to automatically determine the size based on sigma. 
     :param int | float | tuple[float, ...] | torch.Tensor sigma: If a float or integer is provided, the kernel is isotropic with the specified sigma for all dimensions. The user can define an anisotropic kernel by passing a tuple of float. If a float, integer, or tuple is provided, the same kernel is repeated for the entire batch. If a tensor of shape (batch_size, dim) is provided, each kernel in the batch can have different sigma values.
-    :param int | float | tuple[float, ...] | torch.Tensor angle: Rotation angle(s) for each kernel in the batch (radians). For 2D kernels, this is a single angle of rotation in the plane. For 3D kernels, this can be a tuple of three angles (alpha, beta, gamma) representing rotations around the x, y, and z axes respectively. In 3D, if a single angle is provided, it is applied as a rotation around the z-axis. If a tuple of three angles is provided, they are applied as rotations around the x, y, and z axes in that order. If a tensor of shape (batch_size,) for 2D or (batch_size, 3) for 3D is provided, each kernel in the batch can have its own rotation angle(s).
+    :param int | float | tuple[float, ...] | torch.Tensor angle: Rotation angle(s) for each kernel in the batch (degrees). For 2D kernels, this is a single angle of rotation in the plane. For 3D kernels, this can be a tuple of three angles (alpha, beta, gamma) representing rotations around the x, y, and z axes respectively. In 3D, if a single angle is provided, it is applied as a rotation around the z-axis. If a tuple of three angles is provided, they are applied as rotations around the x, y, and z axes in that order. If a tensor of shape (batch_size,) for 2D or (batch_size, 3) for 3D is provided, each kernel in the batch can have its own rotation angle(s).
     :param int batch_size: If sigma is an integer, float, or tuple, this parameter specifies how many kernels to generate in the batch. Ignored if sigma is a tensor.
     :param str device: Device to create the tensor on.
 
@@ -72,7 +72,9 @@ def gaussian_blur_nd(
             # Check that angle is effectively of shape (batch_size, 3)
         else:
             raise ValueError(f"For 3D, angles must be a list of three angles (alpha, beta, gamma) or a tensor of shape (batch_size, 3). Got angle.shape = {angle.shape}.")
-        
+    
+    angle = torch.deg2rad(angle)  # Convert angles from degrees to radians for rotation calculations
+     
     # Create a grid for each dimension
     grids = []
     for d in range(dim):
@@ -149,5 +151,8 @@ def gaussian_blur_nd(
     # Normalize each kernel
     kernel = kernel / torch.sum(kernel, dim=tuple(range(1, dim + 1)), keepdim=True)
 
+    # Add single channel dimension to fit (B,C,*img_size) format
+    kernel = kernel[:, None]
+    
     return kernel
 
