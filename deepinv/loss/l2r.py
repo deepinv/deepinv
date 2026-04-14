@@ -128,7 +128,7 @@ class L2RLoss(Loss):
     :param float alpha: Scaling factor controlling the re-corruption strength.
     :param int eval_n_samples: Number of Monte Carlo samples used at test time.
     :param torch.nn.Module recorruptor: Trainable re-corruption network
-        :math:`h`. If ``None``, a default :class:`Recorruptor` is used.
+        :math:`h`. If ``None``, a default ``Recorruptor`` is used.
 
     |sep|
 
@@ -195,8 +195,7 @@ class L2RLoss(Loss):
         :param torch.Tensor y: Noisy measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with
             the measurements.
-        :param torch.nn.Module model: Adapted reconstruction model exposing
-            :meth:`get_corruption`.
+        :param torch.nn.Module model: Reconstruction model.
         :return: (:class:`torch.Tensor`) L2R loss value.
         """
 
