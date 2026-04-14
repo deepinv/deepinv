@@ -130,9 +130,12 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
     elif loss_name == "r2r":
         loss.append(dinv.loss.R2RLoss(noise_model=dinv.physics.GaussianNoise(0.1)))
     elif loss_name == "l2r":
-        loss.append(dinv.loss.L2RLoss(
-            recorruptor=dinv.loss.l2r.Recorruptor(sigma=0.1, net="identity"),
-            device=device))
+        loss.append(
+            dinv.loss.L2RLoss(
+                recorruptor=dinv.loss.l2r.Recorruptor(sigma=0.1, net="identity"),
+                device=device,
+            )
+        )
     elif loss_name == "ensure":
         loss.append(
             dinv.loss.mri.ENSURELoss(

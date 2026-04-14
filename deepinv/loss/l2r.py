@@ -4,9 +4,8 @@ import math
 import warnings
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
-import torch.nn.functional as F 
+import torch.nn.functional as F
 import torch.nn as nn
-
 
 
 class Recorruptor(torch.nn.Module):
@@ -27,16 +26,16 @@ class Recorruptor(torch.nn.Module):
         ``kernel_size=1``.
     """
 
-    def __init__(self, depth=5, feats=4, kernel_size=3, multiplicative=False, sigma=0.1, net=None):
+    def __init__(
+        self, depth=5, feats=4, kernel_size=3, multiplicative=False, sigma=0.1, net=None
+    ):
         super(Recorruptor, self).__init__()
 
         self.multiplicative = multiplicative
         self.kernel_size = kernel_size
 
-
         feats_list = [1] + [feats] * depth + [1]
         t_in = [1]
-
 
         # self.net = MonotonicFullyConnectedNet(feats_list, t_in=t_in, base_act=F.softplus)
 
@@ -48,18 +47,19 @@ class Recorruptor(torch.nn.Module):
                 nn.Softplus(),
                 nn.Linear(feats, feats),
                 nn.Softplus(),
-                nn.Linear(feats, 1)
+                nn.Linear(feats, 1),
             )
 
-
-        self.norm_layer  = nn.BatchNorm1d(1, affine=False, momentum=0.9)
+        self.norm_layer = nn.BatchNorm1d(1, affine=False, momentum=0.9)
 
         if self.kernel_size > 1:
-            self.sigma = nn.Parameter(torch.randn(1, 1, self.kernel_size, self.kernel_size) * 0.1 , requires_grad=True) 
+            self.sigma = nn.Parameter(
+                torch.randn(1, 1, self.kernel_size, self.kernel_size) * 0.1,
+                requires_grad=True,
+            )
         else:
             self.sigma = nn.Parameter(torch.tensor(sigma), requires_grad=True)
 
-    
     def forward(self, w, y):
 
         c = y.shape[1]
@@ -71,15 +71,14 @@ class Recorruptor(torch.nn.Module):
         if self.kernel_size > 1:
             kernel = self.sigma
             kernel = kernel.repeat(c, 1, 1, 1)
-            hw = F.conv2d(hw, kernel, padding=self.kernel_size//2, groups=c)
+            hw = F.conv2d(hw, kernel, padding=self.kernel_size // 2, groups=c)
         else:
             hw = self.sigma * hw
 
         if self.multiplicative:
             hw = hw * y.clamp(min=1e-6).sqrt()
-            
-        return hw
 
+        return hw
 
 
 class L2RLoss(Loss):
@@ -183,14 +182,12 @@ class L2RLoss(Loss):
             self.recorruptor = Recorruptor(multiplicative=True)
         else:
             self.recorruptor = recorruptor
-        
+
         self.recorruptor.to(device)
 
-        self.recorruptor_optimizer = torch.optim.Adam(self.recorruptor.parameters(), 
-                                                      lr=1e-6, 
-                                                      weight_decay=1e-6)
-
-
+        self.recorruptor_optimizer = torch.optim.Adam(
+            self.recorruptor.parameters(), lr=1e-6, weight_decay=1e-6
+        )
 
     def forward(self, x_net, y, physics, model, **kwargs):
         r"""
@@ -204,17 +201,16 @@ class L2RLoss(Loss):
             :meth:`get_corruption`.
         :return: (:class:`torch.Tensor`) L2R loss value.
         """
-        
+
         hw = model.get_corruption()
         y_pred = physics.A(x_net)
 
         if model.training:
-            loss = - (2/self.alpha) * ( y_pred.detach() * hw ).mean()
+            loss = -(2 / self.alpha) * (y_pred.detach() * hw).mean()
             self.update_recorruptor(loss)
 
-        return self.metric(y_pred, y) + (2/self.alpha) * ( y_pred * hw.detach() ).mean()
+        return self.metric(y_pred, y) + (2 / self.alpha) * (y_pred * hw.detach()).mean()
 
-    
     def adapt_model(self, model, **kwargs):
         r"""
         Adapts a reconstruction model to include L2R re-corruption at input.
@@ -238,7 +234,6 @@ class L2RLoss(Loss):
             )
 
         return model
-
 
     def update_recorruptor(self, loss, **kwargs):
         r"""
@@ -269,7 +264,7 @@ class L2RModel(torch.nn.Module):
         self.alpha = alpha
         self.eval_n_samples = eval_n_samples
         self.name = "l2r"
-    
+
     def forward(self, y, physics, update_parameters=False, more_evals=0, x=None):
         r"""
         Runs the adapted model with L2R re-corruption.
@@ -292,7 +287,7 @@ class L2RModel(torch.nn.Module):
 
             for _ in range(eval_n_samples):
 
-                hw = self.recorruptor( torch.randn_like(y), y )
+                hw = self.recorruptor(torch.randn_like(y), y)
                 y1 = y + self.alpha * hw
 
                 out += self.model(y1.detach(), physics)
@@ -303,7 +298,7 @@ class L2RModel(torch.nn.Module):
             out = out / eval_n_samples
 
         return out
-    
+
     def get_corruption(self):
         r"""Returns the most recently stored re-corruption sample."""
         return self.corruption

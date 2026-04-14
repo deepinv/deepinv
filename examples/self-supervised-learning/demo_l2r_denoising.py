@@ -48,10 +48,10 @@ train_dataset_name = "MNIST"
 transform = transforms.Compose([transforms.ToTensor()])
 
 train_dataset = datasets.MNIST(
-	root=ORIGINAL_DATA_DIR, train=True, transform=transform, download=True
+    root=ORIGINAL_DATA_DIR, train=True, transform=transform, download=True
 )
 test_dataset = datasets.MNIST(
-	root=ORIGINAL_DATA_DIR, train=False, transform=transform, download=True
+    root=ORIGINAL_DATA_DIR, train=False, transform=transform, download=True
 )
 
 # %%
@@ -67,8 +67,8 @@ test_dataset = datasets.MNIST(
 #       We recommend to use the whole set by setting ``n_images_max=None`` to get the best results.
 
 predefined_noise_models = dict(
-	gaussian=dinv.physics.GaussianNoise(sigma=0.1),
-	poisson=dinv.physics.PoissonNoise(gain=0.5),
+    gaussian=dinv.physics.GaussianNoise(sigma=0.1),
+    poisson=dinv.physics.PoissonNoise(gain=0.5),
 )
 
 noise_name = "poisson"  # default noise model for this demo
@@ -81,20 +81,20 @@ operation = f"{operation}_{noise_name}_l2r"
 num_workers = 0 if torch.cuda.is_available() else 0
 
 n_images_max = (
-	100 if torch.cuda.is_available() else 5
+    100 if torch.cuda.is_available() else 5
 )  # number of images used for training
 
 measurement_dir = DATA_DIR / train_dataset_name / operation
 deepinv_datasets_path = dinv.datasets.generate_dataset(
-	train_dataset=train_dataset,
-	test_dataset=test_dataset,
-	physics=physics,
-	device=device,
-	save_dir=measurement_dir,
-	train_datapoints=n_images_max,
-	test_datapoints=n_images_max,
-	num_workers=num_workers,
-	dataset_filename="demo_l2r",
+    train_dataset=train_dataset,
+    test_dataset=test_dataset,
+    physics=physics,
+    device=device,
+    save_dir=measurement_dir,
+    train_datapoints=n_images_max,
+    test_datapoints=n_images_max,
+    num_workers=num_workers,
+    dataset_filename="demo_l2r",
 )
 
 train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True)
@@ -107,7 +107,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # We use a simple U-Net architecture with 2 scales as the denoiser network.
 
 model = dinv.models.ArtifactRemoval(
-	dinv.models.UNet(in_channels=1, out_channels=1, scales=2, residual=False).to(device)
+    dinv.models.UNet(in_channels=1, out_channels=1, scales=2, residual=False).to(device)
 )
 
 
@@ -150,33 +150,33 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.
 verbose = True  # print training information
 
 train_dataloader = DataLoader(
-	train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
+    train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
 
 test_dataloader = DataLoader(
-	test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
+    test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
 
 # Initialize the trainer
 trainer = dinv.Trainer(
-	model=model,
-	physics=physics,
-	epochs=epochs,
-	scheduler=scheduler,
-	losses=loss,
-	optimizer=optimizer,
-	device=device,
-	metrics=dinv.metric.PSNR(),  
-	train_dataloader=train_dataloader,
-	eval_dataloader=test_dataloader,
-	early_stop=100,  # early stop using the self-supervised loss on the test set
-	compute_eval_losses=True,  # use self-supervised loss for evaluation
-	early_stop_on_losses=False,  # stop using self-supervised eval loss
-	plot_images=True,
+    model=model,
+    physics=physics,
+    epochs=epochs,
+    scheduler=scheduler,
+    losses=loss,
+    optimizer=optimizer,
+    device=device,
+    metrics=dinv.metric.PSNR(),
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
+    early_stop=100,  # early stop using the self-supervised loss on the test set
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=False,  # stop using self-supervised eval loss
+    plot_images=True,
     plot_interval=100,
-	save_path=str(CKPT_DIR / operation),
-	verbose=verbose,
-	show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
+    save_path=str(CKPT_DIR / operation),
+    verbose=verbose,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )
 
 # Train the network
@@ -195,4 +195,3 @@ trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 # :References:
 #
 # .. footbibliography::
-
