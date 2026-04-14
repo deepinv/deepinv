@@ -9,7 +9,8 @@ scene onto a series of patterns. The SPC is implemented in the DeepInverse libra
 In this example, we explore the following ordering algorithms for the Hadamard transform:
 
 1. **Sequency Ordering**:
-   Rows are ordered based on the number of sign changes (sequency pattern) :footcite:p:`yuen1972remarks`.
+   Rows are ordered based on the number of sign changes (sequency pattern).
+   Reference: https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering
 
 2. **Cake Cutting Ordering**:
    Rows are ordered based on the number of blocks in the 2D resized Hadamard matrix :footcite:p:`yu2019super`.
