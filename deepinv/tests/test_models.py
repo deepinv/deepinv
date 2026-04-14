@@ -1854,3 +1854,18 @@ def test_deal_model_runs(monkeypatch, device):
     x_hat_no_pretrained = model_no_pretrained(y, physics)
     assert isinstance(x_hat_no_pretrained, torch.Tensor)
     assert x_hat_no_pretrained.shape == y.shape
+
+    # Repeat denoiser call once more with a scalar sigma
+    y_batch = torch.randn(2, 1, 32, 32, device=device)
+    x_hat_batch = model(y_batch, sigma=0.1)
+    assert x_hat_batch.shape == y_batch.shape
+
+    # Call with different lambda to trigger scaling
+    model.lmbda = torch.tensor([5.0], device=device)
+    x_hat2 = model(y, physics)
+    assert x_hat2.shape == y.shape
+
+    # Call multiple times to trigger iterative parts
+    for _ in range(2):
+        x_hat_iter = model(y, physics)
+        assert x_hat_iter.shape == y.shape
