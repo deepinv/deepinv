@@ -46,7 +46,8 @@ class DRUNet(Denoiser):
         online repository (only available for the default architecture with 3 or 1 input/output channels). When building a 3D network, it is possible to initialize with 2D pretrained weights by using ``pretrained='download_2d'``, which provides a good starting point for fine-tuning.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param bool pretrained_2d_isotropic: when loading 2D pretrained weights into a 3D network, whether to initialize the 3D kernels isotropically. By default the weights are loaded axially, i.e., by initializing the central slice of the 3D kernels with the 2D weights.
+    :param bool pretrained_2d_isotropic: when loading 2D pretrained weights into a 3D network, whether to initialize the 3D kernels isotropically (see :func:`deepinv.models.utils.initialize_3d_from_2d`).
+        By default the weights are loaded axially, i.e., by initializing the central slice of the 3D kernels with the 2D weights.
     :param torch.device, str device: Device to put the model on.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
