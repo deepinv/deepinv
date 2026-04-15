@@ -119,7 +119,7 @@ class L2RLoss(Loss):
     reconstruction model parameters, while the re-corruption network parameters
     are updated in the opposite direction (maximization step).
 
-    In practice, :math:`h` is parameterized as a lightweight neural network that
+    In practice, :math:`h` is parameterized as a lightweight monotonic neural network :footcite:t:`runje2023constrained` that
     learns perturbations adapted to the observed data.
 
     .. warning::

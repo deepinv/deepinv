@@ -281,7 +281,7 @@ def test_r2r(noise_type, device):
 
 @pytest.mark.parametrize("l2r_recorruptor", LIST_L2R)
 def test_l2r(l2r_recorruptor, device):
-    imsize = (3, 32, 32) 
+    imsize = (3, 32, 32)
 
     # choose backbone denoiser
     backbone = dinv.models.MedianFilter()
@@ -320,7 +320,7 @@ def test_l2r(l2r_recorruptor, device):
 
     assert x_net.shape == x.shape
 
-    # since adversarially recorrupted image can be very different from original, 
+    # since adversarially recorrupted image can be very different from original,
     # we just check loss is scalar here
     l2r_loss = loss(y=y, x_net=x_net, physics=physics, model=f)
     assert isinstance(l2r_loss.item(), float)
