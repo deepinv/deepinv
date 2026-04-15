@@ -306,15 +306,15 @@ class GeneratorMixture(PhysicsGenerator):
                     params = generator.step(batch_size=num_samples, seed=seed, **kwargs)
 
                     # Store with position information for later reordering
-                    for key, value in params.items():
-                        if key not in result:
-                            result[key] = [None] * batch_size
+                for key, value in params.items():
+                    if key not in result:
+                        result[key] = torch.empty(
+                            batch_size, *value.shape[1:],
+                            dtype=value.dtype, device=value.device
+                        )
+                    result[key][batch_positions] = value
 
-                        for i, pos in enumerate(batch_positions):
-                            result[key][pos.item()] = value[i]
-
-            # Convert lists back to stacked tensors
-            return {k: torch.stack(v, dim=0) for k, v in result.items()}
+            return result
 
         else:
             p = torch.rand(
