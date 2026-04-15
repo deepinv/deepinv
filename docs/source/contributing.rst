@@ -138,7 +138,28 @@ Code quality is important to us. We require that your code is compliant with PEP
 3. Run ``ruff check``, which will check all linting options we've enabled. If it fails, follow the suggestions to make a fix!
 4. Push your code. The automatic checkers will run in GitHub actions, along with other actions that we have in place.
 
-5. Interact with reviewers
+.. _log_changes:
+
+5. Log your changes
+~~~~~~~~~~~~~~~~~~~
+
+We keep a summary of all changes in the `changelog.rst <https://deepinv.github.io/deepinv/changelog.html>` file in the documentation.
+We separate contributions into three categories: **Added** for new features, **Changed** for changes in existing features, and **Fixed** for bug fixes. 
+To do so, you should first add your GitHub information at the end of the file following the format:
+
+.. code-block:: rest
+
+  .. _<your name>: https://github.com/<your GitHub username>
+
+You can then add a line to the appropriate category under the **Current** section, describing your contribution in a concise way.
+This lins should follow the format:
+
+.. code-block:: rest
+
+  - <description of your contribution> (:gh:`<pull request number>` by `<your name>`_)
+
+
+6. Interact with reviewers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You're done! A maintainer will see your PR and will interact with you. They may suggest changes. It is your responsibility to make all requested fixes!
