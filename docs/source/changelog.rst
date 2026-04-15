@@ -18,12 +18,13 @@ New Features
 Changed
 ^^^^^^^
 - Refactor CI to use `pixi` for compatibility with mixed conda/pip environments (:gh:`1108` by `Julian Tachella`_)
-
+- Update references for single pixel demo (:gh:`1151` by `Laura C. Diaz-Delgado`_)
 
 Fixed
 ^^^^^
 - Add warning when options `reduce="mean"` and `reduce="none"` are used in :class:`deepinv.physics.StackedLinearPhysics`. Remove `reduction` argument from :class:`deepinv.distributed.DistributedStackedLinearPhysics` (:gh:`1071` by `Romain Vo`_)
 - Add a deprecation warning in :func:`deepinv.utils.plot_inset` in favor of :func:`deepinv.utils.plot` with `plot_inset=True` (:gh:`1148` by `Paul Bernard`_).
+- Fix dimensions mismatch in :class:`deepinv.physics.TomographyWithAstra` with 3D phantoms (:gh:`1137` by `Baptiste Legouix`_)
 
 
 v0.4.0
@@ -605,4 +606,6 @@ Changed
 .. _Benoît Malézieux: https://github.com/bmalezieux
 .. _Paul Escande: https://pescande.perso.math.cnrs.fr/
 .. _Hossein Alimohammadi: https://github.com/Holimmo7
+.. _Laura C. Diaz-Delgado: https://github.com/LauraCD2
 .. _Paul Bernard: https://github.com/PAUL-BERNARD
+.. _Baptiste Legouix: https://github.com/blegouix
