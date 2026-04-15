@@ -47,9 +47,9 @@ class DownsamplingGenerator(PhysicsGenerator):
             filters = [filters]
         if isinstance(factors, int):
             factors = [factors]
-            
+
         factors = torch.as_tensor(factors).to(device)
-            
+
         kwargs = {
             "list_filters": filters,
             "list_factors": factors,
