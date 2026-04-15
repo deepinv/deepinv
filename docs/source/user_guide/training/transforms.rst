@@ -16,6 +16,8 @@ Common usages of transforms:
 
 - | Make a denoiser equivariant using :class:`deepinv.models.EquivariantDenoiser`
   | by performing Reynolds averaging using ``symmetrize()``. See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py`.
+- | Make a reconstructor equivariant using :class:`deepinv.models.EquivariantReconstructor`
+  | by performing Reynolds averaging. See :ref:`sphx_glr_auto_examples_transforms-equivariance_demo_transforms.py`.
 - | Equivariant imaging (EI) using the :class:`deepinv.loss.EILoss` loss.
   | See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py`.
 
