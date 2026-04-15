@@ -143,7 +143,7 @@ Code quality is important to us. We require that your code is compliant with PEP
 5. Log your changes
 ~~~~~~~~~~~~~~~~~~~
 
-We keep a summary of all changes in the `changelog.rst <https://deepinv.github.io/deepinv/changelog.html>` file in the documentation.
+We keep a summary of all changes in the `changelog.rst <https://deepinv.github.io/deepinv/changelog.html>`_ file in the documentation.
 We separate contributions into three categories: **Added** for new features, **Changed** for changes in existing features, and **Fixed** for bug fixes. 
 To do so, you should first add your GitHub information at the end of the file following the format:
 
