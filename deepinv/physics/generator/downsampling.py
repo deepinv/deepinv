@@ -47,6 +47,9 @@ class DownsamplingGenerator(PhysicsGenerator):
             filters = [filters]
         if isinstance(factors, int):
             factors = [factors]
+            
+        factors = torch.as_tensor(factors).to(device)
+            
         kwargs = {
             "list_filters": filters,
             "list_factors": factors,
@@ -114,7 +117,7 @@ class DownsamplingGenerator(PhysicsGenerator):
         # unique factor for the whole batch to ensure that all produced measurements
         # have the same shape.
         factors = random_choice(
-            torch.as_tensor(self.list_factors).to(self.device),
+            self.list_factors,
             size=(
                 (1,) if batch_size > 1 and len(self.list_factors) > 1 else (batch_size,)
             ),

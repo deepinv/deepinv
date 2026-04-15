@@ -190,7 +190,7 @@ class GeneratorMixture(PhysicsGenerator):
 
     :param list[PhysicsGenerator] generators: the generators instantiated from :class:`deepinv.physics.generator.PhysicsGenerator`.
     :param list[float] probs: the probability of each generator to be used at each step
-    :param: bool use_batch_sampling: whether to sample a different generator for each element in the batch. This is only possible if all generators in the mixture produce parameters with the same keys and shapes. If not, a single generator will be sampled per batch. Defaults to True.
+    :param: bool use_batch_sampling: whether to sample a different generator for each element in the batch. This is only possible if all generators in the mixture produce parameters with the same keys and shapes. If not, a single generator will be sampled per batch. Defaults to `True`.
     :param str device: device on which the generator is located, defaults to "cpu"
     :param torch.Generator rng: a pseudorandom random number generator for the parameter generation. If ``None``, a generator will be created on the specified device with a random seed.
     :param bool verbose: whether to print warnings about the batch-compatibility of the generators, defaults to False.
@@ -300,7 +300,7 @@ class GeneratorMixture(PhysicsGenerator):
                 if mask.any():
                     # Find which batch positions use this generator
                     batch_positions = torch.where(mask)[0]
-                    num_samples = mask.sum().item()
+                    num_samples = batch_positions.size(0)
 
                     # Generate parameters for just these samples
                     params = generator.step(batch_size=num_samples, seed=seed, **kwargs)
@@ -319,6 +319,6 @@ class GeneratorMixture(PhysicsGenerator):
         else:
             p = torch.rand(
                 1, generator=self.rng, device=self.device
-            ).item()  # np.random.uniform()
+            )  # np.random.uniform()
             idx = torch.searchsorted(self.cum_probs, p)
             return self.generators[idx].step(batch_size=batch_size, seed=seed, **kwargs)
