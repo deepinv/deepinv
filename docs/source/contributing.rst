@@ -152,7 +152,7 @@ To do so, you should first add your GitHub information at the end of the file fo
   .. _<your name>: https://github.com/<your GitHub username>
 
 You can then add a line to the appropriate category under the **Current** section, describing your contribution in a concise way.
-This lins should follow the format:
+This line should follow the format:
 
 .. code-block:: rest
 
