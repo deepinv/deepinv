@@ -39,7 +39,7 @@ class EquivariantDenoiser(Denoiser):
 
         It is customary to sample a single transformation at training time and do a full averaging at evaluation time to ensure true equivariance. This can be done by setting a ``eval_transform`` that averages over the whole group, while leaving ``transform`` computing a single random transformation.
 
-    See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_transforms.py` for an example.
+    See :ref:`sphx_glr_auto_examples_transforms-equivariance_demo_transforms.py` for an example.
 
     :param Callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
     :param Transform transform: geometric transformation. If None, defaults to rotations of multiples of 90 with horizontal flips (see note above).
