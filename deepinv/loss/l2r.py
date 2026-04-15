@@ -339,7 +339,9 @@ class CombinedActivation(nn.Module):
 
     def forward(self, h):
         parts, idx = [], 0
-        for n, act in zip(self.s, (self.base_act, self.rho_hat, self.rho_tilde)):
+        for n, act in zip(
+            self.s, (self.base_act, self.rho_hat, self.rho_tilde), strict=True
+        ):
             if n > 0:
                 parts.append(act(h[:, idx : idx + n]))
                 idx += n
@@ -371,7 +373,9 @@ class MonotonicFullyConnectedNet(nn.Module):
 
         super().__init__()
         layers = []
-        for i, (n_in, n_out) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:])):
+        for i, (n_in, n_out) in enumerate(
+            zip(layer_sizes[:-1], layer_sizes[1:], strict=True)
+        ):
             t = t_in if i == 0 else torch.ones(n_in)
             s1, s2 = int(s_w[0] * n_out), int(s_w[1] * n_out)
             layers.append(
