@@ -48,7 +48,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: .testmondata
-          key: testmon-cpu-main-${{ matrix.os }}-${{ github.run_id }}
+          key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
           restore-keys: |
             testmon-cpu-main-${{ matrix.os }}
 
@@ -61,7 +61,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: .testmondata
-          key: testmon-cpu-main-${{ matrix.os }}-${{ github.run_id }}
+          key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
 
       - name: Upload coverage to Codecov
         if: runner.os == 'Linux' && matrix.environment == 'full'
