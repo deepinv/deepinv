@@ -14,18 +14,30 @@ class Recorruptor(torch.nn.Module):
     outputs :math:`h(\omega, y)`, i.e. an additive perturbation used to build
     re-corrupted measurements :math:`y_1 = y + \alpha h(\omega, y)`.
 
-    :param int depth: Depth of the internal MLP definition.
-    :param int feats: Number of hidden features in the MLP.
+    :param int depth: Depth of the internal model definition.
+    :param int feats: Number of hidden features in the model.
     :param int kernel_size: Spatial kernel size used to filter the output
         perturbation. If ``kernel_size=1``, a scalar scale is used instead.
     :param bool multiplicative: If ``True``, modulates perturbations by
         :math:`\sqrt{y}` to mimic signal-dependent noise.
     :param float sigma: Initialization value for the scalar scale when
         ``kernel_size=1``.
+    :param str | torch.nn.Module net: Type of internal network used to generate
+        perturbations. If a string is provided, it must be one of:
+        - ``"identity"``: No re-corruption, i.e. :math:`h(\omega, y) = \omega`.
+        - ``"monotonic"``: Monotonic fully connected network as in the original L2R paper.
+        - ``"mlp"``: Standard multi-layer perceptron with ReLU activations.
+        The number of layers and hidden features are controlled by the ``depth`` and ``feats`` parameters.
     """
 
     def __init__(
-        self, depth=5, feats=4, kernel_size=3, multiplicative=False, sigma=0.1, net=None
+        self,
+        depth=3,
+        feats=4,
+        kernel_size=1,
+        multiplicative=False,
+        sigma=0.1,
+        net: str | nn.Module | None = "monotonic",
     ):
         super(Recorruptor, self).__init__()
 
@@ -35,18 +47,21 @@ class Recorruptor(torch.nn.Module):
         feats_list = [1] + [feats] * depth + [1]
         t_in = [1]
 
-        # self.net = MonotonicFullyConnectedNet(feats_list, t_in=t_in, base_act=F.softplus)
-
         if net == "identity":
             self.net = nn.Identity()
-        else:
-            self.net = nn.Sequential(
-                nn.Linear(1, feats),
-                nn.Softplus(),
-                nn.Linear(feats, feats),
-                nn.Softplus(),
-                nn.Linear(feats, 1),
+        elif net == "monotonic":
+            self.net = MonotonicFullyConnectedNet(
+                feats_list, t_in=t_in, base_act=F.softplus
             )
+        elif net == "mlp":
+            layers = []
+            for i in range(len(feats_list) - 1):
+                layers.append(nn.Linear(feats_list[i], feats_list[i + 1]))
+                if i < len(feats_list) - 2:
+                    layers.append(nn.ReLU())
+            self.net = nn.Sequential(*layers)
+        else:
+            raise ValueError(f"Unsupported net type: {net}")
 
         self.norm_layer = nn.BatchNorm1d(1, affine=False, momentum=0.9)
 
@@ -299,3 +314,77 @@ class L2RModel(torch.nn.Module):
     def get_corruption(self):
         r"""Returns the most recently stored re-corruption sample."""
         return self.corruption
+
+
+# Monotonic network implementation from the original L2R paper (kept for reference).
+def apply_monotonic_sign(W, t):
+    sign = torch.sign(t).view(1, -1)
+    sign[sign == 0] = 1.0
+    return W.abs() * sign
+
+
+class CombinedActivation(nn.Module):
+    def __init__(self, base_act=F.relu, s=(1, 1, 1)):
+        super().__init__()
+        self.base_act = base_act
+        self.s = s
+
+    def rho_hat(self, x):
+        return -self.base_act(-x)
+
+    def rho_tilde(self, x):
+        one = x.new_tensor(1.0)
+        c = self.base_act(one)
+        return torch.where(x < 0, self.base_act(x + 1) - c, self.rho_hat(x - 1) + c)
+
+    def forward(self, h):
+        parts, idx = [], 0
+        for n, act in zip(self.s, (self.base_act, self.rho_hat, self.rho_tilde)):
+            if n > 0:
+                parts.append(act(h[:, idx : idx + n]))
+                idx += n
+        return torch.cat(parts, dim=1)
+
+
+class MonotonicDenseUnit(nn.Module):
+    def __init__(self, in_features, out_features, t=None, s=(1, 0, 0), base_act=F.relu):
+        super().__init__()
+        self.W = nn.Parameter(torch.randn(out_features, in_features) * 0.1)
+        self.b = nn.Parameter(torch.zeros(out_features))
+        t = (
+            torch.ones(in_features)
+            if t is None
+            else torch.as_tensor(t, dtype=torch.float32)
+        )
+        self.t = nn.Parameter(t, requires_grad=False)
+        self.activation = CombinedActivation(base_act, s)
+
+    def forward(self, x):
+        return self.activation(
+            F.linear(x, apply_monotonic_sign(self.W, self.t), self.b)
+        )
+
+
+class MonotonicFullyConnectedNet(nn.Module):
+    def __init__(self, layer_sizes, t_in=None, base_act=F.relu):
+        s_w = (0.4, 0.4)
+
+        super().__init__()
+        layers = []
+        for i, (n_in, n_out) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:])):
+            t = t_in if i == 0 else torch.ones(n_in)
+            s1, s2 = int(s_w[0] * n_out), int(s_w[1] * n_out)
+            layers.append(
+                MonotonicDenseUnit(
+                    n_in, n_out, t=t, s=(s1, s2, n_out - s1 - s2), base_act=base_act
+                )
+            )
+        self.layers = nn.ModuleList(layers)
+
+    def forward(self, x):
+        for layer in self.layers[:-1]:
+            x = layer(x)
+        last_layer = self.layers[-1]
+        return F.linear(
+            x, apply_monotonic_sign(last_layer.W, last_layer.t), last_layer.b
+        )
