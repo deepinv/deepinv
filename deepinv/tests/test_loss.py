@@ -138,7 +138,7 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
     elif loss_name == "l2r":
         loss.append(
             dinv.loss.L2RLoss(
-                recorruptor=dinv.loss.l2r.Recorruptor(sigma=0.1, net="identity"),
+                recorruptor=dinv.loss.L2RLoss.Recorruptor(sigma=0.1, net="identity"),
                 device=device,
             )
         )
@@ -297,7 +297,7 @@ def test_l2r(l2r_recorruptor, device):
 
     # choose training losses
     loss = dinv.loss.L2RLoss(
-        recorruptor=dinv.loss.l2r.Recorruptor(
+        recorruptor=dinv.loss.L2RLoss.Recorruptor(
             sigma=0.1,
             net=l2r_recorruptor,
             multiplicative=multiplicative,

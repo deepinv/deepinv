@@ -6,94 +6,6 @@ import torch.nn.functional as F
 import torch.nn as nn
 
 
-class Recorruptor(torch.nn.Module):
-    r"""
-    Trainable re-corruption network used by :class:`L2RLoss`.
-
-    Given a random input tensor :math:`\omega` and measurement :math:`y`, this module
-    outputs :math:`h(\omega, y)`, i.e. an additive perturbation used to build
-    re-corrupted measurements :math:`y_1 = y + \alpha h(\omega, y)`.
-
-    :param int depth: Depth of the internal model definition.
-    :param int feats: Number of hidden features in the model.
-    :param int kernel_size: Spatial kernel size used to filter the output
-        perturbation. If ``kernel_size=1``, a scalar scale is used instead.
-    :param bool multiplicative: If ``True``, modulates perturbations by
-        :math:`\sqrt{y}` to mimic signal-dependent noise.
-    :param float sigma: Initialization value for the scalar scale when
-        ``kernel_size=1``.
-    :param str | torch.nn.Module net: Type of internal network used to generate
-        perturbations. If a string is provided, it must be one of:
-        - ``"identity"``: No re-corruption, i.e. :math:`h(\omega, y) = \omega`.
-        - ``"monotonic"``: Monotonic fully connected network as in the original L2R paper.
-        - ``"mlp"``: Standard multi-layer perceptron with ReLU activations.
-        The number of layers and hidden features are controlled by the ``depth`` and ``feats`` parameters.
-    """
-
-    def __init__(
-        self,
-        depth=3,
-        feats=4,
-        kernel_size=1,
-        multiplicative=False,
-        sigma=0.1,
-        net: str | nn.Module | None = "monotonic",
-    ):
-        super(Recorruptor, self).__init__()
-
-        self.multiplicative = multiplicative
-        self.kernel_size = kernel_size
-
-        feats_list = [1] + [feats] * depth + [1]
-        t_in = [1]
-
-        if net == "identity":
-            self.net = nn.Identity()
-        elif net == "monotonic":
-            self.net = MonotonicFullyConnectedNet(
-                feats_list, t_in=t_in, base_act=F.softplus
-            )
-        elif net == "mlp":
-            layers = []
-            for i in range(len(feats_list) - 1):
-                layers.append(nn.Linear(feats_list[i], feats_list[i + 1]))
-                if i < len(feats_list) - 2:
-                    layers.append(nn.ReLU())
-            self.net = nn.Sequential(*layers)
-        else:
-            raise ValueError(f"Unsupported net type: {net}")
-
-        self.norm_layer = nn.BatchNorm1d(1, affine=False, momentum=0.9)
-
-        if self.kernel_size > 1:
-            self.sigma = nn.Parameter(
-                torch.randn(1, 1, self.kernel_size, self.kernel_size) * 0.1,
-                requires_grad=True,
-            )
-        else:
-            self.sigma = nn.Parameter(torch.tensor(sigma), requires_grad=True)
-
-    def forward(self, w, y):
-
-        c = y.shape[1]
-
-        hw = self.net(w.reshape(-1, 1))
-        hw = self.norm_layer(hw)
-        hw = hw.reshape_as(w)
-
-        if self.kernel_size > 1:
-            kernel = self.sigma
-            kernel = kernel.repeat(c, 1, 1, 1)
-            hw = F.conv2d(hw, kernel, padding=self.kernel_size // 2, groups=c)
-        else:
-            hw = self.sigma * hw
-
-        if self.multiplicative:
-            hw = hw * y.clamp(min=1e-6).sqrt()
-
-        return hw
-
-
 class L2RLoss(Loss):
     r"""
     Learning to Recorrupt (L2R) Loss
@@ -117,7 +29,7 @@ class L2RLoss(Loss):
 
     During training, this objective is minimized with respect to the
     reconstruction model parameters, while the re-corruption network parameters
-    are updated in the opposite direction (maximization step).
+    are updated in the opposite direction (maximization step) :footcite:t:`monroy2026learning`.
 
     In practice, :math:`h` is parameterized as a lightweight monotonic neural network :footcite:t:`runje2023constrained` that
     learns perturbations adapted to the observed data.
@@ -192,7 +104,7 @@ class L2RLoss(Loss):
         self.eval_n_samples = eval_n_samples
 
         if recorruptor is None:
-            self.recorruptor = Recorruptor(multiplicative=True)
+            self.recorruptor = self.Recorruptor(multiplicative=True)
         else:
             self.recorruptor = recorruptor
 
@@ -223,7 +135,7 @@ class L2RLoss(Loss):
 
         return self.metric(y_pred, y) + (2 / self.alpha) * (y_pred * hw.detach()).mean()
 
-    def adapt_model(self, model, **kwargs):
+    def adapt_model(self, model: torch.nn.Module, **kwargs) -> L2RModel:
         r"""
         Adapts a reconstruction model to include L2R re-corruption at input.
 
@@ -234,10 +146,10 @@ class L2RLoss(Loss):
         :return: (:class:`torch.nn.Module`) Adapted L2R model.
         """
 
-        if isinstance(model, L2RModel):
+        if isinstance(model, self.L2RModel):
             model = model
         else:
-            model = L2RModel(
+            model = self.L2RModel(
                 model,
                 self.recorruptor,
                 self.alpha,
@@ -259,61 +171,149 @@ class L2RLoss(Loss):
         self.recorruptor_optimizer.step()
 
 
-class L2RModel(torch.nn.Module):
-    r"""
-    Learning to Recorrupt (L2R) wrapper model.
-
-    This wrapper injects trainable re-corruption before calling the underlying
-    reconstruction model, and optionally stores the sampled corruption during
-    training for use in :class:`L2RLoss`.
-    """
-
-    def __init__(self, model, recorruptor, alpha, eval_n_samples, **kwargs):
-        super(L2RModel, self).__init__()
-
-        self.model = model
-        self.recorruptor = recorruptor
-        self.alpha = alpha
-        self.eval_n_samples = eval_n_samples
-        self.name = "l2r"
-
-    def forward(self, y, physics, update_parameters=False, more_evals=0, x=None):
+    class L2RModel(torch.nn.Module):
         r"""
-        Runs the adapted model with L2R re-corruption.
+        Model wrapper when using  Learning to Recorrupt Loss.
 
-        :param torch.Tensor y: Input measurements.
-        :param deepinv.physics.Physics physics: Forward operator.
-        :param bool update_parameters: If ``True`` in training mode, stores the
-            sampled corruption for subsequent loss computation.
-        :param int more_evals: Extra Monte Carlo samples to add during
-            evaluation.
-        :param torch.Tensor x: Unused argument kept for API compatibility.
-        :return: (:class:`torch.Tensor`) Averaged model output.
+        This wrapper injects trainable re-corruption before calling the underlying
+        reconstruction model, and optionally stores the sampled corruption during
+        training for use in :class:`L2RLoss`.
         """
 
-        eval_n_samples = 1 if self.training else self.eval_n_samples
-        out = 0
-        eval_n_samples = eval_n_samples + more_evals
+        def __init__(self, model, recorruptor, alpha, eval_n_samples, **kwargs):
 
-        with torch.set_grad_enabled(self.training):
+            super().__init__()
+            self.model = model
+            self.recorruptor = recorruptor
+            self.alpha = alpha
+            self.eval_n_samples = eval_n_samples
+            self.name = "l2r"
 
-            for _ in range(eval_n_samples):
+        def forward(self, y, physics, update_parameters=False, more_evals=0, x=None):
+            r"""
+            Runs the adapted model with L2R re-corruption.
 
-                hw = self.recorruptor(torch.randn_like(y), y)
-                y1 = y + self.alpha * hw
+            :param torch.Tensor y: Input measurements.
+            :param deepinv.physics.Physics physics: Forward operator.
+            :param bool update_parameters: If ``True`` in training mode, stores the
+                sampled corruption for subsequent loss computation.
+            :param int more_evals: Extra Monte Carlo samples to add during
+                evaluation.
+            :param torch.Tensor x: Unused argument kept for API compatibility.
+            :return: (:class:`torch.Tensor`) Averaged model output.
+            """
 
-                out += self.model(y1.detach(), physics)
+            eval_n_samples = 1 if self.training else self.eval_n_samples
+            out = 0
+            eval_n_samples = eval_n_samples + more_evals
 
-            if self.training and update_parameters:
-                self.corruption = hw
+            with torch.set_grad_enabled(self.training):
 
-            out = out / eval_n_samples
+                for _ in range(eval_n_samples):
 
-        return out
+                    hw = self.recorruptor(torch.randn_like(y), y)
+                    y1 = y + self.alpha * hw
 
-    def get_corruption(self):
-        r"""Returns the most recently stored re-corruption sample."""
-        return self.corruption
+                    out += self.model(y1.detach(), physics)
+
+                if self.training and update_parameters:
+                    self.corruption = hw
+
+                out = out / eval_n_samples
+
+            return out
+
+        def get_corruption(self):
+            r"""Returns the most recently stored re-corruption sample."""
+            return self.corruption
+    
+
+    class Recorruptor(torch.nn.Module):
+        r"""
+        Trainable re-corruption network used by Learning to Recorrupt (L2R).
+
+        Given a random input tensor :math:`\omega` and measurement :math:`y`, this module
+        outputs :math:`h(\omega, y)`, i.e. an additive perturbation used to build
+        re-corrupted measurements :math:`y_1 = y + \alpha h(\omega, y)`.
+
+        :param int depth: Depth of the internal model definition.
+        :param int feats: Number of hidden features in the model.
+        :param int kernel_size: Spatial kernel size used to filter the output
+            perturbation. If ``kernel_size=1``, a scalar scale is used instead.
+        :param bool multiplicative: If ``True``, modulates perturbations by
+            :math:`\sqrt{y}` to mimic signal-dependent noise.
+        :param float sigma: Initialization value for the scalar scale when
+            ``kernel_size=1``.
+        :param str | torch.nn.Module net: Type of internal network used to generate
+            perturbations. If a string is provided, it must be one of:
+            - ``"identity"``: No re-corruption, i.e. :math:`h(\omega, y) = \omega`.
+            - ``"monotonic"``: Monotonic fully connected network as in the original L2R paper.
+            - ``"mlp"``: Standard multi-layer perceptron with ReLU activations.
+            The number of layers and hidden features are controlled by the ``depth`` and ``feats`` parameters.
+        """
+
+        def __init__(
+            self,
+            depth=3,
+            feats=4,
+            kernel_size=1,
+            multiplicative=False,
+            sigma=0.1,
+            net: str | nn.Module | None = "monotonic",
+        ):
+            super().__init__()
+
+            self.multiplicative = multiplicative
+            self.kernel_size = kernel_size
+
+            feats_list = [1] + [feats] * depth + [1]
+            t_in = [1]
+
+            if net == "identity":
+                self.net = nn.Identity()
+            elif net == "monotonic":
+                self.net = MonotonicFullyConnectedNet(
+                    feats_list, t_in=t_in, base_act=F.softplus
+                )
+            elif net == "mlp":
+                layers = []
+                for i in range(len(feats_list) - 1):
+                    layers.append(nn.Linear(feats_list[i], feats_list[i + 1]))
+                    if i < len(feats_list) - 2:
+                        layers.append(nn.ReLU())
+                self.net = nn.Sequential(*layers)
+            else:
+                raise ValueError(f"Unsupported net type: {net}")
+
+            self.norm_layer = nn.BatchNorm1d(1, affine=False, momentum=0.9)
+
+            if self.kernel_size > 1:
+                self.sigma = nn.Parameter(
+                    torch.randn(1, 1, self.kernel_size, self.kernel_size) * 0.1,
+                    requires_grad=True,
+                )
+            else:
+                self.sigma = nn.Parameter(torch.tensor(sigma), requires_grad=True)
+
+        def forward(self, w, y):
+
+            c = y.shape[1]
+
+            hw = self.net(w.reshape(-1, 1))
+            hw = self.norm_layer(hw)
+            hw = hw.reshape_as(w)
+
+            if self.kernel_size > 1:
+                kernel = self.sigma
+                kernel = kernel.repeat(c, 1, 1, 1)
+                hw = F.conv2d(hw, kernel, padding=self.kernel_size // 2, groups=c)
+            else:
+                hw = self.sigma * hw
+
+            if self.multiplicative:
+                hw = hw * y.clamp(min=1e-6).sqrt()
+
+            return hw
 
 
 # Monotonic network implementation from the original L2R paper (kept for reference).
