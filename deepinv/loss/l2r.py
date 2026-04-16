@@ -99,6 +99,7 @@ class L2RLoss(Loss):
             metric = torch.nn.MSELoss()
 
         super(L2RLoss, self).__init__()
+        self._name = "l2r"
         self.metric = metric
         self.alpha = alpha
         self.eval_n_samples = eval_n_samples
