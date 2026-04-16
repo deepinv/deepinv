@@ -309,8 +309,10 @@ class GeneratorMixture(PhysicsGenerator):
                 for key, value in params.items():
                     if key not in result:
                         result[key] = torch.empty(
-                            batch_size, *value.shape[1:],
-                            dtype=value.dtype, device=value.device
+                            batch_size,
+                            *value.shape[1:],
+                            dtype=value.dtype,
+                            device=value.device,
                         )
                     result[key][batch_positions] = value
 
