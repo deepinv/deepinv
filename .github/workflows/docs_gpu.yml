@@ -40,6 +40,20 @@ jobs:
         run: |
           pixi run -e docs python -c "import deepinv"
 
+      - name: Check CUDA is available
+        run: |
+          pixi run -e docs python -c "
+          import torch
+          assert torch.cuda.is_available(), (
+              f'torch.cuda.is_available() returned False. '
+              f'Device count: {torch.cuda.device_count()}, '
+              f'PyTorch build: {torch.version.cuda}'
+          )
+          print(f'CUDA OK — {torch.cuda.device_count()} device(s), '
+                f'CUDA {torch.version.cuda}, '
+                f'GPU: {torch.cuda.get_device_name(0)}')
+          "
+
       - name: Determine which examples to run
         id: get_pattern
         env:

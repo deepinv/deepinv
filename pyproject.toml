@@ -84,8 +84,8 @@ denoisers = [
     "timm",
     "PyWavelets",
     "ptwt",
-    "FrEIA",
     "kornia",
+     # "FrEIA",  # handled separately in [tool.pixi.pypi-dependencies]
     "libcpab",
     "scipy",
     "diffusers",
@@ -120,16 +120,28 @@ training = [
     "mlflow",
 ]
 
+
 ##############################################################
 # Pixi configuration for managing conda optional dependencies
+
 [tool.pixi.workspace]
 channels = ["conda-forge"]
-platforms = ["linux-64", "win-64", "osx-arm64"]
+platforms = ["linux-64", "win-64"]
 
 [tool.pixi.dependencies] # install from conda-forge for all environments
-pytorch = "*"
-torchvision = "*"
 python = ">=3.10"
+
+[tool.pixi.feature.gpu.system-requirements]
+cuda = "12.0"
+
+[tool.pixi.feature.gpu.dependencies]
+cuda-version = "*"
+pytorch-gpu = "*"
+torchvision = "*"
+
+[tool.pixi.feature.cpu.dependencies]
+pytorch-cpu = "*"
+torchvision = "*"
 
 # fix python version for the docs environment to avoid issues with Sphinx and Python 3.14
 [tool.pixi.feature.py312.dependencies]
@@ -142,11 +154,17 @@ datasets = ">=3.5.0"
 deepinv = { path = ".", editable = true }
 
 [tool.pixi.environments]
-default = { solve-group = "default" }
-test = { features = ["test"], solve-group = "default" }
-docs = { features = ["doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "docs" }
-doctest = { features = ["doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "docs" }
-full = { features = ["test", "dataset", "denoisers", "physics", "training"], solve-group = "default" }
+# gpu environments
+default   = { features = ["gpu"], solve-group = "gpu" }
+test      = { features = ["gpu", "test"], solve-group = "gpu" }
+full      = { features = ["gpu", "test", "dataset", "denoisers", "physics", "training"], solve-group = "gpu" }
+docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
+doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
+# cpu environments (same as gpu but without the gpu dependencies)
+test-cpu  = { features = ["cpu", "test"],  solve-group = "cpu" }
+full-cpu  = { features = ["cpu", "test", "dataset", "denoisers", "physics", "training"], solve-group = "cpu" }
+docs-cpu  = { features = ["cpu", "doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
+doctest-cpu = { features = ["cpu", "doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
 
 ##############################################
 # Pytest configuration and coverage reporting

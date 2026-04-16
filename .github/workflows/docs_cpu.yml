@@ -70,7 +70,7 @@ jobs:
           SG_PATTERN: ${{ steps.get_pattern.outputs.SG_PATTERN }}
         run: |
            echo "Running Sphinx with filename_pattern: $SG_PATTERN"
-           pixi run -e docs sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
+           pixi run -e docs-cpu sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
 
       - name: Notebook generation
         run: |
@@ -82,7 +82,7 @@ jobs:
             mkdir -p "$out_dir"
             base="$(basename "$rel" .py)"
             out_path="$out_dir/$base.ipynb"
-            pixi run -e doctest python .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
+            pixi run -e doctest-cpu python .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
           done
 
       - name: Upload Documentation Artifact

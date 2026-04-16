@@ -21,15 +21,15 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            environment: "full"
+            environment: "full-cpu"
             name: "ubuntu all optional dependencies and doctests"
             pytest_args: "-n 2 --dist=loadgroup --doctest-modules"
           - os: ubuntu-latest
-            environment: "test"
+            environment: "test-cpu"
             name: "ubuntu no optional dependencies"
             pytest_args: "-n 2 --dist=loadgroup"
           - os: windows-latest
-            environment: "full"
+            environment: "full-cpu"
             name: "windows all optional dependencies"
             pytest_args: "-n 2 --dist=loadgroup"
     env:

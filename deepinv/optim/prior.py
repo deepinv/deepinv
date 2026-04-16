@@ -551,30 +551,214 @@ class PatchPrior(Prior):
         return reg
 
 
+class _SubnetFC(nn.Module):
+    r"""Fully-connected subnetwork used inside GLOW coupling blocks.
+
+    :param int c_in: number of input features.
+    :param int c_out: number of output features.
+    :param int hidden_size: number of hidden units in each of the two intermediate layers.
+    """
+
+    def __init__(self, c_in: int, c_out: int, hidden_size: int):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(c_in, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, c_out),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        r"""
+        Applies the fully-connected subnetwork to the input.
+
+        :param torch.Tensor x: input tensor of shape ``(N, c_in)``.
+        :return: (:class:`torch.Tensor`) output tensor of shape ``(N, c_out)``.
+        """
+        return self.net(x)
+
+
+class _GLOWCouplingBlock(nn.Module):
+    r"""GLOW-style affine coupling block.
+
+    Each block performs two successive affine coupling steps on the input vector,
+    which is split into two halves ``(x1, x2)``:
+
+    * Step 1 — a subnetwork acting on ``x1`` produces a pointwise scale ``s1`` and
+      shift ``t1`` that are applied to ``x2``: ``y2 = x2 * exp(s1) + t1``.
+    * Step 2 — a second subnetwork acting on ``y2`` produces ``s2, t2`` that are
+      applied to ``x1``: ``y1 = x1 * exp(s2) + t2``.
+
+    Both steps are exactly invertible, and their combined log-determinant of the
+    Jacobian is ``sum(s1) + sum(s2)``.  The scale outputs are soft-clamped via
+    ``clamp * (2/π) * arctan(s / clamp)`` to keep the log-determinant bounded and
+    training stable.
+
+    The two-step affine coupling structure follows :footcite:t:`dinh2016density`, and
+    the soft-clamping of scales is introduced in :footcite:t:`kingma2018glow`.
+
+    :param int dim: total input/output dimension (will be split evenly).
+    :param int sub_net_size: number of hidden units in each :class:`_SubnetFC` subnetwork.
+    :param float clamp: soft-clamping magnitude for the log-scale outputs. Default is ``1.6``.
+    """
+
+    def __init__(self, dim: int, sub_net_size: int, clamp: float = 1.6):
+        super().__init__()
+        self.clamp = clamp
+        self.split1 = dim // 2
+        self.split2 = dim - self.split1
+        # subnet1: x1 -> (s1, t1) that acts on x2
+        self.subnet1 = _SubnetFC(self.split1, self.split2 * 2, sub_net_size)
+        # subnet2: y2 -> (s2, t2) that acts on x1
+        self.subnet2 = _SubnetFC(self.split2, self.split1 * 2, sub_net_size)
+
+    def _soft_clamp(self, s: torch.Tensor) -> torch.Tensor:
+        r"""
+        Applies soft clamping ``clamp * (2/π) * arctan(s / clamp)`` to the log-scale tensor.
+
+        :param torch.Tensor s: unconstrained log-scale tensor.
+        :return: (:class:`torch.Tensor`) soft-clamped log-scale tensor with values in ``(-clamp, clamp)``.
+        """
+        return self.clamp * (2.0 / np.pi) * torch.atan(s / self.clamp)
+
+    def forward(self, x: torch.Tensor, rev: bool = False):
+        r"""
+        Applies the coupling block in the forward or inverse direction.
+
+        :param torch.Tensor x: input tensor of shape ``(N, dim)``.
+        :param bool rev: if ``True``, applies the inverse transformation. Default is ``False``.
+        :return: tuple ``(y, log_det)`` where ``y`` (:class:`torch.Tensor`) is the
+            transformed tensor of shape ``(N, dim)`` and ``log_det`` (:class:`torch.Tensor`)
+            is the log-determinant of the Jacobian of shape ``(N,)``.
+        """
+        x1, x2 = x[:, : self.split1], x[:, self.split1 :]
+
+        if not rev:
+            # Step 1: transform x2 using x1
+            st1 = self.subnet1(x1)
+            s1 = self._soft_clamp(st1[:, : self.split2])
+            t1 = st1[:, self.split2 :]
+            y2 = x2 * torch.exp(s1) + t1
+            log_det = s1.sum(dim=1)
+
+            # Step 2: transform x1 using y2
+            st2 = self.subnet2(y2)
+            s2 = self._soft_clamp(st2[:, : self.split1])
+            t2 = st2[:, self.split1 :]
+            y1 = x1 * torch.exp(s2) + t2
+            log_det = log_det + s2.sum(dim=1)
+
+            return torch.cat([y1, y2], dim=1), log_det
+        else:
+            # Inverse step 2: recover x1 from x2 (which is y2 in forward)
+            st2 = self.subnet2(x2)
+            s2 = self._soft_clamp(st2[:, : self.split1])
+            t2 = st2[:, self.split1 :]
+            y1 = (x1 - t2) * torch.exp(-s2)
+            log_det = -s2.sum(dim=1)
+
+            # Inverse step 1: recover x2 using y1
+            st1 = self.subnet1(y1)
+            s1 = self._soft_clamp(st1[:, : self.split2])
+            t1 = st1[:, self.split2 :]
+            y2 = (x2 - t1) * torch.exp(-s1)
+            log_det = log_det - s1.sum(dim=1)
+
+            return torch.cat([y1, y2], dim=1), log_det
+
+
+class _NormalizingFlow(nn.Module):
+    r"""Sequential normalizing flow built from :class:`_GLOWCouplingBlock` modules.
+
+    The flow maps an input sample ``x`` to a latent representation ``z`` by passing
+    it through ``num_layers`` invertible coupling blocks in sequence.  The
+    log-determinant of the full Jacobian is accumulated additively across blocks.
+    Setting ``rev=True`` runs the blocks in reverse order to recover the original
+    sample from a latent code.
+
+    The architecture follows the generative flow of :footcite:t:`kingma2018glow`.
+
+    :param int dimension: dimension of each input sample (flattened patch size).
+    :param int num_layers: number of :class:`_GLOWCouplingBlock` blocks to stack.
+    :param int sub_net_size: number of hidden units in each subnetwork of every coupling block.
+    :param float clamp: soft-clamping magnitude passed to every coupling block. Default is ``1.6``.
+    """
+
+    def __init__(
+        self, dimension: int, num_layers: int, sub_net_size: int, clamp: float = 1.6
+    ):
+        super().__init__()
+        self.blocks = nn.ModuleList(
+            [
+                _GLOWCouplingBlock(dimension, sub_net_size, clamp)
+                for _ in range(num_layers)
+            ]
+        )
+
+    def forward(self, x: torch.Tensor, rev: bool = False):
+        r"""
+        Passes the input through all coupling blocks sequentially.
+
+        :param torch.Tensor x: input tensor of shape ``(N, dimension)``.
+        :param bool rev: if ``True``, applies the blocks in reverse order (inverse flow). Default is ``False``.
+        :return: tuple ``(z, log_det)`` where ``z`` (:class:`torch.Tensor`) is the latent
+            representation of shape ``(N, dimension)`` and ``log_det`` (:class:`torch.Tensor`)
+            is the total log-determinant of the Jacobian of shape ``(N,)``.
+        """
+        log_det = torch.zeros(x.shape[0], device=x.device, dtype=x.dtype)
+        blocks = self.blocks if not rev else reversed(self.blocks)
+        for block in blocks:
+            x, ld = block(x, rev=rev)
+            log_det = log_det + ld
+        return x, log_det
+
+
 class PatchNR(Prior):
     r"""
-    Patch prior via normalizing flows.
+    Patch prior via normalizing flows :footcite:t:`altekruger2023patchnr`.
 
-    The forward method evaluates its negative log likelihood.
+    The prior is defined as the sum of the negative log-likelihoods of all
+    (overlapping) patches of the image under a learned normalizing flow model.
+    Denoting by :math:`E_i x` the :math:`i`-th patch of image :math:`x` (out of :math:`N`) and by
+    :math:`f_\theta` the normalizing flow with parameters :math:`\theta`, the prior reads
+
+    .. math::
+
+        \reg{x} = \frac{1}{N} \sum_{i=1}^{N} -\log p_\theta(E_i x)
+
+    where :math:`p_\theta` is the patch distribution implicitly defined by the flow.
+    Applying the change-of-variables formula with the standard Gaussian base distribution
+    :math:`p_z = \mathcal{N}(0, I)`, this expands to
+
+    .. math::
+
+        \reg{x} = \frac{1}{N} \sum_{i=1}^{N} \left(
+            \frac{1}{2}\| f_\theta(E_i x) \|_2^2
+            - \log \left|\det J_{f_\theta}(E_i x)\right|
+        \right)
+
+    where :math:`J_{f_\theta}` is the Jacobian of :math:`f_\theta`.  Both terms are
+    computed in a single forward pass through the flow, which returns the latent code
+    :math:`z = f_\theta(E_i x)` and the log-determinant
+    :math:`\log |\det J_{f_\theta}(E_i x)|` simultaneously.
+
+    The forward method evaluates this negative log likelihood.
 
     :param torch.nn.Module normalizing_flow: describes the normalizing flow of the model. Generally it can be any :class:`torch.nn.Module`
-        supporting backpropagation. It takes a (batched) tensor of flattened patches and the boolean rev (default `False`)
-        as input and provides the value and the log-determinant of the Jacobian of the normalizing flow as an output
-        If `rev=True`, it considers the inverse of the normalizing flow.
-        When set to ``None`` it is set to a dense invertible neural network built with the FrEIA library, where the number of
-        invertible blocks and the size of the subnetworks is determined by the parameters `num_layers` and `sub_net_size`.
+        supporting backpropagation. It takes a (batched) tensor of flattened patches and the boolean ``rev`` (default ``False``)
+        as input and returns ``(latent, log_det_jacobian)`` as output.
+        If ``rev=True``, it applies the inverse of the flow.
+        When set to ``None``, a GLOW-style invertible neural network is built from native PyTorch layers, where the number of
+        coupling blocks and the size of the sub-networks is determined by ``num_layers`` and ``sub_net_size``.
     :param str pretrained: Define pretrained weights by its path to a `.pt` file, None for random initialization,
         `"PatchNR_lodopab_small"` for the weights from the limited-angle CT example.
     :param int patch_size: size of patches
     :param int channels: number of channels for the underlying images/patches.
-    :param int num_layers: defines the number of blocks of the generated normalizing flow if `normalizing_flow` is ``None``.
-    :param int sub_net_size: defines the number of hidden neurons in the subnetworks of the generated normalizing flow
+    :param int num_layers: defines the number of coupling blocks of the normalizing flow if `normalizing_flow` is ``None``.
+    :param int sub_net_size: defines the number of hidden neurons in the subnetworks of the normalizing flow
         if `normalizing_flow` is ``None``.
     :param str device: used device
-
-    .. note::
-
-        This class requires the ``FrEIA`` package to be installed. Install with ``pip install FrEIA``.
     """
 
     def __init__(
@@ -587,36 +771,15 @@ class PatchNR(Prior):
         sub_net_size=256,
         device="cpu",
     ):
-        import FrEIA.framework as Ff
-        import FrEIA.modules as Fm
-
         super(PatchNR, self).__init__()
         if normalizing_flow is None:
-            # Create Normalizing Flow with FrEIA
             dimension = patch_size**2 * channels
-
-            def subnet_fc(c_in, c_out):
-                return nn.Sequential(
-                    nn.Linear(c_in, sub_net_size),
-                    nn.ReLU(),
-                    nn.Linear(sub_net_size, sub_net_size),
-                    nn.ReLU(),
-                    nn.Linear(sub_net_size, c_out),
-                )
-
-            nodes = [Ff.InputNode(dimension, name="input")]
-            for k in range(num_layers):
-                nodes.append(
-                    Ff.Node(
-                        nodes[-1],
-                        Fm.GLOWCouplingBlock,
-                        {"subnet_constructor": subnet_fc, "clamp": 1.6},
-                        name=f"coupling_{k}",
-                    )
-                )
-            nodes.append(Ff.OutputNode(nodes[-1], name="output"))
-
-            self.normalizing_flow = Ff.GraphINN(nodes, verbose=False).to(device)
+            self.normalizing_flow = _NormalizingFlow(
+                dimension=dimension,
+                num_layers=num_layers,
+                sub_net_size=sub_net_size,
+                clamp=1.6,
+            ).to(device)
         else:
             self.normalizing_flow = normalizing_flow
         if pretrained:
