@@ -170,7 +170,6 @@ class L2RLoss(Loss):
         loss.backward()
         self.recorruptor_optimizer.step()
 
-
     class L2RModel(torch.nn.Module):
         r"""
         Model wrapper when using  Learning to Recorrupt Loss.
@@ -226,7 +225,6 @@ class L2RLoss(Loss):
         def get_corruption(self):
             r"""Returns the most recently stored re-corruption sample."""
             return self.corruption
-    
 
     class Recorruptor(torch.nn.Module):
         r"""
