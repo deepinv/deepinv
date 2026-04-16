@@ -723,6 +723,7 @@ def test_diffraction_generator(
         for key in params.keys():
             assert not torch.allclose(params[key], params3[key])
 
+
 @pytest.mark.parametrize("dim", [1, 2, 3])
 @pytest.mark.parametrize("isotropic", [True, False])
 @pytest.mark.parametrize("batch_size", [1, 2])
@@ -937,6 +938,7 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
         )
         f_angle_iso = p_angle_iso["filter"]
         assert torch.allclose(f_angle_iso[0], f_angle_iso[1])
+
 
 @pytest.mark.parametrize("generators", MIXTURES)
 @pytest.mark.parametrize("size", SIZES)
