@@ -12,16 +12,23 @@ New Features
 - Add :class:`deepinv.optim.SIRT` algorithm for tomographic reconstruction (:gh:`985` by `Thibaut Modrzyk`_`)
 - Add :class:`deepinv.optim.MLEM` algorithm for Poisson inverse problems (:gh:`1051` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.loss.L2RLoss` loss for self-supervised denoising learning with unknown noise (:gh:`1150` by `Brayan Monroy`_)
+- Add the equivariant splitting loss :class:`deepinv.loss.EquivariantSplittingLoss` with equivariant reconstructors :class:`deepinv.models.EquivariantReconstructor` and virtual physics :class:`deepinv.physics.VirtualLinearPhysics` (:gh:`881` by `Jérémy Scanvic`_)
 
 Changed
 ^^^^^^^
 - Refactor CI to use `pixi` for compatibility with mixed conda/pip environments (:gh:`1108` by `Julian Tachella`_)
-
+- Add support for arbitrary learning-free reconstructors in the trainer (:gh:`881` by `Jérémy Scanvic`_)
+- Make available every mask used at evaluation for splitting models :class:`deepinv.loss.SplittingLoss.SplittingModel` when ``eval_n_samples > 1`` (:gh:`881` by `Jérémy Scanvic`_)
+- Deprecate `Loss.name` in favor of the class name as done in the trainer (:gh:`881` by `Jérémy Scanvic`_)
+- Update references for single pixel demo (:gh:`1151` by `Laura C. Diaz-Delgado`_)
 
 Fixed
 ^^^^^
 - Add warning when options `reduce="mean"` and `reduce="none"` are used in :class:`deepinv.physics.StackedLinearPhysics`. Remove `reduction` argument from :class:`deepinv.distributed.DistributedStackedLinearPhysics` (:gh:`1071` by `Romain Vo`_)
-
+- Correct the value of ``Transform.n_trans`` in composed transformations (:gh:`881` by `Jérémy Scanvic`_)
+- Add support for computing the evaluation loss for splitting losses like :class:`deepinv.loss.SplittingLoss` in the trainer (:gh:`881` by `Jérémy Scanvic`_)
+- Add a deprecation warning in :func:`deepinv.utils.plot_inset` in favor of :func:`deepinv.utils.plot` with `plot_inset=True` (:gh:`1148` by `Paul Bernard`_).
+- Fix dimensions mismatch in :class:`deepinv.physics.TomographyWithAstra` with 3D phantoms (:gh:`1137` by `Baptiste Legouix`_)
 
 
 v0.4.0
@@ -602,3 +609,6 @@ Changed
 .. _Tiberiu Sabau: https://github.com/tibisabau
 .. _Benoît Malézieux: https://github.com/bmalezieux
 .. _Paul Escande: https://pescande.perso.math.cnrs.fr/
+.. _Laura C. Diaz-Delgado: https://github.com/LauraCD2
+.. _Paul Bernard: https://github.com/PAUL-BERNARD
+.. _Baptiste Legouix: https://github.com/blegouix
