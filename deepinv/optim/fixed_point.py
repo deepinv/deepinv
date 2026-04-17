@@ -7,7 +7,6 @@ import warnings
 from tqdm import tqdm
 
 if TYPE_CHECKING:
-    from deepinv.physics import Physics
     import deepinv
 
 

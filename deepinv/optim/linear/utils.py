@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
 from deepinv.utils.tensorlist import TensorList
 import torch
 
