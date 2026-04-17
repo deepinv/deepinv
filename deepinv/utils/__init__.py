@@ -23,6 +23,7 @@ from .demo import (
     load_dataset,
     load_degradation,
     get_cache_home,
+    get_data_home,
     get_image_url,
     get_degradation_url,
     download_example,
