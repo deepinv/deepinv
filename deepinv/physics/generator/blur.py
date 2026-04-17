@@ -216,7 +216,7 @@ class GaussianBlurGenerator(PSFGenerator):
 
         # filter.shape = (batch_size, 1, *psf_size)
         filters = gaussian_blur_nd(
-            self.psf_size, sigma, angle, batch_size=batch_size, device=self.device
+            self.psf_size, sigma, angle, batch_size=batch_size, **self.factory_kwargs
         )
         return {"filter": filters.expand(-1, self.num_channels, *(-1,) * dim)}
 
