@@ -524,8 +524,16 @@ class TomographyWithAstra(LinearPhysics):
         if isinstance(angles, int):
             angles = torch.linspace(*angular_range, steps=angles + 1)[:-1]
 
+        if self.is_2d:
+            n_rows, n_cols = img_size
+            n_slices = 1
+        else:
+            n_slices, n_rows, n_cols = img_size
+
         self.object_geometry = create_object_geometry(
-            *img_size,
+            n_rows=n_rows,
+            n_cols=n_cols,
+            n_slices=n_slices,
             bounding_box=bounding_box,
             pixel_spacing=pixel_spacing,
             is_2d=self.is_2d,
@@ -597,7 +605,7 @@ class TomographyWithAstra(LinearPhysics):
         is_3d = len(sinogram.shape) == 5
 
         if self.geometry_type == "conebeam" and is_3d:
-            # dimensions (V,N) are (col,row) of the 2D detector
+            # dimensions (V,N) are (row,col) of the 2D detector
             # A is the number of angles
             B, C, V, A, N = sinogram.shape
 
@@ -650,6 +658,11 @@ class TomographyWithAstra(LinearPhysics):
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward projection.
 
+        In 2D, the output is a sinogram of shape [B,C,A,N],
+        with A the number of angular positions, and N the number of detector cells.
+        In 3D, the output is a stack of sinograms of shape [B,C,V,A,N], with A the
+        number of angular positions, and (V,N) the shape of the 2D detector grid,
+        where V is the number of rows of the detector and N the number of columns.
         :param torch.Tensor x: input of shape [B,C,...,H,W]
         :return: projection of shape [B,C,...,A,N]
         """
@@ -686,6 +699,12 @@ class TomographyWithAstra(LinearPhysics):
 
     def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         """Approximation of the adjoint.
+
+        In 2D, expected input is a sinogram of
+        shape [B,C,A,N], with A the number of angular positions, and N the number
+        of detector cells. In 3D, expected input is a stack of sinograms of shape [B,C,V,A,N],
+        with A the number of angular positions, and (V,N) the shape of the 2D detector grid,
+        where V is the number of rows of the detector and N the number of columns.
 
         :param torch.Tensor y: input of shape [B,C,...,A,N]
         :return: scaled back-projection of shape [B,C,...,H,W]
