@@ -598,6 +598,10 @@ class GammaNoise(NoiseModel):
         :returns: noisy measurements
         """
         self.update_parameters(l=l, **kwargs)
+        if torch.any(self.l <= 0):
+            raise ValueError("Gamma noise level must be positive.")
+        if torch.any(x <= 0):
+            raise ValueError("Input tensor for Gamma noise must be strictly positive.")
         self.to(x.device)
         d = torch.distributions.gamma.Gamma(self.l, self.l / x)
         return d.sample()
