@@ -690,10 +690,10 @@ class PoissonGaussianNoise(NoiseModel):
             # We perform a manual check for negative gain and negative values
             # to print a clear error message both on CPU and GPU
             if torch.any(gain <= 0):
-                raise ValueError("Poisson noise gain must be positive.")
+                raise ValueError("Poisson-Gaussian noise gain must be positive.")
             if torch.any(x < 0):
                 raise ValueError(
-                    "Input tensor for Poisson noise must be non-negative.\n"
+                    "Input tensor for Poisson-Gaussian noise must be non-negative.\n"
                     "Consider setting ``clip_positive=True`` to avoid this error."
                 )
 
