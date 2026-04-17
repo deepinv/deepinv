@@ -420,8 +420,8 @@ def distribute(
     | DistributedStackedLinearPhysics
     | DistributedProcessing
     | DistributedDataFidelity
-    | torch.nn.Parameter
-    | list[torch.nn.Parameter]
+    | torch.nn.parameter.Parameter
+    | list[torch.nn.parameter.Parameter]
     | BaseOptim
 ):
     r"""
@@ -435,7 +435,7 @@ def distribute(
         - Data fidelity terms: a list of :class:`deepinv.optim.DataFidelity` or :class:`deepinv.optim.StackedPhysicsDataFidelity`.
         - Priors/Denoisers: :class:`deepinv.models.Denoiser` or :class:`deepinv.optim.Prior` objects.
 
-    :param StackedPhysics | list[Physics] | Callable | Denoiser | DataFidelity | StackedPhysicsDataFidelity | list[DataFidelity] | torch.nn.Module | torch.nn.Parameter | Sequence[torch.nn.Parameter] object:
+    :param StackedPhysics | list[Physics] | Callable | Denoiser | DataFidelity | StackedPhysicsDataFidelity | list[DataFidelity] | torch.nn.Module | torch.nn.parameter.Parameter | Sequence[torch.nn.parameter.Parameter] object:
         DeepInverse object to distribute.
     :param DistributedContext ctx: distributed context manager.
     :param int | None num_operators: number of physics operators when using a factory for physics, otherwise inferred. Default is `None`.
