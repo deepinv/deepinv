@@ -35,9 +35,6 @@ from deepinv.utils.plotting import plot
 device = torch.device("cpu")
 img_size = 512
 patch_size = 256
-stride = None  # Defaults to patch_size when None
-overlap = 64  # Receptive field padding for OverlapTilingStrategy
-pad_mode = "reflect"
 
 # %%
 # Load image
@@ -60,12 +57,25 @@ plot(clean_image, titles="Original Image")
 # ----------------------------
 #
 # Create both patching strategies to compare their behavior.
+# BasicStrategy creates non-overlapping patches.
 
 basic_strategy = BasicStrategy(
     img_size=clean_image.shape,
     tiling_dims=(-2, -1),
     num_splits=(img_size // patch_size, img_size // patch_size),
 )
+
+print(f"BasicStrategy: {basic_strategy.get_num_patches()} patches")
+
+
+# %%
+# ----------------------------
+#
+# OverlapTilingStrategy creates overlapping patches with padding to provide context at boundaries, reducing artifacts.
+
+stride = None  # Defaults to patch_size when None
+overlap = 64  # Receptive field padding for OverlapTilingStrategy
+pad_mode = "reflect"  # Padding mode for global padding (e.g., 'reflect', 'constant')
 
 overlap_strategy = OverlapTilingStrategy(
     img_size=clean_image.shape,
@@ -76,9 +86,7 @@ overlap_strategy = OverlapTilingStrategy(
     pad_mode=pad_mode,
 )
 
-print(f"BasicStrategy: {basic_strategy.get_num_patches()} patches")
 print(f"OverlapTilingStrategy: {overlap_strategy.get_num_patches()} patches")
-
 
 # %%
 # BasicStrategy
@@ -332,6 +340,12 @@ def plot_single_patch(ax, image, strategy, patch_idx, color):
 # .. raw:: html
 #
 #    </details>
+
+
+# %%
+# Comparison
+# --------------------------------
+#
 
 # %%
 # Extract patch 0 from both strategies to compare their handling of padding and overlap.

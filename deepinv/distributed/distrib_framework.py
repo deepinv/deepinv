@@ -223,24 +223,22 @@ class DistributedContext:
     # ----------------------
     # Collectives
     # ----------------------
-    def _should_use_functional(self, x: torch.Tensor | None) -> bool:
-        return isinstance(x, torch.Tensor) and x.requires_grad
-
-    def _collective(self, name: str, x: torch.Tensor, **kwargs: Any) -> torch.Tensor:
+    def _collective(
+        self, fn: Callable, fn_functional: Callable, x: torch.Tensor, **kwargs
+    ) -> torch.Tensor:
         if not self.use_dist:
             return x
 
         # Training/autograd path: return functional output (no copy-back).
-        if self._should_use_functional(x):
-            fn = getattr(dist_nn, name, None)
-            if fn is None:
+        if x.requires_grad:
+            if fn_functional is None:
                 raise AttributeError(
-                    f"No functional autograd path available for '{name}'"
+                    f"No functional autograd path available for '{fn.__name__}'"
                 )
-            return fn(x, **kwargs)
+            return fn_functional(x, **kwargs)
 
         # Inference path: use in-place distributed op for memory efficiency.
-        getattr(dist, name)(x, **kwargs)
+        fn(x, **kwargs)
         return x
 
     def all_reduce(
@@ -249,10 +247,14 @@ class DistributedContext:
         op: dist.ReduceOp = dist.ReduceOp.SUM,
         group=None,
     ) -> torch.Tensor:
-        return self._collective("all_reduce", x, op=op, group=group)
+        return self._collective(
+            dist.all_reduce, dist_nn.all_reduce, x, op=op, group=group
+        )
 
     def broadcast(self, x: torch.Tensor, src: int = 0, group=None) -> torch.Tensor:
-        return self._collective("broadcast", x, src=src, group=group)
+        return self._collective(
+            dist.broadcast, dist_nn.broadcast, x, src=src, group=group
+        )
 
     def all_gather(self, x: torch.Tensor, group=None) -> torch.Tensor:
         r"""
@@ -262,13 +264,13 @@ class DistributedContext:
         if not self.use_dist:
             return x.unsqueeze(0)
 
-        if self._should_use_functional(x):
-            fn = getattr(dist_nn, "all_gather", None)
-            if fn is None:
+        if x.requires_grad:
+            try:
+                gathered = dist_nn.all_gather(x, group=group)
+            except AttributeError as e:
                 raise AttributeError(
                     "No functional autograd path available for 'all_gather'"
-                )
-            gathered = fn(x, group=group)
+                ) from e
             if isinstance(gathered, torch.Tensor):
                 return gathered
             return torch.stack(list(gathered), dim=0)
@@ -393,19 +395,39 @@ class DistributedStackedPhysics(Physics):
         local_op: Callable,
         gather: bool = True,
         reduce_op: str | None = "sum",
+        force_input_grad_sync: bool = False,
+        return_graph_anchor: bool = False,
         **kwargs,
-    ) -> TensorList | list[torch.Tensor] | torch.Tensor:
+    ) -> (
+        TensorList
+        | list[torch.Tensor]
+        | torch.Tensor
+        | tuple[
+            TensorList | list[torch.Tensor] | torch.Tensor,
+            torch.Tensor | list[torch.Tensor],
+        ]
+    ):
         """
         Map-reduce pattern for distributed operations.
 
         Delegates to generic implementation in distributed_utils.
         """
+        # Pure local mode (no reduction/gather) should not force cross-rank gradient
+        # synchronization: outputs are local contributions and some ranks may hold no
+        # items, which would otherwise create mismatched backward collectives.
+        local_only_mode = (reduce_op is None) and (not gather)
+
         # If input is a tensor that requires grad, wrap it with DistributedGradientSync
         # to ensure gradients are properly synchronized across ranks during backward pass.
-        if isinstance(x, torch.Tensor) and x.requires_grad and self.ctx.use_dist:
+        if (
+            isinstance(x, torch.Tensor)
+            and x.requires_grad
+            and self.ctx.use_dist
+            and (force_input_grad_sync or not local_only_mode)
+        ):
             x = DistributedGradientSync.apply(x, self.ctx)
 
-        return map_reduce_gather(
+        out = map_reduce_gather(
             ctx=self.ctx,
             local_items=self.local_physics,
             x=x,
@@ -418,14 +440,23 @@ class DistributedStackedPhysics(Physics):
             reduce_op=reduce_op,
             **kwargs,
         )
+        if return_graph_anchor:
+            return out, x
+        return out
 
     def A(
         self,
         x: torch.Tensor,
         gather: bool = True,
         reduce_op: str | None = None,
+        force_input_grad_sync: bool = False,
+        return_graph_anchor: bool = False,
         **kwargs,
-    ) -> TensorList | list[torch.Tensor]:
+    ) -> (
+        TensorList
+        | list[torch.Tensor]
+        | tuple[TensorList | list[torch.Tensor], torch.Tensor]
+    ):
         r"""
         Apply forward operator to all distributed physics operators with automatic gathering.
 
@@ -435,6 +466,10 @@ class DistributedStackedPhysics(Physics):
         :param torch.Tensor x: input signal.
         :param bool gather: whether to gather results across ranks. If `False`, returns local measurements. Default is `True`.
         :param str | None reduce_op: reduction operation to apply across ranks. Default is `None`.
+        :param bool force_input_grad_sync: force synchronization of input gradients even
+            in pure local mode (``gather=False`` and ``reduce_op=None``). Default is `False`.
+        :param bool return_graph_anchor: if `True`, also return the tensor used as graph
+            anchor inside this call. Intended for advanced internal usage. Default is `False`.
         :param kwargs: optional parameters for the forward operator.
         :return: complete list of measurements from all operators (or local list if `reduce=False`).
         """
@@ -444,10 +479,20 @@ class DistributedStackedPhysics(Physics):
             lambda p, x, **kw: p.A(x, **kw),
             gather=gather,
             reduce_op=reduce_op,
+            force_input_grad_sync=force_input_grad_sync,
+            return_graph_anchor=return_graph_anchor,
             **kwargs,
         )
 
-    def forward(self, x, gather: bool = True, reduce_op: str | None = None, **kwargs):
+    def forward(
+        self,
+        x,
+        gather: bool = True,
+        reduce_op: str | None = None,
+        force_input_grad_sync: bool = False,
+        return_graph_anchor: bool = False,
+        **kwargs,
+    ):
         r"""
         Apply full forward model with sensor and noise models to the input signal and gather results.
 
@@ -458,6 +503,10 @@ class DistributedStackedPhysics(Physics):
         :param torch.Tensor x: input signal.
         :param bool gather: whether to gather results across ranks. If `False`, returns local measurements. Default is `True`.
         :param str | None reduce_op: reduction operation to apply across ranks. Default is `None`.
+        :param bool force_input_grad_sync: force synchronization of input gradients even
+            in pure local mode (``gather=False`` and ``reduce_op=None``). Default is `False`.
+        :param bool return_graph_anchor: if `True`, also return the tensor used as graph
+            anchor inside this call. Intended for advanced internal usage. Default is `False`.
         :param kwargs: optional parameters for the forward model.
         :return: complete list of noisy measurements from all operators.
         """
@@ -467,6 +516,8 @@ class DistributedStackedPhysics(Physics):
             lambda p, x, **kw: p.forward(x, **kw),
             gather=gather,
             reduce_op=reduce_op,
+            force_input_grad_sync=force_input_grad_sync,
+            return_graph_anchor=return_graph_anchor,
             **kwargs,
         )
 
@@ -869,9 +920,11 @@ class DistributedProcessing(torch.nn.Module):
         (useful for memory-constrained scenarios). Higher values increase throughput but require more memory. Default is `None`.
     :param str checkpoint_batches: activation checkpointing mode for patch-batches during backward.
         Supported values are ``'auto'``, ``'always'`` and ``'never'``.
+
         - ``'auto'`` (default): enable checkpointing only when gradients are enabled and there are multiple local patch-batches.
         - ``'always'``: always checkpoint patch-batches when gradients are enabled.
         - ``'never'``: disable checkpointing.
+
     :param bool checkpoint_use_reentrant: reentrant mode passed to :func:`torch.utils.checkpoint.checkpoint`.
         Default is ``False`` (recommended by PyTorch).
     :param bool checkpoint_preserve_rng_state: whether to preserve RNG state across forward recomputation when
@@ -1116,6 +1169,10 @@ class DistributedReplicatedParameters:
         if grad is None or not self.ctx.use_dist:
             return grad
         grad = self.ctx.all_reduce(grad, op=dist.ReduceOp.SUM)
+        # For standard first-order optimization, users usually expect averaged grads:
+        # all_reduce returns SUM, so we divide by world_size when requested.
+        # If grad.requires_grad=True, we are in a higher-order path and this tensor
+        # is itself differentiable; keep SUM to avoid hidden scaling in meta-grads.
         if self.average and self.ctx.world_size > 1 and not grad.requires_grad:
             grad = grad / float(self.ctx.world_size)
         return grad
@@ -1259,22 +1316,23 @@ class DistributedDataFidelity(torch.nn.Module):
 
         self._check_is_distributed_physics(physics)
 
-        # If x is a replicated leaf tensor (e.g., algorithm input), synchronize its
-        # accumulated gradient once. For non-leaf x, cross-rank aggregation is
-        # already propagated through preceding distributed collectives.
-        if (
-            isinstance(x, torch.Tensor)
-            and x.requires_grad
-            and x.is_leaf
-            and self.ctx.use_dist
-        ):
-            x = DistributedGradientSync.apply(x, self.ctx)
+        # Compute local forward measurements through the distributed physics API.
+        # We request the internal graph-anchor tensor so empty ranks can still
+        # participate in backward sync through the downstream reduction anchor.
+        Ax_local, graph_anchor = physics.A(
+            x,
+            gather=False,
+            force_input_grad_sync=True,
+            return_graph_anchor=True,
+            **kwargs,
+        )
 
-        # Get local measurements
+        if len(y) != physics.num_operators:
+            raise ValueError(
+                f"Input y has length {len(y)}, expected {physics.num_operators} "
+                "(global measurements)."
+            )
         y_local = [y[i] for i in physics.local_indexes]
-
-        # Compute A_i(x) locally without re-entering distributed gather/reduce logic.
-        Ax_local = [p.A(x, **kwargs) for p in physics.local_physics]
 
         # Zip Ax and y for mapping
         if len(Ax_local) != len(y_local):
@@ -1297,7 +1355,7 @@ class DistributedDataFidelity(torch.nn.Module):
             num_operators=physics.num_operators,
             gather=gather,
             reduce_op=self.reduction_mode,
-            graph_anchor=x,
+            graph_anchor=graph_anchor,
             **kwargs,
         )
 
@@ -1411,8 +1469,7 @@ class DistributedDataFidelity(torch.nn.Module):
         self._check_is_distributed_physics(physics)
         if self.single_fidelity is None:
             raise NotImplementedError(
-                "prox is only supported when DistributedDataFidelity wraps a single "
-                "shared DataFidelity instance."
+                "prox is only supported when DistributedDataFidelity wraps a single shared DataFidelity instance."
             )
         return self.single_fidelity.prox(
             x, y, physics=physics, *args, gamma=gamma, **kwargs

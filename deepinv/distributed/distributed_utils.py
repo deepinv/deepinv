@@ -114,7 +114,9 @@ def map_reduce_gather(
         )
 
     if not gather:
-        return local_results
+        return _anchor_output_to_input_graph(
+            local_results, anchor_tensor, has_local_items=len(local_items) > 0
+        )
 
     if not ctx.use_dist:
         out: list = [None] * num_operators
@@ -273,6 +275,11 @@ class DistributedGradientSync(torch.autograd.Function):
             grad_output = autograd_ctx.dist_ctx.all_reduce(
                 grad_output, op=dist.ReduceOp.SUM
             )
+            # First-order training expects "mean across ranks" semantics:
+            # all_reduce gives a SUM, so we divide by world_size.
+            # Higher-order path (grad_output.requires_grad=True): this gradient is
+            # part of a new graph (e.g. create_graph=True). We keep the SUM here to
+            # avoid injecting hidden scaling into second-order/meta-gradients.
             if autograd_ctx.dist_ctx.world_size > 1 and not higher_order_path:
                 grad_output = grad_output / float(autograd_ctx.dist_ctx.world_size)
         return grad_output, None
@@ -317,6 +324,10 @@ class DistributedParameterSync(torch.autograd.Function):
                             # Preserve functional all_reduce result when p.grad requires_grad
                             # (e.g., backward called with create_graph=True).
                             p.grad = dist_ctx.all_reduce(p.grad, op=dist.ReduceOp.SUM)
+                            # Same rule as for input gradients:
+                            # - first-order parameter grads: average (SUM/world_size),
+                            # - higher-order grads (requires_grad=True): keep SUM so
+                            #   any normalization is explicit in the objective.
                             if dist_ctx.world_size > 1 and not p.grad.requires_grad:
                                 p.grad = p.grad / float(dist_ctx.world_size)
                     finally:

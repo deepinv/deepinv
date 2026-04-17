@@ -86,8 +86,6 @@ def move_measurement_to_device(y, device):
     """Move TensorList/list/tensor measurements to the target device."""
     if hasattr(y, "to"):
         return y.to(device)
-    if isinstance(y, TensorList):
-        return TensorList([m.to(device) for m in y])
     if isinstance(y, list):
         return [m.to(device) for m in y]
     return y
@@ -162,9 +160,6 @@ def prepare_dataset(
             train_datapoints=len(val_base),
             num_workers=num_workers,
         )
-
-    if ctx.use_dist:
-        dist.barrier()
 
     train_ds = HDF5Dataset(
         path=str(data_root / f"{dataset_name}_train0.h5"), train=True

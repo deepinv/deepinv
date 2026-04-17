@@ -1955,7 +1955,11 @@ def _test_unrolled_backward_worker(rank, world_size, args):
     Worker for unrolled backward consistency:
     compares distributed vs reference forward and gradients.
     """
-    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+    # Use deterministic kernels to avoid rare GPU gradient drift in strict
+    # distributed-vs-reference parity checks.
+    with DistributedContext(
+        device_mode=args["device_mode"], seed=42, deterministic=True
+    ) as ctx:
         num_operators = args["num_operators"]
         n_unroll = 3
         sigma_denoiser = 0.02

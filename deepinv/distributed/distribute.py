@@ -273,7 +273,6 @@ def _distribute_base_optim(
     checkpoint_use_reentrant: bool = False,
     checkpoint_preserve_rng_state: bool = True,
     dtype: torch.dtype | None = torch.float32,
-    gather_strategy: str = "concatenated",
 ) -> BaseOptim:
     r"""
     In-place distribute a :class:`deepinv.optim.BaseOptim` unfolded model.
@@ -289,7 +288,7 @@ def _distribute_base_optim(
       :class:`~deepinv.optim.RED`), the denoiser is replaced with a
       :class:`DistributedProcessing` (overlap-tiled, gradient-synced).
     - ``model.params_algo`` (``nn.ParameterDict``): all ``nn.ParameterList`` values
-      (trainable step sizes, regularisation weights, etc.) receive distributed
+      (trainable step sizes, regularization weights, etc.) receive distributed
       gradient-sync hooks via :class:`DistributedReplicatedParameters`.
 
     :class:`deepinv.physics.Physics` operators are **not** touched: they live outside
@@ -322,8 +321,6 @@ def _distribute_base_optim(
     :param bool checkpoint_preserve_rng_state: preserve RNG state during
         activation checkpoint recomputation. Default ``True``.
     :param torch.dtype | None dtype: dtype override. Default ``torch.float32``.
-    :param str gather_strategy: gather strategy (forwarded, currently unused for
-        processors).
     :return: the same ``model`` object, modified in-place.
     :raises TypeError: if ``model.unfold`` is ``False``.
     """
@@ -423,8 +420,8 @@ def distribute(
     | DistributedStackedLinearPhysics
     | DistributedProcessing
     | DistributedDataFidelity
-    | torch.nn.parameter.Parameter
-    | list[torch.nn.parameter.Parameter]
+    | torch.nn.Parameter
+    | list[torch.nn.Parameter]
     | BaseOptim
 ):
     r"""
@@ -438,7 +435,7 @@ def distribute(
         - Data fidelity terms: a list of :class:`deepinv.optim.DataFidelity` or :class:`deepinv.optim.StackedPhysicsDataFidelity`.
         - Priors/Denoisers: :class:`deepinv.models.Denoiser` or :class:`deepinv.optim.Prior` objects.
 
-    :param StackedPhysics | list[Physics] | Callable | Denoiser | DataFidelity | StackedPhysicsDataFidelity | list[DataFidelity] | torch.nn.Module | torch.nn.parameter.Parameter | Sequence[torch.nn.parameter.Parameter] object:
+    :param StackedPhysics | list[Physics] | Callable | Denoiser | DataFidelity | StackedPhysicsDataFidelity | list[DataFidelity] | torch.nn.Module | torch.nn.Parameter | Sequence[torch.nn.Parameter] object:
         DeepInverse object to distribute.
     :param DistributedContext ctx: distributed context manager.
     :param int | None num_operators: number of physics operators when using a factory for physics, otherwise inferred. Default is `None`.
@@ -640,7 +637,6 @@ def distribute(
             ctx,
             average=average,
             dtype=dtype,
-            gather_strategy=gather_strategy,
             tiling_strategy=tiling_strategy,
             patch_size=patch_size,
             overlap=overlap,
