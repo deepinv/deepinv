@@ -223,7 +223,7 @@ class GeneratorMixture(PhysicsGenerator):
         verbose: bool = False,
     ) -> None:
         super().__init__(device=device, rng=rng)
-        probs = torch.tensor(probs)
+        probs = torch.tensor(probs, device=device)
         assert torch.sum(probs) == 1, "The sum of the probabilities must be 1."
         self.generators = generators
         self.probs = probs
