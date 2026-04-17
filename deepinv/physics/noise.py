@@ -494,6 +494,10 @@ class PoissonNoise(NoiseModel):
         This may be needed when a NN outputs negative values e.g. when using leaky ReLU.
     :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
 
+    .. note::
+        Poisson noise is only defined for non-negative inputs.
+        When used in combination with physics operators that can produce negative outputs (such as :class:`deepinv.physics.BlurFFT`), it is recommended to set ``clip_positive=True`` to avoid runtime errors.
+
     |sep|
 
     :Examples:
@@ -545,16 +549,15 @@ class PoissonNoise(NoiseModel):
         if self.clip_positive:
             z = torch.clip(x / gain, min=0.0)
         else:
-            # NOTE: PyTorch operations are generally run asynchronously on CUDA
-            # devices and the underlying CUDA kernel under
-            # torch.poisson typically raises a CUDA-level assertion error
-            # when its input has negative entries. Those errors can't be
-            # recovered from using Python's exception system due to their
-            # asynchronous nature. For this reason we add a manual check if the
-            # RNG is on a CUDA device.
-            if self.rng is not None and self.rng.device.type == "cuda":
-                assert gain > 0, "Gain must be positive"
-                assert torch.all(x >= 0), "Input tensor must be non-negative"
+            # We perform a manual check for negative gain and negative values
+            # to print a clear error message both on CPU and GPU
+            if torch.any(gain <= 0):
+                raise ValueError("Poisson noise gain must be positive.")
+            if torch.any(x < 0):
+                raise ValueError(
+                    "Input tensor for Poisson noise must be non-negative.\n"
+                    "Consider setting ``clip_positive=True`` to avoid this error."
+                )
 
             z = x / gain
 
