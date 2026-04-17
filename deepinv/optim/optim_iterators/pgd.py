@@ -2,11 +2,11 @@ from __future__ import annotations
 from .optim_iterator import OptimIterator, fStep, gStep
 from deepinv.optim.bregman import Bregman, BregmanL2
 from typing import TYPE_CHECKING
+import torch
 
 if TYPE_CHECKING:
     from deepinv.optim import DataFidelity, Prior
     from deepinv.physics import Physics
-    from torch import Tensor
 
 
 class PGDIteration(OptimIterator):
@@ -70,15 +70,15 @@ class FISTAIteration(OptimIterator):
 
     def forward(
         self,
-        X: dict[str, tuple[Tensor, Tensor] | Tensor],
+        X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
         cur_data_fidelity: DataFidelity,
         cur_prior: Prior,
         cur_params: dict,
-        y: Tensor,
+        y: torch.Tensor,
         physics: Physics,
         *args,
         **kwargs,
-    ) -> dict[str, tuple[Tensor, Tensor] | Tensor | int]:
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor | int]:
         r"""
         Forward pass of an iterate of the FISTA algorithm.
 
@@ -126,12 +126,12 @@ class fStepPGD(fStep):
 
     def forward(
         self,
-        x: Tensor,
+        x: torch.Tensor,
         cur_data_fidelity: DataFidelity,
         cur_params: dict,
-        y: Tensor,
+        y: torch.Tensor,
         physics: Physics,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
          Single PGD iteration step on the data-fidelity term :math:`f`.
 
@@ -157,7 +157,9 @@ class gStepPGD(gStep):
     def __init__(self, **kwargs):
         super(gStepPGD, self).__init__(**kwargs)
 
-    def forward(self, x: Tensor, cur_prior: Prior, cur_params: dict) -> Tensor:
+    def forward(
+        self, x: torch.Tensor, cur_prior: Prior, cur_params: dict
+    ) -> torch.Tensor:
         r"""
         Single iteration step on the prior term :math:`\lambda \regname`.
 
@@ -222,10 +224,10 @@ class fStepPMD(fStep):
 
     def forward(
         self,
-        x: Tensor,
+        x: torch.Tensor,
         cur_data_fidelity: DataFidelity,
         cur_params: dict,
-        y: Tensor,
+        y: torch.Tensor,
         physics: Physics,
     ):
         r"""
@@ -259,7 +261,9 @@ class gStepPMD(gStep):
         super(gStepPMD, self).__init__(**kwargs)
         self.bregman_potential = bregman_potential
 
-    def forward(self, x: Tensor, cur_prior: Prior, cur_params: dict) -> Tensor:
+    def forward(
+        self, x: torch.Tensor, cur_prior: Prior, cur_params: dict
+    ) -> torch.Tensor:
         r"""
         Single iteration step on the prior term :math:`\lambda g`.
 

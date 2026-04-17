@@ -2,12 +2,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
-
-if TYPE_CHECKING:
-    from torch import Tensor
+import torch
 
 
-def dot(a: Tensor | TensorList, b: Tensor | TensorList, dim: int) -> Tensor:
+def dot(
+    a: torch.Tensor | TensorList, b: torch.Tensor | TensorList, dim: int
+) -> torch.Tensor:
     r"""
     Computes the batched dot product between two tensors or two TensorLists along specified dimensions.
 

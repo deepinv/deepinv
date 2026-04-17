@@ -1,11 +1,11 @@
 from __future__ import annotations
 from .optim_iterator import OptimIterator, fStep, gStep
 from typing import TYPE_CHECKING
+import torch
 
 if TYPE_CHECKING:
     from deepinv.optim import DataFidelity, Prior
     from deepinv.physics import Physics
-    from torch import Tensor
 
 
 class HQSIteration(OptimIterator):
@@ -48,14 +48,14 @@ class fStepHQS(fStep):
 
     def forward(
         self,
-        x: Tensor,
+        x: torch.Tensor,
         cur_data_fidelity: DataFidelity,
         cur_params: dict,
-        y: Tensor,
+        y: torch.Tensor,
         physics: Physics,
         *args,
         **kwargs,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Single proximal step on the data-fidelity term :math:`f`.
 
@@ -80,8 +80,8 @@ class gStepHQS(gStep):
         super(gStepHQS, self).__init__(**kwargs)
 
     def forward(
-        self, x: Tensor, cur_prior: Prior, cur_params: dict, *args, **kwargs
-    ) -> Tensor:
+        self, x: torch.Tensor, cur_prior: Prior, cur_params: dict, *args, **kwargs
+    ) -> torch.Tensor:
         r"""
         Single proximal step on the prior term :math:`\lambda \regname`.
 

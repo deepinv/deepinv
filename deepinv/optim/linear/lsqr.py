@@ -1,5 +1,4 @@
 from __future__ import annotations
-from torch import Tensor
 import torch
 from typing import Callable
 from deepinv.utils.tensorlist import TensorList, zeros_like
@@ -9,16 +8,16 @@ from deepinv.utils.compat import zip_strict
 def lsqr(
     A: Callable,
     AT: Callable,
-    b: Tensor,
-    eta: float | Tensor = 0.0,
-    x0: Tensor = None,
+    b: torch.Tensor,
+    eta: float | torch.Tensor = 0.0,
+    x0: torch.Tensor = None,
     tol: float = 1e-6,
     conlim: float = 1e8,
     max_iter: int = 100,
     parallel_dim: None | int | list[int] = 0,
     verbose: bool = False,
     **kwargs,
-) -> Tensor:
+) -> torch.Tensor:
     r"""
     LSQR algorithm for solving linear systems.
 
@@ -232,7 +231,9 @@ def lsqr(
     return x, acond.sqrt()
 
 
-def _sym_ortho(a: Tensor, b: Tensor) -> tuple[Tensor, Tensor, Tensor]:
+def _sym_ortho(
+    a: torch.Tensor, b: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Stable implementation of Givens rotation.
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import Callable, TYPE_CHECKING
 import torch
-from torch import Tensor
 from tqdm import tqdm
 import torch.nn as nn
 from torch.linalg import vector_norm
@@ -32,11 +31,11 @@ __all__ = [
 
 
 def objective_function(
-    x: Tensor,
+    x: torch.Tensor,
     data_fidelity: DataFidelity,
     prior: Prior | None,
     cur_params: dict,
-    y: Tensor,
+    y: torch.Tensor,
     physics: Physics,
 ):
     r"""
@@ -63,7 +62,7 @@ def objective_function(
 
 def gradient_descent(
     grad_f: Callable,
-    x: Tensor,
+    x: torch.Tensor,
     step_size: float = 1.0,
     max_iter: int = 100,
     tol: float = 1e-5,
@@ -88,8 +87,13 @@ def gradient_descent(
 
 
 def check_conv(
-    X_prev: Tensor | dict[str, Tensor] | tuple[Tensor, ...],
-    X: Tensor | dict[str, Tensor] | dict[str, Tensor] | tuple[Tensor, ...],
+    X_prev: torch.Tensor | dict[str, torch.Tensor] | tuple[torch.Tensor, ...],
+    X: (
+        torch.Tensor
+        | dict[str, torch.Tensor]
+        | dict[str, torch.Tensor]
+        | tuple[torch.Tensor, ...]
+    ),
     it: int,
     crit_conv="residual",
     thres_conv=1e-3,
@@ -178,7 +182,7 @@ class GaussianMixtureModel(nn.Module):
         self._logdet_cov_reg = nn.Parameter(self._weights.clone(), requires_grad=False)
         self.set_cov(self._cov)
 
-    def set_cov(self, cov: Tensor):
+    def set_cov(self, cov: torch.Tensor):
         r"""
         Sets the covariance parameters to cov and maintains their log-determinants and inverses
 
@@ -228,7 +232,7 @@ class GaussianMixtureModel(nn.Module):
         """
         return self._cov_inv_reg.clone()
 
-    def set_weights(self, weights: Tensor):
+    def set_weights(self, weights: torch.Tensor):
         r"""
         sets weight parameter while ensuring non-negativity and summation to one
 
@@ -252,7 +256,9 @@ class GaussianMixtureModel(nn.Module):
         self.set_cov(self._cov)
         self.set_weights(self._weights)
 
-    def component_log_likelihoods(self, x: Tensor, cov_regularization: bool = False):
+    def component_log_likelihoods(
+        self, x: torch.Tensor, cov_regularization: bool = False
+    ):
         r"""
         returns a tensor containing the log likelihood values of x for each component
 
