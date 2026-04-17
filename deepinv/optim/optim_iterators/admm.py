@@ -19,13 +19,9 @@ class ADMMIteration(OptimIterator):
     the iteration is (see :footcite:t:`boyd2011distributed`):
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\gamma f}(x_k - z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_{k+1} + z_k) \\
         z_{k+1} &= z_k + \beta (u_{k+1} - x_{k+1})
-        \end{aligned}
-        \end{equation*}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.
 

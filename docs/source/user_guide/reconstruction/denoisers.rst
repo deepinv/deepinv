@@ -13,7 +13,7 @@ as input and returns a denoised image:
 
     >>> import torch
     >>> import deepinv as dinv
-    >>> denoiser = dinv.models.DRUNet()  # doctest: +IGNORE_RESULT
+    >>> denoiser = dinv.models.DRUNet()
     >>> sigma = 0.1
     >>> image = torch.ones(1, 3, 32, 32) * .5
     >>> noisy_image = image + torch.randn(1, 3, 32, 32) * sigma
@@ -215,7 +215,7 @@ Any diffusion model from the `HuggingFace Diffusers library <https://huggingface
 using the :class:`deepinv.models.DiffusersDenoiserWrapper` class. A model can be instantiated as simply as follows:
 
     >>> from deepinv.models import DiffusersDenoiserWrapper
-    >>> denoiser = DiffusersDenoiserWrapper(mode_id="google/ddpm-ema-celebahq-256")  # doctest: +IGNORE_RESULT
+    >>> denoiser = DiffusersDenoiserWrapper(mode_id="google/ddpm-ema-celebahq-256")
 
 It can be used as any other DeepInv denoiser ``denoised_image = denoiser(noisy_image, sigma)``. It also supports conditional denoising as long as the underlying model does. 
 This wrapper allows you to leverage state-of-the-art diffusion models for other inverse problems beyond image generation, in particular for posterior sampling. 

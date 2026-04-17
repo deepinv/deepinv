@@ -2,7 +2,6 @@ from __future__ import annotations
 import torch
 from typing import Callable
 from deepinv.utils.tensorlist import TensorList, zeros_like
-from deepinv.utils.compat import zip_strict
 
 
 def lsqr(
@@ -84,7 +83,7 @@ def lsqr(
                 return TensorList(
                     [
                         vi * alpha.view(bi_shape)
-                        for vi, bi_shape in zip_strict(v, b_shape)
+                        for vi, bi_shape in zip(v, b_shape, strict=True)
                     ]
                 )
             else:

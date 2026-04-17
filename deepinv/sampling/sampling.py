@@ -14,7 +14,6 @@ from deepinv.physics import Physics, LinearPhysics
 from deepinv.sampling import sampling_iterators as _sampling_iterators
 from deepinv.sampling.sampling_iterators import SamplingIterator
 from deepinv.sampling.utils import Welford
-from deepinv.utils.compat import zip_strict
 
 
 class BaseSampling(Reconstructor):
@@ -261,7 +260,9 @@ class BaseSampling(Reconstructor):
                     if self.history_size:
                         self.history.append(X)
 
-                    for _, (g, stat) in enumerate(zip_strict(g_statistics, statistics)):
+                    for _, (g, stat) in enumerate(
+                        zip(g_statistics, statistics, strict=True)
+                    ):
                         stat.update(g(X))
 
             # Check convergence for all statistics
