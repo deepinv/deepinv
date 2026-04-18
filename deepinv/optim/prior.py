@@ -1,11 +1,17 @@
+from __future__ import annotations
 import numpy as np
 import torch
 import torch.nn as nn
 
+from .utils import get_weights_url
+
 from deepinv.optim.potential import Potential
+from deepinv.models.ridge_regularizer import RidgeRegularizer as RidgeRegularizerModel
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
+from deepinv.models.drunet import DRUNet
 from deepinv.utils import patch_extractor
+from deepinv.models.GSPnP import GSPnP
 from deepinv.models.utils import load_state_dict_from_url
 
 
@@ -33,44 +39,46 @@ class Prior(Potential):
     :param Callable g: Prior function :math:`g(x)`.
     """
 
-    def __init__(self, g=None, *args, **kwargs):
-        super().__init__(*args, fn=g, **kwargs)
+    def __init__(self, g=None):
+        super().__init__(fn=g)
         self.explicit_prior = False if self._fn is None else True
 
 
-class ZeroPrior(Prior):
+class Zero(Prior):
     r"""
     Zero prior :math:`\reg{x} = 0`.
     """
 
     def __init__(self):
         super().__init__()
+
+        def forward(x, *args, **kwargs):
+            return torch.tensor(0.0)
+
+        self._g = forward
         self.explicit_prior = True
 
     def fn(self, x, *args, **kwargs):
         r"""
-        Computes the zero prior :math:`\reg{x} = 0` at :math:`x`.
+        Computes the zero prior :math:`\reg(x) = 0` at :math:`x`.
 
-        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
+        It returns a tensor of zeros of the same shape as :math:`x`.
         """
-        return torch.zeros(x.shape[0], device=x.device)
+        return torch.zeros_like(x)
 
     def grad(self, x, *args, **kwargs):
         r"""
-        Computes the gradient of the zero prior :math:`\reg{x} = 0` at :math:`x`.
+        Computes the gradient of the zero prior :math:`\reg(x) = 0` at :math:`x`.
 
-        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (:class:`torch.Tensor`) gradient at :math:`x`.
+        It returns a tensor of zeros of the same shape as :math:`x`.
         """
         return torch.zeros_like(x)
 
     def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
         r"""
-        Computes the proximal operator of the zero prior :math:`\reg{x} = 0` at :math:`x`.
+        Computes the proximal operator of the zero prior :math:`\reg(x) = 0` at :math:`x`.
 
-        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
+        It returns the identity :math:`x`.
         """
         return x
 
@@ -94,7 +102,7 @@ class PnP(Prior):
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float sigma_denoiser: noise level parameter of the denoiser.
-        :return: (torch.Tensor) proximity operator at :math:`x`.
+        :return: (torch.tensor) proximity operator at :math:`x`.
         """
         return self.denoiser(x, sigma_denoiser)
 
@@ -303,7 +311,6 @@ class WaveletPrior(Prior):
     :param float p: :math:`p`-norm of the prior. Default is 1.
     :param str device: device on which the wavelet transform is computed. Default is "cpu".
     :param int wvdim: dimension of the wavelet transform, can be either 2 or 3. Default is 2.
-    :param bool is_complex: whether the input is complex-valued. Default is False.
     :param str mode: padding mode for the wavelet transform (default: "zero").
     :param float clamp_min: minimum value for the clamping. Default is None.
     :param float clamp_max: maximum value for the clamping. Default is None.
@@ -316,7 +323,6 @@ class WaveletPrior(Prior):
         p=1,
         device="cpu",
         wvdim=2,
-        is_complex=False,
         mode="zero",
         clamp_min=None,
         clamp_max=None,
@@ -331,7 +337,6 @@ class WaveletPrior(Prior):
         self.level = level
         self.device = device
         self.mode = mode
-        self.is_complex = is_complex
 
         self.clamp_min = clamp_min
         self.clamp_max = clamp_max
@@ -351,7 +356,6 @@ class WaveletPrior(Prior):
                 wv=self.wv,
                 device=self.device,
                 non_linearity=self.non_linearity,
-                is_complex=self.is_complex,
                 wvdim=self.wvdim,
             )
         elif type(self.wv) == list:
@@ -360,7 +364,6 @@ class WaveletPrior(Prior):
                 list_wv=self.wv,
                 max_iter=10,
                 non_linearity=self.non_linearity,
-                is_complex=self.is_complex,
                 wvdim=self.wvdim,
             )
         else:
@@ -407,23 +410,15 @@ class WaveletPrior(Prior):
         else:
             return list_norm
 
-    def prox(self, x, *args, ths=0.1, gamma=1.0, **kwargs):
+    def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.
         Only detail coefficients are thresholded.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param int, float, torch.Tensor ths: thresholding parameter :math:`\gamma`.
-            If `ths` is a tensor, it should be of shape
-            ``(B,)`` (same coefficent for all levels), ``(B, n_levels-1)`` (one coefficient per level),
-            or ``(B, n_levels-1, 3)`` (one coefficient per subband and per level). `B` should be the same as the batch size of the input or `1`.
-            If ``non_linearity`` equals ``"soft"`` or ``"hard"``, ``ths`` serves as a (soft or hard)
-            thresholding parameter for the wavelet coefficients. If ``non_linearity`` equals ``"topk"``,
-            ``ths`` can indicate the number of wavelet coefficients
-            that are kept (if ``int``) or the proportion of coefficients that are kept (if ``float``).
-        :param float gamma: proximal operator stepsize.
+        :param float gamma: stepsize of the proximity operator.
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
-        out = self.WaveletDenoiser(x, ths=ths * gamma)
+        out = self.WaveletDenoiser(x, ths=gamma)
         if self.clamp_min is not None:
             out = torch.clamp(out, min=self.clamp_min)
         if self.clamp_max is not None:
@@ -717,3 +712,207 @@ class L12Prior(Prior):
         # 1 - gamma/max(z, gamma) = relu(z - gamma) / z, adding 1e-12 to avoid division by 0
         z = torch.nn.functional.relu(z - gamma) / (z + 1e-12)
         return z * x
+
+
+class RidgeRegularizer(Prior):
+    r"""
+    (Weakly) Convex Ridge Regularizer :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`
+
+    for filters :math:`W_c` and potentials :math:`\psi_c`. The filters :math:`W_c` are realized by a concatenation multiple convolution
+    layers without nonlinearity. The potentials :math:`\psi_c` are given by scaled versions smoothed absolute values,
+    see :footcite:t:`hertrich2025learning` for a precise description.
+
+    To allow the automatic tuning of the regularization parameter, we parameterize the regularizer with two additional scalings, i.e.,
+    we implement :math:`\frac{\alpha}{\sigma^2}\reg{\sigma x}` instead of :math:`\reg{x}` where :math:`\alpha` and :math:`\sigma` are learnable parameters of the regularizer.
+    If the weak CRR is used, :math:`\alpha` is fixed per default, since it changes the weak convexity constant.
+
+    The (W)CRR was introduced by :footcite:t:`goujon2023neural` and :footcite:t:`goujon2024learning`.
+    The specific implementation is taken from :footcite:t:`hertrich2025learning`.
+
+    This prior wraps the corresponding model :class:`deepinv.models.RidgeRegularizer`
+    and uses it to evaluate the regularizer, its gradient or proximity operator.
+
+    :param int in_channels: Number of input channels (`1` for gray valued images, `3` for color images). Default: `3`
+    :param float weak_convexity: Weak convexity of the regularizer. Set to `0.0` for a convex regularizer and to `1.0` for a 1-weakly convex regularizer.
+        Default: `0.0`
+    :param list of int nb_channels: List of ints taking the hidden number of channels in the multiconvolution. Default: `[4, 8, 64]`
+    :param list of int filter_sizes: List of ints taking the kernel sizes of the convolution. Default: `[5,5,5]`
+    :param str device: Device for the weights. Default: `"cpu"`
+    :param str, None pretrained: use pretrained weights. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
+        online repository (only available for the default architecture with 3 or 1 input/output channels).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-learned-reg>` for more details.
+    :param bool warn_output_scaling: warn if `weak_convexity>0` and the output scaling (:math:`\log(\alpha)` in the above description) is not zero. This case
+        destroys the weak convexity constant defined by teh `weak_convexity` argument. Default: `True`
+    """
+
+    def __init__(
+        self,
+        in_channels: int = 3,
+        weak_convexity: float = 0.0,
+        nb_channels: tuple[int, ...] = (4, 8, 64),
+        filter_sizes: tuple[int, ...] = (5, 5, 5),
+        device: str = "cpu",
+        pretrained: str = "download",
+        warn_output_scaling: bool = True,
+    ):
+        super(RidgeRegularizer, self).__init__()
+        self.model = RidgeRegularizerModel(
+            in_channels=in_channels,
+            weak_convexity=weak_convexity,
+            nb_channels=nb_channels,
+            filter_sizes=filter_sizes,
+            device=device,
+            pretrained=pretrained,
+            warn_output_scaling=warn_output_scaling,
+        )
+        self.explicit_prior = True
+
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            model = super().__getattr__("model")
+            return getattr(model, name)
+
+    def grad(self, x, *args, get_energy=False, **kwargs):
+        r"""
+        Calculates the gradient of the regularizer at :math:`x`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param bool get_energy: Optional flag. If set to True, the function additionally returns the objective value at :math:`x`. Dafault: False.
+        :return: (:class:`torch.Tensor`) gradient at :math:`x`.
+        """
+        return self.model.grad(x, *args, get_energy=get_energy, **kwargs)
+
+    def fn(self, x, *args, **kwargs):
+        r"""
+        Computes the regularizer :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
+        """
+        return self.model(x, *args, **kwargs)
+
+
+class LeastSquaresResidual(Prior):
+    r"""
+    Least Squares Regularizer :math:`\reg{x}=\|x-D(x)\|^2` for some denoising network :math:`D`.
+
+    To allow the automatic tuning of the regularization parameter, the regularizer is optionally parameterized with two additional scalings, i.e.,
+    we implement :math:`\alpha\reg{\beta x}` instead of :math:`\reg{x}` where :math:`\alpha` and :math:`\beta` are learnable parameters of the regularizer.
+    These parameters are learned in the log scale to enforce positivity.
+
+    This type of network was used in several references, see e.g., :footcite:t:`hurault2021gradient` or :footcite:t:`zou2023deep`.
+
+    This prior is based on the model :class:`deepinv.models.GSPnP`, with the additional optional learnable input and output scalings.
+
+    :param torch.nn.Module denoiser: Denoising network :math:`D` which is used in the architecture.
+    :param bool use_input_output_scaling: If ``True``, use learnable input and output scaling parameters.
+        If ``False``, these parameters are fixed to zero and are not trained. Default: `False`
+    :param str, None pretrained: use pretrained weights.
+        When `use_input_output_scaling` is ``True``, the pretrained weights are applied to the prior.
+        When `use_input_output_scaling` is ``False``, the pretrained weights are applied to the underlying denoiser, but not to the prior itself.
+        If ``pretrained=None``, the input and output scalings (if `use_input_output_scaling` is ``True``) will be initialized at one.
+        If ``pretrained='download'``, the denoiser becomes by default a DRUNet denoising model (see :class:`deepinv.models.DRUNet`)
+        trained for color images (3 channels); with `nb=2`; `nc=(32, 64, 128, 256)` and softmax activations.
+        If ``pretrained='download_gray'``, the denoiser is the same but trained for grayscale images (1 channel).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+    :param str device: Device for the weights. Default: `"cpu"`
+    """
+
+    def __init__(
+        self,
+        denoiser: torch.nn.Module,
+        use_input_output_scaling: bool = False,
+        pretrained: str = "download",
+        device: str = "cpu",
+    ):
+        super(LeastSquaresResidual, self).__init__()
+        self.use_input_output_scaling = use_input_output_scaling
+
+
+        weights = None
+
+        if pretrained is not None and self.use_input_output_scaling:
+            if pretrained == "download":
+                denoiser = DRUNet(
+                    in_channels=3,
+                    out_channels=3,
+                    nb=2,
+                    nc=(32, 64, 128, 256),
+                    act_mode="s",
+                    pretrained=None,
+                    device=device,
+                )
+                file_name = "LSR_bilevel_color.pt"
+                url = get_weights_url(model_name="gradientstep", file_name=file_name)
+                weights = load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=file_name
+                )
+            elif pretrained == "download_gray":
+                denoiser = DRUNet(
+                    in_channels=1,
+                    out_channels=1,
+                    nb=2,
+                    nc=(32, 64, 128, 256),
+                    act_mode="s",
+                    pretrained=None,
+                    device=device,
+                )
+                file_name = "LSR_bilevel_gray.pt"
+                url = get_weights_url(model_name="gradientstep", file_name=file_name)
+                weights = load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=file_name
+                )
+            else:
+                denoiser.load_state_dict(torch.load(pretrained, map_location=device))
+
+        self.model = GSPnP(denoiser, alpha=1.0)
+        self.model.detach = True
+
+        self.input_scaling = nn.Parameter(torch.tensor(0.0, device=device))
+        self.output_scaling = nn.Parameter(torch.tensor(0.0, device=device))
+
+        if not self.use_input_output_scaling:
+            self.input_scaling.data.zero_()
+            self.output_scaling.data.zero_()
+            self.input_scaling.requires_grad_(False)
+            self.output_scaling.requires_grad_(False)
+
+        if weights is not None:
+            self.load_state_dict(weights, strict=True)
+
+    @property
+    def denoiser(self):
+        return self.model.student_grad.model
+
+    def grad(self, x, sigma, *args, get_energy=False, **kwargs):
+        r"""
+        Calculates the gradient of the regularizer at :math:`x`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param float sigma: Noise level.
+        :param bool get_energy: Optional flag. If set to True, the function additionally returns the objective value at :math:`x`. Dafault: False.
+        :return: (:class:`torch.Tensor`) gradient at :math:`x`.
+        """
+        grad = torch.exp(self.output_scaling) * self.model.potential_grad(
+            torch.exp(self.input_scaling) * x.contiguous(), sigma
+        )
+        if get_energy:
+            reg = self(x, sigma, *args, **kwargs)
+            return reg, grad
+        return grad
+
+    def fn(self, x, sigma, *args, **kwargs):
+        r"""
+        Computes the regularizer :math:`\reg{x}=\|x-D(x, sigma)\|^2`
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :param float sigma: Noise level.
+        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
+        """
+        return torch.exp(
+            self.output_scaling + self.input_scaling
+        ) * self.model.potential(torch.exp(self.input_scaling) * x.contiguous(), sigma)
