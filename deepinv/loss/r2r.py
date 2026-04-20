@@ -111,7 +111,7 @@ class R2RLoss(Loss):
         if metric is None:
             metric = torch.nn.MSELoss()
         super(R2RLoss, self).__init__()
-        self.name = "gr2r"
+        self._name = "gr2r"
         self.metric = metric
         self.alpha = alpha
         self.eval_n_samples = eval_n_samples

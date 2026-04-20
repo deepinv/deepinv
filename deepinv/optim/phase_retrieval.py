@@ -121,21 +121,15 @@ def spectral_methods(
     This function runs the Spectral Methods algorithm to find the principal eigenvector of the regularized weighted covariance matrix:
     
     .. math::
-        \begin{equation*}
         M = \conj{B} \text{diag}(T(y)) B + \lambda I,
-        \end{equation*}
     
     where :math:`B` is the linear operator of the phase retrieval class, :math:`T(\cdot)` is a preprocessing function for the measurements, and :math:`I` is the identity matrix of corresponding dimensions. Parameter :math:`\lambda` tunes the strength of regularization.
 
     To find the principal eigenvector, the function runs power iteration which is given by
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         x_{k+1} &= M x_k \\
-        x_{k+1} &= \frac{x_{k+1}}{\|x_{k+1}\|},
-        \end{aligned}
-        \end{equation*}
+        x_{k+1} &= \frac{x_{k+1}}{\|x_{k+1}\|}
   
     :param torch.Tensor y: Measurements.
     :param deepinv.physics.Physics physics: Instance of the physics modeling the forward matrix.
