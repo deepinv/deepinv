@@ -1918,7 +1918,7 @@ def _test_distributed_parameter_sync_higher_order_worker(rank, world_size, args)
         all_patches = [p for _, p in patch_pairs]
         processed = [denoiser_ref(p) for p in all_patches]
         out_ref = torch.zeros_like(x_ref)
-        strategy.reduce_patches(out_ref, list(zip(all_indices, processed)))
+        strategy.reduce_patches(out_ref, list(zip(all_indices, processed, strict=True)))
 
         loss_ref = out_ref.sum()
         loss_ref.backward(create_graph=True)
@@ -2030,7 +2030,9 @@ def _test_unrolled_backward_worker(rank, world_size, args):
                 processed_batches, len(all_patches)
             )
             x_out = torch.zeros_like(x_in)
-            strategy.reduce_patches(x_out, list(zip(all_indices, processed)))
+            strategy.reduce_patches(
+                x_out, list(zip(all_indices, processed, strict=True))
+            )
             return x_out
 
         # Fixed measurement (constant in the graph).
@@ -2113,7 +2115,7 @@ def _test_unrolled_backward_worker(rank, world_size, args):
             )
 
         for i, (p_dist, p_ref) in enumerate(
-            zip(denoiser.parameters(), denoiser_ref.parameters())
+            zip(denoiser.parameters(), denoiser_ref.parameters(), strict=True)
         ):
             assert p_dist.grad is not None and p_ref.grad is not None
             d = (p_dist.grad - p_ref.grad).abs()
@@ -2423,7 +2425,7 @@ def _test_processor_backward_worker(rank, world_size, args):
 
         # Reconstruct
         out_ref = torch.zeros_like(x_ref)
-        strategy.reduce_patches(out_ref, list(zip(all_indices, processed)))
+        strategy.reduce_patches(out_ref, list(zip(all_indices, processed, strict=True)))
 
         # Loss
         loss_ref = out_ref.sum()
@@ -2490,7 +2492,9 @@ def _test_processor_backward_multiple_calls_worker(rank, world_size, args):
         processed_1 = strategy.unpack_batched_results(
             processed_batches_1, len(all_patches)
         )
-        strategy.reduce_patches(out_ref_1, list(zip(all_indices, processed_1)))
+        strategy.reduce_patches(
+            out_ref_1, list(zip(all_indices, processed_1, strict=True))
+        )
 
         out_ref_2 = torch.zeros_like(x_ref)
         batched_patches_2 = strategy.apply_batching(
@@ -2500,7 +2504,9 @@ def _test_processor_backward_multiple_calls_worker(rank, world_size, args):
         processed_2 = strategy.unpack_batched_results(
             processed_batches_2, len(all_patches)
         )
-        strategy.reduce_patches(out_ref_2, list(zip(all_indices, processed_2)))
+        strategy.reduce_patches(
+            out_ref_2, list(zip(all_indices, processed_2, strict=True))
+        )
 
         loss_ref = out_ref_1.sum() + out_ref_2.sum()
         loss_ref.backward()
