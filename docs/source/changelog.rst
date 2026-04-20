@@ -360,7 +360,7 @@ New Features
 - Added example on image generation, working for :class:`deepinv.models.NCSNpp`, :class:`deepinv.models.ADMUNet`, :class:`deepinv.models.DRUNet` and :class:`deepinv.models.DiffUNet` (by `Minh Hai Nguyen`_ and `Matthieu Terris`_)
 - Added VP-SDE for image generation and posterior sampling (:gh:`434` by `Minh Hai Nguyen`_)
 
-- global path for datasets :func:`deepinv.utils.get_data_home` (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
+- global path for datasets `deepinv.utils.get_data_home` (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - New docs user guide (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
