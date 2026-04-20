@@ -11,6 +11,7 @@ from deepinv.sampling.sampling_iterators import DiffusionIterator
 from deepinv.sampling.diffusion_sde import (
     PosteriorDiffusion,
     VariancePreservingDiffusion,
+    VarianceExplodingDiffusion,
 )
 from deepinv.sampling.noisy_datafidelity import DPSDataFidelity
 from deepinv.sampling.sde_solver import EulerSolver
@@ -522,34 +523,25 @@ class DPS(PosteriorDiffusion):
     which has minimal assumptions on the forward model. The only restriction is that
     the measurement model has to be differentiable, which is generally the case.
 
-    The algorithm writes as follows, for :math:`t` decreasing from :math:`T` to :math:`1`:
+    The algorithm solves the reverse-time SDE specified by the `schedule` argument, using the Euler solver, and approximating the conditional score by the DPS data fidelity term, which is defined as follows:
 
     .. math::
 
-        \widehat{\mathbf{x}}_{t} &= D_{\theta}(\mathbf{x}_t, \sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t})
-        \\
-        \mathbf{g}_t &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{t}(\mathbf{x}_t) | \mathbf{y} ) \\
-        \mathbf{\varepsilon}_t &= \mathcal{N}(0, \mathbf{I}) \\
-        \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t
-        + b_t \, \, \widehat{\mathbf{x}}_t
-        + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t + \mathbf{g}_t,
+        \nabla_{x_t} \log p_t(y|x_t) \approx \nabla_{x_t} \frac{\lambda}{2 \sqrt{m}} \|y - A D_{\sigma_t}(x_t)\|
 
-    where :math:`\denoiser{\cdot}{\sigma}` is a denoising network for noise level :math:`\sigma`,
-    :math:`\eta` is a hyperparameter, and the constants :math:`\tilde{\sigma}_t, a_t, b_t` are defined as
+    where :math:`\denoiser{\cdot}{\sigma}` is a denoising network for noise level :math:`\sigma`, and :math:`\lambda` is a hyperparameter that controls the weight of the data fidelity term in the approximation of the likelihood gradient.
 
-    .. math::
-             
-                \tilde{\sigma}_t &= \eta \sqrt{ (1 - \frac{\overline{\alpha}_t}{\overline{\alpha}_{t-1}})
-                \frac{1 - \overline{\alpha}_{t-1}}{1 - \overline{\alpha}_t}} \\
-                a_t &= \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}/\sqrt{1-\overline{\alpha}_t} \\
-                b_t &= \sqrt{\overline{\alpha}_{t-1}} - \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}
-                \frac{\sqrt{\overline{\alpha}_{t}}}{\sqrt{1 - \overline{\alpha}_{t}}}.
-            
+    .. note::
+
+        This method is a particular instance of the general posterior sampling framework described in :class:`deepinv.sampling.PosteriorDiffusion`, by specifying the data fidelity term as the DPS data fidelity, a SDE and the Euler solver. The user can thus easily modify the algorithm by changing the SDE or the solver, for instance to use a different noise schedule or a different sampling scheme.
+        Please refer to the example :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for a full demonstration of how to modify the algorithm.
+
     :param deepinv.models.Denoiser denoiser: a denoiser network that can handle different noise levels
+    :param str schedule: the noise schedule to use, either `"vp"` (default, which matches the original implementation) for the variance preserving noise schedule, or `"ve"` for the variance exploding noise schedule.
     :param int num_steps: the number of diffusion iterations to run the algorithm (default: 1000)
-    :param float eta: DDIM hyperparameter which controls the stochasticity
+    :param float alpha: DDIM hyperparameter which controls the stochasticity. Default to 1.0, which corresponds to the original DDPM sampling scheme. Setting it to 0 corresponds to the deterministic DDIM sampling scheme.
     :param float weight: the weight of the data fidelity term in the approximation of the likelihood gradient. Default to 1.0.
-    :param bool verbose: if True, print progress
+    :param bool verbose: if `True`, print the progress of the algorithm
     :param str device: the device to use for the computations
 
     """
@@ -557,28 +549,42 @@ class DPS(PosteriorDiffusion):
     def __init__(
         self,
         denoiser: Denoiser,
-        eta: float = 1.0,
+        schedule: str = "vp",
+        alpha: float = 1.0,
         num_steps: int = 1000,
         weight: float = 1.0,
         verbose: bool = False,
         device: str | torch.device = "cpu",
-        dtype=torch.float32,
+        dtype=torch.float64,
+        rng: torch.Generator | None = None,
         **kwargs,
     ):
         data_fidelity = DPSDataFidelity(
             denoiser=denoiser, clip=[-1.0, 1.0], weight=weight
         )
-        beta_start, beta_end = 0.1, 20
+
         solver = EulerSolver(
-            timesteps=torch.linspace(1, 0.001, num_steps, device=device, dtype=dtype)
+            timesteps=torch.linspace(1, 0.001, num_steps, device=device, dtype=dtype),
+            rng=rng,
         )
-        sde = VariancePreservingDiffusion(
-            beta_min=beta_start,
-            beta_max=beta_end,
-            alpha=eta,
-            device=device,
-            dtype=dtype,
-        )
+        if schedule.lower() == "vp":
+            sde = VariancePreservingDiffusion(
+                alpha=alpha,
+                device=device,
+                dtype=dtype,
+            )
+        elif schedule.lower() == "ve":
+            sde = VarianceExplodingDiffusion(
+                alpha=alpha,
+                device=device,
+                dtype=dtype,
+            )
+
+        else:
+            raise ValueError(
+                f"Only 'vp' and 've' schedules are supported, got {schedule}"
+            )
+
         super().__init__(
             sde=sde,
             denoiser=denoiser,

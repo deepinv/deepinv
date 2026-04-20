@@ -126,7 +126,6 @@ class DPSDataFidelity(NoisyDataFidelity):
         **kwargs,
     ):
         super().__init__()
-        self.d = dinv.optim.L2Distance()
         self.denoiser = denoiser
         if clip is not None:
             assert len(clip) == 2

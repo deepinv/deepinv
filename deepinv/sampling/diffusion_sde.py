@@ -961,6 +961,8 @@ class PosteriorDiffusion(Reconstructor):
                 x_init = self.sde.sample_init(y.shape, rng=self.solver.rng)
             else:
                 raise ValueError("Either `x_init` or `physics` must be specified.")
+
+        print("Starting sampling with initial :", x_init.min(), x_init.max())
         solution = self.solver.sample(
             self.posterior,
             x_init,
@@ -977,8 +979,12 @@ class PosteriorDiffusion(Reconstructor):
             final_sample = solution.sample
             timesteps = timesteps if timesteps is not None else self.solver.timesteps
             t = timesteps[-1] if timesteps is not None else 1e-3
-            sigma = self.sde.sigma_t(t)
+            dt = abs(timesteps[1] - timesteps[0]) if timesteps is not None else 1e-3
+
             scale = self.sde.scale_t(t)
+            sigma = self.sde.diffusion(t) * dt**0.5 * scale
+
+            print(f"Final time step: {t}, noise level: {sigma}, scale: {scale}")
             if sigma > 0 and scale > 0:
                 x_in = final_sample / scale
                 model_output = self.sde.denoiser(
