@@ -281,4 +281,5 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
 
    user_guide/other/utils
    user_guide/other/notation
+   user_guide/other/env_variable
    user_guide/other/biblio

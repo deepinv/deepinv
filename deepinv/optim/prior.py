@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, Callable
 import numpy as np
 import torch
 import torch.nn as nn
@@ -7,6 +9,9 @@ from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
 from deepinv.models.utils import load_state_dict_from_url
+
+if TYPE_CHECKING:
+    from deepinv.optim import Prior
 
 
 class Prior(Potential):
@@ -33,7 +38,7 @@ class Prior(Potential):
     :param Callable g: Prior function :math:`g(x)`.
     """
 
-    def __init__(self, g=None, *args, **kwargs):
+    def __init__(self, g: Prior = None, *args, **kwargs):
         super().__init__(*args, fn=g, **kwargs)
         self.explicit_prior = False if self._fn is None else True
 
@@ -47,7 +52,7 @@ class ZeroPrior(Prior):
         super().__init__()
         self.explicit_prior = True
 
-    def fn(self, x, *args, **kwargs):
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the zero prior :math:`\reg{x} = 0` at :math:`x`.
 
@@ -56,7 +61,7 @@ class ZeroPrior(Prior):
         """
         return torch.zeros(x.shape[0], device=x.device)
 
-    def grad(self, x, *args, **kwargs):
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the gradient of the zero prior :math:`\reg{x} = 0` at :math:`x`.
 
@@ -65,7 +70,9 @@ class ZeroPrior(Prior):
         """
         return torch.zeros_like(x)
 
-    def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
+    def prox(
+        self, x: torch.Tensor, ths: float = 1.0, gamma: float = 1.0, *args, **kwargs
+    ) -> torch.Tensor:
         r"""
         Computes the proximal operator of the zero prior :math:`\reg{x} = 0` at :math:`x`.
 
@@ -88,13 +95,15 @@ class PnP(Prior):
         self.denoiser = denoiser
         self.explicit_prior = False
 
-    def prox(self, x, sigma_denoiser, *args, **kwargs):
+    def prox(
+        self, x: torch.Tensor, sigma_denoiser: float, *args, **kwargs
+    ) -> torch.Tensor:
         r"""
         Uses denoising as the proximity operator of the PnP prior :math:`\regname` at :math:`x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float sigma_denoiser: noise level parameter of the denoiser.
-        :return: (torch.Tensor) proximity operator at :math:`x`.
+        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
         return self.denoiser(x, sigma_denoiser)
 
@@ -112,7 +121,9 @@ class RED(Prior):
         self.denoiser = denoiser
         self.explicit_prior = False
 
-    def grad(self, x, sigma_denoiser, *args, **kwargs):
+    def grad(
+        self, x: torch.Tensor, sigma_denoiser: float, *args, **kwargs
+    ) -> torch.Tensor:
         r"""
         Calculates the gradient of the prior term :math:`\regname` at :math:`x`.
         By default, the gradient is computed using automatic differentiation.
@@ -159,18 +170,23 @@ class ScorePrior(Prior):
         self.denoiser = denoiser
         self.explicit_prior = False
 
-    def grad(self, x, sigma_denoiser, *args, **kwargs):
+    def grad(
+        self, x: torch.Tensor, sigma_denoiser: float, *args, **kwargs
+    ) -> torch.Tensor:
         r"""
         Applies the denoiser to the input signal.
 
         :param torch.Tensor x: the input tensor.
         :param float sigma_denoiser: the noise level.
+        :return: (torch.Tensor) gradient at :math:`x`.
         """
         return self.stable_division(
             x - self.denoiser(x, sigma_denoiser, *args, **kwargs), sigma_denoiser**2
         )
 
-    def score(self, x, sigma_denoiser, *args, **kwargs):
+    def score(
+        self, x: torch.Tensor, sigma_denoiser: float, *args, **kwargs
+    ) -> torch.Tensor:
         r"""
         Computes the score function :math:`\nabla \log p_\sigma`, using Tweedie's formula.
 
@@ -182,7 +198,19 @@ class ScorePrior(Prior):
         )
 
     @staticmethod
-    def stable_division(a, b, epsilon: float = 1e-7):
+    def stable_division(
+        a: torch.Tensor, b: torch.Tensor, epsilon: float = 1e-7
+    ) -> torch.Tensor:
+        r"""
+        Performs a safe-guarded division by adding a small constant :math:`\epsilon` to the denominator when it is close to zero.
+
+        :param torch.Tensor a: numerator.
+        :param torch.Tensor b: denominator.
+        :param float epsilon: small constant added to the denominator when it is close to zero.
+
+        :return: (:class:`torch.Tensor`) result of the division.
+        """
+
         if isinstance(b, torch.Tensor):
             b = torch.where(
                 b.abs().detach() > epsilon,
@@ -204,7 +232,7 @@ class Tikhonov(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def fn(self, x, *args, **kwargs):
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the Tikhonov regularizer :math:`\reg{x} = \frac{1}{2}\| x \|_2^2`.
 
@@ -215,7 +243,7 @@ class Tikhonov(Prior):
             0.5 * torch.linalg.vector_norm(x, dim=tuple(range(1, x.dim())), ord=2) ** 2
         )
 
-    def grad(self, x, *args, **kwargs):
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of the Tikhonov regularization term :math:`\regname` at :math:`x`.
 
@@ -224,7 +252,9 @@ class Tikhonov(Prior):
         """
         return x
 
-    def prox(self, x, *args, gamma=1.0, **kwargs):
+    def prox(
+        self, x: torch.Tensor, *args, gamma: float = 1.0, **kwargs
+    ) -> torch.Tensor:
         r"""
         Calculates the proximity operator of the Tikhonov regularization term :math:`\gamma g` at :math:`x`.
 
@@ -245,7 +275,7 @@ class L1Prior(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def fn(self, x, *args, **kwargs):
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the regularizer :math:`\reg{x} = \| x \|_1`.
 
@@ -254,7 +284,9 @@ class L1Prior(Prior):
         """
         return torch.linalg.vector_norm(x, ord=1, dim=tuple(range(1, x.dim())))
 
-    def prox(self, x, *args, ths=1.0, gamma=1.0, **kwargs):
+    def prox(
+        self, x: torch.Tensor, *args, ths: float = 1.0, gamma: float = 1.0, **kwargs
+    ) -> torch.Tensor:
         r"""
         Calculates the proximity operator of the l1 regularization term :math:`\regname` at :math:`x`.
 
@@ -268,7 +300,7 @@ class L1Prior(Prior):
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
-        :return torch.Tensor: proximity operator at :math:`x`.
+        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
         lambd = ths * gamma
         if isinstance(lambd, float):
@@ -311,15 +343,15 @@ class WaveletPrior(Prior):
 
     def __init__(
         self,
-        level=3,
-        wv="db8",
-        p=1,
-        device="cpu",
-        wvdim=2,
-        is_complex=False,
-        mode="zero",
-        clamp_min=None,
-        clamp_max=None,
+        level: int = 3,
+        wv: str = "db8",
+        p: float = 1,
+        device: str = "cpu",
+        wvdim: int = 2,
+        is_complex: bool = False,
+        mode: str = "zero",
+        clamp_min: float = None,
+        clamp_max: float = None,
         *args,
         **kwargs,
     ):
@@ -368,7 +400,7 @@ class WaveletPrior(Prior):
                 f"wv should be a string (name of the wavelet) or a list of strings (list of wavelet names). Got {type(self.wv)} instead."
             )
 
-    def fn(self, x, *args, reduce=True, **kwargs):
+    def fn(self, x: torch.Tensor, *args, reduce: bool = True, **kwargs) -> torch.Tensor:
         r"""
         Computes the regularizer
 
@@ -407,7 +439,9 @@ class WaveletPrior(Prior):
         else:
             return list_norm
 
-    def prox(self, x, *args, ths=0.1, gamma=1.0, **kwargs):
+    def prox(
+        self, x: torch.Tensor, *args, ths: float = 0.1, gamma: float = 1.0, **kwargs
+    ) -> torch.Tensor:
         r"""Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.
         Only detail coefficients are thresholded.
 
@@ -458,7 +492,7 @@ class TVPrior(Prior):
         self.explicit_prior = True
         self.TVModel = TVDenoiser(crit=def_crit, n_it_max=n_it_max)
 
-    def fn(self, x, *args, **kwargs):
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the regularizer
 
@@ -475,7 +509,9 @@ class TVPrior(Prior):
         y = torch.sqrt(torch.sum(self.nabla(x) ** 2, dim=-1))
         return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
 
-    def prox(self, x, *args, gamma=1.0, **kwargs):
+    def prox(
+        self, x: torch.Tensor, *args, gamma: float = 1.0, **kwargs
+    ) -> torch.Tensor:
         r"""Compute the proximity operator of TV with the denoiser :class:`~deepinv.models.TVDenoiser`.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
@@ -484,15 +520,21 @@ class TVPrior(Prior):
         """
         return self.TVModel(x, ths=gamma)
 
-    def nabla(self, x):
+    def nabla(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Applies the finite differences operator associated with tensors of the same shape as x.
+
+        :param torch.Tensor x: the input tensor.
+        :return: (:class:`torch.Tensor`) finite differences of x.
         """
         return self.TVModel.nabla(x)
 
-    def nabla_adjoint(self, x):
+    def nabla_adjoint(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Applies the adjoint of the finite difference operator.
+
+        :param torch.Tensor x: the input tensor.
+        :return: (:class:`torch.Tensor`) adjoint of the finite differences of x.
         """
         return self.TVModel.nabla_adjoint(x)
 
@@ -512,10 +554,10 @@ class PatchPrior(Prior):
 
     def __init__(
         self,
-        negative_patch_log_likelihood,
-        n_patches=-1,
-        patch_size=6,
-        pad=False,
+        negative_patch_log_likelihood: Callable,
+        n_patches: int = -1,
+        patch_size: int = 6,
+        pad: bool = False,
         *args,
         **kwargs,
     ):
@@ -526,7 +568,19 @@ class PatchPrior(Prior):
         self.patch_size = patch_size
         self.pad = pad
 
-    def fn(self, x, *args, **kwargs):
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Computes the regularizer
+
+        .. math::
+            \reg{x} = \sum_i h(P_i x)
+
+        for some prior :math:`h(x)` on the space of patches, where :math:`P_i` is the operator extracting the :math:`i`-th patch from the image.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
+        """
+
         if self.pad:
             x = torch.cat(
                 (
@@ -579,12 +633,12 @@ class PatchNR(Prior):
 
     def __init__(
         self,
-        normalizing_flow=None,
-        pretrained=None,
-        patch_size=6,
-        channels=1,
-        num_layers=5,
-        sub_net_size=256,
+        normalizing_flow: nn.Module = None,
+        pretrained: str = None,
+        patch_size: int = 6,
+        channels: int = 1,
+        num_layers: int = 5,
+        sub_net_size: int = 256,
         device="cpu",
     ):
         import FrEIA.framework as Ff
@@ -635,11 +689,12 @@ class PatchNR(Prior):
                 )
             self.normalizing_flow.load_state_dict(weights)
 
-    def fn(self, x, *args, **kwargs):
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Evaluates the negative log likelihood function of th PatchNR.
 
-        :param torch.Tensor x: image tensor
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
         """
         B, n_patches = x.shape[0:2]
         latent_x, logdet = self.normalizing_flow(x.view(B * n_patches, -1))
@@ -678,12 +733,12 @@ class L12Prior(Prior):
 
     """
 
-    def __init__(self, *args, l2_axis=-1, **kwargs):
+    def __init__(self, *args, l2_axis: int = -1, **kwargs):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
         self.l2_axis = l2_axis
 
-    def fn(self, x, *args, **kwargs):
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the regularizer :math:`\reg{x} = \sum_i\| x_i \|_2`.
 
@@ -693,7 +748,9 @@ class L12Prior(Prior):
         x = torch.linalg.vector_norm(x, dim=self.l2_axis, ord=2, keepdim=False)
         return torch.linalg.vector_norm(x.reshape(x.shape[0], -1), dim=-1, ord=1)
 
-    def prox(self, x, *args, gamma=1.0, **kwargs):
+    def prox(
+        self, x: torch.Tensor, *args, gamma: float = 1.0, **kwargs
+    ) -> torch.Tensor:
         r"""
         Calculates the proximity operator of the :math:`\ell_{1,2}` function at :math:`x`.
 
