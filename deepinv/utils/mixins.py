@@ -12,6 +12,7 @@ from ._tiling import (
     _compute_compatible_img_size,
     _compute_needed_pad,
     _compute_num_patches,
+    _resolve_tiling_params,
 )
 from deepinv.utils.patch_extractor import image_to_patches, patches_to_image
 
@@ -360,18 +361,7 @@ class TiledMixin2d:
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self.patch_size = _as_pair(patch_size)
-        self.stride = (
-            _as_pair(stride)
-            if stride is not None
-            else tuple(p // 2 for p in self.patch_size)
-        )
-
-        if self.stride[0] > self.patch_size[0] or self.stride[1] > self.patch_size[1]:
-            raise ValueError(
-                f"Stride {self.stride} must be smaller or equal than patch_size {self.patch_size}."
-            )
-
+        self.patch_size, self.stride = _resolve_tiling_params(patch_size, stride)
         self.pad_if_needed = pad_if_needed
 
     def image_to_patches(
