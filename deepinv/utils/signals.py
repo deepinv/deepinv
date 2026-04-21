@@ -96,5 +96,8 @@ def complex_abs(data: torch.Tensor | None, dim=1, keepdim=True):
     if data.is_complex():
         return torch.abs(data)
     else:
-        assert data.size(dim) == 2
+        if data.size(dim) != 2:
+            raise ValueError(
+                f"Data must be torch.complex dtype or have length 2 in given dim, got data of type {data.dtype} and shape {tuple(data.shape)} which is not two at index {dim}"
+            )
         return torch.linalg.vector_norm(data, dim=dim, ord=2, keepdim=keepdim)
