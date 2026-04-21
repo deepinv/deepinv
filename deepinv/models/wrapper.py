@@ -664,11 +664,11 @@ class MinusOneOneDenoiserWrapper(nn.Module):
 
     def forward(self, x: Tensor, sigma: Tensor, *args, **kwargs) -> Tensor:
         # Scale from [-1, 1] to [xmin, xmax], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs
-        if kwargs.get("input_in_minus_one_one", True):
+        if not kwargs.get("input_in_minus_one_one", True):
             x = (x + 1) / 2 * (self.xmax - self.xmin) + self.xmin
             sigma = sigma * (self.xmax - self.xmin) / 2
         denoised = self.model(x, sigma, *args, **kwargs)
         # Scale back to [-1, 1], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs
-        if kwargs.get("input_in_minus_one_one", True):
+        if not kwargs.get("input_in_minus_one_one", True):
             denoised = 2 * (denoised - self.xmin) / (self.xmax - self.xmin) - 1
         return denoised

@@ -983,29 +983,25 @@ class PosteriorDiffusion(Reconstructor):
         if denoise_output:
             final_sample = solution.sample
             timesteps = timesteps if timesteps is not None else self.solver.timesteps
-            t = timesteps[-1] if timesteps is not None else 1e-3
+            t = (
+                timesteps[-2] if timesteps is not None else 2e-3
+            )  # second last time step
             dt = abs(timesteps[1] - timesteps[0]) if timesteps is not None else 1e-3
 
             scale = self.sde.scale_t(t)
-            sigma = self.sde.diffusion(t) * dt**0.5 * scale
-            print(
-                "Performing final denoising step with sigma:",
-                sigma.item(),
-                "and scale:",
-                scale.item(),
-            )
+            sigma = (
+                self.sde.diffusion(t) * dt**0.5 / scale
+            )  # this is the dWt at the last step, which is the noise level of the final sample
+
             if sigma > 0 and scale > 0:
                 x_in = final_sample / scale
-                print(
-                    f"X_in range before denoising: {x_in.min().item()} to {x_in.max().item()}"
-                )
                 model_output = self.sde.denoiser(
                     x_in.to(torch.float32),
                     sigma.to(torch.float32),
                     *args,
                     **kwargs,
                 ).to(self.dtype)
-                solution.sample = model_output
+                solution.sample = model_output * scale
         # Scale the output back to [0, 1]
         sample = solution.sample
 
