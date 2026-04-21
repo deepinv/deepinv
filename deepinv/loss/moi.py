@@ -64,7 +64,7 @@ class MOILoss(Loss):
         if metric is None:
             metric = torch.nn.MSELoss()
         super(MOILoss, self).__init__(*args, **kwargs)
-        self.name = "moi"
+        self._name = "moi"
         self.physics = physics
         self.physics_generator = physics_generator
         self.metric = metric
@@ -187,7 +187,7 @@ class MOEILoss(EILoss, MOILoss):
             physics_generator=physics_generator,
             rng=rng,
         )
-        self.name = "moei"
+        self._name = "moei"
 
     def forward(self, x_net, physics, model, **kwargs):
         r"""

@@ -78,6 +78,7 @@ Model Utils
    :nosignatures:
 
    deepinv.models.EquivariantDenoiser
+   deepinv.models.EquivariantReconstructor
    deepinv.models.TimeAgnosticNet
    deepinv.models.TimeAveragingNet
    deepinv.models.Client
@@ -100,7 +101,7 @@ Utility functions for model inference
    deepinv.models.utils.patchify
 
 
-Wrappers 
+Wrappers
 --------
 .. userguide:: model-wrappers
 

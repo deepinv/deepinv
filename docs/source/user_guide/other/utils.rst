@@ -132,8 +132,8 @@ These functions make it easy to fetch demo data and resources for experiments:
      - Loads an image directly from DeepInverse HuggingFace repository for experiments or demos.
    * - :func:`deepinv.utils.download_example`
      - Downloads an image from DeepInverse HuggingFace repository to file.
-   * - :func:`deepinv.utils.get_data_home`
-     - Get the path to the default directory for storing datasets.
+   * - :func:`deepinv.utils.get_cache_home`
+     - Get the path to the default directory for storing cached files.
    * - :func:`deepinv.utils.get_image_url`
      - Get URL for an image from DeepInverse HuggingFace repository.
    * - :func:`deepinv.utils.get_degradation_url`

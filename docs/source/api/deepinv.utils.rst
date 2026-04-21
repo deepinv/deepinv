@@ -107,7 +107,7 @@ Demo Utils
     deepinv.utils.load_torch_url
     deepinv.utils.load_example
     deepinv.utils.download_example
-    deepinv.utils.get_data_home
+    deepinv.utils.get_cache_home
     deepinv.utils.get_image_url
     deepinv.utils.get_degradation_url
     deepinv.utils.load_dataset
