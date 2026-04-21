@@ -10,6 +10,7 @@ from deepinv.physics.forward import LinearPhysics, DecomposablePhysics, adjoint_
 import deepinv.physics.functional as dF
 from deepinv.utils.mixins import TiledMixin2d
 from deepinv.utils._internal import _as_pair, _add_tuple
+from deepinv.utils._tiling import _resolve_tiling_params, _compute_needed_pad
 
 
 class Downsampling(LinearPhysics):
@@ -1070,12 +1071,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         y = self._pad(y, pad)
 
         # Extract patches
-        print(
-            f"DEBUG -- A_adjoint: y shape after padding: {y.shape}, expected pad: {pad}"
-        )
         patches = self.image_to_patches(y)
-        print(f"DEBUG -- A_adjoint: patches shape after extraction: {patches.shape}")
-
         n_rows, n_cols = patches.size(2), patches.size(3)
         if n_rows * n_cols != h.size(2):
             raise ValueError(
@@ -1142,7 +1138,9 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
     @staticmethod
     def num_filters(
-        img_size: tuple[int, int], patch_size: tuple[int, int], stride: tuple[int, int]
+        img_size: tuple[int, int],
+        patch_size: tuple[int, int],
+        stride: tuple[int, int] = None,
     ) -> tuple[int, int]:
         r"""
         Computes the number of filters (tiles) required for a given image size, patch size and stride.
@@ -1150,22 +1148,12 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         :param tuple[int, int] img_size: Image size `(H, W)`.
         :param tuple[int, int] patch_size: Patch size `(h, w)`.
-        :param tuple[int, int] stride: Stride size `(sh, sw)`.
+        :param tuple[int, int] stride: Stride size `(sh, sw)`. If `None`, it is set equal to `patch_size // 2` (default).
         :return: Number of filters (tiles) required in each spatial dimension.
         """
         img_size = _as_pair(img_size)
-        patch_size = _as_pair(patch_size)
-        stride = _as_pair(stride)
-
-        # Using the same logic as in TiledMixin2d, but a static method here to help users compute the number of filters needed beforehand
-        num = [
-            (i - p) // s + 1
-            for i, p, s in zip(img_size, patch_size, stride, strict=True)
-        ]
-        pad = [
-            (p + n * s - i) % s
-            for p, n, s, i in zip(patch_size, num, stride, img_size, strict=True)
-        ]
+        patch_size, stride = _resolve_tiling_params(patch_size, stride)
+        pad = _compute_needed_pad(img_size, patch_size, stride)
         compatible_size = _add_tuple(img_size, pad)
         n_h = (compatible_size[0] - patch_size[0]) // stride[0] + 1
         n_w = (compatible_size[1] - patch_size[1]) // stride[1] + 1

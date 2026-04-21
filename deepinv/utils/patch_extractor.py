@@ -92,6 +92,7 @@ def image_to_patches(
     :param int | tuple[int, int] stride: Stride between adjacent patches as
         ``(stride_h, stride_w)``. If ``None``, defaults to half the patch size.
     :param bool pad_if_needed: If ``True``, adds extra right/bottom padding so that the patches cover the entire image. Default is ``True``.
+    :param int | tuple[int, int, int, int] pad: Optional, if provided, the patch size will be increased by this padding on each side. Can be a single int for symmetric padding or a tuple of 4 ints for (left, right, top, bottom) padding. Defaults to `0` for no additional padding. If provided, this padding is added on top of any padding that may be needed to ensure compatible patch extraction. So the effective patch size will become `patch_size + pad`.
     :return: Patches of shape ``(B, C, n_rows, n_cols, patch_h, patch_w)``.
 
     .. note::
