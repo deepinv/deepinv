@@ -24,6 +24,7 @@ Here, the regularizer :math:`g` is explicitly defined as
 
 where :math:`P_i` is the linear operator which extracts the :math:`i`-th patch from the image :math:`x` and
 :math:`h` is a regularizer on the space of patches.
+
 We consider the following two choices of :math:`h`:
 
 * The expected patch log-likelihood (EPLL) prior was proposed by :footcite:t:`zoran2011learning`.
@@ -31,8 +32,8 @@ We consider the following two choices of :math:`h`:
   The parameters :math:`\theta` are estimated a-priori on a (possibly small) data set of training patches using
   an expectation maximization algorithm.
   In contrast to the original paper by Zoran and Weiss, we minimize the arising variational problem by simply applying
-  the Adam optimizers. For an example for using the (approximated) half-quadratic splitting algorithm proposed by Zoran
-  and Weiss, we refer to the denoising example...
+  the Adam optimizer. For an example using the (approximated) half-quadratic splitting algorithm proposed by
+ :footcite:t:`zoran2011learning`, we refer to the example :ref:`sphx_glr_auto_examples_optimization_demo_epll.py`.
 
 * The patch normalizing flow regularizer (PatchNR) was proposed by :footcite:t:`altekruger2023patchnr`.
   It models :math:`h(x)=-\log(p_{\theta}(x))` as negative log-likelihood function of a probaility density function
@@ -90,19 +91,19 @@ epll_batch_size = 10000
 # Training / EM algorithm
 # -----------------------------------------
 # If the parameter retrain is False, we just load pretrained weights. Set the parameter to True for retraining.
-# On the cpu, this takes up to a couple of minutes.
+# This takes up to a couple of minutes on a GPU.
 # After training, we define the corresponding patch priors
 #
 # .. note::
 #
 #          The normalizing flow training minimizes the forward Kullback-Leibler (maximum likelihood) loss function given by
 #
-#            .. math::
+#          .. math::
 #                       \mathcal{L}(\theta)=\mathrm{KL}(P_X,{\mathcal{T}_\theta}_\#P_Z)=
 #                       \mathbb{E}_{x\sim P_X}[p_{{\mathcal{T}_\theta}_\#P_Z}(x)]+\mathrm{const},
 #
-#            where :math:`\mathcal{T}_\theta` is the normalizing flow with parameters :math:`\theta`, latent distribution
-#            :math:`P_Z`, data distribution :math:`P_X` and push-forward measure :math:`{\mathcal{T}_\theta}_\#P_Z`.
+#          where :math:`\mathcal{T}_\theta` is the normalizing flow with parameters :math:`\theta`, latent distribution
+#          :math:`P_Z`, data distribution :math:`P_X` and push-forward measure :math:`{\mathcal{T}_\theta}_\#P_Z`.
 
 
 retrain = False
@@ -121,7 +122,7 @@ if retrain:
     )
 
     class NFTrainer(Trainer):
-        def compute_loss(self, physics, x, y, train=True, epoch=None):
+        def compute_loss(self, physics, x, y, train=True, epoch=None, **kwargs):
             logs = {}
 
             self.optimizer.zero_grad()  # Zero the gradients
@@ -144,7 +145,7 @@ if retrain:
                 loss_total.backward()  # Backward the total loss
                 self.optimizer.step()  # Optimizer step
 
-            return invs, logs
+            return loss_total, invs, logs
 
     optimizer = torch.optim.Adam(
         model_patchnr.normalizing_flow.parameters(), lr=patchnr_learning_rate
@@ -178,7 +179,7 @@ if retrain:
     model_epll.GMM.fit(epll_dataloader, verbose=verbose, max_iters=epll_max_iter)
 else:
     model_patchnr = PatchNR(
-        pretrained="PatchNR_lodopab_small2",
+        pretrained="PatchNR_lodopab_small",
         sub_net_size=patchnr_subnetsize,
         device=device,
         patch_size=patch_size,

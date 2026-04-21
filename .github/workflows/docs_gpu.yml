@@ -21,6 +21,8 @@ jobs:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
       WORKING_DIR: "/local/jtachell"
+      PIXI_HOME: "/local/jtachell/.pixi"
+      TMP_DIR: "/local/jtachell/tmp"
 
     steps:
       - uses: actions/checkout@v5
@@ -33,7 +35,7 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
-          pixi-bin-path: /local/jtachell/pixi/bin/pixi
+          post-cleanup: true
           environments: docs doctest
 
       - name: Check import

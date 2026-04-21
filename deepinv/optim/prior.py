@@ -1,12 +1,13 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from typing import Callable
 
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from deepinv.models.utils import load_state_dict_from_url
+from deepinv.models.utils import load_state_dict_from_url, get_weights_url
 
 
 class Prior(Potential):
@@ -551,35 +552,7 @@ class PatchPrior(Prior):
         return reg
 
 
-class _SubnetFC(nn.Module):
-    r"""Fully-connected subnetwork used inside GLOW coupling blocks.
-
-    :param int c_in: number of input features.
-    :param int c_out: number of output features.
-    :param int hidden_size: number of hidden units in each of the two intermediate layers.
-    """
-
-    def __init__(self, c_in: int, c_out: int, hidden_size: int):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(c_in, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, c_out),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        r"""
-        Applies the fully-connected subnetwork to the input.
-
-        :param torch.Tensor x: input tensor of shape ``(N, c_in)``.
-        :return: (:class:`torch.Tensor`) output tensor of shape ``(N, c_out)``.
-        """
-        return self.net(x)
-
-
-class _GLOWCouplingBlock(nn.Module):
+class GLOWCouplingBlock(nn.Module):
     r"""GLOW-style affine coupling block.
 
     Each block performs two successive affine coupling steps on the input vector,
@@ -595,23 +568,35 @@ class _GLOWCouplingBlock(nn.Module):
     ``clamp * (2/π) * arctan(s / clamp)`` to keep the log-determinant bounded and
     training stable.
 
-    The two-step affine coupling structure follows :footcite:t:`dinh2016density`, and
+    The two-step affine coupling structure follows :footcite:t:`dinh2017density`, and
     the soft-clamping of scales is introduced in :footcite:t:`kingma2018glow`.
 
     :param int dim: total input/output dimension (will be split evenly).
-    :param int sub_net_size: number of hidden units in each :class:`_SubnetFC` subnetwork.
+    :param callable subnet: a callable ``subnet(channels_in, channels_out) -> nn.Module``
+        that constructs the subnetworks used inside each coupling step.
+
+        For example:
+
+        ::
+
+            subnet = lambda c_in, c_out: nn.Sequential(
+                nn.Linear(c_in, 256), nn.ReLU(),
+                nn.Linear(256, 256), nn.ReLU(),
+                nn.Linear(256, c_out),
+            )
+
     :param float clamp: soft-clamping magnitude for the log-scale outputs. Default is ``1.6``.
     """
 
-    def __init__(self, dim: int, sub_net_size: int, clamp: float = 1.6):
+    def __init__(self, dim: int, subnet: Callable, clamp: float = 1.6):
         super().__init__()
         self.clamp = clamp
         self.split1 = dim // 2
         self.split2 = dim - self.split1
         # subnet1: x1 -> (s1, t1) that acts on x2
-        self.subnet1 = _SubnetFC(self.split1, self.split2 * 2, sub_net_size)
+        self.subnet1 = subnet(self.split1, self.split2 * 2)
         # subnet2: y2 -> (s2, t2) that acts on x1
-        self.subnet2 = _SubnetFC(self.split2, self.split1 * 2, sub_net_size)
+        self.subnet2 = subnet(self.split2, self.split1 * 2)
 
     def _soft_clamp(self, s: torch.Tensor) -> torch.Tensor:
         r"""
@@ -668,8 +653,8 @@ class _GLOWCouplingBlock(nn.Module):
             return torch.cat([y1, y2], dim=1), log_det
 
 
-class _NormalizingFlow(nn.Module):
-    r"""Sequential normalizing flow built from :class:`_GLOWCouplingBlock` modules.
+class NormalizingFlow(nn.Module):
+    r"""Sequential normalizing flow built from GLOW-style affine coupling blocks.
 
     The flow maps an input sample ``x`` to a latent representation ``z`` by passing
     it through ``num_layers`` invertible coupling blocks in sequence.  The
@@ -677,23 +662,33 @@ class _NormalizingFlow(nn.Module):
     Setting ``rev=True`` runs the blocks in reverse order to recover the original
     sample from a latent code.
 
-    The architecture follows the generative flow of :footcite:t:`kingma2018glow`.
+    The architecture follows the generative flow of :footcite:t:`kingma2018glow`,
+    using :class:`deepinv.optim.prior.GLOWCouplingBlock` as the building block.
 
     :param int dimension: dimension of each input sample (flattened patch size).
-    :param int num_layers: number of :class:`_GLOWCouplingBlock` blocks to stack.
-    :param int sub_net_size: number of hidden units in each subnetwork of every coupling block.
+    :param int num_layers: number of coupling blocks to stack.
+    :param callable subnet: a callable ``subnet(channels_in, channels_out) -> nn.Module``
+        that constructs the subnetworks used inside each coupling block.
+
+        For example
+
+        ::
+
+            subnet = lambda c_in, c_out: nn.Sequential(
+                nn.Linear(c_in, 256), nn.ReLU(),
+                nn.Linear(256, 256), nn.ReLU(),
+                nn.Linear(256, c_out),
+            )
+
     :param float clamp: soft-clamping magnitude passed to every coupling block. Default is ``1.6``.
     """
 
     def __init__(
-        self, dimension: int, num_layers: int, sub_net_size: int, clamp: float = 1.6
+        self, dimension: int, num_layers: int, subnet: Callable, clamp: float = 1.6
     ):
         super().__init__()
         self.blocks = nn.ModuleList(
-            [
-                _GLOWCouplingBlock(dimension, sub_net_size, clamp)
-                for _ in range(num_layers)
-            ]
+            [GLOWCouplingBlock(dimension, subnet, clamp) for _ in range(num_layers)]
         )
 
     def forward(self, x: torch.Tensor, rev: bool = False):
@@ -720,12 +715,12 @@ class PatchNR(Prior):
 
     The prior is defined as the sum of the negative log-likelihoods of all
     (overlapping) patches of the image under a learned normalizing flow model.
-    Denoting by :math:`E_i x` the :math:`i`-th patch of image :math:`x` (out of :math:`N`) and by
+    Denoting by :math:`P_i x` the :math:`i`-th patch of image :math:`x` (out of :math:`N`) and by
     :math:`f_\theta` the normalizing flow with parameters :math:`\theta`, the prior reads
 
     .. math::
 
-        \reg{x} = \frac{1}{N} \sum_{i=1}^{N} -\log p_\theta(E_i x)
+        \reg{x} = \frac{1}{N} \sum_{i=1}^{N} -\log p_\theta(P_i x)
 
     where :math:`p_\theta` is the patch distribution implicitly defined by the flow.
     Applying the change-of-variables formula with the standard Gaussian base distribution
@@ -734,14 +729,14 @@ class PatchNR(Prior):
     .. math::
 
         \reg{x} = \frac{1}{N} \sum_{i=1}^{N} \left(
-            \frac{1}{2}\| f_\theta(E_i x) \|_2^2
-            - \log \left|\det J_{f_\theta}(E_i x)\right|
+            \frac{1}{2}\| f_\theta(P_i x) \|_2^2
+            - \log \left|\det J_{f_\theta}(P_i x)\right|
         \right)
 
     where :math:`J_{f_\theta}` is the Jacobian of :math:`f_\theta`.  Both terms are
     computed in a single forward pass through the flow, which returns the latent code
-    :math:`z = f_\theta(E_i x)` and the log-determinant
-    :math:`\log |\det J_{f_\theta}(E_i x)|` simultaneously.
+    :math:`z = f_\theta(P_i x)` and the log-determinant
+    :math:`\log |\det J_{f_\theta}(P_i x)|` simultaneously.
 
     The forward method evaluates this negative log likelihood.
 
@@ -749,10 +744,11 @@ class PatchNR(Prior):
         supporting backpropagation. It takes a (batched) tensor of flattened patches and the boolean ``rev`` (default ``False``)
         as input and returns ``(latent, log_det_jacobian)`` as output.
         If ``rev=True``, it applies the inverse of the flow.
-        When set to ``None``, a GLOW-style invertible neural network is built from native PyTorch layers, where the number of
-        coupling blocks and the size of the sub-networks is determined by ``num_layers`` and ``sub_net_size``.
-    :param str pretrained: Define pretrained weights by its path to a `.pt` file, None for random initialization,
-        `"PatchNR_lodopab_small"` for the weights from the limited-angle CT example.
+        When set to ``None``, a GLOW-style invertible neural network is built, where the number of
+        coupling blocks and the hidden neurons of the sub-networks are determined by ``num_layers`` and ``sub_net_size`` respectively.
+        If `None`, it is set to :class:`deepinv.optim.prior.NormalizingFlow` model.
+    :param str pretrained: Define pretrained weights by its path checkpoint, `None` for random initialization,
+        `"PatchNR_lodopab_small"` for the weights from the :ref:`limited-angle CT example <sphx_glr_auto_examples_optimization_demo_patch_priors_CT.py>`.
     :param int patch_size: size of patches
     :param int channels: number of channels for the underlying images/patches.
     :param int num_layers: defines the number of coupling blocks of the normalizing flow if `normalizing_flow` is ``None``.
@@ -774,29 +770,37 @@ class PatchNR(Prior):
         super(PatchNR, self).__init__()
         if normalizing_flow is None:
             dimension = patch_size**2 * channels
-            self.normalizing_flow = _NormalizingFlow(
+
+            def subnet_fc(c_in, c_out):
+                return nn.Sequential(
+                    nn.Linear(c_in, sub_net_size),
+                    nn.ReLU(),
+                    nn.Linear(sub_net_size, sub_net_size),
+                    nn.ReLU(),
+                    nn.Linear(sub_net_size, c_out),
+                )
+
+            self.normalizing_flow = NormalizingFlow(
                 dimension=dimension,
                 num_layers=num_layers,
-                sub_net_size=sub_net_size,
+                subnet=subnet_fc,
                 clamp=1.6,
             ).to(device)
         else:
             self.normalizing_flow = normalizing_flow
         if pretrained:
-            if pretrained[-3:] == ".pt":
-                weights = torch.load(pretrained, map_location=device)
-            else:
-                if pretrained.startswith("PatchNR_lodopab_small"):
-                    assert patch_size == 3
-                    assert channels == 1
-                    file_name = "PatchNR_lodopab_small.pt"
-                    url = "https://drive.google.com/uc?export=download&id=1Z2us9ZHjDGOlU6r1Jee0s2BBej2XV5-i"
-                else:
-                    raise ValueError("Pretrained weights not found!")
+            if pretrained == "PatchNR_lodopab_small":
+                assert patch_size == 3
+                assert channels == 1
+                file_name = "PatchNR_lodopab_small.pt"
+                url = get_weights_url(model_name="demo", file_name=file_name)
                 weights = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=file_name
                 )
-            self.normalizing_flow.load_state_dict(weights)
+            else:
+                weights = torch.load(pretrained, map_location=device)
+
+            self.load_state_dict(weights)
 
     def fn(self, x, *args, **kwargs):
         r"""

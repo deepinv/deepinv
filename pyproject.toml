@@ -128,43 +128,73 @@ training = [
 channels = ["conda-forge"]
 platforms = ["linux-64", "win-64"]
 
-[tool.pixi.dependencies] # install from conda-forge for all environments
-python = ">=3.10"
+[tool.pixi.dependencies]
+python = "<3.13.0"
+pytorch = "*"
+torchvision = "*"
+numpy = "*"
+matplotlib = "*"
+tqdm = "*"
+torchmetrics = "*"
+einops = "*"
+requests = "*"
+h5py = "*"
+natsort = "*"
 
 [tool.pixi.feature.gpu.system-requirements]
 cuda = "12.0"
 
 [tool.pixi.feature.gpu.dependencies]
 cuda-version = "*"
-pytorch-gpu = "*"
-torchvision = "*"
 
-[tool.pixi.feature.cpu.dependencies]
-pytorch-cpu = "*"
-torchvision = "*"
-
-# fix python version for the docs environment to avoid issues with Sphinx and Python 3.14
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
 
 [tool.pixi.feature.dataset.dependencies]
 datasets = ">=3.5.0"
+pandas = "*"
+scipy = "*"
+nibabel = "*"
+rasterio = "*"
+pydicom = "*"
+# mat73 is PyPI-only, stays in optional deps
+
+[tool.pixi.feature.denoisers.dependencies]
+scipy = "*"
+kornia = "*"
+pywavelets = "*"
+numba = ">=0.60.0"
+timm = "*"
+diffusers = "*"
+transformers = "*"
+# bm3d, bm4d, libcpab, ptwt are PyPI-only, stay in optional deps
+
+[tool.pixi.feature.physics.dependencies]
+astra-toolbox = ">=2.2.0,!=2.3.0"
+torchkbnufft = "*"
+array-api-compat = "*"
+sigpy = "*"
+# spyrit is PyPI-only, stays in optional deps
+
+[tool.pixi.feature.training.dependencies]
+wandb = "*"
+mlflow = "*"
 
 [tool.pixi.pypi-dependencies] # install from PyPI for all environments
-deepinv = { path = ".", editable = true }
+deepinv = { path = ".", editable = true}
 
 [tool.pixi.environments]
 # gpu environments
 default   = { features = ["gpu"], solve-group = "gpu" }
 test      = { features = ["gpu", "test"], solve-group = "gpu" }
-full      = { features = ["gpu", "test", "dataset", "denoisers", "physics", "training"], solve-group = "gpu" }
+full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "gpu" }
 docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
 doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
 # cpu environments (same as gpu but without the gpu dependencies)
-test-cpu  = { features = ["cpu", "test"],  solve-group = "cpu" }
-full-cpu  = { features = ["cpu", "test", "dataset", "denoisers", "physics", "training"], solve-group = "cpu" }
-docs-cpu  = { features = ["cpu", "doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
-doctest-cpu = { features = ["cpu", "doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
+test-cpu  = { features = ["test"],  solve-group = "cpu" }
+full-cpu  = { features = ["doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "cpu" }
+docs-cpu  = { features = ["doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
+doctest-cpu = { features = ["doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
 
 ##############################################
 # Pytest configuration and coverage reporting
