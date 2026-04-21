@@ -439,21 +439,25 @@ class WaveletDenoiser(Denoiser):
         if ths.size(1) == 1:
             return [ths[:, 0]] * numel
         else:
-            assert ths.size(1) == self.level
+            if ths.size(1) != self.level:  # pragma: no cover
+                raise ValueError(
+                    f"Expected tensor of shape (B, {self.level}, ...), got {ths.shape}"
+                )
             return [ths[:, level - 2]] * numel
 
     def _reshape_ths_three_dim(self, ths: Tensor, level: int) -> Tensor | list[Tensor]:
         numel = 3 if self.dimension == 2 else 7
         if ths.size(1) == 1:
             ths = ths.expand(-1, self.level, -1)
-        assert (
-            ths.size(1) == self.level
-        ), f"Expected tensor of shape (B, {self.level}, {numel}), got {ths.shape}"
+        if ths.size(1) != self.level:  # pragma: no cover
+            raise ValueError(
+                f"Expected tensor of shape (B, {self.level}, {numel}), got {ths.shape}"
+            )
         if ths.size(-1) == numel:
             return ths.permute(2, 0, 1)[..., level - 2]
         elif ths.size(-1) == 1:
             return self._reshape_ths_two_dim(ths[..., 0], level)
-        else:
+        else:  # pragma: no cover
             raise ValueError(
                 f"Expected tensor of shape (B, {self.level}, {numel}), got {ths.shape}"
             )
