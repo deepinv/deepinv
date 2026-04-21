@@ -24,7 +24,7 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
-          environments: docs doctest
+          environments: docs-cpu doctest-cpu
 
       - name: Fetch base branch
         run: git fetch origin ${{ github.event.pull_request.base.ref }}

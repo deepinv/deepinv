@@ -43,6 +43,7 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
+          environments: full-cpu test-cpu
 
       - name: Restore .testmondata
         uses: actions/cache/restore@v3
