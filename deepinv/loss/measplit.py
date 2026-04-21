@@ -107,7 +107,7 @@ class SplittingLoss(Loss):
         if metric is None:
             metric = torch.nn.MSELoss()
         super().__init__()
-        self.name = "ms"
+        self._name = "ms"
         self.metric = metric
         self.mask_generator = mask_generator
         self.split_ratio = split_ratio
@@ -161,15 +161,18 @@ class SplittingLoss(Loss):
         :return: (:class:`torch.Tensor`) loss.
         """
         # Get splitting mask and make sure it is subsampled from physics mask, if it exists
-        mask = model.get_mask() * getattr(physics, "mask", 1.0)
-
-        # Create output mask M_2 = I - M_1
-        mask2 = getattr(physics, "mask", 1.0) - mask
-        y2, physics2 = self.split(mask2, y, physics)
-
-        l = self.metric(physics2.A(x_net), y2)
-
-        return l / mask2.mean() if self.normalize_loss else l
+        masks = model.get_masks()
+        loss_values = []
+        for mask1 in masks:
+            mask1 = mask1 * getattr(physics, "mask", 1.0)
+            mask2 = getattr(physics, "mask", 1.0) - mask1
+            y2, physics2 = self.split(mask2, y, physics)
+            loss_value = self.metric(physics2.A(x_net), y2)
+            if self.normalize_loss:
+                loss_value = loss_value / mask2.mean()
+            loss_values.append(loss_value)
+        loss_values = torch.stack(loss_values, dim=-1)
+        return loss_values.mean(-1)
 
     def adapt_model(
         self, model: torch.nn.Module, eval_n_samples=None
@@ -248,7 +251,7 @@ class SplittingLoss(Loss):
             self.model = model
             self.split_ratio = split_ratio
             self.eval_n_samples = eval_n_samples
-            self.mask = 0
+            self.masks = None
             self.mask_generator = mask_generator
             self.eval_split_input = eval_split_input
             self.eval_split_output = eval_split_output
@@ -272,6 +275,10 @@ class SplittingLoss(Loss):
             """
 
             if self.mask_generator is None:
+                if self.split_ratio is None:
+                    raise ValueError(
+                        f"Neither mask_generator nor split_ratio defined. Please provide one of them to generate splitting masks."
+                    )
                 warn(
                     f"Mask generator not defined. Using new Bernoulli mask generator with shape {y.shape[-2:]}."
                 )
@@ -306,6 +313,8 @@ class SplittingLoss(Loss):
             eval_n_samples = 1 if self.training else self.eval_n_samples
             out = 0
 
+            masks = [] if update_parameters else None
+
             for _ in range(eval_n_samples):
                 # Perform input masking
 
@@ -318,8 +327,11 @@ class SplittingLoss(Loss):
                 # Forward pass
                 out += self.model(y1, physics1) / eval_n_samples
 
-            if self.training and update_parameters:
-                self.mask = mask.clone()
+                if masks is not None:
+                    masks += [mask.clone()]
+
+            if masks is not None:
+                self.masks = masks
 
             return out
 
@@ -355,12 +367,36 @@ class SplittingLoss(Loss):
 
             return out
 
-        def get_mask(self):
-            if not isinstance(self.mask, torch.Tensor):
+        @property
+        def mask(self):
+            warn(
+                "The 'mask' property is deprecated. Use get_masks() instead.",
+                DeprecationWarning,
+                stacklevel=1,
+            )
+            if self.masks:
+                return self.masks[-1]
+            else:
+                return 0
+
+        def get_masks(self):
+            if not self.masks:
                 raise ValueError(
                     "Mask not generated during forward pass - use model(y, physics, update_parameters=True)"
                 )
-            return self.mask
+            return self.masks
+
+        def get_mask(self):
+            warn(
+                "The 'get_mask' method is deprecated. Use get_masks() instead.",
+                DeprecationWarning,
+                stacklevel=1,
+            )
+            if not self.masks:
+                raise ValueError(
+                    "Mask not generated during forward pass - use model(y, physics, update_parameters=True)"
+                )
+            return self.masks[-1]
 
 
 class Neighbor2Neighbor(Loss):
@@ -395,7 +431,7 @@ class Neighbor2Neighbor(Loss):
         if metric is None:
             metric = torch.nn.MSELoss()
         super().__init__()
-        self.name = "neigh2neigh"
+        self._name = "neigh2neigh"
         self.metric = metric
         self.gamma = gamma
 

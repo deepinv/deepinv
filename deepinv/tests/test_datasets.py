@@ -106,7 +106,6 @@ def check_dataset_format(
         NamedTuple,
         Sequence,
     ):  # from https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.default_collate
-
         # Define dataloader with random data sample
         dataloader = torch.utils.data.DataLoader(
             torch.utils.data.Subset(
@@ -486,8 +485,8 @@ def test_hdf5dataset_generate_dataset(tmpdir, physgen, stacked, supervised):
     assert test_ds.hd5 is None
 
 
-def test_generate_dataset():
-    tmp_data_dir = "set14"
+def test_generate_dataset(tmp_path):
+    tmp_data_dir = str(tmp_path / "set14")
     # Dataset returns PIL images, no cropping so different sizes
     ds = Set14HR(tmp_data_dir, download=True)
 
@@ -577,9 +576,9 @@ def test_transforms(transform_name):
 
 
 @pytest.fixture
-def download_div2k():
+def download_div2k(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "DIV2K"
+    tmp_data_dir = str(tmp_path / "DIV2K")
 
     # Download div2K raw dataset
     DIV2K(tmp_data_dir, mode="val", download=True)
@@ -603,9 +602,9 @@ def test_load_div2k_dataset(download_div2k):
 
 
 @pytest.fixture
-def download_urban100():
+def download_urban100(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "Urban100"
+    tmp_data_dir = str(tmp_path / "Urban100")
 
     # Download Urban100 raw dataset
     Urban100HR(tmp_data_dir, download=True)
@@ -629,10 +628,10 @@ def test_load_urban100_dataset(download_urban100):
 
 
 @pytest.fixture
-def download_set14():
+def download_set14(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = "Set14"
+        tmp_data_dir = str(tmp_path / "Set14")
 
         # Download Set14 raw dataset
         Set14HR(tmp_data_dir, download=True)
@@ -671,10 +670,10 @@ def test_load_set14_dataset(download_set14):
 
 
 @pytest.fixture
-def download_flickr2khr():
+def download_flickr2khr(tmp_path):
     """Download or mock Flickr2kHR before testing"""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = "Flickr2kHR"
+        tmp_data_dir = str(tmp_path / "Flickr2kHR")
 
         # Download Flickr raw dataset
         Flickr2kHR(tmp_data_dir, download=True)
@@ -711,9 +710,9 @@ def test_load_Flickr2kHR_dataset(download_flickr2khr):
 
 
 @pytest.fixture
-def download_cbsd68(download=True):
+def download_cbsd68(tmp_path, download=True):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "CBSD68"
+    tmp_data_dir = str(tmp_path / "CBSD68")
 
     # Download CBSD raw dataset from huggingface
     try:
@@ -747,9 +746,9 @@ def test_load_cbsd68_dataset(download_cbsd68):
 
 
 @pytest.fixture
-def download_bsds500(download=True):
+def download_bsds500(tmp_path, download=True):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "BSDS500"
+    tmp_data_dir = str(tmp_path / "BSDS500")
 
     # Download BSDS500 raw dataset from github
     try:
@@ -786,10 +785,10 @@ def test_load_bsds500_dataset(download_bsds500, train, totensor, rotate):
 
 
 @pytest.fixture
-def download_Kohler():
+def download_Kohler(tmp_path):
     """Download the Köhler dataset before a test and remove it after completion."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        root = "Kohler"
+        root = str(tmp_path / "Kohler")
         Kohler.download(root)
 
         # Return the control flow to the test function
@@ -845,10 +844,10 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering):
 
 
 @pytest.fixture
-def download_lsdir():
+def download_lsdir(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = "LSDIR"
+        tmp_data_dir = str(tmp_path / "LSDIR")
 
         # Download LSDIR raw dataset
         LsdirHR(tmp_data_dir, mode="val", download=True)
@@ -884,10 +883,10 @@ def test_load_lsdir_dataset(download_lsdir):
 
 
 @pytest.fixture
-def download_fmd():
+def download_fmd(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = "FMD"
+        tmp_data_dir = str(tmp_path / "FMD")
 
         # indicates which subsets we want to download
         types = ["TwoPhoton_BPAE_R"]
@@ -995,9 +994,9 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units):
 
 
 @pytest.fixture
-def download_nbu():
+def download_nbu(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "NBU"
+    tmp_data_dir = str(tmp_path / "NBU")
 
     # Download Urban100 raw dataset
     NBUDataset(tmp_data_dir, satellite="gaofen-1", download=True)
@@ -1035,7 +1034,7 @@ def test_load_nbu_dataset(download_nbu):
     # Test ImageFolder with globs
     dataset = ImageFolder(
         download_nbu,
-        x_path="nbu/gaofen-1/MS_256/*.mat",
+        x_path="gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
         loader=lambda f: load_mat(f)["imgMS"],
     )
@@ -1043,7 +1042,7 @@ def test_load_nbu_dataset(download_nbu):
 
     dataset = ImageFolder(
         download_nbu,
-        y_path="nbu/gaofen-1/MS_256/*.mat",
+        y_path="gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
         loader=lambda f: load_mat(f)["imgMS"],
     )
@@ -1053,9 +1052,9 @@ def test_load_nbu_dataset(download_nbu):
 
 
 @pytest.fixture
-def download_simplefastmri():
+def download_simplefastmri(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "fastmri"
+    tmp_data_dir = str(tmp_path / "fastmri")
 
     # Download simple FastMRI slice dataset
     SimpleFastMRISliceDataset(tmp_data_dir, download=True)
@@ -1080,9 +1079,9 @@ def test_SimpleFastMRISliceDataset(download_simplefastmri):
 
 
 @pytest.fixture
-def download_fastmri():
+def download_fastmri(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "fastmri"
+    tmp_data_dir = str(tmp_path / "fastmri")
     file_name = "demo_fastmri_brain_multicoil.h5"
 
     # Download single FastMRI volume
@@ -1236,9 +1235,9 @@ def test_FastMRISliceDataset(download_fastmri):
 
 
 @pytest.fixture
-def download_CMRxRecon():
+def download_CMRxRecon(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "CMRxRecon"
+    tmp_data_dir = str(tmp_path / "CMRxRecon")
 
     # Download single CMRxRecon volume
     os.makedirs(tmp_data_dir, exist_ok=True)
@@ -1335,9 +1334,9 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
 
 
 @pytest.fixture
-def download_SKMTEA():
+def download_SKMTEA(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "SKMTEA"
+    tmp_data_dir = str(tmp_path / "SKMTEA")
     file_name = "SKMTEA_tiny_2_slice.h5"
 
     # Download tiny SKMTEA volume
@@ -1419,8 +1418,8 @@ def make_data(tmp_path, request):
     # 3D volumes
     shape3d = (40, 40, 40)
     fmt = getattr(request, "param")
-    dx = root / f"{fmt.strip('.').replace('.','_')}_x"
-    dy = root / f"{fmt.strip('.').replace('.','_')}_y"
+    dx = root / f"{fmt.strip('.').replace('.', '_')}_x"
+    dy = root / f"{fmt.strip('.').replace('.', '_')}_y"
     dx.mkdir()
     dy.mkdir()
     for i in range(2):

@@ -343,14 +343,14 @@ class ItohFidelity(L2):
 
     """
 
-    def __init__(self, sigma=1.0, threshold=1.0):
+    def __init__(self, sigma: float = 1.0, threshold: float = 1.0):
         super().__init__()
 
         self.d = L2Distance(sigma=sigma)
         self.norm = 1 / (sigma**2)
         self.modulo_round = lambda x: x - threshold * torch.round(x / threshold)
 
-    def fn(self, x, y, physics, *args, **kwargs):
+    def fn(self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs):
         r"""
         Computes the data fidelity term :math:`\datafid{x}{y} = \distance{Dx}{w_{t}(Dy)}`.
 
@@ -372,7 +372,7 @@ class ItohFidelity(L2):
         WDy = self.WD(y)
         return super().fn(Dx, WDy, physics, *args, **kwargs)
 
-    def grad(self, x, y, *args, **kwargs):
+    def grad(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
 
@@ -391,7 +391,7 @@ class ItohFidelity(L2):
         WDy = self.WD(y)
         return self.D_adjoint(self.d.grad(self.D(x), WDy, *args, **kwargs))
 
-    def grad_d(self, u, y, *args, **kwargs):
+    def grad_d(self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the gradient :math:`\nabla_u\distance{u}{w_{t}(Dy)}`, computed in :math:`u`.
 
@@ -406,7 +406,7 @@ class ItohFidelity(L2):
         WDy = self.WD(y)
         return self.d.grad(u, WDy, *args, **kwargs)
 
-    def prox_d(self, u, y, *args, **kwargs):
+    def prox_d(self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{w_{t}(Dy)}}(u)`, computed at :math:`u`.
 
@@ -421,7 +421,7 @@ class ItohFidelity(L2):
         WDy = self.WD(y)
         return self.d.prox(u, WDy, *args, **kwargs)
 
-    def D(self, x, **kwargs):
+    def D(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Apply spatial finite differences to the input tensor.
 
@@ -440,7 +440,7 @@ class ItohFidelity(L2):
         out = torch.stack((Dh_x, Dv_x), dim=-1)
         return out
 
-    def D_adjoint(self, x, **kwargs):
+    def D_adjoint(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Applies the adjoint (transpose) of the spatial finite difference operator to the input tensor.
 
@@ -463,11 +463,11 @@ class ItohFidelity(L2):
         )
         return rho
 
-    def D_dagger(self, y, **kwargs):
+    def D_dagger(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         # fast initialization using DCT
         return self.prox(None, y, physics=None, gamma=None)
 
-    def WD(self, x, **kwargs):
+    def WD(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Applies spatial finite differences to the input and wraps the result.
 
@@ -483,7 +483,15 @@ class ItohFidelity(L2):
         WDx = self.modulo_round(Dx)
         return WDx
 
-    def prox(self, x, y, physics=None, *args, gamma=1.0, **kwargs):
+    def prox(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics | None = None,
+        *args,
+        gamma: float = 1.0,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Proximal operator of :math:`\gamma \datafid{x}{y}`
 
@@ -502,6 +510,11 @@ class ItohFidelity(L2):
             \right)
 
         where :math:`D` is the finite difference operator and :math:`\texttt{DCT}` is the discrete cosine transform.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :param float gamma: stepsize of the proximity operator.
+        :return: (:class:`torch.Tensor`) proximity operator :math:`\operatorname{prox}_{\gamma \datafidname}(x)`.
         """
 
         psi = self.D_adjoint(self.WD(y))

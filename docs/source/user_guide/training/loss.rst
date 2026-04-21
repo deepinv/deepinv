@@ -91,6 +91,8 @@ In order to learn from incomplete data, you can either:
    * - :class:`deepinv.loss.EILoss`
      - | Assumes invariance of the signal distribution to transformations.
        | (i.e. Equivariant Imaging)
+   * - :class:`deepinv.loss.EquivariantSplittingLoss`
+     - Same as :class:`EILoss <deepinv.loss.EILoss>`
    * - :class:`deepinv.loss.MOILoss`
      - | Assumes measurements observed through multiple operators.
        | (i.e. Multi-Operator Imaging)
@@ -205,5 +207,3 @@ The base class is :class:`deepinv.loss.BaseLossScheduler`.
      - Activate losses at specified epoch.
    * - :class:`deepinv.loss.InterleavedEpochLossScheduler`
      - Schedule losses sequentially epoch-by-epoch.
-
-
