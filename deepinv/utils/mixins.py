@@ -7,7 +7,6 @@ from torch import Tensor, zeros_like
 from torch.nn import Module
 from torchvision.transforms import CenterCrop, Resize
 from deepinv.utils.decorators import _deprecated_argument
-from ._internal import _as_pair
 from ._tiling import (
     _compute_compatible_img_size,
     _compute_needed_pad,
