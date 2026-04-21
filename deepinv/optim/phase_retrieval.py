@@ -24,61 +24,59 @@ def default_preprocessing(y: torch.Tensor, physics: Physics) -> torch.Tensor:
 
 
 def correct_global_phase(
-    x_recon: torch.Tensor,
-    x: torch.Tensor,
-    threshold: float = 1e-5,
+    x_est: torch.Tensor,
+    x_ref: torch.Tensor,
+    correct_magnitude: bool = False,
+    dim: tuple[int, ...] = (-2, -1),
     verbose: bool = False,
 ) -> torch.Tensor:
     r"""
-        Corrects the global phase of the reconstructed image.
+    Corrects the global phase shift (and optionally magnitude scaling) of reconstructed complex signals to match the references.
 
-    .. warning::
+    The optimal global phase shift and magnitude scaling is computed per batch entry and channel as:
 
-        Do not mix the order of the reconstructed and original images since this function modifies x_recon in place.
+    .. math::
+        \theta = \arg \langle \hat{x}, x \rangle, \quad r = \frac{|\langle \hat{x}, x \rangle|}{\|\hat{x}\|^2},
 
+    where :math:`\arg` denotes the angle of a complex number, :math:`\langle a, b \rangle = a^\mathrm{H} b` denotes the complex inner product and :math:`\|\cdot\|` denotes the Euclidean norm.
 
-        The global phase shift is comptued per image and per channel as:
+    This computation corresponds to the complex-scalar minimizer :math:`c = r \mathrm{e}^{i \theta}` of the following program:
 
-        .. math::
-            e^{-i \phi} = \frac{\conj{\hat{x}} \cdot x}{|x|^2},
+    .. math::
+        \min_{c} \|c \cdot \hat{x} - x\|^2,
 
-        where :math:`\conj{\hat{x}}` is the complex conjugate of the reconstructed image, :math:`x` is the reference image, and :math:`|x|^2` is the squared magnitude of the reference image.
+    where :math:`\hat{x}` is the reconstructed signal and :math:`x` is the reference signal.
 
-        The global phase shift is then applied to the reconstructed image as:
+    The correction is then applied to the reconstructed signal per batch entry and channel as:
 
-        .. math::
-            \hat{x} = \hat{x} \cdot e^{-i \phi},
+    .. math::
+        \hat{x} \leftarrow r' \mathrm{e}^{\mathrm{i} \theta} \cdot \hat{x},
 
-        for the corresponding image and channel.
+    with :math:`r' = r` if ``correct_magnitude`` is ``True`` and :math:`r' = 1` otherwise.
 
-        :param torch.Tensor x_recon: Reconstructed image.
-        :param torch.Tensor x: Original image.
-        :param float threshold: Threshold to determine if the global phase shift is constant. Default is 1e-5.
-        :param bool verbose: If True, prints information about the global phase shift. Default is False.
+    :param torch.Tensor x_est: Estimated signals of shape ``(N, C, ...)``.
+    :param torch.Tensor x_ref: Reference signals of shape ``(N, C, ...)``.
+    :param bool correct_magnitude: If ``True``, also corrects the magnitude scaling in addition to the phase. Default is ``False``.
+    :param tuple dim: Dimensions of the signals over which the inner product is computed. Default is ``(-2, -1)``.
+    :param bool verbose: If ``True``, prints the applied phase shift and scale factor. Default is ``False``.
 
-        :return: The corrected image.
+    :return: The phase-corrected (and optionally magnitude-corrected) signals of the same shape as ``x_est``.
     """
-    if x_recon.shape != x.shape:  # pragma: no cover
-        raise ValueError("The shapes of the images should be the same.")
-    if len(x_recon.shape) != 4:  # pragma: no cover
-        raise ValueError("The images should be input with shape (N, C, H, W)")
+    if x_est.shape != x_ref.shape:  # pragma: no cover
+        raise ValueError(
+            f"The shapes of the signals should be the same, got {tuple(x_est.shape)} and {tuple(x_ref.shape)}."
+        )
 
-    n_imgs = x_recon.shape[0]
-    n_channels = x_recon.shape[1]
-
-    for i in range(n_imgs):
-        for j in range(n_channels):
-            e_minus_phi = (x_recon[i, j].conj() * x[i, j]) / (x[i, j].abs() ** 2)
-            if e_minus_phi.var() < threshold:
-                if verbose:
-                    print(f"Image {i}, channel {j} has a constant global phase shift.")
-            else:
-                if verbose:
-                    print(f"Image {i}, channel {j} does not have a global phase shift.")
-            e_minus_phi = e_minus_phi.mean()
-            x_recon[i, j] = x_recon[i, j] * e_minus_phi
-
-    return x_recon
+    inner = (x_est.conj() * x_ref).sum(dim=dim, keepdim=True)
+    if correct_magnitude:
+        energy = (x_est.abs() ** 2).sum(dim=dim, keepdim=True)
+        c = inner / (energy + 1e-12)
+    else:
+        c = inner / (inner.abs() + 1e-12)
+    if verbose:
+        print(f"Applying global phase shift (radians):\n{c.angle().squeeze(dim)}")
+        print(f"Scaling factor:\n{c.abs().squeeze(dim)}")
+    return c * x_est
 
 
 def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
@@ -96,10 +94,8 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     :param torch.Tensor a: First image.
     :param torch.Tensor b: Second image.
     :return: The cosine similarity between the two images."""
-    if a.shape != b.shape:
-        raise ValueError(
-            f"Shape of a and b should be same, but got ({a.shape}), ({b.shape})"
-        )
+    if a.shape != b.shape:  # pragma: no cover
+        raise ValueError(f"Shape of Tensors are not equal.")
     a = a.flatten()
     b = b.flatten()
     norm_a = torch.sqrt(torch.dot(a.conj(), a).real)
@@ -109,16 +105,16 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 
 def spectral_methods(
     y: torch.Tensor,
-    physics,
+    physics: Physics,
     x: torch.Tensor = None,
     n_iter: int = 50,
     preprocessing: Callable[
         [torch.Tensor, torch.Tensor], torch.Tensor
     ] = default_preprocessing,
     lamb: float = 10.0,
-    x_true=None,
+    x_true: torch.Tensor = None,
     log: bool = False,
-    log_metric=cosine_similarity,
+    log_metric: Callable = cosine_similarity,
     early_stop: bool = True,
     rtol: float = 1e-5,
     verbose: bool = False,
@@ -129,21 +125,15 @@ def spectral_methods(
     This function runs the Spectral Methods algorithm to find the principal eigenvector of the regularized weighted covariance matrix:
     
     .. math::
-        \begin{equation*}
         M = \conj{B} \text{diag}(T(y)) B + \lambda I,
-        \end{equation*}
     
     where :math:`B` is the linear operator of the phase retrieval class, :math:`T(\cdot)` is a preprocessing function for the measurements, and :math:`I` is the identity matrix of corresponding dimensions. Parameter :math:`\lambda` tunes the strength of regularization.
 
     To find the principal eigenvector, the function runs power iteration which is given by
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         x_{k+1} &= M x_k \\
-        x_{k+1} &= \frac{x_{k+1}}{\|x_{k+1}\|},
-        \end{aligned}
-        \end{equation*}
+        x_{k+1} &= \frac{x_{k+1}}{\|x_{k+1}\|}
   
     :param torch.Tensor y: Measurements.
     :param deepinv.physics.Physics physics: Instance of the physics modeling the forward matrix.
