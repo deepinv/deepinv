@@ -95,7 +95,7 @@ def _patches_to_image_impl(
     patches: Tensor,
     stride: tuple[int, int],
     img_size: tuple[int, int] | None = None,
-    reduce_overlap: str = "sum",
+    reduce_overlap: str = "mean",
 ) -> Tensor:
     if reduce_overlap not in ["sum", "mean"]:
         raise ValueError(

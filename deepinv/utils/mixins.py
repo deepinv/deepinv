@@ -7,14 +7,13 @@ from torch import Tensor, zeros_like
 from torch.nn import Module
 from torchvision.transforms import CenterCrop, Resize
 from deepinv.utils.decorators import _deprecated_argument
-from ._internal import _as_pair, _add_tuple
+from ._internal import _as_pair
 from ._tiling import (
     _compute_compatible_img_size,
     _compute_needed_pad,
     _compute_num_patches,
-    _image_to_patches_impl,
-    _patches_to_image_impl,
 )
+from deepinv.utils.patch_extractor import image_to_patches, patches_to_image
 
 
 class TimeMixin:
@@ -392,17 +391,9 @@ class TiledMixin2d:
             The `pad` argument allows you to specify additional padding to be added to the patch size. This can be useful if you want to include some context around each patch. For example, if you have a patch size of (3, 3) and you set `pad=1`, then the effective patch size will become (5, 5). This is useful when you want perform operations that require context around the patch, such as convolutional operations.
 
         """
-        if isinstance(pad, int):
-            pad = (pad, pad, pad, pad)
-        elif isinstance(pad, tuple) and len(pad) != 4:
-            raise ValueError(
-                "Pad must be an int or a tuple of 4 ints (left, right, top, bottom)."
-            )
-
-        patch_size = _add_tuple(self.patch_size, (pad[2] + pad[3], pad[0] + pad[1]))
-        return _image_to_patches_impl(
+        return image_to_patches(
             image=image,
-            patch_size=patch_size,
+            patch_size=self.patch_size,
             stride=self.stride,
             pad_if_needed=self.pad_if_needed,
             extra_pad=pad,
@@ -426,7 +417,7 @@ class TiledMixin2d:
 
         :return: Reconstructed image tensor of shape `(B, C, H, W)`.
         """
-        return _patches_to_image_impl(
+        return patches_to_image(
             patches=patches,
             stride=self.stride,
             img_size=img_size,

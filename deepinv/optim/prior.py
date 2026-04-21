@@ -508,7 +508,7 @@ class PatchPrior(Prior):
     :param Callable negative_patch_log_likelihood: NLL function on the patch space
     :param int n_patches: number of randomly selected patches for prior evaluation. -1 for taking all patches
     :param int patch_size: size of the patches
-    :param bool pad: whether to use mirror padding on the boundary to avoid undesired boundary effects
+    :param bool | str pad: whether to use padding on the boundary to avoid undesired boundary effects. If `pad` is a string, it should be a valid padding mode for `torch.nn.functional.pad` (e.g. "reflect", "constant", etc.). If `pad` is `True`, the padding mode is set to "reflect". Default is `False`.
     """
 
     def __init__(
@@ -516,7 +516,7 @@ class PatchPrior(Prior):
         negative_patch_log_likelihood,
         n_patches=-1,
         patch_size=6,
-        pad=False,
+        pad: bool | str = False,
         *args,
         **kwargs,
     ):
@@ -525,12 +525,23 @@ class PatchPrior(Prior):
         self.explicit_prior = True
         self.n_patches = n_patches
         self.patch_size = patch_size
-        self.pad = pad
+        if isinstance(pad, bool):
+            self.pad = pad
+            self.pad_mode = "reflect"
+        elif isinstance(pad, str):
+            if pad not in ["constant", "reflect", "replicate", "circular"]:
+                raise ValueError(
+                    f"Invalid padding mode {pad}. Should be one of 'constant', 'reflect', 'replicate' or 'circular'."
+                )
+            self.pad = True
+            self.pad_mode = pad
+        else:
+            self.pad = False
 
     def fn(self, x, *args, **kwargs):
         if self.pad:
             pad = self.patch_size - 1
-            x = F.pad(x, (pad, pad, pad, pad), mode="reflect")
+            x = F.pad(x, (pad, pad, pad, pad), mode=self.pad_mode)
 
         patches, _ = patch_extractor(x, self.n_patches, self.patch_size)
         reg = self.negative_patch_log_likelihood(patches)

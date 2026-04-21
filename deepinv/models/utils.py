@@ -13,7 +13,6 @@ from itertools import chain
 import os
 import io
 import contextlib
-from deepinv.utils.patch_extractor import image_to_patches
 
 
 def tensor2array(img):
@@ -66,20 +65,6 @@ def test_pad(model, L, modulo=16):
     E = model(L)
     E = E[(...,) + tuple(slice(0, s) for s in spatials)]
     return E
-
-
-def patchify(
-    x: torch.Tensor,
-    patch_size: int | tuple[int, int],
-    stride: int | tuple[int, int] = 1,
-    pad_if_needed: bool = True,
-) -> torch.Tensor:
-    r"""
-    Alias of :func:`deepinv.utils.image_to_patches`. Extracts overlapping 2D patches from images.
-    """
-    return image_to_patches(
-        x, patch_size=patch_size, stride=stride, pad_if_needed=pad_if_needed
-    )
 
 
 def test_onesplit(model, L, refield=32, sf=1):
