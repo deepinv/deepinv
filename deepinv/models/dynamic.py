@@ -18,6 +18,7 @@ class TimeAgnosticNet(Reconstructor, TimeMixin):
 
     :Example:
 
+    >>> import torch
     >>> from deepinv.models import UNet, TimeAgnosticNet
     >>> model = UNet(scales=2)
     >>> model = TimeAgnosticNet(model)
@@ -62,6 +63,7 @@ class TimeAveragingNet(
 
     :Example:
 
+    >>> import torch
     >>> from deepinv.models import UNet, TimeAveragingNet
     >>> model = UNet(scales=2)
     >>> model = TimeAveragingNet(model)

@@ -20,7 +20,6 @@ jobs:
     env:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
-      UV_CACHE_DIR: "/local/jtachell/.cache/uv"
       WORKING_DIR: "/local/jtachell"
 
     steps:
@@ -29,32 +28,16 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha
                   || (inputs.pr_number && format('refs/pull/{0}/head', inputs.pr_number))
                   || github.sha }}
-                  
-      # See https://docs.astral.sh/uv/guides/integration/github
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
+
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@v0.9.3
         with:
-          enable-cache: true
-          version: "0.8.22"
-          python-version: "3.11"
-          cache-local-path: ${{ env.UV_CACHE_DIR }}
-
-      - name: Set up Python
-        run: |
-          uv python install
-          uv run python --version
-
-      - name: Install the project
-        run: |
-          uv sync --extra dataset --extra denoisers --extra test --extra training
-
-      - name: Check installed packages
-        run: |
-          uv pip list
+          pixi-version: latest
+          pixi-bin-path: /local/jtachell/pixi/bin/pixi
 
       - name: Check import
         run: |
-          uv run python -c "import deepinv"
+          pixi run -e full python -c "import deepinv"
 
       - name: Restore .testmondata # Restore testmon data from main to speed up tests
         uses: actions/cache/restore@v3
@@ -67,7 +50,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          uv run python -m pytest -n 2 --dist=loadgroup --testmon
+          pixi run -e full pytest -n 2 --dist=loadgroup --testmon
 
       - name: Save .testmondata
         uses: actions/cache/save@v3
@@ -95,4 +78,8 @@ jobs:
               issue_number: pr,
               body,
             });
-            
+
+      - name: Cleanup Pixi
+        if: always()
+        run: |
+          rm -rf /local/jtachell/pixi
