@@ -1270,7 +1270,6 @@ def test_least_squares_implicit_backward_nonleaf_buffer_grad(device):
     batch_size = 2
     dim = 12
 
-    # A simple physics for faster test
     class DummyPhysics(dinv.physics.LinearPhysics):
         def __init__(self, mat):
             super().__init__()
@@ -1285,7 +1284,6 @@ def test_least_squares_implicit_backward_nonleaf_buffer_grad(device):
     mat = torch.randn((dim, dim), device=device, dtype=dtype)
     physics = DummyPhysics(mat)
 
-    # Fixed inputs for a fair branch-to-branch comparison.
     x = torch.randn((batch_size, dim), device=device, dtype=dtype)
     y = physics.A(x)
     y = y + 0.01 * torch.randn_like(y)
@@ -1313,7 +1311,6 @@ def test_least_squares_implicit_backward_nonleaf_buffer_grad(device):
 
     # Implicit gradient
     physics.implicit_backward_solver = True
-    # First reset all gradients
     for p in kernel_net.parameters():
         p.grad = None
 
@@ -1327,8 +1324,8 @@ def test_least_squares_implicit_backward_nonleaf_buffer_grad(device):
     torch.testing.assert_close(
         implicit_grad,
         explicit_grad,
-        rtol=1e-2,
-        atol=1e-2,
+        rtol=1e-4,
+        atol=1e-4,
         msg=f"Implicit gradient {implicit_grad} does not match explicit gradient {explicit_grad}",
     )
 
