@@ -9,6 +9,7 @@ from deepinv.datasets.utils import (
 from deepinv.datasets.base import ImageFolder
 
 from types import MappingProxyType
+from .utils import resolve_root
 
 
 class Flickr2kHR(ImageFolder):
@@ -62,11 +63,11 @@ class Flickr2kHR(ImageFolder):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         download: bool = False,
         transform: Callable = None,
     ) -> None:
-        self.root = root
+        self.root = resolve_root(root)
         self.img_dir = os.path.join(self.root, "Flickr2K")
 
         # download dataset, we check first that dataset isn't already downloaded
