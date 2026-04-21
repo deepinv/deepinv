@@ -9,6 +9,7 @@ from deepinv.datasets.utils import (
 from deepinv.datasets.base import ImageFolder
 
 from types import MappingProxyType
+from .utils import resolve_root
 
 
 class DIV2K(ImageFolder):
@@ -74,12 +75,12 @@ class DIV2K(ImageFolder):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         mode: str = "train",
         download: bool = False,
         transform: Callable = None,
     ) -> None:
-        self.root = root
+        self.root = resolve_root(root, "DIV2K")
         self.mode = mode
 
         if self.mode == "train":

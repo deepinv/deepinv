@@ -2,6 +2,7 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 from hashlib import sha256
+import warnings
 
 
 def seed_from_string(seed: str) -> int:
@@ -189,6 +190,10 @@ class GeneratorMixture(PhysicsGenerator):
 
     :param list[PhysicsGenerator] generators: the generators instantiated from :class:`deepinv.physics.generator.PhysicsGenerator`.
     :param list[float] probs: the probability of each generator to be used at each step
+    :param: bool use_batch_sampling: whether to sample a different generator for each element in the batch. This is only possible if all generators in the mixture produce parameters with the same keys and shapes. If not, a single generator will be sampled per batch. Defaults to `True`.
+    :param str device: device on which the generator is located, defaults to "cpu"
+    :param torch.Generator rng: a pseudorandom random number generator for the parameter generation. If ``None``, a generator will be created on the specified device with a random seed.
+    :param bool verbose: whether to print warnings about the batch-compatibility of the generators, defaults to False.
 
     |sep|
 
@@ -212,14 +217,68 @@ class GeneratorMixture(PhysicsGenerator):
         self,
         generators: list[PhysicsGenerator],
         probs: list[float],
+        use_batch_sampling: bool = True,
+        device: str | torch.device = "cpu",
         rng: torch.Generator = None,
+        verbose: bool = False,
     ) -> None:
-        super().__init__(rng=rng)
-        probs = torch.tensor(probs)
+        super().__init__(device=device, rng=rng)
+
+        probs = torch.tensor(probs, device=device)
         assert torch.sum(probs) == 1, "The sum of the probabilities must be 1."
+
+        self.register_buffer("probs", probs)
+        self.register_buffer("cum_probs", torch.cumsum(probs, dim=0))
+
         self.generators = generators
-        self.probs = probs
-        self.cum_probs = torch.cumsum(probs, dim=0)
+
+        self.use_batch_sampling = use_batch_sampling
+        if self.use_batch_sampling:
+            self.use_batch_sampling = self._compatible_generators(
+                generators, verbose=verbose
+            )
+
+    @staticmethod
+    def _compatible_generators(
+        generators: list[PhysicsGenerator], verbose: bool = False
+    ) -> bool:
+        r"""
+        Static method to check if each generator in the mixture produces parameters with the same keys and shapes. If they do, then the mixture can sample a different generator for each element in the batch. If not, then a single generator will be sampled per batch.
+        """
+
+        generators_keys = []
+        generators_params = []
+        for g in generators:
+            params = g.step(batch_size=1)
+            generators_params.append(params)
+            generators_keys.append(set(params.keys()))
+
+        for i in range(len(generators_keys)):
+            for j in range(i + 1, len(generators_keys)):
+                if generators_keys[i] != generators_keys[j]:
+                    if verbose:
+                        warnings.warn(
+                            f"Generators {i} and {j} have different keys. Got {generators_keys[i]} and {generators_keys[j]}. Generators are not batch-compatible, a single generator will be sampled per batch."
+                        )
+                    return False
+
+                for key in generators_keys[i]:
+                    if (
+                        generators_params[i][key].shape
+                        != generators_params[j][key].shape
+                    ):
+                        if verbose:
+                            warnings.warn(
+                                f"Generators {i} and {j} have different shapes for key {key}. Got {generators_params[i][key].shape} and {generators_params[j][key].shape}. Generators are not batch-compatible, a single generator will be sampled per batch."
+                            )
+                        return False
+
+        if verbose:
+            warnings.warn(
+                "All generators have the same keys and shapes. Generators are batch-compatible, the mixture will sample, with replacement, a different generator per batch"
+            )
+
+        return True
 
     def step(self, batch_size: int = 1, seed: int = None, **kwargs):
         r"""
@@ -230,6 +289,41 @@ class GeneratorMixture(PhysicsGenerator):
         :param int seed: the seed for the random number generator.
         :returns: A dictionary with the new parameters, ie ``{param_name: param_value}``.
         """
-        p = torch.rand(1, generator=self.rng).item()  # np.random.uniform()
-        idx = torch.searchsorted(self.cum_probs, p)
-        return self.generators[idx].step(batch_size, seed, **kwargs)
+
+        if self.use_batch_sampling:
+            # Sample a random generator for EACH element in the batch according to self.probs
+            p = torch.rand(batch_size, generator=self.rng, device=self.device)
+            # Get generator index for each sample
+            generator_indices = torch.searchsorted(self.cum_probs, p)
+
+            # Group batch elements by their assigned generator
+            result = {}
+            for gen_idx, generator in enumerate(self.generators):
+                mask = generator_indices == gen_idx
+                if mask.any():
+                    # Find which batch positions use this generator
+                    batch_positions = torch.where(mask)[0]
+                    num_samples = batch_positions.size(0)
+
+                    # Generate parameters for just these samples
+                    params = generator.step(batch_size=num_samples, seed=seed, **kwargs)
+
+                    # Store with position information for later reordering
+                    for key, value in params.items():
+                        if key not in result:
+                            result[key] = torch.empty(
+                                batch_size,
+                                *value.shape[1:],
+                                dtype=value.dtype,
+                                device=value.device,
+                            )
+                        result[key][batch_positions] = value
+
+            return result
+
+        else:
+            p = torch.rand(
+                1, generator=self.rng, device=self.device
+            )  # np.random.uniform()
+            idx = torch.searchsorted(self.cum_probs, p)
+            return self.generators[idx].step(batch_size=batch_size, seed=seed, **kwargs)

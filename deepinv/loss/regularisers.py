@@ -56,7 +56,7 @@ class JacobianSpectralNorm(Loss):
         reduced_batchsize: int = None,
     ):
         super(JacobianSpectralNorm, self).__init__()
-        self.name = "jsn"
+        self._name = "jsn"
         self.max_iter = max_iter
         self.tol = tol
         self.eval = eval_mode
