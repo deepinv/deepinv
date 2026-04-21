@@ -184,7 +184,7 @@ class SureGaussianLoss(Loss):
         rng: torch.Generator = None,
     ):
         super(SureGaussianLoss, self).__init__()
-        self.name = "SureGaussian"
+        self._name = "SureGaussian"
         self.sigma2 = sigma**2
         self.tau = tau
         self.metric = B
@@ -278,7 +278,7 @@ class SurePoissonLoss(Loss):
 
     def __init__(self, gain: float, tau: float = 1e-3, rng: torch.Generator = None):
         super(SurePoissonLoss, self).__init__()
-        self.name = "SurePoisson"
+        self._name = "SurePoisson"
         self.gain = gain
         self.tau = tau
         self.rng = rng
@@ -387,7 +387,7 @@ class SurePGLoss(Loss):
         rng: torch.Generator = None,
     ):
         super(SurePGLoss, self).__init__()
-        self.name = "SurePG"
+        self._name = "SurePG"
         self.sigma2 = sigma**2
         self.gain = gain
         self.tau1 = tau1

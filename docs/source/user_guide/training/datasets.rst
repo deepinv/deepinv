@@ -73,11 +73,10 @@ For example, here we generate a dataset of inpainting measurements from the :cla
 
     >>> import deepinv as dinv
     >>> from torchvision.transforms import ToTensor, Compose, CenterCrop
-    >>> save_dir = dinv.utils.get_data_home() / 'set14'
+    >>> save_dir = dinv.utils.get_cache_home() / 'set14'
     >>> 
     >>> # Define base train dataset
-    >>> dataset = dinv.datasets.Set14HR(save_dir, download=True, transform=Compose([CenterCrop(128), ToTensor()])) # doctest: +ELLIPSIS
-    ...
+    >>> dataset = dinv.datasets.Set14HR(save_dir, download=True, transform=Compose([CenterCrop(128), ToTensor()]))
     >>> 
     >>> # Define forward operator
     >>> physics = dinv.physics.Inpainting(img_size=(3, 128, 128), mask=0.8, noise_model=dinv.physics.GaussianNoise(sigma=.05))

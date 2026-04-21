@@ -124,7 +124,7 @@ Writing good documentation is also crucial for helping other users use your code
   Note that if the build process fails, supplementary additional libraries may need to be manually installed (e.g. ``sphinx-gallery``): please follow instructions in the log.
 
 .. tip::
-  If the `Build Docs` GitHub action has run successfully, you can download the documentation as a zip file from the `Actions page <https://github.com/deepinv/deepinv/actions/workflows/documentation.yml>`_. Look for the workflow run corresponding to your pull request.
+  If the `Build Docs` GitHub action has run successfully, you can download the documentation as a zip file from the `Actions page <https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml>`_. Look for the workflow run corresponding to your pull request.
 
 .. _code_quality:
 
@@ -138,7 +138,28 @@ Code quality is important to us. We require that your code is compliant with PEP
 3. Run ``ruff check``, which will check all linting options we've enabled. If it fails, follow the suggestions to make a fix!
 4. Push your code. The automatic checkers will run in GitHub actions, along with other actions that we have in place.
 
-5. Interact with reviewers
+.. _log_changes:
+
+5. Log your changes
+~~~~~~~~~~~~~~~~~~~
+
+We keep a summary of all changes in the `changelog.rst <https://deepinv.github.io/deepinv/changelog.html>`_ file in the documentation.
+We separate contributions into three categories: **Added** for new features, **Changed** for changes in existing features, and **Fixed** for bug fixes. 
+To do so, you should first add your GitHub information at the end of the file following the format:
+
+.. code-block:: rest
+
+  .. _<your name>: https://github.com/<your GitHub username>
+
+You can then add a line to the appropriate category under the **Current** section, describing your contribution in a concise way.
+This line should follow the format:
+
+.. code-block:: rest
+
+  - <description of your contribution> (:gh:`<pull request number>` by `<your name>`_)
+
+
+6. Interact with reviewers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You're done! A maintainer will see your PR and will interact with you. They may suggest changes. It is your responsibility to make all requested fixes!
@@ -215,8 +236,8 @@ Below is a minimal working example of a typical docstring that includes all thes
         >>> import torch
         >>> import deepinv as dinv
         >>> model = dinv.models.DRUNet()
-        >>> x = torch.ones((1, 1, 8, 8))
-        >>> y = model(x)
+        >>> x = torch.ones((1, 3, 8, 8))
+        >>> y = model(x, sigma=0.01)
 
         :param int in_channels: number of input channels.
         :param int out_channels: number of output channels.
@@ -263,7 +284,7 @@ Once the implementation, the tests and the mocking code are written, that they p
 Maintainers commands
 --------------------
 
-Maintainers can use the following slash commands as comments on a pull request to trigger specific tests:
+Maintainers can use the following slash commands as comments on a pull request to trigger specific tests (see `workflows summary <https://github.com/deepinv/deepinv/blob/main/.github/workflows.md>`_ for more details):
 
 - `/test-examples`: runs **all** sphinx gallery examples on CPU using CPU-enabled runners.
 - `/gpu-tests`: runs tests and generates docs on GPU using GPU-enabled runners.

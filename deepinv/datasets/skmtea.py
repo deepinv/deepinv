@@ -8,9 +8,10 @@ import torch
 import torch.nn.functional as F
 from deepinv.datasets.fastmri import FastMRISliceDataset
 from deepinv.utils.mixins import MRIMixin
-from deepinv.utils.compat import zip_strict
+
 
 from natsort import natsorted
+from .utils import resolve_root
 
 
 class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
@@ -76,7 +77,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         echo: int = 0,
         acc: int = 6,
         load_metadata_from_cache: bool = False,
@@ -84,8 +85,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
         metadata_cache_file: str | Path = "skmtea_dataset_cache.pkl",
         filter_id: Callable = None,
     ):
-
-        self.root = Path(root)
+        self.root = resolve_root(root, "SKMTEASlice")
         self.echo = echo
         self.acc = acc
 
@@ -131,7 +131,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
         total_padding = tuple(
             desired - current if desired is not None else 0
-            for current, desired in zip_strict(x_shape, shape)
+            for current, desired in zip(x_shape, shape, strict=True)
         )
         # Adding no padding for terminal dimensions.
         # torch.nn.functional.pad pads dimensions in reverse order.

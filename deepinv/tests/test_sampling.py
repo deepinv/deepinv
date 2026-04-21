@@ -5,7 +5,6 @@ import numpy as np
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.sampling import ULA, SKRock, DiffPIR, DPS, sampling_builder, DDRM
-from deepinv.utils.compat import zip_strict
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
@@ -276,7 +275,7 @@ def test_build_algo(algo, imsize, device):
 
 @pytest.mark.slow
 @torch.no_grad()
-def test_sde(device):
+def test_sde(device, load_example_image):
     from deepinv.sampling import (
         VarianceExplodingDiffusion,
         VariancePreservingDiffusion,
@@ -316,7 +315,7 @@ def test_sde(device):
         VariancePreservingDiffusion,
         EDMDiffusionSDE,
     ]
-    for denoiser, kwargs in zip_strict(denoisers, list_kwargs):
+    for denoiser, kwargs in zip(denoisers, list_kwargs, strict=True):
         for solver in solvers:
             for sde_class in sde_classes:
                 if sde_class == EDMDiffusionSDE:
@@ -369,7 +368,7 @@ def test_sde(device):
                     dtype=torch.float64,
                     device=device,
                 )
-                x = dinv.utils.load_example(
+                x = load_example_image(
                     "celeba_example.jpg",
                     img_size=64,
                     resize_mode="resize",
