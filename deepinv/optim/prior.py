@@ -682,7 +682,7 @@ class PatchNR(Prior):
                         raise ValueError(
                             f"PatchNR_lodopab_small requires patch_size 3, but got {patch_size}"
                         )
-                    if channels != 1:
+                    if channels != 1:  # pragma: no cover
                         raise ValueError(
                             f"PatchNR_lodopab_small requires channels 1, but got {channels}"
                         )

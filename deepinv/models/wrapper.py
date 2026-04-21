@@ -327,7 +327,7 @@ class ScoreModelWrapper(Denoiser):
         device = x.device
         dtype = x.dtype
 
-        if sigma is None:
+        if sigma is None:  # pragma: no cover
             raise ValueError("A noise level sigma must be provided.")
 
         # Handle sigma
@@ -434,7 +434,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
                 PNDMScheduler,
                 DDIMScheduler,
             )
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise ImportError(
                 "diffusers is not installed. Please install it via 'pip install diffusers'."
             )
@@ -468,7 +468,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
                     scale_t = lambda t: torch.exp(
                         -(beta_start * t + 0.5 * delta * t**2)
                     )
-                else:
+                else:  # pragma: no cover
                     raise ValueError(
                         "only 'scaled_linear' and 'linear' schedule are supported for beta"
                     )
@@ -477,7 +477,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
             variance_preserving = True
             variance_exploding = False
 
-        else:
+        else:  # pragma: no cover
             raise ValueError(
                 f"Scheduler of type {type(scheduler)} is not supported yet."
             )
