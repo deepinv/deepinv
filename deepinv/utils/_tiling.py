@@ -76,15 +76,21 @@ def _image_to_patches_impl(
 
     if pad_if_needed:
         pad_h, pad_w = _compute_needed_pad(image.shape[-2:], patch_size, stride)
-        extra_pad = (
+        pad = (
             extra_pad[0],
             extra_pad[1] + pad_w,
             extra_pad[2],
             extra_pad[3] + pad_h,
         )
-    if any(p > 0 for p in extra_pad):
-        image = F.pad(image, extra_pad, mode="constant", value=0)
+    else:
+        pad = extra_pad
 
+    if any(p > 0 for p in pad):
+        image = F.pad(image, pad, mode="constant", value=0)
+
+    patch_size = _add_tuple(
+        patch_size, (extra_pad[2] + extra_pad[3], extra_pad[0] + extra_pad[1])
+    )
     patches = image.unfold(2, patch_size[0], stride[0]).unfold(
         3, patch_size[1], stride[1]
     )

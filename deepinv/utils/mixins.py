@@ -396,7 +396,7 @@ class TiledMixin2d:
             patch_size=self.patch_size,
             stride=self.stride,
             pad_if_needed=self.pad_if_needed,
-            extra_pad=pad,
+            pad=pad,
         )
 
     def patches_to_image(

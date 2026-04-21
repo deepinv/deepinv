@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import torch
 from torch import Tensor
-from ._internal import _add_tuple
 from ._tiling import (
     _image_to_patches_impl,
     _patches_to_image_impl,
@@ -136,8 +135,6 @@ def image_to_patches(
         raise ValueError(
             "Pad must be an int or a tuple of 4 ints (left, right, top, bottom)."
         )
-
-    patch_size = _add_tuple(patch_size_2d, (pad[2] + pad[3], pad[0] + pad[1]))
 
     return _image_to_patches_impl(
         image=image,

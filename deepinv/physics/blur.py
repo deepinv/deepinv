@@ -1070,7 +1070,11 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         y = self._pad(y, pad)
 
         # Extract patches
+        print(
+            f"DEBUG -- A_adjoint: y shape after padding: {y.shape}, expected pad: {pad}"
+        )
         patches = self.image_to_patches(y)
+        print(f"DEBUG -- A_adjoint: patches shape after extraction: {patches.shape}")
 
         n_rows, n_cols = patches.size(2), patches.size(3)
         if n_rows * n_cols != h.size(2):
