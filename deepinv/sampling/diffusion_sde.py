@@ -196,9 +196,9 @@ class DiffusionSDE(BaseSDE):
         self.forward_drift = forward_drift
         self.forward_diffusion = forward_diffusion
         self.solver = solver
-        self.denoiser = (
-            denoiser if not minus_one_one else MinusOneOneDenoiserWrapper(denoiser)
-        )
+        if minus_one_one and not isinstance(denoiser, MinusOneOneDenoiserWrapper):
+            denoiser = MinusOneOneDenoiserWrapper(denoiser)
+        self.denoiser = denoiser
         self.minus_one_one = minus_one_one
 
     def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> torch.Tensor:
@@ -882,13 +882,20 @@ class PosteriorDiffusion(Reconstructor):
         assert (
             denoiser is not None or sde.denoiser is not None
         ), "A denoiser must be specified."
+
+        # Update the SDE's denoiser if a new denoiser is provided, and wrap it if needed
         if denoiser is None:
             denoiser = sde.denoiser
+        else:
+            if self.minus_one_one and not isinstance(
+                denoiser, MinusOneOneDenoiserWrapper
+            ):
+                wrapped_denoiser = MinusOneOneDenoiserWrapper(denoiser)
+            else:
+                wrapped_denoiser = denoiser
+            self.sde.denoiser = wrapped_denoiser
 
-        denoiser = (
-            denoiser if not self.minus_one_one else MinusOneOneDenoiserWrapper(denoiser)
-        )
-        self.sde.denoiser = denoiser
+        # Keep the original denoiser for the data fidelity term
         if hasattr(self.data_fidelity, "denoiser"):
             self.data_fidelity.denoiser = denoiser
 
@@ -961,8 +968,6 @@ class PosteriorDiffusion(Reconstructor):
                 x_init = self.sde.sample_init(y.shape, rng=self.solver.rng)
             else:
                 raise ValueError("Either `x_init` or `physics` must be specified.")
-
-        print("Starting sampling with initial :", x_init.min(), x_init.max())
         solution = self.solver.sample(
             self.posterior,
             x_init,
@@ -983,10 +988,17 @@ class PosteriorDiffusion(Reconstructor):
 
             scale = self.sde.scale_t(t)
             sigma = self.sde.diffusion(t) * dt**0.5 * scale
-
-            print(f"Final time step: {t}, noise level: {sigma}, scale: {scale}")
+            print(
+                "Performing final denoising step with sigma:",
+                sigma.item(),
+                "and scale:",
+                scale.item(),
+            )
             if sigma > 0 and scale > 0:
                 x_in = final_sample / scale
+                print(
+                    f"X_in range before denoising: {x_in.min().item()} to {x_in.max().item()}"
+                )
                 model_output = self.sde.denoiser(
                     x_in.to(torch.float32),
                     sigma.to(torch.float32),
@@ -996,8 +1008,7 @@ class PosteriorDiffusion(Reconstructor):
                 solution.sample = model_output
         # Scale the output back to [0, 1]
         sample = solution.sample
-        if self.minus_one_one:
-            sample = (sample.clamp(-1, 1) + 1) / 2
+
         if get_trajectory:
             return sample, solution.trajectory
         else:

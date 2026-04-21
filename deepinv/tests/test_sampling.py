@@ -143,8 +143,7 @@ def test_algo(name_algo, device):
     assert x.shape == test_sample.shape
 
 
-# @pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS", "DDRM"])
-@pytest.mark.parametrize("name_algo", ["DPS"])
+@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS", "DDRM"])
 def test_algo_inpaint(name_algo, device):
     x = torch.ones((1, 3, 32, 32)).to(device)
     x[:, 0, ...] = 0  # create a colored image
@@ -167,7 +166,7 @@ def test_algo_inpaint(name_algo, device):
         )
     elif name_algo == "DPS":
         algorithm = DPS(
-            model, num_steps=100, weight=2.0, alpha=0.01, verbose=False, device=device
+            model, num_steps=50, weight=2.0, alpha=0.01, verbose=False, device=device
         )
     elif name_algo == "DDRM":
         algorithm = DDRM(model)
@@ -187,11 +186,6 @@ def test_algo_inpaint(name_algo, device):
     mean_target_masked = masked_target.mean()
     mean_target_inmask = 2 / 3.0
 
-    dinv.utils.plot(
-        [x, y, out],
-        show=True,
-        subtitle=f"{name_algo}, min max {out.min().item():.2f} {out.max().item():.2f}",
-    )
     assert (mean_target_inmask - mean_crop).abs() < 0.2
     assert (mean_target_masked - mean_outside_crop).abs() < 0.02
 

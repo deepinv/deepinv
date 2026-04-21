@@ -7,7 +7,7 @@ In this tutorial, we will go over the steps in the Diffusion Posterior Sampling 
 """
 
 # %%
-# Let us ``import`` the relevant packages, and load a sample
+# Let us import the relevant modules and load a sample
 # image of size 64 x 64. This will be used as our ground truth image.
 #
 # .. note::
@@ -87,14 +87,16 @@ denoiser = dinv.models.DRUNet(device=device)
 #           \nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t|\mathbf{y}) \approx \nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t)
 #           + \nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\widehat{\mathbf{x}}_{0}(\mathbf{x_t}))
 #
-# Remarkably, we can now compute the latter term when we have Gaussian noise, as
+# where :math:`\widehat{\mathbf{x}}_{0}(\mathbf{x_t})` is the posterior mean of the clean image given the noisy image at time :math:`t`, which can be estimated with a denoiser network.
+#
+# Under the assumption of Gaussian noise, the likelihood term can be written as
 #
 # .. math::
 #
 #       \log p(\mathbf{y}|\widehat{\mathbf{x}}_0(\mathbf{x_t})) =
-#       -\frac{\|\mathbf{y} - A\widehat{\mathbf{x}}_0((\mathbf{x_t})\|_2^2}{2\sigma_y^2}.
+#       -\frac{\|\mathbf{y} - A\widehat{\mathbf{x}}_0(\mathbf{x_t})\|_2^2}{2\sigma_y^2}.
 #
-# Moreover, taking the gradient w.r.t. :math:`\mathbf{x}_t` can be performed through automatic differentiation.
+# Taking the gradient w.r.t. :math:`\mathbf{x}_t` requires backpropagation through the denoiser, which can be easily implemented with PyTorch's autograd.
 # We provide an implementation of this approximation in :class:`deepinv.sampling.DPSDataFidelity`, which is a subclass of :class:`deepinv.sampling.NoisyDataFidelity`.
 #
 # .. note::
@@ -166,20 +168,22 @@ model = dinv.sampling.DPS(
     schedule="vp",
     num_steps=200,
     weight=2.0,
-    alpha=0.1,
+    alpha=0.5,
     verbose=True,
     device=device,
     dtype=torch.float64,
     rng=torch.Generator(device=device),
+    minus_one_one=False,
 )
 
 # Run the sampling
-sample, trajectory = model(
-    y.clone(),
-    physics,
-    seed=123,  # for reproducibility!
-    get_trajectory=True,
-)
+with torch.no_grad():
+    sample, trajectory = model(
+        y.clone(),
+        physics,
+        seed=123,  # for reproducibility!
+        get_trajectory=True,
+    )
 # plot the results
 plot(
     {
@@ -189,10 +193,13 @@ plot(
     }
 )
 
-dinv.utils.plot_videos(
-    trajectory[::10], time_dim=0, suptitle="DPS Trajectory", display=True
+anim = dinv.utils.plot_videos(
+    trajectory[::10],
+    time_dim=0,
+    suptitle="DPS Trajectory",
+    return_anim=True,
 )
-
+anim
 # %%
 # :References:
 #

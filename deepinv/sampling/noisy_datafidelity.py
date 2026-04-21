@@ -126,6 +126,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         **kwargs,
     ):
         super().__init__()
+        self.d = dinv.optim.L2Distance()
         self.denoiser = denoiser
         if clip is not None:
             assert len(clip) == 2
@@ -179,7 +180,7 @@ class DPSDataFidelity(NoisyDataFidelity):
             outputs=l2_loss, inputs=x, grad_outputs=grad_outputs
         )[0]
         if get_model_outputs:
-            return norm_grad, out[1]
+            return norm_grad, out[1].detach()
         else:
             return norm_grad
 
