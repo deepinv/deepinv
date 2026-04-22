@@ -130,8 +130,7 @@ def test_algo(name_algo, device):
     elif name_algo == "DPS":
         f = DPS(
             dinv.models.DiffUNet().to(device),
-            likelihood,
-            max_iter=5,
+            num_steps=5,
             verbose=False,
             device=device,
         )
