@@ -1288,6 +1288,13 @@ def test_noise(device, noise_type):
     )
     assert y1.shape == x.shape
 
+    # Test that negative values input are handled correctly
+    if noise_type in ["Poisson", "PoissonGaussian", "Gamma"]:
+        x_neg = -torch.ones((1, 3, 2), device=device).unsqueeze(0)
+
+        with pytest.raises(ValueError):
+            y_neg = physics(x_neg)
+
 
 def test_noise_domain(device):
     r"""

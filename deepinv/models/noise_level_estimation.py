@@ -1,7 +1,8 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
 
-from deepinv.models.utils import patchify
+from deepinv.utils.patch_extractor import image_to_patches
 
 
 class WaveletNoiseEstimator(nn.Module):
@@ -87,7 +88,7 @@ class WaveletNoiseEstimator(nn.Module):
 
 class PatchCovarianceNoiseEstimator(nn.Module):
     r"""
-    Pach Covariance Gaussian noise level estimator.
+    Patch Covariance Gaussian noise level estimator.
 
     This method was initially proposed in :footcite:t:`chen2015efficient`. Given a noisy image :math:`y = x + n` where
     :math:`n \sim \mathcal{N}(0, \sigma^2)`, this estimator computes an estimate of :math:`\sigma` based on the
@@ -117,19 +118,27 @@ class PatchCovarianceNoiseEstimator(nn.Module):
         super(PatchCovarianceNoiseEstimator, self).__init__()
 
     @staticmethod
-    def estimate_noise(x: torch.Tensor, pch_size=8) -> torch.Tensor:
+    def estimate_noise(
+        x: torch.Tensor,
+        patch_size: int | tuple[int, int] = 8,
+        stride: int | tuple[int, int] = 3,
+    ) -> torch.Tensor:
         """
-        Estimates noise level in image im.
+        Estimates noise level from the image by computing the covariance of image patches.
 
         :param torch.Tensor x: input image
-        :param (int, int) pch_size: patch size
+        :param (int, int) patch_size: patch size
         :return: (:class:`torch.Tensor`) estimated noise level
         """
         # Convert image to patches
-        pch = patchify(x, pch_size, stride=3)  # C x pch_size x pch_size x num_pch
-        B, num_pch = pch.shape[0], pch.shape[-1]
-        pch = pch.reshape(B, -1, num_pch)  # d x num_pch matrix
-        d = pch.shape[1]
+        pch = image_to_patches(
+            x, patch_size=patch_size, stride=stride, pad_if_needed=False
+        )  # no padding to avoid biasing the covariance estimation
+        from einops import rearrange
+
+        pch = rearrange(pch, "B C n_rows n_cols p1 p2 -> B (C p1 p2) (n_rows n_cols)")
+
+        B, d, num_pch = pch.shape
 
         # Compute covariance matrix eigenvalues
         mu = pch.mean(dim=-1, keepdim=True)  # B x d x 1
