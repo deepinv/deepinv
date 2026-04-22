@@ -678,8 +678,14 @@ class PatchNR(Prior):
                 weights = torch.load(pretrained, map_location=device)
             else:
                 if pretrained.startswith("PatchNR_lodopab_small"):
-                    assert patch_size == 3
-                    assert channels == 1
+                    if patch_size != 3:  # pragma: no cover
+                        raise ValueError(
+                            f"PatchNR_lodopab_small requires patch_size 3, but got {patch_size}"
+                        )
+                    if channels != 1:  # pragma: no cover
+                        raise ValueError(
+                            f"PatchNR_lodopab_small requires channels 1, but got {channels}"
+                        )
                     file_name = "PatchNR_lodopab_small.pt"
                     url = "https://drive.google.com/uc?export=download&id=1Z2us9ZHjDGOlU6r1Jee0s2BBej2XV5-i"
                 else:

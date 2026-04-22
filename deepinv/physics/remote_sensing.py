@@ -70,7 +70,8 @@ class Pansharpen(StackedLinearPhysics):
         eps=1e-6,
         **kwargs,
     ):
-        assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
+        if len(img_size) != 3:  # pragma: no cover
+            raise ValueError("img_size must be of shape (C,H,W)")
 
         noise_color = noise_color if noise_color is not None else ZeroNoise()
         noise_gray = noise_gray if noise_gray is not None else ZeroNoise()
