@@ -24,6 +24,8 @@ jobs:
       PIXI_HOME: "/local/jtachell/.pixi"
       TMP_DIR: "/local/jtachell/tmp"
       DEEPINV_CACHE: "/local/jtachell/.cache/deepinv"
+      HF_HOME: "/local/jtachell/.cache/huggingface"
+      TORCH_HOME: "/local/jtachell/.cache/torch"
 
     steps:
       - uses: actions/checkout@v5
