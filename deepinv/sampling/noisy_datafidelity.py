@@ -180,7 +180,7 @@ class DPSDataFidelity(NoisyDataFidelity):
             outputs=l2_loss, inputs=x, grad_outputs=grad_outputs
         )[0]
         if get_model_outputs:
-            return norm_grad, out[1]
+            return norm_grad, out[1].detach()
         else:
             return norm_grad
 
@@ -208,7 +208,6 @@ class DPSDataFidelity(NoisyDataFidelity):
 
         if isinstance(sigma, torch.Tensor):
             sigma = sigma.to(torch.float32)
-
         x0_t = self.denoiser(x.to(torch.float32), sigma, *args, **kwargs)
 
         if self.clip is not None:

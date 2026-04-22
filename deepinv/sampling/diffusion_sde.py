@@ -196,9 +196,9 @@ class DiffusionSDE(BaseSDE):
         self.forward_drift = forward_drift
         self.forward_diffusion = forward_diffusion
         self.solver = solver
-        self.denoiser = (
-            denoiser if not minus_one_one else MinusOneOneDenoiserWrapper(denoiser)
-        )
+        if minus_one_one and not isinstance(denoiser, MinusOneOneDenoiserWrapper):
+            denoiser = MinusOneOneDenoiserWrapper(denoiser)
+        self.denoiser = denoiser
         self.minus_one_one = minus_one_one
 
     def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> torch.Tensor:
@@ -882,10 +882,20 @@ class PosteriorDiffusion(Reconstructor):
         assert (
             denoiser is not None or sde.denoiser is not None
         ), "A denoiser must be specified."
+
+        # Update the SDE's denoiser if a new denoiser is provided, and wrap it if needed
         if denoiser is None:
             denoiser = sde.denoiser
+        else:
+            if self.minus_one_one and not isinstance(
+                denoiser, MinusOneOneDenoiserWrapper
+            ):
+                wrapped_denoiser = MinusOneOneDenoiserWrapper(denoiser)
+            else:
+                wrapped_denoiser = denoiser
+            self.sde.denoiser = wrapped_denoiser
 
-        self.sde.denoiser = denoiser
+        # Keep the original denoiser for the data fidelity term
         if hasattr(self.data_fidelity, "denoiser"):
             self.data_fidelity.denoiser = denoiser
 
@@ -973,9 +983,16 @@ class PosteriorDiffusion(Reconstructor):
         if denoise_output:
             final_sample = solution.sample
             timesteps = timesteps if timesteps is not None else self.solver.timesteps
-            t = timesteps[-1] if timesteps is not None else 1e-3
-            sigma = self.sde.sigma_t(t)
+            t = (
+                timesteps[-2] if timesteps is not None else 2e-3
+            )  # second last time step
+            dt = abs(timesteps[1] - timesteps[0]) if timesteps is not None else 1e-3
+
             scale = self.sde.scale_t(t)
+            sigma = (
+                self.sde.diffusion(t) * dt**0.5 / scale
+            )  # this is the dWt at the last step, which is the noise level of the final sample
+
             if sigma > 0 and scale > 0:
                 x_in = final_sample / scale
                 model_output = self.sde.denoiser(
@@ -984,11 +1001,10 @@ class PosteriorDiffusion(Reconstructor):
                     *args,
                     **kwargs,
                 ).to(self.dtype)
-                solution.sample = model_output
+                solution.sample = model_output * scale
         # Scale the output back to [0, 1]
         sample = solution.sample
-        if self.minus_one_one:
-            sample = (sample.clamp(-1, 1) + 1) / 2
+
         if get_trajectory:
             return sample, solution.trajectory
         else:
