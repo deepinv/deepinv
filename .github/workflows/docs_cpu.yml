@@ -57,7 +57,7 @@ jobs:
             else
               BASE_REF="origin/${{ github.event.pull_request.base.ref }}"
               HEAD_REF="HEAD"
-              PATTERN=$(pixi run -e docs python .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
+              PATTERN=$(pixi run -e docs-cpu python .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
               echo "Conditional PR Pattern: $PATTERN"
             fi
           else

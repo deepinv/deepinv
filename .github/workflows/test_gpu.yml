@@ -23,6 +23,7 @@ jobs:
       WORKING_DIR: "/local/jtachell"
       PIXI_HOME: "/local/jtachell/.pixi"
       TMP_DIR: "/local/jtachell/tmp"
+      DEEPINV_CACHE: "/local/jtachell/.cache/deepinv"
 
     steps:
       - uses: actions/checkout@v5
