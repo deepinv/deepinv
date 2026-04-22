@@ -1,6 +1,7 @@
 import deepinv as dinv
 import torch
 import pytest
+import astra
 
 
 class TestTomographyWithAstra:
@@ -16,6 +17,14 @@ class TestTomographyWithAstra:
 
     def dummy_projection(self, x: torch.Tensor, out: torch.Tensor) -> None:
         out[:] = 1.0
+
+    def dummy_create_projector(
+        self,
+        type: str,
+        projection_geometry: dict[str, float],
+        object_geometry: dict[str, float],
+    ) -> int:
+        return 1
 
     @pytest.mark.parametrize("normalize", [True, False, None])
     @pytest.mark.parametrize("fbp", [True, False])
@@ -66,6 +75,11 @@ class TestTomographyWithAstra:
                 target=dinv.physics.TomographyWithAstra,
                 name="compute_norm",
                 value=self.dummy_compute_norm,
+            )
+            monkeypatch.setattr(
+                target=astra,
+                name="create_projector",
+                value=self.dummy_create_projector,
             )
 
         ## Test 2d transforms
