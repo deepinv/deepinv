@@ -31,7 +31,7 @@ class TestTomographyWithAstra:
     @pytest.mark.parametrize("cubic", [True, False])
     @pytest.mark.parametrize("channels", [1, 3])
     def test_tomography_with_astra_logic(
-        self, is_2d, geometry_type, normalize, fbp, monkeypatch, cubic, channels
+        self, is_2d, geometry_type, normalize, fbp, monkeypatch, cubic, channels, device
     ):
         r"""
         Tests tomography operator with astra backend which does not have a numerically precise adjoint.
@@ -42,6 +42,7 @@ class TestTomographyWithAstra:
         :param bool fbp: Whether or not to approximate the pseudo-inverse with filtered back-projection.
         :param bool cubic: Whether or not the input image is cubic (i.e. has the same size in all dimensions).
         :param int channels: Number of input channels. The tomography operator is applied per channel.
+        :param str device: The device to run the test on.
         """
 
         pytest.importorskip(
@@ -50,8 +51,7 @@ class TestTomographyWithAstra:
             "installed with `conda install -c astra-toolbox -c nvidia astra-toolbox`",
         )
 
-        device = dinv.utils.get_device(verbose=False)
-        if str(device) != "cuda":
+        if "cuda" not in str(device):
             monkeypatch.setattr(
                 target=dinv.physics.functional.XrayTransform,
                 name="_forward_projection",
