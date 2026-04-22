@@ -218,7 +218,9 @@ class Transform(torch.nn.Module, TimeMixin):
             return self.transform(x, **inv_params)
 
         if len(x) % self.n_trans != 0:  # pragma: no cover
-            raise ValueError("batchwise must be True")
+            raise ValueError(
+                f"batchwise=False requires len(x) to be divisible by n_trans, but got len(x)={len(x)} and n_trans={self.n_trans}. Set batchwise=True or adjust the batch size."
+            )
         B = len(x) // self.n_trans
         return torch.cat(
             [
