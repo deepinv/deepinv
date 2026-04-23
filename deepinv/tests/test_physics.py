@@ -1972,7 +1972,9 @@ def test_composed_physics(device):
 
     # A blur physics
     physics_3 = dinv.physics.BlurFFT(
-        img_size=img_size, filter=dinv.physics.functional.bilinear_filter(2.0), device=device
+        img_size=img_size,
+        filter=dinv.physics.functional.bilinear_filter(2.0),
+        device=device,
     )
 
     composed_physics = physics_1 * physics_3

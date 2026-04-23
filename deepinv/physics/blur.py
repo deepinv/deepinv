@@ -1,7 +1,5 @@
 from __future__ import annotations
 from warnings import warn
-from torchvision.transforms.functional import rotate
-import torchvision
 import torch
 import torch.fft as fft
 from torch import Tensor
@@ -12,9 +10,17 @@ from deepinv.utils.mixins import TiledMixin2d
 from deepinv.utils._internal import _as_pair, _add_tuple
 from deepinv.utils._tiling import _resolve_tiling_params, _compute_needed_pad
 
+
 def __getattr__(name):
-    if name in ('gaussian_blur', 'bilinear_filter', 'bicubic_filter', 'sinc_filter', 'kaiser_window'):
+    if name in (
+        "gaussian_blur",
+        "bilinear_filter",
+        "bicubic_filter",
+        "sinc_filter",
+        "kaiser_window",
+    ):
         import warnings
+
         warnings.warn(
             f"deepinv.physics.blur.{name} is deprecated and will be removed in a future version. "
             f"Use deepinv.physics.functional.{name} instead.",
@@ -23,6 +29,7 @@ def __getattr__(name):
         )
         return getattr(dF, name)
     raise AttributeError(f"module {__name__} has no attribute {name}")
+
 
 class Downsampling(LinearPhysics):
     r"""

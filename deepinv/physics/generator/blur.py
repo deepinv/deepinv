@@ -53,7 +53,7 @@ class GaussianBlurGenerator(PSFGenerator):
         dtype: type = torch.float32,
     ):
         r"""
-        Random Gaussian blur generator. Generates 1D, 2D, or 3D Gaussian kernels with random standard deviations and rotation angles. 
+        Random Gaussian blur generator. Generates 1D, 2D, or 3D Gaussian kernels with random standard deviations and rotation angles.
 
         :param tuple[int, ...] psf_size: the shape of the generated point spread function (PSF). The dimension (1D, 2D, or 3D) of the kernel is determined by the length of the ``psf_size`` tuple.
         :param float | tuple[float, ...] sigma_min: the minimum standard deviation(s) for the Gaussian kernel. If a single value is provided, it is applied to all dimensions. If a tuple is provided, it should have the same length as the number of dimensions and specify the minimum sigma for each dimension.
@@ -65,7 +65,7 @@ class GaussianBlurGenerator(PSFGenerator):
         :param torch.Generator rng: PyTorch random number generator for reproducibility. If ``None``, a torch.Generator will be created on the specified device.
         :param str device: the device to create the tensors on. Defaults to "cpu".
         :param type dtype: the data type of the generated tensors. Defaults to torch.float32.
-        
+
         |sep|
 
         :Examples:
@@ -104,12 +104,9 @@ class GaussianBlurGenerator(PSFGenerator):
         super().__init__(device=device, dtype=dtype, rng=rng, **kwargs)
 
     def _resolve_angles(
-        self,
-        angle_min,
-        angle_max,
-        dim: int
+        self, angle_min, angle_max, dim: int
     ) -> tuple[tuple[float, ...], tuple[float, ...]]:
-        
+
         if dim == 2:
             if isinstance(angle_min, (tuple, list)):
                 if len(angle_min) != 1:
@@ -146,16 +143,13 @@ class GaussianBlurGenerator(PSFGenerator):
                     raise ValueError(
                         f"Each component of angle_min should be less than or equal to the corresponding component of angle_max. Got angle_min = {angle_min} and angle_max = {angle_max}."
                     )
-                    
+
         return angle_min, angle_max
 
     def _resolve_sigmas(
-        self, 
-        sigma_min, 
-        sigma_max, 
-        dim: int
+        self, sigma_min, sigma_max, dim: int
     ) -> tuple[tuple[float, ...], tuple[float, ...]]:
-        
+
         if isinstance(sigma_min, (int, float)):
             sigma_min = (sigma_min,)
         if isinstance(sigma_max, (int, float)):
@@ -186,7 +180,7 @@ class GaussianBlurGenerator(PSFGenerator):
                 raise ValueError(
                     f"Each component of sigma_min should be less than or equal to the corresponding component of sigma_max. Got sigma_min = {sigma_min} and sigma_max = {sigma_max}."
                 )
-                
+
         return sigma_min, sigma_max
 
     def _generate_sigma(
@@ -224,16 +218,16 @@ class GaussianBlurGenerator(PSFGenerator):
                     ],
                     dim=-1,
                 )  # Shape: (batch_size, dim)
-        
-        return sigma    
-        
+
+        return sigma
+
     def _generate_angle(
         self,
         dim: int,
         batch_size: int,
         angle: torch.Tensor = None,
     ):
-        
+
         if angle is None and dim > 1:
             if dim == 2:
                 angle = (
@@ -255,7 +249,7 @@ class GaussianBlurGenerator(PSFGenerator):
                     ],
                     dim=-1,
                 )  # Shape: (batch_size, 3)
-                
+
         return angle
 
     def step(
@@ -268,14 +262,12 @@ class GaussianBlurGenerator(PSFGenerator):
     ):
         self.rng_manual_seed(seed)
         dim = len(self.psf_size)
-        
+
         sigma = self._generate_sigma(dim, batch_size, sigma)
         angle = self._generate_angle(dim, batch_size, angle)
 
         # filter.shape = (batch_size, 1, *psf_size)
-        filters = gaussian_blur(
-            self.psf_size, sigma, angle, **self.factory_kwargs
-        )
+        filters = gaussian_blur(self.psf_size, sigma, angle, **self.factory_kwargs)
         return {"filter": filters.expand(-1, self.num_channels, *(-1,) * dim)}
 
 

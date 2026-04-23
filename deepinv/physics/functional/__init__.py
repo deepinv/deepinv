@@ -11,7 +11,13 @@ from .convolution import (
     conv_transpose3d_fft,
 )
 
-from .blur import gaussian_blur, bilinear_filter, bicubic_filter, sinc_filter, kaiser_window
+from .blur import (
+    gaussian_blur,
+    bilinear_filter,
+    bicubic_filter,
+    sinc_filter,
+    kaiser_window,
+)
 
 from .product_convolution import product_convolution2d, product_convolution2d_adjoint
 from .tiled_product_convolution import (

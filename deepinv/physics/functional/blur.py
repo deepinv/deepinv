@@ -3,11 +3,14 @@ import torch
 
 from math import sqrt, pi
 
+
 def _resolve_batch_size(
     sigma: int | float | tuple[float, ...] | torch.Tensor,
     angle: int | float | tuple[float, ...] | torch.Tensor,
 ) -> int:
-    if isinstance(sigma, (int, float, tuple, list)) and isinstance(angle, (int, float, tuple, list)):
+    if isinstance(sigma, (int, float, tuple, list)) and isinstance(
+        angle, (int, float, tuple, list)
+    ):
         batch_size = 1
     elif isinstance(sigma, torch.Tensor) and isinstance(angle, torch.Tensor):
         if sigma.shape[0] != angle.shape[0]:
@@ -24,6 +27,7 @@ def _resolve_batch_size(
 
     return batch_size
 
+
 def _resolve_sigma(
     sigma: int | float | tuple[float, ...] | torch.Tensor,
     batch_size: int,
@@ -31,7 +35,7 @@ def _resolve_sigma(
     dtype: torch.dtype,
     dim: int,
 ) -> torch.Tensor:
-    
+
     # Standard deviation components
     # -----------------------------
 
@@ -62,12 +66,13 @@ def _resolve_sigma(
         raise ValueError(
             f"Invalid type for sigma. Expected int, float, tuple of floats, or tensor. Got {type(sigma)}."
         )
-        
+
     # Add extra *psf_size dimensions for broadcasting in Gaussian formula
     # (batch_size, dim) -> (batch_size, dim, 1, 1, ...) with as many 1's as dimensions in psf_size
-    sigma = sigma.view(batch_size, dim, *(1,) * dim) 
+    sigma = sigma.view(batch_size, dim, *(1,) * dim)
 
     return sigma
+
 
 def _resolve_angle(
     angle: int | float | tuple[float, ...] | torch.Tensor,
@@ -76,7 +81,7 @@ def _resolve_angle(
     dtype: torch.dtype,
     dim: int,
 ) -> torch.Tensor:
-    
+
     # Rotation angles
     # ---------------
     # For 3D, angles is a list of three angles (alpha, beta, gamma)
@@ -122,8 +127,9 @@ def _resolve_angle(
         angle = torch.deg2rad(
             angle
         )  # Convert angles from degrees to radians for rotation calculations
-        
+
     return angle
+
 
 def gaussian_blur(
     psf_size: tuple[int, ...] | None = None,
@@ -161,10 +167,14 @@ def gaussian_blur(
     # Resolve batch size from sigma and angle inputs
     batch_size = _resolve_batch_size(sigma, angle)
 
-    # Format sigma into tensor of shape (batch_size, dim) 
-    sigma = _resolve_sigma(sigma, batch_size=batch_size, device=device, dtype=dtype, dim=dim)
+    # Format sigma into tensor of shape (batch_size, dim)
+    sigma = _resolve_sigma(
+        sigma, batch_size=batch_size, device=device, dtype=dtype, dim=dim
+    )
     # Format angle into tensor of shape (batch_size,) for 2D angle or (batch_size, 3) for 3D angle
-    angle = _resolve_angle(angle, batch_size=batch_size, device=device, dtype=dtype, dim=dim)
+    angle = _resolve_angle(
+        angle, batch_size=batch_size, device=device, dtype=dtype, dim=dim
+    )
 
     # Create a grid for each dimension
     grids = []
@@ -178,7 +188,7 @@ def gaussian_blur(
     # the i-th grid corresponds to the i-th dimension in psf_size.
     # mesh[-1] will correspond to the x-coordinates, mesh[-2] to the y-coordinates, and mesh[-3] to the z-coordinates (if 3D).
     mesh = torch.meshgrid(*[grids[d] for d in range(dim)], indexing="ij")
-    
+
     # coords will have shape (*psf_size, dim) where the last dimension corresponds
     # to the coordinates values in (x,y,z) order.
     coords = torch.stack(list(mesh)[::-1], dim=-1)  # Shape: (*psf_size, dim)
@@ -234,9 +244,9 @@ def gaussian_blur(
     kernel = torch.ones((batch_size, *psf_size), device=device, dtype=dtype)
     # coords = coords.permute(0, *reversed(tuple(range(1, dim + 1))), -1)
     for d in range(dim):
-        kernel *= torch.exp(
-            -0.5 * (coords[..., d] ** 2) / (sigma[:, d] ** 2)
-        ) / (sqrt(2 * pi) * sigma[:, d])
+        kernel *= torch.exp(-0.5 * (coords[..., d] ** 2) / (sigma[:, d] ** 2)) / (
+            sqrt(2 * pi) * sigma[:, d]
+        )
 
     # Normalize each kernel
     kernel = kernel / torch.sum(kernel, dim=tuple(range(1, dim + 1)), keepdim=True)
@@ -319,7 +329,9 @@ def sinc_filter(
     return filter
 
 
-def bilinear_filter(factor: int = 2, device: torch.device | str = "cpu") -> torch.Tensor:
+def bilinear_filter(
+    factor: int = 2, device: torch.device | str = "cpu"
+) -> torch.Tensor:
     r"""
     Bilinear filter.
 
