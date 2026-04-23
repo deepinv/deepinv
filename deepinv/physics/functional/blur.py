@@ -148,7 +148,7 @@ def gaussian_blur(
     :param int | float | tuple[float, ...] | torch.Tensor angle: Rotation angle(s) for each kernel in the batch (degrees). For 2D kernels, this is a single angle of rotation in the plane. For 3D kernels, this can be a tuple of three angles (gamma, beta, alpha) representing rotations around the x, y, and z axes respectively. In 3D, if a single angle is provided, it is applied as a rotation around the z-axis. If a tuple of three angles is provided, they are applied as rotations around the x, y, and z axes in that order. If a tensor of shape (batch_size,) for 2D or (batch_size, 3) for 3D is provided, each kernel in the batch can have its own rotation angle(s).
     :param str device: Device to create the tensor on.
 
-    :return: A tensor of batched N-dimensional Gaussian kernels of shape (batch_size, *psf_size).
+    :return: A tensor of batched N-dimensional Gaussian kernels of shape ``(batch_size, *psf_size)``.
     """
 
     if psf_size is None:
