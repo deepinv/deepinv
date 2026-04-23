@@ -610,14 +610,14 @@ class GLOWCouplingBlock(nn.Module):
     Each block performs two successive affine coupling steps on the input vector,
     which is split into two halves :math:`(x_1, x_2)`:
 
-    * Step 1 — a subnetwork acting on :math:`x_1` produces a pointwise scale :math:`s1` and
+    * Step 1 — a subnetwork acting on :math:`x_1` produces a pointwise scale :math:`s_1` and
       shift :math:`t_1` that are applied to :math:`x_2`: :math:`y_2 = x_2 \cdot \exp(s_1) + t_1`.
     * Step 2 — a second subnetwork acting on :math:`y_2` produces :math:`(s_2, t_2)` that are
       applied to :math:`x_1` : :math:`y_1 = x_1 \cdot \exp(s_2) + t_2`.
 
     Both steps are exactly invertible, and their combined log-determinant of the
     Jacobian is :math:`1^{\top}(s_1 + s_2)`.  The scale outputs are soft-clamped via
-    :math:`\text{clamp} \frac{2}{\pi} \text{arctan}(s / \text{clamp})` to keep the log-determinant bounded and
+    :math:`\text{clamp} \times \frac{2}{\pi} \text{arctan}(s / \text{clamp})` to keep the log-determinant bounded and
     training stable.
 
     The two-step affine coupling structure follows :footcite:t:`dinh2017density`, and
