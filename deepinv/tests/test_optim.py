@@ -937,11 +937,6 @@ def test_MLEM(imsize, dummy_dataset, device):
 
 
 def test_patch_prior(imsize, dummy_dataset, device):
-    pytest.importorskip(
-        "FrEIA",
-        reason="This test requires FrEIA. It should be "
-        "installed with `pip install FrEIA",
-    )
     torch.manual_seed(0)
 
     dataloader = DataLoader(
