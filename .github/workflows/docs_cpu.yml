@@ -103,6 +103,6 @@ jobs:
           HF_HUB_DISABLE_PROGRESS_BARS: 1
           DEEPINV_DOWNLOAD_VERBOSE: 0
         run: |
-          pixi run -e doctest pytest --doctest-glob="*.rst" docs/ \
+          pixi run -e doctest-cpu pytest --doctest-glob="*.rst" docs/ \
             --ignore=docs/source/user_guide/training/multigpu.rst \
             --ignore=docs/source/user_guide/training/datasets.rst
