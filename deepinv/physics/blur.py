@@ -9,26 +9,7 @@ import deepinv.physics.functional as dF
 from deepinv.utils.mixins import TiledMixin2d
 from deepinv.utils._internal import _as_pair, _add_tuple
 from deepinv.utils._tiling import _resolve_tiling_params, _compute_needed_pad
-
-
-def __getattr__(name):
-    if name in (
-        "gaussian_blur",
-        "bilinear_filter",
-        "bicubic_filter",
-        "sinc_filter",
-        "kaiser_window",
-    ):
-        import warnings
-
-        warnings.warn(
-            f"deepinv.physics.blur.{name} is deprecated and will be removed in a future version. "
-            f"Use deepinv.physics.functional.{name} instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return getattr(dF, name)
-    raise AttributeError(f"module {__name__} has no attribute {name}")
+from deepinv.utils.decorators import _deprecated_func_replaced_by
 
 
 class Downsampling(LinearPhysics):
@@ -473,7 +454,7 @@ class Blur(LinearPhysics):
     where :math:`*` denotes convolution and :math:`w` is a filter.
 
     :param torch.Tensor filter: Tensor of size (b, 1, h, w) or (b, c, h, w) in 2D; (b, 1, d, h, w) or (b, c, d, h, w) in 3D,
-        containing the blur filter, e.g., :func:`deepinv.physics.blur.gaussian_blur`.
+        containing the blur filter, e.g., :func:`deepinv.physics.functional.gaussian_blur`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image. (default is ``'valid'``).
@@ -602,7 +583,7 @@ class BlurFFT(DecomposablePhysics):
 
     :param tuple img_size: Input image size in the form `(C, H, W)`.
     :param torch.Tensor filter: torch.Tensor of size `(1, c, h, w)` containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
-        :func:`deepinv.physics.blur.gaussian_blur`.
+        :func:`deepinv.physics.functional.gaussian_blur`.
     :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     |sep|
@@ -1276,3 +1257,35 @@ class DownsamplingMatlab(Downsampling):
             dtype=y.dtype,
         )
         return adj(y)
+
+@_deprecated_func_replaced_by(dF.gaussian_blur, redirect=False, since="0.4.1")
+def gaussian_blur(    
+    sigma: float | tuple[float, ...] = (1, 1),
+    angle: float = 0,
+    device: torch.device | str = "cpu",
+) -> Tensor:
+    if isinstance(sigma, (int, float)):
+        sigma = (sigma, sigma)
+    return dF.gaussian_blur(psf_size=None, sigma=sigma, angle=angle, device=device)
+
+# Rest of the functionals whose implementation did not change
+# -----------------------------------------------------------
+def __getattr__(name):
+    if name in (
+        "bilinear_filter",
+        "bicubic_filter",
+        "sinc_filter",
+        "kaiser_window",
+    ):
+        import warnings
+
+        warnings.warn(
+            f"Function deepinv.physics.blur.{name} is deprecated since version 0.4.1 and will be removed in a future version. "
+            f"Use deepinv.physics.functional.{name} instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        
+        return getattr(dF, name)
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")
