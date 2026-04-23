@@ -19,6 +19,7 @@ from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 import inspect
+import time
 
 
 @dataclass
@@ -1187,10 +1188,10 @@ class Trainer:
         r"""
         Save the model.
 
-        It saves the model every ``ckp_interval`` epochs.
+        It saves the model every ``ckp_interval`` epochs in ``save_path/filename``.
 
+        :param str filename: checkpoint filename.
         :param int epoch: Current epoch.
-        :param None, float eval_metrics: Evaluation metrics across epochs.
         :param dict state: custom objects to save with model
         """
         if state is None:
@@ -1526,7 +1527,7 @@ class Trainer:
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
         :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If
             ``None``, uses the metrics provided during Trainer initialization.
-        :returns: dict of metrics results with means and stds.
+        :returns: dict of metrics, timings (in sec) and peak memory usage (in GBy) results with means and stds. Timings correspond to average inference time per sample.
         """
         if metrics is not None:
             self.metrics = metrics
@@ -1546,7 +1547,6 @@ class Trainer:
         self.mlflow_setup = {}
         self.log_train_batch = False
         self.setup_train(train=False)
-
         self.save_folder_im = save_path
 
         self.reset_metrics()
@@ -1562,6 +1562,7 @@ class Trainer:
 
         batches = min([len(loader) - loader.drop_last for loader in test_dataloader])
 
+        perf_counter_start = time.perf_counter()
         for i in (
             progress_bar := tqdm(
                 range(batches),
@@ -1589,6 +1590,10 @@ class Trainer:
         if self.verbose:
             print("Test results:")
 
+        # reset peak GPU memory usage counter
+        if torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats()
+
         out = {}
         for k, l in enumerate(self.logs_metrics_eval):
             if compare_no_learning:
@@ -1609,6 +1614,20 @@ class Trainer:
                 out[name + "_vals"] = l.vals
             if self.verbose:
                 print(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
+
+        perf_counter_end = time.perf_counter()
+        elapsed_time = perf_counter_end - perf_counter_start
+        avg_time_per_sample = elapsed_time / (batches * test_dataloader[0].batch_size)
+
+        # add runtime info
+        out["runtime"] = avg_time_per_sample
+        if torch.cuda.is_available():
+            # report in GB
+            out["peak_gpu_memory_usage"] = (
+                torch.cuda.max_memory_allocated() / (1024**3)
+                if torch.cuda.is_available()
+                else None
+            )
 
         return out
 
