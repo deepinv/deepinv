@@ -39,6 +39,7 @@ We consider the following two choices of :math:`h`:
   It models :math:`h(x)=-\log(p_{\theta}(x))` as negative log-likelihood function of a probaility density function
   :math:`p_\theta={\mathcal{T}_\theta}_\#\mathcal{N}(0,I)` which is given as the push-forward measure of a standard
   normal distribution under a normalizing flow (invertible neural network) :math:`\mathcal{T}_\theta`.
+
 """
 
 import torch
@@ -104,7 +105,7 @@ epll_batch_size = 10000
 #
 #          where :math:`\mathcal{T}_\theta` is the normalizing flow with parameters :math:`\theta`, latent distribution
 #          :math:`P_Z`, data distribution :math:`P_X` and push-forward measure :math:`{\mathcal{T}_\theta}_\#P_Z`.
-
+#
 
 retrain = False
 if retrain:
