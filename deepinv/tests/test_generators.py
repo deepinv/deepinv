@@ -31,6 +31,12 @@ GENERATORS = [
 ]
 
 MIXTURES = list(itertools.combinations(GENERATORS, 2))
+# To test GeneratorMixture.use_batch_sampling feature, when compatible
+# generators (same output keys and shapes), samples from different generators
+# per batch element
+MIXTURES += [("MotionBlurGenerator", "MotionBlurGenerator")]
+MIXTURES += [("DiffractionBlurGenerator", "DiffractionBlurGenerator")]
+
 SIZES = [(5, 5), (6, 6)]
 NUM_CHANNELS = [1, 3]
 
@@ -962,6 +968,15 @@ def test_generator_mixture(
         rng=rng,
         verbose=True,
     )
+
+    # When two generators belong to the same class and have same output keys and shapes
+    # use_batch_sampling must be True if specified
+    if type(generator_pair[0]) == type(generator_pair[1]):
+        assert mixture.use_batch_sampling == use_batch_sampling
+
+        # Check that the mixture functions properly when use_batch_sampling is True
+        # and all params from the batch are from the same generator (force it by using batch_size=1)
+        params = mixture.step(batch_size=1, seed=0)
 
     params = mixture.step(batch_size=4, seed=0)
     assert isinstance(params, dict)

@@ -225,9 +225,11 @@ class GeneratorMixture(PhysicsGenerator):
         super().__init__(device=device, rng=rng)
         probs = torch.tensor(probs, device=device)
         assert torch.sum(probs) == 1, "The sum of the probabilities must be 1."
+
+        self.register_buffer("probs", probs)
+        self.register_buffer("cum_probs", torch.cumsum(probs, dim=0))
+
         self.generators = generators
-        self.probs = probs
-        self.cum_probs = torch.cumsum(probs, dim=0)
 
         self.use_batch_sampling = use_batch_sampling
         if self.use_batch_sampling:
@@ -306,15 +308,15 @@ class GeneratorMixture(PhysicsGenerator):
                     params = generator.step(batch_size=num_samples, seed=seed, **kwargs)
 
                     # Store with position information for later reordering
-                for key, value in params.items():
-                    if key not in result:
-                        result[key] = torch.empty(
-                            batch_size,
-                            *value.shape[1:],
-                            dtype=value.dtype,
-                            device=value.device,
-                        )
-                    result[key][batch_positions] = value
+                    for key, value in params.items():
+                        if key not in result:
+                            result[key] = torch.empty(
+                                batch_size,
+                                *value.shape[1:],
+                                dtype=value.dtype,
+                                device=value.device,
+                            )
+                        result[key][batch_positions] = value
 
             return result
 

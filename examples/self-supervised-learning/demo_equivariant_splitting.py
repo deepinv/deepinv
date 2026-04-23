@@ -71,7 +71,9 @@ transform = transforms.Compose(
 )
 
 dataset = dinv.datasets.Urban100HR(
-    root=dinv.utils.get_data_home() / "Urban100", transform=transform, download=True
+    root=dinv.utils.get_cache_home() / "datasets" / "Urban100",
+    transform=transform,
+    download=True,
 )
 train_dataset, eval_dataset, test_dataset = torch.utils.data.random_split(
     dataset, [80, 19, 1], generator=torch.Generator().manual_seed(0)
@@ -227,7 +229,7 @@ if cached_checkpoint is None:
 else:
     epochs = 0
     ckpt_pretrained = (
-        dinv.utils.get_data_home() / "examples" / "ES" / "ckp_best.pth.tar"
+        dinv.utils.get_cache_home() / "examples" / "ES" / "ckp_best.pth.tar"
     )
     os.makedirs(ckpt_pretrained.parent, exist_ok=True)
 
