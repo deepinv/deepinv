@@ -608,36 +608,26 @@ class GLOWCouplingBlock(nn.Module):
     r"""GLOW-style affine coupling block.
 
     Each block performs two successive affine coupling steps on the input vector,
-    which is split into two halves ``(x1, x2)``:
+    which is split into two halves :math:`(x_1, x_2)`:
 
-    * Step 1 — a subnetwork acting on ``x1`` produces a pointwise scale ``s1`` and
-      shift ``t1`` that are applied to ``x2``: ``y2 = x2 * exp(s1) + t1``.
-    * Step 2 — a second subnetwork acting on ``y2`` produces ``s2, t2`` that are
-      applied to ``x1``: ``y1 = x1 * exp(s2) + t2``.
+    * Step 1 — a subnetwork acting on :math:`x_1` produces a pointwise scale :math:`s1` and
+      shift :math:`t_1` that are applied to :math:`x_2`: :math:`y_2 = x_2 \cdot \exp(s_1) + t_1`.
+    * Step 2 — a second subnetwork acting on :math:`y_2` produces :math:`(s_2, t_2)` that are
+      applied to :math:`x_1` : :math:`y_1 = x_1 \cdot \exp(s_2) + t_2`.
 
     Both steps are exactly invertible, and their combined log-determinant of the
-    Jacobian is ``sum(s1) + sum(s2)``.  The scale outputs are soft-clamped via
-    ``clamp * (2/π) * arctan(s / clamp)`` to keep the log-determinant bounded and
+    Jacobian is :math:`1^{\top}(s_1 + s_2)`.  The scale outputs are soft-clamped via
+    :math:`\text{clamp} \frac{2}{\pi} \text{arctan}(s / \text{clamp})` to keep the log-determinant bounded and
     training stable.
 
     The two-step affine coupling structure follows :footcite:t:`dinh2017density`, and
     the soft-clamping of scales is introduced in :footcite:t:`kingma2018glow`.
 
     :param int dim: total input/output dimension (will be split evenly).
-    :param callable subnet: a callable ``subnet(channels_in, channels_out) -> nn.Module``
+    :param Callable subnet: a callable ``subnet(channels_in, channels_out) -> nn.Module``
         that constructs the subnetworks used inside each coupling step.
-
-        For example:
-
-        ::
-
-            subnet = lambda c_in, c_out: nn.Sequential(
-                nn.Linear(c_in, 256), nn.ReLU(),
-                nn.Linear(256, 256), nn.ReLU(),
-                nn.Linear(256, c_out),
-            )
-
     :param float clamp: soft-clamping magnitude for the log-scale outputs. Default is ``1.6``.
+
     """
 
     def __init__(self, dim: int, subnet: Callable, clamp: float = 1.6):
@@ -719,20 +709,33 @@ class NormalizingFlow(nn.Module):
 
     :param int dimension: dimension of each input sample (flattened patch size).
     :param int num_layers: number of coupling blocks to stack.
-    :param callable subnet: a callable ``subnet(channels_in, channels_out) -> nn.Module``
+    :param Callable subnet: a callable ``subnet(channels_in, channels_out) -> nn.Module``
         that constructs the subnetworks used inside each coupling block.
-
-        For example
-
-        ::
-
-            subnet = lambda c_in, c_out: nn.Sequential(
-                nn.Linear(c_in, 256), nn.ReLU(),
-                nn.Linear(256, 256), nn.ReLU(),
-                nn.Linear(256, c_out),
-            )
-
     :param float clamp: soft-clamping magnitude passed to every coupling block. Default is ``1.6``.
+
+    |sep|
+
+    :Examples:
+
+
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> subnet = lambda c_in, c_out: nn.Sequential(
+    ...     nn.Linear(c_in, 32), nn.ReLU(),
+    ...     nn.Linear(32, 32), nn.ReLU(),
+    ...     nn.Linear(32, c_out),
+    ... )
+    >>> flow = NormalizingFlow(dimension=8, num_layers=2, subnet=subnet)
+    >>> x = torch.randn(4, 8)
+    >>> z, log_det = flow(x)
+    >>> z.shape
+    torch.Size([4, 8])
+    >>> log_det.shape
+    torch.Size([4])
+    >>> x_rec, _ = flow(z, rev=True)  # inverse flow recovers the input
+    >>> torch.allclose(x, x_rec, atol=1e-5)
+    True
+
     """
 
     def __init__(
@@ -807,6 +810,19 @@ class PatchNR(Prior):
     :param int sub_net_size: defines the number of hidden neurons in the subnetworks of the normalizing flow
         if `normalizing_flow` is ``None``.
     :param str device: used device
+
+    |sep|
+
+    :Examples:
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> prior = dinv.optim.PatchNR(patch_size=6, channels=1)
+    >>> x = torch.randn(2, 10, 36)  # (batch, n_patches, patch_size^2 * channels)
+    >>> nll = prior.fn(x)
+    >>> nll.shape
+    torch.Size([2, 10])
+
     """
 
     def __init__(
