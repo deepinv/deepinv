@@ -1,0 +1,15 @@
+﻿PlaceholderDataset
+==================
+
+.. currentmodule:: deepinv.datasets.utils
+
+.. autoclass:: PlaceholderDataset
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.datasets.utils.PlaceholderDataset:
+
+.. minigallery:: deepinv.datasets.utils.PlaceholderDataset
+    :add-heading: Examples using ``PlaceholderDataset``:
