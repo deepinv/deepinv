@@ -766,10 +766,10 @@ class NormalizingFlow(nn.Module):
 
 class PatchNR(Prior):
     r"""
-    Patch prior via normalizing flows :footcite:t:`altekruger2023patchnr`.
+    Patch prior via normalizing flows.
 
     The prior is defined as the sum of the negative log-likelihoods of all
-    (overlapping) patches of the image under a learned normalizing flow model.
+    (overlapping) patches of the image under a learned normalizing flow model :footcite:p:`altekruger2023patchnr`.
     Denoting by :math:`P_i x` the :math:`i`-th patch of image :math:`x` (out of :math:`N`) and by
     :math:`f_\theta` the normalizing flow with parameters :math:`\theta`, the prior reads
 
