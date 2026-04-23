@@ -89,8 +89,10 @@ Priors
    deepinv.optim.WaveletPrior
    deepinv.optim.TVPrior
    deepinv.optim.PatchPrior
-   deepinv.optim.PatchNR
    deepinv.optim.L12Prior
+   deepinv.optim.PatchNR
+   deepinv.optim.prior.NormalizingFlow
+   deepinv.optim.prior.GLOWCouplingBlock
 
 Predefined models
 -----------------
@@ -200,3 +202,4 @@ Utils
    :nosignatures:
 
    deepinv.optim.utils.GaussianMixtureModel
+
