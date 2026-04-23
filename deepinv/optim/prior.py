@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Callable
 import numpy as np
 import torch
 import torch.nn as nn
-from typing import Callable
+import torch.nn.functional as F
 
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
