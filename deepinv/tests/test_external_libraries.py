@@ -1,7 +1,6 @@
 import deepinv as dinv
 import torch
 import pytest
-import astra
 
 
 class TestTomographyWithAstra:
@@ -54,7 +53,7 @@ class TestTomographyWithAstra:
         :param str device: The device to run the test on.
         """
 
-        pytest.importorskip(
+        astra = pytest.importorskip(
             "astra",
             reason="This test requires astra-toolbox. It should be "
             "installed with `conda install -c astra-toolbox -c nvidia astra-toolbox`",
