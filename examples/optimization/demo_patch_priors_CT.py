@@ -10,17 +10,14 @@ with :math:`100` equispace angles between 20 and 160 degrees.
 For the reconstruction, we minimize the variational problem
 
 .. math::
-    \begin{equation*}
-    \label{eq:min_prob}
+
     \underset{x}{\arg\min} \quad \datafid{x}{y} + \lambda g(x).
-    \end{equation*}
 
 Here, the regularizer :math:`g` is explicitly defined as
 
 .. math::
-    \begin{equation*}
+
     g(x)=\sum_{i\in\mathcal{I}} h(P_i x),
-    \end{equation*}
 
 where :math:`P_i` is the linear operator which extracts the :math:`i`-th patch from the image :math:`x` and
 :math:`h` is a regularizer on the space of patches.
@@ -33,8 +30,7 @@ We consider the following two choices of :math:`h`:
   an expectation maximization algorithm.
   In contrast to the original paper by Zoran and Weiss, we minimize the arising variational problem by simply applying
   the Adam optimizer. For an example using the (approximated) half-quadratic splitting algorithm proposed by
- :footcite:t:`zoran2011learning`, we refer to the example :ref:`sphx_glr_auto_examples_optimization_demo_epll.py`.
-
+  :footcite:t:`zoran2011learning`, we refer to the example :ref:`sphx_glr_auto_examples_optimization_demo_epll.py`.
 * The patch normalizing flow regularizer (PatchNR) was proposed by :footcite:t:`altekruger2023patchnr`.
   It models :math:`h(x)=-\log(p_{\theta}(x))` as negative log-likelihood function of a probaility density function
   :math:`p_\theta={\mathcal{T}_\theta}_\#\mathcal{N}(0,I)` which is given as the push-forward measure of a standard
@@ -180,7 +176,7 @@ if retrain:
     model_epll.GMM.fit(epll_dataloader, verbose=verbose, max_iters=epll_max_iter)
 else:
     model_patchnr = PatchNR(
-        pretrained="PatchNR_lodopab_small",
+        pretrained="PatchNR_lodopab_small2",
         sub_net_size=patchnr_subnetsize,
         device=device,
         patch_size=patch_size,

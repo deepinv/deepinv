@@ -803,7 +803,7 @@ class PatchNR(Prior):
         coupling blocks and the hidden neurons of the sub-networks are determined by ``num_layers`` and ``sub_net_size`` respectively.
         If `None`, it is set to :class:`deepinv.optim.prior.NormalizingFlow` model.
     :param str pretrained: Define pretrained weights by its path checkpoint, `None` for random initialization,
-        `"PatchNR_lodopab_small"` for the weights from the :ref:`limited-angle CT example <sphx_glr_auto_examples_optimization_demo_patch_priors_CT.py>`.
+        `"PatchNR_lodopab_small2"` for the weights from the :ref:`limited-angle CT example <sphx_glr_auto_examples_optimization_demo_patch_priors_CT.py>`.
     :param int patch_size: size of patches
     :param int channels: number of channels for the underlying images/patches.
     :param int num_layers: defines the number of coupling blocks of the normalizing flow if `normalizing_flow` is ``None``.
@@ -857,10 +857,10 @@ class PatchNR(Prior):
         else:
             self.normalizing_flow = normalizing_flow
         if pretrained:
-            if pretrained == "PatchNR_lodopab_small":
+            if pretrained == "PatchNR_lodopab_small2":
                 assert patch_size == 3
                 assert channels == 1
-                file_name = "PatchNR_lodopab_small.pt"
+                file_name = "PatchNR_lodopab_small2.pt"
                 url = get_weights_url(model_name="demo", file_name=file_name)
                 weights = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=file_name
