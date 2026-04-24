@@ -313,7 +313,7 @@ def test_r2r(noise_type, device):
 
 @pytest.mark.parametrize("l2r_recorruptor", LIST_L2R)
 def test_l2r(l2r_recorruptor, device):
-    imsize = (3, 4, 4)
+    imsize = (3, 8, 8)
 
     # choose backbone denoiser
     backbone = dinv.models.MedianFilter()
