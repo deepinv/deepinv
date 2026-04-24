@@ -280,10 +280,11 @@ def test_dct_idct(device):
     xrec = dinv.physics.functional.idct_2d(y, norm="ortho")
     assert torch.linalg.vector_norm(x - xrec) < 1e-5
 
-# NOTE: This test is a non-regression test that checks that the new implementation 
-# of gaussian_blur in deepinv.physics.functional.gaussian_blur produces similar results 
-# to a first implementation using torchvision.transforms.functional.rotate and a 
-# manually constructed Gaussian kernel.
+
+# NOTE: This test is a non-regression test that checks that the new implementation
+# of gaussian_blur in deepinv.physics.functional.gaussian_blur produces similar
+# results to a first implementation using torchvision.transforms.functional.rotate
+# on an axis-aligned Gaussian kernel.
 @pytest.mark.parametrize("sigma", [(0.5, 1.0), (2.0, 2.0), (3.0, 4.0)])
 @pytest.mark.parametrize("angle", [15.0, 45.0, 90.0])
 def test_gaussian_blur_non_regression(device, sigma, angle):
@@ -326,19 +327,23 @@ def test_gaussian_blur_non_regression(device, sigma, angle):
 
         return filt.unsqueeze(0).unsqueeze(0)
 
-    ref_filter = gaussian_blur(sigma=sigma, angle=angle, device=device)  
+    ref_filter = gaussian_blur(sigma=sigma, angle=angle, device=device)
     new_filter = dF.gaussian_blur(sigma=sigma, angle=angle, device=device)
     assert torch.allclose(
-        ref_filter, 
-        new_filter, 
-        rtol=1e-1, 
-        atol=2e-2
+        ref_filter, new_filter, rtol=1e-1, atol=2e-2
     ), f"Filters differ for sigma={sigma} and angle={angle}. Got old implementation:\n{ref_filter}\nNew implementation:\n{new_filter}"
 
     # Compute Normalized Cross-Correlation (NCC)
-    numerator = torch.sum((ref_filter - ref_filter.mean()) * (new_filter - new_filter.mean()))
-    denominator = torch.sqrt(torch.sum((ref_filter - ref_filter.mean()) ** 2) * torch.sum((new_filter - new_filter.mean()) ** 2))
-    
+    numerator = torch.sum(
+        (ref_filter - ref_filter.mean()) * (new_filter - new_filter.mean())
+    )
+    denominator = torch.sqrt(
+        torch.sum((ref_filter - ref_filter.mean()) ** 2)
+        * torch.sum((new_filter - new_filter.mean()) ** 2)
+    )
+
     normalized_cross_correlation = (numerator / denominator).item()
-    
-    assert normalized_cross_correlation == pytest.approx(1.0, abs=5e-3), f"NCC is {normalized_cross_correlation:.6f}, expected approximately 1.0"
+
+    assert normalized_cross_correlation == pytest.approx(
+        1.0, abs=5e-3
+    ), f"NCC is {normalized_cross_correlation:.6f}, expected approximately 1.0"
