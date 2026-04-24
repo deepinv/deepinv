@@ -31,6 +31,8 @@ OPERATORS = [
     "deblur_valid",
     "deblur_circular",
     "deblur_reflect",
+    "pet_2d",
+    "pet_3d",
     "deblur_replicate",
     "deblur_constant",
     "composition",
@@ -239,6 +241,38 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )  # B,N,D,H,W where N is coils and D is depth
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
         params = ["mask"]
+    elif name == "pet_2d":
+        pytest.importorskip(
+            "parallelproj",
+            reason="This test requires parallelproj. It should be "
+            "installed with `conda install -c conda-forge parallelproj`",
+        )
+        img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
+        p = dinv.physics.PET(
+            img_size,
+            normalize=True,
+            device=device,
+            projected_attenuation=True,
+        )
+        p.noise_model = dinv.physics.ZeroNoise()
+        p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
+        params = ["background", "attenuation"]
+    elif name == "pet_3d":
+        pytest.importorskip(
+            "parallelproj",
+            reason="This test requires parallelproj. It should be "
+            "installed with `conda install -c conda-forge parallelproj`",
+        )
+        img_size = (1, 16, 16, 16) if imsize is None else imsize  # C,H,W
+        p = dinv.physics.PET(
+            img_size,
+            normalize=True,
+            device=device,
+            projected_attenuation=True,
+        )
+        p.noise_model = dinv.physics.ZeroNoise()
+        p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
+        params = ["attenuation", "background"]
     elif name == "2DParallelBeamCT":
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
         p = dinv.physics.Tomography(
@@ -720,7 +754,7 @@ def test_operators_adjointness(name, device, rng):
     assert error < 1e-3
 
     if (
-        "pansharpen" in name or "radio" in name
+        "pansharpen" in name or "radio" in name or "pet" in name
     ):  # automatic adjoint does not work for inputs that are not torch.tensors
         pytest.skip()
     f = adjoint_function(physics.A, x.shape, x.device, x.dtype)
@@ -2043,6 +2077,8 @@ def test_adjoint_autograd(name, device):
         "ptychography_linear",
         "radio",
         "radio_weighted",
+        "pet_2d",
+        "pet_3d",
     }:
         pytest.skip(f"Operator {name} is not supported by adjoint_function.")
 
@@ -2070,6 +2106,8 @@ def test_adjoint_autograd(name, device):
 def test_clone(name, device):
     if name in OPERATORS:
         physics, imsize, _, dtype = find_operator(name, device)
+        if "pet" in name:
+            pytest.skip("PET operators cannot be cloned due to parallelproj.")
     elif name in NONLINEAR_OPERATORS:
         if name == "haze":
             pytest.skip(

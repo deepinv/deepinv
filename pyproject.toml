@@ -169,11 +169,15 @@ transformers = "*"
 # bm3d, bm4d, libcpab, ptwt are PyPI-only, stay in optional deps
 
 [tool.pixi.feature.physics.dependencies]
-astra-toolbox = ">=2.2.0,!=2.3.0"
 torchkbnufft = "*"
 array-api-compat = "*"
 sigpy = "*"
+parallelproj = ">=1.10.0"
 # spyrit is PyPI-only, stays in optional deps
+
+[tool.pixi.feature.physics-gpu.dependencies]
+astra-toolbox = ">=2.2.0,!=2.3.0"
+cupy = "*"  # for parallelproj's GPU support
 
 [tool.pixi.feature.training.dependencies]
 wandb = "*"
@@ -186,9 +190,9 @@ deepinv = { path = ".", editable = true}
 # gpu environments
 default   = { features = ["gpu"], solve-group = "gpu" }
 test      = { features = ["gpu", "test"], solve-group = "gpu" }
-full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "gpu" }
-docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
-doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
+full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training"], solve-group = "gpu" }
+docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312"], solve-group = "gpu-docs" }
+doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312"], solve-group = "gpu-docs" }
 # cpu environments (same as gpu but without the gpu dependencies)
 test-cpu  = { features = ["test"],  solve-group = "cpu" }
 full-cpu  = { features = ["doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "cpu" }

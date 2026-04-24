@@ -12,6 +12,7 @@ from .blur import (
 from .scattering import Scattering
 from .range import Decolorize
 from .haze import Haze
+from .pet import PET
 from .unmixing import HyperSpectralUnmixing
 from .forward import (
     Denoising,
