@@ -1,12 +1,67 @@
 from __future__ import annotations
 import torch
 import torch.distributed as dist
+import torch.distributed.nn.functional as dist_nn
 from typing import TYPE_CHECKING, Callable, Any, Sequence
 
 from deepinv.utils.tensorlist import TensorList
 
 if TYPE_CHECKING:
     from deepinv.distributed.distrib_framework import DistributedContext
+
+
+def _any_rank_requires_grad(
+    ctx: DistributedContext, local_tensors: Sequence[torch.Tensor]
+) -> bool:
+    """Return True if any rank has a tensor participating in autograd."""
+    local_has_grad = any(getattr(t, "requires_grad", False) for t in local_tensors)
+    if not ctx.use_dist:
+        return local_has_grad
+    flag = torch.tensor(
+        [1 if local_has_grad else 0], device=ctx.device, dtype=torch.long
+    )
+    global_flag = ctx.all_reduce(flag, op=dist.ReduceOp.SUM)
+    return bool(int(global_flag.item()) > 0)
+
+
+def _ensure_functional_collective_input(
+    ctx: DistributedContext,
+    collective_input: torch.Tensor,
+    local_tensors: Sequence[torch.Tensor],
+) -> torch.Tensor:
+    """
+    Force functional collectives on all ranks when any rank needs autograd support.
+    """
+    if (
+        _any_rank_requires_grad(ctx, local_tensors)
+        and not collective_input.requires_grad
+    ):
+        collective_input = collective_input.requires_grad_()
+    return collective_input
+
+
+def _anchor_output_to_input_graph(
+    out: TensorList | torch.Tensor,
+    anchor_tensor: torch.Tensor | None,
+    has_local_items: bool,
+) -> TensorList | torch.Tensor:
+    """
+    On empty ranks, add a zero-valued dependency on `x` so backward hooks run on all ranks.
+    """
+    if (
+        has_local_items
+        or not isinstance(anchor_tensor, torch.Tensor)
+        or not anchor_tensor.requires_grad
+    ):
+        return out
+
+    anchor = 0.0 * anchor_tensor.reshape(-1)[0]
+    if isinstance(out, torch.Tensor):
+        return out + anchor
+
+    if len(out) > 0:
+        out[0] = out[0] + anchor
+    return out
 
 
 def map_reduce_gather(
@@ -20,6 +75,7 @@ def map_reduce_gather(
     dtype: torch.dtype = torch.float32,
     gather: bool = True,
     reduce_op: str | None = None,
+    graph_anchor: torch.Tensor | None = None,
     **kwargs,
 ) -> TensorList | list[torch.Tensor] | torch.Tensor:
     r"""
@@ -28,6 +84,7 @@ def map_reduce_gather(
     Iterates over local items and input data, applies a local operation, and then
     computes the result globally using reduction or gathering.
     """
+    anchor_tensor = graph_anchor if graph_anchor is not None else x
 
     # Handle inputs
     if isinstance(x, (list, tuple)):
@@ -45,7 +102,7 @@ def map_reduce_gather(
 
     if reduce_op is not None:
         # Map-Reduce path
-        return reduce_local_results(
+        reduced = reduce_local_results(
             ctx,
             local_results,
             reduce_op=reduce_op,
@@ -53,9 +110,14 @@ def map_reduce_gather(
             dtype=dtype,
             num_operators=num_operators,
         )
+        return _anchor_output_to_input_graph(
+            reduced, anchor_tensor, has_local_items=len(local_items) > 0
+        )
 
     if not gather:
-        return local_results
+        return _anchor_output_to_input_graph(
+            local_results, anchor_tensor, has_local_items=len(local_items) > 0
+        )
 
     if not ctx.use_dist:
         out: list = [None] * num_operators
@@ -88,7 +150,10 @@ def map_reduce_gather(
     else:
         raise ValueError(f"Unknown gather strategy: {gather_strategy}")
 
-    return TensorList([gathered[i] for i in range(num_operators)])
+    out = TensorList([gathered[i] for i in range(num_operators)])
+    return _anchor_output_to_input_graph(
+        out, anchor_tensor, has_local_items=len(local_items) > 0
+    )
 
 
 def single_process_fallback(
@@ -172,13 +237,14 @@ def reduce_local_results(
                     local_val = torch.zeros(
                         target_shape, device=ctx.device, dtype=local_val.dtype
                     )
+    local_val = _ensure_functional_collective_input(ctx, local_val, local_results)
 
     if not reduce_globally:
         return local_val
 
     # 3. Global Reduction
     if ctx.use_dist:
-        ctx.all_reduce(local_val, op=dist.ReduceOp.SUM)
+        local_val = ctx.all_reduce(local_val, op=dist.ReduceOp.SUM)
 
     if reduce_op == "mean":
         if num_operators is None:
@@ -188,6 +254,92 @@ def reduce_local_results(
         local_val = local_val / float(num_operators)
 
     return local_val
+
+
+class DistributedGradientSync(torch.autograd.Function):
+    """
+    Autograd function that performs all_reduce on gradients during backward.
+    Used to synchronize gradients for replicated inputs in distributed physics.
+    """
+
+    @staticmethod
+    def forward(autograd_ctx, x, dist_ctx):
+        autograd_ctx.dist_ctx = dist_ctx
+        return x
+
+    @staticmethod
+    def backward(autograd_ctx, grad_output):
+        if autograd_ctx.dist_ctx.use_dist and grad_output is not None:
+            higher_order_path = grad_output.requires_grad
+            # Use returned tensor so functional all_reduce paths (create_graph=True)
+            # are preserved for higher-order differentiation.
+            grad_output = autograd_ctx.dist_ctx.all_reduce(
+                grad_output, op=dist.ReduceOp.SUM
+            )
+            # First-order training expects "mean across ranks" semantics:
+            # all_reduce gives a SUM, so we divide by world_size.
+            # Higher-order path (grad_output.requires_grad=True): this gradient is
+            # part of a new graph (e.g. create_graph=True). We keep the SUM here to
+            # avoid injecting hidden scaling into second-order/meta-gradients.
+            if autograd_ctx.dist_ctx.world_size > 1 and not higher_order_path:
+                grad_output = grad_output / float(autograd_ctx.dist_ctx.world_size)
+        return grad_output, None
+
+
+class DistributedParameterSync(torch.autograd.Function):
+    """
+    Autograd function that reduces parameters gradients at the end of backward.
+    Used to synchronize model updates in distributed processing.
+    """
+
+    @staticmethod
+    def forward(autograd_ctx, x, dist_ctx, *parameters):
+        autograd_ctx.dist_ctx = dist_ctx
+        autograd_ctx.parameters = parameters
+        return x
+
+    @staticmethod
+    def backward(autograd_ctx, grad_output):
+        if autograd_ctx.dist_ctx.use_dist:
+            # Queue synchronization at end-of-backward, when all grads are accumulated.
+            dist_ctx = autograd_ctx.dist_ctx
+            params = autograd_ctx.parameters
+            graph_task_id = torch._C._current_graph_task_id()
+            scheduled = dist_ctx._param_sync_scheduled_tasks
+            pending = dist_ctx._param_sync_pending.setdefault(graph_task_id, {})
+            for p in params:
+                pending[id(p)] = p
+
+            if graph_task_id not in scheduled:
+                scheduled.add(graph_task_id)
+
+                def _sync_param_grads():
+                    try:
+                        task_params = list(
+                            dist_ctx._param_sync_pending.pop(graph_task_id, {}).values()
+                        )
+                        for p in task_params:
+                            if p.grad is None:
+                                # Keep collectives aligned even for ranks with no local contribution.
+                                p.grad = torch.zeros_like(p)
+                            # Preserve functional all_reduce result when p.grad requires_grad
+                            # (e.g., backward called with create_graph=True).
+                            p.grad = dist_ctx.all_reduce(p.grad, op=dist.ReduceOp.SUM)
+                            # Same rule as for input gradients:
+                            # - first-order parameter grads: average (SUM/world_size),
+                            # - higher-order grads (requires_grad=True): keep SUM so
+                            #   any normalization is explicit in the objective.
+                            if dist_ctx.world_size > 1 and not p.grad.requires_grad:
+                                p.grad = p.grad / float(dist_ctx.world_size)
+                    finally:
+                        scheduled.discard(graph_task_id)
+
+                torch.autograd.Variable._execution_engine.queue_callback(
+                    _sync_param_grads
+                )
+
+        # Return grad_for_x, grad_for_dist_ctx, *grad_for_parameters
+        return (grad_output, None) + (None,) * len(autograd_ctx.parameters)
 
 
 def gather_tensorlist_naive(
@@ -360,18 +512,12 @@ def gather_tensorlist_concatenated(
     # Ensure contiguous memory layout (for Gloo backend)
     local_concat_padded = local_concat_padded.contiguous()
 
-    # All-gather with fixed size - use canonical dtype for consistency
-    tensor_lists = [
-        torch.zeros(
-            (max_local_count, max_numel),
-            dtype=canonical_dtype,
-            device=ctx.device,
-        )
-        for _ in range(ctx.world_size)
-    ]
+    local_concat_padded = _ensure_functional_collective_input(
+        ctx, local_concat_padded, local_results
+    )
 
-    # All-gather the actual data
-    ctx.all_gather(tensor_lists, local_concat_padded)
+    # All-gather and return stacked tensor [world_size, max_local_count, max_numel]
+    tensor_lists = ctx.all_gather(local_concat_padded)
 
     # Step 4: Reconstruct TensorList from gathered data
     out: list = [None] * num_operators
@@ -451,11 +597,12 @@ def gather_tensorlist_broadcast(
             local_pos = local_indices.index(idx)
             tensor_to_send = local_results[local_pos].contiguous()
         else:
-            # Create receive buffer
+            # Create receive buffer (needs to be right shape and device)
             tensor_to_send = torch.zeros(shape, dtype=dtype, device=ctx.device)
 
-        # Broadcast from owner to all ranks
-        ctx.broadcast(tensor_to_send, src=responsible_rank)
+        # Broadcast using functional API for autograd support
+        # dist_nn.broadcast returns the tensor (input on src, received on others)
+        tensor_to_send = dist_nn.broadcast(tensor_to_send, src=responsible_rank)
         out[idx] = tensor_to_send
 
     return TensorList(out)

@@ -2,18 +2,24 @@ from __future__ import annotations
 
 import os
 import copy
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Any
 import warnings
 
 import torch
 import torch.distributed as dist
+import torch.distributed.nn.functional as dist_nn
+from torch.utils.checkpoint import checkpoint as torch_checkpoint
 
 from deepinv.physics import Physics, LinearPhysics
 from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.utils.tensorlist import TensorList
 
 from deepinv.distributed.strategies import DistributedSignalStrategy, create_strategy
-from deepinv.distributed.distributed_utils import map_reduce_gather
+from deepinv.distributed.distributed_utils import (
+    map_reduce_gather,
+    DistributedGradientSync,
+    DistributedParameterSync,
+)
 
 
 # =========================
@@ -67,6 +73,9 @@ class DistributedContext:
         self.local_rank = 0
         self.local_world_size = 1
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._dist_wrapper_cache: dict[str, Callable[..., Any]] = {}
+        self._param_sync_scheduled_tasks: set[int] = set()
+        self._param_sync_pending: dict[int, dict[int, torch.nn.Parameter]] = {}
 
     def __enter__(self):
         # Detect whether we should initialize a process group
@@ -201,9 +210,9 @@ class DistributedContext:
         indices = [i for i in range(num_items) if (i % self.world_size) == self.rank]
 
         # Warning for efficiency, but allow empty indices (don't raise error)
-        if self.use_dist and len(indices) == 0 and self.rank == 0:
+        if self.use_dist and len(indices) == 0:  # and self.rank == 0:
             warnings.warn(
-                f"Some ranks have no work items to process "
+                f"Rank {self.rank} has no work items to process "
                 f"(num_items={num_items}, world_size={self.world_size}). "
                 f"Consider reducing world_size or increasing the workload for better efficiency.",
                 UserWarning,
@@ -214,7 +223,81 @@ class DistributedContext:
     # ----------------------
     # Collectives
     # ----------------------
+    def _collective(
+        self, fn: Callable, fn_functional: Callable, x: torch.Tensor, **kwargs
+    ) -> torch.Tensor:
+        if not self.use_dist:
+            return x
+
+        # Training/autograd path: return functional output (no copy-back).
+        if x.requires_grad:
+            if fn_functional is None:
+                raise AttributeError(
+                    f"No functional autograd path available for '{fn.__name__}'"
+                )
+            return fn_functional(x, **kwargs)
+
+        # Inference path: use in-place distributed op for memory efficiency.
+        fn(x, **kwargs)
+        return x
+
+    def all_reduce(
+        self,
+        x: torch.Tensor,
+        op: dist.ReduceOp = dist.ReduceOp.SUM,
+        group=None,
+    ) -> torch.Tensor:
+        return self._collective(
+            dist.all_reduce, dist_nn.all_reduce, x, op=op, group=group
+        )
+
+    def broadcast(self, x: torch.Tensor, src: int = 0, group=None) -> torch.Tensor:
+        return self._collective(
+            dist.broadcast, dist_nn.broadcast, x, src=src, group=group
+        )
+
+    def all_gather(self, x: torch.Tensor, group=None) -> torch.Tensor:
+        r"""
+        Gather one tensor per rank and return a stacked tensor of shape
+        ``(world_size, *x.shape)``.
+        """
+        if not self.use_dist:
+            return x.unsqueeze(0)
+
+        if x.requires_grad:
+            try:
+                gathered = dist_nn.all_gather(x, group=group)
+            except AttributeError as e:
+                raise AttributeError(
+                    "No functional autograd path available for 'all_gather'"
+                ) from e
+            if isinstance(gathered, torch.Tensor):
+                return gathered
+            return torch.stack(list(gathered), dim=0)
+
+        out_list = [torch.empty_like(x) for _ in range(self.world_size)]
+        dist.all_gather(out_list, x, group=group)
+        return torch.stack(out_list, dim=0)
+
+    def all_gather_object(self, obj_list: list, obj: Any, group=None):
+        if not self.use_dist:
+            if len(obj_list) > 0:
+                obj_list[0] = obj
+            return None
+        return dist.all_gather_object(obj_list, obj, group=group)
+
+    def broadcast_object_list(self, object_list: list, src: int = 0, device=None):
+        if not self.use_dist:
+            return object_list
+        if device is None:
+            return dist.broadcast_object_list(object_list, src=src)
+        return dist.broadcast_object_list(object_list, src=src, device=device)
+
     def __getattr__(self, name):
+        if name in self._dist_wrapper_cache:
+            return self._dist_wrapper_cache[name]
+
+        # Fallback to dist for less common APIs (barrier, new_group, etc.).
         if hasattr(dist, name):
 
             def wrapper(*args, **kwargs):
@@ -222,6 +305,7 @@ class DistributedContext:
                     return getattr(dist, name)(*args, **kwargs)
                 return None
 
+            self._dist_wrapper_cache[name] = wrapper
             return wrapper
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'"
@@ -311,14 +395,39 @@ class DistributedStackedPhysics(Physics):
         local_op: Callable,
         gather: bool = True,
         reduce_op: str | None = "sum",
+        force_input_grad_sync: bool = False,
+        return_graph_anchor: bool = False,
         **kwargs,
-    ) -> TensorList | list[torch.Tensor] | torch.Tensor:
+    ) -> (
+        TensorList
+        | list[torch.Tensor]
+        | torch.Tensor
+        | tuple[
+            TensorList | list[torch.Tensor] | torch.Tensor,
+            torch.Tensor | list[torch.Tensor],
+        ]
+    ):
         """
         Map-reduce pattern for distributed operations.
 
         Delegates to generic implementation in distributed_utils.
         """
-        return map_reduce_gather(
+        # Pure local mode (no reduction/gather) should not force cross-rank gradient
+        # synchronization: outputs are local contributions and some ranks may hold no
+        # items, which would otherwise create mismatched backward collectives.
+        local_only_mode = (reduce_op is None) and (not gather)
+
+        # If input is a tensor that requires grad, wrap it with DistributedGradientSync
+        # to ensure gradients are properly synchronized across ranks during backward pass.
+        if (
+            isinstance(x, torch.Tensor)
+            and x.requires_grad
+            and self.ctx.use_dist
+            and (force_input_grad_sync or not local_only_mode)
+        ):
+            x = DistributedGradientSync.apply(x, self.ctx)
+
+        out = map_reduce_gather(
             ctx=self.ctx,
             local_items=self.local_physics,
             x=x,
@@ -331,14 +440,23 @@ class DistributedStackedPhysics(Physics):
             reduce_op=reduce_op,
             **kwargs,
         )
+        if return_graph_anchor:
+            return out, x
+        return out
 
     def A(
         self,
         x: torch.Tensor,
         gather: bool = True,
         reduce_op: str | None = None,
+        force_input_grad_sync: bool = False,
+        return_graph_anchor: bool = False,
         **kwargs,
-    ) -> TensorList | list[torch.Tensor]:
+    ) -> (
+        TensorList
+        | list[torch.Tensor]
+        | tuple[TensorList | list[torch.Tensor], torch.Tensor]
+    ):
         r"""
         Apply forward operator to all distributed physics operators with automatic gathering.
 
@@ -348,6 +466,10 @@ class DistributedStackedPhysics(Physics):
         :param torch.Tensor x: input signal.
         :param bool gather: whether to gather results across ranks. If `False`, returns local measurements. Default is `True`.
         :param str | None reduce_op: reduction operation to apply across ranks. Default is `None`.
+        :param bool force_input_grad_sync: force synchronization of input gradients even
+            in pure local mode (``gather=False`` and ``reduce_op=None``). Default is `False`.
+        :param bool return_graph_anchor: if `True`, also return the tensor used as graph
+            anchor inside this call. Intended for advanced internal usage. Default is `False`.
         :param kwargs: optional parameters for the forward operator.
         :return: complete list of measurements from all operators (or local list if `reduce=False`).
         """
@@ -357,10 +479,20 @@ class DistributedStackedPhysics(Physics):
             lambda p, x, **kw: p.A(x, **kw),
             gather=gather,
             reduce_op=reduce_op,
+            force_input_grad_sync=force_input_grad_sync,
+            return_graph_anchor=return_graph_anchor,
             **kwargs,
         )
 
-    def forward(self, x, gather: bool = True, reduce_op: str | None = None, **kwargs):
+    def forward(
+        self,
+        x,
+        gather: bool = True,
+        reduce_op: str | None = None,
+        force_input_grad_sync: bool = False,
+        return_graph_anchor: bool = False,
+        **kwargs,
+    ):
         r"""
         Apply full forward model with sensor and noise models to the input signal and gather results.
 
@@ -371,6 +503,10 @@ class DistributedStackedPhysics(Physics):
         :param torch.Tensor x: input signal.
         :param bool gather: whether to gather results across ranks. If `False`, returns local measurements. Default is `True`.
         :param str | None reduce_op: reduction operation to apply across ranks. Default is `None`.
+        :param bool force_input_grad_sync: force synchronization of input gradients even
+            in pure local mode (``gather=False`` and ``reduce_op=None``). Default is `False`.
+        :param bool return_graph_anchor: if `True`, also return the tensor used as graph
+            anchor inside this call. Intended for advanced internal usage. Default is `False`.
         :param kwargs: optional parameters for the forward model.
         :return: complete list of noisy measurements from all operators.
         """
@@ -380,6 +516,8 @@ class DistributedStackedPhysics(Physics):
             lambda p, x, **kw: p.forward(x, **kw),
             gather=gather,
             reduce_op=reduce_op,
+            force_input_grad_sync=force_input_grad_sync,
+            return_graph_anchor=return_graph_anchor,
             **kwargs,
         )
 
@@ -731,7 +869,7 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
             )
 
 
-class DistributedProcessing:
+class DistributedProcessing(torch.nn.Module):
     r"""
     Distributed signal processing using pluggable tiling and reduction strategies.
 
@@ -765,6 +903,17 @@ class DistributedProcessing:
     :param int | None max_batch_size: maximum number of patches to process in a single batch.
         If ``None``, all local patches are batched together. Set to ``1`` for sequential processing
         (useful for memory-constrained scenarios). Higher values increase throughput but require more memory. Default is `None`.
+    :param str checkpoint_batches: activation checkpointing mode for patch-batches during backward.
+        Supported values are ``'auto'``, ``'always'`` and ``'never'``.
+
+        - ``'auto'`` (default): enable checkpointing only when gradients are enabled and there are multiple local patch-batches.
+        - ``'always'``: always checkpoint patch-batches when gradients are enabled.
+        - ``'never'``: disable checkpointing.
+
+    :param bool checkpoint_use_reentrant: reentrant mode passed to :func:`torch.utils.checkpoint.checkpoint`.
+        Default is ``False`` (recommended by PyTorch).
+    :param bool checkpoint_preserve_rng_state: whether to preserve RNG state across forward recomputation when
+        checkpointing. Default is ``True``.
     """
 
     def __init__(
@@ -775,14 +924,27 @@ class DistributedProcessing:
         strategy: str | DistributedSignalStrategy | None = None,
         strategy_kwargs: dict | None = None,
         max_batch_size: int | None = None,
+        checkpoint_batches: str = "auto",
+        checkpoint_use_reentrant: bool = False,
+        checkpoint_preserve_rng_state: bool = True,
         **kwargs,
     ):
         r"""
         Initialize distributed signal processor.
         """
+        super().__init__()
         self.ctx = ctx
         self.processor = processor
         self.max_batch_size = max_batch_size
+        valid_checkpoint_modes = ("auto", "always", "never")
+        if checkpoint_batches not in valid_checkpoint_modes:
+            raise ValueError(
+                "checkpoint_batches must be one of "
+                f"{valid_checkpoint_modes}, got '{checkpoint_batches}'."
+            )
+        self.checkpoint_batches = checkpoint_batches
+        self.checkpoint_use_reentrant = checkpoint_use_reentrant
+        self.checkpoint_preserve_rng_state = checkpoint_preserve_rng_state
         self.strategy = strategy if strategy is not None else "overlap_tiling"
         self.strategy_kwargs = strategy_kwargs or {}
         self.current_shape: torch.Size | None = None
@@ -790,7 +952,7 @@ class DistributedProcessing:
         if hasattr(processor, "to"):
             self.processor.to(ctx.device)
 
-    def __call__(
+    def forward(
         self, x: torch.Tensor, *args, gather: bool = True, **kwargs
     ) -> torch.Tensor:
         r"""
@@ -826,12 +988,13 @@ class DistributedProcessing:
         """
 
         self.img_size = torch.Size(img_size)
-        tiling_dims = self.strategy_kwargs.pop("tiling_dims", None)
+        strategy_kwargs = dict(self.strategy_kwargs)
+        tiling_dims = strategy_kwargs.pop("tiling_dims", None)
 
         # Create or set the strategy
         self._strategy = (
             create_strategy(
-                self.strategy, img_size, tiling_dims=tiling_dims, **self.strategy_kwargs
+                self.strategy, img_size, tiling_dims=tiling_dims, **strategy_kwargs
             )
             if isinstance(self.strategy, str)
             else self.strategy
@@ -851,11 +1014,7 @@ class DistributedProcessing:
 
         # Check for insufficient work distribution
         if self.ctx.use_dist and self.ctx.rank == 0:
-            ranks_with_work = sum(
-                1
-                for rank in range(self.ctx.world_size)
-                if len(self.ctx.local_indices(self.num_patches)) > 0
-            )
+            ranks_with_work = min(self.num_patches, self.ctx.world_size)
             if ranks_with_work < self.ctx.world_size:
                 warnings.warn(
                     f"Only {ranks_with_work}/{self.ctx.world_size} ranks have patches to process. "
@@ -885,13 +1044,26 @@ class DistributedProcessing:
         :param kwargs: additional keyword arguments passed to the processor.
         :return: processed signal with the same shape as input.
         """
+        # Determine if we should sync parameters (only if we hold a module)
+        should_sync = self.ctx.use_dist and isinstance(self.processor, torch.nn.Module)
+
+        if should_sync:
+            params = [p for p in self.processor.parameters() if p.requires_grad]
+            if params:
+                x = DistributedParameterSync.apply(x, self.ctx, *params)
+
         # Handle empty case early
         if not self.local_indices:
             out_local = torch.zeros(
                 self.img_size, device=self.ctx.device, dtype=x.dtype
             )
+            # Ensure dependency on x if we are syncing, to trigger backward hook
+            if should_sync and x.requires_grad:
+                # Minimal operation to link graph
+                out_local = out_local + 0 * x.view(-1)[0]
+
             if gather:
-                self.ctx.all_reduce(out_local, op=dist.ReduceOp.SUM)
+                out_local = self.ctx.all_reduce(out_local, op=dist.ReduceOp.SUM)
             return out_local
 
         # 1. Extract local patches using strategy
@@ -903,10 +1075,33 @@ class DistributedProcessing:
             patches, max_batch_size=self.max_batch_size
         )
 
+        processor_has_trainable_params = False
+        if isinstance(self.processor, torch.nn.Module):
+            processor_has_trainable_params = any(
+                p.requires_grad for p in self.processor.parameters()
+            )
+        grad_enabled = torch.is_grad_enabled() and (
+            x.requires_grad or processor_has_trainable_params
+        )
+        use_batch_checkpointing = False
+        if grad_enabled:
+            if self.checkpoint_batches == "always":
+                use_batch_checkpointing = True
+            elif self.checkpoint_batches == "auto":
+                use_batch_checkpointing = len(batched_patches) > 1
+
         # 3. Apply processor to each batch
         processed_batches = []
         for batch in batched_patches:
-            result = self.processor(batch, *args, **kwargs)
+            if use_batch_checkpointing:
+                result = torch_checkpoint(
+                    lambda b: self.processor(b, *args, **kwargs),
+                    batch,
+                    use_reentrant=self.checkpoint_use_reentrant,
+                    preserve_rng_state=self.checkpoint_preserve_rng_state,
+                )
+            else:
+                result = self.processor(batch, *args, **kwargs)
             processed_batches.append(result)
 
         # 4. Unpack results back to individual patches
@@ -929,15 +1124,70 @@ class DistributedProcessing:
 
         # 7. All-reduce to combine results from all ranks
         if gather:
-            self.ctx.all_reduce(out_local, op=dist.ReduceOp.SUM)
+            out_local = self.ctx.all_reduce(out_local, op=dist.ReduceOp.SUM)
 
         return out_local
+
+
+class DistributedReplicatedParameters:
+    r"""
+    Synchronize gradients for replicated trainable parameters.
+
+    This class targets parameters that are replicated on all ranks (e.g. trainable
+    step sizes in unrolled algorithms) and are not otherwise handled by
+    :class:`DistributedProcessing`.
+    """
+
+    def __init__(
+        self,
+        ctx: DistributedContext,
+        parameters: Sequence[torch.nn.Parameter],
+        average: bool = True,
+    ):
+        self.ctx = ctx
+        self.average = average
+        self.parameters = [p for p in parameters if isinstance(p, torch.nn.Parameter)]
+        self._hooks = []
+        self._register_hooks()
+
+    def _sync_grad_value(self, grad: torch.Tensor | None) -> torch.Tensor | None:
+        if grad is None or not self.ctx.use_dist:
+            return grad
+        grad = self.ctx.all_reduce(grad, op=dist.ReduceOp.SUM)
+        # For standard first-order optimization, users usually expect averaged grads:
+        # all_reduce returns SUM, so we divide by world_size when requested.
+        # If grad.requires_grad=True, we are in a higher-order path and this tensor
+        # is itself differentiable; keep SUM to avoid hidden scaling in meta-grads.
+        if self.average and self.ctx.world_size > 1 and not grad.requires_grad:
+            grad = grad / float(self.ctx.world_size)
+        return grad
+
+    def _post_accumulate_hook(self, p: torch.nn.Parameter):
+        if p.grad is None:
+            return
+        p.grad = self._sync_grad_value(p.grad)
+
+    def _register_hooks(self):
+        for p in self.parameters:
+            if not p.requires_grad:
+                continue
+            if hasattr(p, "register_post_accumulate_grad_hook"):
+                h = p.register_post_accumulate_grad_hook(self._post_accumulate_hook)
+            else:
+                # Fallback for older torch versions.
+                h = p.register_hook(self._sync_grad_value)
+            self._hooks.append(h)
+
+    def remove_hooks(self):
+        for h in self._hooks:
+            h.remove()
+        self._hooks.clear()
 
 
 # =========================
 # Distributed Data Fidelity
 # =========================
-class DistributedDataFidelity:
+class DistributedDataFidelity(torch.nn.Module):
     r"""
     Distributed data fidelity term for use with distributed physics operators.
 
@@ -988,9 +1238,9 @@ class DistributedDataFidelity:
         :param dict | None factory_kwargs: shared data dictionary passed to factory function. Default is `None`.
         :param str reduction: reduction mode for distributed operations. Options are ``'sum'`` and ``'mean'``. Default is ``'sum'``.
         """
+        super().__init__()
         self.ctx = ctx
         self.reduction_mode = reduction
-        self.local_data_fidelities = []
         self.single_fidelity = None
 
         if isinstance(data_fidelity, DataFidelity):
@@ -1002,9 +1252,12 @@ class DistributedDataFidelity:
                 raise ValueError("num_operators must be provided when using a factory.")
             # Create local data fidelity instances using factory
             local_indexes = list(ctx.local_indices(num_operators))
+            local_data_fidelities = []
             for i in local_indexes:
                 df = data_fidelity(i, ctx.device, factory_kwargs)
-                self.local_data_fidelities.append(df)
+                local_data_fidelities.append(df)
+            # Register as ModuleList for proper parameter management
+            self.local_data_fidelities = torch.nn.ModuleList(local_data_fidelities)
         else:
             raise ValueError(
                 "data_fidelity must be a DataFidelity instance or a factory callable."
@@ -1013,7 +1266,9 @@ class DistributedDataFidelity:
     def _get_fidelity(self, i: int) -> DataFidelity:
         if self.single_fidelity is not None:
             return self.single_fidelity
-        return self.local_data_fidelities[i]
+        if hasattr(self, "local_data_fidelities"):
+            return self.local_data_fidelities[i]
+        raise ValueError("No data fidelity available.")
 
     def _check_is_distributed_physics(self, physics: DistributedStackedLinearPhysics):
         if not isinstance(physics, DistributedStackedLinearPhysics):
@@ -1046,11 +1301,23 @@ class DistributedDataFidelity:
 
         self._check_is_distributed_physics(physics)
 
-        # Get local measurements
-        y_local = [y[i] for i in physics.local_indexes]
+        # Compute local forward measurements through the distributed physics API.
+        # We request the internal graph-anchor tensor so empty ranks can still
+        # participate in backward sync through the downstream reduction anchor.
+        Ax_local, graph_anchor = physics.A(
+            x,
+            gather=False,
+            force_input_grad_sync=True,
+            return_graph_anchor=True,
+            **kwargs,
+        )
 
-        # Compute A(x) locally
-        Ax_local = physics.A(x, gather=False, **kwargs)
+        if len(y) != physics.num_operators:
+            raise ValueError(
+                f"Input y has length {len(y)}, expected {physics.num_operators} "
+                "(global measurements)."
+            )
+        y_local = [y[i] for i in physics.local_indexes]
 
         # Zip Ax and y for mapping
         if len(Ax_local) != len(y_local):
@@ -1073,6 +1340,7 @@ class DistributedDataFidelity:
             num_operators=physics.num_operators,
             gather=gather,
             reduce_op=self.reduction_mode,
+            graph_anchor=graph_anchor,
             **kwargs,
         )
 
@@ -1165,4 +1433,29 @@ class DistributedDataFidelity:
 
         return self._apply_op(
             local_op=_local_grad_op, x=x, y=y, physics=physics, gather=gather, **kwargs
+        )
+
+    def prox(
+        self,
+        x: torch.Tensor,
+        y: list[torch.Tensor],
+        physics: DistributedStackedLinearPhysics,
+        *args,
+        gamma=1.0,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Compute proximal step for distributed data-fidelity.
+
+        Currently supported when a single shared DataFidelity object is used for all
+        operators (the standard unfolded setup). In that case, the prox is delegated
+        to the wrapped DataFidelity with the distributed physics object.
+        """
+        self._check_is_distributed_physics(physics)
+        if self.single_fidelity is None:
+            raise NotImplementedError(
+                "prox is only supported when DistributedDataFidelity wraps a single shared DataFidelity instance."
+            )
+        return self.single_fidelity.prox(
+            x, y, physics=physics, *args, gamma=gamma, **kwargs
         )
