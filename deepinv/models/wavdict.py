@@ -538,6 +538,7 @@ class WaveletDictDenoiser(Denoiser):
         list_wv: Sequence[str] = ("db8", "db4"),
         max_iter: int = 10,
         non_linearity: str = "soft",
+        mode: str = "zero",
         wvdim: int = 2,
         is_complex: bool = False,
         device: str | torch.device = "cpu",
@@ -554,6 +555,7 @@ class WaveletDictDenoiser(Denoiser):
                     wvdim=wvdim,
                     device=device,
                     is_complex=is_complex,
+                    mode=mode,
                 )
                 for wv in list_wv
             ]
@@ -590,5 +592,7 @@ class WaveletDictDenoiser(Denoiser):
         """
         vec = []
         for p in self.list_prox:
-            vec += p.psi(x, wavelet=p.wv, level=p.level, dimension=p.dimension)
+            vec += p.psi(
+                x, wavelet=p.wv, level=p.level, dimension=p.dimension, mode=p.mode
+            )
         return vec
