@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from math import ceil, floor
 from deepinv.physics.generator import PhysicsGenerator
+from deepinv.physics.functional import gaussian_blur
 from deepinv.physics.functional.hist import histogramdd
 from deepinv.physics.functional.convolution import conv2d
 from deepinv.physics.functional.interp import ThinPlateSpline
@@ -35,6 +36,239 @@ class PSFGenerator(PhysicsGenerator):
         self.shape = (num_channels,) + psf_size
         self.psf_size = psf_size
         self.num_channels = num_channels
+
+
+class GaussianBlurGenerator(PSFGenerator):
+    def __init__(
+        self,
+        psf_size: tuple[int, ...],
+        sigma_min: float | tuple[float, ...] = 0.5,
+        sigma_max: float | tuple[float, ...] = 5.0,
+        isotropic: bool = True,
+        angle_min: float | tuple[float, ...] = 0.0,
+        angle_max: float | tuple[float, ...] = 360.0,
+        num_channels: int = 1,
+        rng: torch.Generator = None,
+        device: str = "cpu",
+        dtype: type = torch.float32,
+    ):
+        r"""
+        Random Gaussian blur generator. Generates 1D, 2D, or 3D Gaussian kernels with random standard deviations and rotation angles.
+
+        :param tuple[int, ...] psf_size: the shape of the generated point spread function (PSF). The dimension (1D, 2D, or 3D) of the kernel is determined by the length of the ``psf_size`` tuple.
+        :param float | tuple[float, ...] sigma_min: the minimum standard deviation(s) for the Gaussian kernel. If a single value is provided, it is applied to all dimensions. If a tuple is provided, it should have the same length as the number of dimensions and specify the minimum sigma for each dimension.
+        :param float | tuple[float, ...] sigma_max: the maximum standard deviation(s) for the Gaussian kernel. Follows the same format as ``sigma_min``.
+        :param bool isotropic: If True, the generated Gaussian kernels will be isotropic (same sigma for all dimensions). If False, the kernels can be anisotropic (different sigma for each dimension). Defaults to True.
+        :param float | tuple[float, ...] angle_min: the minimum rotation angle(s) for the Gaussian kernel in degrees. For 2D kernels, this is a single angle of rotation in the plane. For 3D kernels, this can be a tuple of three angles (alpha, beta, gamma) representing minimum rotation values around the x, y, and z axes respectively. In 3D, if a single angle is provided, it is used as minimum value for all axes.
+        :param float | tuple[float, ...] angle_max: the maximum rotation angle(s) for the Gaussian kernel in degrees. Follows the same format as ``angle_min``.
+        :param int num_channels: number of images channels. Defaults to 1.
+        :param torch.Generator rng: PyTorch random number generator for reproducibility. If ``None``, a torch.Generator will be created on the specified device.
+        :param str device: the device to create the tensors on. Defaults to "cpu".
+        :param type dtype: the data type of the generated tensors. Defaults to torch.float32.
+
+        |sep|
+
+        :Examples:
+
+        >>> from deepinv.physics.generator import GaussianBlurGenerator
+        >>> rng = torch.Generator(device="cpu").manual_seed(0)
+        >>> generator = GaussianBlurGenerator((7, 7), device="cpu", rng=rng, isotropic=False)
+        >>> params = generator.step(batch_size=1)  # dict_keys(['filter'])
+        >>> print(params['filter'])
+        tensor([[[[0.0091, 0.0123, 0.0153, 0.0175, 0.0184, 0.0179, 0.0159],
+                  [0.0133, 0.0174, 0.0210, 0.0233, 0.0238, 0.0223, 0.0193],
+                  [0.0173, 0.0220, 0.0257, 0.0276, 0.0274, 0.0249, 0.0209],
+                  [0.0201, 0.0248, 0.0281, 0.0293, 0.0281, 0.0248, 0.0201],
+                  [0.0209, 0.0249, 0.0274, 0.0276, 0.0257, 0.0220, 0.0173],
+                  [0.0193, 0.0223, 0.0238, 0.0233, 0.0210, 0.0174, 0.0133],
+                  [0.0159, 0.0179, 0.0184, 0.0175, 0.0153, 0.0123, 0.0091]]]])
+        """
+
+        dim = len(psf_size)
+        if dim not in {1, 2, 3}:
+            raise ValueError("Only 1D, 2D, and 3D kernels are supported.")
+
+        sigma_min, sigma_max = self._resolve_sigmas(sigma_min, sigma_max, dim)
+        angle_min, angle_max = self._resolve_angles(angle_min, angle_max, dim)
+
+        kwargs = {
+            "dim": dim,
+            "psf_size": psf_size,
+            "num_channels": num_channels,
+            "isotropic": isotropic,
+            "sigma_min": sigma_min,
+            "sigma_max": sigma_max,
+            "angle_min": angle_min,
+            "angle_max": angle_max,
+        }
+        super().__init__(device=device, dtype=dtype, rng=rng, **kwargs)
+
+    def _resolve_angles(
+        self, angle_min, angle_max, dim: int
+    ) -> tuple[tuple[float, ...], tuple[float, ...]]:
+
+        if dim == 2:
+            if isinstance(angle_min, (tuple, list)):
+                if len(angle_min) != 1:
+                    raise ValueError(
+                        f"For 2D kernels, angle_min should be a single value or a tuple/list of length 1. Got angle_min = {angle_min}."
+                    )
+                angle_min = angle_min[0]
+
+            if isinstance(angle_max, (tuple, list)):
+                if len(angle_max) != 1:
+                    raise ValueError(
+                        f"For 2D kernels, angle_max should be a single value or a tuple/list of length 1. Got angle_max = {angle_max}."
+                    )
+                angle_max = angle_max[0]
+
+            if angle_min > angle_max:
+                raise ValueError(
+                    f"angle_min should be less than or equal to angle_max. Got angle_min = {angle_min} and angle_max = {angle_max}."
+                )
+
+        elif dim == 3:
+            if isinstance(angle_min, (int, float)):
+                angle_min = (angle_min,) * dim
+            if isinstance(angle_max, (int, float)):
+                angle_max = (angle_max,) * dim
+
+            if len(angle_min) != dim or len(angle_max) != dim:
+                raise ValueError(
+                    f"For 3D kernels, angle_min and angle_max should have three values corresponding to rotations around x, y, and z axes. Got angle_min = {angle_min} and angle_max = {angle_max}."
+                )
+
+            for amin, amax in zip(angle_min, angle_max, strict=True):
+                if amin > amax:
+                    raise ValueError(
+                        f"Each component of angle_min should be less than or equal to the corresponding component of angle_max. Got angle_min = {angle_min} and angle_max = {angle_max}."
+                    )
+
+        return angle_min, angle_max
+
+    def _resolve_sigmas(
+        self, sigma_min, sigma_max, dim: int
+    ) -> tuple[tuple[float, ...], tuple[float, ...]]:
+
+        if isinstance(sigma_min, (int, float)):
+            sigma_min = (sigma_min,)
+        if isinstance(sigma_max, (int, float)):
+            sigma_max = (sigma_max,)
+
+        if len(sigma_min) == 1 and len(sigma_max) == 1:
+            sigma_min = sigma_min * dim
+            sigma_max = sigma_max * dim
+
+        else:
+            if dim == 1:
+                raise ValueError(
+                    f"For 1D kernels, sigma_min and sigma_max should be single values. Got sigma_min = {sigma_min} and sigma_max = {sigma_max}."
+                )
+
+            if len(sigma_min) != len(sigma_max):
+                raise ValueError(
+                    f"sigma_min and sigma_max should have the same length. Got {len(sigma_min)} and {len(sigma_max)}."
+                )
+
+            if len(sigma_min) != dim or len(sigma_max) != dim:
+                raise ValueError(
+                    f"Length of sigma_min and sigma_max should be either 1 or {dim}."
+                )
+
+        for smin, smax in zip(sigma_min, sigma_max, strict=True):
+            if smin > smax:
+                raise ValueError(
+                    f"Each component of sigma_min should be less than or equal to the corresponding component of sigma_max. Got sigma_min = {sigma_min} and sigma_max = {sigma_max}."
+                )
+
+        return sigma_min, sigma_max
+
+    def _generate_sigma(
+        self,
+        dim: int,
+        batch_size: int,
+        sigma: torch.Tensor = None,
+    ):
+        if sigma is None:
+            if self.isotropic:
+                sigma = torch.stack(
+                    [
+                        torch.rand(
+                            batch_size, generator=self.rng, **self.factory_kwargs
+                        )
+                        * (self.sigma_max[0] - self.sigma_min[0])
+                        + self.sigma_min[0]
+                    ]
+                    * dim,
+                    dim=-1,
+                )  # Shape: (batch_size, dim)
+
+            else:
+                # Sample sigmas for each dimension and each kernel in the batch
+                sigma = torch.stack(
+                    [
+                        torch.rand(
+                            batch_size, generator=self.rng, **self.factory_kwargs
+                        )
+                        * (smax - smin)
+                        + smin
+                        for smin, smax in zip(
+                            self.sigma_min, self.sigma_max, strict=True
+                        )
+                    ],
+                    dim=-1,
+                )  # Shape: (batch_size, dim)
+
+        return sigma
+
+    def _generate_angle(
+        self,
+        dim: int,
+        batch_size: int,
+        angle: torch.Tensor = None,
+    ):
+
+        if angle is None and dim > 1:
+            if dim == 2:
+                angle = (
+                    torch.rand(batch_size, generator=self.rng, **self.factory_kwargs)
+                    * (self.angle_max - self.angle_min)
+                    + self.angle_min
+                )  # Shape: (batch_size,)
+            elif dim == 3:
+                angle = torch.stack(
+                    [
+                        torch.rand(
+                            batch_size, generator=self.rng, **self.factory_kwargs
+                        )
+                        * (amax - amin)
+                        + amin
+                        for amin, amax in zip(
+                            self.angle_min, self.angle_max, strict=True
+                        )
+                    ],
+                    dim=-1,
+                )  # Shape: (batch_size, 3)
+
+        return angle
+
+    def step(
+        self,
+        batch_size: int = 1,
+        sigma: torch.Tensor = None,
+        angle: torch.Tensor = None,
+        seed: int = None,
+        **kwargs,
+    ):
+        self.rng_manual_seed(seed)
+        dim = len(self.psf_size)
+
+        sigma = self._generate_sigma(dim, batch_size, sigma)
+        angle = self._generate_angle(dim, batch_size, angle)
+
+        # filter.shape = (batch_size, 1, *psf_size)
+        filters = gaussian_blur(self.psf_size, sigma, angle, **self.factory_kwargs)
+        return {"filter": filters.expand(-1, self.num_channels, *(-1,) * dim)}
 
 
 class MotionBlurGenerator(PSFGenerator):
