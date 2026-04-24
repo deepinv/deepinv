@@ -20,6 +20,7 @@ Base Classes
    deepinv.physics.StackedLinearPhysics
    deepinv.physics.ComposedPhysics
    deepinv.physics.ComposedLinearPhysics
+   deepinv.physics.VirtualLinearPhysics
    deepinv.physics.PhysicsMultiScaler
    deepinv.physics.LinearPhysicsMultiScaler
    deepinv.physics.PhysicsCropper

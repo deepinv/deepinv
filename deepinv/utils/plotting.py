@@ -916,6 +916,13 @@ def plot_inset(
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
     """
+    warn(
+        "The function `deepinv.utils.plot_inset` is deprecated and will be removed in a future version. "
+        "Use `deepinv.utils.plot` with `plot_inset=True` instead, which has the same functionality.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     # Call plot with all parameters including inset-specific ones
     return plot(
         img_list=img_list,

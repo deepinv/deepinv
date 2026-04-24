@@ -334,6 +334,7 @@ sphinx_gallery_conf = {
             "../../examples/unfolded",
             "../../examples/blind-inverse-problems",
             "../../examples/self-supervised-learning",
+            "../../examples/transforms-equivariance",
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
             "../../examples/distributed",

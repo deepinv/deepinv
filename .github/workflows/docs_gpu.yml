@@ -21,6 +21,12 @@ jobs:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
       WORKING_DIR: "/local/jtachell"
+      PIXI_HOME: "/local/jtachell/.pixi"
+      TMP_DIR: "/local/jtachell/tmp"
+      DEEPINV_CACHE: "/local/jtachell/.cache/deepinv"
+      HF_HOME: "/local/jtachell/.cache/huggingface"
+      TORCH_HOME: "/local/jtachell/.cache/torch"
+      HOME: "/local/jtachell"
 
     steps:
       - uses: actions/checkout@v5
@@ -39,6 +45,20 @@ jobs:
       - name: Check import
         run: |
           pixi run -e docs python -c "import deepinv"
+
+      - name: Check CUDA is available
+        run: |
+          pixi run -e docs python -c "
+          import torch
+          assert torch.cuda.is_available(), (
+              f'torch.cuda.is_available() returned False. '
+              f'Device count: {torch.cuda.device_count()}, '
+              f'PyTorch build: {torch.version.cuda}'
+          )
+          print(f'CUDA OK — {torch.cuda.device_count()} device(s), '
+                f'CUDA {torch.version.cuda}, '
+                f'GPU: {torch.cuda.get_device_name(0)}')
+          "
 
       - name: Determine which examples to run
         id: get_pattern
@@ -77,12 +97,6 @@ jobs:
         run: |
           echo "Running Sphinx with filename_pattern: $SG_PATTERN"
           pixi run -e docs sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
-
-      - name: Run doctests
-        env:
-          SPHINX_DOCTEST: "1"
-        run: |
-          pixi run -e docs python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v
 
       - name: Notebook generation
         run: |
@@ -138,6 +152,16 @@ jobs:
               issue_number: pr,
               body,
             });
+
+      - name: Run doctests
+        env:
+          TQDM_DISABLE: 1
+          HF_HUB_DISABLE_PROGRESS_BARS: 1
+          DEEPINV_DOWNLOAD_VERBOSE: 0
+        run: |
+          pixi run -e doctest pytest --doctest-glob="*.rst" docs/ \
+            --ignore=docs/source/user_guide/training/multigpu.rst \
+            --ignore=docs/source/user_guide/training/datasets.rst
 
       - name: Cleanup Pixi
         if: always()

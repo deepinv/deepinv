@@ -84,7 +84,6 @@ denoisers = [
     "timm",
     "PyWavelets",
     "ptwt",
-    "FrEIA",
     "kornia",
     "libcpab",
     "scipy",
@@ -120,36 +119,82 @@ training = [
     "mlflow",
 ]
 
+
 ##############################################################
 # Pixi configuration for managing conda optional dependencies
+
 [tool.pixi.workspace]
 channels = ["conda-forge"]
-platforms = ["linux-64", "win-64", "osx-arm64"]
+platforms = ["linux-64", "win-64"]
 
-[tool.pixi.dependencies] # install from conda-forge for all environments
+[tool.pixi.dependencies]
+python = "<3.13.0"
 pytorch = "*"
 torchvision = "*"
-python = ">=3.10"
+numpy = "*"
+matplotlib = "*"
+tqdm = "*"
+torchmetrics = "*"
+einops = "*"
+requests = "*"
+h5py = "*"
+natsort = "*"
 
-[tool.pixi.feature.physics.dependencies]
-parallelproj = "*"
+[tool.pixi.feature.gpu.system-requirements]
+cuda = "12.0"
 
-# fix python version for the docs environment to avoid issues with Sphinx and Python 3.14
+[tool.pixi.feature.gpu.dependencies]
+cuda-version = "*"
+
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
 
 [tool.pixi.feature.dataset.dependencies]
 datasets = ">=3.5.0"
+pandas = "*"
+scipy = "*"
+nibabel = "*"
+rasterio = "*"
+pydicom = "*"
+# mat73 is PyPI-only, stays in optional deps
+
+[tool.pixi.feature.denoisers.dependencies]
+scipy = "*"
+kornia = "*"
+pywavelets = "*"
+numba = ">=0.60.0"
+timm = "*"
+diffusers = "*"
+transformers = "*"
+# bm3d, bm4d, libcpab, ptwt are PyPI-only, stay in optional deps
+
+[tool.pixi.feature.physics.dependencies]
+astra-toolbox = ">=2.2.0,!=2.3.0"
+torchkbnufft = "*"
+array-api-compat = "*"
+sigpy = "*"
+parallelproj = ">=1.10.0"
+# spyrit is PyPI-only, stays in optional deps
+
+[tool.pixi.feature.training.dependencies]
+wandb = "*"
+mlflow = "*"
 
 [tool.pixi.pypi-dependencies] # install from PyPI for all environments
-deepinv = { path = ".", editable = true }
+deepinv = { path = ".", editable = true}
 
 [tool.pixi.environments]
-default = { solve-group = "default" }
-test = { features = ["test"], solve-group = "default" }
-docs = { features = ["doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "docs" }
-doctest = { features = ["doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "docs" }
-full = { features = ["test", "dataset", "denoisers", "physics", "training"], solve-group = "default" }
+# gpu environments
+default   = { features = ["gpu"], solve-group = "gpu" }
+test      = { features = ["gpu", "test"], solve-group = "gpu" }
+full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "gpu" }
+docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
+doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
+# cpu environments (same as gpu but without the gpu dependencies)
+test-cpu  = { features = ["test"],  solve-group = "cpu" }
+full-cpu  = { features = ["doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "cpu" }
+docs-cpu  = { features = ["doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
+doctest-cpu = { features = ["doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
 
 ##############################################
 # Pytest configuration and coverage reporting
@@ -192,7 +237,7 @@ select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004"
 
 [tool.ruff.lint.flake8-tidy-imports]
 # Modules that slow down startup and should be imported lazily
-banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "FrEIA", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft"]
+banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft"]
 
 # Deprecated functions that should be replaced
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
