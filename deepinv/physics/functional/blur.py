@@ -95,7 +95,9 @@ def _resolve_angle(
             and (angle.dim() == 1 or angle.dim() == 2 and angle.shape[1] == 1)
             and angle.shape[0] == batch_size
         ):
-            angle = angle.view(-1).to(device=device, dtype=dtype)  # Assume shape (batch_size,)
+            angle = angle.view(-1).to(
+                device=device, dtype=dtype
+            )  # Assume shape (batch_size,)
         else:
             raise ValueError(
                 f"For 2D, angle must be a single value or a tensor of shape (batch_size,). Got angle.shape = {angle.shape}."
@@ -115,7 +117,9 @@ def _resolve_angle(
             and angle.shape[1] == 3
             and angle.shape[0] == batch_size
         ):
-            angle = angle.to(device=device, dtype=dtype)  # Ensure correct device and dtype
+            angle = angle.to(
+                device=device, dtype=dtype
+            )  # Ensure correct device and dtype
         else:
             raise ValueError(
                 f"For 3D, angles must be a list of three angles (alpha, beta, gamma) or a tensor of shape (batch_size, 3). Got angle.shape = {angle.shape}."
@@ -178,7 +182,11 @@ def gaussian_blur(
     grids = []
     for d in range(dim):
         ax = torch.linspace(
-            -((psf_size[d] - 1) / 2), (psf_size[d] - 1) / 2, psf_size[d], device=device, dtype=dtype
+            -((psf_size[d] - 1) / 2),
+            (psf_size[d] - 1) / 2,
+            psf_size[d],
+            device=device,
+            dtype=dtype,
         )
         grids.append(ax)
 

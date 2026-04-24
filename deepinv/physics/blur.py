@@ -1258,6 +1258,7 @@ class DownsamplingMatlab(Downsampling):
         )
         return adj(y)
 
+
 @_deprecated_func_replaced_by(dF.gaussian_blur, redirect=False, since="0.4.1")
 def gaussian_blur(
     sigma: float | tuple[float, ...] = (1, 1),
@@ -1269,14 +1270,19 @@ def gaussian_blur(
         sigma = (sigma, sigma)
     return dF.gaussian_blur(psf_size=None, sigma=sigma, angle=angle, device=device)
 
+
 @_deprecated_func_replaced_by(dF.bilinear_filter, redirect=True, since="0.4.1")
-def bilinear_filter(factor: int = 2, device: torch.device | str = "cpu") -> torch.Tensor:
+def bilinear_filter(
+    factor: int = 2, device: torch.device | str = "cpu"
+) -> torch.Tensor:
     pass
+
 
 @_deprecated_func_replaced_by(dF.bicubic_filter, redirect=True, since="0.4.1")
 def bicubic_filter(factor: int = 2, device: torch.device | str = "cpu") -> torch.Tensor:
     pass
-    
+
+
 @_deprecated_func_replaced_by(dF.sinc_filter, redirect=True, since="0.4.1")
 def sinc_filter(
     factor: float | torch.Tensor = 2,
@@ -1286,9 +1292,13 @@ def sinc_filter(
 ) -> torch.Tensor:
     pass
 
+
 @_deprecated_func_replaced_by(dF.kaiser_window, redirect=True, since="0.4.1")
-def kaiser_window(beta: float, length: int, device: torch.device | str = "cpu") -> torch.Tensor:
+def kaiser_window(
+    beta: float, length: int, device: torch.device | str = "cpu"
+) -> torch.Tensor:
     pass
+
 
 # from torchvision.transforms.functional import rotate
 # import torchvision
