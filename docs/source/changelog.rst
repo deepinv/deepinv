@@ -8,6 +8,9 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+New Features
+^^^^^^^^^^^^
+- Add :class:`deepinv.models.DEAL` model (:gh:`939` by `Hossein Alimohammadi`_)
 - Add install guidelines for different platforms (`pixi`, `conda`, `pip`, `uv`) in docs (:gh:`1108` by `Julian Tachella`_)
 - Add :class:`deepinv.optim.SIRT` algorithm for tomographic reconstruction (:gh:`985` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.optim.MLEM` algorithm for Poisson inverse problems (:gh:`1051` by `Thibaut Modrzyk`_)
@@ -613,6 +616,7 @@ Changed
 .. _Tiberiu Sabau: https://github.com/tibisabau
 .. _Benoît Malézieux: https://github.com/bmalezieux
 .. _Paul Escande: https://pescande.perso.math.cnrs.fr/
+.. _Hossein Alimohammadi: https://github.com/Holimmo7
 .. _Laura C. Diaz-Delgado: https://github.com/LauraCD2
 .. _Paul Bernard: https://github.com/PAUL-BERNARD
 .. _Baptiste Legouix: https://github.com/blegouix
