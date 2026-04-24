@@ -159,6 +159,8 @@ This line should follow the format:
   - <description of your contribution> (:gh:`<pull request number>` by `<your name>`_)
 
 
+You also need to summarise your changes in the Pull Request description. If you are a first-time contributor, we ask that you write a Statement of Motivation to show to us that you are a human. See :ref:`LLM policy <llm-policy>` for more details.
+
 6. Interact with reviewers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -177,6 +179,18 @@ Finding help
   
   Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_, open an `issue <https://github.com/deepinv/deepinv/issues>`_, or 
   send an email to a `maintainer <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_ and we'll help you out.
+
+.. _llm-policy:
+
+LLM policy
+~~~~~~~~~~
+
+DeepInverse allows contributions where code is partially written by an LLM. However, we require that a human contributes both during code writing, and during PR submission and review. Why?
+
+1. Community: easy-fixable issues are for humans, not bots, and humans keep the project alive;
+2. Review: PR review works because reviewers trust authors and their intentions, and don't always have to resort to line-by-line reviews of code that no human has read before.
+
+Therefore, DeepInverse does not welcome PRs a) consisting fully of LLM-generated code, or b) that are submitted by an AI agent, or an agent acting on behalf of a human. DeepInverse maintainers may close a PR if they suspect that the PR is AI-generated. Therefore, to help maintainers trust that you are a human coder, we request that, when submitting a PR, every first-time contributor writes a Statement of Motivation. Here you can state why you would like to contribute (e.g. to help your research, to improve your Python coding skills, to join an open-source community, to complete a university project, etc.). We don't care whether you're a seasoned coder or a beginner - as long as you are human!
 
 .. _docstring_guidelines:
 
