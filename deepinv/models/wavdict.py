@@ -528,6 +528,7 @@ class WaveletDictDenoiser(Denoiser):
     :param torch.device, str device: cpu or gpu.
     :param int max_iter: number of iterations of the optimization algorithm (default: 10).
     :param str non_linearity: "soft", "hard" or "topk" thresholding (default: "soft")
+    :param str mode: signal extension mode, "reflect", "zero", "constant", "periodic", "symmetric" (default: "zero")
     :param int wvdim: dimension of the wavelet transform (either 2 or 3) (default: 2).
     :param bool is_complex: whether the input is complex-valued (default: False).
     """
@@ -538,6 +539,7 @@ class WaveletDictDenoiser(Denoiser):
         list_wv: Sequence[str] = ("db8", "db4"),
         max_iter: int = 10,
         non_linearity: str = "soft",
+        mode: str = "zero",
         wvdim: int = 2,
         is_complex: bool = False,
         device: str | torch.device = "cpu",
@@ -554,6 +556,7 @@ class WaveletDictDenoiser(Denoiser):
                     wvdim=wvdim,
                     device=device,
                     is_complex=is_complex,
+                    mode=mode,
                 )
                 for wv in list_wv
             ]
@@ -590,5 +593,7 @@ class WaveletDictDenoiser(Denoiser):
         """
         vec = []
         for p in self.list_prox:
-            vec += p.psi(x, wavelet=p.wv, level=p.level, dimension=p.dimension)
+            vec += p.psi(
+                x, wavelet=p.wv, level=p.level, dimension=p.dimension, mode=p.mode
+            )
         return vec
