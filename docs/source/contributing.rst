@@ -51,6 +51,9 @@ Want to solve an issue or contribute something new to DeepInverse? Never contrib
 The first steps of contributing to any open-source project is the same. Follow these `step-by-step instructions on the GitHub website <https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project>`_
 to: fork your own copy of `DeepInverse <https://github.com/deepinv/deepinv>`_, clone it to your computer, create a branch, write code, commit and push your code.
 
+.. note::
+  LLM usage is ok, but not code generated 100% by AI. See our :ref:`LLM policy <llm-policy>`.
+
 Once you've opened a (draft) pull request (PR) in GitHub with your contribution, you should be able to see it under `Pull Requests <https://github.com/deepinv/deepinv/pulls>`_.
 You're ready to move on!
 
@@ -159,7 +162,7 @@ This line should follow the format:
   - <description of your contribution> (:gh:`<pull request number>` by `<your name>`_)
 
 
-You also need to summarise your changes in the Pull Request description. If you are a first-time contributor, we ask that you write a Statement of Motivation to show to us that you are a human. See :ref:`LLM policy <llm-policy>` for more details.
+You also need to summarise your changes in the Pull Request description, and tick whether you used LLM tools to generate the code. See :ref:`LLM policy <llm-policy>` for more details.
 
 6. Interact with reviewers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
