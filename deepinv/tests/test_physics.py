@@ -278,7 +278,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         p2 = dinv.physics.BlurFFT(
             img_size=img_size,
             device=device,
-            filter=dinv.physics.functional.gaussian_blur(sigma=(1.0)),
+            filter=dinv.physics.functional.gaussian_blur(sigma=(1.0, 1.0)),
         )
         p = p1 * p2
         norm = 1 / 2**2
@@ -291,7 +291,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         p2 = dinv.physics.BlurFFT(
             img_size=(3, 8, 8),
             device=device,
-            filter=dinv.physics.functional.gaussian_blur(sigma=(0.5)),
+            filter=dinv.physics.functional.gaussian_blur(sigma=(0.5, 0.5)),
         )
         p = p2 * p1
         params = ["filter"]
@@ -368,7 +368,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
     elif name.startswith("deblur"):
         img_size = (3, 17, 19) if imsize is None else imsize
         p = dinv.physics.Blur(
-            filter=dinv.physics.functional.gaussian_blur(sigma=(0.25, 0.1), angle=45.0),
+            filter=dinv.physics.functional.gaussian_blur(sigma=(0.25, 0.1), angle=0.0),
             padding=padding,
             device=device,
         )

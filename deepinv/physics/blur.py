@@ -1259,33 +1259,94 @@ class DownsamplingMatlab(Downsampling):
         return adj(y)
 
 @_deprecated_func_replaced_by(dF.gaussian_blur, redirect=False, since="0.4.1")
-def gaussian_blur(    
+def gaussian_blur(
     sigma: float | tuple[float, ...] = (1, 1),
     angle: float = 0,
     device: torch.device | str = "cpu",
 ) -> Tensor:
+    # Match the old signature where gaussian_blur only produces 2D filters
     if isinstance(sigma, (int, float)):
         sigma = (sigma, sigma)
     return dF.gaussian_blur(psf_size=None, sigma=sigma, angle=angle, device=device)
 
-# Rest of the functionals whose implementation did not change
-# -----------------------------------------------------------
-def __getattr__(name):
-    if name in (
-        "bilinear_filter",
-        "bicubic_filter",
-        "sinc_filter",
-        "kaiser_window",
-    ):
-        import warnings
+@_deprecated_func_replaced_by(dF.bilinear_filter, redirect=True, since="0.4.1")
+def bilinear_filter(factor: int = 2, device: torch.device | str = "cpu") -> torch.Tensor:
+    pass
 
-        warnings.warn(
-            f"Function deepinv.physics.blur.{name} is deprecated since version 0.4.1 and will be removed in a future version. "
-            f"Use deepinv.physics.functional.{name} instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        
-        return getattr(dF, name)
+@_deprecated_func_replaced_by(dF.bicubic_filter, redirect=True, since="0.4.1")
+def bicubic_filter(factor: int = 2, device: torch.device | str = "cpu") -> torch.Tensor:
+    pass
+    
+@_deprecated_func_replaced_by(dF.sinc_filter, redirect=True, since="0.4.1")
+def sinc_filter(
+    factor: float | torch.Tensor = 2,
+    length: int = 11,
+    windowed: bool = True,
+    device: torch.device | str = "cpu",
+) -> torch.Tensor:
+    pass
 
-    raise AttributeError(f"module {__name__} has no attribute {name}")
+@_deprecated_func_replaced_by(dF.kaiser_window, redirect=True, since="0.4.1")
+def kaiser_window(beta: float, length: int, device: torch.device | str = "cpu") -> torch.Tensor:
+    pass
+
+# from torchvision.transforms.functional import rotate
+# import torchvision
+
+# def gaussian_blur(
+#     sigma: float | tuple[float, ...] = (1, 1),
+#     angle: float = 0,
+#     device: torch.device | str = "cpu",
+# ) -> Tensor:
+#     r"""
+#     Gaussian blur filter.
+
+#     Defined as
+
+#     .. math::
+#             G(x, y) = \frac{1}{2\pi\sigma_x\sigma_y} \exp{\left(-\frac{x'^2}{2\sigma_x^2} - \frac{y'^2}{2\sigma_y^2}\right)}
+
+#     where :math:`x'` and :math:`y'` are the rotated coordinates obtained by rotating $(x, y)$ around the origin
+#     by an angle :math:`\theta`:
+
+#     .. math::
+#             x' &= x \cos(\theta) - y \sin(\theta) \\
+#             y' &= x \sin(\theta) + y \cos(\theta)
+
+#     with :math:`\sigma_x` and :math:`\sigma_y`  the standard deviations along the :math:`x'` and :math:`y'` axes.
+
+
+#     :param float, tuple[float] sigma: standard deviation of the gaussian filter. If sigma is a float the filter is isotropic, whereas
+#         if sigma is a tuple of floats (sigma_x, sigma_y) the filter is anisotropic.
+#     :param float angle: rotation angle of the filter in degrees (only useful for anisotropic filters)
+#     :param torch.device, str device: device to put the filter on (cpu or cuda)
+#     """
+#     if isinstance(sigma, (int, float)):
+#         sigma = (sigma, sigma)
+
+#     s = max(sigma)
+#     c = int(s / 0.3 + 1)
+#     k_size = 2 * c + 1
+
+#     delta = torch.arange(k_size, device=device)
+
+#     x, y = torch.meshgrid(delta, delta, indexing="ij")
+#     x = x - c
+#     y = y - c
+#     filt = (x / sigma[0]).pow(2)
+#     filt += (y / sigma[1]).pow(2)
+#     filt = torch.exp(-filt / 2.0)
+
+#     filt = (
+#         rotate(
+#             filt.unsqueeze(0).unsqueeze(0),
+#             angle,
+#             interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
+#         )
+#         .squeeze(0)
+#         .squeeze(0)
+#     )
+
+#     filt = filt / filt.flatten().sum()
+
+#     return filt.unsqueeze(0).unsqueeze(0)
