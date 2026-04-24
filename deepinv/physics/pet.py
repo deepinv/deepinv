@@ -20,11 +20,11 @@ class PET(LinearPhysics):
 
     .. math::
 
-        y \sim \gamma \mathcal{P}(\frac{c \circ H(g*x) + s}{\gamma})
+        y \sim \gamma \mathcal{P}(\frac{c \circ H(g*x) + b}{\gamma})
 
     where :math:`H \in \mathbb{R}_{+}^{m \times n}` is the projection operator,
     :math:`g \in \mathbb{R}_{+}^{n}` is a Gaussian blur kernel, :math:`x\in\mathbb{R}_{+}^{n}`
-    is the emission image, :math:`s \in \mathbb{R}_{+}^{m}` is the (expected) background,
+    is the emission image, :math:`b \in \mathbb{R}_{+}^{m}` is the (expected) background,
     :math:`\mathcal{P}` denotes Poisson noise with gain :math:`\gamma > 0`,
     :math:`c=\exp(-H\mu)\in \mathbb{R}_{+}^{m}` is an (optional) attenuation term
     with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained through an auxiliary CT scan).
@@ -38,11 +38,23 @@ class PET(LinearPhysics):
     .. note::
 
         This operator requires the `parallelproj` package to be installed.
-        You can install it via conda/mamba:
+        This in turn requires :ref:`installing deepinv via pixi or conda <install>`,
+        but not pypi/uv (as `parallelproj` is not currently available on pypi).
+
+        If you are working on a conda environment, you can install `parallelproj` as
 
         ::
 
             conda install -c conda-forge parallelproj
+
+
+        If you are working on a pixi installation, simply do
+
+        ::
+
+            pixi install -e full
+
+        which installs all optional dependencies.
 
         Check the `parallelproj` documentation for more details: https://parallelproj.readthedocs.io/en/stable/.
 
@@ -52,6 +64,11 @@ class PET(LinearPhysics):
         Check out the :ref:`2D <sphx_glr_auto_examples_physics_demo_pet2d.py>` and
         :ref:`3D <sphx_glr_auto_examples_physics_demo_pet3d.py>` examples to get started with this operator.
 
+    .. note::
+
+        This operator is defined to work on sinogram (binned) data.
+        List-mode data is not supported yet, but it can be pre-binned into a sinogram using `parallelproj`.
+
     :param tuple img_size: shape of the input 2D `(H, W)` or 3D volumes `(D, H, W)`.
     :param tuple voxel_size: voxel size in mm. Default is 2 x 2 x 2 mm.
     :param float fwhm_data_mm: full width at half maximum (FWHM) of the Gaussian blur :math:`g`. It has a crucial impact on the maximum achievable resolution,
@@ -60,13 +77,13 @@ class PET(LinearPhysics):
     :param int radial_trim: radial trim of rays on the sides of the volume to improve efficiency.
     :param float gain: gain factor :math:`\gamma` for the Poisson noise model.
     :param bool normalize: If `True` the forward operator is normalized such that :math:`\|A\|=1`.
-    :param bool normalize_counts: If `False` the :math:`\gamma` term in from of the Poisson noise is removed,
+    :param bool normalize_counts: If `False` the :math:`\gamma` term in front of the Poisson noise is removed,
         that is the measurements are true counts.
     :param bool projected_attenuation: If `False` (default), the attenuation should be provided in image space as :math:`\mu` (ie auxiliary CT scan).
-        If `True`, the attenuation should be provided in the image space as :math:`c`. This should be set as `False` to efficiently compute
-        gradients wrt the attenuation.
+        If `True`, the attenuation should be provided in the projection space as :math:`c`. This should be set as `False` to efficiently compute
+        gradients with respect to the attenuation.
     :param str | torch.device device: device to run the computations on, e.g. `"cpu"` or `"cuda"`
-    :param torch.Tensor background: background sinogram, i.e. the expected number of background events in each LOR, with shape `(num_lors,)`
+    :param torch.Tensor background: background sinogram :math:`b`, i.e. the expected number of background events in each LOR, with shape `(num_lors,)`
     :param torch.Tensor attenuation: attenuation map, i.e. the linear attenuation coefficient in each voxel, with shape `(H,W)` for 2D and `(D, H, W)` for 3D.
 
     |sep|
@@ -208,7 +225,9 @@ class PET(LinearPhysics):
         :param torch.Tensor x: input image or volume
         :param torch.Tensor add_background: whether to add background :math:`s`. By default, no background is added.
         :param torch.Tensor background: If not `None`, update the background :math:`s` of the operator.
-        :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`s` of the operator.
+        :param torch.Tensor attenuation: If not `None`, update the attenuation (:math:`c` if `projected_attenuation=True`,
+            :math:`\mu` if `projected_attenuation=False`) of the operator.
+
         """
         self.update_parameters(attenuation=attenuation, background=background)
         attenuation = self.attenuation

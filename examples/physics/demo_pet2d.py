@@ -9,19 +9,37 @@ The PET forward model is defined as
 
 .. math::
 
-    y \sim \gamma \mathcal{P}(\frac{c \circ H(g*x) + s}{\gamma})
+    y \sim \gamma \mathcal{P}(\frac{c \circ H(g*x) + b}{\gamma})
 
 where :math:`H \in \mathbb{R}_{+}^{m \times n}` is the projection operator,
 :math:`g \in \mathbb{R}_{+}^{n}` is a Gaussian blur kernel, :math:`x\in\mathbb{R}_{+}^{n}`
-is the emission image, :math:`s \in \mathbb{R}_{+}^{m}` is the (expected) background,
+is the emission image, :math:`b \in \mathbb{R}_{+}^{m}` is the (expected) background,
 :math:`\mathcal{P}` denotes Poisson noise with gain :math:`\gamma > 0`,
 :math:`c=\exp(-H\mu)\in \mathbb{R}_{+}^{m}` is an (optional) attenuation term
 with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained through an auxiliary CT scan).
 
 .. note::
 
-    PET physics relies on the `parallelproj` library.
-    Please `download it <https://parallelproj.readthedocs.io/en/stable/installation.html>`_ to run this example.
+    This operator requires the `parallelproj` package to be installed.
+    This in turn requires :ref:`installing deepinv via pixi or conda <install>`,
+    but not pypi/uv (as `parallelproj` is not currently available on pypi).
+
+    If you are working on a conda environment, you can install `parallelproj` as
+
+    ::
+
+        conda install -c conda-forge parallelproj
+
+
+    If you are working on a pixi installation, simply do
+
+    ::
+
+        pixi install -e full
+
+    which installs all optional dependencies.
+
+    Check the `parallelproj` documentation for more details: https://parallelproj.readthedocs.io/en/stable/.
 
 """
 
@@ -49,7 +67,7 @@ from array_api_compat import torch as torch_compat
 # .. tip::
 #
 #       You can play with different geometries and voxel sizes to get a good grasp of
-#       the scanner geometry.
+#       the scanner geometry, and visualize it with `physics.plot_geometry()`
 #
 # .. note::
 #
@@ -62,10 +80,10 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 img_size = (128, 128)
 voxel_size = (3, 3)
 
-# number of sides of the polygone approximating a circle
+# number of sides of the polygon approximating a circle
 num_sides = 32
 
-# number of detectors per polygone side
+# number of detectors per polygon side
 num_lor_endpoints_per_side = 16
 
 # choose a single ring for 2D
@@ -79,7 +97,9 @@ scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
     num_lor_endpoints_per_side=num_lor_endpoints_per_side,
 )
 
-# gain of the device (associated with amount of dose/acq. time)
+# gain of the device.
+# higher gains are associated to lower dose and/or shorter acquisition times,
+# while lower gains are associated to higher dose and/or longer acquisition times.
 # larger gain -> more poisson noise -> harder reconstruction
 gain = 0.001
 
@@ -118,7 +138,8 @@ dinv.utils.plot([x, attenuation], titles=["Emission image", "Attenuation image"]
 # The shape of measurements is approximately `(B, 1, N, N/2)` where
 # `N=num_lor_endpoints_per_side*num_sides` is the number of detectors per ring.
 # This provides one measurement for every possible Line of Response (LOR), or in other words 'rays', connecting
-# two detectors in the scanner.
+# two detectors in the scanner, which are arranged in a sinogram format, with the first axis
+# corresponding to the angle of the ray and the second axis corresponding to the distance of the ray to the center of the scanner.
 #
 # .. tip::
 #
@@ -162,7 +183,8 @@ dinv.utils.plot(
 # Backprojection and sensitivities
 # --------------------------------
 # We backproject the data to visualize the sensitivity map of the scanner.
-# The sensitivity map is defined as the back-projection of a sinogram of ones, which corresponds to the number of rays intersecting each voxel.
+# The sensitivity map is defined as the back-projection of a sinogram of ones :math:`s = A^\top \mathbf{1}`,
+# which corresponds to the number of rays intersecting each voxel.
 #
 # Here we also obtain a simple linear least-squares reconstruction by using
 # :meth:`A_dagger <deepinv.physics.LinearPhysics.A_dagger>`.

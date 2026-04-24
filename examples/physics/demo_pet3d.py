@@ -9,11 +9,11 @@ The (unnormalized) PET forward model is defined as
 
 .. math::
 
-    y \sim \gamma \mathcal{P}(c \circ H(g*x) + s)
+    y \sim \gamma \mathcal{P}(c \circ H(g*x) + b)
 
 where :math:`H \in \mathbb{R}_{+}^{m \times n}` is the projection operator,
 :math:`g \in \mathbb{R}_{+}^{n}` is a Gaussian blur kernel, :math:`x\in\mathbb{R}_{+}^{n}`
-is the emission image, :math:`s \in \mathbb{R}_{+}^{m}` is the (expected) background,
+is the emission image, :math:`b \in \mathbb{R}_{+}^{m}` is the (expected) background,
 :math:`\mathcal{P}` denotes Poisson noise,
 :math:`c=\exp(-H\mu)\in \mathbb{R}_{+}^{m}` is an (optional) attenuation term
 with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained through an auxiliary CT scan).
@@ -129,7 +129,9 @@ dinv.utils.plot(
 # `N=num_lor_endpoints_per_side*num_sides` is the number of detectors per ring
 # and `R` is the number of rings.
 # This provides one measurement for every possible Line of Response (LOR), or in other words 'rays', connecting
-# two detectors in the scanner.
+# two detectors in the scanner, which are arranged in a sinogram format, with the first axis
+# corresponding to the angle of the ray, the second axis corresponding to the distance of the ray to the center of the scanner,
+# and the last axis corresponding to the depth of the ray (i.e., which rings of detectors are connected by the ray).
 #
 # .. tip::
 #
