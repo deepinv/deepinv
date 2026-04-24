@@ -6,18 +6,18 @@ import torch.nn.functional as F
 import torch.nn as nn
 
 
-class L2RLoss(Loss):
+class Learning2RecorruptLoss(Loss):
     r"""
     Learning to Recorrupt (L2R) Loss
 
     This self-supervised loss can be used when the measurement noise model is
-    unknown. L2R introduces a trainable re-corruption mechanism:
+    unknown. L2R introduces a trainable recorruption mechanism:
 
     .. math::
 
-        y_1 = y + \alpha h(\omega),
+        y_1 = y + \alpha h(\omega, y),
 
-    where :math:`h` is a trainable network, :math:`\omega` is an i.i.d. Gaussian
+    where :math:`h` is a trainable recorruption network, :math:`\omega` is an i.i.d. Gaussian
     random tensor, and :math:`\alpha` is a scaling factor.
 
     Let :math:`R` be the trainable reconstruction network and :math:`A` the
@@ -25,24 +25,24 @@ class L2RLoss(Loss):
 
     .. math::
 
-        \|AR(y_1) - y\|_2^2 + \frac{2}{\alpha}\langle AR(y_1), h(\omega)\rangle.
+        \|AR(y_1) - y\|_2^2 + \frac{2}{\alpha} h(\omega, y)^{\top} (A R(y_1) ).
 
     During training, this objective is minimized with respect to the
-    reconstruction model parameters, while the re-corruption network parameters
-    are updated in the opposite direction (maximization step) :footcite:t:`monroy2026learning`.
+    reconstruction model parameters, while the recorruption network parameters
+    are updated in the opposite direction (maximization step) :footcite:p:`monroy2026learning`.
 
-    In practice, :math:`h` is parameterized as a lightweight monotonic neural network :footcite:t:`runje2023constrained` that
+    In practice, :math:`h` is parameterized as a lightweight monotonic neural network :footcite:p:`runje2023constrained` that
     learns perturbations adapted to the observed data.
 
     .. warning::
 
         The reconstruction model should be adapted before training using
-        :meth:`adapt_model` so that re-corruption is applied at model input.
+        :meth:`adapt_model` so that recorruption is applied at model input.
 
     .. note::
 
         To obtain better test performance, predictions can be averaged over
-        multiple re-corruptions:
+        multiple recorruptions:
 
         .. math::
 
@@ -52,10 +52,13 @@ class L2RLoss(Loss):
 
     :param Metric, torch.nn.Module metric: Metric used to compute the main data
         term. Defaults to MSE when set to ``None``.
-    :param float alpha: Scaling factor controlling the re-corruption strength.
+    :param float alpha: Scaling factor controlling the recorruption strength.
     :param int eval_n_samples: Number of Monte Carlo samples used at test time.
-    :param torch.nn.Module recorruptor: Trainable re-corruption network
-        :math:`h`. If ``None``, a default ``Recorruptor`` is used.
+    :param torch.nn.Module recorruptor: Trainable recorruption network
+        :math:`h`. It must implement ``forward(w, y)`` where ``w`` is a random
+        tensor (typically sampled with ``torch.randn_like(y)``) and ``y`` is the
+        measurement tensor, and return a perturbation tensor ``h(w, y)`` with the
+        same shape as ``y``. If ``None``, a default :class:`deepinv.loss.Learning2RecorruptLoss.RecorruptorNet` is used.
 
     |sep|
 
@@ -65,7 +68,7 @@ class L2RLoss(Loss):
     >>> import deepinv as dinv
     >>> physics = dinv.physics.Denoising()
     >>> model = dinv.models.MedianFilter()
-    >>> loss = dinv.loss.L2RLoss(metric=torch.nn.MSELoss(), alpha=0.5, eval_n_samples=2)
+    >>> loss = dinv.loss.Learning2RecorruptLoss(metric=torch.nn.MSELoss(), alpha=0.5, eval_n_samples=2)
     >>> model = loss.adapt_model(model)  # important step!
     >>> x = torch.ones((1, 1, 8, 8))
     >>> y = physics(x)
@@ -89,23 +92,25 @@ class L2RLoss(Loss):
 
         :param Metric, torch.nn.Module metric: Metric used to compute the main
             data term.
-        :param float alpha: Scaling factor controlling re-corruption strength.
+        :param float alpha: Scaling factor controlling recorruption strength.
         :param int eval_n_samples: Number of Monte Carlo samples used at test
             time.
-        :param torch.nn.Module recorruptor: Trainable re-corruption module.
+        :param torch.nn.Module recorruptor: Trainable recorruption module
+            implementing ``forward(w, y) -> h(w, y)`` with output shape equal to
+            ``y.shape``.
         """
 
         if metric is None:
             metric = torch.nn.MSELoss()
 
-        super(L2RLoss, self).__init__()
+        super(Learning2RecorruptLoss, self).__init__()
         self._name = "l2r"
         self.metric = metric
         self.alpha = alpha
         self.eval_n_samples = eval_n_samples
 
         if recorruptor is None:
-            self.recorruptor = self.Recorruptor(multiplicative=True)
+            self.recorruptor = self.RecorruptorNet(multiplicative=True)
         else:
             self.recorruptor = recorruptor
 
@@ -138,9 +143,9 @@ class L2RLoss(Loss):
 
     def adapt_model(self, model: torch.nn.Module, **kwargs) -> L2RModel:
         r"""
-        Adapts a reconstruction model to include L2R re-corruption at input.
+        Adapts a reconstruction model to include L2R recorruption at input.
 
-        During training, one re-corruption sample is used for efficiency. During
+        During training, one recorruption sample is used for efficiency. During
         evaluation, multiple samples can be averaged for improved robustness.
 
         :param torch.nn.Module model: Reconstruction model.
@@ -162,9 +167,9 @@ class L2RLoss(Loss):
 
     def update_recorruptor(self, loss, **kwargs):
         r"""
-        Applies one optimization step to the re-corruption network.
+        Applies one optimization step to the recorruption network.
 
-        :param torch.Tensor loss: Objective used to update re-corruption
+        :param torch.Tensor loss: Objective used to update recorruption
             parameters.
         """
         self.recorruptor_optimizer.zero_grad()
@@ -175,9 +180,9 @@ class L2RLoss(Loss):
         r"""
         Model wrapper when using  Learning to Recorrupt Loss.
 
-        This wrapper injects trainable re-corruption before calling the underlying
+        This wrapper injects trainable recorruption before calling the underlying
         reconstruction model, and optionally stores the sampled corruption during
-        training for use in :class:`L2RLoss`.
+        training for use in :class:`Learning2RecorruptLoss`.
         """
 
         def __init__(self, model, recorruptor, alpha, eval_n_samples, **kwargs):
@@ -191,7 +196,7 @@ class L2RLoss(Loss):
 
         def forward(self, y, physics, update_parameters=False, more_evals=0, x=None):
             r"""
-            Runs the adapted model with L2R re-corruption.
+            Runs the adapted model with L2R recorruption.
 
             :param torch.Tensor y: Input measurements.
             :param deepinv.physics.Physics physics: Forward operator.
@@ -224,19 +229,39 @@ class L2RLoss(Loss):
             return out
 
         def get_corruption(self):
-            r"""Returns the most recently stored re-corruption sample."""
+            r"""Returns the most recently stored recorruption sample."""
             return self.corruption
 
-    class Recorruptor(torch.nn.Module):
+    class RecorruptorNet(torch.nn.Module):
         r"""
-        Trainable re-corruption network used by Learning to Recorrupt (L2R).
+        Trainable recorruption network used by Learning to Recorrupt (L2R).
 
-        Given a random input tensor :math:`\omega` and measurement :math:`y`, this module
-        outputs :math:`h(\omega, y)`, i.e. an additive perturbation used to build
-        re-corrupted measurements :math:`y_1 = y + \alpha h(\omega, y)`.
+        Given a random input tensor :math:`w` and measurement :math:`y`, this module 
+        outputs :math:`h(w, y)`, an additive perturbation used to build 
+        re-corrupted measurements :math:`y_1 = y + \alpha h(w, y)`.
+
+        The perturbation is defined as:
+
+        .. math::
+            h(w, y) = G_y \cdot \bigl(k * N(\mathrm{net}(w))\bigr)
+
+        where :math:`G_y` is the modulation gain defined by the ``multiplicative`` flag:
+
+        .. math::
+            G_y = 
+            \begin{cases} 
+            \sqrt{y} & \text{if } \mathrm{multiplicative} = \text{True} \\
+            1 & \text{if } \mathrm{multiplicative} = \text{False}
+            \end{cases}
+
+        The term :math:`\mathrm{net}` is the selected network (identity, monotonic MLP, 
+        or MLP) applied pointwise to flattened entries of :math:`w`, and :math:`N` 
+        is a 1D batch normalization. A learnable scaling/filtering is applied via 
+        kernel :math:`k` (scalar if ``kernel_size=1``, spatial convolution otherwise).
+
 
         :param int depth: Depth of the internal model definition.
-        :param int feats: Number of hidden features in the model.
+        :param int hidden_features: Number of hidden features in the model.
         :param int kernel_size: Spatial kernel size used to filter the output
             perturbation. If ``kernel_size=1``, a scalar scale is used instead.
         :param bool multiplicative: If ``True``, modulates perturbations by
@@ -245,16 +270,16 @@ class L2RLoss(Loss):
             ``kernel_size=1``.
         :param str | torch.nn.Module net: Type of internal network used to generate
             perturbations. If a string is provided, it must be one of:
-            - ``"identity"``: No re-corruption, i.e. :math:`h(\omega, y) = \omega`.
+            - ``"identity"``: No recorruption, i.e. :math:`h(w, y) = w`.
             - ``"monotonic"``: Monotonic fully connected network as in the original L2R paper.
             - ``"mlp"``: Standard multi-layer perceptron with ReLU activations.
-            The number of layers and hidden features are controlled by the ``depth`` and ``feats`` parameters.
+            The number of layers and hidden features are controlled by the ``depth`` and ``hidden_features`` parameters.
         """
 
         def __init__(
             self,
             depth=3,
-            feats=4,
+            hidden_features=4,
             kernel_size=1,
             multiplicative=False,
             sigma=0.1,
@@ -265,7 +290,7 @@ class L2RLoss(Loss):
             self.multiplicative = multiplicative
             self.kernel_size = kernel_size
 
-            feats_list = [1] + [feats] * depth + [1]
+            feats_list = [1] + [hidden_features] * depth + [1]
             t_in = [1]
 
             if net == "identity":

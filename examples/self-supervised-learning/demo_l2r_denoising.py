@@ -2,9 +2,36 @@ r"""
 Self-supervised denoising with the Learning to Recorrupt (L2R) loss.
 ====================================================================================================
 
-This example shows you how to train a denoiser network in a fully self-supervised way,
-using noisy images only via the Learning to Recorrupt (L2R) loss :footcite:t:`monroy2026learning`,
-which does not require knowledge about the noise distribution.
+This example shows how to train a denoiser network in a fully self-supervised way,
+using only noisy images through the Learning to Recorrupt (L2R) loss
+:footcite:p:`monroy2026learning`, without requiring explicit knowledge of the noise distribution.
+
+The core idea of L2R is to avoid comparing predictions to clean targets (which are unavailable in
+self-supervised settings). Instead, the method learns a small trainable re-corruption module that
+maps input noisy image to desired recorruption distribution. For this, the recorrupted image :math:`y_1`
+is constructed by applying the recorruption network as follows
+
+.. math::
+
+    y_1 = y + h(\omega, y),
+
+then, the L2R loss is defined as
+
+.. math::
+
+    \mathcal{L}_{\mathrm{L2R}}(f,h)
+    = \mathbb{E}_{y\sim p(y)}\left[  \|AR(y_1) - y\|_2^2 + \frac{2}{\alpha} h(\omega, y)^{\top} (A R(y_1) )  \right],
+
+and optimize it through the adversarial objective
+
+.. math::
+
+    \min_{f}\;\max_{h}\;\mathcal{L}_{\mathrm{L2R}}(f,h),
+
+where :math:`f` is the denoiser, :math:`h` is the learned re-corruption model,
+:math:`y` is the noisy measurement. Here, the denoiser is encouraged to align predictions with
+noisy obervations and reduce noise correlation with the input noisy image, while the re-corruption model is trained
+to maximize this noise correlation.
 
 To build measurements, we still choose a noise model in the physics simulator. By default,
 this demo uses Poisson noise, but you can switch to Gaussian noise by changing ``noise_name``.
@@ -17,7 +44,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 import deepinv as dinv
-from deepinv.loss.l2r import L2RLoss
+from deepinv.loss.l2r import Learning2RecorruptLoss
 from deepinv.utils import get_data_home
 
 # %%
@@ -114,7 +141,7 @@ model = dinv.models.ArtifactRemoval(
 # %%
 # Set up the training parameters
 # --------------------------------------------
-# We set :class:`deepinv.loss.l2r.L2RLoss` as the training loss.
+# We set :class:`deepinv.loss.l2r.Learning2RecorruptLoss` as the training loss.
 #
 # .. note::
 #
@@ -126,7 +153,7 @@ learning_rate = 1e-3
 batch_size = 64 if torch.cuda.is_available() else 1
 
 # choose self-supervised training loss
-loss = L2RLoss(metric=torch.nn.MSELoss(), alpha=0.5, eval_n_samples=2)
+loss = Learning2RecorruptLoss(metric=torch.nn.MSELoss(), alpha=0.5, eval_n_samples=2)
 model = loss.adapt_model(model).to(device)  # important step!
 
 

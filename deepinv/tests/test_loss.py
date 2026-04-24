@@ -167,8 +167,10 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         loss.append(dinv.loss.R2RLoss(noise_model=dinv.physics.GaussianNoise(0.1)))
     elif loss_name == "l2r":
         loss.append(
-            dinv.loss.L2RLoss(
-                recorruptor=dinv.loss.L2RLoss.Recorruptor(sigma=0.1, net="identity"),
+            dinv.loss.Learning2RecorruptLoss(
+                recorruptor=dinv.loss.Learning2RecorruptLoss.RecorruptorNet(
+                    sigma=0.1, net="identity"
+                ),
                 device=device,
             )
         )
@@ -311,7 +313,7 @@ def test_r2r(noise_type, device):
 
 @pytest.mark.parametrize("l2r_recorruptor", LIST_L2R)
 def test_l2r(l2r_recorruptor, device):
-    imsize = (3, 32, 32)
+    imsize = (3, 4, 4)
 
     # choose backbone denoiser
     backbone = dinv.models.MedianFilter()
@@ -326,8 +328,8 @@ def test_l2r(l2r_recorruptor, device):
     kernel_size = 3 if l2r_recorruptor == "mlp" else 1
 
     # choose training losses
-    loss = dinv.loss.L2RLoss(
-        recorruptor=dinv.loss.L2RLoss.Recorruptor(
+    loss = dinv.loss.Learning2RecorruptLoss(
+        recorruptor=dinv.loss.Learning2RecorruptLoss.RecorruptorNet(
             sigma=0.1,
             net=l2r_recorruptor,
             multiplicative=multiplicative,

@@ -6,7 +6,7 @@ from .sup import SupLoss, ReducedResolutionLoss
 from .score import ScoreLoss
 from .tv import TVLoss
 from .r2r import R2RLoss
-from .l2r import L2RLoss
+from .l2r import Learning2RecorruptLoss
 from .sure import SureGaussianLoss, SurePoissonLoss, SurePGLoss
 from .regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from .measplit import SplittingLoss, Neighbor2Neighbor
