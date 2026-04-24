@@ -113,7 +113,9 @@ def test_algo(name_algo, device):
 
     sigma = 1
     # choose physics that changes the image size
-    physics = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(3), device=device)
+    physics = dinv.physics.Blur(
+        dinv.physics.functional.gaussian_blur(sigma=(3, 3)), device=device
+    )
     physics.noise_model = dinv.physics.GaussianNoise(sigma)
     y = physics(test_sample)
 
@@ -409,7 +411,7 @@ def test_noisy_data_fidelity(device):
     denoiser = dinv.models.DRUNet(pretrained="download").to(device)
     x = torch.rand(2, 3, 64, 64, device=device)
     physics = dinv.physics.Blur(
-        filter=dinv.physics.blur.gaussian_blur(sigma=(3, 3)), device=device
+        filter=dinv.physics.functional.gaussian_blur(sigma=(3, 3)), device=device
     )
     y = physics(x)
     sigma = 0.1
