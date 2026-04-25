@@ -99,10 +99,24 @@ class NIQE(Metric):
 
     .. note::
 
+        The input image must be sufficiently large compared to ``patch_size`` to ensure an adequate number of
+        patches can be extracted. NIQE fits a Multivariate Gaussian (MVG) model to
+        the Natural Scene Statistics (NSS) features (MSCN coefficients) of these
+        patches, then measures the distance between this model and a reference MVG
+        pre-fitted on pristine natural images. Too few patches yield an unreliable
+        covariance matrix estimate, degrading the accuracy of the quality score.
+
+    .. note::
+
+        ``denominator`` defaults to 1. This was used in the original work, with fitting and testing data in [0,255]. When working with
+        another intensity scale, change ``denominator`` appropriately to ensure it doesn't dominate over σ. For example, ``denominator=1/255``
+        is a good starting point for intensity scale [0,1].
+
+    .. note::
+
         By default, no reduction is performed in the batch dimension.
 
-
-    :param str weights_path: Path to weights created with `.create_weights`. If 'download' (default), downloads the weights provided by :footcite:t:`mittal2012making`. If None, mu and cov are not initialized (useful when fitting custom weights).
+    :param str weights_path: Path to weights created with ``.create_weights``. If 'download' (default), downloads the weights provided by :footcite:t:`mittal2012making`. If None, mu and cov are not initialized (useful when fitting custom weights).
     :param float denominator: stabilizer to add to the std in the image normalization step (eq.1). Defaults to 1
     :param bool round_tensor: whether to round the input. The original NIQE implementation used rounding and requires input to be range [0, 255]. Do not set round_tensor if incoming tensors will be in [0,1] style ranges. Defaults to False.
     :param torch.device, str device: device to use for the metric computation. Default: 'cpu'.
@@ -342,7 +356,7 @@ class NIQE(Metric):
         n_patches_w = (W - self.patch_size) // stride + 1
         if n_patches_h * n_patches_w < 2:  # pragma: no cover
             raise RuntimeError(
-                f"NIQE requires more than 1 patch to compute covariance, but got only {n_patches_h * n_patches_w} patch "
+                f"NIQE requires more than 1 patch to compute covariance, but got only {n_patches_h * n_patches_w} patches "
                 f"for batch of shape {x_net.shape} with patch_size={self.patch_size} and patch_overlap={self.patch_overlap}. "
             )
         if C == 3:
@@ -378,37 +392,27 @@ class NIQE(Metric):
         r"""
         Fit NIQE model parameters (mu_prisparam, cov_prisparam) from a dataset of 'pristine' images,
         following the original MATLAB pipeline with two scales and sharpness-based patch selection.
-        `patch_size`, `patch_overlap`, and `denominator` used are those passed at init (unless modified by the user)
+        ``patch_size``, ``patch_overlap``, and ``denominator`` used are those passed at init (unless modified post-init by user).
 
-        :param torch.utils.data.Dataset dataset: for each item, should give a torch.Tensor or PIL.Image representing a
+        ``dataset`` should yield a (C, H, W) ``Tensor``, where C=1 and C=3 are allowed. If C=3, RGB is assumed and will be converted
+        to greyscale using 0.299*R + 0.587*G + 0.114*B.
+
+        :param torch.utils.data.Dataset dataset: for each item, should yield a Tensor representing a
             distortion-free (pristine) image.
         :param float sharpness_threshold: only patches whose sharpness is at least
-            sharpness_threshold of the per-image peak sharpness (measured from σ at scale 1) are kept.
-        :param str save_path: Path to which weights are to be saved. Must have `.pt` extension. If not passed, weights are returned without saving.
+            ``sharpness_threshold`` of the per-image peak sharpness (measured from σ at scale 1) are kept.
+        :param str save_path: Path to which weights are to be saved. Must have ``.pt`` extension. If not passed, weights are returned without saving.
 
-        :return: (mu_prisparam, cov_prisparam) as self.dtype on self.device, and updates self.mu_p/self.cov_p.
+        :return: (mu_prisparam, cov_prisparam) as self.dtype on self.device. Also updates self.mu_p, self.cov_p.
         """
-        try:
-            from PIL import Image
-        except:
-            raise ImportError(
-                "create_weights requires PIL, but it is not installed"
-            )  # temporary req for testing with Set14HR
+
         device = self.device
         dtype = torch.float32
         kernel = self._gen_gauss_kernel().to(device=device, dtype=dtype)
 
         all_feats = []
 
-        for sample in dataset:
-            if isinstance(sample, torch.Tensor):
-                x = sample
-            elif isinstance(sample, Image.Image):
-                x = torch.from_numpy(np.array(sample))
-            else:
-                raise TypeError(
-                    "Each dataset sample must be a torch.Tensor or PIL.Image."
-                )
+        for x in dataset:
 
             if x.ndim == 2:
                 x = x.unsqueeze(0)
