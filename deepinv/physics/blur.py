@@ -10,6 +10,7 @@ from deepinv.physics.forward import LinearPhysics, DecomposablePhysics, adjoint_
 import deepinv.physics.functional as dF
 from deepinv.utils.mixins import TiledMixin2d
 from deepinv.utils._internal import _as_pair, _add_tuple
+from deepinv.utils._tiling import _resolve_tiling_params, _compute_needed_pad
 
 
 class Downsampling(LinearPhysics):
@@ -577,7 +578,9 @@ class BlurFFT(DecomposablePhysics):
     Blur operator based on ``torch.fft`` operations, which assumes a circular padding of the input, and allows for
     the singular value decomposition via ``deepinv.Physics.DecomposablePhysics`` and has fast pseudo-inverse and prox operators.
 
-
+    .. warning::
+        The FFT computations can lead to small numerical errors, which may result in negative values in the output even when the input is non-negative.
+        If used in combination with :class:`deepinv.physics.PoissonNoise`, it is recommended to set ``clip_positive=True`` in the noise model to avoid runtime errors.
 
     :param tuple img_size: Input image size in the form `(C, H, W)`.
     :param torch.Tensor filter: torch.Tensor of size `(1, c, h, w)` containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
@@ -755,6 +758,7 @@ class SpaceVaryingBlur(LinearPhysics):
     :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
+    :param bool use_fft: whether to use FFT-based convolutions. If ``True``, it uses FFT-based convolutions which can be faster for large kernels.
     :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     |sep|
@@ -785,6 +789,7 @@ class SpaceVaryingBlur(LinearPhysics):
         filters: Tensor = None,
         multipliers: Tensor = None,
         padding: str = "valid",
+        use_fft: bool = False,
         device: torch.device | str = "cpu",
         **kwargs,
     ):
@@ -793,7 +798,7 @@ class SpaceVaryingBlur(LinearPhysics):
         self.register_buffer("filters", filters)
         self.register_buffer("multipliers", multipliers)
         self.padding = padding
-
+        self.use_fft = use_fft
         self.to(device)
 
     def A(
@@ -813,7 +818,9 @@ class SpaceVaryingBlur(LinearPhysics):
         :param str device: cpu or cuda
         """
         self.update_parameters(filters, multipliers, padding, **kwargs)
-        return dF.product_convolution2d(x, self.multipliers, self.filters, self.padding)
+        return dF.product_convolution2d(
+            x, self.multipliers, self.filters, self.padding, use_fft=self.use_fft
+        )
 
     def A_adjoint(
         self,
@@ -839,7 +846,7 @@ class SpaceVaryingBlur(LinearPhysics):
             filters=filters, multipliers=multipliers, padding=padding, **kwargs
         )
         return dF.product_convolution2d_adjoint(
-            y, self.multipliers, self.filters, self.padding
+            y, self.multipliers, self.filters, self.padding, use_fft=self.use_fft
         )
 
     def update_parameters(
@@ -988,13 +995,13 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         """
         img_size = x.shape[-2:]
         self.update_parameters(filters, img_size=img_size, device=x.device, **kwargs)
-
         w = self.multipliers  # (B, C, K, H, W)
         h = self.filters  # (B, C, K, h, w)
+        h_size = h.shape[-2:]
+        pad = self._get_pad(h_size)
 
         # Extract patches: (B, C, K1, K2, P1, P2)
-        patches = self.image_to_patches(x)
-
+        patches = self.image_to_patches(x, pad=pad)
         n_rows, n_cols = patches.size(2), patches.size(3)
         if n_rows * n_cols != h.size(2):
             raise ValueError(
@@ -1004,17 +1011,12 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         # Flatten K1 and K2 to: (B, C, K, P1, P2)
         patches = patches.flatten(2, 3)
-        patches = patches * w
 
         # Pad each patch for local convolution: so that local convolution produce image of same size
-        h_size = h.shape[-2:]
-        pad = self._get_pad(h_size)
-        patches = self._pad(patches, pad)
 
         # Apply convolution per patch
         B, C = patches.shape[:2]
         h = dF.convolution._prepare_filter_for_grouped(h, B=B, C=C)
-
         result = self.conv2d_fn(
             self.rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
             self.rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
@@ -1023,6 +1025,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         result = self.rearrange(
             result, "(b k) c h w -> b c k h w", b=patches.size(0), k=h.size(2)
         )
+        result = result * w
 
         B, C, K, H, W = result.size()
         result = self.patches_to_image(
@@ -1071,7 +1074,6 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         # Extract patches
         patches = self.image_to_patches(y)
-
         n_rows, n_cols = patches.size(2), patches.size(3)
         if n_rows * n_cols != h.size(2):
             raise ValueError(
@@ -1081,6 +1083,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         # Apply transpose convolution per patch
         patches = patches.flatten(2, 3)
+        patches = patches * w
         B, C = patches.shape[:2]
         h = dF.convolution._prepare_filter_for_grouped(h, B=B, C=C)
 
@@ -1092,16 +1095,19 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         result = self.rearrange(result, "(b k) c h w -> b c k h w", b=B, k=h.size(2))
 
-        # Remove pad and apply weights
-        result = self._crop(result, pad)
-        result = result * w
-
         # Reconstruct image using overlapping patches
         B, C, _, H, W = result.size()
-        return self.patches_to_image(
+        result = self.patches_to_image(
             result.view(B, C, n_rows, n_cols, H, W),
-            img_size=original_img_size,
         )
+
+        # crop due to padding for convolution
+        result = self._crop(result, pad)
+
+        # crop due to padding for fitting integer number of patches
+        result = result[..., : original_img_size[-2], : original_img_size[-1]]
+
+        return result
 
     def update_parameters(
         self,
@@ -1134,7 +1140,9 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
     @staticmethod
     def num_filters(
-        img_size: tuple[int, int], patch_size: tuple[int, int], stride: tuple[int, int]
+        img_size: tuple[int, int],
+        patch_size: tuple[int, int],
+        stride: tuple[int, int] = None,
     ) -> tuple[int, int]:
         r"""
         Computes the number of filters (tiles) required for a given image size, patch size and stride.
@@ -1142,18 +1150,12 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         :param tuple[int, int] img_size: Image size `(H, W)`.
         :param tuple[int, int] patch_size: Patch size `(h, w)`.
-        :param tuple[int, int] stride: Stride size `(sh, sw)`.
+        :param tuple[int, int] stride: Stride size `(sh, sw)`. If `None`, it is set equal to `patch_size // 2` (default).
         :return: Number of filters (tiles) required in each spatial dimension.
         """
         img_size = _as_pair(img_size)
-        patch_size = _as_pair(patch_size)
-        stride = _as_pair(stride)
-
-        # Using the same logic as in TiledMixin2d, but a static method here to help users compute the number of filters needed beforehand
-        num = [(i - p) // s + 1 for i, p, s in zip(img_size, patch_size, stride)]
-        pad = [
-            (p + n * s - i) % s for p, n, s, i in zip(patch_size, num, stride, img_size)
-        ]
+        patch_size, stride = _resolve_tiling_params(patch_size, stride)
+        pad = _compute_needed_pad(img_size, patch_size, stride)
         compatible_size = _add_tuple(img_size, pad)
         n_h = (compatible_size[0] - patch_size[0]) // stride[0] + 1
         n_w = (compatible_size[1] - patch_size[1]) // stride[1] + 1
@@ -1202,19 +1204,14 @@ def gaussian_blur(
     Defined as
 
     .. math::
-        \begin{equation*}
             G(x, y) = \frac{1}{2\pi\sigma_x\sigma_y} \exp{\left(-\frac{x'^2}{2\sigma_x^2} - \frac{y'^2}{2\sigma_y^2}\right)}
-        \end{equation*}
 
     where :math:`x'` and :math:`y'` are the rotated coordinates obtained by rotating $(x, y)$ around the origin
     by an angle :math:`\theta`:
 
     .. math::
-
-        \begin{align*}
             x' &= x \cos(\theta) - y \sin(\theta) \\
             y' &= x \sin(\theta) + y \cos(\theta)
-        \end{align*}
 
     with :math:`\sigma_x` and :math:`\sigma_y`  the standard deviations along the :math:`x'` and :math:`y'` axes.
 
@@ -1290,13 +1287,11 @@ def sinc_filter(
 
     .. math::
 
-        \begin{equation*}
             \beta = \begin{cases}
                 0 & \text{if } A \leq 21 \\
                 0.5842 \cdot (A - 21)^{0.4} + 0.07886 \cdot (A - 21) & \text{if } 21 < A \leq 50 \\
                 0.1102 \cdot (A - 8.7) & \text{otherwise}
             \end{cases}
-        \end{equation*}
 
     :param float, torch.Tensor factor: Downsampling factor. If Tensor, can only have one element.
     :param int length: Length of the filter.
@@ -1337,12 +1332,10 @@ def bilinear_filter(factor: int = 2, device: torch.device | str = "cpu") -> Tens
 
     .. math::
 
-        \begin{equation*}
             w(x, y) = \begin{cases}
                 (1 - |x|) \cdot (1 - |y|) & \text{if } |x| \leq 1 \text{ and } |y| \leq 1 \\
                 0 & \text{otherwise}
             \end{cases}
-        \end{equation*}
 
     for :math:`x, y \in {-\text{factor} + 0.5, -\text{factor} + 0.5 + 1/\text{factor}, \ldots, \text{factor} - 0.5}`.
 
