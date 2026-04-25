@@ -1,7 +1,6 @@
 from __future__ import annotations
 import math, sys, io, requests
 from pathlib import Path
-import numpy as np
 import torch
 import torch.nn.functional as F
 
