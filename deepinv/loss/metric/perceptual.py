@@ -133,14 +133,13 @@ class NIQE(Metric):
         self.denominator = denominator
         self.dtype = dtype
         if weights_path == "download":
-            raise NotImplementedError()
             resp = requests.get(
-                "https://huggingface.co/deepinv/IQA-Models/resolve/main/niqe_original.pt",  # TO DO for this PR: add this
+                "https://huggingface.co/deepinv/demo/resolve/main/niqe_weights.pt",
                 timeout=2.5,
             )
             resp.raise_for_status()
 
-            params = torch.load(io.BytesIO(resp.content))
+            params = torch.load(io.BytesIO(resp.content), weights_only=False)
         elif weights_path is not None:
             params = torch.load(weights_path)
         else:
