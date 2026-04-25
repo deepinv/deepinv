@@ -48,6 +48,7 @@ class SRResNet(Reconstructor):
     :param type[torch.nn.Module] norm: normalization layer class, instantiated with the
         number of channels. Default: :class:`torch.nn.BatchNorm2d`.
     :param int final_kernel_size: kernel size of the final output convolution. Must be odd. Default: 9.
+    :param bool final_relu: enforce non-negativity of output by performing a relu after final conv. Default: False
     """
 
     def __init__(
@@ -59,6 +60,7 @@ class SRResNet(Reconstructor):
         actv: type[nn.Module] = nn.PReLU,
         norm: type[nn.Module] = nn.BatchNorm2d,
         final_kernel_size: int = 9,
+        final_relu: bool = False,
     ):
         super().__init__()
         if upscale < 1 or (upscale & (upscale - 1)) != 0:
@@ -82,7 +84,12 @@ class SRResNet(Reconstructor):
             ]
         )
         p = (final_kernel_size - 1) // 2
-        self.final_conv = nn.Conv2d(feats, im_c, final_kernel_size, 1, p)
+        self.final_conv = nn.Sequential(
+            *(
+                [nn.Conv2d(feats, im_c, final_kernel_size, 1, p)]
+                + ([nn.ReLU()] if final_relu else [])
+            )
+        )
 
     def forward(
         self, y: torch.Tensor, physics: Physics | None = None, **kwargs
