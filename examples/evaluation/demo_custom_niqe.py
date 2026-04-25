@@ -2,16 +2,16 @@ r"""
 Fitting NIQE on a custom dataset
 ====================================================================================================
 
-This example shows how to fit :class:`deepinv.loss.metric.NIQE` on a new dataset,
-save and load the fitted weights, and use them to evaluate denoiser performance.
+This example shows how to fit :class:`deepinv.loss.metric.NIQE` on a new dataset, and use it
+to evaluate denoiser performance.
 
 NIQE is a no-reference image quality metric that compares local image statistics
 against those of pristine (distortion-free) images. Fitting NIQE on a domain-specific
 dataset can better capture the expected image characteristics.
 
-While DIV2K is also natural imaging, the image quality and sharpness is better compared
+While DIV2K is also natural imaging data, the image quality and sharpness is better compared
 to the dataset NIQE was originally fitted on. The fitting in this example can be done with
-any dataset returning RGB or single channel images. Do set a reasonable denominator argument
+any dataset returning RGB or single channel tensors. Do set a reasonable denominator argument
 relative to your data's pixel intensity range (e.g. for [0, 1], set denominator to 1/255)
 
 We perform 5-fold cross-validation on the DIV2K validation set (80 fit / 20 test per fold)
@@ -27,16 +27,12 @@ to the loss of fine texture detail captured in the DIV2K prior.
 
 import deepinv as dinv
 from deepinv.utils import plot
-from pathlib import Path
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import Subset
 from torchvision.transforms import Compose, ToTensor, CenterCrop, Lambda
 from natsort import natsorted
-import requests
-from scipy.io import loadmat
-import io
 
 device = dinv.utils.get_device()
 
@@ -46,10 +42,6 @@ device = dinv.utils.get_device()
 # We create two instances of DIV2K with different transforms:
 # one that scales pixel values to [0, 255] for fitting NIQE weights,
 # and one that keeps values in [0, 1] for denoising and PSNR evaluation.
-
-DATA_DIR = Path.home() / "data"
-SAVE_DIR = Path("niqe_results")
-SAVE_DIR.mkdir(exist_ok=True)
 
 crop_size = 1024
 
@@ -69,11 +61,14 @@ test_transform = Compose(
 )
 
 div2k_fit = dinv.datasets.DIV2K(
-    root=str(DATA_DIR), mode="val", download=True, transform=fit_transform
+    root=dinv.utils.get_data_home(), mode="val", download=True, transform=fit_transform
 )
 div2k_fit.x_paths = natsorted(div2k_fit.x_paths)
 div2k_test = dinv.datasets.DIV2K(
-    root=str(DATA_DIR), mode="val", download=True, transform=test_transform
+    root=dinv.utils.get_data_home(),
+    mode="val",
+    download=False,
+    transform=test_transform,
 )
 div2k_test.x_paths = natsorted(div2k_test.x_paths)
 n_images = len(div2k_fit)
@@ -106,43 +101,24 @@ denoisers = {
 # %%
 # Load original NIQE weights
 # ---------------------------
-# We load the original NIQE weights (from the MATLAB release) for comparison
+# We load the original NIQE weights for comparison
 # against our custom-fitted weights.
 
+niqe_original = dinv.loss.metric.NIQE(device="cpu")
 
-# niqe_original = dinv.loss.metric.NIQE(device="cpu")
-# workaround till weights are on deepinv HF
-resp = requests.get(
-    "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/niqe_modelparameters.mat",
-    timeout=2.5,
-)
-resp.raise_for_status()
-
-params = loadmat(io.BytesIO(resp.content))
-niqe_original = dinv.loss.metric.NIQE(weights_path=None, device="cpu")
-niqe_original.cov_p = torch.from_numpy(params["cov_prisparam"]).to(dtype=torch.float32)
-niqe_original.mu_p = (
-    torch.from_numpy(params["mu_prisparam"]).to(dtype=torch.float32).squeeze(0)
-)
 # %%
 # Fit NIQE and save/load weights
 # -------------------------------
 # :meth:`deepinv.loss.metric.NIQE.create_weights` fits NIQE statistics from a pristine
 # image dataset. Passing ``save_path`` persists the weights to disk so they can be
 # reloaded in future sessions via the ``weights_path`` constructor argument.
+# Here, ``save_path`` is not passed, meaning the niqe object will only be modified in-place.
 
 
-def fit_niqe(fit_subset: Subset, fold: int) -> dinv.loss.metric.NIQE:
-    save_path = SAVE_DIR / f"niqe_div2k_fold{fold}.pt"
-
-    if save_path.exists():
-        print(f"  Loading existing weights from {save_path}")
-        return dinv.loss.metric.NIQE(weights_path=save_path, device="cpu")
-
+def fit_niqe(fit_subset: Subset) -> dinv.loss.metric.NIQE:
     print(f"  Fitting NIQE on {len(fit_subset)} images...")
     niqe = dinv.loss.metric.NIQE(weights_path=None, device="cpu")
-    niqe.create_weights(fit_subset, save_path=save_path)
-    print(f"  Weights saved to {save_path}")
+    niqe.create_weights(fit_subset)
     return niqe
 
 
@@ -171,7 +147,7 @@ for fold in range(5):
     fit_subset = Subset(div2k_fit, fit_indices)
     test_subset = Subset(div2k_test, test_indices)
 
-    niqe_fitted = fit_niqe(fit_subset, fold)
+    niqe_fitted = fit_niqe(fit_subset)
 
     for i, img in enumerate(test_subset):
         img = img.unsqueeze(0)
@@ -252,4 +228,3 @@ plot(
     vmax=1,
     rescale_mode="clip",
 )
-results = {m: {"original_niqe": [], "div2k_niqe": []} for m in methods_all}
