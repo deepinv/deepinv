@@ -12,13 +12,14 @@ If you're a contributor and are interested in becoming a maintainer, please reac
 
 ## Current Maintainers
 
-| Maintainer | GitHub | Affiliation | Email |
-|------|------|-------|-------|
-| Julián Tachella | [@tachella](https://github.com/tachella) | CNRS, ENS Lyon | [📧](mailto:julian.tachella@cnrs.fr) |
-| Samuel Hurault | [@samuro95](https://github.com/samuro95/) | CNRS, ENS Paris | [📧](mailto:huraultsamuel@gmail.com) |
-| Andrew Wang | [@andrewwango](https://github.com/andrewwango) | University of Edinburgh | [📧](mailto:andrew.wang@ed.ac.uk) |
-| Minh-Hai Nguyen | [@mh-nguyen712](https://github.com/mh-nguyen712) | IRIT, CBI, CNRS, Université de Toulouse | [📧](mailto:nguyenhai7120qh@gmail.com) |
-| Jérémy Scanvic | [@jscanvic](https://github.com/jscanvic) | CNRS, ENS Lyon | [📧](mailto:jeremy.scanvic@ens-lyon.fr) |
+| Maintainer      | GitHub                                           | Affiliation | Email                                   |
+|-----------------|--------------------------------------------------|-------|-----------------------------------------|
+| Julián Tachella | [@tachella](https://github.com/tachella)         | CNRS, ENS Lyon | [📧](mailto:julian.tachella@cnrs.fr)    |
+| Samuel Hurault  | [@samuro95](https://github.com/samuro95/)        | CNRS, ENS Paris | [📧](mailto:huraultsamuel@gmail.com)    |
+| Andrew Wang     | [@andrewwango](https://github.com/andrewwango)   | University of Edinburgh | [📧](mailto:andrew.wang@ed.ac.uk)       |
+| Minh-Hai Nguyen | [@mh-nguyen712](https://github.com/mh-nguyen712) | IRIT, CBI, CNRS, Université de Toulouse | [📧](mailto:nguyenhai7120qh@gmail.com)  |
+| Jérémy Scanvic  | [@jscanvic](https://github.com/jscanvic)         | CNRS, ENS Lyon | [📧](mailto:jeremy.scanvic@ens-lyon.fr) |
+| Romain Vo      | [@romainvo](https://github.com/romainvo)         | CNRS, ENS Lyon | [📧](mailto:romain.vo@ens-lyon.fr)      |
 
 ## Emeritus
 

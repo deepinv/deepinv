@@ -33,7 +33,7 @@ from torchvision.transforms import ToTensor
 #    :class:`deepinv.datasets.ImageFolder` can load any type of data (e.g. MRI, CT, etc.)
 #    by passing in a custom `loader` function and `transform`.
 
-DATA_DIR = dinv.utils.get_data_home() / "demo_custom_dataset"
+DATA_DIR = dinv.utils.get_cache_home() / "demo_custom_dataset"
 dinv.utils.download_example("butterfly.png", DATA_DIR / "GT")
 
 dataset1 = dinv.datasets.ImageFolder(DATA_DIR / "GT", transform=ToTensor())
@@ -144,11 +144,9 @@ physics.update(**params)
 dinv.test(model, DataLoader(dataset2), physics, plot_images=True, device=device)
 
 # %%
-# Even if the dataset doesn't have ground truth:
-#
-# Here only no-reference metrics can be used.
+# Even if the dataset doesn't have ground truth, no-reference metrics can be used.
 
-metrics = [dinv.metric.NIQE(device=device)]
+metrics = [dinv.metric.SharpnessIndex()]  # dinv.metric.NIQE(device=device)
 
 dinv.test(
     model,

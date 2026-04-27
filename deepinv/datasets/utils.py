@@ -14,7 +14,7 @@ from torch.nn import Module
 from torchvision.transforms.functional import crop as torchvision_crop
 
 from deepinv.datasets.base import ImageDataset
-from deepinv.utils import normalize_signal
+from deepinv.utils import normalize_signal, get_cache_home
 
 
 def check_path_is_a_folder(folder_path: str) -> bool:
@@ -99,6 +99,26 @@ def extract_tarball(file_path: str | Path, extract_dir: str | Path) -> None:
         # Thus the progress bar will not move linearly with time
         for file_to_be_extracted in tqdm(tar_ref.getmembers(), desc="Extracting"):
             tar_ref.extract(file_to_be_extracted, extract_dir)
+
+
+def resolve_root(root: str | Path | None, dataset_name: str = None) -> Path:
+    """Resolve the root directory for a dataset.
+
+    If root is None, it defaults to the global cache directory defined by
+    `get_cache_home()` under a subdirectory named `dataset_name`.
+    Otherwise, it returns the provided root as a Path.
+
+    :param str, pathlib.Path, None root: directory of the dataset.
+    :param str dataset_name: name of the dataset.
+    :return: pathlib Path for the dataset root.
+    """
+    if root is None:
+        return (
+            get_cache_home() / "datasets" / dataset_name
+            if dataset_name is not None
+            else get_cache_home() / "datasets"
+        )
+    return Path(root)
 
 
 class PlaceholderDataset(ImageDataset):

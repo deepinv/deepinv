@@ -8,6 +8,37 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add install guidelines for different platforms (`pixi`, `conda`, `pip`, `uv`) in docs (:gh:`1108` by `Julian Tachella`_)
+- Add :class:`deepinv.optim.SIRT` algorithm for tomographic reconstruction (:gh:`985` by `Thibaut Modrzyk`_)
+- Add :class:`deepinv.optim.MLEM` algorithm for Poisson inverse problems (:gh:`1051` by `Thibaut Modrzyk`_)
+- Add the equivariant splitting loss :class:`deepinv.loss.EquivariantSplittingLoss` with equivariant reconstructors :class:`deepinv.models.EquivariantReconstructor` and virtual physics :class:`deepinv.physics.VirtualLinearPhysics` (:gh:`881` by `Jérémy Scanvic`_)
+- Add `DEEPINV_CACHE_DIR` environment variable to set the cache directory for datasets and pretrained weights (:gh:`1105` by `Minh Hai Nguyen`_)
+
+Changed
+^^^^^^^
+- Refactor CI to use `pixi` for compatibility with mixed conda/pip environments (:gh:`1108` by `Julian Tachella`_)
+- Add support for arbitrary learning-free reconstructors in the trainer (:gh:`881` by `Jérémy Scanvic`_)
+- Make available every mask used at evaluation for splitting models :class:`deepinv.loss.SplittingLoss.SplittingModel` when ``eval_n_samples > 1`` (:gh:`881` by `Jérémy Scanvic`_)
+- Deprecate `Loss.name` in favor of the class name as done in the trainer (:gh:`881` by `Jérémy Scanvic`_)
+- Update references for single pixel demo (:gh:`1151` by `Laura C. Diaz-Delgado`_)
+- Add changelog section to the contributing guidelines (:gh:`1153` by `Thibaut Modrzyk`_)
+- Unify patching / tiling and unpatching / un-tiling logic in physics and utils, with support for padding and non-overlapping patches. Add :func:`deepinv.utils.image_to_patches` and :func:`deepinv.utils.patches_to_image` utility functions, and refactor physics to use them instead of `unfold` (:gh:`1104` by `Minh Hai Nguyen`_)
+
+Fixed
+^^^^^
+- Add warning when options `reduce="mean"` and `reduce="none"` are used in :class:`deepinv.physics.StackedLinearPhysics`. Remove `reduction` argument from :class:`deepinv.distributed.DistributedStackedLinearPhysics` (:gh:`1071` by `Romain Vo`_)
+- Correct the value of ``Transform.n_trans`` in composed transformations (:gh:`881` by `Jérémy Scanvic`_)
+- Add support for computing the evaluation loss for splitting losses like :class:`deepinv.loss.SplittingLoss` in the trainer (:gh:`881` by `Jérémy Scanvic`_)
+- Add a deprecation warning in :func:`deepinv.utils.plot_inset` in favor of :func:`deepinv.utils.plot` with `plot_inset=True` (:gh:`1148` by `Paul Bernard`_).
+- Fix dimensions mismatch in :class:`deepinv.physics.TomographyWithAstra` with 3D phantoms (:gh:`1137` by `Baptiste Legouix`_)
+- Add warning and error handling for negative inputs in BlurFFT and Poisson noise (:gh:`1155` by `Thibaut Modrzyk`_)
+- Fix a bug in the custom backward of the least-squares solvers for non-leaf tensors (:gh:`1146` by `Minh Hai Nguyen`_)
+
+
+v0.4.0
+------
+New Features
+^^^^^^^^^^^^
 - Add :class:`deepinv.models.WaveletNoiseEstimator` and :class:`deepinv.models.PatchCovarianceNoiseEstimator` for noise level estimation (:gh:`1015` by `Matthieu Terris`_)
 - Add :class:`deepinv.physics.Scattering` physics for non-linear inverse scattering problems (:gh:`1020` by `Julian Tachella`_)
 - Add :meth:`deepinv.physics.Physics.compute_norm` local operator norm computation for non-linear physics (:gh:`1020` by `Julian Tachella`_)
@@ -23,9 +54,10 @@ Changed
 - (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.
 - Refactor folder structure of least-squares solvers (:gh:`1011` by `Julian Tachella`_)
 - Removed `eps` parameter from :func:`deepinv.optim.linear.conjugate_gradient` (:gh:`1011` by `Julian Tachella`_)
+- :class:`deepinv.loss.metric.LPIPS` uses `torchmetrics` instead of `pyiqa`. (:gh:`1041` by `Andrew Wang`_)
+- Remove `pyiqa` optional dep (:gh:`1041` by `Andrew Wang`_)
 - Deprecated `verbose_individual_losses` parameter in :class:`deepinv.Trainer`. Individual losses are now always added to logs when multiple losses are present (:gh:`928` by `Tiberiu Sabau`_)
 - Deprecate historical attributes in HDF5Dataset (:gh:`764` by `Jérémy Scanvic`_)
-
 
 Fixed
 ^^^^^
@@ -38,6 +70,7 @@ Fixed
 - :func:`deepinv.utils.plot_ortho3D` doesn't perform sqrt on images (:gh:`1068` by `Andrew Wang`_)
 - Deprecate `self.device` in :class:`deepinv.physics.LinearPhysics` and remove it from internal logic. Define it as a property until removed. (:gh:`989` by `Romain Vo`_)
 - Sample a unique factor per batch in :class:`deepinv.physics.generator.DownsamplingGenerator` (:gh:`1085` by `Romain Vo`_)
+- Add device argument to :class:`deepinv.physics.generator.GeneratorMixture` to fix mismatch with generator's device and extend test suite in `test_generators.py` (:gh:`1093` by `Romain Vo`_)
 
 
 v0.3.7
@@ -331,7 +364,7 @@ New Features
 - Added example on image generation, working for :class:`deepinv.models.NCSNpp`, :class:`deepinv.models.ADMUNet`, :class:`deepinv.models.DRUNet` and :class:`deepinv.models.DiffUNet` (by `Minh Hai Nguyen`_ and `Matthieu Terris`_)
 - Added VP-SDE for image generation and posterior sampling (:gh:`434` by `Minh Hai Nguyen`_)
 
-- global path for datasets :func:`deepinv.utils.get_data_home` (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
+- global path for datasets `deepinv.utils.get_data_home` (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - New docs user guide (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
@@ -581,3 +614,6 @@ Changed
 .. _Tiberiu Sabau: https://github.com/tibisabau
 .. _Benoît Malézieux: https://github.com/bmalezieux
 .. _Paul Escande: https://pescande.perso.math.cnrs.fr/
+.. _Laura C. Diaz-Delgado: https://github.com/LauraCD2
+.. _Paul Bernard: https://github.com/PAUL-BERNARD
+.. _Baptiste Legouix: https://github.com/blegouix

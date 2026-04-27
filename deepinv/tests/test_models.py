@@ -128,7 +128,9 @@ def choose_denoiser(name, imsize):
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "promptir":
-        out = dinv.models.PromptIR(in_channels=imsize[0], out_channels=imsize[0])
+        out = dinv.models.PromptIR(
+            in_channels=imsize[0], out_channels=imsize[0], pretrained=None
+        )
     elif name == "ncsnpp":
         out = dinv.models.NCSNpp(
             in_channels=imsize[0],
@@ -1029,7 +1031,14 @@ LIST_IMAGE_WHSIZE = [(32, 37), (25, 129)]
 @pytest.mark.parametrize("physics_name", LINEAR_OPERATORS + [None])
 @pytest.mark.parametrize("channels", CHANNELS)
 def test_restoration_models(
-    device, pretrained, model_name, physics_name, channels, rng, whsize
+    device,
+    pretrained,
+    model_name,
+    physics_name,
+    channels,
+    rng,
+    whsize,
+    load_example_image,
 ):
 
     if channels == 1 and physics_name in ["demosaicing", "MRI", "MultiCoilMRI"]:
@@ -1105,15 +1114,28 @@ def test_restoration_models(
 
     psnr_fn = PSNR(max_pixel=1)
 
-    if (
+    if (  # RAM performance test
         not (physics_name == "super_resolution_circular" and channels == 2)
         and model_name == "ram"
         and pretrained == True
         and physics is not None
-    ):  # suboptimal performance in this case
+    ):
         psnr_in = psnr_fn(physics.A_dagger(y), x)
         psnr_out = psnr_fn(x_hat, x)
         assert torch.all(psnr_out > psnr_in)
+        if physics_name == LINEAR_OPERATORS[0]:
+            butterfly = load_example_image("butterfly.png").to(device)
+            _physics = dinv.physics.Downsampling(
+                filter="bicubic",
+                noise_model=dinv.physics.GaussianNoise(0.01),
+                device=device,
+            )
+            with torch.no_grad():
+                assert (
+                    dinv.metric.PSNR()(model(_physics(butterfly), _physics), butterfly)
+                    > 29.75
+                )
+
     else:
         pytest.skip(f"Skipping PSNR test for {model_name} with {physics_name}.")
 
@@ -1203,20 +1225,20 @@ def test_dsccp_net(device, n_channels, spatials):
     assert y.shape == x.shape
 
 
-def test_denoiser_perf(device):
+def test_denoiser_perf(device, load_example_image):
     pytest.importorskip(
         "timm",
         reason="This test requires timm. It should be "
         "installed with `pip install timm`",
     )
     # Load 2 example images
-    x1 = dinv.utils.load_example(
+    x1 = load_example_image(
         "butterfly.png",
         img_size=64,
         resize_mode="resize",
     ).to(device)
 
-    x2 = dinv.utils.load_example(
+    x2 = load_example_image(
         "celeba_example.jpg",
         img_size=64,
         resize_mode="resize",
@@ -1555,12 +1577,12 @@ def test_diffuser_wrapper(batch_size, clip_output, device):
 
 
 @pytest.mark.parametrize("mode", ["real_imag", "abs_angle"])
-def test_complex_wrapper(mode, device):
+def test_complex_wrapper(mode, device, load_example_image):
     model = dinv.models.DRUNet(pretrained="download").to(device)
     complex_model = dinv.models.ComplexDenoiserWrapper(model, mode=mode).to(device)
 
     # Create complex input
-    x = dinv.utils.load_example(
+    x = load_example_image(
         "butterfly.png",
         img_size=64,
         resize_mode="resize",
@@ -1703,7 +1725,9 @@ def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_iso
 @pytest.mark.parametrize("mode", ["image", "synthetic"])
 @pytest.mark.parametrize("channels", [1, 2, 3])
 @pytest.mark.parametrize("sigma", [0.1, 0.5, 0.01])
-def test_gaussian_noise_estimators(model_name, mode, channels, sigma, device, rng):
+def test_gaussian_noise_estimators(
+    model_name, mode, channels, sigma, device, rng, load_example_image
+):
     if model_name == "pca":
         model = dinv.models.PatchCovarianceNoiseEstimator().to(device)
     elif model_name == "wavelets":
@@ -1720,7 +1744,7 @@ def test_gaussian_noise_estimators(model_name, mode, channels, sigma, device, rn
         )
 
     if mode == "image":
-        x = dinv.utils.load_example("butterfly.png").to(device)
+        x = load_example_image("butterfly.png").to(device)
         x = x[:, :channels, :, :]
     else:
         x = torch.zeros((1, channels, 256, 256), device=device)
