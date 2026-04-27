@@ -1,0 +1,9 @@
+﻿compose
+=======
+
+.. currentmodule:: deepinv.physics
+
+.. autofunction:: compose
+
+.. minigallery:: deepinv.physics.compose
+    :add-heading: Examples using ``compose``:
