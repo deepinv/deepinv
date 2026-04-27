@@ -14,6 +14,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
+from deepinv.transform.rotate import Rotate
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -81,6 +82,7 @@ OPERATORS = [
     "2DParallelBeamCT",
     "2DFanBeamCT",
     "super_resolution_3d",
+    "VirtualLinearPhysics",
 ]
 
 NONLINEAR_OPERATORS = [
@@ -260,6 +262,21 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             angles=img_size[-1],
             fan_beam=True,
             device=device,
+        )
+        params = []
+    elif name == "VirtualLinearPhysics":
+        base_physics = dinv.physics.Inpainting(
+            img_size=img_size, mask=0.5, device=device, rng=rng
+        )
+        transform = Rotate(n_trans=4, multiples=90, positive=True)
+        x0 = torch.zeros(1, *img_size, device=device)
+        G_params = transform.get_params(x0)
+        G_params = transform.iterate_params(G_params)
+        g_params = next(iter(G_params))
+        p = dinv.physics.VirtualLinearPhysics(
+            physics=base_physics,
+            transform=transform,
+            g_params=g_params,
         )
         params = []
     elif name == "composition":
@@ -727,7 +744,7 @@ def test_operators_adjointness(name, device, rng):
     if (
         "pansharpen" in name or "radio" in name
     ):  # automatic adjoint does not work for inputs that are not torch.tensors
-        return
+        pytest.skip()
     f = adjoint_function(physics.A, x.shape, x.device, x.dtype)
 
     y = physics.A(x)
@@ -1292,6 +1309,13 @@ def test_noise(device, noise_type):
         # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
     )
     assert y1.shape == x.shape
+
+    # Test that negative values input are handled correctly
+    if noise_type in ["Poisson", "PoissonGaussian", "Gamma"]:
+        x_neg = -torch.ones((1, 3, 2), device=device).unsqueeze(0)
+
+        with pytest.raises(ValueError):
+            y_neg = physics(x_neg)
 
 
 def test_noise_domain(device):

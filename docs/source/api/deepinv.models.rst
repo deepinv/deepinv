@@ -78,6 +78,7 @@ Model Utils
    :nosignatures:
 
    deepinv.models.EquivariantDenoiser
+   deepinv.models.EquivariantReconstructor
    deepinv.models.TimeAgnosticNet
    deepinv.models.TimeAveragingNet
    deepinv.models.Client
@@ -90,18 +91,8 @@ Model Utils
    deepinv.models.complex.to_complex_denoiser
    deepinv.models.initialize_2d_from_3d
 
-Utility functions for model inference
--------------------------------------
 
-.. autosummary::
-   :toctree: stubs
-   :template: myfunc_template.rst
-   :nosignatures:
-
-   deepinv.models.utils.patchify
-
-
-Wrappers 
+Wrappers
 --------
 .. userguide:: model-wrappers
 
