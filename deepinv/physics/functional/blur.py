@@ -371,13 +371,11 @@ def bicubic_filter(factor: int = 2, device: torch.device | str = "cpu") -> torch
 
     .. math::
 
-        \begin{equation*}
-            w(x, y) = \begin{cases}
-                (a + 2)|x|^3 - (a + 3)|x|^2 + 1 & \text{if } |x| \leq 1 \\
-                a|x|^3 - 5a|x|^2 + 8a|x| - 4a & \text{if } 1 < |x| < 2 \\
-                0 & \text{otherwise}
-            \end{cases}
-        \end{equation*}
+        w(x, y) = \begin{cases}
+            (a + 2)|x|^3 - (a + 3)|x|^2 + 1 & \text{if } |x| \leq 1 \\
+            a|x|^3 - 5a|x|^2 + 8a|x| - 4a & \text{if } 1 < |x| < 2 \\
+            0 & \text{otherwise}
+        \end{cases}
 
     for :math:`x, y \in {-2\text{factor} + 0.5, -2\text{factor} + 0.5 + 1/\text{factor}, \ldots, 2\text{factor} - 0.5}`.
 
