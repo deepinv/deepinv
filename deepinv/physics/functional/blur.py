@@ -84,7 +84,6 @@ def _resolve_angle(
 
     # Rotation angles
     # ---------------
-    # For 3D, angles is a list of three angles (alpha, beta, gamma)
     if dim == 2:
         if isinstance(angle, (int, float)):
             angle = torch.tensor(
@@ -95,13 +94,13 @@ def _resolve_angle(
             and (angle.dim() == 1 or angle.dim() == 2 and angle.shape[1] == 1)
             and angle.shape[0] == batch_size
         ):
-            angle = angle.view(-1).to(
-                device=device, dtype=dtype
-            )  # Assume shape (batch_size,)
+            angle = angle.to(device=device, dtype=dtype)  # Assume shape (batch_size,)
         else:
             raise ValueError(
                 f"For 2D, angle must be a single value or a tensor of shape (batch_size,). Got angle.shape = {angle.shape}."
             )
+
+    # For 3D, angles is a list of three angles (alpha, beta, gamma)
     elif dim == 3:
         if isinstance(angle, (int, float)):
             angle = torch.tensor(
@@ -193,7 +192,7 @@ def gaussian_blur(
     # Create a meshgrid for the coordinates using 'ij' indexing so that
     # the i-th grid corresponds to the i-th dimension in psf_size.
     # mesh[-1] will correspond to the x-coordinates, mesh[-2] to the y-coordinates, and mesh[-3] to the z-coordinates (if 3D).
-    mesh = torch.meshgrid(*[grids[d] for d in range(dim)], indexing="ij")
+    mesh = torch.meshgrid(*grids, indexing="ij")
 
     # coords will have shape (*psf_size, dim) where the last dimension corresponds
     # to the coordinates values in (x,y,z) order.
