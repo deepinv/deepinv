@@ -89,6 +89,7 @@ Model Utils
    :nosignatures:
 
    deepinv.models.complex.to_complex_denoiser
+   deepinv.models.initialize_2d_from_3d
 
 
 Wrappers
