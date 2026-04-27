@@ -22,6 +22,7 @@ OPERATORS = [
     "fastCS",
     "inpainting",
     "inpainting_clone",
+    "inpainting_gain",
     "demosaicing",
     "denoising",
     "colorize",
@@ -177,6 +178,13 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         params = ["mask"]
     elif name == "inpainting":
         p = dinv.physics.Inpainting(img_size=img_size, mask=0.5, device=device, rng=rng)
+        params = ["mask"]
+    elif name == "inpainting_gain":
+        # mask with non-binary values
+        mask = torch.rand((1,) + img_size, device=device)
+        p = dinv.physics.Inpainting(
+            img_size=img_size, mask=mask, device=device, rng=rng
+        )
         params = ["mask"]
     elif name == "inpainting_clone":
         p = dinv.physics.Inpainting(img_size=img_size, mask=0.5, device=device, rng=rng)
