@@ -302,6 +302,7 @@ ignore_pattern = (
     else r"__init__\.py"
 )
 
+
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
@@ -332,6 +333,7 @@ sphinx_gallery_conf = {
             "../../examples/unfolded",
             "../../examples/blind-inverse-problems",
             "../../examples/self-supervised-learning",
+            "../../examples/transforms-equivariance",
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
             "../../examples/distributed",

@@ -24,6 +24,7 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
+          environments: docs-cpu doctest-cpu
 
       - name: Fetch base branch
         run: git fetch origin ${{ github.event.pull_request.base.ref }}
@@ -56,7 +57,7 @@ jobs:
             else
               BASE_REF="origin/${{ github.event.pull_request.base.ref }}"
               HEAD_REF="HEAD"
-              PATTERN=$(pixi run -e docs python .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
+              PATTERN=$(pixi run -e docs-cpu python .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
               echo "Conditional PR Pattern: $PATTERN"
             fi
           else
@@ -68,7 +69,8 @@ jobs:
         env:
           SG_PATTERN: ${{ steps.get_pattern.outputs.SG_PATTERN }}
         run: |
-          pixi run -e docs sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
+           echo "Running Sphinx with filename_pattern: $SG_PATTERN"
+           pixi run -e docs-cpu sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
 
       - name: Notebook generation
         run: |
@@ -80,7 +82,7 @@ jobs:
             mkdir -p "$out_dir"
             base="$(basename "$rel" .py)"
             out_path="$out_dir/$base.ipynb"
-            pixi run -e doctest python .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
+            pixi run -e doctest-cpu python .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
           done
 
       - name: Upload Documentation Artifact
@@ -101,6 +103,6 @@ jobs:
           HF_HUB_DISABLE_PROGRESS_BARS: 1
           DEEPINV_DOWNLOAD_VERBOSE: 0
         run: |
-          pixi run -e doctest pytest --doctest-glob="*.rst" docs/ \
+          pixi run -e doctest-cpu pytest --doctest-glob="*.rst" docs/ \
             --ignore=docs/source/user_guide/training/multigpu.rst \
             --ignore=docs/source/user_guide/training/datasets.rst

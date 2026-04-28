@@ -275,7 +275,7 @@ def test_build_algo(algo, imsize, device):
 
 @pytest.mark.slow
 @torch.no_grad()
-def test_sde(device):
+def test_sde(device, load_example_image):
     from deepinv.sampling import (
         VarianceExplodingDiffusion,
         VariancePreservingDiffusion,
@@ -368,7 +368,7 @@ def test_sde(device):
                     dtype=torch.float64,
                     device=device,
                 )
-                x = dinv.utils.load_example(
+                x = load_example_image(
                     "celeba_example.jpg",
                     img_size=64,
                     resize_mode="resize",
