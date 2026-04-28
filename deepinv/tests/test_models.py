@@ -985,7 +985,7 @@ def test_ram_scale(scale, device, use_physics):
         physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
     else:
         physics = dinv.physics.Blur(
-            filter=dinv.physics.blur.gaussian_blur(),
+            filter=dinv.physics.functional.gaussian_blur(),
             noise_model=dinv.physics.GaussianNoise(sigma),
             device=device,
         )

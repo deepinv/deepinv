@@ -107,10 +107,6 @@ Generators
    :template: myfunc_template.rst
    :nosignatures:
 
-   deepinv.physics.blur.gaussian_blur
-   deepinv.physics.blur.bilinear_filter
-   deepinv.physics.blur.bicubic_filter
-   deepinv.physics.blur.sinc_filter
    deepinv.physics.phase_retrieval.build_probe
    deepinv.physics.phase_retrieval.generate_shifts
    deepinv.physics.scattering.circular_sensors
@@ -181,6 +177,10 @@ Functional
    deepinv.physics.functional.imresize_matlab
    deepinv.physics.functional.random_choice
    deepinv.physics.functional.power_method
+   deepinv.physics.functional.gaussian_blur
+   deepinv.physics.functional.bilinear_filter
+   deepinv.physics.functional.bicubic_filter
+   deepinv.physics.functional.sinc_filter
 
 
 .. autosummary::
