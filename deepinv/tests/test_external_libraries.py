@@ -17,6 +17,14 @@ class TestTomographyWithAstra:
     def dummy_projection(self, x: torch.Tensor, out: torch.Tensor) -> None:
         out[:] = 1.0
 
+    def dummy_create_projector(
+        self,
+        type: str,
+        projection_geometry: dict[str, float],
+        object_geometry: dict[str, float],
+    ) -> int:
+        return 1
+
     @pytest.mark.parametrize("normalize", [True, False, None])
     @pytest.mark.parametrize("fbp", [True, False])
     @pytest.mark.parametrize(
@@ -31,7 +39,7 @@ class TestTomographyWithAstra:
     @pytest.mark.parametrize("cubic", [True, False])
     @pytest.mark.parametrize("channels", [1, 3])
     def test_tomography_with_astra_logic(
-        self, is_2d, geometry_type, normalize, fbp, monkeypatch, cubic, channels
+        self, is_2d, geometry_type, normalize, fbp, monkeypatch, cubic, channels, device
     ):
         r"""
         Tests tomography operator with astra backend which does not have a numerically precise adjoint.
@@ -42,16 +50,16 @@ class TestTomographyWithAstra:
         :param bool fbp: Whether or not to approximate the pseudo-inverse with filtered back-projection.
         :param bool cubic: Whether or not the input image is cubic (i.e. has the same size in all dimensions).
         :param int channels: Number of input channels. The tomography operator is applied per channel.
+        :param str device: The device to run the test on.
         """
 
-        pytest.importorskip(
+        astra = pytest.importorskip(
             "astra",
             reason="This test requires astra-toolbox. It should be "
             "installed with `conda install -c astra-toolbox -c nvidia astra-toolbox`",
         )
 
-        device = dinv.utils.get_device(verbose=False)
-        if str(device) != "cuda":
+        if "cuda" not in str(device):
             monkeypatch.setattr(
                 target=dinv.physics.functional.XrayTransform,
                 name="_forward_projection",
@@ -66,6 +74,11 @@ class TestTomographyWithAstra:
                 target=dinv.physics.TomographyWithAstra,
                 name="compute_norm",
                 value=self.dummy_compute_norm,
+            )
+            monkeypatch.setattr(
+                target=astra,
+                name="create_projector",
+                value=self.dummy_create_projector,
             )
 
         ## Test 2d transforms

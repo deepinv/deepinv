@@ -32,6 +32,7 @@ Fixed
 - Add a deprecation warning in :func:`deepinv.utils.plot_inset` in favor of :func:`deepinv.utils.plot` with `plot_inset=True` (:gh:`1148` by `Paul Bernard`_).
 - Fix dimensions mismatch in :class:`deepinv.physics.TomographyWithAstra` with 3D phantoms (:gh:`1137` by `Baptiste Legouix`_)
 - Add warning and error handling for negative inputs in BlurFFT and Poisson noise (:gh:`1155` by `Thibaut Modrzyk`_)
+- Fix a bug in the custom backward of the least-squares solvers for non-leaf tensors (:gh:`1146` by `Minh Hai Nguyen`_)
 
 
 v0.4.0
