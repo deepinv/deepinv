@@ -329,10 +329,14 @@ class LeastSquaresSolver(torch.autograd.Function):
             )
             for p, g in zip(params, g_params, strict=True):
                 if g is not None:
+                    g_det = g.detach()
+                    if not p.is_leaf and not p.retains_grad:
+                        # Avoid warning when reading .grad on non-leaf tensors.
+                        p.retain_grad()
                     if p.grad is None:
-                        p.grad = g.detach()
+                        p.grad = g_det
                     else:
-                        p.grad = p.grad + g.detach()
+                        p.grad = p.grad + g_det
 
         return tuple(grads)
 

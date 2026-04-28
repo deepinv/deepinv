@@ -3,12 +3,13 @@ from typing import TYPE_CHECKING, Callable
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from deepinv.models.utils import load_state_dict_from_url
+from deepinv.models.utils import load_state_dict_from_url, get_weights_url
 
 if TYPE_CHECKING:
     from deepinv.optim import Prior
@@ -549,7 +550,7 @@ class PatchPrior(Prior):
     :param Callable negative_patch_log_likelihood: NLL function on the patch space
     :param int n_patches: number of randomly selected patches for prior evaluation. -1 for taking all patches
     :param int patch_size: size of the patches
-    :param bool pad: whether to use mirror padding on the boundary to avoid undesired boundary effects
+    :param bool | str pad: whether to use padding on the boundary to avoid undesired boundary effects. If `pad` is a string, it should be a valid padding mode for `torch.nn.functional.pad` (e.g. "reflect", "constant", etc.). If `pad` is `True`, the padding mode is set to "reflect". Default is `False`.
     """
 
     def __init__(
@@ -557,7 +558,7 @@ class PatchPrior(Prior):
         negative_patch_log_likelihood: Callable,
         n_patches: int = -1,
         patch_size: int = 6,
-        pad: bool = False,
+        pad: bool | str = False,
         *args,
         **kwargs,
     ):
@@ -566,7 +567,19 @@ class PatchPrior(Prior):
         self.explicit_prior = True
         self.n_patches = n_patches
         self.patch_size = patch_size
-        self.pad = pad
+
+        if isinstance(pad, bool):
+            self.pad = pad
+            self.pad_mode = "reflect"
+        elif isinstance(pad, str):
+            if pad not in ["constant", "reflect", "replicate", "circular"]:
+                raise ValueError(
+                    f"Invalid padding mode {pad}. Should be one of 'constant', 'reflect', 'replicate' or 'circular'."
+                )
+            self.pad = True
+            self.pad_mode = pad
+        else:
+            self.pad = False
 
     def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
@@ -582,22 +595,8 @@ class PatchPrior(Prior):
         """
 
         if self.pad:
-            x = torch.cat(
-                (
-                    torch.flip(x[:, :, -self.patch_size : -1, :], (2,)),
-                    x,
-                    torch.flip(x[:, :, 1 : self.patch_size, :], (2,)),
-                ),
-                2,
-            )
-            x = torch.cat(
-                (
-                    torch.flip(x[:, :, :, -self.patch_size : -1], (3,)),
-                    x,
-                    torch.flip(x[:, :, :, 1 : self.patch_size], (3,)),
-                ),
-                3,
-            )
+            pad = self.patch_size - 1
+            x = F.pad(x, (pad, pad, pad, pad), mode=self.pad_mode)
 
         patches, _ = patch_extractor(x, self.n_patches, self.patch_size)
         reg = self.negative_patch_log_likelihood(patches)
@@ -605,30 +604,225 @@ class PatchPrior(Prior):
         return reg
 
 
+class GLOWCouplingBlock(nn.Module):
+    r"""GLOW-style affine coupling block.
+
+    Each block performs two successive affine coupling steps on the input vector,
+    which is split into two halves :math:`(x_1, x_2)`:
+
+    * Step 1 — a subnetwork acting on :math:`x_1` produces a pointwise scale :math:`s_1` and
+      shift :math:`t_1` that are applied to :math:`x_2`: :math:`y_2 = x_2 \cdot \exp(s_1) + t_1`.
+    * Step 2 — a second subnetwork acting on :math:`y_2` produces :math:`(s_2, t_2)` that are
+      applied to :math:`x_1` : :math:`y_1 = x_1 \cdot \exp(s_2) + t_2`.
+
+    Both steps are exactly invertible, and their combined log-determinant of the
+    Jacobian is :math:`1^{\top}(s_1 + s_2)`.  The scale outputs are soft-clamped via
+    :math:`\text{clamp} \times \frac{2}{\pi} \text{arctan}(s / \text{clamp})` to keep the log-determinant bounded and
+    training stable.
+
+    The two-step affine coupling structure follows :footcite:t:`dinh2017density`, and
+    the soft-clamping of scales is introduced in :footcite:t:`kingma2018glow`.
+
+    :param int dim: total input/output dimension (will be split evenly).
+    :param Callable subnet: a callable ``subnet(channels_in, channels_out) -> nn.Module``
+        that constructs the subnetworks used inside each coupling step.
+    :param float clamp: soft-clamping magnitude for the log-scale outputs. Default is ``1.6``.
+
+    """
+
+    def __init__(self, dim: int, subnet: Callable, clamp: float = 1.6):
+        super().__init__()
+        self.clamp = clamp
+        self.split1 = dim // 2
+        self.split2 = dim - self.split1
+        # subnet1: x1 -> (s1, t1) that acts on x2
+        self.subnet1 = subnet(self.split1, self.split2 * 2)
+        # subnet2: y2 -> (s2, t2) that acts on x1
+        self.subnet2 = subnet(self.split2, self.split1 * 2)
+
+    def _soft_clamp(self, s: torch.Tensor) -> torch.Tensor:
+        r"""
+        Applies soft clamping ``clamp * (2/π) * arctan(s / clamp)`` to the log-scale tensor.
+
+        :param torch.Tensor s: unconstrained log-scale tensor.
+        :return: (:class:`torch.Tensor`) soft-clamped log-scale tensor with values in ``(-clamp, clamp)``.
+        """
+        return self.clamp * (2.0 / np.pi) * torch.atan(s / self.clamp)
+
+    def forward(self, x: torch.Tensor, rev: bool = False):
+        r"""
+        Applies the coupling block in the forward or inverse direction.
+
+        :param torch.Tensor x: input tensor of shape ``(N, dim)``.
+        :param bool rev: if ``True``, applies the inverse transformation. Default is ``False``.
+        :return: tuple ``(y, log_det)`` where ``y`` (:class:`torch.Tensor`) is the
+            transformed tensor of shape ``(N, dim)`` and ``log_det`` (:class:`torch.Tensor`)
+            is the log-determinant of the Jacobian of shape ``(N,)``.
+        """
+        x1, x2 = x[:, : self.split1], x[:, self.split1 :]
+
+        if not rev:
+            # Step 1: transform x2 using x1
+            st1 = self.subnet1(x1)
+            s1 = self._soft_clamp(st1[:, : self.split2])
+            t1 = st1[:, self.split2 :]
+            y2 = x2 * torch.exp(s1) + t1
+            log_det = s1.sum(dim=1)
+
+            # Step 2: transform x1 using y2
+            st2 = self.subnet2(y2)
+            s2 = self._soft_clamp(st2[:, : self.split1])
+            t2 = st2[:, self.split1 :]
+            y1 = x1 * torch.exp(s2) + t2
+            log_det = log_det + s2.sum(dim=1)
+
+            return torch.cat([y1, y2], dim=1), log_det
+        else:
+            # Inverse step 2: recover x1 from x2 (which is y2 in forward)
+            st2 = self.subnet2(x2)
+            s2 = self._soft_clamp(st2[:, : self.split1])
+            t2 = st2[:, self.split1 :]
+            y1 = (x1 - t2) * torch.exp(-s2)
+            log_det = -s2.sum(dim=1)
+
+            # Inverse step 1: recover x2 using y1
+            st1 = self.subnet1(y1)
+            s1 = self._soft_clamp(st1[:, : self.split2])
+            t1 = st1[:, self.split2 :]
+            y2 = (x2 - t1) * torch.exp(-s1)
+            log_det = log_det - s1.sum(dim=1)
+
+            return torch.cat([y1, y2], dim=1), log_det
+
+
+class NormalizingFlow(nn.Module):
+    r"""Sequential normalizing flow built from GLOW-style affine coupling blocks.
+
+    The flow maps an input sample ``x`` to a latent representation ``z`` by passing
+    it through ``num_layers`` invertible coupling blocks in sequence.  The
+    log-determinant of the full Jacobian is accumulated additively across blocks.
+    Setting ``rev=True`` runs the blocks in reverse order to recover the original
+    sample from a latent code.
+
+    The architecture follows the generative flow of :footcite:t:`kingma2018glow`,
+    using :class:`deepinv.optim.prior.GLOWCouplingBlock` as the building block.
+
+    :param int dimension: dimension of each input sample (flattened patch size).
+    :param int num_layers: number of coupling blocks to stack.
+    :param Callable subnet: a callable ``subnet(channels_in, channels_out) -> nn.Module``
+        that constructs the subnetworks used inside each coupling block.
+    :param float clamp: soft-clamping magnitude passed to every coupling block. Default is ``1.6``.
+
+    |sep|
+
+    :Examples:
+
+
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> subnet = lambda c_in, c_out: nn.Sequential(
+    ...     nn.Linear(c_in, 32), nn.ReLU(),
+    ...     nn.Linear(32, 32), nn.ReLU(),
+    ...     nn.Linear(32, c_out),
+    ... )
+    >>> flow = NormalizingFlow(dimension=8, num_layers=2, subnet=subnet)
+    >>> x = torch.randn(4, 8)
+    >>> z, log_det = flow(x)
+    >>> z.shape
+    torch.Size([4, 8])
+    >>> log_det.shape
+    torch.Size([4])
+    >>> x_rec, _ = flow(z, rev=True)  # inverse flow recovers the input
+    >>> torch.allclose(x, x_rec, atol=1e-5)
+    True
+
+    """
+
+    def __init__(
+        self, dimension: int, num_layers: int, subnet: Callable, clamp: float = 1.6
+    ):
+        super().__init__()
+        self.blocks = nn.ModuleList(
+            [GLOWCouplingBlock(dimension, subnet, clamp) for _ in range(num_layers)]
+        )
+
+    def forward(self, x: torch.Tensor, rev: bool = False):
+        r"""
+        Passes the input through all coupling blocks sequentially.
+
+        :param torch.Tensor x: input tensor of shape ``(N, dimension)``.
+        :param bool rev: if ``True``, applies the blocks in reverse order (inverse flow). Default is ``False``.
+        :return: tuple ``(z, log_det)`` where ``z`` (:class:`torch.Tensor`) is the latent
+            representation of shape ``(N, dimension)`` and ``log_det`` (:class:`torch.Tensor`)
+            is the total log-determinant of the Jacobian of shape ``(N,)``.
+        """
+        log_det = torch.zeros(x.shape[0], device=x.device, dtype=x.dtype)
+        blocks = self.blocks if not rev else reversed(self.blocks)
+        for block in blocks:
+            x, ld = block(x, rev=rev)
+            log_det = log_det + ld
+        return x, log_det
+
+
 class PatchNR(Prior):
     r"""
     Patch prior via normalizing flows.
 
-    The forward method evaluates its negative log likelihood.
+    The prior is defined as the sum of the negative log-likelihoods of all
+    (overlapping) patches of the image under a learned normalizing flow model :footcite:p:`altekruger2023patchnr`.
+    Denoting by :math:`P_i x` the :math:`i`-th patch of image :math:`x` (out of :math:`N`) and by
+    :math:`f_\theta` the normalizing flow with parameters :math:`\theta`, the prior reads
+
+    .. math::
+
+        \reg{x} = \frac{1}{N} \sum_{i=1}^{N} -\log p_\theta(P_i x)
+
+    where :math:`p_\theta` is the patch distribution implicitly defined by the flow.
+    Applying the change-of-variables formula with the standard Gaussian base distribution
+    :math:`p_z = \mathcal{N}(0, I)`, this expands to
+
+    .. math::
+
+        \reg{x} = \frac{1}{N} \sum_{i=1}^{N} \left(
+            \frac{1}{2}\| f_\theta(P_i x) \|_2^2
+            - \log \left|\det J_{f_\theta}(P_i x)\right|
+        \right)
+
+    where :math:`J_{f_\theta}` is the Jacobian of :math:`f_\theta`.  Both terms are
+    computed in a single forward pass through the flow, which returns the latent code
+    :math:`z = f_\theta(P_i x)` and the log-determinant
+    :math:`\log |\det J_{f_\theta}(P_i x)|` simultaneously.
+
+    The forward method evaluates this negative log likelihood.
 
     :param torch.nn.Module normalizing_flow: describes the normalizing flow of the model. Generally it can be any :class:`torch.nn.Module`
-        supporting backpropagation. It takes a (batched) tensor of flattened patches and the boolean rev (default `False`)
-        as input and provides the value and the log-determinant of the Jacobian of the normalizing flow as an output
-        If `rev=True`, it considers the inverse of the normalizing flow.
-        When set to ``None`` it is set to a dense invertible neural network built with the FrEIA library, where the number of
-        invertible blocks and the size of the subnetworks is determined by the parameters `num_layers` and `sub_net_size`.
-    :param str pretrained: Define pretrained weights by its path to a `.pt` file, None for random initialization,
-        `"PatchNR_lodopab_small"` for the weights from the limited-angle CT example.
+        supporting backpropagation. It takes a (batched) tensor of flattened patches and the boolean ``rev`` (default ``False``)
+        as input and returns ``(latent, log_det_jacobian)`` as output.
+        If ``rev=True``, it applies the inverse of the flow.
+        When set to ``None``, a GLOW-style invertible neural network is built, where the number of
+        coupling blocks and the hidden neurons of the sub-networks are determined by ``num_layers`` and ``sub_net_size`` respectively.
+        If `None`, it is set to :class:`deepinv.optim.prior.NormalizingFlow` model.
+    :param str pretrained: Define pretrained weights by its path checkpoint, `None` for random initialization,
+        `"PatchNR_lodopab_small2"` for the weights from the :ref:`limited-angle CT example <sphx_glr_auto_examples_optimization_demo_patch_priors_CT.py>`.
     :param int patch_size: size of patches
     :param int channels: number of channels for the underlying images/patches.
-    :param int num_layers: defines the number of blocks of the generated normalizing flow if `normalizing_flow` is ``None``.
-    :param int sub_net_size: defines the number of hidden neurons in the subnetworks of the generated normalizing flow
+    :param int num_layers: defines the number of coupling blocks of the normalizing flow if `normalizing_flow` is ``None``.
+    :param int sub_net_size: defines the number of hidden neurons in the subnetworks of the normalizing flow
         if `normalizing_flow` is ``None``.
     :param str device: used device
 
-    .. note::
+    |sep|
 
-        This class requires the ``FrEIA`` package to be installed. Install with ``pip install FrEIA``.
+    :Examples:
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> prior = dinv.optim.PatchNR(patch_size=6, channels=1)
+    >>> x = torch.randn(2, 10, 36)  # (batch, n_patches, patch_size^2 * channels)
+    >>> nll = prior.fn(x)
+    >>> nll.shape
+    torch.Size([2, 10])
+
     """
 
     def __init__(
@@ -641,12 +835,8 @@ class PatchNR(Prior):
         sub_net_size: int = 256,
         device="cpu",
     ):
-        import FrEIA.framework as Ff
-        import FrEIA.modules as Fm
-
         super(PatchNR, self).__init__()
         if normalizing_flow is None:
-            # Create Normalizing Flow with FrEIA
             dimension = patch_size**2 * channels
 
             def subnet_fc(c_in, c_out):
@@ -658,19 +848,12 @@ class PatchNR(Prior):
                     nn.Linear(sub_net_size, c_out),
                 )
 
-            nodes = [Ff.InputNode(dimension, name="input")]
-            for k in range(num_layers):
-                nodes.append(
-                    Ff.Node(
-                        nodes[-1],
-                        Fm.GLOWCouplingBlock,
-                        {"subnet_constructor": subnet_fc, "clamp": 1.6},
-                        name=f"coupling_{k}",
-                    )
-                )
-            nodes.append(Ff.OutputNode(nodes[-1], name="output"))
-
-            self.normalizing_flow = Ff.GraphINN(nodes, verbose=False).to(device)
+            self.normalizing_flow = NormalizingFlow(
+                dimension=dimension,
+                num_layers=num_layers,
+                subnet=subnet_fc,
+                clamp=1.6,
+            ).to(device)
         else:
             self.normalizing_flow = normalizing_flow
         if pretrained:
@@ -693,7 +876,10 @@ class PatchNR(Prior):
                 weights = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=file_name
                 )
-            self.normalizing_flow.load_state_dict(weights)
+            else:
+                weights = torch.load(pretrained, map_location=device)
+
+            self.load_state_dict(weights)
 
     def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
