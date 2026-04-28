@@ -9,7 +9,7 @@ from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from deepinv.models.utils import load_state_dict_from_url
+from deepinv.models.utils import get_weights_url, load_state_dict_from_url
 
 if TYPE_CHECKING:
     from deepinv.optim import Prior
@@ -856,25 +856,25 @@ class PatchNR(Prior):
             ).to(device)
         else:
             self.normalizing_flow = normalizing_flow
-
-        if pretrained.startswith("PatchNR_lodopab_small"):
-            if patch_size != 3:  # pragma: no cover
-                raise ValueError(
-                    f"PatchNR_lodopab_small requires patch_size 3, but got {patch_size}"
+        if pretrained:
+            if pretrained == "PatchNR_lodopab_small2":
+                if patch_size != 3:  # pragma: no cover
+                    raise ValueError(
+                        f"PatchNR_lodopab_small requires patch_size 3, but got {patch_size}"
+                    )
+                if channels != 1:  # pragma: no cover
+                    raise ValueError(
+                        f"PatchNR_lodopab_small requires channels 1, but got {channels}"
+                    )
+                file_name = "PatchNR_lodopab_small2.pt"
+                url = get_weights_url(model_name="demo", file_name=file_name)
+                weights = load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=file_name
                 )
-            if channels != 1:  # pragma: no cover
-                raise ValueError(
-                    f"PatchNR_lodopab_small requires channels 1, but got {channels}"
-                )
-            file_name = "PatchNR_lodopab_small.pt"
-            url = "https://drive.google.com/uc?export=download&id=1Z2us9ZHjDGOlU6r1Jee0s2BBej2XV5-i"
-            weights = load_state_dict_from_url(
-                url, map_location=lambda storage, loc: storage, file_name=file_name
-            )
+            else:
+                weights = torch.load(pretrained, map_location=device)
 
             self.load_state_dict(weights)
-        else:
-            raise ValueError("Pretrained weights not found!")
 
     def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
