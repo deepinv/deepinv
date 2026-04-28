@@ -9,7 +9,7 @@ from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from deepinv.models.utils import load_state_dict_from_url, get_weights_url
+from deepinv.models.utils import load_state_dict_from_url
 
 if TYPE_CHECKING:
     from deepinv.optim import Prior
@@ -876,8 +876,6 @@ class PatchNR(Prior):
                 weights = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=file_name
                 )
-            else:
-                weights = torch.load(pretrained, map_location=device)
 
             self.load_state_dict(weights)
 
