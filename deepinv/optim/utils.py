@@ -238,8 +238,10 @@ class GaussianMixtureModel(nn.Module):
 
         :param torch.Tensor weights: non-zero weight tensor of size n_components with non-negative entries
         """
-        assert torch.min(weights) >= 0.0
-        assert torch.sum(weights) > 0.0
+        if torch.min(weights) < 0.0 or torch.sum(weights) <= 0.0:  # pragma: no cover
+            raise ValueError(
+                "Weights is not allowed to have negative elements, and requires at least one strictly positive value."
+            )
         self._weights.data = (weights / torch.sum(weights)).detach().to(self._weights)
 
     def get_weights(self):

@@ -266,15 +266,15 @@ class MRIMixin:
         :param bool mag: if `False`, do not reduce over the complex dimension. Rarely used.
         :param bool three_d: used only for validating input shape, set to `True` if input is 3D data.
         """
-        assert (
-            x.shape[1] == 2 and not x.is_complex()
-        ), "x should be of shape (B,2,...) and not of complex dtype."
+        if x.shape[1] != 2 or x.is_complex():  # pragma: no cover
+            raise ValueError("x should be of shape (B,2,...) and not of complex dtype.")
 
         mc_dim = 1 if multicoil else 0
         th_dim = 1 if three_d else 0
-        assert (
-            len(x.shape) == 4 + mc_dim + th_dim
-        ), "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
+        if len(x.shape) != 4 + mc_dim + th_dim:  # pragma: no cover
+            raise ValueError(
+                "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
+            )
 
         ss = x.pow(2)
 

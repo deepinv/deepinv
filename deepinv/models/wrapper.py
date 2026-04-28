@@ -279,7 +279,8 @@ class ScoreModelWrapper(Denoiser):
         device = x.device
         dtype = x.dtype
 
-        assert t is not None, "Please provide a time step t."
+        if t is None:  # pragma: no cover
+            raise ValueError("A time step t must be provided.")
 
         # Handle time step
         t = self._handle_sigma(
@@ -326,7 +327,8 @@ class ScoreModelWrapper(Denoiser):
         device = x.device
         dtype = x.dtype
 
-        assert sigma is not None, "Please provide a noise level sigma."
+        if sigma is None:  # pragma: no cover
+            raise ValueError("A noise level sigma must be provided.")
 
         # Handle sigma
         sigma = self._handle_sigma(
@@ -420,9 +422,10 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         *args,
         **kwargs,
     ):
-        assert (
-            mode_id is not None
-        ), "Provide a diffusers model id. E.g., 'google/ddpm-cat-256'"
+        if mode_id is None:  # pragma: no cover
+            raise ValueError(
+                "mode_id is None, Provide a diffusers model id. E.g., 'google/ddpm-cat-256'"
+            )
 
         try:
             from diffusers import (
@@ -431,7 +434,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
                 PNDMScheduler,
                 DDIMScheduler,
             )
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise ImportError(
                 "diffusers is not installed. Please install it via 'pip install diffusers'."
             )
@@ -465,7 +468,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
                     scale_t = lambda t: torch.exp(
                         -(beta_start * t + 0.5 * delta * t**2)
                     )
-                else:
+                else:  # pragma: no cover
                     raise ValueError(
                         "only 'scaled_linear' and 'linear' schedule are supported for beta"
                     )
@@ -474,7 +477,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
             variance_preserving = True
             variance_exploding = False
 
-        else:
+        else:  # pragma: no cover
             raise ValueError(
                 f"Scheduler of type {type(scheduler)} is not supported yet."
             )

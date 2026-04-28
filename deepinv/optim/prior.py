@@ -9,7 +9,7 @@ from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from deepinv.models.utils import load_state_dict_from_url, get_weights_url
+from deepinv.models.utils import get_weights_url, load_state_dict_from_url
 
 if TYPE_CHECKING:
     from deepinv.optim import Prior
@@ -858,8 +858,14 @@ class PatchNR(Prior):
             self.normalizing_flow = normalizing_flow
         if pretrained:
             if pretrained == "PatchNR_lodopab_small2":
-                assert patch_size == 3
-                assert channels == 1
+                if patch_size != 3:  # pragma: no cover
+                    raise ValueError(
+                        f"PatchNR_lodopab_small requires patch_size 3, but got {patch_size}"
+                    )
+                if channels != 1:  # pragma: no cover
+                    raise ValueError(
+                        f"PatchNR_lodopab_small requires channels 1, but got {channels}"
+                    )
                 file_name = "PatchNR_lodopab_small2.pt"
                 url = get_weights_url(model_name="demo", file_name=file_name)
                 weights = load_state_dict_from_url(
