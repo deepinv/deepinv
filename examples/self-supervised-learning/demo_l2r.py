@@ -13,7 +13,7 @@ is constructed by applying the recorruption network as follows
 
 .. math::
 
-    y_1 = y + h(\omega, y),
+    y_1 = y + \alpha h(\omega, y),
 
 then, the L2R loss is defined as
 
@@ -33,7 +33,7 @@ where :math:`f` is the denoiser, :math:`h` is the learned re-corruption model,
 noisy obervations and reduce noise correlation with the input noisy image, while the re-corruption model is trained
 to maximize this noise correlation.
 
-To build measurements, we still choose a noise model in the physics simulator. By default,
+To build measurements, we choose a noise model in the physics simulator. By default,
 this demo uses Poisson noise, but you can switch to Gaussian noise by changing ``noise_name``.
 """
 
