@@ -1071,10 +1071,10 @@ class GMSD(Metric):
         ).view(1, 1, 3, 3)
 
         grad_mag_x = torch.sqrt(conv2d(x, hx) ** 2 + conv2d(x, hy) ** 2)
-        grad_mag_x_net = torch.sqrt(conv2d(x, hx) ** 2 + conv2d(x, hy) ** 2)
+        grad_mag_x_net = torch.sqrt(conv2d(x_net, hx) ** 2 + conv2d(x_net, hy) ** 2)
 
         gms = (2 * grad_mag_x * grad_mag_x_net + self.c) / (
             grad_mag_x**2 + grad_mag_x_net**2 + self.c
         )
 
-        return gms.std(dim=(-1, -2))
+        return gms.std(dim=(-1, -2, -3))

@@ -74,6 +74,8 @@ def choose_full_reference_metric(metric_name, device, **kwargs) -> metric.Metric
         return metric.HaarPSI(norm_inputs="clip", **kwargs)
     elif metric_name == "CosineSimilarity":
         return metric.CosineSimilarity(**kwargs)
+    elif metric_name == "GMSD":
+        return metric.GMSD(**kwargs)
     else:
         raise ValueError("Incorrect metric name.")
 
