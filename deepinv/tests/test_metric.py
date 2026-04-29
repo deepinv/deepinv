@@ -21,6 +21,7 @@ FULL_REFERENCE_METRICS = [
     "SAM",
     "HaarPSI",
     "CosineSimilarity",
+    "GMSD",
 ]
 NO_REFERENCE_METRICS = [
     "BlurStrength",
@@ -146,6 +147,8 @@ def test_full_reference_metrics(
 
     if metric_name in ("SAM", "ERGAS") and channels < 3:
         pytest.skip("ERGAS or SAM must have multichannels.")
+    elif metric_name in ("GMSD",) and channels != 1:
+        pytest.skip("GMSD requires channels == 1")
 
     x_hat = dinv.physics.GaussianNoise(sigma=0.1, rng=rng)(x)
 
