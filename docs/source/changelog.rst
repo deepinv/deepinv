@@ -13,6 +13,7 @@ New Features
 - Add :class:`deepinv.optim.MLEM` algorithm for Poisson inverse problems (:gh:`1051` by `Thibaut Modrzyk`_)
 - Add the equivariant splitting loss :class:`deepinv.loss.EquivariantSplittingLoss` with equivariant reconstructors :class:`deepinv.models.EquivariantReconstructor` and virtual physics :class:`deepinv.physics.VirtualLinearPhysics` (:gh:`881` by `Jérémy Scanvic`_)
 - Add `DEEPINV_CACHE_DIR` environment variable to set the cache directory for datasets and pretrained weights (:gh:`1105` by `Minh Hai Nguyen`_)
+- Add :class:`deepinv.loss.metric.GMSD`, the Gradient Magnitude Similarity Deviation metric (:gh:`1171` by `Vicky De Ridder`_)
 
 Changed
 ^^^^^^^
