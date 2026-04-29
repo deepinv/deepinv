@@ -36,7 +36,7 @@ class LPIPS(Metric):
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
-    :param bool check_input_range: if True, ``pyiqa`` will raise error if inputs aren't in the appropriate range ``[0, 1]``.
+    :param bool check_input_range: if True, raise error if inputs aren't in the appropriate range ``[0, 1]``.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
         If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
@@ -44,9 +44,20 @@ class LPIPS(Metric):
     :param str, torch.device device: LPIPS net device.
     """
 
-    def __init__(self, net_type="alex", device=None, **kwargs):
+    def __init__(
+        self,
+        net_type: str = "alex",
+        device: torch.device | str = None,
+        check_input_range: bool = True,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         from torchmetrics.functional.image.lpips import _lpips_update, _NoTrainLpips
+
+        if net_type not in ["vgg", "vgg16", "alex", "squeeze"]:  # pragma: no cover
+            raise ValueError(
+                f"net_type must be one of (vgg, alex, squeeze), got {net_type}"
+            )
 
         # Pre-load LPIPS net
         self.lpips_fn = _lpips_update
@@ -60,9 +71,13 @@ class LPIPS(Metric):
         finally:
             sys.stdout = _stdout
 
+        self.check_input_range = check_input_range
+
         self.lower_better = True
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(
+        self, x_net: torch.Tensor, x: torch.Tensor, *args, **kwargs
+    ) -> torch.Tensor:
         if x_net.ndim != 4 or x.ndim != 4:
             raise ValueError(
                 f"LPIPS metric requires 4D input (B, C, H, W), but got shapes {x_net.shape}, {x.shape}."
@@ -73,9 +88,12 @@ class LPIPS(Metric):
                 f"LPIPS metric only supports 3-channel input, but got channels for x_net, x as {x_net.shape[1]}, {x.shape[1]}."
             )
 
-        min_val, max_val = torch.aminmax(torch.cat([x_net, x], dim=0))
-        if not ((min_val >= 0.0) & (max_val <= 1.0)):
-            raise ValueError("LPIPS metric requires x_net and x to be between 0 and 1.")
+        if self.check_input_range:
+            min_val, max_val = torch.aminmax(torch.cat([x_net, x], dim=0))
+            if not ((min_val >= 0.0) & (max_val <= 1.0)):
+                raise ValueError(
+                    "LPIPS metric requires x_net and x to be between 0 and 1. To supress this error, set check_input_range to False at lpips init."
+                )
 
         return self.lpips_fn(
             x_net,
@@ -153,7 +171,6 @@ class BlurStrength(Metric):
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`{\ell}_2` spatial norm, ``min_max`` normalizes by min and max of each input.
-    :param bool check_input_range: if True, ``pyiqa`` will raise error if inputs aren't in the appropriate range ``[0, 1]``.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
         If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
@@ -307,7 +324,6 @@ class SharpnessIndex(Metric):
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
-    :param bool check_input_range: if True, ``pyiqa`` will raise error if inputs aren't in the appropriate range ``[0, 1]``.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
         If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
@@ -338,7 +354,7 @@ class SharpnessIndex(Metric):
                 "At least one of periodic_component or dequantize must be True."
             )
 
-    def metric(self, x_net, *args, **kwargs):
+    def metric(self, x_net: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         """
         Compute sharpness index metric for a batch of images.
 
