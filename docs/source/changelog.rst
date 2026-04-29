@@ -22,6 +22,7 @@ Changed
 - Deprecate `Loss.name` in favor of the class name as done in the trainer (:gh:`881` by `Jérémy Scanvic`_)
 - Update references for single pixel demo (:gh:`1151` by `Laura C. Diaz-Delgado`_)
 - Add changelog section to the contributing guidelines (:gh:`1153` by `Thibaut Modrzyk`_)
+- Unify patching / tiling and unpatching / un-tiling logic in physics and utils, with support for padding and non-overlapping patches. Add :func:`deepinv.utils.image_to_patches` and :func:`deepinv.utils.patches_to_image` utility functions, and refactor physics to use them instead of `unfold` (:gh:`1104` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
@@ -30,7 +31,10 @@ Fixed
 - Add support for computing the evaluation loss for splitting losses like :class:`deepinv.loss.SplittingLoss` in the trainer (:gh:`881` by `Jérémy Scanvic`_)
 - Add a deprecation warning in :func:`deepinv.utils.plot_inset` in favor of :func:`deepinv.utils.plot` with `plot_inset=True` (:gh:`1148` by `Paul Bernard`_).
 - Fix dimensions mismatch in :class:`deepinv.physics.TomographyWithAstra` with 3D phantoms (:gh:`1137` by `Baptiste Legouix`_)
+- Add warning and error handling for negative inputs in BlurFFT and Poisson noise (:gh:`1155` by `Thibaut Modrzyk`_)
+- Fix a bug in the custom backward of the least-squares solvers for non-leaf tensors (:gh:`1146` by `Minh Hai Nguyen`_)
 - Fix :class:`deepinv.sampling.DPS` instantiation and refactor to use new SDE interface (:gh:`1127` by `Minh Hai Nguyen`_) 
+
 
 
 v0.4.0
