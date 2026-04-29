@@ -1077,4 +1077,4 @@ class GMSD(Metric):
             grad_mag_x**2 + grad_mag_x_net**2 + self.c
         )
 
-        return gms.std(dim=(-1, -2, -3))
+        return gms.std(dim=(-1, -2, -3), correction=0)
