@@ -1347,7 +1347,11 @@ def test_denoiser_perf(device, load_example_image):
 
 
 @pytest.mark.parametrize("mode", ["real_imag", "abs_angle"])
-def test_denoiser_perf_noise_map(device, mode):
+@pytest.mark.parametrize(
+    "denoiser",
+    [dinv.models.DRUNet(pretrained="download"), dinv.models.RAM(pretrained=True)],
+)
+def test_denoiser_perf_noise_map(device, mode, denoiser):
 
     # Ensure determinitic behaviour
     torch.manual_seed(0)
@@ -1355,6 +1359,8 @@ def test_denoiser_perf_noise_map(device, mode):
     torch.use_deterministic_algorithms(True)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+    denoiser.to(device)
 
     # Load 2 example images
     x1 = dinv.utils.load_example(
@@ -1387,44 +1393,38 @@ def test_denoiser_perf_noise_map(device, mode):
     psnr_fn = PSNR(max_pixel=1)
 
     # Only test the trained denoisers and the corresponding expected performance
-    learned_denoisers = [
-        dinv.models.DRUNet(pretrained="download").to(device),
-        dinv.models.RAM(pretrained=True).to(device),
-    ]
 
-    for denoiser in learned_denoisers:
-        kwargs = {}
+    kwargs = {}
 
-        with torch.no_grad():
-            x_hat_map = denoiser(y, sigma=sigma_map, **kwargs)
-            x_hat_cst_map = denoiser(y, sigma=sigma_cst_map, **kwargs)
-            x_hat_values = denoiser(y, sigma=sigma_values, **kwargs)
+    with torch.no_grad():
+        x_hat_map = denoiser(y, sigma=sigma_map, **kwargs)
+        x_hat_cst_map = denoiser(y, sigma=sigma_cst_map, **kwargs)
+        x_hat_values = denoiser(y, sigma=sigma_values, **kwargs)
 
-        assert torch.all(
-            psnr_fn(x_hat_map, x) >= psnr_fn(x_hat_cst_map, x)
-        ), f"denoiser={type(denoiser).__name__} didn't perfom better with a noise map : psnr_map={psnr_fn(x_hat_map, x).tolist()}, psnr_cst_map={psnr_fn(x_hat_cst_map, x).tolist()}"
+    assert torch.all(
+        psnr_fn(x_hat_map, x) >= psnr_fn(x_hat_cst_map, x)
+    ), f"denoiser={type(denoiser).__name__} didn't perfom better with a noise map : psnr_map={psnr_fn(x_hat_map, x).tolist()}, psnr_cst_map={psnr_fn(x_hat_cst_map, x).tolist()}"
 
-        assert torch.all(
-            x_hat_values == x_hat_cst_map
-        ), f"denoiser={type(denoiser).__name__} don't behave the same way with noise level and map of constant noise. max diff : {torch.max(torch.abs(x_hat_values - x_hat_cst_map)).item()}"
+    assert torch.all(
+        x_hat_values == x_hat_cst_map
+    ), f"denoiser={type(denoiser).__name__} don't behave the same way with noise level and map of constant noise. max diff : {torch.max(torch.abs(x_hat_values - x_hat_cst_map)).item()}"
 
-    for denoiser in learned_denoisers:
-        kwargs = {}
-        # Test denoisers on complex data
-        denoiser_cpx = dinv.models.ComplexDenoiserWrapper(
-            denoiser=denoiser, mode=mode
-        ).to(device)
-        x_cpx = x.to(torch.complex64)
-        y_cpx = y.to(torch.complex64)
-        with torch.no_grad():
-            x_hat_map_cpx = denoiser_cpx(y_cpx, sigma=sigma_map)
-            x_hat_cst_map_cpx = denoiser_cpx(y_cpx, sigma=sigma_cst_map)
-        psnr_map = dinv.metric.PSNR()(x_hat_map_cpx, x_cpx).mean().item()
-        psnr_cst_map = dinv.metric.PSNR()(x_hat_cst_map_cpx, x_cpx).mean().item()
-        assert psnr_map > psnr_cst_map, (
-            f"Mode={mode}, denoiser={type(denoiser).__name__}, "
-            f"psnr_map={psnr_map:.2f}, psnr_no_map={psnr_cst_map:.2f}"
-        )
+    kwargs = {}
+    # Test denoisers on complex data
+    denoiser_cpx = dinv.models.ComplexDenoiserWrapper(denoiser=denoiser, mode=mode).to(
+        device
+    )
+    x_cpx = x.to(torch.complex64)
+    y_cpx = y.to(torch.complex64)
+    with torch.no_grad():
+        x_hat_map_cpx = denoiser_cpx(y_cpx, sigma=sigma_map)
+        x_hat_cst_map_cpx = denoiser_cpx(y_cpx, sigma=sigma_cst_map)
+    psnr_map = dinv.metric.PSNR()(x_hat_map_cpx, x_cpx).mean().item()
+    psnr_cst_map = dinv.metric.PSNR()(x_hat_cst_map_cpx, x_cpx).mean().item()
+    assert psnr_map > psnr_cst_map, (
+        f"Mode={mode}, denoiser={type(denoiser).__name__}, "
+        f"psnr_map={psnr_map:.2f}, psnr_no_map={psnr_cst_map:.2f}"
+    )
 
 
 @pytest.mark.parametrize("return_metadata", [False, True])
