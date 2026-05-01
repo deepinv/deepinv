@@ -97,6 +97,10 @@ class NIQE(Metric):
     Calculates the NIQE :math:`\text{NIQE}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
     It is a no-reference image quality metric that estimates the quality of images.
 
+    This implementation is based on the original Matlab code (available at http://live.ece.utexas.edu/research/quality/niqe_release.zip).
+    One exception is that the original code always converted the image to float64. This implementation converts
+    to dtype specified at init, but always use float64 when calculating the pseudoinverse.
+
     .. note::
 
         The input image must be sufficiently large compared to ``patch_size`` to ensure an adequate number of
@@ -341,11 +345,6 @@ class NIQE(Metric):
         return mu, cov
 
     def metric(self, x_net: torch.Tensor, *args, **kwargs) -> torch.Tensor:
-        """We base ourselves on the original Matlab code (available at http://live.ece.utexas.edu/research/quality/niqe_release.zip), but allow some exceptions:
-
-        (i) Originally, the image was converted to float64. Here we convert to dtype specified at init, but always use float64 when calculating pseudoinverse.
-
-        """
         if self.mu_p is None or self.cov_p is None:
             raise RuntimeError(
                 "NIQE weights not loaded. Either pass weights_path at init or call create_weights first."
@@ -422,16 +421,16 @@ class NIQE(Metric):
 
         all_feats = []
 
-        for x in dataset:
+        for i, x in enumerate(dataset):
 
             if x.ndim == 2:
                 x = x.unsqueeze(0)
             if x.ndim == 3 and x.shape[0] in (1, 3):
                 pass
-            elif x.ndim == 3:
-                x = x.permute(2, 0, 1)
             else:
-                raise RuntimeError(f"Unsupported input shape {tuple(x.shape)}")
+                raise RuntimeError(
+                    f"Unsupported input shape {tuple(x.shape)}, expecting (C, H, W) with C in set(1,3)"
+                )
 
             x = x.to(device=device, dtype=dtype).unsqueeze(0)
 
@@ -440,16 +439,15 @@ class NIQE(Metric):
                     [0.29893602, 0.58704307, 0.11402090], dtype=x.dtype, device=x.device
                 ).view(1, 3, 1, 1)
                 x = F.conv2d(x, luminance_weights)
-            elif x.shape[1] != 1:
-                raise RuntimeError(
-                    f"NIQE only operates on single channel images. Got {x.shape[1]} channels."
-                )
 
             if self.round:
                 x = x.round()
 
             _, _, H, W = x.shape
             if H < self.patch_size or W < self.patch_size:
+                print(
+                    f"Sample {i} / {len(dataset)}: Too small H or Width, not included for weight creation."
+                )
                 continue  # too small -> should we raise a warning here?
             block_hnum = math.floor(H / self.patch_size)
             block_wnum = math.floor(W / self.patch_size)
