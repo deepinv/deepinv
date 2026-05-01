@@ -118,11 +118,20 @@ class NIQE(Metric):
     :param str weights_path: Path to weights created with ``.create_weights``. If 'download' (default), downloads the weights provided by :footcite:t:`mittal2012making`. If None, mu and cov are not initialized (useful when fitting custom weights).
     :param float denominator: stabilizer to add to the std in the image normalization step (eq.1). Defaults to 1
     :param bool round_tensor: whether to round the input. The original NIQE implementation used rounding and requires input to be range [0, 255]. Do not set round_tensor if incoming tensors will be in [0,1] style ranges. Defaults to False.
+    :param int patch_size: spatial size of the square patches used to compute NSS features. Larger values yield more
+        robust per-patch statistics but require larger inputs and produce fewer patches. Defaults to 96.
+    :param int patch_overlap: number of pixels overlapped between adjacent patches (stride is ``patch_size - patch_overlap``).
+        Increase to extract more patches from a given image. Defaults to 0.
     :param torch.device, str device: device to use for the metric computation. Default: 'cpu'.
+    :param torch.dtype dtype: dtype used for the metric computation (the pseudoinverse is always computed in float64). Default: ``torch.float32``.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
     def __init__(
