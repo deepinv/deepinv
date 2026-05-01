@@ -45,7 +45,7 @@ class SRResNet(Reconstructor):
     :param int upscale: upsampling factor. Must be a power of two. Default: 4
     :param type[torch.nn.Module] actv: activation layer class, instantiated with no
         arguments. Default: :class:`torch.nn.ReLU`.
-    :param str norm: normalization layer, can be one of ('instance_norm', 'batch_norm', 'layer_norm', None).
+    :param str norm: normalization layer, can be one of ('instance_norm', 'batch_norm', 'layer_norm', None). Default 'batch_norm'.
     :param int final_kernel_size: kernel size of the final output convolution. Must be odd. Default: 9.
     :param bool final_relu: enforce non-negativity of output by performing a relu after final conv. Default: False
     """
