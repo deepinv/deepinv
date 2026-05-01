@@ -1052,7 +1052,7 @@ class GMSD(Metric):
             raise ValueError(
                 f"x_net and x must be same shape, but got {tuple(x_net.shape)} and {tuple(x.shape)}"
             )
-        if x_net.device != x.device:
+        if x_net.device != x.device:  # pragma: no cover
             raise ValueError(
                 f"GMSD requires x_net {x_net.device} and x {x.device} to be on the same device, "
             )
@@ -1070,8 +1070,14 @@ class GMSD(Metric):
             device=x_net.device,
         ).view(1, 1, 3, 3)
 
-        grad_mag_x = torch.sqrt(conv2d(x, hx) ** 2 + conv2d(x, hy) ** 2)
-        grad_mag_x_net = torch.sqrt(conv2d(x_net, hx) ** 2 + conv2d(x_net, hy) ** 2)
+        grad_mag_x = torch.sqrt(
+            conv2d(x, hx, padding="replicate") ** 2
+            + conv2d(x, hy, padding="replicate") ** 2
+        )
+        grad_mag_x_net = torch.sqrt(
+            conv2d(x_net, hx, padding="replicate") ** 2
+            + conv2d(x_net, hy, padding="replicate") ** 2
+        )
 
         gms = (2 * grad_mag_x * grad_mag_x_net + self.c) / (
             grad_mag_x**2 + grad_mag_x_net**2 + self.c
