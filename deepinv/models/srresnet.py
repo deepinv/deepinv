@@ -5,7 +5,7 @@ Ledig, Christian, et al. "Photo-realistic single image super-resolution using a 
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import torch
 import torch.nn as nn
