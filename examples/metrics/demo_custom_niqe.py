@@ -14,10 +14,23 @@ quality and sharpness is higher than the dataset NIQE was originally fitted on, 
 resulting weights characterise a sharper, higher-quality prior while remaining valid NIQE
 statistics.
 
-To apply this procedure to your own data, any dataset returning RGB or
-single-channel tensors will work. Set the ``denominator`` argument relative to your data's
-pixel intensity range (e.g. for [0, 1], use ``denominator=1/255``). In this example we scale DIV2K to
-[0, 255] in when fitting, so the default ``denominator=1`` is appropriate.
+To apply this procedure to your own data, any dataset returning RGB or single-channel
+tensors will work. The ``denominator`` constructor argument divides input pixels before
+computing statistics; it serves two purposes: keeping pixel magnitudes from dominating
+the local-statistics computation, and matching the input scale to the scale the weights
+were fitted on. Two consequences:
+
+- When using the bundled original NIQE weights (which were fitted on [0, 255] data with
+  ``denominator=1``), inputs must reach NIQE on a comparable [0, 255] scale. So for
+  [0, 1] data, pass ``denominator=1/255`` (``x / (1/255) = 255 * x``), or scale to
+  [0, 255] before calling and leave ``denominator=1``.
+- When fitting your own weights, the only requirement is that the *same* ``denominator``
+  is used at fit and evaluation time. The absolute scale is up to you.
+
+In this example we want to compare the original and DIV2K-fitted weights on the same
+inputs, so we keep both on the [0, 255] scale: the fitting transform multiplies by 255
+(default ``denominator=1`` at fit time), and at evaluation we scale the denoised [0, 1]
+outputs to [0, 255] before passing them to either NIQE instance.
 
 We perform 5-fold cross-validation on the DIV2K validation set (80 fit / 20 test per fold)
 and compare original NIQE weights against DIV2K-fitted weights at noise level σ=0.05.
@@ -46,7 +59,7 @@ device = dinv.utils.get_device()
 # ---------------------------------
 # We create two instances of DIV2K with different transforms:
 # one that scales pixel values to [0, 255] for fitting NIQE weights,
-# and one that keeps values in [0, 1] for denoising and PSNR evaluation.
+# and one that keeps values in [0, 1] for denoising.
 
 crop_size = 1024
 
@@ -82,42 +95,38 @@ all_indices = list(range(n_images))
 # %%
 # Define denoisers
 # ----------------
-# We wrap each denoiser to handle device placement and precision.
-# We compare DRUNet against MedianFilter at two kernel sizes.
-
-
-class Denoise:
-    def __init__(self, denoiser: dinv.models.Denoiser):
-        self.denoiser = denoiser
-
-    def __call__(self, img: torch.Tensor, sigma: float) -> torch.Tensor:
-        with torch.no_grad():
-            with torch.autocast(device_type=device.type, dtype=torch.float16):
-                denoised = self.denoiser(img.to(device), sigma)
-        return denoised.cpu()
-
+# We compare DRUNet against MedianFilter at two kernel sizes. At inference time we wrap
+# each call in ``torch.autocast(..., dtype=torch.float16)`` so DRUNet fits in GPU memory
+# at the 1024×1024 crop size used here.
 
 denoisers = {
-    "DRUNet": Denoise(dinv.models.DRUNet(pretrained="download", device=device)),
-    "Median (k=6)": Denoise(dinv.models.MedianFilter(kernel_size=6)),
-    "Median (k=9)": Denoise(dinv.models.MedianFilter(kernel_size=9)),
+    "DRUNet": dinv.models.DRUNet(pretrained="download", device=device),
+    "Median (k=6)": dinv.models.MedianFilter(kernel_size=6),
+    "Median (k=9)": dinv.models.MedianFilter(kernel_size=9),
 }
 
 # %%
 # Load original NIQE weights
 # ---------------------------
-# We load the original NIQE weights for comparison
-# against our custom-fitted weights.
+# Constructing :class:`deepinv.loss.metric.NIQE` without an explicit ``weights_path``
+# loads the original published NIQE weights bundled with the package. We use this
+# instance as the baseline for comparison against our custom-fitted weights.
 
 niqe_original = dinv.loss.metric.NIQE(device="cpu")
 
 # %%
 # Fit NIQE and save/load weights
 # -------------------------------
-# :meth:`deepinv.loss.metric.NIQE.create_weights` fits NIQE statistics from a pristine
-# image dataset. Passing ``save_path`` persists the weights to disk so they can be
-# reloaded in future sessions via the ``weights_path`` constructor argument.
-# Here, ``save_path`` is not passed, meaning the niqe object will only be modified in-place.
+# To fit NIQE on a custom dataset, we construct a NIQE instance with ``weights_path=None``
+# (which skips loading the bundled weights, as they would be overwritten anyway) and call
+# :meth:`deepinv.loss.metric.NIQE.create_weights` with a dataset of pristine images.
+# This populates the instance's statistics in-place. The same object can then be called
+# directly to score new images.
+#
+# To persist the fitted weights for reuse, pass ``save_path="my_weights.pt"`` to
+# ``create_weights``. In a later session, load them back via
+# ``NIQE(weights_path="my_weights.pt")``. Here we do not save: weights are computed
+# on each fold of the cross-validation below.
 
 
 def fit_niqe(fit_subset: Subset) -> dinv.loss.metric.NIQE:
@@ -159,8 +168,12 @@ for fold in range(5):
         noisy = img + sigma * torch.randn_like(img)
 
         images = {}
-        for name, denoiser in denoisers.items():
-            images[name] = denoiser(noisy.to(device), sigma).cpu()
+        with (
+            torch.no_grad(),
+            torch.autocast(device_type=device.type, dtype=torch.float16),
+        ):
+            for name, denoiser in denoisers.items():
+                images[name] = denoiser(noisy.to(device), sigma).cpu()
 
         for name, im in images.items():
             im_255 = im.to(torch.float32) * 255
@@ -191,7 +204,7 @@ for name in denoisers.keys():
     x = np.array(results[name]["original_niqe"])
     y = np.array(results[name]["div2k_niqe"])
     avg_relative_shift = np.mean((y - x) / x)
-    print(f"{name}: {float(avg_relative_shift) * 100} %")
+    print(f"{name}: {float(avg_relative_shift) * 100:.3f} %")
     mask = np.isfinite(x) & np.isfinite(y)
     x, y = x[mask], y[mask]
     all_orig.append(x)
@@ -204,8 +217,8 @@ lim_min = min(all_orig.min(), all_div2k.min())
 lim_max = max(all_orig.max(), all_div2k.max())
 ax.plot([lim_min, lim_max], [lim_min, lim_max], "k--", linewidth=1, label="identity")
 
-ax.set_xlabel("NIQE — original weights")
-ax.set_ylabel("NIQE — DIV2K-fitted weights")
+ax.set_xlabel("NIQE with original weights")
+ax.set_ylabel("NIQE with DIV2K-fitted weights")
 ax.set_title(
     f"Per-image NIQE scores (σ = {sigma})\nPoints above the line are penalised more by the DIV2K prior"
 )
@@ -216,16 +229,15 @@ plt.show()
 # %%
 # Visual comparison between different denoisers
 # --------------------------------------------
-# Finally, we confirm visually significant blurring introduced by the median filters, not present in the ground-truth or DRUNet results
+# Finally, we visually confirm the blurring introduced by the median filters, which is absent in the ground-truth and DRUNet outputs.
 
 methods_all = ["gt", "noisy"] + list(denoisers.keys())
-sample_img = div2k_test.__getitem__(5)[
-    :, 512 - 128 : 512 + 128, 512 - 128 : 512 + 128
-].unsqueeze(0)
+sample_img = div2k_test[5][:, 512 - 128 : 512 + 128, 512 - 128 : 512 + 128].unsqueeze(0)
 sample_noisy = sample_img + sigma * torch.randn_like(sample_img)
 images = {"gt": sample_img, "noisy": sample_noisy}
-for name, denoiser in denoisers.items():
-    images[name] = denoiser(sample_noisy.to(device), 0.05).cpu()
+with torch.no_grad(), torch.autocast(device_type=device.type, dtype=torch.float16):
+    for name, denoiser in denoisers.items():
+        images[name] = denoiser(sample_noisy.to(device), 0.05).cpu()
 plot(
     [images[m] for m in methods_all],
     titles=methods_all,
