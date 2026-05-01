@@ -1,5 +1,5 @@
 from __future__ import annotations
-import math, sys, io, requests
+import math, sys, io
 from pathlib import Path
 import torch
 import torch.nn.functional as F
@@ -421,7 +421,7 @@ class NIQE(Metric):
 
             all_feats = []
 
-            for i, x in zip(range(len(dataset)), dataset):
+            for i, x in zip(range(len(dataset)), dataset, strict=False):
 
                 if x.ndim == 2:
                     x = x.unsqueeze(0)
