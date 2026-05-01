@@ -232,7 +232,8 @@ plt.show()
 # Finally, we visually confirm the blurring introduced by the median filters, which is absent in the ground-truth and DRUNet outputs.
 
 methods_all = ["gt", "noisy"] + list(denoisers.keys())
-sample_img = div2k_test[5][:, 512 - 128 : 512 + 128, 512 - 128 : 512 + 128].unsqueeze(0)
+c = crop_size // 2
+sample_img = div2k_test[5][:, c - 128 : c + 128, c - 128 : c + 128].unsqueeze(0)
 sample_noisy = sample_img + sigma * torch.randn_like(sample_img)
 images = {"gt": sample_img, "noisy": sample_noisy}
 with torch.no_grad(), torch.autocast(device_type=device.type, dtype=torch.float16):
