@@ -1713,3 +1713,6 @@ def test_super_resolution_nets(upscale_factor, n_channels, model):
         8 * upscale_factor,
         8 * upscale_factor,
     )
+
+def test_srresnet_inputs():
+    with pytest.raises(ValueError) as 

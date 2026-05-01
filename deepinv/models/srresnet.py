@@ -5,7 +5,7 @@ Ledig, Christian, et al. "Photo-realistic single image super-resolution using a 
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import torch
 import torch.nn as nn
@@ -45,8 +45,7 @@ class SRResNet(Reconstructor):
     :param int upscale: upsampling factor. Must be a power of two. Default: 4
     :param type[torch.nn.Module] actv: activation layer class, instantiated with no
         arguments. Default: :class:`torch.nn.ReLU`.
-    :param type[torch.nn.Module] norm: normalization layer class, instantiated with the
-        number of channels. Default: :class:`torch.nn.BatchNorm2d`.
+    :param str norm: normalization layer, can be one of ('instance_norm', 'batch_norm', 'layer_norm', None).
     :param int final_kernel_size: kernel size of the final output convolution. Must be odd. Default: 9.
     :param bool final_relu: enforce non-negativity of output by performing a relu after final conv. Default: False
     """
@@ -58,7 +57,7 @@ class SRResNet(Reconstructor):
         feats: int = 64,
         upscale: int = 4,
         actv: type[nn.Module] = nn.PReLU,
-        norm: type[nn.Module] = nn.BatchNorm2d,
+        norm: Optional[str] = "batch_norm",
         final_kernel_size: int = 9,
         final_relu: bool = False,
     ):
@@ -69,6 +68,16 @@ class SRResNet(Reconstructor):
             )
         if final_kernel_size % 2 == 0:
             raise ValueError(f"final_kernel_size must be odd, got {final_kernel_size}")
+        if norm.lower() not in ("batch_norm", "instance_norm", None):
+            raise ValueError(
+                f"norm must be one of (batch_norm, instance_norm, None), got {norm}"
+            )
+        norm = {
+            "batch_norm": nn.BatchNorm2d,
+            "instance_norm": nn.InstanceNorm2d,
+            "layer_norm": _LayerNorm2d,
+            None: nn.Identity,
+        }[norm]
         self.fe = nn.Sequential(nn.Conv2d(im_c, feats, 9, 1, 4), actv())
         self.blocks = nn.Sequential(
             *[_Block(feats, actv, norm) for _ in range(num_blocks)]
@@ -123,4 +132,20 @@ class _Block(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x + self.layers(x)
+        return x
+
+
+class _LayerNorm2d(nn.Module):
+    def __init__(self, num_channels, eps=1e-6):
+        super().__init__()
+        self.weight = nn.Parameter(torch.ones(num_channels))
+        self.bias = nn.Parameter(torch.zeros(num_channels))
+        self.eps = eps
+
+    def forward(self, x):
+        # x: (B, C, H, W), normalize over C
+        u = x.mean(dim=1, keepdim=True)
+        s = (x - u).pow(2).mean(dim=1, keepdim=True)
+        x = (x - u) / torch.sqrt(s + self.eps)
+        x = self.weight[:, None, None] * x + self.bias[:, None, None]
         return x
