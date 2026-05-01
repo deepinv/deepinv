@@ -407,7 +407,7 @@ class NIQE(Metric):
         to greyscale using 0.299*R + 0.587*G + 0.114*B.
 
         :param torch.utils.data.Dataset dataset: for each item, should yield a Tensor representing a
-            distortion-free (pristine) image.
+            distortion-free (pristine) image. Should have finite __len__ and indexable __getitem__.
         :param float sharpness_threshold: only patches whose sharpness is at least
             ``sharpness_threshold`` of the per-image peak sharpness (measured from σ at scale 1) are kept.
         :param str save_path: Path to which weights are to be saved. Must have ``.pt`` extension. If not passed, weights are returned without saving.
@@ -421,7 +421,7 @@ class NIQE(Metric):
 
             all_feats = []
 
-            for i, x in enumerate(dataset):
+            for i, x in zip(range(len(dataset)), dataset):
 
                 if x.ndim == 2:
                     x = x.unsqueeze(0)
@@ -450,7 +450,7 @@ class NIQE(Metric):
                     print(
                         f"Sample {i} / {len(dataset)}: Too small H or Width, not included for weight creation."
                     )
-                    continue  # too small -> should we raise a warning here?
+                    continue
                 block_hnum = math.floor(H / self.patch_size)
                 block_wnum = math.floor(W / self.patch_size)
                 x = x[
