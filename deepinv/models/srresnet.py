@@ -57,7 +57,7 @@ class SRResNet(Reconstructor):
         feats: int = 64,
         upscale: int = 4,
         actv: type[nn.Module] = nn.PReLU,
-        norm: Optional[str] = "batch_norm",
+        norm: str | None = "batch_norm",
         final_kernel_size: int = 9,
         final_relu: bool = False,
     ):
