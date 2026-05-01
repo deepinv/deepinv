@@ -479,6 +479,11 @@ class _MockDataset(torch.utils.data.Dataset):
 @pytest.mark.parametrize("n_channels", (1, 3))
 @pytest.mark.parametrize("dtype", (torch.float16, torch.float32, torch.float64))
 def test_niqe_fit(n_channels: int, dtype: torch.dtype):
+    # General Note: Testing whether weights created are useful is too complex here.
+    # Therefore, we simply use dummy inputs to confirm
+    # (i) Errors are raised on certain inputs
+    # (ii) NIQE fit works as expected, without unexpected errors
+
     # Test if informative error raised if weights=None and metric called
     niqe = metric.NIQE(patch_size=32, patch_overlap=16, weights_path=None, dtype=dtype)
     test_tensor = torch.ones((1, n_channels, 128, 128))
