@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from deepinv.loss.metric.metric import Metric
 from deepinv.physics.functional.convolution import conv2d
 from deepinv.physics.functional.imresize import imresize_matlab
+from deepinv.models.utils import load_state_dict_from_url, get_weights_url
 
 
 class LPIPS(Metric):
@@ -142,7 +143,7 @@ class NIQE(Metric):
         patch_size: int = 96,
         patch_overlap: int = 0,
         device: str | torch.device = "cpu",
-        dtype=torch.float32,
+        dtype: torch.dtype = torch.float32,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -155,15 +156,16 @@ class NIQE(Metric):
         self.denominator = denominator
         self.dtype = dtype
         if weights_path == "download":
-            resp = requests.get(
-                "https://huggingface.co/deepinv/demo/resolve/main/niqe_weights.pt",
-                timeout=2.5,
+            url = get_weights_url("demo", "niqe_weights.pt")
+            params = load_state_dict_from_url(
+                url,
+                map_location=lambda storage, loc: storage,
+                file_name="niqe_weights.pt",
+                weights_only=True,
             )
-            resp.raise_for_status()
 
-            params = torch.load(io.BytesIO(resp.content), weights_only=False)
         elif weights_path is not None:
-            params = torch.load(weights_path)
+            params = torch.load(weights_path, weights_only=True)
         else:
             self.mu_p, self.cov_p = None, None
         if weights_path is not None:
