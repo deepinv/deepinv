@@ -68,9 +68,9 @@ class SRResNet(Reconstructor):
             )
         if final_kernel_size % 2 == 0:
             raise ValueError(f"final_kernel_size must be odd, got {final_kernel_size}")
-        if norm.lower() not in ("batch_norm", "instance_norm", None):
+        if norm not in ("batch_norm", "instance_norm", "layer_norm", None):
             raise ValueError(
-                f"norm must be one of (batch_norm, instance_norm, None), got {norm}"
+                f"norm must be one of (batch_norm, instance_norm, layer_norm, None), got {norm}"
             )
         norm = {
             "batch_norm": nn.BatchNorm2d,

@@ -1706,7 +1706,9 @@ def test_super_resolution_nets(upscale_factor, n_channels, model):
     else:
         raise RuntimeError(f"Unknown super-resolution mdoel {model}")
     test_input = torch.ones([2, n_channels, 8, 8])
-    model_output = super_resolver(test_input, physics=dinv.physics.Downsampling)
+    model_output = super_resolver(
+        test_input, physics=dinv.physics.Downsampling(filter=None)
+    )
     assert tuple(model_output.shape) == (
         2,
         n_channels,
@@ -1714,5 +1716,37 @@ def test_super_resolution_nets(upscale_factor, n_channels, model):
         8 * upscale_factor,
     )
 
+
 def test_srresnet_inputs():
-    with pytest.raises(ValueError) as 
+    with pytest.raises(ValueError) as exc_info:
+        net = dinv.models.SRResNet(upscale=6)
+    assert str(exc_info.value) == "upscale must be a power of two (e.g. 2, 4, 8), got 6"
+    with pytest.raises(ValueError) as exc_info:
+        net = dinv.models.SRResNet(final_kernel_size=4)
+    assert str(exc_info.value) == "final_kernel_size must be odd, got 4"
+    with pytest.raises(ValueError) as exc_info:
+        net = dinv.models.SRResNet(norm="adaptive")
+    assert (
+        str(exc_info.value)
+        == "norm must be one of (batch_norm, instance_norm, layer_norm, None), got adaptive"
+    )
+    # test no errors on any norm
+    for norm in ("batch_norm", "layer_norm", "instance_norm", None):
+        super_resolver = dinv.models.SRResNet(
+            num_blocks=2,
+            im_c=3,
+            feats=4,
+            upscale=2,
+            norm=norm,
+            final_kernel_size=3,
+        )
+        test_input = torch.ones([2, 3, 8, 8])
+        model_output = super_resolver(
+            test_input, physics=dinv.physics.Downsampling(filter=None)
+        )
+        assert tuple(model_output.shape) == (
+            2,
+            3,
+            16,
+            16,
+        )
