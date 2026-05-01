@@ -9,10 +9,15 @@ NIQE is a no-reference image quality metric that compares local image statistics
 against those of pristine (distortion-free) images. Fitting NIQE on a domain-specific
 dataset can better capture the expected image characteristics.
 
-While DIV2K is also natural imaging data, the image quality and sharpness is better compared
-to the dataset NIQE was originally fitted on. The fitting in this example can be done with
-any dataset returning RGB or single channel tensors. Do set a reasonable denominator argument
-relative to your data's pixel intensity range (e.g. for [0, 1], set denominator to 1/255)
+In this example, we fit NIQE on DIV2K. DIV2K is also natural imaging data, but the image
+quality and sharpness is higher than the dataset NIQE was originally fitted on, so the
+resulting weights characterise a sharper, higher-quality prior while remaining valid NIQE
+statistics.
+
+To apply this procedure to your own data, any dataset returning RGB or
+single-channel tensors will work. Set the ``denominator`` argument relative to your data's
+pixel intensity range (e.g. for [0, 1], use ``denominator=1/255``). In this example we scale DIV2K to
+[0, 255] in when fitting, so the default ``denominator=1`` is appropriate.
 
 We perform 5-fold cross-validation on the DIV2K validation set (80 fit / 20 test per fold)
 and compare original NIQE weights against DIV2K-fitted weights at noise level σ=0.05.
