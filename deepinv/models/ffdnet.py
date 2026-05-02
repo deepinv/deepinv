@@ -41,6 +41,10 @@ class FFDNet(Denoiser):
         downsample_factor = 2
         self.downsampler = nn.PixelUnshuffle(downsample_factor)
         self.upsampler = nn.PixelShuffle(downsample_factor)
+        if norm not in ["instance_norm", "batch_norm", None]:  # pragma: no cover
+            raise ValueError(
+                f"norm must be one of (instance_norm, batch_norm, None), but got {norm}"
+            )
         norm = {
             "instance_norm": nn.InstanceNorm2d,
             "batch_norm": nn.BatchNorm2d,
