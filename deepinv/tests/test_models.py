@@ -27,6 +27,7 @@ MODEL_LIST_1_CHANNEL = [
     "promptir",
     "ncsnpp",
     "adinv.modelsunet",
+    "ffdnet",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -149,6 +150,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.DScCP()
     elif name == "bilateral":
         out = dinv.models.BilateralFilter()
+    elif name == "ffdnet":
+        out = dinv.models.FFDNet(img_channels=imsize[0], n_conv_layers=2, nf=16)
     else:
         raise Exception("Unknown denoiser")
 
@@ -353,6 +356,10 @@ def test_denoiser_color(imsize, device, denoiser):
     if denoiser in ["ncsnpp", "adinv.modelsunet"]:
         imsize = (imsize[0], (imsize[1] // 8) * 8, (imsize[2] // 8) * 8)
 
+    # FFDNet requires spatial size divisble 2
+    if denoiser in ["ffdnet"]:
+        imsize = (imsize[0], (imsize[1] // 2) * 2, (imsize[2] // 2) * 2)
+
     model = choose_denoiser(denoiser, imsize).to(device)
     torch.manual_seed(0)
     sigma = 0.2
@@ -375,7 +382,13 @@ def test_denoiser_gray(imsize_1_channel, device, denoiser):
                 (imsize_1_channel[1] // 8) * 8,
                 (imsize_1_channel[2] // 8) * 8,
             )
-
+        # FFDNet requires spatial size divisble 2
+        if denoiser in ["ffdnet"]:
+            imsize_1_channel = (
+                imsize_1_channel[0],
+                (imsize_1_channel[1] // 2) * 2,
+                (imsize_1_channel[2] // 2) * 2,
+            )
         model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
         torch.manual_seed(0)
@@ -447,6 +460,13 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
             imsize_1_channel[1] = 32
         if imsize_1_channel[2] % 8 > 0:
             imsize_1_channel[2] = 32
+    # FFDNet requires spatial size divisble 2
+    if denoiser in ["ffdnet"]:
+        imsize_1_channel = (
+            imsize_1_channel[0],
+            (imsize_1_channel[1] // 2) * 2,
+            (imsize_1_channel[2] // 2) * 2,
+        )
     model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
     torch.manual_seed(0)
