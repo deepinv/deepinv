@@ -21,6 +21,7 @@ FULL_REFERENCE_METRICS = [
     "SAM",
     "HaarPSI",
     "CosineSimilarity",
+    "GMSD",
 ]
 NO_REFERENCE_METRICS = [
     "BlurStrength",
@@ -73,6 +74,8 @@ def choose_full_reference_metric(metric_name, device, **kwargs) -> metric.Metric
         return metric.HaarPSI(norm_inputs="clip", **kwargs)
     elif metric_name == "CosineSimilarity":
         return metric.CosineSimilarity(**kwargs)
+    elif metric_name == "GMSD":
+        return metric.GMSD(**kwargs)
     else:
         raise ValueError("Incorrect metric name.")
 
@@ -146,6 +149,8 @@ def test_full_reference_metrics(
 
     if metric_name in ("SAM", "ERGAS") and channels < 3:
         pytest.skip("ERGAS or SAM must have multichannels.")
+    elif metric_name in ("GMSD",) and channels != 1:
+        pytest.skip("GMSD requires channels == 1")
 
     x_hat = dinv.physics.GaussianNoise(sigma=0.1, rng=rng)(x)
 
@@ -456,3 +461,33 @@ def test_snr(power_signal, power_noise):
             snr,
             torch.tensor(target_snr),
         ), f"Expected SNR {target_snr}, got {snr.item()}"
+
+
+def test_gmsd():
+    gmsd = metric.GMSD()
+    x_net, x = torch.ones((1, 1, 16, 16)), torch.ones((2, 1, 16, 16))
+    with pytest.raises(ValueError) as exc_info:
+        out = gmsd(x_net, x)
+    assert (
+        str(exc_info.value)
+        == "x_net and x must be same shape, but got (1, 1, 16, 16) and (2, 1, 16, 16)"
+    )
+    x_net, x = torch.ones((1, 1, 16, 16, 16)), torch.ones((1, 1, 16, 16, 16))
+    with pytest.raises(ValueError) as exc_info:
+        out = gmsd(x_net, x)
+    assert (
+        str(exc_info.value)
+        == "GMSD requires tensors of shape (B, 1, H, W). Got (1, 1, 16, 16, 16)"
+    )
+
+    # 2 uniform tensors --> gradient zero in both --> no diff --> 0
+    x_net, x = torch.ones((1, 1, 16, 16)), 2 * torch.ones((1, 1, 16, 16))
+    out = gmsd(x_net, x)
+    assert torch.equal(out, torch.zeros((1,)))
+
+    # We can calculate this mathematically due to padding 'replicate' when applying prewitt
+    x_net, x = torch.ones((1, 1, 16, 16)), torch.ones((1, 1, 16, 16))
+    x[:, :, :4] = 2
+    out = gmsd(x_net, x)
+    print(float(out))
+    assert torch.isclose(out, torch.tensor((0.33,)), atol=3e-4)
