@@ -53,14 +53,14 @@ class FFDNet(Denoiser):
         blocks = []
         blocks.append(
             nn.Sequential(
-                nn.Conv2d((img_channels + 1) * downsample_factor**2, nf, padding=1),
+                nn.Conv2d((img_channels + 1) * downsample_factor**2, nf, 3, padding=1),
                 nn.ReLU(inplace=True),
             )
         )
         for _ in range(n_conv_layers - 2):
             blocks.append(
                 nn.Sequential(
-                    nn.Conv2d(nf, nf, padding=1),
+                    nn.Conv2d(nf, nf, 3, padding=1),
                     norm(nf),
                     nn.ReLU(inplace=True),
                 )
@@ -68,7 +68,8 @@ class FFDNet(Denoiser):
         blocks.append(
             nn.Conv2d(
                 nf,
-                (img_channels + 1) * downsample_factor**2,
+                (img_channels) * downsample_factor**2,
+                3,
                 padding=1,
                 bias=last_conv_bias,
             )
@@ -88,6 +89,10 @@ class FFDNet(Denoiser):
         :param float, torch.Tensor sigma: noise level. If ``sigma`` is a float, it is used for all images in the batch.
             If ``sigma`` is a tensor, it must be of shape ``(batch_size,)``.
         """
+        if x.size(2) % 2 != 0 or x.size(3) % 2 != 0:  # pragma: no cover
+            raise ValueError(
+                f"FFDNet requires H,W both divisble by 2. Got tensor of shape {tuple(x.shape)}"
+            )
         if isinstance(sigma, torch.Tensor):
             if sigma.ndim > 0:
                 noise_level_map = sigma.view(x.size(0), 1, 1, 1)
