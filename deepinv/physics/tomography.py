@@ -382,16 +382,16 @@ class TomographyWithAstra(LinearPhysics):
     :param tuple[int, ...] img_size: Shape of the object grid, either a 2 or 3-element tuple, for respectively 2D or 3D.
     :param int angles: Number of angular positions sampled uniformly in ``angular_range`` or a Tensor containing angular positions in degrees. (default: 180)
     :param int | tuple[int, ...], None n_detector_pixels: In 2D, specify an integer for a single line of detector cells. In 3D, specify a 2-element tuple for (row,col) shape of the detector. (default: None)
-    :param tuple[float, float] angular_range: Angular range, defaults to ``(0, 180)``.
-    :param float | tuple[float, float] detector_spacing: In 2D the width of a detector cell. In 3D a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)
+    :param tuple[float, float], None angular_range: Angular range. Defaults to ``(0, 360)`` for ``'conebeam'`` geometry and ``(0, 180)`` otherwise.
+    :param float | tuple[float, float], None detector_spacing: In 2D the width of a detector cell. In 3D a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. Defaults to ``1.0``, except for ``'conebeam'`` geometry where it defaults to ``1.5 * pixel_spacing``.
     :param float | tuple[float, ...] pixel_spacing: In 2D, the (x,y) dimensions of a pixel in the reconstructed image. In 3D, the (x,y,z) dimensions of a voxel. Scalar value is interpreted as the same dimension along all axes (default: 1.0)
     :param tuple[float, ...], None bounding_box: Axis-aligned bounding-box of the reconstruction area [min_x, max_x, min_y, max_y, ...]. Optional argument, if specified, overrides argument ``object_spacing``. (default: None)
     :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2D and ``'parallel'`` and ``'conebeam'`` in 3D. (default: ``'parallel'``)
     :param dict[str, float] geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionary should contains the keys
 
-        - ``"source_radius"``: the distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}`, (default: 80.),
+        - ``"source_radius"``: the distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}`, (default: 80., except for ``'conebeam'`` geometry where it defaults to ``img_size[-1] * 4``),
 
-        - ``"detector_radius"``: the distance between the x-ray detector and the rotation axis, denoted :math:`D_{0d}`. (default: 20.)
+        - ``"detector_radius"``: the distance between the x-ray detector and the rotation axis, denoted :math:`D_{0d}`. (default: 20., except for ``'conebeam'`` geometry where it defaults to ``img_size[-1]``)
 
     :param torch.Tensor, None geometry_vectors: Alternative way to describe a 3D geometry. It is a torch.Tensor of shape [num_angles, 12], where for each angular position of index ``i`` the row consists of a vector of size (12,) with
 
@@ -480,26 +480,18 @@ class TomographyWithAstra(LinearPhysics):
         img_size: tuple[int, ...],
         angles: int | torch.Tensor = 180,
         n_detector_pixels: int | tuple[int, ...] | None = None,
-        angular_range: tuple[float, float] = (0, 180),
-        detector_spacing: float | tuple[float, float] = 1.0,
+        angular_range: tuple[float, float] | None = None,
+        detector_spacing: float | tuple[float, float] | None = None,
         pixel_spacing: float | tuple[float, ...] = 1.0,
         bounding_box: tuple[float, ...] | None = None,
         geometry_type: str = "parallel",
-        geometry_parameters: dict[str, float] = MappingProxyType(
-            {
-                "source_radius": 80.0,
-                "detector_radius": 20.0,
-            }
-        ),
+        geometry_parameters: dict[str, float] | None = None,
         geometry_vectors: torch.Tensor | None = None,
         normalize: bool | None = None,
         device: torch.device | str = torch.device("cuda"),
         **kwargs,
     ):
         super().__init__(device=device, **kwargs)
-
-        if isinstance(geometry_parameters, MappingProxyType):
-            geometry_parameters = geometry_parameters.copy()
 
         assert len(img_size) in (
             2,
@@ -514,12 +506,44 @@ class TomographyWithAstra(LinearPhysics):
 
         self.img_size = img_size
         self.is_2d = len(img_size) == 2
+        self.geometry_type = geometry_type
+
+        if n_detector_pixels is None and geometry_type == "conebeam" and not self.is_2d:
+            n_detector_pixels = img_size[-1]
         self.n_detector_pixels = (
             math.ceil(math.sqrt(2) * img_size[0])
             if n_detector_pixels is None
             else n_detector_pixels
         )
-        self.geometry_type = geometry_type
+
+        if angular_range is None:
+            angular_range = (0, 360) if geometry_type == "conebeam" else (0, 180)
+
+        if geometry_parameters is None:
+            if geometry_type == "conebeam" and not self.is_2d:
+                geometry_parameters = {
+                    "source_radius": img_size[-1] * 4.0,
+                    "detector_radius": img_size[-1] * 1.0,
+                }
+            else:
+                geometry_parameters = {
+                    "source_radius": 80.0,
+                    "detector_radius": 20.0,
+                }
+        elif isinstance(geometry_parameters, MappingProxyType):
+            geometry_parameters = geometry_parameters.copy()
+
+        if detector_spacing is None:
+            if geometry_type == "conebeam" and not self.is_2d:
+                if isinstance(pixel_spacing, (float, int)):
+                    detector_spacing = 1.5 * pixel_spacing
+                else:
+                    detector_spacing = (
+                        1.5 * pixel_spacing[2],
+                        1.5 * pixel_spacing[0],
+                    )
+            else:
+                detector_spacing = 1.0
 
         if isinstance(angles, int):
             angles = torch.linspace(*angular_range, steps=angles + 1)[:-1]
