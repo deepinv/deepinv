@@ -174,6 +174,18 @@ class Downsampling(LinearPhysics):
         :param int, float, torch.Tensor factor: New downsampling factor to be applied to the input image.
         :param torch.device, str device: When``self.filter`` is ``None`` and if ``filter`` is a ``str`, specifies the device where the new filter will be created. When``self.filter`` is ``None`` and ``filter`` is a ``torch.Tensor``, the device is inferred from the provided ``filter`` tensor. Ignored otherwise.
         """
+        if isinstance(filter, Tensor) and filter.requires_grad:
+            trainable = getattr(self, "_trainable_buffers", None)
+            if trainable is None:
+                self._trainable_buffers = set()
+                trainable = self._trainable_buffers
+            trainable.add("filter")
+            sources = getattr(self, "_trainable_buffer_sources", None)
+            if sources is None:
+                self._trainable_buffer_sources = {}
+                sources = self._trainable_buffer_sources
+            sources["filter"] = filter
+
         if factor is not None and filter is None and self.filter is not None:
             warn(
                 "Updating factor but not filter. Filter will not be valid for new factor. Pass filter string or new filter to resolve this."
@@ -251,7 +263,7 @@ class Downsampling(LinearPhysics):
         # user is allowed to override parameters updates
         filter_parameters.update(**kwargs)
 
-        super().update_parameters(**filter_parameters)
+        super().update_parameters(_track_grad_buffers=False, **filter_parameters)
 
     def A(
         self,
@@ -699,6 +711,18 @@ class BlurFFT(DecomposablePhysics):
         :param torch.Tensor filter: New filter to be applied to the input image.
         """
 
+        if isinstance(filter, Tensor) and filter.requires_grad:
+            trainable = getattr(self, "_trainable_buffers", None)
+            if trainable is None:
+                self._trainable_buffers = set()
+                trainable = self._trainable_buffers
+            trainable.add("filter")
+            sources = getattr(self, "_trainable_buffer_sources", None)
+            if sources is None:
+                self._trainable_buffer_sources = {}
+                sources = self._trainable_buffer_sources
+            sources["filter"] = filter
+
         # self.filter can be None after initialization
         if self.filter is None:
             if isinstance(filter, Tensor):
@@ -735,7 +759,7 @@ class BlurFFT(DecomposablePhysics):
         if kwargs.get("mask") is None and "mask" in kwargs:
             kwargs.pop("mask")
 
-        super().update_parameters(**filter_parameters)
+        super().update_parameters(_track_grad_buffers=False, **filter_parameters)
 
 
 class SpaceVaryingBlur(LinearPhysics):

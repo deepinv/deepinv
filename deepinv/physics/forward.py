@@ -253,6 +253,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         :param dict kwargs: dictionary of parameters to update.
         """
+        track_grad_buffers = kwargs.pop("_track_grad_buffers", True)
         if kwargs:
             for key, value in kwargs.items():
                 if (
@@ -260,7 +261,6 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     and hasattr(self, key)
                     and isinstance(value, torch.Tensor)
                 ):
-
                     if isinstance(getattr(self, key), torch.Tensor):
                         if value.device.type != getattr(self, key).device.type:
                             warnings.warn(
@@ -273,7 +273,26 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     # Also performs type casting if necessary.
                     # If getattr(self, key) is None, torch.Tensor.to will
                     # ignore the call and just return the original tensor.
-                    setattr(self, key, value.to(getattr(self, key)))
+                    new_value = value.to(getattr(self, key))
+                    setattr(self, key, new_value)
+
+                    if track_grad_buffers:
+                        trainable = getattr(self, "_trainable_buffers", None)
+                        sources = getattr(self, "_trainable_buffer_sources", None)
+                        if new_value.requires_grad:
+                            if trainable is None:
+                                self._trainable_buffers = set()
+                                trainable = self._trainable_buffers
+                            if sources is None:
+                                self._trainable_buffer_sources = {}
+                                sources = self._trainable_buffer_sources
+                            trainable.add(key)
+                            sources[key] = value
+                        else:
+                            if trainable is not None and key in trainable:
+                                trainable.discard(key)
+                            if sources is not None and key in sources:
+                                sources.pop(key, None)
 
     # NOTE: Physics instances can hold instances of torch.Generator as
     # (possibly nested) attributes and they cannot be copied using deepcopy

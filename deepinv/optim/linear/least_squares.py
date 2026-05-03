@@ -256,7 +256,7 @@ class LeastSquaresSolver(torch.autograd.Function):
 
             gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
 
-        ctx.save_for_backward(solution, y, z, gamma)
+        ctx.save_for_backward(solution, y, z, gamma, init)
         # Save other non-tensor contexts
         ctx.physics = physics
         ctx.kwargs = kwargs
@@ -267,7 +267,7 @@ class LeastSquaresSolver(torch.autograd.Function):
     @staticmethod
     @once_differentiable
     def backward(ctx, grad_output: torch.Tensor) -> tuple[torch.Tensor, ...]:
-        h, y, z, gamma = ctx.saved_tensors
+        h, y, z, gamma, init = ctx.saved_tensors
         physics = ctx.physics
 
         # Solve (A^T A + I/gamma) mv = grad_output
@@ -313,19 +313,45 @@ class LeastSquaresSolver(torch.autograd.Function):
             grads[4] = grad_gamma
 
         # Optional: implicit grads w.r.t physics parameters (side-effect accumulation)
-        params = [
-            p for p in getattr(physics, "buffers", lambda: [])() if p.requires_grad
-        ]
+        trainable_names = getattr(physics, "_trainable_buffers", None)
+        sources = getattr(physics, "_trainable_buffer_sources", None)
+        if trainable_names:
+            params = []
+            for name in sorted(trainable_names):
+                if sources and name in sources:
+                    p = sources[name]
+                elif hasattr(physics, name):
+                    p = getattr(physics, name)
+                else:
+                    continue
+                if isinstance(p, torch.Tensor) and p.requires_grad:
+                    params.append(p)
+        else:
+            params = [
+                p for p in getattr(physics, "buffers", lambda: [])() if p.requires_grad
+            ]
         if params:
-            # pseudo-loss = - <mv, A^T (A h - y)>
+            # Compute VJP for physics parameters via explicit autograd on the solver.
             h_det = h.detach()
             y_det = y.detach()
+            z_det = z.detach()
+            gamma_det = gamma.detach()
+            init_det = init.detach()
             with torch.enable_grad():
-                pseudo = -torch.vdot(
-                    mv.flatten(), physics.A_adjoint(physics.A(h_det) - y_det).flatten()
-                ).real
+                sol = least_squares(
+                    A=physics.A,
+                    AT=physics.A_adjoint,
+                    y=y_det,
+                    z=z_det,
+                    init=init_det,
+                    gamma=gamma_det,
+                    AAT=physics.A_A_adjoint,
+                    ATA=physics.A_adjoint_A,
+                    **ctx.kwargs,
+                )
+                vjp_loss = torch.sum(sol * grad_output)
             g_params = torch.autograd.grad(
-                pseudo, params, retain_graph=False, allow_unused=True
+                vjp_loss, params, retain_graph=False, allow_unused=True
             )
             for p, g in zip(params, g_params, strict=True):
                 if g is not None:
