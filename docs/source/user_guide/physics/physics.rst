@@ -49,6 +49,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Upsampling`
        | :class:`deepinv.physics.DownsamplingMatlab`
      -
+       | :class:`GaussianBlurGenerator <deepinv.physics.generator.GaussianBlurGenerator>`
        | :class:`MotionBlurGenerator <deepinv.physics.generator.MotionBlurGenerator>`
        | :class:`DownsamplingGenerator <deepinv.physics.generator.DownsamplingGenerator>`
        | :class:`DiffractionBlurGenerator <deepinv.physics.generator.DiffractionBlurGenerator>`

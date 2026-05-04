@@ -188,8 +188,6 @@ class GaussianBlurGenerator(PSFGenerator):
         self.rng_manual_seed(seed)
         dim = len(self.psf_size)
 
-        # sigma = self._generate_sigma(dim, batch_size, sigma)
-        # angle = self._generate_angle(dim, batch_size, angle)
         sigma = (
             self._generate_parameters(
                 batch_size, self.sigma_min, self.sigma_max, isotropic=self.isotropic
