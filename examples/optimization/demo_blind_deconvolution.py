@@ -10,10 +10,10 @@ from matplotlib import pyplot as plt
 device = get_freer_gpu() if torch.cuda.is_available() else "cpu"
 psnr = deepinv.loss.metric.PSNR()
 
-img_size = 256
+img_size = 128
 x = load_example(
     "leaves.png",
-    img_size=256,
+    img_size=img_size,
     grayscale=False,
     device=device,
 )
@@ -113,7 +113,7 @@ plot(
 )
 
 # %%
-# Blind setting
+# Algorithm definition
 
 
 def _normalize_kernel(k: torch.Tensor, eps: float = 1e-20) -> torch.Tensor:
@@ -161,6 +161,10 @@ def blind_richardson_lucy(
     steps: int,
     x_steps: int = 1,
     k_steps: int = 1,
+    x_prior: deepinv.optim.Prior = deepinv.optim.ZeroPrior(),
+    k_prior: deepinv.optim.Prior = deepinv.optim.ZeroPrior(),
+    x_prior_weight: float = 0.0,
+    k_prior_weight: float = 0.0,
     verbose: bool = True,
     keep_inter: bool = False,
     filter_epsilon: float = 1e-20,
@@ -266,7 +270,8 @@ def blind_richardson_lucy(
         )
 
     for step in tqdm(range(steps), desc="Blind RL", disable=not verbose):
-        # Kernel update
+
+        # Kernel updates
         kernel_physics.update_parameters(filter=x)
 
         for _ in range(k_steps):
@@ -287,17 +292,20 @@ def blind_richardson_lucy(
             s_img = _center_crop_hw(s_img, H_k, W_k)
 
             # Update kernel
-            k = (k / s_img) * num
+            k = (k / (s_img - k_prior_weight * k_prior.grad(k))) * num
             k = k.mean(dim=1, keepdim=True)
             k = k.clamp_min(0.0)
             if normalize_kernel:
                 k = _normalize_kernel(k, eps=filter_epsilon)
-        # Image update
+
+        # Image updates
         physics.update_parameters(filter=_expand_kernel_channels(k))
         s = physics.A_adjoint(torch.ones_like(y)).clamp_min(filter_epsilon)
 
         for _ in range(x_steps):
-            x = (x / s) * physics.A_adjoint(y / physics.A(x).clamp_min(filter_epsilon))
+            x = (x / s - x_prior_weight * x_prior.grad(x)) * physics.A_adjoint(
+                y / physics.A(x).clamp_min(filter_epsilon)
+            )
             x = x.clamp_min(filter_epsilon)
 
         if keep_inter:
@@ -309,6 +317,9 @@ def blind_richardson_lucy(
     return x, k
 
 
+# %%
+# Noiseless grayscale example
+
 img_size = 127
 x = load_example(
     "SheppLogan.png",
@@ -317,6 +328,7 @@ x = load_example(
     device=device,
     resize_mode="resize",
 )
+
 
 # True physics (unknown kernel in blind setting)
 kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
@@ -393,6 +405,8 @@ plt.title("Blind Richardson-Lucy Deconvolution\nKernel MAE vs Iterations")
 plt.show()
 
 # %%
+# Noiseless RGB example
+
 img_size = 127
 x = load_example(
     "butterfly.png",
@@ -409,18 +423,12 @@ physics = deepinv.physics.Blur(
     # noise_model=deepinv.physics.PoissonNoise(gain=1 / 100),
     device=device,
 )
-# Broken ?
-# physics = deepinv.physics.BlurFFT(
-#     img_size=(1, img_size, img_size),
-#     filter=kernel_true,
-#     device=device,
-# )
 
 y = physics(x)
 
 # Initial guesses
 k0 = torch.ones_like(kernel_true)
-max_iter = 200
+max_iter = 250
 x_hat, k_hat, xs, ks = blind_richardson_lucy(
     y=y,
     x0=y,
@@ -434,6 +442,258 @@ x_hat, k_hat, xs, ks = blind_richardson_lucy(
     normalize_kernel=True,
 )
 
+plot(
+    [x, y, x_hat, kernel_true, k_hat],
+    titles=[
+        "Ground Truth",
+        "Blurry image",
+        "Blind Richardson-Lucy\nDeconvolution",
+        "True kernel",
+        "Estimated kernel",
+    ],
+    subtitles=[
+        "PSNR (dB):",
+        f"{psnr(x, y).item():.2f} dB",
+        f"{psnr(x, x_hat).item():.2f} dB",
+        "MAE:",
+        f"{mae(kernel_true, k_hat.cpu()).item():.4f}",
+    ],
+    figsize=(12, 4),
+    rescale_mode="clip",
+    vmin=vmin,
+    vmax=vmax,
+)
+
+psnr_img = [psnr(x.cpu(), x_iter).item() for x_iter in xs]
+mae_kernel = [mae(kernel_true.cpu(), k_iter).item() for k_iter in ks]
+
+plt.figure(figsize=(14, 5))
+plt.subplot(1, 2, 1)
+plt.plot(
+    psnr_img,
+)
+plt.xlabel("Iteration")
+plt.ylabel("PSNR (dB)")
+plt.title("Blind Richardson-Lucy Deconvolution\nImage PSNR vs Iterations")
+plt.subplot(1, 2, 2)
+plt.plot(
+    mae_kernel,
+)
+plt.xlabel("Iteration")
+plt.ylabel("MAE")
+plt.title("Blind Richardson-Lucy Deconvolution\nKernel MAE vs Iterations")
+plt.show()
+
+# %%
+# Noisy grayscale example
+img_size = 127
+x = load_example(
+    "SheppLogan.png",
+    img_size=img_size,
+    grayscale=True,
+    device=device,
+    resize_mode="resize",
+)
+
+
+# True physics (unknown kernel in blind setting)
+kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
+
+physics = deepinv.physics.BlurFFT(
+    img_size=(1, img_size, img_size),
+    noise_model=deepinv.physics.noise.PoissonNoise(gain=1 / 200, clip_positive=True),
+    filter=kernel_true,
+    device=device,
+)
+
+y = physics(x)
+
+# Initial guesses
+k0 = torch.ones_like(kernel_true)
+x0 = y.clone()
+
+max_iter = 150
+x_hat, k_hat, xs, ks = blind_richardson_lucy(
+    y=y,
+    x0=x0,
+    k0=k0,
+    steps=max_iter,
+    x_steps=1,
+    k_steps=1,
+    verbose=True,
+    keep_inter=True,
+    fft=False,
+    normalize_kernel=True,
+)
+plot(
+    [x, y, x_hat, kernel_true, k_hat],
+    titles=[
+        "Ground Truth",
+        "Blurry image",
+        "Blind Richardson-Lucy\nDeconvolution",
+        "True kernel",
+        "Estimated kernel",
+    ],
+    subtitles=[
+        "PSNR (dB)",
+        f"{psnr(x, y).item():.2f}",
+        f"{psnr(x, x_hat).item():.2f}",
+        "MAE",
+        f"{mae(kernel_true, k_hat.cpu()).item():.4f}",
+    ],
+    figsize=(12, 4),
+    rescale_mode="clip",
+    vmin=vmin,
+    vmax=vmax,
+)
+
+psnr_img = [psnr(x.cpu(), x_iter).item() for x_iter in xs]
+mae_kernel = [mae(kernel_true.cpu(), k_iter).item() for k_iter in ks]
+
+plt.figure(figsize=(14, 5))
+plt.subplot(1, 2, 1)
+plt.plot(
+    psnr_img,
+)
+plt.xlabel("Iteration")
+plt.ylabel("PSNR (dB)")
+plt.title("Blind Richardson-Lucy Deconvolution\nImage PSNR vs Iterations")
+plt.subplot(1, 2, 2)
+plt.plot(
+    mae_kernel,
+)
+plt.xlabel("Iteration")
+plt.ylabel("MAE")
+plt.title("Blind Richardson-Lucy Deconvolution\nKernel MAE vs Iterations")
+plt.show()
+
+# %%
+# Noisy RGB example
+
+img_size = 127
+x = load_example(
+    "butterfly.png",
+    img_size=img_size,
+    grayscale=False,
+    device=device,
+    resize_mode="resize",
+)
+# True physics (unknown kernel in blind setting)
+kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
+physics = deepinv.physics.Blur(
+    filter=kernel_true,
+    padding="circular",
+    noise_model=deepinv.physics.PoissonNoise(gain=1 / 200, clip_positive=True),
+    device=device,
+)
+
+y = physics(x)
+
+# Initial guesses
+k0 = torch.ones_like(kernel_true)
+max_iter = 150
+x_hat, k_hat, xs, ks = blind_richardson_lucy(
+    y=y,
+    x0=y,
+    k0=k0,
+    steps=max_iter,
+    x_steps=1,
+    k_steps=1,
+    verbose=True,
+    keep_inter=True,
+    fft=False,
+    normalize_kernel=True,
+)
+
+plot(
+    [x, y, x_hat, kernel_true, k_hat],
+    titles=[
+        "Ground Truth",
+        "Blurry image",
+        "Blind Richardson-Lucy\nDeconvolution",
+        "True kernel",
+        "Estimated kernel",
+    ],
+    subtitles=[
+        "PSNR (dB):",
+        f"{psnr(x, y).item():.2f} dB",
+        f"{psnr(x, x_hat).item():.2f} dB",
+        "MAE:",
+        f"{mae(kernel_true, k_hat.cpu()).item():.4f}",
+    ],
+    figsize=(12, 4),
+    rescale_mode="clip",
+    vmin=vmin,
+    vmax=vmax,
+)
+
+psnr_img = [psnr(x.cpu(), x_iter).item() for x_iter in xs]
+mae_kernel = [mae(kernel_true.cpu(), k_iter).item() for k_iter in ks]
+
+plt.figure(figsize=(14, 5))
+plt.subplot(1, 2, 1)
+plt.plot(
+    psnr_img,
+)
+plt.xlabel("Iteration")
+plt.ylabel("PSNR (dB)")
+plt.title("Blind Richardson-Lucy Deconvolution\nImage PSNR vs Iterations")
+plt.subplot(1, 2, 2)
+plt.plot(
+    mae_kernel,
+)
+plt.xlabel("Iteration")
+plt.ylabel("MAE")
+plt.title("Blind Richardson-Lucy Deconvolution\nKernel MAE vs Iterations")
+plt.show()
+
+# %%
+# Noisy grayscale with L2 kernel prior example
+
+img_size = 256
+x = load_example(
+    "SheppLogan.png",
+    img_size=img_size,
+    grayscale=True,
+    device=device,
+    resize_mode="resize",
+)
+
+# True physics (unknown kernel in blind setting)
+kernel_true = (
+    deepinv.utils.demo.load_degradation("Levin09.npy", index=7)
+    .unsqueeze(0)
+    .unsqueeze(0)
+)
+
+physics = deepinv.physics.BlurFFT(
+    img_size=(1, img_size, img_size),
+    noise_model=deepinv.physics.noise.PoissonNoise(gain=1 / 500, clip_positive=True),
+    filter=kernel_true,
+    device=device,
+)
+
+y = physics(x)
+
+# Initial guesses
+k0 = torch.ones_like(kernel_true)
+x0 = y.clone()
+
+max_iter = 100
+x_hat, k_hat, xs, ks = blind_richardson_lucy(
+    y=y,
+    x0=x0,
+    k0=k0,
+    steps=max_iter,
+    x_steps=1,
+    k_steps=1,
+    k_prior=deepinv.optim.L1Prior(),
+    k_prior_weight=0.1,
+    verbose=True,
+    keep_inter=True,
+    fft=False,
+    normalize_kernel=True,
+)
 plot(
     [x, y, x_hat, kernel_true, k_hat],
     titles=[
