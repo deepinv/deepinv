@@ -16,8 +16,8 @@ The framework provides an API centered around two key functions:
     The distributed framework is particularly useful when:
     
     - *Multiple physics operators* with individual measurements need to be processed in parallel
-    - *Large images* are too large to fit in a single device's memory
-    - *Denoising priors* need to be applied to large images using spatial tiling
+    - *Large images or volumes* are too large to be processed in a single device's memory
+    - *Denoising priors* need to be applied to large images or volumes using spatial tiling
     - You want to *accelerate reconstruction* by leveraging multiple devices
 
 

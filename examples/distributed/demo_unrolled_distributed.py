@@ -234,8 +234,6 @@ with DistributedContext(seed=seed, seed_offset=False) as ctx:
     distributed_physics = distribute(
         stacked_physics,
         ctx,
-        type_object="linear_physics",
-        reduction="mean",
     )
 
     # Build an unfolded DRS model and distribute trainable components.
