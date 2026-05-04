@@ -17,6 +17,9 @@ x = load_example(
     grayscale=False,
     device=device,
 )
+mae = deepinv.metric.MAE()
+vmin = 0
+vmax = 1
 
 # Example with the blur physics and noise-free observations
 kernel = deepinv.physics.blur.gaussian_blur(sigma=1.6)
@@ -111,7 +114,6 @@ plot(
 
 # %%
 # Blind setting
-import torch.nn.functional as F
 
 
 def _normalize_kernel(k: torch.Tensor, eps: float = 1e-20) -> torch.Tensor:
