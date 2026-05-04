@@ -29,10 +29,10 @@ physics = deepinv.physics.Blur(
     device=device,
 )
 
-y = physics.forward(x)
-
+y = physics(x)
+gain = 1 / 100
 mlem = deepinv.optim.MLEM(
-    data_fidelity=deepinv.optim.PoissonLikelihood(gain=1),
+    data_fidelity=deepinv.optim.PoissonLikelihood(gain=gain),
     prior=None,
     max_iter=500,
 )
@@ -59,7 +59,7 @@ physics = deepinv.physics.BlurFFT(
     device=device,
 )
 
-y = physics.forward(x)
+y = physics(x)
 
 x_mlem = mlem(y=y, physics=physics)
 psnr = deepinv.loss.metric.PSNR()
@@ -83,7 +83,7 @@ plot(
 # Typical artifacts
 
 x = x.to(device)
-gain = 1 / 200
+gain = 1 / 100
 physics = deepinv.physics.Blur(
     filter=kernel,
     padding="circular",
@@ -138,6 +138,21 @@ def _center_crop_hw(t: torch.Tensor, out_h: int, out_w: int) -> torch.Tensor:
     return t[..., y0 : y0 + out_h, x0 : x0 + out_w]
 
 
+def _center_pad_hw(t: torch.Tensor, out_h: int, out_w: int) -> torch.Tensor:
+    H, W = t.shape[-2], t.shape[-1]
+    if out_h < H or out_w < W:
+        raise ValueError(f"Cannot pad ({H},{W}) to ({out_h},{out_w}).")
+    if out_h == H and out_w == W:
+        return t
+    pad_h = out_h - H
+    pad_w = out_w - W
+    pad_top = pad_h // 2
+    pad_bottom = pad_h - pad_top
+    pad_left = pad_w // 2
+    pad_right = pad_w - pad_left
+    return torch.nn.functional.pad(t, (pad_left, pad_right, pad_top, pad_bottom))
+
+
 @torch.no_grad()
 def blind_richardson_lucy(
     y: torch.Tensor,
@@ -153,7 +168,7 @@ def blind_richardson_lucy(
     fft: bool = True,
 ):
     """
-    Blind Richardson–Lucy (alternating MLEM) for deblurring.
+    Blind Richardson-Lucy (alternating MLEM) for deblurring.
 
     Assumes a Poisson data model with a convolutional forward operator:
         y ~ Poisson( A_k(x) )
@@ -161,7 +176,7 @@ def blind_richardson_lucy(
 
     The algorithm alternates:
       - kernel MLEM update (k fixed-size, nonnegative, optionally normalized)
-      - image MLEM update (standard Richardson–Lucy using physics.A / physics.A_adjoint)
+      - image MLEM update (standard Richardson-Lucy using physics.A / physics.A_adjoint)
 
     Parameters
     ----------
@@ -220,10 +235,15 @@ def blind_richardson_lucy(
     B_k, C_k, H_k, W_k = k.shape
     H_k, W_k = k.shape[-2], k.shape[-1]
 
+    def _expand_kernel_channels(k_in: torch.Tensor) -> torch.Tensor:
+        if k_in.shape[1] == 1 and C_im > 1:
+            return k_in.expand(-1, C_im, -1, -1)
+        return k_in
+
     if fft:
         physics = deepinv.physics.BlurFFT(
             img_size=(C_im, H_im, W_im),
-            filter=k,
+            filter=_expand_kernel_channels(k),
             device=x.device,
         )
         kernel_physics = deepinv.physics.BlurFFT(
@@ -234,7 +254,7 @@ def blind_richardson_lucy(
 
     else:
         physics = deepinv.physics.Blur(
-            filter=k,
+            filter=_expand_kernel_channels(k),
             padding="circular",
             device=x.device,
         )
@@ -252,18 +272,11 @@ def blind_richardson_lucy(
         for _ in range(k_steps):
             ones = torch.ones_like(y)
 
-            k_padded = torch.nn.functional.pad(
-                k,
-                (
-                    0,
-                    W_im - W_k,
-                    0,
-                    H_im - H_k,
-                ),
-            )
+            k_padded = _center_pad_hw(k, H_im, W_im)
+            k_padded_c = _expand_kernel_channels(k_padded)
             s_img = kernel_physics.A_adjoint(ones).clamp_min(filter_epsilon)
             num = kernel_physics.A_adjoint(
-                y / kernel_physics.A(k_padded).clamp_min(filter_epsilon)
+                y / kernel_physics.A(k_padded_c).clamp_min(filter_epsilon)
             )
 
             # For RGB images, we average the update ratio across channels
@@ -280,7 +293,7 @@ def blind_richardson_lucy(
             if normalize_kernel:
                 k = _normalize_kernel(k, eps=filter_epsilon)
         # Image update
-        physics.update_parameters(filter=k)
+        physics.update_parameters(filter=_expand_kernel_channels(k))
         s = physics.A_adjoint(torch.ones_like(y)).clamp_min(filter_epsilon)
 
         for _ in range(x_steps):
@@ -322,14 +335,16 @@ y = physics(x)
 
 # Initial guesses
 k0 = torch.ones_like(kernel_true)
-max_iter = 20
+x0 = y.clone()
+
+max_iter = 300
 x_hat, k_hat, xs, ks = blind_richardson_lucy(
     y=y,
-    x0=y,
+    x0=x0,
     k0=k0,
     steps=max_iter,
     x_steps=1,
-    k_steps=1,
+    k_steps=2,
     verbose=True,
     keep_inter=True,
     fft=False,
@@ -391,7 +406,7 @@ kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
 physics = deepinv.physics.Blur(
     filter=kernel_true,
     padding="circular",
-    noise_model=deepinv.physics.PoissonNoise(gain=1 / 100),
+    # noise_model=deepinv.physics.PoissonNoise(gain=1 / 100),
     device=device,
 )
 # Broken ?
@@ -405,7 +420,7 @@ y = physics(x)
 
 # Initial guesses
 k0 = torch.ones_like(kernel_true)
-max_iter = 22
+max_iter = 200
 x_hat, k_hat, xs, ks = blind_richardson_lucy(
     y=y,
     x0=y,
@@ -415,7 +430,7 @@ x_hat, k_hat, xs, ks = blind_richardson_lucy(
     k_steps=2,
     verbose=True,
     keep_inter=True,
-    fft=True,
+    fft=False,
     normalize_kernel=True,
 )
 
