@@ -32,8 +32,26 @@ with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained t
 
 .. note::
 
-    PET physics relies on the `parallelproj` library.
-    Please `download it <https://parallelproj.readthedocs.io/en/stable/installation.html>`_ to run this example.
+    This operator requires the `parallelproj` package to be installed.
+    This in turn requires :ref:`installing deepinv via pixi or conda <install>`,
+    but not pypi/uv (as `parallelproj` is not currently available on pypi).
+
+    If you are working on a conda environment, you can install `parallelproj` as
+
+    ::
+
+        conda install -c conda-forge parallelproj
+
+
+    If you are working on a pixi installation, simply do
+
+    ::
+
+        pixi install -e full
+
+    which installs all optional dependencies.
+
+    Check the `parallelproj` documentation for more details: https://parallelproj.readthedocs.io/en/stable/.
 
 """
 
@@ -68,10 +86,10 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 img_size = (128, 128, 24)
 voxel_size = (3, 3, 3)
 
-# number of sides of the polygone approximating a circle
+# number of sides of the polygon approximating a circle
 num_sides = 32
 
-# number of detectors per polygone side
+# number of detectors per polygon side
 num_lor_endpoints_per_side = 16
 
 # number of rings of detectors on the depth axes
@@ -112,7 +130,10 @@ physics.plot_geometry()
 x, attenuation = generate_pet_phantom(img_size, device=device)
 mid_slice = img_size[-1] // 2
 
-# longer acquisition times -> more counts -> easier reconstruction
+# gain of the device.
+# higher gains are associated to lower dose and/or shorter acquisition times,
+# while lower gains are associated to higher dose and/or longer acquisition times.
+# larger gain -> more poisson noise -> harder reconstruction
 acquisition_time_factor = 10.0
 x = x * acquisition_time_factor
 
@@ -160,7 +181,8 @@ print(
 # .. note::
 #
 #   The attenuation is stored in the physics in sinogram space as :math:`\exp(-\mu)` to speed up computations,
-#   but it should be provided in image space, i.e., :math:`\mu`, to the physics.
+#   but it can be provided either in image space, i.e., :math:`\mu`, to the physics, or in sinogram space, i.e., :math:`\exp(-\mu)`.
+#   The class figures out the attenuation space by comparing it to `img_size`.
 
 expected_background = torch.ones_like(y) * x.max() * 0.05
 background = physics.generate_background(expected_background)

@@ -168,7 +168,8 @@ print(
 # .. note::
 #
 #   The attenuation is stored in the physics in sinogram space as :math:`\exp(-\mu)` to speed up computations,
-#   but it should be provided in image space, i.e., :math:`\mu`, to the physics.
+#   but it can be provided either in image space, i.e., :math:`\mu`, to the physics, or in sinogram space, i.e., :math:`\exp(-\mu)`.
+#   The class figures out the attenuation space by comparing it to `img_size`.
 
 expected_background = torch.ones_like(y) * x.max() * 0.05
 background = physics.generate_background(expected_background)

@@ -14,7 +14,7 @@ class PET(LinearPhysics):
     r"""
     Non time-of-flight Positron emission tomography (PET) physics model.
 
-    This operator relies on the `parallelproj` library :footcite:t:`schramm2024parallelproj`.
+    This operator relies on the `parallelproj` library by :footcite:t:`schramm2024parallelproj`.
 
     The PET forward model is defined as
 
@@ -79,12 +79,14 @@ class PET(LinearPhysics):
     :param bool normalize: If `True` the forward operator is normalized such that :math:`\|A\|=1`.
     :param bool normalize_counts: If `False` the :math:`\gamma` term in front of the Poisson noise is removed,
         that is the measurements are true counts.
-    :param bool projected_attenuation: If `False` (default), the attenuation should be provided in image space as :math:`\mu` (ie auxiliary CT scan).
-        If `True`, the attenuation should be provided in the projection space as :math:`c`. This should be set as `False` to efficiently compute
-        gradients with respect to the attenuation.
     :param str | torch.device device: device to run the computations on, e.g. `"cpu"` or `"cuda"`
     :param torch.Tensor background: background sinogram :math:`b`, i.e. the expected number of background events in each LOR, with shape `(num_lors,)`
-    :param torch.Tensor attenuation: attenuation map, i.e. the linear attenuation coefficient in each voxel, with shape `(H,W)` for 2D and `(D, H, W)` for 3D.
+    :param torch.Tensor attenuation: attenuation map. Can be provided either in **image space** as :math:`\mu`
+        (linear attenuation coefficients, shape `(H,W)` for 2D or `(D,H,W)` for 3D — typically from an auxiliary CT scan),
+        or in **sinogram/projection space** as :math:`c=\exp(-H\mu)`. The space is inferred automatically
+        by comparing the spatial dimensions of the tensor against `img_size`: if they match, image space is assumed
+        and the attenuation is projected; otherwise, sinogram space is assumed and the tensor is used directly.
+        Providing the attenuation in image space allows computing gradients with respect to it efficiently.
 
     |sep|
 
@@ -115,7 +117,6 @@ class PET(LinearPhysics):
         gain: float = 1.0,
         normalize: bool = False,
         normalize_counts: bool = False,
-        projected_attenuation: bool = False,
         device: str | torch.device = "cpu",
         background: torch.Tensor | None = None,
         attenuation: torch.Tensor | None = None,
@@ -160,8 +161,6 @@ class PET(LinearPhysics):
                 torch_compat, dev=device, num_rings=1 if self.is_2d else 16
             )
 
-        self.projected_attenuation = projected_attenuation
-
         # setup the LOR descriptor that defines the sinogram
         lor_desc = parallelproj.RegularPolygonPETLORDescriptor(
             scanner,
@@ -184,16 +183,9 @@ class PET(LinearPhysics):
             if self.is_2d:
                 background = background.squeeze(-1)
 
-        if not projected_attenuation:
-            attenuation = (
-                attenuation
-                if attenuation is not None
-                else torch.zeros((1, 1) + img_size, device=device)
-            )
-            if self.is_2d:
-                attenuation = attenuation.squeeze(-1)
-        else:
-            attenuation = torch.ones_like(background)
+        # Default attenuation to zero in image space (no attenuation)
+        if attenuation is None:
+            attenuation = torch.zeros((1, 1) + self.img_size, device=device)
 
         self.res_model = parallelproj.GaussianFilterOperator(
             img_size, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
@@ -225,8 +217,8 @@ class PET(LinearPhysics):
         :param torch.Tensor x: input image or volume
         :param torch.Tensor add_background: whether to add background :math:`s`. By default, no background is added.
         :param torch.Tensor background: If not `None`, update the background :math:`s` of the operator.
-        :param torch.Tensor attenuation: If not `None`, update the attenuation (:math:`c` if `projected_attenuation=True`,
-            :math:`\mu` if `projected_attenuation=False`) of the operator.
+        :param torch.Tensor attenuation: If not `None`, update the attenuation of the operator.
+            The space (image or sinogram) is inferred automatically from the tensor shape.
 
         """
         self.update_parameters(attenuation=attenuation, background=background)
@@ -312,8 +304,22 @@ class PET(LinearPhysics):
         background: torch.Tensor | None = None,
         **kwargs,
     ):
+        r"""
+        Update the background and/or attenuation parameters.
+
+        The space of the attenuation tensor is inferred automatically: if the last
+        ``len(img_size)`` dimensions match ``img_size``, the tensor is treated as an
+        image-space attenuation map :math:`\mu` and projected; otherwise it is treated as
+        a sinogram-space attenuation :math:`c=\exp(-H\mu)` and used directly.
+
+        :param torch.Tensor attenuation: If not `None`, update the attenuation. Can be in
+            image space (shape matching `img_size`) or sinogram space.
+        :param torch.Tensor background: If not `None`, update the background :math:`b`.
+        """
         if attenuation is not None:
-            if not self.projected_attenuation:
+            n = len(self.img_size)
+            is_image_space = tuple(attenuation.shape[-n:]) == tuple(self.img_size)
+            if is_image_space:
                 if self.is_2d:
                     attenuation = attenuation.unsqueeze(-1)
 

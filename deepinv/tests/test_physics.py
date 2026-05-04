@@ -252,7 +252,6 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size,
             normalize=True,
             device=device,
-            projected_attenuation=True,
         )
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
@@ -268,7 +267,6 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size,
             normalize=True,
             device=device,
-            projected_attenuation=True,
         )
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
