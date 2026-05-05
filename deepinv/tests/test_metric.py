@@ -228,7 +228,9 @@ def test_no_reference_metrics(
 
     # test blur
     x_hat = dinv.physics.BlurFFT(
-        filter=dinv.physics.blur.gaussian_blur(3), img_size=x.shape[1:], device=device
+        filter=dinv.physics.functional.gaussian_blur(sigma=(3, 3)),
+        img_size=x.shape[1:],
+        device=device,
     )(x)
     if not m.lower_better and not train_loss:
         assert m(x_hat).item() < m(x).item()
