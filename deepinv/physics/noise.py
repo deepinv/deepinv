@@ -581,12 +581,15 @@ class GammaNoise(NoiseModel):
     .. warning:: This noise model does not support the random number generator.
 
     :param float, torch.Tensor l: noise level.
+    :param bool clip_positive: Whether to clip the input to be positive before applying Gamma noise.
     """
 
-    def __init__(self, l=1.0):
+    def __init__(self, l: float | torch.Tensor = 1.0, clip_positive: bool = True):
         super().__init__(rng=None)
         if isinstance(l, int):
             l = float(l)
+
+        self.clip_positive = clip_positive
         self.register_buffer("l", self._float_to_tensor(l))
 
     def forward(self, x, l=None, seed: int = None, **kwargs):
@@ -601,7 +604,15 @@ class GammaNoise(NoiseModel):
         if torch.any(self.l <= 0):
             raise ValueError("Gamma noise level must be positive.")
         if torch.any(x <= 0):
-            raise ValueError("Input tensor for Gamma noise must be strictly positive.")
+            if self.clip_positive:
+                warnings.warn(
+                    "The Gamma noise model received negative inputs, clipping them to 1e-8."
+                )
+                x = x.clamp(min=1e-8)
+            else:
+                raise ValueError(
+                    "Input tensor for Gamma noise must be strictly positive."
+                )
         self.to(x.device)
         d = torch.distributions.gamma.Gamma(self.l, self.l / x)
         return d.sample()
