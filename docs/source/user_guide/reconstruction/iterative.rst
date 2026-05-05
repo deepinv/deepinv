@@ -7,10 +7,8 @@ Many image reconstruction algorithms can be shown to be solving
 minimization problems of the form
 
 .. math::
-    \begin{equation*}
-    \label{eq:min_prob}
+
     \underset{x}{\arg\min} \quad \datafid{x}{y} +  \lambda \reg{x},
-    \end{equation*}
 
 where :math:`\datafidname:\xset\times\yset \mapsto \mathbb{R}_{+}` is a data-fidelity term, :math:`\regname:\xset\mapsto \mathbb{R}_{+}`
 is a prior term, and :math:`\lambda` is a positive scalar. The data-fidelity term measures the discrepancy between the
@@ -47,12 +45,10 @@ solving the inverse problem :math:`y = \noise{\forw{x}}` reads
 
 .. math::
 
-    \begin{equation*}
     \begin{aligned}
     u_{k} &=  x_k - \gamma \nabla \datafid{x_k}{y} \\
     x_{k+1} &= \denoiser{u_k}{\sigma},
     \end{aligned}
-    \end{equation*}
 
 
 where :math:`f(x)=\frac{1}{2}\|y-\forw{x}\|^2` is a standard data-fidelity term,
