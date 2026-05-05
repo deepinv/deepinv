@@ -160,7 +160,7 @@ class MOEILoss(EILoss, MOILoss):
         otherwise is generated as :math:`\forw{\hat{x}}`.
     :param float weight: Weight of the loss.
     :param bool no_grad: if ``True``, the gradient does not propagate through :math:`T_g`. Default: ``False``.
-        This option is useful for super-resolution problems, see :footcite:t:`scanvic2025scale`.
+        This option is useful for super-resolution problems, see :footcite:t:`scanvic2026scale`.
     :param torch.Generator rng: torch randon number generator for randomly selecting from physics list. If using physics generator, rng is ignored.
     """
 
