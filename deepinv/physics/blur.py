@@ -1,7 +1,5 @@
 from __future__ import annotations
 from warnings import warn
-from torchvision.transforms.functional import rotate
-import torchvision
 import torch
 import torch.fft as fft
 from torch import Tensor
@@ -11,6 +9,7 @@ import deepinv.physics.functional as dF
 from deepinv.utils.mixins import TiledMixin2d
 from deepinv.utils._internal import _as_pair, _add_tuple
 from deepinv.utils._tiling import _resolve_tiling_params, _compute_needed_pad
+from deepinv.utils.decorators import _deprecated_func_replaced_by
 
 
 class Downsampling(LinearPhysics):
@@ -145,19 +144,13 @@ class Downsampling(LinearPhysics):
             if isinstance(filter, torch.Tensor):
                 filter = filter.to(device)
             elif filter == "gaussian":
-                filter = gaussian_blur(
-                    sigma=(factor,) * ndim_spatial,
-                    ndim=ndim_spatial,
-                    device=device,
-                )
+                filter = dF.gaussian_blur(sigma=(factor, factor), device=device)
             elif filter == "bilinear":
-                filter = bilinear_filter(factor, ndim=ndim_spatial, device=device)
+                filter = dF.bilinear_filter(factor, device=device)
             elif filter == "bicubic":
-                filter = bicubic_filter(factor, ndim=ndim_spatial, device=device)
+                filter = dF.bicubic_filter(factor, device=device)
             elif filter == "sinc":
-                filter = sinc_filter(
-                    factor, length=4 * factor, ndim=ndim_spatial, device=device
-                )
+                filter = dF.sinc_filter(factor, length=4 * factor, device=device)
 
             # Compute FFT dimensions based on spatial dimensionality
             dims = tuple(range(-ndim_spatial, 0))
@@ -516,7 +509,7 @@ class Blur(LinearPhysics):
     where :math:`*` denotes convolution and :math:`w` is a filter.
 
     :param torch.Tensor filter: Tensor of size (b, 1, h, w) or (b, c, h, w) in 2D; (b, 1, d, h, w) or (b, c, d, h, w) in 3D,
-        containing the blur filter, e.g., :func:`deepinv.physics.blur.gaussian_blur`.
+        containing the blur filter, e.g., :func:`deepinv.physics.functional.gaussian_blur`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image. (default is ``'valid'``).
@@ -645,7 +638,7 @@ class BlurFFT(DecomposablePhysics):
 
     :param tuple img_size: Input image size in the form `(C, H, W)`.
     :param torch.Tensor filter: torch.Tensor of size `(1, c, h, w)` containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
-        :func:`deepinv.physics.blur.gaussian_blur`.
+        :func:`deepinv.physics.functional.gaussian_blur`.
     :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     |sep|
@@ -1567,3 +1560,44 @@ class DownsamplingMatlab(Downsampling):
             dtype=y.dtype,
         )
         return adj(y)
+
+
+@_deprecated_func_replaced_by(dF.gaussian_blur, redirect=False, since="0.4.1")
+def gaussian_blur(
+    sigma: float | tuple[float, ...] = (1, 1),
+    angle: float = 0,
+    device: torch.device | str = "cpu",
+) -> Tensor:
+    # Match the old signature where gaussian_blur only produces 2D filters
+    if isinstance(sigma, (int, float)):
+        sigma = (sigma, sigma)
+    return dF.gaussian_blur(psf_size=None, sigma=sigma, angle=angle, device=device)
+
+
+@_deprecated_func_replaced_by(dF.bilinear_filter, redirect=True, since="0.4.1")
+def bilinear_filter(
+    factor: int = 2, device: torch.device | str = "cpu"
+) -> torch.Tensor:
+    pass
+
+
+@_deprecated_func_replaced_by(dF.bicubic_filter, redirect=True, since="0.4.1")
+def bicubic_filter(factor: int = 2, device: torch.device | str = "cpu") -> torch.Tensor:
+    pass
+
+
+@_deprecated_func_replaced_by(dF.sinc_filter, redirect=True, since="0.4.1")
+def sinc_filter(
+    factor: float | torch.Tensor = 2,
+    length: int = 11,
+    windowed: bool = True,
+    device: torch.device | str = "cpu",
+) -> torch.Tensor:
+    pass
+
+
+@_deprecated_func_replaced_by(dF.kaiser_window, redirect=True, since="0.4.1")
+def kaiser_window(
+    beta: float, length: int, device: torch.device | str = "cpu"
+) -> torch.Tensor:
+    pass
