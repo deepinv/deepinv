@@ -104,6 +104,7 @@ Wrappers
    deepinv.models.DiffusersDenoiserWrapper
    deepinv.models.ComplexDenoiserWrapper
    deepinv.models.MinusOneOneDenoiserWrapper
+   deepinv.models.AnscombeDenoiserWrapper
 
 Deep Image Prior
 ----------------

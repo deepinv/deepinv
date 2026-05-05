@@ -43,6 +43,7 @@ from .wrapper import (
     DiffusersDenoiserWrapper,
     ComplexDenoiserWrapper,
     MinusOneOneDenoiserWrapper,
+    AnscombeDenoiserWrapper,
 )
 from .poisson2sparse import ConvLista, Poisson2Sparse
 from .kernel_network import KernelIdentificationNetwork
