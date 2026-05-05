@@ -106,7 +106,7 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
      - Randomly selects elements from a given input tensor based on specified probabilities, useful for stochastic sampling in various applications.
   
    * - :func:`deepinv.physics.functional.gaussian_blur`
-     - Generates a Gaussian blur kernel, commonly used for image smoothing and noise reduction.
+     - Generates a Gaussian blur kernel in 1D, 2D or 3D, commonly used to model point spread functions.  
 
    * - :func:`deepinv.physics.functional.bilinear_filter`
      - Generates a bilinear filter kernel, often used for image resizing and interpolation.
