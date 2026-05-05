@@ -58,18 +58,18 @@ class GaussianBlurGenerator(PSFGenerator):
 
     :Examples:
 
-    >>> from deepinv.physics.generator import GaussianBlurGenerator
+    >>> import deepinv as dinv
     >>> rng = torch.Generator(device="cpu").manual_seed(0)
-    >>> generator = GaussianBlurGenerator((7, 7), device="cpu", rng=rng, isotropic=False)
+    >>> generator = dinv.physics.generator.GaussianBlurGenerator((7, 7), device="cpu", rng=rng, isotropic=False)
     >>> params = generator.step(batch_size=4)  # dict_keys(['filter'])
     >>> dinv.utils.plot(params['filter'])  # doctest: +SKIP
 
     .. plot::
 
         import torch
-        from deepinv.physics.generator import GaussianBlurGenerator
+        import deepinv as dinv
         rng = torch.Generator(device="cpu").manual_seed(0)
-        generator = GaussianBlurGenerator((7, 7), device="cpu", rng=rng, isotropic=False)
+        generator = dinv.physics.generator.GaussianBlurGenerator((7, 7), device="cpu", rng=rng, isotropic=False)
         params = generator.step(batch_size=4)
         dinv.utils.plot(params['filter'])
 
