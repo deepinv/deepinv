@@ -156,6 +156,7 @@ class RAM(Reconstructor, Denoiser):
                 value_map = value_map.expand(-1, 1, x.size(2), x.size(3))
             else:
                 import einops
+
                 value_map = einops.repeat(
                     value, "-> b 1 h w", b=x.size(0), h=x.size(2), w=x.size(3)
                 )
