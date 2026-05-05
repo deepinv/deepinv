@@ -8,7 +8,6 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-import einops
 from huggingface_hub import hf_hub_download
 
 import deepinv as dinv
@@ -156,6 +155,7 @@ class RAM(Reconstructor, Denoiser):
                 value_map = value.view(x.size(0), 1, 1, 1)
                 value_map = value_map.expand(-1, 1, x.size(2), x.size(3))
             else:
+                import einops
                 value_map = einops.repeat(
                     value, "-> b 1 h w", b=x.size(0), h=x.size(2), w=x.size(3)
                 )
