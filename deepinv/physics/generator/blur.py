@@ -66,6 +66,7 @@ class GaussianBlurGenerator(PSFGenerator):
 
     .. plot::
 
+        import torch
         from deepinv.physics.generator import GaussianBlurGenerator
         rng = torch.Generator(device="cpu").manual_seed(0)
         generator = GaussianBlurGenerator((7, 7), device="cpu", rng=rng, isotropic=False)
