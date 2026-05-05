@@ -3,15 +3,18 @@ from collections import OrderedDict
 from typing import Sequence, TYPE_CHECKING
 from pathlib import Path
 from warnings import warn
+
 import torch
 import torch.nn as nn
 from torch import Tensor
+
+import einops
+from huggingface_hub import hf_hub_download
 
 import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Reconstructor, Denoiser
-from .utils import load_state_dict_from_url
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
@@ -122,15 +125,23 @@ class RAM(Reconstructor, Denoiser):
                     torch.load(pretrained, map_location=device, weights_only=True)
                 )
             else:
-                self.load_state_dict(
-                    load_state_dict_from_url(
-                        "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar",
-                    ),
-                    strict=False,
-                )
+                self.load_from_hf()
 
         if device is not None:
             self.to(device)
+
+    def load_from_hf(self):
+        hf_hub_download(repo_id="mterris/ram", filename="config.json")
+
+        weights_path = hf_hub_download(
+            repo_id="mterris/ram",
+            filename="ram.pth.tar",
+        )
+
+        self.load_state_dict(
+            torch.load(weights_path, map_location="cpu"),
+            strict=False,
+        )
 
     def constant2map(self, value: float, x: torch.Tensor) -> torch.Tensor:
         r"""
@@ -140,8 +151,6 @@ class RAM(Reconstructor, Denoiser):
         :param torch.Tensor x: input tensor
         :return torch.Tensor: a tensor of size (B, 1, W, H) containing constant maps of shapes (W, H) for each value in the batch.
         """
-        import einops
-
         if isinstance(value, torch.Tensor):
             if value.ndim > 0:
                 value_map = value.view(x.size(0), 1, 1, 1)

@@ -33,6 +33,7 @@ dependencies = [
     "requests",
     "h5py",
     "natsort",
+    "huggingface_hub"
 ]
 
 [tool.setuptools]
