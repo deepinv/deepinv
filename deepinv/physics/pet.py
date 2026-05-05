@@ -221,6 +221,10 @@ class PET(LinearPhysics):
             The space (image or sinogram) is inferred automatically from the tensor shape.
 
         """
+        if x.shape[1] != 1:
+            raise ValueError(
+                f"Input volume must have 1 channel, got {x.shape[1]} channels"
+            )
         self.update_parameters(attenuation=attenuation, background=background)
         attenuation = self.attenuation
         if self.is_2d:
@@ -247,6 +251,10 @@ class PET(LinearPhysics):
         :param torch.Tensor attenuation: If not `None`, update the attenuation
         :param torch.Tensor background: If not `None`, update the background
         """
+        if y.shape[1] != 1:
+            raise ValueError(
+                f"Input measurements must have 1 channel, got {x.shape[1]} channels"
+            )
         self.update_parameters(attenuation=attenuation, background=background)
         attenuation = self.attenuation
         if self.is_2d:
@@ -361,21 +369,19 @@ class LinearSingleChannelOperator(torch.autograd.Function):
             Linear operator that can act on a single 3D image.
 
         :return: torch.Tensor
-            Mini-batch of 3D images with dimension (batch_size, operator.out_shape).
+            Mini-batch of 3D images with dimension (batch_size, 1, operator.out_shape).
         """
         # https://pytorch.org/docs/stable/notes/extending.html#how-to-use
         ctx.set_materialize_grads(False)
         ctx.operator = operator
 
         batch_size = x.shape[0]
-        c = x.shape[1]
         y = torch.zeros(
-            (batch_size, c) + operator.out_shape, dtype=x.dtype, device=x.device
+            (batch_size, 1) + operator.out_shape, dtype=x.dtype, device=x.device
         )
 
         for i in range(batch_size):
-            for j in range(c):
-                y[i, j, ...] = operator(x[i, j, ...].detach())
+            y[i, 0, ...] = operator(x[i, 0, ...].detach())
 
         return y
 
@@ -387,7 +393,7 @@ class LinearSingleChannelOperator(torch.autograd.Function):
         :param ctx: context object
             Context object that can be used to obtain information from the forward pass.
         :param grad_output: torch.Tensor
-            Mini-batch of gradients with dimension (batch_size, operator.out_shape).
+            Mini-batch of gradients with dimension (batch_size, 1, operator.out_shape).
 
         :return: tuple[torch.Tensor, None]
             Mini-batch of 3D images with dimension (batch_size, 1, operator.img_size), and None.
@@ -403,16 +409,14 @@ class LinearSingleChannelOperator(torch.autograd.Function):
             operator = ctx.operator
 
             batch_size = grad_output.shape[0]
-            c = grad_output.shape[1]
             x = torch.zeros(
-                (batch_size, c) + operator.in_shape,
+                (batch_size, 1) + operator.in_shape,
                 dtype=grad_output.dtype,
                 device=grad_output.device,
             )
 
             for i in range(batch_size):
-                for j in range(c):
-                    x[i, j, ...] = operator.adjoint(grad_output[i, j, ...].detach())
+                x[i, 0, ...] = operator.adjoint(grad_output[i, 0, ...].detach())
 
             return x, None
 
