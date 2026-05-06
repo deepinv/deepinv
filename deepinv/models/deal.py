@@ -78,16 +78,16 @@ class DEAL(Reconstructor):
     """
 
     def __init__(
-            self,
-            sigma_denoiser: float = 0.1,
-            lambda_reg: float = 10.0,
-            max_iter: int = 50,
-            auto_scale: bool = False,
-            target_y_std: float = 25.0,
-            color: bool = False,
-            device: str | None = None,
-            clamp_output: bool = True,
-            pretrained: str = "pretrained",
+        self,
+        sigma_denoiser: float = 0.1,
+        lambda_reg: float = 10.0,
+        max_iter: int = 50,
+        auto_scale: bool = False,
+        target_y_std: float = 25.0,
+        color: bool = False,
+        device: str | None = None,
+        clamp_output: bool = True,
+        pretrained: str = "pretrained",
     ) -> None:
         super().__init__()
 
@@ -172,15 +172,19 @@ class DEAL(Reconstructor):
         # DeepInverse denoisers are commonly called as model(y, sigma).
         # In that case, the second positional argument arrives here as
         # `physics`, so we reinterpret scalar/tensor physics as sigma.
-        if sigma is None and physics is not None and not isinstance(
-            physics, LinearPhysics
+        if (
+            sigma is None
+            and physics is not None
+            and not isinstance(physics, LinearPhysics)
         ):
             sigma = physics
             physics = None
 
         def _sigma_to_tensor(sigma_value):
             if isinstance(sigma_value, torch.Tensor):
-                sigma_flat = sigma_value.to(device=self.device, dtype=y.dtype).reshape(-1)
+                sigma_flat = sigma_value.to(device=self.device, dtype=y.dtype).reshape(
+                    -1
+                )
 
                 if sigma_flat.numel() == 1:
                     sigma_flat = sigma_flat.expand(y.size(0))
