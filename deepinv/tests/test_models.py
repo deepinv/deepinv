@@ -152,52 +152,14 @@ def choose_denoiser(name, imsize):
         )
 
     elif name == "deal":
-        base_model = dinv.models.DEAL(
-            pretrained="download",
+        out = dinv.models.DEAL(
             sigma_denoiser=0.1,
             lambda_reg=10.0,
             max_iter=5,
             auto_scale=False,
             color=(imsize[0] == 3),
+            pretrained="download",
         )
-
-        class DEALDenoiserWrapper(nn.Module):
-            def __init__(self, model):
-                super().__init__()
-                self.model = model
-
-            def forward(self, y, sigma):
-                if isinstance(sigma, torch.Tensor):
-                    sigma_flat = sigma.view(-1)
-
-                    # CASE 1: single sigma → broadcast to all batch
-                    if sigma_flat.numel() == 1:
-                        sigma_value = float(sigma_flat[0].item())
-                        physics = dinv.physics.Denoising(
-                            dinv.physics.GaussianNoise(sigma_value)
-                        )
-                        return self.model(y, physics)
-
-                    # CASE 2: per-sample sigma
-                    outputs = []
-                    for i in range(y.shape[0]):
-                        sigma_value = float(sigma_flat[i].item())
-                        physics = dinv.physics.Denoising(
-                            dinv.physics.GaussianNoise(sigma_value)
-                        )
-                        out = self.model(y[i : i + 1], physics)
-                        outputs.append(out)
-
-                    return torch.cat(outputs, dim=0)
-
-                # scalar sigma
-                sigma_value = float(sigma)
-                physics = dinv.physics.Denoising(
-                    dinv.physics.GaussianNoise(sigma_value)
-                )
-                return self.model(y, physics)
-
-        out = DEALDenoiserWrapper(base_model)
 
     elif name == "dsccp":
         out = dinv.models.DScCP()
@@ -1815,7 +1777,7 @@ def test_deal_model_runs(monkeypatch, device):
     model.eval()
 
     # Simple DeepInverse physics (denoising)
-    physics = Denoising().to(device)
+    physics = Denoising()
 
     # Fake measurement
     y = torch.randn(1, 1, 32, 32, device=device)

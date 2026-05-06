@@ -167,27 +167,46 @@ class DEAL(Reconstructor):
         """
         y = y.to(self.device)
 
+        # DeepInverse denoisers are commonly called as model(y, sigma).
+        # In that case, the second positional argument arrives here as
+        # `physics`, so we reinterpret scalar/tensor physics as sigma.
+        if sigma is None and physics is not None and not isinstance(
+            physics, LinearPhysics
+        ):
+            sigma = physics
+            physics = None
+
+        def _sigma_to_tensor(sigma_value):
+            if isinstance(sigma_value, torch.Tensor):
+                sigma_flat = sigma_value.to(device=self.device, dtype=y.dtype).reshape(-1)
+
+                if sigma_flat.numel() == 1:
+                    sigma_flat = sigma_flat.expand(y.size(0))
+                elif sigma_flat.numel() != y.size(0):
+                    raise ValueError(
+                        "sigma must be a scalar or have one value per batch element."
+                    )
+            else:
+                sigma_flat = torch.full(
+                    (y.size(0),),
+                    float(sigma_value),
+                    device=self.device,
+                    dtype=y.dtype,
+                )
+
+            return (255.0 * sigma_flat).view(y.size(0), 1, 1, 1)
+
         if physics is None:
             if sigma is None:
                 raise ValueError(
                     "For denoising, sigma must be provided when physics is None."
                 )
-            sigma_tensor = torch.full(
-                (y.size(0), 1, 1, 1),
-                255.0 * float(sigma),
-                device=self.device,
-                dtype=y.dtype,
-            )
+            sigma_tensor = _sigma_to_tensor(sigma)
             x_hat = self.model.denoise(y, sigma_tensor)
             return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
 
         if isinstance(physics, Denoising):
-            sigma_tensor = torch.full(
-                (y.size(0), 1, 1, 1),
-                255.0 * float(self.sigma_denoiser),
-                device=self.device,
-                dtype=y.dtype,
-            )
+            sigma_tensor = _sigma_to_tensor(self.sigma_denoiser)
             x_hat = self.model.denoise(y, sigma_tensor)
             return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
 
