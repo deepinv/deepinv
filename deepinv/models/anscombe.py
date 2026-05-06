@@ -1,12 +1,16 @@
 import torch
 from .base import Denoiser
 
-def generalized_anscombe_transform(x : torch.Tensor, gain : float | torch.Tensor, sigma : float | torch.Tensor):
+
+def generalized_anscombe_transform(
+    x: torch.Tensor, gain: float | torch.Tensor, sigma: float | torch.Tensor
+):
     r"""
     Generalized Anscombe Transform (GAT)
 
     The transform converts a noisy observation :math:`y` from a :class:`Poisson-Gaussian distribution <deepinv.physics.PoissonGaussianNoise>` with
-    gain :math:`\gamma` and :class:`Gaussian noise <deepinv.physics.GaussianNoise>` standard deviation :math:`\sigma` to an approximately Gaussian distribution with variance :math:`\gamma`.
+    gain :math:`\gamma` and :class:`Gaussian noise <deepinv.physics.GaussianNoise>` standard deviation :math:`\sigma` to an approximately Gaussian
+     distribution with variance :math:`\gamma`, see :footcite:t:`makitalo2012optimal`.
 
     The transform is defined as:
 
@@ -19,24 +23,25 @@ def generalized_anscombe_transform(x : torch.Tensor, gain : float | torch.Tensor
     :param float | torch.Tensor sigma: Standard deviation of the Gaussian noise :math:`\sigma`
     :return torch.Tensor: Transformed measurements
     """
-    if gain <= 0:
-        raise ValueError(f"Gain should be positive. Got {gain}.")
-    if sigma <= 0:
-        raise ValueError(f"Sigma should be positive. Got {sigma}.")
+    check_nonnegative(gain, "gain")
+    check_nonnegative(sigma, "sigma")
 
-    aux = gain*x + 3./8*gain**2 + sigma**2
+    aux = gain * x + 3.0 / 8 * gain**2 + sigma**2
     out = torch.where(aux > 0, aux.sqrt(), torch.zeros_like(aux))
-    return 2. * out
+    return 2.0 * out
 
 
-def inverse_generalized_anscombe_transform(x : torch.Tensor, gain : float | torch.Tensor, sigma : float | torch.Tensor):
+def inverse_generalized_anscombe_transform(
+    x: torch.Tensor, gain: float | torch.Tensor, sigma: float | torch.Tensor
+):
     r"""
     Inverse Generalized Anscombe Transform (IGAT)
 
     The transform converts an approximately Gaussian signal :math:`z` (output of the
     :func:`generalized_anscombe_transform`) back to the original
     :class:`Poisson-Gaussian <deepinv.physics.PoissonGaussianNoise>` domain with
-    gain :math:`\gamma` and :class:`Gaussian noise <deepinv.physics.GaussianNoise>` standard deviation :math:`\sigma`.
+    gain :math:`\gamma` and :class:`Gaussian noise <deepinv.physics.GaussianNoise>`
+    standard deviation :math:`\sigma`, see :footcite:t:`makitalo2012optimal`.
 
     The transform is defined as the algebraic inverse of the
     :func:`generalized_anscombe_transform`:
@@ -50,12 +55,23 @@ def inverse_generalized_anscombe_transform(x : torch.Tensor, gain : float | torc
     :param float | torch.Tensor sigma: Standard deviation of the Gaussian noise :math:`\sigma`
     :return torch.Tensor: Reconstructed measurements in the original domain
     """
-    if gain <= 0:
-        raise ValueError(f"Gain should be positive. Got {gain}.")
-    if sigma <= 0:
-        raise ValueError(f"Sigma should be positive. Got {sigma}.")
-    x = x/gain
-    return gain * (1/4*x**2 + 1/4*(3/2)**.5 * x**(-1) - 11/8 * x**(-2) + 5/8 * (3/2)**.5 * x**(-3) - 1/8 + sigma**2/gain**2)
+    check_nonnegative(gain, "gain")
+    check_nonnegative(sigma, "sigma")
+
+    x = x / gain
+    return gain * (
+        1 / 4 * x**2
+        + 1 / 4 * (3 / 2) ** 0.5 * x ** (-1)
+        - 11 / 8 * x ** (-2)
+        + 5 / 8 * (3 / 2) ** 0.5 * x ** (-3)
+        - 1 / 8
+        + sigma**2 / gain**2
+    )
+
+
+def check_nonnegative(value, name):
+    if (isinstance(value, torch.Tensor) and torch.any(value < 0)) or value < 0:
+        raise ValueError(f"{name} should be positive. Got {value}.")
 
 
 class AnscombeDenoiser(Denoiser):
@@ -79,7 +95,7 @@ class AnscombeDenoiser(Denoiser):
 
     .. math::
 
-        \hat{z} = \denoisername(z,\; \gamma)
+        \hat{z} = \denoisername(z,\; \sigma=\gamma)
 
     3. Applies the inverse GAT to return to the original domain.
        Setting :math:`u = \hat{z}/\gamma`:
@@ -90,7 +106,7 @@ class AnscombeDenoiser(Denoiser):
 
     .. note::
 
-        When ``gain = 0`` or ``gain = None`` the noise is purely Gaussian and the GAT/IGAT are bypassed:
+        When ``gain = None`` the noise is purely Gaussian and the GAT/IGAT are bypassed:
         the wrapped denoiser is called directly as :math:`\denoisername(y, \sigma)`.
 
     |sep|
@@ -109,7 +125,7 @@ class AnscombeDenoiser(Denoiser):
     :param deepinv.models.Denoiser denoiser: Gaussian denoiser :math:`\denoisername` to wrap.
     """
 
-    def __init__(self, denoiser: Denoiser,  *args, **kwargs):
+    def __init__(self, denoiser: Denoiser, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.denoiser = denoiser
 
@@ -131,9 +147,16 @@ class AnscombeDenoiser(Denoiser):
         :param kwargs: Additional keyword arguments passed to the wrapped denoiser.
         :return torch.Tensor: Denoised measurements in the original domain.
         """
-        # Bypass GAT/IGAT for purely Gaussian noise (gain = 0)
-        if gain is None or gain == 0:
+        # Bypass GAT/IGAT for pure Gaussian noise
+        if gain is None:
             return self.denoiser(y, sigma, *args, **kwargs)
+
+        sigma = self.denoiser._handle_sigma(
+            sigma, batch_size=y.size(0), ndim=y.ndim, device=y.device, dtype=y.dtype
+        )
+        gain = self.denoiser._handle_sigma(
+            gain, batch_size=y.size(0), ndim=y.ndim, device=y.device, dtype=y.dtype
+        )
 
         z = generalized_anscombe_transform(y, gain, sigma)
 
