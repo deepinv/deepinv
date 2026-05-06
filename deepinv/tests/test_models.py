@@ -158,7 +158,7 @@ def choose_denoiser(name, imsize):
             max_iter=5,
             auto_scale=False,
             color=(imsize[0] == 3),
-            pretrained="download",
+            pretrained=None,
         )
 
     elif name == "dsccp":

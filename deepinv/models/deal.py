@@ -64,7 +64,6 @@ class DEAL(Reconstructor):
         x^{(k+1)} \approx \arg\min_x \frac{1}{2}\|Ax - y\|^2
         + \lambda \nabla_x g_\theta(u=x^{(k)}, x)^\top x
 
-    :param str pretrained: checkpoint path or ``'download'``
     :param float sigma_denoiser: denoiser noise level parameter
     :param float lambda_reg: regularization strength :math:`\lambda` used by the DEAL solver
     :param int max_iter: maximum number of outer fixed-point iterations
@@ -73,19 +72,22 @@ class DEAL(Reconstructor):
     :param bool color: if ``True``, use the color DEAL variant; otherwise grayscale
     :param str | None device: compute device. If ``None``, use CUDA if available
     :param bool clamp_output: if ``True``, clamp output to ``[0, 1]``
+    :param str | None pretrained: checkpoint path, ``'download'``, or ``None``.
+        If ``None``, no pretrained weights are loaded. If ``'download'``,
+        the official DEAL pretrained weights are downloaded and loaded.
     """
 
     def __init__(
-        self,
-        pretrained: str,
-        sigma_denoiser: float = 0.1,
-        lambda_reg: float = 10.0,
-        max_iter: int = 50,
-        auto_scale: bool = False,
-        target_y_std: float = 25.0,
-        color: bool = False,
-        device: str | None = None,
-        clamp_output: bool = True,
+            self,
+            sigma_denoiser: float = 0.1,
+            lambda_reg: float = 10.0,
+            max_iter: int = 50,
+            auto_scale: bool = False,
+            target_y_std: float = 25.0,
+            color: bool = False,
+            device: str | None = None,
+            clamp_output: bool = True,
+            pretrained: str | None = None,
     ) -> None:
         super().__init__()
 
