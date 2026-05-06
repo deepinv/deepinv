@@ -82,6 +82,9 @@ Model Utils
    deepinv.models.TimeAgnosticNet
    deepinv.models.TimeAveragingNet
    deepinv.models.Client
+   deepinv.models.AnscombeDenoiser
+   deepinv.models.anscombe.generalized_anscombe_transform
+   deepinv.models.anscombe.generalized_anscombe_inverse_transform
 
 .. autosummary::
    :toctree: stubs
@@ -104,7 +107,6 @@ Wrappers
    deepinv.models.DiffusersDenoiserWrapper
    deepinv.models.ComplexDenoiserWrapper
    deepinv.models.MinusOneOneDenoiserWrapper
-   deepinv.models.AnscombeDenoiserWrapper
 
 Deep Image Prior
 ----------------

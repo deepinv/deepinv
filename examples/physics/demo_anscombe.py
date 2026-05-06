@@ -4,7 +4,7 @@ Poisson-Gaussian Denoising with the Generalized Anscombe Transform
 
 This example demonstrates how to denoise images corrupted by
 :class:`Poisson-Gaussian noise <deepinv.physics.PoissonGaussianNoise>` using the
-:class:`Generalized Anscombe Transform (GAT) <deepinv.models.AnscombeDenoiserWrapper>`, which
+:class:`Generalized Anscombe Transform (GAT) <deepinv.models.AnscombeDenoiser>`, which
 converts any Gaussian denoiser into a Poisson-Gaussian denoiser.
 
 We compare two approaches on a butterfly image:
@@ -12,7 +12,7 @@ We compare two approaches on a butterfly image:
 * **DRUNet baseline** — the pretrained :class:`DRUNet <deepinv.models.DRUNet>` Gaussian
   denoiser applied directly to the noisy measurement, using a global noise-level heuristic.
 * **Anscombe + DRUNet** — the same DRUNet wrapped with
-  :class:`AnscombeDenoiserWrapper <deepinv.models.AnscombeDenoiserWrapper>`, which first
+  :class:`AnscombeDenoiser <deepinv.models.AnscombeDenoiser>`, which first
   variance-stabilizes the heteroscedastic Poisson-Gaussian noise via the GAT.
 
 Background
@@ -52,7 +52,7 @@ original domain.  Setting :math:`u = z / \gamma`, it reads:
               + \frac{\sigma^2}{\gamma^2}
               \right), \qquad u = \frac{z}{\gamma}.
 
-The full pipeline of :class:`AnscombeDenoiserWrapper <deepinv.models.AnscombeDenoiserWrapper>`
+The full pipeline of :class:`AnscombeDenoiser <deepinv.models.AnscombeDenoiser>`
 reads:
 
 .. math::
@@ -64,7 +64,7 @@ reads:
 # %%
 import torch
 import deepinv as dinv
-from deepinv.models import AnscombeDenoiserWrapper, DRUNet, PatchCovarianceNoiseEstimator
+from deepinv.models import AnscombeDenoiser, DRUNet, PatchCovarianceNoiseEstimator
 from deepinv.utils import load_example
 
 device = dinv.utils.get_device()
@@ -86,7 +86,7 @@ x = load_example("butterfly.png", device=device)
 # 2. **Mixed Poisson-Gaussian noise**: both :math:`\gamma > 0` and :math:`\sigma > 0`.
 
 gain = 0.1       # photon gain γ
-sigma_pg = 0.01  # Gaussian read-out noise σ
+sigma_pg = 0.05  # Gaussian read-out noise σ
 
 # Scenario 1 – pure Poisson (σ set to a small positive value for numerical stability)
 physics_poisson = dinv.physics.Denoising(
@@ -113,12 +113,12 @@ with torch.no_grad():
 # -------------------------------------------
 #
 # :class:`DRUNet <deepinv.models.DRUNet>` is a powerful Gaussian denoiser.
-# We wrap it with :class:`AnscombeDenoiserWrapper <deepinv.models.AnscombeDenoiserWrapper>`
+# We wrap it with :class:`AnscombeDenoiser <deepinv.models.AnscombeDenoiser>`
 # to lift it to the Poisson-Gaussian domain. The GAT output has standard deviation
 # approximately :math:`\gamma`, so the wrapper calls DRUNet at noise level :math:`\gamma`.
 
 drunet = DRUNet(device=device)
-anscombe_denoiser = AnscombeDenoiserWrapper(drunet)
+anscombe_denoiser = AnscombeDenoiser(drunet)
 
 # %%
 # Set up the plain DRUNet baseline (no Anscombe transform)
@@ -229,7 +229,7 @@ print(f"  Anscombe+DRUNet: {psnr_anscombe_pg:.2f} dB")
 #
 # Both methods successfully suppress the Poisson-Gaussian noise.
 #
-# * :class:`AnscombeDenoiserWrapper <deepinv.models.AnscombeDenoiserWrapper>` is a
+# * :class:`AnscombeDenoiser <deepinv.models.AnscombeDenoiser>` is a
 #   **zero-cost upgrade**: wrap any off-the-shelf Gaussian denoiser to handle
 #   Poisson-Gaussian noise without re-training, by properly stabilizing the
 #   heteroscedastic Poisson variance before denoising.
