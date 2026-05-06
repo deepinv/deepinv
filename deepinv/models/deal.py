@@ -72,9 +72,9 @@ class DEAL(Reconstructor):
     :param bool color: if ``True``, use the color DEAL variant; otherwise grayscale
     :param str | None device: compute device. If ``None``, use CUDA if available
     :param bool clamp_output: if ``True``, clamp output to ``[0, 1]``
-    :param str | None pretrained: checkpoint path, ``'download'``, or ``None``.
-        If ``None``, no pretrained weights are loaded. If ``'download'``,
-        the official DEAL pretrained weights are downloaded and loaded.
+    :param str | None pretrained: checkpoint path, ``'download'``, ``'pretrained'``, or ``None``.
+    If ``None``, no pretrained weights are loaded. If ``'download'`` or
+    ``'pretrained'``, the official DEAL pretrained weights are downloaded and loaded.
     """
 
     def __init__(
@@ -87,7 +87,7 @@ class DEAL(Reconstructor):
             color: bool = False,
             device: str | None = None,
             clamp_output: bool = True,
-            pretrained: str | None = None,
+            pretrained: str = "pretrained",
     ) -> None:
         super().__init__()
 
@@ -102,7 +102,7 @@ class DEAL(Reconstructor):
 
         if pretrained is None:
             state = None
-        elif pretrained == "download":
+        elif pretrained in ("download", "pretrained"):
             if color:
                 url = (
                     "https://raw.githubusercontent.com/mehrsapo/DEAL/main/"
@@ -574,7 +574,9 @@ class LinearSpline(nn.Module):
             "slope_max={slope_max}, "
             "slope_min={slope_min}."
         )
-        return s.format(**self.__dict__)
+        d = dict(self.__dict__)
+        d.update(getattr(self, "_buffers", {}))
+        return s.format(**d)
 
     def clipped_coefficients(self) -> torch.Tensor:
         """Project spline coefficients to satisfy constraints."""
