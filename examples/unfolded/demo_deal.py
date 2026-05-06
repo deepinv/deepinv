@@ -6,6 +6,45 @@ This example shows how to use the Deep Equilibrium Attention Least Squares
 (DEAL) model in DeepInverse for both denoising and a simple reconstruction
 setting.
 
+The reconstruction is obtained by solving
+
+.. math::
+
+    \hat{x} = \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda g_\theta(x),
+
+where :math:`A` is the forward operator, :math:`y` are the measurements, and
+:math:`g_\theta` is the learned adaptive regularizer.
+
+In DEAL, the regularizer is induced by a masked linear operator
+
+.. math::
+
+    L_{\theta,c}(u, x) = m_{\theta,c}(u) \odot K_{\theta,c}x,
+
+which gives
+
+.. math::
+
+    g_\theta(u, x)
+    =
+    \sum_{c=1}^{C}
+    \frac{1}{2}
+    \|m_{\theta,c}(u) \odot K_{\theta,c}x\|_2^2.
+
+The fixed-point iterations used by the solver are
+
+.. math::
+
+    x^{(k+1)}
+    \approx
+    \arg\min_x
+    \frac{1}{2}\|Ax-y\|^2
+    +
+    \lambda
+    \nabla_x g_\theta(u=x^{(k)}, x)^\top x.
+
+Each subproblem is solved approximately with conjugate gradient.
+
 DEAL solves inverse problems by minimizing a data-fidelity term together with
 a learned adaptive regularizer. In the implementation, this regularizer is
 induced by a masked linear operator, where learned filters are modulated by
