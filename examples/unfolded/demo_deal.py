@@ -10,10 +10,10 @@ The reconstruction is obtained by solving
 
 .. math::
 
-    \hat{x} = \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda g_\theta(x),
+    \hat{x} = \arg\min_x \frac{1}{2}\|Ax - y\|^2 + \lambda g_{\theta}(x),
 
 where :math:`A` is the forward operator, :math:`y` are the measurements, and
-:math:`g_\theta` is the learned adaptive regularizer.
+:math:`g_{\theta}` is the learned adaptive regularizer.
 
 In DEAL, the regularizer is induced by a masked linear operator
 
@@ -25,7 +25,7 @@ which gives
 
 .. math::
 
-    g_\theta(u, x)
+    g_{\theta}(u, x)
     =
     \sum_{c=1}^{C}
     \frac{1}{2}
@@ -41,7 +41,7 @@ The fixed-point iterations used by the solver are
     \frac{1}{2}\|Ax-y\|^2
     +
     \lambda
-    \nabla_x g_\theta(u=x^{(k)}, x)^\top x.
+    \nabla_x g_{\theta}(u=x^{(k)}, x)^\top x.
 
 Each subproblem is solved approximately with conjugate gradient.
 
