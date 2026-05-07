@@ -1052,7 +1052,22 @@ class _DEALImpl(nn.Module):
         with torch.no_grad():
             for i in range(n_out):
                 self.cal_mask(c_k)
-                c_k, self.last_cg_iter = self.cg(y, c_k_old, n_in, eps=eps_in)
+                b = y / (1 + self.lmbda)
+                A_op = lambda x: self.BtB(
+                    x,
+                    lambda z: z,
+                    lambda z: z,
+                    [j for j in range(x.size(0))],
+                )
+                c_k = conjugate_gradient(
+                    A=A_op,
+                    b=b,
+                    init=c_k_old,
+                    max_iter=n_in,
+                    tol=eps_in,
+                    eps=1e-8,
+                )
+                self.last_cg_iter = n_in
                 res = torch.linalg.norm(c_k - c_k_old) / torch.linalg.norm(c_k_old)
                 c_k_old = c_k.clone()
                 if (res < eps_out).all():
