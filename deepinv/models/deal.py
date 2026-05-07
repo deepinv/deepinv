@@ -71,8 +71,13 @@ class DEAL(Reconstructor):
     :param float sigma_denoiser: denoiser noise level parameter
     :param float lambda_reg: regularization strength :math:`\lambda` used by the DEAL solver
     :param int max_iter: maximum number of outer fixed-point iterations
-    :param bool auto_scale: if ``True``, rescales measurements based on their std
-    :param float target_y_std: target std for auto-scaling when enabled
+    :param bool auto_scale: if ``True``, rescales measurements in reconstruction
+        mode when their empirical standard deviation is between ``0`` and ``5``.
+        This option is useful when measurements are given in a normalized range but
+        the pretrained DEAL inverse-problem solver expects a larger intensity scale.
+        It is disabled by default.
+    :param float target_y_std: target measurement standard deviation used by
+        ``auto_scale`` when enabled
     :param bool color: if ``True``, use the color DEAL variant; otherwise grayscale
     :param str | None device: compute device. If ``None``, use CUDA if available
     :param bool clamp_output: if ``True``, clamp output to ``[0, 1]``
