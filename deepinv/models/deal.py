@@ -199,17 +199,17 @@ class DEAL(Reconstructor):
 
             return (255.0 * sigma_flat).view(y.size(0), 1, 1, 1)
 
-        if physics is None:
-            if sigma is None:
-                raise ValueError(
-                    "For denoising, sigma must be provided when physics is None."
-                )
-            sigma_tensor = _sigma_to_tensor(sigma)
-            x_hat = self.model.denoise(y, sigma_tensor)
-            return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
+        if physics is None or isinstance(physics, Denoising):
+            if physics is None:
+                if sigma is None:
+                    raise ValueError(
+                        "For denoising, sigma must be provided when physics is None."
+                    )
+                sigma_value = sigma
+            else:
+                sigma_value = self.sigma_denoiser
 
-        if isinstance(physics, Denoising):
-            sigma_tensor = _sigma_to_tensor(self.sigma_denoiser)
+            sigma_tensor = _sigma_to_tensor(sigma_value)
             x_hat = self.model.denoise(y, sigma_tensor)
             return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
 
