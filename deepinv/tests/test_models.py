@@ -1352,13 +1352,10 @@ def test_denoiser_perf(device, load_example_image):
     [dinv.models.DRUNet(pretrained="download"), dinv.models.RAM(pretrained=True)],
 )
 def test_denoiser_perf_noise_map(device, mode, denoiser):
-
-    # Ensure determinitic behaviour
-    torch.manual_seed(0)
-    torch.cuda.manual_seed_all(0)
+    
+    # Save deterministic setting to restore it after the test
+    prev_deterministic = torch.are_deterministic_algorithms_enabled()
     torch.use_deterministic_algorithms(True)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
 
     denoiser.to(device)
 
@@ -1426,6 +1423,8 @@ def test_denoiser_perf_noise_map(device, mode, denoiser):
         f"psnr_map={psnr_map:.2f}, psnr_no_map={psnr_cst_map:.2f}"
     )
 
+    # Restore previous deterministic setting
+    torch.use_deterministic_algorithms(prev_deterministic)
 
 @pytest.mark.parametrize("return_metadata", [False, True])
 def test_client_mocked(return_metadata):
