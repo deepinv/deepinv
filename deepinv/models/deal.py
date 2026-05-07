@@ -125,12 +125,7 @@ class DEAL(Reconstructor):
                 file_name=url.split("/")[-1],
             )
         else:
-            try:
-                state = torch.load(
-                    pretrained, map_location=self.device, weights_only=True
-                )
-            except TypeError:
-                state = torch.load(pretrained, map_location=self.device)
+            state = torch.load(pretrained, map_location=self.device)
 
         if state is not None:
             raw_state_dict = state.get("state_dict", state)
