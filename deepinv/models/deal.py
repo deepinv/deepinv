@@ -131,17 +131,14 @@ class DEAL(Reconstructor):
             raw_state_dict = state.get("state_dict", state)
 
             model_state_dict = self.model.state_dict()
+            buffer_names = {name for name, _ in self.model.named_buffers()}
 
-            merged_state_dict = model_state_dict.copy()
-            merged_state_dict.update(
-                {
-                    key: value
-                    for key, value in raw_state_dict.items()
-                    if key in model_state_dict
-                }
-            )
+            completed_state_dict = raw_state_dict.copy()
+            for name in buffer_names:
+                if name not in completed_state_dict and name in model_state_dict:
+                    completed_state_dict[name] = model_state_dict[name]
 
-            self.model.load_state_dict(merged_state_dict, strict=True)
+            self.model.load_state_dict(completed_state_dict, strict=True)
 
     @property
     def device(self) -> torch.device:
