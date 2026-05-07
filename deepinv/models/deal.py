@@ -61,8 +61,12 @@ class DEAL(Reconstructor):
 
     .. math::
 
-        x^{(k+1)} \approx \arg\min_x \frac{1}{2}\|Ax - y\|^2
-        + \lambda \nabla_x g_\theta(u=x^{(k)}, x)^\top x
+        x^{(k+1)} \approx \arg\min_x
+        \frac{1}{2}\|Ax - y\|^2
+        +
+        \frac{\lambda}{2}
+        \sum_{c=1}^{C}
+        \|m_{\theta,c}(x^{(k)}) \odot K_{\theta,c}x\|_2^2.
 
     :param float sigma_denoiser: denoiser noise level parameter
     :param float lambda_reg: regularization strength :math:`\lambda` used by the DEAL solver
@@ -72,9 +76,10 @@ class DEAL(Reconstructor):
     :param bool color: if ``True``, use the color DEAL variant; otherwise grayscale
     :param str | None device: compute device. If ``None``, use CUDA if available
     :param bool clamp_output: if ``True``, clamp output to ``[0, 1]``
-    :param str | None pretrained: checkpoint path, ``'download'``, ``'pretrained'``, or ``None``.
-        If ``None``, no pretrained weights are loaded. If ``'download'`` or
-        ``'pretrained'``, the official DEAL pretrained weights are downloaded and loaded.
+    :param str | None pretrained: checkpoint path, ``'download'``,
+        ``'pretrained'``, or ``None``. If ``None``, no pretrained weights are
+        loaded. If ``'download'`` or ``'pretrained'``, the official DEAL
+        pretrained weights are downloaded and loaded.
     """
 
     def __init__(
