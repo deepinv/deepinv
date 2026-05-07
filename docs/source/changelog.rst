@@ -8,8 +8,6 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-New Features
-^^^^^^^^^^^^
 - Add :class:`deepinv.models.DEAL` model (:gh:`939` by `Hossein Alimohammadi`_)
 - Add install guidelines for different platforms (`pixi`, `conda`, `pip`, `uv`) in docs (:gh:`1108` by `Julian Tachella`_)
 - Add :class:`deepinv.optim.SIRT` algorithm for tomographic reconstruction (:gh:`985` by `Thibaut Modrzyk`_)
