@@ -40,7 +40,7 @@ class Scale(Transform):
     by reflections. Additionally, resampling is performed
     using bicubic interpolation.
 
-    See the paper :footcite:t:`scanvic2025scale` for more details.
+    See the paper :footcite:t:`scanvic2026scale` for more details.
 
     Note each image in the batch is transformed independently.
 
