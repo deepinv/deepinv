@@ -167,7 +167,7 @@ Changed
 Fixed
 ^^^^^
 - Use the learning-free model for learning-free metrics in :class:`deepinv.Trainer` (:gh:`788` by `Jérémy Scanvic`_)
-- Fix device :func:`deepinv.utils.dirac_like` and :func:`deepinv.physics.blur.bilinear_filter`, :func:`deepinv.physics.blur.bicubic_filter` and :func:`deepinv.physics.blur.gaussian_blur` filters (:gh:`785` by `Julian Tachella`_)
+- Fix device :func:`deepinv.utils.dirac_like` and :func:`deepinv.physics.functional.bilinear_filter`, :func:`deepinv.physics.functional.bicubic_filter` and :func:`deepinv.physics.functional.gaussian_blur` filters (:gh:`785` by `Julian Tachella`_)
 - Fix positivity + batching gamma least squares solvers (:gh:`785` by `Julian Tachella`_ and `Minh Hai Nguyen`_)
 - Fix and test :class:`deepinv.models.RAM` scaling issues (:gh:`785` by `Julian Tachella`_)
 - Reduced CI python version tests (:gh:`746` by `Matthieu Terris`_)
