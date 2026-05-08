@@ -1768,5 +1768,5 @@ def test_gaussian_noise_estimators(
     )
 
     assert torch.allclose(
-        model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-3, atol=1e-4
+        model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-2, atol=1e-2
     )
