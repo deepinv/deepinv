@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 
 from .base import Reconstructor
+from .utils import get_weights_url, load_state_dict_from_url
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
@@ -39,6 +40,12 @@ class SRResNet(Reconstructor):
     .. note::
         The defaults correspond to the network configuration in :footcite:t:`ledig2017photo`.
 
+    .. note::
+        Pretrained weights are available for the default RGB 4× configuration trained on
+        DIV2K under L1 loss with :class:`~deepinv.physics.DownsamplingMatlab` (bicubic,
+        factor 4). These weights require ``final_relu=True``. Load with
+        ``pretrained="download"``.
+
     :param int num_blocks: number of residual blocks in the trunk. Default: 16
     :param int im_c: number of image channels (used for both input and output). Default: 3
     :param int feats: number of feature channels in the trunk. Default: 64
@@ -48,6 +55,10 @@ class SRResNet(Reconstructor):
     :param str norm: normalization layer, can be one of ('instance_norm', 'batch_norm', 'layer_norm', None). Default 'batch_norm'.
     :param int final_kernel_size: kernel size of the final output convolution. Must be odd. Default: 9.
     :param bool final_relu: enforce non-negativity of output by performing a relu after final conv. Default: False
+    :param str, None pretrained: load pretrained weights. If ``"download"``, weights are
+        downloaded from an online repository. If a file path string, weights are loaded
+        from that path. If ``None``, weights are randomly initialised. The available
+        pretrained weights require the default architecture with ``final_relu=True``.
     """
 
     def __init__(
@@ -60,6 +71,7 @@ class SRResNet(Reconstructor):
         norm: str | None = "batch_norm",
         final_kernel_size: int = 9,
         final_relu: bool = False,
+        pretrained: str | None = None,
     ):
         super().__init__()
         if upscale < 1 or (upscale & (upscale - 1)) != 0:
@@ -99,6 +111,20 @@ class SRResNet(Reconstructor):
                 + ([nn.ReLU()] if final_relu else [])
             )
         )
+        if pretrained is not None:
+            if pretrained == "download":
+                url = get_weights_url("srresnet", "srresnet_ckpt.pth.tar")
+                ckpt = load_state_dict_from_url(
+                    url,
+                    file_name="srresnet_ckpt.pth.tar",
+                    map_location=lambda storage, loc: storage,
+                    weights_only=False,
+                )["state_dict"]
+
+            else:
+                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+            self.load_state_dict(ckpt, strict=True)
+            self.eval()
 
     def forward(
         self, y: torch.Tensor, physics: Physics | None = None, **kwargs

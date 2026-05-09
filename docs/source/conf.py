@@ -264,6 +264,7 @@ examples_order = {
         "demo_foundation_model.py",
         "demo_training.py",
         "demo_denoiser_tour.py",
+        "demo_super_resolution.py",
     ],
     "physics": [
         "demo_physics_tour.py",
