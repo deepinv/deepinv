@@ -127,12 +127,14 @@ class Inpainting(DecomposablePhysics):
         r"""
         Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
 
+        Applies the noise to measurements with **non-zero** mask entries.
+
         :param torch.Tensor x:  clean measurements
         :return torch.Tensor: noisy measurements
         """
         noise = self.U(
             self.V_adjoint(
-                self.V(self.U_adjoint(self.noise_model(x, **kwargs)) * self.mask)
+                self.V(self.U_adjoint(self.noise_model(x, **kwargs)) * (self.mask != 0))
             )
         )
         return noise
