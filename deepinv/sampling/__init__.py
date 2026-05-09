@@ -1,12 +1,14 @@
 from .sampling import BaseSampling, sampling_builder
 from .langevin import ULA, SKRock
 from .diffusion import DDRM, DiffusionSampler, DiffPIR, DPS
+from .vble import VBLESampling
 from .sampling_iterators import (
     ULAIterator,
     SKRockIterator,
     SamplingIterator,
     SKROCKIterator,
     DiffusionIterator,
+    VBLEIterator,
 )
 from . import diffusion_sde, sde_solver
 from .noisy_datafidelity import NoisyDataFidelity, DPSDataFidelity
