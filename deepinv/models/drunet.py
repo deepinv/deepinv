@@ -217,12 +217,23 @@ class DRUNet(Denoiser):
         """
         if isinstance(sigma, torch.Tensor):
             if sigma.ndim > 0:
-                noise_level_map = sigma.view(
-                    x.size(0), 1, *[1 for _ in range(self.dim)]
-                )
-                noise_level_map = noise_level_map.expand(
-                    -1, 1, *[x.size(2 + i) for i in range(self.dim)]
-                )
+                if sigma.shape == (x.size(0), 1, *x.shape[2:]):
+                    noise_level_map = sigma
+                elif sigma.shape in [
+                    (x.size(0)),
+                    (x.size(0), 1, *[1 for _ in range(self.dim)]),
+                ]:
+
+                    noise_level_map = sigma.view(
+                        x.size(0), 1, *[1 for _ in range(self.dim)]
+                    )
+                    noise_level_map = noise_level_map.expand(
+                        -1, 1, *[x.size(2 + i) for i in range(self.dim)]
+                    )
+                else:
+                    raise ValueError(
+                        "Incorrect shape, sigma should be of shape (1,), (batch_size,) or (batch_size, 1, height, width, (depth))"
+                    )
             else:
                 noise_level_map = torch.ones(
                     (x.size(0), 1, *x.shape[2:]), device=x.device
