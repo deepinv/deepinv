@@ -4,6 +4,9 @@ import deepinv as dinv
 import deepinv.loss.metric as metric
 from deepinv.utils import load_example
 import math
+import os
+from PIL import Image
+import numpy as np
 
 FULL_REFERENCE_METRICS = [
     "MAE",
@@ -512,3 +515,39 @@ def test_niqe_fit(n_channels: int, dtype: torch.dtype):
     assert mu.dtype == cov.dtype and mu.dtype == dtype
     assert niqe.mu_p is not None and niqe.cov_p is not None
     assert torch.equal(niqe.mu_p, mu) and torch.equal(niqe.cov_p, cov)
+
+
+def test_niqe_other_implementations():
+    results_other_implementations = {
+        "baboon": {"PyIQA": 5.738537788391113, "basicsr": 5.90808476428397},
+        "barbara": {"PyIQA": 4.465195178985596, "basicsr": 4.621669738931946},
+        "bridge": {"PyIQA": 2.5123531818389893, "basicsr": 2.5121616143607324},
+        "coastguard": {"PyIQA": 5.468789577484131, "basicsr": 5.282670788211967},
+        "comic": {"PyIQA": 4.254405498504639, "basicsr": 3.9421781727240037},
+        "face": {"PyIQA": 8.72698974609375, "basicsr": 9.189687465717332},
+        "flowers": {"PyIQA": 2.9371178150177, "basicsr": 3.094643463111649},
+        "foreman": {"PyIQA": 5.505414009094238, "basicsr": 5.381376548613031},
+        "lenna": {"PyIQA": 5.060755729675293, "basicsr": 5.484477923940196},
+        "man": {"PyIQA": 3.76017427444458, "basicsr": 3.662171460656096},
+        "monarch": {"PyIQA": 3.4054934978485107, "basicsr": 3.4319501014991114},
+        "pepper": {"PyIQA": 7.261951446533203, "basicsr": 6.261429595525796},
+        "ppt3": {"PyIQA": 5.532331466674805, "basicsr": 5.300301903526748},
+        "zebra": {"PyIQA": 3.379080295562744, "basicsr": 3.339659586462774},
+    }
+    dinv.datasets.Set14HR(root="set14_niqe_test", download=True)
+    niqe = dinv.loss.metric.NIQE()
+    for f in os.listdir("set14_niqe_test/Set14_HR"):
+        fname = f.split(".")[0]
+        img = Image.open(f"set14_niqe_test/Set14_HR/{f}").convert("RGB")
+        arr = np.asarray(img).transpose(2, 0, 1)
+        t = torch.tensor(arr).unsqueeze(0).to(dtype=torch.float32)
+        result_dinv = float(niqe.metric(t))
+        refs = results_other_implementations[fname]
+        assert abs(result_dinv - refs["PyIQA"]) <= 1.0, (
+            f"{fname}: deepinv={result_dinv:.4f}, PyIQA={refs['PyIQA']:.4f}, "
+            f"diff={abs(result_dinv - refs['PyIQA']):.4f}"
+        )
+        assert abs(result_dinv - refs["basicsr"]) <= 1.0, (
+            f"{fname}: deepinv={result_dinv:.4f}, basicsr={refs['basicsr']:.4f}, "
+            f"diff={abs(result_dinv - refs['basicsr']):.4f}"
+        )
