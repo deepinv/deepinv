@@ -59,6 +59,7 @@ class SRResNet(Reconstructor):
         downloaded from an online repository. If a file path string, weights are loaded
         from that path. If ``None``, weights are randomly initialised. The available
         pretrained weights require the default architecture with ``final_relu=True``.
+    :param torch.device, str device: Device to put the model on. Default: 'cpu'
     """
 
     def __init__(
@@ -72,6 +73,7 @@ class SRResNet(Reconstructor):
         final_kernel_size: int = 9,
         final_relu: bool = False,
         pretrained: str | None = None,
+        device: torch.device | str = "cpu",
     ):
         super().__init__()
         if upscale < 1 or (upscale & (upscale - 1)) != 0:
@@ -117,7 +119,7 @@ class SRResNet(Reconstructor):
                 ckpt = load_state_dict_from_url(
                     url,
                     file_name="srresnet_ckpt.pth.tar",
-                    map_location=lambda storage, loc: storage,
+                    map_location=device,
                     weights_only=False,
                 )["state_dict"]
 

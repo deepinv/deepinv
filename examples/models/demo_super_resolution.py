@@ -9,7 +9,7 @@ by factor :math:`s`.
 
 Unlike physics-aware methods in DeepInverse (iterative algorithms, unrolled
 networks, diffusion models) that require the forward operator at inference,
-:class:`SRResNet <deepinv.models.SRResNet>` is a *direct* feed-forward
+:class:`SRResNet <deepinv.models.SRResNet>` :footcite:p:`ledig2017photo` is a *direct* feed-forward
 network: it maps LR images to HR estimates in a single forward pass without
 needing the degradation model at test time. Inference is simply ``model(y)``.
 
