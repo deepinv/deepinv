@@ -92,7 +92,7 @@ train_loader = DataLoader(
     shuffle=True,
 )
 physics = dinv.physics.Blur(
-    filter=dinv.physics.blur.gaussian_blur(sigma=(2.5, 2.5)),
+    filter=dinv.physics.functional.gaussian_blur(sigma=(2.5, 2.5)),
     padding="valid",
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=0.1),
