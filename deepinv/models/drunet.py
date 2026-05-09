@@ -222,7 +222,7 @@ class DRUNet(Denoiser):
                 if sigma.shape == (x.size(0), 1, *x.shape[2:]):
                     noise_level_map = sigma
                 elif sigma.shape in [
-                    (x.size(0)),
+                    (x.size(0),),
                     (x.size(0), 1, *[1 for _ in range(self.dim)]),
                 ]:
 
@@ -234,7 +234,7 @@ class DRUNet(Denoiser):
                     )
                 else:
                     raise ValueError(
-                        "Incorrect shape, sigma should be of shape (1,), (batch_size,) or (batch_size, 1, height, width, (depth))"
+                        f"Incorrect shape, sigma should be of shape (1,), (batch_size,) or (batch_size, 1, height, width, (depth)), got {tuple(sigma.shape)}"
                     )
             else:
                 noise_level_map = torch.ones(
