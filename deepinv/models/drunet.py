@@ -32,6 +32,8 @@ class DRUNet(Denoiser):
     A pretrained network for (in_channels=out_channels=1 or in_channels=out_channels=3)
     can be downloaded via setting ``pretrained='download'``.
 
+    .. tip:: This model can handle non-uniform `sigma` maps, which can be of size `(batch_size, 1, height, width)`.
+
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
     :param Sequence[int,int,int,int] nc: number of channels per convolutional layer, the network has a fixed number of 4 scales with ``nb`` blocks per scale (default: ``[64,128,256,512]``).
@@ -213,7 +215,7 @@ class DRUNet(Denoiser):
 
         :param torch.Tensor x: noisy image
         :param float, torch.Tensor sigma: noise level. If ``sigma`` is a float, it is used for all images in the batch.
-            If ``sigma`` is a tensor, it must be of shape ``(batch_size,)``.
+            If ``sigma`` is a tensor, it can be of shape ``(batch_size,)`` or ``(batch_size, 1, height, width)``.
         """
         if isinstance(sigma, torch.Tensor):
             if sigma.ndim > 0:

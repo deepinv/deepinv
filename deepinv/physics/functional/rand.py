@@ -76,3 +76,41 @@ def random_choice(
         ).view(size)
 
     return a[indices]
+
+
+def random_uniform(
+    *size: tuple[int, ...],
+    low: float = 0.0,
+    high: float = 1.0,
+    generator: torch.Generator = None,
+    device: torch.device = None,
+    dtype: torch.dtype = None,
+    **kwargs,
+) -> torch.Tensor:
+    r"""
+    Returns a tensor filled with random numbers from a uniform distribution on the interval :math:`[low, high)`.
+
+    The method has the same signature as :func:`torch.rand` with additional arguments `low` and `high` to specify the range of the uniform distribution. The output is computed as:
+
+    .. math:: \text{output} = \text{torch.rand}(*size, generator=generator, device=device, dtype=dtype, **kwargs) \times (high - low) + low
+
+    :param tuple[int, ...] size: the shape of the output tensor.
+    :param float low: the lower bound of the uniform distribution. Default is 0.0.
+    :param float high: the upper bound of the uniform distribution. Default is 1.0.
+    :param torch.Generator generator: an optional random number generator for sampling. Default is None, meaning that the default generator will be used.
+    :param torch.device device: the desired device of the returned tensor. Default is None, meaning that the returned tensor will be allocated on the same device as the default generator.
+    :param torch.dtype dtype: the desired data type of the returned tensor. Default is None, meaning that the returned tensor will have the same data type as the default generator.
+    :param dict kwargs: additional keyword arguments to be passed to :func:`torch.rand`.
+    :return: a tensor of shape `size` filled with random numbers from the specified uniform distribution, allocated on the specified device and with the specified data type.
+    """
+
+    if high < low:
+        raise ValueError(
+            "The upper bound 'high' must be greater than or equal to the lower bound 'low'."
+        )
+
+    return (
+        torch.rand(*size, generator=generator, device=device, dtype=dtype, **kwargs)
+        * (high - low)
+        + low
+    )
