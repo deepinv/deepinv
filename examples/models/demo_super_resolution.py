@@ -55,6 +55,7 @@ model = dinv.models.SRResNet(pretrained="download", final_relu=True).to(device)
 ckpt = torch.hub.load_state_dict_from_url(
     "https://huggingface.co/deepinv/srresnet/resolve/main/srresnet_ckpt.pth.tar",
     file_name="srresnet_ckpt.pth.tar",
+    map_location=device,
     weights_only=False,
 )
 
