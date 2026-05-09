@@ -73,7 +73,9 @@ class SRResNet(Reconstructor):
         final_kernel_size: int = 9,
         final_relu: bool = False,
         pretrained: str | None = None,
-        device: torch.device | str = "cpu",
+        device: torch.device | str = torch.device(
+            "cpu",
+        ),
     ):
         super().__init__()
         if upscale < 1 or (upscale & (upscale - 1)) != 0:
@@ -113,13 +115,17 @@ class SRResNet(Reconstructor):
                 + ([nn.ReLU()] if final_relu else [])
             )
         )
+        if device is not None:
+            self.to(device)
         if pretrained is not None:
             if pretrained == "download":
                 url = get_weights_url("srresnet", "srresnet_ckpt.pth.tar")
                 ckpt = load_state_dict_from_url(
                     url,
                     file_name="srresnet_ckpt.pth.tar",
-                    map_location=device,
+                    map_location=(
+                        device if device is not None else lambda storage, loc: storage
+                    ),
                     weights_only=False,
                 )["state_dict"]
 
