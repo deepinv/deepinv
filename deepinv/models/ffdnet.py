@@ -21,8 +21,9 @@ class FFDNet(Denoiser):
     :param int img_channels: Number of channels of your input image. Default: 1 (greyscale)
     :param bool residual_denoising: Whether to use a residual connection between input image and the network output. Default: False
     :param str norm: normalization to use in the convolutional layers. Choose from instance_norm, batch_norm, or None (no norm). Default: batch_norm
-    :param bool orthogonal_init: Apply orthogonal initialization to the convolutional weights. Default: True
+    :param bool orthogonal_init: Apply orthogonal initialization to the convolutional weights. Ignored if pretrained not None. Default: True
     :param bool last_conv_bias: Set the learnable bias on or off on the final convolution. Default: False
+    :param str pretrained: Load pretrained weights from a checkpoint. Default: None
     :param torch.device, str device: Device to put the model on.
     """
 
@@ -35,6 +36,7 @@ class FFDNet(Denoiser):
         norm: str | None = "batch_norm",
         orthogonal_init: bool = True,
         last_conv_bias: bool = False,
+        pretrained: str | None = None,
         device: str | torch.device = "cpu",
     ):
         super().__init__()
@@ -76,10 +78,17 @@ class FFDNet(Denoiser):
         )
         self.blocks = nn.Sequential(*blocks)
         self.residual_denoising = residual_denoising
-        if device is not None:
-            self.to(device)
         if orthogonal_init:
             self.apply(weights_init_drunet)  # DRUNet also applies orthogonal init.
+        if pretrained is not None:
+            if pretrained == "download":
+                raise ValueError(
+                    'Received pretrained "download", but FFDNet has no downloadable weights.'
+                )
+            state = torch.load(pretrained, map_location=lambda storage, loc: storage)
+            self.load_state_dict(state, strict=True)
+        if device is not None:
+            self.to(device)
 
     def forward(self, x: torch.Tensor, sigma: torch.Tensor | float) -> torch.Tensor:
         r"""
@@ -98,9 +107,12 @@ class FFDNet(Denoiser):
                 noise_level_map = sigma.view(x.size(0), 1, 1, 1)
                 noise_level_map = noise_level_map.expand(-1, 1, x.size(2), x.size(3))
             else:
-                noise_level_map = torch.ones(
-                    (x.size(0), 1, x.size(2), x.size(3)), device=x.device
-                ) * sigma[None, None, None, None].to(x.device)
+                noise_level_map = torch.full(
+                    (x.size(0), 1, x.size(2), x.size(3)),
+                    sigma,
+                    device=x.device,
+                    dtype=x.dtype,
+                )
         else:
             noise_level_map = (
                 torch.ones((x.size(0), 1, *x.shape[2:]), device=x.device) * sigma
