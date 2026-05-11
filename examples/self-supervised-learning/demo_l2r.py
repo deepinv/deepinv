@@ -6,7 +6,7 @@ This example shows how to train a denoiser network in a fully self-supervised wa
 using only noisy images through the Learning to Recorrupt (L2R) loss
 :footcite:p:`monroy2026learning`, without requiring explicit knowledge of the noise distribution.
 
-The core idea of L2R is to avoid comparing predictions to clean targets (which are unavailable in
+L2R consists in avoid comparing predictions to clean targets (which are unavailable in
 self-supervised settings). Instead, the method learns a small trainable re-corruption module that
 maps input noisy image to desired recorruption distribution. For this, the recorrupted image :math:`y_1`
 is constructed by applying the recorruption network as follows
@@ -31,7 +31,8 @@ and optimize it through the adversarial objective
 where :math:`f` is the denoiser, :math:`h` is the learned re-corruption model,
 :math:`y` is the noisy measurement. Here, the denoiser is encouraged to align predictions with
 noisy obervations and reduce noise correlation with the input noisy image, while the re-corruption model is trained
-to maximize this noise correlation.
+to maximize this noise correlation. The central idea is that, given the constraint family indexed by :math:`h \in \mathcal{H},`
+this should be rich enough to capture the uknown noise distribution.
 
 To build measurements, we choose a noise model in the physics simulator. By default,
 this demo uses Poisson noise, but you can switch to Gaussian noise by changing ``noise_name``.
