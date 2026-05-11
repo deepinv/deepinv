@@ -22,7 +22,7 @@ The library is part of the `official PyTorch Ecosystem <https://pytorch.landscap
 Get started
 -----------
 
-Read our **documentation** at `deepinv.github.io <https://deepinv.github.io>`_. Check out our `5 minute quickstart tutorial <https://deepinv.org/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.org/auto_examples/index.html>`_, or our `User Guide <https://deepinv.org/user_guide.html>`_.
+Read our **documentation** at `deepinv.org <https://deepinv.org>`_. Check out our `5 minute quickstart tutorial <https://deepinv.org/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.org/auto_examples/index.html>`_, or our `User Guide <https://deepinv.org/user_guide.html>`_.
 
 ``deepinv`` features
 

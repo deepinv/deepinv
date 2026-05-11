@@ -14,7 +14,7 @@ Strasbourg, **Sept 27th 2026**.
 
 .. admonition:: New here?
    
-   `DeepInverse <https://deepinv.github.io/>`_ is an open-source PyTorch-based library for solving imaging inverse problems with deep learning. Check out our `5 minute quickstart tutorial <https://deepinv.org/auto_examples/basics/demo_quickstart.html>`_,
+   `DeepInverse <https://deepinv.org/>`_ is an open-source PyTorch-based library for solving imaging inverse problems with deep learning. Check out our `5 minute quickstart tutorial <https://deepinv.org/auto_examples/basics/demo_quickstart.html>`_,
    our `comprehensive examples <https://deepinv.org/auto_examples/index.html>`_,
    or our :ref:`User Guide <user_guide>`.
 
@@ -25,11 +25,11 @@ Tutorial description
 Writing code to reconstruct medical images with AI requires defining many moving parts, such as the imaging operator or network architecture.
 At the same time, a growing plethora of algorithms, from diffusion to foundation models, offer to solve inverse problems.
 
-`DeepInverse <https://deepinv.github.io/>`_ is a modern PyTorch-based open-source library for imaging with deep learning, with state-of-the-art methods contributed by an international community of users and researchers across the globe and 3k monthly users.
+`DeepInverse <https://deepinv.org/>`_ is a modern PyTorch-based open-source library for imaging with deep learning, with state-of-the-art methods contributed by an international community of users and researchers across the globe and 3k monthly users.
 DeepInverse is a member of the official `PyTorch ecosystem <https://pytorch.org/blog/deepinverse-joins-pytorch-ecosystem/>`_.
 
 In this tutorial, we will show researchers how to use DeepInverse for their own experiments and imaging modalities.
-We will do this by walking through our `award-winning <https://www.ouvrirlascience.fr/category/prix-logiciel-libre/>`_ `documentation <https://deepinv.github.io/>`_ and comprehensive `examples <https://deepinv.org/auto_examples/index.html>`_,
+We will do this by walking through our `award-winning <https://www.ouvrirlascience.fr/category/prix-logiciel-libre/>`_ `documentation <https://deepinv.org/>`_ and comprehensive `examples <https://deepinv.org/auto_examples/index.html>`_,
 showing how to use neural networks on real clinical images, including clinical case studies e.g. using AI to reduce scan time, reduce CT dose etc.
 Then, we will provide template notebooks to prompt participants to use DeepInverse tools to reconstruct their own clinical data, such as MRI, CT or ultrasound.
 The template notebooks will be crafted around popular MICCAI topics whose methods are available in DeepInverse, such as generative diffusion and GAN models (DPS, DDRM etc.), foundation models for image reconstruction (Reconstruct Anything Model), and uncertainty quantification. 
