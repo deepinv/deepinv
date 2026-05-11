@@ -10,13 +10,13 @@ def generalized_anscombe_transform(
 
     The transform converts a noisy observation :math:`y` from a :class:`Poisson-Gaussian distribution <deepinv.physics.PoissonGaussianNoise>` with
     gain :math:`\gamma` and :class:`Gaussian noise <deepinv.physics.GaussianNoise>` standard deviation :math:`\sigma` to an approximately Gaussian
-     distribution with variance :math:`\gamma`, see :footcite:t:`makitalo2012optimal`.
+    distribution with variance :math:`\gamma`, see :footcite:t:`makitalo2012optimal`.
 
     The transform is defined as:
 
     .. math::
 
-        x' = 2 \sqrt{\gamma x + \frac{3}{8}\gamma^2 + \sigma^2}
+        h(y) = 2 \sqrt{\gamma x + \frac{3}{8}\gamma^2 + \sigma^2}
 
     .. note::
 
@@ -54,7 +54,7 @@ def inverse_generalized_anscombe_transform(
 
     .. math::
 
-        y = \frac{1}{4}x^2 + \frac{1}{4}\sqrt{\frac{3}{2}}\, x^{-1} - \frac{11}{8} x^{-2} + \frac{5}{8}\sqrt{\frac{3}{2}}\, x^{-3} - \frac{1}{8} - \frac{\sigma^2}{\gamma^2}
+        h^{-1}(x) = \frac{1}{4}x^2 + \frac{1}{4}\sqrt{\frac{3}{2}}\, x^{-1} - \frac{11}{8} x^{-2} + \frac{5}{8}\sqrt{\frac{3}{2}}\, x^{-3} - \frac{1}{8} - \frac{\sigma^2}{\gamma^2}
 
     .. note::
 
