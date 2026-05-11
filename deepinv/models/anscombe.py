@@ -48,7 +48,7 @@ def inverse_generalized_anscombe_transform(
 
     .. math::
 
-        y = \frac{1}{4}x^2 + \frac{1}{4}\sqrt{\frac{3}{2}}\, x^{-1} - \frac{11}{8} x^{-2} + \frac{5}{8}\sqrt{\frac{3}{2}}\, x^{-3} - \frac{1}{8} + \frac{\sigma^2}{\gamma^2}
+        y = \frac{1}{4}x^2 + \frac{1}{4}\sqrt{\frac{3}{2}}\, x^{-1} - \frac{11}{8} x^{-2} + \frac{5}{8}\sqrt{\frac{3}{2}}\, x^{-3} - \frac{1}{8} - \frac{\sigma^2}{\gamma^2}
 
     :param torch.Tensor x: Anscombe-transformed tensor.
     :param float | torch.Tensor gain: Gain of the Poisson distribution :math:`\gamma`

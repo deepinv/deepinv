@@ -51,7 +51,7 @@ original domain.  Setting :math:`u = z / \gamma`, it reads:
               - \frac{11}{8}u^{-2}
               + \frac{5}{8}\sqrt{\tfrac{3}{2}}\,u^{-3}
               - \frac{1}{8}
-              + \frac{\sigma^2}{\gamma^2}
+              - \frac{\sigma^2}{\gamma^2}
               \right), \qquad u = \frac{z}{\gamma}.
 
 The full pipeline of :class:`AnscombeDenoiser <deepinv.models.AnscombeDenoiser>`
