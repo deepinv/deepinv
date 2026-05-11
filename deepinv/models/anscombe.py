@@ -65,7 +65,7 @@ def inverse_generalized_anscombe_transform(
         - 11 / 8 * x ** (-2)
         + 5 / 8 * (3 / 2) ** 0.5 * x ** (-3)
         - 1 / 8
-        + sigma**2 / gain**2
+        - sigma**2 / gain**2
     )
 
 
