@@ -18,6 +18,12 @@ def generalized_anscombe_transform(
 
         x' = 2 \sqrt{\gamma x + \frac{3}{8}\gamma^2 + \sigma^2}
 
+    .. note::
+
+        The formula varies slightly from the one proposed in :footcite:p:`makitalo2012optimal`,
+        as the library considers a normalized Poisson-Gaussian noise model, :math:`y = \gamma \mathcal{P}(x/\gamma) + \epsilon`,
+        whereas the authors consider :math:`y = \gamma \mathcal{P}(x) + \epsilon`.
+
     :param torch.Tensor x: tensor corrupted with Poisson-Gaussian noise
     :param float | torch.Tensor gain: Gain of the Poisson distribution :math:`\gamma`
     :param float | torch.Tensor sigma: Standard deviation of the Gaussian noise :math:`\sigma`
@@ -49,6 +55,12 @@ def inverse_generalized_anscombe_transform(
     .. math::
 
         y = \frac{1}{4}x^2 + \frac{1}{4}\sqrt{\frac{3}{2}}\, x^{-1} - \frac{11}{8} x^{-2} + \frac{5}{8}\sqrt{\frac{3}{2}}\, x^{-3} - \frac{1}{8} - \frac{\sigma^2}{\gamma^2}
+
+    .. note::
+
+        The formula varies slightly from the one proposed in :footcite:p:`makitalo2012optimal`,
+        as the library considers a normalized Poisson-Gaussian noise model, :math:`y = \gamma \mathcal{P}(x/\gamma) + \epsilon`,
+        whereas the authors consider :math:`y = \gamma \mathcal{P}(x) + \epsilon`.
 
     :param torch.Tensor x: Anscombe-transformed tensor.
     :param float | torch.Tensor gain: Gain of the Poisson distribution :math:`\gamma`

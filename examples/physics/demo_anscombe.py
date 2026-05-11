@@ -61,6 +61,13 @@ reads:
 
     \hat{x} = \mathrm{IGAT}\!\left(\denoisername\!\left(z,\; \gamma\right)\right), \qquad z = \mathrm{GAT}(y).
 
+
+.. note::
+
+    The formula varies slightly from the one proposed in :footcite:p:`makitalo2012optimal`,
+    as the library considers a normalized Poisson-Gaussian noise model, :math:`y = \gamma \mathcal{P}(x/\gamma) + \epsilon`,
+    whereas the authors consider :math:`y = \gamma \mathcal{P}(x) + \epsilon`.
+
 """
 
 # %%
