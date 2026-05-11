@@ -253,7 +253,7 @@ class PET(LinearPhysics):
         """
         if y.shape[1] != 1:
             raise ValueError(
-                f"Input measurements must have 1 channel, got {x.shape[1]} channels"
+                f"Input measurements must have 1 channel, got {y.shape[1]} channels"
             )
         self.update_parameters(attenuation=attenuation, background=background)
         attenuation = self.attenuation
