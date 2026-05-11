@@ -119,6 +119,11 @@ training = [
     "mlflow",
 ]
 
+# optional dependencies for ultrasound imaging with zea
+ultrasound = [
+    "zea>=0.0.13",
+]
+
 
 ##############################################################
 # Pixi configuration for managing conda optional dependencies
