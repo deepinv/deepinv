@@ -78,6 +78,7 @@ plot(
     vmax=1,
 )
 
+
 # %%
 # Example with Poisson-corrupted observations
 # Typical artifacts
@@ -303,7 +304,21 @@ def blind_richardson_lucy(
         s = physics.A_adjoint(torch.ones_like(y)).clamp_min(filter_epsilon)
 
         for _ in range(x_steps):
-            x = (x / s - x_prior_weight * x_prior.grad(x)) * physics.A_adjoint(
+            if isinstance(x_prior, deepinv.optim.TVPrior):
+                x = (
+                    x
+                    / (
+                        s
+                        - x_prior_weight
+                        * x_prior.nabla_adjoint(
+                            x_prior.nabla(x)
+                            / torch.abs(x_prior.nabla(x)).clamp_min(filter_epsilon)
+                        )
+                    )
+                    * physics.A_adjoint(y / physics.A(x).clamp_min(filter_epsilon))
+                )
+
+            x = (x / (s + x_prior_weight * x_prior.grad(x))) * physics.A_adjoint(
                 y / physics.A(x).clamp_min(filter_epsilon)
             )
             x = x.clamp_min(filter_epsilon)
@@ -660,12 +675,13 @@ x = load_example(
 )
 
 # True physics (unknown kernel in blind setting)
-kernel_true = (
-    deepinv.utils.demo.load_degradation("Levin09.npy", index=7)
-    .unsqueeze(0)
-    .unsqueeze(0)
-)
+# kernel_true = (
+#     deepinv.utils.demo.load_degradation("Levin09.npy", index=7)
+#     .unsqueeze(0)
+#     .unsqueeze(0)
+# )
 
+kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
 physics = deepinv.physics.BlurFFT(
     img_size=(1, img_size, img_size),
     noise_model=deepinv.physics.noise.PoissonNoise(gain=1 / 500, clip_positive=True),
@@ -687,8 +703,8 @@ x_hat, k_hat, xs, ks = blind_richardson_lucy(
     steps=max_iter,
     x_steps=1,
     k_steps=1,
-    k_prior=deepinv.optim.L1Prior(),
-    k_prior_weight=0.1,
+    x_prior=deepinv.optim.TVPrior(),
+    x_prior_weight=0.005,
     verbose=True,
     keep_inter=True,
     fft=False,
