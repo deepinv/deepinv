@@ -1,7 +1,5 @@
 from __future__ import annotations
 from warnings import warn
-from torchvision.transforms.functional import rotate
-import torchvision
 import torch
 import torch.fft as fft
 from torch import Tensor
@@ -11,6 +9,7 @@ import deepinv.physics.functional as dF
 from deepinv.utils.mixins import TiledMixin2d
 from deepinv.utils._internal import _as_pair, _add_tuple
 from deepinv.utils._tiling import _resolve_tiling_params, _compute_needed_pad
+from deepinv.utils.decorators import _deprecated_func_replaced_by
 
 
 class Downsampling(LinearPhysics):
@@ -135,13 +134,13 @@ class Downsampling(LinearPhysics):
             if isinstance(filter, torch.Tensor):
                 filter = filter.to(device)
             elif filter == "gaussian":
-                filter = gaussian_blur(sigma=(factor, factor), device=device)
+                filter = dF.gaussian_blur(sigma=(factor, factor), device=device)
             elif filter == "bilinear":
-                filter = bilinear_filter(factor, device=device)
+                filter = dF.bilinear_filter(factor, device=device)
             elif filter == "bicubic":
-                filter = bicubic_filter(factor, device=device)
+                filter = dF.bicubic_filter(factor, device=device)
             elif filter == "sinc":
-                filter = sinc_filter(factor, length=4 * factor, device=device)
+                filter = dF.sinc_filter(factor, length=4 * factor, device=device)
 
             # `Fh` is initialized on `filter.device`
             Fh = dF.filter_fft(filter, img_size, real_fft=False)
@@ -455,7 +454,7 @@ class Blur(LinearPhysics):
     where :math:`*` denotes convolution and :math:`w` is a filter.
 
     :param torch.Tensor filter: Tensor of size (b, 1, h, w) or (b, c, h, w) in 2D; (b, 1, d, h, w) or (b, c, d, h, w) in 3D,
-        containing the blur filter, e.g., :func:`deepinv.physics.blur.gaussian_blur`.
+        containing the blur filter, e.g., :func:`deepinv.physics.functional.gaussian_blur`.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image. (default is ``'valid'``).
@@ -584,7 +583,7 @@ class BlurFFT(DecomposablePhysics):
 
     :param tuple img_size: Input image size in the form `(C, H, W)`.
     :param torch.Tensor filter: torch.Tensor of size `(1, c, h, w)` containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
-        :func:`deepinv.physics.blur.gaussian_blur`.
+        :func:`deepinv.physics.functional.gaussian_blur`.
     :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     |sep|
@@ -1193,200 +1192,6 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         return x[..., h_slice, w_slice]
 
 
-def gaussian_blur(
-    sigma: float | tuple[float, ...] = (1, 1),
-    angle: float = 0,
-    device: torch.device | str = "cpu",
-) -> Tensor:
-    r"""
-    Gaussian blur filter.
-
-    Defined as
-
-    .. math::
-            G(x, y) = \frac{1}{2\pi\sigma_x\sigma_y} \exp{\left(-\frac{x'^2}{2\sigma_x^2} - \frac{y'^2}{2\sigma_y^2}\right)}
-
-    where :math:`x'` and :math:`y'` are the rotated coordinates obtained by rotating $(x, y)$ around the origin
-    by an angle :math:`\theta`:
-
-    .. math::
-            x' &= x \cos(\theta) - y \sin(\theta) \\
-            y' &= x \sin(\theta) + y \cos(\theta)
-
-    with :math:`\sigma_x` and :math:`\sigma_y`  the standard deviations along the :math:`x'` and :math:`y'` axes.
-
-
-    :param float, tuple[float] sigma: standard deviation of the gaussian filter. If sigma is a float the filter is isotropic, whereas
-        if sigma is a tuple of floats (sigma_x, sigma_y) the filter is anisotropic.
-    :param float angle: rotation angle of the filter in degrees (only useful for anisotropic filters)
-    :param torch.device, str device: device to put the filter on (cpu or cuda)
-    """
-    if isinstance(sigma, (int, float)):
-        sigma = (sigma, sigma)
-
-    s = max(sigma)
-    c = int(s / 0.3 + 1)
-    k_size = 2 * c + 1
-
-    delta = torch.arange(k_size, device=device)
-
-    x, y = torch.meshgrid(delta, delta, indexing="ij")
-    x = x - c
-    y = y - c
-    filt = (x / sigma[0]).pow(2)
-    filt += (y / sigma[1]).pow(2)
-    filt = torch.exp(-filt / 2.0)
-
-    filt = (
-        rotate(
-            filt.unsqueeze(0).unsqueeze(0),
-            angle,
-            interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
-        )
-        .squeeze(0)
-        .squeeze(0)
-    )
-
-    filt = filt / filt.flatten().sum()
-
-    return filt.unsqueeze(0).unsqueeze(0)
-
-
-def kaiser_window(
-    beta: float, length: int, device: torch.device | str = "cpu"
-) -> Tensor:
-    """Return the Kaiser window of length `length` and shape parameter `beta`."""
-    if beta < 0:
-        raise ValueError("beta must be greater than 0")
-    if length < 1:
-        raise ValueError("length must be greater than 0")
-    if length == 1:
-        return torch.tensor([1.0])
-    half = (length - 1) / 2
-    n = torch.arange(length, device=device)
-    beta = torch.tensor(beta, device=device)
-    return torch.i0(beta * torch.sqrt(1 - ((n - half) / half) ** 2)) / torch.i0(beta)
-
-
-def sinc_filter(
-    factor: float | Tensor = 2,
-    length: int = 11,
-    windowed: bool = True,
-    device: torch.device | str = "cpu",
-) -> Tensor:
-    r"""
-    Anti-aliasing sinc filter, optionally multiplied by a Kaiser window.
-
-    The kaiser window parameter is computed as follows:
-
-    .. math::
-
-        A = 2.285 \cdot (L - 1) \cdot 3.14 \cdot \Delta f + 7.95
-
-    where :math:`\Delta f = 2 (2 - \sqrt{2}) / \text{factor}`. Then, the beta parameter is computed as:
-
-    .. math::
-
-            \beta = \begin{cases}
-                0 & \text{if } A \leq 21 \\
-                0.5842 \cdot (A - 21)^{0.4} + 0.07886 \cdot (A - 21) & \text{if } 21 < A \leq 50 \\
-                0.1102 \cdot (A - 8.7) & \text{otherwise}
-            \end{cases}
-
-    :param float, torch.Tensor factor: Downsampling factor. If Tensor, can only have one element.
-    :param int length: Length of the filter.
-    :param bool windowed: Whether to multiply by Kaiser window.
-    :param torch.device, str device: device to put the filter on (cpu or cuda)
-    """
-    if isinstance(factor, torch.Tensor):
-        factor = factor.cpu().item()
-
-    deltaf = 2 * (2 - 1.4142136) / factor
-
-    n = torch.arange(length, device=device) - (length - 1) / 2
-    filter = torch.sinc(n / factor)
-
-    if windowed:
-        A = 2.285 * (length - 1) * 3.14159 * deltaf + 7.95
-        if A <= 21:
-            beta = 0
-        elif A <= 50:
-            beta = 0.5842 * (A - 21) ** 0.4 + 0.07886 * (A - 21)
-        else:
-            beta = 0.1102 * (A - 8.7)
-
-        filter = filter * kaiser_window(beta, length, device=device)
-
-    filter = filter.unsqueeze(0)
-    filter = filter * filter.T
-    filter = filter.unsqueeze(0).unsqueeze(0)
-    filter = filter / filter.sum()
-    return filter
-
-
-def bilinear_filter(factor: int = 2, device: torch.device | str = "cpu") -> Tensor:
-    r"""
-    Bilinear filter.
-
-    It has size (2*factor, 2*factor) and is defined as
-
-    .. math::
-
-            w(x, y) = \begin{cases}
-                (1 - |x|) \cdot (1 - |y|) & \text{if } |x| \leq 1 \text{ and } |y| \leq 1 \\
-                0 & \text{otherwise}
-            \end{cases}
-
-    for :math:`x, y \in {-\text{factor} + 0.5, -\text{factor} + 0.5 + 1/\text{factor}, \ldots, \text{factor} - 0.5}`.
-
-    :param int factor: downsampling factor
-    :param torch.device, str device: device to put the filter on (cpu or cuda)
-    """
-    if isinstance(factor, torch.Tensor):
-        factor = factor.cpu().item()
-    x = torch.arange(start=-factor + 0.5, end=factor, step=1, device=device) / factor
-    w = 1 - x.abs()
-    w = torch.outer(w, w)
-    w = w / torch.sum(w)
-    return w.unsqueeze(0).unsqueeze(0)
-
-
-def bicubic_filter(factor: int = 2, device: torch.device | str = "cpu") -> Tensor:
-    r"""
-    Bicubic filter.
-
-    It has size (4*factor, 4*factor) and is defined as
-
-    .. math::
-
-        \begin{equation*}
-            w(x, y) = \begin{cases}
-                (a + 2)|x|^3 - (a + 3)|x|^2 + 1 & \text{if } |x| \leq 1 \\
-                a|x|^3 - 5a|x|^2 + 8a|x| - 4a & \text{if } 1 < |x| < 2 \\
-                0 & \text{otherwise}
-            \end{cases}
-        \end{equation*}
-
-    for :math:`x, y \in {-2\text{factor} + 0.5, -2\text{factor} + 0.5 + 1/\text{factor}, \ldots, 2\text{factor} - 0.5}`.
-
-    :param int factor: downsampling factor
-    :param torch.device, str device: device to put the filter on (cpu or cuda)
-    """
-    if isinstance(factor, torch.Tensor):
-        factor = factor.cpu().item()
-    x = (
-        torch.arange(start=-2 * factor + 0.5, end=2 * factor, step=1, device=device)
-        / factor
-    )
-    a = -0.5
-    x = x.abs()
-    w = ((a + 2) * x.pow(3) - (a + 3) * x.pow(2) + 1) * (x <= 1)
-    w += (a * x.pow(3) - 5 * a * x.pow(2) + 8 * a * x - 4 * a) * (x > 1) * (x < 2)
-    w = torch.outer(w, w)
-    w = w / torch.sum(w)
-    return w.unsqueeze(0).unsqueeze(0)
-
-
 class DownsamplingMatlab(Downsampling):
     """Downsampling with MATLAB imresize
 
@@ -1452,3 +1257,44 @@ class DownsamplingMatlab(Downsampling):
             dtype=y.dtype,
         )
         return adj(y)
+
+
+@_deprecated_func_replaced_by(dF.gaussian_blur, redirect=False, since="0.4.1")
+def gaussian_blur(
+    sigma: float | tuple[float, ...] = (1, 1),
+    angle: float = 0,
+    device: torch.device | str = "cpu",
+) -> Tensor:
+    # Match the old signature where gaussian_blur only produces 2D filters
+    if isinstance(sigma, (int, float)):
+        sigma = (sigma, sigma)
+    return dF.gaussian_blur(psf_size=None, sigma=sigma, angle=angle, device=device)
+
+
+@_deprecated_func_replaced_by(dF.bilinear_filter, redirect=True, since="0.4.1")
+def bilinear_filter(
+    factor: int = 2, device: torch.device | str = "cpu"
+) -> torch.Tensor:
+    pass
+
+
+@_deprecated_func_replaced_by(dF.bicubic_filter, redirect=True, since="0.4.1")
+def bicubic_filter(factor: int = 2, device: torch.device | str = "cpu") -> torch.Tensor:
+    pass
+
+
+@_deprecated_func_replaced_by(dF.sinc_filter, redirect=True, since="0.4.1")
+def sinc_filter(
+    factor: float | torch.Tensor = 2,
+    length: int = 11,
+    windowed: bool = True,
+    device: torch.device | str = "cpu",
+) -> torch.Tensor:
+    pass
+
+
+@_deprecated_func_replaced_by(dF.kaiser_window, redirect=True, since="0.4.1")
+def kaiser_window(
+    beta: float, length: int, device: torch.device | str = "cpu"
+) -> torch.Tensor:
+    pass

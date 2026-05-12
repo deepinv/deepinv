@@ -122,7 +122,6 @@ In the case of posterior sampling, we need simply to replace the (unconditional)
 by the conditional score function :math:`\nabla \log p_t(x_t|y)`. The conditional score can be decomposed using the Bayes' rule:
 
 .. math::
-
     \nabla_{x_t} \log p_t(x_t | y) &= \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t \left(y \vert x_t \right) \\
                             &= \nabla_{x_t} \log p_t(x_t) + \frac{1}{s_t} \nabla_{\hat x_t} \log \hat p_t \left(y \vert \hat x_{t} = \frac{x_t}{s(t)} = x_0 + \sigma(t) \omega \right).
     

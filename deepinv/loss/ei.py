@@ -39,7 +39,7 @@ class EILoss(Loss):
         otherwise is generated as :math:`\forw{\hat{x}}`.
     :param float weight: Weight of the loss.
     :param bool no_grad: if ``True``, the gradient does not propagate through :math:`T_g`. Default: ``False``.
-        This option is useful for super-resolution problems, see :footcite:t:`scanvic2025scale` for details.
+        This option is useful for super-resolution problems, see :footcite:t:`scanvic2026scale` for details.
 
     """
 
