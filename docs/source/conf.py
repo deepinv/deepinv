@@ -74,7 +74,6 @@ intersphinx_mapping = {
     "torch": ("https://pytorch.org/docs/stable/", None),
     "torchvision": ("https://pytorch.org/vision/stable/", None),
     "python": ("https://docs.python.org/3.9/", None),
-    "deepinv": ("https://deepinv.org/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
@@ -311,7 +310,8 @@ sphinx_gallery_conf = {
     "ignore_pattern": ignore_pattern,
     "reference_url": {
         # The module you locally document uses None
-        "sphinx_gallery": None
+        "sphinx_gallery": None,
+        "deepinv": None,
     },
     # directory where function/class granular galleries are stored
     "backreferences_dir": "gen_modules/backreferences",
