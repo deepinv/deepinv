@@ -1,5 +1,5 @@
 r"""
-Implementing DPS
+DPS -- Posterior Sampling with Diffusion Models
 ================
 
 In this tutorial, we will go over the steps in the Diffusion Posterior Sampling (DPS) algorithm introduced in
@@ -153,6 +153,13 @@ plot(
 #   - `weight`: corresponds to the :math:`\lambda` parameter in the above equation, which controls the strength of the gradient step.
 #   - `alpha`: corresponds to the stochasticity parameter in the DDIM, which controls the strength of the noise in the reverse diffusion sampling step.
 #   - `num_steps`: corresponds to the number of denoising steps, which is usually set to 1000 for best performance, but can be reduced to 200 for faster sampling.
+#
+# .. note::
+#
+#  For simplicity, we only show the DPS with the VP / VE SDEs, but the algorithm can be easily adapted to **arbitrary** diffusion processes,
+#  for example :class:`deepinv.sampling.EDMDiffusion` with custom noise schedules.
+#  Please refer to the example :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for a full demonstration of how to modify the
+#  algorithm.
 
 
 # %%
