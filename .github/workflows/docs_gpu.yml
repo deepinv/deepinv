@@ -39,6 +39,7 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
+          post-cleanup: true
           pixi-bin-path: /local/jtachell/pixi/bin/pixi
           environments: docs doctest
 
