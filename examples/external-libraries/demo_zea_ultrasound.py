@@ -11,11 +11,15 @@ ultrasound toolbox with `deepinv <https://deepinv.github.io/>`_.
     Work in progress!  This example is currently being developed and
     is not be fully functional yet.
 
-:class:`deepinv.physics.UltrasoundWithZea` requires the ``zea`` package and
-the PyTorch Keras backend, which can be installed with:
-``pip install zea``
 
-Set ``KERAS_BACKEND=torch`` **before** importing ``zea`` or ``deepinv``.
+:class:`deepinv.physics.UltrasoundBeamformingWithZea` requires ``zea`` and the PyTorch
+Keras backend::
+
+    pip install zea
+
+.. note::
+
+    Set ``KERAS_BACKEND=torch`` **before** importing ``zea`` or ``deepinv``.
 """
 
 # %%
