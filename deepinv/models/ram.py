@@ -660,8 +660,10 @@ class MeasCondBlock(nn.Module):
 
         self.separate_head = isinstance(img_channels, list)
 
-        assert img_channels is not None, "decode_dimensions should be provided"
-        assert decode_upscale is not None, "decode_upscale should be provided"
+        if img_channels is None:  # pragma: no cover
+            raise ValueError("decode_dimensions should be provided")
+        if decode_upscale is None:  # pragma: no cover
+            raise ValueError("decode_upscale should be provided")
 
         self.N = N
         self.c_mult = c_mult
@@ -749,9 +751,10 @@ class ResBlock(nn.Module):
         super(ResBlock, self).__init__()
 
         if not head and not tail:
-            assert (
-                in_channels == out_channels
-            ), "Only support in_channels==out_channels."
+            if in_channels != out_channels:  # pragma: no cover
+                raise ValueError(
+                    "Only support in_channels==out_channels when both head and tail are False."
+                )
         self.separate_head = isinstance(img_channels, list)
         self.is_head = head
         self.is_tail = tail
@@ -1139,7 +1142,7 @@ def sequential(*args):
     :return: nn.Sequential container containing all the modules.
     """
     if len(args) == 1:
-        if isinstance(args[0], OrderedDict):
+        if isinstance(args[0], OrderedDict):  # pragma: no cover
             raise NotImplementedError("sequential does not support OrderedDict input.")
         return args[0]  # No sequential is needed.
     modules = []
@@ -1227,12 +1230,13 @@ def upsample_convtranspose(
     :param bool bias: Whether to use bias in the convolution.
     :param str mode: Sequence of operations, e.g., "2R", "3", "4R", etc.
     """
-    assert len(mode) < 4 and mode[0] in [
+    if len(mode) > 3 or mode[0] not in [
         "2",
         "3",
         "4",
         "8",
-    ], "mode examples: 2, 2R, 2R, 3, ..., 4R."
+    ]:  # pragma: no cover
+        raise ValueError(f"got mode {mode}, mode examples: 2, 2R, 2R, 3, ..., 4R.")
     kernel_size = int(mode[0])
     stride = int(mode[0])
     mode = mode.replace(mode[0], "T")
@@ -1266,12 +1270,13 @@ def downsample_strideconv(
     :param bool bias: Whether to use bias in the convolution.
     :param str mode: Sequence of operations, e.g., "2R", "3", "4R", etc.
     """
-    assert len(mode) < 4 and mode[0] in [
+    if len(mode) > 3 or mode[0] not in [
         "2",
         "3",
         "4",
         "8",
-    ], "mode examples: 2, 2R, 2BR, 3, ..., 4BR."
+    ]:  # pragma: no cover
+        raise ValueError(f"got mode {mode}, mode examples: 2, 2R, 2BR, 3, ..., 4BR.")
     kernel_size = int(mode[0])
     stride = int(mode[0])
     mode = mode.replace(mode[0], "C")

@@ -500,10 +500,14 @@ class Neighbor2Neighbor(Loss):
         :return: (:class:`torch.Tensor`) loss.
         """
 
-        assert len(y.shape) == 4, "Input measurements should be images"
-        assert (
-            y.shape[2] % 2 == 0 and y.shape[3] % 2 == 0
-        ), "Image dimensions should be even"
+        if len(y.shape) != 4:  # pragma: no cover
+            raise ValueError(
+                f"Input measurements should be of shape B, C, H, W, got shape {tuple(y.shape)}"
+            )
+        if y.shape[2] % 2 != 0 or y.shape[3] % 2 != 0:  # pragma: no cover
+            raise ValueError(
+                f"Image dimensions (last two dims) should be even, got tensor of shape {tuple(y.shape)}"
+            )
 
         mask1, mask2 = self.generate_mask_pair(y)
 

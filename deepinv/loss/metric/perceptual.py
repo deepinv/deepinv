@@ -200,7 +200,8 @@ class BlurStrength(Metric):
         :param x_net: (B, C, ...) input tensors with C=1 or 3 channels. The spatial dimensions can be 1D, 2D, or higher.
         :return: (B,) tensor of blur strength values in (0,1) for each image in the batch.
         """
-        assert x_net.shape[1] in [1, 3], "Input must have 1 or 3 channels."
+        if x_net.shape[1] not in [1, 3]:  # pragma: no cover
+            raise ValueError("Input must have 1 or 3 channels.")
 
         x = x_net
 
