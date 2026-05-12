@@ -119,6 +119,11 @@ training = [
     "mlflow",
 ]
 
+# optional dependencies for ultrasound imaging with zea
+ultrasound = [
+    "zea>=0.0.13",
+]
+
 
 ##############################################################
 # Pixi configuration for managing conda optional dependencies
@@ -236,7 +241,7 @@ select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004"
 
 [tool.ruff.lint.flake8-tidy-imports]
 # Modules that slow down startup and should be imported lazily
-banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft"]
+banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft","zea"]
 
 # Deprecated functions that should be replaced
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
