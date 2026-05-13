@@ -157,7 +157,7 @@ plot(
 # .. note::
 #
 #  For simplicity, we only show the DPS with the VP / VE SDEs, but the algorithm can be easily adapted to **arbitrary** diffusion processes,
-#  for example :class:`deepinv.sampling.EDMDiffusion` with custom noise schedules.
+#  for example :class:`deepinv.sampling.EDMDiffusionSDE` with custom noise schedules.
 #  Please refer to the example :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for a full demonstration of how to modify the
 #  algorithm.
 
