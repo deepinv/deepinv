@@ -215,7 +215,7 @@ class DRUNet(Denoiser):
 
         :param torch.Tensor x: noisy image
         :param float, torch.Tensor sigma: noise level. If ``sigma`` is a float, it is used for all images in the batch.
-            If ``sigma`` is a tensor, it can be of shape ``(batch_size,)`` or ``(batch_size, 1, height, width)``.
+            If ``sigma`` is a tensor, it can be of shape ``(batch_size,)`` or ``(batch_size, 1, height, width, (depth))``.
         """
         if isinstance(sigma, torch.Tensor):
             if sigma.ndim > 0:
@@ -255,12 +255,12 @@ class DRUNet(Denoiser):
         shape_is_safe = all((s % 8 == 0 and s > 31) for s in x.shape[2:])
         if shape_is_safe:
             x = self.forward_unet(x)
-        elif self.training or any([x.size(2 + i) < 32 for i in range(self.dim)]):
+        elif self.training or any([x.size(2 + i) < 64 for i in range(self.dim)]):
             x = test_pad(self.forward_unet, x, modulo=16)
         else:
-            if self.dim == 3:  # pragma: no cover
+            if self.dim == 3:
                 raise NotImplementedError(
-                    f"test_onesplit is not implemented yet for 3D. Please pass images with spatial shape smaller than 32, or multiple of 8 and larger than 32 to DRUNet."
+                    f"test_onesplit is not implemented yet for 3D. Please pass images with spatial shape smaller than 64, or multiple of 8 and larger than 31 to DRUNet."
                 )
             x = test_onesplit(self.forward_unet, x, refield=64)
         return x
