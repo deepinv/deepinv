@@ -333,6 +333,7 @@ sphinx_gallery_conf = {
             "../../examples/unfolded",
             "../../examples/blind-inverse-problems",
             "../../examples/self-supervised-learning",
+            "../../examples/transforms-equivariance",
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
             "../../examples/distributed",
@@ -413,8 +414,6 @@ html_theme_options = {
         ],
     },
     "announcement": (
-        "We are currently "
-        "<a href='https://jobs.inria.fr/public/classic/en/offres/2026-09919' target='_blank'> hiring!</a><br>"
         "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates."
     ),
     "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},

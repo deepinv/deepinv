@@ -21,6 +21,11 @@ jobs:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
       WORKING_DIR: "/local/jtachell"
+      PIXI_HOME: "/local/jtachell/.pixi"
+      TMP_DIR: "/local/jtachell/tmp"
+      DEEPINV_CACHE: "/local/jtachell/.cache/deepinv"
+      HF_HOME: "/local/jtachell/.cache/huggingface"
+      TORCH_HOME: "/local/jtachell/.cache/torch"
 
     steps:
       - uses: actions/checkout@v5
@@ -33,11 +38,27 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
+          post-cleanup: true
+          environments: full
           pixi-bin-path: /local/jtachell/pixi/bin/pixi
 
       - name: Check import
         run: |
           pixi run -e full python -c "import deepinv"
+
+      - name: Check CUDA is available
+        run: |
+          pixi run -e full python -c "
+          import torch
+          assert torch.cuda.is_available(), (
+              f'torch.cuda.is_available() returned False. '
+              f'Device count: {torch.cuda.device_count()}, '
+              f'PyTorch build: {torch.version.cuda}'
+          )
+          print(f'CUDA OK — {torch.cuda.device_count()} device(s), '
+                f'CUDA {torch.version.cuda}, '
+                f'GPU: {torch.cuda.get_device_name(0)}')
+          "
 
       - name: Restore .testmondata # Restore testmon data from main to speed up tests
         uses: actions/cache/restore@v3

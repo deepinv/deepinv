@@ -21,17 +21,17 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            environment: "full"
+            environment: "full-cpu"
             name: "ubuntu all optional dependencies and doctests"
             pytest_args: "-n 2 --dist=loadgroup --doctest-modules"
           - os: ubuntu-latest
-            environment: "test"
+            environment: "test-cpu"
             name: "ubuntu no optional dependencies"
             pytest_args: "-n 2 --dist=loadgroup"
           - os: windows-latest
-            environment: "full"
+            environment: "full-cpu"
             name: "windows all optional dependencies"
-            pytest_args: "-n 2 --dist=loadgroup"
+            pytest_args: "-n 0 --dist=loadgroup" # n = 0 to avoid conflicts with pytest-xdist on windows
     env:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
@@ -43,6 +43,7 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
+          environments: full-cpu test-cpu
 
       - name: Restore .testmondata
         uses: actions/cache/restore@v3
