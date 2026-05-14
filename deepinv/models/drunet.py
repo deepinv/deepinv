@@ -237,19 +237,25 @@ class DRUNet(Denoiser):
                         f"Incorrect shape, sigma should be of shape (1,), (batch_size,) or (batch_size, 1, height, width, (depth)), got {tuple(sigma.shape)}"
                     )
             else:
-                noise_level_map = torch.ones(
-                    (x.size(0), 1, *x.shape[2:]), device=x.device
-                ) * sigma[None, None, None, None].to(x.device)
+                noise_level_map = torch.full(
+                    (x.size(0), 1, *x.shape[2:]),
+                    sigma,
+                    device=x.device,
+                    dtype=x.dtype,
+                )
         else:
-            noise_level_map = (
-                torch.ones((x.size(0), 1, *x.shape[2:]), device=x.device) * sigma
+            noise_level_map = torch.full(
+                (x.size(0), 1, *x.shape[2:]),
+                sigma,
+                device=x.device,
+                dtype=x.dtype,
             )
 
         x = torch.cat((x, noise_level_map), 1)
         shape_is_safe = all((s % 8 == 0 and s > 31) for s in x.shape[2:])
         if shape_is_safe:
             x = self.forward_unet(x)
-        elif self.training or (x.size(2) < 32 or x.size(3) < 32):
+        elif self.training or any([x.size(2 + i) < 32 for i in range(self.dim)]):
             x = test_pad(self.forward_unet, x, modulo=16)
         else:
             if self.dim == 3:  # pragma: no cover
