@@ -1,6 +1,6 @@
 r"""
 DPS -- Posterior Sampling with Diffusion Models
-================
+===============================================
 
 In this tutorial, we will go over the steps in the Diffusion Posterior Sampling (DPS) algorithm introduced in
 :footcite:t:`chung2022diffusion`. The full algorithm is implemented in :class:`deepinv.sampling.DPS`.
