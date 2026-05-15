@@ -228,7 +228,7 @@ plt.show()
 
 # %%
 # Visual comparison between different denoisers
-# --------------------------------------------
+# ---------------------------------------------
 # Finally, we visually confirm the blurring introduced by the median filters, which is absent in the ground-truth and DRUNet outputs.
 
 methods_all = ["gt", "noisy"] + list(denoisers.keys())

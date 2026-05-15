@@ -13,6 +13,7 @@ New Features
 - Add :class:`deepinv.optim.MLEM` algorithm for Poisson inverse problems (:gh:`1051` by `Thibaut Modrzyk`_)
 - Add the equivariant splitting loss :class:`deepinv.loss.EquivariantSplittingLoss` with equivariant reconstructors :class:`deepinv.models.EquivariantReconstructor` and virtual physics :class:`deepinv.physics.VirtualLinearPhysics` (:gh:`881` by `Jérémy Scanvic`_)
 - Add `DEEPINV_CACHE_DIR` environment variable to set the cache directory for datasets and pretrained weights (:gh:`1105` by `Minh Hai Nguyen`_)
+- NIQE weight fitting on custom datasets, using :class:`deepinv.loss.metric.NIQE.create_weights` (:gh:`911` by `Vicky De Ridder`_)
 
 Changed
 ^^^^^^^
@@ -33,7 +34,7 @@ Fixed
 - Fix dimensions mismatch in :class:`deepinv.physics.TomographyWithAstra` with 3D phantoms (:gh:`1137` by `Baptiste Legouix`_)
 - Add warning and error handling for negative inputs in BlurFFT and Poisson noise (:gh:`1155` by `Thibaut Modrzyk`_)
 - Fix a bug in the custom backward of the least-squares solvers for non-leaf tensors (:gh:`1146` by `Minh Hai Nguyen`_)
-
+- New :class:`deepinv.loss.metric.NIQE` implementation, this drops PyIQA requirement, values given by NIQE vary between implementations (:gh:`911` by `Vicky De Ridder`_)
 
 v0.4.0
 ------
