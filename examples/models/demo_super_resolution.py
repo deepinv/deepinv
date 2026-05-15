@@ -163,13 +163,15 @@ dinv.utils.plot({"Ground truth": x, "LR measurement": y}, rescale_mode="clip")
 #     larger and more diverse dataset.
 #
 
+epochs = 10 if torch.cuda.is_available() else 1
+
 trainer = dinv.Trainer(
     model=model,
     physics=physics,
     optimizer=torch.optim.Adam(model.parameters(), lr=1e-4),
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
-    epochs=10,
+    epochs=epochs,
     losses=dinv.loss.SupLoss(metric=torch.nn.L1Loss()),
     metrics=dinv.metric.PSNR(),
     device=device,
