@@ -4,6 +4,9 @@ import deepinv as dinv
 import deepinv.loss.metric as metric
 from deepinv.utils import load_example
 import math
+import os
+from PIL import Image
+import numpy as np
 
 FULL_REFERENCE_METRICS = [
     "MAE",
@@ -33,12 +36,6 @@ FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr", "signal_noise_ratio"]
 
 
 def choose_full_reference_metric(metric_name, device, **kwargs) -> metric.Metric:
-    if metric_name in ("NIQE",):
-        pytest.importorskip(
-            "pyiqa",
-            reason="This test requires pyiqa. It should be "
-            "installed with `pip install pyiqa`",
-        )
     if metric_name == "MSE":
         # Test importing from deepinv.loss.metric
         return metric.MSE(**kwargs)
@@ -78,14 +75,14 @@ def choose_full_reference_metric(metric_name, device, **kwargs) -> metric.Metric
 
 
 def choose_no_reference_metric(metric_name, device, **kwargs) -> metric.Metric:
-    if metric_name in ("NIQE",):
-        pytest.importorskip(
-            "pyiqa",
-            reason="This test requires pyiqa. It should be "
-            "installed with `pip install pyiqa`",
-        )
     if metric_name == "NIQE":
-        return metric.NIQE(**kwargs, device=device)
+        return metric.NIQE(
+            patch_size=64,
+            patch_overlap=32,
+            denominator=1 / 255,
+            **kwargs,
+            device=device,
+        )
     elif metric_name == "QNR":
         return metric.QNR()
     elif metric_name == "BlurStrength":
@@ -204,6 +201,11 @@ def test_no_reference_metrics(
         "reduction": "mean",
     }
 
+    if (
+        metric_name == "NIQE" and channels == 2
+    ):  # NIQE only acts on 1- and 3-channel images.
+        return
+
     m = choose_no_reference_metric(metric_name, device, **metric_kwargs)
 
     test_image = test_image.to(device)
@@ -220,7 +222,7 @@ def test_no_reference_metrics(
 
     # test noise
     x_hat = dinv.physics.GaussianNoise(sigma=0.1, rng=rng)(x)
-    if metric_name not in ("BlurStrength"):  # BlurStrength not robust to noise
+    if metric_name not in ("BlurStrength",):  # BlurStrength not robust to noise.
         if not m.lower_better and not train_loss:
             assert m(x_hat).item() < m(x).item()
         else:
@@ -458,3 +460,96 @@ def test_snr(power_signal, power_noise):
             snr,
             torch.tensor(target_snr),
         ), f"Expected SNR {target_snr}, got {snr.item()}"
+
+
+class _MockDataset(torch.utils.data.Dataset):
+    def __init__(
+        self, num_samples: int, resolution: int, num_channels: int, dtype=torch.dtype
+    ):
+        super().__init__()
+        self.resolution = resolution
+        self.n_samples = num_samples
+        self.num_channels = num_channels
+        self.dtype = dtype
+
+    def __len__(self):
+        return self.n_samples
+
+    def __getitem__(self, index):
+        return torch.rand(
+            (self.num_channels, self.resolution, self.resolution), dtype=self.dtype
+        )
+
+
+@pytest.mark.parametrize("n_channels", (1, 3))
+@pytest.mark.parametrize("dtype", (torch.float16, torch.float32, torch.float64))
+def test_niqe_fit(n_channels: int, dtype: torch.dtype):
+    # General Note: Testing whether weights created are useful is too complex here.
+    # Therefore, we simply use dummy inputs to confirm
+    # (i) Errors are raised on certain inputs
+    # (ii) NIQE fit works as expected, without unexpected errors
+
+    # Test if informative error raised if weights=None and metric called
+    niqe = metric.NIQE(patch_size=32, patch_overlap=16, weights_path=None, dtype=dtype)
+    test_tensor = torch.ones((1, n_channels, 128, 128))
+    with pytest.raises(RuntimeError) as exc_info:
+        result = niqe.metric(test_tensor)
+    assert (
+        str(exc_info.value)
+        == "NIQE weights not loaded. Either pass weights_path at init or call create_weights first."
+    )
+    # Test fail on too low resolution
+    low_res_ds = _MockDataset(
+        num_samples=1, resolution=31, num_channels=n_channels, dtype=dtype
+    )
+    with pytest.raises(RuntimeError) as exc_info:
+        mu, cov = niqe.create_weights(low_res_ds)
+    assert (
+        str(exc_info.value)
+        == "No patches collected. Consider lowering sharpness_threshold or checking dataset."
+    )
+
+    ds = _MockDataset(
+        num_samples=2, resolution=40, num_channels=n_channels, dtype=dtype
+    )
+    mu, cov = niqe.create_weights(ds, sharpness_threshold=0.1)
+    assert mu.shape == torch.Size([36]) and cov.shape == torch.Size([36, 36])
+    assert mu.dtype == cov.dtype and mu.dtype == dtype
+    assert niqe.mu_p is not None and niqe.cov_p is not None
+    assert torch.equal(niqe.mu_p, mu) and torch.equal(niqe.cov_p, cov)
+
+
+def test_niqe_other_implementations():
+    results_other_implementations = {
+        "baboon": {"PyIQA": 5.738537788391113, "basicsr": 5.90808476428397},
+        "barbara": {"PyIQA": 4.465195178985596, "basicsr": 4.621669738931946},
+        "bridge": {"PyIQA": 2.5123531818389893, "basicsr": 2.5121616143607324},
+        "coastguard": {"PyIQA": 5.468789577484131, "basicsr": 5.282670788211967},
+        "comic": {"PyIQA": 4.254405498504639, "basicsr": 3.9421781727240037},
+        "face": {"PyIQA": 8.72698974609375, "basicsr": 9.189687465717332},
+        "flowers": {"PyIQA": 2.9371178150177, "basicsr": 3.094643463111649},
+        "foreman": {"PyIQA": 5.505414009094238, "basicsr": 5.381376548613031},
+        "lenna": {"PyIQA": 5.060755729675293, "basicsr": 5.484477923940196},
+        "man": {"PyIQA": 3.76017427444458, "basicsr": 3.662171460656096},
+        "monarch": {"PyIQA": 3.4054934978485107, "basicsr": 3.4319501014991114},
+        "pepper": {"PyIQA": 7.261951446533203, "basicsr": 6.261429595525796},
+        "ppt3": {"PyIQA": 5.532331466674805, "basicsr": 5.300301903526748},
+        "zebra": {"PyIQA": 3.379080295562744, "basicsr": 3.339659586462774},
+    }
+    dinv.datasets.Set14HR(root="set14_niqe_test", download=True)
+    niqe = dinv.loss.metric.NIQE()
+    for f in os.listdir("set14_niqe_test/Set14_HR"):
+        fname = f.split(".")[0]
+        img = Image.open(f"set14_niqe_test/Set14_HR/{f}").convert("RGB")
+        arr = np.asarray(img).transpose(2, 0, 1)
+        t = torch.tensor(arr).unsqueeze(0).to(dtype=torch.float32)
+        result_dinv = float(niqe.metric(t))
+        refs = results_other_implementations[fname]
+        assert abs(result_dinv - refs["PyIQA"]) <= 1.0, (
+            f"{fname}: deepinv={result_dinv:.4f}, PyIQA={refs['PyIQA']:.4f}, "
+            f"diff={abs(result_dinv - refs['PyIQA']):.4f}"
+        )
+        assert abs(result_dinv - refs["basicsr"]) <= 1.0, (
+            f"{fname}: deepinv={result_dinv:.4f}, basicsr={refs['basicsr']:.4f}, "
+            f"diff={abs(result_dinv - refs['basicsr']):.4f}"
+        )
