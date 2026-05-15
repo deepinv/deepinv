@@ -114,8 +114,8 @@ class FFDNet(Denoiser):
                     dtype=x.dtype,
                 )
         else:
-            noise_level_map = (
-                torch.ones((x.size(0), 1, *x.shape[2:]), device=x.device) * sigma
+            noise_level_map = torch.full(
+                (x.size(0), 1, *x.shape[2:]), sigma, dtype=x.dtype, device=x.device
             )
         if self.residual_denoising:
             noisy_img = x
