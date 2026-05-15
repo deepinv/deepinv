@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.models.DEAL` model (:gh:`1107` by `Hossein Alimohammadi`_)
 - Add install guidelines for different platforms (`pixi`, `conda`, `pip`, `uv`) in docs (:gh:`1108` by `Julian Tachella`_)
 - Add :class:`deepinv.optim.SIRT` algorithm for tomographic reconstruction (:gh:`985` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.optim.MLEM` algorithm for Poisson inverse problems (:gh:`1051` by `Thibaut Modrzyk`_)
@@ -167,6 +168,7 @@ Changed
 Fixed
 ^^^^^
 - Use the learning-free model for learning-free metrics in :class:`deepinv.Trainer` (:gh:`788` by `Jérémy Scanvic`_)
+- Fix device :func:`deepinv.utils.dirac_like` and ``deepinv.physics.blur.bilinear_filter``, ``deepinv.physics.blur.bicubic_filter`` and ``deepinv.physics.blur.gaussian_blur`` filters (:gh:`785` by `Julian Tachella`_)
 - Fix device :func:`deepinv.utils.dirac_like` and :func:`deepinv.physics.functional.bilinear_filter`, :func:`deepinv.physics.functional.bicubic_filter` and :func:`deepinv.physics.functional.gaussian_blur` filters (:gh:`785` by `Julian Tachella`_)
 - Fix positivity + batching gamma least squares solvers (:gh:`785` by `Julian Tachella`_ and `Minh Hai Nguyen`_)
 - Fix and test :class:`deepinv.models.RAM` scaling issues (:gh:`785` by `Julian Tachella`_)
@@ -615,6 +617,7 @@ Changed
 .. _Tiberiu Sabau: https://github.com/tibisabau
 .. _Benoît Malézieux: https://github.com/bmalezieux
 .. _Paul Escande: https://pescande.perso.math.cnrs.fr/
+.. _Hossein Alimohammadi: https://github.com/Holimmo7
 .. _Laura C. Diaz-Delgado: https://github.com/LauraCD2
 .. _Paul Bernard: https://github.com/PAUL-BERNARD
 .. _Baptiste Legouix: https://github.com/blegouix

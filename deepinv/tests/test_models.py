@@ -27,6 +27,7 @@ MODEL_LIST_1_CHANNEL = [
     "promptir",
     "ncsnpp",
     "adinv.modelsunet",
+    "deal",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -138,6 +139,7 @@ def choose_denoiser(name, imsize):
             img_resolution=imsize[1],
             pretrained=None,
         )
+
     elif name == "adinv.modelsunet":
         out = dinv.models.ADMUNet(
             in_channels=imsize[0],
@@ -145,6 +147,17 @@ def choose_denoiser(name, imsize):
             img_resolution=imsize[1],
             pretrained=None,
         )
+
+    elif name == "deal":
+        out = dinv.models.DEAL(
+            sigma_denoiser=0.1,
+            lambda_reg=10.0,
+            max_iter=5,
+            auto_scale=False,
+            color=(imsize[0] == 3),
+            pretrained=None,
+        )
+
     elif name == "dsccp":
         out = dinv.models.DScCP()
     elif name == "bilateral":
