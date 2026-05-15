@@ -25,6 +25,7 @@ Changed
 - Update references for single pixel demo (:gh:`1151` by `Laura C. Diaz-Delgado`_)
 - Add changelog section to the contributing guidelines (:gh:`1153` by `Thibaut Modrzyk`_)
 - Unify patching / tiling and unpatching / un-tiling logic in physics and utils, with support for padding and non-overlapping patches. Add :func:`deepinv.utils.image_to_patches` and :func:`deepinv.utils.patches_to_image` utility functions, and refactor physics to use them instead of `unfold` (:gh:`1104` by `Minh Hai Nguyen`_)
+- New :class:`deepinv.loss.metric.NIQE` implementation, this drops PyIQA requirement, values given by NIQE vary between implementations (:gh:`911` by `Vicky De Ridder`_)
 
 Fixed
 ^^^^^
@@ -35,7 +36,6 @@ Fixed
 - Fix dimensions mismatch in :class:`deepinv.physics.TomographyWithAstra` with 3D phantoms (:gh:`1137` by `Baptiste Legouix`_)
 - Add warning and error handling for negative inputs in BlurFFT and Poisson noise (:gh:`1155` by `Thibaut Modrzyk`_)
 - Fix a bug in the custom backward of the least-squares solvers for non-leaf tensors (:gh:`1146` by `Minh Hai Nguyen`_)
-- New :class:`deepinv.loss.metric.NIQE` implementation, this drops PyIQA requirement, values given by NIQE vary between implementations (:gh:`911` by `Vicky De Ridder`_)
 
 v0.4.0
 ------
