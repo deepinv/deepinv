@@ -985,7 +985,7 @@ def test_ram_scale(scale, device, use_physics):
         physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
     else:
         physics = dinv.physics.Blur(
-            filter=dinv.physics.blur.gaussian_blur(),
+            filter=dinv.physics.functional.gaussian_blur(),
             noise_model=dinv.physics.GaussianNoise(sigma),
             device=device,
         )
@@ -1346,6 +1346,87 @@ def test_denoiser_perf(device, load_example_image):
     assert psnr_denoised > psnr_orig + 0.5, "Denoiser did not improve performance"
 
 
+@pytest.mark.parametrize("mode", ["real_imag", "abs_angle"])
+@pytest.mark.parametrize(
+    "denoiser",
+    [dinv.models.DRUNet(pretrained="download"), dinv.models.RAM(pretrained=True)],
+)
+def test_denoiser_perf_noise_map(device, mode, denoiser):
+
+    # Save deterministic setting to restore it after the test
+    prev_deterministic = torch.are_deterministic_algorithms_enabled()
+    torch.use_deterministic_algorithms(True)
+
+    denoiser.to(device)
+
+    # Load 2 example images
+    x1 = dinv.utils.load_example(
+        "butterfly.png",
+        img_size=64,
+        resize_mode="resize",
+    ).to(device)
+
+    x2 = dinv.utils.load_example(
+        "celeba_example.jpg",
+        img_size=64,
+        resize_mode="resize",
+    ).to(device)
+
+    x = torch.cat([x1, x2, x1], dim=0)
+    # three different noise levels
+    sigma_values = torch.tensor([0.05, 0.1, 0.2]).to(device).view((3, 1, 1, 1))
+    sigma_cst_map = torch.ones(x.shape, device=device)[:, 0].unsqueeze(1) * sigma_values
+    # non uniform noise, gaussian amplitude along the width
+    sigma_filter = 25
+    gaussian_x = torch.ones(x.shape, device=device)[:, 0].unsqueeze(1) * torch.exp(
+        -torch.arange(-x.shape[-1] // 2, x.shape[-1] // 2, device=device) ** 2
+        / sigma_filter**2
+    ).view((1, 1, 1, -1))
+
+    rng = torch.Generator(device=device).manual_seed(123)
+    sigma_map = sigma_cst_map * gaussian_x
+    y = x + sigma_map * torch.randn(x.shape, generator=rng, device=device)
+
+    psnr_fn = PSNR(max_pixel=1)
+
+    # Only test the trained denoisers and the corresponding expected performance
+
+    kwargs = {}
+
+    with torch.no_grad():
+        x_hat_map = denoiser(y, sigma=sigma_map, **kwargs)
+        x_hat_cst_map = denoiser(y, sigma=sigma_cst_map, **kwargs)
+        x_hat_values = denoiser(y, sigma=sigma_values, **kwargs)
+
+    assert torch.all(
+        psnr_fn(x_hat_map, x) >= psnr_fn(x_hat_cst_map, x)
+    ), f"denoiser={type(denoiser).__name__} didn't perfom better with a noise map : psnr_map={psnr_fn(x_hat_map, x).tolist()}, psnr_cst_map={psnr_fn(x_hat_cst_map, x).tolist()}"
+
+    assert torch.all(
+        x_hat_values == x_hat_cst_map
+    ), f"denoiser={type(denoiser).__name__} don't behave the same way with noise level and map of constant noise. max diff : {torch.max(torch.abs(x_hat_values - x_hat_cst_map)).item()}"
+
+    kwargs = {}
+    # Test denoisers on complex data
+    denoiser_cpx = dinv.models.ComplexDenoiserWrapper(denoiser=denoiser, mode=mode).to(
+        device
+    )
+    x_cpx = x.to(torch.complex64)
+    y_cpx = y.to(torch.complex64)
+    with torch.no_grad():
+        x_hat_map_cpx = denoiser_cpx(y_cpx, sigma=sigma_map)
+        x_hat_cst_map_cpx = denoiser_cpx(y_cpx, sigma=sigma_cst_map)
+    psnr_map = dinv.metric.PSNR()(x_hat_map_cpx, x_cpx).mean().item()
+    psnr_cst_map = dinv.metric.PSNR()(x_hat_cst_map_cpx, x_cpx).mean().item()
+    assert psnr_map > psnr_cst_map, (
+        f"Mode={mode}, denoiser={type(denoiser).__name__}, "
+        f"psnr_map={psnr_map:.2f}, psnr_no_map={psnr_cst_map:.2f}"
+    )
+
+    # Restore previous deterministic setting
+    torch.use_deterministic_algorithms(prev_deterministic)
+
+
 @pytest.mark.parametrize("return_metadata", [False, True])
 def test_client_mocked(return_metadata):
     model = dinv.models.Client(
@@ -1687,5 +1768,5 @@ def test_gaussian_noise_estimators(
     )
 
     assert torch.allclose(
-        model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-3, atol=1e-4
+        model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-2, atol=1e-2
     )

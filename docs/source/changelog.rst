@@ -14,6 +14,7 @@ New Features
 - Add the equivariant splitting loss :class:`deepinv.loss.EquivariantSplittingLoss` with equivariant reconstructors :class:`deepinv.models.EquivariantReconstructor` and virtual physics :class:`deepinv.physics.VirtualLinearPhysics` (:gh:`881` by `Jérémy Scanvic`_)
 - Add `DEEPINV_CACHE_DIR` environment variable to set the cache directory for datasets and pretrained weights (:gh:`1105` by `Minh Hai Nguyen`_)
 - NIQE weight fitting on custom datasets, using :class:`deepinv.loss.metric.NIQE.create_weights` (:gh:`911` by `Vicky De Ridder`_)
+- Extend :func:`deepinv.physics.functional.gaussian_blur` to 1D and 3D. Add :class:`deepinv.physics.generator.GaussianBlurGenerator` (:gh:`1152` by `Romain Vo`_)
 
 Changed
 ^^^^^^^
@@ -47,6 +48,7 @@ New Features
 - Add distributed computing framework with :class:`deepinv.distributed.DistributedContext`, :class:`deepinv.distributed.DistributedStackedPhysics`, :class:`deepinv.distributed.DistributedProcessing`, :class:`deepinv.distributed.DistributedDataFidelity` and :func:`deepinv.distributed.distribute` factory function. Supports multi-GPU/multi-process execution with physics-based and spatial tiling distribution strategies (:gh:`790`` by `Benoît Malézieux`_)
 - Add :class:`deepinv.loss.metric.CosineSimilarity` to the metrics (:gh:`944` by `Avithal Lautman`_)
 - New option to initialize 3D networks (DRUNet, DnCNN, DScCP) from pretrained 2D weights (:gh:`958` by `Romain Vo`_)
+- Add option to pass a noise level map to DRUNet and RAM (:gh:`1056` by `Thomas Boulanger`_)
 - Add :class:`deepinv.physics.TiledSpaceVaryingBlur` physics and :class:`deepinv.physics.generator.TiledBlurGenerator` (:gh:`1033` by `Minh Hai Nguyen`_ and `Paul Escande`_)
 
 Changed
@@ -166,7 +168,7 @@ Changed
 Fixed
 ^^^^^
 - Use the learning-free model for learning-free metrics in :class:`deepinv.Trainer` (:gh:`788` by `Jérémy Scanvic`_)
-- Fix device :func:`deepinv.utils.dirac_like` and :func:`deepinv.physics.blur.bilinear_filter`, :func:`deepinv.physics.blur.bicubic_filter` and :func:`deepinv.physics.blur.gaussian_blur` filters (:gh:`785` by `Julian Tachella`_)
+- Fix device :func:`deepinv.utils.dirac_like` and :func:`deepinv.physics.functional.bilinear_filter`, :func:`deepinv.physics.functional.bicubic_filter` and :func:`deepinv.physics.functional.gaussian_blur` filters (:gh:`785` by `Julian Tachella`_)
 - Fix positivity + batching gamma least squares solvers (:gh:`785` by `Julian Tachella`_ and `Minh Hai Nguyen`_)
 - Fix and test :class:`deepinv.models.RAM` scaling issues (:gh:`785` by `Julian Tachella`_)
 - Reduced CI python version tests (:gh:`746` by `Matthieu Terris`_)
