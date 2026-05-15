@@ -130,12 +130,24 @@ class RAM(Reconstructor, Denoiser):
             self.to(device)
 
     def load_from_hf(self):
-        hf_hub_download(repo_id="mterris/ram", filename="config.json")
 
-        weights_path = hf_hub_download(
-            repo_id="mterris/ram",
-            filename="ram.pth.tar",
-        )
+        repo_id = "mterris/ram"
+
+        try:
+            # Triggers HF download stats when online, if config.json is present.
+            hf_hub_download(repo_id=repo_id, filename="config.json")
+
+            weights_path = hf_hub_download(
+                repo_id=repo_id,
+                filename="ram.pth.tar",
+            )
+        except Exception:
+            # Allows loading from cache when offline.
+            weights_path = hf_hub_download(
+                repo_id=repo_id,
+                filename="ram.pth.tar",
+                local_files_only=True,
+            )
 
         self.load_state_dict(
             torch.load(weights_path, map_location="cpu"),
