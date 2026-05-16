@@ -2,4 +2,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://deepinv.github.io/deepinv/sitemap.xml
+Sitemap: https://deepinv.org/sitemap.xml

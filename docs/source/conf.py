@@ -74,7 +74,6 @@ intersphinx_mapping = {
     "torch": ("https://pytorch.org/docs/stable/", None),
     "torchvision": ("https://pytorch.org/vision/stable/", None),
     "python": ("https://docs.python.org/3.9/", None),
-    "deepinv": ("https://deepinv.github.io/deepinv/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
@@ -94,7 +93,7 @@ autodoc_inherit_docstrings = False
 # For bibtex
 bibtex_footbibliography_backrefs = True
 # for sitemap
-html_baseurl = "https://deepinv.github.io/deepinv/"
+html_baseurl = "https://deepinv.org/"
 html_extra_path = ["robots.txt"]
 # Include reStructuredText sources
 html_copy_source = True
@@ -311,7 +310,8 @@ sphinx_gallery_conf = {
     "ignore_pattern": ignore_pattern,
     "reference_url": {
         # The module you locally document uses None
-        "sphinx_gallery": None
+        "sphinx_gallery": None,
+        "deepinv": None,
     },
     # directory where function/class granular galleries are stored
     "backreferences_dir": "gen_modules/backreferences",

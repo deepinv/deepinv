@@ -5,7 +5,7 @@ Using state-of-the-art diffusion models from HuggingFace Diffusers with DeepInve
 This demo shows you how to use our wrapper
 :class:`deepinv.models.DiffusersDenoiserWrapper` to turn any SOTA models from the HuggingFace Hub to an image denoiser. It also can be used to perform unconditional image generation or for posterior sampling.
 
-See more about the `diffusers pipeline <https://huggingface.co/docs/diffusers/index>`_ and our posterior sampling `user guide <https://deepinv.github.io/deepinv/auto_examples/sampling/demo_diffusion_sde.html>`_.
+See more about the `diffusers pipeline <https://huggingface.co/docs/diffusers/index>`_ and our posterior sampling :ref:`user guide <sphx_glr_auto_examples_sampling_demo_diffusion_sde.py>`.
 
 .. note:: This example requires the `diffusers` and `transformers` package. You can install it via `pip install diffusers transformers`.
 
