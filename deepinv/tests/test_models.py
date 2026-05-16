@@ -27,6 +27,7 @@ MODEL_LIST_1_CHANNEL = [
     "promptir",
     "ncsnpp",
     "adinv.modelsunet",
+    "ffdnet",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -149,6 +150,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.DScCP()
     elif name == "bilateral":
         out = dinv.models.BilateralFilter()
+    elif name == "ffdnet":
+        out = dinv.models.FFDNet(img_channels=imsize[0], n_conv_layers=2, nf=16)
     else:
         raise Exception("Unknown denoiser")
 
@@ -353,6 +356,10 @@ def test_denoiser_color(imsize, device, denoiser):
     if denoiser in ["ncsnpp", "adinv.modelsunet"]:
         imsize = (imsize[0], (imsize[1] // 8) * 8, (imsize[2] // 8) * 8)
 
+    # FFDNet requires spatial size divisble 2
+    if denoiser in ["ffdnet"]:
+        imsize = (imsize[0], (imsize[1] // 2) * 2, (imsize[2] // 2) * 2)
+
     model = choose_denoiser(denoiser, imsize).to(device)
     torch.manual_seed(0)
     sigma = 0.2
@@ -375,7 +382,13 @@ def test_denoiser_gray(imsize_1_channel, device, denoiser):
                 (imsize_1_channel[1] // 8) * 8,
                 (imsize_1_channel[2] // 8) * 8,
             )
-
+        # FFDNet requires spatial size divisble 2
+        if denoiser in ["ffdnet"]:
+            imsize_1_channel = (
+                imsize_1_channel[0],
+                (imsize_1_channel[1] // 2) * 2,
+                (imsize_1_channel[2] // 2) * 2,
+            )
         model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
         torch.manual_seed(0)
@@ -447,6 +460,13 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
             imsize_1_channel[1] = 32
         if imsize_1_channel[2] % 8 > 0:
             imsize_1_channel[2] = 32
+    # FFDNet requires spatial size divisble 2
+    if denoiser in ["ffdnet"]:
+        imsize_1_channel = (
+            imsize_1_channel[0],
+            (imsize_1_channel[1] // 2) * 2,
+            (imsize_1_channel[2] // 2) * 2,
+        )
     model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
     torch.manual_seed(0)
@@ -627,31 +647,49 @@ def test_wavelet_decomposition(channels, dimension, is_complex, batch_size, devi
     assert torch.allclose(x, x_hat, rtol=tol, atol=tol)
 
 
-def test_drunet_inputs(imsize_1_channel, device):
+@pytest.mark.parametrize("dim", [2, 3])
+@pytest.mark.parametrize("spatial_size", [31, 32, 37, 40, 65])
+def test_drunet_inputs(dim, spatial_size, device):
     f = dinv.models.DRUNet(
-        in_channels=imsize_1_channel[0], out_channels=imsize_1_channel[0], device=device
+        in_channels=1,
+        out_channels=1,
+        nc=(4, 4, 4, 4),
+        nb=2,
+        dim=dim,
+        device=device,
+        pretrained=None,
     ).eval()
 
+    imsize = [1, *(spatial_size for _ in range(dim))]
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-    x = torch.ones(imsize_1_channel, device=device).unsqueeze(0)
+    x = torch.ones(imsize, device=device).unsqueeze(0)
     y = physics(x)
 
     # Case 1: sigma is a float
+    if dim == 3 and (spatial_size == 65):
+        with pytest.raises(NotImplementedError) as exc_info:
+            x_hat = f(y, sigma)
+        assert (
+            str(exc_info.value)
+            == "test_onesplit is not implemented yet for 3D. Please pass images with spatial shape smaller than 64, or multiple of 8 and larger than 31 to DRUNet."
+        )
+        return
     x_hat = f(y, sigma)
     assert x_hat.shape == x.shape
 
     # Case 2: sigma is a torch tensor with batch dimension
     batch_size = 3
-    x = torch.ones((batch_size, 1, 31, 37), device=device)
+    x = torch.ones((batch_size, *imsize), device=device)
     y = physics(x)
     sigma_tensor = torch.tensor([sigma] * batch_size).to(device)
     x_hat = f(y, sigma_tensor)
     assert x_hat.shape == x.shape
 
-    # Case 3: image has shape mulitple of 8
-    x = torch.ones((3, 1, 32, 40), device=device)
+    # Case 3: sigma is a torch tensor with shape (batch, 1, *x.shape[2:])
+    x = torch.ones((batch_size, *imsize), device=device)
+    sigma_tensor = torch.full((batch_size, 1, *imsize[1:]), sigma, device=device)
     y = physics(x)
     x_hat = f(y, sigma_tensor)
     assert x_hat.shape == x.shape
