@@ -1,0 +1,15 @@
+﻿StackedPhysicsDataFidelity
+==========================
+
+.. currentmodule:: deepinv.optim
+
+.. autoclass:: StackedPhysicsDataFidelity
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.optim.StackedPhysicsDataFidelity:
+
+.. minigallery:: deepinv.optim.StackedPhysicsDataFidelity
+    :add-heading: Examples using ``StackedPhysicsDataFidelity``:
