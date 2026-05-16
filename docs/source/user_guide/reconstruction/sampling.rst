@@ -34,7 +34,7 @@ The **forward-time SDE** is defined as follows, from time :math:`0` to :math:`T`
 
     d x_t = f(t) x_t dt + g(t) d w_t.
 
-where :math:`w_t` is a Brownian process. 
+where :math:`w_t` is a Brownian process.
 Let :math:`p_t` denote the distribution of the random vector :math:`x_t`.
 Under this forward process, we have that:
 
@@ -67,7 +67,7 @@ that is :math:`\denoiser{x+\sigma\omega}{\sigma} \approx \mathbb{E} [ x|x+\sigma
     Using a normalized noise levels :math:`\sigma(t)` and scalings :math:`s(t)` lets us use `any denoiser in the library <denoisers>`_
     trained for multiple noise levels assuming pixel values are in the range :math:`[0,1]`.
 
-Starting from a random point following the end-point distribution :math:`p_T` of the forward process, 
+Starting from a random point following the end-point distribution :math:`p_T` of the forward process,
 solving the reverse-time SDE gives us a sample of the data distribution :math:`p_0`.
 
 The base classes for defining a SDEs are :class:`deepinv.sampling.BaseSDE` and :class:`deepinv.sampling.DiffusionSDE`.
@@ -98,6 +98,8 @@ Solvers
 
 Once the SDE is defined, we can obtain an approximate sample with any of the following solvers:
 
+.. _sde_ode_solvers
+
 .. list-table:: SDE/ODE solvers
    :header-rows: 1
 
@@ -124,9 +126,9 @@ by the conditional score function :math:`\nabla \log p_t(x_t|y)`. The conditiona
 .. math::
     \nabla_{x_t} \log p_t(x_t | y) &= \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t \left(y \vert x_t \right) \\
                             &= \nabla_{x_t} \log p_t(x_t) + \frac{1}{s_t} \nabla_{\hat x_t} \log \hat p_t \left(y \vert \hat x_{t} = \frac{x_t}{s(t)} = x_0 + \sigma(t) \omega \right).
-    
-where :math:`\hat p_t` stands for the distribution of the unscaled data :math:`x_t / s(t)`. 
-The first term is the unconditional score function and can be approximated by using a denoiser as explained previously. 
+
+where :math:`\hat p_t` stands for the distribution of the unscaled data :math:`x_t / s(t)`.
+The first term is the unconditional score function and can be approximated by using a denoiser as explained previously.
 The second term is the conditional score function, which is untractable:
 
 .. math::
@@ -179,7 +181,7 @@ Uncertainty quantification
 
 Diffusion methods obtain a single sample per call. If multiple samples are required, the
 :class:`deepinv.sampling.DiffusionSampler` can be used to convert a diffusion method into a sampler that
-obtains multiple samples to compute posterior statistics such as the mean or variance. 
+obtains multiple samples to compute posterior statistics such as the mean or variance.
 It uses the helper class :class:`deepinv.sampling.DiffusionIterator` to interface diffusion samplers with :class:`deepinv.sampling.BaseSampling`.
 
 .. _mcmc:
@@ -232,7 +234,7 @@ A custom iterator needs to implement two methods:
 
 *   ``initialize_latent_variables(self, x_init, y, physics, data_fidelity, prior)``: This method sets up the initial state of your Markov chain. It receives the initial image estimate :math:`x_{\text{init}}`, measurements :math:`y`, the physics operator, data fidelity term, and prior. It should return a dictionary representing the initial state :math:`X_0`, which must include the image as ``{"x": x_init, ...}`` and can include any other latent variables your sampler requires. The default (non overridden) behavior is returning ``{"x":x_init}``
 
-*   ``forward(self, X, y, physics, data_fidelity, prior, iteration_number, **iterator_specific_params)``: This method defines a single step of your MCMC algorithm. It takes the previous state :math:`X` (a dictionary containing at least the previous image ``{"x": x, ...}``), measurements :math:`y`, the data fidelity, the prior, and returns the new state :math:`X_{next}` (again, a dictionary including ``{"x": x_next, ...}``). 
+*   ``forward(self, X, y, physics, data_fidelity, prior, iteration_number, **iterator_specific_params)``: This method defines a single step of your MCMC algorithm. It takes the previous state :math:`X` (a dictionary containing at least the previous image ``{"x": x, ...}``), measurements :math:`y`, the data fidelity, the prior, and returns the new state :math:`X_{next}` (again, a dictionary including ``{"x": x_next, ...}``).
 
 
 Some predefined iterators are provided:

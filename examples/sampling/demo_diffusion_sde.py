@@ -36,7 +36,7 @@ The (conditional) score function :math:`\nabla_{x_t} \log p_t(x_t | y)` can be d
 
 The first term is the score function of the unconditional SDE, which is typically approximated by an MMSE denoiser (`denoiser`) using the well-known Tweedie's formula, while the
 second term is approximated by the (noisy) data-fidelity term (`data_fidelity`).
-We implement various data-fidelity terms in `the user guide <https://deepinv.org/user_guide/reconstruction/sampling.html#id2>`_.
+We implement various data-fidelity terms in ref:`the user guide <sde_ode_solvers>`.
 
 .. note::
 
