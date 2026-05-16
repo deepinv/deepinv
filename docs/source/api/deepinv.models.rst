@@ -83,6 +83,9 @@ Model Utils
    deepinv.models.TimeAgnosticNet
    deepinv.models.TimeAveragingNet
    deepinv.models.Client
+   deepinv.models.AnscombeDenoiser
+   deepinv.models.generalized_anscombe_transform
+   deepinv.models.inverse_generalized_anscombe_transform
 
 .. autosummary::
    :toctree: stubs
