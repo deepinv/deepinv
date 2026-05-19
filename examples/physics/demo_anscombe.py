@@ -145,7 +145,7 @@ anscombe_denoiser = AnscombeDenoiser(drunet)
 
 # %%
 # Set up the plain DRUNet baselines (no Anscombe transform)
-# --------------------------------------------------------
+# ----------------------------------------------------------
 #
 # As baselines we apply DRUNet **directly** to the noisy measurement, using a
 # noise-level heuristic derived from the Poisson-Gaussian variance.
