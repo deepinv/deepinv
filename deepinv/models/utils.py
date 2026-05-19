@@ -25,7 +25,7 @@ def tensor2array(img: Tensor) -> np.ndarray:
 
 
 def array2tensor(img: np.ndarray) -> Tensor:
-    if len(img.shape) == 1:  # Grayscale case: back to (1,W,H)
+    if len(img.shape) == 2:  # Grayscale case: back to (1,W,H)
         out = torch.from_numpy(img).unsqueeze(0)
     else:  # All other cases: back to (C,W,H)
         out = torch.from_numpy(img).permute(2, 0, 1)
