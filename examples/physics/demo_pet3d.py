@@ -23,7 +23,7 @@ with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained t
     In this example, we consider the unnormalized case, which allows to obtain quantitative reconstructions (i.e., :math:`x` has real
     physical units). The operator also can be used in a normalized setting (forcing :math:`\|A\|_2=1` and normalizing counts to be between 0 and 1).
     See also the :ref:`normalized 2D PET example <sphx_glr_auto_examples_physics_demo_pet2d.py>`.
-    When using deep learning-based reconstruction methods, is often easier to consider the normalized case, but a special attention is required
+    When using deep learning-based reconstruction methods, it is often easier to consider the normalized case, but a special attention is required
     to denormalize the reconstructions and obtain physical units.
 
 .. tip::
@@ -145,14 +145,13 @@ dinv.utils.plot(
 # %%
 # Simulating measurements
 # -----------------------
-# We can generate measurements
 # The shape of measurements is approximately `(B, 1, N, N/2, R^2)` where
 # `N=num_lor_endpoints_per_side*num_sides` is the number of detectors per ring
 # and `R` is the number of rings.
 # This provides one measurement for every possible Line of Response (LOR), or in other words 'rays', connecting
 # two detectors in the scanner, which are arranged in a sinogram format, with the first axis
-# corresponding to the angle of the ray, the second axis corresponding to the distance of the ray to the center of the scanner,
-# and the last axis corresponding to the depth of the ray (i.e., which rings of detectors are connected by the ray).
+# corresponding to the angle of the ray, the second axis corresponding to the distance of the ray to the center of the field of view
+# and the last axis corresponding to the depth of the ray (i.e., which rings of detectors are connected by the ray)
 #
 # .. tip::
 #
@@ -199,7 +198,7 @@ dinv.utils.plot(
 # Backprojection and sensitivities
 # --------------------------------
 # We backproject the data to visualize the sensitivity map of the scanner.
-# The sensitivity map is defined as the back-projection of a sinogram of ones, which corresponds to the number of rays intersecting each voxel.
+# The sensitivity map is defined as the back-projection of a sinogram of ones :math:`s = A^\top \mathbf{1}`, which corresponds to the number of rays intersecting each voxel.
 #
 # Here we also obtain a simple linear least-squares reconstruction by using
 # :meth:`A_dagger <deepinv.physics.LinearPhysics.A_dagger>`.

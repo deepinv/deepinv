@@ -74,7 +74,7 @@ from array_api_compat import torch as torch_compat
 #      In this example, we normalize the forward operator :math:`\|A\|=1` (`normalize=True`) and
 #      the Poisson counts to be between 0 and 1 (`normalize_counts=True`), to simplify reconstruction.
 #      If you want to use the operator with real PET measurements, you will need to
-#      carefully handle the normalization. See also the :ref:`normalized 2D PET example <sphx_glr_auto_examples_physics_demo_pet2d.py>`.
+#      carefully handle the normalization. See also the :ref:`unnormalized 3D PET example <sphx_glr_auto_examples_physics_demo_pet3d.py>`.
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 img_size = (128, 128)
@@ -134,12 +134,11 @@ dinv.utils.plot([x, attenuation], titles=["Emission image", "Attenuation image"]
 # %%
 # Simulating measurements
 # -----------------------
-# We can generate measurements
 # The shape of measurements is approximately `(B, 1, N, N/2)` where
 # `N=num_lor_endpoints_per_side*num_sides` is the number of detectors per ring.
 # This provides one measurement for every possible Line of Response (LOR), or in other words 'rays', connecting
 # two detectors in the scanner, which are arranged in a sinogram format, with the first axis
-# corresponding to the angle of the ray and the second axis corresponding to the distance of the ray to the center of the scanner.
+# corresponding to the angle of the ray and the second axis corresponding to the distance of the ray to the center of the field of view.
 #
 # .. tip::
 #

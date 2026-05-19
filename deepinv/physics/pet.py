@@ -20,7 +20,7 @@ class PET(LinearPhysics):
 
     .. math::
 
-        y \sim \gamma \mathcal{P}(\frac{c \circ H(g*x) + b}{\gamma})
+        y \sim \gamma \mathcal{P}\left(\frac{c \circ H(g*x) + b}{\gamma}\right)
 
     where :math:`H \in \mathbb{R}_{+}^{m \times n}` is the projection operator,
     :math:`g \in \mathbb{R}_{+}^{n}` is a Gaussian blur kernel, :math:`x\in\mathbb{R}_{+}^{n}`
@@ -77,8 +77,8 @@ class PET(LinearPhysics):
     :param int radial_trim: radial trim of rays on the sides of the volume to improve efficiency.
     :param float gain: gain factor :math:`\gamma` for the Poisson noise model.
     :param bool normalize: If `True` the forward operator is normalized such that :math:`\|A\|=1`.
-    :param bool normalize_counts: If `False` the :math:`\gamma` term in front of the Poisson noise is removed,
-        that is the measurements are true counts.
+    :param bool normalize_counts: If `False` the :math:`\gamma` normalization term in front of the Poisson noise is removed,
+        so that the measurements :math:`y` are true integer counts.
     :param str | torch.device device: device to run the computations on, e.g. `"cpu"` or `"cuda"`
     :param torch.Tensor background: background sinogram :math:`b`, i.e. the expected number of background events in each LOR, with shape `(num_lors,)`
     :param torch.Tensor attenuation: attenuation map. Can be provided either in **image space** as :math:`\mu`
@@ -215,9 +215,9 @@ class PET(LinearPhysics):
         Apply the linear operator :math:`Ax=c \circ H(g*x)` to a signal :math:`x`
 
         :param torch.Tensor x: input image or volume
-        :param torch.Tensor add_background: whether to add background :math:`s`. By default, no background is added.
-        :param torch.Tensor background: If not `None`, update the background :math:`s` of the operator.
-        :param torch.Tensor attenuation: If not `None`, update the attenuation of the operator.
+        :param torch.Tensor add_background: whether to add background :math:`b`. By default, no background is added.
+        :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator.
+        :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator.
             The space (image or sinogram) is inferred automatically from the tensor shape.
 
         """
@@ -248,8 +248,8 @@ class PET(LinearPhysics):
         Apply the adjoint of the linear operator :math:`A^{\top}y` where :math:`A=c \circ H(g*\cdot)` to a sinogram :math:`y`
 
         :param torch.Tensor y: input sinogram
-        :param torch.Tensor attenuation: If not `None`, update the attenuation
-        :param torch.Tensor background: If not `None`, update the background
+        :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator
+        :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator
         """
         if y.shape[1] != 1:
             raise ValueError(
@@ -292,8 +292,8 @@ class PET(LinearPhysics):
         Generate PET measurements.
 
         :param torch.Tensor x: input image or volume
-        :param torch.Tensor attenuation: If not `None`, update the attenuation
-        :param torch.Tensor background: If not `None`, update the background
+        :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator
+        :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator
         """
         self.update_parameters(attenuation=attenuation, background=background)
         return self.noise_model(self.A(x, **kwargs, add_background=True))
@@ -320,7 +320,7 @@ class PET(LinearPhysics):
         image-space attenuation map :math:`\mu` and projected; otherwise it is treated as
         a sinogram-space attenuation :math:`c=\exp(-H\mu)` and used directly.
 
-        :param torch.Tensor attenuation: If not `None`, update the attenuation. Can be in
+        :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator. Can be in
             image space (shape matching `img_size`) or sinogram space.
         :param torch.Tensor background: If not `None`, update the background :math:`b`.
         """
@@ -467,7 +467,7 @@ class AdjointLinearSingleChannelOperator(torch.autograd.Function):
         # loop over all samples in the batch and apply linear operator
         # to the first channel
         for i in range(batch_size):
-            y[i, 0, ...] = operator.adjoint(x[i, ...].detach())
+            y[i, 0, ...] = operator.adjoint(x[i, 0, ...].detach())
 
         return y
 
@@ -499,7 +499,11 @@ class AdjointLinearSingleChannelOperator(torch.autograd.Function):
 
             batch_size = grad_output.shape[0]
             x = torch.zeros(
-                (batch_size,) + operator.out_shape,
+                (
+                    batch_size,
+                    1,
+                )
+                + operator.out_shape,
                 dtype=grad_output.dtype,
                 device=grad_output.device,
             )
@@ -507,6 +511,6 @@ class AdjointLinearSingleChannelOperator(torch.autograd.Function):
             # loop over all samples in the batch and apply linear operator
             # to the first channel
             for i in range(batch_size):
-                x[i, ...] = operator(grad_output[i, 0, ...].detach())
+                x[i, 0, ...] = operator(grad_output[i, 0, ...].detach())
 
             return x, None
