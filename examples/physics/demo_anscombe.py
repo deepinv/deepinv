@@ -5,7 +5,7 @@ Poisson-Gaussian Denoising with the Generalized Anscombe Transform
 This example demonstrates how to denoise images corrupted by
 :class:`Poisson-Gaussian noise <deepinv.physics.PoissonGaussianNoise>` using the
 :class:`Generalized Anscombe Transform (GAT) <deepinv.models.AnscombeDenoiser>`, which
-converts any Gaussian denoiser into a Poisson-Gaussian denoiser, :footcite:p:`makitalo2012optimal`.
+converts any Gaussian denoiser into a Poisson-Gaussian denoiser :footcite:p:`makitalo2012optimal`.
 
 We compare three approaches on a butterfly image:
 
@@ -38,9 +38,8 @@ variance of the Poisson-Gaussian noise to approximately :math:`\gamma^2`:
 
     z = 2\sqrt{\gamma y + \tfrac{3}{8}\gamma^2 + \sigma^2}.
 
-After applying the GAT the signal approximately follows :math:`\mathcal{N}(\cdot, \gamma^2)`,
-so any Gaussian denoiser trained at noise level :math:`\sigma_d` can be applied after
-rescaling :math:`z` by :math:`\sigma_d / \gamma`.  The **inverse GAT** maps back to the
+After applying the GAT the signal approximately follows a Gaussian distribution of standard deviation :math:`\gamma`,
+so any Gaussian denoiser trained at noise level :math:`\sigma_d=\gamma`.  The **inverse GAT** maps back to the
 original domain.  Setting :math:`u = z / \gamma`, it reads:
 
 .. math::
@@ -59,12 +58,12 @@ reads:
 
 .. math::
 
-    \hat{x} = \mathrm{IGAT}\!\left(\denoisername\!\left(z,\; \gamma\right)\right), \qquad z = \mathrm{GAT}(y).
+    \hat{x} = \mathrm{IGAT}\!\left(\denoisername\!\left(z,\; \sigma_d=\gamma\right)\right), \qquad z = \mathrm{GAT}(y).
 
 
 .. note::
 
-    The formula varies slightly from the one proposed in :footcite:p:`makitalo2012optimal`,
+    The formula varies slightly from the one proposed by :footcite:t:`makitalo2012optimal`,
     as the library considers a normalized Poisson-Gaussian noise model, :math:`y = \gamma \mathcal{P}(x/\gamma) + \epsilon`,
     whereas the authors consider :math:`y = \gamma \mathcal{P}(x) + \epsilon`.
 
@@ -98,7 +97,7 @@ x = load_example("butterfly.png", device=device, grayscale=True)
 # where :math:`\mathcal{P}(\lambda)` denotes a Poisson random variable with rate
 # :math:`\lambda`, :math:`x \geq 0` is the clean image, and :math:`\gamma > 0`
 # is the photon gain.  The variance of :math:`y` is signal-dependent:
-# :math:`\mathrm{Var}(y_i) = \gamma \, x_i`, making the noise **heteroscedastic**.
+# :math:`\mathrm{Var}(y_i) = \gamma \, x_i`, making the noise heteroscedastic.
 
 gain = 0.3  # photon gain gamma
 
@@ -145,45 +144,38 @@ drunet = DRUNet(in_channels=1, out_channels=1, device=device)
 anscombe_denoiser = AnscombeDenoiser(drunet)
 
 # %%
-# Set up the plain DRUNet baseline (no Anscombe transform)
+# Set up the plain DRUNet baselines (no Anscombe transform)
 # --------------------------------------------------------
 #
-# As a baseline we apply DRUNet **directly** to the noisy measurement, using a
-# global noise-level heuristic derived from the Poisson-Gaussian variance.
-# For Poisson-Gaussian noise, :math:`\mathrm{Var}(y_i) \approx \gamma \bar{x} + \sigma^2`,
+# As baselines we apply DRUNet **directly** to the noisy measurement, using a
+# noise-level heuristic derived from the Poisson-Gaussian variance.
+# For Poisson-Gaussian noise, :math:`\mathrm{Var}(y_i) \approx \gamma x_i + \sigma^2`,
 # so a reasonable single-number estimate of the noise standard deviation is:
 #
 # .. math::
 #
-#     \sigma_{\mathrm{approx}} = \sqrt{\bar{y} \cdot \gamma + \sigma^2},
+#     \sigma_i = \sqrt{y_i \gamma + \frac{3}{8}\gamma^2 + \sigma^2},
 #
-# where :math:`\bar{y}` is the mean intensity of the noisy observation (used as a proxy
-# for :math:`\bar{x}`).  For pure Poisson noise (:math:`\sigma = 0`) this reduces to
-# :math:`\sigma_{\mathrm{approx}} = \sqrt{\bar{y} \cdot \gamma}`.
-# This heuristic ignores the spatial heteroscedasticity of the Poisson variance
-# (brighter pixels are noisier), which the Anscombe transform explicitly corrects for.
+# For pure Poisson noise (:math:`\sigma = 0`) this reduces to
+# :math:`\sigma_i = \sqrt{(y_i + \frac{3}{8}\gamma) \cdot \gamma}`.
+#
+# We can construct two baselines with this approximation
+#
+# - **Global average** -- the spatially averaged noise standard deviation
+#   :math:`\bar{\sigma} = \mathrm{mean}_i(\sigma_i)` is applied uniformly to all pixels.
+# - **Space-varying noise maps** -- each pixel gets its own noise level :math:`\sigma_i`, which is fed to DRUNet as a spatial noise map.
 
 # %%
 # Denoise -- pure Poisson scenario
 # --------------------------------
-#
-# For pure Poisson noise we set :math:`\sigma \approx 0` and pass only
-# :math:`\gamma` to both denoisers.
-#
-# We compare three DRUNet variants:
-#
-# * **Space-varying noise maps** -- each pixel gets its own
-#   :math:`\sigma_i = \sqrt{y_i \cdot \gamma}`.
-# * **Global average** -- the spatially averaged noise standard deviation
-#   :math:`\bar{\sigma} = \mathrm{mean}(\sigma_i)` is applied uniformly.
-# * **Anscombe + DRUNet** -- variance-stabilized via the GAT before denoising.
+# We first evaluate all methods on the pure Poisson case with :math:`\gamma=0.3` and :math:`\sigma=0`
 
 with torch.no_grad():
     # Anscombe + DRUNet
     x_hat_anscombe_poisson = anscombe_denoiser(y_poisson, gain=gain, sigma=1e-6)
 
     # Plain DRUNet with space-varying approximate noise maps
-    sigma_approx_poisson = (y_poisson * gain).clamp(min=1e-6) ** 0.5
+    sigma_approx_poisson = ((3 / 8 * gain + y_poisson) * gain).clamp(min=1e-6) ** 0.5
     x_hat_drunet_poisson = drunet(y_poisson, sigma_approx_poisson)
 
     # Plain DRUNet with global (spatially averaged) noise level
@@ -192,66 +184,14 @@ with torch.no_grad():
     )
     x_hat_drunet_global_poisson = drunet(y_poisson, sigma_global_poisson)
 
-# %%
-# Case 2: Mixed Poisson-Gaussian noise
-# -------------------------------------
-#
-# In many real imaging systems (e.g. sCMOS cameras, low-light photography) an
-# additional Gaussian read-out noise :math:`\varepsilon \sim \mathcal{N}(0, \sigma^2 I)`
-# is superimposed on the Poisson photon noise:
-#
-# .. math::
-#
-#     y = \gamma \, z + \varepsilon, \qquad z \sim \mathcal{P}\!\left(\tfrac{x}{\gamma}\right),\;
-#     \varepsilon \sim \mathcal{N}(0, \sigma^2 I).
-#
-# The pixel-wise variance is now :math:`\mathrm{Var}(y_i) = \gamma \, x_i + \sigma^2`,
-# combining signal-dependent Poisson variance with a constant Gaussian floor.
-# The **Generalized** Anscombe Transform accounts for both terms and still
-# stabilizes the variance to approximately :math:`\gamma^2`.
-
-sigma_pg = 0.1  # Gaussian read-out noise sigma
-
-physics_pg = dinv.physics.Denoising(
-    dinv.physics.PoissonGaussianNoise(gain=gain, sigma=sigma_pg, clip_positive=True),
-    device=device,
-)
-y_pg = physics_pg(x)
-
-
-with torch.no_grad():
-    # Anscombe + DRUNet
-    x_hat_anscombe_pg = anscombe_denoiser(y_pg, gain=gain, sigma=sigma_pg)
-
-    # Plain DRUNet with space-varying approximate noise maps
-    sigma_approx_maps_pg = (y_pg * gain + sigma_pg**2).clamp(min=1e-6) ** 0.5
-    x_hat_drunet_pg = drunet(y_pg, sigma_approx_maps_pg)
-
-    # Plain DRUNet with global (spatially averaged) noise level
-    sigma_global_pg = sigma_approx_maps_pg.mean() * torch.ones_like(
-        sigma_approx_maps_pg
-    )
-    x_hat_drunet_global_pg = drunet(y_pg, sigma_global_pg)
-
-# %%
-# Compute PSNR metrics
-# --------------------
 
 psnr = dinv.metric.PSNR()
 
+# compute PSNR metrics
 psnr_noisy_poisson = psnr(y_poisson, x).item()
 psnr_anscombe_poisson = psnr(x_hat_anscombe_poisson, x).item()
 psnr_drunet_poisson = psnr(x_hat_drunet_poisson, x).item()
 psnr_drunet_global_poisson = psnr(x_hat_drunet_global_poisson, x).item()
-
-psnr_noisy_pg = psnr(y_pg, x).item()
-psnr_anscombe_pg = psnr(x_hat_anscombe_pg, x).item()
-psnr_drunet_pg = psnr(x_hat_drunet_pg, x).item()
-psnr_drunet_global_pg = psnr(x_hat_drunet_global_pg, x).item()
-
-# %%
-# Visualize results -- pure Poisson noise
-# ----------------------------------------
 
 dinv.utils.plot(
     [
@@ -272,8 +212,41 @@ dinv.utils.plot(
 )
 
 # %%
-# Visualize results -- mixed Poisson-Gaussian noise
-# -------------------------------------------------
+# Case 2: Mixed Poisson-Gaussian noise
+# -------------------------------------
+# Secondly, we evaluate all methods on the pure Poisson case with :math:`\gamma=0.3` and :math:`\sigma=0.1`
+
+sigma_pg = 0.1  # Gaussian read-out noise sigma
+
+physics_pg = dinv.physics.Denoising(
+    dinv.physics.PoissonGaussianNoise(gain=gain, sigma=sigma_pg, clip_positive=True),
+    device=device,
+)
+y_pg = physics_pg(x)
+
+
+with torch.no_grad():
+    # Anscombe + DRUNet
+    x_hat_anscombe_pg = anscombe_denoiser(y_pg, gain=gain, sigma=sigma_pg)
+
+    # Plain DRUNet with space-varying approximate noise maps
+    sigma_approx_maps_pg = ((gain * 3 / 8 + y_pg) * gain + sigma_pg**2).clamp(
+        min=1e-6
+    ) ** 0.5
+    x_hat_drunet_pg = drunet(y_pg, sigma_approx_maps_pg)
+
+    # Plain DRUNet with global (spatially averaged) noise level
+    sigma_global_pg = sigma_approx_maps_pg.mean() * torch.ones_like(
+        sigma_approx_maps_pg
+    )
+    x_hat_drunet_global_pg = drunet(y_pg, sigma_global_pg)
+
+
+# compute PSNR metrics
+psnr_noisy_pg = psnr(y_pg, x).item()
+psnr_anscombe_pg = psnr(x_hat_anscombe_pg, x).item()
+psnr_drunet_pg = psnr(x_hat_drunet_pg, x).item()
+psnr_drunet_global_pg = psnr(x_hat_drunet_global_pg, x).item()
 
 dinv.utils.plot(
     [x, y_pg, x_hat_drunet_global_pg, x_hat_drunet_pg, x_hat_anscombe_pg],
@@ -288,32 +261,14 @@ dinv.utils.plot(
 )
 
 # %%
-# Print PSNR summary
-# ------------------
-
-print(f"\nPure Poisson  (gamma={gain}):")
-print(f"  Noisy               : {psnr_noisy_poisson:.2f} dB")
-print(f"  DRUNet global sigma : {psnr_drunet_global_poisson:.2f} dB")
-print(f"  DRUNet noise maps   : {psnr_drunet_poisson:.2f} dB")
-print(f"  Anscombe            : {psnr_anscombe_poisson:.2f} dB")
-
-print(f"\nMixed Poisson-Gaussian  (gamma={gain}, sigma={sigma_pg}):")
-print(f"  Noisy               : {psnr_noisy_pg:.2f} dB")
-print(f"  DRUNet global sigma : {psnr_drunet_global_pg:.2f} dB")
-print(f"  DRUNet noise maps   : {psnr_drunet_pg:.2f} dB")
-print(f"  Anscombe            : {psnr_anscombe_pg:.2f} dB")
-
-# %%
 # Conclusion
 # ----------
 #
 # All three DRUNet variants successfully suppress the Poisson-Gaussian noise.
 #
 # * **DRUNet with global sigma** -- uses a single spatially-averaged noise level
-#   :math:`\bar{\sigma} = \mathrm{mean}_i(\sqrt{y_i \cdot \gamma + \sigma^2})`.
 #   This is the simplest baseline; it treats the noise as spatially uniform.
-# * **DRUNet with noise maps** -- feeds a per-pixel noise-level map
-#   :math:`\sigma_i = \sqrt{y_i \cdot \gamma + \sigma^2}` to DRUNet, providing
+# * **DRUNet with noise maps** -- feeds a per-pixel noise-level map to DRUNet, providing
 #   spatial heteroscedasticity information but still operating in the original domain.
 # * :class:`AnscombeDenoiser <deepinv.models.AnscombeDenoiser>` is a
 #   **zero-cost upgrade**: wrap any off-the-shelf Gaussian denoiser to handle

@@ -20,7 +20,7 @@ def generalized_anscombe_transform(
 
     .. note::
 
-        The formula varies slightly from the one proposed in :footcite:p:`makitalo2012optimal`,
+        The formula varies slightly from the one proposed by :footcite:t:`makitalo2012optimal`,
         as the library considers a normalized Poisson-Gaussian noise model, :math:`y = \gamma \mathcal{P}(x/\gamma) + \epsilon`,
         whereas the authors consider :math:`y = \gamma \mathcal{P}(x) + \epsilon`.
 
@@ -127,9 +127,9 @@ class AnscombeDenoiser(Denoiser):
 
         >>> import deepinv as dinv
         >>> import torch
-        >>> from deepinv.models import AnscombeDenoiserWrapper, DRUNet
+        >>> from deepinv.models import AnscombeDenoiser, DRUNet
         >>> denoiser = DRUNet(pretrained=None)
-        >>> anscombe_denoiser = AnscombeDenoiserWrapper(denoiser, sigma_denoiser=25/255)
+        >>> anscombe_denoiser = AnscombeDenoiser(denoiser, sigma_denoiser=25/255)
         >>> y = torch.rand(1, 3, 32, 32)
         >>> with torch.no_grad():
         ...     y_denoised = anscombe_denoiser(y, sigma=0.05, gain=0.1)
