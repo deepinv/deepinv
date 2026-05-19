@@ -23,6 +23,7 @@ OPERATORS = [
     "fastCS",
     "inpainting",
     "inpainting_clone",
+    "inpainting_gain",
     "demosaicing",
     "denoising",
     "colorize",
@@ -80,6 +81,7 @@ OPERATORS = [
     "ptychography_linear",
     "2DParallelBeamCT",
     "2DFanBeamCT",
+    "super_resolution_3d",
     "VirtualLinearPhysics",
 ]
 
@@ -178,6 +180,13 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         params = ["mask"]
     elif name == "inpainting":
         p = dinv.physics.Inpainting(img_size=img_size, mask=0.5, device=device, rng=rng)
+        params = ["mask"]
+    elif name == "inpainting_gain":
+        # mask with non-binary values
+        mask = torch.rand((1,) + img_size, device=device)
+        p = dinv.physics.Inpainting(
+            img_size=img_size, mask=mask, device=device, rng=rng
+        )
         params = ["mask"]
     elif name == "inpainting_clone":
         p = dinv.physics.Inpainting(img_size=img_size, mask=0.5, device=device, rng=rng)
@@ -448,6 +457,19 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             filter=None,
         )
         params = []
+    elif name == "super_resolution_3d":
+        img_size = (1, 4, 8, 6) if imsize is None else imsize  # C, D, H, W
+        factor = 2
+        norm = 1.0 / factor**3  # 3D downsampling reduces energy by factor^3
+        p = dinv.physics.Downsampling(
+            img_size=img_size,
+            factor=factor,
+            padding="circular",
+            device=device,
+            filter="bilinear",
+            dtype=dtype,
+        )
+        params = ["filter"]
     elif name == "super_resolution_matlab":
         img_size = (1, 32, 32)
         factor = 2
@@ -1466,76 +1488,76 @@ def test_tomography(
 @pytest.mark.parametrize(
     "padding", ("valid", "constant", "circular", "reflect", "replicate")
 )
-def test_downsampling_adjointness(padding, device):
+@pytest.mark.parametrize(
+    "im_shape, filter_shape",
+    [
+        # 2D — single-channel image, single-channel filter
+        ((1, 5, 5), (1, 3, 3)),
+        ((1, 6, 6), (1, 4, 4)),
+        ((1, 5, 6), (1, 3, 4)),
+        ((1, 6, 5), (1, 4, 3)),
+        # 2D — multi-channel image, single-channel filter
+        ((3, 5, 5), (1, 3, 3)),
+        ((3, 6, 5), (1, 4, 3)),
+        # 2D — multi-channel image, multi-channel filter
+        ((3, 5, 5), (3, 3, 3)),
+        ((3, 6, 6), (3, 4, 4)),
+        # 3D — single-channel image, single-channel filter (small volumes)
+        ((1, 4, 5, 5), (1, 3, 3, 3)),
+        ((1, 4, 6, 6), (1, 3, 4, 4)),
+        ((1, 5, 5, 6), (1, 3, 3, 4)),
+        # 3D — multi-channel image, multi-channel filter
+        ((3, 4, 5, 5), (3, 3, 3, 3)),
+        ((3, 4, 6, 5), (3, 3, 4, 3)),
+    ],
+)
+def test_downsampling_adjointness(im_shape, filter_shape, padding, device, rng):
     r"""
-    Tests downsampling+blur operator adjointness for various image and filter sizes
+    Tests Downsampling+blur operator adjointness for various image and filter sizes,
+    in both 2D and 3D, for all supported padding modes.
 
-    :param device: (torch.device) cpu or cuda:x
+    :param tuple[int] im_shape: (C, *spatial) image shape (2D or 3D)
+    :param tuple filter_shape: (C_filt, *kernel_spatial) filter shape matching spatial dims
+    :param str padding: convolution padding mode
+    :param torch.device device: cpu or cuda:x
+    :param torch.Generator rng:
     """
-    torch.manual_seed(0)
+    x = torch.rand(1, *im_shape, device=device, generator=rng)
+    h = torch.rand(1, *filter_shape, device=device, generator=rng)
 
-    nchannels = ((1, 1), (3, 1), (3, 3))
-
-    for nchan_im, nchan_filt in nchannels:
-        size_im = (
-            [nchan_im, 5, 5],
-            [nchan_im, 6, 6],
-            [nchan_im, 5, 6],
-            [nchan_im, 6, 5],
-        )
-        size_filt = (
-            [nchan_filt, 3, 3],
-            [nchan_filt, 4, 4],
-            [nchan_filt, 3, 4],
-            [nchan_filt, 4, 3],
-        )
-
-        for sim in size_im:
-            for sfil in size_filt:
-                x = torch.rand(1, *sim).to(device)
-                h = torch.rand(1, *sfil).to(device)
-
-                physics = dinv.physics.Downsampling(
-                    sim, filter=h, padding=padding, device=device
-                )
-
-                Ax = physics.A(x)
-                y = torch.rand_like(Ax)
-                Aty = physics.A_adjoint(y)
-                Axy = torch.sum(Ax * y)
-                Atyx = torch.sum(Aty * x)
-
-                assert torch.abs(Axy - Atyx) < 1e-3
+    physics = dinv.physics.Downsampling(
+        im_shape, filter=h, padding=padding, device=device
+    )
+    assert physics.adjointness_test(x).abs() < 1e-3
 
 
-def test_prox_l2_downsampling(device):
-    nchannels = ((1, 1), (3, 1), (3, 3))
+@pytest.mark.parametrize("h", ["bicubic", "bilinear", "sinc"])
+@pytest.mark.parametrize(
+    "size_im",
+    [
+        (1, 16, 16),  # 2D, single channel
+        (3, 16, 16),  # 2D, multi-channel
+        (1, 4, 8, 8),  # 3D, single channel (small)
+        (3, 4, 8, 8),  # 3D, multi-channel  (small)
+    ],
+)
+def test_prox_l2_downsampling(size_im, h, device):
+    r"""
+    Tests that the FFT-accelerated prox_l2 formula matches the conjugate-gradient
+    fallback for the Downsampling operator with circular padding, in both 2D and 3D.
+    """
+    x = torch.rand(size_im, device=device)[None]  # add batch dim
 
-    for nchan_im, nchan_filt in nchannels:
-        size_im = ([nchan_im, 16, 16],)
-        filters = ["bicubic", "bilinear", "sinc"]
+    physics = dinv.physics.Downsampling(
+        size_im, filter=h, padding="circular", device=device
+    )
 
-        paddings = ("circular",)
+    y = physics(x)
+    # Test the FFT speedup formula of prox against the CG fallback
+    x_prox1 = physics.prox_l2(physics.A_adjoint(y) * 0.0, y, gamma=1e5, use_fft=True)
+    x_prox2 = physics.prox_l2(physics.A_adjoint(y) * 0.0, y, gamma=1e5, use_fft=False)
 
-        for pad in paddings:
-            for sim in size_im:
-                for h in filters:
-                    x = torch.rand(sim)[None].to(device)
-
-                    physics = dinv.physics.Downsampling(
-                        sim, filter=h, padding=pad, device=device
-                    )
-
-                    y = physics(x)
-                    # next we test the speedup formula of prox with fft
-                    x_prox1 = physics.prox_l2(
-                        physics.A_adjoint(y) * 0.0, y, gamma=1e5, use_fft=True
-                    )
-                    x_prox2 = physics.prox_l2(
-                        physics.A_adjoint(y) * 0.0, y, gamma=1e5, use_fft=False
-                    )
-
-                    assert torch.abs(x_prox1 - x_prox2).max() < 1e-2
+    assert torch.abs(x_prox1 - x_prox2).max() < 1e-2
 
 
 @pytest.mark.parametrize("imsize", ((8, 16),))  # must be even here
