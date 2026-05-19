@@ -35,6 +35,7 @@ Fixed
 - Fix dimensions mismatch in :class:`deepinv.physics.TomographyWithAstra` with 3D phantoms (:gh:`1137` by `Baptiste Legouix`_)
 - Add warning and error handling for negative inputs in BlurFFT and Poisson noise (:gh:`1155` by `Thibaut Modrzyk`_)
 - Fix a bug in the custom backward of the least-squares solvers for non-leaf tensors (:gh:`1146` by `Minh Hai Nguyen`_)
+- Fix a bug that caused :class:`deepinv.models.BM3D` to silently break for multi-channel images when the number of channels is not 3 (:gh:`1192` by `Kaibo Tang`_)
 
 
 v0.4.0
@@ -619,3 +620,4 @@ Changed
 .. _Laura C. Diaz-Delgado: https://github.com/LauraCD2
 .. _Paul Bernard: https://github.com/PAUL-BERNARD
 .. _Baptiste Legouix: https://github.com/blegouix
+.. _Kaibo Tang: https://github.com/kvttt
