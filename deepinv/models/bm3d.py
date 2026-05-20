@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-from scipy.fft import dct
 import torch
 from torch import Tensor
 from .base import Denoiser
@@ -89,6 +88,12 @@ def get_wavelet_matrix_torch(n, wavelet, level=None):
 
 
 def get_dct_matrix(n, norm="ortho"):
+    try:
+        from scipy.fft import dct
+    except ImportError:  # pragma: no cover
+        raise ImportError(
+            "scipy package not found. Please install it with `pip install scipy`."
+        )
     matrix = dct(np.eye(n, dtype=np.float32), norm=norm, axis=0)
     inverse = matrix.T if norm == "ortho" else np.linalg.inv(matrix)
     return torch.as_tensor(matrix, dtype=torch.float32), torch.as_tensor(
