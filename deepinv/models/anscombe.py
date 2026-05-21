@@ -129,7 +129,7 @@ class AnscombeDenoiser(Denoiser):
         >>> import torch
         >>> from deepinv.models import AnscombeDenoiser, DRUNet
         >>> denoiser = DRUNet(pretrained=None)
-        >>> anscombe_denoiser = AnscombeDenoiser(denoiser, sigma_denoiser=25/255)
+        >>> anscombe_denoiser = AnscombeDenoiser(denoiser)
         >>> y = torch.rand(1, 3, 32, 32)
         >>> with torch.no_grad():
         ...     y_denoised = anscombe_denoiser(y, sigma=0.05, gain=0.1)
