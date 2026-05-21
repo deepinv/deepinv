@@ -98,7 +98,7 @@ Solvers
 
 Once the SDE is defined, we can obtain an approximate sample with any of the following solvers:
 
-.. _sde_ode_solvers
+.. _sde_ode_solvers:
 
 .. list-table:: SDE/ODE solvers
    :header-rows: 1
