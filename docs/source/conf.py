@@ -190,6 +190,10 @@ try:
     import astra
 except ImportError:
     astra = None
+try:
+    import zea
+except ImportError:
+    zea = None
 cuda_available = torch.cuda.is_available()
 """
 
@@ -294,7 +298,7 @@ class MySortKey(_SortKey):
 
 
 # List of files that require a GPU to run
-gpu_dependent_files = [".*demo_astra_tomography.py"]
+gpu_dependent_files = [".*demo_astra_tomography.py", ".*demo_zea_ultrasound.py"]
 # Create the ignore pattern based on GPU availability
 ignore_pattern = (
     rf"__init__\.py|".join(gpu_dependent_files)
