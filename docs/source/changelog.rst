@@ -37,6 +37,7 @@ Fixed
 - Fix a bug in the custom backward of the least-squares solvers for non-leaf tensors (:gh:`1146` by `Minh Hai Nguyen`_)
 - Fix :class:`deepinv.sampling.DPS` instantiation and refactor to use new SDE interface (:gh:`1127` by `Minh Hai Nguyen`_) 
 - Fix a bug that caused :class:`deepinv.models.BM3D` to silently break for multi-channel images when the number of channels is not 3 (:gh:`1192` by `Kaibo Tang`_)
+- Fix option "mode" for the wavelet transform, which was not correctly propagated; add this option in :class:`deepinv.models.WaveletDictDenoiser` (:gh:`1162` by `Irène Waldspurger`_)
 
 
 v0.4.0
@@ -622,3 +623,4 @@ Changed
 .. _Paul Bernard: https://github.com/PAUL-BERNARD
 .. _Baptiste Legouix: https://github.com/blegouix
 .. _Kaibo Tang: https://github.com/kvttt
+.. _Irène Waldspurger: https://github.com/IWalds
