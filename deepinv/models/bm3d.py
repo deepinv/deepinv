@@ -14,6 +14,7 @@ class BM3D(Denoiser):
 
     The BM3D denoiser was introduced by :footcite:t:`dabov2007image`.
 
+    :param bool use_legacy: Whether to use the legacy implementation of BM3D. Default: True
 
     .. note::
 
@@ -21,10 +22,14 @@ class BM3D(Denoiser):
         (no parallelization). Furthermore, it does not support backpropagation.
 
     .. warning::
-
-        This module wraps the BM3D denoiser from the `BM3D python package <https://pypi.org/project/bm3d/>`_.
+        When ``use_legacy=True``, the denoiser calls the BM3D denoiser from the `BM3D python package <https://pypi.org/project/bm3d/>`_.
         It can be installed with ``pip install bm3d``.
+        This implementation always runs on the CPU regardless of the device of the input tensor.
 
+        When ``use_legacy=False``, the denoiser calls a custom re-implementation of BM3D.
+        It requires ``ptwt`` and ``scipy``, which can be installed with ``pip install ptwt scipy``.
+        This implementation runs on the same device as the input tensor, and is significantly faster than the legacy implementation, especially when the input tensor is on the GPU.
+        However, it may produce slightly different results than the legacy implementation.
     """
 
     def __init__(self, use_legacy: bool = True):
