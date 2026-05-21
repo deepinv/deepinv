@@ -51,7 +51,7 @@ class BM3D(Denoiser):
                 )
             else:
                 out[i, :, :, :] = bm3d_fast(
-                    tensor2array(x[i, :, :, :]),
+                    x[i, :, :, :].permute(1, 2, 0),
                     sigma[i].item(),
                     patch_size=kwargs.get("patch_size", 8),
                     ht_group_size=kwargs.get("ht_group_size", 16),
@@ -62,7 +62,7 @@ class BM3D(Denoiser):
                     hard_threshold=kwargs.get("hard_threshold", 3.0),
                     wiener_mu2=kwargs.get("wiener_mu2", 0.4),
                     chunk_size=kwargs.get("chunk_size", 2048),
-                )
+                ).permute(2, 0, 1)
         return out
 
 
