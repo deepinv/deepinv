@@ -126,7 +126,12 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - C=1, 2, 3
      - Yes
      - No
-
+   * - :class:`deepinv.models.FFDNet`
+     - CNN
+     - Any C; H,W must be even
+     - No
+     - Yes
+     - No
 .. _non-learned-denoisers:
 
 Classical denoisers

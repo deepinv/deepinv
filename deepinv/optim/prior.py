@@ -386,6 +386,7 @@ class WaveletPrior(Prior):
                 non_linearity=self.non_linearity,
                 is_complex=self.is_complex,
                 wvdim=self.wvdim,
+                mode=self.mode,
             )
         elif type(self.wv) == list:
             self.WaveletDenoiser = WaveletDictDenoiser(
@@ -395,6 +396,7 @@ class WaveletPrior(Prior):
                 non_linearity=self.non_linearity,
                 is_complex=self.is_complex,
                 wvdim=self.wvdim,
+                mode=self.mode,
             )
         else:
             raise ValueError(
