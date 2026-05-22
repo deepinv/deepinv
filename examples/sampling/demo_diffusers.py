@@ -31,7 +31,7 @@ from deepinv.optim import ZeroFidelity
 
 # We can wrap any diffusers model as a DeepInv denoiser using one line of code:
 denoiser = DiffusersDenoiserWrapper(
-    mode_id="google/ddpm-ema-celebahq-256", device=device
+    model_id="google/ddpm-ema-celebahq-256", device=device
 )
 
 # Load an example image
