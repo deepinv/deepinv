@@ -14,6 +14,7 @@ New Features
 - Add the equivariant splitting loss :class:`deepinv.loss.EquivariantSplittingLoss` with equivariant reconstructors :class:`deepinv.models.EquivariantReconstructor` and virtual physics :class:`deepinv.physics.VirtualLinearPhysics` (:gh:`881` by `Jérémy Scanvic`_)
 - Add `DEEPINV_CACHE_DIR` environment variable to set the cache directory for datasets and pretrained weights (:gh:`1105` by `Minh Hai Nguyen`_)
 - Add :class:`deepinv.models.SRResNet` (the generator of SRGAN) for single image super-resolution. (:gh:`1164` by `Vicky De Ridder`_)
+- Add :class:`deepinv.models.FFDNet` for non-blind Gaussian denoising (:gh:`1174` by `Vicky De Ridder`_)
 - Extend :func:`deepinv.physics.functional.gaussian_blur` to 1D and 3D. Add :class:`deepinv.physics.generator.GaussianBlurGenerator` (:gh:`1152` by `Romain Vo`_)
 
 Changed
@@ -35,6 +36,9 @@ Fixed
 - Fix dimensions mismatch in :class:`deepinv.physics.TomographyWithAstra` with 3D phantoms (:gh:`1137` by `Baptiste Legouix`_)
 - Add warning and error handling for negative inputs in BlurFFT and Poisson noise (:gh:`1155` by `Thibaut Modrzyk`_)
 - Fix a bug in the custom backward of the least-squares solvers for non-leaf tensors (:gh:`1146` by `Minh Hai Nguyen`_)
+- Fix :class:`deepinv.sampling.DPS` instantiation and refactor to use new SDE interface (:gh:`1127` by `Minh Hai Nguyen`_) 
+- Fix a bug that caused :class:`deepinv.models.BM3D` to silently break for multi-channel images when the number of channels is not 3 (:gh:`1192` by `Kaibo Tang`_)
+- Fix option "mode" for the wavelet transform, which was not correctly propagated; add this option in :class:`deepinv.models.WaveletDictDenoiser` (:gh:`1162` by `Irène Waldspurger`_)
 
 
 v0.4.0
@@ -619,3 +623,5 @@ Changed
 .. _Laura C. Diaz-Delgado: https://github.com/LauraCD2
 .. _Paul Bernard: https://github.com/PAUL-BERNARD
 .. _Baptiste Legouix: https://github.com/blegouix
+.. _Kaibo Tang: https://github.com/kvttt
+.. _Irène Waldspurger: https://github.com/IWalds

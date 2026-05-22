@@ -49,5 +49,6 @@ from .kernel_network import KernelIdentificationNetwork
 from .bilateral import BilateralFilter
 from .noise_level_estimation import WaveletNoiseEstimator, PatchCovarianceNoiseEstimator
 from .srresnet import SRResNet
+from .ffdnet import FFDNet
 
 from .third_party import PromptIR
