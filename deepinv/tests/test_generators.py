@@ -23,6 +23,7 @@ torch.backends.cudnn.deterministic = True
 
 # Generators to test (make sure they appear in find_generator as well)
 GENERATORS = [
+    "GaussianBlurGenerator",
     "MotionBlurGenerator",
     "DiffractionBlurGenerator",
     "ProductConvolutionBlurGenerator",
@@ -76,7 +77,12 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None, rng=N
     :param device: (torch.device) cpu or cuda:0
     :return: (:class:`deepinv.physics.Physics`) forward operator.
     """
-    if name == "MotionBlurGenerator":
+    if name == "GaussianBlurGenerator":
+        g = dinv.physics.generator.GaussianBlurGenerator(
+            psf_size=size, device=device, num_channels=num_channels, dtype=dtype
+        )
+        keys = ["filter"]
+    elif name == "MotionBlurGenerator":
         g = dinv.physics.generator.MotionBlurGenerator(
             psf_size=size,
             num_channels=num_channels,
@@ -192,7 +198,9 @@ def test_generation_newparams(name, device, dtype, rng):
     generator, size, _ = find_generator(name, size, 1, device, dtype, rng=rng)
     batch_size = 1
 
-    if name == "MotionBlurGenerator":
+    if name == "GaussianBlurGenerator":
+        param_key = ["filter"]
+    elif name == "MotionBlurGenerator":
         param_key = ["filter"]
     elif name == "DiffractionBlurGenerator":
         param_key = ["filter"]
@@ -218,7 +226,9 @@ def test_generation_seed(name, device, dtype, rng):
     generator, size, _ = find_generator(name, size, 1, device, dtype, rng=rng)
     batch_size = 1
 
-    if name == "MotionBlurGenerator":
+    if name == "GaussianBlurGenerator":
+        param_key = ["filter"]
+    elif name == "MotionBlurGenerator":
         param_key = ["filter"]
     elif name == "DiffractionBlurGenerator":
         param_key = ["filter"]
@@ -718,6 +728,222 @@ def test_diffraction_generator(
         )
         for key in params.keys():
             assert not torch.allclose(params[key], params3[key])
+
+
+@pytest.mark.parametrize("dim", [1, 2, 3])
+@pytest.mark.parametrize("isotropic", [True, False])
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("num_channels", [1, 2])
+def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channels):
+    r"""
+    Validate GaussianBlurGenerator behaviors across 1D/2D/3D:
+    - isotropic vs anisotropic sigma handling
+    - float or tuple for sigma_min/max
+    - float or tuple for angle_min/max
+    - num_channels expansion
+    """
+    torch.manual_seed(0)
+
+    # choose psf size according to dimension
+    if dim == 1:
+        psf_size = (7,)
+    elif dim == 2:
+        psf_size = (7, 7)
+    else:
+        psf_size = (5, 5, 5)
+
+    if dim == 1:
+        if isotropic:
+            pytest.skip("Isotropic setting not relevant for 1D Gaussian blur.")
+        # In 1D, isotropic should be ignored and sigma_min/max accept single float/integer or length-1 tuple
+        generator = dinv.physics.generator.GaussianBlurGenerator(
+            psf_size=psf_size,
+            sigma_min=0.5,
+            sigma_max=1,
+            num_channels=num_channels,
+            device=device,
+        )
+        params = generator.step(batch_size=batch_size, seed=0)
+        assert params["filter"].shape == (batch_size, num_channels, *psf_size)
+
+        # providing length-1 tuple should also work
+        generator = dinv.physics.generator.GaussianBlurGenerator(
+            psf_size=psf_size,
+            sigma_min=(0.5,),
+            sigma_max=(1,),
+            num_channels=num_channels,
+            device=device,
+        )
+        params = generator.step(batch_size=batch_size, seed=0)
+        assert params["filter"].shape == (batch_size, num_channels, *psf_size)
+
+        # providing length-2 tuple should raise error
+        with pytest.raises(ValueError):
+            dinv.physics.generator.GaussianBlurGenerator(
+                psf_size=psf_size,
+                isotropic=True,
+                sigma_min=(0.5, 1.1),
+                sigma_max=3.0,
+                num_channels=num_channels,
+                device=device,
+            )
+
+    elif dim == 2:
+        # In 2D, generator can accept float, integer, length-1 or length-2 tuple for sigma_min/max. If different than length-2 tuple, the same min/max will be applied to both dimensions.
+
+        for sigma_min, sigma_max in zip(
+            [0.5, (0.5,), (0.5, 0.6)], [1.0, (1.0,), (1.0, 1.1)], strict=True
+        ):
+            generator = dinv.physics.generator.GaussianBlurGenerator(
+                psf_size=psf_size,
+                isotropic=isotropic,
+                sigma_min=sigma_min,
+                sigma_max=sigma_max,
+                angle_min=0.0,
+                angle_max=(torch.pi,),
+                num_channels=num_channels,
+                device=device,
+            )
+            params = generator.step(batch_size=batch_size, seed=0)
+            assert params["filter"].shape == (batch_size, num_channels, *psf_size)
+
+        if isotropic:
+            # check that the providing filter is indeed isotropic
+            center = tuple(s // 2 for s in psf_size)
+            for b in range(batch_size):
+                for c in range(num_channels):
+                    assert torch.isclose(
+                        params["filter"][b, c, center[0] + 2, center[1] + 2],
+                        params["filter"][b, c, center[0] + 2, center[1] - 2],
+                    )
+                    assert torch.isclose(
+                        params["filter"][b, c, center[0] - 2, center[1] - 2],
+                        params["filter"][b, c, center[0] - 2, center[1] - 2],
+                    )
+                    assert torch.isclose(
+                        params["filter"][b, c, center[0] - 2, center[1] - 2],
+                        params["filter"][b, c, center[0] - 2, center[1] + 2],
+                    )
+
+        # providing length-2 tuple for angle_min should raise error
+        with pytest.raises(ValueError):
+            dinv.physics.generator.GaussianBlurGenerator(
+                psf_size=psf_size,
+                isotropic=isotropic,
+                sigma_min=0.5,
+                sigma_max=2.0,
+                angle_min=(0.0, 0.5),
+                angle_max=(1.0),
+                num_channels=num_channels,
+                device=device,
+            )
+        # providing length-2 tuple for angle_max should raise error
+        with pytest.raises(ValueError):
+            dinv.physics.generator.GaussianBlurGenerator(
+                psf_size=psf_size,
+                isotropic=True,
+                sigma_min=0.5,
+                sigma_max=2.0,
+                angle_min=(0.0),
+                angle_max=(1.0, 1.5),
+                num_channels=num_channels,
+                device=device,
+            )
+        # angle_min should be less than angle_max
+        with pytest.raises(ValueError):
+            dinv.physics.generator.GaussianBlurGenerator(
+                psf_size=psf_size,
+                isotropic=True,
+                sigma_min=0.5,
+                sigma_max=2.0,
+                angle_min=(1.5),
+                angle_max=(0.5),
+                num_channels=num_channels,
+                device=device,
+            )
+
+        # Angle constructor validation: 2D only accepts single float/integer or length-1 tuple for angle_min/max, not length-2 tuple
+        with pytest.raises(ValueError):
+            dinv.physics.generator.GaussianBlurGenerator(
+                psf_size=psf_size, angle_min=(0.1, 0.2), angle_max=(0.2, 0.3)
+            )
+
+    elif dim == 3:
+        # In 3D, generator can accept float, integer, length-1 or length-3 tuple for sigma_min/max. If different than length-3 tuple, the same min/max will be applied to all dimensions.
+
+        for sigma_min, sigma_max in zip(
+            [0.5, (0.5,), (0.5, 0.6, 0.7)], [1.0, (1.0,), (1.0, 1.1, 1.2)], strict=True
+        ):
+            generator = dinv.physics.generator.GaussianBlurGenerator(
+                psf_size=psf_size,
+                isotropic=isotropic,
+                sigma_min=sigma_min,
+                sigma_max=sigma_max,
+                angle_min=(-torch.pi, 0.0, 0.0),
+                angle_max=(torch.pi, 0.5 * torch.pi, 2 * torch.pi),
+                num_channels=num_channels,
+                device=device,
+            )
+            params = generator.step(batch_size=batch_size, seed=0)
+            assert params["filter"].shape == (batch_size, num_channels, *psf_size)
+
+        # Angle constructor validation: 3D must accept length-3
+        with pytest.raises(ValueError):
+            dinv.physics.generator.GaussianBlurGenerator(
+                psf_size=psf_size, angle_min=(0.1, 0.2)
+            )
+
+    # Single sigma for the whole batch -> pass an explicit sigma tensor with identical rows
+    sigma_same = torch.tensor([[1.23] * dim] * batch_size, device=device)
+    params_single = generator.step(batch_size=batch_size, sigma=sigma_same, seed=0)
+    filt_single = params_single["filter"]
+    if batch_size > 1:
+        assert torch.allclose(filt_single[0], filt_single[1])
+
+    # Different sigma per sample -> pass per-sample sigma tensor
+    if batch_size > 1:
+        sig0 = [(0.6 + 0.1 * i) for i in range(dim)]
+        sig1 = [(1.6 + 0.1 * i) for i in range(dim)]
+        sigma_tensor = torch.tensor([sig0, sig1], device=device, dtype=torch.float32)
+        params_diff = generator.step(batch_size=batch_size, sigma=sigma_tensor, seed=0)
+        filt_diff = params_diff["filter"]
+        assert not torch.allclose(filt_diff[0], filt_diff[1])
+
+    # Angle handling: for 2D and 3D, passing different angles per batch should change kernels
+    if dim == 2 and batch_size > 1:
+        # angle should change the kernel only when sigma is anisotropic
+        sigma_aniso = torch.tensor([[0.6, 1.2]] * batch_size, device=device)
+        angle_tensor = torch.tensor([0.0, 1.0], device=device)
+        p_angle = generator.step(
+            batch_size=batch_size, angle=angle_tensor, sigma=sigma_aniso, seed=0
+        )
+        f_angle = p_angle["filter"]
+        assert not torch.allclose(f_angle[0], f_angle[1])
+
+        # check that if sigma is isotropic, angle does not change the kernel
+        sigma_iso = torch.tensor([[0.9, 0.9]] * batch_size, device=device)
+        p_angle_iso = generator.step(
+            batch_size=batch_size, angle=angle_tensor, sigma=sigma_iso, seed=0
+        )
+        f_angle_iso = p_angle_iso["filter"]
+        assert torch.allclose(f_angle_iso[0], f_angle_iso[1])
+
+    if dim == 3 and batch_size > 1:
+        sigma_aniso = torch.tensor([[0.6, 0.8, 1.2]] * batch_size, device=device)
+        angle_tensor = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.3, 0.7]], device=device)
+        p_angle = generator.step(
+            batch_size=batch_size, angle=angle_tensor, sigma=sigma_aniso, seed=0
+        )
+        f_angle = p_angle["filter"]
+        assert not torch.allclose(f_angle[0], f_angle[1])
+
+        # check that if sigma is isotropic, angle does not change the kernel
+        sigma_iso = torch.tensor([[0.9, 0.9, 0.9]] * batch_size, device=device)
+        p_angle_iso = generator.step(
+            batch_size=batch_size, angle=angle_tensor, sigma=sigma_iso, seed=0
+        )
+        f_angle_iso = p_angle_iso["filter"]
+        assert torch.allclose(f_angle_iso[0], f_angle_iso[1])
 
 
 @pytest.mark.parametrize("generators", MIXTURES)

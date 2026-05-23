@@ -31,7 +31,7 @@ jobs:
           - os: windows-latest
             environment: "full-cpu"
             name: "windows all optional dependencies"
-            pytest_args: "-n 2 --dist=loadgroup"
+            pytest_args: "-n 0 --dist=loadgroup" # n = 0 to avoid conflicts with pytest-xdist on windows
     env:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"

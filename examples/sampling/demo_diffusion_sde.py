@@ -59,7 +59,6 @@ import deepinv as dinv
 from deepinv.models import NCSNpp
 
 device = dinv.utils.get_device()
-dtype = torch.float64
 dtype = torch.float32
 figsize = 2.5
 gif_frequency = 10  # Increase this value to save the GIF saving time
@@ -214,7 +213,7 @@ anim
 
 del trajectory
 
-sde = VariancePreservingDiffusion(alpha=0.01, device=device, dtype=dtype)
+sde = VariancePreservingDiffusion(alpha=0.1, device=device, dtype=dtype)
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
     denoiser=denoiser,

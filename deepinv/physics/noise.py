@@ -119,7 +119,7 @@ class NoiseModel(nn.Module):
                 if (
                     value is not None
                     and hasattr(self, key)
-                    and isinstance(value, (torch.Tensor, float))
+                    and isinstance(value, (torch.Tensor, float, int))
                 ):
                     self.register_buffer(key, self._float_to_tensor(value))
 
