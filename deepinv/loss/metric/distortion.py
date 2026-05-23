@@ -998,7 +998,7 @@ class GMSD(Metric):
     r"""
     Gradient Magnitude Similarity Deviation (GMSD) metric.
 
-    Calculates :math:`\text{GMSD}(x_net,x)`, as proposed in :footcite:t:`xue2013gradient`.
+    Calculates :math:`\text{GMSD}(\hat{x},x)`, as proposed in :footcite:t:`xue2013gradient`.
     GMSD measures perceptual image quality from the standard deviation of the pixel-wise gradient magnitude
     similarity (GMS) map. A lower value indicates better quality.
 
@@ -1015,11 +1015,7 @@ class GMSD(Metric):
         \text{GMS}(\hat{x},x) = \frac{2 m_x m_{\hat{x}} + c}{m_x^2 + m_{\hat{x}}^2 + c},
 
     and GMSD is the spatial standard deviation of this map computed independently for each image in the batch.
-
-    .. note::
-
-        Only single-channel images of shape ``(B, 1, H, W)`` are supported. For multi-channel inputs, convert to
-        luminance beforehand.
+    c is a small stability constant.
 
 
     :Example:
@@ -1032,7 +1028,7 @@ class GMSD(Metric):
     tensor([0., 0., 0.])
 
     :param float c: positive stability constant :math:`c` of the GMS map. The original paper uses :math:`c=170`
-        for images in :math:`[0, 255]`; rescale accordingly for images in :math:`[0, 1]`.
+        for images in :math:`[0, 255]`. Rescale accordingly for images in :math:`[0, 1]`. Default: 0.0026.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
@@ -1079,13 +1075,13 @@ class GMSD(Metric):
         x_bc = x.reshape(B * C, 1, H, W)
         x_net_bc = x_net.reshape(B * C, 1, H, W)
 
-        grad_mag_x = torch.sqrt(
-            conv2d(x_bc, hx, padding="replicate") ** 2
-            + conv2d(x_bc, hy, padding="replicate") ** 2
+        grad_mag_x = torch.hypot(
+            conv2d(x_bc, hx, padding="replicate"),
+            +conv2d(x_bc, hy, padding="replicate"),
         )
-        grad_mag_x_net = torch.sqrt(
-            conv2d(x_net_bc, hx, padding="replicate") ** 2
-            + conv2d(x_net_bc, hy, padding="replicate") ** 2
+        grad_mag_x_net = torch.hypot(
+            conv2d(x_net_bc, hx, padding="replicate"),
+            conv2d(x_net_bc, hy, padding="replicate"),
         )
 
         gms = (2 * grad_mag_x * grad_mag_x_net + self.c) / (
