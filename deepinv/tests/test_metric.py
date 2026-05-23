@@ -477,7 +477,7 @@ def test_gmsd():
         out = gmsd(x_net, x)
     assert (
         str(exc_info.value)
-        == "GMSD requires tensors of shape (B, 1, H, W). Got (1, 1, 16, 16, 16)"
+        == "GMSD requires tensors of shape (B, C, H, W). Got (1, 1, 16, 16, 16)"
     )
 
     # 2 uniform tensors --> gradient zero in both --> no diff --> 0
@@ -489,5 +489,10 @@ def test_gmsd():
     x_net, x = torch.ones((1, 1, 16, 16)), torch.ones((1, 1, 16, 16))
     x[:, :, :4] = 2
     out = gmsd(x_net, x)
-    print(float(out))
+    assert torch.isclose(out, torch.tensor((0.33,)), atol=3e-4)
+
+    # Same, but check for multi-channel
+    x_net, x = torch.ones((1, 6, 16, 16)), torch.ones((1, 6, 16, 16))
+    x[:, :, :4] = 2
+    out = gmsd(x_net, x)
     assert torch.isclose(out, torch.tensor((0.33,)), atol=3e-4)

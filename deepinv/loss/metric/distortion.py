@@ -1047,6 +1047,18 @@ class GMSD(Metric):
         super().__init__(**kwargs)
         self.c = c
 
+    def _build_hx_hy(self, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
+        hx = torch.tensor(
+            [[1 / 3, 0, -1 / 3], [1 / 3, 0, -1 / 3], [1 / 3, 0, -1 / 3]],
+            device=device,
+        ).view(1, 1, 3, 3)
+
+        hy = torch.tensor(
+            [[1 / 3, 1 / 3, 1 / 3], [0, 0, 0], [-1 / 3, -1 / 3, -1 / 3]],
+            device=device,
+        ).view(1, 1, 3, 3)
+        return hx, hy
+
     def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         if x_net.shape != x.shape:
             raise ValueError(
@@ -1056,31 +1068,34 @@ class GMSD(Metric):
             raise ValueError(
                 f"GMSD requires x_net {x_net.device} and x {x.device} to be on the same device, "
             )
-        if len(x_net.shape) != 4 or x_net.shape[1] != 1:
+        if len(x_net.shape) != 4:
             raise ValueError(
-                f"GMSD requires tensors of shape (B, 1, H, W). Got {tuple(x_net.shape)}"
+                f"GMSD requires tensors of shape (B, C, H, W). Got {tuple(x_net.shape)}"
             )
-        hx = torch.tensor(
-            [[1 / 3, 0, -1 / 3], [1 / 3, 0, -1 / 3], [1 / 3, 0, -1 / 3]],
-            device=x_net.device,
-        ).view(1, 1, 3, 3)
+        hx, hy = self._build_hx_hy(x_net.device)
+        B, C, H, W = x.shape
 
-        hy = torch.tensor(
-            [[1 / 3, 1 / 3, 1 / 3], [0, 0, 0], [-1 / 3, -1 / 3, -1 / 3]],
-            device=x_net.device,
-        ).view(1, 1, 3, 3)
+        # Reshape to (B*C, 1, H, W) to process all channels independently
+        x_bc = x.reshape(B * C, 1, H, W)
+        x_net_bc = x_net.reshape(B * C, 1, H, W)
 
         grad_mag_x = torch.sqrt(
-            conv2d(x, hx, padding="replicate") ** 2
-            + conv2d(x, hy, padding="replicate") ** 2
+            conv2d(x_bc, hx, padding="replicate") ** 2
+            + conv2d(x_bc, hy, padding="replicate") ** 2
         )
         grad_mag_x_net = torch.sqrt(
-            conv2d(x_net, hx, padding="replicate") ** 2
-            + conv2d(x_net, hy, padding="replicate") ** 2
+            conv2d(x_net_bc, hx, padding="replicate") ** 2
+            + conv2d(x_net_bc, hy, padding="replicate") ** 2
         )
 
         gms = (2 * grad_mag_x * grad_mag_x_net + self.c) / (
             grad_mag_x**2 + grad_mag_x_net**2 + self.c
         )
 
-        return gms.std(dim=(-1, -2, -3), correction=0)
+        # gms shape: (B*C, 1, H, W) → reshape to (B, C, H, W)
+        gms = gms.reshape(B, C, H, W)
+
+        # Compute std (GMSD) over spatial dims for each (batch, channel): → (B, C)
+        gmsd_per_channel = gms.std(dim=(-2, -1), correction=0)
+
+        return gmsd_per_channel.mean(dim=-1)
