@@ -1014,9 +1014,9 @@ class GMSD(Metric):
     .. math::
         \text{GMS}(\hat{x},x) = \frac{2 m_x m_{\hat{x}} + c}{m_x^2 + m_{\hat{x}}^2 + c},
 
-    and GMSD is the spatial standard deviation of this map computed independently for each image in the batch.
-    c is a small stability constant.
-
+    where c is a small stability constant.
+    GMSD is the spatial standard deviation of this map computed independently for each image in the batch.
+    For multi-channel images, GMSD is calculated independently for each channel, then averaged across channels to produce a single scalar per image.
 
     :Example:
 
@@ -1077,7 +1077,7 @@ class GMSD(Metric):
 
         grad_mag_x = torch.hypot(
             conv2d(x_bc, hx, padding="replicate"),
-            +conv2d(x_bc, hy, padding="replicate"),
+            conv2d(x_bc, hy, padding="replicate"),
         )
         grad_mag_x_net = torch.hypot(
             conv2d(x_net_bc, hx, padding="replicate"),
@@ -1092,6 +1092,7 @@ class GMSD(Metric):
         gms = gms.reshape(B, C, H, W)
 
         # Compute std (GMSD) over spatial dims for each (batch, channel): → (B, C)
+        # population std (correction=0) as per original GMSD paper.
         gmsd_per_channel = gms.std(dim=(-2, -1), correction=0)
 
         return gmsd_per_channel.mean(dim=-1)
