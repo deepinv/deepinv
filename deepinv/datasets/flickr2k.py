@@ -50,7 +50,7 @@ class Flickr2kHR(ImageFolder):
 
     _archive_urls = MappingProxyType(
         {
-            "Flickr2K.zip": "https://huggingface.co/datasets/goodfellowliu/Flickr2K/resolve/main/Flickr2K.zip",
+            "Flickr2K.zip": "https://huggingface.co/datasets/yangtao9009/Flickr2K/resolve/main/Flickr2K.zip",
         }
     )
 
@@ -88,7 +88,12 @@ class Flickr2kHR(ImageFolder):
                     )
                     # extract local zip file
                     extract_zipfile(os.path.join(self.root, filename), self.root)
-
+                    hr_folder = os.path.join(self.root, "Flickr2k")
+                    if os.path.exists(hr_folder):
+                        for i in range(1, 2650):
+                            f_name = "000000"[: -len(str(i))] + str(i) + ".txt"
+                            if os.path.exists(f_name):  # pragma: no cover
+                                os.remove(os.path.join(f_name))
                     if self.check_dataset_exists():
                         print("Dataset has been successfully downloaded.")
                     else:
