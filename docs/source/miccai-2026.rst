@@ -6,18 +6,15 @@ DeepInverse Tutorial @ MICCAI 2026
 ==================================
 
 Welcome to the DeepInverse tutorial at `International Conference on Medical Image Computing and Computer Assisted Intervention (MICCAI) <https://conferences.miccai.org/2026/en/default.asp>`_,
-Abu Dhabi, **Oct (TBD, 4th or 8th) 2026**.
+Strasbourg, **Sept 27th 2026**.
 
 **Title**: "DeepInverse: a hands-on tutorial for medical image reconstruction with AI"
 
 **Summary**: Want to learn how to write code to reconstruct medical images with state-of-the-art deep learning algorithms? Looking to adopt a modular framework and PyTorch best practices for your imaging research code? Join us for a hands-on tutorial on how you can get started with DeepInverse.
 
-.. tip::
-   **New here?**
-
-   `DeepInverse <https://deepinv.github.io/>`_ is an open-source PyTorch-based library for solving imaging inverse problems with deep learning.
-
-   Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/auto_examples/basics/demo_quickstart.html>`_,
+.. admonition:: New here?
+   
+   `DeepInverse <https://deepinv.github.io/>`_ is an open-source PyTorch-based library for solving imaging inverse problems with deep learning. Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/auto_examples/basics/demo_quickstart.html>`_,
    our `comprehensive examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_,
    or our :ref:`User Guide <user_guide>`.
 

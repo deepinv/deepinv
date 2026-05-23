@@ -848,11 +848,14 @@ def test_reducedresolution_shapes(physics_name, device):
         physics = dinv.physics.DownsamplingMatlab(factor=2, device=device)
     elif physics_name == "blur":
         physics = dinv.physics.Blur(
-            filter=dinv.physics.blur.gaussian_blur(0.4), device=device
+            filter=dinv.physics.functional.gaussian_blur(sigma=(0.4, 0.4)),
+            device=device,
         )
     elif physics_name == "blurfft":
         physics = dinv.physics.BlurFFT(
-            x.shape[1:], filter=dinv.physics.blur.gaussian_blur(0.4), device=device
+            x.shape[1:],
+            filter=dinv.physics.functional.gaussian_blur(sigma=(0.4, 0.4)),
+            device=device,
         )
     else:
         raise ValueError(

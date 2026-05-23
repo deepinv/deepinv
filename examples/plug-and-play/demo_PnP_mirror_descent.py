@@ -56,7 +56,7 @@ noise_level_img = 1 / 40  # Poisson Noise gain
 # Generate the gaussian blur operator with Poisson noise.
 physics = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
-    filter=dinv.physics.blur.gaussian_blur(),
+    filter=dinv.physics.functional.gaussian_blur(),
     device=device,
     noise_model=dinv.physics.PoissonNoise(gain=noise_level_img),
 )
