@@ -90,7 +90,7 @@ class Flickr2kHR(ImageFolder):
                     extract_zipfile(os.path.join(self.root, filename), self.root)
                     hr_folder = os.path.join(self.root, "Flickr2k")
                     if os.path.exists(hr_folder):
-                        for i in range(1, 2650):
+                        for i in range(1, 2651):
                             f_name = "000000"[: -len(str(i))] + str(i) + ".txt"
                             if os.path.exists(f_name):  # pragma: no cover
                                 os.remove(os.path.join(f_name))
