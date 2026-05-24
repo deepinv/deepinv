@@ -13,6 +13,8 @@ from deepinv.loss.metric.functional import (
     signal_noise_ratio,
 )
 
+from deepinv.physics.functional import conv2d
+
 if TYPE_CHECKING:
     from deepinv.physics.remote_sensing import Pansharpen
     from deepinv.utils.tensorlist import TensorList
@@ -990,3 +992,107 @@ class CosineSimilarity(Metric):
 
     def invert_metric(self, m: Tensor) -> Tensor:
         return 1.0 - m
+
+
+class GMSD(Metric):
+    r"""
+    Gradient Magnitude Similarity Deviation (GMSD) metric.
+
+    Calculates :math:`\text{GMSD}(\hat{x},x)`, as proposed in :footcite:t:`xue2013gradient`.
+    GMSD measures perceptual image quality from the standard deviation of the pixel-wise gradient magnitude
+    similarity (GMS) map. A lower value indicates better quality.
+
+    The reference and reconstructed gradient magnitudes :math:`m_x` and :math:`m_{\hat{x}}` are computed using the
+    Prewitt operators :math:`h_x, h_y`,
+
+    .. math::
+        m_x = \sqrt{(x \ast h_x)^2 + (x \ast h_y)^2},\qquad
+        m_{\hat{x}} = \sqrt{(\hat{x} \ast h_x)^2 + (\hat{x} \ast h_y)^2},
+
+    where :math:`\ast` denotes 2D convolution. The pixel-wise GMS map is
+
+    .. math::
+        \text{GMS}(\hat{x},x) = \frac{2 m_x m_{\hat{x}} + c}{m_x^2 + m_{\hat{x}}^2 + c},
+
+    where c is a small stability constant.
+    GMSD is the spatial standard deviation of this map computed independently for each image in the batch.
+    For multi-channel images, GMSD is calculated independently for each channel, then averaged across channels to produce a single scalar per image.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import GMSD
+    >>> m = GMSD()
+    >>> x_net = x = torch.ones(3, 1, 8, 8) # B,1,H,W
+    >>> m(x_net, x)
+    tensor([0., 0., 0.])
+
+    :param float c: positive stability constant :math:`c` of the GMS map. The original paper uses :math:`c=170`
+        for images in :math:`[0, 255]`. Rescale accordingly for images in :math:`[0, 1]`. Default: 0.0026.
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
+    """
+
+    def __init__(self, c: float = 0.0026, **kwargs):
+        super().__init__(**kwargs)
+        self.c = c
+
+    def _build_hx_hy(self, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
+        hx = torch.tensor(
+            [[1 / 3, 0, -1 / 3], [1 / 3, 0, -1 / 3], [1 / 3, 0, -1 / 3]],
+            device=device,
+        ).view(1, 1, 3, 3)
+
+        hy = torch.tensor(
+            [[1 / 3, 1 / 3, 1 / 3], [0, 0, 0], [-1 / 3, -1 / 3, -1 / 3]],
+            device=device,
+        ).view(1, 1, 3, 3)
+        return hx, hy
+
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
+        if x_net.shape != x.shape:
+            raise ValueError(
+                f"x_net and x must be same shape, but got {tuple(x_net.shape)} and {tuple(x.shape)}"
+            )
+        if x_net.device != x.device:  # pragma: no cover
+            raise ValueError(
+                f"GMSD requires x_net {x_net.device} and x {x.device} to be on the same device, "
+            )
+        if len(x_net.shape) != 4:
+            raise ValueError(
+                f"GMSD requires tensors of shape (B, C, H, W). Got {tuple(x_net.shape)}"
+            )
+        hx, hy = self._build_hx_hy(x_net.device)
+        B, C, H, W = x.shape
+
+        # Reshape to (B*C, 1, H, W) to process all channels independently
+        x_bc = x.reshape(B * C, 1, H, W)
+        x_net_bc = x_net.reshape(B * C, 1, H, W)
+
+        grad_mag_x = torch.hypot(
+            conv2d(x_bc, hx, padding="replicate"),
+            conv2d(x_bc, hy, padding="replicate"),
+        )
+        grad_mag_x_net = torch.hypot(
+            conv2d(x_net_bc, hx, padding="replicate"),
+            conv2d(x_net_bc, hy, padding="replicate"),
+        )
+
+        gms = (2 * grad_mag_x * grad_mag_x_net + self.c) / (
+            grad_mag_x**2 + grad_mag_x_net**2 + self.c
+        )
+
+        # gms shape: (B*C, 1, H, W) → reshape to (B, C, H, W)
+        gms = gms.reshape(B, C, H, W)
+
+        # Compute std (GMSD) over spatial dims for each (batch, channel): → (B, C)
+        # population std (correction=0) as per original GMSD paper.
+        gmsd_per_channel = gms.std(dim=(-2, -1), correction=0)
+
+        return gmsd_per_channel.mean(dim=-1)
