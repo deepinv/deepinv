@@ -62,3 +62,5 @@ We also provide some architectures for specific inverse problems.
      - Description
    * - :class:`deepinv.models.PanNet`
      - PanNet model for pansharpening.
+   * - :class:`deepinv.models.SRResNet`
+     - SRResNet model for super-resolution.
