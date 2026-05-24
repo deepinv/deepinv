@@ -556,7 +556,8 @@ def test_niqe_other_implementations():
             f"{fname}: deepinv={result_dinv:.4f}, basicsr={refs['basicsr']:.4f}, "
             f"diff={abs(result_dinv - refs['basicsr']):.4f}"
         )
- 
+
+
 def test_gmsd():
     gmsd = metric.GMSD()
     x_net, x = torch.ones((1, 1, 16, 16)), torch.ones((2, 1, 16, 16))
