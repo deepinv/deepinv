@@ -101,9 +101,10 @@ class Restormer(Denoiser):
                     LayerNorm_type,
                     dual_pixel_task,
                 )
-                assert (
-                    in_channels == 3
-                ), f"Real denoising / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+                if in_channels != 3:  # pragma: no cover
+                    raise ValueError(
+                        f"Real denoising / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+                    )
                 weights_pth_filename = "real_denoising.pth"
             elif "denoising_gray" in pretrained:
                 self.is_standard_denoising_network(
@@ -118,9 +119,10 @@ class Restormer(Denoiser):
                     LayerNorm_type,
                     dual_pixel_task,
                 )
-                assert (
-                    in_channels == 1
-                ), f"Real denoising / EXPECTED in_channels == 1, INSTEAD of {in_channels}"
+                if in_channels != 1:  # pragma: no cover
+                    raise ValueError(
+                        f"Real denoising / EXPECTED in_channels == 1, INSTEAD of {in_channels}"
+                    )
                 weights_pth_filename = "gaussian_gray_denoising_blind.pth"
             elif "denoising_color" in pretrained:
                 self.is_standard_denoising_network(
@@ -135,9 +137,10 @@ class Restormer(Denoiser):
                     LayerNorm_type,
                     dual_pixel_task,
                 )
-                assert (
-                    in_channels == 3
-                ), f"Color denoising / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+                if in_channels != 3:  # pragma: no cover
+                    raise ValueError(
+                        f"Color denoising / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+                    )
                 weights_pth_filename = "gaussian_color_denoising_blind.pth"
             elif pretrained == "deraining":
                 self.is_standard_deraining_network(
@@ -167,14 +170,16 @@ class Restormer(Denoiser):
                     dual_pixel_task,
                 )
                 if dual_pixel_task:
-                    assert (
-                        in_channels == 6
-                    ), f"Dual defocus deblurring / EXPECTED in_channels == 6, INSTEAD of {in_channels}"
+                    if in_channels != 6:  # pragma: no cover
+                        raise ValueError(
+                            f"Dual defocus deblurring / EXPECTED in_channels == 6, INSTEAD of {in_channels}"
+                        )
                     weights_pth_filename = "dual_pixel_defocus_deblurring.pth"
                 else:
-                    assert (
-                        in_channels == 3
-                    ), f"Single defocus deblurring / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+                    if in_channels != 3:  # pragma: no cover
+                        raise ValueError(
+                            f"Single defocus deblurring / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+                        )
                     weights_pth_filename = "single_image_defocus_deblurring.pth"
 
         self.patch_embed = OverlapPatchEmbed(in_channels, dim)
@@ -333,7 +338,7 @@ class Restormer(Denoiser):
             )
             self.load_state_dict(ckpt_restormer["params"], strict=True)
             self.eval()
-        elif pretrained is not None:
+        elif pretrained is not None:  # pragma: no cover
             raise ValueError(f"pretrained value error, {pretrained}")
 
         if device is not None:
@@ -348,9 +353,10 @@ class Restormer(Denoiser):
         :param torch.Tensor x: input image
         """
         # expected : x.shape = (B, C, H, W)
-        assert (
-            x.shape[-2] % 8 == 0 and x.shape[-1] % 8 == 0
-        ), f"Image spatial dim is not divisible by 8. Spatial dim : ({x.shape[-2]},{x.shape[-1]})"
+        if x.shape[-2] % 8 != 0 or x.shape[-1] % 8 != 0:  # pragma: no cover
+            raise ValueError(
+                f"Image spatial dim is not divisible by 8. Spatial dim : ({x.shape[-2]},{x.shape[-1]})"
+            )
 
         inp_enc_level1 = self.patch_embed(x)
         out_enc_level1 = self.encoder_level1(inp_enc_level1)
@@ -416,21 +422,25 @@ class Restormer(Denoiser):
         dual_pixel_task,
     ):
         """Check if model params are the params used to pre-trained the standard network for denoising."""
-        assert (
-            in_channels == 1 or in_channels == 3
-        ), f"Standard denoising / EXPECTED in_channels == 1 or 3, INSTEAD of {in_channels}"
-        assert (
-            out_channels == in_channels
-        ), f"Standard denoising / EXPECTED out_channels == in_channels, INSTEAD of {out_channels}"
+        if not (in_channels == 1 or in_channels == 3):  # pragma: no cover
+            raise ValueError(
+                f"Standard denoising / EXPECTED in_channels == 1 or 3, INSTEAD of {in_channels}"
+            )
+        if out_channels != in_channels:  # pragma: no cover
+            raise ValueError(
+                f"Standard denoising / EXPECTED out_channels == in_channels, INSTEAD of {out_channels}"
+            )
         self._is_standard_network(
             dim, num_blocks, num_refinement_blocks, heads, ffn_expansion_factor, bias
         )
-        assert (
-            LayerNorm_type == "BiasFree"
-        ), f"Standard denoising / EXPECTED LayerNorm_type == 'BiasFree', INSTEAD of {LayerNorm_type}"
-        assert (
-            dual_pixel_task == False
-        ), f"Standard denoising / EXPECTED dual_pixel_task == False, INSTEAD of {dual_pixel_task}"
+        if LayerNorm_type != "BiasFree":  # pragma: no cover
+            raise ValueError(
+                f"Standard denoising / EXPECTED LayerNorm_type == 'BiasFree', INSTEAD of {LayerNorm_type}"
+            )
+        if dual_pixel_task:  # pragma: no cover
+            raise ValueError(
+                f"Standard denoising / EXPECTED dual_pixel_task == False, INSTEAD of {dual_pixel_task}"
+            )
 
     def is_standard_deraining_network(
         self,
@@ -446,21 +456,25 @@ class Restormer(Denoiser):
         dual_pixel_task,
     ):
         """Check if model params are the params used to pre-trained the standard network for deraining."""
-        assert (
-            in_channels == 3
-        ), f"Standard deraining / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
-        assert (
-            out_channels == 3
-        ), f"Standard deraining / EXPECTED out_channels == 3, INSTEAD of {out_channels}"
+        if in_channels != 3:  # pragma: no cover
+            raise ValueError(
+                f"Standard deraining / EXPECTED in_channels == 3, INSTEAD of {in_channels}"
+            )
+        if out_channels != 3:  # pragma: no cover
+            raise ValueError(
+                f"Standard deraining / EXPECTED out_channels == 3, INSTEAD of {out_channels}"
+            )
         self._is_standard_network(
             dim, num_blocks, num_refinement_blocks, heads, ffn_expansion_factor, bias
         )
-        assert (
-            LayerNorm_type == "WithBias"
-        ), f"Standard deraining / EXPECTED LayerNorm_type == 'WithBias', INSTEAD of {LayerNorm_type}"
-        assert (
-            dual_pixel_task == False
-        ), f"Standard deraining / EXPECTED dual_pixel_task == False, INSTEAD of {dual_pixel_task}"
+        if LayerNorm_type != "WithBias":  # pragma: no cover
+            raise ValueError(
+                f"Standard deraining / EXPECTED LayerNorm_type == 'WithBias', INSTEAD of {LayerNorm_type}"
+            )
+        if dual_pixel_task:  # pragma: no cover
+            raise ValueError(
+                f"Standard deraining / EXPECTED dual_pixel_task == False, INSTEAD of {dual_pixel_task}"
+            )
 
     def is_standard_deblurring_network(
         self,
@@ -476,18 +490,21 @@ class Restormer(Denoiser):
         dual_pixel_task,
     ):
         """Check if model params are the params used to pre-trained the standard network for deblurring."""
-        assert (
-            in_channels == 3 or in_channels == 6
-        ), f"Standard deblurring / EXPECTED in_channels == 3 or 6, INSTEAD of {in_channels}"
-        assert (
-            out_channels == 3
-        ), f"Standard deblurring / EXPECTED out_channels == 3, INSTEAD of {out_channels}"
+        if not (in_channels == 3 or in_channels == 6):  # pragma: no cover
+            raise ValueError(
+                f"Standard deblurring / EXPECTED in_channels == 3 or 6, INSTEAD of {in_channels}"
+            )
+        if out_channels != 3:  # pragma: no cover
+            raise ValueError(
+                f"Standard deblurring / EXPECTED out_channels == 3, INSTEAD of {out_channels}"
+            )
         self._is_standard_network(
             dim, num_blocks, num_refinement_blocks, heads, ffn_expansion_factor, bias
         )
-        assert (
-            LayerNorm_type == "WithBias"
-        ), f"Standard deblurring / EXPECTED LayerNorm_type == 'WithBias', INSTEAD of {LayerNorm_type}"
+        if LayerNorm_type != "WithBias":  # pragma: no cover
+            raise ValueError(
+                f"Standard deblurring / EXPECTED LayerNorm_type == 'WithBias', INSTEAD of {LayerNorm_type}"
+            )
 
     def _is_standard_network(
         self, dim, num_blocks, num_refinement_blocks, heads, ffn_expansion_factor, bias
@@ -496,30 +513,30 @@ class Restormer(Denoiser):
         so when trying to load the pre-trained weights from one of these networks, we check first that our model params
         have these values to avoid mismatch between our model and the weights.
         """
-        assert (
-            dim == 48
-        ), f"Standard restormer architecture / EXPECTED dim == 48, INSTEAD of {dim}"
-        assert list(num_blocks) == [
-            4,
-            6,
-            6,
-            8,
-        ], f"Standard restormer architecture / EXPECTED num_blocks == [4,6,6,8], INSTEAD of {num_blocks}"
-        assert (
-            num_refinement_blocks == 4
-        ), f"Standard restormer architecture / EXPECTED num_refinement_blocks == 4, INSTEAD of {num_refinement_blocks}"
-        assert list(heads) == [
-            1,
-            2,
-            4,
-            8,
-        ], f"Standard restormer architecture / EXPECTED heads == [1,2,4,8], INSTEAD of {heads}"
-        assert (
-            ffn_expansion_factor == 2.66
-        ), f"Standard restormer architecture / EXPECTED ffn_expansion_factor == 2.66, INSTEAD of {ffn_expansion_factor}"
-        assert (
-            bias == False
-        ), f"Standard restormer architecture / EXPECTED bias == False, INSTEAD of {bias}"
+        if dim != 48:  # pragma: no cover
+            raise ValueError(
+                f"Standard restormer architecture / EXPECTED dim == 48, INSTEAD of {dim}"
+            )
+        if list(num_blocks) != [4, 6, 6, 8]:  # pragma: no cover
+            raise ValueError(
+                f"Standard restormer architecture / EXPECTED num_blocks == [4,6,6,8], INSTEAD of {num_blocks}"
+            )
+        if num_refinement_blocks != 4:  # pragma: no cover
+            raise ValueError(
+                f"Standard restormer architecture / EXPECTED num_refinement_blocks == 4, INSTEAD of {num_refinement_blocks}"
+            )
+        if list(heads) != [1, 2, 4, 8]:  # pragma: no cover
+            raise ValueError(
+                f"Standard restormer architecture / EXPECTED heads == [1,2,4,8], INSTEAD of {heads}"
+            )
+        if ffn_expansion_factor != 2.66:  # pragma: no cover
+            raise ValueError(
+                f"Standard restormer architecture / EXPECTED ffn_expansion_factor == 2.66, INSTEAD of {ffn_expansion_factor}"
+            )
+        if bias:  # pragma: no cover
+            raise ValueError(
+                f"Standard restormer architecture / EXPECTED bias == False, INSTEAD of {bias}"
+            )
 
 
 ##########################################################################
@@ -543,7 +560,10 @@ class BiasFree_LayerNorm(nn.Module):
             normalized_shape = (normalized_shape,)
         normalized_shape = torch.Size(normalized_shape)  # type: ignore
 
-        assert len(normalized_shape) == 1
+        if len(normalized_shape) != 1:  # pragma: no cover
+            raise ValueError(
+                f"Expected normalized_shape to have length 1, INSTEAD of {len(normalized_shape)}"
+            )
 
         self.weight = nn.Parameter(torch.ones(normalized_shape))
         self.normalized_shape = normalized_shape
@@ -560,7 +580,10 @@ class WithBias_LayerNorm(nn.Module):
             normalized_shape = (normalized_shape,)
         normalized_shape = torch.Size(normalized_shape)  # type: ignore
 
-        assert len(normalized_shape) == 1
+        if len(normalized_shape) != 1:  # pragma: no cover
+            raise ValueError(
+                f"Expected normalized_shape to have length 1, INSTEAD of {len(normalized_shape)}"
+            )
 
         self.weight = nn.Parameter(torch.ones(normalized_shape))
         self.bias = nn.Parameter(torch.zeros(normalized_shape))

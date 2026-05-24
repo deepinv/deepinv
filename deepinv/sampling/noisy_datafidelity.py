@@ -113,14 +113,14 @@ class DPSDataFidelity(NoisyDataFidelity):
         A self-contained implementation of the original DPS algorithm can be find in :class:`deepinv.sampling.DPS`.
 
     :param deepinv.models.Denoiser denoiser: Denoiser network
-    :param float weight: Weighting factor for the data fidelity term. Default to 100.
+    :param float weight: Weighting factor for the data fidelity term. Default to 1.0 .
     :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.
     """
 
     def __init__(
         self,
         denoiser: Denoiser = None,
-        weight=1.0,
+        weight: float = 1.0,
         clip: tuple = None,
         *args,
         **kwargs,
@@ -129,7 +129,8 @@ class DPSDataFidelity(NoisyDataFidelity):
         self.d = dinv.optim.L2Distance()
         self.denoiser = denoiser
         if clip is not None:
-            assert len(clip) == 2
+            if len(clip) != 2:  # pragma: no cover
+                raise ValueError(f"clip must be None or length 2, but got {clip}")
             clip = sorted(clip)
         self.clip = clip
         self.weight = weight

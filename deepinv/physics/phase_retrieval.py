@@ -163,9 +163,10 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             self.rng = torch.Generator(device=device)
         else:
             # Make sure that the random generator is on the same device as the physic generator
-            assert rng.device == torch.device(
-                device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+            if rng.device != torch.device(device):  # pragma: no cover
+                raise ValueError(
+                    f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+                )
             self.rng = rng
 
         B = CompressedSensing(
@@ -231,9 +232,8 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         self.n = torch.prod(torch.tensor(self.img_size))
         self.m = torch.prod(torch.tensor(self.output_size))
         self.oversampling_ratio = self.m / self.n
-        assert (
-            n_layers % 1 == 0.5 or n_layers % 1 == 0
-        ), "n_layers must be an integer or an integer plus 0.5"
+        if not (n_layers % 1 == 0.5 or n_layers % 1 == 0):  # pragma: no cover
+            raise ValueError("n_layers must be an integer or an integer plus 0.5")
         self.n_layers = n_layers
         self.structure = self.get_structure(self.n_layers)
         self.shared_weights = shared_weights
