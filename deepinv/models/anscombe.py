@@ -130,7 +130,7 @@ class AnscombeDenoiser(Denoiser):
         >>> import deepinv as dinv
         >>> import torch
         >>> from deepinv.models import AnscombeDenoiser, DRUNet
-        >>> denoiser = DRUNet(pretrained=None)
+        >>> denoiser = DRUNet(pretrained="download")
         >>> anscombe_denoiser = AnscombeDenoiser(denoiser)
         >>> x = dinv.utils.load_example('butterfly.png')
         >>> y = dinv.physics.Denoising(dinv.physics.PoissonNoise(gain=.2))(x)
@@ -144,7 +144,7 @@ class AnscombeDenoiser(Denoiser):
         import deepinv as dinv
         import torch
         from deepinv.models import AnscombeDenoiser, DRUNet
-        denoiser = DRUNet(pretrained=None)
+        denoiser = DRUNet(pretrained="download")
         anscombe_denoiser = AnscombeDenoiser(denoiser)
         x = dinv.utils.load_example('butterfly.png')
         y = dinv.physics.Denoising(dinv.physics.PoissonNoise(gain=.2))(x)
