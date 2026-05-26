@@ -25,7 +25,7 @@ class Flickr2kHR(ImageFolder):
                    |
                    -- Flickr2K.zip
 
-    | Partial raw dataset source (only HR images) : https://huggingface.co/datasets/goodfellowliu/Flickr2K/resolve/main/Flickr2K.zip
+    | Partial raw dataset source (only HR images) : https://huggingface.co/datasets/yangtao9009/Flickr2K/resolve/main/Flickr2K.zip
     | Full raw dataset source (HR and LR images) : https://cv.snu.ac.kr/research/EDSR/Flickr2K.tar
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
