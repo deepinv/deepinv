@@ -4,7 +4,7 @@ DEAL denoising and reconstruction
 
 This example shows how to use the Deep Equilibrium Attention Least Squares
 (DEAL) model in DeepInverse for both denoising and a simple reconstruction
-setting.
+settings.
 
 The reconstruction is obtained by solving
 
@@ -21,7 +21,7 @@ In DEAL, the regularizer is induced by a masked linear operator
 
     L_{\theta,c}(u, x) = m_{\theta,c}(u) \odot K_{\theta,c}x,
 
-which gives
+which depends on an auxiliary image :math:`u`, resulting in
 
 .. math::
 
@@ -102,6 +102,7 @@ psnr = PSNR()
 
 # %%
 # Denoising with DEAL
+# -------------------
 # We first illustrate Gaussian denoising with DEAL. The model is applied with a
 # denoising operator, and the plotted mask corresponds to the spatially varying
 # regularization weights from the last iteration.
@@ -141,6 +142,7 @@ plot(
 
 # %%
 # Reconstruction example with inpainting
+# --------------------------------------
 # We next illustrate a simple inpainting problem where a random subset of
 # pixels is removed. DEAL combines data fidelity and its learned adaptive
 # regularization to recover the missing content.
