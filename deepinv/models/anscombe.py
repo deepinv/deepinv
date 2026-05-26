@@ -33,7 +33,7 @@ def generalized_anscombe_transform(
     check_nonnegative(sigma, "sigma")
 
     aux = gain * x + 3.0 / 8 * gain**2 + sigma**2
-    out = torch.where(aux > 0, aux.sqrt(), torch.zeros_like(aux))
+    out = aux.clamp_min(0).sqrt()
     return 2.0 * out
 
 
@@ -121,6 +121,8 @@ class AnscombeDenoiser(Denoiser):
         When ``gain = None`` the noise is purely Gaussian and the GAT/IGAT are bypassed:
         the wrapped denoiser is called directly as :math:`\denoisername(y, \sigma)`.
 
+    :param deepinv.models.Denoiser denoiser: Gaussian denoiser :math:`\denoisername` to wrap.
+
     |sep|
 
     :Examples:
@@ -130,11 +132,26 @@ class AnscombeDenoiser(Denoiser):
         >>> from deepinv.models import AnscombeDenoiser, DRUNet
         >>> denoiser = DRUNet(pretrained=None)
         >>> anscombe_denoiser = AnscombeDenoiser(denoiser)
-        >>> y = torch.rand(1, 3, 32, 32)
+        >>> x = dinv.utils.load_example('butterfly.png')
+        >>> y = dinv.physics.Denoising(dinv.physics.PoissonNoise(gain=.2))(x)
         >>> with torch.no_grad():
-        ...     y_denoised = anscombe_denoiser(y, sigma=0.05, gain=0.1)
+        ...     y_denoised = anscombe_denoiser(y, sigma=0., gain=0.2)
+        >>> dinv.utils.plot([x, y, y_denoised], ["ground-truth", "noisy", "denoised"])  # doctest: +SKIP
 
-    :param deepinv.models.Denoiser denoiser: Gaussian denoiser :math:`\denoisername` to wrap.
+
+    .. plot::
+
+        import deepinv as dinv
+        import torch
+        from deepinv.models import AnscombeDenoiser, DRUNet
+        denoiser = DRUNet(pretrained=None)
+        anscombe_denoiser = AnscombeDenoiser(denoiser)
+        x = dinv.utils.load_example('butterfly.png')
+        y = dinv.physics.Denoising(dinv.physics.PoissonNoise(gain=.2))(x)
+        with torch.no_grad():
+            y_denoised = anscombe_denoiser(y, sigma=0., gain=0.2)
+        dinv.utils.plot([x, y, y_denoised], ["ground-truth", "noisy", "denoised"])
+
     """
 
     def __init__(self, denoiser: Denoiser, *args, **kwargs):
