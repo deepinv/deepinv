@@ -214,7 +214,7 @@ class Trainer:
     :Comparison with Pseudoinverse Baseline:
 
     :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction. Default is ``False``.
-    :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
+    :param str, Reconstructor no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
         ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the
         :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method. Default is ``'A_adjoint'``.
 
@@ -283,7 +283,7 @@ class Trainer:
     ckpt_pretrained: str | None = None
     save_path: str | Path | None = "."
     compare_no_learning: bool = False
-    no_learning_method: str = "A_adjoint"
+    no_learning_method: str | Reconstructor = "A_adjoint"
     grad_clip: float = None
     check_grad: bool = False
     wandb_vis: bool = False
@@ -969,7 +969,9 @@ class Trainer:
         """
 
         y = y.to(self.device)
-        if self.no_learning_method == "A_adjoint" and hasattr(physics, "A_adjoint"):
+        if isinstance(self.no_learning_method, Reconstructor):
+            x_nl = self.no_learning_method(y, physics)
+        elif self.no_learning_method == "A_adjoint" and hasattr(physics, "A_adjoint"):
             if isinstance(physics, torch.nn.DataParallel):
                 x_nl = physics.module.A_adjoint(y)
             else:

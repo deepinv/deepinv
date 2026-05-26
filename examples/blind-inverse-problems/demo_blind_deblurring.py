@@ -102,11 +102,11 @@ x_dpir = x_dpir.clamp(0, 1)
 
 center_crop = -10  # remove 10 pixels from each border to avoid boundary effects
 
-niqe = dinv.metric.NIQE(center_crop=center_crop)
+# niqe = dinv.metric.NIQE(center_crop=center_crop)
 
-niqe_blurry = niqe(y).item()
-niqe_ram = niqe(x_ram).item()
-niqe_dpir = niqe(x_dpir).item()
+# niqe_blurry = niqe(y).item()
+# niqe_ram = niqe(x_ram).item()
+# niqe_dpir = niqe(x_dpir).item()
 
 bs = dinv.metric.BlurStrength(center_crop=center_crop)
 
@@ -124,9 +124,9 @@ si_dpir = si(x_dpir).item()
 dinv.utils.plot(
     {"Blurry": y, "RAM": x_ram, "DPIR": x_dpir},
     subtitles=[
-        f"SI: {si_blurry:.0f} \n BS: {bs_blurry:.3f} \n  NIQE: {niqe_blurry:.2f}",
-        f"SI: {si_ram:.0f} \n BS: {bs_ram:.3f} \n  NIQE: {niqe_ram:.2f} ",
-        f"SI: {si_dpir:.0f} \n BS: {bs_dpir:.3f} \n  NIQE: {niqe_dpir:.2f} ",
+        f"SI: {si_blurry:.0f} \n BS: {bs_blurry:.3f}",  # \n  NIQE: {niqe_blurry:.2f}",
+        f"SI: {si_ram:.0f} \n BS: {bs_ram:.3f}",  # \n  NIQE: {niqe_ram:.2f} ",
+        f"SI: {si_dpir:.0f} \n BS: {bs_dpir:.3f}",  # \n  NIQE: {niqe_dpir:.2f} ",
     ],
     figsize=(10, 5),
 )

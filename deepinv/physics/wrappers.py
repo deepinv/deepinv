@@ -91,7 +91,7 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
 
         >>> import torch
         >>> import deepinv as dinv
-        >>> physics = dinv.physics.BlurFFT(img_size=(1, 32, 32), filter=dinv.physics.blur.gaussian_blur(.2))
+        >>> physics = dinv.physics.BlurFFT(img_size=(1, 32, 32), filter=dinv.physics.functional.gaussian_blur(sigma=(0.2, 0.2)))
         >>> x = torch.rand((1, 1, 8, 8))  # define an image 4 times smaller than the physics input size (scale = 2)
         >>> new_physics = dinv.physics.LinearPhysicsMultiScaler(physics, (1, 32, 32), factors=[2, 4, 8])  # define a multiscale physics with base img size (1, 32, 32)
         >>> y = new_physics(x, scale=2)  # applying physics at scale 2
@@ -212,7 +212,7 @@ class PhysicsCropper(LinearPhysics):
     The adjoint operator is defined as :math:`\tilde{A}^{\top} = C^{\top} \circ A^{\top}` and :math:`C^{\top}` is a padding operator that pads the input tensor to the original size.
 
     :param deepinv.physics.LinearPhysics physics: base linear physics operator.
-    :param tuple crop: padding to apply to the input tensor, e.g., (pad_height, pad_width).
+    :param tuple crop: padding to apply to the input tensor, e.g., `(pad_height, pad_width)` or `(pad_z, pad_height, pad_weight)` where `pad_z` is either channel or depth dimension pad.
     :param torch.device, str device: cpu or cuda, every registered buffer and module parameters are recursively pushed onto the device during initialization.
 
     """
@@ -226,6 +226,8 @@ class PhysicsCropper(LinearPhysics):
         super().__init__(noise_model=physics.noise_model, device=device)
         self.base = physics
         self.crop = crop
+        if len(self.crop) not in (2, 3):
+            raise ValueError("Crop must be a tuple of length 2 or 3.")
 
     def A(self, x, **kwargs):
         return self.base.A(self.remove_pad(x), **kwargs)
@@ -235,10 +237,18 @@ class PhysicsCropper(LinearPhysics):
         return y
 
     def remove_pad(self, x):
-        return x[..., self.crop[0] :, self.crop[1] :]
+        if len(self.crop) == 2:
+            return x[..., self.crop[0] :, self.crop[1] :]
+        elif len(self.crop) == 3:
+            return x[..., self.crop[0] :, self.crop[1] :, self.crop[2] :]
 
     def pad(self, x):
-        return torch.nn.functional.pad(x, (self.crop[1], 0, self.crop[0], 0))
+        if len(self.crop) == 3:
+            return torch.nn.functional.pad(
+                x, (self.crop[2], 0, self.crop[1], 0, self.crop[0], 0)
+            )
+        else:
+            return torch.nn.functional.pad(x, (self.crop[1], 0, self.crop[0], 0))
 
     def update_parameters(self, **kwargs):
         self.base.update_parameters(**kwargs)

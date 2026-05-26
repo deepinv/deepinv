@@ -34,6 +34,8 @@ Base Class
    deepinv.optim.MD
    deepinv.optim.PMD
    deepinv.optim.PDCP
+   deepinv.optim.SIRT
+   deepinv.optim.MLEM
 
 
 Potentials
@@ -87,8 +89,10 @@ Priors
    deepinv.optim.WaveletPrior
    deepinv.optim.TVPrior
    deepinv.optim.PatchPrior
-   deepinv.optim.PatchNR
    deepinv.optim.L12Prior
+   deepinv.optim.PatchNR
+   deepinv.optim.prior.NormalizingFlow
+   deepinv.optim.prior.GLOWCouplingBlock
 
 Predefined models
 -----------------
@@ -159,6 +163,8 @@ Iterators
    deepinv.optim.optim_iterators.MDIteration
    deepinv.optim.optim_iterators.PMDIteration
    deepinv.optim.optim_iterators.SMIteration
+   deepinv.optim.optim_iterators.MLEMIteration
+   deepinv.optim.optim_iterators.SIRTIteration
 
 
 Linear Solvers
@@ -196,3 +202,4 @@ Utils
    :nosignatures:
 
    deepinv.optim.utils.GaussianMixtureModel
+

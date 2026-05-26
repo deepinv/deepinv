@@ -11,7 +11,7 @@ from .utils import (
 from .base import Denoiser
 from torch.nn import Linear, GroupNorm
 from torch import Tensor
-from .utils import get_weights_url
+from .utils import get_weights_url, load_state_dict_from_url
 from typing import Sequence
 
 
@@ -91,7 +91,7 @@ class NCSNpp(Denoiser):
         attn_resolutions: Sequence = (16,),  # List of resolutions with self-attention.
         dropout: float = 0.10,  # Dropout probability of intermediate activations.
         label_dropout: float = 0.0,  # Dropout probability of class labels for classifier-free guidance.
-        pretrained: str = "download",
+        pretrained: str | None = "download",
         _was_trained_on_minus_one_one: bool = False,
         pixel_std: float = 0.75,
         device=None,
@@ -99,7 +99,6 @@ class NCSNpp(Denoiser):
     ):
         super().__init__()
         model_type = model_type.lower()
-        assert model_type in ["ncsn", "ddpm"]
         if model_type == "ncsn":
             embedding_type = "fourier"
             channel_mult_noise = 2
@@ -112,9 +111,22 @@ class NCSNpp(Denoiser):
             encoder_type = "standard"
             decoder_type = "standard"
             resample_filter = [1, 1]
-        assert embedding_type in ["fourier", "positional"]
-        assert encoder_type in ["standard", "skip", "residual"]
-        assert decoder_type in ["standard", "skip"]
+        else:  # pragma: no cover
+            raise ValueError(
+                f'model_type must be one of ["ncsn", "ddpm"], got {model_type}'
+            )
+        if embedding_type not in ["fourier", "positional"]:  # pragma: no cover
+            raise ValueError(
+                f'embedding_type must be one of ["fourier", "positional"], got {embedding_type}'
+            )
+        if encoder_type not in ["standard", "skip", "residual"]:  # pragma: no cover
+            raise ValueError(
+                f'encoder_type must be one of ["standard", "skip", "residual"], got {encoder_type}'
+            )
+        if decoder_type not in ["standard", "skip"]:  # pragma: no cover
+            raise ValueError(
+                f'decoder_type must be one of ["standard", "skip"], got {decoder_type}'
+            )
         self.precondition_type = precondition_type.lower()
         self.label_dropout = label_dropout
         emb_channels = model_channels * channel_mult_emb
@@ -279,7 +291,7 @@ class NCSNpp(Denoiser):
                 url_name = None
             if url_name is not None:
                 url = get_weights_url(model_name="edm", file_name=url_name)
-                ckpt = torch.hub.load_state_dict_from_url(
+                ckpt = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=url_name
                 )
             else:

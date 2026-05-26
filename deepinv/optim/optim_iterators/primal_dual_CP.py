@@ -1,4 +1,11 @@
+from __future__ import annotations
 from .optim_iterator import OptimIterator, fStep, gStep
+from typing import TYPE_CHECKING
+import torch
+
+if TYPE_CHECKING:
+    from deepinv.optim import DataFidelity, Prior
+    from deepinv.physics import Physics
 
 
 class CPIteration(OptimIterator):
@@ -11,13 +18,9 @@ class CPIteration(OptimIterator):
     If the attribute ``g_first`` is set to ``False`` (by default), the iteration is given by
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\sigma F^*}(u_k + \sigma K z_k) \\
         x_{k+1} &= \operatorname{prox}_{\tau \lambda G}(x_k-\tau K^\top u_{k+1}) \\
-        z_{k+1} &= x_{k+1} + \beta(x_{k+1}-x_k) \\
-        \end{aligned}
-        \end{equation*}
+        z_{k+1} &= x_{k+1} + \beta(x_{k+1}-x_k)
 
     where :math:`F^*` is the Fenchel-Legendre conjugate of :math:`F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
     satisfy :math:`\sigma \tau \|K\|^2 \leq 1`.
@@ -28,9 +31,7 @@ class CPIteration(OptimIterator):
 
     .. math::
 
-        \begin{equation*}
         \underset{x}{\operatorname{min}} \,\,  \distancename(Ax, y) + \lambda \regname(x)
-        \end{equation*}
 
 
     with a splitting on :math:`\distancename`, with not differentiability assumption needed on :math:`\distancename`
@@ -45,8 +46,16 @@ class CPIteration(OptimIterator):
         self.f_step = fStepCP(**kwargs)
 
     def forward(
-        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
-    ):
+        self,
+        X: dict[str, tuple[torch.Tensor, torch.Tensor, torch.Tensor] | torch.Tensor],
+        cur_data_fidelity: DataFidelity,
+        cur_prior: Prior,
+        cur_params: dict,
+        y: torch.Tensor,
+        physics: Physics,
+        *args,
+        **kwargs,
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor, torch.Tensor] | torch.Tensor]:
         r"""
         Single iteration of the Chambolle-Pock algorithm.
 
@@ -93,7 +102,15 @@ class fStepCP(fStep):
     def __init__(self, **kwargs):
         super(fStepCP, self).__init__(**kwargs)
 
-    def forward(self, x, w, cur_data_fidelity, y, physics, cur_params):
+    def forward(
+        self,
+        x: torch.Tensor,
+        w: torch.Tensor,
+        cur_data_fidelity: DataFidelity,
+        y: torch.Tensor,
+        physics: Physics,
+        cur_params: dict,
+    ) -> torch.Tensor:
         r"""
         Single Chambolle-Pock iteration step on the data-fidelity term :math:`f`.
 
@@ -103,6 +120,7 @@ class fStepCP(fStep):
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
         :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize_dual"` (or `"stepsize"`) and `"lambda"`).
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the data-fidelity term.
         """
         if self.g_first:
             p = x - cur_params["stepsize"] * w
@@ -122,7 +140,13 @@ class gStepCP(gStep):
     def __init__(self, **kwargs):
         super(gStepCP, self).__init__(**kwargs)
 
-    def forward(self, x, w, cur_prior, cur_params):
+    def forward(
+        self,
+        x: torch.Tensor,
+        w: torch.Tensor,
+        cur_prior: Prior,
+        cur_params: dict,
+    ) -> torch.Tensor:
         r"""
         Single Chambolle-Pock iteration step on the prior term :math:`\lambda g`.
 
@@ -130,6 +154,7 @@ class gStepCP(gStep):
         :param torch.Tensor w: Current second variable :math:`A z` if `"g_first"` and :math:`A^\top u` otherwise.
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"`, `"stepsize"` (or `"stepsize_dual"`) and `"g_param"`).
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the prior term.
         """
         if self.g_first:
             p = x + cur_params["stepsize_dual"] * w

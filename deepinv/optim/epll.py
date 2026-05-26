@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch
 from deepinv.utils import patch_extractor
 from deepinv.optim.utils import conjugate_gradient
-from deepinv.models.utils import get_weights_url
+from deepinv.models.utils import get_weights_url, load_state_dict_from_url
 from deepinv.optim.utils import GaussianMixtureModel
 from deepinv.models.base import Denoiser
 
@@ -82,7 +82,7 @@ class EPLL(nn.Module):
                         "No pretrained weights found for this configuration!"
                     )
                 url = get_weights_url(model_name="EPLL", file_name=file_name)
-                ckpt = torch.hub.load_state_dict_from_url(
+                ckpt = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=file_name
                 )
             self.load_state_dict(ckpt)

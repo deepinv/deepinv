@@ -1,7 +1,7 @@
 from __future__ import annotations
 import torch
 from deepinv.physics.generator import PhysicsGenerator
-from deepinv.utils.compat import zip_strict
+from deepinv.physics.functional import random_choice
 
 
 class DownsamplingGenerator(PhysicsGenerator):
@@ -22,7 +22,7 @@ class DownsamplingGenerator(PhysicsGenerator):
 
     .. note::
         If batch size = 1, a random filter and factor is sampled in (filters, factors) at each step.
-        If batch size > 1, a unique factor needs to be sampled for the whole batch, but filters can vary. In this case,
+        If batch size > 1 and multiple factors are provided, a unique factor is sampled for the whole batch, but filters can vary. In this case,
         it is recommended to set the `psf_size` argument to ensure that all filters in the batch have the same shape.
 
     :param list[str] filters: list of filters to use for downsampling. Default is ["gaussian", "bilinear", "bicubic"].
@@ -46,6 +46,9 @@ class DownsamplingGenerator(PhysicsGenerator):
             filters = [filters]
         if isinstance(factors, int):
             factors = [factors]
+
+        factors = torch.as_tensor(factors).to(device)
+
         kwargs = {
             "list_filters": filters,
             "list_factors": factors,
@@ -57,20 +60,25 @@ class DownsamplingGenerator(PhysicsGenerator):
         r"""
         Returns the filter associated to a given filter name and factor.
         """
-        from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter
+        from deepinv.physics.functional.blur import (
+            gaussian_blur,
+            bilinear_filter,
+            bicubic_filter,
+        )
 
         if filter_name == "gaussian":
             filter = torch.nn.Parameter(
-                gaussian_blur(sigma=(factor, factor)), requires_grad=False
-            ).to(self.device)
+                gaussian_blur(sigma=(factor, factor), device=self.device),
+                requires_grad=False,
+            )
         elif filter_name == "bilinear":
             filter = torch.nn.Parameter(
-                bilinear_filter(factor), requires_grad=False
-            ).to(self.device)
-        elif filter_name == "bicubic":
-            filter = torch.nn.Parameter(bicubic_filter(factor), requires_grad=False).to(
-                self.device
+                bilinear_filter(factor, device=self.device), requires_grad=False
             )
+        elif filter_name == "bicubic":
+            filter = torch.nn.Parameter(
+                bicubic_filter(factor, device=self.device), requires_grad=False
+            ).to(self.device)
 
         if self.psf_size is not None:
             dH = self.psf_size[0] - filter.shape[-2]
@@ -108,13 +116,19 @@ class DownsamplingGenerator(PhysicsGenerator):
         """
         self.rng_manual_seed(seed)
 
-        factor_indices = torch.randint(
-            low=0,
-            high=len(self.list_factors),
-            size=(batch_size,),
-            generator=self.rng,
-            **self.factory_kwargs,
+        # NOTE: if batch size > 1 and multiple factors are provided, we sample a
+        # unique factor for the whole batch to ensure that all produced measurements
+        # have the same shape.
+        factors = random_choice(
+            self.list_factors,
+            size=(
+                (1,) if batch_size > 1 and len(self.list_factors) > 1 else (batch_size,)
+            ),
+            rng=self.rng,
         )
+        # no-op if factors is already of shape (batch_size,)
+        factors = factors.expand(batch_size)
+
         filter_indices = torch.randint(
             low=0,
             high=len(self.list_filters),
@@ -122,11 +136,10 @@ class DownsamplingGenerator(PhysicsGenerator):
             generator=self.rng,
             **self.factory_kwargs,
         )
-        factors = [self.list_factors[int(i)] for i in factor_indices.tolist()]
         filters = [self.list_filters[int(i)] for i in filter_indices.tolist()]
 
         filters = [
-            self.get_kernel(f_str, f) for f_str, f in zip_strict(filters, factors)
+            self.get_kernel(f_str, f) for f_str, f in zip(filters, factors, strict=True)
         ]
 
         if not all([f.shape == filters[0].shape for f in filters]):

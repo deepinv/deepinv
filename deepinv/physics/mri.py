@@ -94,6 +94,7 @@ class MRI(MRIMixin, DecomposablePhysics):
 
         # Check and update mask
         self.register_buffer("mask", self.check_mask(mask))
+        self.img_size = self.mask.shape[1:]
         self.to(device)
 
     def V_adjoint(self, x: Tensor) -> Tensor:
@@ -305,7 +306,8 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             such that ``x = MultiCoilMRI().A_adjoint(y, crop=True)``.
         :returns: (:class:`torch.Tensor`) image with shape `(B,2,...,H,W)` if not rss else `(B,1,...,H,W)`
         """
-        assert y.shape[1] == 2, "y must be of shape (B,2,N,...,H,W)"
+        if y.shape[1] != 2:  # pragma: no cover
+            raise ValueError("y must be of shape (B,2,N,...,H,W)")
         self.update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
 
         My = self.to_torch_complex(self.mask[:, :, None] * y)  # [B,N,...,H,W]
@@ -368,6 +370,14 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             )
 
         super().update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
+
+        # Update image size with latest mask shape
+        self.img_size = self.mask.shape[1:]
+
+        if self.coil_maps is not None and self.coil_maps.shape[2:] != self.img_size[1:]:
+            warn(
+                f"After updating parameters, img_size {self.img_size} in MultiCoilMRI is incompatible with coil_maps shape {coil_maps.shape} in the spatial dims."
+            )
 
     @staticmethod
     def check_coil_maps(coil_maps: Tensor, three_d: bool) -> Tensor:

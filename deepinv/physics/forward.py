@@ -11,7 +11,7 @@ import torch.nn as nn
 from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_backward
-from deepinv.utils.compat import zip_strict
+
 from deepinv.physics.functional import power_method
 import warnings
 
@@ -707,7 +707,7 @@ class LinearPhysics(Physics):
             V = [randn_like(au) for au in Au]
             Atv = self.A_adjoint(V, **kwargs)
             s1 = 0
-            for au, v in zip_strict(Au, V):
+            for au, v in zip(Au, V, strict=True):
                 s1 += (v.conj() * au).flatten().sum()
 
         else:
@@ -1054,12 +1054,10 @@ class DecomposablePhysics(LinearPhysics):
     ):
         super().__init__(device=device, **kwargs)
 
-        assert not (
-            U is None and not (U_adjoint is None)
-        ), "U must be provided if U_adjoint is provided."
-        assert not (
-            V_adjoint is None and not (V is None)
-        ), "V_adjoint must be provided if V is provided."
+        if U is None and not (U_adjoint is None):  # pragma: no cover
+            raise ValueError("U must be provided if U_adjoint is provided.")
+        if V_adjoint is None and not (V is None):  # pragma: no cover
+            raise ValueError("V_adjoint must be provided if V is provided.")
 
         # set to identity if not provided
         self._V_adjoint = (lambda x: x) if V_adjoint is None else V_adjoint
@@ -1500,6 +1498,13 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
             self.reduction = lambda x: x
         else:
             raise ValueError("reduction must be either sum, mean or none.")
+
+        if reduction != "sum":
+            warnings.warn(
+                f"Using `reduction={reduction}` is deprecated and will be removed in a future version. Using `reduction={reduction}` breaks the adjointness property of the operator, and can lead to suboptimal performance of certain algorithms. Use `reduction='sum'` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
     def A_adjoint(self, y: TensorList, **kwargs) -> torch.Tensor:
         r"""

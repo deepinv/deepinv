@@ -36,7 +36,7 @@ class SupLoss(Loss):
         if metric is None:
             metric = torch.nn.MSELoss()
         super().__init__()
-        self.name = "supervised"
+        self._name = "supervised"
         self.metric = metric
 
     def forward(self, x_net: Tensor, x: Tensor, **kwargs) -> Tensor:

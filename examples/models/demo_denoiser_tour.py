@@ -24,7 +24,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import deepinv as dinv
-from deepinv.utils import plot_inset, load_example, zip_strict
+from deepinv.utils import plot_inset, load_example
 
 # %%
 # Load test images
@@ -162,7 +162,7 @@ psnr = dinv.loss.metric.PSNR()
 psnr_x = psnr(noisy_images, image)
 res = [
     {"sigma": sig.item(), "denoiser": "Noisy", "psnr": v.item(), "time": 0.0}
-    for sig, v in zip_strict(noise_levels, psnr_x)
+    for sig, v in zip(noise_levels, psnr_x, strict=True)
 ]
 
 # %%
@@ -193,7 +193,7 @@ for name, d in denoisers.items():
     res.extend(
         [
             {"sigma": sig.item(), "denoiser": name, "psnr": v.item(), "time": runtime}
-            for sig, v in zip_strict(noise_levels, psnr_x)
+            for sig, v in zip(noise_levels, psnr_x, strict=True)
         ]
     )
     print(f" done ({runtime:.2f}s)")
@@ -248,7 +248,7 @@ for th in thresholds:
             "th": th.item(),
             "time": runtime,
         }
-        for sig, clean_img in zip_strict(noise_levels, clean_images)
+        for sig, clean_img in zip(noise_levels, clean_images, strict=True)
     )
 df_wavelet = pd.DataFrame(res)
 
@@ -400,7 +400,7 @@ for name, d in adapted_denoisers.items():
     res.extend(
         [
             {"sigma": sig.item(), "denoiser": name, "psnr": v.item(), "time": runtime}
-            for sig, v in zip_strict(noise_levels, psnr_x)
+            for sig, v in zip(noise_levels, psnr_x, strict=True)
         ]
     )
     print(f" done ({runtime:.2f}s)")

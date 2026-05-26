@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Literal
 from torch import Tensor
 import torch
-from deepinv.utils._internal import _as_pair, _add_tuple
+from deepinv.utils._internal import _as_pair
 
 
 def _unity_partition_function_1d(
     image_size: int,
     patch_size: int,
-    overlap: int,
+    stride: int,
     mode: Literal["bump", "linear"] = "bump",
     device="cpu",
     dtype=torch.float32,
@@ -22,12 +22,13 @@ def _unity_partition_function_1d(
 
     :param int image_size: Size of the image dimension.
     :param int patch_size: Size of each patch.
-    :param int overlap: Overlap between adjacent patches.
+    :param int stride: Stride between adjacent patches.
     :param str mode: Blending mode - 'bump' (smooth) or 'linear'.
     :return: Tensor of shape (n_patches, max_size) with partition masks.
     """
-    n_patch = (image_size - patch_size) // (patch_size - overlap) + 1
-    max_size = patch_size + (n_patch - 1) * (patch_size - overlap)
+    n_patch = (image_size - patch_size) // stride + 1
+    max_size = patch_size + (n_patch - 1) * stride
+    overlap = patch_size - stride
     t = torch.linspace(
         -max_size // 2, max_size // 2, max_size, device=device, dtype=dtype
     )
@@ -47,13 +48,11 @@ def _unity_partition_function_1d(
         raise ValueError(f"Unknown mode: {mode}. Use 'bump' or 'linear'.")
 
     # Create masks for each patch
-    masks = torch.stack(
-        [mask.roll(shifts=(patch_size - overlap) * i) for i in range(n_patch)], dim=0
-    )
+    masks = torch.stack([mask.roll(shifts=stride * i) for i in range(n_patch)], dim=0)
 
     # Handle boundary patches
-    masks[0, :overlap] = 1.0
-    masks[-1, -overlap:] = 1.0
+    masks[0, :stride] = 1.0
+    masks[-1, -stride:] = 1.0
 
     # Normalize to sum to 1
     masks = masks / (masks.sum(dim=0, keepdims=True) + 1e-8)
@@ -125,13 +124,12 @@ def generate_tiled_multipliers(
     img_size = _as_pair(img_size)
     patch_size = _as_pair(patch_size)
     stride = _as_pair(stride)
-    overlap = _add_tuple(patch_size, stride, -1)
 
     masks_x = _unity_partition_function_1d(
-        img_size[0], patch_size[0], overlap[0], mode, device=device, dtype=dtype
+        img_size[0], patch_size[0], stride[0], mode, device=device, dtype=dtype
     )
     masks_y = _unity_partition_function_1d(
-        img_size[1], patch_size[1], overlap[1], mode, device=device, dtype=dtype
+        img_size[1], patch_size[1], stride[1], mode, device=device, dtype=dtype
     )
 
     # Combine 1D masks into 2D via outer product

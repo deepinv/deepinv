@@ -262,12 +262,14 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         >>> mask_generator.step(batch_size=2, input_mask=orig_mask)["mask"].shape
         torch.Size([2, 1, 128, 128])
 
+    .. note::
+
+        :class:`deepinv.physics.generator.MultiplicativeSplittingMaskGenerator` calls the `super().step()` function of :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` to generate the splitting mask. During initialization, we force `self` to share the same random number generator as `self.split_generator` to correctly propagate seeding to the `self.split_generator` when using `seed` argument in `step`.
+
     :param tuple[int] img_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, T, H, W).
         Note this can be overriden on-the-fly by passing in `img_size` or `input_mask` arguments to `step`.
     :param deepinv.physics.generator.BaseMaskGenerator split_generator: mask generator used for multiplicative splitting
     :param str, torch.device device: device where the tensor is stored (default: 'cpu').
-    :param torch.Generator rng: torch random number generator.
-    :param torch.dtype dtype: the data type of the generated parameters
     """
 
     @_deprecated_alias(tensor_size="img_size")
@@ -275,14 +277,32 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         self,
         img_size: tuple[int],
         split_generator: BaseMaskGenerator,
-        *args,
+        device: str | torch.device = torch.device("cpu"),
         **kwargs,
     ):
+
+        if "split_ratio" in kwargs:
+            warn(
+                "split_ratio argument is ignored in MultiplicativeSplittingMaskGenerator as the split ratio is determined by the split_generator."
+            )
+            kwargs.pop("split_ratio")
+        if "pixelwise" in kwargs:
+            warn(
+                "pixelwise argument is ignored in MultiplicativeSplittingMaskGenerator as the splitting is determined by the split_generator."
+            )
+            kwargs.pop("pixelwise")
+        if "rng" in kwargs:
+            warn(
+                "rng argument is ignored in MultiplicativeSplittingMaskGenerator as the random number generator is shared with split_generator to ensure reproducibility when using seed in BernoulliSplittingMaskGenerator.step."
+            )
+            kwargs.pop("rng")
+
         super().__init__(
             img_size=img_size,
-            split_ratio=0.0,
-            pixelwise=True,
-            *args,
+            split_ratio=0.0,  # unused
+            pixelwise=True,  # unused
+            rng=split_generator.rng,  # use same rng as split generator to ensure reproducibility when using seed in BernoulliSplittingMaskGenerator.step,
+            device=device,
             **kwargs,
         )
         self.split_generator = split_generator

@@ -60,7 +60,10 @@ class RadioInterferometry(LinearPhysics):
         self.real_projection = real_projection
 
         # Check image size format
-        assert len(self.img_size) == 2
+        if len(self.img_size) != 2:  # pragma: no cover
+            raise ValueError(
+                f"Image size must be length 2, but got img_size {self.img_size}"
+            )
 
         # Define oversampled grid
         self.grid_size = (

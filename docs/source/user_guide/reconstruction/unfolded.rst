@@ -21,7 +21,7 @@ Here, the stepsize ``stepsize``, the regularization parameter ``lambda_reg``, an
     >>> from deepinv.optim import PGD
     >>>
     >>> # Create a trainable unfolded architecture
-    >>> model = PGD(  # doctest: +IGNORE_RESULT
+    >>> model = PGD(
     ...     unfold=True,
     ...     data_fidelity=dinv.optim.L2(),
     ...     prior=dinv.optim.PnP(dinv.models.DnCNN()),
@@ -54,7 +54,7 @@ See also :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constant_memory.py`
     >>> from deepinv.optim import HQS
     >>> 
     >>> # Create a trainable unfolded architecture
-    >>> model = HQS(  # doctest: +IGNORE_RESULT
+    >>> model = HQS(
     ...     unfold=True,
     ...     data_fidelity=dinv.optim.L2(),
     ...     prior=dinv.optim.PnP(dinv.models.DnCNN()),

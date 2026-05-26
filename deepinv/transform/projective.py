@@ -8,7 +8,6 @@ import torch
 from PIL import Image
 
 from deepinv.transform.base import Transform, TransformParam
-from deepinv.utils.compat import zip_strict
 
 
 def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
@@ -99,7 +98,10 @@ def apply_homography(
     """
     from kornia.geometry.transform import warp_perspective
 
-    assert interpolation in ("bilinear", "bicubic", "nearest")
+    if interpolation not in ("bilinear", "bicubic", "nearest"):  # pragma: no cover
+        raise ValueError(
+            f'interpolation must be one of ("bilinear", "bicubic", "nearest"), but got {interpolation}'
+        )
 
     w, h = (im.shape[2], im.shape[3]) if isinstance(im, torch.Tensor) else im.size
     u0, v0 = int(w / 2), int(h / 2)
@@ -275,7 +277,7 @@ class Homography(Transform):
                     interpolation=self.interpolation,
                     device=self.device,
                 )
-                for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip_strict(
+                for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip(
                     theta_x,
                     theta_y,
                     theta_z,
@@ -285,6 +287,7 @@ class Homography(Transform):
                     skew,
                     stretch_x,
                     stretch_y,
+                    strict=True,
                 )
             ],
             dim=0,

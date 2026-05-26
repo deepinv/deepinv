@@ -14,54 +14,12 @@ from torch.utils.data import DataLoader, Subset, Dataset
 from deepinv.utils.tensorlist import TensorList
 from deepinv.physics import StackedPhysics
 from deepinv.datasets.base import ImageDataset
+from deepinv.utils.decorators import _deprecate_attribute
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
     from deepinv.physics.generator import PhysicsGenerator
     from deepinv.transform import Transform
-    from typing import Any
-
-
-def _register_deprecated_attr(
-    self: Any,
-    *,
-    attr_name: str,
-    attr_underscore_name: str,
-    attr_initial_value: Any,
-    deprecation_message: str,
-    doc: str | None = None,
-) -> None:
-    """Deprecate an instance attribute.
-
-    It wraps the attribute so that a warning is raised any time the attribute is read, written, or deleted.
-
-    :param self: The instance to which the attribute is added.
-    :param str attr_name: The name of the attribute to be deprecated.
-    :param str attr_underscore_name: The name of the internal attribute to store the value.
-    :param Any attr_initial_value: The initial value of the attribute.
-    :param str deprecation_message: The deprecation warning message to be shown.
-    :param str, None doc: The docstring for the deprecated attribute.
-    """
-    setattr(self, attr_underscore_name, attr_initial_value)
-
-    def fget(self) -> bool:
-        val = getattr(self, attr_underscore_name)
-        # warn last in case retrieval fails
-        warn(deprecation_message, DeprecationWarning, stacklevel=2)
-        return val
-
-    def fset(self, value: bool) -> None:
-        setattr(self, attr_underscore_name, value)
-        # warn last in case setting fails
-        warn(deprecation_message, DeprecationWarning, stacklevel=2)
-
-    def fdel(self) -> None:
-        delattr(self, attr_underscore_name)
-        # warn last in case deletion fails
-        warn(deprecation_message, DeprecationWarning, stacklevel=2)
-
-    attr_value = property(fget=fget, fset=fset, fdel=fdel, doc=doc)
-    setattr(self, attr_name, attr_value)
 
 
 class HDF5Dataset(ImageDataset):
@@ -330,7 +288,7 @@ class HDF5Dataset(ImageDataset):
 
         # The attribute load_physics_generator_params is redundant with the attribute params.
         # Indeed, it is true if and only if the attribute params exists.
-        _register_deprecated_attr(
+        _deprecate_attribute(
             self,
             attr_name="load_physics_generator_params",
             attr_underscore_name="_load_physics_generator_params",
@@ -341,7 +299,7 @@ class HDF5Dataset(ImageDataset):
         # The attribute stacked is redundant with the attribute y. It is the
         # number of elements in y if y is a list, otherwise y is a h5py.Dataset
         # and it is 0.
-        _register_deprecated_attr(
+        _deprecate_attribute(
             self,
             attr_name="stacked",
             attr_underscore_name="_stacked",
@@ -350,7 +308,7 @@ class HDF5Dataset(ImageDataset):
         )
 
         # The attribute data_info is used nowhere.
-        _register_deprecated_attr(
+        _deprecate_attribute(
             self,
             attr_name="data_info",
             attr_underscore_name="_data_info",
@@ -359,7 +317,7 @@ class HDF5Dataset(ImageDataset):
         )
 
         # The attribute data_cache is used nowhere.
-        _register_deprecated_attr(
+        _deprecate_attribute(
             self,
             attr_name="data_cache",
             attr_underscore_name="_data_cache",

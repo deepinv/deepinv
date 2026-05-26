@@ -14,7 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from deepinv.models import Reconstructor, Denoiser
-from deepinv.models.utils import get_weights_url, test_pad
+from deepinv.models.utils import get_weights_url, test_pad, load_state_dict_from_url
 from deepinv.models.restormer import (
     Downsample,
     Upsample,
@@ -55,7 +55,7 @@ class PromptIR(Reconstructor, Denoiser):
 
     PromptIR is a blind restoration model that was proposed in :footcite:t:`potlapalli2023promptir`.
 
-    The authors' pretrained weights for in_channels=out_channels=3 can be downloaded via setting ``pretrained='download'``.
+    The authors' pretrained weights for in_channels=out_channels=3 can be downloaded via setting ``pretrained='download'`` (default).
 
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
@@ -69,6 +69,19 @@ class PromptIR(Reconstructor, Denoiser):
     :param bool decoder: whether to use the decoder with prompt generation blocks.
     :param torch.device, str device: device to load the model on.
     :param str pretrained: path to the pretrained weights or 'download' to download the authors' weights.
+
+    |sep|
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.models import PromptIR
+    >>> model = PromptIR()
+    >>> x = torch.randn(1, 3, 256, 256)
+    >>> out = model(x)
+    >>> out.shape
+    torch.Size([1, 3, 256, 256])
+
     """
 
     def __init__(
@@ -84,9 +97,8 @@ class PromptIR(Reconstructor, Denoiser):
         LayerNorm_type: str = "WithBias",
         decoder: bool = True,
         device: torch.device | str = None,
-        pretrained: str = None,
+        pretrained: str | None = "download",
     ):
-
         super(PromptIR, self).__init__()
 
         self.patch_embed = OverlapPatchEmbed(in_channels, dim)
@@ -284,7 +296,7 @@ class PromptIR(Reconstructor, Denoiser):
         if checkpoint_path == "download":
             name = "promptir.ckpt"
             url = get_weights_url(model_name="promptir", file_name=name)
-            checkpoint = torch.hub.load_state_dict_from_url(
+            checkpoint = load_state_dict_from_url(
                 url, map_location=lambda storage, loc: storage, file_name=name
             )
         else:
@@ -305,7 +317,6 @@ class PromptIR(Reconstructor, Denoiser):
             self.load_state_dict(checkpoint, strict=True)
 
     def forward_promptir(self, y: torch.Tensor) -> torch.Tensor:
-
         inp_enc_level1 = self.patch_embed(y)
 
         out_enc_level1 = self.encoder_level1(inp_enc_level1)
@@ -360,7 +371,6 @@ class PromptIR(Reconstructor, Denoiser):
     def forward(
         self, y: torch.Tensor, physics: Physics = None, **kwargs
     ) -> torch.Tensor:
-
         # raise warning if physics is not None
         if physics is not None:
             warnings.warn(

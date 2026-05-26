@@ -44,7 +44,7 @@ physics = dinv.physics.Inpainting((1, 64, 64), mask=0.8, device=device, rng=rng)
 from torchvision.transforms import Compose, ToTensor, Resize, CenterCrop, Grayscale
 
 dataset = dinv.datasets.Urban100HR(
-    ".",
+    dinv.utils.get_cache_home() / "datasets" / "Urban100",
     download=True,
     transform=Compose([ToTensor(), Grayscale(), Resize(256), CenterCrop(64)]),
 )
