@@ -9,7 +9,7 @@ The PET forward model is defined as
 
 .. math::
 
-    y \sim \gamma \mathcal{P}(\frac{c \circ H(g*x) + b}{\gamma})
+    y \sim \gamma \mathcal{P}\left(\frac{c \circ H(g*x) + b}{\gamma}\right)
 
 where :math:`H \in \mathbb{R}_{+}^{m \times n}` is the projection operator,
 :math:`g \in \mathbb{R}_{+}^{n}` is a Gaussian blur kernel, :math:`x\in\mathbb{R}_{+}^{n}`
