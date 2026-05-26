@@ -97,7 +97,7 @@ scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
     num_lor_endpoints_per_side=num_lor_endpoints_per_side,
 )
 
-# gain of the device.
+# gain of the device:
 # higher gains are associated to lower dose and/or shorter acquisition times,
 # while lower gains are associated to higher dose and/or longer acquisition times.
 # larger gain -> more poisson noise -> harder reconstruction
