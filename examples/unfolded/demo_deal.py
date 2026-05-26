@@ -112,7 +112,7 @@ y_denoise = physics_denoise(x)
 
 with torch.no_grad():
     x_hat_denoise = model(y_denoise, physics_denoise)
-    mask_denoise = model.model.mask.mean(dim=1, keepdim=True)
+    mask_denoise = model.mask.mean(dim=1, keepdim=True)
 
 
 psnr_noisy = psnr(y_denoise, x).item()
