@@ -67,6 +67,8 @@ Deep Architectures
    deepinv.models.DScCP
    deepinv.models.RAM
    deepinv.models.ArtifactRemoval
+   deepinv.models.SRResNet
+   deepinv.models.FFDNet
 
 Model Utils
 -----------

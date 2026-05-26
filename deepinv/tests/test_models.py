@@ -27,6 +27,7 @@ MODEL_LIST_1_CHANNEL = [
     "promptir",
     "ncsnpp",
     "adinv.modelsunet",
+    "ffdnet",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -149,6 +150,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.DScCP()
     elif name == "bilateral":
         out = dinv.models.BilateralFilter()
+    elif name == "ffdnet":
+        out = dinv.models.FFDNet(img_channels=imsize[0], n_conv_layers=2, nf=16)
     else:
         raise Exception("Unknown denoiser")
 
@@ -353,6 +356,10 @@ def test_denoiser_color(imsize, device, denoiser):
     if denoiser in ["ncsnpp", "adinv.modelsunet"]:
         imsize = (imsize[0], (imsize[1] // 8) * 8, (imsize[2] // 8) * 8)
 
+    # FFDNet requires spatial size divisble 2
+    if denoiser in ["ffdnet"]:
+        imsize = (imsize[0], (imsize[1] // 2) * 2, (imsize[2] // 2) * 2)
+
     model = choose_denoiser(denoiser, imsize).to(device)
     torch.manual_seed(0)
     sigma = 0.2
@@ -375,7 +382,13 @@ def test_denoiser_gray(imsize_1_channel, device, denoiser):
                 (imsize_1_channel[1] // 8) * 8,
                 (imsize_1_channel[2] // 8) * 8,
             )
-
+        # FFDNet requires spatial size divisble 2
+        if denoiser in ["ffdnet"]:
+            imsize_1_channel = (
+                imsize_1_channel[0],
+                (imsize_1_channel[1] // 2) * 2,
+                (imsize_1_channel[2] // 2) * 2,
+            )
         model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
         torch.manual_seed(0)
@@ -447,6 +460,13 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
             imsize_1_channel[1] = 32
         if imsize_1_channel[2] % 8 > 0:
             imsize_1_channel[2] = 32
+    # FFDNet requires spatial size divisble 2
+    if denoiser in ["ffdnet"]:
+        imsize_1_channel = (
+            imsize_1_channel[0],
+            (imsize_1_channel[1] // 2) * 2,
+            (imsize_1_channel[2] // 2) * 2,
+        )
     model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
     torch.manual_seed(0)
@@ -627,31 +647,49 @@ def test_wavelet_decomposition(channels, dimension, is_complex, batch_size, devi
     assert torch.allclose(x, x_hat, rtol=tol, atol=tol)
 
 
-def test_drunet_inputs(imsize_1_channel, device):
+@pytest.mark.parametrize("dim", [2, 3])
+@pytest.mark.parametrize("spatial_size", [31, 32, 37, 40, 65])
+def test_drunet_inputs(dim, spatial_size, device):
     f = dinv.models.DRUNet(
-        in_channels=imsize_1_channel[0], out_channels=imsize_1_channel[0], device=device
+        in_channels=1,
+        out_channels=1,
+        nc=(4, 4, 4, 4),
+        nb=2,
+        dim=dim,
+        device=device,
+        pretrained=None,
     ).eval()
 
+    imsize = [1, *(spatial_size for _ in range(dim))]
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-    x = torch.ones(imsize_1_channel, device=device).unsqueeze(0)
+    x = torch.ones(imsize, device=device).unsqueeze(0)
     y = physics(x)
 
     # Case 1: sigma is a float
+    if dim == 3 and (spatial_size == 65):
+        with pytest.raises(NotImplementedError) as exc_info:
+            x_hat = f(y, sigma)
+        assert (
+            str(exc_info.value)
+            == "test_onesplit is not implemented yet for 3D. Please pass images with spatial shape smaller than 64, or multiple of 8 and larger than 31 to DRUNet."
+        )
+        return
     x_hat = f(y, sigma)
     assert x_hat.shape == x.shape
 
     # Case 2: sigma is a torch tensor with batch dimension
     batch_size = 3
-    x = torch.ones((batch_size, 1, 31, 37), device=device)
+    x = torch.ones((batch_size, *imsize), device=device)
     y = physics(x)
     sigma_tensor = torch.tensor([sigma] * batch_size).to(device)
     x_hat = f(y, sigma_tensor)
     assert x_hat.shape == x.shape
 
-    # Case 3: image has shape mulitple of 8
-    x = torch.ones((3, 1, 32, 40), device=device)
+    # Case 3: sigma is a torch tensor with shape (batch, 1, *x.shape[2:])
+    x = torch.ones((batch_size, *imsize), device=device)
+    sigma_tensor = torch.full((batch_size, 1, *imsize[1:]), sigma, device=device)
     y = physics(x)
     x_hat = f(y, sigma_tensor)
     assert x_hat.shape == x.shape
@@ -1809,3 +1847,62 @@ def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
         psnr_base = metric(x_base, x)
         assert torch.all(psnr_ans > psnr_raw)
         assert torch.all(psnr_ans > psnr_base)
+@pytest.mark.parametrize("upscale_factor", [2, 4])
+@pytest.mark.parametrize("n_channels", [1, 3])
+@pytest.mark.parametrize("model", ["srresnet"])
+def test_super_resolution_nets(upscale_factor, n_channels, model):
+    if model == "srresnet":
+        super_resolver = dinv.models.SRResNet(
+            num_blocks=2,
+            im_c=n_channels,
+            feats=4,
+            upscale=upscale_factor,
+            final_kernel_size=3,
+        )
+    else:
+        raise RuntimeError(f"Unknown super-resolution mdoel {model}")
+    test_input = torch.ones([2, n_channels, 8, 8])
+    model_output = super_resolver(
+        test_input, physics=dinv.physics.Downsampling(filter=None)
+    )
+    assert tuple(model_output.shape) == (
+        2,
+        n_channels,
+        8 * upscale_factor,
+        8 * upscale_factor,
+    )
+
+
+def test_srresnet_inputs():
+    with pytest.raises(ValueError) as exc_info:
+        net = dinv.models.SRResNet(upscale=6)
+    assert str(exc_info.value) == "upscale must be a power of two (e.g. 2, 4, 8), got 6"
+    with pytest.raises(ValueError) as exc_info:
+        net = dinv.models.SRResNet(final_kernel_size=4)
+    assert str(exc_info.value) == "final_kernel_size must be odd, got 4"
+    with pytest.raises(ValueError) as exc_info:
+        net = dinv.models.SRResNet(norm="adaptive")
+    assert (
+        str(exc_info.value)
+        == "norm must be one of (batch_norm, instance_norm, layer_norm, None), got adaptive"
+    )
+    # test no errors on any norm
+    for norm in ("batch_norm", "layer_norm", "instance_norm", None):
+        super_resolver = dinv.models.SRResNet(
+            num_blocks=2,
+            im_c=3,
+            feats=4,
+            upscale=2,
+            norm=norm,
+            final_kernel_size=3,
+        )
+        test_input = torch.ones([2, 3, 8, 8])
+        model_output = super_resolver(
+            test_input, physics=dinv.physics.Downsampling(filter=None)
+        )
+        assert tuple(model_output.shape) == (
+            2,
+            3,
+            16,
+            16,
+        )

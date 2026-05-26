@@ -264,6 +264,7 @@ examples_order = {
         "demo_foundation_model.py",
         "demo_training.py",
         "demo_denoiser_tour.py",
+        "demo_super_resolution.py",
     ],
     "physics": [
         "demo_physics_tour.py",
@@ -294,7 +295,7 @@ class MySortKey(_SortKey):
 
 
 # List of files that require a GPU to run
-gpu_dependent_files = [".*demo_astra_tomography.py"]
+gpu_dependent_files = [".*demo_astra_tomography.py", ".*demo_custom_niqe.py"]
 # Create the ignore pattern based on GPU availability
 ignore_pattern = (
     rf"__init__\.py|".join(gpu_dependent_files)
@@ -337,6 +338,7 @@ sphinx_gallery_conf = {
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
             "../../examples/distributed",
+            "../../examples/metrics",
         ]
     ),
     "within_subsection_order": MySortKey,
