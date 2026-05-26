@@ -18,6 +18,7 @@ New Features
 - Add :class:`deepinv.loss.metric.GMSD`, the Gradient Magnitude Similarity Deviation metric (:gh:`1171` by `Vicky De Ridder`_)
 - Add :class:`deepinv.models.FFDNet` for non-blind Gaussian denoising (:gh:`1174` by `Vicky De Ridder`_)
 - Extend :func:`deepinv.physics.functional.gaussian_blur` to 1D and 3D. Add :class:`deepinv.physics.generator.GaussianBlurGenerator` (:gh:`1152` by `Romain Vo`_)
+- Add :class:`deepinv.models.BM4D` for volumetric image denoising (:gh:`1203` by `Kaibo Tang`_)
 
 Changed
 ^^^^^^^

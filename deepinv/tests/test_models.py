@@ -550,6 +550,7 @@ DENOISERS_3D = {
         "pretrained": None,
     },
     dinv.models.UNet: {"scales": 2},
+    dinv.models.BM4D: {},
 }
 
 
@@ -557,7 +558,8 @@ DENOISERS_3D = {
 def test_3d_denoisers(model, device):
     default_args = {"in_channels": 1, "out_channels": 1, "dim": "3d", "device": device}
     model, args = model
-    args.update(default_args)
+    if not model == dinv.models.BM4D:
+        args.update(default_args)
     net = model(**args)
     test_tensor = torch.randn((1, 1, 32, 32, 32), device=device)
     out = net(test_tensor, sigma=0.1)
@@ -1333,7 +1335,8 @@ def test_denoiser_perf(device, load_example_image):
 
     # Classical denoisers
     classical_denoisers = [
-        (dinv.models.BM3D(), (2.75, 7.5, 6.5)),
+        (dinv.models.BM3D(use_legacy=True), (2.7, 7.5, 6.5)),
+        (dinv.models.BM3D(use_legacy=False), (2.7, 7.5, 6.5)),
         (dinv.models.MedianFilter(kernel_size=5), (-9, 4.25, 2.5)),
         (dinv.models.TVDenoiser(), (1.5, 6.0, 4.0)),
         (dinv.models.TGVDenoiser(), (1.75, 6, 5.0)),
