@@ -1847,6 +1847,8 @@ def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
         psnr_base = metric(x_base, x)
         assert torch.all(psnr_ans > psnr_raw)
         assert torch.all(psnr_ans > psnr_base)
+
+
 @pytest.mark.parametrize("upscale_factor", [2, 4])
 @pytest.mark.parametrize("n_channels", [1, 3])
 @pytest.mark.parametrize("model", ["srresnet"])
