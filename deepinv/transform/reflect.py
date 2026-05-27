@@ -51,6 +51,10 @@ class Reflect(Transform):
 
         return {"dims": TransformParam(out, neg=lambda x: x)}
 
+    def invert_params(self, params: dict) -> dict:
+        """Reflection is its own inverse, so reflected axes are unchanged."""
+        return params
+
     def _transform(
         self,
         x: torch.Tensor,
