@@ -1,9 +1,10 @@
 from __future__ import annotations
-import numpy as np
 import torch
 from torch import Tensor
 from .base import Denoiser
 from .utils import array2tensor, tensor2array
+from deepinv.physics.functional import dct
+from deepinv.utils import image_to_patches
 
 EPS = 2 ** (-52)
 
@@ -32,10 +33,10 @@ class BM3D(Denoiser):
         - ``chunk_size``: number of groups to process in parallel. Default: 2048
         - ``ht_group_size``: group size for stage 1 (hard-thresholding). Default: 16
         - ``wiener_group_size``: group size for stage 2 (Wiener filtering). Default: 32
-        - ``spatial_ht_transform``: spatial transform for stage 1. Default: "bior1.5"
-        - ``spatial_wiener_transform``: spatial transform for stage 2. Default: "dct"
-        - ``group_ht_transform``: group transform for stage 1. Default: "haar"
-        - ``group_wiener_transform``: group transform for stage 2. Default: "haar"
+        - ``spatial_ht_transform``: spatial transform for stage 1. Default: `"bior1.5"`
+        - ``spatial_wiener_transform``: spatial transform for stage 2. Default: `"dct"`
+        - ``group_ht_transform``: group transform for stage 1. Default: `"haar"`
+        - ``group_wiener_transform``: group transform for stage 2. Default: `"haar"`
         - ``hard_threshold``: hard-thresholding parameter for stage 1. Default: 3.0
         - ``wiener_mu2``: Wiener filtering parameter for stage 2. Default: 0.4
 
@@ -55,7 +56,6 @@ class BM3D(Denoiser):
     ):
         super(BM3D, self).__init__()
         self.use_legacy = use_legacy
-        self.device = device
         if not self.use_legacy:
             # patch_size
             self.p = int(kwargs.get("patch_size", 8))
@@ -79,45 +79,49 @@ class BM3D(Denoiser):
                 min(max(1, int(kwargs.get("wiener_group_size", 32))), self.n_candidates)
             )  # stage 2 (Wiener filtering) group size
             # 2d transforms (along spatial dimensions)
-            self.spatial_ht, self.spatial_ht_inv = self._transform_matrices(
-                self.p, kwargs.get("spatial_ht_transform", "bior1.5"), self.device
+            spatial_ht, spatial_ht_inv = self._transform_matrices(
+                self.p, kwargs.get("spatial_ht_transform", "bior1.5")
             )  # biorthogonal WT, (p, p)
-            self.spatial_wiener, self.spatial_wiener_inv = self._transform_matrices(
-                self.p, kwargs.get("spatial_wiener_transform", "dct"), self.device
+            self.register_buffer("spatial_ht", spatial_ht)
+            self.register_buffer("spatial_ht_inv", spatial_ht_inv)
+            spatial_wiener, spatial_wiener_inv = self._transform_matrices(
+                self.p, kwargs.get("spatial_wiener_transform", "dct")
             )  # DCT, (p, p)
+            self.register_buffer("spatial_wiener", spatial_wiener)
+            self.register_buffer("spatial_wiener_inv", spatial_wiener_inv)
             # 1d transforms (along group dimension)
-            self.group_ht, self.group_ht_inv = self._transform_matrices(
+            group_ht, group_ht_inv = self._transform_matrices(
                 self.ht_group_size,
                 kwargs.get("group_ht_transform", "haar"),
-                self.device,
             )  # Haar, (k_ht, k_ht)
-            self.group_wiener, self.group_wiener_inv = self._transform_matrices(
+            self.register_buffer("group_ht", group_ht)
+            self.register_buffer("group_ht_inv", group_ht_inv)
+            group_wiener, group_wiener_inv = self._transform_matrices(
                 self.wiener_group_size,
                 kwargs.get("group_wiener_transform", "haar"),
-                self.device,
             )  # Haar, (k_w, k_w)
+            self.register_buffer("group_wiener", group_wiener)
+            self.register_buffer("group_wiener_inv", group_wiener_inv)
             # Kaiser window, applied to weights during aggregation to reduce boundary artifact
             win_1d = torch.kaiser_window(
                 self.p,
                 beta=2.0,
                 periodic=False,
-                device=self.device,
-                dtype=torch.float32,
             )  # (p,)
-            self.win = win_1d[:, None] * win_1d[None, :]  # (p, p)
+            self.register_buffer("win", win_1d[:, None] * win_1d[None, :])  # (p, p)
             # helper arrays for aggregation
-            self.patch_y = torch.arange(self.p, dtype=torch.int64, device=self.device)[
-                None, None, None, :, None
-            ]  # (1, 1, 1, p, 1)
-            self.patch_x = torch.arange(self.p, dtype=torch.int64, device=self.device)[
-                None, None, None, None, :
-            ]  # (1, 1, 1, 1, p)
-            self.patch_c = torch.arange(3, dtype=torch.int64, device=self.device)[
-                None, None, :, None, None
-            ]  # (1, 1, c, 1, 1)
+            self.register_buffer(
+                "patch_y",
+                torch.arange(self.p, dtype=torch.int64)[None, None, None, :, None],
+            )  # (1, 1, 1, p, 1)
+            self.register_buffer(
+                "patch_x",
+                torch.arange(self.p, dtype=torch.int64)[None, None, None, None, :],
+            )  # (1, 1, 1, 1, p)
             # other configs
             self.hard_threshold = float(kwargs.get("hard_threshold", 3.0))
             self.wiener_mu2 = float(kwargs.get("wiener_mu2", 0.4))
+            self.to(device)
 
     def _get_wavelet_matrix_torch(
         self,
@@ -145,21 +149,11 @@ class BM3D(Denoiser):
         return matrix, torch.linalg.inv(matrix)
 
     def _get_dct_matrix(self, n: int, norm: str = "ortho") -> tuple[Tensor, Tensor]:
-        try:
-            from scipy.fft import dct
-        except ImportError:  # pragma: no cover
-            raise ImportError(
-                "scipy package not found. Please install it with `pip install scipy`."
-            )
-        matrix = dct(np.eye(n, dtype=np.float32), norm=norm, axis=0)
-        inverse = matrix.T if norm == "ortho" else np.linalg.inv(matrix)
-        return torch.as_tensor(matrix, dtype=torch.float32), torch.as_tensor(
-            inverse, dtype=torch.float32
-        )
+        matrix = dct(torch.eye(n, dtype=torch.float32), norm=norm).T
+        inverse = matrix.T if norm == "ortho" else torch.linalg.inv(matrix)
+        return matrix, inverse
 
-    def _get_transform_matrices(
-        self, n: int, transform_name: str
-    ) -> tuple[Tensor, Tensor]:
+    def _transform_matrices(self, n: int, transform_name: str) -> tuple[Tensor, Tensor]:
         n = int(n)
         transform_name = transform_name.lower()
         if transform_name == "dct":
@@ -168,49 +162,48 @@ class BM3D(Denoiser):
             return self._get_wavelet_matrix_torch(n, transform_name)
         raise ValueError(f"Unsupported transform '{transform_name}' for size n={n}.")
 
-    def _transform_matrices(
-        self, n: int, transform_name: str, device: torch.device
-    ) -> tuple[Tensor, Tensor]:  # get transform matrices
-        forward, inverse = self._get_transform_matrices(n, transform_name)
-        return forward.to(device=device, dtype=torch.float32), inverse.to(
-            device=device, dtype=torch.float32
-        )
-
     def _patch_tensor(
         self,
         img: Tensor,
     ) -> Tensor:  # extract all `hp*wp` patches
-        patches = img.unfold(0, self.p, 1).unfold(
-            1, self.p, 1
-        )  # Result: (hp, wp, c, p, p)
-        return patches.contiguous().reshape(
-            -1, img.shape[2], self.p, self.p
+        patches = image_to_patches(
+            img.permute(2, 0, 1).unsqueeze(0),  # (1, c, h, w)
+            self.p,
+            1,
+            False,
+        )  # (1, c, hp, wp, p, p)
+        return (
+            patches.permute(2, 3, 0, 1, 4, 5)
+            .contiguous()
+            .reshape(-1, img.shape[2], self.p, self.p)
         )  # (hp*wp, c, p, p)
 
     def _reference_grid(
-        self, hp: int, wp: int
+        self, hp: int, wp: int, device: torch.device
     ) -> tuple[Tensor, Tensor]:  # get locations of all reference patches
-        ys = torch.arange(0, hp, self.ref_stride, dtype=torch.int64, device=self.device)
-        xs = torch.arange(0, wp, self.ref_stride, dtype=torch.int64, device=self.device)
+        ys = torch.arange(0, hp, self.ref_stride, dtype=torch.int64, device=device)
+        xs = torch.arange(0, wp, self.ref_stride, dtype=torch.int64, device=device)
         # always include the last patch to avoid boundary artifact
         if ((hp - 1) // self.ref_stride) * self.ref_stride != hp - 1:
             ys = torch.cat(
-                (ys, torch.as_tensor([hp - 1], dtype=torch.int64, device=self.device))
+                (ys, torch.as_tensor([hp - 1], dtype=torch.int64, device=device))
             )
         if ((wp - 1) // self.ref_stride) * self.ref_stride != wp - 1:
             xs = torch.cat(
-                (xs, torch.as_tensor([wp - 1], dtype=torch.int64, device=self.device))
+                (xs, torch.as_tensor([wp - 1], dtype=torch.int64, device=device))
             )
         yy, xx = torch.meshgrid(ys, xs, indexing="ij")
         return yy.reshape(-1), xx.reshape(-1)  # (n_refs,), (n_refs,)
 
-    def _search_offsets(self) -> tuple[Tensor, Tensor]:  # get candidate offsets
+    def _search_offsets(
+        self, device: torch.device
+    ) -> tuple[Tensor, Tensor]:  # get candidate offsets
         offsets = torch.arange(
             -self.offset_radius * self.search_step,
             self.offset_radius * self.search_step + 1,
             self.search_step,
             dtype=torch.int64,
-            device=self.device,
+            device=device,
         )  # (2*offset_radius + 1,)
         yy, xx = torch.meshgrid(offsets, offsets, indexing="ij")
         return yy.reshape(-1), xx.reshape(-1)  # (n_candidates,), (n_candidates,)
@@ -237,13 +230,14 @@ class BM3D(Denoiser):
         weight: Tensor,
         pos_y: Tensor,
         pos_x: Tensor,
+        patch_c: Tensor,
         patches: Tensor,
         patch_weight: Tensor,
     ) -> None:
         # all `p` pixel indices within all `k` patches for all `n` groups
         iy = pos_y[:, :, None, None, None] + self.patch_y  # (n, k, 1, p, 1)
         ix = pos_x[:, :, None, None, None] + self.patch_x  # (n, k, 1, 1, p)
-        idx = ((iy * w + ix) * c + self.patch_c).reshape(-1)
+        idx = ((iy * w + ix) * c + patch_c).reshape(-1)
         weighted_window = (
             self.win[None, None, None, :, :] * patch_weight
         )  # (n, 1, c, p, p)
@@ -262,10 +256,11 @@ class BM3D(Denoiser):
         ref_x: Tensor,
         off_y: Tensor,
         off_x: Tensor,
+        patch_c: Tensor,
         hp: int,
         wp: int,
-        sigma_ch: float | Tensor,
-        sigma2_ch: float | Tensor,
+        sigma: float,
+        sigma2: float,
         match_patches: Tensor,
         noisy_patches: Tensor,
         group_size: int,
@@ -274,18 +269,15 @@ class BM3D(Denoiser):
         group_transform: Tensor,
         group_inverse: Tensor,
         stage: str,
+        device: torch.device,
     ) -> Tensor:
         # patch features
         match_metric = match_patches[:, 0, :, :].reshape(
             -1, self.p * self.p
         )  # (hp*wp, p*p)
-        patch_norm = torch.tensor(
-            self.p * self.p, dtype=torch.float32, device=self.device
-        )
+        patch_norm = torch.tensor(self.p * self.p, dtype=torch.float32, device=device)
         # initialize accumulators
-        accum = torch.zeros(
-            h * w * c, dtype=torch.float32, device=self.device
-        )  # (h*w*c,)
+        accum = torch.zeros(h * w * c, dtype=torch.float32, device=device)  # (h*w*c,)
         weight = torch.zeros_like(accum)  # (h*w*c,)
         # process `chunk_size` groups in parallel
         for start in range(0, n_refs, self.chunk_size):
@@ -312,7 +304,9 @@ class BM3D(Denoiser):
                 torch.sum((cand - ref[:, None, :]) ** 2, dim=2) / patch_norm
             )  # (chunk_size, n_candidates)
             dist = torch.where(
-                valid, dist, torch.full_like(dist, torch.inf)
+                valid,
+                dist,
+                torch.inf,
             )  # (chunk_size, n_candidates)
             nearest = torch.topk(
                 dist, k=group_size, dim=1, largest=False
@@ -335,9 +329,9 @@ class BM3D(Denoiser):
             if stage == "hard":
                 threshold = (
                     torch.tensor(
-                        self.hard_threshold, dtype=torch.float32, device=self.device
+                        self.hard_threshold, dtype=torch.float32, device=device
                     )
-                    * sigma_ch[None, None, :, None, None]
+                    * sigma
                 )  # (1, 1, c, 1, 1)
                 mask = (
                     torch.abs(noisy_coeff) >= threshold
@@ -345,7 +339,7 @@ class BM3D(Denoiser):
                 coeff = noisy_coeff * mask
                 denom = torch.maximum(
                     mask.sum(dim=(1, 3, 4)).to(dtype=torch.float32),
-                    torch.tensor(1.0, dtype=torch.float32, device=self.device),
+                    torch.tensor(1.0, dtype=torch.float32, device=device),
                 )  # (chunk_size, group_size)
             # stage 2 (Wiener filtering)
             else:
@@ -361,10 +355,8 @@ class BM3D(Denoiser):
                     pilot_coeff * pilot_coeff
                 )  # (chunk_size, group_size, c, p, p)
                 noise_power = (
-                    torch.tensor(
-                        self.wiener_mu2, dtype=torch.float32, device=self.device
-                    )
-                    * sigma2_ch[None, None, :, None, None]
+                    torch.tensor(self.wiener_mu2, dtype=torch.float32, device=device)
+                    * sigma2
                 )  # (1, 1, c, 1, 1)
                 wiener = pilot_power / (
                     pilot_power + noise_power
@@ -373,53 +365,45 @@ class BM3D(Denoiser):
                 coeff = noisy_coeff * wiener
                 denom = torch.maximum(
                     torch.sum(wiener * wiener, dim=(1, 3, 4)),
-                    torch.tensor(1.0, dtype=torch.float32, device=self.device),
+                    torch.tensor(1.0, dtype=torch.float32, device=device),
                 )  # (chunk_size, group_size)
             # inverse 3d transform
             filtered = self._spatial_inverse(
                 self._group_inverse(coeff, group_inverse), spatial_inverse
             )  # (chunk_size, group_size, c, p, p)
             # compute aggregation weights
-            patch_weight = (1.0 / (sigma2_ch[None, :] * denom))[
+            patch_weight = (1.0 / (sigma2 * denom))[
                 :, None, :, None, None
             ]  # (chunk_size, 1, c, 1, 1)
             # aggregate
             self._aggregate(
-                w, c, accum, weight, group_y, group_x, filtered, patch_weight
+                w, c, accum, weight, group_y, group_x, patch_c, filtered, patch_weight
             )
         # normalize
         out = accum.reshape(h, w, c) / torch.maximum(
             weight.reshape(h, w, c),
-            torch.tensor(EPS, dtype=torch.float32, device=self.device),
+            torch.tensor(EPS, dtype=torch.float32, device=device),
         )  # (h, w, c)
         return out
 
     @torch.inference_mode()
-    def _bm3d_fast(self, y: Tensor, sigma: float | Tensor) -> Tensor:
+    def _bm3d_fast(self, y: Tensor, sigma: float) -> Tensor:
         # y
-        y = torch.as_tensor(y, dtype=torch.float32, device=self.device)  # (h, w, c)
+        device = y.device
         squeeze = y.ndim == 2
         if squeeze:
             y = y[..., None]  # (h, w, c)
         h, w, c = y.shape
         # sigma
-        sigma = torch.as_tensor(sigma, dtype=torch.float32, device=self.device)
-        if sigma.ndim == 0:
-            sigma = torch.full(
-                (c,), float(sigma), dtype=torch.float32, device=self.device
-            )  # (c,)
-        elif sigma.numel() == c:
-            sigma = sigma.reshape(c).to(dtype=torch.float32)  # (c,)
-        if torch.all(sigma <= 0).item():  # edge case: no denoising
-            return y[..., 0] if squeeze else y
-        sigma_ch = torch.as_tensor(
-            sigma, dtype=torch.float32, device=self.device
-        )  # (c,)
-        sigma2_ch = sigma_ch * sigma_ch  # (c,)
+        sigma2 = sigma * sigma
+        # patches
         hp, wp = h - self.p + 1, w - self.p + 1  # hp*wp = total number of patches
-        ref_y, ref_x = self._reference_grid(hp, wp)  # (n_refs,), (n_refs,)
-        off_y, off_x = self._search_offsets()  # (n_candidates,), (n_candidates,)
+        ref_y, ref_x = self._reference_grid(hp, wp, device)  # (n_refs,), (n_refs,)
+        off_y, off_x = self._search_offsets(device)  # (n_candidates,), (n_candidates,)
         n_refs = int(ref_y.numel())  # total number of reference patches
+        patch_c = torch.arange(c, dtype=torch.int64, device=device)[
+            None, None, :, None, None
+        ]  # (1, 1, c, 1, 1)
         # stage 1 (hard-threshold)
         y_patches = self._patch_tensor(y)  # (hp*wp, c, p, p)
         basic = self._estimate(
@@ -431,10 +415,11 @@ class BM3D(Denoiser):
             ref_x,
             off_y,
             off_x,
+            patch_c,
             hp,
             wp,
-            sigma_ch,
-            sigma2_ch,
+            sigma,
+            sigma2,
             y_patches,
             y_patches,
             self.ht_group_size,
@@ -443,6 +428,7 @@ class BM3D(Denoiser):
             self.group_ht,
             self.group_ht_inv,
             "hard",
+            device,
         )  # (h, w, c)
         # stage 2 (Wiener filtering)
         basic_patches = self._patch_tensor(basic)  # (hp*wp, c, p, p)
@@ -455,10 +441,11 @@ class BM3D(Denoiser):
             ref_x,
             off_y,
             off_x,
+            patch_c,
             hp,
             wp,
-            sigma_ch,
-            sigma2_ch,
+            sigma,
+            sigma2,
             basic_patches,
             y_patches,
             self.wiener_group_size,
@@ -467,6 +454,7 @@ class BM3D(Denoiser):
             self.group_wiener,
             self.group_wiener_inv,
             "wiener",
+            device,
         )  # (h, w, c)
         return denoised[..., 0] if squeeze else denoised
 
