@@ -14,8 +14,8 @@ class BM3D(Denoiser):
 
     The BM3D denoiser was introduced by :footcite:t:`dabov2007image`.
 
-    :param bool use_legacy: Whether to use the legacy implementation of BM3D. Default: True
-    :param device: Device to run the fast implementation of BM3D on. Default: "cpu"
+    :param bool use_legacy: Whether to use the legacy implementation of BM3D. Default: `True`
+    :param device: Device to run the fast implementation of BM3D on. Default: `"cpu"`
     :param dict kwargs: additional keyword arguments for the fast implementation of BM3D. See the note below for details.
 
     .. note::
