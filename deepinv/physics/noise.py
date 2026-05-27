@@ -498,6 +498,11 @@ class PoissonNoise(NoiseModel):
         Poisson noise is only defined for non-negative inputs.
         When used in combination with physics operators that can produce negative outputs (such as :class:`deepinv.physics.BlurFFT`), it is recommended to set ``clip_positive=True`` to avoid runtime errors.
 
+    .. tip::
+
+        All :ref:`pretrained denoisers <denoisers>` in the library can be re-used for Poisson denoising
+        using the :class:`Anscombe transform <deepinv.models.AnscombeDenoiser>`.
+
     |sep|
 
     :Examples:
@@ -620,6 +625,10 @@ class PoissonGaussianNoise(NoiseModel):
         If :math:`\gamma=0`, the model will clamp the input to a small value
         to avoid division by zero, i.e., :math:`\gamma=\max(\gamma, \text{min\_gain})`.
 
+    .. tip::
+
+        All :ref:`pretrained denoisers <denoisers>` in the library can be re-used for Poisson-Gaussian denoising
+        using the :class:`Anscombe transform <deepinv.models.AnscombeDenoiser>`.
 
     :param Union[float, torch.Tensor] gain: gain of the noise.
     :param Union[float, torch.Tensor] sigma: Standard deviation of the noise.
