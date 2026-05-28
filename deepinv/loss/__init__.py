@@ -1,4 +1,5 @@
 from .mc import MCLoss
+from .dc import DCLoss
 from .ei import EILoss
 from .moi import MOILoss, MOEILoss
 from .sup import SupLoss, ReducedResolutionLoss

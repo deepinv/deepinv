@@ -53,6 +53,9 @@ of the forward operator (e.g., incomplete operators with less measurements than 
    * - :class:`deepinv.loss.MCLoss`
      - Small or no noise.
      - Yes
+   * - :class:`deepinv.loss.DCLoss`
+     - Many independent observations, known Gaussian, clipped-Gaussian or Poisson noise.
+     - Yes
    * - :class:`deepinv.loss.Neighbor2Neighbor`
      - Independent noise across pixels.
      - No
