@@ -6,8 +6,6 @@ from .utils import array2tensor, tensor2array
 from deepinv.physics.functional import dct
 from deepinv.utils import image_to_patches
 
-EPS = 2 ** (-52)
-
 
 class BM3D(Denoiser):
     r"""
@@ -56,7 +54,17 @@ class BM3D(Denoiser):
     ):
         super(BM3D, self).__init__()
         self.use_legacy = use_legacy
-        if not self.use_legacy:
+        self.bm3d_lib = None
+        if self.use_legacy:
+            try:
+                import bm3d
+
+                self.bm3d_lib = bm3d
+            except ImportError:  # pragma: no cover
+                raise ImportError(
+                    "bm3d package not found. Please install it with `pip install bm3d`."
+                )
+        else:
             # patch_size
             self.p = int(kwargs.get("patch_size", 8))
             # grouping settings
@@ -80,12 +88,12 @@ class BM3D(Denoiser):
             )  # stage 2 (Wiener filtering) group size
             # 2d transforms (along spatial dimensions)
             spatial_ht, spatial_ht_inv = self._transform_matrices(
-                self.p, kwargs.get("spatial_ht_transform", "bior1.5")
+                self.p, kwargs.get("spatial_ht_transform", "bior1.5"), device=device
             )  # biorthogonal WT, (p, p)
             self.register_buffer("spatial_ht", spatial_ht)
             self.register_buffer("spatial_ht_inv", spatial_ht_inv)
             spatial_wiener, spatial_wiener_inv = self._transform_matrices(
-                self.p, kwargs.get("spatial_wiener_transform", "dct")
+                self.p, kwargs.get("spatial_wiener_transform", "dct"), device=device
             )  # DCT, (p, p)
             self.register_buffer("spatial_wiener", spatial_wiener)
             self.register_buffer("spatial_wiener_inv", spatial_wiener_inv)
@@ -93,12 +101,14 @@ class BM3D(Denoiser):
             group_ht, group_ht_inv = self._transform_matrices(
                 self.ht_group_size,
                 kwargs.get("group_ht_transform", "haar"),
+                device=device,
             )  # Haar, (k_ht, k_ht)
             self.register_buffer("group_ht", group_ht)
             self.register_buffer("group_ht_inv", group_ht_inv)
             group_wiener, group_wiener_inv = self._transform_matrices(
                 self.wiener_group_size,
                 kwargs.get("group_wiener_transform", "haar"),
+                device=device,
             )  # Haar, (k_w, k_w)
             self.register_buffer("group_wiener", group_wiener)
             self.register_buffer("group_wiener_inv", group_wiener_inv)
@@ -107,16 +117,22 @@ class BM3D(Denoiser):
                 self.p,
                 beta=2.0,
                 periodic=False,
+                dtype=torch.float32,
+                device=device,
             )  # (p,)
             self.register_buffer("win", win_1d[:, None] * win_1d[None, :])  # (p, p)
             # helper arrays for aggregation
             self.register_buffer(
                 "patch_y",
-                torch.arange(self.p, dtype=torch.int64)[None, None, None, :, None],
+                torch.arange(self.p, dtype=torch.int64, device=device)[
+                    None, None, None, :, None
+                ],
             )  # (1, 1, 1, p, 1)
             self.register_buffer(
                 "patch_x",
-                torch.arange(self.p, dtype=torch.int64)[None, None, None, None, :],
+                torch.arange(self.p, dtype=torch.int64, device=device)[
+                    None, None, None, None, :
+                ],
             )  # (1, 1, 1, 1, p)
             # other configs
             self.hard_threshold = float(kwargs.get("hard_threshold", 3.0))
@@ -128,6 +144,7 @@ class BM3D(Denoiser):
         n: int,
         wavelet: str,
         level: int | None = None,
+        device: torch.device | None = None,
     ) -> tuple[Tensor, Tensor]:
         try:
             import ptwt
@@ -137,8 +154,8 @@ class BM3D(Denoiser):
             )
         if level is None:
             level = n.bit_length() - 1
-        I = torch.eye(n, dtype=torch.float32)
-        matrix = torch.empty((n, n), dtype=torch.float32)
+        I = torch.eye(n, dtype=torch.float32, device=device)
+        matrix = torch.empty((n, n), dtype=torch.float32, device=device)
         for i in range(n):
             basis = I[:, i]
             coeffs = ptwt.wavedec(basis, wavelet, mode="periodic", level=level)
@@ -148,18 +165,22 @@ class BM3D(Denoiser):
         matrix = matrix / torch.linalg.norm(matrix, dim=0)
         return matrix, torch.linalg.inv(matrix)
 
-    def _get_dct_matrix(self, n: int, norm: str = "ortho") -> tuple[Tensor, Tensor]:
-        matrix = dct(torch.eye(n, dtype=torch.float32), norm=norm).T
+    def _get_dct_matrix(
+        self, n: int, norm: str = "ortho", device: torch.device | None = None
+    ) -> tuple[Tensor, Tensor]:
+        matrix = dct(torch.eye(n, dtype=torch.float32, device=device), norm=norm).T
         inverse = matrix.T if norm == "ortho" else torch.linalg.inv(matrix)
         return matrix, inverse
 
-    def _transform_matrices(self, n: int, transform_name: str) -> tuple[Tensor, Tensor]:
+    def _transform_matrices(
+        self, n: int, transform_name: str, device: torch.device | None = None
+    ) -> tuple[Tensor, Tensor]:
         n = int(n)
         transform_name = transform_name.lower()
         if transform_name == "dct":
-            return self._get_dct_matrix(n, norm="ortho")
+            return self._get_dct_matrix(n, norm="ortho", device=device)
         elif (n & (n - 1)) == 0:
-            return self._get_wavelet_matrix_torch(n, transform_name)
+            return self._get_wavelet_matrix_torch(n, transform_name, device=device)
         raise ValueError(f"Unsupported transform '{transform_name}' for size n={n}.")
 
     def _patch_tensor(
@@ -275,7 +296,7 @@ class BM3D(Denoiser):
         match_metric = match_patches[:, 0, :, :].reshape(
             -1, self.p * self.p
         )  # (hp*wp, p*p)
-        patch_norm = torch.tensor(self.p * self.p, dtype=torch.float32, device=device)
+        patch_norm = self.p * self.p
         # initialize accumulators
         accum = torch.zeros(h * w * c, dtype=torch.float32, device=device)  # (h*w*c,)
         weight = torch.zeros_like(accum)  # (h*w*c,)
@@ -301,7 +322,13 @@ class BM3D(Denoiser):
             ref = match_metric[ref_idx]  # (chunk_size, p*p)
             cand = match_metric[cand_idx]  # (chunk_size, n_candidates, p*p)
             dist = (
-                torch.sum((cand - ref[:, None, :]) ** 2, dim=2) / patch_norm
+                torch.cdist(
+                    ref[:, None, :],  # (chunk_size, 1, p*p)
+                    cand,  # (chunk_size, n_candidates, p*p)
+                    p=2.0,
+                ).squeeze(1)
+                ** 2
+                / patch_norm
             )  # (chunk_size, n_candidates)
             dist = torch.where(
                 valid,
@@ -327,19 +354,13 @@ class BM3D(Denoiser):
             )  # (chunk_size, group_size, c, p, p)
             # stage 1 (hard-threshold)
             if stage == "hard":
-                threshold = (
-                    torch.tensor(
-                        self.hard_threshold, dtype=torch.float32, device=device
-                    )
-                    * sigma
-                )  # (1, 1, c, 1, 1)
                 mask = (
-                    torch.abs(noisy_coeff) >= threshold
+                    torch.abs(noisy_coeff) >= self.hard_threshold * sigma
                 )  # (chunk_size, group_size, c, p, p)
                 coeff = noisy_coeff * mask
-                denom = torch.maximum(
+                denom = torch.clamp_min(
                     mask.sum(dim=(1, 3, 4)).to(dtype=torch.float32),
-                    torch.tensor(1.0, dtype=torch.float32, device=device),
+                    1.0,
                 )  # (chunk_size, group_size)
             # stage 2 (Wiener filtering)
             else:
@@ -354,18 +375,15 @@ class BM3D(Denoiser):
                 pilot_power = (
                     pilot_coeff * pilot_coeff
                 )  # (chunk_size, group_size, c, p, p)
-                noise_power = (
-                    torch.tensor(self.wiener_mu2, dtype=torch.float32, device=device)
-                    * sigma2
-                )  # (1, 1, c, 1, 1)
+                noise_power = self.wiener_mu2 * sigma2  # scalar
                 wiener = pilot_power / (
                     pilot_power + noise_power
                 )  # (chunk_size, group_size, c, p, p)
                 # apply gain
                 coeff = noisy_coeff * wiener
-                denom = torch.maximum(
+                denom = torch.clamp_min(
                     torch.sum(wiener * wiener, dim=(1, 3, 4)),
-                    torch.tensor(1.0, dtype=torch.float32, device=device),
+                    1.0,
                 )  # (chunk_size, group_size)
             # inverse 3d transform
             filtered = self._spatial_inverse(
@@ -380,9 +398,9 @@ class BM3D(Denoiser):
                 w, c, accum, weight, group_y, group_x, patch_c, filtered, patch_weight
             )
         # normalize
-        out = accum.reshape(h, w, c) / torch.maximum(
+        out = accum.reshape(h, w, c) / torch.clamp_min(
             weight.reshape(h, w, c),
-            torch.tensor(EPS, dtype=torch.float32, device=device),
+            torch.finfo(torch.float32).eps,
         )  # (h, w, c)
         return out
 
@@ -390,10 +408,11 @@ class BM3D(Denoiser):
     def _bm3d_fast(self, y: Tensor, sigma: float) -> Tensor:
         # y
         device = y.device
-        squeeze = y.ndim == 2
-        if squeeze:
-            y = y[..., None]  # (h, w, c)
         h, w, c = y.shape
+        if h < self.p or w < self.p:
+            raise ValueError(
+                f"Expect the height and width of the input image to be at least {self.p}, got {h} and {w}."
+            )
         # sigma
         sigma2 = sigma * sigma
         # patches
@@ -456,29 +475,23 @@ class BM3D(Denoiser):
             "wiener",
             device,
         )  # (h, w, c)
-        return denoised[..., 0] if squeeze else denoised
+        return denoised
 
     def forward(self, x: Tensor, sigma: float | Tensor) -> Tensor:
-        if self.use_legacy:
-            try:
-                import bm3d
-            except ImportError:  # pragma: no cover
-                raise ImportError(
-                    "bm3d package not found. Please install it with `pip install bm3d`."
-                )
-
-        out = torch.empty_like(x)
-
         sigma = self._handle_sigma(sigma, batch_size=x.size(0))
-
-        for i in range(x.shape[0]):
-            if self.use_legacy:
+        if self.use_legacy:
+            out = torch.empty_like(x)
+            for i in range(x.shape[0]):
                 out[i, :, :, :] = array2tensor(
-                    bm3d.bm3d(tensor2array(x[i, :, :, :]), sigma[i].item())
+                    self.bm3d_lib.bm3d(tensor2array(x[i, :, :, :]), sigma[i].item())
                 )
-            else:
+        else:
+            x = x.permute(0, 2, 3, 1)  # (b, h, w, c)
+            out = torch.empty_like(x)
+            for i in range(x.shape[0]):
                 out[i, :, :, :] = self._bm3d_fast(
-                    x[i, :, :, :].permute(1, 2, 0),
+                    x[i, :, :, :],  # (h, w, c)
                     sigma[i].item(),
-                ).permute(2, 0, 1)
+                )  # (h, w, c)
+            out = out.permute(0, 3, 1, 2)  # (b, c, h, w)
         return out
