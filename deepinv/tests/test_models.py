@@ -550,6 +550,7 @@ DENOISERS_3D = {
         "pretrained": None,
     },
     dinv.models.UNet: {"scales": 2},
+    dinv.models.BM4D: {},
 }
 
 
@@ -557,7 +558,8 @@ DENOISERS_3D = {
 def test_3d_denoisers(model, device):
     default_args = {"in_channels": 1, "out_channels": 1, "dim": "3d", "device": device}
     model, args = model
-    args.update(default_args)
+    if not model == dinv.models.BM4D:
+        args.update(default_args)
     net = model(**args)
     test_tensor = torch.randn((1, 1, 32, 32, 32), device=device)
     out = net(test_tensor, sigma=0.1)
