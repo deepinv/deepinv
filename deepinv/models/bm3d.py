@@ -403,7 +403,6 @@ class BM3D(Denoiser):
         )  # (h, w, c)
         return out
 
-    @torch.inference_mode()
     def _bm3d_fast(self, y: Tensor, sigma: float) -> Tensor:
         # y
         device = y.device
