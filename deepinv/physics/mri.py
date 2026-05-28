@@ -306,7 +306,8 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             such that ``x = MultiCoilMRI().A_adjoint(y, crop=True)``.
         :returns: (:class:`torch.Tensor`) image with shape `(B,2,...,H,W)` if not rss else `(B,1,...,H,W)`
         """
-        assert y.shape[1] == 2, "y must be of shape (B,2,N,...,H,W)"
+        if y.shape[1] != 2:  # pragma: no cover
+            raise ValueError("y must be of shape (B,2,N,...,H,W)")
         self.update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
 
         My = self.to_torch_complex(self.mask[:, :, None] * y)  # [B,N,...,H,W]
