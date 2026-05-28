@@ -597,3 +597,4 @@ Changed
 .. _Tiberiu Sabau: https://github.com/tibisabau
 .. _Benoît Malézieux: https://github.com/bmalezieux
 .. _Paul Escande: https://pescande.perso.math.cnrs.fr/
+.. _George Webber: https://github.com/GeorgeWebber
