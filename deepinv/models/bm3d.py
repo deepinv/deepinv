@@ -44,7 +44,7 @@ class BM3D(Denoiser):
         This implementation always runs on the CPU regardless of the device of the input tensor.
 
         When ``use_legacy=False``, the denoiser calls a custom re-implementation of BM3D.
-        It requires ``ptwt`` and ``scipy``, which can be installed with ``pip install ptwt scipy``.
+        It requires ``ptwt``, which can be installed with ``pip install ptwt``.
         It runs on the device specified by the ``device`` parameter, and is significantly faster than the legacy implementation, especially when the input tensor is on the GPU.
         However, it may produce slightly different results than the legacy implementation.
     """
@@ -68,18 +68,18 @@ class BM3D(Denoiser):
             # patch_size
             self.p = int(kwargs.get("patch_size", 8))
             # grouping settings
-            self.search_radius = max(0, int(kwargs.get("search_radius", 19)))
-            self.search_step = max(1, int(kwargs.get("search_step", 1)))
-            self.ref_stride = max(1, int(kwargs.get("ref_stride", 3)))
-            self.chunk_size = max(
-                1, int(kwargs.get("chunk_size", 2048))
+            self.search_radius = int(max(0, int(kwargs.get("search_radius", 19))))
+            self.search_step = int(max(1, int(kwargs.get("search_step", 1))))
+            self.ref_stride = int(max(1, int(kwargs.get("ref_stride", 3))))
+            self.chunk_size = int(
+                max(1, int(kwargs.get("chunk_size", 2048)))
             )  # number of groups to process in parallel
-            self.offset_radius = (
+            self.offset_radius = int(
                 self.search_radius // self.search_step
             )  # search radius (steps)
             self.n_candidates = (
-                2 * self.offset_radius + 1
-            ) ** 2  # upper bound on group size
+                int(2 * self.offset_radius + 1) ** 2
+            )  # upper bound on group size
             self.ht_group_size = int(
                 min(max(1, int(kwargs.get("ht_group_size", 16))), self.n_candidates)
             )  # stage 1 (hard-threshold) group size
@@ -281,7 +281,6 @@ class BM3D(Denoiser):
         hp: int,
         wp: int,
         sigma: float,
-        sigma2: float,
         match_patches: Tensor,
         noisy_patches: Tensor,
         group_size: int,
@@ -375,7 +374,7 @@ class BM3D(Denoiser):
                 pilot_power = (
                     pilot_coeff * pilot_coeff
                 )  # (chunk_size, group_size, c, p, p)
-                noise_power = self.wiener_mu2 * sigma2  # scalar
+                noise_power = self.wiener_mu2 * sigma * sigma  # scalar
                 wiener = pilot_power / (
                     pilot_power + noise_power
                 )  # (chunk_size, group_size, c, p, p)
@@ -390,7 +389,7 @@ class BM3D(Denoiser):
                 self._group_inverse(coeff, group_inverse), spatial_inverse
             )  # (chunk_size, group_size, c, p, p)
             # compute aggregation weights
-            patch_weight = (1.0 / (sigma2 * denom))[
+            patch_weight = (1.0 / (sigma * sigma * denom))[
                 :, None, :, None, None
             ]  # (chunk_size, 1, c, 1, 1)
             # aggregate
@@ -413,8 +412,6 @@ class BM3D(Denoiser):
             raise ValueError(
                 f"Expect the height and width of the input image to be at least {self.p}, got {h} and {w}."
             )
-        # sigma
-        sigma2 = sigma * sigma
         # patches
         hp, wp = h - self.p + 1, w - self.p + 1  # hp*wp = total number of patches
         ref_y, ref_x = self._reference_grid(hp, wp, device)  # (n_refs,), (n_refs,)
@@ -438,7 +435,6 @@ class BM3D(Denoiser):
             hp,
             wp,
             sigma,
-            sigma2,
             y_patches,
             y_patches,
             self.ht_group_size,
@@ -464,7 +460,6 @@ class BM3D(Denoiser):
             hp,
             wp,
             sigma,
-            sigma2,
             basic_patches,
             y_patches,
             self.wiener_group_size,
