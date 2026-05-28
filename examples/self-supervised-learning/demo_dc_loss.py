@@ -45,9 +45,7 @@ def optimize_image(
 ):
     x_est = torch.nn.Parameter(torch.zeros_like(x_gt))
     optimizer = torch.optim.Adam([x_est], lr=lr)
-    dc_loss = dinv.loss.DCLoss(
-        distribution="gaussian", sigma=sigma, n_points=n_points
-    )
+    dc_loss = dinv.loss.DCLoss(distribution="gaussian", sigma=sigma, n_points=n_points)
     image_mse = dinv.metric.MSE()
 
     history = {"image_mse": [], "measurement_mse": [], "dc_loss": []}
@@ -70,9 +68,7 @@ def optimize_image(
             q_est = physics.A(x_est)
             history["image_mse"].append(image_mse(x_gt, x_est).item())
             history["measurement_mse"].append(F.mse_loss(q_est, y).item())
-            history["dc_loss"].append(
-                dc_loss(y=y, x_net=x_est, physics=physics).item()
-            )
+            history["dc_loss"].append(dc_loss(y=y, x_net=x_est, physics=physics).item())
 
     x_est = x_est.detach()
     return physics.A(x_est), x_est, history
@@ -119,10 +115,7 @@ q_dc, x_dc, history_dc = optimize_image(
 image_mse = dinv.metric.MSE()
 print(f"Final image MSE (measurement MSE): {image_mse(x, x_mse).item():.4f}")
 print(f"Final image MSE (DC loss):         {image_mse(x, x_dc).item():.4f}")
-print(
-    f"Final measurement MSE (measurement MSE): "
-    f"{F.mse_loss(q_mse, y).item():.4f}"
-)
+print(f"Final measurement MSE (measurement MSE): " f"{F.mse_loss(q_mse, y).item():.4f}")
 print(f"Final measurement MSE (DC loss):         {F.mse_loss(q_dc, y).item():.4f}")
 
 fig, axes = plt.subplots(2, 3, figsize=(11, 7), constrained_layout=True)

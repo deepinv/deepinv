@@ -129,9 +129,11 @@ class DCLoss(Loss):
         sigma = (
             sigma
             if sigma is not None
-            else self.sigma
-            if self.sigma is not None
-            else getattr(getattr(physics, "noise_model", None), "sigma", None)
+            else (
+                self.sigma
+                if self.sigma is not None
+                else getattr(getattr(physics, "noise_model", None), "sigma", None)
+            )
         )
         if sigma is None:
             raise ValueError(

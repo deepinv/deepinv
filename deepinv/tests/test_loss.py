@@ -519,9 +519,9 @@ def test_dc_loss_iterative_mri_reconstruction_beats_measurement_mse(device):
     dc_reconstruction_error = image_mse(x, x_dc)
 
     assert dc_reconstruction_error < mse_reconstruction_error
-    assert torch.nn.functional.mse_loss(q_mse.detach(), y) < torch.nn.functional.mse_loss(
-        physics.A(x_dc), y
-    )
+    assert torch.nn.functional.mse_loss(
+        q_mse.detach(), y
+    ) < torch.nn.functional.mse_loss(physics.A(x_dc), y)
 
 
 def test_dc_loss_poisson_supported(device):
