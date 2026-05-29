@@ -47,6 +47,10 @@ class IdentityBackbone(torch.nn.Module):
         return x
 
 
+def seeded_generator(device, seed=0):
+    return torch.Generator(device=device).manual_seed(seed)
+
+
 def create_mri_dc_problem(device, sigma=0.05, size=16, fully_sampled=False):
     coords = torch.linspace(-1.0, 1.0, size, device=device)
     yy, xx = torch.meshgrid(coords, coords, indexing="ij")
@@ -64,7 +68,10 @@ def create_mri_dc_problem(device, sigma=0.05, size=16, fully_sampled=False):
 
     physics = dinv.physics.MRI(
         mask=mask,
-        noise_model=dinv.physics.GaussianNoise(sigma=sigma),
+        noise_model=dinv.physics.GaussianNoise(
+            sigma=sigma,
+            rng=seeded_generator(device),
+        ),
         device=device,
     )
     y = physics(x)
@@ -74,7 +81,7 @@ def create_mri_dc_problem(device, sigma=0.05, size=16, fully_sampled=False):
 def create_poisson_dc_problem(device, size=16):
     x = torch.full((1, 1, size, size), 2.0, device=device)
     x[:, :, 4:12, 4:12] = 6.0
-    y = torch.poisson(x)
+    y = torch.poisson(x, generator=seeded_generator(device))
     physics = dinv.physics.Denoising(device=device)
     return x, y, physics
 
@@ -83,7 +90,8 @@ def create_clipped_gaussian_dc_problem(device, sigma=0.05, size=16):
     coords = torch.linspace(0.0, 1.0, size, device=device)
     yy, xx = torch.meshgrid(coords, coords, indexing="ij")
     x = (0.1 + 0.8 * (xx + yy) / 2.0).unsqueeze(0).unsqueeze(0)
-    y = torch.clamp(x + sigma * torch.randn_like(x), 0.0, 1.0)
+    noise = torch.empty_like(x).normal_(generator=seeded_generator(device))
+    y = torch.clamp(x + sigma * noise, 0.0, 1.0)
     y[..., 0, 0] = 0.0
     y[..., -1, -1] = 1.0
     physics = dinv.physics.Denoising(device=device)
