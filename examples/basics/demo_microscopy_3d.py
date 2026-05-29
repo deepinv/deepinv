@@ -15,7 +15,6 @@ from deepinv.utils.plotting import plot, plot_ortho3D
 from deepinv.utils.demo import load_np_url
 import numpy as np
 
-
 # First, let's load some test images.
 
 dtype = torch.float32

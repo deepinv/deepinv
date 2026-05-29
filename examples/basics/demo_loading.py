@@ -19,7 +19,6 @@ from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
 from deepinv.models.utils import get_weights_url
 
-
 # %%
 # Setup paths for data loading and results
 # ----------------------------------------

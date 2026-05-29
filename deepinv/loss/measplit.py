@@ -446,9 +446,9 @@ class Neighbor2Neighbor(Loss):
         """
 
         assert len(y.shape) == 4, "Input measurements should be images"
-        assert y.shape[2] % 2 == 0 and y.shape[3] % 2 == 0, (
-            "Image dimensions should be even"
-        )
+        assert (
+            y.shape[2] % 2 == 0 and y.shape[3] % 2 == 0
+        ), "Image dimensions should be even"
 
         mask1, mask2 = self.generate_mask_pair(y)
 

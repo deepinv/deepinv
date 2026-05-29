@@ -6,7 +6,6 @@ from deepinv.optim.prior import PnP
 from deepinv.optim.data_fidelity import L2
 from deepinv.unfolded import unfolded_builder, DEQ_builder
 
-
 OPTIM_ALGO = ["PGD", "HQS"]
 
 

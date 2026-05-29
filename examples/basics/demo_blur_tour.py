@@ -13,7 +13,6 @@ import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.utils.demo import load_example
 
-
 # %% Load test images
 # ----------------
 #

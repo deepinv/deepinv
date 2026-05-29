@@ -5,7 +5,6 @@ from deepinv.physics.forward import LinearPhysics
 from deepinv.physics.functional import Radon, IRadon, RampFilter
 from deepinv.physics import adjoint_function
 
-
 PI = 4 * torch.ones(1).atan()
 
 

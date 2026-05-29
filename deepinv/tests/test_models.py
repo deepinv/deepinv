@@ -6,7 +6,6 @@ from torch.utils.data import DataLoader, Dataset
 import deepinv as dinv
 from dummy import DummyCircles, DummyModel
 
-
 MODEL_LIST_1_CHANNEL = [
     "autoencoder",
     "drunet",

@@ -138,31 +138,6 @@ def sequency_mask(img_size, m):
     return mask
 
 
-@_deprecated_alias(img_shape="img_size")
-def old_sequency_mask(img_size, m):
-    """
-    Generates a binary mask for a single-pixel camera based on a sequency ordering.
-    :param tuple img_size: The shape of the input image as a tuple (C, H, W), where C is the number of channels,
-                            H is the height, and W is the width.
-    :param int m: The number of pixels to include in the mask, selected based on the sequency ordering.
-    :return: A binary mask of shape (1, C, H, W) with `m` pixels set to 1 and the rest set to 0.
-    :rtype: torch.Tensor
-    """
-
-    _, H, W = img_size
-    n = H * W
-
-    indexes = get_permutation_list(n)[:m]
-    i, j = np.meshgrid(np.arange(H), np.arange(W), indexing="ij")
-    i = i.flatten(order="F")
-    j = j.flatten(order="F")
-
-    mask = torch.zeros((1, *img_size))
-    mask[:, :, i[indexes], j[indexes]] = 1.0
-
-    return mask
-
-
 def cake_cutting_seq(i, p):
     """
     Generates a sequence based on the given index `i` and parameter `p`. The sequence alternates
@@ -338,14 +313,11 @@ class SinglePixelCamera(DecomposablePhysics):
     An existing operator can be loaded from a saved ``.pth`` file via ``self.load_state_dict(save_path)``,
     in a similar fashion to :class:`torch.nn.Module`.
 
-    .. warning::
-
-        Since version 0.3.1, a small bug in the sequency ordering has been fixed. However, it is possible to use the old sequency ordering by setting `ordering='old_sequency'`.
 
     :param int m: number of single pixel measurements per acquisition (m).
     :param tuple img_size: shape (C, H, W) of images.
     :param bool fast: The operator is iid binary if false, otherwise A is a 2D subsampled hadamard transform.
-    :param str ordering: The ordering of selecting the first m measurements, available options are: `'sequency'`, `'cake_cutting'`, `'zig_zag'`, `'xy'`, `'old_sequency'`.
+    :param str ordering: The ordering of selecting the first m measurements, available options are: `'sequency'`, `'cake_cutting'`, `'zig_zag'`, `'xy'`.
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
         If ``None``, the default Generator of PyTorch will be used.
 
@@ -368,7 +340,6 @@ class SinglePixelCamera(DecomposablePhysics):
 
     """
 
-    @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m,
@@ -396,7 +367,6 @@ class SinglePixelCamera(DecomposablePhysics):
         self.initial_random_state = self.rng.get_state()
 
         if self.fast:
-
             _, H, W = img_size
 
             assert H == 1 << int(math.log2(H)), "image height must be a power of 2"
@@ -410,18 +380,12 @@ class SinglePixelCamera(DecomposablePhysics):
                 mask = zig_zag_mask(img_size, m)
             elif ordering == "xy":
                 mask = xy_mask(img_size, m)
-            elif ordering == "old_sequency":
-                # Raise warning if the old sequency mask is used
-                print(
-                    "Warning: The old sequency mask is deprecated. Plase, use sequency mask instead."
-                )
-                mask = old_sequency_mask(img_size, m)
             else:
                 raise ValueError(
                     f"Unknown ordering {ordering}. Available options are: `sequency`, `cake_cutting`, `zig_zag`, `xy`."
                 )
 
-            mask = mask.to(device)
+            mask = mask.to(device=device, dtype=dtype)
 
         else:
             n = int(math.prod(img_size[1:]))
@@ -434,14 +398,13 @@ class SinglePixelCamera(DecomposablePhysics):
             A /= math.sqrt(m)  # normalize
             u, mask, vh = torch.linalg.svd(A, full_matrices=False)
 
-            mask = mask.to(device).unsqueeze(0).type(dtype)
-            self.vh = vh.to(device).type(dtype)
-            self.u = u.to(device).type(dtype)
+            mask = mask.unsqueeze(0)
 
-            self.u = torch.nn.Parameter(self.u, requires_grad=False)
-            self.vh = torch.nn.Parameter(self.vh, requires_grad=False)
+            self.register_buffer("u", u)
+            self.register_buffer("vh", vh)
 
-        self.mask = torch.nn.Parameter(mask, requires_grad=False)
+        self.register_buffer("mask", mask)
+        self.to(device=device, dtype=dtype)
 
     def V_adjoint(self, x):
         if self.fast:
@@ -541,12 +504,12 @@ def get_permutation_list(n, device="cpu"):
     :rtype: torch.Tensor
     """
     rev = torch.zeros((n), dtype=int, device=device)
-    for l in range(n):
-        rev[l] = reverse(l, int(math.log2(n)))
+    for i in range(n):
+        rev[i] = reverse(i, int(math.log2(n)))
 
     rev2 = torch.zeros_like(rev)
-    for l in range(n):
-        rev2[l] = rev[gray_decode(l)]
+    for i in range(n):
+        rev2[i] = rev[gray_decode(i)]
 
     return rev2
 
