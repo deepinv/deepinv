@@ -14,8 +14,8 @@ The API is the same as for :ref:`distributed reconstruction <distributed>`:
 
 .. note::
 
-    This is different from data-parallel training. In data parallelism,
-    each GPU sees different images. Here, each rank works on different parts of
+    This is different from `data-parallel training offered by pytorch <https://docs.pytorch.org/tutorials/intermediate/ddp_tutorial.html>`_.
+    In data parallelism, each GPU sees different images. Here, each rank works on different parts of
     the same image or volume. Therefore, all ranks should usually iterate
     over the same minibatches.
 
@@ -42,6 +42,8 @@ trainable unfolded model:
     from deepinv.optim.prior import PnP
 
     with DistributedContext(seed=0, seed_offset=False) as ctx:
+
+        # distribute the forward operator
         physics = distribute(stacked_physics, ctx)
 
         model = DRS(
@@ -51,6 +53,8 @@ trainable unfolded model:
             unfold=True,
             trainable_params=["stepsize", "sigma_denoiser"],
         )
+
+        # distribute the model
         model = distribute(model, ctx, patch_size=256, overlap=64)
 
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
@@ -82,7 +86,7 @@ When to Use It
 Distributed training is useful when you want to train a model but one process
 cannot hold the full computation or would be too slow. Common scenarios include:
 
-**Many physics operators**: if your measurements come from several operators
+**Many physics operators**: if your measurements can be split across several sub-operators
 :math:`A_i`, the framework can split them across ranks. Each rank applies its
 local operators and the results are combined automatically.
 
@@ -165,9 +169,10 @@ In practice:
 - Move both images and measurements to ``ctx.device``.
 - If measurements are stored as a list or :class:`deepinv.utils.TensorList`, move each tensor to the device.
 
-This is different from data parallelism, where each process receives
+This is different from Pytorch's data parallelism, where each process receives
 different samples and gradients are synchronized only between model replicas.
-
+There's no need for custom data loaders or samplers for the distributed framework,
+as long as all ranks consume the same data in the same order.
 
 How Backward Works
 ------------------

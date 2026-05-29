@@ -2,13 +2,16 @@ r"""
 Distributed Training of an Unfolded DRS Algorithm on Urban100
 -------------------------------------------------------------
 
+In many large-scale imaging problems, the size of the image/volume to reconstruct is very large, making it impossible to train reconstruction networks (in this example, unfolded networks) with a single GPU.
+The `deepinv.distributed` framework enables training a model on multiple GPUs, by carefully parallelizing the data fidelity and denoising steps inside the network.
+
 This example shows how to combine:
 
 - the distributed framework (image/model parallelism over large images),
 - unfolded optimization with :class:`deepinv.optim.DRS`,
 - standard training with :class:`deepinv.Trainer`.
 
-Each rank processes different parts/operators of the same image. This is not
+Each GPU (rank) processes different parts/operators of the same image. This is not
 standard data-parallel training over different images.
 
 Usage
@@ -23,10 +26,6 @@ Usage
     # Multi-process (2 ranks)
     python -m torch.distributed.run --nproc_per_node=2 examples/distributed/demo_unrolled_distributed.py
 """
-
-# %%
-# Imports
-# -----------------------------------------------------------------------------
 
 import os
 
@@ -50,9 +49,9 @@ from deepinv.utils.tensorlist import TensorList
 # %%
 # Helper functions
 # -----------------------------------------------------------------------------
+# These functions assist with data collation, device management, and dataset preparation.
 
-
-def collate_deepinv_batch(batch):
+def collate_batch(batch):
     """Collate clean/measured pairs while preserving TensorList measurements."""
     if len(batch) == 1:
         x, y = batch[0]
@@ -79,24 +78,6 @@ def collate_deepinv_batch(batch):
         n_ops = len(ys[0])
         return x_batch, [torch.stack([yy[i] for yy in ys], dim=0) for i in range(n_ops)]
     return x_batch, torch.stack(ys, dim=0)
-
-
-def move_measurement_to_device(y, device):
-    """Move TensorList/list/tensor measurements to the target device."""
-    if hasattr(y, "to"):
-        return y.to(device)
-    if isinstance(y, list):
-        return [m.to(device) for m in y]
-    return y
-
-
-def first_measurement(y):
-    """Return one measurement tensor for visualization."""
-    if isinstance(y, TensorList):
-        return y[0]
-    if isinstance(y, list):
-        return y[0]
-    return y
 
 
 def prepare_dataset(
@@ -173,7 +154,7 @@ def prepare_dataset(
         shuffle=True,
         generator=train_generator,
         num_workers=num_workers,
-        collate_fn=collate_deepinv_batch,
+        collate_fn=collate_batch,
     )
     val_loader = DataLoader(
         val_ds,
@@ -181,7 +162,7 @@ def prepare_dataset(
         shuffle=False,
         generator=val_generator,
         num_workers=num_workers,
-        collate_fn=collate_deepinv_batch,
+        collate_fn=collate_batch,
     )
 
     return stacked_physics, train_loader, val_loader
@@ -190,24 +171,38 @@ def prepare_dataset(
 # %%
 # Configuration
 # -----------------------------------------------------------------------------
+# Settings for training and distributed processing.
+# patch_size and overlap control the size of the image patches that each rank processes, and how much they overlap with each other.
 
 seed = 0
-n_unroll = 3
+n_unroll = 3 # Number of unrolled iterations (DRS steps).
 crop_size = 128 if torch.cuda.is_available() else 64
+
+# Training and dataloader settings
 epochs = 2 if torch.cuda.is_available() else 1
 batch_size = 1
 train_images = 16 if torch.cuda.is_available() else 6
 val_images = 6 if torch.cuda.is_available() else 4
 learning_rate = 2e-4
 num_workers = 4 if torch.cuda.is_available() else 0
+
+# Distributed processing settings
 patch_size = crop_size // 2
 overlap = max(8, patch_size // 8)
+
 torch.manual_seed(seed)
 
 
 # %%
 # Build distributed physics/model and train with deepinv.Trainer
 # -----------------------------------------------------------------------------
+# The distributed framework allows to distribute unfolded network with a few simple steps:
+# - Initialize the distributed context
+# - Prepare the physics, model, trainer and dataloaders
+# - call :func:`deepinv.distributed.distribute` to distribute the physics and model across ranks
+# - Train with :class:`deepinv.Trainer` as usual.
+# The framework takes care of synchronizing the forward/backward passes across ranks, and communicating the necessary information between them.
+
 
 # Keep identical random streams across ranks: this framework splits each image
 # across devices, so all ranks should consume the same minibatches.
@@ -263,7 +258,7 @@ with DistributedContext(seed=seed, seed_offset=False) as ctx:
     # Reconstruction before training.
     demo_x, demo_y = next(iter(val_loader))
     demo_x = demo_x.to(ctx.device)
-    demo_y = move_measurement_to_device(demo_y, ctx.device)
+    demo_y = demo_y.to(ctx.device)
     with torch.no_grad():
         demo_rec_before = model(demo_y, distributed_physics)
 
@@ -305,7 +300,7 @@ with DistributedContext(seed=seed, seed_offset=False) as ctx:
             print(f"Final val PSNR: {val_history[-1]:.2f} dB")
 
         plot(
-            [demo_x, first_measurement(demo_y), demo_rec_before, demo_rec_after],
+            [demo_x, demo_y[0], demo_rec_before, demo_rec_after],
             titles=[
                 "Ground truth",
                 "One noisy measurement",

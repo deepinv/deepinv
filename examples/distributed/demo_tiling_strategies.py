@@ -2,7 +2,7 @@ r"""
 Distributed Image Tiling Strategies
 ======================================
 
-This example shows two tiling strategies for distributed processing of large images.
+This example shows tiling strategies for distributed processing of large images.
 The distributed framework enables processing large images by automatically dividing them into tiles,
 processing tiles independently or in parallel, and reconstructing the final result.
 
@@ -13,8 +13,6 @@ This example covers:
 
 """
 
-# %%
-
 import matplotlib.pyplot as plt
 from matplotlib import patheffects as pe
 from matplotlib.patches import Rectangle
@@ -23,8 +21,7 @@ import numpy as np
 import torch
 
 from deepinv.distributed.strategies import BasicStrategy, OverlapTilingStrategy
-from deepinv.utils.demo import load_example
-from deepinv.utils.plotting import plot
+from deepinv.utils import load_example, plot
 
 # %%
 # Configuration
