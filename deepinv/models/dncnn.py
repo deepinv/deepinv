@@ -1,7 +1,13 @@
 from __future__ import annotations
 import torch.nn as nn
 import torch
-from .utils import get_weights_url, conv_nd, fix_dim, initialize_3d_from_2d
+from .utils import (
+    get_weights_url,
+    conv_nd,
+    fix_dim,
+    initialize_3d_from_2d,
+    load_state_dict_from_url,
+)
 from .base import Denoiser
 
 
@@ -95,7 +101,7 @@ class DnCNN(Denoiser):
                         "No pretrained weights were found online that match the chosen architecture"
                     )
                 url = get_weights_url(model_name="dncnn", file_name=name)
-                ckpt = torch.hub.load_state_dict_from_url(
+                ckpt = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
             else:

@@ -34,18 +34,6 @@ jobs:
             echo "pr_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Get PR ref
-        id: pr_ref
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: ${{ steps.pr.outputs.pr_number }}
-            });
-            core.setOutput('ref', pr.data.head.ref);
-
       - name: Verify commenter permissions
         if: github.event_name == 'issue_comment'
         id: check
@@ -78,14 +66,14 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: test_gpu.yml
-          ref: ${{ steps.pr_ref.outputs.ref }}
+          ref: main
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
       - name: Trigger GPU Docs Check
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: gpu_docs.yml
-          ref: ${{ steps.pr_ref.outputs.ref }}
+          workflow: docs_gpu.yml
+          ref: main
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
   post-comment:
@@ -118,18 +106,6 @@ jobs:
             echo "pr_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Get PR ref
-        id: pr_ref
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: ${{ steps.pr.outputs.pr_number }}
-            });
-            core.setOutput('ref', pr.data.head.ref);
-
       - name: Verify commenter permissions
         if: github.event_name == 'issue_comment'
         id: check
@@ -161,6 +137,6 @@ jobs:
       - name: Trigger CPU Docs Check
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: documentation.yml
-          ref: ${{ steps.pr_ref.outputs.ref }}
+          workflow: docs_cpu.yml
+          ref: main
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'

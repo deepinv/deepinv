@@ -393,7 +393,7 @@ class Phase2PhaseLoss(SplittingLoss):
         if metric is None:
             metric = torch.nn.MSELoss()
         super().__init__()
-        self.name = "phase2phase"
+        self._name = "phase2phase"
         self.img_size = img_size
         self.dynamic_model = dynamic_model
         self.metric = metric
@@ -587,7 +587,7 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
             metric=metric,
             device=device,
         )
-        self.name = "artifact2artifact"
+        self._name = "artifact2artifact"
         self.mask_generator = Artifact2ArtifactSplittingMaskGenerator(
             img_size=self.img_size, split_size=split_size, device=self.device
         )

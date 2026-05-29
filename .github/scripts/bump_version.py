@@ -16,8 +16,11 @@ def increment_version(version, increment="patch"):
 
     if increment == "major":
         major += 1
+        minor = 0
+        patch = 0
     elif increment == "minor":
         minor += 1
+        patch = 0
     elif increment == "patch" or increment == "dev":
         patch += 1
     else:

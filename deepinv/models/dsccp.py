@@ -8,6 +8,7 @@ from .utils import (
     conv_nd,
     conv_transpose_nd,
     initialize_3d_from_2d,
+    load_state_dict_from_url,
 )
 
 
@@ -82,7 +83,6 @@ class DScCP(Denoiser):
             nn.init.kaiming_normal_(self.conv[i].weight.data, nonlinearity="relu")
 
         if pretrained is not None:
-
             if pretrained == "download" or pretrained == "download_2d":
                 if dim == 3 and pretrained == "download":  # pragma: no cover
                     raise ValueError(
@@ -91,7 +91,7 @@ class DScCP(Denoiser):
                 url = get_weights_url(
                     model_name="dsccp", file_name="ckpt_dsccp.pth.tar"
                 )
-                ckpt = torch.hub.load_state_dict_from_url(
+                ckpt = load_state_dict_from_url(
                     url,
                     map_location=lambda storage, loc: storage,
                     file_name="ckpt_dsccp.pth.tar",

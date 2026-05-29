@@ -10,6 +10,7 @@ from types import MappingProxyType
 from pathlib import Path
 
 from deepinv.datasets.base import ImageDataset
+from .utils import resolve_root
 
 
 def url_basename(url: str) -> str:
@@ -123,13 +124,13 @@ class Kohler(ImageDataset):
 
     def __init__(
         self,
-        root: str | Path,
+        root: str | Path = None,
         frames: int | str | list[int | str] = "middle",
         ordering: str = "printout_first",
         transform: Callable = None,
         download: bool = False,
     ) -> None:
-        self.root = root
+        self.root = resolve_root(root, "Kohler")
         self.frames = frames
         self.ordering = ordering
         self.transform = transform
@@ -138,7 +139,7 @@ class Kohler(ImageDataset):
             self.download(self.root)
 
     @classmethod
-    def download(cls, root: str | Path, remove_finished: bool = False) -> None:
+    def download(cls, root: str | Path = None, remove_finished: bool = False) -> None:
         """Download the dataset.
 
         :param Union[str, pathlib.Path] root: Root directory of the dataset.
@@ -153,6 +154,7 @@ class Kohler(ImageDataset):
                 from deepinv.datasets import Kohler
                 Kohler.download("datasets/Kohler")
         """
+        root = resolve_root(root, "Kohler")
         for url in cls._archive_urls:
             archive_name = url_basename(url)
             checksum = cls._archive_checksums[archive_name]

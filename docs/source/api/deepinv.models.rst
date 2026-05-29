@@ -67,6 +67,8 @@ Deep Architectures
    deepinv.models.DScCP
    deepinv.models.RAM
    deepinv.models.ArtifactRemoval
+   deepinv.models.SRResNet
+   deepinv.models.FFDNet
 
 Model Utils
 -----------
@@ -78,6 +80,7 @@ Model Utils
    :nosignatures:
 
    deepinv.models.EquivariantDenoiser
+   deepinv.models.EquivariantReconstructor
    deepinv.models.TimeAgnosticNet
    deepinv.models.TimeAveragingNet
    deepinv.models.Client
@@ -89,18 +92,8 @@ Model Utils
 
    deepinv.models.complex.to_complex_denoiser
 
-Utility functions for model inference
--------------------------------------
 
-.. autosummary::
-   :toctree: stubs
-   :template: myfunc_template.rst
-   :nosignatures:
-
-   deepinv.models.utils.patchify
-
-
-Wrappers 
+Wrappers
 --------
 .. userguide:: model-wrappers
 

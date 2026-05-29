@@ -540,18 +540,16 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
     operators, you must do that split yourself (build a stacked/list representation) and
     provide those operators through the `factory`.
 
-    All linear operations (`A_adjoint`, `A_vjp`, etc.) support a `reduce` parameter:
+    All linear operations (`A_adjoint`, `A_vjp`, etc.) support a `reduce_op` parameter:
 
-        - If `reduce=True` (default): The method computes the global result by performing a single all-reduce across all ranks.
-        - If `reduce=False`: The method computes only the local contribution from operators owned by this rank, without any inter-rank communication. This is useful for deferring reductions in custom algorithms.
+        - If `reduce_op='sum'` (default): The method computes the global result by performing a single all-reduce across all ranks.
+        - If `reduce_op=None`: The method computes only the local contribution from operators owned by this rank, without any inter-rank communication. This is useful for deferring reductions in custom algorithms. Beware, using `reduce_op=None` may lead to errors or incorrect results if the full global operation is required (e.g., for correct gradients in training) and should be used with caution.
 
     :param DistributedContext ctx: distributed context manager.
     :param int num_operators: total number of physics operators to distribute.
     :param Callable factory: factory function that creates linear physics operators.
         Should have signature `factory(index: int, device: torch.device, factory_kwargs: dict | None) -> LinearPhysics`.
     :param dict | None factory_kwargs: shared data dictionary passed to factory function for all operators. Default is `None`.
-    :param str reduction: reduction mode for distributed operations. Options are `'sum'` (stack operators)
-        or `'mean'` (average operators). Default is `'sum'`.
     :param torch.dtype | None dtype: data type for operations. Default is `None`.
     :param str gather_strategy: strategy for gathering distributed results in forward operations.
         Options are `'naive'`, `'concatenated'`, or `'broadcast'`. Default is `'concatenated'`.
@@ -564,7 +562,6 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         factory,
         *,
         factory_kwargs: dict | None = None,
-        reduction: str = "sum",
         dtype: torch.dtype | None = None,
         gather_strategy: str = "concatenated",
         **kwargs,
@@ -572,7 +569,6 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         r"""
         Initialize distributed linear physics operators.
         """
-        self.reduction_mode = reduction
         super().__init__(
             ctx=ctx,
             num_operators=num_operators,
@@ -593,25 +589,22 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         self,
         y: TensorList | list[torch.Tensor],
         gather: bool = True,
-        reduce_op: str | None = None,
+        reduce_op: str | None = "sum",
         **kwargs,
     ) -> torch.Tensor:
         r"""
         Compute global adjoint operation with automatic reduction.
 
-        Extracts local measurements, computes local adjoint contributions, and reduces
-        across all ranks to obtain the complete :math:`A^T y` where :math:`A` is the
-        stacked operator :math:`A = [A_1, A_2, \ldots, A_n]` and :math:`A_i` are the individual linear operators.
+        Extracts local measurements, computes local adjoint contributions, and sum reduces
+        across all ranks to obtain the complete :math:`A^T y = \sum_{i=1}^n A_i^T y_i` where :math:`A` is the
+        stacked operator :math:`A = [A_1, A_2, \ldots, A_n]`, :math:`A_i` and :math:`y_i` are the individual linear operators and measurements respectively.
 
         :param TensorList | list[torch.Tensor] y: full list of measurements from all operators.
         :param bool gather: whether to gather results across ranks. If False, returns local contribution. Default is `True`.
-        :param str | None reduce_op: reduction operation to apply across ranks. If None, uses class default. Default is `None`.
+        :param str | None reduce_op: reduction operation to apply across ranks. If `None`, no reduction (neither local or global) is performed, reduction must be performed manually to produce complete adjoint result :math:`A^T y`. Default is `"sum"`.
         :param kwargs: optional parameters for the adjoint operation.
         :return: complete adjoint result :math:`A^T y` (or local contribution if gather=False).
         """
-
-        if reduce_op is None:
-            reduce_op = self.reduction_mode
 
         # Extract local measurements
         if len(y) == self.num_operators:
@@ -638,7 +631,7 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         x: torch.Tensor,
         v: TensorList | list[torch.Tensor],
         gather: bool = True,
-        reduce_op: str | None = None,
+        reduce_op: str | None = "sum",
         **kwargs,
     ) -> torch.Tensor:
         r"""
@@ -650,13 +643,10 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         :param torch.Tensor x: input tensor.
         :param TensorList | list[torch.Tensor] v: full list of cotangent vectors from all operators.
         :param bool gather: whether to gather results across ranks. If False, returns local contribution. Default is `True`.
-        :param str | None reduce_op: reduction operation to apply across ranks. If None, uses class default. Default is `None`.
+        :param str | None reduce_op: reduction operation to apply across ranks. If `None`, no reduction (neither local or global) is performed, reduction must be performed manually to produce complete VJP result. Default is `"sum"`.
         :param kwargs: optional parameters for the VJP operation.
         :return: complete VJP result (or local contribution if gather=False).
         """
-
-        if reduce_op is None:
-            reduce_op = self.reduction_mode
 
         if len(v) == self.num_operators:
             v_local = [v[i] for i in self.local_indexes]
@@ -679,7 +669,7 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         self,
         x: torch.Tensor,
         gather: bool = True,
-        reduce_op: str | None = None,
+        reduce_op: str | None = "sum",
         **kwargs,
     ) -> torch.Tensor:
         r"""
@@ -690,13 +680,10 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
 
         :param torch.Tensor x: input tensor.
         :param bool gather: whether to gather results across ranks. If False, returns local contribution. Default is `True`.
-        :param str | None reduce_op: reduction operation to apply across ranks. If None, uses class default. Default is `None`.
+        :param str | None reduce_op: reduction operation to apply across ranks. If `None`, no reduction (neither local or global) is performed, reduction must be performed manually to produce complete  result :math:`A^T A x`. Default is `"sum"`.
         :param kwargs: optional parameters for the operation.
         :return: complete :math:`A^T A x` result (or local contribution if gather=False).
         """
-
-        if reduce_op is None:
-            reduce_op = self.reduction_mode
 
         return self._map_reduce_gather(
             x,
@@ -710,7 +697,6 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         self,
         y: TensorList | list[torch.Tensor],
         gather: bool = True,
-        reduce_op: str | None = None,
         **kwargs,
     ) -> TensorList | list[torch.Tensor]:
         r"""
@@ -729,7 +715,6 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         :param TensorList | list[torch.Tensor] y: full list of measurements from all operators.
         :param bool gather: whether to gather final results across ranks. If `False`, returns only local
             operators' contributions (but still uses the global adjoint). Default is `True`.
-        :param str | None reduce_op: reduction operation to apply across ranks for the final forward step. Default is `None`.
         :param kwargs: optional parameters for the operation.
         :return: TensorList with entries :math:`A_i A^T y` for all operators (or local list if `gather=False`).
         """
@@ -738,7 +723,7 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         # This is necessary because A_A_adjoint(y) = A(A^T y) and A^T y = sum_i A_i^T y_i
         x_adjoint = self.A_adjoint(y, gather=True, **kwargs)
         # Then compute A(A^T y) which returns a TensorList (or list if reduce=False)
-        return self.A(x_adjoint, gather=gather, reduce_op=reduce_op, **kwargs)
+        return self.A(x_adjoint, gather=gather, reduce_op=None, **kwargs)
 
     def A_dagger(
         self,
@@ -1131,7 +1116,7 @@ class DistributedProcessing(torch.nn.Module):
                 f"and local indices ({len(self.local_indices)})"
             )
 
-        processed_pairs = list(zip(self.local_indices, processed_patches))
+        processed_pairs = list(zip(self.local_indices, processed_patches, strict=True))
 
         # 6. Initialize output tensor and apply reduction strategy
         out_local = torch.zeros(self.img_size, device=self.ctx.device, dtype=x.dtype)
@@ -1338,7 +1323,7 @@ class DistributedDataFidelity(torch.nn.Module):
         if len(Ax_local) != len(y_local):
             raise ValueError("Ax and y local sizes do not match.")
 
-        zipped_data = list(zip(Ax_local, y_local))
+        zipped_data = list(zip(Ax_local, y_local, strict=True))
         # Pseudo items to iterate on
         local_items = list(range(len(physics.local_indexes)))
 

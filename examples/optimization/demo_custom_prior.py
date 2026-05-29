@@ -64,7 +64,7 @@ dataset = load_dataset(dataset_name, transform=val_transform)
 
 
 # Generate a Gaussian blur filter.
-filter_torch = dinv.physics.blur.gaussian_blur(sigma=(3, 3))
+filter_torch = dinv.physics.functional.gaussian_blur(sigma=(3, 3))
 noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 

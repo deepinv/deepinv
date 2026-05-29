@@ -12,6 +12,7 @@ import numpy as np
 import torch
 from torchvision import transforms
 from deepinv.utils.io import load_np, load_torch, load_url as _load_url
+from deepinv.utils.decorators import _deprecated_func
 
 if TYPE_CHECKING:
     from deepinv.datasets.base import ImageFolder
@@ -48,6 +49,7 @@ def get_image_url(file_name: str, dataset: str = "images") -> str:
     return f"https://huggingface.co/datasets/deepinv/{dataset}/resolve/main/{file_name}?download=true"
 
 
+@_deprecated_func
 def get_data_home() -> Path:
     """Return a folder to store deepinv datasets.
 
@@ -65,6 +67,30 @@ def get_data_home() -> Path:
             path = Path(data_home) / "deepinv"
         else:
             path = Path(".") / "datasets"
+
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def get_cache_home() -> Path:
+    """Return a folder to store deepinv cache (datasets, models, etc.).
+
+    This folder can be specified by setting the environment variable ``DEEPINV_CACHE_DIR``.
+    If ``DEEPINV_CACHE_DIR`` is not set, this defaults to ``XDG_CACHE_HOME/deepinv`` if the environment variable ``XDG_CACHE_HOME`` is set, otherwise to ``~/.cache/deepinv``.
+
+    :return: pathlib Path for cache dir
+    """
+
+    cache_dir = os.environ.get("DEEPINV_CACHE_DIR", None)
+
+    if cache_dir is not None:
+        path = Path(cache_dir)
+    else:
+        xdg_cache_home = os.environ.get("XDG_CACHE_HOME", None)
+        if xdg_cache_home is not None:
+            path = Path(xdg_cache_home) / "deepinv"
+        else:
+            path = Path.home() / ".cache" / "deepinv"
 
     path.mkdir(parents=True, exist_ok=True)
     return path
@@ -91,7 +117,7 @@ def load_dataset(
     from deepinv.datasets.base import ImageFolder
 
     if data_dir is None:
-        data_dir = get_data_home()
+        data_dir = get_cache_home() / "datasets" / dataset_name
 
     if isinstance(data_dir, str):
         data_dir = Path(data_dir)
@@ -144,7 +170,7 @@ def load_degradation(
     :return: (:class:`torch.Tensor`) containing degradation.
     """
     if data_dir is None:
-        data_dir = get_data_home()
+        data_dir = get_cache_home()
 
     if isinstance(data_dir, str):
         data_dir = Path(data_dir)
@@ -155,6 +181,7 @@ def load_degradation(
         data_dir.mkdir(parents=True, exist_ok=True)
         url = get_degradation_url(name)
         with requests.get(url, stream=True) as r:
+            r.raise_for_status()
             with open(str(data_dir / name), "wb") as f:
                 shutil.copyfileobj(r.raw, f)
         print(f"{name} degradation downloaded in {data_dir}")

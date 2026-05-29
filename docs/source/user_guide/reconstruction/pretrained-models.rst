@@ -20,9 +20,7 @@ These models can be set-up in one line and perform inference in another line:
     >>> x = dinv.utils.load_example("butterfly.png")
     >>> physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
     >>> y = physics(x)
-    >>> # Use RAM or any of the models listed below
-    >>> model = dinv.models.RAM(pretrained=True)  # doctest: +ELLIPSIS
-    ...
+    >>> model = dinv.models.RAM(pretrained=True)
     >>> x_hat = model(y, physics) # Model inference
     >>> dinv.metric.PSNR()(x_hat, x) > 29.75
     tensor([True])
@@ -126,7 +124,7 @@ Click on the model name to learn more about the type of model and use `pretraine
    * - :class:`deepinv.models.EPLLDenoiser`
      - Denoiser
      - Weights estimated with deepinv on 50 mio patches from the training/validation images from BSDS500 for grayscale and color images.
-       Code for generating the weights for the example :ref:`patch-prior-demo` is contained within the demo.
+       Code for generating the weights for the example :ref:`sphx_glr_auto_examples_optimization_demo_epll.py` is contained within the demo.
    * - :class:`deepinv.models.Restormer`
      - Denoiser
      - Weights from `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_:

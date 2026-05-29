@@ -26,7 +26,3 @@ jobs:
           uv venv
           uv pip install ruff
           uv run ruff check
-      - name: Check Python 3.9 backward compatibility
-        run: |
-          uv pip install vermin
-          uv run vermin -vvv deepinv examples | grep "3.10" && exit 1 || true

@@ -17,7 +17,7 @@ import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim import PGD
-from deepinv.utils import get_data_home
+from deepinv.utils import get_cache_home
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -29,7 +29,7 @@ BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 CKPT_DIR = BASE_DIR / "ckpts"
-ORIGINAL_DATA_DIR = get_data_home()
+ORIGINAL_DATA_DIR = get_cache_home() / "datasets" / "MNIST"
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
