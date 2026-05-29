@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING
 
 import torch
 from torch import Tensor
 
 from deepinv.loss.loss import Loss
+
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
 
 
 class DCLoss(Loss):
@@ -263,8 +267,8 @@ class DCLoss(Loss):
         self,
         y: Tensor,
         x_net: Tensor,
-        physics,
-        model=None,
+        physics: Physics,
+        model: torch.nn.Module | None = None,
         sigma: float | Tensor | None = None,
         **kwargs,
     ) -> Tensor:
