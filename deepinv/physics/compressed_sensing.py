@@ -2,9 +2,7 @@ from __future__ import annotations
 from deepinv.physics.forward import LinearPhysics
 import torch
 import numpy as np
-from deepinv.physics.functional import random_choice
 from torch import Tensor
-from deepinv.utils.decorators import _deprecated_alias
 
 
 def dst1(x: Tensor) -> Tensor:
@@ -54,20 +52,15 @@ class CompressedSensing(LinearPhysics):
     For image sizes bigger than 32 x 32, the forward computation can be prohibitively expensive due to its :math:`O(mn)` complexity.
     In this case, we recommend using :class:`deepinv.physics.StructuredRandom` instead.
 
-    .. deprecated:: 0.2.2
-       The ``fast`` option is deprecated and might be removed in future versions. Use :class:`deepinv.physics.StructuredRandom` instead.
-
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``,
     in a similar fashion to :class:`torch.nn.Module`.
 
     .. note::
 
-        If ``fast=False``, the forward operator has a norm which tends to :math:`(1+\sqrt{n/m})^2` for large :math:`n`
+        The forward operator has a norm which tends to :math:`(1+\sqrt{n/m})^2` for large :math:`n`
         and :math:`m` due to the `Marcenko-Pastur law
         <https://en.wikipedia.org/wiki/Marchenko%E2%80%93Pastur_distribution>`_.
-        If ``fast=True``, the forward operator has a unit norm.
 
-    If ``dtype=torch.cfloat``, the forward operator will be generated as a random i.i.d. complex Gaussian matrix to be used with ``fast=False``
 
     .. math::
 
@@ -75,7 +68,6 @@ class CompressedSensing(LinearPhysics):
 
     :param int m: number of measurements.
     :param tuple img_size: shape (C, H, W) of inputs.
-    :param bool fast: The operator is iid Gaussian if false, otherwise A is a SORS matrix with the Discrete Sine Transform (type I).
     :param bool channelwise: Channels are processed independently using the same random forward operator.
     :param torch.dtype dtype: Forward matrix is stored as a dtype. For complex matrices, use torch.cfloat. Default is torch.float.
     :param str device: Device to store the forward matrix.
@@ -98,12 +90,10 @@ class CompressedSensing(LinearPhysics):
 
     """
 
-    @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m: int,
         img_size: tuple[int],
-        fast: bool = False,
         channelwise: bool = False,
         dtype: torch.dtype = torch.float,
         device: torch.device | str = "cpu",
@@ -113,7 +103,6 @@ class CompressedSensing(LinearPhysics):
         super().__init__(device=device, **kwargs)
         self.name = f"CS_m{m}"
         self.img_size = img_size
-        self.fast = fast
         self.channelwise = channelwise
         self.dtype = dtype
 
@@ -121,9 +110,9 @@ class CompressedSensing(LinearPhysics):
             self.rng = torch.Generator(device=device)
         else:
             # Make sure that the random generator is on the same device as the physic generator
-            assert rng.device == torch.device(
-                device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+            assert rng.device == torch.device(device), (
+                f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+            )
             self.rng = rng
         self.register_buffer("initial_random_state", self.rng.get_state())
 
@@ -132,31 +121,15 @@ class CompressedSensing(LinearPhysics):
         else:
             n = int(np.prod(img_size))
 
-        if self.fast:
-            self.n = n
-            D = torch.where(
-                torch.rand(self.n, device=device, generator=self.rng) > 0.5, -1.0, 1.0
-            )
+        _A = torch.randn(
+            (m, n), device=device, dtype=dtype, generator=self.rng
+        ) / np.sqrt(m)
+        _A_dagger = torch.linalg.pinv(_A)
 
-            mask = torch.zeros(self.n, device=device)
-            idx = torch.sort(
-                random_choice(self.n, size=m, replace=False, rng=self.rng)
-            ).values
-            mask[idx] = 1
-            mask = mask.type(torch.bool)
-
-            self.register_buffer("D", D)
-            self.register_buffer("mask", mask)
-        else:
-            _A = torch.randn(
-                (m, n), device=device, dtype=dtype, generator=self.rng
-            ) / np.sqrt(m)
-            _A_dagger = torch.linalg.pinv(_A)
-
-            self.register_buffer("_A", _A)
-            self.register_buffer("_A_dagger", _A_dagger)
-            self.register_buffer("_A_adjoint", self._A.conj().T.type(dtype).to(device))
-        self.to(device)
+        self.register_buffer("_A", _A)
+        self.register_buffer("_A_dagger", _A_dagger)
+        self.register_buffer("_A_adjoint", self._A.conj().T)
+        self.to(device=device, dtype=dtype)
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
         N, C = x.shape[:2]
