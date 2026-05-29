@@ -351,6 +351,17 @@ def test_TV_models_identity():
 
 
 def test_bm3d_consistency(load_example_image):
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
+    pytest.importorskip(
+        "bm3d",
+        reason="This test requires bm3d. It should be "
+        "installed with `pip install bm3d`",
+    )
     # Load 2 example images
     x1 = load_example_image(
         "butterfly.png",
