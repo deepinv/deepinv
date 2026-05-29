@@ -189,7 +189,6 @@ class Trainer:
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
     :param int plot_interval: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).
         If ``1``, plots at each epoch. Default is ``1``.
-    :param int freq_plot: deprecated. Use ``plot_interval``
 
     """
 
@@ -222,7 +221,6 @@ class Trainer:
     ckp_interval: int = 1
     eval_interval: int = 1
     plot_interval: int = 1
-    freq_plot: int = None
     plot_images: bool = False
     plot_measurements: bool = True
     plot_convergence_metrics: bool = False
@@ -252,12 +250,6 @@ class Trainer:
         self.save_path = Path(self.save_path) if self.save_path else None
 
         self.G = len(self.train_dataloader)
-
-        if self.freq_plot is not None:
-            warnings.warn(
-                "freq_plot parameter of Trainer is deprecated. Use plot_interval instead."
-            )
-            self.plot_interval = self.freq_plot
 
         if (
             self.wandb_setup != {}
