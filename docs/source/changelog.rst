@@ -8,7 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Add :class:`deepinv.loss.DCLoss`, a distributional consistency loss for Gaussian, clipped-Gaussian, and Poisson noise with deterministic quantile sampling
+- Add :class:`deepinv.loss.DCLoss`, a distributional consistency loss for Gaussian, clipped-Gaussian, and Poisson noise with deterministic quantile sampling (:gh:`1207` by `George Webber`_)
 
 Changed
 ^^^^^^^
