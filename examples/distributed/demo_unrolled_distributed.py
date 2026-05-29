@@ -51,6 +51,7 @@ from deepinv.utils.tensorlist import TensorList
 # -----------------------------------------------------------------------------
 # These functions assist with data collation, device management, and dataset preparation.
 
+
 def collate_batch(batch):
     """Collate clean/measured pairs while preserving TensorList measurements."""
     if len(batch) == 1:
@@ -175,7 +176,7 @@ def prepare_dataset(
 # patch_size and overlap control the size of the image patches that each rank processes, and how much they overlap with each other.
 
 seed = 0
-n_unroll = 3 # Number of unrolled iterations (DRS steps).
+n_unroll = 3  # Number of unrolled iterations (DRS steps).
 crop_size = 128 if torch.cuda.is_available() else 64
 
 # Training and dataloader settings
