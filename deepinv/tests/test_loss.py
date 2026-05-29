@@ -488,6 +488,53 @@ def test_dc_loss_deterministic_mri(device):
     assert torch.allclose(value_1, value_2)
 
 
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        (
+            {"distribution": "not_a_distribution"},
+            "distribution must be one of",
+        ),
+        (
+            {"n_points": 0},
+            "n_points must be strictly positive when provided",
+        ),
+        (
+            {"eps": 0.5},
+            "eps must lie strictly between 0 and 0.5",
+        ),
+        (
+            {"boundary_eps": 0.0},
+            "boundary_eps must lie strictly between 0 and 0.5",
+        ),
+    ],
+)
+def test_dc_loss_constructor_invalid_inputs_raise(kwargs, match):
+    with pytest.raises(ValueError, match=match):
+        dinv.loss.DCLoss(**kwargs)
+
+
+def test_dc_loss_missing_gaussian_sigma_raises(device):
+    y = torch.zeros(1, 1, 4, 4, device=device)
+    physics = dinv.physics.Denoising(
+        noise_model=dinv.physics.ZeroNoise(),
+        device=device,
+    )
+    loss = dinv.loss.DCLoss(distribution="gaussian")
+
+    with pytest.raises(ValueError, match="DCLoss requires a set Gaussian noise level"):
+        loss(y=y, x_net=y, physics=physics)
+
+
+def test_dc_loss_nonpositive_gaussian_sigma_raises(device):
+    y = torch.zeros(1, 1, 4, 4, device=device)
+    physics = dinv.physics.Denoising(device=device)
+    loss = dinv.loss.DCLoss(distribution="gaussian", sigma=0.05)
+
+    with pytest.raises(ValueError, match="sigma must be strictly positive"):
+        loss(y=y, x_net=y, physics=physics, sigma=0.0)
+
+
 def test_dc_loss_iterative_mri_reconstruction_beats_measurement_mse(device):
     x, y, physics = create_mri_dc_problem(
         device=device, sigma=0.5, size=24, fully_sampled=True
