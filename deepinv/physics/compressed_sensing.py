@@ -138,10 +138,7 @@ class CompressedSensing(LinearPhysics):
         else:
             x = x.reshape(N, -1)
 
-        if self.fast:
-            y = dst1(x * self.D)[:, self.mask]
-        else:
-            y = torch.einsum("in, mn->im", x, self._A)
+        y = torch.einsum("in, mn->im", x, self._A)
 
         if self.channelwise:
             y = y.view(N, C, -1)
@@ -159,27 +156,19 @@ class CompressedSensing(LinearPhysics):
         else:
             N2 = N
 
-        if self.fast:
-            y2 = torch.zeros((N2, self.n), device=y.device)
-            y2[:, self.mask] = y.type(y2.dtype)
-            x = dst1(y2) * self.D
-        else:
-            x = torch.einsum("im, nm->in", y, self._A_adjoint)  # x:(N, n, 1)
-
+        x = torch.einsum("im, nm->in", y, self._A_adjoint)  # x:(N, n, 1)
         x = x.view(N, C, H, W)
         return x
 
     def A_dagger(self, y: Tensor, **kwargs) -> Tensor:
         y = y.type(self.dtype)
-        if self.fast:
-            return self.A_adjoint(y)
-        else:
-            N = y.shape[0]
-            C, H, W = self.img_size[0], self.img_size[1], self.img_size[2]
 
-            if self.channelwise:
-                y = y.reshape(N * C, -1)
+        N = y.shape[0]
+        C, H, W = self.img_size[0], self.img_size[1], self.img_size[2]
 
-            x = torch.einsum("im, nm->in", y, self._A_dagger)
-            x = x.reshape(N, C, H, W)
+        if self.channelwise:
+            y = y.reshape(N * C, -1)
+
+        x = torch.einsum("im, nm->in", y, self._A_dagger)
+        x = x.reshape(N, C, H, W)
         return x
