@@ -8,7 +8,6 @@ from torch.optim import Adam
 from deepinv.physics import Physics
 from deepinv.loss import MCLoss
 from .base import Reconstructor
-from deepinv.utils.decorators import _deprecated_alias
 
 
 class PatchGANDiscriminator(nn.Module):
@@ -113,7 +112,6 @@ class ESRGANDiscriminator(nn.Module):
     :param tuple img_size: shape of input image
     """
 
-    @_deprecated_alias(input_shape="img_size")
     def __init__(self, img_size: tuple):
         super().__init__()
         self.img_size = img_size

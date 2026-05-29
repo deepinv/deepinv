@@ -4,10 +4,8 @@ import numpy as np
 import torch
 
 from deepinv.physics.forward import LinearPhysics
-from deepinv.utils.decorators import _deprecated_alias
 
 
-@_deprecated_alias(input_shape="img_size", output_shape="output_size")
 def compare(img_size: tuple, output_size: tuple) -> str:
     r"""
     Compare input and output shape to determine the sampling mode.
@@ -29,7 +27,6 @@ def compare(img_size: tuple, output_size: tuple) -> str:
         )
 
 
-@_deprecated_alias(input_shape="img_size", output_shape="output_size")
 def padding(tensor: torch.Tensor, img_size: tuple, output_size: tuple):
     r"""
     Zero padding function for oversampling in structured random phase retrieval.
@@ -54,7 +51,6 @@ def padding(tensor: torch.Tensor, img_size: tuple, output_size: tuple):
     )
 
 
-@_deprecated_alias(input_shape="img_size", output_shape="output_size")
 def trimming(tensor: torch.Tensor, img_size: tuple, output_size: tuple):
     r"""
     Trimming function for undersampling in structured random phase retrieval.
@@ -126,7 +122,6 @@ class StructuredRandom(LinearPhysics):
     :param torch.Generator rng: Random number generator. Default is None.
     """
 
-    @_deprecated_alias(input_shape="img_size", output_shape="output_size")
     def __init__(
         self,
         img_size,

@@ -4,7 +4,6 @@ import numpy as np
 from deepinv.loss.mc import MCLoss
 from tqdm import tqdm
 from .base import Reconstructor
-from deepinv.utils.decorators import _deprecated_alias
 
 
 def add_module(self, module):
@@ -29,7 +28,6 @@ class ConvDecoder(nn.Module):
     """
 
     #  Code adapted from https://github.com/MLI-lab/ConvDecoder/tree/master by Darestani and Heckel.
-    @_deprecated_alias(img_shape="img_size")
     def __init__(self, img_size, in_size=(4, 4), layers=7, channels=256):
         super(ConvDecoder, self).__init__()
 
@@ -130,7 +128,6 @@ class DeepImagePrior(Reconstructor):
 
     """
 
-    @_deprecated_alias(input_size="img_size")
     def __init__(
         self,
         generator,

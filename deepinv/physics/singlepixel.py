@@ -3,7 +3,6 @@ import torch
 import numpy as np
 import warnings
 import math
-from deepinv.utils.decorators import _deprecated_alias
 
 
 def hadamard_1d(u, normalize=True):
@@ -111,7 +110,6 @@ def hadamard_2d_ishift(x):
     return x
 
 
-@_deprecated_alias(img_shape="img_size")
 def sequency_mask(img_size, m):
     """
     Generates a sequency-ordered binary mask for single-pixel imaging.
@@ -236,7 +234,6 @@ def diagonal_index_matrix(H: int, W: int) -> torch.Tensor:
     return flat_A.view(H, W)
 
 
-@_deprecated_alias(img_shape="img_size")
 def zig_zag_mask(img_size, m):
     """
     Generates a zig-zag mask for an image of a given shape.
@@ -259,7 +256,6 @@ def zig_zag_mask(img_size, m):
     return mask
 
 
-@_deprecated_alias(img_shape="img_size")
 def xy_mask(img_size, m):
     """
     Generates a 2D mask based on the spatial coordinates of an image and a given threshold.
