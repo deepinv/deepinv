@@ -1369,8 +1369,8 @@ def test_denoiser_perf(device, load_example_image):
 
     # Classical denoisers
     classical_denoisers = [
-        (dinv.models.BM3D(use_legacy=True), (2.7, 7.5, 6.5)),
-        (dinv.models.BM3D(use_legacy=False), (2.7, 7.5, 6.5)),
+        (dinv.models.BM3D(use_legacy=True).to(device), (2.7, 7.5, 6.5)),
+        (dinv.models.BM3D(use_legacy=False).to(device), (2.7, 7.5, 6.5)),
         (dinv.models.MedianFilter(kernel_size=5), (-9, 4.25, 2.5)),
         (dinv.models.TVDenoiser(), (1.5, 6.0, 4.0)),
         (dinv.models.TGVDenoiser(), (1.75, 6, 5.0)),
