@@ -20,7 +20,6 @@ from deepinv.transform.rotate import Rotate
 # We do not include operators for which padding is involved, they are tested separately
 OPERATORS = [
     "CS",
-    "fastCS",
     "inpainting",
     "inpainting_clone",
     "demosaicing",
@@ -146,16 +145,6 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 0.75  # Marcenko-Pastur law, second term is a small n correction
-        params = []
-    elif name == "fastCS":
-        p = dinv.physics.CompressedSensing(
-            m=20,
-            fast=True,
-            channelwise=True,
-            img_size=img_size,
-            device=device,
-            rng=rng,
-        )
         params = []
     elif name == "colorize":
         p = dinv.physics.Decolorize(device=device)
