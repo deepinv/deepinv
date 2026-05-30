@@ -28,6 +28,10 @@ class Reflect(Transform):
         super().__init__(*args, **kwargs)
         self.dim = dim
 
+    def invert_params(self, params: dict) -> dict:
+        """Inverse of a reflection is itself (flipping twice returns the original)."""
+        return params
+
     def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate sets of reflection axes without replacement.
 

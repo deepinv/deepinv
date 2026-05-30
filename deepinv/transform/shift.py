@@ -66,7 +66,7 @@ class Shift(Transform):
         """
         return torch.cat(
             [
-                torch.roll(x, [sx, sy], [-2, -1])
+                torch.roll(x, [sy, sx], [-2, -1])
                 for sx, sy in zip_longest(x_shift, y_shift, fillvalue=0)
             ],
             dim=0,
