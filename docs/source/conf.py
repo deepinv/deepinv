@@ -294,11 +294,11 @@ class MySortKey(_SortKey):
             return ExampleTitleSortKey(self.src_dir)(filename)
 
 
-# List of files that require a GPU to run
-gpu_dependent_files = [".*demo_astra_tomography.py", ".*demo_custom_niqe.py"]
-# Create the ignore pattern based on GPU availability
+# List of files that require a GPU to run (regex patterns)
+gpu_dependent_files = [".*demo_astra_tomography\.py", ".*demo_custom_niqe\.py"]
+# Create the ignore pattern based on GPU availability,
 ignore_pattern = (
-    rf"__init__\.py|".join(gpu_dependent_files)
+    "|".join(gpu_dependent_files + [r"__init__\.py"])
     if not torch.cuda.is_available()
     else r"__init__\.py"
 )

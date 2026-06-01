@@ -27,6 +27,7 @@ MODEL_LIST_1_CHANNEL = [
     "promptir",
     "ncsnpp",
     "adinv.modelsunet",
+    "deal",
     "ffdnet",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
@@ -139,6 +140,7 @@ def choose_denoiser(name, imsize):
             img_resolution=imsize[1],
             pretrained=None,
         )
+
     elif name == "adinv.modelsunet":
         out = dinv.models.ADMUNet(
             in_channels=imsize[0],
@@ -146,6 +148,17 @@ def choose_denoiser(name, imsize):
             img_resolution=imsize[1],
             pretrained=None,
         )
+
+    elif name == "deal":
+        out = dinv.models.DEAL(
+            sigma_denoiser=0.1,
+            lambda_reg=10.0,
+            max_iter=5,
+            auto_scale=False,
+            color=(imsize[0] == 3),
+            pretrained=None,
+        )
+
     elif name == "dsccp":
         out = dinv.models.DScCP()
     elif name == "bilateral":
@@ -348,6 +361,42 @@ def test_TV_models_identity():
     )  # There is some numerical instability when the regularization parameter is 0
     assert x_hat.shape == x.shape
     assert torch.allclose(x, x_hat, atol=1e-5)  # The model should be the identity
+
+
+def test_bm3d_consistency(load_example_image):
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
+    pytest.importorskip(
+        "bm3d",
+        reason="This test requires bm3d. It should be "
+        "installed with `pip install bm3d`",
+    )
+    # Load 2 example images
+    x1 = load_example_image(
+        "butterfly.png",
+        img_size=64,
+        resize_mode="resize",
+    )
+    x2 = load_example_image(
+        "celeba_example.jpg",
+        img_size=64,
+        resize_mode="resize",
+    )
+    x = torch.cat([x1, x2, x1], dim=0)
+    sigma = torch.tensor([0.1, 0.1, 0.1])
+    rng = torch.Generator().manual_seed(123)
+    y = x + sigma.view(-1, 1, 1, 1) * torch.randn(x.shape, generator=rng)
+    # Load BM3D
+    model_legacy = dinv.models.BM3D(use_legacy=True)
+    model_new = dinv.models.BM3D(use_legacy=False)
+    x_hat_legacy = model_legacy(y, sigma)
+    x_hat_new = model_new(y, sigma)
+    print(torch.max(torch.abs(x_hat_legacy - x_hat_new)))
+    assert torch.allclose(x_hat_legacy, x_hat_new, atol=1e-1)
 
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
@@ -1333,7 +1382,8 @@ def test_denoiser_perf(device, load_example_image):
 
     # Classical denoisers
     classical_denoisers = [
-        (dinv.models.BM3D(), (2.75, 7.5, 6.5)),
+        (dinv.models.BM3D(use_legacy=True).to(device), (2.7, 7.5, 6.5)),
+        (dinv.models.BM3D(use_legacy=False).to(device), (2.7, 7.5, 6.5)),
         (dinv.models.MedianFilter(kernel_size=5), (-9, 4.25, 2.5)),
         (dinv.models.TVDenoiser(), (1.5, 6.0, 4.0)),
         (dinv.models.TGVDenoiser(), (1.75, 6, 5.0)),
@@ -1808,6 +1858,45 @@ def test_gaussian_noise_estimators(
     assert torch.allclose(
         model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-2, atol=1e-2
     )
+
+
+@pytest.mark.parametrize("sigma", [0.0, 0.05])
+@pytest.mark.parametrize("gain", [0.05, 0.5])
+def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
+    x = torch.ones((1, 1, 16, 16), device=device)
+    physics = dinv.physics.Denoising(
+        dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
+    )
+    y = physics(x)
+    z = dinv.models.generalized_anscombe_transform(y, sigma=sigma, gain=gain)
+
+    # std(GAT(y)) \approx gain
+    assert torch.allclose(
+        z.std(), torch.tensor(gain, device=device), atol=0.05, rtol=0.05
+    )
+
+    # IGAT(GAT(y))\approx y
+    y_inv = dinv.models.inverse_generalized_anscombe_transform(
+        z, sigma=sigma, gain=gain
+    )
+    assert torch.allclose(y, y_inv, atol=0.1, rtol=0.1)
+
+    x = load_example_image(
+        "butterfly.png",
+        img_size=64,
+    ).to(device)
+    y = physics(x)
+    metric = dinv.metric.PSNR()
+    denoiser = dinv.models.DRUNet(device=device)
+    ans_denoiser = dinv.models.AnscombeDenoiser(denoiser)
+    with torch.no_grad():
+        x_base = denoiser(y, sigma=(sigma**2 + gain) ** (0.5))
+        x_ans = ans_denoiser(y, sigma=sigma, gain=gain)
+        psnr_ans = metric(x_ans, x)
+        psnr_raw = metric(y, x)
+        psnr_base = metric(x_base, x)
+        assert torch.all(psnr_ans > psnr_raw)
+        assert torch.all(psnr_ans > psnr_base)
 
 
 @pytest.mark.parametrize("upscale_factor", [2, 4])
