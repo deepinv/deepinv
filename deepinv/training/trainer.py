@@ -69,6 +69,7 @@ class Trainer:
     :param bool online_measurements: Generate new measurements `y` in an online manner at each iteration by calling
         `y=physics(x)`. If `False` (default), the measurements are loaded from the training dataset.
     :param str, torch.device device: Device on which to run the training (e.g., 'cuda', 'mps' or 'cpu'). Default is first 'cuda' and second 'mps' if available, otherwise 'cpu'.
+    :param bool use_amp: Whether to use automatic mixed precision (float16). Currently, will only be used during training steps, not eval or test.
 
     |sep|
 
