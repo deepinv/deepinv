@@ -883,7 +883,7 @@ class Trainer:
             # Compute the losses
             loss_total = 0
             for k, l in enumerate(self.losses):
-                if self.use_amp:
+                if self.use_amp and train:
                     with autocast(self.device.type, torch.float16):
                         loss = l(
                             x=x,
