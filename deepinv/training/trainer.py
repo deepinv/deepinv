@@ -852,7 +852,9 @@ class Trainer:
 
             return x_net
 
-    def compute_loss(self, physics, x, y, train=True, epoch: int = None, step=False):
+    def compute_loss(
+        self, physics, x, y, train: bool = True, epoch: int = None, step: bool = False
+    ):
         r"""
         Compute the loss and perform the backward pass.
 
@@ -875,7 +877,7 @@ class Trainer:
 
         if train or self.compute_eval_losses:
             # Evaluate reconstruction network
-            x_net = self.model_inference(y=y, physics=physics, x=x, train=True)
+            x_net = self.model_inference(y=y, physics=physics, x=x, train=train)
 
             # Compute the losses
             loss_total = 0
@@ -1046,9 +1048,9 @@ class Trainer:
         self,
         epoch,
         progress_bar,
-        train_ite=None,
-        train=True,
-        last_batch=False,
+        train_ite: int = None,
+        train: bool = True,
+        last_batch: bool = False,
         update_progress_bar=False,
     ):
         r"""
