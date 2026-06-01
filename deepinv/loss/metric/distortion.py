@@ -589,7 +589,11 @@ class SpectralAngleMapper(Metric):
     def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         from torchmetrics.functional.image import spectral_angle_mapper
 
-        return spectral_angle_mapper(x_net, x, reduction="none").mean(
+        # Pixels whose spectral vector is all-zero produce NaN angles
+        # (division by a zero norm in torchmetrics). Since we perform the
+        # spatial reduction ourselves, use ``nanmean`` so these pixels are
+        # ignored rather than poisoning the whole image score with NaN.
+        return spectral_angle_mapper(x_net, x, reduction="none").nanmean(
             dim=tuple(range(1, x.ndim - 1)), keepdim=False
         )
 
