@@ -16,7 +16,7 @@ from typing import Sequence
 
 import torch
 
-from deepinv.distributed.utils import (
+from deepinv.distributed.strategies.utils import (
     tiling_splitting_strategy,
     tiling_reduce_fn,
 )

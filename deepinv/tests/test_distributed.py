@@ -36,7 +36,7 @@ from deepinv.optim import L2, L1, PGD
 from deepinv.optim.data_fidelity import StackedPhysicsDataFidelity
 from deepinv.optim.prior import PnP
 
-from deepinv.distributed.distrib_framework import (
+from deepinv.distributed.framework import (
     DistributedContext,
     DistributedStackedLinearPhysics,
     DistributedProcessing,

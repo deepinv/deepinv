@@ -11,7 +11,7 @@ from deepinv.optim.prior import Prior
 from deepinv.optim.optimizers import BaseOptim
 from deepinv.models.base import Denoiser
 
-from deepinv.distributed.distrib_framework import (
+from deepinv.distributed.framework import (
     DistributedContext,
     DistributedStackedPhysics,
     DistributedStackedLinearPhysics,

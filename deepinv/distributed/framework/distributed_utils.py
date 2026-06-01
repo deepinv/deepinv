@@ -342,6 +342,61 @@ class DistributedParameterSync(torch.autograd.Function):
         return (grad_output, None) + (None,) * len(autograd_ctx.parameters)
 
 
+class DistributedReplicatedParameters:
+    r"""
+    Synchronize gradients for replicated trainable parameters.
+
+    This class targets parameters that are replicated on all ranks (e.g. trainable
+    step sizes in unrolled algorithms) and are not otherwise handled by
+    :class:`DistributedProcessing`.
+    """
+
+    def __init__(
+        self,
+        ctx: DistributedContext,
+        parameters: Sequence[torch.nn.Parameter],
+        average: bool = True,
+    ):
+        self.ctx = ctx
+        self.average = average
+        self.parameters = [p for p in parameters if isinstance(p, torch.nn.Parameter)]
+        self._hooks = []
+        self._register_hooks()
+
+    def _sync_grad_value(self, grad: torch.Tensor | None) -> torch.Tensor | None:
+        if grad is None or not self.ctx.use_dist:
+            return grad
+        grad = self.ctx.all_reduce(grad, op=dist.ReduceOp.SUM)
+        # For standard first-order optimization, users usually expect averaged grads:
+        # all_reduce returns SUM, so we divide by world_size when requested.
+        # If grad.requires_grad=True, we are in a higher-order path and this tensor
+        # is itself differentiable; keep SUM to avoid hidden scaling in meta-grads.
+        if self.average and self.ctx.world_size > 1 and not grad.requires_grad:
+            grad = grad / float(self.ctx.world_size)
+        return grad
+
+    def _post_accumulate_hook(self, p: torch.nn.Parameter):
+        if p.grad is None:
+            return
+        p.grad = self._sync_grad_value(p.grad)
+
+    def _register_hooks(self):
+        for p in self.parameters:
+            if not p.requires_grad:
+                continue
+            if hasattr(p, "register_post_accumulate_grad_hook"):
+                h = p.register_post_accumulate_grad_hook(self._post_accumulate_hook)
+            else:
+                # Fallback for older torch versions.
+                h = p.register_hook(self._sync_grad_value)
+            self._hooks.append(h)
+
+    def remove_hooks(self):
+        for h in self._hooks:
+            h.remove()
+        self._hooks.clear()
+
+
 def gather_tensorlist_naive(
     ctx: DistributedContext,
     local_indices: list[int],
