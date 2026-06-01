@@ -20,7 +20,10 @@ from matplotlib.patches import Patch
 import numpy as np
 import torch
 
-from deepinv.distributed.strategies import BasicStrategy, OverlapTilingStrategy
+from deepinv.distributed.strategies.distributed_strategies import (
+    BasicStrategy,
+    OverlapTilingStrategy,
+)
 from deepinv.utils import load_example, plot
 
 # %%
