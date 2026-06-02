@@ -67,6 +67,7 @@ class FMD(ImageDataset):
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
     :param Callable target_transform: (optional) A function/transform that takes in a clean PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     |sep|
 
@@ -123,7 +124,10 @@ class FMD(ImageDataset):
         download: bool = False,
         transform: Callable = None,
         target_transform: Callable = None,
+        use_dict_output: bool = False,
     ) -> None:
+        super().__init__(use_dict_output=use_dict_output)
+        
         self.root = resolve_root(root, "FMD")
         if img_types is None:
             raise ValueError("img_types is required")

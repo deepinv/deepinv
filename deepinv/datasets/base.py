@@ -96,6 +96,34 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
         elif any(not isinstance(k, str) for k in params):
             raise RuntimeError(f"{error}, but params dict has non-string keys.")
 
+    elif isinstance(batch, dict):
+        
+        if "x" in batch:
+            x = batch["x"]
+            warn_core_types(x)
+            if not isinstance(x, image_types):
+                raise RuntimeError(
+                    f"{error}, but dict element with key 'x' is type {type(x)}."
+                ) 
+                
+        if "y" in batch:
+            y = batch["y"]
+            warn_core_types(y)
+            if not isinstance(y, image_types):
+                raise RuntimeError(
+                    f"{error}, but dict element with key 'y' is type {type(x)}."
+                ) 
+                
+        if "x" not in batch and "y" not in batch:
+            raise RuntimeError(
+                f"{error}, batch is type dict but neither 'x' nor 'y' keys are present"
+            )
+              
+        if "params" in batch and any(
+            not isinstance(k, str) for k in batch["params"]
+        ):
+            raise RuntimeError(f"{error}, but params dict has non-string keys.")
+        
     elif isinstance(batch, (list, tuple)):
         raise RuntimeError(
             f"{error}, but returned list or tuple of length {len(batch)}."

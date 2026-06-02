@@ -4,6 +4,7 @@ from deepinv.utils.decorators import _deprecated_alias
 
 from deepinv.utils.mixins import TiledMixin2d
 from typing import Callable
+from collections import OrderedDict
 
 
 class PatchDataset(TiledMixin2d, ImageDataset):
@@ -46,4 +47,8 @@ class PatchDataset(TiledMixin2d, ImageDataset):
         patch = self.all_patches[idx]
         if self.transform:
             patch = self.transform(patch)
-        return patch.reshape(self.shape) if self.shape else patch
+        x = patch.reshape(self.shape) if self.shape else patch
+        
+        out = OrderedDict(x=x) if self.use_dict_output else x
+        
+        return out

@@ -38,6 +38,7 @@ class Set14HR(ImageFolder):
     :param Callable transform:: (optional)  A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
     :param bool verbose: Print a message if the dataset has been correctly downloaded. Default ``True``.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     |sep|
 
@@ -71,6 +72,7 @@ class Set14HR(ImageFolder):
         download: bool = False,
         transform: Callable = None,
         verbose: bool = True,
+        use_dict_output: bool = False,
     ) -> None:
         self.root = resolve_root(root, "Set14")
         self.img_dir = os.path.join(self.root, "Set14_HR")
@@ -103,7 +105,7 @@ class Set14HR(ImageFolder):
                 )
 
         # Initialize ImageFolder
-        super().__init__(self.img_dir, transform=transform)
+        super().__init__(self.img_dir, transform=transform, use_dict_output=use_dict_output)
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.

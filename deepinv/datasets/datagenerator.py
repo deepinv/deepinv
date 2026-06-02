@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Callable, Any
 
+from collections import OrderedDict
 from tqdm import tqdm
 import os
 from warnings import warn
@@ -130,7 +131,7 @@ class HDF5Dataset(ImageDataset):
     :param torch.dtype, str dtype: The dtype for real-valued numbers, by default ``torch.float``.
     :param torch.dtype, str complex_dtype: The dtype for complex-valued numbers, by default ``torch.cfloat``.
     :param Transform, Callable, None transform: An optional transformation applied to the ground truth.
-
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
     """
 
     def __init__(
@@ -142,10 +143,11 @@ class HDF5Dataset(ImageDataset):
         load_physics_generator_params: bool = False,
         dtype: torch.dtype | str = torch.float,
         complex_dtype: torch.dtype | str = torch.cfloat,
+        use_dict_output: bool = False,
     ):
         import h5py
 
-        super().__init__()
+        super().__init__(use_dict_output=use_dict_output)
 
         f = h5py.File(path, "r")
 
@@ -379,10 +381,15 @@ class HDF5Dataset(ImageDataset):
         else:
             params = None
 
-        if params is not None:
-            return x, y, params
+        if self.use_dict_output:
+            out = OrderedDict(x=x, y=y)
+            if params is not None:
+                out["params"] = params
+                
         else:
-            return x, y
+            out = (x, y, params) if params is not None else (x, y)
+            
+        return out
 
     def __len__(self) -> int:
         r"""

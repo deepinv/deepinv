@@ -33,6 +33,7 @@ class Flickr2kHR(ImageFolder):
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param Callable transform:: (optional)  A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     |sep|
 
@@ -66,7 +67,8 @@ class Flickr2kHR(ImageFolder):
         root: str = None,
         download: bool = False,
         transform: Callable = None,
-    ) -> None:
+        use_dict_output: bool = False,
+    ) -> None:        
         self.root = resolve_root(root)
         self.img_dir = os.path.join(self.root, "Flickr2K")
 
@@ -105,7 +107,7 @@ class Flickr2kHR(ImageFolder):
                 )
 
         # Initialize ImageFolder
-        super().__init__(self.img_dir, transform=transform)
+        super().__init__(self.img_dir, transform=transform, use_dict_output=use_dict_output)
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.

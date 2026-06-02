@@ -22,7 +22,7 @@ from __future__ import annotations
 from pathlib import Path
 from contextlib import contextmanager
 from typing import Any, Callable, NamedTuple
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import pickle
 import warnings
 import os
@@ -91,8 +91,7 @@ class SimpleFastMRISliceDataset(ImageDataset):
     :param Callable transform: optional transform for images, defaults to None
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
-
-
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
     """
 
     def __init__(
@@ -105,7 +104,10 @@ class SimpleFastMRISliceDataset(ImageDataset):
         train_percent: float = 1.0,
         transform: Callable | None = None,
         download: bool = False,
+        use_dict_output: bool = False,
     ):
+        super().__init__(use_dict_output=use_dict_output)
+        
         if anatomy not in ("knee", "brain", None):
             raise ValueError("anatomy must be either 'knee' or 'brain' or None.")
         elif anatomy is None and file_name is None:
@@ -154,7 +156,10 @@ class SimpleFastMRISliceDataset(ImageDataset):
         if self.transform is not None:
             x = self.transform(x)
 
-        return x
+        if self.use_dict_output:
+            return OrderedDict(x=x)
+        else:
+            return x
 
     def __len__(self):
         return len(self.x)
@@ -222,6 +227,8 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
 
     :param Callable filter_id: optional function that takes `SliceSampleID` named tuple and returns whether this id should be included.
     :param torch.Generator, None rng: optional torch random generator for shuffle slice indices
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
+
 
     |sep|
 
@@ -348,7 +355,10 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         transform: Callable | None = None,
         filter_id: Callable | None = None,
         rng: torch.Generator | None = None,
+        use_dict_output: bool = False,
     ) -> None:
+        super().__init__(use_dict_output=use_dict_output)
+        
         self.root = resolve_root(root, "FastMRISlice")
         self.transform = transform if transform is not None else MRISliceTransform()
         self.load_metadata_from_cache = load_metadata_from_cache
@@ -497,6 +507,18 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
                 metadata=metadata,
                 **params,
             )
+
+        if self.use_dict_output:
+            out = OrderedDict()
+            
+            if target is not None:
+                out["x"] = target
+            
+            # Always exists
+            out["y"] = kspace
+                
+            if params:
+                out["params"] = params
 
         return (target if target is not None else torch.nan, kspace) + (
             (params,) if params else ()
