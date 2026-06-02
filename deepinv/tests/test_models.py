@@ -748,6 +748,17 @@ def test_drunet_inputs(dim, spatial_size, device):
     x_hat = f(y, sigma_tensor)
     assert x_hat.shape == x.shape
 
+    # Case 5: sigma is a nn.Parameter with no dimension
+    sigma_param = torch.nn.Parameter(
+        torch.tensor(sigma, requires_grad=True, device=device)
+    )
+    x_hat = f(y, sigma_param)
+    assert x_hat.shape == x.shape
+
+    loss = x_hat.pow(2).mean()
+    loss.backward()
+    assert sigma_param.grad is not None
+
 
 @pytest.mark.parametrize(
     "drunet_args",
