@@ -146,10 +146,8 @@ cuda = "12.0"
 cuda-version = "*"
 pytorch-gpu = "*"
 
-
 [tool.pixi.feature.cpu.dependencies]
 pytorch-cpu = "*"
-
 
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
