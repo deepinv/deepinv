@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from .utils import get_weights_url
+from deepinv.models.utils import get_weights_url
 
 from deepinv.optim.potential import Potential
 from deepinv.models.ridge_regularizer import RidgeRegularizer as RidgeRegularizerModel
@@ -44,7 +44,7 @@ class Prior(Potential):
         self.explicit_prior = False if self._fn is None else True
 
 
-class Zero(Prior):
+class ZeroPrior(Prior):
     r"""
     Zero prior :math:`\reg{x} = 0`.
     """
