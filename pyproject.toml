@@ -148,7 +148,6 @@ pytorch-gpu = "*"
 
 
 [tool.pixi.feature.cpu.dependencies]
-cuda-version = "*"
 pytorch-cpu = "*"
 
 
