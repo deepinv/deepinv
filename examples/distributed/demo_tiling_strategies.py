@@ -8,8 +8,8 @@ processing tiles independently or in parallel, and reconstructing the final resu
 
 This example covers:
 
-- :func:`deepinv.distributed.strategies.BasicStrategy`: Simple non-overlapping tiling
-- :func:`deepinv.distributed.strategies.OverlapTilingStrategy`: Overlapping tiles with padding for artifact-free reconstruction
+- :func:`deepinv.distributed.strategies.distributed_strategies.BasicStrategy`: Simple non-overlapping tiling
+- :func:`deepinv.distributed.strategies.distributed_strategies.OverlapTilingStrategy`: Overlapping tiles with padding for artifact-free reconstruction
 
 """
 
