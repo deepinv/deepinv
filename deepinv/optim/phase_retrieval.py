@@ -162,11 +162,13 @@ def spectral_methods(
     #! for the structured case, when the mean of the squared diagonal elements is 1, we have norm(x) = sqrt(sum(y)), otherwise y gets scaled by the mean to the power of number of layers
     norm_x = torch.sqrt(y.sum())
 
-    x = x.to(torch.cfloat)
     # y should have mean 1
     y = y / torch.mean(y)
     diag_T = preprocessing(y, physics)
-    diag_T = diag_T.to(torch.cfloat)
+
+    x = x.to(physics.dtype)
+    diag_T = diag_T.to(physics.dtype)
+
     for i in range(n_iter):
         x_new = physics.B(x)
         x_new = diag_T * x_new
