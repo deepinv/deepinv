@@ -1649,6 +1649,8 @@ def test_siren_reconstructor(imsize, device):
     y = physics(x)
     x_net = f(y, physics)
     return torch.allclose(x, x_net, atol=0.1)
+
+
 # SwinIR has two parameters related to usampling, upscale which specifies the
 # upsampling rate and upsampler which specifies how the upsampling is
 # performed. In this test, we verify that a warning is raised when specifying
