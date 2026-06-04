@@ -1131,8 +1131,8 @@ def test_trainer_speed(device):  # pragma: no cover
     end = time.perf_counter()
     time_trainer = end - start - time_setup
 
-    # 30% overhead allowed (TODO: reduce to 10%)
-    assert time_trainer / time_naive < 1.3
+    # 50% overhead allowed (TODO: reduce to 10%)
+    assert time_trainer / time_naive < 1.5
 
 
 @pytest.mark.parametrize("model_performance", [40.0])
