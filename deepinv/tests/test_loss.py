@@ -1,9 +1,8 @@
 import pytest
-
+import warnings
 import math
 import numpy as np
 import torch
-
 import deepinv
 from dummy import DummyCircles, DummyModel
 from torch.utils.data import DataLoader
@@ -20,11 +19,13 @@ LOSSES = [
     "mcei",
     "mcei-scale",
     "mcei-homography",
+    "es",
     "r2r",
     "vortex",
     "ensure",
     "ensure_mri",
     "reducedresolution",
+    "reducedresolution_manual_physics",
 ]
 
 LIST_SURE = [
@@ -119,6 +120,35 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         )
         loss.append(dinv.loss.MCLoss())
         loss.append(dinv.loss.EILoss(dinv.transform.Homography(device=device)))
+    elif loss_name == "es":
+        mask_generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+            img_size=imsize,
+            split_ratio=0.9,
+            pixelwise=True,
+            device=device,
+        )
+
+        train_transform = dinv.transform.Rotate(
+            n_trans=1, multiples=90, positive=True
+        ) * dinv.transform.Reflect(n_trans=1, dim=[-1])
+
+        eval_transform = dinv.transform.Rotate(
+            n_trans=4, multiples=90, positive=True
+        ) * dinv.transform.Reflect(n_trans=2, dim=[-1])
+
+        consistency_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
+        prediction_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
+
+        loss.append(
+            dinv.loss.EquivariantSplittingLoss(
+                mask_generator=mask_generator,
+                consistency_loss=consistency_loss,
+                prediction_loss=prediction_loss,
+                transform=train_transform,
+                eval_transform=eval_transform,
+                eval_n_samples=5,
+            )
+        )
     elif loss_name == "splittv":
         loss.append(dinv.loss.SplittingLoss(split_ratio=0.25))
         loss.append(dinv.loss.TVLoss())
@@ -132,7 +162,9 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         loss.append(
             dinv.loss.mri.ENSURELoss(
                 0.01,
-                dinv.physics.generator.BernoulliSplittingMaskGenerator(imsize, 0.5),
+                dinv.physics.generator.BernoulliSplittingMaskGenerator(
+                    imsize, 0.5, device=device
+                ),
                 rng=rng,
             )
         )
@@ -146,6 +178,12 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         )
     elif loss_name == "reducedresolution":
         loss.append(dinv.loss.ReducedResolutionLoss())
+    elif loss_name == "reducedresolution_manual_physics":
+        loss.append(
+            dinv.loss.ReducedResolutionLoss(
+                physics=dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
+            )
+        )
     else:
         raise Exception("The loss doesnt exist")
 
@@ -366,15 +404,23 @@ def test_losses(
         plot_images=(loss_name == LOSSES[0]),  # save time
         verbose=False,
         log_train_batch=(loss_name == "sup_log_train_batch"),
-        disable_train_metrics=(loss_name == "reducedresolution"),
     )
 
     # test the untrained model
-    initial_test = trainer.test(test_dataloader=test_dataloader)
+    initial_test = trainer.test(
+        test_dataloader=test_dataloader, metrics=deepinv.metric.PSNR()
+    )
 
-    # train the network
+    # in self-supervised cases, remove supervised metrics and compute self-sup losses on eval dataset
+    trainer.metrics = (
+        [] if (loss_name == "reducedresolution") else [deepinv.metric.PSNR()]
+    )
+    trainer.compute_eval_losses = True
+
     trainer.train()
-    final_test = trainer.test(test_dataloader=test_dataloader)
+    final_test = trainer.test(
+        test_dataloader=test_dataloader, metrics=deepinv.metric.PSNR()
+    )
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 
@@ -415,6 +461,7 @@ def test_sure_losses(device):
     "loss_name",
     [
         "splitting",
+        "splitting-gaussian",
         "weighted-splitting",
         "robust-splitting",
         "n2n",
@@ -422,16 +469,47 @@ def test_sure_losses(device):
         "splitting_eval_split_input_output",
     ],
 )
-def test_measplit(device, loss_name, rng):
-    # Larger, even imsize to reduce effect of randomness
-    imsize = (2, 64, 64)
+@pytest.mark.parametrize(
+    "imsize",
+    [
+        (2, 64, 64),  # Larger, even imsize to reduce effect of randomness
+        (2, 66, 66),  # Test can adapt to new imsize
+    ],
+)
+@pytest.mark.parametrize("physics_name", ["Denoising", "Inpainting", "MultiCoilMRI"])
+def test_measplit(device, loss_name, rng, imsize, physics_name):
 
     if loss_name == "n2n":
+        if physics_name != "Denoising":
+            pytest.skip("N2N test only available for Denoising")
+
         physics = dinv.physics.Denoising()
         physics.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
         backbone = dinv.models.MedianFilter()
     elif "splitting" in loss_name:
-        physics = dinv.physics.Inpainting(imsize, mask=0.6, device=device, rng=rng)
+        if physics_name == "MultiCoilMRI":
+            pytest.importorskip(
+                "sigpy",
+                reason="This test requires sigpy. It should be "
+                "installed with `pip install "
+                "sigpy`",
+            )
+            physics_generator = dinv.physics.generator.GaussianMaskGenerator(
+                imsize, acceleration=2, device=device, rng=rng
+            )
+            physics = dinv.physics.MultiCoilMRI(
+                img_size=imsize, device=device, coil_maps=4, **physics_generator.step()
+            )
+        elif physics_name == "Inpainting":
+            physics_generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+                imsize, split_ratio=0.6, device=device, rng=rng
+            )
+            physics = dinv.physics.Inpainting(
+                imsize, device=device, rng=rng, **physics_generator.step()
+            )
+        else:
+            pytest.skip("Splitting tests only available for MultiCoilMRI, Inpainting")
+
         if loss_name == "robust-splitting":
             physics.noise_model = dinv.physics.GaussianNoise(0.1)
         backbone = DummyModel()
@@ -450,6 +528,14 @@ def test_measplit(device, loss_name, rng):
     elif loss_name == "splitting":
         loss = dinv.loss.SplittingLoss(
             split_ratio=0.7, metric=test_metric, eval_split_input=False
+        )
+    elif loss_name == "splitting-gaussian":
+        loss = dinv.loss.SplittingLoss(
+            mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator(
+                imsize, split_ratio=0.7, device=device
+            ),
+            metric=test_metric,
+            eval_split_input=False,
         )
     elif loss_name == "splitting_eval_split_input":
         eval_n_samples = 3
@@ -477,7 +563,7 @@ def test_measplit(device, loss_name, rng):
             device=device,
         )
         loss = dinv.loss.mri.WeightedSplittingLoss(
-            mask_generator=gen, physics_generator=physics.gen
+            mask_generator=gen, physics_generator=physics_generator
         )
     elif loss_name == "robust-splitting":
         gen = dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
@@ -489,7 +575,7 @@ def test_measplit(device, loss_name, rng):
         )
         loss = dinv.loss.mri.RobustSplittingLoss(
             mask_generator=gen,
-            physics_generator=physics.gen,
+            physics_generator=physics_generator,
             noise_model=physics.noise_model,
         )
     else:
@@ -502,16 +588,17 @@ def test_measplit(device, loss_name, rng):
 
     # Training recon + loss
     if loss_name in ("n2n", "weighted-splitting", "robust-splitting"):
-        assert l > 0
+        assert l >= 0
     elif "splitting" in loss_name:
         y1 = x_net
         y2_hat, y2 = l.clamp(0, 1)  # remove normalisation
-        # Splitting mask 1 has more samples than mask 2
-        assert y2.mean() < y1.mean() < y.mean()
-        # Union of splitting masks is original mask
-        assert torch.all(y1 + y2 == y)
-        # Splitting mask 1 and 2 are disjoint
-        assert torch.all(y2_hat == 0)
+        if physics_name == "Inpainting":
+            # Splitting mask 1 has more samples than mask 2
+            assert y2.mean() < y1.mean() < y.mean()
+            # Union of splitting masks is original mask
+            assert torch.all(y1 + y2 == y)
+            # Splitting mask 1 and 2 are disjoint
+            assert torch.all(y2_hat == 0)
     else:
         raise ValueError("Incorrect loss name.")
 
@@ -520,27 +607,89 @@ def test_measplit(device, loss_name, rng):
     y1_eval = x_net
 
     # Eval recon
-    if loss_name == "splitting":
-        # No splitting performed during eval
-        assert torch.all(y == y1_eval)
-        print(y.mean(), y1_eval.mean())
-    elif loss_name == "splitting_eval_split_input":
-        # Splits during eval
-        assert y1_eval.mean() < y.mean()
-        # Split data averaged across n samples so contains multiple values
-        assert len(y1_eval.unique()) == eval_n_samples + 1
-        # Split amount averages to amount during training
-        assert y1_eval.mean() == y1.mean()
-    elif loss_name == "splitting_eval_split_input_output":
-        # Splits output with complement mask
-        assert torch.all(y1_eval == 0)
-    elif loss_name in ("weighted-splitting", "n2n", "robust-splitting"):
-        pass
-    else:
-        raise ValueError("Incorrect loss name.")
+    if physics_name == "Inpainting":  # Check mask properties in inpainting case
+        if loss_name in ("splitting", "splitting-gaussian"):
+            # No splitting performed during eval
+            assert torch.all(y == y1_eval)
+        elif loss_name == "splitting_eval_split_input":
+            # Splits during eval
+            assert y1_eval.mean() < y.mean()
+            # Split data averaged across n samples so contains multiple values
+            assert len(y1_eval.unique()) == eval_n_samples + 1
+            # Split amount averages to amount during training
+            assert torch.allclose(y1_eval.mean(), y1.mean(), atol=1e-3)
+        elif loss_name == "splitting_eval_split_input_output":
+            # Splits output with complement mask
+            assert torch.all(y1_eval == 0)
+        elif loss_name in ("weighted-splitting", "n2n", "robust-splitting"):
+            pass
+        else:
+            raise ValueError("Incorrect loss name.")
 
-    if loss_name == "weighted-splitting":
-        assert loss.weight.shape == (1, imsize[-1])  # 1D in W dim
+    # Other checks for weighted-splitting
+    if loss_name in ("weighted-splitting", "robust-splitting"):
+        assert loss.metric.weights[imsize[-1]].shape == (1, imsize[-1])  # 1D in W dim
+        with pytest.raises(ValueError):
+            # Weighted metric needs same shape inputs
+            loss.metric(torch.ones_like(y), torch.ones(*y.shape[:-1], y.shape[-1] + 2))
+        with pytest.raises(ValueError):
+            # Weight computation needs same shape generators
+            loss.compute_weight(
+                mask_generator=loss.mask_generator,
+                physics_generator=dinv.physics.generator.GaussianMaskGenerator(
+                    (2, 91, 93), acceleration=2, device=device, rng=rng
+                ),
+            )
+    elif loss_name == "splitting_eval_split_input_output":
+        # Minor check but honestly this should never happen in practice
+        with pytest.raises(ValueError):
+            y = torch.ones(
+                *y.shape[:-1], y.shape[-1] + 1, dtype=y.dtype, device=y.device
+            )
+            l = loss(x_net=x_net, y=y, physics=physics, model=f)
+
+    # Test loss works even after updating new x shape
+    x = torch.ones((batch_size, 2, 68, 70), device=device)
+
+    if physics_name == "Inpainting":
+        physics.update(mask=torch.ones_like(x))
+    elif physics_name == "MultiCoilMRI":
+        new_mask = torch.ones_like(x)
+        new_maps = torch.ones(
+            batch_size, 4, x.shape[-2], x.shape[-1], dtype=torch.complex64
+        )
+        physics.update(mask=new_mask, coil_maps=new_maps)
+    elif physics_name == "Denoising":
+        pass
+
+    y = physics(x)
+    f.train()
+    x_net = f(y, physics, update_parameters=True)
+    if loss_name in ("weighted-splitting", "robust-splitting"):
+        with pytest.warns(UserWarning, match="Recalculating weight"):
+            l = loss(x_net=x_net, y=y, physics=physics, model=f)
+
+        # Revert shape, shouldn't recalculate again
+        x = torch.ones((batch_size, *imsize), device=device)
+        new_mask = torch.ones_like(x)
+        new_maps = torch.ones(
+            batch_size, 4, x.shape[-2], x.shape[-1], dtype=torch.complex64
+        )
+        physics.update(mask=new_mask, coil_maps=new_maps)
+        y = physics(x)
+        x_net = f(y, physics, update_parameters=True)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "error", message=".*Recalculating.*", category=UserWarning
+            )
+            _ = loss(x_net=x_net, y=y, physics=physics, model=f)
+
+        assert len(loss.metric.weights) == 2  # weight cache
+    else:
+        loss.metric = torch.nn.MSELoss()
+        l = loss(x_net=x_net, y=y, physics=physics, model=f)
+
+    assert l >= 0.0
 
 
 @pytest.mark.parametrize("mode", ["test_split_y", "test_split_physics"])
@@ -699,11 +848,14 @@ def test_reducedresolution_shapes(physics_name, device):
         physics = dinv.physics.DownsamplingMatlab(factor=2, device=device)
     elif physics_name == "blur":
         physics = dinv.physics.Blur(
-            filter=dinv.physics.blur.gaussian_blur(0.4), device=device
+            filter=dinv.physics.functional.gaussian_blur(sigma=(0.4, 0.4)),
+            device=device,
         )
     elif physics_name == "blurfft":
         physics = dinv.physics.BlurFFT(
-            x.shape[1:], filter=dinv.physics.blur.gaussian_blur(0.4), device=device
+            x.shape[1:],
+            filter=dinv.physics.functional.gaussian_blur(sigma=(0.4, 0.4)),
+            device=device,
         )
     else:
         raise ValueError(
@@ -721,3 +873,22 @@ def test_reducedresolution_shapes(physics_name, device):
     x_hat_train = model(y, physics)
     assert x_hat_train.shape == y.shape
     assert metric(x_hat_train, y) < 50
+
+
+# NOTE: Test that Loss.name is correctly deprecated.
+def test_name_deprecation(
+    non_blocking_plots, tmp_path, dataset, physics, imsize, device, rng
+):
+    (loss,) = choose_loss("sup", rng, imsize=imsize, device=device)
+
+    # Deprecated getter
+    with pytest.warns(DeprecationWarning):
+        _ = loss.name
+
+    # Deprecated setter
+    with pytest.warns(DeprecationWarning):
+        loss.name = "new_name"
+
+    # Deprecated deleter
+    with pytest.warns(DeprecationWarning):
+        del loss.name

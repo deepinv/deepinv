@@ -63,39 +63,108 @@ Logging
    * - :func:`deepinv.utils.get_timestamp`
      - Get current timestamp string.
 
+.. _io-utils:
+
+Image Loading
+-------------
+We provide utilities for loading images and data from various sources:
+
+.. list-table:: Image Loading Functions
+   :header-rows: 1
+
+   * - **Function**
+     - **Description**
+   * - :func:`deepinv.utils.load_dicom`
+     - Load images as tensors from DICOM files.
+   * - :func:`deepinv.utils.load_url`
+     - Load a file into a buffer directly from a URL.
+   * - :func:`deepinv.utils.load_np`
+     - Load NumPy arrays to tensors from disk.
+   * - :func:`deepinv.utils.load_torch`
+     - Load PyTorch tensors from disk.
+   * - :func:`deepinv.utils.load_mat`
+     - Load MATLAB `.mat` files from disk.
+   * - :func:`deepinv.utils.load_raster`
+     - Load raster image formats (e.g. satellite images `.tif`, `.geotiff`, SAR images `.cos`).
+   * - :func:`deepinv.utils.load_ismrmd`
+     - Load raw MRI data in ISMRMD format using `h5py`.
+
+.. _tiling-utils:
+
+Tiling / Untiling (Patching and Unpatching)
+-------------------------------------------
+We provide utilities for extracting and merging tiles (patches) from 2D images:
+
+.. list-table:: Tiling and Untiling Functions
+   :header-rows: 1
+
+   * - **Function**
+     - **Description**
+   * - :func:`deepinv.utils.patch_extractor`
+     - Extracts random patches from a 2D image tensor.
+   * - :func:`deepinv.utils.image_to_patches`
+     - Splits a 2D image tensor into overlapping patches.
+   * - :func:`deepinv.utils.patches_to_image`
+     - Merges overlapping patches back into a 2D image tensor.
+   * - :func:`deepinv.utils.patchify`
+     - An alias for :func:`deepinv.utils.image_to_patches` for backward compatibility.
+
+.. _demo-utils:
+
+Demo Utils
+----------
+These functions make it easy to fetch demo data and resources for experiments:
+
+.. list-table:: Demo Utility Functions
+   :header-rows: 1
+
+   * - **Function**
+     - **Description**
+   * - :func:`deepinv.utils.load_image`
+     - Loads a local image file for experiments or demos.
+   * - :func:`deepinv.utils.load_url_image`
+     - Loads an image directly from a URL for experiments or demos.
+   * - :func:`deepinv.utils.load_np_url`
+     - Loads a NumPy array into a tensor directly from a URL.
+   * - :func:`deepinv.utils.load_torch_url`
+     - Loads a PyTorch tensor directly from a URL.
+   * - :func:`deepinv.utils.load_example`
+     - Loads an image directly from DeepInverse HuggingFace repository for experiments or demos.
+   * - :func:`deepinv.utils.download_example`
+     - Downloads an image from DeepInverse HuggingFace repository to file.
+   * - :func:`deepinv.utils.get_cache_home`
+     - Get the path to the default directory for storing cached files.
+   * - :func:`deepinv.utils.get_image_url`
+     - Get URL for an image from DeepInverse HuggingFace repository.
+   * - :func:`deepinv.utils.get_degradation_url`
+     - Get URL for a degradation from DeepInverse HuggingFace repository.
+   * - :func:`deepinv.utils.load_dataset`
+     - Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
+   * - :func:`deepinv.utils.load_degradation`
+     - Loads a degradation tensor from DeepInverse HuggingFace repository.
+
 .. _other-utils:
 
 Other
 -----
-We provide some useful utility and demo functions:
+Other miscellaneous utility functions:
 
-.. list-table:: Utility and demo Functions
+.. list-table:: Other Utility Functions
    :header-rows: 1
 
    * - **Function**
      - **Description**
    * - :func:`deepinv.utils.get_freer_gpu`
      - Finds the GPU with the most available memory.
-   * - :func:`deepinv.utils.get_data_home`
-     - Get the path to the default directory for storing datasets.
-   * - :func:`deepinv.utils.get_image_url`
-     - Get URL for image from DeepInverse HuggingFace repository.
-   * - :func:`deepinv.utils.get_degradation_url`
-     - Get URL for degradation from DeepInverse HuggingFace repository.
-   * - :func:`deepinv.utils.load_url_image`
-     - Loads an image directly from a URL for experiments or demos.
-   * - :func:`deepinv.utils.load_example`
-     - Loads an image directly from DeepInverse HuggingFace repository for experiments or demos.
-   * - :func:`deepinv.utils.download_example`
-     - Downloads an image from DeepInverse HuggingFace repository to file.
-   * - :func:`deepinv.utils.load_image`
-     - Loads a local image file for experiments or demos.
-   * - :func:`deepinv.utils.load_dataset`
-     - Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
-   * - :func:`deepinv.utils.load_degradation`
-     - Loads a degradation tensor from DeepInverse HuggingFace repository.
-   * - :func:`deepinv.utils.load_torch_url`
-     - Loads a torch tensor directly from a URL for experiments or demos.
+   * - :func:`deepinv.utils.dirac`
+     - Creates a Dirac delta tensor.
+   * - :func:`deepinv.utils.dirac_like`
+     - Creates a Dirac delta tensor with the same shape as the input.
+   * - :func:`deepinv.utils.dirac_comb`
+     - Creates a Dirac delta comb tensor.
+   * - :func:`deepinv.utils.dirac_comb_like`
+     - Creates a Dirac delta comb tensor with the same shape as the input.
+
 
 .. _tensorlist:
 
@@ -134,3 +203,6 @@ such as temporal or MRI functionality.
 
    * - :class:`deepinv.utils.TimeMixin`
      - Methods for expanding and flattening time dimension for dynamic/video data.
+
+   * - :class:`deepinv.utils.TiledMixin2d`
+     - Methods for extracting and merging tiles for 2D images.

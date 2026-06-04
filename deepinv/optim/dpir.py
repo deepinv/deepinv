@@ -1,5 +1,4 @@
 from __future__ import annotations
-from torch import Tensor
 from deepinv.models import DRUNet
 from deepinv.models.base import Denoiser
 from deepinv.optim.data_fidelity import L2
@@ -9,12 +8,15 @@ from deepinv.optim import BaseOptim
 import torch
 
 
-def get_DPIR_params(noise_level_img):
+def get_DPIR_params(
+    noise_level_img: float, device: str | torch.device = "cpu"
+) -> tuple[torch.Tensor, torch.Tensor, int]:
     r"""
     Default parameters for the DPIR Plug-and-Play algorithm.
 
     :param float noise_level_img: Noise level of the input image.
-    :return: tuple(list with denoiser noise level per iteration, list with stepsize per iteration, iterations).
+    :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cpu".
+    :return: (tuple(:class:`torch.Tensor`, :class:`torch.Tensor`, int)) tuple(tensor with denoiser noise level per iteration, tensor with stepsize per iteration, iterations).
     """
     max_iter = 8
     s1 = 49.0 / 255.0
@@ -24,6 +26,7 @@ def get_DPIR_params(noise_level_img):
         torch.log10(torch.tensor(s2, dtype=torch.float32)),
         steps=max_iter,
         dtype=torch.float32,
+        device=device,
     )
 
     stepsize = (sigma_denoiser / max(0.01, noise_level_img)) ** 2
@@ -48,16 +51,16 @@ class DPIR(BaseOptim):
     :param float, torch.Tensor sigma: Standard deviation of the measurement noise, which controls the choice of the
         rest of the hyperparameters of the algorithm. Default is ``0.1``.
     :param deepinv.models.Denoiser denoiser: optional denoiser. If `None`, use a pretrained denoiser :class:`deepinv.models.DRUNet`.
-    :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cuda".
+    :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cpu".
 
 
     """
 
     def __init__(
         self,
-        sigma: float | Tensor = 0.1,
+        sigma: float | torch.Tensor = 0.1,
         denoiser: Denoiser = None,
-        device="cuda",
+        device: str | torch.device = "cpu",
     ):
         prior = PnP(
             denoiser=(
@@ -66,10 +69,10 @@ class DPIR(BaseOptim):
                 else denoiser
             )
         )
-        sigma_denoiser, stepsize, max_iter = get_DPIR_params(sigma)
+        sigma_denoiser, stepsize, max_iter = get_DPIR_params(sigma, device=device)
         params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
         super(DPIR, self).__init__(
-            create_iterator("HQS", prior=prior, F_fn=None, g_first=False),
+            create_iterator("HQS", prior=prior, cost_fn=None, g_first=False),
             max_iter=max_iter,
             data_fidelity=L2(),
             prior=prior,

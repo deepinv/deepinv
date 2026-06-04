@@ -15,10 +15,9 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import DEQ_builder
+from deepinv.optim import PGD
 from torchvision import transforms
-from deepinv.utils.demo import load_dataset, load_degradation
-
+from deepinv.utils import load_dataset, load_degradation
 
 # %%
 # Setup paths for data loading and results.
@@ -34,7 +33,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Load base image datasets and degradation operators.
@@ -75,8 +74,8 @@ noise_level_img = 0.03
 # Generate a motion blur operator.
 kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
 kernel_torch = load_degradation("Levin09.npy", DEG_DIR / "kernels", index=kernel_index)
-kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
-    0
+kernel_torch = (
+    kernel_torch.unsqueeze(0).unsqueeze(0).to(torch.float32)
 )  # add batch and channel dimensions
 
 # Generate the gaussian blur downsampling operator.
@@ -109,8 +108,8 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # %%
 # Define the  DEQ algorithm.
 # ----------------------------------------------------------------------------------------
-# We use the helper function :func:`deepinv.unfolded.DEQ_builder` to defined the DEQ architecture.
-# The chosen algorithm is here HQS (Half Quadratic Splitting).
+# We use the  :func:`deepinv.optim.PGD` with the argument `DEQ=True` to defined the DEQ architecture.
+# The chosen algorithm is here PGD (Proximal Gradient Descent).
 # Note for DEQ, the prior and regularization parameters should be common for all iterations
 # to keep a constant fixed-point operator.
 
@@ -127,29 +126,21 @@ stepsize = [1.0]  # stepsize of the algorithm
 sigma_denoiser = [0.03]  # noise level parameter of the denoiser
 jacobian_free = False  # does not perform Jacobian inversion.
 
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-}
 trainable_params = [
     "stepsize",
-    "g_param",
-]  # define which parameters from 'params_algo' are trainable
+    "sigma_denoiser",
+]  # define which parameters are trainable. Here the stepsize and noise level of the denoiser are trained.
 
 # Define the unfolded trainable model.
-model = DEQ_builder(
-    iteration="PGD",  # For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
-    params_algo=params_algo.copy(),
+model = PGD(
+    DEQ=True,
     trainable_params=trainable_params,
+    stepsize=stepsize,
+    sigma_denoiser=sigma_denoiser,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
     anderson_acceleration=True,
-    anderson_acceleration_backward=True,
-    history_size_backward=3,
-    history_size=3,
-    max_iter_backward=20,
-    jacobian_free=jacobian_free,
 )
 
 # %%

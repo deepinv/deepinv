@@ -1,3 +1,4 @@
+from __future__ import annotations
 from deepinv.physics.forward import DecomposablePhysics
 import torch
 import numpy as np
@@ -6,7 +7,7 @@ import math
 from deepinv.utils.decorators import _deprecated_alias
 
 
-def hadamard_1d(u, normalize=True):
+def hadamard_1d(u: torch.Tensor, normalize: bool = True) -> torch.Tensor:
     r"""
     Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
 
@@ -17,7 +18,8 @@ def hadamard_1d(u, normalize=True):
     """
     n = u.shape[-1]
     m = int(math.log2(n))
-    assert n == 1 << m, "n must be a power of 2"
+    if n != 1 << m:  # pragma: no cover
+        raise ValueError("n must be a power of 2")
     x = u.unsqueeze(-1)
     for d in range(m)[::-1]:
         x = torch.cat(
@@ -26,7 +28,7 @@ def hadamard_1d(u, normalize=True):
     return x.squeeze(-2) / 2 ** (m / 2) if normalize else x.squeeze(-2)
 
 
-def hadamard_2d(x):
+def hadamard_2d(x: torch.Tensor) -> torch.Tensor:
     """
     Applies the 2-dimensional Hadamard transform to the input tensor.
 
@@ -42,7 +44,7 @@ def hadamard_2d(x):
     return out
 
 
-def hadamard_shift(x, dim):
+def hadamard_shift(x: torch.Tensor, dim: int) -> torch.Tensor:
     """
     Rearranges the Hadamard transform to sequency order along a specified dimension.
 
@@ -60,7 +62,7 @@ def hadamard_shift(x, dim):
     return x
 
 
-def hadamard_ishift(x, dim):
+def hadamard_ishift(x: torch.Tensor, dim: int) -> torch.Tensor:
     """
     Reverses the arrangement of the Hadamard transform from sequency order along a specified dimension.
 
@@ -79,7 +81,7 @@ def hadamard_ishift(x, dim):
     return x
 
 
-def hadamard_2d_shift(x):
+def hadamard_2d_shift(x: torch.Tensor) -> torch.Tensor:
     """
     Rearranges the 2D Hadamard transform to sequency order.
 
@@ -95,7 +97,7 @@ def hadamard_2d_shift(x):
     return x
 
 
-def hadamard_2d_ishift(x):
+def hadamard_2d_ishift(x: torch.Tensor) -> torch.Tensor:
     """
     Reverses the arrangement of the 2D Hadamard transform from sequency order.
 
@@ -112,7 +114,7 @@ def hadamard_2d_ishift(x):
 
 
 @_deprecated_alias(img_shape="img_size")
-def sequency_mask(img_size, m):
+def sequency_mask(img_size: tuple[int], m: int) -> torch.Tensor:
     """
     Generates a sequency-ordered binary mask for single-pixel imaging.
     :param tuple img_size: The shape of the input image as a tuple (C, H, W),
@@ -139,7 +141,7 @@ def sequency_mask(img_size, m):
 
 
 @_deprecated_alias(img_shape="img_size")
-def old_sequency_mask(img_size, m):
+def old_sequency_mask(img_size: tuple[int], m: int) -> torch.Tensor:
     """
     Generates a binary mask for a single-pixel camera based on a sequency ordering.
     :param tuple img_size: The shape of the input image as a tuple (C, H, W), where C is the number of channels,
@@ -163,7 +165,7 @@ def old_sequency_mask(img_size, m):
     return mask
 
 
-def cake_cutting_seq(i, p):
+def cake_cutting_seq(i: int, p: int) -> list:
     """
     Generates a sequence based on the given index `i` and parameter `p`. The sequence alternates
     its direction depending on whether `i` is odd or even.
@@ -186,7 +188,7 @@ def cake_cutting_seq(i, p):
     return seq
 
 
-def cake_cutting_order(n):
+def cake_cutting_order(n: int) -> np.ndarray:
     """
     Determines the order of cutting a cake ordering algorithm.
 
@@ -202,7 +204,7 @@ def cake_cutting_order(n):
     return np.argsort(seq)
 
 
-def cake_cutting_mask(img_size, m):
+def cake_cutting_mask(img_size: tuple[int], m: int) -> torch.Tensor:
     """
     Generates a "cake cutting" mask for single-pixel imaging.
     :param tuple img_size: A tuple representing the shape of the input image
@@ -262,7 +264,7 @@ def diagonal_index_matrix(H: int, W: int) -> torch.Tensor:
 
 
 @_deprecated_alias(img_shape="img_size")
-def zig_zag_mask(img_size, m):
+def zig_zag_mask(img_size: tuple[int], m: int) -> torch.Tensor:
     """
     Generates a zig-zag mask for an image of a given shape.
     :param tuple img_size: A tuple representing the shape of the input image
@@ -285,7 +287,7 @@ def zig_zag_mask(img_size, m):
 
 
 @_deprecated_alias(img_shape="img_size")
-def xy_mask(img_size, m):
+def xy_mask(img_size: tuple[int], m: int) -> torch.Tensor:
     """
     Generates a 2D mask based on the spatial coordinates of an image and a given threshold.
     :param tuple img_size: A tuple representing the shape of the input image in the format
@@ -371,27 +373,27 @@ class SinglePixelCamera(DecomposablePhysics):
     @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
-        m,
-        img_size,
-        fast=True,
-        ordering="sequency",
-        device="cpu",
-        dtype=torch.float32,
+        m: int,
+        img_size: tuple[int],
+        fast: bool = True,
+        ordering: str = "sequency",
+        device: torch.device | str = "cpu",
+        dtype: torch.dtype = torch.float32,
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         self.name = f"spcamera_m{m}"
         self.img_size = img_size
         self.fast = fast
-        self.device = device
         if rng is None:
             self.rng = torch.Generator(device=device)
         else:
             # Make sure that the random generator is on the same device as the physic generator
-            assert rng.device == torch.device(
-                device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
+            if rng.device != torch.device(device):  # pragma: no cover
+                raise ValueError(
+                    f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+                )
             self.rng = rng
         self.register_buffer("initial_random_state", self.rng.get_state())
 
@@ -399,8 +401,10 @@ class SinglePixelCamera(DecomposablePhysics):
 
             _, H, W = img_size
 
-            assert H == 1 << int(math.log2(H)), "image height must be a power of 2"
-            assert W == 1 << int(math.log2(W)), "image width must be a power of 2"
+            if H != 1 << int(math.log2(H)):  # pragma: no cover
+                raise ValueError("image height must be a power of 2")
+            if W != 1 << int(math.log2(W)):  # pragma: no cover
+                raise ValueError("image width must be a power of 2")
 
             if ordering == "sequency":
                 mask = sequency_mask(img_size, m)
@@ -441,7 +445,7 @@ class SinglePixelCamera(DecomposablePhysics):
         self.register_buffer("mask", mask)
         self.to(device)
 
-    def V_adjoint(self, x):
+    def V_adjoint(self, x: torch.Tensor) -> torch.Tensor:
         if self.fast:
             y = hadamard_2d(x)
         else:
@@ -450,7 +454,7 @@ class SinglePixelCamera(DecomposablePhysics):
             y = torch.einsum("ijk, mk->ijm", x, self.vh)
         return y
 
-    def V(self, y):
+    def V(self, y: torch.Tensor) -> torch.Tensor:
         if self.fast:
             x = hadamard_2d(y)
         else:
@@ -460,14 +464,14 @@ class SinglePixelCamera(DecomposablePhysics):
             x = x.reshape(N, C, H, W)
         return x
 
-    def U_adjoint(self, x):
+    def U_adjoint(self, x: torch.Tensor) -> torch.Tensor:
         if self.fast:
             out = x
         else:
             out = torch.einsum("ijk, km->ijm", x, self.u)
         return out
 
-    def U(self, x):
+    def U(self, x: torch.Tensor) -> torch.Tensor:
         if self.fast:
             out = x
         else:
@@ -475,7 +479,7 @@ class SinglePixelCamera(DecomposablePhysics):
         return out
 
 
-def gray_code(n):
+def gray_code(n: int) -> np.ndarray:
     """
     Generate a Gray code sequence for n elements.
 
@@ -495,7 +499,7 @@ def gray_code(n):
     return g
 
 
-def gray_decode(n):
+def gray_decode(n: int) -> int:
     """
     Decode a Gray code into its binary equivalent.
 
@@ -512,7 +516,7 @@ def gray_decode(n):
     return n
 
 
-def reverse(n, numbits):
+def reverse(n: int, numbits: int) -> int:
     """
     Reverse the bit order of an integer `n` given a fixed number of bits `numbits`.
 
@@ -528,7 +532,7 @@ def reverse(n, numbits):
     return sum(1 << (numbits - 1 - i) for i in range(numbits) if n >> i & 1)
 
 
-def get_permutation_list(n, device="cpu"):
+def get_permutation_list(n: int, device: torch.device | str = "cpu") -> torch.Tensor:
     """
     Generates a permutation list based on bit-reversal and Gray code decoding.
     This function creates a permutation list of integers from 0 to n-1. It first computes
@@ -549,7 +553,7 @@ def get_permutation_list(n, device="cpu"):
     return rev2
 
 
-def sequency_order(n):
+def sequency_order(n: int) -> np.ndarray:
     """
     Generate the sequency order for a given number of bits.
 

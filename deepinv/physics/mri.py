@@ -1,4 +1,5 @@
 from __future__ import annotations
+from warnings import warn
 import numpy as np
 import torch
 from torch import Tensor
@@ -81,11 +82,10 @@ class MRI(MRIMixin, DecomposablePhysics):
         mask: Tensor | None = None,
         img_size: tuple | None = (320, 320),
         three_d: bool = False,
-        device="cpu",
+        device: torch.device | str = "cpu",
         **kwargs,
     ):
-        super().__init__(**kwargs)
-        self.device = device
+        super().__init__(device=device, **kwargs)
         self.three_d = three_d
         self.img_size = img_size
 
@@ -93,7 +93,8 @@ class MRI(MRIMixin, DecomposablePhysics):
             mask = torch.ones(*img_size, device=device)
 
         # Check and update mask
-        self.register_buffer("mask", self.check_mask(mask).to(self.device))
+        self.register_buffer("mask", self.check_mask(mask))
+        self.img_size = self.mask.shape[1:]
         self.to(device)
 
     def V_adjoint(self, x: Tensor) -> Tensor:
@@ -154,15 +155,12 @@ class MRI(MRIMixin, DecomposablePhysics):
                 self.check_mask(
                     mask=mask,
                     three_d=getattr(self, "three_d", False),
-                    device=self.device,
                 )
                 if check_mask
                 else mask
             )
 
-            self.register_buffer("mask", mask)
-        if kwargs:
-            super().update_parameters(**kwargs)
+        super().update_parameters(mask=mask, **kwargs)
 
 
 class MultiCoilMRI(MRIMixin, LinearPhysics):
@@ -228,26 +226,29 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         coil_maps: Tensor | int | None = None,
         img_size: tuple | None = (320, 320),
         three_d: bool = False,
-        device=torch.device("cpu"),
+        device: torch.device | str = torch.device("cpu"),
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         self.img_size = img_size
-        self.device = device
         self.three_d = three_d
 
         if mask is None:
-            mask = torch.ones(*img_size)
+            mask = torch.ones(*img_size, device=device)
 
         if coil_maps is None:
             coil_maps = torch.ones(
                 (self.img_size[-2:] if not self.three_d else self.img_size[-3:]),
                 dtype=torch.complex64,
+                device=device,
             )
         elif isinstance(coil_maps, int):
-            coil_maps = self.simulate_birdcage_csm(n_coils=coil_maps)
+            coil_maps = self.simulate_birdcage_csm(n_coils=coil_maps).to(device)
 
-        self.update_parameters(mask=mask, coil_maps=coil_maps)
+        self.register_buffer("mask", self.check_mask(mask, three_d=self.three_d))
+        self.register_buffer(
+            "coil_maps", self.check_coil_maps(coil_maps, three_d=self.three_d)
+        )
         self.to(device)
 
     def A(
@@ -305,7 +306,8 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             such that ``x = MultiCoilMRI().A_adjoint(y, crop=True)``.
         :returns: (:class:`torch.Tensor`) image with shape `(B,2,...,H,W)` if not rss else `(B,1,...,H,W)`
         """
-        assert y.shape[1] == 2, "y must be of shape (B,2,N,...,H,W)"
+        if y.shape[1] != 2:  # pragma: no cover
+            raise ValueError("y must be of shape (B,2,N,...,H,W)")
         self.update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
 
         My = self.to_torch_complex(self.mask[:, :, None] * y)  # [B,N,...,H,W]
@@ -327,7 +329,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         r"""
         Computes least squares solution to the MRI inverse problem, as proposed in `SENSE: Sensitivity encoding for fast MRI <https://doi.org/10.1002/(SICI)1522-2594(199911)42:5%3C952::AID-MRM16%3E3.0.CO;2-S>`_.
 
-        By default uses conjugate gradient solver. Overwrite default solver arguments by passing `kwargs`. See :func:`deepinv.optim.utils.least_squares` for details.
+        By default uses conjugate gradient solver. Overwrite default solver arguments by passing `kwargs`. See :func:`deepinv.optim.linear.least_squares` for details.
 
         The MRI mask or coil sensitivity maps are updated if passed as inputs to the function.
 
@@ -345,6 +347,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         mask: Tensor = None,
         coil_maps: Tensor = None,
         check_mask: bool = True,
+        check_coil_maps: bool = True,
         **kwargs,
     ):
         """Update MRI subsampling mask and coil sensitivity maps.
@@ -352,28 +355,46 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :param torch.nn.parameter.Parameter, torch.Tensor mask: MRI mask
         :param torch.nn.parameter.Parameter, torch.Tensor coil_maps: MRI coil sensitivity maps
         :param bool check_mask: check mask dimensions before updating
+        :param bool check_coil_maps: check coil maps dimensions before updating
         """
         if mask is not None:
             mask = (
-                self.check_mask(mask=mask, three_d=self.three_d, device=self.device)
-                if check_mask
-                else mask
+                self.check_mask(mask=mask, three_d=self.three_d) if check_mask else mask
             )
-            self.register_buffer("mask", mask)
 
         if coil_maps is not None:
-            while len(coil_maps.shape) < (
-                4 if not self.three_d else 5
-            ):  # to B,N,H,W or B,N,D,H,W
-                coil_maps = coil_maps.unsqueeze(0)
+            coil_maps = (
+                self.check_coil_maps(coil_maps, three_d=self.three_d)
+                if check_coil_maps
+                else coil_maps
+            )
 
-            if not coil_maps.is_complex():
-                raise ValueError("coil_maps should be of torch complex dtype.")
+        super().update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
 
-            self.register_buffer("coil_maps", coil_maps.to(self.device))
+        # Update image size with latest mask shape
+        self.img_size = self.mask.shape[1:]
 
-        if kwargs:
-            super().update_parameters(**kwargs)
+        if self.coil_maps is not None and self.coil_maps.shape[2:] != self.img_size[1:]:
+            warn(
+                f"After updating parameters, img_size {self.img_size} in MultiCoilMRI is incompatible with coil_maps shape {coil_maps.shape} in the spatial dims."
+            )
+
+    @staticmethod
+    def check_coil_maps(coil_maps: Tensor, three_d: bool) -> Tensor:
+        """Check coil maps dimensions.
+
+        :param torch.Tensor coil_maps: coil sensitivity maps
+        :return torch.Tensor: checked coil sensitivity maps
+        """
+        while len(coil_maps.shape) < (
+            4 if not three_d else 5
+        ):  # to B,N,H,W or B,N,D,H,W
+            coil_maps = coil_maps.unsqueeze(0)
+
+        if not coil_maps.is_complex():
+            raise ValueError("coil_maps should be of torch complex dtype.")
+
+        return coil_maps
 
     def simulate_birdcage_csm(self, n_coils: int) -> Tensor:
         """Simulate birdcage coil sensitivity maps. Requires library ``sigpy``.
@@ -386,7 +407,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         except ImportError:  # pragma: no cover
             raise ImportError(
                 "sigpy is required to simulate coil maps. Install it using pip install sigpy"
-            )  # pragma: no cover
+            )
 
         coil_maps = birdcage_maps(
             (n_coils,)
@@ -395,32 +416,70 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         return torch.tensor(coil_maps).type(torch.complex64)
 
     @staticmethod
-    def estimate_coil_maps(y: Tensor, calib_size: int = 24) -> Tensor:
+    def estimate_coil_maps(
+        y: Tensor, calib_size: int = 24, use_cupy: bool = False
+    ) -> Tensor:
         """Estimate coil sensitivity maps using ESPIRiT.
 
         This was proposed in `ESPIRiT — An Eigenvalue Approach to Autocalibrating Parallel MRI: Where SENSE meets GRAPPA <https://onlinelibrary.wiley.com/doi/10.1002/mrm.24751>`_.
 
         Note this uses a suboptimal undifferentiable unbatched implementation provided by `sigpy`.
 
+        Optionally use `cupy` to accelerate on GPU, only if `cupy` is installed and a GPU is available.
+
         :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
         :param int calib_size: optional square auto-calibration size in pixels, used by `sigpy`.
+        :param bool use_cupy: whether to attempt to use cupy for GPU acceleration.
         :return: torch.Tensor of coil maps of complex dtype and shape [B,N,...,H,W]
         """
         try:
             from sigpy.mri.app import EspiritCalib
-        except ImportError:
+            import sigpy as sp  # pragma: no cover
+        except ImportError:  # pragma: no cover
             raise ImportError(
                 "sigpy is required to estimate sens maps. Install it using pip install sigpy"
             )
 
-        return torch.from_numpy(
-            np.stack(
+        if use_cupy:  # pragma: no cover
+            try:
+                import cupy as cp
+
+                use_cupy = cp.cuda.is_available()
+            except ImportError:
+                warn(
+                    "cupy is not installed, using cpu for coil map estimation. Install cupy to speed up computation."
+                )
+                use_cupy = False
+
+        complex_y = MRIMixin.to_torch_complex(y)
+        if use_cupy:  # pragma: no cover
+            if y.device.type == "cuda":
+                cupy_y = cp.from_dlpack(complex_y)
+            else:
+                cupy_y = cp.from_dlpack(complex_y.to("cuda"))
+
+            cupy_maps = cp.stack(
                 [
-                    EspiritCalib(yb, calib_size, show_pbar=False).run()
-                    for yb in MRIMixin.to_torch_complex(y).numpy()
+                    EspiritCalib(
+                        yb, calib_size, show_pbar=False, device=cupy_y.device
+                    ).run()
+                    for yb in cupy_y
                 ]
             )
-        )
+            torch_maps = torch.from_dlpack(cupy_maps)
+
+        else:
+            device = sp.Device(-1)
+            maps = np.stack(
+                [
+                    EspiritCalib(yb, calib_size, show_pbar=False, device=device).run()
+                    for yb in complex_y.numpy(force=True)
+                ]
+            )
+
+            torch_maps = torch.from_numpy(maps)
+
+        return torch_maps
 
 
 class DynamicMRI(MRI, TimeMixin):
@@ -525,7 +584,7 @@ class DynamicMRI(MRI, TimeMixin):
         while mask is not None and len(mask.shape) < 5:  # to B,C,T,H,W
             mask = mask.unsqueeze(0)
 
-        return super().check_mask(mask=mask, device=self.device, three_d=self.three_d)
+        return super().check_mask(mask=mask, three_d=self.three_d)
 
     def noise(self, x, **kwargs):
         r"""
@@ -536,7 +595,9 @@ class DynamicMRI(MRI, TimeMixin):
         """
         return self.noise_model(x, **kwargs) * self.mask
 
-    def to_static(self, mask: torch.Tensor | None = None) -> MRI:
+    def to_static(
+        self, mask: torch.Tensor | None = None, device: str | torch.device = "cpu"
+    ) -> MRI:
         """Convert dynamic MRI to static MRI by removing time dimension.
 
         :param torch.Tensor mask: new static MRI mask. If None, existing mask is flattened (summed) along the time dimension.
@@ -545,7 +606,7 @@ class DynamicMRI(MRI, TimeMixin):
         return MRI(
             mask=torch.clip(self.mask.sum(2), 0.0, 1.0) if mask is None else mask,
             img_size=self.img_size,
-            device=self.device,
+            device=device,
         )
 
 
@@ -615,6 +676,6 @@ class SequentialMRI(DynamicMRI):
             return super().A_adjoint(y, mask, **kwargs)
         else:
             mask = mask if mask is not None else self.mask
-            return self.to_static().A_adjoint(
+            return self.to_static(device=y.device).A_adjoint(
                 self.average(y, mask), mask=self.average(mask), **kwargs
             )

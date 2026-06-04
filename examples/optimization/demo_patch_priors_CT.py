@@ -1,6 +1,4 @@
 r"""
-.. _patch-prior-demo:
-
 Patch priors for limited-angle computed tomography
 ====================================================================================================
 
@@ -10,20 +8,18 @@ with :math:`100` equispace angles between 20 and 160 degrees.
 For the reconstruction, we minimize the variational problem
 
 .. math::
-    \begin{equation*}
-    \label{eq:min_prob}
-    \underset{x}{\arg\min} \quad \datafid{x}{y} + \lambda g(x).
-    \end{equation*}
 
-Here, the regularizier :math:`g` is explicitly defined as
+    \underset{x}{\arg\min} \quad \datafid{x}{y} + \lambda g(x).
+
+Here, the regularizer :math:`g` is explicitly defined as
 
 .. math::
-    \begin{equation*}
+
     g(x)=\sum_{i\in\mathcal{I}} h(P_i x),
-    \end{equation*}
 
 where :math:`P_i` is the linear operator which extracts the :math:`i`-th patch from the image :math:`x` and
 :math:`h` is a regularizer on the space of patches.
+
 We consider the following two choices of :math:`h`:
 
 * The expected patch log-likelihood (EPLL) prior was proposed by :footcite:t:`zoran2011learning`.
@@ -31,16 +27,17 @@ We consider the following two choices of :math:`h`:
   The parameters :math:`\theta` are estimated a-priori on a (possibly small) data set of training patches using
   an expectation maximization algorithm.
   In contrast to the original paper by Zoran and Weiss, we minimize the arising variational problem by simply applying
-  the Adam optimizers. For an example for using the (approximated) half-quadratic splitting algorithm proposed by Zoran
-  and Weiss, we refer to the denoising example...
-
+  the Adam optimizer. For an example using the (approximated) half-quadratic splitting algorithm proposed by
+  :footcite:t:`zoran2011learning`, we refer to the example :ref:`sphx_glr_auto_examples_optimization_demo_epll.py`.
 * The patch normalizing flow regularizer (PatchNR) was proposed by :footcite:t:`altekruger2023patchnr`.
   It models :math:`h(x)=-\log(p_{\theta}(x))` as negative log-likelihood function of a probaility density function
   :math:`p_\theta={\mathcal{T}_\theta}_\#\mathcal{N}(0,I)` which is given as the push-forward measure of a standard
   normal distribution under a normalizing flow (invertible neural network) :math:`\mathcal{T}_\theta`.
+
 """
 
 import torch
+import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.datasets import PatchDataset
 from deepinv import Trainer
@@ -48,10 +45,10 @@ from deepinv.physics import LogPoissonNoise, Tomography, Denoising, UniformNoise
 from deepinv.optim import LogPoissonLikelihood, PatchPrior, PatchNR, EPLL
 from deepinv.loss.metric import PSNR
 from deepinv.utils import plot
-from deepinv.utils.demo import load_torch_url
+from deepinv.utils import load_torch_url
 from tqdm import tqdm
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 dtype = torch.float32
 
 # %%
@@ -89,20 +86,20 @@ epll_batch_size = 10000
 # Training / EM algorithm
 # -----------------------------------------
 # If the parameter retrain is False, we just load pretrained weights. Set the parameter to True for retraining.
-# On the cpu, this takes up to a couple of minutes.
+# This takes up to a couple of minutes on a GPU.
 # After training, we define the corresponding patch priors
 #
 # .. note::
 #
 #          The normalizing flow training minimizes the forward Kullback-Leibler (maximum likelihood) loss function given by
 #
-#            .. math::
+#          .. math::
 #                       \mathcal{L}(\theta)=\mathrm{KL}(P_X,{\mathcal{T}_\theta}_\#P_Z)=
 #                       \mathbb{E}_{x\sim P_X}[p_{{\mathcal{T}_\theta}_\#P_Z}(x)]+\mathrm{const},
 #
-#            where :math:`\mathcal{T}_\theta` is the normalizing flow with parameters :math:`\theta`, latent distribution
-#            :math:`P_Z`, data distribution :math:`P_X` and push-forward measure :math:`{\mathcal{T}_\theta}_\#P_Z`.
-
+#          where :math:`\mathcal{T}_\theta` is the normalizing flow with parameters :math:`\theta`, latent distribution
+#          :math:`P_Z`, data distribution :math:`P_X` and push-forward measure :math:`{\mathcal{T}_\theta}_\#P_Z`.
+#
 
 retrain = False
 if retrain:
@@ -120,7 +117,7 @@ if retrain:
     )
 
     class NFTrainer(Trainer):
-        def compute_loss(self, physics, x, y, train=True, epoch=None):
+        def compute_loss(self, physics, x, y, train=True, epoch=None, **kwargs):
             logs = {}
 
             self.optimizer.zero_grad()  # Zero the gradients
@@ -143,7 +140,7 @@ if retrain:
                 loss_total.backward()  # Backward the total loss
                 self.optimizer.step()  # Optimizer step
 
-            return invs, logs
+            return loss_total, invs, logs
 
     optimizer = torch.optim.Adam(
         model_patchnr.normalizing_flow.parameters(), lr=patchnr_learning_rate
@@ -205,9 +202,14 @@ N0 = 1024.0
 num_angles = 100
 noise_model = LogPoissonNoise(mu=mu, N0=N0)
 data_fidelity = LogPoissonLikelihood(mu=mu, N0=N0)
-angles = torch.linspace(20, 160, steps=num_angles)
+angles = torch.linspace(20, 160, steps=num_angles, device=device)
 physics = Tomography(
-    img_width=img_size, angles=angles, device=device, noise_model=noise_model
+    img_width=img_size,
+    angles=angles,
+    device=device,
+    noise_model=noise_model,
+    normalize=False,
+    adjoint_via_backprop=False,
 )
 observation = physics(test_imgs)
 fbp = physics.A_dagger(observation)
@@ -239,7 +241,7 @@ def minimize_variational_problem(prior, lam):
 # Run and plot
 # -----------------------------------------------
 # Finally, we run the reconstruction loop for both priors and plot the results.
-# The regularization parameter is roughly choosen by a grid search but not fine-tuned
+# The regularization parameter is roughly chosen by a grid search but not fine-tuned
 
 lam_patchnr = 120.0
 lam_epll = 120.0

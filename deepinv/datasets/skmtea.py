@@ -8,9 +8,10 @@ import torch
 import torch.nn.functional as F
 from deepinv.datasets.fastmri import FastMRISliceDataset
 from deepinv.utils.mixins import MRIMixin
-from deepinv.utils.compat import zip_strict
+
 
 from natsort import natsorted
+from .utils import resolve_root
 
 
 class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
@@ -61,22 +62,22 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
         Load data:
 
-        >>> from deepinv.datasets import SKMTEADataset
-        >>> from torch.utils.data import DataLoader
-        >>> dataset = SKMTEADataset(".")
-        >>> len(dataset) # Number of slices * number of volumes
+        >>> from deepinv.datasets import SKMTEASliceDataset  # doctest: +SKIP
+        >>> from torch.utils.data import DataLoader # doctest: +SKIP
+        >>> dataset = SKMTEASliceDataset(".") # doctest: +SKIP
+        >>> len(dataset) # doctest: +SKIP
         512
-        >>> x, y, params = next(iter(DataLoader(dataset)))
-        >>> x.shape # (B, 2, H, W)
+        >>> x, y, params = next(iter(DataLoader(dataset))) # doctest: +SKIP
+        >>> x.shape # (B, 2, H, W) # doctest: +SKIP
         torch.Size([1, 2, 512, 160])
-        >>> y.shape # (B, 2, N, H, W) # N coils
+        >>> y.shape # (B, 2, N, H, W) # doctest: +SKIP
         torch.Size([1, 2, 8, 512, 160])
 
     """
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         echo: int = 0,
         acc: int = 6,
         load_metadata_from_cache: bool = False,
@@ -84,8 +85,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
         metadata_cache_file: str | Path = "skmtea_dataset_cache.pkl",
         filter_id: Callable = None,
     ):
-
-        self.root = Path(root)
+        self.root = resolve_root(root, "SKMTEASlice")
         self.echo = echo
         self.acc = acc
 
@@ -131,7 +131,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
         total_padding = tuple(
             desired - current if desired is not None else 0
-            for current, desired in zip_strict(x_shape, shape)
+            for current, desired in zip(x_shape, shape, strict=True)
         )
         # Adding no padding for terminal dimensions.
         # torch.nn.functional.pad pads dimensions in reverse order.

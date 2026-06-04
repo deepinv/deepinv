@@ -4,6 +4,7 @@ from PIL import Image
 
 from deepinv.datasets.utils import calculate_md5
 from deepinv.datasets.base import ImageDataset
+from .utils import resolve_root
 
 
 class CBSD68(ImageDataset):
@@ -21,6 +22,10 @@ class CBSD68(ImageDataset):
 
     This dataset wraps the huggingface version of the dataset.
     HF source : https://huggingface.co/datasets/deepinv/CBSD68
+
+    .. note::
+
+        Using the CBSD68 dataset requires the `datasets` library. It can be installed via `pip install datasets`.
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
@@ -57,14 +62,19 @@ class CBSD68(ImageDataset):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         download: bool = False,
         transform: Callable = None,
         rotate=False,
     ) -> None:
-        from datasets import load_dataset as load_dataset_hf, load_from_disk
+        try:
+            from datasets import load_dataset as load_dataset_hf, load_from_disk
+        except ImportError:  # pragma: no cover
+            raise ImportError(
+                "The library 'datasets' is required to for the CBSD68 dataset. Install it using pip install datasets"
+            )
 
-        self.root = root
+        self.root = resolve_root(root, "CBSD68")
         self.transform = transform
         self.rotate = rotate
 

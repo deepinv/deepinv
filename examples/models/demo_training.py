@@ -21,7 +21,7 @@ on an inpainting task on the Urban100 dataset of natural images.
 import deepinv as dinv
 import torch
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 rng = torch.Generator(device=device).manual_seed(0)
 
 # %%
@@ -44,7 +44,7 @@ physics = dinv.physics.Inpainting((1, 64, 64), mask=0.8, device=device, rng=rng)
 from torchvision.transforms import Compose, ToTensor, Resize, CenterCrop, Grayscale
 
 dataset = dinv.datasets.Urban100HR(
-    ".",
+    dinv.utils.get_cache_home() / "datasets" / "Urban100",
     download=True,
     transform=Compose([ToTensor(), Grayscale(), Resize(256), CenterCrop(64)]),
 )

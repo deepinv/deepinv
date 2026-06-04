@@ -1,5 +1,7 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
+from .utils import fix_dim, conv_nd
 
 
 def init_weights(m):
@@ -12,7 +14,7 @@ class PDNet_PrimalBlock(nn.Module):
     r"""
     Primal block for the Primal-Dual unfolding model.
 
-    from :footcite:t:`adler2018learned`.
+    First introduced by :footcite:t:`adler2018learned`.
 
     Primal variables are images of shape (batch_size, in_channels, height, width). The input of each
     primal block is the concatenation of the current primal variable and the backprojected dual variable along
@@ -23,32 +25,44 @@ class PDNet_PrimalBlock(nn.Module):
     :param int depth: number of convolutional layers in the block. Default: 3.
     :param bool bias: whether to use bias in convolutional layers. Default: True.
     :param int nf: number of features in the convolutional layers. Default: 32.
+    :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
     """
 
-    def __init__(self, in_channels=6, out_channels=5, depth=3, bias=True, nf=32):
+    def __init__(
+        self,
+        in_channels: int = 6,
+        out_channels: int = 5,
+        depth: int = 3,
+        bias: bool = True,
+        nf: int = 32,
+        dim: int | str = 2,
+    ):
         super(PDNet_PrimalBlock, self).__init__()
+
+        dim = fix_dim(dim)
+        conv = conv_nd(dim)
 
         self.depth = depth
 
-        self.in_conv = nn.Conv2d(
+        self.in_conv = conv(
             in_channels, nf, kernel_size=3, stride=1, padding=1, bias=bias
         )
         self.in_conv.apply(init_weights)
         self.conv_list = nn.ModuleList(
             [
-                nn.Conv2d(nf, nf, kernel_size=3, stride=1, padding=1, bias=bias)
+                conv(nf, nf, kernel_size=3, stride=1, padding=1, bias=bias)
                 for _ in range(self.depth - 2)
             ]
         )
         self.conv_list.apply(init_weights)
-        self.out_conv = nn.Conv2d(
+        self.out_conv = conv(
             nf, out_channels, kernel_size=3, stride=1, padding=1, bias=bias
         )
         self.out_conv.apply(init_weights)
 
         self.nl_list = nn.ModuleList([nn.PReLU() for _ in range(self.depth - 1)])
 
-    def forward(self, x, Atu):
+    def forward(self, x: torch.Tensor, Atu: torch.Tensor) -> torch.Tensor:
         r"""
         Forward pass of the primal block.
 
@@ -72,7 +86,7 @@ class PDNet_DualBlock(nn.Module):
     r"""
     Dual block for the Primal-Dual unfolding model.
 
-    from :footcite:t:`adler2018learned`.
+    First introduced by :footcite:t:`adler2018learned`.
 
     Dual variables are images of shape (batch_size, in_channels, height, width). The input of each
     primal block is the concatenation of the current dual variable with the projected primal variable and
@@ -83,32 +97,46 @@ class PDNet_DualBlock(nn.Module):
     :param int depth: number of convolutional layers in the block. Default: 3.
     :param bool bias: whether to use bias in convolutional layers. Default: True.
     :param int nf: number of features in the convolutional layers. Default: 32.
+    :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
     """
 
-    def __init__(self, in_channels=7, out_channels=5, depth=3, bias=True, nf=32):
+    def __init__(
+        self,
+        in_channels: int = 7,
+        out_channels: int = 5,
+        depth: int = 3,
+        bias: bool = True,
+        nf: int = 32,
+        dim: int | str = 2,
+    ):
         super(PDNet_DualBlock, self).__init__()
+
+        dim = fix_dim(dim)
+        conv = conv_nd(dim)
 
         self.depth = depth
 
-        self.in_conv = nn.Conv2d(
+        self.in_conv = conv(
             in_channels, nf, kernel_size=3, stride=1, padding=1, bias=bias
         )
         self.in_conv.apply(init_weights)
         self.conv_list = nn.ModuleList(
             [
-                nn.Conv2d(nf, nf, kernel_size=3, stride=1, padding=1, bias=bias)
+                conv(nf, nf, kernel_size=3, stride=1, padding=1, bias=bias)
                 for _ in range(self.depth - 2)
             ]
         )
         self.conv_list.apply(init_weights)
-        self.out_conv = nn.Conv2d(
+        self.out_conv = conv(
             nf, out_channels, kernel_size=3, stride=1, padding=1, bias=bias
         )
         self.out_conv.apply(init_weights)
 
         self.nl_list = nn.ModuleList([nn.PReLU() for _ in range(self.depth - 1)])
 
-    def forward(self, u, Ax_cur, y):
+    def forward(
+        self, u: torch.Tensor, Ax_cur: torch.Tensor, y: torch.Tensor
+    ) -> torch.Tensor:
         r"""
         Forward pass of the dual block.
 

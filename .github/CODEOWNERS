@@ -1,0 +1,2 @@
+# Require the devops team to review any changes to GitHub Actions workflows
+/.github/workflows/ @deepinv/maintainers

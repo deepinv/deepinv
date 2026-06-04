@@ -9,14 +9,12 @@ from pathlib import Path
 import requests
 from tqdm.auto import tqdm
 
-from numpy import ndarray
-
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
 from torchvision.transforms.functional import crop as torchvision_crop
 
 from deepinv.datasets.base import ImageDataset
-from deepinv.utils import normalize_signal
+from deepinv.utils import normalize_signal, get_cache_home
 
 
 def check_path_is_a_folder(folder_path: str) -> bool:
@@ -103,30 +101,24 @@ def extract_tarball(file_path: str | Path, extract_dir: str | Path) -> None:
             tar_ref.extract(file_to_be_extracted, extract_dir)
 
 
-def loadmat(fname: str, mat73: bool = False) -> dict[str, ndarray]:
-    """Load MATLAB array from file.
+def resolve_root(root: str | Path | None, dataset_name: str = None) -> Path:
+    """Resolve the root directory for a dataset.
 
-    .. note::
+    If root is None, it defaults to the global cache directory defined by
+    `get_cache_home()` under a subdirectory named `dataset_name`.
+    Otherwise, it returns the provided root as a Path.
 
-        This function depends on the ``scipy`` package. You can install it with ``pip install scipy``.
-
-    :param str fname: filename to load
-    :param bool mat73: if file is MATLAB 7.3 or above, load with ``mat73``. Requires
-        ``mat73``, install with ``pip install mat73``.
-    :return: dict with str keys and array values.
+    :param str, pathlib.Path, None root: directory of the dataset.
+    :param str dataset_name: name of the dataset.
+    :return: pathlib Path for the dataset root.
     """
-    from scipy.io import loadmat as scipy_loadmat
-
-    if mat73:
-        try:
-            from mat73 import loadmat as loadmat73
-
-            return loadmat73(fname)
-        except ImportError:
-            raise ImportError("mat73 is required, install with 'pip install mat73'.")
-        except TypeError:
-            pass
-    return scipy_loadmat(fname)
+    if root is None:
+        return (
+            get_cache_home() / "datasets" / dataset_name
+            if dataset_name is not None
+            else get_cache_home() / "datasets"
+        )
+    return Path(root)
 
 
 class PlaceholderDataset(ImageDataset):

@@ -28,6 +28,7 @@ the pseudo-inverse and proximal operators.
 """
 
 # %%
+from __future__ import annotations
 import deepinv as dinv
 import torch
 
@@ -48,6 +49,12 @@ import torch
 # .. note::
 #     To make the new physics compatible with other torch functionalities, all physics parameters (i.e. attributes of type :class:`torch.Tensor`) should be registered as `module buffers <https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.register_buffer>`_ by using `self.register_buffer(param_name, param_tensor)`. This ensures methods like `.to(), .cuda()` work properly, allowing one to train a model using Distributed Data Parallel.
 #
+# .. important::
+#     As per :class:`torch.nn.Module` functionalities, it is expected that all learnable parameters and registered buffers of the physics are on the same device and have the same data type. To make the initialization of the physics more flexible and efficient, you may want to pass a ``device`` and ``dtype`` argument to the physics constructor, and use them to initialize the physics parameters/buffers. It is important that these arguments are not set as instance variables, e.g. ``self.device = device``, since ``self.device`` is not automatically updated when calling ``physics.to(device)``.
+#
+# .. note::
+#     Below, when calling ``super().update_parameters(coefficients=coefficients, **kwargs)`` in ``Decolorize.A``, the ``super().update_parameters`` method takes care of pushing the incoming parameters to the correct device and data type. For efficiency, it is nonetheless recommended to initialize the incoming ``coefficients`` parameters on the correct device, to avoid unnecessary data transfers.
+#
 # .. tip::
 #     Inherit from :ref:`mixin <mixin>` classes to provide specialized methods for your physics.
 
@@ -57,9 +64,16 @@ class Decolorize(dinv.physics.LinearPhysics):
     Converts RGB images to grayscale.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        device: str | torch.device = "cpu",
+        dtype: torch.dtype = torch.float32,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
-        coefficients = torch.tensor([0.2989, 0.5870, 0.1140], dtype=torch.float32)
+        coefficients = torch.tensor(
+            [0.2989, 0.5870, 0.1140], dtype=dtype, device=device
+        )
         self.register_buffer("coefficients", coefficients)
 
     def A(
@@ -107,7 +121,7 @@ dinv.utils.plot({"x": x, "y": y, "Linear pseudo-inverse": physics.A_dagger(y)})
 # It is often useful for reconstruction algorithms that the physics has unit norm, which you can verify using :func:`deepinv.physics.LinearPhysics.compute_norm`.
 # We see that this physics fails this.
 
-print(f"The linear operator has norm={physics.compute_norm(x):.2f}")
+print(f"The linear operator has norm={physics.compute_sqnorm(x):.2f}")
 
 # %%
 # All parameters or buffers of the physics, such as `coefficients` in the case of `Decolorize`, can be updated on the fly
@@ -220,7 +234,7 @@ dinv.utils.plot({"x": x, "y": y2, "Linear pseudo-inverse": physics2.A_dagger(y2)
 if physics.adjointness_test(x) < 1e-5:
     print("The decomposable operator has a well defined transpose")
 
-print(f"The decomposable operator has norm={physics.compute_norm(x):.2f}")
+print(f"The decomposable operator has norm={physics.compute_sqnorm(x):.2f}")
 
 # %%
 # Benefits of using a decomposable forward operator.

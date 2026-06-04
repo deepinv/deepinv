@@ -33,7 +33,7 @@ which includes data from several satellites such as WorldView satellites.
 import deepinv as dinv
 import torch
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 # %%
 # Load raw pan-sharpening measurements
 # ------------------------------------
@@ -53,7 +53,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # Note also that the linear adjoint must assume the unknown spectral response function (SRF).
 #
 
-DATA_DIR = dinv.utils.get_data_home()
+DATA_DIR = dinv.utils.get_cache_home() / "demo_remote_sensing"
 dataset = dinv.datasets.NBUDataset(DATA_DIR, return_pan=True, download=True)
 
 y = dataset[0].unsqueeze(0).to(device)  # MS (1,4,256,256), PAN (1,1,1024,1024)

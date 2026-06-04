@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from .base import Denoiser
 from .tv import TVDenoiser
@@ -36,12 +37,20 @@ class TGVDenoiser(Denoiser):
     :param torch.Tensor, None x2: Primary variable. Default: None.
     :param torch.Tensor, None u2: Dual variable. Default: None.
     :param torch.Tensor, None r2: Auxiliary variable. Default: None.
+    :param float, torch.Tensor ths: Regularization parameter. Can also be passed to ``forward``. Default: None
 
 
     """
 
     def __init__(
-        self, verbose=False, n_it_max=1000, crit=1e-5, x2=None, u2=None, r2=None
+        self,
+        verbose: bool = False,
+        n_it_max: int = 1000,
+        crit: float = 1e-5,
+        x2: torch.Tensor = None,
+        u2: torch.Tensor = None,
+        r2: torch.Tensor = None,
+        ths: float | torch.Tensor = None,
     ):
         super(TGVDenoiser, self).__init__()
 
@@ -49,11 +58,11 @@ class TGVDenoiser(Denoiser):
         self.n_it_max = n_it_max
         self.crit = crit
         self.restart = True
+        self.ths = ths
 
         self.tau = 0.01  # > 0
 
         self.rho = 1.99  # in 1,2
-        self.sigma = 1 / self.tau / 72
 
         self.x2 = x2
         self.r2 = r2
@@ -61,10 +70,10 @@ class TGVDenoiser(Denoiser):
 
         self.has_converged = False
 
-    def prox_tau_fx(self, x, y):
+    def prox_tau_fx(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return (x + self.tau * y) / (1 + self.tau)
 
-    def prox_tau_fr(self, r, lambda1):
+    def prox_tau_fr(self, r: torch.Tensor, lambda1: torch.Tensor):
         left = torch.sqrt(torch.sum(r**2, axis=-1)) / (self.tau * lambda1)
         tmp = r - r / (
             torch.maximum(
@@ -73,7 +82,7 @@ class TGVDenoiser(Denoiser):
         )
         return tmp
 
-    def prox_sigma_g_conj(self, u, lambda2):
+    def prox_sigma_g_conj(self, u: torch.Tensor, lambda2: torch.Tensor) -> torch.Tensor:
         return u / (
             torch.maximum(
                 torch.sqrt(torch.sum(u**2, axis=-1)) / lambda2,
@@ -81,51 +90,57 @@ class TGVDenoiser(Denoiser):
             ).unsqueeze(-1)
         )
 
-    def forward(self, y, ths=None, **kwargs):
+    def forward(self, y: torch.Tensor, ths: float | torch.Tensor = None, **kwargs):
         r"""
         Computes the proximity operator of the TGV norm.
 
-        :param torch.Tensor y: Noisy image.
-        :param float, torch.Tensor ths: Regularization parameter.
+        :param torch.Tensor y: Noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
+        :param float, torch.Tensor ths: Regularization parameter. Takes priority over ``ths`` passed at initialization.
         :return: Denoised image.
         """
-        restart = (
-            True
-            if (self.restart or self.x2 is None or self.x2.shape != y.shape)
-            else False
-        )
+        if ths is None and self.ths is None:  # pragma: no cover
+            raise RuntimeError(
+                "Regularization parameter (ths) was not passed at init nor at forward. Please provide ths to one of these methods."
+            )
+        elif ths is None:
+            ths = self.ths
+        restart = self.restart or self.x2 is None or self.x2.shape != y.shape
 
         if restart:
             self.x2 = y.clone()
             self.r2 = torch.zeros(
-                (*self.x2.shape, 2), device=self.x2.device, dtype=self.x2.dtype
+                (*self.x2.shape, y.ndim - 2), device=self.x2.device, dtype=self.x2.dtype
             )
             self.u2 = torch.zeros(
-                (*self.x2.shape, 4), device=self.x2.device, dtype=self.x2.dtype
+                (*self.x2.shape, (y.ndim - 2) ** 2),
+                device=self.x2.device,
+                dtype=self.x2.dtype,
             )
             self.restart = False
 
-        if ths is not None:
-            lambda1 = (
-                self._handle_sigma(
-                    ths,
-                    batch_size=y.size(0),
-                    ndim=y.ndim,
-                    device=y.device,
-                    dtype=y.dtype,
-                )
-                * 0.1
+        f = 3 if (y.ndim - 2) == 3 else 1
+        sigma = 1 / self.tau / (72 * f)
+
+        lambda1 = (
+            self._handle_sigma(
+                ths,
+                batch_size=y.size(0),
+                ndim=y.ndim,
+                device=y.device,
+                dtype=y.dtype,
             )
-            lambda2 = (
-                self._handle_sigma(
-                    ths,
-                    batch_size=y.size(0),
-                    ndim=y.ndim,
-                    device=y.device,
-                    dtype=y.dtype,
-                )
-                * 0.15
+            * 0.1
+        )
+        lambda2 = (
+            self._handle_sigma(
+                ths,
+                batch_size=y.size(0),
+                ndim=y.ndim,
+                device=y.device,
+                dtype=y.dtype,
             )
+            * 0.15
+        )
 
         cy = (y**2).sum() / 2
         primalcostlowerbound = 0
@@ -137,8 +152,7 @@ class TGVDenoiser(Denoiser):
             r = self.prox_tau_fr(self.r2 + tmp, lambda1)
             u = self.prox_sigma_g_conj(
                 self.u2
-                + self.sigma
-                * self.epsilon(self.nabla(2 * x - self.x2) - (2 * r - self.r2)),
+                + sigma * self.epsilon(self.nabla(2 * x - self.x2) - (2 * r - self.r2)),
                 lambda2,
             )
             self.x2 = self.x2 + self.rho * (x - self.x2)
@@ -179,15 +193,14 @@ class TGVDenoiser(Denoiser):
                     / 2.0
                 )  # we display the best value of dualcost2 computed so far.
                 primalcostlowerbound = max(primalcostlowerbound, dualcost2.item())
-                if self.verbose:
-                    print(
-                        "Iter: ",
-                        _,
-                        " Primal cost: ",
-                        primalcost.item(),
-                        " Rel err:",
-                        rel_err,
-                    )
+                print(
+                    "Iter: ",
+                    _,
+                    " Primal cost: ",
+                    primalcost.item(),
+                    " Rel err:",
+                    rel_err,
+                )
 
             if _ == self.n_it_max - 1:
                 if self.verbose:
@@ -200,49 +213,100 @@ class TGVDenoiser(Denoiser):
         return self.x2
 
     @staticmethod
-    def nabla(x):
+    def nabla(x: torch.Tensor) -> torch.Tensor:
         r"""
         Applies the finite differences operator associated with tensors of the same shape as x.
         """
         return TVDenoiser.nabla(x)
 
     @staticmethod
-    def nabla_adjoint(x):
+    def nabla_adjoint(x: torch.Tensor) -> torch.Tensor:
         r"""
         Applies the adjoint of the finite difference operator.
         """
         return TVDenoiser.nabla_adjoint(x)
 
     @staticmethod
-    def epsilon(I):  # Simplified
+    def epsilon(I: torch.Tensor) -> torch.Tensor:
         r"""
         Applies the jacobian of a vector field.
         """
-        b, c, h, w, _ = I.shape
-        G = torch.zeros((b, c, h, w, 4), device=I.device, dtype=I.dtype)
-        G[:, :, 1:, :, 0] = G[:, :, 1:, :, 0] - I[:, :, :-1, :, 0]  # xdy
-        G[..., 0] = G[..., 0] + I[..., 0]
-        G[..., 1:, 1] = G[..., 1:, 1] - I[..., :-1, 0]  # xdx
-        G[..., 1:, 1] = G[..., 1:, 1] + I[..., 1:, 0]
-        G[..., 1:, 2] = G[..., 1:, 2] - I[..., :-1, 1]  # xdx
-        G[..., 2] = G[..., 2] + I[..., 1]
-        G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] - I[:, :, :-1, :, 1]  # xdy
-        G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] + I[:, :, 1:, :, 1]
+        if I.ndim not in [5, 6]:
+            raise ValueError(f"Input tensor must be 5D or 6D, got {I.ndim}D")
+
+        n_spatial = (
+            I.ndim - 3
+        )  # Number of spatial dimensions (2 for 5D tensor, 3 for 6D tensor)
+        n_components = n_spatial**2  # Jacobian components (4 for 2D, 9 for 3D)
+
+        G = torch.zeros((*I.shape[:-1], n_components), device=I.device, dtype=I.dtype)
+
+        # Compute all Jacobian components: d(component_i)/d(spatial_j)
+        comp_idx = 0
+        for i in range(n_spatial):  # Vector component index
+            for j in range(n_spatial):  # Spatial derivative index
+                dim = (
+                    j + 2
+                )  # Dimension to differentiate along (skip batch and channel dims)
+
+                # Create slice objects for spatial differencing
+                slice_from = [slice(None)] * (I.ndim - 1)
+                slice_to = [slice(None)] * (I.ndim - 1)
+                slice_from[dim] = slice(None, -1)
+                slice_to[dim] = slice(1, None)
+
+                # Slice for input component
+                slice_input_from = (*slice_from, i)
+                slice_input_to = (*slice_to, i)
+
+                # Slice for output component
+                slice_output_to = (*slice_to, comp_idx)
+
+                # Apply finite difference
+                G[slice_output_to] = I[slice_input_to] - I[slice_input_from]
+
+                comp_idx += 1
+
         return G
 
     @staticmethod
-    def epsilon_adjoint(G):
+    def epsilon_adjoint(G: torch.Tensor) -> torch.Tensor:
         r"""
         Applies the adjoint of the jacobian of a vector field.
         """
-        b, c, h, w, _ = G.shape
-        I = torch.zeros((b, c, h, w, 2), device=G.device, dtype=G.dtype)
-        I[:, :, :-1, :, 0] = I[:, :, :-1, :, 0] - G[:, :, 1:, :, 0]
-        I[..., 0] = I[..., 0] + G[..., 0]
-        I[..., :-1, 0] = I[..., :-1, 0] - G[..., 1:, 1]
-        I[..., 1:, 0] = I[..., 1:, 0] + G[..., 1:, 1]
-        I[..., :-1, 1] = I[..., :-1, 1] - G[..., 1:, 2]
-        I[..., 1] = I[..., 1] + G[..., 2]
-        I[:, :, :-1, :, 1] = I[:, :, :-1, :, 1] - G[:, :, :-1, :, 3]
-        I[:, :, 1:, :, 1] = I[:, :, 1:, :, 1] + G[:, :, :-1, :, 3]
+        if G.ndim not in [5, 6]:
+            raise ValueError(f"Input tensor must be 5D or 6D, got {G.ndim}D")
+
+        n_spatial = (
+            G.ndim - 3
+        )  # Number of spatial dimensions (2 for 5D tensor, 3 for 6D tensor)
+        I = torch.zeros((*G.shape[:-1], n_spatial), device=G.device, dtype=G.dtype)
+
+        # Apply adjoint for all Jacobian components: d(component_i)/d(spatial_j)
+        comp_idx = 0
+        for i in range(n_spatial):  # Vector component index
+            for j in range(n_spatial):  # Spatial derivative index
+                dim = (
+                    j + 2
+                )  # Dimension to differentiate along (skip batch and channel dims)
+
+                # Create slice objects for spatial differencing
+                slice_from = [slice(None)] * (G.ndim - 1)
+                slice_to = [slice(None)] * (G.ndim - 1)
+                slice_from[dim] = slice(None, -1)
+                slice_to[dim] = slice(1, None)
+
+                # Slice for output component
+                slice_output_from = (*slice_from, i)
+                slice_output_to = (*slice_to, i)
+
+                # Slice for input component
+                slice_input_to = (*slice_to, comp_idx)
+
+                # Apply adjoint operator (reversed finite difference)
+                I[slice_output_from] -= G[slice_input_to]
+                I[slice_output_to] += G[slice_input_to]
+
+                comp_idx += 1
+
         return I

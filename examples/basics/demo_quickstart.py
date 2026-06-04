@@ -20,9 +20,36 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 #
 # First, install and import the latest stable release of `deepinv`:
 #
-# .. code:: bash
+# .. tab-set::
+#     :sync-group: install
 #
-#    pip install deepinv
+#     .. tab-item:: pip
+#         :sync: pip
+#
+#         .. code-block:: bash
+#
+#            pip install deepinv
+#
+#     .. tab-item:: uv
+#         :sync: uv
+#
+#         .. code-block:: bash
+#
+#            uv pip install deepinv
+#
+#     .. tab-item:: pixi
+#         :sync: pixi
+#
+#         .. code-block:: bash
+#
+#            pixi add --pypi deepinv
+#
+#     .. tab-item:: conda
+#         :sync: conda
+#
+#         .. code-block:: bash
+#
+#            conda install -c conda-forge deepinv
 #
 # We then get the device (CPU in the case of this example).
 #
@@ -30,7 +57,7 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 import deepinv as dinv
 import torch
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # 2. Physics
@@ -79,7 +106,7 @@ dinv.utils.plot({"GT": x, "Noisy Inpainting \nMeasurement": y})
 # :ref:`physics parameters <parameter-dependent-operators>` such as `mask`, `filter`, `sigma` etc.:
 
 # Blur with Gaussian filter parameter
-filter = dinv.physics.blur.gaussian_blur((5, 5))
+filter = dinv.physics.functional.gaussian_blur(sigma=(5, 5))
 
 physics = dinv.physics.BlurFFT(x.shape[1:], filter=filter, device=device)
 
@@ -297,6 +324,7 @@ dinv.test(
 #    :ref:`how to inference a pretrained model <sphx_glr_auto_examples_basics_demo_pretrained_model.py>`,
 #    :ref:`how to use your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>`, or
 #    :ref:`how to use your custom physics operator <sphx_glr_auto_examples_basics_demo_custom_physics.py>`.
+# -  Checkout a YouTube tutorial on our `YouTube Channel <https://www.youtube.com/@deepinv>`_.
 # -  Dive deeper into our full library of examples.
 # -  Read the :ref:`User Guide <user_guide>` for further details on the
 #    concepts introduced here.

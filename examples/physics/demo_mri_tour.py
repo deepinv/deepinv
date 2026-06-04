@@ -32,7 +32,7 @@ import deepinv as dinv
 import torch, torchvision
 from torch.utils.data import DataLoader
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 rng = torch.Generator(device=device).manual_seed(0)
 
 
@@ -61,14 +61,12 @@ rng = torch.Generator(device=device).manual_seed(0)
 
 transform = torchvision.transforms.Resize(128)
 knee_dataset = dinv.datasets.SimpleFastMRISliceDataset(
-    dinv.utils.get_data_home(),
     anatomy="knee",
     transform=transform,
     train=True,
     download=True,
 )
 brain_dataset = dinv.datasets.SimpleFastMRISliceDataset(
-    dinv.utils.get_data_home(),
     anatomy="brain",
     transform=transform,
     train=True,
@@ -93,11 +91,13 @@ mask = physics_generator.step()["mask"]
 
 physics = dinv.physics.MRI(mask=mask, img_size=img_size, device=device)
 
+x = next(iter(DataLoader(knee_dataset))).to(device)
+
 dinv.utils.plot(
     {
-        "x": (x := next(iter(DataLoader(knee_dataset)))),
+        "x": x,
         "mask": mask,
-        "y": physics(x.to(device)).clamp(-1, 1),
+        "y": physics(x).clamp(-1, 1),
     }
 )
 print("Shapes:", x.shape, physics.mask.shape)
@@ -123,7 +123,7 @@ dataset_path = dinv.datasets.generate_dataset(
     save_physics_generator_params=True,
     overwrite_existing=False,
     device=device,
-    save_dir=dinv.utils.get_data_home(),
+    save_dir=dinv.utils.get_cache_home(),
     batch_size=1,
 )
 
@@ -269,14 +269,16 @@ _ = trainer.test(DataLoader(test_dataset))
 
 dinv.datasets.download_archive(
     dinv.utils.get_image_url("demo_fastmri_brain_multicoil.h5"),
-    dinv.utils.get_data_home() / "brain" / "fastmri.h5",
+    dinv.utils.get_cache_home() / "brain" / "fastmri.h5",
 )
 
 dataset = dinv.datasets.FastMRISliceDataset(
-    dinv.utils.get_data_home() / "brain", slice_index="middle"
+    dinv.utils.get_cache_home() / "brain", slice_index="middle"
 )
 
 x, y = next(iter(DataLoader(dataset)))
+x = x.to(device)
+y = y.to(device)
 
 img_size, kspace_shape = x.shape[-2:], y.shape[-2:]
 n_coils = y.shape[2]
@@ -292,12 +294,15 @@ print("Shapes:", x.shape, y.shape)  # x (B, 1, W, W); y (B, C, N, H, W)
 
 physics = dinv.physics.MultiCoilMRI(
     img_size=img_size,
-    mask=torch.ones(kspace_shape),
-    coil_maps=torch.ones((n_coils,) + kspace_shape, dtype=torch.complex64),
+    mask=torch.ones(kspace_shape, device=device),
+    coil_maps=torch.ones(
+        (n_coils,) + kspace_shape, dtype=torch.complex64, device=device
+    ),
     device=device,
 )
 
-x_rss = physics.A_adjoint(y, rss=True, crop=True)
+x_rss = physics.A_adjoint(y, rss=True)
+x_rss = physics.crop(x_rss, shape=x.shape)  # FastMRI provided RSS is cropped
 
 assert torch.allclose(x, x_rss)
 
@@ -306,7 +311,7 @@ assert torch.allclose(x, x_rss)
 #
 
 dataset = dinv.datasets.FastMRISliceDataset(
-    dinv.utils.get_data_home() / "brain",
+    dinv.utils.get_cache_home() / "brain",
     slice_index="middle",
     transform=dinv.datasets.MRISliceTransform(
         estimate_coil_maps=True,
@@ -330,11 +335,12 @@ dinv.utils.plot(
 #
 
 dataset = dinv.datasets.FastMRISliceDataset(
-    dinv.utils.get_data_home() / "brain",
+    dinv.utils.get_cache_home() / "brain",
     slice_index="middle",
     transform=dinv.datasets.MRISliceTransform(
         mask_generator=dinv.physics.generator.GaussianMaskGenerator(
-            img_size=kspace_shape, acceleration=4, rng=rng, device=device
+            img_size=kspace_shape,
+            acceleration=4,
         ),
         seed_mask_generator=False,  # More diversity during training
         estimate_coil_maps=False,  # Set to true if coil maps are not already set in physics.
@@ -397,6 +403,7 @@ trainer = dinv.Trainer(
     epochs=1,
     save_path=None,
     show_progress_bar=False,
+    device=device,
 )
 _ = trainer.train()
 
@@ -414,10 +421,8 @@ _ = trainer.train()
 #
 
 x = (
-    torch.from_numpy(
-        dinv.utils.demo.load_np_url(
-            "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
-        )
+    dinv.utils.load_np_url(
+        "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
     )
     .unsqueeze(0)
     .unsqueeze(0)
@@ -448,23 +453,21 @@ dinv.utils.plot_ortho3D([x, physics(x)], titles=["x", "y"])
 
 dinv.datasets.download_archive(
     dinv.utils.get_image_url("CMRxRecon.zip"),
-    dinv.utils.get_data_home() / "CMRxRecon.zip",
+    dinv.utils.get_cache_home() / "CMRxRecon.zip",
     extract=True,
 )
 
 dataset = dinv.datasets.CMRxReconSliceDataset(
-    dinv.utils.get_data_home() / "CMRxRecon",
+    dinv.utils.get_cache_home() / "CMRxRecon",
 )
 
 x, y, params = next(iter(DataLoader(dataset)))
 
-print(
-    f"""
+print(f"""
     Ground truth: {x.shape} (B, C, T, H, W)
     Measurements: {y.shape}
     Acc. mask: {params["mask"].shape}
-"""
-)
+""")
 
 # %%
 # Dynamic MRI data is directly compatible with existing functionality.
@@ -478,17 +481,22 @@ print(
 #
 
 physics_generator = dinv.physics.generator.EquispacedMaskGenerator(
-    img_size=x.shape[1:], acceleration=16, rng=rng, device=device
+    img_size=x.shape[1:],
+    acceleration=16,
 )
 physics = dinv.physics.DynamicMRI(img_size=(512, 256), device=device)
 
 dataset = dinv.datasets.CMRxReconSliceDataset(
-    dinv.utils.get_data_home() / "CMRxRecon",
+    dinv.utils.get_cache_home() / "CMRxRecon",
     mask_generator=physics_generator,
     mask_dir=None,
 )
 
 x, y, params = next(iter(DataLoader(dataset)))
+
+x = x.to(device)
+y = y.to(device)
+params = {k: v.to(device) for k, v in params.items()}
 
 # %%
 # We provide a video plotting function, :class:`deepinv.utils.plot_videos`. Here, we

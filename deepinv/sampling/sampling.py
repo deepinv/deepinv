@@ -1,5 +1,4 @@
 from __future__ import annotations
-import sys
 from collections import deque
 from typing import Callable
 from types import MappingProxyType
@@ -12,9 +11,9 @@ from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.optim.prior import Prior
 from deepinv.optim.utils import check_conv
 from deepinv.physics import Physics, LinearPhysics
-from deepinv.sampling.sampling_iterators import *
+from deepinv.sampling import sampling_iterators as _sampling_iterators
+from deepinv.sampling.sampling_iterators import SamplingIterator
 from deepinv.sampling.utils import Welford
-from deepinv.utils.compat import zip_strict
 
 
 class BaseSampling(Reconstructor):
@@ -261,7 +260,9 @@ class BaseSampling(Reconstructor):
                     if self.history_size:
                         self.history.append(X)
 
-                    for _, (g, stat) in enumerate(zip_strict(g_statistics, statistics)):
+                    for _, (g, stat) in enumerate(
+                        zip(g_statistics, statistics, strict=True)
+                    ):
                         stat.update(g(X))
 
             # Check convergence for all statistics
@@ -355,7 +356,7 @@ def create_iterator(
     """
     if isinstance(iterator, str):
         # If a string is provided, create an instance of the named class
-        iterator_fn = getattr(sys.modules[__name__], iterator + "Iterator")
+        iterator_fn = getattr(_sampling_iterators, iterator + "Iterator")
         return iterator_fn(cur_params, **kwargs)
     else:
         # If already a SamplingIterator instance, return as is

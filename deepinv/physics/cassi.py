@@ -66,11 +66,11 @@ class CompressiveSpectralImaging(LinearPhysics):
         mask: Tensor | float = None,
         mode: str = "ss",
         shear_dir: str = "h",
-        device: torch.device = "cpu",
+        device: torch.device | str = "cpu",
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
 
         if len(img_size) != 3:
             raise ValueError("img_size must be (C, H, W)")
@@ -107,9 +107,9 @@ class CompressiveSpectralImaging(LinearPhysics):
         :param torch.Tensor x: input image
         """
         if self.shear_dir == "h":
-            return pad(x, (0, 0, 0, self.C - 1), value=1.0)
+            return pad(x, (0, 0, 0, self.C - 1), value=0.0)
         elif self.shear_dir == "w":
-            return pad(x, (0, self.C - 1), value=1.0)
+            return pad(x, (0, self.C - 1), value=0.0)
 
     def crop(self, x: Tensor) -> Tensor:
         """Crop image on bottom or on right.
@@ -121,7 +121,7 @@ class CompressiveSpectralImaging(LinearPhysics):
         elif self.shear_dir == "w":
             return x[:, :, :, : (1 - self.C)]
 
-    def shear(self, x: Tensor, un=False) -> Tensor:
+    def shear(self, x: Tensor, un: bool = False) -> Tensor:
         """Efficient pixel shear in channel-spatial plane
 
         :param torch.Tensor x: input image of shape (B,C,H,W)

@@ -11,6 +11,7 @@ from deepinv.datasets.utils import (
     extract_tarball,
 )
 from deepinv.datasets.base import ImageDataset
+from .utils import resolve_root
 
 
 class FMD(ImageDataset):
@@ -115,15 +116,17 @@ class FMD(ImageDataset):
 
     def __init__(
         self,
-        root: str,
-        img_types: list[str],
+        root: str = None,
+        img_types: list[str] = None,
         noise_levels: Sequence[int] = (1, 2, 4, 8, 16),
         fovs: Sequence[int] = tuple(range(1, 20 + 1)),
         download: bool = False,
         transform: Callable = None,
         target_transform: Callable = None,
     ) -> None:
-        self.root = root
+        self.root = resolve_root(root, "FMD")
+        if img_types is None:
+            raise ValueError("img_types is required")
         self.img_types = img_types
         self.noise_levels = noise_levels
         self.fovs = fovs
@@ -157,7 +160,7 @@ class FMD(ImageDataset):
 
         ### DOWNLOAD -------------------------------------------------------------------
 
-        if download:
+        if download and self._is_dataset_missing_at(self.root):  # pragma: no cover
             if not os.path.isdir(self.root):
                 os.makedirs(self.root)
 
@@ -244,3 +247,40 @@ class FMD(ImageDataset):
         if self.target_transform is not None:
             clean_img = self.target_transform(clean_img)
         return clean_img, noisy_img
+
+    @staticmethod
+    def _is_dataset_missing_at(path: str) -> bool:
+        r"""
+        Verify if the dataset is missing at the given location.
+
+        If the location points to an inexistent filesystem entry or to an empty
+        directory, we conclude that the dataset is missing there. If it points
+        to a non-empty directory, we conclude that the dataset is available
+        there. It is not expected that neither of these conditions is met and
+        an exception is raised in that third case.
+
+        .. note::
+
+            If the location points to an existing filesystem entry that is not a directory, a `NotADirectoryError` exception is raised.
+
+        .. warning::
+
+            The heuristic uesd to determine if the dataset is missing is basic and prone to false negatives.
+
+        :param str path: Path of the given location.
+        :return: ``True`` if the dataset is missing at the given location, ``False`` otherwise.
+        """
+
+        try:
+            with os.scandir(path) as it:
+                try:
+                    _ = next(it)
+                    missing = False
+                except StopIteration:
+                    missing = True
+        except NotADirectoryError as e:
+            raise e
+        except FileNotFoundError:
+            missing = True
+
+        return missing

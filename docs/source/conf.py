@@ -5,20 +5,24 @@
 
 # This is necessary for now but should not be in future version of sphinx_gallery
 # as a simple list of paths will be enough.
-from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
-from sphinx_gallery.directives import ImageSg
 import sys
 import os
-from sphinx.util import logging
-import doctest
 from importlib.metadata import metadata as importlib_metadata
+from docutils import nodes
+from docutils.parsers.rst import Directive
+from sphinx.util import logging
+from sphinx.addnodes import pending_xref
+from sphinx_gallery import gen_rst
+from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
+from sphinx_gallery.directives import ImageSg
+from deepinv.utils.plotting import set_default_plot_fontsize
+import torch
 
 logger = logging.getLogger(__name__)
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
 
-from deepinv.utils.plotting import set_default_plot_fontsize
 
 set_default_plot_fontsize(12)
 
@@ -27,7 +31,7 @@ set_default_plot_fontsize(12)
 
 metadata = importlib_metadata("deepinv")
 project = str(metadata["Name"])
-copyright = "deepinverse contributors 2025"
+copyright = "deepinverse contributors 2026"
 author = str(metadata["Author"])
 release = str(metadata["Version"])
 
@@ -38,6 +42,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
+    "sphinx.ext.extlinks",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
@@ -47,13 +52,22 @@ extensions = [
     "sphinx_design",
     "sphinx_sitemap",
     "sphinxcontrib.bibtex",
+    "matplotlib.sphinxext.plot_directive",
 ]
+
+extlinks = {
+    "gh": ("https://github.com/deepinv/deepinv/pull/%s", "#%s"),
+}
 
 bibtex_bibfiles = ["refs.bib"]
 bibtex_default_style = "plain"
 bibtex_foot_reference_style = "foot"
 copybutton_exclude = ".linenos, .gp"
 bibtex_tooltips = True
+
+# for plot in the docs
+plot_html_show_source_link = False
+plot_html_show_formats = False
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -67,6 +81,10 @@ intersphinx_mapping = {
 # for python3 type hints
 autodoc_typehints = "description"
 autodoc_typehints_description_target = "documented"
+autodoc_type_aliases = {
+    "Tensor": "torch.Tensor",
+    "ndarray": "numpy.ndarray",
+}  # For type hints with Tensor and ndarray, link to the respective documentation.
 # to handle functions as default input arguments
 autodoc_preserve_defaults = True
 # Warn about broken links
@@ -86,10 +104,6 @@ html_copy_source = True
 sitemap_url_scheme = "{link}"
 
 ####  userguide directive ###
-from docutils import nodes
-from docutils.parsers.rst import Directive
-from sphinx.addnodes import pending_xref
-
 default_role = "code"  # default role for single backticks
 
 
@@ -169,23 +183,6 @@ def setup(app):
 
 
 # ---------- doctest configuration -----------------------------------------
-# Add a IGNORE_RESULT option to skip some line output
-# From: https://stackoverflow.com/a/69780437/2642845
-
-IGNORE_RESULT = doctest.register_optionflag("IGNORE_RESULT")
-
-OutputChecker = doctest.OutputChecker
-
-
-class CustomOutputChecker(OutputChecker):
-    def check_output(self, want, got, optionflags):
-        if IGNORE_RESULT & optionflags:
-            return True
-        return OutputChecker.check_output(self, want, got, optionflags)
-
-
-doctest.OutputChecker = CustomOutputChecker
-
 doctest_global_setup = """
 import torch
 import numpy as np
@@ -218,7 +215,7 @@ def add_references_block_to_examples():
             # Add References block if footcite appears
             if ":footcite:" in content:
                 references_block = (
-                    "\n# %%\n" "# :References:\n" "#\n" "# .. footbibliography::\n"
+                    "\n# %%\n# :References:\n#\n# .. footbibliography::\n"
                 )
                 content += references_block
 
@@ -230,9 +227,9 @@ add_references_block_to_examples()
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
 add_module_names = True  # include the module path in the function name
 
-from sphinx_gallery import gen_rst
 
 gen_rst.EXAMPLE_HEADER = """
 .. DO NOT EDIT.
@@ -267,6 +264,7 @@ examples_order = {
         "demo_foundation_model.py",
         "demo_training.py",
         "demo_denoiser_tour.py",
+        "demo_super_resolution.py",
     ],
     "physics": [
         "demo_physics_tour.py",
@@ -296,12 +294,22 @@ class MySortKey(_SortKey):
             return ExampleTitleSortKey(self.src_dir)(filename)
 
 
+# List of files that require a GPU to run (regex patterns)
+gpu_dependent_files = [".*demo_astra_tomography\.py", ".*demo_custom_niqe\.py"]
+# Create the ignore pattern based on GPU availability,
+ignore_pattern = (
+    "|".join(gpu_dependent_files + [r"__init__\.py"])
+    if not torch.cuda.is_available()
+    else r"__init__\.py"
+)
+
+
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
     "filename_pattern": "/demo_",
     "run_stale_examples": False,
-    "ignore_pattern": r"__init__\.py",
+    "ignore_pattern": ignore_pattern,
     "reference_url": {
         # The module you locally document uses None
         "sphinx_gallery": None
@@ -324,12 +332,19 @@ sphinx_gallery_conf = {
             "../../examples/plug-and-play",
             "../../examples/sampling",
             "../../examples/unfolded",
+            "../../examples/blind-inverse-problems",
             "../../examples/self-supervised-learning",
+            "../../examples/transforms-equivariance",
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
+            "../../examples/distributed",
+            "../../examples/metrics",
         ]
     ),
     "within_subsection_order": MySortKey,
+    "image_scrapers": ("matplotlib",),
+    "matplotlib_animations": True,
+    "capture_repr": ("_repr_html_", "__repr__"),  # for capturing matplotlib animations
     "first_notebook_cell": (
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),
@@ -379,9 +394,11 @@ html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_sidebars = {  # pages with no sidebar
+    "changelog": [],
     "contributing": [],
     "finding_help": [],
     "community": [],
+    "miccai-2026": [],
 }
 html_theme_options = {
     "logo": {
@@ -398,6 +415,9 @@ html_theme_options = {
             "sg_launcher_links",
         ],
     },
+    "announcement": (
+        "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates."
+    ),
     "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
 }
 
@@ -416,6 +436,7 @@ napoleon_custom_sections = [
 ]
 
 nitpick_ignore = [
-    # This one generates a warning for some reason.
+    # These generate warnings for some reason.
     ("py:class", "torchvision.transforms.InterpolationMode"),
+    ("py:class", "nib.arrayproxy.ArrayProxy"),
 ]

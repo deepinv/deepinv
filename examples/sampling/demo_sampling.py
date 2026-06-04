@@ -21,7 +21,7 @@ The PnP-ULA method is described in the paper :footcite:t:`laumont2022bayesian`.
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 
 # %%
 # Load image from the internet
@@ -29,7 +29,7 @@ from deepinv.utils.demo import load_example
 #
 # This example uses an image of Messi.
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 x = load_example("messi.jpg", img_size=32).to(device)
 

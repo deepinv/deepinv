@@ -6,7 +6,14 @@ import torch
 from torch import Tensor
 
 from deepinv.loss.metric.metric import Metric
-from deepinv.loss.metric.functional import cal_mse, cal_psnr, cal_mae
+from deepinv.loss.metric.functional import (
+    cal_mse,
+    cal_psnr,
+    cal_mae,
+    signal_noise_ratio,
+)
+
+from deepinv.physics.functional import conv2d
 
 if TYPE_CHECKING:
     from deepinv.physics.remote_sensing import Pansharpen
@@ -14,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class MAE(Metric):
-    r"""
+    r"""deepinv.metric.MAE(complex_abs, reduction, norm_inputs, center_crop, ``kwargs``)
     Mean Absolute Error metric.
 
     Calculates :math:`\text{MAE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
@@ -40,18 +47,22 @@ class MAE(Metric):
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         return cal_mae(x_net, x)
 
 
 class MSE(Metric):
-    r"""
+    r"""deepinv.metric.MSE(complex_abs, reduction, norm_inputs, center_crop, ``kwargs``)
     Mean Squared Error metric.
 
-    Calculates :math:`\text{MSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    Calculates :math:`\|\hat{x}-x\|_2^2` where :math:`\hat{x}=\inverse{y}`.
 
     .. note::
 
@@ -74,10 +85,14 @@ class MSE(Metric):
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         return cal_mse(x_net, x)
 
 
@@ -85,8 +100,9 @@ class NMSE(MSE):
     r"""
     Normalized Mean Squared Error metric.
 
-    Calculates :math:`\text{NMSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
-    Normalizes MSE by the L2 norm of the ground truth ``x``.
+    Calculates :math:`\|\hat{x}-x\|_2^2/\|x\|_2^2` where :math:`\hat{x}=\inverse{y}`.
+
+    Normalizes MSE by the squared :math:`\ell_2` norm of the ground truth ``x``.
 
     .. note::
 
@@ -105,16 +121,20 @@ class NMSE(MSE):
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def __init__(self, method="l2", **kwargs):
+    def __init__(self, method: str = "l2", **kwargs):
         super().__init__(**kwargs)
         self.method = method
         if self.method not in ("l2",):
             raise ValueError("method must be l2.")
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         if self.method == "l2":
             norm = cal_mse(x, 0)
         return cal_mse(x_net, x) / norm
@@ -150,14 +170,18 @@ class SSIM(Metric):
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param bool train_loss: use metric as a training loss, by returning one minus the metric.
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
     def __init__(
         self,
-        multiscale=False,
-        max_pixel=1.0,
-        min_pixel=0.0,
+        multiscale: bool = False,
+        max_pixel: float = 1.0,
+        min_pixel: float = 0.0,
         torchmetric_kwargs: dict = None,
         **kwargs,
     ):
@@ -180,10 +204,10 @@ class SSIM(Metric):
         self.min_pixel = min_pixel
         self.lower_better = False
 
-    def invert_metric(self, m):
+    def invert_metric(self, m: Tensor) -> Tensor:
         return 1.0 - m
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         max_pixel = (
             self.max_pixel
             if self.max_pixel is not None
@@ -251,16 +275,20 @@ class PSNR(Metric):
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def __init__(self, max_pixel=1, min_pixel=0, **kwargs):
+    def __init__(self, max_pixel: float = 1, min_pixel: float = 0, **kwargs):
         super().__init__(**kwargs)
         self.max_pixel = max_pixel
         self.min_pixel = min_pixel
         self.lower_better = False
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         max_pixel = (
             self.max_pixel
             if self.max_pixel is not None
@@ -272,6 +300,33 @@ class PSNR(Metric):
             else x.amin(dim=tuple(range(1, x.ndim)))
         )
         return cal_psnr(x_net, x, max_pixel=max_pixel, min_pixel=min_pixel)
+
+
+class SNR(Metric):
+    r"""
+    Compute the signal-to-noise ratio (SNR)
+
+    The signal-to-noise ratio (in dB) associated to a ground truth signal :math:`x` and a noisy estimate :math:`\hat{x} = \inverse{y}` is defined by
+
+    .. math::
+
+        \mathrm{SNR} = 10 \log_{10} \left( \frac{\|x\|_2^2}{\|x - y\|_2^2} \right).
+
+    .. note::
+
+        The input is assumed to be batched and the SNR is computed for each element independently.
+
+    :param torch.Tensor x_net: The noisy signal.
+    :param torch.Tensor x: The reference signal.
+    :return: (torch.Tensor) The SNR value in decibels (dB).
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.lower_better = False
+
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
+        return signal_noise_ratio(x_net, x)
 
 
 class L1L2(Metric):
@@ -298,16 +353,20 @@ class L1L2(Metric):
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def __init__(self, alpha=0.5, **kwargs):
+    def __init__(self, alpha: float = 0.5, **kwargs):
         super().__init__(**kwargs)
         self.alpha = alpha
         self.l1 = MAE().metric
         self.l2 = MSE().metric
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         l1 = self.l1(x_net, x)
         l2 = self.l2(x_net, x)
         return self.alpha * l1 + (1 - self.alpha) * l2
@@ -343,22 +402,28 @@ class LpNorm(Metric):
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
 
     """
 
-    def __init__(self, p=2, onesided=False, **kwargs):
+    def __init__(self, p: int = 2, onesided: bool = False, **kwargs):
         super().__init__(**kwargs)
         self.p = p
         self.onesided = onesided
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         if self.onesided:
             diff = torch.maximum(x_net, x)
         else:
             diff = x_net - x
 
-        return torch.norm(diff.view(diff.size(0), -1), p=self.p, dim=1).pow(self.p)
+        return torch.linalg.norm(diff.view(diff.size(0), -1), ord=self.p, dim=1).pow(
+            self.p
+        )
 
 
 class QNR(Metric):
@@ -395,7 +460,11 @@ class QNR(Metric):
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param bool train_loss: use metric as a training loss, by returning one minus the metric.
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
     def __init__(
@@ -412,7 +481,7 @@ class QNR(Metric):
         )  # Wang-Bovik
         self.lower_better = False
 
-    def invert_metric(self, m):
+    def invert_metric(self, m: Tensor) -> Tensor:
         return 1.0 - m
 
     def D_lambda(self, hrms: Tensor, lrms: Tensor) -> float:
@@ -487,7 +556,7 @@ class QNR(Metric):
 
 
 class SpectralAngleMapper(Metric):
-    r"""
+    r"""deepinv.metric.SpectralAngleMapper(train_loss, reduction, norm_inputs, center_crop, ``kwargs``)
     Spectral Angle Mapper (SAM).
 
     Calculates spectral similarity between estimated and target multispectral images.
@@ -510,10 +579,14 @@ class SpectralAngleMapper(Metric):
 
     :param bool train_loss: use metric as a training loss, by returning one minus the metric.
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         from torchmetrics.functional.image import spectral_angle_mapper
 
         return spectral_angle_mapper(x_net, x, reduction="none").mean(
@@ -547,7 +620,11 @@ class ERGAS(Metric):
     :param int factor: pansharpening factor.
     :param bool train_loss: use metric as a training loss, by returning one minus the metric.
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
     def __init__(self, factor: int, *args, **kwargs):
@@ -600,7 +677,11 @@ class HaarPSI(Metric):
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
     def __init__(
@@ -859,3 +940,159 @@ class HaarPSI(Metric):
                 image, haar_filter.t()
             )
         return coefficients
+
+
+class CosineSimilarity(Metric):
+    r"""
+    Cosine similarity metric.
+
+    Computes cosine similarity between reconstruction :math:`\hat{x}` and ground truth :math:`x`.
+    A higher value means more similar. The metric is calculated as:
+
+    :math:`\text{CosineSim}(\hat{x}, x) =\dfrac{\langle \hat{x}, x \rangle}{\|\hat{x}\|_2 \, \|x\|_2}`,where :math:`\langle \hat{x}, x \rangle` is the Euclidean inner product.
+
+    .. note::
+
+        By default, no reduction is applied over the batch dimension.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import CosineSimilarity
+    >>> m = CosineSimilarity()
+    >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([1.0000, 1.0000, 1.0000])
+
+    :param bool complex_abs: take complex magnitude before computing similarity.
+    :param str reduction: reduction over batch ("mean", "sum", "none"/None).
+    :param str norm_inputs: normalization for inputs ("l2", "min_max", or None).
+    :param int, tuple[int], None center_crop: crop before computing metric.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # store cosine similarity function
+        # we compute per-element similarities manually (not using torch metric class)
+        self.cos = torch.nn.functional.cosine_similarity
+        self.lower_better = False
+
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
+        # flatten everything except batch dimension
+        # cosine_similarity requires feature dimension last
+        B = x.shape[0]
+        x_net_f = x_net.reshape(B, -1)
+        x_f = x.reshape(B, -1)
+
+        # cosine_similarity returns shape [B]
+        sim = self.cos(x_net_f, x_f, dim=1)
+
+        # our Metric base class applies reduction afterward
+        return sim
+
+    def invert_metric(self, m: Tensor) -> Tensor:
+        return 1.0 - m
+
+
+class GMSD(Metric):
+    r"""
+    Gradient Magnitude Similarity Deviation (GMSD) metric.
+
+    Calculates :math:`\text{GMSD}(\hat{x},x)`, as proposed in :footcite:t:`xue2013gradient`.
+    GMSD measures perceptual image quality from the standard deviation of the pixel-wise gradient magnitude
+    similarity (GMS) map. A lower value indicates better quality.
+
+    The reference and reconstructed gradient magnitudes :math:`m_x` and :math:`m_{\hat{x}}` are computed using the
+    Prewitt operators :math:`h_x, h_y`,
+
+    .. math::
+        m_x = \sqrt{(x \ast h_x)^2 + (x \ast h_y)^2},\qquad
+        m_{\hat{x}} = \sqrt{(\hat{x} \ast h_x)^2 + (\hat{x} \ast h_y)^2},
+
+    where :math:`\ast` denotes 2D convolution. The pixel-wise GMS map is
+
+    .. math::
+        \text{GMS}(\hat{x},x) = \frac{2 m_x m_{\hat{x}} + c}{m_x^2 + m_{\hat{x}}^2 + c},
+
+    where c is a small stability constant.
+    GMSD is the spatial standard deviation of this map computed independently for each image in the batch.
+    For multi-channel images, GMSD is calculated independently for each channel, then averaged across channels to produce a single scalar per image.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import GMSD
+    >>> m = GMSD()
+    >>> x_net = x = torch.ones(3, 1, 8, 8) # B,1,H,W
+    >>> m(x_net, x)
+    tensor([0., 0., 0.])
+
+    :param float c: positive stability constant :math:`c` of the GMS map. The original paper uses :math:`c=170`
+        for images in :math:`[0, 255]`. Rescale accordingly for images in :math:`[0, 1]`. Default: 0.0026.
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
+    """
+
+    def __init__(self, c: float = 0.0026, **kwargs):
+        super().__init__(**kwargs)
+        self.c = c
+
+    def _build_hx_hy(self, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
+        hx = torch.tensor(
+            [[1 / 3, 0, -1 / 3], [1 / 3, 0, -1 / 3], [1 / 3, 0, -1 / 3]],
+            device=device,
+        ).view(1, 1, 3, 3)
+
+        hy = torch.tensor(
+            [[1 / 3, 1 / 3, 1 / 3], [0, 0, 0], [-1 / 3, -1 / 3, -1 / 3]],
+            device=device,
+        ).view(1, 1, 3, 3)
+        return hx, hy
+
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
+        if x_net.shape != x.shape:
+            raise ValueError(
+                f"x_net and x must be same shape, but got {tuple(x_net.shape)} and {tuple(x.shape)}"
+            )
+        if x_net.device != x.device:  # pragma: no cover
+            raise ValueError(
+                f"GMSD requires x_net {x_net.device} and x {x.device} to be on the same device, "
+            )
+        if len(x_net.shape) != 4:
+            raise ValueError(
+                f"GMSD requires tensors of shape (B, C, H, W). Got {tuple(x_net.shape)}"
+            )
+        hx, hy = self._build_hx_hy(x_net.device)
+        B, C, H, W = x.shape
+
+        # Reshape to (B*C, 1, H, W) to process all channels independently
+        x_bc = x.reshape(B * C, 1, H, W)
+        x_net_bc = x_net.reshape(B * C, 1, H, W)
+
+        grad_mag_x = torch.hypot(
+            conv2d(x_bc, hx, padding="replicate"),
+            conv2d(x_bc, hy, padding="replicate"),
+        )
+        grad_mag_x_net = torch.hypot(
+            conv2d(x_net_bc, hx, padding="replicate"),
+            conv2d(x_net_bc, hy, padding="replicate"),
+        )
+
+        gms = (2 * grad_mag_x * grad_mag_x_net + self.c) / (
+            grad_mag_x**2 + grad_mag_x_net**2 + self.c
+        )
+
+        # gms shape: (B*C, 1, H, W) → reshape to (B, C, H, W)
+        gms = gms.reshape(B, C, H, W)
+
+        # Compute std (GMSD) over spatial dims for each (batch, channel): → (B, C)
+        # population std (correction=0) as per original GMSD paper.
+        gmsd_per_channel = gms.std(dim=(-2, -1), correction=0)
+
+        return gmsd_per_channel.mean(dim=-1)

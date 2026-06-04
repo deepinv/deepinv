@@ -13,7 +13,6 @@ from PIL.Image import Image as PIL_Image
 from deepinv.utils.tensorlist import TensorList
 from natsort import natsorted
 
-
 CORE_TYPES = (
     Tensor,
     TensorList,
@@ -129,7 +128,7 @@ class ImageDataset(Dataset):
     If using DeepInverse with your own custom dataset, you should inherit from this class and use :func:`check_dataset` to check your dataset is compatible.
     """
 
-    def check_dataset(self):
+    def check_dataset(self) -> None:
         """Check dataset returns correct format of images or image tuples."""
         check_dataset(self, allow_non_tensor=True)
 
@@ -226,7 +225,7 @@ class TensorDataset(ImageDataset):
         """
         return x is None or (isinstance(x, float) and math.isnan(x))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.x.size(0) if not self._is_none_or_nan(self.x) else self.y.size(0)
 
     def __getitem__(self, idx: int):

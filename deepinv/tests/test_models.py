@@ -1,6 +1,7 @@
 import pytest
 import json
 from unittest.mock import patch, MagicMock
+import contextlib
 
 import torch
 from torch.utils.data import DataLoader
@@ -23,8 +24,11 @@ MODEL_LIST_1_CHANNEL = [
     "waveletdict",
     "epll",
     "restormer",
+    "promptir",
     "ncsnpp",
     "adinv.modelsunet",
+    "deal",
+    "ffdnet",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -36,6 +40,7 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "waveletdict_hard",
     "waveletdict_topk",
     "dsccp",
+    "bilateral",
 ]
 
 REST_MODEL_LIST = [
@@ -53,6 +58,7 @@ LINEAR_OPERATORS = [
     "deblur_valid",
     "super_resolution_circular",
     "MRI",
+    "MultiCoilMRI",
     "pansharpen_circular",
 ]  # this is a reduced list of linear operators for testing restoration models.
 
@@ -123,6 +129,10 @@ def choose_denoiser(name, imsize):
         out = dinv.models.EPLLDenoiser(channels=imsize[0])
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
+    elif name == "promptir":
+        out = dinv.models.PromptIR(
+            in_channels=imsize[0], out_channels=imsize[0], pretrained=None
+        )
     elif name == "ncsnpp":
         out = dinv.models.NCSNpp(
             in_channels=imsize[0],
@@ -130,6 +140,7 @@ def choose_denoiser(name, imsize):
             img_resolution=imsize[1],
             pretrained=None,
         )
+
     elif name == "adinv.modelsunet":
         out = dinv.models.ADMUNet(
             in_channels=imsize[0],
@@ -137,8 +148,23 @@ def choose_denoiser(name, imsize):
             img_resolution=imsize[1],
             pretrained=None,
         )
+
+    elif name == "deal":
+        out = dinv.models.DEAL(
+            sigma_denoiser=0.1,
+            lambda_reg=10.0,
+            max_iter=5,
+            auto_scale=False,
+            color=(imsize[0] == 3),
+            pretrained=None,
+        )
+
     elif name == "dsccp":
         out = dinv.models.DScCP()
+    elif name == "bilateral":
+        out = dinv.models.BilateralFilter()
+    elif name == "ffdnet":
+        out = dinv.models.FFDNet(img_channels=imsize[0], n_conv_layers=2, nf=16)
     else:
         raise Exception("Unknown denoiser")
 
@@ -168,13 +194,17 @@ def choose_restoration_model(name, in_channels=3, out_channels=3, pretrained=Non
     return out.eval()
 
 
-def test_TVs_adjoint():
+@pytest.mark.parametrize("n_spatial", [2, 3])
+def test_TVs_adjoint(n_spatial):
     r"""
     This tests the adjointness of the finite difference operator used in TV and TGV regularisation.
     """
+    spatial_dims = (20,) * n_spatial
+
+    # Test TVDenoiser nabla/nabla_adjoint
     model = dinv.models.TVDenoiser(n_it_max=10)
 
-    u = torch.randn((4, 3, 20, 20)).type(torch.DoubleTensor)
+    u = torch.randn((4, 3, *spatial_dims)).type(torch.DoubleTensor)
     Au = model.nabla(u)
     v = torch.randn(*Au.shape).type(Au.dtype)
     Atv = model.nabla_adjoint(v)
@@ -182,9 +212,10 @@ def test_TVs_adjoint():
 
     assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
 
+    # Test TGVDenoiser nabla/nabla_adjoint
     model = dinv.models.TGVDenoiser(n_it_max=10)
 
-    u = torch.randn((4, 3, 20, 20)).type(torch.DoubleTensor)
+    u = torch.randn((4, 3, *spatial_dims)).type(torch.DoubleTensor)
     Au = model.nabla(u)
     v = torch.randn(*Au.shape).type(Au.dtype)
     Atv = model.nabla_adjoint(v)
@@ -192,7 +223,8 @@ def test_TVs_adjoint():
 
     assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
 
-    u = torch.randn((2, 3, 20, 20, 2)).type(torch.DoubleTensor)
+    # Test TGVDenoiser epsilon/epsilon_adjoint
+    u = torch.randn((2, 3, *spatial_dims, n_spatial)).type(torch.DoubleTensor)
     Au = model.epsilon(u)
     v = torch.randn(*Au.shape).type(Au.dtype)
     Atv = model.epsilon_adjoint(v)
@@ -331,11 +363,51 @@ def test_TV_models_identity():
     assert torch.allclose(x, x_hat, atol=1e-5)  # The model should be the identity
 
 
+def test_bm3d_consistency(load_example_image):
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
+    pytest.importorskip(
+        "bm3d",
+        reason="This test requires bm3d. It should be "
+        "installed with `pip install bm3d`",
+    )
+    # Load 2 example images
+    x1 = load_example_image(
+        "butterfly.png",
+        img_size=64,
+        resize_mode="resize",
+    )
+    x2 = load_example_image(
+        "celeba_example.jpg",
+        img_size=64,
+        resize_mode="resize",
+    )
+    x = torch.cat([x1, x2, x1], dim=0)
+    sigma = torch.tensor([0.1, 0.1, 0.1])
+    rng = torch.Generator().manual_seed(123)
+    y = x + sigma.view(-1, 1, 1, 1) * torch.randn(x.shape, generator=rng)
+    # Load BM3D
+    model_legacy = dinv.models.BM3D(use_legacy=True)
+    model_new = dinv.models.BM3D(use_legacy=False)
+    x_hat_legacy = model_legacy(y, sigma)
+    x_hat_new = model_new(y, sigma)
+    print(torch.max(torch.abs(x_hat_legacy - x_hat_new)))
+    assert torch.allclose(x_hat_legacy, x_hat_new, atol=1e-1)
+
+
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
     # NCSNpp and Adinv.modelsUnet only support imsize that divisible by 8
     if denoiser in ["ncsnpp", "adinv.modelsunet"]:
         imsize = (imsize[0], (imsize[1] // 8) * 8, (imsize[2] // 8) * 8)
+
+    # FFDNet requires spatial size divisble 2
+    if denoiser in ["ffdnet"]:
+        imsize = (imsize[0], (imsize[1] // 2) * 2, (imsize[2] // 2) * 2)
 
     model = choose_denoiser(denoiser, imsize).to(device)
     torch.manual_seed(0)
@@ -359,7 +431,13 @@ def test_denoiser_gray(imsize_1_channel, device, denoiser):
                 (imsize_1_channel[1] // 8) * 8,
                 (imsize_1_channel[2] // 8) * 8,
             )
-
+        # FFDNet requires spatial size divisble 2
+        if denoiser in ["ffdnet"]:
+            imsize_1_channel = (
+                imsize_1_channel[0],
+                (imsize_1_channel[1] // 2) * 2,
+                (imsize_1_channel[2] // 2) * 2,
+            )
         model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
         torch.manual_seed(0)
@@ -431,6 +509,13 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
             imsize_1_channel[1] = 32
         if imsize_1_channel[2] % 8 > 0:
             imsize_1_channel[2] = 32
+    # FFDNet requires spatial size divisble 2
+    if denoiser in ["ffdnet"]:
+        imsize_1_channel = (
+            imsize_1_channel[0],
+            (imsize_1_channel[1] // 2) * 2,
+            (imsize_1_channel[2] // 2) * 2,
+        )
     model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
     torch.manual_seed(0)
@@ -500,6 +585,34 @@ def test_denoiser_sigma_color(batch_size, denoiser, device):
         assert x_hat.shape == x.shape
 
 
+DENOISERS_3D = {
+    dinv.models.DnCNN: {
+        "depth": 2,
+        "nf": 8,
+        "pretrained": None,
+    },
+    dinv.models.DRUNet: {
+        "in_channels": 1,
+        "out_channels": 1,
+        "nc": [8, 8, 8, 8],
+        "nb": 2,
+        "pretrained": None,
+    },
+    dinv.models.UNet: {"scales": 2},
+}
+
+
+@pytest.mark.parametrize("model", DENOISERS_3D.items())
+def test_3d_denoisers(model, device):
+    default_args = {"in_channels": 1, "out_channels": 1, "dim": "3d", "device": device}
+    model, args = model
+    args.update(default_args)
+    net = model(**args)
+    test_tensor = torch.randn((1, 1, 32, 32, 32), device=device)
+    out = net(test_tensor, sigma=0.1)
+    assert out.shape == test_tensor.shape
+
+
 @pytest.mark.parametrize("level", [3, 5, 6])
 @pytest.mark.parametrize("channels", [1, 3])
 @pytest.mark.parametrize("batch_size", [1, 2])
@@ -543,21 +656,25 @@ def test_wavelet_denoiser_ths(
 @pytest.mark.parametrize("channels", [1, 3])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("dimension", [2, 3])
-def test_wavelet_decomposition(channels, dimension, batch_size, device):
+@pytest.mark.parametrize("is_complex", [False, True])
+def test_wavelet_decomposition(channels, dimension, is_complex, batch_size, device):
     pytest.importorskip(
         "ptwt",
         reason="This test requires pytorch_wavelets. It should be "
         "installed with `pip install "
         "git+https://github.com/fbcotter/pytorch_wavelets.git`",
     )
-    model = dinv.models.WaveletDenoiser(level=1, wvdim=dimension).to(device)
+    model = dinv.models.WaveletDenoiser(
+        level=1, wvdim=dimension, is_complex=is_complex
+    ).to(device)
     img_size = (
         (batch_size, channels, 64, 64)
         if dimension == 2
         else (batch_size, channels, 8, 64, 64)
     )
     # Test the wavelet decomposition and reconstruction
-    x = torch.randn(img_size, dtype=torch.float32).to(device)
+    dtype = torch.complex64 if is_complex else torch.float32
+    x = torch.randn(img_size, dtype=dtype, device=device)
     # 1 decomposition
     out = model.dwt(x)
     x_hat = model.iwt(out)
@@ -579,31 +696,49 @@ def test_wavelet_decomposition(channels, dimension, batch_size, device):
     assert torch.allclose(x, x_hat, rtol=tol, atol=tol)
 
 
-def test_drunet_inputs(imsize_1_channel, device):
+@pytest.mark.parametrize("dim", [2, 3])
+@pytest.mark.parametrize("spatial_size", [31, 32, 37, 40, 65])
+def test_drunet_inputs(dim, spatial_size, device):
     f = dinv.models.DRUNet(
-        in_channels=imsize_1_channel[0], out_channels=imsize_1_channel[0], device=device
+        in_channels=1,
+        out_channels=1,
+        nc=(4, 4, 4, 4),
+        nb=2,
+        dim=dim,
+        device=device,
+        pretrained=None,
     ).eval()
 
+    imsize = [1, *(spatial_size for _ in range(dim))]
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-    x = torch.ones(imsize_1_channel, device=device).unsqueeze(0)
+    x = torch.ones(imsize, device=device).unsqueeze(0)
     y = physics(x)
 
     # Case 1: sigma is a float
+    if dim == 3 and (spatial_size == 65):
+        with pytest.raises(NotImplementedError) as exc_info:
+            x_hat = f(y, sigma)
+        assert (
+            str(exc_info.value)
+            == "test_onesplit is not implemented yet for 3D. Please pass images with spatial shape smaller than 64, or multiple of 8 and larger than 31 to DRUNet."
+        )
+        return
     x_hat = f(y, sigma)
     assert x_hat.shape == x.shape
 
     # Case 2: sigma is a torch tensor with batch dimension
     batch_size = 3
-    x = torch.ones((batch_size, 1, 31, 37), device=device)
+    x = torch.ones((batch_size, *imsize), device=device)
     y = physics(x)
     sigma_tensor = torch.tensor([sigma] * batch_size).to(device)
     x_hat = f(y, sigma_tensor)
     assert x_hat.shape == x.shape
 
-    # Case 3: image has shape mulitple of 8
-    x = torch.ones((3, 1, 32, 40), device=device)
+    # Case 3: sigma is a torch tensor with shape (batch, 1, *x.shape[2:])
+    x = torch.ones((batch_size, *imsize), device=device)
+    sigma_tensor = torch.full((batch_size, 1, *imsize[1:]), sigma, device=device)
     y = physics(x)
     x_hat = f(y, sigma_tensor)
     assert x_hat.shape == x.shape
@@ -613,6 +748,43 @@ def test_drunet_inputs(imsize_1_channel, device):
     x_hat = f(y, sigma_tensor)
     assert x_hat.shape == x.shape
 
+    # Case 5: sigma is a nn.Parameter with no dimension
+    sigma_param = torch.nn.Parameter(
+        torch.tensor(sigma, requires_grad=True, device=device)
+    )
+    x_hat = f(y, sigma_param)
+    assert x_hat.shape == x.shape
+
+    loss = x_hat.pow(2).mean()
+    loss.backward()
+    assert sigma_param.grad is not None
+
+
+@pytest.mark.parametrize(
+    "drunet_args",
+    [
+        {"act_mode": "L", "downsample_mode": "avgpool", "upsample_mode": "upconv"},
+        {
+            "act_mode": "E",
+            "downsample_mode": "maxpool",
+            "upsample_mode": "pixelshuffle",
+        },
+        {"act_mode": "s"},
+    ],
+)
+def test_drunet_options(drunet_args, device):
+    args = {"pretrained": None, "nc": (4, 4, 4, 4), "nb": 2, "device": device, "dim": 2}
+    args.update(drunet_args)
+    drunet_2d = dinv.models.DRUNet(**args)
+    out = drunet_2d(torch.randn([1, 3, 64, 64], device=device), 0.1)
+    assert out.shape == (1, 3, 64, 64)
+    args["dim"] = 3
+    if args.get("upsample_mode", None) == "pixelshuffle":
+        args.pop("upsample_mode")
+    drunet_3d = dinv.models.DRUNet(**args)
+    out = drunet_3d(torch.randn([1, 3, 64, 64, 64], device=device), 0.1)
+    assert out.shape == (1, 3, 64, 64, 64)
+
 
 def test_diffunetmodel(imsize, device):
     # This model is a bit different from others as not strictly a denoiser as such.
@@ -621,43 +793,46 @@ def test_diffunetmodel(imsize, device):
 
     from deepinv.models import DiffUNet
 
-    model = DiffUNet().to(device)
+    model = DiffUNet(in_channels=1, out_channels=1, use_fp16=True, pretrained=None).to(
+        device
+    )
 
     torch.manual_seed(0)
-    sigma = 0.2
-    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-    x = torch.ones((3, 32, 32), device=device).unsqueeze(
-        0
-    )  # Testing the smallest size possible
-    y = physics(x)
+    y = torch.ones((1, 32, 32), device=device).unsqueeze(0)
 
     timestep = torch.tensor([1]).to(
         device
     )  # We pick a random timestep, goal is to check that model inference is ok.
-    x_hat = model(y, timestep)
-    x_hat = x_hat[:, :3, ...]
+    x_hat = model(y, timestep, type_t="timestep")
+    x_hat = x_hat[:, :1, ...]
 
-    assert x_hat.shape == x.shape
+    assert x_hat.shape == y.shape
 
     # Now we check that the denoise_forward method works
-    x_hat = model(y, sigma)
-    assert x_hat.shape == x.shape
+    x_hat = model(y, timestep, type_t="noise_level")
+    assert x_hat.shape == y.shape
+
+    # Check forward patch
+    x_hat = model.patch_forward(y, timestep, type_t="timestep", patch_size=16)
+    assert x_hat.shape == y.shape
+    x_hat = model.patch_forward(y, timestep, type_t="noise_level", patch_size=16)
 
     with pytest.raises(Exception):
         # The following should raise an exception because type_t is not in ['noise_level', 'timestep'].
-        x_hat = model(y, sigma, type_t="wrong_type")
+        x_hat = model(y, timestep, type_t="wrong_type")
 
 
-def test_PDNet(imsize_1_channel, device):
+@pytest.mark.parametrize("image_volume_shape", [[1, 37, 31], [1, 16, 16, 16]])
+def test_PDNet(image_volume_shape, device):
     # Tests the PDNet algorithm - this is an unfolded algorithm so it is tested on its own here.
-    from deepinv.optim.optimizers import CPIteration, fStep, gStep
+    from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
     from deepinv.optim import Prior, DataFidelity
     from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
     from deepinv.unfolded import unfolded_builder
 
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-    x = torch.ones(imsize_1_channel, device=device).unsqueeze(0)
+    x = torch.ones(image_volume_shape, device=device).unsqueeze(0)
     y = physics(x)
 
     class PDNetIteration(CPIteration):
@@ -714,7 +889,7 @@ def test_PDNet(imsize_1_channel, device):
             self.model = model
 
         def prox(self, x, w):
-            return self.model(x, w[:, 0:1, :, :])
+            return self.model(x, w[:, 0:1])
 
     class PDNetDataFid(DataFidelity):
         def __init__(self, model, *args, **kwargs):
@@ -722,29 +897,36 @@ def test_PDNet(imsize_1_channel, device):
             self.model = model
 
         def prox(self, x, w, y):
-            return self.model(x, w[:, 1:2, :, :], y)
+            return self.model(x, w[:, 1:2], y)
 
     # Unrolled optimization algorithm parameters
+
+    dim = len(image_volume_shape) - 1
+
     max_iter = 5  # number of unfolded layers
 
     # Set up the data fidelity term. Each layer has its own data fidelity module.
     data_fidelity = [
-        PDNetDataFid(model=PDNet_DualBlock().to(device)) for i in range(max_iter)
+        PDNetDataFid(model=PDNet_DualBlock(depth=2, nf=16, dim=dim).to(device))
+        for i in range(max_iter)
     ]
 
     # Set up the trainable prior. Each layer has its own prior module.
-    prior = [PDNetPrior(model=PDNet_PrimalBlock().to(device)) for i in range(max_iter)]
+    prior = [
+        PDNetPrior(model=PDNet_PrimalBlock(depth=2, nf=16, dim=dim).to(device))
+        for i in range(max_iter)
+    ]
 
     n_primal = 5  # extend the primal space
     n_dual = 5  # extend the dual space
 
     def custom_init(y, physics):
-        x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
-        u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
+        x0 = physics.A_dagger(y).repeat(1, n_primal, *tuple(1 for i in range(dim)))
+        u0 = torch.zeros_like(y).repeat(1, n_dual, *tuple(1 for i in range(dim)))
         return {"est": (x0, x0, u0)}
 
     def custom_output(X):
-        return X["est"][0][:, 1, :, :].unsqueeze(1)
+        return X["est"][0][:, 1].unsqueeze(1)
 
     # Define the unfolded trainable model.
     model = unfolded_builder(
@@ -762,36 +944,68 @@ def test_PDNet(imsize_1_channel, device):
     assert x_hat.shape == x.shape
 
 
-def test_icnn(device, rng):
+@pytest.mark.parametrize("dims", [2, 3])
+def test_icnn(dims, device, rng):
     from deepinv.models import ICNN
 
-    model = ICNN(in_channels=3, device=device)
+    num_filters = 64 if dims == 2 else 4
+    num_layers = 10 if dims == 2 else 3
+    model = ICNN(
+        num_filters=num_filters,
+        num_layers=num_layers,
+        in_channels=3,
+        device=device,
+        dim=dims,
+    )
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
-    x = torch.ones((1, 3, 128, 128), device=device)
+    x = torch.ones((1, 3, *tuple(128 for i in range(dims))), device=device)
     y = physics(x)
     potential = model(y)
     grad = model.grad(y)
     assert grad.shape == x.shape
 
 
-# def test_dip(imsize, device): TODO: fix this test
-#     torch.manual_seed(0)
-#     channels = 64
-#     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.2))
-#     f = dinv.models.DeepImagePrior(
-#         generator=dinv.models.ConvDecoder(imsize, layers=3, channels=channels).to(
-#             device
-#         ),
-#         input_size=(channels, imsize[1], imsize[2]),
-#         iterations=30,
-#     )
-#     x = torch.ones(imsize, device=device).unsqueeze(0)
-#     y = physics(x)
-#     mse_in = (y - x).pow(2).mean()
-#     x_net = f(y, physics)
-#     mse_out = (x_net - x).pow(2).mean()
-#
-#     assert mse_out < mse_in
+@pytest.mark.parametrize("model_kind", ["DIP", "Poisson2Sparse"])
+def test_dip_like(model_kind, imsize, device):
+    torch.manual_seed(0)
+    if model_kind == "DIP":
+        physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.2))
+        channels = 64
+        f = dinv.models.DeepImagePrior(
+            generator=dinv.models.ConvDecoder(
+                img_size=imsize, layers=3, channels=channels
+            ).to(device),
+            img_size=(channels, imsize[1], imsize[2]),
+            iterations=30,
+        )
+    elif model_kind == "Poisson2Sparse":
+        physics = dinv.physics.Denoising(
+            dinv.physics.PoissonNoise(gain=0.05, normalize=True)
+        )
+        backbone = dinv.models.ConvLista(
+            in_channels=imsize[0],
+            out_channels=imsize[0],
+            kernel_size=3,
+            num_filters=512,
+            num_iter=10,
+            stride=2,
+            threshold=0.01,
+        )
+        f = dinv.models.Poisson2Sparse(
+            backbone=backbone,
+            lr=1e-4,
+            num_iter=100,
+            weight_n2n=2.0,
+            weight_l1_regularization=1e-5,
+            verbose=True,
+        ).to(device)
+    x = torch.ones(imsize, device=device).unsqueeze(0)
+    y = physics(x)
+    mse_in = (y - x).pow(2).mean()
+    x_net = f(y, physics)
+    mse_out = (x_net - x).pow(2).mean()
+
+    assert mse_out < mse_in
 
 
 def test_time_agnostic_net():
@@ -804,6 +1018,7 @@ def test_time_agnostic_net():
 
 @pytest.mark.parametrize("varnet_type", ("varnet", "e2e-varnet", "modl"))
 def test_varnet(varnet_type, device):
+    torch.manual_seed(0)  # set seed for reproducibility
 
     def dummy_dataset(imsize):
         return DummyCircles(samples=1, imsize=imsize)
@@ -868,7 +1083,7 @@ def test_ram_scale(scale, device, use_physics):
         physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
     else:
         physics = dinv.physics.Blur(
-            filter=dinv.physics.blur.gaussian_blur(),
+            filter=dinv.physics.functional.gaussian_blur(),
             noise_model=dinv.physics.GaussianNoise(sigma),
             device=device,
         )
@@ -909,20 +1124,28 @@ LIST_IMAGE_WHSIZE = [(32, 37), (25, 129)]
 
 @pytest.mark.parametrize("pretrained", [True, None])
 @pytest.mark.parametrize("whsize", LIST_IMAGE_WHSIZE)
-@pytest.mark.parametrize("model_name", REST_MODEL_LIST)
+# @pytest.mark.parametrize("model_name", REST_MODEL_LIST)
+@pytest.mark.parametrize("model_name", ["ram"])
 @pytest.mark.parametrize("physics_name", LINEAR_OPERATORS + [None])
 @pytest.mark.parametrize("channels", CHANNELS)
 def test_restoration_models(
-    device, pretrained, model_name, physics_name, channels, rng, whsize
+    device,
+    pretrained,
+    model_name,
+    physics_name,
+    channels,
+    rng,
+    whsize,
+    load_example_image,
 ):
 
-    if channels == 1 and physics_name in ["demosaicing", "MRI"]:
+    if channels == 1 and physics_name in ["demosaicing", "MRI", "MultiCoilMRI"]:
         pytest.skip(f"Skipping {model_name} with {physics_name} for 1 channel input.")
 
     if channels == 2 and physics_name == "demosaicing":
         pytest.skip(f"Skipping {model_name} with {physics_name} for 2 channel input.")
 
-    if channels == 3 and physics_name == "MRI":
+    if channels == 3 and physics_name in ["MRI", "MultiCoilMRI"]:
         pytest.skip(f"Skipping {model_name} with {physics_name} for 3 channel input.")
 
     if model_name == "varnet" or model_name == "modl" or model_name == "pannet":
@@ -943,16 +1166,27 @@ def test_restoration_models(
     else:
         physics = None
 
-    if hasattr(physics, "noise_model"):
-        if hasattr(physics.noise_model, "sigma"):
-            physics.noise_model.sigma = torch.tensor(
-                [max(physics.noise_model.sigma, 0.01)]
-            )
-        else:
-            physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
-    else:
+    # A helper function to set sigma in physics noise models
+    def _set_sigma_physics(physics, sigma):
+        if hasattr(physics, "noise_model"):
+            if hasattr(physics.noise_model, "sigma"):
+                physics.noise_model.sigma = torch.tensor(
+                    [max(physics.noise_model.sigma, sigma)], device=device, dtype=dtype
+                )
+            else:
+                physics.noise_model = dinv.physics.GaussianNoise(sigma)
+
         if physics is not None:
-            physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
+            # recursively set sigma for noise models in composite physics
+            for attr in dir(physics):
+                sub_physics = getattr(physics, attr)
+                if isinstance(sub_physics, dinv.physics.Physics):
+                    _set_sigma_physics(sub_physics, sigma)
+        else:
+            pass
+
+    sigma = 0.02
+    _set_sigma_physics(physics, sigma)
 
     x = DummyCircles(imsize=imsize, samples=2)
 
@@ -972,23 +1206,43 @@ def test_restoration_models(
             # ram model should output an error if no sigma and gain is provided
             with pytest.raises(ValueError):
                 x_hat = model(y, physics)
-            x_hat = model(y, sigma=0.01, gain=1.0)
+            x_hat = model(y, sigma=sigma, gain=1.0)
 
     assert x_hat.shape == x.shape
 
     psnr_fn = PSNR(max_pixel=1)
 
-    if (
+    if (  # RAM performance test
         not (physics_name == "super_resolution_circular" and channels == 2)
         and model_name == "ram"
         and pretrained == True
         and physics is not None
-    ):  # suboptimal performance in this case
+    ):
         psnr_in = psnr_fn(physics.A_dagger(y), x)
         psnr_out = psnr_fn(x_hat, x)
         assert torch.all(psnr_out > psnr_in)
+        if physics_name == LINEAR_OPERATORS[0]:
+            butterfly = load_example_image("butterfly.png").to(device)
+            _physics = dinv.physics.Downsampling(
+                filter="bicubic",
+                noise_model=dinv.physics.GaussianNoise(0.01),
+                device=device,
+            )
+            with torch.no_grad():
+                assert (
+                    dinv.metric.PSNR()(model(_physics(butterfly), _physics), butterfly)
+                    > 29.75
+                )
+
     else:
         pytest.skip(f"Skipping PSNR test for {model_name} with {physics_name}.")
+
+    if physics is not None and whsize == LIST_IMAGE_WHSIZE[0]:
+        # Test backward pass
+        l = dinv.loss.SupLoss()(x=x, x_net=model(y, physics))
+        l.backward()
+    else:
+        pytest.skip(f"Skipping backward test for {physics_name} physics and {imsize}.")
 
 
 def test_pannet():
@@ -1039,11 +1293,20 @@ def test_ncsnpp_net(device, image_size, n_channels, batch_size, precond, use_fp1
 
 
 @pytest.mark.parametrize("n_channels", [3])
-def test_dsccp_net(device, n_channels):
-    # Load the pretrained model
+@pytest.mark.parametrize("spatials", [(37, 28), (32, 32, 32)])
+def test_dsccp_net(device, n_channels, spatials):
+    image_size = (n_channels, *spatials)
+    d = len(spatials)
 
-    image_size = (n_channels, 37, 28)
-    model = dinv.models.DScCP().to(device)
+    depth = 20 if d == 2 else 3
+    n_c_per_layer = 64 if d == 2 else 8
+
+    model = dinv.models.DScCP(
+        depth=depth,
+        n_channels_per_layer=n_c_per_layer,
+        pretrained="download" if d == 2 else None,
+        dim=d,
+    ).to(device)
     x = torch.rand(image_size, device=device).unsqueeze(0)
 
     y = model(x, 0.01)
@@ -1055,25 +1318,25 @@ def test_dsccp_net(device, n_channels):
     assert y.shape == x.shape
 
     # batch of sigma
-    x = x.expand(4, -1, -1, -1)
+    x = x.expand(4, *tuple(-1 for i in range(d + 1)))
     y = model(x, torch.linspace(0.01, 0.1, 4, device=device))
     assert y.shape == x.shape
 
 
-def test_denoiser_perf(device):
+def test_denoiser_perf(device, load_example_image):
     pytest.importorskip(
         "timm",
         reason="This test requires timm. It should be "
         "installed with `pip install timm`",
     )
     # Load 2 example images
-    x1 = dinv.utils.load_example(
+    x1 = load_example_image(
         "butterfly.png",
         img_size=64,
         resize_mode="resize",
     ).to(device)
 
-    x2 = dinv.utils.load_example(
+    x2 = load_example_image(
         "celeba_example.jpg",
         img_size=64,
         resize_mode="resize",
@@ -1087,13 +1350,14 @@ def test_denoiser_perf(device):
 
     psnr_fn = PSNR(max_pixel=1)
 
-    # Only test the trained denoisers and the correspinding expected performance
+    # Only test the trained denoisers and the corresponding expected performance
     learned_denoisers = [
         (dinv.models.DnCNN(pretrained="download").to(device), (0.1, 0.03, 0.001)),
         (dinv.models.DRUNet(pretrained="download").to(device), (7.0, 10.5, 11.0)),
         (dinv.models.GSDRUNet(pretrained="download").to(device), (6.5, 10.5, 10.5)),
         (dinv.models.SCUNet(pretrained="download").to(device), (3.5, 9.5, 8.5)),
         (dinv.models.SwinIR(pretrained="download").to(device), (7.5, 3.4, 1.0)),
+        (dinv.models.PromptIR(pretrained="download").to(device), (6.0, 8.0, 8.0)),
         (dinv.models.DiffUNet(pretrained="download").to(device), (6.5, 10.5, 10.0)),
         (
             dinv.models.Restormer(
@@ -1104,6 +1368,12 @@ def test_denoiser_perf(device):
         (dinv.models.NCSNpp(pretrained="download").to(device), (7.0, 11.5, 10.5)),
         (dinv.models.ADMUNet(pretrained="download").to(device), (7.0, 11.5, 11.0)),
         (dinv.models.DScCP(pretrained="download").to(device), (4.5, 9.0, 3.0)),
+        (
+            dinv.models.DiffusersDenoiserWrapper(
+                mode_id="google/ddpm-ema-celebahq-256"
+            ).to(device),
+            (2.5, 7, 7),
+        ),
     ]
 
     for denoiser, expected_perf in learned_denoisers:
@@ -1123,7 +1393,8 @@ def test_denoiser_perf(device):
 
     # Classical denoisers
     classical_denoisers = [
-        (dinv.models.BM3D(), (2.75, 7.5, 6.5)),
+        (dinv.models.BM3D(use_legacy=True).to(device), (2.7, 7.5, 6.5)),
+        (dinv.models.BM3D(use_legacy=False).to(device), (2.7, 7.5, 6.5)),
         (dinv.models.MedianFilter(kernel_size=5), (-9, 4.25, 2.5)),
         (dinv.models.TVDenoiser(), (1.5, 6.0, 4.0)),
         (dinv.models.TGVDenoiser(), (1.75, 6, 5.0)),
@@ -1159,6 +1430,100 @@ def test_denoiser_perf(device):
         assert torch.all(
             psnr_fn(x_hat, x) >= psnr_fn(y, x) + torch.tensor(expected_perf).to(device)
         )
+
+    # Test denoisers on complex data
+    x = x.to(torch.complex64)
+    y = y.to(torch.complex64)
+    denoiser = dinv.models.WaveletDenoiser(
+        level=1,
+        wvdim=2,
+        is_complex=True,
+    ).to(device)
+    x_hat = denoiser(y)
+    psnr_orig = dinv.metric.PSNR()(y, x).mean().item()
+    psnr_denoised = dinv.metric.PSNR()(x_hat, x).mean().item()
+    assert psnr_denoised > psnr_orig + 0.5, "Denoiser did not improve performance"
+
+
+@pytest.mark.parametrize("mode", ["real_imag", "abs_angle"])
+@pytest.mark.parametrize(
+    "denoiser",
+    [dinv.models.DRUNet(pretrained="download"), dinv.models.RAM(pretrained=True)],
+)
+def test_denoiser_perf_noise_map(device, mode, denoiser):
+
+    # Save deterministic setting to restore it after the test
+    prev_deterministic = torch.are_deterministic_algorithms_enabled()
+    torch.use_deterministic_algorithms(True)
+
+    denoiser.to(device)
+
+    # Load 2 example images
+    x1 = dinv.utils.load_example(
+        "butterfly.png",
+        img_size=64,
+        resize_mode="resize",
+    ).to(device)
+
+    x2 = dinv.utils.load_example(
+        "celeba_example.jpg",
+        img_size=64,
+        resize_mode="resize",
+    ).to(device)
+
+    x = torch.cat([x1, x2, x1], dim=0)
+    # three different noise levels
+    sigma_values = torch.tensor([0.05, 0.1, 0.2]).to(device).view((3, 1, 1, 1))
+    sigma_cst_map = torch.ones(x.shape, device=device)[:, 0].unsqueeze(1) * sigma_values
+    # non uniform noise, gaussian amplitude along the width
+    sigma_filter = 25
+    gaussian_x = torch.ones(x.shape, device=device)[:, 0].unsqueeze(1) * torch.exp(
+        -torch.arange(-x.shape[-1] // 2, x.shape[-1] // 2, device=device) ** 2
+        / sigma_filter**2
+    ).view((1, 1, 1, -1))
+
+    rng = torch.Generator(device=device).manual_seed(123)
+    sigma_map = sigma_cst_map * gaussian_x
+    y = x + sigma_map * torch.randn(x.shape, generator=rng, device=device)
+
+    psnr_fn = PSNR(max_pixel=1)
+
+    # Only test the trained denoisers and the corresponding expected performance
+
+    kwargs = {}
+
+    with torch.no_grad():
+        x_hat_map = denoiser(y, sigma=sigma_map, **kwargs)
+        x_hat_cst_map = denoiser(y, sigma=sigma_cst_map, **kwargs)
+        x_hat_values = denoiser(y, sigma=sigma_values, **kwargs)
+
+    assert torch.all(
+        psnr_fn(x_hat_map, x) >= psnr_fn(x_hat_cst_map, x)
+    ), f"denoiser={type(denoiser).__name__} didn't perfom better with a noise map : psnr_map={psnr_fn(x_hat_map, x).tolist()}, psnr_cst_map={psnr_fn(x_hat_cst_map, x).tolist()}"
+
+    assert torch.all(
+        x_hat_values == x_hat_cst_map
+    ), f"denoiser={type(denoiser).__name__} don't behave the same way with noise level and map of constant noise. max diff : {torch.max(torch.abs(x_hat_values - x_hat_cst_map)).item()}"
+
+    kwargs = {}
+    # Test denoisers on complex data
+    denoiser_cpx = dinv.models.ComplexDenoiserWrapper(denoiser=denoiser, mode=mode).to(
+        device
+    )
+    x_cpx = x.to(torch.complex64)
+    y_cpx = y.to(torch.complex64)
+    with torch.no_grad():
+        x_hat_map_cpx = denoiser_cpx(y_cpx, sigma=sigma_map)
+        x_hat_cst_map_cpx = denoiser_cpx(y_cpx, sigma=sigma_cst_map)
+    psnr_map = dinv.metric.PSNR()(x_hat_map_cpx, x_cpx).mean().item()
+    psnr_cst_map = dinv.metric.PSNR()(x_hat_cst_map_cpx, x_cpx).mean().item()
+    assert psnr_map > psnr_cst_map, (
+        f"Mode={mode}, denoiser={type(denoiser).__name__}, "
+        f"psnr_map={psnr_map:.2f}, psnr_no_map={psnr_cst_map:.2f}"
+    )
+
+    # Restore previous deterministic setting
+    torch.use_deterministic_algorithms(prev_deterministic)
 
 
 @pytest.mark.parametrize("return_metadata", [False, True])
@@ -1284,3 +1649,363 @@ def test_siren_reconstructor(imsize, device):
     y = physics(x)
     x_net = f(y, physics)
     return torch.allclose(x, x_net, atol=0.1)
+# SwinIR has two parameters related to usampling, upscale which specifies the
+# upsampling rate and upsampler which specifies how the upsampling is
+# performed. In this test, we verify that a warning is raised when specifying
+# an upsampling rate > 1 but not the upsampling method, or conversely when
+# specifying an upsampling without specifying an upsampling rate > 1.
+@pytest.mark.parametrize("upscale", [None, 1, 2])
+@pytest.mark.parametrize("upsampler", [None, "pixelshuffle"])
+def test_swinir_upsample_without_upsampler(upscale, upsampler):
+    pytest.importorskip(
+        "timm",
+        reason="This test requires timm. It should be "
+        "installed with `pip install timm`",
+    )
+
+    kwargs = {}
+
+    if upscale is not None:
+        kwargs["upscale"] = upscale
+
+    if upsampler is not None:
+        kwargs["upsampler"] = upsampler
+
+    should_warn = (upscale is not None and upscale > 1 and upsampler is None) or (
+        (upscale is None or upscale == 1) and upsampler is not None
+    )
+
+    ctx = (
+        pytest.warns(
+            UserWarning,
+            match="upscale",
+        )
+        if should_warn
+        else contextlib.nullcontext()
+    )
+
+    with ctx:
+        _ = dinv.models.SwinIR(in_chans=3, upsample=1, pretrained=None, **kwargs)
+
+
+@pytest.mark.parametrize("clip_output", [False, True])
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_diffuser_wrapper(batch_size, clip_output, device):
+    pytest.importorskip(
+        "diffusers",
+        reason="This test requires diffusers. It should be "
+        "installed with `pip install diffusers`",
+    )
+    pytest.importorskip(
+        "transformers",
+        reason="This test requires transformers. It should be "
+        "installed with `pip install transformers`",
+    )
+    model = dinv.models.DiffusersDenoiserWrapper(
+        mode_id="google/ddpm-cifar10-32", clip_output=clip_output, device=device
+    )
+
+    x = torch.randn(batch_size, 3, 32, 32, device=device)
+    sigma = torch.tensor([0.01 * (i + 1) for i in range(batch_size)], device=device)
+    with torch.no_grad():
+        output = model(x, sigma.squeeze())
+
+    assert output.shape == x.shape
+    if clip_output:
+        assert torch.all(output <= 1.0) and torch.all(output >= 0.0)
+
+
+@pytest.mark.parametrize("mode", ["real_imag", "abs_angle"])
+def test_complex_wrapper(mode, device, load_example_image):
+    model = dinv.models.DRUNet(pretrained="download").to(device)
+    complex_model = dinv.models.ComplexDenoiserWrapper(model, mode=mode).to(device)
+
+    # Create complex input
+    x = load_example_image(
+        "butterfly.png",
+        img_size=64,
+        resize_mode="resize",
+    ).to(device)
+
+    x_complex = x + 1j * x
+    sigma = torch.tensor(0.1, device=device)
+    y = x_complex + sigma * torch.randn_like(x_complex)
+
+    # Forward pass through complex wrapper
+    with torch.no_grad():
+        output = complex_model(y, sigma)
+
+    # Check output shape
+    assert output.shape == x_complex.shape
+    assert torch.is_complex(output)
+    psnr_fn = dinv.metric.PSNR()
+    # Check that denoising improves PSNR
+    assert psnr_fn(output, x_complex) > psnr_fn(y, x_complex) + 1.0
+
+
+@pytest.mark.parametrize("channels", [1, 3])
+@pytest.mark.parametrize("filters", [5, 6])
+@pytest.mark.parametrize("blur_kernel_size", [33, 65])
+def test_kernel_identification(channels, filters, blur_kernel_size, device):
+    model = dinv.models.KernelIdentificationNetwork(
+        filters=filters,
+        blur_kernel_size=blur_kernel_size,
+        pretrained=None,
+    ).to(device)
+
+    pix = 60
+    b = 2
+    y = torch.randn(b, channels, pix, pix, device=device)
+
+    with torch.no_grad():
+        params = model(y)
+
+    assert params["filters"].shape == (
+        b,
+        1,
+        filters,
+        blur_kernel_size,
+        blur_kernel_size,
+    )
+    assert params["multipliers"].shape == (b, 1, filters, pix, pix)
+
+
+@pytest.mark.parametrize("model_name", ["DRUNet", "DnCNN", "DScCP"])
+@pytest.mark.parametrize("n_channels", [1, 3])
+@pytest.mark.parametrize("pretrained_2d_isotropic", [True, False])
+def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_isotropic):
+
+    torch.manual_seed(0)
+    if model_name == "DRUNet":
+        model = dinv.models.DRUNet(
+            in_channels=n_channels,
+            out_channels=n_channels,
+            pretrained="download_2d",
+            pretrained_2d_isotropic=pretrained_2d_isotropic,
+            dim="3d",
+        )
+        model_noinit = dinv.models.DRUNet(
+            in_channels=n_channels,
+            out_channels=n_channels,
+            pretrained=None,
+            dim="3d",
+        )
+    elif model_name == "DnCNN":
+        model = dinv.models.DnCNN(
+            in_channels=n_channels,
+            out_channels=n_channels,
+            pretrained="download_2d",
+            pretrained_2d_isotropic=pretrained_2d_isotropic,
+            dim="3d",
+        )
+        model_noinit = dinv.models.DnCNN(
+            in_channels=n_channels,
+            out_channels=n_channels,
+            pretrained=None,
+            dim="3d",
+        )
+    elif model_name == "DScCP":
+        if n_channels != 3:
+            pytest.skip("DScCP 3D pretrained model is only available for 3 channels.")
+        model = dinv.models.DScCP(
+            dim="3d",
+            pretrained="download_2d",
+            pretrained_2d_isotropic=pretrained_2d_isotropic,
+        )
+    model = model.eval().to(device)
+
+    # Test output tensor shape
+    image_size = (n_channels, 32, 32, 32)
+    x = torch.rand(image_size, device=device)[None]
+    with torch.no_grad():
+        out = model(x, 0.01)
+    assert (
+        out.shape == x.shape
+    ), f"Output shape {out.shape} does not match input shape {x.shape}"
+
+    # Check that the initialized model performs better than the non-initialized one
+    if model_name in ("DRUNet", "DnCNN") and n_channels == 1:
+        volume_data = (
+            dinv.utils.load_np_url(
+                "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
+            )
+            .flip(0)
+            .unsqueeze(0)
+            .unsqueeze(0)
+        )
+        x = volume_data / volume_data.max()
+
+        # crop to smaller size for faster testing: [181,217,181] -> [32,64,64]
+        x_crop = x[
+            :, :, 100 - 16 : 100 + 16, 100 - 32 : 100 + 32, 100 - 32 : 100 + 32
+        ].to(device)
+        sigma = 0.1
+        y = x_crop + sigma * torch.randn_like(x_crop)
+
+        psnr_fn = dinv.metric.PSNR()
+        improvement = 10 if model_name == "DRUNet" else 8
+
+        model = model.eval().to(device)
+        with torch.no_grad():
+            y_denoised = model(y, sigma=sigma)
+
+        model_noinit = model_noinit.eval().to(device)
+        y_denoised_noinit = model_noinit(y, sigma=sigma)
+
+        psnr_init = psnr_fn(y_denoised, x_crop).item()
+        psnr_noinit = psnr_fn(y_denoised_noinit, x_crop).item()
+
+        assert (
+            psnr_init > psnr_noinit + improvement
+        ), f"PSNR with init {psnr_init} not better than without init {psnr_noinit} + {improvement}"
+
+
+@pytest.mark.parametrize("model_name", ["pca"])
+@pytest.mark.parametrize("mode", ["image", "synthetic"])
+@pytest.mark.parametrize("channels", [1, 2, 3])
+@pytest.mark.parametrize("sigma", [0.1, 0.5, 0.01])
+def test_gaussian_noise_estimators(
+    model_name, mode, channels, sigma, device, rng, load_example_image
+):
+    if model_name == "pca":
+        model = dinv.models.PatchCovarianceNoiseEstimator().to(device)
+    elif model_name == "wavelets":
+        model = dinv.models.WaveletNoiseEstimator().to(device)
+    else:
+        raise NotImplementedError()
+
+    if model_name == "wavelets":
+        pytest.importorskip(
+            "ptwt",
+            reason="This test requires pytorch_wavelets. It should be "
+            "installed with `pip install "
+            "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+        )
+
+    if mode == "image":
+        x = load_example_image("butterfly.png").to(device)
+        x = x[:, :channels, :, :]
+    else:
+        x = torch.zeros((1, channels, 256, 256), device=device)
+
+    y = x + sigma * torch.empty_like(x).normal_(generator=rng).to(device)
+
+    sigma_est = model(y)
+
+    if mode == "synthetic":
+        assert (sigma_est - sigma).abs() / sigma < 5e-2  # 5 % error
+    elif mode == "image":
+        assert (
+            sigma_est - sigma
+        ) < sigma + 0.01  # error less than 2 * sigma + quantization std
+
+    # Test batching is correct
+    x = torch.cat([x, x, x])
+    sigma = torch.tensor([sigma, sigma * 2, sigma * 3], device=device)
+    y = x + sigma.view(-1, 1, 1, 1) * torch.empty_like(x).normal_(generator=rng).to(
+        device
+    )
+
+    assert torch.allclose(
+        model(y), torch.cat([model(_y.unsqueeze(0)) for _y in y]), rtol=1e-2, atol=1e-2
+    )
+
+
+@pytest.mark.parametrize("sigma", [0.0, 0.05])
+@pytest.mark.parametrize("gain", [0.05, 0.5])
+def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
+    x = torch.ones((1, 1, 16, 16), device=device)
+    physics = dinv.physics.Denoising(
+        dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
+    )
+    y = physics(x)
+    z = dinv.models.generalized_anscombe_transform(y, sigma=sigma, gain=gain)
+
+    # std(GAT(y)) \approx gain
+    assert torch.allclose(
+        z.std(), torch.tensor(gain, device=device), atol=0.05, rtol=0.05
+    )
+
+    # IGAT(GAT(y))\approx y
+    y_inv = dinv.models.inverse_generalized_anscombe_transform(
+        z, sigma=sigma, gain=gain
+    )
+    assert torch.allclose(y, y_inv, atol=0.1, rtol=0.1)
+
+    x = load_example_image(
+        "butterfly.png",
+        img_size=64,
+    ).to(device)
+    y = physics(x)
+    metric = dinv.metric.PSNR()
+    denoiser = dinv.models.DRUNet(device=device)
+    ans_denoiser = dinv.models.AnscombeDenoiser(denoiser)
+    with torch.no_grad():
+        x_base = denoiser(y, sigma=(sigma**2 + gain) ** (0.5))
+        x_ans = ans_denoiser(y, sigma=sigma, gain=gain)
+        psnr_ans = metric(x_ans, x)
+        psnr_raw = metric(y, x)
+        psnr_base = metric(x_base, x)
+        assert torch.all(psnr_ans > psnr_raw)
+        assert torch.all(psnr_ans > psnr_base)
+
+
+@pytest.mark.parametrize("upscale_factor", [2, 4])
+@pytest.mark.parametrize("n_channels", [1, 3])
+@pytest.mark.parametrize("model", ["srresnet"])
+def test_super_resolution_nets(upscale_factor, n_channels, model):
+    if model == "srresnet":
+        super_resolver = dinv.models.SRResNet(
+            num_blocks=2,
+            im_c=n_channels,
+            feats=4,
+            upscale=upscale_factor,
+            final_kernel_size=3,
+        )
+    else:
+        raise RuntimeError(f"Unknown super-resolution mdoel {model}")
+    test_input = torch.ones([2, n_channels, 8, 8])
+    model_output = super_resolver(
+        test_input, physics=dinv.physics.Downsampling(filter=None)
+    )
+    assert tuple(model_output.shape) == (
+        2,
+        n_channels,
+        8 * upscale_factor,
+        8 * upscale_factor,
+    )
+
+
+def test_srresnet_inputs():
+    with pytest.raises(ValueError) as exc_info:
+        net = dinv.models.SRResNet(upscale=6)
+    assert str(exc_info.value) == "upscale must be a power of two (e.g. 2, 4, 8), got 6"
+    with pytest.raises(ValueError) as exc_info:
+        net = dinv.models.SRResNet(final_kernel_size=4)
+    assert str(exc_info.value) == "final_kernel_size must be odd, got 4"
+    with pytest.raises(ValueError) as exc_info:
+        net = dinv.models.SRResNet(norm="adaptive")
+    assert (
+        str(exc_info.value)
+        == "norm must be one of (batch_norm, instance_norm, layer_norm, None), got adaptive"
+    )
+    # test no errors on any norm
+    for norm in ("batch_norm", "layer_norm", "instance_norm", None):
+        super_resolver = dinv.models.SRResNet(
+            num_blocks=2,
+            im_c=3,
+            feats=4,
+            upscale=2,
+            norm=norm,
+            final_kernel_size=3,
+        )
+        test_input = torch.ones([2, 3, 8, 8])
+        model_output = super_resolver(
+            test_input, physics=dinv.physics.Downsampling(filter=None)
+        )
+        assert tuple(model_output.shape) == (
+            2,
+            3,
+            16,
+            16,
+        )

@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Callable
 import torch
 from deepinv.optim.potential import Potential
 
@@ -10,17 +12,17 @@ class Bregman(Potential):
     :param Callable h: Potential function :math:`\phi(x)` to be used in the Bregman framework.
     """
 
-    def __init__(self, phi=None):
+    def __init__(self, phi: Callable[[torch.Tensor], torch.Tensor] = None):
         super().__init__(fn=phi)
 
-    def div(self, x, y, *args, **kwargs):
+    def div(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the Bregman divergence :math:`D_\phi(x,y)` with Bregman potential :math:`\phi`.
 
         :param torch.Tensor x: Left variable :math:`x` at which the divergence is computed.
         :param torch.Tensor y: Right variable :math:`y` at which the divergence is computed.
 
-        :return: (torch.tensor) divergence :math:`h(x) - h(y) - \langle \nabla h(y), x-y  \rangle`.
+        :return: (torch.Tensor) divergence :math:`h(x) - h(y) - \langle \nabla h(y), x-y  \rangle`.
         """
         return (
             self(x, *args, **kwargs)
@@ -31,14 +33,16 @@ class Bregman(Potential):
             )
         )
 
-    def MD_step(self, x, grad, *args, gamma=1.0, **kwargs):
+    def MD_step(
+        self, x: torch.Tensor, grad: torch.Tensor, *args, gamma: float = 1.0, **kwargs
+    ) -> torch.Tensor:
         r"""
         Performs a Mirror Descent step :math:`x = \nabla \phi^*(\nabla \phi(x) - \gamma \nabla f(x))`.
 
         :param torch.Tensor x: Variable :math:`x` at which the step is performed.
         :param torch.Tensor grad: Gradient of the minimized function at :math:`x`.
         :param float gamma: Step size.
-        :return: (torch.tensor) updated variable :math:`x`.
+        :return: (torch.Tensor) updated variable :math:`x`.
         """
         return self.grad_conj(self.grad(x, *args, **kwargs) - gamma * grad)
 
@@ -52,50 +56,50 @@ class BregmanL2(Bregman):
     def __init__(self):
         super().__init__()
 
-    def fn(self, x):
+    def fn(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Computes the L2 norm potential :math:`\phi(x) = \frac{1}{2} \|x\|_2^2`.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
-        :return: (torch.tensor) potential :math:`h(x)`.
+        :return: (torch.Tensor) potential :math:`h(x)`.
         """
         return 0.5 * torch.sum(x.reshape(x.shape[0], -1) ** 2, dim=-1)
 
-    def conjugate(self, x):
+    def conjugate(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Computes the convex conjugate potential :math:`\phi^*(y) = \frac{1}{2} \|y\|_2^2`.
 
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
-        :return: (torch.tensor) conjugate potential :math:`\phi^*(y)`.
+        :return: (torch.Tensor) conjugate potential :math:`\phi^*(y)`.
         """
         return 0.5 * torch.sum(x.reshape(x.shape[0], -1) ** 2, dim=-1)
 
-    def grad(self, x, *args, **kwargs):
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of the L2 norm :math:`\nabla \phi(x) = x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x \phi`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x \phi`, computed in :math:`x`.
         """
         return x
 
-    def grad_conj(self, x, *args, **kwargs):
+    def grad_conj(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of the conjugate of the L2 norm :math:`\nabla \phi^*(x) = x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x \phi^*`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x \phi^*`, computed in :math:`x`.
         """
         return x
 
-    def div(self, x, y, *args, **kwargs):
+    def div(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the Bregman divergence with potential :math:`\phi`. Here falls back to the L2 distance.
 
         :param torch.Tensor x: Variable :math:`x` at which the divergence is computed.
         :param torch.Tensor y: Variable :math:`y` at which the divergence is computed.
 
-        :return: (torch.tensor) divergence :math:`\phi(x) - \phi(y) - \langle \nabla \phi(y), x-y`.
+        :return: (torch.Tensor) divergence :math:`\phi(x) - \phi(y) - \langle \nabla \phi(y), x-y`.
         """
         return 0.5 * torch.sum((x - y).reshape(x.shape[0], -1) ** 2, dim=-1)
 
@@ -111,42 +115,42 @@ class BurgEntropy(Bregman):
     def __init__(self):
         super().__init__()
 
-    def fn(self, x):
+    def fn(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Computes Burg's entropy potential :math:`\phi(x) = - \sum_i \log x_i`.
         The input :math:`x` must be postive.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
-        :return: (torch.tensor) potential :math:`h(x)`.
+        :return: (torch.Tensor) potential :math:`h(x)`.
         """
         return -torch.sum(torch.log(x).reshape(x.shape[0], -1), dim=-1)
 
-    def conjugate(self, x):
+    def conjugate(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Computes the convex conjugate potential :math:`\phi^*(y) = - - \sum_i \log (-x_i)`.
         The input :math:`x` must be negative.
 
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
-        :return: (torch.tensor) conjugate potential :math:`\phi^*(y)`.
+        :return: (torch.Tensor) conjugate potential :math:`\phi^*(y)`.
         """
         n = torch.shape(x.reshape(x.shape[0], -1))[-1]
         return -torch.sum(torch.log(-x).reshape(x.shape[0], -1), dim=-1) - n
 
-    def grad(self, x, *args, **kwargs):
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of Burg's entropy :math:`\nabla \phi(x) = - 1 / x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x \phi`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x \phi`, computed in :math:`x`.
         """
         return -1 / x
 
-    def grad_conj(self, x, *args, **kwargs):
+    def grad_conj(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of the conjugate of Burg's entropy :math:`\nabla h^*(x) = - 1 / x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
         """
         return -1 / x
 
@@ -161,41 +165,41 @@ class NegEntropy(Bregman):
     def __init__(self):
         super().__init__()
 
-    def fn(self, x):
+    def fn(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Computes negative entropy potential :math:`\phi(x) = \sum_i x_i \log x_i`.
         The input :math:`x` must be postive.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
-        :return: (torch.tensor) potential :math:`\phi(x)`.
+        :return: (torch.Tensor) potential :math:`\phi(x)`.
         """
         return torch.sum((x * torch.log(x)).reshape(x.shape[0], -1), dim=-1)
 
-    def conjugate(self, x):
+    def conjugate(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Computes the convex conjugate potential :math:`\phi^*(y) = \sum_i y_i \log y_i`.
         The input :math:`x` must be negative.
 
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
-        :return: (torch.tensor) conjugate potential :math:`\phi^*(y)`.
+        :return: (torch.Tensor) conjugate potential :math:`\phi^*(y)`.
         """
         return torch.sum(torch.exp(x - 1).reshape(x.shape[0], -1), dim=-1)
 
-    def grad(self, x, *args, **kwargs):
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of negative entropy :math:`\nabla \phi(x) = 1 + \log x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x \phi`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x \phi`, computed in :math:`x`.
         """
         return 1 + torch.log(x)
 
-    def grad_conj(self, x, *args, **kwargs):
+    def grad_conj(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of the conjugate of negative entropy :math:`\nabla \phi^*(x) = 1 + \log x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x \phi^*`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x \phi^*`, computed in :math:`x`.
         """
         return torch.exp(x - 1)
 
@@ -210,21 +214,21 @@ class Bregman_ICNN(Bregman):
         self.forw_model = forw_model
         self.conj_model = conj_model
 
-    def fn(self, x):
+    def fn(self, x: torch.Tensor):
         r"""
         Computes the Bregman potential.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
-        :return: (torch.tensor) potential :math:`\phi(x)`.
+        :return: (torch.Tensor) potential :math:`\phi(x)`.
         """
         return self.forw_model(x)
 
-    def conjugate(self, x):
+    def conjugate(self, x: torch.Tensor):
         r"""
         Computes the convex conjugate potential.
 
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
-        :return: (torch.tensor) conjugate potential :math:`\phi^*(y)`.
+        :return: (torch.Tensor) conjugate potential :math:`\phi^*(y)`.
         """
         if self.conj_model is not None:
             return self.conj_model(x)

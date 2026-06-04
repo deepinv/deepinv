@@ -2,7 +2,6 @@ import deepinv
 import torch
 import pytest
 from deepinv.utils.decorators import _deprecated_alias
-from deepinv.utils.compat import zip_strict
 import warnings
 import numpy as np
 import contextlib
@@ -14,17 +13,19 @@ import subprocess
 import os
 import inspect
 import pathlib
+import requests
 import torchvision.transforms as transforms
 import PIL
 import io
 import copy
 import math
-import sys
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
 
 from deepinv.tests.test_datasets import check_dataset_format
+from deepinv.utils import image_to_patches, patches_to_image
+from deepinv.datasets import PatchDataset
 
 
 @pytest.fixture
@@ -39,17 +40,16 @@ def tensorlist():
 @pytest.fixture
 def model():
     physics = deepinv.physics.Denoising()
-    model = deepinv.optim.optimizers.optim_builder(
-        iteration="PGD",
+    model = deepinv.optim.PGD(
         prior=deepinv.optim.prior.TVPrior(n_it_max=20),
         data_fidelity=deepinv.optim.data_fidelity.L2(),
+        stepsize=1.0,
+        lambda_reg=1e-2,
         early_stop=True,
         max_iter=10,
         verbose=False,
-        params_algo={"stepsize": 1.0, "lambda": 1e-2},
     )
     x = torch.randn(1, 1, 64, 64, generator=torch.Generator().manual_seed(0))
-    # NOTE: It is needed for attribute params_algo to be initialized.
     _ = model(x, physics=physics)
     yield model
 
@@ -185,11 +185,11 @@ def test_dirac_like(shape, length, device):
     y = deepinv.utils.TensorList(
         [
             deepinv.physics.functional.conv2d(xi, hi, padding="circular")
-            for hi, xi in zip_strict(h, x)
+            for hi, xi in zip(h, x, strict=True)
         ]
     )
 
-    for xi, hi, yi in zip_strict(x, h, y):
+    for xi, hi, yi in zip(x, h, y, strict=True):
         assert (
             hi.shape == xi.shape
         ), "Dirac delta should have the same shape as the input tensor."
@@ -198,6 +198,20 @@ def test_dirac_like(shape, length, device):
             assert torch.allclose(
                 xi, yi
             ), "Convolution with Dirac delta should return the original tensor."
+
+
+@pytest.mark.parametrize("shape", [(1, 1, 8, 8), (1, 1, 9, 9)])
+def test_dirac_comb(device, shape):
+    x = torch.randn(shape, device=device)
+    step = 4
+    x1 = deepinv.utils.dirac_comb(shape, step=step, device=device)
+    x2 = deepinv.utils.dirac_comb_like(x, step=step)
+    assert torch.allclose(x1, x2), "dirac_comb and dirac_comb_like outputs differ."
+
+    assert x1.device == device
+    assert x1.sum() == (
+        math.ceil(shape[-2] / step) * math.ceil(shape[-1] / step)
+    ), "Sum of dirac comb should equal the number of non-zero elements."
 
 
 @pytest.mark.parametrize("C", [1, 3])
@@ -231,7 +245,7 @@ def test_plot(
     img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
     subtitles = ["subtitle"] * n_images
-    img_list = {k: v for k, v in zip_strict(titles, img_list)}
+    img_list = {k: v for k, v in zip(titles, img_list, strict=True)}
     if not with_titles:
         titles = None
     if not with_subtitles:
@@ -574,7 +588,7 @@ def test_deprecated_metric_functions(fn_name):
 @pytest.mark.parametrize("index", [1])
 @pytest.mark.parametrize("download", [False, True])
 def test_load_degradation(
-    tmp_path, with_data_dir, data_dir_type, name, index, download
+    tmp_path, with_data_dir, data_dir_type, name, index, download, monkeypatch
 ):
     if with_data_dir:
         assert data_dir_type in [
@@ -583,6 +597,9 @@ def test_load_degradation(
         ], "data_dir_type should be str or pathlib.Path."
         data_dir = data_dir_type(tmp_path)
     else:
+        # Redirect the default data-home to tmp_path so that parallel xdist
+        # workers don't race over the same relative ./datasets/ directory.
+        monkeypatch.setenv("DEEPINV_DATA", str(tmp_path))
         data_dir = None
 
     args = [name, data_dir]
@@ -635,6 +652,7 @@ def test_load_dataset(n_retrievals, dataset_name, transform):
 )
 def test_load_example(name):
     x = deepinv.utils.load_example(name, img_size=(64, 64))
+    assert isinstance(x, torch.Tensor)
     if name.split(".")[-1] == "png":
         assert x.shape[-2:] == (64, 64)
 
@@ -689,7 +707,7 @@ def test_AverageMeter(to_float):
     ), "Sum2 value is incorrect."
     assert all(
         math.isclose(a, b, rel_tol=1e-10)
-        for a, b in zip_strict(meter.vals, vals.tolist())
+        for a, b in zip(meter.vals, vals.tolist(), strict=True)
     ), "Retained values are incorrect."
 
     # Scalar aggregates should be instances of the builtin float type
@@ -804,13 +822,13 @@ def test_load_image(
 
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize(
-    "signal_shape",
+    "img_size",
     [(3, 16, 16), (1, 16, 16), (1, 16), (1, 16, 16, 16), (1, 16, 8), (16, 16), (16,)],
 )
 @pytest.mark.parametrize("mode", ["min_max", "clip"])
 @pytest.mark.parametrize("seed", [0])
-def test_normalize_signals(batch_size, signal_shape, mode, seed):
-    shape = (batch_size, *signal_shape)
+def test_normalize_signals(batch_size, img_size, mode, seed):
+    shape = (batch_size, *img_size)
     rng = torch.Generator().manual_seed(seed)
 
     # Generate a batch of random signals, half constant and half not
@@ -822,7 +840,7 @@ def test_normalize_signals(batch_size, signal_shape, mode, seed):
     const_values = torch.randn(
         N_const_idx, generator=rng, device=inp.device, dtype=inp.dtype
     )
-    inp[const_idx] = const_values.view((-1,) + ((1,) * len(signal_shape)))
+    inp[const_idx] = const_values.view((-1,) + ((1,) * len(img_size)))
     if var_idx.numel() != 0:
         inp[var_idx] = torch.randn(
             inp[const_idx].shape, generator=rng, device=inp.device, dtype=inp.dtype
@@ -847,7 +865,7 @@ def test_normalize_signals(batch_size, signal_shape, mode, seed):
     # Tests specific to min-max normalization
     if mode == "min_max":
         # Test the edge case of constant signals
-        for inp_s, out_s in zip_strict(inp, out):
+        for inp_s, out_s in zip(inp, out, strict=True):
             inp_unique = torch.unique(inp_s)
             is_inp_constant = inp_unique.numel() == 1
             if is_inp_constant:
@@ -903,59 +921,38 @@ def test_prepare_images(x, y, x_net, x_nl, rescale_mode):
         assert all(
             isinstance(title, str) for title in titles
         ), "All titles should be strings."
+        assert len(imgs) == len(
+            titles
+        ), "Number of images should match number of titles."
+        conditions = [
+            x is not None,
+            x_net is not None,
+            x_nl is not None,
+            y is not None and x is not None and y.shape == x.shape,
+        ]
+        assert len(imgs) == sum(
+            conditions
+        ), f"Expected {sum(conditions)} images but got {len(imgs)}"
+
+
+@pytest.mark.parametrize("seed", [0])
+def test_prepare_images_shapes(seed):
+    rng = torch.Generator().manual_seed(seed)
+    x = torch.randn(32, 1, 10, 10, generator=rng)
+
+    imgs, titles, grid_image, caption = deepinv.utils.plotting.prepare_images(
+        x, y=x, x_net=x, x_nl=x, rescale_mode="min_max"
+    )
+
+    # Check that the grid image has the correct shape (4 below = number of non None inputs)
+    num_inputs = 4  # x, y, x_net, x_nl
+    assert grid_image.shape == torch.Size(
+        [3, num_inputs * (x.shape[-1] + 2) + 2, x.shape[0] * (x.shape[-2] + 2) + 2]
+    )
 
 
 # Module-level fixtures
 pytestmark = [pytest.mark.usefixtures("non_blocking_plots")]
-
-
-@pytest.mark.parametrize("force_polyfill", [False, True])
-def test_zip_strict_behavior(force_polyfill):
-    # Test correct pairing
-    a = [1, 2, 3]
-    b = ["x", object(), "z"]
-    c = [True, False, object()]
-
-    result = list(zip_strict(a, b, c, force_polyfill=force_polyfill))
-
-    # If Python >= 3.10, compare with zip(strict=True)
-    if sys.version_info >= (3, 10):
-        expected = list(zip(a, b, c, strict=True))  # novermin
-        assert result == expected
-
-    # Test ValueError for different lengths
-    d = [1, 2]
-    with pytest.raises(ValueError):
-        list(zip_strict(a, d, force_polyfill=force_polyfill))
-
-    # If Python >= 3.10, confirm zip(strict=True) also raises
-    if sys.version_info >= (3, 10):
-        with pytest.raises(ValueError):
-            list(zip(a, d, strict=True))  # novermin
-
-    # Test consumption behavior
-    def spy(iterable):
-        it = iter(iterable)
-        for x in it:
-            yield x
-
-    a = spy([1, 2, 3])
-    b = spy([10, 20, 30, 40])
-    c = spy([100, 200, 300, 400])
-
-    try:
-        _ = list(zip_strict(a, b, c, force_polyfill=force_polyfill))
-    except ValueError:
-        pass
-
-    assert next(a, None) is None, "Iterator a should be fully consumed."
-    assert next(b, None) is None, "Iterator b should be fully consumed."
-    assert next(c, None) == 400, "Iterator c should have one item left."
-
-    # Test empty input
-    assert (
-        list(zip_strict(force_polyfill=force_polyfill)) == []
-    ), "Empty input should yield empty output."
 
 
 @pytest.mark.parametrize("latex_exists", [True, False])
@@ -1019,3 +1016,244 @@ def test_default_tex(latex_exists, monkeypatch):
     # Finish test by resetting to default values
     deepinv.utils.plotting.set_checked_tex(False)
     deepinv.utils.plotting.enable_tex()
+
+
+@pytest.mark.parametrize("apply_rescale", [True, False])
+@pytest.mark.parametrize("as_tensor", [True, False])
+def test_io_dicom(apply_rescale, as_tensor):
+    pytest.importorskip(
+        "pydicom",
+        reason="This test requires pydicom. It should be "
+        "installed with `pip install pydicom`",
+    )
+    file = deepinv.io.load_url(
+        "https://github.com/robyoung/dicom-test-files/raw/refs/heads/master/data/pydicom/693_J2KI.dcm"
+    )
+    x = deepinv.io.load_dicom(file, as_tensor=as_tensor, apply_rescale=apply_rescale)
+    assert x.shape == (1, 512, 512) if as_tensor else (512, 512)
+    assert isinstance(x, torch.Tensor) if as_tensor else np.ndarray
+
+
+def test_io_nifti(tmp_path):
+    pytest.importorskip(
+        "nibabel",
+        reason="This test requires nibabel. It should be "
+        "installed with `pip install nibabel`",
+    )
+    with open(tmp_path / "tmp.nii.gz", "wb") as f:
+        f.write(
+            requests.get(
+                "https://github.com/neurolabusc/niivue-images/raw/refs/heads/main/Iguana.nii.gz"
+            ).content
+        )
+
+    assert deepinv.io.load_nifti(tmp_path / "tmp.nii.gz").shape == (
+        210,
+        256,
+        179,
+    )  # 3D volume
+
+
+def test_io_ismrmd():
+    file = deepinv.io.load_url(
+        deepinv.utils.demo.get_image_url("demo_fastmri_brain_multicoil.h5")
+    )
+    assert deepinv.io.load_ismrmd(file, data_name="kspace", data_slice=0).shape == (
+        2,
+        4,
+        512,
+        213,
+    )  # CNHW, 4 coils
+    assert deepinv.io.load_ismrmd(
+        file, data_name="kspace", data_slice=(0, slice(0, 2))
+    ).shape == (
+        2,
+        2,
+        512,
+        213,
+    )  # CNHW, 2 coils
+    assert deepinv.io.load_ismrmd(file, data_name="kspace").shape == (
+        2,
+        16,
+        4,
+        512,
+        213,
+    )  # CXNHW (X is slice dim, note this is unusual usage)
+
+
+def test_io_torch():
+    assert deepinv.io.load_torch(
+        deepinv.utils.load_url(deepinv.utils.demo.get_image_url("CT100_256x256_0.pt"))
+    ).shape == (1, 1, 256, 256)
+
+
+def test_io_np():
+    assert deepinv.io.load_np(
+        deepinv.utils.load_url(
+            deepinv.utils.demo.get_image_url(
+                "brainweb_t1_ICBM_1mm_subject_0_slice_0.npy"
+            )
+        )
+    ).shape == (217, 181)
+    assert deepinv.utils.demo.load_example(
+        "brainweb_t1_ICBM_1mm_subject_0_slice_0.npy"
+    ).shape == (217, 181)
+
+
+def test_io_raster():
+    pytest.importorskip(
+        "rasterio",
+        reason="This test requires rasterio. It should be "
+        "installed with `pip install rasterio`",
+    )
+    file = deepinv.io.load_url(
+        "https://download.osgeo.org/geotiff/samples/spot/chicago/SP27GTIF.TIF"
+    )
+    assert deepinv.io.load_raster(file, patch=False).shape == (1, 929, 699)
+
+    x = deepinv.io.load_raster(file, patch=True)
+    assert next(x).shape == (1, 11, 699)
+    assert len(list(x)) == 929 // 11
+
+    # Test patches are patched correctly
+    assert next(deepinv.io.load_raster(file, patch=(2, 5))).shape == (1, 2, 5)
+    assert next(deepinv.io.load_raster(file, patch=5)).shape == (1, 5, 5)
+
+    assert len(list(deepinv.io.load_raster(file, patch=(3, 699)))) == 310
+    assert len(list(deepinv.io.load_raster(file, patch=(929, 3)))) == 233
+
+    # Test patch start
+    assert (
+        len(list(deepinv.io.load_raster(file, patch=(3, 699), patch_start=(920, 0))))
+        == 3
+    )
+
+    # Test transform
+    assert deepinv.io.load_raster(file, patch=True, transform=lambda x: x)
+
+
+def test_io_blosc2():
+    pytest.importorskip(
+        "blosc2",
+        reason="This test requires blosc2. It should be "
+        "installed with `pip install blosc2`",
+    )
+    fake_array = np.random.rand(2, 2).astype(np.float32)
+
+    with patch("blosc2.open") as mock_open, patch("importlib.import_module"):
+        mock_arr = mock.MagicMock()
+        mock_arr.__getitem__.return_value = fake_array
+        mock_open.return_value = mock_arr
+
+        out = deepinv.io.load_blosc2(pathlib.Path("fake.b2"))
+        assert torch.is_tensor(out)
+        assert out.shape == torch.from_numpy(fake_array).shape
+
+        out_memmap = deepinv.io.load_blosc2(pathlib.Path("fake.b2"), as_memmap=True)
+        assert out_memmap is mock_arr
+
+
+PATCH_CONFIGS = [
+    (2, 3, 16, 16, 6, 1),
+    (1, 1, 8, 8, 4, 2),
+    (4, 3, 32, 32, 8, 4),
+    (1, 3, 10, 10, 5, 5),  # non-overlapping
+    (3, 1, 7, 9, 3, 2),  # non-square image
+]
+
+
+@pytest.mark.parametrize("B, C, H, W, patch_size, stride", PATCH_CONFIGS)
+def test_patchify_shape_and_content(B, C, H, W, patch_size, stride):
+    """Output shape is correct and each patch matches the manual slice."""
+    torch.manual_seed(0)
+    imgs = torch.randn(B, C, H, W)
+    patches = image_to_patches(imgs, patch_size=patch_size, stride=stride)
+
+    num_H = (H - patch_size) // stride + 1
+    num_W = (W - patch_size) // stride + 1
+    assert patches.shape == (B, C, num_H, num_W, patch_size, patch_size)
+
+    for b in range(B):
+        for i in range(num_H):
+            for j in range(num_W):
+                expected = imgs[
+                    b,
+                    :,
+                    i * stride : i * stride + patch_size,
+                    j * stride : j * stride + patch_size,
+                ]
+                assert torch.equal(patches[b, :, i, j], expected)
+
+
+def test_patchify_single_patch():
+    """patch_size == image size => 1 patch identical to the image."""
+    imgs = torch.randn(1, 3, 8, 8)
+    patches = image_to_patches(imgs, patch_size=8, stride=1)
+    assert patches.shape == (1, 3, 1, 1, 8, 8)
+    assert torch.equal(patches[0, :, 0, 0], imgs[0])
+
+
+def test_patchify_non_overlapping_reconstruction():
+    """Non-overlapping patches tile and perfectly reconstruct the image."""
+    imgs = torch.randn(1, 1, 8, 8)
+    patches = image_to_patches(imgs, patch_size=4, stride=4)
+    reconstructed = patches_to_image(patches, stride=4)
+    assert torch.equal(reconstructed, imgs)
+
+
+def test_patchify_overlapping_reconstruction_mean():
+    """Overlapping patches reconstruct exactly when overlap is averaged."""
+    torch.manual_seed(0)
+    imgs = torch.randn(1, 2, 8, 8)
+    patches = image_to_patches(imgs, patch_size=4, stride=2)
+    reconstructed = patches_to_image(patches, stride=2, reduce_overlap="mean")
+    assert torch.allclose(reconstructed, imgs)
+
+
+def test_patchify_pad_if_needed_behavior():
+    """pad_if_needed controls whether partial edge patches are included."""
+    imgs = torch.randn(1, 1, 7, 9)
+    no_pad = image_to_patches(imgs, patch_size=4, stride=3, pad_if_needed=False)
+    with_pad = image_to_patches(imgs, patch_size=4, stride=3, pad_if_needed=True)
+
+    # Without padding: floor-based number of patches.
+    assert no_pad.shape == (1, 1, 2, 2, 4, 4)
+    # With padding: one extra column to cover the right border.
+    assert with_pad.shape == (1, 1, 2, 3, 4, 4)
+
+
+@pytest.mark.parametrize("B, C, H, W, patch_size, stride", PATCH_CONFIGS)
+def test_patch_dataset_matches_patchify(B, C, H, W, patch_size, stride):
+    """PatchDataset items are consistent with image_to_patches output."""
+    torch.manual_seed(42)
+    imgs = torch.randn(B, C, H, W)
+    ds = PatchDataset(imgs, patch_size=patch_size, stride=stride, shape=None)
+    patches = image_to_patches(imgs, patch_size=patch_size, stride=stride)
+    num_rows, num_cols = patches.shape[2], patches.shape[3]
+    num_pch = num_rows * num_cols
+
+    assert len(ds) == B * num_pch
+    for b in range(B):
+        for i in range(num_rows):
+            for j in range(num_cols):
+                p = i * num_cols + j
+                assert torch.equal(ds[b * num_pch + p], patches[b, :, i, j])
+
+
+def test_patch_dataset_shape_flat():
+    """With shape=(-1,), each item is flattened."""
+    imgs = torch.randn(2, 3, 12, 12)
+    ds = PatchDataset(imgs, patch_size=4, stride=2, shape=(-1,))
+    assert ds[0].shape == (3 * 4 * 4,)
+
+
+def test_patch_dataset_transform():
+    """Transform is applied to each patch."""
+    torch.manual_seed(0)
+    imgs = torch.randn(1, 1, 8, 8)
+    transform = lambda x: x * 2 + 1
+    ds = PatchDataset(imgs, patch_size=4, stride=4, transform=transform, shape=None)
+    ds_raw = PatchDataset(imgs, patch_size=4, stride=4, shape=None)
+
+    for i in range(len(ds)):
+        assert torch.equal(ds[i], ds_raw[i] * 2 + 1)

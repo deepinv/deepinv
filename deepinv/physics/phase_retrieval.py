@@ -1,7 +1,9 @@
+from __future__ import annotations
 from functools import partial
 import math
 import torch
 import numpy as np
+from typing import Any
 from deepinv.optim.phase_retrieval import spectral_methods
 from deepinv.physics.compressed_sensing import CompressedSensing
 from deepinv.physics.forward import Physics, LinearPhysics
@@ -157,14 +159,14 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         self.img_size = img_size
         self.channelwise = channelwise
         self.dtype = dtype
-        self.device = device
         if rng is None:
             self.rng = torch.Generator(device=device)
         else:
             # Make sure that the random generator is on the same device as the physic generator
-            assert rng.device == torch.device(
-                device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
+            if rng.device != torch.device(device):  # pragma: no cover
+                raise ValueError(
+                    f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+                )
             self.rng = rng
 
         B = CompressedSensing(
@@ -230,15 +232,13 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         self.n = torch.prod(torch.tensor(self.img_size))
         self.m = torch.prod(torch.tensor(self.output_size))
         self.oversampling_ratio = self.m / self.n
-        assert (
-            n_layers % 1 == 0.5 or n_layers % 1 == 0
-        ), "n_layers must be an integer or an integer plus 0.5"
+        if not (n_layers % 1 == 0.5 or n_layers % 1 == 0):  # pragma: no cover
+            raise ValueError("n_layers must be an integer or an integer plus 0.5")
         self.n_layers = n_layers
         self.structure = self.get_structure(self.n_layers)
         self.shared_weights = shared_weights
 
         self.dtype = dtype
-        self.device = device
 
         self.mode = compare(img_size, output_size)
 
@@ -252,14 +252,14 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
                         shape=self.output_size,
                         mode=diagonal_mode,
                         dtype=self.dtype,
-                        device=self.device,
+                        device=device,
                     )
                 else:
                     diagonal = generate_diagonal(
                         shape=self.img_size,
                         mode=diagonal_mode,
                         dtype=self.dtype,
-                        device=self.device,
+                        device=device,
                     )
                 self.diagonals.append(diagonal)
         else:
@@ -268,14 +268,14 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
                     shape=self.output_size,
                     mode=diagonal_mode,
                     dtype=self.dtype,
-                    device=self.device,
+                    device=device,
                 )
             else:
                 diagonal = generate_diagonal(
                     shape=self.img_size,
                     mode=diagonal_mode,
                     dtype=self.dtype,
-                    device=self.device,
+                    device=device,
                 )
             self.diagonals = self.diagonals + [diagonal] * math.floor(self.n_layers)
 
@@ -355,12 +355,11 @@ class PtychographyLinearOperator(LinearPhysics):
     ):
         super().__init__(**kwargs)
 
-        self.device = device
         self.img_size = img_size
 
         if shifts is None:
             self.n_img = 25
-            shifts = torch.tensor(generate_shifts(img_size=img_size, n_img=self.n_img))
+            shifts = generate_shifts(img_size=img_size, n_img=self.n_img)
         else:
             self.n_img = len(shifts)
 
@@ -489,7 +488,6 @@ class Ptychography(PhaseRetrieval):
         )
         self.probe = B.probe
         self.shifts = B.shifts
-        self.device = device
         self.img_size = img_size
         super().__init__(B, **kwargs)
         self.name = f"Ptychography_PR"
@@ -522,7 +520,9 @@ def build_probe(img_size, type="disk", probe_radius=10, device="cpu"):
     return probe
 
 
-def generate_shifts(img_size, n_img=25, fov=None):
+def generate_shifts(
+    img_size: Any, n_img: int = 25, fov: int | None = None
+) -> torch.Tensor:
     """
     Generates the array of probe shifts across the image.
     Based on probe radius and field of view.
@@ -530,7 +530,7 @@ def generate_shifts(img_size, n_img=25, fov=None):
     :param img_size: Size of the image.
     :param int n_img: Number of shifts (must be a perfect square).
     :param int fov: Field of view for shift computation.
-    :return np.ndarray: Array of (x, y) shifts.
+    :return: Array of (x, y) shifts.
     """
     if fov is None:
         fov = img_size[-1]

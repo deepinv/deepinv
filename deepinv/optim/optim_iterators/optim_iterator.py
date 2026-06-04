@@ -1,4 +1,13 @@
+from __future__ import annotations
 import torch.nn as nn
+from deepinv.optim.utils import objective_function
+import warnings
+from typing import TYPE_CHECKING, Callable
+import torch
+
+if TYPE_CHECKING:
+    from deepinv.optim import DataFidelity, Prior
+    from deepinv.physics import Physics
 
 
 class OptimIterator(nn.Module):
@@ -7,7 +16,7 @@ class OptimIterator(nn.Module):
 
     An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
     :math:`F = f + \lambda \regname` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
-    and g is a regularizer. The fixed point iteration takes the form
+    and :math:`\regname` is a regularizer. The fixed point iteration takes the form
 
     .. math::
         \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, \regname, A, y, ...)
@@ -33,43 +42,66 @@ class OptimIterator(nn.Module):
     where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_{\regname}` are the steps on f and g respectively.
 
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f.
-    :param F_fn: function that returns the function F to be minimized at each iteration. Default: None.
-    :param bool has_cost: If True, the function F is computed at each iteration. Default: False.
-     """
+    :param cost_fn: function that returns the function F to be minimized at each iteration. Default: None.
+    :param bool has_cost: If True, the cost function :math:`D` is computed at each iteration. Default: True.
+    """
 
-    def __init__(self, g_first=False, F_fn=None, has_cost=False, **kwargs):
+    def __init__(
+        self,
+        g_first: bool = False,
+        cost_fn: Callable = None,
+        has_cost: bool = True,
+        **kwargs,
+    ):
         super(OptimIterator, self).__init__()
         self.g_first = g_first
-        self.F_fn = F_fn
         self.has_cost = has_cost
-        if self.F_fn is None:
-            self.has_cost = False
+        if "F_fn" in kwargs:
+            F_fn = kwargs.pop("F_fn")
+            warnings.warn(
+                "`F_fn` is deprecated and will be removed in a future release. "
+                "Use `cost_fn` instead.",
+                DeprecationWarning,
+            )
+            cost_fn = F_fn
+        if cost_fn is None and self.has_cost:
+            self.cost_fn = objective_function
+        else:
+            self.cost_fn = cost_fn
         self.f_step = fStep(g_first=self.g_first)
         self.g_step = gStep(g_first=self.g_first)
-        self.requires_grad_g = False
-        self.requires_prox_g = False
 
-    def relaxation_step(self, u, v, beta):
+    def relaxation_step(
+        self, u: torch.Tensor, v: torch.Tensor, beta: float
+    ) -> torch.Tensor:
         r"""
         Performs a relaxation step of the form :math:`\beta u + (1-\beta) v`.
 
         :param torch.Tensor u: First tensor.
         :param torch.Tensor v: Second tensor.
         :param float beta: Relaxation parameter.
-        :return: Relaxed tensor.
+        :return: (:class:`torch.Tensor`) Relaxed tensor.
         """
         return beta * u + (1 - beta) * v
 
     def forward(
-        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
-    ):
+        self,
+        X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        cur_data_fidelity: DataFidelity,
+        cur_prior: Prior,
+        cur_params: dict,
+        y: torch.Tensor,
+        physics: Physics,
+        *args,
+        **kwargs,
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]:
         r"""
         General form of a single iteration of splitting algorithms for minimizing :math:`F =  f + \lambda \regname`, alternating
         between a step on :math:`f` and a step on :math:`\regname`.
         The primal and dual variables as well as the estimated cost at the current iterate are stored in a dictionary
         `X` of the form `{'est': (x,z), 'cost': F}`.
 
-        :param dict X: Dictionary containing the current iterate and the estimated cost.
+        :param dict[str, tuple[torch.Tensor, torch.Tensor]] X: Dictionary containing the current iterate and the estimated cost.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
@@ -84,14 +116,17 @@ class OptimIterator(nn.Module):
             )
             x = self.g_step(z, cur_prior, cur_params, *args, **kwargs)
         else:
-            z = self.g_step(x_prev, cur_prior, cur_params)
+            z = self.g_step(x_prev, cur_prior, cur_params, *args, **kwargs)
             x = self.f_step(
                 z, cur_data_fidelity, cur_params, y, physics, *args, **kwargs
             )
         x = self.relaxation_step(x, x_prev, cur_params["beta"], *args, **kwargs)
         F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-            if self.has_cost
+            self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            if self.cost_fn is not None
+            and self.has_cost
+            and cur_data_fidelity is not None
+            and cur_prior is not None
             else None
         )
         return {"est": (x, z), "cost": F}
@@ -110,7 +145,14 @@ class fStep(nn.Module):
         self.g_first = g_first
 
         def forward(
-            self, x, cur_data_fidelity, cur_params, y, physics, *args, **kwargs
+            self,
+            x: torch.Tensor,
+            cur_data_fidelity: DataFidelity,
+            cur_params: dict,
+            y: torch.Tensor,
+            physics: Physics,
+            *args,
+            **kwargs,
         ):
             r"""
             Single iteration step on the data-fidelity term :math:`f`.
@@ -136,7 +178,9 @@ class gStep(nn.Module):
         super(gStep, self).__init__()
         self.g_first = g_first
 
-        def forward(self, x, cur_prior, cur_params, *args, **kwargs):
+        def forward(
+            self, x: torch.Tensor, cur_prior: Prior, cur_params: dict, *args, **kwargs
+        ):
             r"""
             Single iteration step on the prior term :math:`\regname`.
 

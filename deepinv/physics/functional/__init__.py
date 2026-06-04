@@ -3,6 +3,7 @@ from .convolution import (
     conv_transpose2d,
     conv2d_fft,
     conv_transpose2d_fft,
+    filter_fft,
     filter_fft_2d,
     conv3d,
     conv_transpose3d,
@@ -10,7 +11,18 @@ from .convolution import (
     conv_transpose3d_fft,
 )
 
+from .blur import (
+    gaussian_blur,
+    bilinear_filter,
+    bicubic_filter,
+    sinc_filter,
+    kaiser_window,
+)
+
 from .product_convolution import product_convolution2d, product_convolution2d_adjoint
+from .tiled_product_convolution import (
+    generate_tiled_multipliers,
+)
 
 from .multiplier import (
     multiplier,
@@ -20,7 +32,10 @@ from .multiplier import (
 from .hist import histogram, histogramdd
 from .radon import Radon, IRadon, RampFilter, ApplyRadon
 from .interp import ThinPlateSpline
-from .rand import random_choice
+from .rand import random_choice, random_uniform
 from .dst import dst1
+from .dct import dct, idct, dct_2d, idct_2d
 from .astra import XrayTransform
 from .imresize import imresize_matlab
+
+from .matrix import power_method

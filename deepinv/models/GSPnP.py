@@ -3,8 +3,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from typing import Union, Sequence  # noqa: F401
-from .utils import get_weights_url
+from .utils import get_weights_url, load_state_dict_from_url
 from .base import Denoiser
 
 
@@ -43,7 +42,7 @@ class GSPnP(Denoiser):
         return (
             0.5
             * self.alpha
-            * torch.norm((x - N).view(x.shape[0], -1), p=2, dim=-1) ** 2
+            * torch.linalg.vector_norm(x - N, dim=tuple(range(1, x.dim())), ord=2) ** 2
         )
 
     def potential_grad(
@@ -132,7 +131,7 @@ def GSDRUNet(
             elif in_channels == 1:
                 file_name = "GSDRUNet_grayscale_torch.ckpt"
             url = get_weights_url(model_name="gradientstep", file_name=file_name)
-            ckpt = torch.hub.load_state_dict_from_url(
+            ckpt = load_state_dict_from_url(
                 url,
                 map_location=lambda storage, loc: storage,
                 file_name=file_name,
@@ -143,6 +142,6 @@ def GSDRUNet(
         if "state_dict" in ckpt:
             ckpt = ckpt["state_dict"]
 
-        GSmodel.load_state_dict(ckpt, strict=False)
+        GSmodel.load_state_dict(ckpt, strict=True)
         GSmodel.eval()
     return GSmodel

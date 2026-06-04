@@ -23,7 +23,7 @@ See :ref:`pretrained models <pretrained-models>` for a principled comparison bet
 import deepinv as dinv
 import torch
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Let's say you want to reconstruct a butterfly from noisy, blurry measurements:
@@ -34,8 +34,10 @@ x = dinv.utils.load_example("butterfly.png", device=device)
 # Define physics
 physics = dinv.physics.BlurFFT(
     x.shape[1:],
-    filter=dinv.physics.blur.gaussian_blur((5, 5)),
-    noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+    filter=dinv.physics.functional.gaussian_blur(sigma=(5, 5)),
+    noise_model=dinv.physics.GaussianNoise(
+        sigma=0.1, rng=torch.Generator(device=x.device).manual_seed(123)
+    ),
     device=device,
 )
 
@@ -96,6 +98,11 @@ dinv.utils.plot(
     ],
     figsize=(10, 5),
 )
+
+
+# sphinx_gallery_start_ignore
+assert dinv.metric.PSNR()(x_hat1, x).item() > 19
+# sphinx_gallery_end_ignore
 
 # %%
 # 🎉 Well done, you now know how to use pretrained models!

@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Sequence
 import torch
 from deepinv.physics import LinearPhysics
 
@@ -36,29 +38,32 @@ class RadioInterferometry(LinearPhysics):
 
     def __init__(
         self,
-        img_size,
-        samples_loc,
-        dataWeight=None,
-        k_oversampling=2,
-        interp_points=7,
-        real_projection=True,
-        device="cpu",
+        img_size: tuple[int],
+        samples_loc: torch.Tensor,
+        dataWeight: torch.Tensor = None,
+        k_oversampling: float = 2,
+        interp_points: int | Sequence[int] = 7,
+        real_projection: bool = True,
+        device: torch.device | str = "cpu",
         **kwargs,
     ):
         import torchkbnufft as tkbn
 
-        if dataWeight is None:
-            dataWeight = torch.tensor([1.0])
-        super(RadioInterferometry, self).__init__(**kwargs)
+        super(RadioInterferometry, self).__init__(device=device, **kwargs)
 
-        self.device = device
+        if dataWeight is None:
+            dataWeight = torch.tensor([1.0], device=device)
+
         self.k_oversampling = k_oversampling
         self.interp_points = interp_points
         self.img_size = img_size
         self.real_projection = real_projection
 
         # Check image size format
-        assert len(self.img_size) == 2
+        if len(self.img_size) != 2:  # pragma: no cover
+            raise ValueError(
+                f"Image size must be length 2, but got img_size {self.img_size}"
+            )
 
         # Define oversampled grid
         self.grid_size = (
@@ -66,20 +71,20 @@ class RadioInterferometry(LinearPhysics):
             int(img_size[1] * self.k_oversampling),
         )
 
-        self.samples_loc = samples_loc.to(self.device)
-        self.dataWeight = dataWeight.to(self.device)
+        self.register_buffer("samples_loc", samples_loc.to(device))
+        self.register_buffer("dataWeight", dataWeight.to(device))
 
         self.nufftObj = tkbn.KbNufft(
             im_size=self.img_size,
             grid_size=self.grid_size,
             numpoints=self.interp_points,
-            device=self.device,
+            device=device,
         )
         self.adjnufftObj = tkbn.KbNufftAdjoint(
             im_size=self.img_size,
             grid_size=self.grid_size,
             numpoints=self.interp_points,
-            device=self.device,
+            device=device,
         )
 
         # Define adjoint operator projection
@@ -88,10 +93,12 @@ class RadioInterferometry(LinearPhysics):
         else:
             self.adj_projection = lambda x: x
 
-    def setWeight(self, w):
-        self.dataWeight = w.to(self.device)
+        self.to(device)
 
-    def A(self, x, **kwargs):
+    def setWeight(self, w: torch.Tensor):
+        self.dataWeight = w.to(self.dataWeight)
+
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Applies the weighted NUFFT operator to the input image.
 
@@ -103,7 +110,7 @@ class RadioInterferometry(LinearPhysics):
             * self.dataWeight
         )
 
-    def A_adjoint(self, y, **kwargs):
+    def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Applies the adjoint of the weighted NUFFT operator.
 

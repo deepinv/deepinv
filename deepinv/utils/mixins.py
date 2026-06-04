@@ -1,9 +1,19 @@
+from __future__ import annotations
+
 from typing import Callable
 import numpy as np
 import torch
 from torch import Tensor, zeros_like
 from torch.nn import Module
 from torchvision.transforms import CenterCrop, Resize
+from deepinv.utils.decorators import _deprecated_argument
+from ._tiling import (
+    _compute_compatible_img_size,
+    _compute_needed_pad,
+    _compute_num_patches,
+    _resolve_tiling_params,
+)
+from deepinv.utils.patch_extractor import image_to_patches, patches_to_image
 
 
 class TimeMixin:
@@ -112,21 +122,18 @@ class MRIMixin:
     Base class that provides helper functions for FFT and mask checking.
     """
 
-    def check_mask(
-        self, mask: Tensor = None, three_d: bool = False, device: str = "cpu", **kwargs
-    ) -> None:
+    @staticmethod
+    @_deprecated_argument("device")
+    def check_mask(mask: Tensor = None, three_d: bool = False) -> None:
         r"""
         Updates MRI mask and verifies mask shape to be B,C,...,H,W where C=2.
 
         :param torch.Tensor mask: MRI subsampling mask.
         :param bool three_d: If ``False`` the mask should be min 4 dimensions (B, C, H, W) for 2D data, otherwise if ``True`` the mask should have 5 dimensions (B, C, D, H, W) for 3D data.
-        :param torch.device, str device: mask intended device.
         """
         if mask is not None:
             if isinstance(mask, np.ndarray):
                 mask = torch.from_numpy(mask)
-
-            mask = mask.to(device)
 
             while len(mask.shape) < (
                 4 if not three_d else 5
@@ -240,7 +247,9 @@ class MRIMixin:
         return cropped
 
     @staticmethod
-    def rss(x: Tensor, multicoil: bool = True, three_d: bool = False) -> Tensor:
+    def rss(
+        x: Tensor, multicoil: bool = True, mag: bool = True, three_d: bool = False
+    ) -> Tensor:
         r"""Perform root-sum-square reconstruction on multicoil data, defined as
 
         .. math::
@@ -254,16 +263,186 @@ class MRIMixin:
             real and imaginary channels
         :param bool multicoil: if ``True``, assume ``x`` is of shape (B,2,N,...),
             and reduce over coil dimension N too.
+        :param bool mag: if `False`, do not reduce over the complex dimension. Rarely used.
+        :param bool three_d: used only for validating input shape, set to `True` if input is 3D data.
         """
-        assert (
-            x.shape[1] == 2 and not x.is_complex()
-        ), "x should be of shape (B,2,...) and not of complex dtype."
+        if x.shape[1] != 2 or x.is_complex():  # pragma: no cover
+            raise ValueError("x should be of shape (B,2,...) and not of complex dtype.")
 
         mc_dim = 1 if multicoil else 0
         th_dim = 1 if three_d else 0
-        assert (
-            len(x.shape) == 4 + mc_dim + th_dim
-        ), "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
+        if len(x.shape) != 4 + mc_dim + th_dim:  # pragma: no cover
+            raise ValueError(
+                "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
+            )
 
-        ss = x.pow(2).sum(dim=1, keepdim=True)
-        return ss.sum(dim=2).sqrt() if multicoil else ss.sqrt()
+        ss = x.pow(2)
+
+        if mag:
+            ss = ss.sum(dim=1, keepdim=True)
+
+        if multicoil:
+            ss = ss.sum(dim=2)
+
+        return ss.sqrt()
+
+
+class TiledMixin2d:
+    r"""
+    Mixin base class for 2D tiled patch extraction and reconstruction.
+    Provides methods to extract overlapping patches from images and reconstruct images from patches.
+
+    It also handles padding if necessary to ensure all patches have the same size.
+    The patch extraction and reconstruction are implemented using PyTorch's unfold and fold operations for efficiency.
+
+    :param int | tuple[int, int] patch_size: Size of each patch (height, width) or single `int` for square patches.
+    :param int | tuple[int, int] stride: Stride between adjacent patches (height, width). If a single `int` is provided, it is used for both dimensions. Defaults to half the patch size.
+    :param bool pad_if_needed: If `True`, the image will be padded if necessary to ensure all patches have the same size. Defaults to `True`.
+
+    |sep|
+
+    The following example demonstrates how to use the `TiledMixin2d` to extract patches from an image and reconstruct the image from those patches.
+
+    :Examples:
+
+        >>> import torch
+        >>> from deepinv.utils.mixins import TiledMixin2d
+        >>> # Create an image of shape (B, C, H, W)
+        >>> B, C, H, W = 1, 1, 5, 5
+        >>> image = torch.arange(B * C * H * W, dtype=torch.float32).reshape(B, C, H, W)
+        >>> print(image)
+        tensor([[[[ 0.,  1.,  2.,  3.,  4.],
+                  [ 5.,  6.,  7.,  8.,  9.],
+                  [10., 11., 12., 13., 14.],
+                  [15., 16., 17., 18., 19.],
+                  [20., 21., 22., 23., 24.]]]])
+
+        >>> # Initialize the TiledMixin2d with patch size and stride
+        >>> patch_size = (3, 3)
+        >>> stride = (2, 2)
+        >>> tiled_mixin = TiledMixin2d(patch_size=patch_size, stride=stride)
+
+        >>> # Extract patches from the image
+        >>> patches = tiled_mixin.image_to_patches(image)
+        >>> print("Extracted Patches Shape:", patches.shape)
+        Extracted Patches Shape: torch.Size([1, 1, 2, 2, 3, 3])
+        >>> print(patches[..., 0, 0, :, :]) # Print the first patch for verification
+        tensor([[[[ 0.,  1.,  2.],
+                  [ 5.,  6.,  7.],
+                  [10., 11., 12.]]]])
+
+        >>> # Reconstruct the image from the patches
+        >>> reconstructed_image = tiled_mixin.patches_to_image(patches, img_size=(H, W))
+        >>> print("Reconstructed Image Shape:", reconstructed_image.shape)
+        Reconstructed Image Shape: torch.Size([1, 1, 5, 5])
+        >>> print(reconstructed_image)
+        tensor([[[[ 0.,  1.,  4.,  3.,  4.],
+                  [ 5.,  6., 14.,  8.,  9.],
+                  [20., 22., 48., 26., 28.],
+                  [15., 16., 34., 18., 19.],
+                  [20., 21., 44., 23., 24.]]]])
+        >>> # Note that by default, the reconstructed image is not necessarily equal to the original image due to overlapping regions being summed. Setting `reduce_overlap="mean"` in `patches_to_image` will average the overlapping regions instead of summing, which can give a closer reconstruction to the original image.
+        >>> reconstructed_image_mean = tiled_mixin.patches_to_image(patches, img_size=(H, W), reduce_overlap="mean")
+        >>> print(reconstructed_image_mean)
+        tensor([[[[ 0.,  1.,  2.,  3.,  4.],
+                  [ 5.,  6.,  7.,  8.,  9.],
+                  [10., 11., 12., 13., 14.],
+                  [15., 16., 17., 18., 19.],
+                  [20., 21., 22., 23., 24.]]]])
+    """
+
+    def __init__(
+        self,
+        patch_size: int | tuple[int, ...],
+        stride: int | tuple[int, ...] = None,
+        pad_if_needed: bool = True,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.patch_size, self.stride = _resolve_tiling_params(patch_size, stride)
+        self.pad_if_needed = pad_if_needed
+
+    def image_to_patches(
+        self, image: Tensor, pad: int | tuple[int, int, int, int] = (0, 0, 0, 0)
+    ) -> Tensor:
+        r"""
+        Split an image into overlapping patches.
+
+        The image will be padded if necessary to ensure all patches have the same size.
+
+        :param torch.Tensor image: Input image tensor of shape `(B, C, H, W)`.
+        :param int | tuple[int, int, int, int] pad: Optional, if provided, the patch size will be increased by this padding on each side. Can be a single int for symmetric padding or a tuple of 4 ints for (left, right, top, bottom) padding. Defaults to `(0, 0, 0, 0)` for no additional padding. If provided, this padding is added on top of any padding that may be needed to ensure compatible patch extraction. So the effective patch size will become `patch_size + pad`.
+        :return: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
+
+        .. note::
+
+            The `pad` argument allows you to specify additional padding to be added to the patch size. This can be useful if you want to include some context around each patch. For example, if you have a patch size of (3, 3) and you set `pad=1`, then the effective patch size will become (5, 5). This is useful when you want perform operations that require context around the patch, such as convolutional operations.
+
+        """
+        return image_to_patches(
+            image=image,
+            patch_size=self.patch_size,
+            stride=self.stride,
+            pad_if_needed=self.pad_if_needed,
+            pad=pad,
+        )
+
+    def patches_to_image(
+        self,
+        patches: Tensor,
+        img_size: tuple[int, int] | None = None,
+        reduce_overlap: str = "sum",
+    ) -> Tensor:
+        r"""
+        Reconstruct an image from overlapping patches.
+
+        This is the inverse operation of `image_to_patches`. Note that overlapping
+        regions are summed. So the reconstructed image is not necessarily equal to the original image.
+
+        :param torch.Tensor patches: Patches tensor of shape `(B, C, n_rows, n_cols, patch_h, patch_w)`.
+        :param img_size: Target output size (height, width). If provided, output is cropped to this size from the top-left corner.
+        :param reduce_overlap: How to handle overlapping regions. Options are `"sum"` or `"mean"`. If `"sum"`, overlapping regions are summed (default). If `"mean"`, overlapping regions are averaged, which can give an identical reconstruction to the original image.
+
+        :return: Reconstructed image tensor of shape `(B, C, H, W)`.
+        """
+        return patches_to_image(
+            patches=patches,
+            stride=self.stride,
+            img_size=img_size,
+            reduce_overlap=reduce_overlap,
+        )
+
+    def get_needed_pad(self, img_size: tuple[int, int]) -> tuple[int, int]:
+        """
+        Get required padding.
+
+        :param img_size: Original image size (height, width).
+        :return: Tuple of (compatible_size, padding).
+        """
+        return _compute_needed_pad(img_size, self.patch_size, self.stride)
+
+    def get_compatible_img_size(self, img_size: tuple[int, int]) -> tuple[int, int]:
+        """
+        Get compatible image size for patch extraction.
+
+        :param img_size: Original image size (height, width).
+        :return: Compatible image size (height, width).
+        """
+        return _compute_compatible_img_size(img_size, self.patch_size, self.stride)
+
+    def get_num_patches(self, img_size: tuple[int, int]) -> tuple[int, int]:
+        """
+        Get number of patches along height and width.
+            - If `pad_if_needed` is `True`, this will return the number of patches that can be extracted after padding the image to a compatible size.
+            - If `pad_if_needed` is `False`, this will return the number of patches that can be extracted without padding, which may not cover the whole image.
+
+        :param img_size: Image size (height, width).
+        :return: Number of patches (n_h, n_w).
+        """
+        return _compute_num_patches(
+            img_size=img_size,
+            patch_size=self.patch_size,
+            stride=self.stride,
+            pad_if_needed=self.pad_if_needed,
+        )

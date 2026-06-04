@@ -43,6 +43,7 @@ Advanced transforms
     deepinv.transform.projective.Affine
     deepinv.transform.projective.PanTiltRotate
     deepinv.transform.CPABDiffeomorphism
+    deepinv.transform.rotate_via_shear
 
 Video transforms
 ----------------

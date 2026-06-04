@@ -1,3 +1,4 @@
+from __future__ import annotations
 from deepinv.physics.forward import LinearPhysics
 import torch
 import numpy as np
@@ -6,14 +7,14 @@ from torch import Tensor
 from deepinv.utils.decorators import _deprecated_alias
 
 
-def dst1(x):
+def dst1(x: Tensor) -> Tensor:
     r"""
     Orthogonal Discrete Sine Transform, Type I
     The transform is performed across the last dimension of the input signal
     Due to orthogonality we have ``dst1(dst1(x)) = x``.
 
     :param torch.Tensor x: the input signal
-    :return: (torch.tensor) the DST-I of the signal over the last dimension
+    :return: (torch.Tensor) the DST-I of the signal over the last dimension
 
     """
     x_shape = x.shape
@@ -100,22 +101,21 @@ class CompressedSensing(LinearPhysics):
     @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
-        m,
-        img_size,
-        fast=False,
-        channelwise=False,
-        dtype=torch.float,
-        device="cpu",
+        m: int,
+        img_size: tuple[int],
+        fast: bool = False,
+        channelwise: bool = False,
+        dtype: torch.dtype = torch.float,
+        device: torch.device | str = "cpu",
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         self.name = f"CS_m{m}"
         self.img_size = img_size
         self.fast = fast
         self.channelwise = channelwise
         self.dtype = dtype
-        self.device = device
 
         if rng is None:
             self.rng = torch.Generator(device=device)
@@ -123,7 +123,7 @@ class CompressedSensing(LinearPhysics):
             # Make sure that the random generator is on the same device as the physic generator
             assert rng.device == torch.device(
                 device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
+            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
             self.rng = rng
         self.register_buffer("initial_random_state", self.rng.get_state())
 

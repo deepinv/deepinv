@@ -50,6 +50,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
         >>> import torch
         >>> from deepinv.transform import Shift, Rotate
+        >>> from torchvision.transforms import InterpolationMode
         >>> x = torch.rand((1, 1, 2, 2)) # Define random image (B,C,H,W)
         >>> transform = Shift() # Define random shift transform
         >>> transform(x).shape
@@ -68,19 +69,25 @@ class Transform(torch.nn.Module, TimeMixin):
 
         Multiply transforms to create compound transforms (direct product of groups) - similar to ``torchvision.transforms.Compose``:
 
-        >>> rotoshift = Rotate() * Shift() # Chain rotate and shift transforms
+        >>> rotoshift = Rotate(
+        ...     interpolation_mode=InterpolationMode.BILINEAR
+        ... ) * Shift() # Chain rotate and shift transforms
         >>> rotoshift(x).shape
         torch.Size([1, 1, 2, 2])
 
         Sum transforms to create stacks of transformed images (along the batch dimension).
 
-        >>> transform = Rotate() + Shift() # Stack rotate and shift transforms
+        >>> transform = Rotate(
+        ...     interpolation_mode=InterpolationMode.BILINEAR
+        ... ) + Shift() # Stack rotate and shift transforms
         >>> transform(x).shape
         torch.Size([2, 1, 2, 2])
 
         Randomly select from transforms - similar to ``torchvision.transforms.RandomApply``:
 
-        >>> transform = Rotate() | Shift() # Randomly select rotate or shift transforms
+        >>> transform = Rotate(
+        ...     interpolation_mode=InterpolationMode.BILINEAR
+        ... ) | Shift() # Randomly select rotate or shift transforms
         >>> transform(x).shape
         torch.Size([1, 1, 2, 2])
 
@@ -210,7 +217,10 @@ class Transform(torch.nn.Module, TimeMixin):
         if batchwise:
             return self.transform(x, **inv_params)
 
-        assert len(x) % self.n_trans == 0, "batchwise must be True"
+        if len(x) % self.n_trans != 0:  # pragma: no cover
+            raise ValueError(
+                f"batchwise=False requires len(x) to be divisible by n_trans, but got len(x)={len(x)} and n_trans={self.n_trans}. Set batchwise=True or adjust the batch size."
+            )
         B = len(x) // self.n_trans
         return torch.cat(
             [
@@ -316,7 +326,10 @@ class Transform(torch.nn.Module, TimeMixin):
 
         class ChainTransform(Transform):
             def __init__(self, t1: Transform, t2: Transform):
-                super().__init__(flatten_video_input=t1.flatten_video_input)
+                n_trans = t1.n_trans * t2.n_trans
+                super().__init__(
+                    n_trans=n_trans, flatten_video_input=t1.flatten_video_input
+                )
                 self.t1 = t1
                 self.t2 = t2
                 self.constant_shape = t1.constant_shape and t2.constant_shape

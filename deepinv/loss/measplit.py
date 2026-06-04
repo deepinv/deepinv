@@ -34,7 +34,6 @@ class SplittingLoss(Loss):
     This loss was used for MRI in SSDU :footcite:t:`yaman2020self` for MRI, Noise2Inverse :footcite:t:`hendriksen2020noise2inverse` for CT, as well as numerous other papers.
     Note we implement the multi-mask strategy proposed by :footcite:t:`yaman2020self`.
 
-
     By default, the error is computed using the MSE metric, however any appropriate metric can be used.
 
     .. warning::
@@ -51,6 +50,10 @@ class SplittingLoss(Loss):
     .. note::
 
         To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in SSDU :footcite:t:`yaman2020self`.
+
+    .. note::
+
+        This loss allows training over images of varying shapes.
 
     .. seealso::
 
@@ -104,7 +107,7 @@ class SplittingLoss(Loss):
         if metric is None:
             metric = torch.nn.MSELoss()
         super().__init__()
-        self.name = "ms"
+        self._name = "ms"
         self.metric = metric
         self.mask_generator = mask_generator
         self.split_ratio = split_ratio
@@ -158,15 +161,18 @@ class SplittingLoss(Loss):
         :return: (:class:`torch.Tensor`) loss.
         """
         # Get splitting mask and make sure it is subsampled from physics mask, if it exists
-        mask = model.get_mask() * getattr(physics, "mask", 1.0)
-
-        # Create output mask M_2 = I - M_1
-        mask2 = getattr(physics, "mask", 1.0) - mask
-        y2, physics2 = self.split(mask2, y, physics)
-
-        l = self.metric(physics2.A(x_net), y2)
-
-        return l / mask2.mean() if self.normalize_loss else l
+        masks = model.get_masks()
+        loss_values = []
+        for mask1 in masks:
+            mask1 = mask1 * getattr(physics, "mask", 1.0)
+            mask2 = getattr(physics, "mask", 1.0) - mask1
+            y2, physics2 = self.split(mask2, y, physics)
+            loss_value = self.metric(physics2.A(x_net), y2)
+            if self.normalize_loss:
+                loss_value = loss_value / mask2.mean()
+            loss_values.append(loss_value)
+        loss_values = torch.stack(loss_values, dim=-1)
+        return loss_values.mean(-1)
 
     def adapt_model(
         self, model: torch.nn.Module, eval_n_samples=None
@@ -245,7 +251,7 @@ class SplittingLoss(Loss):
             self.model = model
             self.split_ratio = split_ratio
             self.eval_n_samples = eval_n_samples
-            self.mask = 0
+            self.masks = None
             self.mask_generator = mask_generator
             self.eval_split_input = eval_split_input
             self.eval_split_output = eval_split_output
@@ -269,17 +275,21 @@ class SplittingLoss(Loss):
             """
 
             if self.mask_generator is None:
-                warn("Mask generator not defined. Using new Bernoulli mask generator.")
+                if self.split_ratio is None:
+                    raise ValueError(
+                        f"Neither mask_generator nor split_ratio defined. Please provide one of them to generate splitting masks."
+                    )
+                warn(
+                    f"Mask generator not defined. Using new Bernoulli mask generator with shape {y.shape[-2:]}."
+                )
                 self.mask_generator = BernoulliSplittingMaskGenerator(
-                    img_size=y.shape[1:],
+                    img_size=(
+                        y.shape[1],
+                        *y.shape[-2:],
+                    ),  # (C, H, W) with no intermediate dims
                     split_ratio=self.split_ratio,
                     pixelwise=self.pixelwise,
                     device=y.device,
-                )
-
-            if self.mask_generator.img_size[-2:] != y.shape[-2:]:
-                raise ValueError(
-                    f"Mask generator should be same shape as y in last 2 dims, but mask has {self.mask_generator.img_size[-2:]} and y has {y.shape[-2:]}"
                 )
 
             with torch.set_grad_enabled(self.training):
@@ -303,18 +313,25 @@ class SplittingLoss(Loss):
             eval_n_samples = 1 if self.training else self.eval_n_samples
             out = 0
 
+            masks = [] if update_parameters else None
+
             for _ in range(eval_n_samples):
                 # Perform input masking
+
                 mask = self.mask_generator.step(
                     y.size(0), input_mask=getattr(physics, "mask", None)
                 )["mask"]
+
                 y1, physics1 = self.split(mask, y, physics)
 
                 # Forward pass
                 out += self.model(y1, physics1) / eval_n_samples
 
-            if self.training and update_parameters:
-                self.mask = mask.clone()
+                if masks is not None:
+                    masks += [mask.clone()]
+
+            if masks is not None:
+                self.masks = masks
 
             return out
 
@@ -322,14 +339,20 @@ class SplittingLoss(Loss):
             """
             Perform splitting at model output too, only at eval time
             """
-            out = 0
-            normalizer = torch.zeros_like(y)
+            out = 0.0
+            normalizer = 0.0
 
             for _ in range(self.eval_n_samples):
                 # Perform input masking
                 mask = self.mask_generator.step(
-                    y.size(0), input_mask=getattr(physics, "mask", None)
+                    batch_size=y.size(0), input_mask=getattr(physics, "mask", None)
                 )["mask"]
+
+                if mask.shape[-2:] != y.shape[-2:]:
+                    raise ValueError(
+                        f"Generated mask should be same shape as y in last 2 dims, but mask has {mask.shape[-2:]} and y has {y.shape[-2:]}"
+                    )
+
                 y1, physics1 = self.split(mask, y, physics)
 
                 # Forward pass
@@ -344,12 +367,36 @@ class SplittingLoss(Loss):
 
             return out
 
-        def get_mask(self):
-            if not isinstance(self.mask, torch.Tensor):
+        @property
+        def mask(self):
+            warn(
+                "The 'mask' property is deprecated. Use get_masks() instead.",
+                DeprecationWarning,
+                stacklevel=1,
+            )
+            if self.masks:
+                return self.masks[-1]
+            else:
+                return 0
+
+        def get_masks(self):
+            if not self.masks:
                 raise ValueError(
                     "Mask not generated during forward pass - use model(y, physics, update_parameters=True)"
                 )
-            return self.mask
+            return self.masks
+
+        def get_mask(self):
+            warn(
+                "The 'get_mask' method is deprecated. Use get_masks() instead.",
+                DeprecationWarning,
+                stacklevel=1,
+            )
+            if not self.masks:
+                raise ValueError(
+                    "Mask not generated during forward pass - use model(y, physics, update_parameters=True)"
+                )
+            return self.masks[-1]
 
 
 class Neighbor2Neighbor(Loss):
@@ -384,16 +431,18 @@ class Neighbor2Neighbor(Loss):
         if metric is None:
             metric = torch.nn.MSELoss()
         super().__init__()
-        self.name = "neigh2neigh"
+        self._name = "neigh2neigh"
         self.metric = metric
         self.gamma = gamma
 
-    def space_to_depth(self, x, block_size):
+    @staticmethod
+    def space_to_depth(x, block_size):
         n, c, h, w = x.size()
         unfolded_x = torch.nn.functional.unfold(x, block_size, stride=block_size)
         return unfolded_x.view(n, c * block_size**2, h // block_size, w // block_size)
 
-    def generate_mask_pair(self, img):
+    @staticmethod
+    def generate_mask_pair(img):
         # prepare masks (N x C x H/2 x W/2)
         n, c, h, w = img.shape
         mask1 = torch.zeros(
@@ -425,14 +474,15 @@ class Neighbor2Neighbor(Loss):
         mask2[rd_pair_idx[:, 1]] = 1
         return mask1, mask2
 
-    def generate_subimages(self, img, mask):
+    @classmethod
+    def generate_subimages(cls, img, mask):
         n, c, h, w = img.shape
         subimage = torch.zeros(
             n, c, h // 2, w // 2, dtype=img.dtype, layout=img.layout, device=img.device
         )
         # per channel
         for i in range(c):
-            img_per_channel = self.space_to_depth(img[:, i : i + 1, :, :], block_size=2)
+            img_per_channel = cls.space_to_depth(img[:, i : i + 1, :, :], block_size=2)
             img_per_channel = img_per_channel.permute(0, 2, 3, 1).reshape(-1)
             subimage[:, i : i + 1, :, :] = (
                 img_per_channel[mask].reshape(n, h // 2, w // 2, 1).permute(0, 3, 1, 2)
@@ -450,10 +500,14 @@ class Neighbor2Neighbor(Loss):
         :return: (:class:`torch.Tensor`) loss.
         """
 
-        assert len(y.shape) == 4, "Input measurements should be images"
-        assert (
-            y.shape[2] % 2 == 0 and y.shape[3] % 2 == 0
-        ), "Image dimensions should be even"
+        if len(y.shape) != 4:  # pragma: no cover
+            raise ValueError(
+                f"Input measurements should be of shape B, C, H, W, got shape {tuple(y.shape)}"
+            )
+        if y.shape[2] % 2 != 0 or y.shape[3] % 2 != 0:  # pragma: no cover
+            raise ValueError(
+                f"Image dimensions (last two dims) should be even, got tensor of shape {tuple(y.shape)}"
+            )
 
         mask1, mask2 = self.generate_mask_pair(y)
 

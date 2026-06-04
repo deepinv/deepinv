@@ -79,6 +79,7 @@ Other Datasets
    :nosignatures:
 
     deepinv.datasets.PatchDataset
+    deepinv.datasets.RandomPatchSampler
     deepinv.datasets.utils.PlaceholderDataset
 
 

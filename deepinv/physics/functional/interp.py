@@ -44,27 +44,23 @@ class ThinPlateSpline:
 
     .. math::
 
-        \begin{equation*}
-            A      \cdot   P =   Y
-        \end{equation*}
+         A \cdot P =   Y
 
     .. math::
 
-        \begin{align*}
-            \begin{bmatrix}
-                K   & X'_c \\
-                X_{c}^{'T} &   0
-            \end{bmatrix} 
-            \begin{bmatrix}
-                C \\
-                B'
-            \end{bmatrix}   
-            = 
-            \begin{bmatrix}
-                X_t \\
-                0
-            \end{bmatrix}
-        \end{align*}
+        \begin{bmatrix}
+            K   & X'_c \\
+            X_{c}^{'T} &   0
+        \end{bmatrix}
+        \begin{bmatrix}
+            C \\
+            B'
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+            X_t \\
+            0
+        \end{bmatrix}
 
     with :math:`X'_c = [1_{n_c}, X_c]  \in \mathbb{R}^{n_c \times (1+d_s)}`, :math:`B'` = :math:`[A, B^{\top}]`
     in :math:`\mathbb{R}^{d_t \times (1+d_s)}`
@@ -86,8 +82,8 @@ class ThinPlateSpline:
         self.device = torch.device(device)
         self.dtype = dtype
 
-        self.parameters = torch.tensor([], dtype=torch.float32)
-        self.control_points = torch.tensor([], dtype=torch.float32)
+        self.parameters = torch.tensor([], dtype=torch.float32, device=device)
+        self.control_points = torch.tensor([], dtype=torch.float32, device=device)
 
     def fit(self, X: torch.Tensor, Y: torch.Tensor):
         r"""Learn f that matches Y given X
