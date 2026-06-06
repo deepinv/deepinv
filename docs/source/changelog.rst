@@ -8,6 +8,18 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+
+v0.4.1
+------
+New Features
+^^^^^^^^^^^^
 - Add :class:`deepinv.models.DEAL` model (:gh:`1107` by `Hossein Alimohammadi`_)
 - Add install guidelines for different platforms (`pixi`, `conda`, `pip`, `uv`) in docs (:gh:`1108` by `Julian Tachella`_)
 - Add :class:`deepinv.optim.SIRT` algorithm for tomographic reconstruction (:gh:`985` by `Thibaut Modrzyk`_)
@@ -44,6 +56,8 @@ Fixed
 - Fix :class:`deepinv.sampling.DPS` instantiation and refactor to use new SDE interface (:gh:`1127` by `Minh Hai Nguyen`_) 
 - Fix a bug that caused :class:`deepinv.models.BM3D` to silently break for multi-channel images when the number of channels is not 3 (:gh:`1192` by `Kaibo Tang`_)
 - Fix option "mode" for the wavelet transform, which was not correctly propagated; add this option in :class:`deepinv.models.WaveletDictDenoiser` (:gh:`1162` by `Irène Waldspurger`_)
+
+
 
 v0.4.0
 ------
