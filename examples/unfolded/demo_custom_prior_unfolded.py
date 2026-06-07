@@ -70,8 +70,8 @@ test_base_dataset = datasets.MNIST(
 num_workers = 4 if torch.cuda.is_available() else 0
 
 # Generate the compressed sensing measurement operator.
-physics = dinv.physics.CompressedSensing(
-    m=200, img_size=(n_channels, img_size, img_size), fast=True, device=device
+physics = dinv.physics.StructuredRandom(
+    img_size=(n_channels, img_size, img_size), output_size=(3, 24, 24), device=device
 )
 my_dataset_name = "demo_LICP"
 n_images_max = 200

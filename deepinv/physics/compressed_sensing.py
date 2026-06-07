@@ -33,19 +33,12 @@ class CompressedSensing(LinearPhysics):
     Compressed Sensing forward operator. Creates a random sampling :math:`m \times n` matrix where :math:`n` is the
     number of elements of the signal, i.e., ``np.prod(img_size)`` and ``m`` is the number of measurements.
 
-    This class generates a random iid Gaussian matrix if ``fast=False``
+    This class generates a random iid Gaussian matrix
 
     .. math::
 
         A_{i,j} \sim \mathcal{N}(0,\frac{1}{m})
 
-    or a Subsampled Orthogonal with Random Signs matrix (SORS) if ``fast=True`` (see :footcite:t:`oymak2018isometric`)
-
-    .. math::
-
-        A = \text{diag}(m)D\text{diag}(s)
-
-    where :math:`s\in\{-1,1\}^{n}` is a random sign flip with probability 0.5,
     :math:`D\in\mathbb{R}^{n\times n}` is a fast orthogonal transform (DST-1) and
     :math:`\text{diag}(m)\in\mathbb{R}^{m\times n}` is random subsampling matrix, which keeps :math:`m` out of :math:`n` entries.
 
@@ -60,7 +53,7 @@ class CompressedSensing(LinearPhysics):
         The forward operator has a norm which tends to :math:`(1+\sqrt{n/m})^2` for large :math:`n`
         and :math:`m` due to the `Marcenko-Pastur law
         <https://en.wikipedia.org/wiki/Marchenko%E2%80%93Pastur_distribution>`_.
-
+    If ``dtype=torch.cfloat``, the forward operator will be generated as a random i.i.d. complex Gaussian matrix
 
     .. math::
 

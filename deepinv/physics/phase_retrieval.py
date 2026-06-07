@@ -170,7 +170,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         B = CompressedSensing(
             m=m,
             img_size=img_size,
-            fast=False,
             channelwise=channelwise,
             dtype=dtype,
             device=device,
