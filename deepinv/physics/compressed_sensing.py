@@ -53,6 +53,7 @@ class CompressedSensing(LinearPhysics):
         The forward operator has a norm which tends to :math:`(1+\sqrt{n/m})^2` for large :math:`n`
         and :math:`m` due to the `Marcenko-Pastur law
         <https://en.wikipedia.org/wiki/Marchenko%E2%80%93Pastur_distribution>`_.
+
     If ``dtype=torch.cfloat``, the forward operator will be generated as a random i.i.d. complex Gaussian matrix
 
     .. math::
