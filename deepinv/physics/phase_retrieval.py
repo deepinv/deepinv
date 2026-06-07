@@ -150,8 +150,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         channelwise=False,
         dtype=torch.cfloat,
         device="cpu",
-        unitary=False,
-        compute_inverse=False,
         rng: torch.Generator = None,
         **kwargs,
     ):
