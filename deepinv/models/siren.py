@@ -4,7 +4,7 @@ import math
 import torch
 import torch.nn as nn
 from tqdm import tqdm
-from .base import Reconstructor
+from deepinv.models.base import Reconstructor
 from deepinv.utils.decorators import _deprecated_alias
 from deepinv.loss.mc import MCLoss
 
@@ -320,7 +320,7 @@ class SirenReconstructor(Reconstructor):
 
         optimizer = torch.optim.Adam(self.siren_net.parameters(), lr=self.lr)
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
-            x = self.siren_net(z).view(self.img_size)
+            x = self.siren_net(z).view(self.img_size).unsqueeze(0)
             error = self.loss(y=y, x_net=x, physics=physics)
             if self.regul_param is not None:
                 error += self.regul_param * self.prior(x, z)

@@ -196,6 +196,9 @@ physics = dinv.physics.Downsampling(
 # Apply the degradation to the image
 y = physics(x)
 
+# Clean low-resolution ground truth, used to evaluate the low-resolution reconstruction
+x_lr = physics.A(x)
+
 # %%
 iterations = 500
 lr = 1e-2
@@ -227,7 +230,9 @@ x_siren = model(y, physics_f)
 # %%
 # TODO: explain more
 # Super-resolution by evaluating the trained network at a finer grid
-x_siren_super_resolved = model.siren_net(get_mgrid(x.shape[2:])).view(x.shape[1:])
+x_siren_super_resolved = model.siren_net(get_mgrid(x.shape[2:]).to(device)).view(
+    x.shape[1:]
+)
 
 # plot results
 plot(
@@ -236,7 +241,7 @@ plot(
     subtitles=[
         "",
         "",
-        f"SIREN PSNR: {dinv.metric.PSNR()(x, x_siren).item():.2f} dB",
+        f"SIREN PSNR: {dinv.metric.PSNR()(x_lr, x_siren).item():.2f} dB",
         f"SIREN super-res PSNR: {dinv.metric.PSNR()(x, x_siren_super_resolved.clip(0, 1)).item():.2f} dB",
     ],
     rescale_mode="clip",
@@ -273,7 +278,11 @@ class Gradient(dinv.physics.Physics):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.register_buffer("z", torch.zeros(1))
+        # Register the coordinate grid buffer on the working device so that the
+        # grid passed by SirenReconstructor.update_parameters is kept as-is
+        # (a same-device, same-dtype ``.to()`` is a no-op that preserves the
+        # autograd graph). On a different device it would be copied and detached.
+        self.register_buffer("z", torch.zeros(1, device=device))
         # NOTE: We here have defined an attribute to store the pixel grid.
         # Its value will be automatically updated when calling the SirenReconstructor.
 
