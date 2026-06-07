@@ -249,7 +249,7 @@ plot(
 
 # %%
 # 2. Gradient supervised reconstruction
-# ------------------------------------
+# -------------------------------------
 # TODO: why are we interested in this? for mathematical interest?
 # In the second part, we exploit the fact that INRs are intrisically smooth continuous models; their gradient can be computed exactly with autograd. We show an example of an image recontruction problem where the forward operator :math:`A` is a gradient operator.
 
