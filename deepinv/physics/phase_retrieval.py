@@ -120,8 +120,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
     :param int m: number of measurements.
     :param tuple img_size: shape (C, H, W) of inputs.
     :param bool channelwise: Channels are processed independently using the same random forward operator.
-    :param bool unitary: Use a random unitary matrix instead of Gaussian matrix. Default is False.
-    :param bool compute_inverse: Compute the pseudo-inverse of the forward matrix. Default is False.
     :param torch.dtype dtype: Forward matrix is stored as a dtype. Default is torch.cfloat.
     :param str device: Device to store the forward matrix.
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
