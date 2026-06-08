@@ -39,9 +39,6 @@ class CompressedSensing(LinearPhysics):
 
         A_{i,j} \sim \mathcal{N}(0,\frac{1}{m})
 
-    :math:`D\in\mathbb{R}^{n\times n}` is a fast orthogonal transform (DST-1) and
-    :math:`\text{diag}(m)\in\mathbb{R}^{m\times n}` is random subsampling matrix, which keeps :math:`m` out of :math:`n` entries.
-
     For image sizes bigger than 32 x 32, the forward computation can be prohibitively expensive due to its :math:`O(mn)` complexity.
     In this case, we recommend using :class:`deepinv.physics.StructuredRandom` instead.
 

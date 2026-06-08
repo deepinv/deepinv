@@ -72,7 +72,9 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 # Generate the compressed sensing measurement operator with 5x under-sampling factor.
 physics = dinv.physics.StructuredRandom(
-    img_size=(n_channels, img_size, img_size), output_size=(3, 17, 17), device=device
+    img_size=(n_channels, img_size, img_size),
+    output_size=(n_channels, 13, 13),
+    device=device,
 )
 my_dataset_name = "demo_LISTA"
 n_images_max = (

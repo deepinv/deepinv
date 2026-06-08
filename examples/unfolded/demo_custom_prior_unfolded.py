@@ -71,7 +71,9 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 # Generate the compressed sensing measurement operator.
 physics = dinv.physics.StructuredRandom(
-    img_size=(n_channels, img_size, img_size), output_size=(3, 24, 24), device=device
+    img_size=(n_channels, img_size, img_size),
+    output_size=(n_channels, 15, 15),
+    device=device,
 )
 my_dataset_name = "demo_LICP"
 n_images_max = 200
