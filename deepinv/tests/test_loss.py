@@ -43,6 +43,62 @@ LIST_R2R = [
 ]
 
 
+class IdentityBackbone(torch.nn.Module):
+    def forward(self, x, sigma=None, **kwargs):
+        return x
+
+
+def seeded_generator(device, seed=0):
+    return torch.Generator(device=device).manual_seed(seed)
+
+
+def create_mri_dc_problem(device, sigma=0.05, size=16, fully_sampled=False):
+    coords = torch.linspace(-1.0, 1.0, size, device=device)
+    yy, xx = torch.meshgrid(coords, coords, indexing="ij")
+    real = ((xx.square() + yy.square()) < 0.45).float()
+    real += 0.25 * (((xx + 0.25).square() + (yy - 0.2).square()) < 0.06).float()
+    imag = 0.1 * torch.sin(torch.pi * xx) * torch.cos(torch.pi * yy)
+    x = torch.stack((real, imag), dim=0).unsqueeze(0)
+
+    if fully_sampled:
+        mask = torch.ones(size, size, device=device)
+    else:
+        mask = torch.zeros(size, size, device=device)
+        mask[::2] = 1.0
+        mask[size // 2 - 2 : size // 2 + 2] = 1.0
+
+    physics = dinv.physics.MRI(
+        mask=mask,
+        noise_model=dinv.physics.GaussianNoise(
+            sigma=sigma,
+            rng=seeded_generator(device),
+        ),
+        device=device,
+    )
+    y = physics(x)
+    return x, y, physics
+
+
+def create_poisson_dc_problem(device, size=16):
+    x = torch.full((1, 1, size, size), 2.0, device=device)
+    x[:, :, 4:12, 4:12] = 6.0
+    y = torch.poisson(x, generator=seeded_generator(device))
+    physics = dinv.physics.Denoising(device=device)
+    return x, y, physics
+
+
+def create_clipped_gaussian_dc_problem(device, sigma=0.05, size=16):
+    coords = torch.linspace(0.0, 1.0, size, device=device)
+    yy, xx = torch.meshgrid(coords, coords, indexing="ij")
+    x = (0.1 + 0.8 * (xx + yy) / 2.0).unsqueeze(0).unsqueeze(0)
+    noise = torch.empty_like(x).normal_(generator=seeded_generator(device))
+    y = torch.clamp(x + sigma * noise, 0.0, 1.0)
+    y[..., 0, 0] = 0.0
+    y[..., -1, -1] = 1.0
+    physics = dinv.physics.Denoising(device=device)
+    return x, y, physics
+
+
 def test_jacobian_spectral_values(toymatrix):
     # Define the Jacobian regularisers we want to check
     reg_l2 = JacobianSpectralNorm(max_iter=100, tol=1e-4, eval_mode=False, verbose=True)
@@ -455,6 +511,122 @@ def test_sure_losses(device):
 
     assert error_h < 5e-2
     assert error_mc < 5e-2
+
+
+def test_dc_loss_deterministic_mri(device):
+    _, y, physics = create_mri_dc_problem(device=device)
+    model = dinv.models.ArtifactRemoval(IdentityBackbone(), mode="pinv", device=device)
+    x_net = model(y, physics)
+    loss = dinv.loss.DCLoss(distribution="gaussian", sigma=0.05, n_points=64)
+
+    value_1 = loss(y=y, x_net=x_net, physics=physics, model=model)
+    value_2 = loss(y=y, x_net=x_net, physics=physics, model=model)
+
+    assert torch.isfinite(value_1).all()
+    assert torch.allclose(value_1, value_2)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        (
+            {"distribution": "not_a_distribution"},
+            "distribution must be one of",
+        ),
+        (
+            {"n_points": 0},
+            "n_points must be strictly positive when provided",
+        ),
+        (
+            {"eps": 0.5},
+            "eps must lie strictly between 0 and 0.5",
+        ),
+        (
+            {"boundary_eps": 0.0},
+            "boundary_eps must lie strictly between 0 and 0.5",
+        ),
+    ],
+)
+def test_dc_loss_constructor_invalid_inputs_raise(kwargs, match):
+    with pytest.raises(ValueError, match=match):
+        dinv.loss.DCLoss(**kwargs)
+
+
+def test_dc_loss_missing_gaussian_sigma_raises(device):
+    y = torch.zeros(1, 1, 4, 4, device=device)
+    physics = dinv.physics.Denoising(
+        noise_model=dinv.physics.ZeroNoise(),
+        device=device,
+    )
+    loss = dinv.loss.DCLoss(distribution="gaussian")
+
+    with pytest.raises(ValueError, match="DCLoss requires a set Gaussian noise level"):
+        loss(y=y, x_net=y, physics=physics)
+
+
+def test_dc_loss_nonpositive_gaussian_sigma_raises(device):
+    y = torch.zeros(1, 1, 4, 4, device=device)
+    physics = dinv.physics.Denoising(device=device)
+    loss = dinv.loss.DCLoss(distribution="gaussian", sigma=0.05)
+
+    with pytest.raises(ValueError, match="sigma must be strictly positive"):
+        loss(y=y, x_net=y, physics=physics, sigma=0.0)
+
+
+def test_dc_loss_iterative_mri_reconstruction_beats_measurement_mse(device):
+    x, y, physics = create_mri_dc_problem(
+        device=device, sigma=0.5, size=24, fully_sampled=True
+    )
+    dc_loss = dinv.loss.DCLoss(distribution="gaussian", sigma=0.5, n_points=256)
+
+    q_mse = torch.nn.Parameter(torch.zeros_like(y))
+    q_dc = torch.nn.Parameter(torch.zeros_like(y))
+    optimizer_mse = torch.optim.Adam([q_mse], lr=0.01)
+    optimizer_dc = torch.optim.Adam([q_dc], lr=0.01)
+
+    for _ in range(100):
+        optimizer_mse.zero_grad()
+        loss_mse = torch.nn.functional.mse_loss(q_mse, y)
+        loss_mse.backward()
+        optimizer_mse.step()
+
+        optimizer_dc.zero_grad()
+        x_dc = physics.A_dagger(q_dc)
+        loss = dc_loss(y=y, x_net=x_dc, physics=physics).mean()
+        loss.backward()
+        optimizer_dc.step()
+
+    x_mse = physics.A_dagger(q_mse.detach())
+    x_dc = physics.A_dagger(q_dc.detach())
+
+    image_mse = dinv.metric.MSE()
+    mse_reconstruction_error = image_mse(x, x_mse)
+    dc_reconstruction_error = image_mse(x, x_dc)
+
+    assert dc_reconstruction_error < mse_reconstruction_error
+    assert torch.nn.functional.mse_loss(
+        q_mse.detach(), y
+    ) < torch.nn.functional.mse_loss(physics.A(x_dc), y)
+
+
+def test_dc_loss_poisson_supported(device):
+    _, y, physics = create_poisson_dc_problem(device=device)
+    x_net = torch.nn.functional.relu(y)
+    loss = dinv.loss.DCLoss(distribution="poisson", n_points=64)
+
+    value = loss(y=y, x_net=x_net, physics=physics)
+    assert torch.isfinite(value).all()
+
+
+def test_dc_loss_clipped_gaussian_supported(device):
+    _, y, physics = create_clipped_gaussian_dc_problem(device=device)
+    loss = dinv.loss.DCLoss(distribution="clipped_gaussian", sigma=0.05, n_points=64)
+
+    value_1 = loss(y=y, x_net=y, physics=physics)
+    value_2 = loss(y=y, x_net=y, physics=physics)
+
+    assert torch.isfinite(value_1).all()
+    assert torch.allclose(value_1, value_2)
 
 
 @pytest.mark.parametrize(

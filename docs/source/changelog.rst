@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.loss.DCLoss`, a distributional consistency loss for Gaussian, clipped-Gaussian, and Poisson noise with deterministic quantile sampling (:gh:`1207` by `George Webber`_)
 
 Changed
 ^^^^^^^
@@ -649,6 +650,7 @@ Changed
 .. _Tiberiu Sabau: https://github.com/tibisabau
 .. _Benoît Malézieux: https://github.com/bmalezieux
 .. _Paul Escande: https://pescande.perso.math.cnrs.fr/
+.. _George Webber: https://github.com/GeorgeWebber
 .. _Hossein Alimohammadi: https://github.com/Holimmo7
 .. _Laura C. Diaz-Delgado: https://github.com/LauraCD2
 .. _Paul Bernard: https://github.com/PAUL-BERNARD
