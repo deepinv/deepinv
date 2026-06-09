@@ -4,6 +4,7 @@ from PIL import Image
 
 from deepinv.datasets.utils import calculate_md5
 from deepinv.datasets.base import ImageDataset
+from .utils import resolve_root
 
 
 class CBSD68(ImageDataset):
@@ -61,7 +62,7 @@ class CBSD68(ImageDataset):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         download: bool = False,
         transform: Callable = None,
         rotate=False,
@@ -73,7 +74,7 @@ class CBSD68(ImageDataset):
                 "The library 'datasets' is required to for the CBSD68 dataset. Install it using pip install datasets"
             )
 
-        self.root = root
+        self.root = resolve_root(root, "CBSD68")
         self.transform = transform
         self.rotate = rotate
 

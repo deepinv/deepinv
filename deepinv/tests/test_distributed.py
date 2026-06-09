@@ -27,7 +27,7 @@ import torch.multiprocessing as mp
 from typing import Callable, Any
 
 from deepinv.physics import Blur, GaussianNoise
-from deepinv.physics.blur import gaussian_blur
+from deepinv.physics.functional import gaussian_blur
 from deepinv.physics.forward import StackedLinearPhysics
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Denoiser
@@ -332,7 +332,7 @@ def create_test_physics_list(device, num_operators=3):
     """
     physics_list = []
     for i in range(num_operators):
-        kernel = gaussian_blur(sigma=1.0 + i * 0.5, device=str(device))
+        kernel = gaussian_blur(sigma=(1.0 + i * 0.5, 1.0 + i * 0.5), device=str(device))
         blur = Blur(filter=kernel, padding="circular", device=str(device))
         blur.noise_model = GaussianNoise(sigma=0.01)
         physics_list.append(blur)
@@ -360,7 +360,9 @@ def create_physics_specification(spec_type, device, num_operators):
     elif spec_type == "callable_factory":
 
         def physics_factory(idx, device, factory_kwargs):
-            kernel = gaussian_blur(sigma=1.0 + idx * 0.5, device=device)
+            kernel = gaussian_blur(
+                sigma=(1.0 + idx * 0.5, 1.0 + idx * 0.5), device=device
+            )
             blur = Blur(filter=kernel, padding="circular", device=device)
             blur.noise_model = GaussianNoise(sigma=0.01)
             return blur
@@ -809,7 +811,9 @@ def test_consistency_single_vs_multiprocess(device_config):
     # All ranks should produce same result
     y_norms_ref = [yi.norm().item() for yi in y_single]
     for r in results:
-        assert all(abs(a - b) < 1e-4 for a, b in zip(r["y_norms"], y_norms_ref))
+        assert all(
+            abs(a - b) < 1e-4 for a, b in zip(r["y_norms"], y_norms_ref, strict=True)
+        )
         assert abs(r["x_adj_norm"] - x_adj_single.norm().item()) < 1e-4
 
 

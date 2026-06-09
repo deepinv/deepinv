@@ -119,7 +119,7 @@ class NoiseModel(nn.Module):
                 if (
                     value is not None
                     and hasattr(self, key)
-                    and isinstance(value, (torch.Tensor, float))
+                    and isinstance(value, (torch.Tensor, float, int))
                 ):
                     self.register_buffer(key, self._float_to_tensor(value))
 
@@ -494,6 +494,15 @@ class PoissonNoise(NoiseModel):
         This may be needed when a NN outputs negative values e.g. when using leaky ReLU.
     :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
 
+    .. note::
+        Poisson noise is only defined for non-negative inputs.
+        When used in combination with physics operators that can produce negative outputs (such as :class:`deepinv.physics.BlurFFT`), it is recommended to set ``clip_positive=True`` to avoid runtime errors.
+
+    .. tip::
+
+        All :ref:`pretrained denoisers <denoisers>` in the library can be re-used for Poisson denoising
+        using the :class:`Anscombe transform <deepinv.models.AnscombeDenoiser>`.
+
     |sep|
 
     :Examples:
@@ -545,16 +554,15 @@ class PoissonNoise(NoiseModel):
         if self.clip_positive:
             z = torch.clip(x / gain, min=0.0)
         else:
-            # NOTE: PyTorch operations are generally run asynchronously on CUDA
-            # devices and the underlying CUDA kernel under
-            # torch.poisson typically raises a CUDA-level assertion error
-            # when its input has negative entries. Those errors can't be
-            # recovered from using Python's exception system due to their
-            # asynchronous nature. For this reason we add a manual check if the
-            # RNG is on a CUDA device.
-            if self.rng is not None and self.rng.device.type == "cuda":
-                assert gain > 0, "Gain must be positive"
-                assert torch.all(x >= 0), "Input tensor must be non-negative"
+            # We perform a manual check for negative gain and negative values
+            # to print a clear error message both on CPU and GPU
+            if torch.any(gain <= 0):
+                raise ValueError("Poisson noise gain must be positive.")
+            if torch.any(x < 0):
+                raise ValueError(
+                    "Input tensor for Poisson noise must be non-negative.\n"
+                    "Consider setting ``clip_positive=True`` to avoid this error."
+                )
 
             z = x / gain
 
@@ -595,6 +603,10 @@ class GammaNoise(NoiseModel):
         :returns: noisy measurements
         """
         self.update_parameters(l=l, **kwargs)
+        if torch.any(self.l <= 0):
+            raise ValueError("Gamma noise level must be positive.")
+        if torch.any(x <= 0):
+            raise ValueError("Input tensor for Gamma noise must be strictly positive.")
         self.to(x.device)
         d = torch.distributions.gamma.Gamma(self.l, self.l / x)
         return d.sample()
@@ -613,6 +625,10 @@ class PoissonGaussianNoise(NoiseModel):
         If :math:`\gamma=0`, the model will clamp the input to a small value
         to avoid division by zero, i.e., :math:`\gamma=\max(\gamma, \text{min\_gain})`.
 
+    .. tip::
+
+        All :ref:`pretrained denoisers <denoisers>` in the library can be re-used for Poisson-Gaussian denoising
+        using the :class:`Anscombe transform <deepinv.models.AnscombeDenoiser>`.
 
     :param Union[float, torch.Tensor] gain: gain of the noise.
     :param Union[float, torch.Tensor] sigma: Standard deviation of the noise.
@@ -684,16 +700,15 @@ class PoissonGaussianNoise(NoiseModel):
         if self.clip_positive:
             y = torch.poisson(torch.clip(x / gain, min=0.0), generator=self.rng) * gain
         else:
-            # NOTE: PyTorch operations are generally run asynchronously on CUDA
-            # devices and the underlying CUDA kernel under
-            # torch.poisson typically raises a CUDA-level assertion error
-            # when its input has negative entries. Those errors can't be
-            # recovered from using Python's exception system due to their
-            # asynchronous nature. For this reason we add a manual check if the
-            # RNG is on a CUDA device.
-            if self.rng is not None and self.rng.device.type == "cuda":
-                assert gain > 0, "Gain must be positive"
-                assert torch.all(x >= 0), "Input tensor must be non-negative"
+            # We perform a manual check for negative gain and negative values
+            # to print a clear error message both on CPU and GPU
+            if torch.any(gain <= 0):
+                raise ValueError("Poisson-Gaussian noise gain must be positive.")
+            if torch.any(x < 0):
+                raise ValueError(
+                    "Input tensor for Poisson-Gaussian noise must be non-negative.\n"
+                    "Consider setting ``clip_positive=True`` to avoid this error."
+                )
 
             y = torch.poisson(x / gain, generator=self.rng) * gain
 

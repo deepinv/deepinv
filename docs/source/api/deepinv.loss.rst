@@ -42,6 +42,7 @@ Self-Supervised Learning
     deepinv.loss.MCLoss
     deepinv.loss.DCLoss
     deepinv.loss.EILoss
+    deepinv.loss.EquivariantSplittingLoss
     deepinv.loss.MOILoss
     deepinv.loss.MOEILoss
     deepinv.loss.Neighbor2Neighbor
@@ -54,7 +55,7 @@ Self-Supervised Learning
     deepinv.loss.ScoreLoss
     deepinv.loss.AugmentConsistencyLoss
     deepinv.loss.ReducedResolutionLoss
-    
+
 Specialized self-supervised losses for MRI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. userguide:: mri-losses

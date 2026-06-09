@@ -105,7 +105,7 @@ def create_physics_and_measurements(device, img_size=1024, seed=42):
     # Create physics operators
     physics_list = []
 
-    for i, (kernel, noise_level) in enumerate(zip(kernels, noise_levels)):
+    for i, (kernel, noise_level) in enumerate(zip(kernels, noise_levels, strict=True)):
         # Create blur operator with circular padding and noise model
         rng = torch.Generator(device=device).manual_seed(seed + i)
         physics = Blur(

@@ -15,30 +15,20 @@ import io
 import contextlib
 
 
-def tensor2array(img):
-    img = img.cpu().detach().numpy()
-    img = np.transpose(img, (1, 2, 0))
-    return img
-
-
-def array2tensor(img):
-    return torch.from_numpy(img).permute(2, 0, 1)
-
-
 def tensor2array(img: Tensor) -> np.ndarray:
     img = img.cpu().detach().numpy()
-    if img.shape[0] == 3:  # Color case: cast to numpy format (W,H,C)
-        img = np.transpose(img, (1, 2, 0))
-    else:  # Grayscale case: cast to numpy format (W,H)
+    if img.shape[0] == 1:  # Grayscale case: cast to numpy format (W,H)
         img = img[0]
+    else:  # All other cases: cast to numpy format (W,H,C)
+        img = np.transpose(img, (1, 2, 0))
     return img
 
 
 def array2tensor(img: np.ndarray) -> Tensor:
-    if len(img.shape) == 3:  # Color case: back to (C,W,H)
-        out = torch.from_numpy(img).permute(2, 0, 1)
-    else:  # Grayscale case: back to (1,W,H)
+    if len(img.shape) == 2:  # Grayscale case: back to (1,W,H)
         out = torch.from_numpy(img).unsqueeze(0)
+    else:  # All other cases: back to (C,W,H)
+        out = torch.from_numpy(img).permute(2, 0, 1)
     return out
 
 
@@ -65,58 +55,6 @@ def test_pad(model, L, modulo=16):
     E = model(L)
     E = E[(...,) + tuple(slice(0, s) for s in spatials)]
     return E
-
-
-def patchify(
-    x: torch.Tensor, patch_size: tuple[int, int], stride: int = 1
-) -> torch.Tensor:
-    r"""
-    Patchifying images.
-
-    This function takes in a batch of images and extracts overlapping patches of specified size and stride,
-    returning them in a format suitable for processing by patch-based models.
-
-    :param torch.Tensor x: input image
-    :param (int, int) patch_size: patch size
-    :param int stride: stride
-    :return: (:class:`torch.Tensor`) patched image of shape (B, C, patch_size, patch_size, num_pch)
-
-    |sep|
-
-    :Examples:
-
-    >>> import deepinv as dinv
-    >>> x = dinv.utils.load_example('butterfly.png')
-    >>> patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
-    >>> print(f"Input shape: {x.shape}, patchified shape: {patches.shape}")
-    Input shape: torch.Size([1, 3, 256, 256]), patchified shape: torch.Size([1, 3, 8, 8, 3969])
-    >>> dinv.utils.plot(list(patches[0].permute(3, 0, 1, 2)[:16]), titles=[f"Patch {i} of {patches.shape[-1]}" for i in range(16)])  # doctest: +SKIP
-
-    .. plot::
-
-        import deepinv as dinv
-
-        x = dinv.utils.load_example('butterfly.png')
-        patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
-        dinv.utils.plot(list(patches[0].permute(3, 0, 1, 2)[:16]), titles=[f"Patch {i} of {patches.shape[-1]}" for i in range(16)])
-
-    """
-    B, C, H, W = x.shape
-    num_H = (H - patch_size) // stride + 1
-    num_W = (W - patch_size) // stride + 1
-    num_pch = num_H * num_W
-
-    # Use unfold to extract patches
-    patches = x.unfold(2, patch_size, stride).unfold(
-        3, patch_size, stride
-    )  # B x C x num_H x num_W x patch_size x patch_size
-
-    # Rearrange and reshape to match the desired output
-    patches = patches.permute(0, 1, 4, 5, 2, 3).reshape(
-        B, C, patch_size, patch_size, num_pch
-    )
-
-    return patches
 
 
 def test_onesplit(model, L, refield=32, sf=1):
@@ -239,19 +177,20 @@ def weight_init(shape, mode, fan_in, fan_out):
 class UpDownConv2d(torch.nn.Module):
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        kernel,
-        bias=True,
-        up=False,
-        down=False,
+        in_channels: int,
+        out_channels: int,
+        kernel: int,
+        bias: bool = True,
+        up: bool = False,
+        down: bool = False,
         resample_filter=(1, 1),
-        fused_resample=False,
-        init_mode="kaiming_normal",
-        init_weight=1,
-        init_bias=0,
+        fused_resample: bool = False,
+        init_mode: str = "kaiming_normal",
+        init_weight: float = 1,
+        init_bias: float = 0,
     ):
-        assert not (up and down)
+        if up and down:  # pragma: no cover
+            raise ValueError("up and down cannot both be True")
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -280,7 +219,7 @@ class UpDownConv2d(torch.nn.Module):
         f = f.outer(f).unsqueeze(0).unsqueeze(1) / f.sum().square()
         self.register_buffer("resample_filter", f if up or down else None)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         w = self.weight.to(x.dtype) if self.weight is not None else None
         b = self.bias.to(x.dtype) if self.bias is not None else None
         f = (

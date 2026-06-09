@@ -12,7 +12,6 @@ from deepinv.physics.structured_random import (
     generate_diagonal,
     StructuredRandom,
 )
-from deepinv.utils.decorators import _deprecated_alias
 
 
 class PhaseRetrieval(Physics):
@@ -142,7 +141,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
     """
 
-    @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m,
@@ -163,15 +161,15 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             self.rng = torch.Generator(device=device)
         else:
             # Make sure that the random generator is on the same device as the physic generator
-            assert rng.device == torch.device(
-                device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+            if rng.device != torch.device(device):  # pragma: no cover
+                raise ValueError(
+                    f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+                )
             self.rng = rng
 
         B = CompressedSensing(
             m=m,
             img_size=img_size,
-            fast=False,
             channelwise=channelwise,
             dtype=dtype,
             device=device,
@@ -210,7 +208,6 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     :param str device: Device for computation. Default is `cpu`.
     """
 
-    @_deprecated_alias(input_shape="img_size", output_shape="output_size")
     def __init__(
         self,
         img_size: tuple,
@@ -231,9 +228,8 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         self.n = torch.prod(torch.tensor(self.img_size))
         self.m = torch.prod(torch.tensor(self.output_size))
         self.oversampling_ratio = self.m / self.n
-        assert (
-            n_layers % 1 == 0.5 or n_layers % 1 == 0
-        ), "n_layers must be an integer or an integer plus 0.5"
+        if not (n_layers % 1 == 0.5 or n_layers % 1 == 0):  # pragma: no cover
+            raise ValueError("n_layers must be an integer or an integer plus 0.5")
         self.n_layers = n_layers
         self.structure = self.get_structure(self.n_layers)
         self.shared_weights = shared_weights
@@ -471,7 +467,6 @@ class Ptychography(PhaseRetrieval):
     torch.Size([1, 25, 64, 64])
     """
 
-    @_deprecated_alias(in_shape="img_size")
     def __init__(
         self,
         img_size=None,

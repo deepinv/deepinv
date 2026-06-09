@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -52,14 +53,22 @@ class KernelIdentificationNetwork(nn.Module):
 
     def __init__(
         self,
-        filters=25,
-        blur_kernel_size=33,
-        bilinear=False,
-        no_softmax=False,
-        pretrained="download",
-        device="cpu",
+        filters: int = 25,
+        blur_kernel_size: int = 33,
+        bilinear: bool = False,
+        no_softmax: bool = False,
+        pretrained: str = "download",
+        device: torch.device | str = "cpu",
     ):
         super(KernelIdentificationNetwork, self).__init__()
+        if blur_kernel_size not in [33, 65]:
+            raise ValueError(
+                f"Only blur_kernel_size of 33 and 65 are currently supported, got {blur_kernel_size}."
+            )
+        if blur_kernel_size == 65 and pretrained == "download":
+            raise ValueError(
+                "Pretrained weights are not available for blur_kernel_size=65. Please set pretrained to None or provide your own pretrained weights."
+            )
 
         self.no_softmax = no_softmax
         self.inc_rgb = nn.Sequential(
@@ -145,7 +154,7 @@ class KernelIdentificationNetwork(nn.Module):
 
         self.to(device)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
         r"""
         Forward pass of the kernel estimation network.
 
@@ -186,7 +195,7 @@ class KernelIdentificationNetwork(nn.Module):
         else:
             k = self.kernels_end(k5)
 
-        N, F, H, W = k.shape  # H and W should be one
+        N = k.shape[0]  # H and W should be one
         k = k.view(N, self.K, self.blur_kernel_size * self.blur_kernel_size)
 
         if self.no_softmax:

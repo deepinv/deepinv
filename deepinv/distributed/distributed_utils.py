@@ -37,7 +37,8 @@ def map_reduce_gather(
                 f"got {len(x)}, expected {len(local_items)}"
             )
         local_results = [
-            local_op(item, xi, **kwargs) for item, xi in zip(local_items, x)
+            local_op(item, xi, **kwargs)
+            for item, xi in zip(local_items, x, strict=True)
         ]
     else:
         local_results = [local_op(item, x, **kwargs) for item in local_items]
@@ -58,7 +59,7 @@ def map_reduce_gather(
 
     if not ctx.use_dist:
         out: list = [None] * num_operators
-        for idx, result in zip(local_indices, local_results):
+        for idx, result in zip(local_indices, local_results, strict=True):
             out[idx] = result
         return TensorList(out)
 
@@ -104,7 +105,7 @@ def single_process_fallback(
     :return: TensorList with all results
     """
     out: list = [None] * num_operators
-    for idx, result in zip(local_indices, local_results):
+    for idx, result in zip(local_indices, local_results, strict=True):
         out[idx] = result
     return TensorList(out)
 
@@ -224,7 +225,7 @@ def gather_tensorlist_naive(
         )
 
     # Pair indices with tensors
-    pairs = list(zip(local_indices, local_results))
+    pairs = list(zip(local_indices, local_results, strict=True))
 
     # Gather all pairs from all ranks
     gathered = [None] * ctx.world_size
@@ -266,7 +267,7 @@ def gather_tensorlist_concatenated(
     # Step 1: Share metadata (indices, shapes, dtypes)
     local_metadata = [
         (idx, tuple(result.shape), result.dtype, result.numel())
-        for idx, result in zip(local_indices, local_results)
+        for idx, result in zip(local_indices, local_results, strict=True)
     ]
 
     gathered_metadata = [None] * ctx.world_size
@@ -423,7 +424,7 @@ def gather_tensorlist_broadcast(
     # Step 1: Share metadata (indices, shapes, dtypes)
     local_metadata = [
         (idx, tuple(result.shape), result.dtype)
-        for idx, result in zip(local_indices, local_results)
+        for idx, result in zip(local_indices, local_results, strict=True)
     ]
 
     gathered_metadata = [None] * ctx.world_size

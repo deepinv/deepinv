@@ -142,6 +142,6 @@ def GSDRUNet(
         if "state_dict" in ckpt:
             ckpt = ckpt["state_dict"]
 
-        GSmodel.load_state_dict(ckpt, strict=False)
+        GSmodel.load_state_dict(ckpt, strict=True)
         GSmodel.eval()
     return GSmodel

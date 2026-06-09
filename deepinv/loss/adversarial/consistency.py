@@ -37,7 +37,7 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
         self, weight_adv: float = 0.01, D: nn.Module = None, device="cpu", **kwargs
     ):
         super().__init__(weight_adv=weight_adv, D=D, device=device, **kwargs)
-        self.name = "SupAdversarialGenerator"
+        self._name = "SupAdversarialGenerator"
 
     def forward(self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs):
         r"""Forward pass for supervised adversarial generator loss.
@@ -69,7 +69,7 @@ class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
         self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs
     ):
         super().__init__(weight_adv=weight_adv, D=D, device=device, **kwargs)
-        self.name = "SupAdversarialDiscriminator"
+        self._name = "SupAdversarialDiscriminator"
 
     def forward(self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs):
         r"""Forward pass for supervised adversarial discriminator loss.
@@ -117,7 +117,7 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
         device="cpu",
     ):
         super().__init__(weight_adv=weight_adv, D=D, device=device)
-        self.name = "UnsupAdversarialGenerator"
+        self._name = "UnsupAdversarialGenerator"
 
     def forward(self, y: Tensor, y_hat: Tensor, D: nn.Module = None, **kwargs):
         r"""Forward pass for unsupervised adversarial generator loss.
@@ -148,7 +148,7 @@ class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
 
     def __init__(self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu"):
         super().__init__(weight_adv=weight_adv, D=D, device=device)
-        self.name = "UnsupAdversarialDiscriminator"
+        self._name = "UnsupAdversarialDiscriminator"
 
     def forward(self, y: Tensor, y_hat: Tensor, D: nn.Module = None, **kwargs):
         r"""Forward pass for unsupervised adversarial discriminator loss.

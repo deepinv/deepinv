@@ -9,6 +9,7 @@ from deepinv.datasets.utils import (
 )
 from deepinv.datasets.base import ImageFolder
 import shutil
+from .utils import resolve_root
 
 
 class LsdirHR(ImageFolder):
@@ -98,12 +99,12 @@ class LsdirHR(ImageFolder):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         mode: str = "train",
         download: bool = False,
         transform: Callable = None,
     ) -> None:
-        self.root = root
+        self.root = resolve_root(root, "LSDIR")
         self.mode = mode
 
         if self.mode == "train":

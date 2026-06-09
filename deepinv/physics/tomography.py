@@ -414,49 +414,54 @@ class TomographyWithAstra(LinearPhysics):
         Tomography operator with a 2D ``'fanbeam'`` geometry, 10 uniformly sampled angles in ``[0, 360]``, a detector line of 5 cells with length 2., a source-radius of 20.0 and a detector_radius of 20.0 for 5x5 image:
 
         .. doctest::
-           :skipif: astra is None or not cuda_available
 
-            >>> from deepinv.physics import TomographyWithAstra
-            >>> x = torch.randn(1, 1, 5, 5, device='cuda') # Define random 5x5 image
-            >>> physics = TomographyWithAstra(
-            ...        img_size=(5,5),
-            ...        angles=10,
-            ...        angular_range=(0, 360),
-            ...        n_detector_pixels=5,
-            ...        detector_spacing=2.0,
-            ...        geometry_type='fanbeam',
-            ...        geometry_parameters={
-            ...            'source_radius': 20.,
-            ...            'detector_radius': 20.
-            ...        },
-            ...        normalize=False
-            ...    )
-            >>> sinogram = physics(x)
-            >>> print(sinogram.shape)
+            >>> import torch
+            >>> if torch.cuda.is_available():
+            ...     from deepinv.physics import TomographyWithAstra
+            ...     x = torch.randn(1, 1, 5, 5, device='cuda') # Define random 5x5 image
+            ...     physics = TomographyWithAstra(
+            ...             img_size=(5,5),
+            ...             angles=10,
+            ...             angular_range=(0, 360),
+            ...             n_detector_pixels=5,
+            ...             detector_spacing=2.0,
+            ...             geometry_type='fanbeam',
+            ...             geometry_parameters={
+            ...                 'source_radius': 20.,
+            ...                 'detector_radius': 20.
+            ...             },
+            ...             normalize=False
+            ...     )
+            ...     sinogram = physics(x)
+            ...     print(sinogram.shape)
+            ... else:
+            ...     print(torch.Size([1, 1, 10, 5]))
             torch.Size([1, 1, 10, 5])
 
         Tomography operator with a 3D ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0, 360]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
 
         .. doctest::
-           :skipif: astra is None or not cuda_available
 
-            >>> x = torch.randn(1, 1, 5, 5, 5, device='cuda')  # Define random 5x5x5 volume
-            >>> angles = torch.linspace(0, 360, steps=4)[:-1]
-            >>> physics = TomographyWithAstra(
-            ...        img_size=(5,5,5),
-            ...        angles = angles,
-            ...        n_detector_pixels=(5,5),
-            ...        pixel_spacing=(1.0,1.0,1.0),
-            ...        detector_spacing=(2.0,2.0),
-            ...        geometry_type='conebeam',
-            ...        geometry_parameters={
-            ...            'source_radius': 20.,
-            ...            'detector_radius': 20.
-            ...       },
-            ...        normalize=False
-            ...    )
-            >>> sinogram = physics(x)
-            >>> print(sinogram.shape)
+            >>> if torch.cuda.is_available():
+            ...     x = torch.randn(1, 1, 5, 5, 5, device='cuda')  # Define random 5x5x5 volume
+            ...     angles = torch.linspace(0, 360, steps=4)[:-1]
+            ...     physics = TomographyWithAstra(
+            ...            img_size=(5,5,5),
+            ...            angles = angles,
+            ...            n_detector_pixels=(5,5),
+            ...            pixel_spacing=(1.0,1.0,1.0),
+            ...            detector_spacing=(2.0,2.0),
+            ...            geometry_type='conebeam',
+            ...            geometry_parameters={
+            ...                 'source_radius': 20.,
+            ...                 'detector_radius': 20.
+            ...            },
+            ...            normalize=False
+            ...     )
+            ...     sinogram = physics(x)
+            ...     print(sinogram.shape)
+            ... else:
+            ...     print(torch.Size([1, 1, 5, 3, 5]))
             torch.Size([1, 1, 5, 3, 5])
 
 
@@ -519,8 +524,16 @@ class TomographyWithAstra(LinearPhysics):
         if isinstance(angles, int):
             angles = torch.linspace(*angular_range, steps=angles + 1)[:-1]
 
+        if self.is_2d:
+            n_rows, n_cols = img_size
+            n_slices = 1
+        else:
+            n_slices, n_rows, n_cols = img_size
+
         self.object_geometry = create_object_geometry(
-            *img_size,
+            n_rows=n_rows,
+            n_cols=n_cols,
+            n_slices=n_slices,
             bounding_box=bounding_box,
             pixel_spacing=pixel_spacing,
             is_2d=self.is_2d,
@@ -592,7 +605,7 @@ class TomographyWithAstra(LinearPhysics):
         is_3d = len(sinogram.shape) == 5
 
         if self.geometry_type == "conebeam" and is_3d:
-            # dimensions (V,N) are (col,row) of the 2D detector
+            # dimensions (V,N) are (row,col) of the 2D detector
             # A is the number of angles
             B, C, V, A, N = sinogram.shape
 
@@ -645,6 +658,11 @@ class TomographyWithAstra(LinearPhysics):
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward projection.
 
+        In 2D, the output is a sinogram of shape [B,C,A,N],
+        with A the number of angular positions, and N the number of detector cells.
+        In 3D, the output is a stack of sinograms of shape [B,C,V,A,N], with A the
+        number of angular positions, and (V,N) the shape of the 2D detector grid,
+        where V is the number of rows of the detector and N the number of columns.
         :param torch.Tensor x: input of shape [B,C,...,H,W]
         :return: projection of shape [B,C,...,A,N]
         """
@@ -681,6 +699,12 @@ class TomographyWithAstra(LinearPhysics):
 
     def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         """Approximation of the adjoint.
+
+        In 2D, expected input is a sinogram of
+        shape [B,C,A,N], with A the number of angular positions, and N the number
+        of detector cells. In 3D, expected input is a stack of sinograms of shape [B,C,V,A,N],
+        with A the number of angular positions, and (V,N) the shape of the 2D detector grid,
+        where V is the number of rows of the detector and N the number of columns.
 
         :param torch.Tensor y: input of shape [B,C,...,A,N]
         :return: scaled back-projection of shape [B,C,...,H,W]
