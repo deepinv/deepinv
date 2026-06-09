@@ -43,6 +43,16 @@ Changed
 - Add changelog section to the contributing guidelines (:gh:`1153` by `Thibaut Modrzyk`_)
 - Unify patching / tiling and unpatching / un-tiling logic in physics and utils, with support for padding and non-overlapping patches. Add :func:`deepinv.utils.image_to_patches` and :func:`deepinv.utils.patches_to_image` utility functions, and refactor physics to use them instead of `unfold` (:gh:`1104` by `Minh Hai Nguyen`_)
 - New :class:`deepinv.loss.metric.NIQE` implementation, this drops PyIQA requirement, values given by NIQE vary between implementations (:gh:`911` by `Vicky De Ridder`_)
+- (Breaking) Drop support for deprecated parameters replaced by `img_size` and `output_size` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of `deepinv.utils.metric` in favor of `deepinv.loss.metric` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of parameter `pinv` in :class:`deepinv.models.ArtifactRemoval` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of `deepinv.train` in favor of :class:`deepinv.Trainer` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of the deprecated parameter `eval_n_samples` in :meth:`deepinv.loss.SplittingLoss.adapt_model` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of the deprecated parameter `fast` in :class:`deepinv.physics.CompressedSensing` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of `deepinv.Trainer.log_metrics_wandb` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of parameter and attribute `freq_plot` in :class:`deepinv.Trainer` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of deprecated value `"old_sequency"` for parameter `ordering` in :class:`deepinv.physics.SinglePixelCamera` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of parameter `sigma` in :class:`deepinv.loss.R2RLoss` in favor of `noise_model` (:gh:`1210` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
@@ -53,7 +63,7 @@ Fixed
 - Fix dimensions mismatch in :class:`deepinv.physics.TomographyWithAstra` with 3D phantoms (:gh:`1137` by `Baptiste Legouix`_)
 - Add warning and error handling for negative inputs in BlurFFT and Poisson noise (:gh:`1155` by `Thibaut Modrzyk`_)
 - Fix a bug in the custom backward of the least-squares solvers for non-leaf tensors (:gh:`1146` by `Minh Hai Nguyen`_)
-- Fix :class:`deepinv.sampling.DPS` instantiation and refactor to use new SDE interface (:gh:`1127` by `Minh Hai Nguyen`_) 
+- Fix :class:`deepinv.sampling.DPS` instantiation and refactor to use new SDE interface (:gh:`1127` by `Minh Hai Nguyen`_)
 - Fix a bug that caused :class:`deepinv.models.BM3D` to silently break for multi-channel images when the number of channels is not 3 (:gh:`1192` by `Kaibo Tang`_)
 - Fix option "mode" for the wavelet transform, which was not correctly propagated; add this option in :class:`deepinv.models.WaveletDictDenoiser` (:gh:`1162` by `Irène Waldspurger`_)
 

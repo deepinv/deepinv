@@ -89,7 +89,6 @@ plot([x, y], titles=["signal", "measurement"])
 
 physics = dinv.physics.CompressedSensing(
     m=2048,
-    fast=False,
     channelwise=True,
     img_size=img_size,
     device=device,
