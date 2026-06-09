@@ -996,7 +996,7 @@ class DecomposablePhysics(LinearPhysics):
         A = U\text{diag}(s)V^{\top} \in \mathbb{R}^{m\times n}
 
     where :math:`U\in\mathbb{C}^{m\times m}` and :math:`V\in\mathbb{C}^{n\times n}`
-    are orthonormal linear transformations and :math:`\text{diag}(s)\in\mathbb{R}_{+}^{m \times n}` is the possibly rectangular singular value matrix.
+    are orthonormal linear transformations and :math:`\text{diag}(s)\in\mathbb{R}_{+}^{m \times n}` is the possibly rectangular singular values matrix.
 
     :param None | Callable U: orthonormal transformation. If `None` (default), it is set to the identity function.
     :param None | Callable V_adjoint: transpose of V. If `None` (default), it is set to the identity function.
