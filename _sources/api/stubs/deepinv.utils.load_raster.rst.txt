@@ -1,0 +1,9 @@
+﻿load\_raster
+============
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_raster
+
+.. minigallery:: deepinv.utils.load_raster
+    :add-heading: Examples using ``load_raster``:

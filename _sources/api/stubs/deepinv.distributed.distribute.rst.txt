@@ -1,0 +1,9 @@
+﻿distribute
+==========
+
+.. currentmodule:: deepinv.distributed
+
+.. autofunction:: distribute
+
+.. minigallery:: deepinv.distributed.distribute
+    :add-heading: Examples using ``distribute``:

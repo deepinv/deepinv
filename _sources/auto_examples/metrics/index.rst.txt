@@ -1,0 +1,49 @@
+
+
+.. _sphx_glr_auto_examples_metrics:
+
+Metrics
+-------
+
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to fit deepinv.loss.metric.NIQE on a new dataset, and use it to evaluate denoiser performance.">
+
+.. only:: html
+
+  .. image:: /auto_examples/metrics/images/thumb/sphx_glr_demo_custom_niqe_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/metrics/demo_custom_niqe`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Fitting NIQE on a custom dataset</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/metrics/demo_custom_niqe
+
