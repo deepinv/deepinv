@@ -126,7 +126,7 @@ def choose_denoiser(name, imsize):
     elif name == "swinir":
         out = dinv.models.SwinIR(in_chans=imsize[0])
     elif name == "epll":
-        out = dinv.models.EPLLDenoiser(channels=imsize[0])
+        out = dinv.models.EPLLDenoiser(channels=imsize[0], pretrained=None)
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "promptir":
@@ -192,6 +192,14 @@ def choose_restoration_model(name, in_channels=3, out_channels=3, pretrained=Non
     else:
         raise Exception("Unknown restoration model")
     return out.eval()
+
+
+def test_choose_denoiser_epll_no_pretrained_download():
+    mock_denoiser = MagicMock()
+    mock_denoiser.eval.return_value = mock_denoiser
+    with patch("deepinv.models.EPLLDenoiser", return_value=mock_denoiser) as epll_mock:
+        choose_denoiser("epll", (1, 32, 32))
+    epll_mock.assert_called_once_with(channels=1, pretrained=None)
 
 
 @pytest.mark.parametrize("n_spatial", [2, 3])
