@@ -723,12 +723,11 @@ def test_diffraction_generator(
         for key in params.keys():
             assert not torch.allclose(params[key], params3[key])
 
-
     # Test centering effect if center is True and psf size is large enough
     # Test only for 2D case as centering in 3D case is still under development
     if (not is_3d) and center and (not apodize) and (not random_rotate):
         batch_sizes = (1, 2)
-        size = (71,71)
+        size = (71, 71)
         pupil_size = (256, 256)
         generator = dinv.physics.generator.DiffractionBlurGenerator(
             psf_size=size,
@@ -745,13 +744,13 @@ def test_diffraction_generator(
         )
         for batch_size in batch_sizes:
             generated_psf = generator.step(
-                                batch_size=batch_size,
-                                seed=0,
-                                focal_length=0.004,
-                                aperture_diameter=0.002,
-                                apodize=apodize,
-                                random_rotate=random_rotate,
-                            )["filter"]
+                batch_size=batch_size,
+                seed=0,
+                focal_length=0.004,
+                aperture_diameter=0.002,
+                apodize=apodize,
+                random_rotate=random_rotate,
+            )["filter"]
             com_x, com_y = barycenter(generated_psf)
             assert torch.all(torch.round(com_x.abs(), decimals=1) <= 0.1)
             assert torch.all(torch.round(com_y.abs(), decimals=1) <= 0.1)
@@ -760,13 +759,14 @@ def test_diffraction_generator(
 def barycenter(h):
     Ny, Nx = h.shape[-2:]
     centerx = (Nx / 2.0) - 0.5
-    centery = (Ny / 2.0) - 0.5 
+    centery = (Ny / 2.0) - 0.5
     x = torch.arange(0, h.shape[-1]).to(h.device)
     y = torch.arange(0, h.shape[-2]).to(h.device)
-    X, Y = torch.meshgrid(x, y, indexing='xy')
-    com_x = (X[None,None,:,:] * h).sum(dim=(-2,-1)) - centerx
-    com_y = (Y[None,None,:,:] * h).sum(dim=(-2,-1)) - centery
+    X, Y = torch.meshgrid(x, y, indexing="xy")
+    com_x = (X[None, None, :, :] * h).sum(dim=(-2, -1)) - centerx
+    com_y = (Y[None, None, :, :] * h).sum(dim=(-2, -1)) - centery
     return com_x, com_y
+
 
 @pytest.mark.parametrize("generators", MIXTURES)
 @pytest.mark.parametrize("size", SIZES)
