@@ -27,17 +27,20 @@ class PhaseRetrieval(Physics):
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``, in a similar fashion to :class:`torch.nn.Module`.
 
     :param deepinv.physics.forward.LinearPhysics B: the linear forward operator.
+    :param torch.dtype dtype: Signals are processed in this dtype. Default is ``torch.cfloat``.
     """
 
     def __init__(
         self,
         B: LinearPhysics,
+        dtype: torch.dtype = torch.cfloat,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.name = "Phase Retrieval"
 
         self.B = B
+        self.dtype = dtype
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
@@ -175,7 +178,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             device=device,
             rng=self.rng,
         )
-        super().__init__(B, **kwargs)
+        super().__init__(B, dtype=dtype, **kwargs)
         self.register_buffer("initial_random_state", self.rng.get_state())
         self.name = "Random Phase Retrieval"
         self.to(device)
@@ -292,7 +295,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
             **kwargs,
         )
 
-        super().__init__(B, **kwargs)
+        super().__init__(B, dtype=dtype, **kwargs)
         self.name = "Structured Random Phase Retrieval"
         self.to(device)
 
