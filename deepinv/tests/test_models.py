@@ -363,6 +363,42 @@ def test_TV_models_identity():
     assert torch.allclose(x, x_hat, atol=1e-5)  # The model should be the identity
 
 
+def test_bm3d_consistency(load_example_image):
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
+    pytest.importorskip(
+        "bm3d",
+        reason="This test requires bm3d. It should be "
+        "installed with `pip install bm3d`",
+    )
+    # Load 2 example images
+    x1 = load_example_image(
+        "butterfly.png",
+        img_size=64,
+        resize_mode="resize",
+    )
+    x2 = load_example_image(
+        "celeba_example.jpg",
+        img_size=64,
+        resize_mode="resize",
+    )
+    x = torch.cat([x1, x2, x1], dim=0)
+    sigma = torch.tensor([0.1, 0.1, 0.1])
+    rng = torch.Generator().manual_seed(123)
+    y = x + sigma.view(-1, 1, 1, 1) * torch.randn(x.shape, generator=rng)
+    # Load BM3D
+    model_legacy = dinv.models.BM3D(use_legacy=True)
+    model_new = dinv.models.BM3D(use_legacy=False)
+    x_hat_legacy = model_legacy(y, sigma)
+    x_hat_new = model_new(y, sigma)
+    print(torch.max(torch.abs(x_hat_legacy - x_hat_new)))
+    assert torch.allclose(x_hat_legacy, x_hat_new, atol=1e-1)
+
+
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
     # NCSNpp and Adinv.modelsUnet only support imsize that divisible by 8
@@ -711,6 +747,17 @@ def test_drunet_inputs(dim, spatial_size, device):
     sigma_tensor = torch.tensor(sigma).to(device)
     x_hat = f(y, sigma_tensor)
     assert x_hat.shape == x.shape
+
+    # Case 5: sigma is a nn.Parameter with no dimension
+    sigma_param = torch.nn.Parameter(
+        torch.tensor(sigma, requires_grad=True, device=device)
+    )
+    x_hat = f(y, sigma_param)
+    assert x_hat.shape == x.shape
+
+    loss = x_hat.pow(2).mean()
+    loss.backward()
+    assert sigma_param.grad is not None
 
 
 @pytest.mark.parametrize(
@@ -1346,7 +1393,8 @@ def test_denoiser_perf(device, load_example_image):
 
     # Classical denoisers
     classical_denoisers = [
-        (dinv.models.BM3D(), (2.75, 7.5, 6.5)),
+        (dinv.models.BM3D(use_legacy=True).to(device), (2.7, 7.5, 6.5)),
+        (dinv.models.BM3D(use_legacy=False).to(device), (2.7, 7.5, 6.5)),
         (dinv.models.MedianFilter(kernel_size=5), (-9, 4.25, 2.5)),
         (dinv.models.TVDenoiser(), (1.5, 6.0, 4.0)),
         (dinv.models.TGVDenoiser(), (1.75, 6, 5.0)),
