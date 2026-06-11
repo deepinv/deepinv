@@ -60,6 +60,8 @@ Join our **mailing list** for occasional updates on releases and new features:
    </div></div></div>
    <script src="_static/subscribe/subscribe.js"></script>
 
+.. _install:
+
 Install
 -------
 
