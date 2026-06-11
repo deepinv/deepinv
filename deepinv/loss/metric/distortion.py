@@ -60,36 +60,34 @@ class MAE(Metric):
 
 class MSE(Metric):
     r"""deepinv.metric.MSE(complex_abs, reduction, norm_inputs, center_crop, ``kwargs``)
-    Mean Squared Error metric.
+        Mean Squared Error metric.
 
-    Calculates :math:`\|\hat{x}-x\|_2^2` where :math:`\hat{x}=\inverse{y}`.
-distortion
-    .. note::
+        Calculates :math:`\|\hat{x}-x\|_2^2` where :math:`\hat{x}=\inverse{y}`.
+        .. note::
 
-        By default, no reduction is performed in the batch dimension.
+            By default, no reduction is performed in the batch dimension.
 
-    .. note::
-distortion
-        :class:`deepinv.loss.metric.MSE` is functionally equivalent to :class:`torch.nn.MSELoss` when ``reduction='mean'`` or ``reduction='sum'``,
-        but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behavior as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.
+        .. note::
+            :class:`deepinv.loss.metric.MSE` is functionally equivalent to :class:`torch.nn.MSELoss` when ``reduction='mean'`` or ``reduction='sum'``,
+            but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behavior as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.
 
-    :Example:
+        :Example:
 
-    >>> import torch
-    >>> from deepinv.loss.metric import MSE
-    >>> m = MSE()
-    >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
-    >>> m(x_net, x)
-    tensor([0., 0., 0.])
+        >>> import torch
+        >>> from deepinv.loss.metric import MSE
+        >>> m = MSE()
+        >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
+        >>> m(x_net, x)
+        tensor([0., 0., 0.])
 
-    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
-        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
-    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
-    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
-        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
-        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
+        :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+            the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+        :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+        :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+        :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+            If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+            If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+            If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
     def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
@@ -1096,23 +1094,26 @@ class GMSD(Metric):
         gmsd_per_channel = gms.std(dim=(-2, -1), correction=0)
 
         return gmsd_per_channel.mean(dim=-1)
+
+
 class RecoveryCoefficient(Metric):
     r"""
     Recovery Cofficient metric used in emission tomography.
     Compute the ratio between the total Reconstructed activity and the total ground truth activity inside a given mask.
     """
-    def __init__(self,eps:float = 1e-12,**kwargs):
+
+    def __init__(self, eps: float = 1e-12, **kwargs):
         super().__init__(**kwargs)
         self.eps = eps
         self.lower_better = False
-    def metric(self,x_net,x,*args,**kwargs):
-        mask = kwargs.get("mask",None)
+
+    def metric(self, x_net, x, *args, **kwargs):
+        mask = kwargs.get("mask", None)
         if mask is None:
             raise ValueError("Recovery Coefficient requires a mask argument.")
         mask = mask.to(x.dtype)
-        dims = tuple(range(1,x.ndim))
-        recon_activity = (x_net*mask).sum(dim=dims)
-        gt_activity = (x*mask).sum(dim=dims)
+        dims = tuple(range(1, x.ndim))
+        recon_activity = (x_net * mask).sum(dim=dims)
+        gt_activity = (x * mask).sum(dim=dims)
 
-        return recon_activity/(gt_activity+self.eps)
-
+        return recon_activity / (gt_activity + self.eps)
