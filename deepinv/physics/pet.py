@@ -66,14 +66,16 @@ class PET(LinearPhysics):
 
     .. note::
 
-        This operator is defined to work on sinogram (binned) data.
-        List-mode data is not supported yet, but it can be pre-binned into a sinogram using `parallelproj`.
+        This operator currently only supports sinogram non-ToF data.
+        To use this operator with listmode data and/or ToF data,
+        you can easily swap out the projector `self.proj` for the appropriate listmode or ToF projector.
+        See `parallelproj` `docs <https://parallelproj.readthedocs.io/>`_ for more details.
 
     :param tuple img_size: shape of the input 2D `(H, W)` or 3D volumes `(D, H, W)`.
     :param tuple voxel_size: voxel size in mm. Default is 2 x 2 x 2 mm.
     :param float fwhm_data_mm: full width at half maximum (FWHM) of the Gaussian blur :math:`g`. It has a crucial impact on the maximum achievable resolution,
         which is typically a fraction of the FWHM.
-    :param None, parallelproj.pet_scanners.ModularizedPETScannerGeometry scanner: Scanner configuration. If None, the default scanner from parallelproj is used.
+    :param None, parallelproj.pet_scanners.ModularizedPETScannerGeometry scanner: Scanner configuration. If None, a default demo scanner from parallelproj is used.
     :param int radial_trim: radial trim of rays on the sides of the volume to improve efficiency.
     :param float gain: gain factor :math:`\gamma` for the Poisson noise model.
     :param bool normalize: If `True` the forward operator is normalized such that :math:`\|A\|=1`.
@@ -214,11 +216,12 @@ class PET(LinearPhysics):
         r"""
         Apply the linear operator :math:`Ax=c \circ H(g*x)` to a signal :math:`x`
 
-        :param torch.Tensor x: input image or volume
+        :param torch.Tensor x: input image or volume of shape `(B,1,H,W)` for 2D or `(B,1,D,H,W)` for 3D where `B` is the batch size.
         :param torch.Tensor add_background: whether to add background :math:`b`. By default, no background is added.
         :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator.
         :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator.
             The space (image or sinogram) is inferred automatically from the tensor shape.
+        :return: sinogram of shape `(B,1,N,N/2,R^2)` where `N` is the number of detectors per ring and `R` is the number of rings.
 
         """
         if x.shape[1] != 1:
@@ -247,7 +250,7 @@ class PET(LinearPhysics):
         r"""
         Apply the adjoint of the linear operator :math:`A^{\top}y` where :math:`A=c \circ H(g*\cdot)` to a sinogram :math:`y`
 
-        :param torch.Tensor y: input sinogram
+        :param torch.Tensor y: input sinogram of shape `(B,1,N,N/2,R^2)` where `N` is the number of detectors per ring and `R` is the number of rings.
         :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator
         :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator
         """

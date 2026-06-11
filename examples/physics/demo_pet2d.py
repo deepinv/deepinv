@@ -195,7 +195,7 @@ with torch.no_grad():
 
 print(f"Norm operator: {physics.compute_norm(x):.2f}")
 
-dinv.utils.plot(sensitivities, ["sensitivities"])
+dinv.utils.plot([x_dag, sensitivities], ["pseudoinverse", "sensitivities"])
 
 # %%
 # MLEM reconstruction
