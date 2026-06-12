@@ -596,6 +596,7 @@ def test_gmsd():
     out = gmsd(x_net, x)
     assert torch.isclose(out, torch.tensor((0.33,)), atol=3e-4)
 
+
 def test_recovery_coefficient():
     rc = metric.RecoveryCoefficient()
 
@@ -617,7 +618,4 @@ def test_recovery_coefficient():
     with pytest.raises(ValueError) as exc_info:
         rc(x_net, x)
 
-    assert (
-        str(exc_info.value)
-        == "Recovery Coefficient requires a mask argument."
-    )
+    assert str(exc_info.value) == "Recovery Coefficient requires a mask argument."
