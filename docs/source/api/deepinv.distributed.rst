@@ -39,10 +39,11 @@ You typically don't need to instantiate them directly.
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.distributed.DistributedStackedPhysics
-   deepinv.distributed.DistributedStackedLinearPhysics
-   deepinv.distributed.DistributedProcessing
-   deepinv.distributed.DistributedDataFidelity
+   deepinv.distributed.framework.DistributedStackedPhysics
+   deepinv.distributed.framework.DistributedStackedLinearPhysics
+   deepinv.distributed.framework.DistributedProcessing
+   deepinv.distributed.framework.DistributedDataFidelity
+   deepinv.distributed.framework.DistributedReplicatedParameters
 
 
 Distribution Strategies
@@ -56,8 +57,7 @@ Advanced: Custom tiling strategies for spatial distribution of denoisers.
    :nosignatures:
 
    deepinv.distributed.strategies.DistributedSignalStrategy
-   deepinv.distributed.strategies.BasicStrategy
-   deepinv.distributed.strategies.OverlapTilingStrategy
+   deepinv.distributed.strategies.distributed_strategies.OverlapTilingStrategy
 
 
 .. autosummary::

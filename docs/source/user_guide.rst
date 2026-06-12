@@ -273,6 +273,7 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
    user_guide/training/metric
    user_guide/training/transforms
    user_guide/training/multigpu
+   user_guide/training/distributed
 
 .. toctree::
    :maxdepth: 2

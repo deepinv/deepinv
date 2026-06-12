@@ -8,7 +8,6 @@ distributed signal processing, including splitting, batching, and reduction oper
 from __future__ import annotations
 
 
-import itertools
 import warnings
 
 from abc import ABC, abstractmethod
@@ -16,7 +15,7 @@ from typing import Sequence
 
 import torch
 
-from deepinv.distributed.utils import (
+from deepinv.distributed.strategies.utils import (
     tiling_splitting_strategy,
     tiling_reduce_fn,
 )
@@ -179,114 +178,6 @@ class DistributedSignalStrategy(ABC):
             patches.append(patch)
 
         return patches
-
-
-class BasicStrategy(DistributedSignalStrategy):
-    r"""
-    Basic distributed strategy with naive splitting along specified dimensions.
-
-    This strategy:
-        - Splits the signal into blocks along specified dimensions
-        - Processes patches individually (no batching)
-        - Uses simple tensor assignment for reduction
-
-    :param Sequence[int] img_size: shape of the complete signal tensor.
-    :param int | tuple[int, ...] tiling_dims: dimensions along which to split. If `int`, tiles only that dimension.
-    :param tuple[int, ...] | None num_splits: number of splits along each dimension. If `None`, automatically computed. Default is `None`.
-    """
-
-    def __init__(
-        self,
-        img_size: Sequence[int],
-        tiling_dims: int | tuple[int, ...],
-        num_splits: tuple[int, ...] | None = None,
-        **kwargs,
-    ):
-        r"""
-        Initialize basic strategy.
-        """
-        super().__init__(img_size)
-
-        # Normalize tiling_dims to tuple
-        if isinstance(tiling_dims, int):
-            # If tiling_dims is an int, tile only that dimension
-            self.tiling_dims = (tiling_dims,)
-        elif isinstance(tiling_dims, tuple):
-            self.tiling_dims = tiling_dims
-        else:
-            raise ValueError("tiling_dims must be an int or a tuple of ints")
-
-        # Compute splits
-        if num_splits is None:
-            # Default: split into roughly square patches
-            total_size = 1
-            for dim in self.tiling_dims:
-                total_size *= img_size[dim]
-            target_patch_size = max(
-                64, int(total_size ** (1 / len(self.tiling_dims)) / 2)
-            )
-            num_splits = tuple(
-                max(1, img_size[dim] // target_patch_size) for dim in self.tiling_dims
-            )
-
-        self.num_splits_per_dim = num_splits
-        self._compute_splits()
-
-    def _compute_splits(self):
-        """Compute all patch slices."""
-        self._patch_slices = []
-        self._patch_positions = []
-
-        # Generate all combinations of splits
-        ranges = []
-        for i, dim in enumerate(self.tiling_dims):
-            size = self.img_size[dim]
-            n_splits = self.num_splits_per_dim[i]
-            split_size = size // n_splits
-            remainder = size % n_splits
-
-            dim_ranges = []
-            start = 0
-            for j in range(n_splits):
-                # Distribute remainder across first few splits
-                current_size = split_size + (1 if j < remainder else 0)
-                dim_ranges.append((start, start + current_size))
-                start += current_size
-            ranges.append(dim_ranges)
-
-        # Generate all patch combinations
-        for positions in itertools.product(*[range(len(r)) for r in ranges]):
-            # Create slice tuple
-            slices = [slice(None)] * len(self.img_size)
-            for i, (dim, pos) in enumerate(
-                zip(self.tiling_dims, positions, strict=True)
-            ):
-                start, end = ranges[i][pos]
-                slices[dim] = slice(start, end)
-
-            self._patch_slices.append(tuple(slices))
-            self._patch_positions.append(positions)
-
-    def get_local_patches(
-        self, x: torch.Tensor, local_indices: list[int]
-    ) -> list[tuple[int, torch.Tensor]]:
-        r"""Extract local patches without any special processing."""
-        patches = []
-        for idx in local_indices:
-            patch = x[self._patch_slices[idx]].clone()
-            patches.append((idx, patch))
-        return patches
-
-    def reduce_patches(
-        self, out_tensor: torch.Tensor, local_pairs: list[tuple[int, torch.Tensor]]
-    ) -> None:
-        r"""Simple assignment of patches to output tensor."""
-        for idx, patch in local_pairs:
-            out_tensor[self._patch_slices[idx]] = patch
-
-    def get_num_patches(self) -> int:
-        r"""Return total number of patches."""
-        return len(self._patch_slices)
 
 
 class OverlapTilingStrategy(DistributedSignalStrategy):
@@ -466,7 +357,7 @@ def create_strategy(
     r"""
     Create a distributed signal strategy by name.
 
-    :param str strategy_name: name of the strategy (`'basic'`, `'overlap_tiling'`).
+    :param str strategy_name: name of the strategy (`'overlap_tiling'`).
     :param Sequence[int] img_size: full shape of the signal tensor, including batch and channel dimensions (e.g., ``(B, C, H, W)``).
     :param tuple[int, ...] | None tiling_dims: dimensions to tile. If `None`, defaults to last N dimensions.
     :return: the created strategy instance.
@@ -481,9 +372,7 @@ def create_strategy(
             UserWarning,
         )
 
-    if strategy_name == "basic":
-        return BasicStrategy(img_size, tiling_dims=tiling_dims, **kwargs)
-    elif strategy_name == "overlap_tiling":
+    if strategy_name == "overlap_tiling":
         return OverlapTilingStrategy(img_size, tiling_dims=tiling_dims, **kwargs)
     else:
         raise ValueError(f"Unknown strategy: {strategy_name}")
