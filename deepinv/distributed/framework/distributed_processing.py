@@ -37,10 +37,10 @@ class DistributedProcessing(torch.nn.Module):
 
     :param DistributedContext ctx: distributed context manager.
     :param Callable[[torch.Tensor], torch.Tensor] processor: processing function to apply to signal patches.
-        Should accept a batched tensor of shape ``(N, C, ...)`` and return a tensor of the same shape.
+        Should accept a batched tensor of shape ``(B, C, ...)`` and return a tensor of the same shape.
         Examples: denoiser, neural network, prior gradient function, etc.
     :param str | DistributedSignalStrategy | None strategy: signal processing strategy for patch extraction
-        and reduction. Either a strategy name (``'basic'``, ``'overlap_tiling'``) or a custom strategy instance.
+        and reduction. Either ``'overlap_tiling'`` or a custom strategy instance.
         Default is ``'overlap_tiling'`` which handles overlapping patches with smooth blending.
     :param dict | None strategy_kwargs: additional keyword arguments passed to the strategy constructor
         when using string strategy names. Examples: ``patch_size``, ``overlap``, ``tiling_dims``. Default is `None`.
@@ -48,6 +48,7 @@ class DistributedProcessing(torch.nn.Module):
         If ``None``, all local patches are batched together. Set to ``1`` for sequential processing
         (useful for memory-constrained scenarios). Higher values increase throughput but require more memory. Default is `None`.
     :param str checkpoint_batches: activation checkpointing mode for patch-batches during backward.
+        Checkpointing saves memory by recomputing activations related to the patch-batches during the backward pass instead of storing them.
         Supported values are ``'auto'``, ``'always'`` and ``'never'``.
 
         - ``'auto'`` (default): enable checkpointing only when gradients are enabled and there are multiple local patch-batches.

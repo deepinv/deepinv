@@ -30,7 +30,7 @@ class DistributedDataFidelity(torch.nn.Module):
 
     Both operations use an efficient pattern:
 
-        1. Compute local forward operations (A_local)
+        1. Compute local forward operations :math:`A_i`
         2. Apply distance function and compute gradients locally
         3. Perform a single reduction across ranks
 
@@ -235,13 +235,13 @@ class DistributedDataFidelity(torch.nn.Module):
 
         .. math::
 
-            \nabla_x f(x) = \sum_i A_i^T \nabla d(A_i(x), y_i)
+            \nabla_x f(x) = \sum_i \frac{\partial A_i}{\partial \x} \nabla d(A_i(x), y_i)
 
         This is computed efficiently by:
 
             1. Each rank computes :math:`A_i(x)` for its local operators
             2. Each rank computes :math:`\nabla d(A_i(x), y_i)` for its local operators
-            3. Each rank computes :math:`\sum_{i \in \text{local}} A_i^T \nabla d(A_i(x), y_i)` using A_vjp_local
+            3. Each rank computes :math:`\sum_{i \in \text{local}} \frac{\partial A_i}{\partial \x} \nabla d(A_i(x), y_i)` using A_vjp_local
             4. Results are reduced across all ranks
 
         :param torch.Tensor x: input signal at which to compute the gradient.

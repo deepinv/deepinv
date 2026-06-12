@@ -325,7 +325,7 @@ Tiling Parameters
    * - ``overlap``
      - Overlap radius for smooth blending (default: 64).
    * - ``tiling_strategy``
-     - Strategy for tiling: ``'overlap_tiling'`` (default), or ``'basic'``
+     - Strategy for tiling: ``'overlap_tiling'`` (default)
    * - ``max_batch_size``
      - Max patches per batch (default: all). Set to 1 for sequential processing (lowest memory)
 
@@ -336,9 +336,6 @@ Tiling Strategies
 
     # Tiling with overlap (default)
     dist_denoiser = distribute(denoiser, ctx, tiling_strategy="overlap_tiling")
-    
-    # Basic (no overlap blending)
-    dist_denoiser = distribute(denoiser, ctx, tiling_strategy="basic")
 
 
 Running Multi-Process

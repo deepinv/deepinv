@@ -4,8 +4,8 @@ Distributed Training
 ====================
 
 The distributed framework can be used during training. This is useful when a
-single inverse problem is too large for one GPU, for example because reconstruction
-model processes large images or volumes.
+forward model is too large for one GPU, for example because the reconstruction
+model processes large images or volumes, and the operator acts globally over them.
 
 The API is the same as for :ref:`distributed reconstruction <distributed>`:
 
@@ -119,7 +119,7 @@ important because ranks should usually consume the same data in the same order.
 
     physics = distribute(stacked_physics, ctx)
 
-For a stacked physics :math:`A = [A_1, \ldots, A_N]`, each rank owns a subset of
+For a :class:`stacked physics <deepinv.physics.StackedPhysics>` :math:`A = [A_1, \ldots, A_N]`, each rank owns a subset of
 the operators. The global forward, adjoint, and data-fidelity computations are
 assembled from these local contributions.
 
@@ -172,7 +172,7 @@ In practice:
 This is different from Pytorch's data parallelism, where each process receives
 different samples and gradients are synchronized only between model replicas.
 There's no need for custom data loaders or samplers for the distributed framework,
-as long as all ranks consume the same data in the same order.
+as long as all ranks operate on the same image/volume.
 
 How Backward Works
 ------------------
@@ -183,7 +183,7 @@ are built so that PyTorch autograd can follow the full computation.
 **Through distributed physics**: each rank applies its local operators
 :math:`A_i`. During backward, the gradient with respect to the shared input is
 computed from local contributions and synchronized across ranks. For linear
-physics, adjoints and vector-Jacobian products are reduced so that the model sees
+physics, adjoints are reduced so that the model sees
 the gradient of the full stacked problem, not only the local operators.
 
 **Through data fidelity terms**: losses such as :class:`deepinv.optim.data_fidelity.L2`

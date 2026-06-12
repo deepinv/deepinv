@@ -8,7 +8,6 @@ processing tiles independently or in parallel, and reconstructing the final resu
 
 This example covers:
 
-- :func:`deepinv.distributed.strategies.distributed_strategies.BasicStrategy`: Simple non-overlapping tiling
 - :func:`deepinv.distributed.strategies.distributed_strategies.OverlapTilingStrategy`: Overlapping tiles with padding for artifact-free reconstruction
 
 """
@@ -21,7 +20,6 @@ import numpy as np
 import torch
 
 from deepinv.distributed.strategies.distributed_strategies import (
-    BasicStrategy,
     OverlapTilingStrategy,
 )
 from deepinv.utils import load_example, plot
@@ -30,11 +28,10 @@ from deepinv.utils import load_example, plot
 # Configuration
 # ---------------
 #
-# Define parameters for image size, patch size, and overlap settings.
+# Define parameters for image size.
 
 device = torch.device("cpu")
 img_size = 512
-patch_size = 256
 
 # %%
 # Load image
@@ -53,28 +50,11 @@ clean_image = load_example(
 plot(clean_image, titles="Original Image")
 
 # %%
-# Instantiate strategies
-# ----------------------------
-#
-# Create both patching strategies to compare their behavior.
-# BasicStrategy creates non-overlapping patches.
-
-basic_strategy = BasicStrategy(
-    img_size=clean_image.shape,
-    tiling_dims=(-2, -1),
-    num_splits=(img_size // patch_size, img_size // patch_size),
-)
-
-print(f"BasicStrategy: {basic_strategy.get_num_patches()} patches")
-
-
-# %%
-# ----------------------------
-#
 # OverlapTilingStrategy creates overlapping patches with padding to provide context at boundaries, reducing artifacts.
 
 stride = None  # Defaults to patch_size when None
-overlap = 64  # Receptive field padding for OverlapTilingStrategy
+patch_size = 256
+overlap = 64  # Overlap between patches for OverlapTilingStrategy
 pad_mode = "reflect"  # Padding mode for global padding (e.g., 'reflect', 'constant')
 
 overlap_strategy = OverlapTilingStrategy(
@@ -87,16 +67,6 @@ overlap_strategy = OverlapTilingStrategy(
 )
 
 print(f"OverlapTilingStrategy: {overlap_strategy.get_num_patches()} patches")
-
-# %%
-# BasicStrategy
-# --------------------------------
-
-# %%
-# BasicStrategy divides the image into a regular, non-overlapping grid of patches. This is simple and memory-efficient,
-# but has a key disadvantage: patches at boundaries have no context from neighboring pixels. When a model
-# processes a patch, it can not "see" information beyond the patch edges, which can lead to
-# artifacts at patch boundaries (e.g., visible seams when reassembling patches) and reduced quality at edges.
 
 # %%
 # .. raw:: html
@@ -114,7 +84,7 @@ def plot_patches(ax, image, strategy, color, show_padding=False):
 
     :param ax: Axes object to draw on
     :param image: Input image tensor (C, H, W)
-    :param strategy: Patching strategy (BasicStrategy or OverlapTilingStrategy)
+    :param strategy: Patching strategy (OverlapTilingStrategy)
     :param str color: Color for patch outlines
     :param bool show_padding: If True, display global padding region (OverlapTilingStrategy only)
     """
@@ -184,12 +154,8 @@ def plot_patches(ax, image, strategy, color, show_padding=False):
         img_display = img_np
 
     ax.imshow(np.clip(img_display, 0, 1))
-    # Get patch slices: _patch_slices for BasicStrategy, _global_slices for OverlapTilingStrategy
-    slices = (
-        strategy._patch_slices
-        if isinstance(strategy, BasicStrategy)
-        else strategy._global_slices
-    )
+    # Get patch slices: _global_slices for OverlapTilingStrategy
+    slices = strategy._global_slices
     # Draw patches with highlighting on patch 0 (first/reference patch)
     for idx, slc in enumerate(
         slices if isinstance(slices, list) else [slices[i] for i in range(len(slices))]
@@ -200,11 +166,7 @@ def plot_patches(ax, image, strategy, color, show_padding=False):
             else (strategy._patch_slices[idx][-2], strategy._patch_slices[idx][-1])
         )
         is_highlight = idx == 0  # Highlight first patch for reference
-        edge = (
-            color
-            if is_highlight
-            else ("salmon" if isinstance(strategy, BasicStrategy) else "skyblue")
-        )
+        edge = color if is_highlight else "salmon"
         # Draw rectangle for each patch with thicker outline and halo for highlighted patch
         ax.add_patch(
             Rectangle(
@@ -238,14 +200,6 @@ def plot_patches(ax, image, strategy, color, show_padding=False):
 #
 #    </details>
 
-# %%
-# Display all patches from BasicStrategy with non-overlapping grid overlay.
-fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-plot_patches(ax, clean_image, basic_strategy, color="red", show_padding=False)
-ax.set_title("BasicStrategy: Non-Overlapping Patches", fontsize=14, fontweight="bold")
-ax.axis("off")
-plt.show()
-
 
 # %%
 # OverlapTilingStrategy
@@ -254,8 +208,8 @@ plt.show()
 
 
 # %%
-# OverlapTilingStrategy addresses the boundary artifact problem by adding overlapping patches with padding
-# (the "receptive field"). Instead of non-overlapping tiles, this strategy:
+# OverlapTilingStrategy addresses the boundary artifact problem by adding overlapping patches with padding.
+# Instead of non-overlapping tiles, this strategy:
 #
 # - **Adds global padding**: Reflects or extends the image at boundaries, creating a padded version. This gives each
 #   patch context from pixels beyond the original image boundaries.
@@ -281,115 +235,15 @@ ax.set_title(
 ax.axis("off")
 plt.show()
 
-# %%
-# .. raw:: html
-#
-#    <details>
-#    <summary style="cursor: pointer; color: #0066cc; font-weight: bold;">Click to expand: plot_single_patch() helper function</summary>
-#
-# For clearer visualization, we display one patch from each strategy side by side. To do this,
-# we first define a helper function that extracts and plots a single patch from a given patching strategy.
-
-
-def plot_single_patch(ax, image, strategy, patch_idx, color):
-    """
-    Extract and display a single patch from a patching strategy.
-
-    :param ax: Axes object to draw on
-    :param image: Input image tensor (C, H, W)
-    :param strategy: Patching strategy (BasicStrategy or OverlapTilingStrategy)
-    :param int patch_idx: Index of the patch to extract and display
-    :param str color: Color for the patch border
-    :returns: Tuple of (height, width) of the displayed patch
-    """
-    # Extract patch using strategy's get_local_patches method (returns list of (idx, patch) tuples)
-    idx, patch = strategy.get_local_patches(image, [patch_idx])[0]
-    # Convert patch tensor to numpy array for visualization
-    patch_np = patch.squeeze(0).permute(1, 2, 0).detach().cpu().numpy()
-    ax.imshow(np.clip(patch_np, 0, 1))
-    h, w = patch_np.shape[:2]
-
-    # Draw colored border with white halo for visibility
-    ax.add_patch(
-        Rectangle(
-            (0, 0),
-            w,
-            h,
-            linewidth=3,
-            edgecolor=color,
-            facecolor="none",
-            path_effects=[pe.Stroke(linewidth=4.5, foreground="white"), pe.Normal()],
-        )
-    )
-    ax.text(
-        8,
-        20,
-        f"patch {idx}",
-        color="black",
-        fontsize=12,
-        weight="bold",
-        bbox=dict(
-            boxstyle="round,pad=0.4", facecolor="white", edgecolor=color, linewidth=1.2
-        ),
-    )
-    ax.axis("off")  # Hide axes
-    return h, w
-
-
-# %%
-# .. raw:: html
-#
-#    </details>
-
-
-# %%
-# Comparison
-# --------------------------------
-#
-
-# %%
-# Extract patch 0 from both strategies to compare their handling of padding and overlap.
-patch_idx = 0
-# Retrieve window height from OverlapTilingStrategy metadata to show size difference
-overlap_h = overlap_strategy._metadata["window_shape"][
-    0
-]  # Height of overlap patch (includes receptive field)
-fig = plt.figure(figsize=(6, 6))
-gs = fig.add_gridspec(1, 2, width_ratios=[patch_size, overlap_h], wspace=0.2)
-
-# Left subplot: BasicStrategy patch (non-overlapping, base size)
-ax0 = fig.add_subplot(gs[0])
-plot_single_patch(ax0, clean_image, basic_strategy, patch_idx, "red")
-ax0.set_title(
-    f"BasicStrategy\nPatch {patch_idx} ({patch_size}×{patch_size})",
-    fontsize=12,
-    fontweight="bold",
-    pad=10,
-)
-
-# Right subplot: OverlapTilingStrategy patch (includes receptive field/overlap padding)
-ax1 = fig.add_subplot(gs[1])
-plot_single_patch(ax1, clean_image, overlap_strategy, patch_idx, "blue")
-ax1.set_title(
-    f"OverlapTilingStrategy\nPatch {patch_idx} ({overlap_h}×{overlap_h})",
-    fontsize=12,
-    fontweight="bold",
-    pad=10,
-)
-# plt.tight_layout()
-plt.show()
 
 # %%
 # Summary
 # -------
 #
-# Display comparison summary showing patch counts, stride settings, and overlap parameters.
+# Display summary showing patch counts, stride settings, and overlap parameters.
 
 print("\n" + "=" * 60)
 print(f"SUMMARY\nImage: {img_size}×{img_size}")
-print(
-    f"\nBasicStrategy: {basic_strategy.get_num_patches()} patches, stride={patch_size}, Patch: {(patch_size,patch_size)}"
-)
 print(
     f"OverlapTilingStrategy: {overlap_strategy.get_num_patches()} patches, stride={patch_size}, overlap={overlap}, Patch: {overlap_strategy._metadata['window_shape']}"
 )

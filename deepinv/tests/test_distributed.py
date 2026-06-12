@@ -549,7 +549,7 @@ def _test_multiprocess_processor_worker(rank, world_size, args):
         return {"result_norm": result.norm().item(), "rank": rank}
 
 
-@pytest.mark.parametrize("tiling_strategy", ["basic", "overlap_tiling"])
+@pytest.mark.parametrize("tiling_strategy", [None, "overlap_tiling"])
 @pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
 def test_distribute_processor(device_config, tiling_strategy, denoiser_spec):
     """Test processor distribution in multi-process mode."""

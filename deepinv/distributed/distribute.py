@@ -114,8 +114,6 @@ def _distribute_processor(
     checkpoint_batches: str = "auto",
     checkpoint_use_reentrant: bool = False,
     checkpoint_preserve_rng_state: bool = True,
-    gather_strategy: str = "concatenated",
-    **kwargs,
 ) -> DistributedProcessing:
     r"""
     Distribute a DeepInverse prior or denoiser across multiple devices.
@@ -123,7 +121,7 @@ def _distribute_processor(
     :param Prior | Denoiser processor: DeepInverse prior or denoiser to distribute.
     :param DistributedContext ctx: distributed context manager.
     :param torch.dtype | None dtype: data type for distributed object. Default is `torch.float32`.
-    :param str | DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal. Options are `'basic'`, `'overlap_tiling'`, or a custom strategy instance. Default is `None` (which defaults to `'overlap_tiling'`).
+    :param str | DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal. Options are `'overlap_tiling'`, or a custom strategy instance. Default is `None` (which defaults to `'overlap_tiling'`).
     :param int patch_size: size of patches for tiling strategies. Default is `256`.
     :param int overlap: receptive field size for overlap in tiling strategies. Default is `64`.
     :param int | tuple[int, ...] | None tiling_dims: dimensions to tile over.
@@ -139,8 +137,6 @@ def _distribute_processor(
         :func:`torch.utils.checkpoint.checkpoint`. Default is ``False``.
     :param bool checkpoint_preserve_rng_state: whether to preserve RNG state during
         checkpoint recomputation. Default is ``True``.
-    :param str gather_strategy: strategy for gathering distributed results (currently unused for processors, kept for API consistency). Default is `'concatenated'`.
-    :param kwargs: additional keyword arguments for DistributedProcessing.
 
     :return: Distributed version of the input processor.
     """
@@ -457,7 +453,7 @@ def distribute(
         Default is `'concatenated'`.
 
     :param str | DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal (for Denoiser).
-        Options are `'basic'`, `'overlap_tiling'`, or a custom strategy instance. Default is `'overlap_tiling'`.
+        Options are `'overlap_tiling'` or a custom strategy instance. Default is `'overlap_tiling'`.
     :param int | tuple[int, ...] | None tiling_dims: dimensions to tile over (for Denoiser).
 
         Can be one of the following:
@@ -594,7 +590,6 @@ def distribute(
             object,
             ctx,
             dtype=dtype,
-            gather_strategy=gather_strategy,
             tiling_strategy=tiling_strategy,
             patch_size=patch_size,
             overlap=overlap,

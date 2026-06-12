@@ -19,6 +19,10 @@ class DistributedContext:
       - Device selection based on `LOCAL_RANK` and visible GPUs
       - Sharding helpers and tiny communication helpers
 
+    .. note::
+        The world size refers to the total number of processes (usually one per GPU).
+        The rank of a process refers to its unique ID in the range [0, world_size-1].
+
     :param str | None backend: backend to use for distributed communication. If `None` (default), automatically selects NCCL for GPU or Gloo for CPU.
     :param bool cleanup: whether to clean up the process group on exit. Default is `True`.
     :param int | None seed: random seed for reproducible results. If provided, behavior depends on `seed_offset`. Default is `None`.
