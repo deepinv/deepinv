@@ -63,13 +63,11 @@ class MSE(Metric):
     Mean Squared Error metric.
 
     Calculates :math:`\|\hat{x}-x\|_2^2` where :math:`\hat{x}=\inverse{y}`.
-
     .. note::
 
         By default, no reduction is performed in the batch dimension.
 
     .. note::
-
         :class:`deepinv.loss.metric.MSE` is functionally equivalent to :class:`torch.nn.MSELoss` when ``reduction='mean'`` or ``reduction='sum'``,
         but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behavior as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.
 
@@ -1096,3 +1094,26 @@ class GMSD(Metric):
         gmsd_per_channel = gms.std(dim=(-2, -1), correction=0)
 
         return gmsd_per_channel.mean(dim=-1)
+
+
+class RecoveryCoefficient(Metric):
+    r"""
+    Recovery Cofficient metric used in emission tomography.
+    Compute the ratio between the total Reconstructed activity and the total ground truth activity inside a given mask.
+    """
+
+    def __init__(self, eps: float = 1e-12, **kwargs):
+        super().__init__(**kwargs)
+        self.eps = eps
+        self.lower_better = False
+
+    def metric(self, x_net, x, *args, **kwargs):
+        mask = kwargs.get("mask", None)
+        if mask is None:
+            raise ValueError("Recovery Coefficient requires a mask argument.")
+        mask = mask.to(x.dtype)
+        dims = tuple(range(1, x.ndim))
+        recon_activity = (x_net * mask).sum(dim=dims)
+        gt_activity = (x * mask).sum(dim=dims)
+
+        return recon_activity / (gt_activity + self.eps)
