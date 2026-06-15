@@ -8,12 +8,14 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add multi-step optimizer (:gh:`1235` by `Julian Tachella`_)
 
 Changed
 ^^^^^^^
 
 Fixed
 ^^^^^
+- Allow saving first checkpoint in Trainer (:gh:`1235` by `Julian Tachella`_)
 
 
 v0.4.1

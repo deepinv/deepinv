@@ -1021,8 +1021,10 @@ class Trainer:
         :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
-        if train and self.optimizer_step_multi_dataset and (
-            train_ite is None or train_ite % self.accum_gradients == 0
+        if (
+            train
+            and self.optimizer_step_multi_dataset
+            and (train_ite is None or train_ite % self.accum_gradients == 0)
         ):
             self.optimizer.zero_grad(set_to_none=True)  # Clear stored gradients
 
@@ -1066,10 +1068,14 @@ class Trainer:
         if self.log_train_batch and train:
             self.log_metrics_mlops(logs, step=train_ite, train=train)
 
-        if train and self.optimizer_step_multi_dataset and (
-            train_ite is None
-            or (train_ite + 1) % self.accum_gradients == 0
-            or last_batch
+        if (
+            train
+            and self.optimizer_step_multi_dataset
+            and (
+                train_ite is None
+                or (train_ite + 1) % self.accum_gradients == 0
+                or last_batch
+            )
         ):
             self.optimizer.step()  # Optimizer step
 
