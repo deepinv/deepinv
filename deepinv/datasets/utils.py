@@ -50,15 +50,18 @@ def calculate_md5_for_folder(folder_path: str) -> str:
     return md5_folder.hexdigest()
 
 
-def download_archive(url: str, save_path: str | Path, extract: bool = False) -> None:
+def download_archive(
+    url: str, save_path: str | Path, extract: bool = False, force_download: bool = False
+) -> None:
     """Download archive (zipball or tarball) from the Internet.
 
     :param str url: URL of archive.
     :param str, pathlib.Path save_path: path where file should be saved.
     :param bool extract: if ``True``, attempt to extract zipfile or tarball into parent dir.
+    :param bool force_download: if ``True``, download the archive even if it already exists.
     """
     save_path = Path(save_path)
-    if save_path.exists() and save_path.stat().st_size > 0:
+    if not force_download and save_path.exists() and save_path.stat().st_size > 0:
         print(f"File already downloaded: {save_path}. Skipping...")
     else:
         # Ensure the directory containing `save_path`` exists
