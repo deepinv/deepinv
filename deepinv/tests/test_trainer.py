@@ -468,6 +468,69 @@ def test_trainer_multidatasets(imsize, rng, device):
     assert torch.isclose(dummy_model.dummy_param, torch.tensor(avg_value), atol=1e-6)
 
 
+def test_trainer_accum_gradients(imsize, rng, device):
+    N = 4
+
+    list_physics = [get_dummy_physics(rng=rng), get_dummy_physics(rng=rng)]
+    list_generators = [
+        get_dummy_physics_generator(rng=rng, device=device),
+        get_dummy_physics_generator(rng=rng, device=device),
+    ]
+    list_dataloaders = [
+        DataLoader(get_dummy_dataset(imsize=imsize, N=N, value=-0.4), batch_size=1),
+        DataLoader(get_dummy_dataset(imsize=imsize, N=N, value=1.9), batch_size=1),
+    ]
+
+    class DummyModel(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.dummy_param = torch.nn.Parameter(torch.zeros(1), requires_grad=True)
+
+        def forward(self, y=0.0, physics=None, **kwargs):
+            return self.dummy_param * torch.ones_like(y)
+
+    dummy_model = DummyModel().to(device)
+    optimizer = torch.optim.SGD(dummy_model.parameters(), lr=1e-2)
+
+    step_calls = []
+    zero_grad_calls = []
+    original_step = optimizer.step
+    original_zero_grad = optimizer.zero_grad
+
+    def counted_step(*args, **kwargs):
+        step_calls.append(1)
+        return original_step(*args, **kwargs)
+
+    def counted_zero_grad(*args, **kwargs):
+        zero_grad_calls.append(1)
+        return original_zero_grad(*args, **kwargs)
+
+    optimizer.step = counted_step
+    optimizer.zero_grad = counted_zero_grad
+
+    trainer = Trainer(
+        model=dummy_model,
+        physics=list_physics,
+        optimizer=optimizer,
+        train_dataloader=list_dataloaders,
+        online_measurements=True,
+        physics_generator=list_generators,
+        loop_random_online_physics=True,
+        optimizer_step_multi_dataset=True,
+        accum_gradients=2,
+        epochs=1,
+        device=device,
+        save_path=None,
+        verbose=False,
+        show_progress_bar=False,
+    )
+
+    trainer.train()
+
+    assert len(step_calls) == 2
+    assert len(zero_grad_calls) == 2
+
+
 def test_trainer_load_model(tmp_path):
     class TempModel(torch.nn.Module):
         def __init__(self, *args, **kwargs):
