@@ -57,26 +57,30 @@ def download_archive(url: str, save_path: str | Path, extract: bool = False) -> 
     :param str, pathlib.Path save_path: path where file should be saved.
     :param bool extract: if ``True``, attempt to extract zipfile or tarball into parent dir.
     """
-    # Ensure the directory containing `save_path`` exists
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    save_path = Path(save_path)
+    if save_path.exists() and save_path.stat().st_size > 0:
+        print(f"File already downloaded: {save_path}. Skipping...")
+    else:
+        # Ensure the directory containing `save_path`` exists
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
-    # `stream=True` to avoid loading in memory an entire file, instead get a chunk
-    # useful when downloading huge file
-    response = requests.get(url, stream=True)
-    file_size = int(response.headers.get("Content-Length", 0))
-    # use tqdm progress bar to follow progress on downloading archive
-    with tqdm.wrapattr(response.raw, "read", total=file_size) as r_raw:
-        with open(save_path, "wb") as file:
-            # shutil.copyfileobj doesn't require the whole file in memory before writing in a file
-            # https://requests.readthedocs.io/en/latest/user/quickstart/#raw-response-content
-            shutil.copyfileobj(r_raw, file)
-    del response
+        # `stream=True` to avoid loading in memory an entire file, instead get a chunk
+        # useful when downloading huge file
+        response = requests.get(url, stream=True)
+        file_size = int(response.headers.get("Content-Length", 0))
+        # use tqdm progress bar to follow progress on downloading archive
+        with tqdm.wrapattr(response.raw, "read", total=file_size) as r_raw:
+            with open(save_path, "wb") as file:
+                # shutil.copyfileobj doesn't require the whole file in memory before writing in a file
+                # https://requests.readthedocs.io/en/latest/user/quickstart/#raw-response-content
+                shutil.copyfileobj(r_raw, file)
+        del response
 
-    if extract:
-        if Path(save_path).suffix == ".zip":
-            extract_zipfile(save_path, Path(save_path).parent)
-        elif Path(save_path).suffix == ".tar":
-            extract_tarball(save_path, Path(save_path).parent)
+        if extract:
+            if Path(save_path).suffix == ".zip":
+                extract_zipfile(save_path, Path(save_path).parent)
+            elif Path(save_path).suffix == ".tar":
+                extract_tarball(save_path, Path(save_path).parent)
 
 
 def extract_zipfile(file_path: str | Path, extract_dir: str | Path) -> None:
