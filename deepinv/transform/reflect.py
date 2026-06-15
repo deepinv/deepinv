@@ -74,5 +74,3 @@ class Reflect(Transform):
         return torch.cat(
             [torch.flip(x, dims=dim) if len(dim) > 0 else x for dim in dims]
         )
-
-

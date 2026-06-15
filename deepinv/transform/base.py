@@ -20,7 +20,7 @@ class TransformParam(torch.Tensor):
 
     def __neg__(self):
         return self._neg(torch.Tensor._make_subclass(torch.Tensor, self))
-    
+
     def __getitem__(self, index):
         xi = super().__getitem__(index)
         return TransformParam(xi, neg=self._neg) if hasattr(self, "_neg") else xi
@@ -166,7 +166,6 @@ class Transform(torch.nn.Module, TimeMixin):
         :return dict: inverted parameters.
         """
         return {k: -v for k, v in params.items()}
-    
 
     def _transform(self, x: torch.Tensor, **params) -> torch.Tensor:
         """
