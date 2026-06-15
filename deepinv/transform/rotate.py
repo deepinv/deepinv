@@ -123,6 +123,8 @@ def rotate_via_shear(image: torch.Tensor, angle: torch.Tensor, center=None):
     if center is None:
         center = (N0 // 2, N1 // 2)
 
+    angle = angle % (2 * torch.pi)
+
     mask_angles = (angle > torch.pi / 2.0) & (angle <= 3 * torch.pi / 2)
 
     angle[angle > 3 * torch.pi / 2] -= 2 * torch.pi

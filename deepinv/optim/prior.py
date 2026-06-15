@@ -6,14 +6,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from deepinv.optim.potential import Potential
-from deepinv.models.tv import TVDenoiser
+from deepinv.models.tv import TVDenoiser, TVL1Denoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
 from deepinv.models.utils import get_weights_url, load_state_dict_from_url
-
 if TYPE_CHECKING:
     from deepinv.optim import Prior
-
 
 class Prior(Potential):
     r"""
@@ -540,6 +538,30 @@ class TVPrior(Prior):
         :return: (:class:`torch.Tensor`) adjoint of the finite differences of x.
         """
         return self.TVModel.nabla_adjoint(x)
+
+class TVL1Prior(TVPrior):
+    """
+    Total Variation (TV) prior with an L1 norm.
+
+    This prior computes the isotropic total variation regularization term.
+
+    The prior is defined as:
+
+        TV(x) = Σ_i |∇x_i|
+
+    where ∇x denotes the discrete gradient of x.
+
+    Attributes:
+        TVModel (TVL1Denoiser): Associated TV-L1 denoiser used for
+            proximal computations.
+    """
+    def __init__(self, def_crit=1e-8, n_it_max=1000, *args, **kwargs):
+        super().__init__(def_crit=def_crit, n_it_max=n_it_max, *args, **kwargs)
+        self.TVModel = TVL1Denoiser(crit=def_crit, n_it_max=n_it_max)
+
+    def fn(self, x: torch.Tensor) -> torch.Tensor:
+        y = torch.sum(torch.abs(self.nabla(x)), dim=-1)
+        return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
 
 
 class PatchPrior(Prior):

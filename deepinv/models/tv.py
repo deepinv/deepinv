@@ -216,3 +216,22 @@ class TVDenoiser(Denoiser):
             u[tuple(slice_to)] += x[tuple(slice_grad)]
 
         return u
+
+class TVL1Denoiser(TVDenoiser):
+    """
+        Compute the proximal operator of the conjugate TV-L1 regularization term.
+
+        This operator projects the input tensor onto the interval
+        [-lambda2, lambda2] by clamping each element independently.
+
+        Args:
+            u (torch.Tensor): Input dual variable tensor.
+            lambda2 (float or torch.Tensor): Clamping threshold defining
+                the projection bounds.
+
+        Returns:
+            torch.Tensor: Tensor with all values constrained to the
+            interval [-lambda2, lambda2].
+        """
+    def prox_sigma_g_conj(self, u: torch.Tensor, lambda2):
+        return torch.clamp(u, -lambda2, lambda2)

@@ -51,6 +51,12 @@ class Reflect(Transform):
 
         return {"dims": TransformParam(out, neg=lambda x: x)}
 
+    def invert_params(self, params: dict) -> dict:
+        """Ensure axis parameters are not negated when inverting Reflect."""
+        if "dims" in params and not isinstance(params["dims"], TransformParam):
+            params["dims"] = TransformParam(params["dims"], neg=lambda x: x)
+        return super().invert_params(params)
+
     def _transform(
         self,
         x: torch.Tensor,
@@ -68,3 +74,5 @@ class Reflect(Transform):
         return torch.cat(
             [torch.flip(x, dims=dim) if len(dim) > 0 else x for dim in dims]
         )
+
+
