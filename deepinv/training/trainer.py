@@ -86,6 +86,9 @@ class Trainer:
         using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes. Default is :class:`supervised loss <deepinv.loss.SupLoss>`.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed. Default is None.
     :param bool optimizer_step_multi_dataset: If ``True``, the optimizer step is performed once on all datasets. If ``False``, the optimizer step is performed on each dataset separately.
+    :param int accum_gradients: Number of training steps to accumulate gradients before calling ``optimizer.step()``.
+        A single training step already accumulates gradients from the ``G`` operators when ``optimizer_step_multi_dataset=True``,
+        so ``accum_gradients=1`` preserves the current behavior.
 
     .. note::
 
@@ -285,6 +288,7 @@ class Trainer:
     no_learning_method: str | Reconstructor = "A_adjoint"
     grad_clip: float = None
     check_grad: bool = False
+    accum_gradients: int = 1
     wandb_vis: bool = False
     mlflow_vis: bool = False
     wandb_setup: dict = field(default_factory=dict)
@@ -323,6 +327,9 @@ class Trainer:
                 DeprecationWarning,
                 stacklevel=2,
             )
+        assert (
+            isinstance(self.accum_gradients, int) and self.accum_gradients > 0
+        ), "accum_gradients should be a positive integer."
         # Cache flag for whether model.forward accepts 'update_parameters'
         self._model_accepts_update_parameters = False
 
@@ -1014,7 +1021,9 @@ class Trainer:
         :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
-        if train and self.optimizer_step_multi_dataset:
+        if train and self.optimizer_step_multi_dataset and (
+            train_ite is None or train_ite % self.accum_gradients == 0
+        ):
             self.optimizer.zero_grad(set_to_none=True)  # Clear stored gradients
 
         # random permutation of the dataloaders
@@ -1057,7 +1066,11 @@ class Trainer:
         if self.log_train_batch and train:
             self.log_metrics_mlops(logs, step=train_ite, train=train)
 
-        if train and self.optimizer_step_multi_dataset:
+        if train and self.optimizer_step_multi_dataset and (
+            train_ite is None
+            or (train_ite + 1) % self.accum_gradients == 0
+            or last_batch
+        ):
             self.optimizer.step()  # Optimizer step
 
         if last_batch:
@@ -1466,9 +1479,9 @@ class Trainer:
                 self.scheduler.step()
 
             if (
-                epoch > 0 and epoch % self.ckp_interval == 0
+                epoch + 1 > 0 and (epoch + 1) % self.ckp_interval == 0
             ) or epoch + 1 == self.epochs:
-                self.save_model(f"ckp_{epoch}.pth.tar", epoch)
+                self.save_model(f"ckp_{epoch + 1}.pth.tar", epoch + 1)
 
             if stop_flag:
                 break
