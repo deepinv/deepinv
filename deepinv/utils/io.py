@@ -3,11 +3,15 @@ from typing import Callable, Iterator, TYPE_CHECKING
 from pathlib import Path
 from warnings import warn
 from io import BytesIO
+import hashlib
+import json
+import os
 import requests
 import numpy as np
 from numpy.lib.format import open_memmap
 import torch
 from deepinv.utils.mixins import MRIMixin
+from urllib.parse import urlparse
 
 if TYPE_CHECKING:
     import nibabel as nib
@@ -45,6 +49,30 @@ def load_torch(
     return torch.load(fname, weights_only=True, map_location=device)
 
 
+def get_cache_home() -> Path:
+    """Return a folder to store deepinv cache (datasets, models, etc.).
+
+    This folder can be specified by setting the environment variable ``DEEPINV_CACHE_DIR``.
+    If ``DEEPINV_CACHE_DIR`` is not set, this defaults to ``XDG_CACHE_HOME/deepinv`` if the environment variable ``XDG_CACHE_HOME`` is set, otherwise to ``~/.cache/deepinv``.
+
+    :return: pathlib Path for cache dir
+    """
+
+    cache_dir = os.environ.get("DEEPINV_CACHE_DIR", None)
+
+    if cache_dir is not None:
+        path = Path(cache_dir)
+    else:
+        xdg_cache_home = os.environ.get("XDG_CACHE_HOME", None)
+        if xdg_cache_home is not None:
+            path = Path(xdg_cache_home) / "deepinv"
+        else:
+            path = Path.home() / ".cache" / "deepinv"
+
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def load_url(url: str, **kwargs) -> BytesIO:
     """Load URL to a buffer.
 
@@ -52,12 +80,64 @@ def load_url(url: str, **kwargs) -> BytesIO:
     :func:`deepinv.utils.load_torch`, :func:`deepinv.utils.load_np` etc.
     to load data directly from a URL.
 
+    Downloaded content is cached under :func:`deepinv.utils.get_cache_home`
+    so repeated calls for the same URL do not hit the network again.
+
     :param str url: URL of the file to load
     :return: `BytesIO` buffer.
     """
-    response = requests.get(url)
-    response.raise_for_status()
-    return BytesIO(response.content)
+    cache_home = get_cache_home()
+    cache_dir = cache_home / "url_cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    cache_path = _get_url_cache_path(url, cache_dir)
+    index_path = cache_dir / "index.json"
+
+    if not cache_path.exists():
+        tmp_path = cache_path.with_suffix(cache_path.suffix + ".part")
+        try:
+            with requests.get(url, stream=True) as response:
+                response.raise_for_status()
+                with open(tmp_path, "wb") as file:
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        if chunk:
+                            file.write(chunk)
+            tmp_path.replace(cache_path)
+        finally:
+            if tmp_path.exists():
+                tmp_path.unlink()
+
+        index = _load_url_index(index_path)
+        index[url] = cache_path.name
+        _save_url_index(index_path, index)
+    else:
+        index = _load_url_index(index_path)
+        if index.get(url) != cache_path.name:
+            index[url] = cache_path.name
+            _save_url_index(index_path, index)
+
+    return BytesIO(cache_path.read_bytes())
+
+
+def _get_url_cache_path(url: str, cache_dir: Path) -> Path:
+    parsed_url = urlparse(url)
+    suffix = "".join(Path(parsed_url.path).suffixes) or ".bin"
+    cache_key = hashlib.sha256(url.encode("utf-8")).hexdigest()
+    return cache_dir / f"{cache_key}{suffix}"
+
+
+def _load_url_index(index_path: Path) -> dict[str, str]:
+    if not index_path.exists():
+        return {}
+    with open(index_path, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def _save_url_index(index_path: Path, index: dict[str, str]) -> None:
+    tmp_path = index_path.with_suffix(".json.part")
+    with open(tmp_path, "w", encoding="utf-8") as file:
+        json.dump(index, file, indent=2, sort_keys=True)
+    tmp_path.replace(index_path)
 
 
 def load_dicom(

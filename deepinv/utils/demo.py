@@ -11,7 +11,7 @@ from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
-from deepinv.utils.io import load_np, load_torch, load_url as _load_url
+from deepinv.utils.io import get_cache_home, load_np, load_torch, load_url as _load_url
 from deepinv.utils.decorators import _deprecated_func
 
 if TYPE_CHECKING:
@@ -67,30 +67,6 @@ def get_data_home() -> Path:
             path = Path(data_home) / "deepinv"
         else:
             path = Path(".") / "datasets"
-
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
-def get_cache_home() -> Path:
-    """Return a folder to store deepinv cache (datasets, models, etc.).
-
-    This folder can be specified by setting the environment variable ``DEEPINV_CACHE_DIR``.
-    If ``DEEPINV_CACHE_DIR`` is not set, this defaults to ``XDG_CACHE_HOME/deepinv`` if the environment variable ``XDG_CACHE_HOME`` is set, otherwise to ``~/.cache/deepinv``.
-
-    :return: pathlib Path for cache dir
-    """
-
-    cache_dir = os.environ.get("DEEPINV_CACHE_DIR", None)
-
-    if cache_dir is not None:
-        path = Path(cache_dir)
-    else:
-        xdg_cache_home = os.environ.get("XDG_CACHE_HOME", None)
-        if xdg_cache_home is not None:
-            path = Path(xdg_cache_home) / "deepinv"
-        else:
-            path = Path.home() / ".cache" / "deepinv"
 
     path.mkdir(parents=True, exist_ok=True)
     return path
@@ -376,7 +352,7 @@ def download_example(name: str, save_dir: str | Path):
     :param str, pathlib.Path save_dir: directory to save image to.
     """
     os.makedirs(save_dir, exist_ok=True)
-    data = requests.get(get_image_url(name)).content
+    data = _load_url(get_image_url(name)).getvalue()
     with open(Path(save_dir) / name, "wb") as f:
         f.write(data)
 
