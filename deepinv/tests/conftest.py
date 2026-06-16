@@ -9,7 +9,6 @@ from dummy import DummyCircles
 
 import importlib
 
-
 # Keywords (case-insensitive) that indicate a test failure was caused by a
 # transient network problem rather than a real bug. When any of these appear
 # in the exception text or traceback, the test is converted to a skip with a
@@ -63,9 +62,7 @@ def pytest_runtest_makereport(item, call):
             f"{call.excinfo.getrepr(style='short')!s}"
         ).lower()
     except Exception:
-        excinfo_text = (
-            f"{call.excinfo.typename}\n{call.excinfo.value!r}"
-        ).lower()
+        excinfo_text = (f"{call.excinfo.typename}\n{call.excinfo.value!r}").lower()
 
     if not any(kw in excinfo_text for kw in _NETWORK_ERROR_KEYWORDS):
         return
