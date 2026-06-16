@@ -26,6 +26,7 @@ _NETWORK_ERROR_KEYWORDS = (
     "connectiontimeout",
     "sslerror",
     "urlerror",
+    "urllib.error",
     "READ_DATA_CHUNK" "newconnectionerror",
     "no route to host",
     "network is unreachable",
