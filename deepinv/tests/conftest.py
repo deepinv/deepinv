@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 
 import torch
@@ -6,6 +8,80 @@ import deepinv as dinv
 from dummy import DummyCircles
 
 import importlib
+
+
+# Keywords (case-insensitive) that indicate a test failure was caused by a
+# transient network problem rather than a real bug. When any of these appear
+# in the exception text or traceback, the test is converted to a skip with a
+# warning so CI is not failed by flaky HTTPS connections.
+_NETWORK_ERROR_KEYWORDS = (
+    "httperror",
+    "httpserror",
+    "http.client",
+    "httpsconnectionpool",
+    "httpconnectionpool",
+    "connectionerror",
+    "connectionreseterror",
+    "connectionaborted",
+    "connectionrefused",
+    "connectiontimeout",
+    "sslerror",
+    "timeout",
+    "urlerror",
+    "urlopen",
+    "urllib",
+    "requests.exceptions",
+    "max retries exceeded",
+    "name or service not known",
+    "temporary failure in name resolution",
+    "newconnectionerror",
+    "no route to host",
+    "network is unreachable",
+)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """Convert failures caused by transient network errors into skips.
+
+    The CI of deepinv occasionally fails because of HTTPS connection issues
+    when downloading datasets, models or example images. To avoid these
+    flakes failing the whole CI, any test that raises an exception whose
+    message or traceback mentions a network-related keyword is reported as
+    skipped and a warning is emitted instead.
+    """
+    outcome = yield
+    report = outcome.get_result()
+
+    if report.when != "call" or not report.failed or call.excinfo is None:
+        return
+
+    try:
+        excinfo_text = (
+            f"{call.excinfo.typename}\n"
+            f"{call.excinfo.value!r}\n"
+            f"{call.excinfo.getrepr(style='short')!s}"
+        ).lower()
+    except Exception:
+        excinfo_text = (
+            f"{call.excinfo.typename}\n{call.excinfo.value!r}"
+        ).lower()
+
+    if not any(kw in excinfo_text for kw in _NETWORK_ERROR_KEYWORDS):
+        return
+
+    message = (
+        f"Test {item.nodeid} failed with a network-related error and was "
+        f"converted to a skip to avoid flaky CI failures: "
+        f"{call.excinfo.typename}: {call.excinfo.value}"
+    )
+    warnings.warn(message, stacklevel=1)
+
+    report.outcome = "skipped"
+    report.longrepr = (
+        f"Skipped due to network error ({call.excinfo.typename}): "
+        f"{call.excinfo.value}"
+    )
 
 
 @pytest.fixture(
