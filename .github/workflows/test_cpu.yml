@@ -46,12 +46,12 @@ jobs:
           environments: full-cpu test-cpu
 
       - name: Restore .testmondata
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: .testmondata
           key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
           restore-keys: |
-            testmon-cpu-main-${{ matrix.os }}
+            testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-
 
       - name: Test with pytest
         run: |
@@ -59,7 +59,7 @@ jobs:
 
       - name: Save .testmondata # only when pushed to main, not for PRs
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: .testmondata
           key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
