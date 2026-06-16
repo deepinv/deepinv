@@ -23,8 +23,9 @@ _NETWORK_ERROR_KEYWORDS = (
     "connectionrefused",
     "connectiontimeout",
     "sslerror",
+    "PytorchStreamReader"
     "urlerror",
-    "urllib.error",
+    "urllib",
     "newconnectionerror",
     "no route to host",
     "network is unreachable",
