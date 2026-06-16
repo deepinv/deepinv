@@ -534,7 +534,6 @@ def _test_multiprocess_processor_worker(rank, world_size, args):
             processor,
             ctx,
             type_object="denoiser",
-            tiling_strategy=args["tiling_strategy"],
             patch_size=args["patch_size"],
             overlap=args["overlap"],
         )
@@ -549,13 +548,11 @@ def _test_multiprocess_processor_worker(rank, world_size, args):
         return {"result_norm": result.norm().item(), "rank": rank}
 
 
-@pytest.mark.parametrize("tiling_strategy", [None, "overlap_tiling"])
 @pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
-def test_distribute_processor(device_config, tiling_strategy, denoiser_spec):
+def test_distribute_processor(device_config, denoiser_spec):
     """Test processor distribution in multi-process mode."""
     test_args = {
         "device_mode": device_config["device_mode"],
-        "tiling_strategy": tiling_strategy,
         "patch_size": 8,
         "overlap": 2,
         "denoiser_spec": denoiser_spec,
@@ -1243,7 +1240,6 @@ def _test_processor_different_patch_sizes_worker(rank, world_size, args):
                 processor,
                 ctx,
                 type_object="denoiser",
-                tiling_strategy="overlap_tiling",
                 patch_size=patch_size,
                 overlap=2,
             )
@@ -1298,7 +1294,6 @@ def _test_processor_max_batch_size_worker(rank, world_size, args):
                 processor,
                 ctx,
                 type_object="denoiser",
-                tiling_strategy="overlap_tiling",
                 patch_size=8,
                 overlap=2,
                 max_batch_size=max_batch,
@@ -1346,7 +1341,6 @@ def _test_processor_3d_worker(rank, world_size, args):
             processor,
             ctx,
             type_object="denoiser",
-            tiling_strategy="overlap_tiling",
             patch_size=8,
             overlap=2,
         )
@@ -1562,7 +1556,6 @@ def _test_gather_false_processor_worker(rank, world_size, args):
             processor,
             ctx,
             type_object="denoiser",
-            tiling_strategy="overlap_tiling",
             patch_size=8,
             overlap=2,
         )
@@ -1890,7 +1883,6 @@ def _test_distributed_parameter_sync_higher_order_worker(rank, world_size, args)
             denoiser,
             ctx,
             type_object="denoiser",
-            tiling_strategy="overlap_tiling",
             patch_size=8,
             overlap=2,
         )
@@ -1914,9 +1906,7 @@ def _test_distributed_parameter_sync_higher_order_worker(rank, world_size, args)
         # Reference path (single-process equivalent on same rank)
         from deepinv.distributed.strategies import create_strategy
 
-        strategy = create_strategy(
-            "overlap_tiling", x_ref.shape, patch_size=8, overlap=2
-        )
+        strategy = create_strategy(x_ref.shape, patch_size=8, overlap=2)
         all_indices = list(range(strategy.get_num_patches()))
         patch_pairs = strategy.get_local_patches(x_ref, all_indices)
         all_patches = [p for _, p in patch_pairs]
@@ -1997,7 +1987,6 @@ def _test_unrolled_backward_worker(rank, world_size, args):
             denoiser,
             ctx,
             type_object="denoiser",
-            tiling_strategy="overlap_tiling",
             patch_size=patch_size,
             overlap=overlap,
             max_batch_size=max_batch_size,
@@ -2009,7 +1998,6 @@ def _test_unrolled_backward_worker(rank, world_size, args):
         from deepinv.distributed.strategies import create_strategy
 
         strategy = create_strategy(
-            "overlap_tiling",
             (1, 1, 16, 16),
             patch_size=patch_size,
             overlap=overlap,
@@ -2343,7 +2331,6 @@ def _test_processor_backward_worker(rank, world_size, args):
             denoiser,
             ctx,
             type_object="denoiser",
-            tiling_strategy="overlap_tiling",
             patch_size=8,
             overlap=2,
         )
@@ -2408,9 +2395,7 @@ def _test_processor_backward_worker(rank, world_size, args):
         # Let's compute the Single-GPU reference locally
         from deepinv.distributed.strategies import create_strategy
 
-        strategy = create_strategy(
-            "overlap_tiling", x_ref.shape, patch_size=8, overlap=2
-        )
+        strategy = create_strategy(x_ref.shape, patch_size=8, overlap=2)
         # All patches
         num_patches = strategy.get_num_patches()
         all_indices = list(range(num_patches))
@@ -2453,7 +2438,6 @@ def _test_processor_backward_multiple_calls_worker(rank, world_size, args):
             denoiser,
             ctx,
             type_object="denoiser",
-            tiling_strategy="overlap_tiling",
             patch_size=8,
             overlap=2,
         )
@@ -2480,9 +2464,7 @@ def _test_processor_backward_multiple_calls_worker(rank, world_size, args):
 
         from deepinv.distributed.strategies import create_strategy
 
-        strategy = create_strategy(
-            "overlap_tiling", x_ref.shape, patch_size=8, overlap=2
-        )
+        strategy = create_strategy(x_ref.shape, patch_size=8, overlap=2)
         num_patches = strategy.get_num_patches()
         all_indices = list(range(num_patches))
         patch_pairs = strategy.get_local_patches(x_ref, all_indices)
@@ -2522,14 +2504,12 @@ def _test_processor_backward_multiple_calls_worker(rank, world_size, args):
         return "success"
 
 
-@pytest.mark.parametrize("tiling_strategy", ["overlap_tiling"])
-def test_distributed_processor_backward(device_config, tiling_strategy):
+def test_distributed_processor_backward(device_config):
     """
     Test that gradients flow correctly through DistributedProcessing (trainable denoiser).
     """
     test_args = {
         "device_mode": device_config["device_mode"],
-        "tiling_strategy": tiling_strategy,
     }
     results = run_distributed_test(
         _test_processor_backward_worker, device_config, test_args

@@ -3,7 +3,7 @@
 Distributed Training
 ====================
 
-The distributed framework can be used during training. This is useful when a
+The distributed framework can be used during training when a
 forward model is too large for one GPU, for example because the reconstruction
 model processes large images or volumes, and the operator acts globally over them.
 

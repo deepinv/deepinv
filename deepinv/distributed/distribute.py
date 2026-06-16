@@ -106,7 +106,7 @@ def _distribute_processor(
     ctx: DistributedContext,
     *,
     dtype: torch.dtype | None = torch.float32,
-    tiling_strategy: str | DistributedSignalStrategy | None = None,
+    tiling_strategy: DistributedSignalStrategy | None = None,
     patch_size: int = 256,
     overlap: int = 64,
     tiling_dims: int | tuple[int, ...] | None = None,
@@ -121,7 +121,7 @@ def _distribute_processor(
     :param Prior | Denoiser processor: DeepInverse prior or denoiser to distribute.
     :param DistributedContext ctx: distributed context manager.
     :param torch.dtype | None dtype: data type for distributed object. Default is `torch.float32`.
-    :param str | DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal. Options are `'overlap_tiling'`, or a custom strategy instance. Default is `None` (which defaults to `'overlap_tiling'`).
+    :param DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal. Options are either a custom strategy instance or `None`, which corresponds to the default tiling strategy.
     :param int patch_size: size of patches for tiling strategies. Default is `256`.
     :param int overlap: receptive field size for overlap in tiling strategies. Default is `64`.
     :param int | tuple[int, ...] | None tiling_dims: dimensions to tile over.
@@ -260,7 +260,7 @@ def _distribute_base_optim(
     ctx: DistributedContext,
     *,
     average: bool = True,
-    tiling_strategy: str | DistributedSignalStrategy | None = None,
+    tiling_strategy: DistributedSignalStrategy | None = None,
     patch_size: int = 256,
     overlap: int = 64,
     tiling_dims: int | tuple | None = None,
@@ -300,9 +300,9 @@ def _distribute_base_optim(
         modified **in-place**.
     :param DistributedContext ctx: distributed context.
     :param bool average: average gradients across ranks. Default ``True``.
-    :param str | DistributedSignalStrategy | None tiling_strategy: tiling strategy
+    :param DistributedSignalStrategy | None tiling_strategy: tiling strategy
         forwarded to every :class:`DistributedProcessing` created. Default ``None``
-        (falls back to ``'overlap_tiling'``).
+        (falls back to the default tiling strategy).
     :param int patch_size: patch size forwarded to :class:`DistributedProcessing`.
         Default ``256``.
     :param int overlap: overlap forwarded to :class:`DistributedProcessing`.
@@ -402,7 +402,7 @@ def distribute(
     type_object: str | None = "auto",
     dtype: torch.dtype | None = torch.float32,
     gather_strategy: str = "concatenated",
-    tiling_strategy: str | DistributedSignalStrategy | None = "overlap_tiling",
+    tiling_strategy: DistributedSignalStrategy | None = None,
     tiling_dims: int | tuple[int, ...] | None = None,
     patch_size: int = 256,
     overlap: int = 64,
@@ -452,8 +452,8 @@ def distribute(
 
         Default is `'concatenated'`.
 
-    :param str | DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal (for Denoiser).
-        Options are `'overlap_tiling'` or a custom strategy instance. Default is `'overlap_tiling'`.
+    :param DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal (for Denoiser).
+        Options are either a custom strategy instance or `None`, which corresponds to the default tiling strategy.
     :param int | tuple[int, ...] | None tiling_dims: dimensions to tile over (for Denoiser).
 
         Can be one of the following:

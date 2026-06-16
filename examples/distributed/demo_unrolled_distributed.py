@@ -1,6 +1,6 @@
 r"""
-Distributed Training of an Unfolded DRS Algorithm on Urban100
--------------------------------------------------------------
+Distributed Training of Unfolded Networks
+-----------------------------------------
 
 In many large-scale imaging problems, the size of the image/volume to reconstruct is very large, making it impossible to train reconstruction networks (in this example, unfolded networks) with a single GPU.
 The `deepinv.distributed` framework enables training a model on multiple GPUs, by carefully parallelizing the data fidelity and denoising steps inside the network.
@@ -12,7 +12,7 @@ This example shows how to combine:
 - standard training with :class:`deepinv.Trainer`.
 
 Each GPU (rank) processes different parts/operators of the same image. This is not
-standard data-parallel training over different images.
+standard data-parallel training (e.g., via :class:`torch.nn.parallel.DistributedDataParallel`) over different images.
 
 Usage
 
@@ -175,6 +175,9 @@ def prepare_dataset(
 # Settings for training and distributed processing.
 # patch_size and overlap control the size of the image patches that each rank processes, and how much they overlap with each other.
 
+# .. note::
+#     The following settings are for demonstration purposes. We recommend training for more epochs to get better results.
+
 seed = 0
 n_unroll = 3  # Number of unrolled iterations (DRS steps).
 crop_size = 128 if torch.cuda.is_available() else 64
@@ -209,9 +212,6 @@ torch.manual_seed(seed)
 # across devices, so all ranks should consume the same minibatches.
 with DistributedContext(seed=seed, seed_offset=False) as ctx:
     if ctx.rank == 0:
-        print("=" * 78)
-        print("Distributed Unfolded DRS Demo (Urban100)")
-        print("=" * 78)
         print(f"Processes: {ctx.world_size}")
         print(f"Device: {ctx.device}")
 
@@ -256,6 +256,10 @@ with DistributedContext(seed=seed, seed_offset=False) as ctx:
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     psnr_metric = PSNR(reduction="mean")
 
+    # The trainable model parameters are synchronized across ranks, so every
+    # rank holds equivalent weights. Save only one representative checkpoint.
+    checkpoint_root = "ckpts/distributed_unfolded_drs" if ctx.rank == 0 else None
+
     # Reconstruction before training.
     demo_x, demo_y = next(iter(val_loader))
     demo_x = demo_x.to(ctx.device)
@@ -275,7 +279,7 @@ with DistributedContext(seed=seed, seed_offset=False) as ctx:
         eval_dataloader=val_loader,
         grad_clip=1.0,
         compare_no_learning=False,
-        save_path=f"ckpts/distributed_unfolded_drs_rank{ctx.rank}",
+        save_path=checkpoint_root,
         verbose=(ctx.rank == 0),
         show_progress_bar=(ctx.rank == 0),
         freq_update_progress_bar=5,
@@ -283,6 +287,13 @@ with DistributedContext(seed=seed, seed_offset=False) as ctx:
         non_blocking_transfers=False,
     )
     trainer.train()
+    # Reload checkpoints with the usual DeepInverse Trainer API. In this run,
+    # rank 0 can call `model = trainer.load_best_model()`. In a new script,
+    # rebuild the same model and Trainer, then call
+    # `trainer.load_model(
+    #     "ckpts/distributed_unfolded_drs/<timestamp>/ckp_best.pth.tar"
+    # )`.
+    # No rank-specific path or distributed checkpoint API is needed.
 
     with torch.no_grad():
         demo_rec_after = model(demo_y, distributed_physics)
@@ -310,8 +321,7 @@ with DistributedContext(seed=seed, seed_offset=False) as ctx:
             ],
             save_fn="distributed_unrolled_result.png",
         )
-        if train_history and val_history:
+        if train_history and val_history and len(train_history) > 1:
             plot_curves({"train_psnr": [train_history], "val_psnr": [val_history]})
 
         print("Saved: distributed_unrolled_result.png")
-        print("=" * 78)

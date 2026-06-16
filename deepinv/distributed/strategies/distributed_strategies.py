@@ -180,7 +180,7 @@ class DistributedSignalStrategy(ABC):
         return patches
 
 
-class OverlapTilingStrategy(DistributedSignalStrategy):
+class TilingStrategy(DistributedSignalStrategy):
     r"""
     Smart tiling strategy with padding for N-dimensional data.
 
@@ -349,15 +349,13 @@ class OverlapTilingStrategy(DistributedSignalStrategy):
 
 
 def create_strategy(
-    strategy_name: str,
     img_size: Sequence[int],
     tiling_dims: tuple[int, ...] | None = None,
     **kwargs,
 ) -> DistributedSignalStrategy:
     r"""
-    Create a distributed signal strategy by name.
+    Create a distributed signal strategy.
 
-    :param str strategy_name: name of the strategy (`'overlap_tiling'`).
     :param Sequence[int] img_size: full shape of the signal tensor, including batch and channel dimensions (e.g., ``(B, C, H, W)``).
     :param tuple[int, ...] | None tiling_dims: dimensions to tile. If `None`, defaults to last N dimensions.
     :return: the created strategy instance.
@@ -372,7 +370,4 @@ def create_strategy(
             UserWarning,
         )
 
-    if strategy_name == "overlap_tiling":
-        return OverlapTilingStrategy(img_size, tiling_dims=tiling_dims, **kwargs)
-    else:
-        raise ValueError(f"Unknown strategy: {strategy_name}")
+    return TilingStrategy(img_size, tiling_dims=tiling_dims, **kwargs)

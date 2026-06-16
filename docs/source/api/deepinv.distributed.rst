@@ -57,7 +57,7 @@ Advanced: Custom tiling strategies for spatial distribution of denoisers.
    :nosignatures:
 
    deepinv.distributed.strategies.DistributedSignalStrategy
-   deepinv.distributed.strategies.distributed_strategies.OverlapTilingStrategy
+   deepinv.distributed.strategies.distributed_strategies.TilingStrategy
 
 
 .. autosummary::

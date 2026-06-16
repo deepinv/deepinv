@@ -39,9 +39,8 @@ class DistributedProcessing(torch.nn.Module):
     :param Callable[[torch.Tensor], torch.Tensor] processor: processing function to apply to signal patches.
         Should accept a batched tensor of shape ``(B, C, ...)`` and return a tensor of the same shape.
         Examples: denoiser, neural network, prior gradient function, etc.
-    :param str | DistributedSignalStrategy | None strategy: signal processing strategy for patch extraction
-        and reduction. Either ``'overlap_tiling'`` or a custom strategy instance.
-        Default is ``'overlap_tiling'`` which handles overlapping patches with smooth blending.
+    :param DistributedSignalStrategy | None strategy: signal processing strategy for patch extraction
+        and reduction. Either a custom strategy instance or `None`, which corresponds to the default tiling strategy.
     :param dict | None strategy_kwargs: additional keyword arguments passed to the strategy constructor
         when using string strategy names. Examples: ``patch_size``, ``overlap``, ``tiling_dims``. Default is `None`.
     :param int | None max_batch_size: maximum number of patches to process in a single batch.
@@ -66,7 +65,7 @@ class DistributedProcessing(torch.nn.Module):
         ctx: DistributedContext,
         processor: Callable[[torch.Tensor], torch.Tensor],
         *,
-        strategy: str | DistributedSignalStrategy | None = None,
+        strategy: DistributedSignalStrategy | None = None,
         strategy_kwargs: dict | None = None,
         max_batch_size: int | None = None,
         checkpoint_batches: str = "auto",
@@ -90,7 +89,7 @@ class DistributedProcessing(torch.nn.Module):
         self.checkpoint_batches = checkpoint_batches
         self.checkpoint_use_reentrant = checkpoint_use_reentrant
         self.checkpoint_preserve_rng_state = checkpoint_preserve_rng_state
-        self.strategy = strategy if strategy is not None else "overlap_tiling"
+        self.strategy = strategy
         self.strategy_kwargs = strategy_kwargs or {}
         self.current_shape: torch.Size | None = None
 
@@ -138,10 +137,8 @@ class DistributedProcessing(torch.nn.Module):
 
         # Create or set the strategy
         self._strategy = (
-            create_strategy(
-                self.strategy, img_size, tiling_dims=tiling_dims, **strategy_kwargs
-            )
-            if isinstance(self.strategy, str)
+            create_strategy(img_size, tiling_dims=tiling_dims, **strategy_kwargs)
+            if self.strategy is None
             else self.strategy
         )
 
