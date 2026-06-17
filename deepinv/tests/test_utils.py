@@ -419,7 +419,7 @@ def test_deprecated_alias():
 @pytest.mark.parametrize("n_data", [1, 2, 3])
 @pytest.mark.parametrize("transform", [None, lambda x: x])
 @pytest.mark.parametrize("length", [1, 10])
-@pytest.mark.parametrize("dataset_name", ["random", "shepplogan"])
+@pytest.mark.parametrize("dataset_name", ["random", "shepplogan", "nemaiec"])
 def test_phantom_datasets(size, n_data, transform, length, dataset_name):
     if dataset_name == "random":
         dataset = deepinv.utils.RandomPhantomDataset(
@@ -429,12 +429,29 @@ def test_phantom_datasets(size, n_data, transform, length, dataset_name):
         dataset = deepinv.utils.SheppLoganDataset(
             size=size, n_data=n_data, transform=transform
         )
+    elif dataset_name == "nemaiec":
+        dataset = deepinv.utils.NEMAIECPhantomDataset(
+            size=size, n_data=n_data, transform=transform
+        )
     check_dataset_format(
         dataset,
-        length=length if dataset_name != "shepplogan" else 1,
+        length=length if dataset_name in ("random",) else 1,
         dtype=torch.Tensor,
         shape=(n_data, size, size),
     )
+
+
+def test_nema_iec_phantom_activities():
+    # the six requested activity levels should appear as distinct values
+    activities = [0.1, 0.2, 0.3, 0.4, 0.5, 1.0]
+    x = deepinv.utils.generate_nema_iec_phantom(
+        size=256, activities=activities, background=0.05, lung=0.0, normalize=False
+    )
+    for a in activities:
+        assert torch.isclose(x, torch.tensor(a)).any(), f"activity {a} missing"
+    # invalid number of activities should raise
+    with pytest.raises(ValueError):
+        deepinv.utils.generate_nema_iec_phantom(size=64, activities=[1.0, 2.0])
 
 
 @pytest.mark.parametrize("input_shape", [(1, 3, 32, 64)])

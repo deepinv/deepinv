@@ -41,7 +41,12 @@ from .tensorlist import (
     dirac_like,
     dirac_comb_like,
 )
-from .phantoms import RandomPhantomDataset, SheppLoganDataset
+from .phantoms import (
+    RandomPhantomDataset,
+    SheppLoganDataset,
+    NEMAIECPhantomDataset,
+    generate_nema_iec_phantom,
+)
 from .patch_extractor import (
     patch_extractor,
     image_to_patches,
