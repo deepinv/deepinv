@@ -1453,7 +1453,7 @@ def test_denoiser_perf(device, load_example_image):
     ["dncnn", "ram"],
 )
 def test_denoiser_perf_noise_map(device, mode, denoiser):
-    denoiser = choose_denoiser(denoiser, img_size=(3, 64, 64)).to(device)
+    denoiser = choose_denoiser(denoiser, imsize=(3, 64, 64)).to(device)
     # Save deterministic setting to restore it after the test
     prev_deterministic = torch.are_deterministic_algorithms_enabled()
     torch.use_deterministic_algorithms(True)

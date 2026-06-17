@@ -35,6 +35,11 @@ jobs:
     env:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
+      # Persist deepinv's URL cache to a workspace-local folder so it can be
+      # cached across CI runs (see actions/cache steps below). This avoids
+      # re-downloading example images, models and datasets from HuggingFace
+      # and prevents 429 rate-limit failures.
+      DEEPINV_CACHE_DIR: ${{ github.workspace }}/.deepinv-cache
 
     steps:
       - uses: actions/checkout@v5
@@ -53,6 +58,14 @@ jobs:
           restore-keys: |
             testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-
 
+      - name: Restore deepinv URL cache # shared across matrix environments
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/.deepinv-cache
+          key: deepinv-url-cache-${{ matrix.os }}-${{ github.run_id }}
+          restore-keys: |
+            deepinv-url-cache-${{ matrix.os }}-
+
       - name: Test with pytest
         run: |
           pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml --testmon
@@ -63,6 +76,13 @@ jobs:
         with:
           path: .testmondata
           key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
+
+      - name: Save deepinv URL cache # only on push to main, mirrors testmondata
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/.deepinv-cache
+          key: deepinv-url-cache-${{ matrix.os }}-${{ github.run_id }}
 
       - name: Upload coverage to Codecov
         if: runner.os == 'Linux' && matrix.environment == 'full'

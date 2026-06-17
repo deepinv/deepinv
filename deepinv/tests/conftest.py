@@ -46,7 +46,14 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
 
-    if report.when != "call" or not report.failed or call.excinfo is None:
+    # `call` covers test-body failures; `setup` covers fixture failures (which
+    # pytest reports as ERROR, not FAILED). We need to intercept both because
+    # downloads typically happen inside session-scoped fixtures.
+    if (
+        report.when not in ("call", "setup")
+        or not report.failed
+        or call.excinfo is None
+    ):
         return
 
     try:
