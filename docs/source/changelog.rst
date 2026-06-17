@@ -8,7 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Add the NEMA IEC body phantom :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` and :class:`deepinv.utils.phantoms.NEMAIECPhantomDataset`, with per-sphere activity levels (:gh:`XXXX` by `Smriti Pradhan`_)
+- Add the NEMA IEC body phantom :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` and :class:`deepinv.utils.phantoms.NEMAIECPhantomDataset`, with per-sphere activity levels (:gh:`1237` by `Smriti Pradhan`_)
 
 Changed
 ^^^^^^^
