@@ -533,7 +533,8 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_denoiser_sigma_gray(batch_size, denoiser, device):
-    model = choose_denoiser(denoiser, (1, 64, 64)).to(device)
+    img_size = (1, 64, 64)
+    model = choose_denoiser(denoiser, img_size).to(device)
     noiser = dinv.physics.GaussianNoise()
 
     x = torch.ones((batch_size,) + img_size, device=device, dtype=torch.float32)
