@@ -158,7 +158,8 @@ def choose_denoiser(name, imsize):
             color=(imsize[0] == 3),
             pretrained=None,
         )
-
+    elif name == "ram":
+        out = dinv.models.RAM()
     elif name == "dsccp":
         out = dinv.models.DScCP()
     elif name == "bilateral":
@@ -532,9 +533,9 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_denoiser_sigma_gray(batch_size, denoiser, device):
-    img_size = (1, 64, 64)
-    model = choose_denoiser(denoiser, img_size).to(device)
+    model = choose_denoiser(denoiser, (1, 64, 64)).to(device)
     noiser = dinv.physics.GaussianNoise()
+
     x = torch.ones((batch_size,) + img_size, device=device, dtype=torch.float32)
     # Same sigma for all image in the batch
     sigma = torch.tensor(0.1)
@@ -1448,15 +1449,13 @@ def test_denoiser_perf(device, load_example_image):
 @pytest.mark.parametrize("mode", ["real_imag", "abs_angle"])
 @pytest.mark.parametrize(
     "denoiser",
-    [dinv.models.DRUNet(pretrained="download"), dinv.models.RAM(pretrained=True)],
+    ["dncnn", "ram"],
 )
 def test_denoiser_perf_noise_map(device, mode, denoiser):
-
+    denoiser = choose_denoiser(denoiser, img_size=(3, 64, 64)).to(device)
     # Save deterministic setting to restore it after the test
     prev_deterministic = torch.are_deterministic_algorithms_enabled()
     torch.use_deterministic_algorithms(True)
-
-    denoiser.to(device)
 
     # Load 2 example images
     x1 = dinv.utils.load_example(
