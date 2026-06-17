@@ -1450,7 +1450,7 @@ def test_denoiser_perf(device, load_example_image):
 @pytest.mark.parametrize("mode", ["real_imag", "abs_angle"])
 @pytest.mark.parametrize(
     "denoiser",
-    ["dncnn", "ram"],
+    ["drunet", "ram"],
 )
 def test_denoiser_perf_noise_map(device, mode, denoiser):
     denoiser = choose_denoiser(denoiser, imsize=(3, 64, 64)).to(device)

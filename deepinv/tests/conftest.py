@@ -23,11 +23,9 @@ _NETWORK_ERROR_KEYWORDS = (
     "connectionrefused",
     "connectiontimeout",
     "sslerror",
-    "PytorchStreamReader" "urlerror",
+    "PytorchStreamReader",
+    "urlerror",
     "urllib",
-    "newconnectionerror",
-    "no route to host",
-    "network is unreachable",
 )
 
 _NETWORK_SKIPS_KEY = pytest.StashKey[list]()
