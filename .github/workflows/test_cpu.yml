@@ -61,7 +61,7 @@ jobs:
       - name: Restore deepinv URL cache # shared across matrix environments
         uses: actions/cache/restore@v4
         with:
-          path: ${{ github.workspace }}/.deepinv-cache
+          path: ${{ env.DEEPINV_CACHE_DIR }}
           key: deepinv-url-cache-${{ matrix.os }}-${{ github.run_id }}
           restore-keys: |
             deepinv-url-cache-${{ matrix.os }}-
