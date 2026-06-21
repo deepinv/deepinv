@@ -3,8 +3,6 @@ from typing import Callable, Iterator, TYPE_CHECKING
 from pathlib import Path
 from warnings import warn
 from io import BytesIO
-import hashlib
-import json
 import os
 import requests
 import numpy as np
@@ -97,7 +95,13 @@ def load_url(url: str, **kwargs) -> BytesIO:
     to load data directly from a URL.
 
     Downloaded content is cached under :func:`deepinv.utils.get_cache_home`
-    so repeated calls for the same URL do not hit the network again.
+    so repeated calls for the same URL do not hit the network again. The
+    cache layout mirrors the URL: a file fetched from
+    ``https://huggingface.co/datasets/deepinv/images/resolve/main/celeba_example.jpg``
+    is stored at
+    ``<cache_home>/url_cache/huggingface.co/datasets/deepinv/images/resolve/main/celeba_example.jpg``.
+    Two URLs that differ only in their query string share the same cache
+    entry — fine for the ``?download=true`` query used by HuggingFace.
 
     :param str url: URL of the file to load
     :return: `BytesIO` buffer.
@@ -105,12 +109,10 @@ def load_url(url: str, **kwargs) -> BytesIO:
     """
     cache_home = get_cache_home()
     cache_dir = cache_home / "url_cache"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-
     cache_path = _get_url_cache_path(url, cache_dir)
-    index_path = cache_dir / "index.json"
 
     if not cache_path.exists():
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = cache_path.with_suffix(cache_path.suffix + ".part")
         try:
             with requests.get(url, stream=True) as response:
@@ -126,37 +128,23 @@ def load_url(url: str, **kwargs) -> BytesIO:
             if tmp_path.exists():
                 tmp_path.unlink()
 
-        index = _load_url_index(index_path)
-        index[url] = cache_path.name
-        _save_url_index(index_path, index)
-    else:
-        index = _load_url_index(index_path)
-        if index.get(url) != cache_path.name:
-            index[url] = cache_path.name
-            _save_url_index(index_path, index)
-
     return BytesIO(cache_path.read_bytes())
 
 
 def _get_url_cache_path(url: str, cache_dir: Path) -> Path:
-    parsed_url = urlparse(url)
-    suffix = "".join(Path(parsed_url.path).suffixes) or ".bin"
-    cache_key = hashlib.sha256(url.encode("utf-8")).hexdigest()
-    return cache_dir / f"{cache_key}{suffix}"
+    """Map a URL to a deterministic on-disk path under ``cache_dir``.
 
-
-def _load_url_index(index_path: Path) -> dict[str, str]:
-    if not index_path.exists():
-        return {}
-    with open(index_path, "r", encoding="utf-8") as file:
-        return json.load(file)
-
-
-def _save_url_index(index_path: Path, index: dict[str, str]) -> None:
-    tmp_path = index_path.with_suffix(".json.part")
-    with open(tmp_path, "w", encoding="utf-8") as file:
-        json.dump(index, file, indent=2, sort_keys=True)
-    tmp_path.replace(index_path)
+    Layout: ``<cache_dir>/<host>/<path>``. The query string is dropped on
+    purpose so e.g. ``…/celeba_example.jpg?download=true`` and
+    ``…/celeba_example.jpg`` share a cache entry. Any ``..`` segments are
+    stripped so a malicious URL cannot escape the cache directory.
+    """
+    parsed = urlparse(url)
+    host = parsed.netloc or "_no_host"
+    parts = [p for p in parsed.path.split("/") if p and p != ".."]
+    if not parts:
+        parts = ["index.bin"]
+    return cache_dir.joinpath(host, *parts)
 
 
 def load_dicom(
