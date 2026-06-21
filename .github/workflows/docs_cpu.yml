@@ -29,6 +29,14 @@ jobs:
       - name: Fetch base branch
         run: git fetch origin ${{ github.event.pull_request.base.ref }}
 
+      - name: Restore deepinv URL cache # shared across matrix environments
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.DEEPINV_CACHE_DIR }}
+          key: deepinv-url-cache-${{ matrix.os }}-${{ github.run_id }}
+          restore-keys: |
+            deepinv-url-cache-${{ matrix.os }}-
+
       - name: Fetch PR issue comments
         id: get_comments
         env:
