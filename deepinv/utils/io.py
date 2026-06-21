@@ -73,6 +73,22 @@ def get_cache_home() -> Path:
     return path
 
 
+class DownloadError(requests.exceptions.RequestException):
+    """Raised when a network download initiated by deepinv fails.
+
+    Wraps any underlying network error (HTTP status, connection failure,
+    SSL error, DNS failure, timeout, …) so that callers — and the test
+    suite in particular — can detect download failures with a single
+    ``except DownloadError:`` rather than enumerating every exception
+    type that the network stack may raise. The original exception is
+    chained via ``__cause__``.
+
+    Inherits from :class:`requests.exceptions.RequestException` (and
+    transitively from :class:`IOError`) so existing handlers that catch
+    those broader types keep working.
+    """
+
+
 def load_url(url: str, **kwargs) -> BytesIO:
     """Load URL to a buffer.
 
@@ -85,6 +101,7 @@ def load_url(url: str, **kwargs) -> BytesIO:
 
     :param str url: URL of the file to load
     :return: `BytesIO` buffer.
+    :raises DownloadError: if the file cannot be downloaded.
     """
     cache_home = get_cache_home()
     cache_dir = cache_home / "url_cache"
@@ -103,6 +120,8 @@ def load_url(url: str, **kwargs) -> BytesIO:
                         if chunk:
                             file.write(chunk)
             tmp_path.replace(cache_path)
+        except requests.exceptions.RequestException as exc:
+            raise DownloadError(f"Failed to download {url}: {exc}") from exc
         finally:
             if tmp_path.exists():
                 tmp_path.unlink()

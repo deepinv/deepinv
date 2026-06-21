@@ -51,6 +51,7 @@ from .parameters import get_GSPnP_params
 from .signals import normalize_signal, complex_abs
 from .mixins import TimeMixin, MRIMixin, TiledMixin2d
 from .io import (
+    DownloadError,
     get_cache_home,
     load_dicom,
     load_nifti,
