@@ -39,7 +39,7 @@ jobs:
       # cached across CI runs (see actions/cache steps below). This avoids
       # re-downloading example images, models and datasets from HuggingFace
       # and prevents 429 rate-limit failures.
-      DEEPINV_CACHE_DIR: ${{ github.workspace }}/.deepinv-cache
+      DEEPINV_CACHE_DIR: ${{ github.workspace }}/.cache/deepinv
 
     steps:
       - uses: actions/checkout@v5
