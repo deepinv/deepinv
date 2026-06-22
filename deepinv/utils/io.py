@@ -82,7 +82,7 @@ class DownloadError(requests.exceptions.RequestException):
     chained via ``__cause__``.
 
     Inherits from :class:`requests.exceptions.RequestException` (and
-    transitively from :class:`requests.exceptions.IOError`) so existing handlers that catch
+    transitively from `IOError`) so existing handlers that catch
     those broader types keep working.
     """
 
