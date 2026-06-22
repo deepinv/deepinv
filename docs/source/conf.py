@@ -76,6 +76,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3.9/", None),
     "deepinv": ("https://deepinv.github.io/deepinv/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
+    "requests": ("https://docs.python-requests.org/en/latest/", None),
 }
 
 # for python3 type hints

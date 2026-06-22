@@ -72,7 +72,7 @@ def get_cache_home() -> Path:
 
 
 class DownloadError(requests.exceptions.RequestException):
-    """Raised when a network download initiated by deepinv fails.
+    r"""Raised when a network download initiated by deepinv fails.
 
     Wraps any underlying network error (HTTP status, connection failure,
     SSL error, DNS failure, timeout, …) so that callers — and the test
@@ -82,7 +82,7 @@ class DownloadError(requests.exceptions.RequestException):
     chained via ``__cause__``.
 
     Inherits from :class:`requests.exceptions.RequestException` (and
-    transitively from :class:`IOError`) so existing handlers that catch
+    transitively from :class:`requests.exceptions.IOError`) so existing handlers that catch
     those broader types keep working.
     """
 
@@ -103,9 +103,13 @@ def load_url(url: str, **kwargs) -> BytesIO:
     Two URLs that differ only in their query string share the same cache
     entry — fine for the ``?download=true`` query used by HuggingFace.
 
+    The HTTP request uses a ``(connect, read)`` timeout of
+    ``(10, 60)`` seconds; a hung connection or stalled stream raises a
+    :class:`deepinv.utils.DownloadError` rather than blocking indefinitely.
+
     :param str url: URL of the file to load
     :return: `BytesIO` buffer.
-    :raises DownloadError: if the file cannot be downloaded.
+    :raises deepinv.utils.DownloadError: if the file cannot be downloaded.
     """
     cache_home = get_cache_home()
     cache_dir = cache_home / "url_cache"
@@ -114,8 +118,15 @@ def load_url(url: str, **kwargs) -> BytesIO:
     if not cache_path.exists():
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = cache_path.with_suffix(cache_path.suffix + ".part")
+
+        # (connect_timeout, read_timeout) in seconds, passed to ``requests.get``.
+        # ``read_timeout`` applies between received chunks, not to the whole download,
+        # so large files are still allowed as long as the server keeps streaming.
+        # See https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+        timeout = (10, 60)
+
         try:
-            with requests.get(url, stream=True) as response:
+            with requests.get(url, stream=True, timeout=timeout) as response:
                 response.raise_for_status()
                 with open(tmp_path, "wb") as file:
                     for chunk in response.iter_content(chunk_size=1024 * 1024):

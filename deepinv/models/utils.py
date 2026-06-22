@@ -511,7 +511,7 @@ def initialize_3d_from_2d(
 
 def load_state_dict_from_url(*args, **kwargs) -> dict:
     """
-    A wrapper for :func:`torch.hub.load_state_dict_from_url` that respects the DEEPINV_DOWNLOAD_VERBOSE
+    A wrapper for :func:`torch.hub.load_state_dict_from_url` that respects the `DEEPINV_DOWNLOAD_VERBOSE`
     environment variable. If set to 0, stdout prints are suppressed.
 
     Network-level failures (HTTP errors, connection failures, timeouts) are
@@ -540,7 +540,7 @@ def load_state_dict_from_url(*args, **kwargs) -> dict:
         urllib.error.URLError,
         ConnectionError,
         TimeoutError,
-        socket.timeout,
+        socket.gaierror,
     ) as exc:
         url = args[0] if args else kwargs.get("url", "<unknown>")
         raise DownloadError(f"Failed to download state dict from {url}: {exc}") from exc
