@@ -550,13 +550,14 @@ class TVL1Prior(TVPrior):
 
     The prior is defined as:
 
-        TV(x) = Σ_i |∇x_i|
+    .. math::
 
-    where ∇x denotes the discrete gradient of x.
+        \mathrm{TV}(x) = \sum_i \|\nabla x_i\|_1
 
-    Attributes:
-        TVModel (TVL1Denoiser): Associated TV-L1 denoiser used for
-            proximal computations.
+    where :math:`\nabla x` denotes the discrete gradient of x.
+
+    :param float def_crit: default convergence criterion for the inner solver of the TV denoiser; default value: 1e-8.
+    :param int n_it_max: maximal number of iterations for the inner solver of the TV denoiser; default value: 1000.
     """
 
     def __init__(self, def_crit=1e-8, n_it_max=1000, *args, **kwargs):
@@ -564,6 +565,18 @@ class TVL1Prior(TVPrior):
         self.TVModel = TVL1Denoiser(crit=def_crit, n_it_max=n_it_max)
 
     def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Computes the regularizer
+
+        .. math::
+            \reg{x} = \|Dx\|_{1}
+
+
+        where D is the finite differences linear operator.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
+        """
         y = torch.sum(torch.abs(self.nabla(x)), dim=-1)
         return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
 
