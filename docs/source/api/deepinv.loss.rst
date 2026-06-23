@@ -40,6 +40,7 @@ Self-Supervised Learning
    :nosignatures:
 
     deepinv.loss.MCLoss
+    deepinv.loss.DCLoss
     deepinv.loss.EILoss
     deepinv.loss.EquivariantSplittingLoss
     deepinv.loss.MOILoss
