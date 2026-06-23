@@ -1,5 +1,8 @@
 # Adapted from https://developers.google.com/search/docs/crawling-indexing/robots/create-robots-txt
 User-agent: *
 Allow: /
+Disallow: /_modules/
+Disallow: /_sources/
+Disallow: /_downloads/
 
 Sitemap: https://deepinv.org/sitemap.xml
