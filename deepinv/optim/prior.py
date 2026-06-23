@@ -563,7 +563,7 @@ class TVL1Prior(TVPrior):
         super().__init__(def_crit=def_crit, n_it_max=n_it_max, *args, **kwargs)
         self.TVModel = TVL1Denoiser(crit=def_crit, n_it_max=n_it_max)
 
-    def fn(self, x: torch.Tensor) -> torch.Tensor:
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         y = torch.sum(torch.abs(self.nabla(x)), dim=-1)
         return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
 
