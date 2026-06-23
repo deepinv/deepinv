@@ -57,10 +57,8 @@ class Reflect(Transform):
         :param dict params: transform parameters as dict
         :return dict: inverted parameters.
         """
-        if set(params.keys()) != {"dims"}:
-            raise ValueError(f"Expected a single param 'dims', but got {params.keys()}")
         # Reflections are involutions: g^{-1} = g
-        return {"dims": params["dims"]}
+        return {**params}
 
     def _transform(
         self,
