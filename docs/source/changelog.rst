@@ -8,12 +8,16 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add support for TV-L1 priors :class:`deepinv.optim.TVL1Prior` (:gh:`1236` by `Sarra Amiri`_)
 
 Changed
 ^^^^^^^
 
 Fixed
 ^^^^^
+- Fix :func:`deepinv.transform.rotate_via_shear` for angles outside :math:`[0, 2pi)` (:gh:`1236` by `Sarra Amiri`_)
+- Fix inversion in :class:`deepinv.transform.Reflect` (:gh:`1236` by `Sarra Amiri`_)
+- (Breaking) Have `x_shift` represent horizontal shifts and `y_shift` vertical shifts in :class:`deepinv.transform.Shift` (:gh:`1236` by `Sarra Amiri`_)
 
 
 v0.4.1
@@ -655,3 +659,4 @@ Changed
 .. _Baptiste Legouix: https://github.com/blegouix
 .. _Kaibo Tang: https://github.com/kvttt
 .. _Irène Waldspurger: https://github.com/IWalds
+.. _Sarra Amiri: https://github.com/amirisarra18-jpg

@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from deepinv.optim.potential import Potential
-from deepinv.models.tv import TVDenoiser
+from deepinv.models.tv import TVDenoiser, TVL1Denoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
 from deepinv.models.utils import get_weights_url, load_state_dict_from_url
@@ -540,6 +540,45 @@ class TVPrior(Prior):
         :return: (:class:`torch.Tensor`) adjoint of the finite differences of x.
         """
         return self.TVModel.nabla_adjoint(x)
+
+
+class TVL1Prior(TVPrior):
+    """
+    Total Variation (TV) prior with an L1 norm.
+
+    This prior computes the isotropic total variation regularization term.
+
+    The prior is defined as:
+
+    .. math::
+
+        \mathrm{TV}(x) = \sum_i \|\nabla x_i\|_1
+
+    where :math:`\nabla x` denotes the discrete gradient of x.
+
+    :param float def_crit: default convergence criterion for the inner solver of the TV denoiser; default value: 1e-8.
+    :param int n_it_max: maximal number of iterations for the inner solver of the TV denoiser; default value: 1000.
+    """
+
+    def __init__(self, def_crit=1e-8, n_it_max=1000, *args, **kwargs):
+        super().__init__(def_crit=def_crit, n_it_max=n_it_max, *args, **kwargs)
+        self.TVModel = TVL1Denoiser(crit=def_crit, n_it_max=n_it_max)
+
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Computes the regularizer
+
+        .. math::
+            \reg{x} = \|Dx\|_{1}
+
+
+        where D is the finite differences linear operator.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
+        """
+        y = torch.sum(torch.abs(self.nabla(x)), dim=-1)
+        return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
 
 
 class PatchPrior(Prior):
