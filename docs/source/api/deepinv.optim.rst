@@ -88,6 +88,7 @@ Priors
    deepinv.optim.L1Prior
    deepinv.optim.WaveletPrior
    deepinv.optim.TVPrior
+   deepinv.optim.TVL1Prior
    deepinv.optim.PatchPrior
    deepinv.optim.L12Prior
    deepinv.optim.PatchNR
@@ -202,4 +203,3 @@ Utils
    :nosignatures:
 
    deepinv.optim.utils.GaussianMixtureModel
-
