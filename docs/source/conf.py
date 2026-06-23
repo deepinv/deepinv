@@ -102,9 +102,7 @@ html_copy_source = True
 # https://sphinx-sitemap.readthedocs.io/en/v2.5.0/advanced-configuration.html
 sitemap_url_scheme = "{link}"
 # Filter out /_modules/* paths from the sitemap so they are not attempted to be crawled
-sitemap_excludes = [
-    "_modules/*"
-]
+sitemap_excludes = ["_modules/*"]
 
 ####  userguide directive ###
 default_role = "code"  # default role for single backticks
