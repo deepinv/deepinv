@@ -52,10 +52,15 @@ class Reflect(Transform):
         return {"dims": TransformParam(out, neg=lambda x: x)}
 
     def invert_params(self, params: dict) -> dict:
-        """Ensure axis parameters are not negated when inverting Reflect."""
-        if "dims" in params and not isinstance(params["dims"], TransformParam):
-            params["dims"] = TransformParam(params["dims"], neg=lambda x: x)
-        return super().invert_params(params)
+        """Invert the parameters for reflection transformations
+
+        :param dict params: transform parameters as dict
+        :return dict: inverted parameters.
+        """
+        if set(params.keys()) != {"dims"}:
+            raise ValueError(f"Expected a single param 'dims', but got {params.keys()}")
+        # Reflections are involutions: g^{-1} = g
+        return {"dims": params["dims"]}
 
     def _transform(
         self,
