@@ -640,7 +640,14 @@ def generate_dataset(
             n_split: int,
         ) -> int:
             """Process one batch for a given split and return updated index."""
-            x = x_batch[0] if isinstance(x_batch, (list, tuple)) else x_batch
+            
+            if isinstance(x_batch, dict):
+                x = x_batch["x"]
+            elif isinstance(x_batch, (list, tuple)):
+                x = x_batch[0]
+            else:
+                x = x_batch
+            
             x = x.to(device)
 
             bsize = x.size(0)
