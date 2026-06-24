@@ -23,7 +23,7 @@ jobs:
       WORKING_DIR: "/local/jtachell"
       PIXI_HOME: "/local/jtachell/.pixi"
       TMP_DIR: "/local/jtachell/tmp"
-      DEEPINV_CACHE: "/local/jtachell/.cache/deepinv"
+      DEEPINV_CACHE_DIR: "/local/jtachell/.cache/deepinv"
       HF_HOME: "/local/jtachell/.cache/huggingface"
       TORCH_HOME: "/local/jtachell/.cache/torch"
       HOME: "/local/jtachell"
@@ -38,7 +38,7 @@ jobs:
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
-          pixi-version: latest
+          pixi-version: v0.70.2
           post-cleanup: true
           pixi-bin-path: /local/jtachell/pixi/bin/pixi
           environments: docs doctest

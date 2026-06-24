@@ -35,6 +35,11 @@ jobs:
     env:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
+      # Persist deepinv's URL cache to a workspace-local folder so it can be
+      # cached across CI runs (see actions/cache steps below). This avoids
+      # re-downloading example images, models and datasets from HuggingFace
+      # and prevents 429 rate-limit failures.
+      DEEPINV_CACHE_DIR: ${{ github.workspace }}/.cache/deepinv
 
     steps:
       - uses: actions/checkout@v5
@@ -42,16 +47,24 @@ jobs:
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
-          pixi-version: latest
+          pixi-version: v0.70.2
           environments: full-cpu test-cpu
 
       - name: Restore .testmondata
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: .testmondata
           key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
           restore-keys: |
-            testmon-cpu-main-${{ matrix.os }}
+            testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-
+
+      - name: Restore deepinv URL cache # shared across matrix environments
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.DEEPINV_CACHE_DIR }}
+          key: deepinv-url-cache-${{ matrix.os }}-${{ github.run_id }}
+          restore-keys: |
+            deepinv-url-cache-${{ matrix.os }}-
 
       - name: Test with pytest
         run: |
@@ -59,10 +72,17 @@ jobs:
 
       - name: Save .testmondata # only when pushed to main, not for PRs
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: .testmondata
           key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
+
+      - name: Save deepinv URL cache # only on push to main, mirrors testmondata
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.DEEPINV_CACHE_DIR }}
+          key: deepinv-url-cache-${{ matrix.os }}-${{ github.run_id }}
 
       - name: Upload coverage to Codecov
         if: runner.os == 'Linux' && matrix.environment == 'full'

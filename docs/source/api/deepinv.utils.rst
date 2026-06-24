@@ -91,6 +91,13 @@ Image Loading
     deepinv.utils.load_raster
     deepinv.utils.load_ismrmd
 
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.utils.DownloadError
+
 Demo Utils
 ----------
 

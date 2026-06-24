@@ -3,11 +3,13 @@ from typing import Callable, Iterator, TYPE_CHECKING
 from pathlib import Path
 from warnings import warn
 from io import BytesIO
+import os
 import requests
 import numpy as np
 from numpy.lib.format import open_memmap
 import torch
 from deepinv.utils.mixins import MRIMixin
+from urllib.parse import urlparse
 
 if TYPE_CHECKING:
     import nibabel as nib
@@ -45,6 +47,46 @@ def load_torch(
     return torch.load(fname, weights_only=True, map_location=device)
 
 
+def get_cache_home() -> Path:
+    """Return a folder to store deepinv cache (datasets, models, etc.).
+
+    This folder can be specified by setting the environment variable ``DEEPINV_CACHE_DIR``.
+    If ``DEEPINV_CACHE_DIR`` is not set, this defaults to ``XDG_CACHE_HOME/deepinv`` if the environment variable ``XDG_CACHE_HOME`` is set, otherwise to ``~/.cache/deepinv``.
+
+    :return: pathlib Path for cache dir
+    """
+
+    cache_dir = os.environ.get("DEEPINV_CACHE_DIR", None)
+
+    if cache_dir is not None:
+        path = Path(cache_dir)
+    else:
+        xdg_cache_home = os.environ.get("XDG_CACHE_HOME", None)
+        if xdg_cache_home is not None:
+            path = Path(xdg_cache_home) / "deepinv"
+        else:
+            path = Path.home() / ".cache" / "deepinv"
+
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+class DownloadError(requests.exceptions.RequestException):
+    r"""Raised when a network download initiated by deepinv fails.
+
+    Wraps any underlying network error (HTTP status, connection failure,
+    SSL error, DNS failure, timeout, …) so that callers — and the test
+    suite in particular — can detect download failures with a single
+    ``except DownloadError:`` rather than enumerating every exception
+    type that the network stack may raise. The original exception is
+    chained via ``__cause__``.
+
+    Inherits from :class:`requests.exceptions.RequestException` (and
+    transitively from `IOError`) so existing handlers that catch
+    those broader types keep working.
+    """
+
+
 def load_url(url: str, **kwargs) -> BytesIO:
     """Load URL to a buffer.
 
@@ -52,12 +94,68 @@ def load_url(url: str, **kwargs) -> BytesIO:
     :func:`deepinv.utils.load_torch`, :func:`deepinv.utils.load_np` etc.
     to load data directly from a URL.
 
+    Downloaded content is cached under :func:`deepinv.utils.get_cache_home`
+    so repeated calls for the same URL do not hit the network again. The
+    cache layout mirrors the URL: a file fetched from
+    ``https://huggingface.co/datasets/deepinv/images/resolve/main/celeba_example.jpg``
+    is stored at
+    ``<cache_home>/url_cache/huggingface.co/datasets/deepinv/images/resolve/main/celeba_example.jpg``.
+    Two URLs that differ only in their query string share the same cache
+    entry — fine for the ``?download=true`` query used by HuggingFace.
+
+    The HTTP request uses a ``(connect, read)`` timeout of
+    ``(10, 60)`` seconds; a hung connection or stalled stream raises a
+    :class:`deepinv.utils.DownloadError` rather than blocking indefinitely.
+
     :param str url: URL of the file to load
     :return: `BytesIO` buffer.
+    :raises deepinv.utils.DownloadError: if the file cannot be downloaded.
     """
-    response = requests.get(url)
-    response.raise_for_status()
-    return BytesIO(response.content)
+    cache_home = get_cache_home()
+    cache_dir = cache_home / "url_cache"
+    cache_path = _get_url_cache_path(url, cache_dir)
+
+    if not cache_path.exists():
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = cache_path.with_suffix(cache_path.suffix + ".part")
+
+        # (connect_timeout, read_timeout) in seconds, passed to ``requests.get``.
+        # ``read_timeout`` applies between received chunks, not to the whole download,
+        # so large files are still allowed as long as the server keeps streaming.
+        # See https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+        timeout = (10, 60)
+
+        try:
+            with requests.get(url, stream=True, timeout=timeout) as response:
+                response.raise_for_status()
+                with open(tmp_path, "wb") as file:
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        if chunk:
+                            file.write(chunk)
+            tmp_path.replace(cache_path)
+        except requests.exceptions.RequestException as exc:
+            raise DownloadError(f"Failed to download {url}: {exc}") from exc
+        finally:
+            if tmp_path.exists():
+                tmp_path.unlink()
+
+    return BytesIO(cache_path.read_bytes())
+
+
+def _get_url_cache_path(url: str, cache_dir: Path) -> Path:
+    """Map a URL to a deterministic on-disk path under ``cache_dir``.
+
+    Layout: ``<cache_dir>/<host>/<path>``. The query string is dropped on
+    purpose so e.g. ``…/celeba_example.jpg?download=true`` and
+    ``…/celeba_example.jpg`` share a cache entry. Any ``..`` segments are
+    stripped so a malicious URL cannot escape the cache directory.
+    """
+    parsed = urlparse(url)
+    host = parsed.netloc or "_no_host"
+    parts = [p for p in parsed.path.split("/") if p and p != ".."]
+    if not parts:
+        parts = ["index.bin"]
+    return cache_dir.joinpath(host, *parts)
 
 
 def load_dicom(

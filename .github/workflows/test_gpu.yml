@@ -23,7 +23,7 @@ jobs:
       WORKING_DIR: "/local/jtachell"
       PIXI_HOME: "/local/jtachell/.pixi"
       TMP_DIR: "/local/jtachell/tmp"
-      DEEPINV_CACHE: "/local/jtachell/.cache/deepinv"
+      DEEPINV_CACHE_DIR: "/local/jtachell/.cache/deepinv"
       HF_HOME: "/local/jtachell/.cache/huggingface"
       TORCH_HOME: "/local/jtachell/.cache/torch"
 
@@ -37,7 +37,7 @@ jobs:
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
-          pixi-version: latest
+          pixi-version: v0.70.2
           post-cleanup: true
           environments: full
           pixi-bin-path: /local/jtachell/pixi/bin/pixi
@@ -61,11 +61,11 @@ jobs:
           "
 
       - name: Restore .testmondata # Restore testmon data from main to speed up tests
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         id: restore-cache
         with:
           path: .testmondata
-          key: testmon-${{ github.ref_name }}-${{ github.run_id }}
+          key: testmon-gpu-main-${{ github.run_id }}
           restore-keys: |
             testmon-gpu-main-
 
@@ -74,7 +74,7 @@ jobs:
           pixi run -e full pytest -n 2 --dist=loadgroup --testmon
 
       - name: Save .testmondata
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         if: github.ref == 'refs/heads/main' # Only save cache on main branch
         with:
           path: .testmondata
@@ -88,11 +88,11 @@ jobs:
             const pr = context.payload.inputs.pr_number;
             const result = "${{ job.status }}";
             const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
-      
+
             const body = result === "success"
               ? `✅ GPU tests passed\n\n🔗 [View run details](${runUrl})`
               : `❌ GPU tests failed\n\n🔗 [View run details](${runUrl})`;
-      
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
