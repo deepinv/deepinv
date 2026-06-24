@@ -4,5 +4,7 @@ Allow: /
 Disallow: /_modules/
 Disallow: /_sources/
 Disallow: /_downloads/
+Disallow: /search.html$
+Disallow: /genindex.html$
 
 Sitemap: https://deepinv.org/sitemap.xml
