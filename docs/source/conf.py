@@ -75,6 +75,7 @@ intersphinx_mapping = {
     "torchvision": ("https://pytorch.org/vision/stable/", None),
     "python": ("https://docs.python.org/3.9/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
+    "requests": ("https://docs.python-requests.org/en/latest/", None),
 }
 
 # for python3 type hints

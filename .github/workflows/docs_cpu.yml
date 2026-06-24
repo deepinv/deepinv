@@ -17,6 +17,12 @@ permissions:
 jobs:
   docs:
     runs-on: ubuntu-latest
+    env:
+      # Mirrors the env set in test_cpu.yml so the URL cache lives at the
+      # path that the actions/cache step (re)stores. Without this the
+      # cache step's ``path:`` evaluates to an empty string and the action
+      # errors out.
+      DEEPINV_CACHE_DIR: ${{ github.workspace }}/.cache/deepinv
     steps:
       - uses: actions/checkout@v5
 
@@ -28,6 +34,14 @@ jobs:
 
       - name: Fetch base branch
         run: git fetch origin ${{ github.event.pull_request.base.ref }}
+
+      - name: Restore deepinv URL cache # shared with test_cpu on ubuntu-latest
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.DEEPINV_CACHE_DIR }}
+          key: deepinv-url-cache-ubuntu-latest-${{ github.run_id }}
+          restore-keys: |
+            deepinv-url-cache-ubuntu-latest-
 
       - name: Fetch PR issue comments
         id: get_comments
@@ -71,6 +85,13 @@ jobs:
         run: |
            echo "Running Sphinx with filename_pattern: $SG_PATTERN"
            pixi run -e docs-cpu sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
+
+      - name: Save deepinv URL cache # only on push to main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.DEEPINV_CACHE_DIR }}
+          key: deepinv-url-cache-ubuntu-latest-${{ github.run_id }}
 
       - name: Notebook generation
         run: |
