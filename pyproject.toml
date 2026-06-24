@@ -67,7 +67,7 @@ doc = [
     "sphinx_copybutton",
     "sphinx_autoapi",
     "sphinx-design",
-    "sphinx_sitemap<2.7.0",
+    "sphinx_sitemap >= 2.6.0, != 2.7.0",
     "sphinxcontrib.bibtex",
     "nbformat",
 ]
