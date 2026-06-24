@@ -1448,13 +1448,6 @@ class DiffractionBlurGenerator3D(PSFGenerator):
             - self.generator2d.pad_post[1],
         ]  # (B, Cf, D, H, W)
 
-        # Move depth axis to match expected output (B, Cf, D, H, W) → already correct;
-        # swap to (B, Cf, D, H, W) then permute to (B, Cf, D, H, W) – already right.
-        # Original layout was (B, D, H, W).unsqueeze(1) → (B, 1, D, H, W), so we
-        # need to permute from (B, Cf, D, H, W) to (B, Cf, D, H, W) – no change needed.
-        # But the original code had depth as dim-1 after the unsqueeze:
-        # (B, 1, D, H, W).  Now psf is (B, Cf, D, H, W) – depth is already dim-2. ✓
-
         if self.random_rotate:
             from einops import rearrange
 
@@ -1707,8 +1700,6 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         coeff_coll = dict_coll["coeff"]
 
         # Convolution of the collection PSF by pinhole.
-        # 1. Build one pinhole kernel D per collection channel (scalar lambda_coll
-        #    was normalised to a length-1 list in __init__, so this always iterates).
         D_list = []
         for lam_c in self.lambda_coll:
             airy_unit = 0.61 * lam_c / self.NA
@@ -1733,7 +1724,6 @@ class ConfocalBlurGenerator3D(PSFGenerator):
             )
 
         # 2. Apply 2D convolution in all z planes, per channel.
-        # psf_coll is (B, C, D, H, W); D_list[c] is the kernel for channel c.
         psf_coll_convolved = torch.zeros_like(psf_coll)
         for c, D_c in enumerate(D_list):
             for i in range(psf_coll.shape[-3]):
