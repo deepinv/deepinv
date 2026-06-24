@@ -118,7 +118,9 @@ def load_dataset(
             url = get_image_url(f"{str(dataset_name)}.{file_type}")
 
         try:
-            response = requests.get(url, stream=True)
+            # ``timeout=(connect, read)``: 10 s to connect, 60 s between chunks.
+            # See https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+            response = requests.get(url, stream=True, timeout=(10, 60))
             response.raise_for_status()
             total_size_in_bytes = int(response.headers.get("content-length", 0))
             block_size = 1024  # 1 Kibibyte
@@ -169,7 +171,9 @@ def load_degradation(
         data_dir.mkdir(parents=True, exist_ok=True)
         url = get_degradation_url(name)
         try:
-            with requests.get(url, stream=True) as r:
+            # ``timeout=(connect, read)``: 10 s to connect, 60 s between chunks.
+            # See https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+            with requests.get(url, stream=True, timeout=(10, 60)) as r:
                 r.raise_for_status()
                 with open(str(data_dir / name), "wb") as f:
                     shutil.copyfileobj(r.raw, f)

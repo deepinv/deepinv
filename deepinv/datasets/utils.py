@@ -70,9 +70,11 @@ def download_archive(
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
         # `stream=True` to avoid loading in memory an entire file, instead get a chunk
-        # useful when downloading huge file
+        # useful when downloading huge file.
+        # ``timeout=(connect, read)``: 10 s to connect, 60 s between chunks.
+        # See https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
         try:
-            response = requests.get(url, stream=True)
+            response = requests.get(url, stream=True, timeout=(10, 60))
             response.raise_for_status()
             file_size = int(response.headers.get("Content-Length", 0))
             # use tqdm progress bar to follow progress on downloading archive
