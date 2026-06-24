@@ -249,11 +249,19 @@ print(
 )
 
 # %%
-# Finally, you can generate physically realistic multi-colour PSFs by setting `num_channels > 1`.
-# Zernike polynomials describe the wavefront error in units of wavelength, such that the same
-# physical aberration produces a stronger wavefront error at shorter wavelengths.
-# This is accounted for in the generator by rescaling the coefficients for each channel,
-# if a different cutoff frequency is used for each channel
+# Generate physically consistent chromatic PSFs by setting num_channels > 1.
+# Each channel is assigned its own cutoff frequency
+#     fc = NA * pixel_size / lambda,
+# which reproduces the wavelength-dependent diffraction limit.
+#
+# The Zernike coefficients represent wavefront errors in units of wavelength.
+# Therefore, keeping the same physical optical path difference (OPD) across
+# channels requires rescaling the coefficients approximately as
+#
+#     w(lambda) = w(lambda0) * lambda0 / lambda.
+#
+# As a result, shorter wavelengths exhibit both a narrower diffraction pattern
+# and stronger phase aberrations for the same underlying physical wavefront.
 
 diffraction_generator = DiffractionBlurGenerator(
     (psf_size, psf_size),
@@ -272,7 +280,7 @@ fc = (NA * pixel_size / lambdaR, NA * pixel_size / lambdaG, NA * pixel_size / la
 filters = diffraction_generator.step(batch_size=3, fc=fc)
 plot(
     [f for f in filters["filter"] ** 0.5],
-    suptitle="multi-colour PSFs",
+    suptitle="Chromatic PSFs",
 )
 
 # %%

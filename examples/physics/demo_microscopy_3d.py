@@ -104,15 +104,14 @@ diffraction_generator = DiffractionBlurGenerator3D(
 # `fc = (NA/lambda) * pixel_size`.
 # `kb = (NI/lambda) * pixel_size`.
 
-# %%
-# To generate new filters, it suffices to call the step() function as follows:
+
 fc = 0.2
 kb = 0.25
-blurs = diffraction_generator.step(batch_size=3, fc=fc)
+blurs = diffraction_generator.step(batch_size=3, fc=fc, kb=kb)
 
 # %%
 # In this case, the `step()` function returns a dictionary containing the filters,
-# their pupil function and Zernike coefficients:
+# their pupil function, Zernike coefficients and cut-off frequency:
 print(blurs.keys())
 
 dinv.utils.plot_ortho3D(
@@ -132,11 +131,10 @@ print("Coefficients of the decomposition on Zernike polynomials")
 print(blurs["coeff"])
 
 # %%
-# You can generate physically realistic 3D diffraction blurs of light at different wavelengths
-# porpagating through the same medium by setting `num_channels > 1`
-# Because Zernike polynomials describe the wavefront error in units of wavelength, the
-# the physical aberration produces a stronger wavefront error at shorter wavelengths.
-# This is taken care of under the hood by the `.step()` function.
+# Generate physically realistic multi-colour diffraction PSFs by setting
+# `num_channels > 1`. By default, `step()` accounts for wavelength-dependent
+# diffraction (fc ∝ 1 / lambda) and rescales the Zernike coefficients so that
+# all channels correspond to the same underlying physical aberrations.
 
 lambdaR = 650
 lambdaG = 550
