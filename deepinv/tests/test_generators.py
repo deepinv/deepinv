@@ -693,7 +693,7 @@ def test_diffraction_generator(
 
     batch_sizes = (1, 2)
     expected_keys = set(
-        ["filter", "coeff", "pupil"] + (["angle"] if random_rotate else [])
+        ["filter", "coeff", "pupil", "fc"] + (["angle"] if random_rotate else [])
     )
     for batch_size in batch_sizes:
         params = generator.step(
@@ -708,8 +708,8 @@ def test_diffraction_generator(
         # Test keys and shapes
         assert set(params.keys()) == expected_keys
         assert params["filter"].shape == (batch_size, num_channels, *size)
-        assert params["coeff"].shape == (batch_size, len(zernike_index))
-        assert params["pupil"].shape == (batch_size, *pupil_size)
+        assert params["coeff"].shape == (batch_size, num_channels, len(zernike_index))
+        assert params["pupil"].shape == (batch_size, num_channels, *pupil_size)
         if random_rotate:
             assert params["angle"].shape == (batch_size,)
 
@@ -727,7 +727,10 @@ def test_diffraction_generator(
             seed=1,
         )
         for key in params.keys():
-            assert not torch.allclose(params[key], params3[key])
+            if key == "fc":
+                assert torch.allclose(params[key], params3[key])
+            else:
+                assert not torch.allclose(params[key], params3[key])
 
 
 @pytest.mark.parametrize("dim", [1, 2, 3])
