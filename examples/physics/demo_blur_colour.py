@@ -62,4 +62,13 @@ plot(
 )
 
 
-# %%
+# %% Generating a few colour psfs for example
+lambdaR = 650
+lambdaG = 550
+lambdaB  = 450
+NA = 1.51
+
+pixel_sizes = [25, 50, 100]
+amplitudes = 
+
+fc = [NA*pixel_size/lambdaR, NA*pixel_size/lambdaG, NA*pixel_size/lambdaB]
