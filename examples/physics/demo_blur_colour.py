@@ -3,8 +3,6 @@ import torch
 
 import deepinv as dinv
 from deepinv.utils.plotting import plot
-from deepinv.utils import load_example
-print(dinv.__file__)
 
 # %% Load test images
 # ----------------
@@ -29,15 +27,6 @@ torch.cuda.manual_seed(2)
 
 from deepinv.physics.generator import DiffractionBlurGenerator
 
-diffraction_generator = DiffractionBlurGenerator(
-    psf_size = psf_size, 
-    num_channels = 3, 
-    pupil_size = pupil_size,
-    max_zernike_amplitude = 0.3,
-    device = device, 
-    dtype = dtype
-)
-
 # %%
 # Then, to generate new filters, it suffices to call the step() function as follows:
 lambdaR = 650
@@ -46,6 +35,17 @@ lambdaB  = 450
 NA = 1.51
 pixel_size = 50
 fc = [NA*pixel_size/lambdaR, NA*pixel_size/lambdaG, NA*pixel_size/lambdaB]
+num_channels = len(fc)
+
+diffraction_generator = DiffractionBlurGenerator(
+    psf_size = psf_size, 
+    num_channels = num_channels, 
+    pupil_size = pupil_size,
+    max_zernike_amplitude = 0.3,
+    device = device, 
+    dtype = dtype
+)
+
 
 # %%
 # In this case, the `step()` function returns a dictionary containing the filters,
