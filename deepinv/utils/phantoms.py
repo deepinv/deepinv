@@ -128,3 +128,161 @@ class SheppLoganDataset(Dataset):
             x = self.transform(x)
 
         return x
+
+
+# NEMA IEC body phantom geometry, in millimetres, following the specification
+# used by OpenGATE (opengate/contrib/phantoms/nemaiec.py).
+NEMA_IEC_SPHERE_DIAMETERS_MM = (10.0, 13.0, 17.0, 22.0, 28.0, 37.0)
+NEMA_IEC_RING_RADIUS_MM = 57.27  # radius of the circle the sphere centres sit on
+NEMA_IEC_LUNG_RADIUS_MM = 25.0  # central cold cylindrical insert
+NEMA_IEC_START_ANGLE_DEG = 180.0  # angular position of the first (smallest) sphere
+NEMA_IEC_BOX_HALF_X_MM = 100.0  # half-width of the surrounding box
+NEMA_IEC_BOX_HALF_Y_MM = 90.0  # half-height of the surrounding box
+NEMA_IEC_FOV_HALF_MM = 110.0  # physical half-extent mapped to the [-1, 1] grid
+
+
+def generate_nema_iec_phantom(
+    size: int,
+    activities: list[float] | None = None,
+    background: float = 0.25,
+    lung: float = 0.0,
+    normalize: bool = True,
+) -> torch.Tensor:
+    r"""
+    Generate a 2D NEMA IEC body phantom.
+
+    The NEMA IEC body phantom is a standard image-quality phantom commonly used
+    in PET and SPECT. It consists of six spheres of increasing diameter
+    (10, 13, 17, 22, 28 and 37 mm) arranged on a circle inside a uniform
+    background, with a central cold cylindrical "lung" insert. This function
+    returns the 2D transverse cross-section through the centre of the six
+    spheres, with the body approximated by a rectangular box.
+
+    The activity level of each sphere can be set individually via ``activities``.
+
+    .. note::
+
+        This is a synthetic phantom intended for demonstrations and testing of
+        reconstruction algorithms (e.g. with :class:`deepinv.physics.Tomography`),
+        not a physically accurate simulation of a PET/SPECT acquisition.
+
+    |sep|
+
+    :Example:
+
+    >>> import deepinv as dinv
+    >>> x = dinv.utils.phantoms.generate_nema_iec_phantom(64)
+    >>> x.shape
+    torch.Size([64, 64])
+
+    :param int size: size of the (square) phantom image.
+    :param list[float] activities: list of 6 activity levels, one per sphere ordered
+        by increasing diameter. Defaults to ``[1.0] * 6`` (all spheres equally active).
+    :param float background: activity level of the uniform background inside the box.
+    :param float lung: activity level of the central cold cylindrical insert.
+    :param bool normalize: if ``True``, the phantom is rescaled so that its maximum
+        value is 1.
+    :return: (:class:`torch.Tensor`) a phantom of shape ``(size, size)``.
+    """
+    n_spheres = len(NEMA_IEC_SPHERE_DIAMETERS_MM)
+    if activities is None:
+        activities = [1.0] * n_spheres
+    if len(activities) != n_spheres:
+        raise ValueError(
+            f"activities must have length {n_spheres}, got {len(activities)}."
+        )
+
+    scale = 1.0 / NEMA_IEC_FOV_HALF_MM
+    x, y = torch.meshgrid(
+        torch.linspace(-1, 1, size), torch.linspace(-1, 1, size), indexing="ij"
+    )
+
+    phantom = torch.zeros(size, size)
+
+    # body box filled with uniform background activity
+    box = (x.abs() <= NEMA_IEC_BOX_HALF_X_MM * scale) & (
+        y.abs() <= NEMA_IEC_BOX_HALF_Y_MM * scale
+    )
+    phantom[box] = background
+
+    # six spheres arranged on a circle, ordered by increasing diameter
+    ring_radius = NEMA_IEC_RING_RADIUS_MM * scale
+    for i, diameter in enumerate(NEMA_IEC_SPHERE_DIAMETERS_MM):
+        angle = np.deg2rad(NEMA_IEC_START_ANGLE_DEG + i * 360 / n_spheres)
+        x_0 = ring_radius * np.cos(angle)
+        y_0 = ring_radius * np.sin(angle)
+        radius = (diameter / 2) * scale
+        mask = ((x - x_0) ** 2 + (y - y_0) ** 2) <= radius**2
+        phantom[mask] = activities[i]
+
+    # central cold cylindrical "lung" insert
+    lung_mask = (x**2 + y**2) <= (NEMA_IEC_LUNG_RADIUS_MM * scale) ** 2
+    phantom[lung_mask] = lung
+
+    if normalize:
+        max_val = phantom.max()
+        if max_val > 0:
+            phantom = phantom / max_val
+
+    return phantom
+
+
+class NEMAIECPhantomDataset(Dataset):
+    r"""
+    Dataset for the NEMA IEC body phantom. The dataset has length 1.
+
+    See :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for details on
+    the phantom and its parameters.
+
+    :param int size: Size of the phantom (square) image.
+    :param int n_data: Number of phantoms to generate per sample.
+    :param list[float] activities: list of 6 sphere activity levels, ordered by
+        increasing diameter. Defaults to ``[1.0] * 6``.
+    :param float background: activity level of the uniform background.
+    :param float lung: activity level of the central cold insert.
+    :param bool normalize: if ``True``, rescale so that the maximum value is 1.
+    :param Callable transform: Transformation to apply to the output image.
+    """
+
+    def __init__(
+        self,
+        size: int = 128,
+        n_data: int = 1,
+        activities: list[float] | None = None,
+        background: float = 0.25,
+        lung: float = 0.0,
+        normalize: bool = True,
+        transform=None,
+    ):
+        self.size = size
+        self.n_data = n_data
+        self.activities = activities
+        self.background = background
+        self.lung = lung
+        self.normalize = normalize
+        self.transform = transform
+
+    def __len__(self):
+        return 1
+
+    def __getitem__(self, index):
+        """
+        :return: A torch.Tensor of shape (n_data, size, size).
+        """
+        x = torch.stack(
+            [
+                generate_nema_iec_phantom(
+                    self.size,
+                    activities=self.activities,
+                    background=self.background,
+                    lung=self.lung,
+                    normalize=self.normalize,
+                )
+                for _ in range(self.n_data)
+            ]
+        )
+
+        if self.transform is not None:
+            x = self.transform(x)
+
+        return x
