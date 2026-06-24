@@ -1,8 +1,3 @@
-r"""
-Check colour PSF modifs
-===================================================
-"""
-
 # %%
 import torch
 
@@ -22,8 +17,8 @@ psf_size = (71, 71)
 pupil_size = (2048, 2048)
 
 # Next, set the global random seed from pytorch to ensure reproducibility of the example.
-torch.manual_seed(1)
-torch.cuda.manual_seed(1)
+torch.manual_seed(2)
+torch.cuda.manual_seed(2)
 
 # %%
 # Diffraction blur generators
@@ -55,15 +50,16 @@ fc = [NA*pixel_size/lambdaR, NA*pixel_size/lambdaG, NA*pixel_size/lambdaB]
 # %%
 # In this case, the `step()` function returns a dictionary containing the filters,
 # their pupil function and Zernike coefficients:
-filters = diffraction_generator.step(batch_size=2, fc=fc, zernike_perturbation_amplitude=0)
+filters = diffraction_generator.step(batch_size=2, fc=fc, zernike_perturbation_amplitude=0.05)
 psfs = filters["filter"]
 pupils = filters["pupil"]
 coeffs = filters["coeff"]
 
 # Note that we use **0.2 to increase the image dynamics
 plot(
-    psfs**0.5,
-    suptitle="Examples of randomly generated diffraction blurs",
+    [psfs**0.5, pupils.angle()],
+    suptitle="Examples of randomly generated diffraction blurs with their phase",
 )
+
 
 # %%
