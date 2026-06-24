@@ -9,12 +9,14 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add support for multi-channel (chromatic) diffraction PSFs in :class:`deepinv.physics.generator.DiffractionBlurGenerator` with physically consistent wavelength scaling of the pupil cut-off frequency and Zernike  coefficients. (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
+- Add caching to demo/archive downloads (:gh:`1234` by `Julian Tachella`_)
 
 Changed
 ^^^^^^^
 
 Fixed
 ^^^^^
+- Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
 
 
 v0.4.1

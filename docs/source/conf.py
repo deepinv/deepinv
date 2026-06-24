@@ -75,6 +75,7 @@ intersphinx_mapping = {
     "torchvision": ("https://pytorch.org/vision/stable/", None),
     "python": ("https://docs.python.org/3.9/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
+    "requests": ("https://docs.python-requests.org/en/latest/", None),
 }
 
 # for python3 type hints
@@ -101,6 +102,8 @@ html_copy_source = True
 # For more details, see:
 # https://sphinx-sitemap.readthedocs.io/en/v2.5.0/advanced-configuration.html
 sitemap_url_scheme = "{link}"
+# Filter out irrelevant pages from the sitemap so they are not attempted to be crawled
+sitemap_excludes = ["_modules/*", "search.html", "genindex.html"]
 
 ####  userguide directive ###
 default_role = "code"  # default role for single backticks
