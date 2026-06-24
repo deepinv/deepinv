@@ -12,7 +12,7 @@ Only the latest stable release of DeepInverse is officially supported with secur
 
 ## Reporting a Vulnerability
 
-If you believe you have found a security vulnerability in DeepInverse, we encourage you to let us know right away. We will investigate all legitimate reports and do our best to quickly fix the problem. Please report issues by contacting a [lead developer](https://deepinv.github.io/).
+If you believe you have found a security vulnerability in DeepInverse, we encourage you to let us know right away. We will investigate all legitimate reports and do our best to quickly fix the problem. Please report issues by contacting a [lead developer](https://deepinv.org/).
 
 ## Using DeepInverse securely
 
