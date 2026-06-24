@@ -8,6 +8,8 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.physics.TomographyWithRTK` class for CT operators using the RTK backend. (by `Idris TATACHAK`_ and `Simon RIT`_)
+- Add example showcasing the use of :class:`deepinv.physics.TomographyWithRTK` for 3D CBCT volume reconstruction with the RTK backend. (by `Idris TATACHAK`_ and `Simon RIT`_)
 
 Changed
 ^^^^^^^
@@ -655,3 +657,6 @@ Changed
 .. _Baptiste Legouix: https://github.com/blegouix
 .. _Kaibo Tang: https://github.com/kvttt
 .. _Irène Waldspurger: https://github.com/IWalds
+.. _Idris TATACHAK: https://github.com/idrisT11
+.. _Simon RIT: https://github.com/SimonRit
+

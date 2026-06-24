@@ -52,6 +52,7 @@ Operators
    deepinv.physics.SequentialMRI
    deepinv.physics.Tomography
    deepinv.physics.TomographyWithAstra
+   deepinv.physics.TomographyWithRTK
    deepinv.physics.Pansharpen
    deepinv.physics.CompressiveSpectralImaging
    deepinv.physics.HyperSpectralUnmixing
