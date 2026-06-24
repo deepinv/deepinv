@@ -567,21 +567,6 @@ def test_get_freer_gpu(test_case, os_name, verbose, use_torch_api, hide_warnings
             ), f"Selected GPU index should be {freer_gpu_index}."
 
 
-@pytest.mark.parametrize("fn_name", ["norm", "cal_angle", "cal_mse", "norm_psnr"])
-def test_deprecated_metric_functions(fn_name):
-    f = getattr(deepinv.utils.metric, fn_name)
-    with pytest.raises(NotImplementedError, match="deprecated"):
-        # The functions take a variable number of required arguments so we
-        # use reflection to get their number and pass in None for each of them.
-        sig = inspect.signature(f)
-        args = [
-            None
-            for p in sig.parameters.values()
-            if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
-        ]
-        f(*args)
-
-
 @pytest.mark.parametrize("with_data_dir", [False, True])
 @pytest.mark.parametrize("data_dir_type", [str, pathlib.Path])
 @pytest.mark.parametrize("name", ["Levin09.npy"])

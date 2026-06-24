@@ -99,8 +99,8 @@ How to write and run tests:
 Writing good documentation is also crucial for helping other users use your code. This is how:
 
 1. Write good quality `docstrings <https://realpython.com/how-to-write-docstrings-in-python/>`_ for each new class, method or function. Have a look at any other class or method in DeepInverse to see examples! Please follow our :ref:`docstring guidelines below <docstring_guidelines>`.
-2. If you wrote a new class or function, add it to the lists in the `API reference <https://deepinv.github.io/deepinv/API.html>`_ and `User Guide <https://deepinv.github.io/deepinv/user_guide.html>`_. For API, add to the appropriate `.rst` file `here <https://github.com/deepinv/deepinv/tree/main/docs/source/api>`__. For User Guide, `here <https://github.com/deepinv/deepinv/tree/main/docs/source/user_guide>`__.
-3. Want to share more about your new feature? Consider writing an `example <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ in `examples/`!
+2. If you wrote a new class or function, add it to the lists in the `API reference <https://deepinv.org/API.html>`_ and `User Guide <https://deepinv.org/user_guide.html>`_. For API, add to the appropriate `.rst` file `here <https://github.com/deepinv/deepinv/tree/main/docs/source/api>`__. For User Guide, `here <https://github.com/deepinv/deepinv/tree/main/docs/source/user_guide>`__.
+3. Want to share more about your new feature? Consider writing an `example <https://deepinv.org/auto_examples/index.html>`_ in `examples/`!
 4. Check that your documentation is correct by building the docs locally. First `cd docs`, then we use `sphinx <https://www.sphinx-doc.org/en/master/usage/installation.html>`_ to build:
   
 .. list-table::
@@ -143,7 +143,7 @@ Code quality is important to us. We require that your code is compliant with PEP
 5. Log your changes
 ~~~~~~~~~~~~~~~~~~~
 
-We keep a summary of all changes in the `changelog.rst <https://deepinv.github.io/deepinv/changelog.html>`_ file in the documentation.
+We keep a summary of all changes in the `changelog.rst <https://deepinv.org/changelog.html>`_ file in the documentation.
 We separate contributions into three categories: **Added** for new features, **Changed** for changes in existing features, and **Fixed** for bug fixes. 
 To do so, you should first add your GitHub information at the end of the file following the format:
 
@@ -251,7 +251,7 @@ Contributing new physics
 
 Adding a physical operator follows the general contribution guidelines. Specifically, your constribution must include proper :ref:`tests <write_tests>` and :ref:`documentation <write_docs>`, as well as meet our :ref:`code quality standards <code_quality>`. Additionally, the provided code is expected to follow specific design rules to ensure seamless integration into the codebase, this means:
 
-- Implementing a new class that inherits from the appropriate physics base class. Refer to the design outlined in `Bring your own physics <https://deepinv.github.io/deepinv/auto_examples/basics/demo_custom_physics.html>`_ for guidance.
+- Implementing a new class that inherits from the appropriate physics base class. Refer to the design outlined in `Bring your own physics <https://deepinv.org/auto_examples/basics/demo_custom_physics.html>`_ for guidance.
 
 - Registering the physics in the appropriate test suite and verifying that the tests pass -- when inheriting from :class:`deepinv.physics.LinearPhysics`, it involves the following modifications to `deepinv/tests/test_physics.py`:
 
@@ -261,7 +261,7 @@ Adding a physical operator follows the general contribution guidelines. Specific
 
   3. If applicable, write the tests specific to your physics, e.g., if it has a specific behavior that is not covered by the existing tests, see `test_MRI` in `here <https://github.com/deepinv/deepinv/blob/main/deepinv/tests/test_physics.py>`_ for an example
 
-- Completing the `API reference <https://deepinv.github.io/deepinv/api/deepinv.physics.html>`__ and `User Guide <https://deepinv.github.io/deepinv/user_guide/physics/physics.html>`__ with the new operator, and checking that the documentation builds correctly.
+- Completing the `API reference <https://deepinv.org/api/deepinv.physics.html>`__ and `User Guide <https://deepinv.org/user_guide/physics/physics.html>`__ with the new operator, and checking that the documentation builds correctly.
 
 Refer to these pull requests for examples of contributing new physics:
 

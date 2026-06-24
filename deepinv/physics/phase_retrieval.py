@@ -12,7 +12,6 @@ from deepinv.physics.structured_random import (
     generate_diagonal,
     StructuredRandom,
 )
-from deepinv.utils.decorators import _deprecated_alias
 
 
 class PhaseRetrieval(Physics):
@@ -140,7 +139,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
     """
 
-    @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m,
@@ -168,7 +166,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         B = CompressedSensing(
             m=m,
             img_size=img_size,
-            fast=False,
             channelwise=channelwise,
             dtype=dtype,
             device=device,
@@ -207,7 +204,6 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     :param str device: Device for computation. Default is `cpu`.
     """
 
-    @_deprecated_alias(input_shape="img_size", output_shape="output_size")
     def __init__(
         self,
         img_size: tuple,
@@ -467,7 +463,6 @@ class Ptychography(PhaseRetrieval):
     torch.Size([1, 25, 64, 64])
     """
 
-    @_deprecated_alias(in_shape="img_size")
     def __init__(
         self,
         img_size=None,

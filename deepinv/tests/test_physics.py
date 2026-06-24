@@ -20,7 +20,6 @@ from deepinv.transform.rotate import Rotate
 # We do not include operators for which padding is involved, they are tested separately
 OPERATORS = [
     "CS",
-    "fastCS",
     "inpainting",
     "inpainting_clone",
     "demosaicing",
@@ -59,7 +58,6 @@ OPERATORS = [
     "fast_singlepixel_cake_cutting",
     "fast_singlepixel_zig_zag",
     "fast_singlepixel_xy",
-    "fast_singlepixel_old_sequency",
     "MRI",
     "DynamicMRI",
     "MultiCoilMRI",
@@ -147,16 +145,6 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 0.75  # Marcenko-Pastur law, second term is a small n correction
-        params = []
-    elif name == "fastCS":
-        p = dinv.physics.CompressedSensing(
-            m=20,
-            fast=True,
-            channelwise=True,
-            img_size=img_size,
-            device=device,
-            rng=rng,
-        )
         params = []
     elif name == "colorize":
         p = dinv.physics.Decolorize(device=device)
@@ -346,16 +334,6 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             m=20, fast=True, img_size=img_size, device=device, rng=rng, ordering="xy"
         )
         params = []
-    elif name == "fast_singlepixel_old_sequency":
-        p = dinv.physics.SinglePixelCamera(
-            m=20,
-            fast=True,
-            img_size=img_size,
-            device=device,
-            rng=rng,
-            ordering="old_sequency",
-        )
-        params = ["mask"]
     elif name == "singlepixel":
         m = 20
         p = dinv.physics.SinglePixelCamera(

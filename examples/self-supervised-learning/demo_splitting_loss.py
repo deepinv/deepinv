@@ -17,6 +17,7 @@ See :class:`deepinv.loss.SplittingLoss` for full details.
 
 """
 
+# %%
 from pathlib import Path
 
 import torch
@@ -126,7 +127,7 @@ test_dataloader = DataLoader(test_dataset, shuffle=False)
 #
 
 model = dinv.models.ArtifactRemoval(
-    dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device), pinv=True
+    dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device), mode="pinv"
 )
 model = loss.adapt_model(model)
 
