@@ -156,8 +156,9 @@ class TomographyWithRTK(LinearPhysics):
             print(self.volume_information["origin"])
             print(self.volume_information["spacing"])
 
+    @staticmethod
     def _validate_info(
-        self, mode: str, info: dict[str, int | float], name: str
+        mode: str, info: dict[str, int | float], name: str
     ) -> None:
         """Validate that all array-like values in ``info`` have the expected length for the given mode.
 
