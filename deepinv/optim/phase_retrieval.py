@@ -134,6 +134,10 @@ def spectral_methods(
     .. math::
         x_{k+1} &= M x_k \\
         x_{k+1} &= \frac{x_{k+1}}{\|x_{k+1}\|}
+        
+    .. note::
+
+        This function assumes that the passed `x` is of consistent shape and dtype with the output of `physics.A_adjoint(y)`.
   
     :param torch.Tensor y: Measurements.
     :param deepinv.physics.Physics physics: Instance of the physics modeling the forward matrix.
@@ -165,9 +169,7 @@ def spectral_methods(
     # y should have mean 1
     y = y / torch.mean(y)
     diag_T = preprocessing(y, physics)
-
-    x = x.to(physics.dtype)
-    diag_T = diag_T.to(physics.dtype)
+    diag_T = diag_T.to(x)
 
     for i in range(n_iter):
         x_new = physics.B(x)
