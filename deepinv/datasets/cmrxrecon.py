@@ -72,8 +72,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     ...     get_image_url("CMRxRecon.zip"),
     ...     get_cache_home() / "CMRxRecon.zip",
     ...     extract=True,
-    ... )
-    ...
+    ... )  # deepinv: +IGNORE_OUTPUT
     >>> dataset = CMRxReconSliceDataset(get_cache_home() / "CMRxRecon")
     >>> x, y, params = next(iter(DataLoader(dataset)))
     >>> x.shape # (B, C, T, H, W)

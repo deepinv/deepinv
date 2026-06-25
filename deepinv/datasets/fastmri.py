@@ -235,8 +235,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         >>> from deepinv.utils import get_image_url, get_cache_home
         >>> url = get_image_url("demo_fastmri_brain_multicoil.h5")
         >>> root = get_cache_home() / "fastmri" / "brain"
-        >>> download_archive(url, root / "demo.h5")
-        ...
+        >>> download_archive(url, root / "demo.h5")  # deepinv: +IGNORE_OUTPUT
         >>> dataset = FastMRISliceDataset(root=root, slice_index="all")
         >>> len(dataset)
         16
