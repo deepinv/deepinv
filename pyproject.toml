@@ -121,7 +121,7 @@ training = [
 
 # optional dependencies for ultrasound imaging with zea
 ultrasound = [
-    "zea>=0.0.13",
+    "zea>=0.1.0",
 ]
 
 
