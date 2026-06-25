@@ -1,5 +1,4 @@
 import pytest
-import doctest
 
 import torch
 
@@ -215,32 +214,3 @@ def pytest_collection_modifyitems(config, items):
             # All other tests are grouped under "main" and run one at a time
             # but in parallel of the slow tests.
             item.add_marker(pytest.mark.xdist_group("main"))
-
-
-# A pytest hook to ignore certain outputs in doctests
-# NOTE: The expected output is ignored when IGNORE_OUTPUT is set and it should
-# ideally be left empty to avoid confusion.
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    outcome = yield
-    report = outcome.get_result()
-    excinfo = call.excinfo
-    # A DocTestFailure is raised if and only if the doctest failed due to a
-    # mismatch between the actual and expected outputs.
-    if (
-        report.when == "call"
-        and report.failed
-        and excinfo is not None
-        and issubclass(excinfo.type, doctest.DocTestFailure)
-    ):
-        err = excinfo.value
-        example = err.example
-        source = example.source  # The failing doctest source line
-        comment = (
-            "".join(source.split("#")[1:]) if "#" in source else ""
-        )  # Comment part
-        # NOTE: The syntax is quite strict for the sake of simplicity but
-        # it can be made more flexible if needed.
-        if comment.strip() == "deepinv: +IGNORE_OUTPUT":
-            report.outcome = "passed"
-            report.longrepr = None
