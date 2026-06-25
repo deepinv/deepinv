@@ -19,7 +19,7 @@ from deepinv.utils.io import load_mat
 from deepinv.utils.mixins import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
 from deepinv.physics.noise import NoiseModel
-from deepinv.datasets.utils import resolve_root
+from .utils import resolve_root
 
 
 class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
@@ -72,8 +72,8 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     ...     get_image_url("CMRxRecon.zip"),
     ...     get_cache_home() / "CMRxRecon.zip",
     ...     extract=True,
-    ...     verbose=False
     ... )
+    ...
     >>> dataset = CMRxReconSliceDataset(get_cache_home() / "CMRxRecon")
     >>> x, y, params = next(iter(DataLoader(dataset)))
     >>> x.shape # (B, C, T, H, W)
