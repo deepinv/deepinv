@@ -127,7 +127,7 @@ class FMD(ImageDataset):
         use_dict_output: bool = False,
     ) -> None:
         super().__init__(use_dict_output=use_dict_output)
-        
+
         self.root = resolve_root(root, "FMD")
         if img_types is None:
             raise ValueError("img_types is required")

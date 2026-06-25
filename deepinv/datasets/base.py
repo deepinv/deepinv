@@ -97,33 +97,31 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
             raise RuntimeError(f"{error}, but params dict has non-string keys.")
 
     elif isinstance(batch, dict):
-        
+
         if "x" in batch:
             x = batch["x"]
             warn_core_types(x)
             if not isinstance(x, image_types):
                 raise RuntimeError(
                     f"{error}, but dict element with key 'x' is type {type(x)}."
-                ) 
-                
+                )
+
         if "y" in batch:
             y = batch["y"]
             warn_core_types(y)
             if not isinstance(y, image_types):
                 raise RuntimeError(
                     f"{error}, but dict element with key 'y' is type {type(x)}."
-                ) 
-                
+                )
+
         if "x" not in batch and "y" not in batch:
             raise RuntimeError(
                 f"{error}, batch is type dict but neither 'x' nor 'y' keys are present"
             )
-              
-        if "params" in batch and any(
-            not isinstance(k, str) for k in batch["params"]
-        ):
+
+        if "params" in batch and any(not isinstance(k, str) for k in batch["params"]):
             raise RuntimeError(f"{error}, but params dict has non-string keys.")
-        
+
     elif isinstance(batch, (list, tuple)):
         raise RuntimeError(
             f"{error}, but returned list or tuple of length {len(batch)}."
@@ -156,10 +154,10 @@ class ImageDataset(Dataset):
 
     If using DeepInverse with your own custom dataset, you should inherit from this class and use :func:`check_dataset` to check your dataset is compatible.
     """
-    
+
     def __init__(self, use_dict_output: bool = False):
         self.use_dict_output = use_dict_output
-        
+
         if not self.use_dict_output:
             warn(
                 "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs. The default is currently `False` for backward compatibility, but will be switched to `True` in a future version."
@@ -270,16 +268,16 @@ class TensorDataset(ImageDataset):
     def __getitem__(self, idx: int):
         if self.use_dict_output:
             out = OrderedDict()
-            
+
             if not self._is_none_or_nan(self.x):
                 out["x"] = self.x[idx]
             if not self._is_none_or_nan(self.y):
                 out["y"] = self.y[idx]
             if not self._is_none_or_nan(self.params):
                 out["params"] = {k: v[idx] for (k, v) in self.params.items()}
-                
+
             return out
-        
+
         if self._is_none_or_nan(self.y):
             if self._is_none_or_nan(self.params):
                 return self.x[idx]
@@ -444,12 +442,12 @@ class ImageFolder(ImageDataset):
 
         if self.use_dict_output:
             out = OrderedDict()
-        
+
             if x is not torch.nan:
                 out["x"] = x
             if y is not None:
                 out["y"] = y
-                
+
             out["params"] = params
 
         else:

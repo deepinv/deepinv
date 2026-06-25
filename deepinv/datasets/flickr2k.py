@@ -68,7 +68,7 @@ class Flickr2kHR(ImageFolder):
         download: bool = False,
         transform: Callable = None,
         use_dict_output: bool = False,
-    ) -> None:        
+    ) -> None:
         self.root = resolve_root(root)
         self.img_dir = os.path.join(self.root, "Flickr2K")
 
@@ -107,7 +107,9 @@ class Flickr2kHR(ImageFolder):
                 )
 
         # Initialize ImageFolder
-        super().__init__(self.img_dir, transform=transform, use_dict_output=use_dict_output)
+        super().__init__(
+            self.img_dir, transform=transform, use_dict_output=use_dict_output
+        )
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.

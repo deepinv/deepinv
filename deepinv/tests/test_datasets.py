@@ -175,8 +175,9 @@ def check_dataset_format(
 
 
 class MyDataset(ImageDataset):
-    def __init__(self, batch):
+    def __init__(self, batch, use_dict_output: bool = False):
         self.batch = batch
+        super().__init__(use_dict_output=use_dict_output)
 
     def __len__(self):
         return 1

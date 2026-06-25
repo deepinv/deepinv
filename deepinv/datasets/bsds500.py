@@ -55,7 +55,7 @@ class BSDS500(ImageDataset):
         use_dict_output=False,
     ):
         super().__init__(use_dict_output=use_dict_output)
-        
+
         checksum = "7bfe17302a219367694200a61ce8256c"
         if splits is None:
             if train:
@@ -110,8 +110,8 @@ class BSDS500(ImageDataset):
                 img = img.transpose(Image.ROTATE_90)
         if self.transforms is not None:
             img = self.transforms(img)
-            
+
         if self.use_dict_output:
             return OrderedDict(x=img)
-            
+
         return img

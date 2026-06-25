@@ -107,7 +107,7 @@ class SimpleFastMRISliceDataset(ImageDataset):
         use_dict_output: bool = False,
     ):
         super().__init__(use_dict_output=use_dict_output)
-        
+
         if anatomy not in ("knee", "brain", None):
             raise ValueError("anatomy must be either 'knee' or 'brain' or None.")
         elif anatomy is None and file_name is None:
@@ -358,7 +358,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         use_dict_output: bool = False,
     ) -> None:
         super().__init__(use_dict_output=use_dict_output)
-        
+
         self.root = resolve_root(root, "FastMRISlice")
         self.transform = transform if transform is not None else MRISliceTransform()
         self.load_metadata_from_cache = load_metadata_from_cache
@@ -510,13 +510,13 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
 
         if self.use_dict_output:
             out = OrderedDict()
-            
+
             if target is not None:
                 out["x"] = target
-            
+
             # Always exists
             out["y"] = kspace
-                
+
             if params:
                 out["params"] = params
 

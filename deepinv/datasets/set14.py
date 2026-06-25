@@ -105,7 +105,9 @@ class Set14HR(ImageFolder):
                 )
 
         # Initialize ImageFolder
-        super().__init__(self.img_dir, transform=transform, use_dict_output=use_dict_output)
+        super().__init__(
+            self.img_dir, transform=transform, use_dict_output=use_dict_output
+        )
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.

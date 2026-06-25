@@ -199,12 +199,10 @@ class Kohler(ImageDataset):
         else:
             raise ValueError(f"Unsupported ordering: {self.ordering}")
         out = self.get_item(printout_index, trajectory_index, frames=self.frames)
-        
+
         if self.use_dict_output:
-            out = OrderedDict(
-                x=out[0], y=out[1]
-            )
-            
+            out = OrderedDict(x=out[0], y=out[1])
+
         return out
 
     # While users might sometimes want to thoroughly compare their own

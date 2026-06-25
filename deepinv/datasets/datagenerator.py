@@ -385,10 +385,10 @@ class HDF5Dataset(ImageDataset):
             out = OrderedDict(x=x, y=y)
             if params is not None:
                 out["params"] = params
-                
+
         else:
             out = (x, y, params) if params is not None else (x, y)
-            
+
         return out
 
     def __len__(self) -> int:
@@ -640,14 +640,14 @@ def generate_dataset(
             n_split: int,
         ) -> int:
             """Process one batch for a given split and return updated index."""
-            
+
             if isinstance(x_batch, dict):
                 x = x_batch["x"]
             elif isinstance(x_batch, (list, tuple)):
                 x = x_batch[0]
             else:
                 x = x_batch
-            
+
             x = x.to(device)
 
             bsize = x.size(0)

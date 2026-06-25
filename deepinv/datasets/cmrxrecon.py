@@ -115,7 +115,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         use_dict_output: bool = False,
     ):
         super().__init__(use_dict_output=True)
-        
+
         self.root = resolve_root(root, "CMRxReconSlice")
         self.data_dir = data_dir
         self.mask_dir = mask_dir

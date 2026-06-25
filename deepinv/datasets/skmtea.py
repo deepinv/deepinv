@@ -86,7 +86,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
         save_metadata_to_cache: bool = False,
         metadata_cache_file: str | Path = "skmtea_dataset_cache.pkl",
         filter_id: Callable = None,
-        use_dict_output: bool = False
+        use_dict_output: bool = False,
     ):
         self.root = resolve_root(root, "SKMTEASlice")
         self.echo = echo
@@ -109,7 +109,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
         if filter_id is not None:
             self.samples = list(filter(filter_id, self.samples))
-            
+
         super().__init__(use_dict_output=use_dict_output)
 
     @staticmethod
@@ -192,7 +192,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
             out = OrderedDict(
                 x=self.from_torch_complex(x).squeeze(0),
                 y=y,
-                params={"mask": mask, "coil_maps": maps.moveaxis(-1, 1).squeeze(0)}
+                params={"mask": mask, "coil_maps": maps.moveaxis(-1, 1).squeeze(0)},
             )
         else:
             out = (
@@ -200,5 +200,5 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
                 y,
                 {"mask": mask, "coil_maps": maps.moveaxis(-1, 1).squeeze(0)},
             )
-            
+
         return out

@@ -128,7 +128,9 @@ class DIV2K(ImageFolder):
                 )
 
         # Initialize ImageFolder
-        super().__init__(self.img_dir, transform=transform, use_dict_output=use_dict_output)
+        super().__init__(
+            self.img_dir, transform=transform, use_dict_output=use_dict_output
+        )
 
     def verify_split_dataset_integrity(self) -> bool:
         """Verify the integrity and existence of the specified dataset split.

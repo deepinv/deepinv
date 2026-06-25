@@ -132,7 +132,7 @@ class NBUDataset(ImageDataset):
         self.image_paths = list(zip(self.ms_paths, self.pan_paths, strict=True))
         for _ms, _pan in self.image_paths:
             assert _ms.name == _pan.name, "MS and PAN filenames do not match."
-            
+
         super().__init__(use_dict_output=use_dict_output)
 
     def check_dataset_exists(self):

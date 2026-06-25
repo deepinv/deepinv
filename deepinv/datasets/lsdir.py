@@ -168,11 +168,18 @@ class LsdirHR(ImageFolder):
 
         # Initialize ImageFolder
         if mode == "val":
-            super().__init__(self.root, x_path="val1/HR/val/*.png", transform=transform, use_dict_output=use_dict_output)
+            super().__init__(
+                self.root,
+                x_path="val1/HR/val/*.png",
+                transform=transform,
+                use_dict_output=use_dict_output,
+            )
         else:  # mode is train for sure, because of earlier check
             super().__init__(
-                self.root, x_path="00[0-8][0-9]000/*.png", transform=transform,
-                use_dict_output=use_dict_output
+                self.root,
+                x_path="00[0-8][0-9]000/*.png",
+                transform=transform,
+                use_dict_output=use_dict_output,
             )
 
     def verify_split_dataset_integrity(self) -> bool:

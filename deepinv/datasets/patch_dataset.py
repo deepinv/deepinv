@@ -48,7 +48,7 @@ class PatchDataset(TiledMixin2d, ImageDataset):
         if self.transform:
             patch = self.transform(patch)
         x = patch.reshape(self.shape) if self.shape else patch
-        
+
         out = OrderedDict(x=x) if self.use_dict_output else x
-        
+
         return out

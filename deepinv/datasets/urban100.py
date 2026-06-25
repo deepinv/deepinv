@@ -108,7 +108,9 @@ class Urban100HR(ImageFolder):
                 )
 
         # Initialize ImageFolder
-        super().__init__(self.root, transform=transform, use_dict_output=use_dict_output)
+        super().__init__(
+            self.root, transform=transform, use_dict_output=use_dict_output
+        )
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.
