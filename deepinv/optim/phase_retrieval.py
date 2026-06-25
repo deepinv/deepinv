@@ -62,7 +62,10 @@ def correct_global_phase(
 
     :return: The phase-corrected (and optionally magnitude-corrected) signals of the same shape as ``x_est``.
     """
-    assert x_est.shape == x_ref.shape, "The shapes of the signals should be the same."
+    if x_est.shape != x_ref.shape:  # pragma: no cover
+        raise ValueError(
+            f"The shapes of the signals should be the same, got {tuple(x_est.shape)} and {tuple(x_ref.shape)}."
+        )
 
     inner = (x_est.conj() * x_ref).sum(dim=dim, keepdim=True)
     if correct_magnitude:
@@ -91,7 +94,8 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     :param torch.Tensor a: First image.
     :param torch.Tensor b: Second image.
     :return: The cosine similarity between the two images."""
-    assert a.shape == b.shape
+    if a.shape != b.shape:  # pragma: no cover
+        raise ValueError(f"Shape of Tensors are not equal.")
     a = a.flatten()
     b = b.flatten()
     norm_a = torch.sqrt(torch.dot(a.conj(), a).real)

@@ -32,6 +32,8 @@ class DRUNet(Denoiser):
     A pretrained network for (in_channels=out_channels=1 or in_channels=out_channels=3)
     can be downloaded via setting ``pretrained='download'``.
 
+    .. tip:: This model can handle non-uniform `sigma` maps, which can be of size `(batch_size, 1, height, width)`.
+
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
     :param Sequence[int,int,int,int] nc: number of channels per convolutional layer, the network has a fixed number of 4 scales with ``nb`` blocks per scale (default: ``[64,128,256,512]``).
@@ -213,31 +215,49 @@ class DRUNet(Denoiser):
 
         :param torch.Tensor x: noisy image
         :param float, torch.Tensor sigma: noise level. If ``sigma`` is a float, it is used for all images in the batch.
-            If ``sigma`` is a tensor, it must be of shape ``(batch_size,)``.
+            If ``sigma`` is a tensor, it can be of shape ``(batch_size,)`` or ``(batch_size, 1, height, width, (depth))``.
         """
         if isinstance(sigma, torch.Tensor):
             if sigma.ndim > 0:
-                noise_level_map = sigma.view(x.size(0), 1, 1, 1)
-                noise_level_map = noise_level_map.expand(-1, 1, x.size(2), x.size(3))
+                if sigma.shape == (x.size(0), 1, *x.shape[2:]):
+                    noise_level_map = sigma
+                elif sigma.shape in [
+                    (x.size(0),),
+                    (x.size(0), 1, *[1 for _ in range(self.dim)]),
+                ]:
+
+                    noise_level_map = sigma.view(
+                        x.size(0), 1, *[1 for _ in range(self.dim)]
+                    )
+                    noise_level_map = noise_level_map.expand(
+                        -1, 1, *[x.size(2 + i) for i in range(self.dim)]
+                    )
+                else:
+                    raise ValueError(
+                        f"Incorrect shape, sigma should be of shape (1,), (batch_size,) or (batch_size, 1, height, width, (depth)), got {tuple(sigma.shape)}"
+                    )
             else:
                 noise_level_map = torch.ones(
                     (x.size(0), 1, *x.shape[2:]), device=x.device
-                ) * sigma[None, None, None, None].to(x.device)
+                ) * sigma.to(x.device)
         else:
-            noise_level_map = (
-                torch.ones((x.size(0), 1, *x.shape[2:]), device=x.device) * sigma
+            noise_level_map = torch.full(
+                (x.size(0), 1, *x.shape[2:]),
+                sigma,
+                device=x.device,
+                dtype=x.dtype,
             )
 
         x = torch.cat((x, noise_level_map), 1)
         shape_is_safe = all((s % 8 == 0 and s > 31) for s in x.shape[2:])
         if shape_is_safe:
             x = self.forward_unet(x)
-        elif self.training or (x.size(2) < 32 or x.size(3) < 32):
+        elif self.training or any([x.size(2 + i) < 64 for i in range(self.dim)]):
             x = test_pad(self.forward_unet, x, modulo=16)
         else:
-            if self.dim == 3:  # pragma: no cover
+            if self.dim == 3:
                 raise NotImplementedError(
-                    f"test_onesplit is not implemented yet for 3D. Please pass images with spatial shape smaller than 32, or multiple of 8 and larger than 32 to DRUNet."
+                    f"test_onesplit is not implemented yet for 3D. Please pass images with spatial shape smaller than 64, or multiple of 8 and larger than 31 to DRUNet."
                 )
             x = test_onesplit(self.forward_unet, x, refield=64)
         return x

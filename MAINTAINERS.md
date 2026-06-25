@@ -36,7 +36,7 @@ Maintainers are active and visible members of the community, and have [maintain-
 
 - **Uphold code of conduct**: model the behavior set forward by the [code of conduct](CODE_OF_CONDUCT.md) and raise any violations to other maintainers.
 
-- **Pull requests**: ensure PRs adhere to our [contributing guidelines](https://deepinv.github.io/deepinv/contributing.html) and have completed the checklist in the [PR template](.github/pull_request_template.md). Triage the PR and assign them to maintainers for review. Provide actionable feedback to guide the PR towards a conclusion. In cases of uncertainty, or where contributed code is out of your domain of expertise, reach out to additional maintainers or contributors.
+- **Pull requests**: ensure PRs adhere to our [contributing guidelines](https://deepinv.org/contributing.html) and have completed the checklist in the [PR template](.github/pull_request_template.md). Triage the PR and assign them to maintainers for review. Provide actionable feedback to guide the PR towards a conclusion. In cases of uncertainty, or where contributed code is out of your domain of expertise, reach out to additional maintainers or contributors.
 
 - **Issues**: manage labels, review issues regularly, and triage by labelling them, e.g. `bug`, `documentation`, `duplicate`, `enhancement`, `good first issue`, `help wanted`, `blocker`, `invalid`, `question`, `wontfix`, and `untriaged`. Request further information from a submitter if an issue is not clear. See the [issue template](.github/ISSUE_TEMPLATE.md) for an example.
 

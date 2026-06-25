@@ -89,7 +89,6 @@ plot([x, y], titles=["signal", "measurement"])
 
 physics = dinv.physics.CompressedSensing(
     m=2048,
-    fast=False,
     channelwise=True,
     img_size=img_size,
     device=device,
@@ -238,7 +237,7 @@ plot([x, physics.A_adjoint(y)], titles=["signal", "linear inverse"])
 
 
 physics = dinv.physics.Blur(
-    dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
+    dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0), device=device
 )
 
 y = physics(x)

@@ -106,7 +106,7 @@ dinv.utils.plot({"GT": x, "Noisy Inpainting \nMeasurement": y})
 # :ref:`physics parameters <parameter-dependent-operators>` such as `mask`, `filter`, `sigma` etc.:
 
 # Blur with Gaussian filter parameter
-filter = dinv.physics.blur.gaussian_blur((5, 5))
+filter = dinv.physics.functional.gaussian_blur(sigma=(5, 5))
 
 physics = dinv.physics.BlurFFT(x.shape[1:], filter=filter, device=device)
 

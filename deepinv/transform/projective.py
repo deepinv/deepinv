@@ -98,7 +98,10 @@ def apply_homography(
     """
     from kornia.geometry.transform import warp_perspective
 
-    assert interpolation in ("bilinear", "bicubic", "nearest")
+    if interpolation not in ("bilinear", "bicubic", "nearest"):  # pragma: no cover
+        raise ValueError(
+            f'interpolation must be one of ("bilinear", "bicubic", "nearest"), but got {interpolation}'
+        )
 
     w, h = (im.shape[2], im.shape[3]) if isinstance(im, torch.Tensor) else im.size
     u0, v0 = int(w / 2), int(h / 2)

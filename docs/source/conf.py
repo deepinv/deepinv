@@ -5,18 +5,20 @@
 
 # This is necessary for now but should not be in future version of sphinx_gallery
 # as a simple list of paths will be enough.
-import sys
 import os
+import sys
 from importlib.metadata import metadata as importlib_metadata
+
+import torch
 from docutils import nodes
 from docutils.parsers.rst import Directive
-from sphinx.util import logging
 from sphinx.addnodes import pending_xref
+from sphinx.util import logging
 from sphinx_gallery import gen_rst
-from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
 from sphinx_gallery.directives import ImageSg
+from sphinx_gallery.sorting import ExampleTitleSortKey, ExplicitOrder, _SortKey
+
 from deepinv.utils.plotting import set_default_plot_fontsize
-import torch
 
 logger = logging.getLogger(__name__)
 
@@ -74,8 +76,8 @@ intersphinx_mapping = {
     "torch": ("https://pytorch.org/docs/stable/", None),
     "torchvision": ("https://pytorch.org/vision/stable/", None),
     "python": ("https://docs.python.org/3.9/", None),
-    "deepinv": ("https://deepinv.github.io/deepinv/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
+    "requests": ("https://docs.python-requests.org/en/latest/", None),
 }
 
 # for python3 type hints
@@ -94,7 +96,7 @@ autodoc_inherit_docstrings = False
 # For bibtex
 bibtex_footbibliography_backrefs = True
 # for sitemap
-html_baseurl = "https://deepinv.github.io/deepinv/"
+html_baseurl = "https://deepinv.org/"
 html_extra_path = ["robots.txt"]
 # Include reStructuredText sources
 html_copy_source = True
@@ -102,6 +104,8 @@ html_copy_source = True
 # For more details, see:
 # https://sphinx-sitemap.readthedocs.io/en/v2.5.0/advanced-configuration.html
 sitemap_url_scheme = "{link}"
+# Filter out irrelevant pages from the sitemap so they are not attempted to be crawled
+sitemap_excludes = ["_modules/*", "search.html", "genindex.html"]
 
 ####  userguide directive ###
 default_role = "code"  # default role for single backticks
@@ -268,6 +272,7 @@ examples_order = {
         "demo_foundation_model.py",
         "demo_training.py",
         "demo_denoiser_tour.py",
+        "demo_super_resolution.py",
     ],
     "physics": [
         "demo_physics_tour.py",
@@ -297,11 +302,15 @@ class MySortKey(_SortKey):
             return ExampleTitleSortKey(self.src_dir)(filename)
 
 
-# List of files that require a GPU to run
-gpu_dependent_files = [".*demo_astra_tomography.py", ".*demo_zea_ultrasound.py"]
-# Create the ignore pattern based on GPU availability
+# List of files that require a GPU to run (regex patterns)
+gpu_dependent_files = [
+    ".*demo_astra_tomography\.py",
+    ".*demo_custom_niqe\.py",
+    ".*demo_zea_ultrasound.py",
+]
+# Create the ignore pattern based on GPU availability,
 ignore_pattern = (
-    rf"__init__\.py|".join(gpu_dependent_files)
+    "|".join(gpu_dependent_files + [r"__init__\.py"])
     if not torch.cuda.is_available()
     else r"__init__\.py"
 )
@@ -315,7 +324,8 @@ sphinx_gallery_conf = {
     "ignore_pattern": ignore_pattern,
     "reference_url": {
         # The module you locally document uses None
-        "sphinx_gallery": None
+        "sphinx_gallery": None,
+        "deepinv": None,
     },
     # directory where function/class granular galleries are stored
     "backreferences_dir": "gen_modules/backreferences",
@@ -341,6 +351,7 @@ sphinx_gallery_conf = {
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
             "../../examples/distributed",
+            "../../examples/metrics",
         ]
     ),
     "within_subsection_order": MySortKey,
