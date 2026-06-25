@@ -52,7 +52,11 @@ def calculate_md5_for_folder(folder_path: str) -> str:
 
 
 def download_archive(
-    url: str, save_path: str | Path, extract: bool = False, force_download: bool = False
+    url: str,
+    save_path: str | Path,
+    extract: bool = False,
+    force_download: bool = False,
+    verbose: bool = True,
 ) -> None:
     """Download archive (zipball or tarball) from the Internet.
 
@@ -64,7 +68,8 @@ def download_archive(
     """
     save_path = Path(save_path)
     if not force_download and save_path.exists() and save_path.stat().st_size > 0:
-        print(f"File already downloaded: {save_path}. Skipping...")
+        if verbose:
+            print(f"File already downloaded: {save_path}. Skipping...")
     else:
         # Ensure the directory containing `save_path`` exists
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
