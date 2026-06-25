@@ -4,6 +4,7 @@ import os
 import shutil
 import zipfile
 import tarfile
+import sys
 from pathlib import Path
 
 import requests
@@ -64,7 +65,7 @@ def download_archive(
     """
     save_path = Path(save_path)
     if not force_download and save_path.exists() and save_path.stat().st_size > 0:
-        print(f"File already downloaded: {save_path}. Skipping...")
+        sys.stderr.write(f"File already downloaded: {save_path}. Skipping...")
     else:
         # Ensure the directory containing `save_path`` exists
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
