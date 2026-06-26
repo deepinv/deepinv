@@ -45,7 +45,7 @@ We provide other plotting functions that are useful for inverse problems:
    * - :func:`deepinv.utils.plot_ortho3D`
      - Plots 3D orthographic projections for analyzing data or model outputs in three dimensions.
    * - :func:`deepinv.utils.plot_napari`
-     - Opens an interactive napari viewer to inspect 2D images or 3D volumes.
+     - Opens an interactive napari viewer to inspect 2D images or 3D volumes/stacks.
    * - :func:`deepinv.utils.disable_tex`
      - Globally force disable LaTeX for matplotlib plotting.
    * - :func:`deepinv.utils.enable_tex`
