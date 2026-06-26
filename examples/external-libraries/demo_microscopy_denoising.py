@@ -67,7 +67,9 @@ dataset = dinv.datasets.ImageFolder(
 
 model = dinv.models.RAM(device=device)
 
-for x, y in torch.utils.data.DataLoader(dataset, batch_size=1): # adjust batch size as necessary
+for x, y in torch.utils.data.DataLoader(
+    dataset, batch_size=1
+):  # adjust batch size as necessary
     x, y = x.to(device), y.to(device)
     with torch.no_grad():
         rescale = y.max()
