@@ -59,7 +59,8 @@ def download_archive(
 
     :param str url: URL of archive.
     :param str, pathlib.Path save_path: path where file should be saved.
-    :param bool extract: if ``True``, attempt to extract zipfile or tarball into parent dir.
+    :param bool extract: if ``True``, attempt to extract zipfile, tarball or RAR archive into parent dir.
+        Extracting RAR archives requires `rarfile`, install it with ``pip install rarfile``.
     :param bool force_download: if ``True``, download the archive even if it already exists.
     :raises DownloadError: if the archive cannot be downloaded.
     """
@@ -93,6 +94,8 @@ def download_archive(
                 extract_zipfile(save_path, Path(save_path).parent)
             elif Path(save_path).suffix == ".tar":
                 extract_tarball(save_path, Path(save_path).parent)
+            elif Path(save_path).suffix == ".rar":
+                extract_rarfile(save_path, Path(save_path).parent)
 
 
 def extract_zipfile(file_path: str | Path, extract_dir: str | Path) -> None:
@@ -115,6 +118,28 @@ def extract_tarball(file_path: str | Path, extract_dir: str | Path) -> None:
         # Thus the progress bar will not move linearly with time
         for file_to_be_extracted in tqdm(tar_ref.getmembers(), desc="Extracting"):
             tar_ref.extract(file_to_be_extracted, extract_dir)
+
+
+def extract_rarfile(file_path: str | Path, extract_dir: str | Path) -> None:
+    """Extract a local RAR archive.
+
+    Requires `rarfile`, install it with ``pip install rarfile``. Note that
+    `rarfile` itself relies on an external ``unrar`` or ``bsdtar`` command-line
+    tool being available on the system.
+    """
+    try:
+        import rarfile
+    except ImportError:  # pragma: no cover
+        raise ImportError(
+            "Extracting RAR archives requires rarfile, which is not installed. "
+            "Please install it with `pip install rarfile`. Note that rarfile also "
+            "requires the `unrar` or `bsdtar` command-line tool to be installed."
+        )
+
+    with rarfile.RarFile(file_path) as rar_ref:
+        # Files may vary in size so maybe nonlinear progress bar
+        for file_to_be_extracted in tqdm(rar_ref.infolist(), desc="Extracting"):
+            rar_ref.extract(file_to_be_extracted, extract_dir)
 
 
 def resolve_root(root: str | Path | None, dataset_name: str = None) -> Path:

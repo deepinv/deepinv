@@ -55,6 +55,7 @@ from .io import (
     get_cache_home,
     load_dicom,
     load_nifti,
+    load_tiff,
     load_url,
     load_np,
     load_torch,
@@ -62,3 +63,4 @@ from .io import (
     load_raster,
     load_ismrmd,
 )
+from .napari import plot_napari

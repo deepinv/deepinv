@@ -44,6 +44,8 @@ We provide other plotting functions that are useful for inverse problems:
      - Save a list of image sequences.
    * - :func:`deepinv.utils.plot_ortho3D`
      - Plots 3D orthographic projections for analyzing data or model outputs in three dimensions.
+   * - :func:`deepinv.utils.plot_napari`
+     - Opens an interactive napari viewer to inspect 2D images or 3D volumes.
    * - :func:`deepinv.utils.disable_tex`
      - Globally force disable LaTeX for matplotlib plotting.
    * - :func:`deepinv.utils.enable_tex`
@@ -76,6 +78,8 @@ We provide utilities for loading images and data from various sources:
      - **Description**
    * - :func:`deepinv.utils.load_dicom`
      - Load images as tensors from DICOM files.
+   * - :func:`deepinv.utils.load_tiff`
+     - Load images or volumes as tensors from TIFF files.
    * - :func:`deepinv.utils.load_url`
      - Load a file into a buffer directly from a URL.
    * - :func:`deepinv.utils.load_np`
