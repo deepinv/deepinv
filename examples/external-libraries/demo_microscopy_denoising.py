@@ -97,12 +97,22 @@ dinv.utils.plot(
 # Interactive viewer with napari
 # ------------------------------
 #
-# :func:`deepinv.utils.plot_napari` opens an interactive `napari <https://napari.org>`_
-# viewer, which is convenient for inspecting microscopy data. Here we render it
-# off-screen with ``screenshot=True`` so it can be displayed in this gallery, but
-# you can drop that argument to open the interactive window locally.
-
-dinv.utils.plot_napari(x, y, x_net, screenshot=True)
+# Use :func:`deepinv.utils.plot_napari` to interactively visualise microscopy images/stacks/volumes 
+# with the `napari <https://napari.org>`_ viewer.
+# 
+# Since it opens an interactive window, it requires a display and is not executed in this gallery.
+# To reproduce the screenshot below, run:
+#
+# .. code-block:: python
+#
+#     dinv.utils.plot_napari(x, y, x_net, screenshot=False)
+#
+# Pass ``screenshot=True`` to take a static screenshot instead:
+#
+# .. image:: /_static/demo_microscopy_denoising_screenshot.png
+#    :width: 600
+#    :align: center
+#    :alt: napari viewer showing the ground truth, noisy and denoised images side by side
 
 # %%
 # :References:
