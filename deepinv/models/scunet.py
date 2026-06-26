@@ -183,7 +183,8 @@ class Block(nn.Module):
         super(Block, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
-        assert type in ["W", "SW"]
+        if type not in ["W", "SW"]:  # pragma: no cover
+            raise ValueError(f'type must be one of ("W", "SW"), got {type}')
         self.type = type
         if input_resolution <= window_size:
             self.type = "W"
@@ -227,7 +228,8 @@ class ConvTransBlock(nn.Module):
         self.type = type
         self.input_resolution = input_resolution
 
-        assert self.type in ["W", "SW"]
+        if self.type not in ["W", "SW"]:  # pragma: no cover
+            raise ValueError(f'type must be one of ("W", "SW"), got {self.type}')
         if self.input_resolution <= self.window_size:
             self.type = "W"
 

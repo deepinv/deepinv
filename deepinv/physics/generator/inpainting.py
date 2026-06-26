@@ -4,7 +4,6 @@ from warnings import warn
 import torch
 from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.functional.rand import random_choice
-from deepinv.utils.decorators import _deprecated_alias
 
 if TYPE_CHECKING:
     from deepinv.physics.generator.mri import BaseMaskGenerator
@@ -63,7 +62,6 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
     :param torch.Generator rng: torch random number generator.
     """
 
-    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
         img_size: tuple[int],
@@ -272,7 +270,6 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     :param str, torch.device device: device where the tensor is stored (default: 'cpu').
     """
 
-    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
         img_size: tuple[int],
@@ -280,7 +277,6 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         device: str | torch.device = torch.device("cpu"),
         **kwargs,
     ):
-
         if "split_ratio" in kwargs:
             warn(
                 "split_ratio argument is ignored in MultiplicativeSplittingMaskGenerator as the split ratio is determined by the split_generator."
@@ -318,7 +314,6 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         :return: mask without batch dimension of shape specified either by `img_size`, `input_mask`, or class attribute `img_size`.
         """
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
-
             mask = self.split_generator.step(
                 batch_size=1, img_size=input_mask.shape[-2:]
             )["mask"].squeeze(0)
@@ -374,7 +369,6 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     :param torch.dtype dtype: the data type of the generated parameters
     """
 
-    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
         img_size: tuple[int],
@@ -531,7 +525,6 @@ class Phase2PhaseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     :param torch.Generator rng: unused.
     """
 
-    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
         img_size: tuple[int],
@@ -592,7 +585,6 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
     :param torch.Generator rng: torch random number generator.
     """
 
-    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
         img_size: tuple[int],

@@ -90,7 +90,7 @@ def plot_itoh(sigma_blur):
     row_x = row_sel.clone()
 
     # Construct 1D Gaussian filter with given sigma
-    filter1d = dinv.physics.blur.gaussian_blur(
+    filter1d = dinv.physics.functional.gaussian_blur(
         sigma=(sigma_blur, sigma_blur), angle=0.0
     ).to(device)
     # Reduce to 1D filter and normalize
@@ -141,7 +141,7 @@ x_rgb = resize(x_rgb)
 if mode == "round":
     x_rgb = x_rgb - dynamic_range / 2
 
-filter_0 = dinv.physics.blur.gaussian_blur(sigma=(1, 1), angle=0.0)
+filter_0 = dinv.physics.functional.gaussian_blur(sigma=(1, 1), angle=0.0)
 blur_op = dinv.physics.Blur(filter_0, device=device)
 x_rgb = blur_op(x_rgb)
 

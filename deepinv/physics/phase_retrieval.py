@@ -12,7 +12,6 @@ from deepinv.physics.structured_random import (
     generate_diagonal,
     StructuredRandom,
 )
-from deepinv.utils.decorators import _deprecated_alias
 
 
 class PhaseRetrieval(Physics):
@@ -120,8 +119,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
     :param int m: number of measurements.
     :param tuple img_size: shape (C, H, W) of inputs.
     :param bool channelwise: Channels are processed independently using the same random forward operator.
-    :param bool unitary: Use a random unitary matrix instead of Gaussian matrix. Default is False.
-    :param bool compute_inverse: Compute the pseudo-inverse of the forward matrix. Default is False.
     :param torch.dtype dtype: Forward matrix is stored as a dtype. Default is torch.cfloat.
     :param str device: Device to store the forward matrix.
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
@@ -142,7 +139,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
     """
 
-    @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m,
@@ -150,8 +146,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         channelwise=False,
         dtype=torch.cfloat,
         device="cpu",
-        unitary=False,
-        compute_inverse=False,
         rng: torch.Generator = None,
         **kwargs,
     ):
@@ -163,15 +157,15 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             self.rng = torch.Generator(device=device)
         else:
             # Make sure that the random generator is on the same device as the physic generator
-            assert rng.device == torch.device(
-                device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+            if rng.device != torch.device(device):  # pragma: no cover
+                raise ValueError(
+                    f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+                )
             self.rng = rng
 
         B = CompressedSensing(
             m=m,
             img_size=img_size,
-            fast=False,
             channelwise=channelwise,
             dtype=dtype,
             device=device,
@@ -210,7 +204,6 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     :param str device: Device for computation. Default is `cpu`.
     """
 
-    @_deprecated_alias(input_shape="img_size", output_shape="output_size")
     def __init__(
         self,
         img_size: tuple,
@@ -231,9 +224,8 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         self.n = torch.prod(torch.tensor(self.img_size))
         self.m = torch.prod(torch.tensor(self.output_size))
         self.oversampling_ratio = self.m / self.n
-        assert (
-            n_layers % 1 == 0.5 or n_layers % 1 == 0
-        ), "n_layers must be an integer or an integer plus 0.5"
+        if not (n_layers % 1 == 0.5 or n_layers % 1 == 0):  # pragma: no cover
+            raise ValueError("n_layers must be an integer or an integer plus 0.5")
         self.n_layers = n_layers
         self.structure = self.get_structure(self.n_layers)
         self.shared_weights = shared_weights
@@ -471,7 +463,6 @@ class Ptychography(PhaseRetrieval):
     torch.Size([1, 25, 64, 64])
     """
 
-    @_deprecated_alias(in_shape="img_size")
     def __init__(
         self,
         img_size=None,

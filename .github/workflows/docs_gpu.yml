@@ -5,7 +5,7 @@ on:
     - cron: "30 2 */1 * *"
   push:
     branches:
-      - main  
+      - main
   workflow_dispatch:
     inputs:
       pr_number:
@@ -23,7 +23,7 @@ jobs:
       WORKING_DIR: "/local/jtachell"
       PIXI_HOME: "/local/jtachell/.pixi"
       TMP_DIR: "/local/jtachell/tmp"
-      DEEPINV_CACHE: "/local/jtachell/.cache/deepinv"
+      DEEPINV_CACHE_DIR: "/local/jtachell/.cache/deepinv"
       HF_HOME: "/local/jtachell/.cache/huggingface"
       TORCH_HOME: "/local/jtachell/.cache/torch"
       HOME: "/local/jtachell"
@@ -38,7 +38,8 @@ jobs:
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
-          pixi-version: latest
+          pixi-version: v0.70.2
+          post-cleanup: true
           pixi-bin-path: /local/jtachell/pixi/bin/pixi
           environments: docs doctest
 
@@ -128,6 +129,7 @@ jobs:
           publish_dir: _build/
           force_orphan: true
           enable_jekyll: false
+          cname: deepinv.org
 
       # Comment results back to PR
       - name: Post result to PR
@@ -139,13 +141,13 @@ jobs:
             const result = "${{ job.status }}";
             const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
             const artifactUrl = "${{ steps.upload-artifact.outputs.artifact-url }}";
-      
+
             const body = result === "success"
               ? `✅ GPU docs passed
                  🔗 [View run details](${runUrl})
                  📦 [Download built docs](${artifactUrl})`
               : `❌ GPU docs failed\n\n🔗 [View run details](${runUrl})`;
-      
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,

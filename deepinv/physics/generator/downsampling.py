@@ -60,7 +60,11 @@ class DownsamplingGenerator(PhysicsGenerator):
         r"""
         Returns the filter associated to a given filter name and factor.
         """
-        from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter
+        from deepinv.physics.functional.blur import (
+            gaussian_blur,
+            bilinear_filter,
+            bicubic_filter,
+        )
 
         if filter_name == "gaussian":
             filter = torch.nn.Parameter(

@@ -13,32 +13,26 @@ from itertools import chain
 import os
 import io
 import contextlib
+import socket
+import urllib.error
 
-
-def tensor2array(img):
-    img = img.cpu().detach().numpy()
-    img = np.transpose(img, (1, 2, 0))
-    return img
-
-
-def array2tensor(img):
-    return torch.from_numpy(img).permute(2, 0, 1)
+from deepinv.utils.io import DownloadError
 
 
 def tensor2array(img: Tensor) -> np.ndarray:
     img = img.cpu().detach().numpy()
-    if img.shape[0] == 3:  # Color case: cast to numpy format (W,H,C)
-        img = np.transpose(img, (1, 2, 0))
-    else:  # Grayscale case: cast to numpy format (W,H)
+    if img.shape[0] == 1:  # Grayscale case: cast to numpy format (W,H)
         img = img[0]
+    else:  # All other cases: cast to numpy format (W,H,C)
+        img = np.transpose(img, (1, 2, 0))
     return img
 
 
 def array2tensor(img: np.ndarray) -> Tensor:
-    if len(img.shape) == 3:  # Color case: back to (C,W,H)
-        out = torch.from_numpy(img).permute(2, 0, 1)
-    else:  # Grayscale case: back to (1,W,H)
+    if len(img.shape) == 2:  # Grayscale case: back to (1,W,H)
         out = torch.from_numpy(img).unsqueeze(0)
+    else:  # All other cases: back to (C,W,H)
+        out = torch.from_numpy(img).permute(2, 0, 1)
     return out
 
 
@@ -187,19 +181,20 @@ def weight_init(shape, mode, fan_in, fan_out):
 class UpDownConv2d(torch.nn.Module):
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        kernel,
-        bias=True,
-        up=False,
-        down=False,
+        in_channels: int,
+        out_channels: int,
+        kernel: int,
+        bias: bool = True,
+        up: bool = False,
+        down: bool = False,
         resample_filter=(1, 1),
-        fused_resample=False,
-        init_mode="kaiming_normal",
-        init_weight=1,
-        init_bias=0,
+        fused_resample: bool = False,
+        init_mode: str = "kaiming_normal",
+        init_weight: float = 1,
+        init_bias: float = 0,
     ):
-        assert not (up and down)
+        if up and down:  # pragma: no cover
+            raise ValueError("up and down cannot both be True")
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -228,7 +223,7 @@ class UpDownConv2d(torch.nn.Module):
         f = f.outer(f).unsqueeze(0).unsqueeze(1) / f.sum().square()
         self.register_buffer("resample_filter", f if up or down else None)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         w = self.weight.to(x.dtype) if self.weight is not None else None
         b = self.bias.to(x.dtype) if self.bias is not None else None
         f = (
@@ -516,8 +511,12 @@ def initialize_3d_from_2d(
 
 def load_state_dict_from_url(*args, **kwargs) -> dict:
     """
-    A wrapper for :func:`torch.hub.load_state_dict_from_url` that respects the DEEPINV_DOWNLOAD_VERBOSE
+    A wrapper for :func:`torch.hub.load_state_dict_from_url` that respects the `DEEPINV_DOWNLOAD_VERBOSE`
     environment variable. If set to 0, stdout prints are suppressed.
+
+    Network-level failures (HTTP errors, connection failures, timeouts) are
+    re-raised as :class:`deepinv.utils.DownloadError` so they can be handled
+    uniformly with other deepinv downloads.
     """
     # Read the environment variable. Default to "1" (True/Verbose) if not set.
     env_value = os.environ.get("DEEPINV_DOWNLOAD_VERBOSE", "1").lower()
@@ -534,5 +533,14 @@ def load_state_dict_from_url(*args, **kwargs) -> dict:
         # nullcontext() does nothing, allowing stdout to print normally
         ctx = contextlib.nullcontext()
 
-    with ctx:
-        return torch.hub.load_state_dict_from_url(*args, **kwargs)
+    try:
+        with ctx:
+            return torch.hub.load_state_dict_from_url(*args, **kwargs)
+    except (
+        urllib.error.URLError,
+        ConnectionError,
+        TimeoutError,
+        socket.gaierror,
+    ) as exc:
+        url = args[0] if args else kwargs.get("url", "<unknown>")
+        raise DownloadError(f"Failed to download state dict from {url}: {exc}") from exc

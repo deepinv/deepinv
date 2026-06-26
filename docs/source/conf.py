@@ -74,8 +74,8 @@ intersphinx_mapping = {
     "torch": ("https://pytorch.org/docs/stable/", None),
     "torchvision": ("https://pytorch.org/vision/stable/", None),
     "python": ("https://docs.python.org/3.9/", None),
-    "deepinv": ("https://deepinv.github.io/deepinv/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
+    "requests": ("https://docs.python-requests.org/en/latest/", None),
 }
 
 # for python3 type hints
@@ -94,7 +94,7 @@ autodoc_inherit_docstrings = False
 # For bibtex
 bibtex_footbibliography_backrefs = True
 # for sitemap
-html_baseurl = "https://deepinv.github.io/deepinv/"
+html_baseurl = "https://deepinv.org/"
 html_extra_path = ["robots.txt"]
 # Include reStructuredText sources
 html_copy_source = True
@@ -102,6 +102,8 @@ html_copy_source = True
 # For more details, see:
 # https://sphinx-sitemap.readthedocs.io/en/v2.5.0/advanced-configuration.html
 sitemap_url_scheme = "{link}"
+# Filter out irrelevant pages from the sitemap so they are not attempted to be crawled
+sitemap_excludes = ["_modules/*", "search.html", "genindex.html"]
 
 ####  userguide directive ###
 default_role = "code"  # default role for single backticks
@@ -264,6 +266,7 @@ examples_order = {
         "demo_foundation_model.py",
         "demo_training.py",
         "demo_denoiser_tour.py",
+        "demo_super_resolution.py",
     ],
     "physics": [
         "demo_physics_tour.py",
@@ -293,11 +296,11 @@ class MySortKey(_SortKey):
             return ExampleTitleSortKey(self.src_dir)(filename)
 
 
-# List of files that require a GPU to run
-gpu_dependent_files = [".*demo_astra_tomography.py"]
-# Create the ignore pattern based on GPU availability
+# List of files that require a GPU to run (regex patterns)
+gpu_dependent_files = [".*demo_astra_tomography\.py", ".*demo_custom_niqe\.py"]
+# Create the ignore pattern based on GPU availability,
 ignore_pattern = (
-    rf"__init__\.py|".join(gpu_dependent_files)
+    "|".join(gpu_dependent_files + [r"__init__\.py"])
     if not torch.cuda.is_available()
     else r"__init__\.py"
 )
@@ -311,7 +314,8 @@ sphinx_gallery_conf = {
     "ignore_pattern": ignore_pattern,
     "reference_url": {
         # The module you locally document uses None
-        "sphinx_gallery": None
+        "sphinx_gallery": None,
+        "deepinv": None,
     },
     # directory where function/class granular galleries are stored
     "backreferences_dir": "gen_modules/backreferences",
@@ -337,6 +341,7 @@ sphinx_gallery_conf = {
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
             "../../examples/distributed",
+            "../../examples/metrics",
         ]
     ),
     "within_subsection_order": MySortKey,
@@ -414,9 +419,8 @@ html_theme_options = {
         ],
     },
     "announcement": (
-        "We are currently "
-        "<a href='https://jobs.inria.fr/public/classic/en/offres/2026-09919' target='_blank'> hiring!</a><br>"
-        "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates."
+        "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br>"
+        "<a href='https://docs.google.com/forms/d/e/1FAIpQLSeAp3sIhD_xDB4SmfPjtUzVM5TBNWlagSeUsG7UBRI5axaUsA/viewform' target='_blank'> Join us in the Sep 2026 hackathon</a>, applications are open!"
     ),
     "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
 }

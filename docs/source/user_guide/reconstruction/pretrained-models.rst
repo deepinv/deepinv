@@ -40,6 +40,10 @@ These models can be set-up in one line and perform inference in another line:
      - :ref:`Plug-and-play <iterative>` w/ pretrained denoiser
      - General
      - Medium
+   * - :class:`DEAL <deepinv.models.DEAL>`
+     - Iterative
+     - General; physics must be linear
+     - Fast
    * - :class:`DDRM <deepinv.sampling.DDRM>`
      - :ref:`Diffusion <diffusion>` w/ pretrained denoiser
      - General; physics must be decomposable
@@ -142,3 +146,7 @@ Click on the model name to learn more about the type of model and use `pretraine
      - Kernel identification
      - Weights from `Carbajal et al. <https://github.com/GuillermoCarbajal/J-MKPD>`_ trained on the task of identifying blur kernels from space-varying blurred images.
        Pretrained weights from `deepinverse HuggingfaceHub <https://huggingface.co/deepinv/kernel_identification>`_.
+   * - :class:`deepinv.models.DEAL`
+     - Reconstructor
+     - Weights from `Pourya et al. <https://arxiv.org/abs/2502.04079>`_ trained on grayscale and color denoising.
+       Pretrained weights from `DEAL github repository <https://github.com/mehrsapo/DEAL/tree/main>`_.

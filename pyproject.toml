@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.10"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -46,7 +46,7 @@ file = "README.rst"
 content-type = "text/x-rst"
 
 [project.urls]
-Homepage = "https://deepinv.github.io/"
+Homepage = "https://deepinv.org/"
 Source = "https://github.com/deepinv/deepinv"
 Tracker = "https://github.com/deepinv/deepinv/issues"
 
@@ -67,7 +67,7 @@ doc = [
     "sphinx_copybutton",
     "sphinx_autoapi",
     "sphinx-design",
-    "sphinx_sitemap<2.7.0",
+    "sphinx_sitemap >= 2.6.0, != 2.7.0",
     "sphinxcontrib.bibtex",
     "nbformat",
 ]
@@ -129,7 +129,6 @@ platforms = ["linux-64", "win-64"]
 
 [tool.pixi.dependencies]
 python = "<3.13.0"
-pytorch = "*"
 torchvision = "*"
 numpy = "*"
 matplotlib = "*"
@@ -145,6 +144,10 @@ cuda = "12.0"
 
 [tool.pixi.feature.gpu.dependencies]
 cuda-version = "*"
+pytorch-gpu = "*"
+
+[tool.pixi.feature.cpu.dependencies]
+pytorch-cpu = "*"
 
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
@@ -190,10 +193,10 @@ full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics
 docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
 doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
 # cpu environments (same as gpu but without the gpu dependencies)
-test-cpu  = { features = ["test"],  solve-group = "cpu" }
-full-cpu  = { features = ["doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "cpu" }
-docs-cpu  = { features = ["doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
-doctest-cpu = { features = ["doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
+test-cpu  = { features = ["cpu", "test"],  solve-group = "cpu" }
+full-cpu  = { features = ["cpu", "doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "cpu" }
+docs-cpu  = { features = ["cpu", "doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
+doctest-cpu = { features = ["cpu", "doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
 
 ##############################################
 # Pytest configuration and coverage reporting
@@ -241,4 +244,3 @@ banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets",
 # Deprecated functions that should be replaced
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "torch.norm".msg = "Use torch.linalg.vector_norm, torch.linalg.matrix_norm or torch.linalg.norm instead of the deprecated torch.norm"
-
