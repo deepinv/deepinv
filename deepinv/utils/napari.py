@@ -25,7 +25,7 @@ def plot_napari(*x: Tensor, screenshot: bool = False):  # pragma: no cover
     :param bool screenshot: if ``True``, capture a screenshot after rendering,
         close the viewer, and return a `PIL.Image.Image`.
     :return: ``None``, or a `PIL.Image.Image` if ``screenshot`` is ``True``.
-    """
+    """ 
     try:
         import napari
         from PIL import Image
