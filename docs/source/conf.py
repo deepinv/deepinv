@@ -5,18 +5,20 @@
 
 # This is necessary for now but should not be in future version of sphinx_gallery
 # as a simple list of paths will be enough.
-import sys
 import os
+import sys
 from importlib.metadata import metadata as importlib_metadata
+
+import torch
 from docutils import nodes
 from docutils.parsers.rst import Directive
-from sphinx.util import logging
 from sphinx.addnodes import pending_xref
+from sphinx.util import logging
 from sphinx_gallery import gen_rst
-from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
 from sphinx_gallery.directives import ImageSg
+from sphinx_gallery.sorting import ExampleTitleSortKey, ExplicitOrder, _SortKey
+
 from deepinv.utils.plotting import set_default_plot_fontsize
-import torch
 
 logger = logging.getLogger(__name__)
 
@@ -192,6 +194,10 @@ try:
     import astra
 except ImportError:
     astra = None
+try:
+    import zea
+except ImportError:
+    zea = None
 cuda_available = torch.cuda.is_available()
 """
 
@@ -297,7 +303,11 @@ class MySortKey(_SortKey):
 
 
 # List of files that require a GPU to run (regex patterns)
-gpu_dependent_files = [".*demo_astra_tomography\.py", ".*demo_custom_niqe\.py"]
+gpu_dependent_files = [
+    ".*demo_astra_tomography\.py",
+    ".*demo_custom_niqe\.py",
+    ".*demo_zea_ultrasound.py",
+]
 # Create the ignore pattern based on GPU availability,
 ignore_pattern = (
     "|".join(gpu_dependent_files + [r"__init__\.py"])
