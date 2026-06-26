@@ -34,7 +34,7 @@ GitHub: `<https://github.com/deepinv/deepinv>`_
 Get started
 -----------
 
-Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_, or our :ref:`User Guide <user_guide>`.
+Check out our `5 minute quickstart tutorial <https://deepinv.org/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.org/auto_examples/index.html>`_, or our :ref:`User Guide <user_guide>`.
 
 
 ``deepinv`` features

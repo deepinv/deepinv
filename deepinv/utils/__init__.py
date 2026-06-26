@@ -21,7 +21,6 @@ from .demo import (
     load_image,
     load_dataset,
     load_degradation,
-    get_cache_home,
     get_data_home,
     get_image_url,
     get_degradation_url,
@@ -52,6 +51,8 @@ from .parameters import get_GSPnP_params
 from .signals import normalize_signal, complex_abs
 from .mixins import TimeMixin, MRIMixin, TiledMixin2d
 from .io import (
+    DownloadError,
+    get_cache_home,
     load_dicom,
     load_nifti,
     load_url,

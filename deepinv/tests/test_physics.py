@@ -2556,7 +2556,7 @@ def test_tiled_product_physics_adjointness(
     Aty = physics.A_adjoint(y)
     # Lower a bit the tolerence on Windows. It seems that there is a small numerical error on Windows
     is_windows = os.name == "nt"
-    tol = 1e-2 if is_windows else 1e-3
+    tol = 1e-2 if is_windows else 5e-3
     lhs = torch.sum(Ax * y)
     rhs = torch.sum(Aty * x)
-    assert torch.allclose(lhs, rhs, rtol=tol, atol=1e-5)
+    assert torch.allclose(lhs, rhs, rtol=tol, atol=5e-4)

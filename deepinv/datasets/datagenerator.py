@@ -77,7 +77,7 @@ class HDF5Dataset(ImageDataset):
 
     :Entries:
 
-    HDF5 datasets adhere to our `conventions for datasets <https://deepinv.github.io/deepinv/user_guide/training/datasets.html>`_.
+    HDF5 datasets adhere to our `conventions for datasets <https://deepinv.org/user_guide/training/datasets.html>`_.
     In particular, their entries are either pairs of ground truth images and measuements ``(x, y)`` or triplets with additional
     physics parameters ``(x, y, params)``. It is possible that the datast does not contain ground truth data and in this case
     the ground truth is replaced by a scalar NaN tensor.
