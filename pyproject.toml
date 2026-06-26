@@ -50,6 +50,8 @@ Homepage = "https://deepinv.org/"
 Source = "https://github.com/deepinv/deepinv"
 Tracker = "https://github.com/deepinv/deepinv/issues"
 
+# Define groups of optional pypi dependencies. Can be overridden with conda
+# dependencies below using [tool.pixi.feature.*.dependencies] sections.
 [project.optional-dependencies]
 test = [
     "pytest",
@@ -89,13 +91,16 @@ denoisers = [
     "scipy",
     "diffusers",
     "transformers",
-    "numba>=0.60.0",
+    "numba",
 ]
 
 # optional dependencies for advanced forward operators
+physics-gpu = [
+    "astra-toolbox"
+]
+
 physics = [
-    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
-    "spyrit>=3.0.0; platform_system=='Linux'",
+    "spyrit>=3.0.0",
     "torchkbnufft",
     "array_api_compat",
     "sigpy",
@@ -125,7 +130,12 @@ training = [
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
-platforms = ["linux-64", "win-64"]
+platforms = [
+  "linux-64",
+  "win-64",
+  { name = "linux-64-cuda", platform = "linux-64", cuda = "12.0" },
+  { name = "win-64-cuda", platform = "win-64", cuda = "12.0" },
+]
 
 [tool.pixi.dependencies]
 python = "<3.13.0"
@@ -139,15 +149,18 @@ requests = "*"
 h5py = "*"
 natsort = "*"
 
-[tool.pixi.feature.gpu.system-requirements]
-cuda = "12.0"
+[tool.pixi.feature.cpu]
+platforms = ["linux-64", "win-64"]
+
+[tool.pixi.feature.cpu.dependencies]
+pytorch-cpu = "*"
+
+[tool.pixi.feature.gpu]
+platforms = ["linux-64-cuda", "win-64-cuda"]
 
 [tool.pixi.feature.gpu.dependencies]
 cuda-version = "*"
 pytorch-gpu = "*"
-
-[tool.pixi.feature.cpu.dependencies]
-pytorch-cpu = "*"
 
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
@@ -171,12 +184,13 @@ diffusers = "*"
 transformers = "*"
 # bm3d, bm4d, libcpab, ptwt are PyPI-only, stay in optional deps
 
-[tool.pixi.feature.physics.dependencies]
+[tool.pixi.feature.physics-gpu.dependencies]
 astra-toolbox = ">=2.2.0,!=2.3.0"
+
+[tool.pixi.feature.physics.dependencies]
 torchkbnufft = "*"
 array-api-compat = "*"
 sigpy = "*"
-# spyrit is PyPI-only, stays in optional deps
 
 [tool.pixi.feature.training.dependencies]
 wandb = "*"
@@ -189,7 +203,7 @@ deepinv = { path = ".", editable = true}
 # gpu environments
 default   = { features = ["gpu"], solve-group = "gpu" }
 test      = { features = ["gpu", "test"], solve-group = "gpu" }
-full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "gpu" }
+full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training"], solve-group = "gpu" }
 docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
 doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
 # cpu environments (same as gpu but without the gpu dependencies)
