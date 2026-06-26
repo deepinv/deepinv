@@ -30,10 +30,8 @@ device = dinv.utils.get_device()
 # --------------------
 #
 # We download the live-cell mitochondria STED dataset from
-# `Zenodo <https://zenodo.org/records/14215838>`_. The data is distributed as a
-# RAR archive, which :func:`deepinv.datasets.download_archive` extracts for us.
-# Each acquisition is a pair of TIFF images: a low-intensity (1.5 microwatt)
-# measurement and a high-intensity (8 microwatt) ground truth.
+# `Zenodo <https://zenodo.org/records/14215838>`_.
+# The dataset includes the low-intensity acquisitions (1.5 microwatt) as well as a reference high-intensity (8 microwatt) ground truth, which we use for visualisation.
 
 data_dir = dinv.utils.get_cache_home() / "datasets" / "sted"
 archive_name = "live_cell_mitochondria_u2os_tom20_halotag7_dm_sir"

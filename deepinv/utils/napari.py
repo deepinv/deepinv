@@ -15,7 +15,7 @@ def plot_napari(*x: Tensor, screenshot: bool = False):  # pragma: no cover
     .. note::
         This function opens an interactive window and therefore requires a
         display. Pass ``screenshot=True`` to render off-screen and return a
-        :class:`PIL.Image.Image` instead, which is useful for documentation
+        `PIL.Image.Image` instead, which is useful for documentation
         or when running headless.
 
     :param torch.Tensor x: tensors passed as args, accepts 1 to 6.
@@ -23,8 +23,8 @@ def plot_napari(*x: Tensor, screenshot: bool = False):  # pragma: no cover
         shape `(1, 1, D, H, W)`. Batch dim and channel dim must both be 1.
         All tensors must have the same number of dimensions.
     :param bool screenshot: if ``True``, capture a screenshot after rendering,
-        close the viewer, and return a :class:`PIL.Image.Image`.
-    :return: ``None``, or a :class:`PIL.Image.Image` if ``screenshot`` is ``True``.
+        close the viewer, and return a `PIL.Image.Image`.
+    :return: ``None``, or a `PIL.Image.Image` if ``screenshot`` is ``True``.
     """
     try:
         import napari
