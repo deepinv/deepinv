@@ -422,7 +422,10 @@ html_theme_options = {
         "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br>"
         "<a href='https://docs.google.com/forms/d/e/1FAIpQLSeAp3sIhD_xDB4SmfPjtUzVM5TBNWlagSeUsG7UBRI5axaUsA/viewform' target='_blank'> Join us in the Sep 2026 hackathon</a>, applications are open!"
     ),
-    "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
+    "analytics": {
+        "plausible_analytics_domain": "deepinv.org",
+        "plausible_analytics_url": "https://plausible.io/js/script.js",
+    },
 }
 
 
