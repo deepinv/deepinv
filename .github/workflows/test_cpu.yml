@@ -47,7 +47,7 @@ jobs:
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
-          pixi-version: v0.70.2
+          pixi-version: latest
           environments: full-cpu test-cpu
 
       - name: Restore .testmondata
