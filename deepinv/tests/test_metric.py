@@ -25,6 +25,7 @@ FULL_REFERENCE_METRICS = [
     "HaarPSI",
     "CosineSimilarity",
     "GMSD",
+    "RecoveryCoefficient",
 ]
 NO_REFERENCE_METRICS = [
     "BlurStrength",
@@ -73,6 +74,8 @@ def choose_full_reference_metric(metric_name, device, **kwargs) -> metric.Metric
         return metric.CosineSimilarity(**kwargs)
     elif metric_name == "GMSD":
         return metric.GMSD(**kwargs)
+    elif metric_name == "RecoveryCoefficient":
+        return metric.RecoveryCoefficient(**kwargs)
     else:
         raise ValueError("Incorrect metric name.")
 
@@ -154,7 +157,8 @@ def test_full_reference_metrics(
         x_hat = x_hat.clip(min=0.0, max=1.0)
         if channels != 3:
             pytest.skip("LPIPS requires 3 channel input.")
-
+    if metric_name == "RecoveryCoefficient":
+        pytest.skip("RecoveryCoefficient requires a mask and is tested separately.")
     # Test metric worse when image worse
     # In general, metrics can be either lower or higher = better
     # However, if we set train_loss=True, all metrics become lower = better.
@@ -591,3 +595,27 @@ def test_gmsd():
     x[:, :, :4] = 2
     out = gmsd(x_net, x)
     assert torch.isclose(out, torch.tensor((0.33,)), atol=3e-4)
+
+
+def test_recovery_coefficient():
+    rc = metric.RecoveryCoefficient()
+
+    x = torch.ones((2, 1, 4, 4))
+    x_net = 2 * x
+    mask = torch.ones_like(x)
+
+    out = rc(x_net, x, mask=mask)
+    assert torch.equal(out, 2 * torch.ones((2,)))
+
+    # check masking works
+    mask = torch.zeros_like(x)
+    mask[:, :, :2, :2] = 1
+
+    out = rc(x_net, x, mask=mask)
+    assert torch.equal(out, 2 * torch.ones((2,)))
+
+    # missing mask should raise
+    with pytest.raises(ValueError) as exc_info:
+        rc(x_net, x)
+
+    assert str(exc_info.value) == "Recovery Coefficient requires a mask argument."
