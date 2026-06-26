@@ -108,7 +108,7 @@ physics = [
 
 # optional dependencies for specific datasets
 dataset = [
-    "datasets",
+    "datasets>=3.5.0",
     "pandas",
     "pydicom",
     "mat73",
@@ -130,10 +130,7 @@ training = [
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
-platforms = [
-  "linux-64",
-  "win-64"
-]
+platforms = ["linux-64", "win-64"]
 
 [tool.pixi.dependencies]
 python = "<3.13.0"
@@ -147,15 +144,20 @@ requests = "*"
 h5py = "*"
 natsort = "*"
 
-[tool.pixi.feature.cpu.dependencies]
-pytorch-cpu = "*"
+# Force the CPU environment to ignore CUDA-enabled platforms if they exist, .e.g linux-64-cuda-12-0
+[tool.pixi.feature.cpu]
+platforms = ["linux-64", "win-64"]
+
+[tool.pixi.feature.cpu.pypi-dependencies]
+torch = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
+torchvision = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
 
 [tool.pixi.feature.gpu.system-requirements]
 cuda = "12.0"
 
-[tool.pixi.feature.gpu.dependencies]
-cuda-version = "*"
-pytorch-gpu = "*"
+[tool.pixi.feature.gpu.pypi-dependencies]
+torch = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
+torchvision = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
 
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
@@ -179,13 +181,12 @@ diffusers = "*"
 transformers = "*"
 # bm3d, bm4d, libcpab, ptwt are PyPI-only, stay in optional deps
 
-[tool.pixi.feature.physics-gpu.dependencies]
-astra-toolbox = ">=2.2.0,!=2.3.0"
-
 [tool.pixi.feature.physics.dependencies]
+astra-toolbox = ">=2.2.0,!=2.3.0"
 torchkbnufft = "*"
 array-api-compat = "*"
 sigpy = "*"
+# spyrit is PyPI-only, stays in optional deps
 
 [tool.pixi.feature.training.dependencies]
 wandb = "*"
