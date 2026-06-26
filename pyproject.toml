@@ -91,12 +91,12 @@ denoisers = [
     "scipy",
     "diffusers",
     "transformers",
-    "numba",
+    "numba>=0.60.0",
 ]
 
 # optional dependencies for advanced forward operators
 physics-gpu = [
-    "astra-toolbox"
+    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'"
 ]
 
 physics = [
@@ -132,9 +132,7 @@ training = [
 channels = ["conda-forge"]
 platforms = [
   "linux-64",
-  "win-64",
-  { name = "linux-64-cuda", platform = "linux-64", cuda = "12.0" },
-  { name = "win-64-cuda", platform = "win-64", cuda = "12.0" },
+  "win-64"
 ]
 
 [tool.pixi.dependencies]
@@ -149,14 +147,11 @@ requests = "*"
 h5py = "*"
 natsort = "*"
 
-[tool.pixi.feature.cpu]
-platforms = ["linux-64", "win-64"]
-
 [tool.pixi.feature.cpu.dependencies]
 pytorch-cpu = "*"
 
-[tool.pixi.feature.gpu]
-platforms = ["linux-64-cuda", "win-64-cuda"]
+[tool.pixi.feature.gpu.system-requirements]
+cuda = "12.0"
 
 [tool.pixi.feature.gpu.dependencies]
 cuda-version = "*"
