@@ -97,9 +97,9 @@ dinv.utils.plot(
 # Interactive viewer with napari
 # ------------------------------
 #
-# Use :func:`deepinv.utils.plot_napari` to interactively visualise microscopy images/stacks/volumes 
+# Use :func:`deepinv.utils.plot_napari` to interactively visualise microscopy images/stacks/volumes
 # with the `napari <https://napari.org>`_ viewer.
-# 
+#
 # Since it opens an interactive window, it requires a display and is not executed in this gallery.
 # To reproduce the screenshot below, run:
 #
