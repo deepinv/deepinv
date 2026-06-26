@@ -1,0 +1,9 @@
+﻿load\_degradation
+=================
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_degradation
+
+.. minigallery:: deepinv.utils.load_degradation
+    :add-heading: Examples using ``load_degradation``:

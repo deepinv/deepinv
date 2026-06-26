@@ -1,0 +1,9 @@
+﻿correct\_global\_phase
+======================
+
+.. currentmodule:: deepinv.optim.phase_retrieval
+
+.. autofunction:: correct_global_phase
+
+.. minigallery:: deepinv.optim.phase_retrieval.correct_global_phase
+    :add-heading: Examples using ``correct_global_phase``:

@@ -1,0 +1,265 @@
+
+:orphan:
+
+.. _sphx_glr_sg_execution_times:
+
+
+Computation times
+=================
+**138:46.485** total execution time for 77 files **from all galleries**:
+
+.. container::
+
+  .. raw:: html
+
+    <style scoped>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    </style>
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script type="text/javascript" class="init">
+    $(document).ready( function () {
+        $('table.sg-datatable').DataTable({order: [[1, 'desc']]});
+    } );
+    </script>
+
+  .. list-table::
+   :header-rows: 1
+   :class: table table-striped sg-datatable
+
+   * - Example
+     - Time
+     - Mem (MB)
+   * - :ref:`sphx_glr_auto_examples_unfolded_demo_learned_primal_dual.py` (``../../examples/unfolded/demo_learned_primal_dual.py``)
+     - 85:30.209
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py` (``../../examples/self-supervised-learning/demo_equivariant_imaging.py``)
+     - 14:28.285
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_metrics_demo_custom_niqe.py` (``../../examples/metrics/demo_custom_niqe.py``)
+     - 04:19.022
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_unfolded_demo_DEQ.py` (``../../examples/unfolded/demo_DEQ.py``)
+     - 03:20.146
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_blind-inverse-problems_demo_blind_deblurring.py` (``../../examples/blind-inverse-problems/demo_blind_deblurring.py``)
+     - 02:52.471
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_multioperator_imaging.py` (``../../examples/self-supervised-learning/demo_multioperator_imaging.py``)
+     - 02:28.793
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_scan_specific.py` (``../../examples/self-supervised-learning/demo_scan_specific.py``)
+     - 01:52.939
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_models_demo_denoiser_tour.py` (``../../examples/models/demo_denoiser_tour.py``)
+     - 01:49.936
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_physics_demo_scattering.py` (``../../examples/physics/demo_scattering.py``)
+     - 01:32.633
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_basics_demo_custom_optim.py` (``../../examples/basics/demo_custom_optim.py``)
+     - 01:26.588
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` (``../../examples/sampling/demo_diffusion_sde.py``)
+     - 01:25.322
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_unfolded_demo_LISTA.py` (``../../examples/unfolded/demo_LISTA.py``)
+     - 01:09.866
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constrained_LISTA.py` (``../../examples/unfolded/demo_unfolded_constrained_LISTA.py``)
+     - 00:55.610
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_unfolded_demo_custom_prior_unfolded.py` (``../../examples/unfolded/demo_custom_prior_unfolded.py``)
+     - 00:52.523
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_unfolded_demo_vanilla_unfolded.py` (``../../examples/unfolded/demo_vanilla_unfolded.py``)
+     - 00:51.102
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_unfolded_demo_deal.py` (``../../examples/unfolded/demo_deal.py``)
+     - 00:45.231
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constant_memory.py` (``../../examples/unfolded/demo_unfolded_constant_memory.py``)
+     - 00:44.856
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_distributed_demo_denoiser_distributed.py` (``../../examples/distributed/demo_denoiser_distributed.py``)
+     - 00:43.575
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_splitting.py` (``../../examples/self-supervised-learning/demo_equivariant_splitting.py``)
+     - 00:41.848
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_distributed_demo_physics_distributed.py` (``../../examples/distributed/demo_physics_distributed.py``)
+     - 00:40.918
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_sampling_demo_diffusers.py` (``../../examples/sampling/demo_diffusers.py``)
+     - 00:39.830
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_splitting_loss.py` (``../../examples/self-supervised-learning/demo_splitting_loss.py``)
+     - 00:33.921
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_distributed_demo_pnp_distributed.py` (``../../examples/distributed/demo_pnp_distributed.py``)
+     - 00:33.217
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` (``../../examples/adversarial-learning/demo_gan_imaging.py``)
+     - 00:27.964
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_lowfieldmri.py` (``../../examples/self-supervised-learning/demo_lowfieldmri.py``)
+     - 00:26.937
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_models_demo_foundation_model.py` (``../../examples/models/demo_foundation_model.py``)
+     - 00:26.240
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_external-libraries_demo_ri_basic.py` (``../../examples/external-libraries/demo_ri_basic.py``)
+     - 00:25.325
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_unsure.py` (``../../examples/self-supervised-learning/demo_unsure.py``)
+     - 00:23.117
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_sampling_demo_flow_matching.py` (``../../examples/sampling/demo_flow_matching.py``)
+     - 00:19.623
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_sampling_demo_sampling.py` (``../../examples/sampling/demo_sampling.py``)
+     - 00:17.952
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_blind-inverse-problems_demo_blind_denoising.py` (``../../examples/blind-inverse-problems/demo_blind_denoising.py``)
+     - 00:17.800
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_external-libraries_demo_connect_spyrit.py` (``../../examples/external-libraries/demo_connect_spyrit.py``)
+     - 00:16.690
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_transforms-equivariance_demo_transforms.py` (``../../examples/transforms-equivariance/demo_transforms.py``)
+     - 00:16.419
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_physics_demo_mri_tour.py` (``../../examples/physics/demo_mri_tour.py``)
+     - 00:15.971
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` (``../../examples/self-supervised-learning/demo_ei_transforms.py``)
+     - 00:15.166
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_external-libraries_demo_astra_tomography.py` (``../../examples/external-libraries/demo_astra_tomography.py``)
+     - 00:13.489
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_optimization_demo_TV_minimisation.py` (``../../examples/optimization/demo_TV_minimisation.py``)
+     - 00:13.476
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_models_demo_training.py` (``../../examples/models/demo_training.py``)
+     - 00:12.940
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_physics_demo_spatial_unwrapping.py` (``../../examples/physics/demo_spatial_unwrapping.py``)
+     - 00:12.527
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_plug-and-play_demo_RED_GSPnP_SR.py` (``../../examples/plug-and-play/demo_RED_GSPnP_SR.py``)
+     - 00:11.889
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_sampling_demo_ddrm.py` (``../../examples/sampling/demo_ddrm.py``)
+     - 00:11.229
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_basics_demo_quickstart.py` (``../../examples/basics/demo_quickstart.py``)
+     - 00:10.565
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_physics_demo_phase_retrieval.py` (``../../examples/physics/demo_phase_retrieval.py``)
+     - 00:09.649
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_optimization_demo_3D_denoising.py` (``../../examples/optimization/demo_3D_denoising.py``)
+     - 00:09.554
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_models_demo_super_resolution.py` (``../../examples/models/demo_super_resolution.py``)
+     - 00:09.265
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_sampling_demo_dps.py` (``../../examples/sampling/demo_dps.py``)
+     - 00:09.150
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_sampling_demo_diffpir.py` (``../../examples/sampling/demo_diffpir.py``)
+     - 00:09.067
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_external-libraries_demo_hf_dataset.py` (``../../examples/external-libraries/demo_hf_dataset.py``)
+     - 00:08.181
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_optimization_demo_patch_priors_CT.py` (``../../examples/optimization/demo_patch_priors_CT.py``)
+     - 00:08.131
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_plug-and-play_demo_PnP_DPIR_deblur.py` (``../../examples/plug-and-play/demo_PnP_DPIR_deblur.py``)
+     - 00:08.074
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_sure_denoising.py` (``../../examples/self-supervised-learning/demo_sure_denoising.py``)
+     - 00:07.993
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_n2n_denoising.py` (``../../examples/self-supervised-learning/demo_n2n_denoising.py``)
+     - 00:07.050
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_blind-inverse-problems_demo_optimizing_physics_parameter.py` (``../../examples/blind-inverse-problems/demo_optimizing_physics_parameter.py``)
+     - 00:06.723
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_poisson2sparse.py` (``../../examples/self-supervised-learning/demo_poisson2sparse.py``)
+     - 00:06.332
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_optimization_demo_epll.py` (``../../examples/optimization/demo_epll.py``)
+     - 00:05.477
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_external-libraries_demo_io.py` (``../../examples/external-libraries/demo_io.py``)
+     - 00:05.185
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_physics_demo_blur_tour.py` (``../../examples/physics/demo_blur_tour.py``)
+     - 00:04.722
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_optimization_demo_custom_prior.py` (``../../examples/optimization/demo_custom_prior.py``)
+     - 00:04.507
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_optimization_demo_wavelet_prior.py` (``../../examples/optimization/demo_wavelet_prior.py``)
+     - 00:04.458
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_physics_demo_remote_sensing.py` (``../../examples/physics/demo_remote_sensing.py``)
+     - 00:04.419
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_basics_demo_custom_dataset.py` (``../../examples/basics/demo_custom_dataset.py``)
+     - 00:04.384
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_optimization_demo_poisson_mlem.py` (``../../examples/optimization/demo_poisson_mlem.py``)
+     - 00:04.212
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_physics_demo_physics_tour.py` (``../../examples/physics/demo_physics_tour.py``)
+     - 00:04.198
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` (``../../examples/basics/demo_pretrained_model.py``)
+     - 00:03.882
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_artifact2artifact.py` (``../../examples/self-supervised-learning/demo_artifact2artifact.py``)
+     - 00:03.647
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_plug-and-play_demo_PnP_custom_optim.py` (``../../examples/plug-and-play/demo_PnP_custom_optim.py``)
+     - 00:03.116
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_physics_demo_microscopy_3d.py` (``../../examples/physics/demo_microscopy_3d.py``)
+     - 00:03.007
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_r2r_denoising.py` (``../../examples/self-supervised-learning/demo_r2r_denoising.py``)
+     - 00:02.916
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_plug-and-play_demo_vanilla_PnP.py` (``../../examples/plug-and-play/demo_vanilla_PnP.py``)
+     - 00:02.863
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_plug-and-play_demo_PnP_mirror_descent.py` (``../../examples/plug-and-play/demo_PnP_mirror_descent.py``)
+     - 00:02.809
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_physics_demo_anscombe.py` (``../../examples/physics/demo_anscombe.py``)
+     - 00:02.101
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_physics_demo_spc.py` (``../../examples/physics/demo_spc.py``)
+     - 00:01.863
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_physics_demo_ptychography.py` (``../../examples/physics/demo_ptychography.py``)
+     - 00:01.511
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_sampling_demo_custom_kernel.py` (``../../examples/sampling/demo_custom_kernel.py``)
+     - 00:01.251
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_optimization_demo_dip.py` (``../../examples/optimization/demo_dip.py``)
+     - 00:01.212
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_physics_demo_lidar.py` (``../../examples/physics/demo_lidar.py``)
+     - 00:00.769
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_basics_demo_custom_physics.py` (``../../examples/basics/demo_custom_physics.py``)
+     - 00:00.644
+     - 0.0
