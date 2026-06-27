@@ -166,7 +166,7 @@ plot([f for f in filters["filter"]], suptitle="Different length and regularity")
 # Diffraction blur generators
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# We also implemented diffraction blurs obtained through Fresnel theory and definition of the psf through the pupil
+# We also implemented diffraction blurs obtained through Fourier optics and definition of the psf through the pupil
 # plane expanded in Zernike polynomials
 
 from deepinv.physics.generator import DiffractionBlurGenerator
@@ -182,10 +182,10 @@ filters = diffraction_generator.step(batch_size=3)
 
 # %%
 # In this case, the `step()` function returns a dictionary containing the filters,
-# their pupil function and Zernike coefficients:
+# their pupil function, Zernike coefficients and cutoff frequency:
 print(filters.keys())
 
-# Note that we use **0.2 to increase the image dynamics
+# Note that we use **0.5 to increase the image dynamics
 plot(
     [f for f in filters["filter"] ** 0.5],
     suptitle="Examples of randomly generated diffraction blurs",
@@ -203,10 +203,7 @@ print(filters["coeff"])
 
 # %%
 # We can change the cutoff frequency (below 1/4 to respect Shannon's sampling theorem)
-diffraction_generator = DiffractionBlurGenerator(
-    (psf_size, psf_size), fc=1 / 8, device=device, dtype=dtype
-)
-filters = diffraction_generator.step(batch_size=3)
+filters = diffraction_generator.step(batch_size=3, fc=1 / 8)
 plot(
     [f for f in filters["filter"] ** 0.5],
     suptitle="A different cutoff frequency",
@@ -229,7 +226,7 @@ plot(
 )
 
 # %%
-# Finally, notice that you can activate the aberrations you want in the ANSI/Noll
+# Notice that you can activate the aberrations you want in the ANSI/Noll
 # nomenclature https://en.wikipedia.org/wiki/Zernike_polynomials#OSA/ANSI_standard_indices
 diffraction_generator = DiffractionBlurGenerator(
     (psf_size, psf_size),
@@ -250,6 +247,42 @@ plot(
 print(
     "Zernike polynomials used:\n", "\n ".join(diffraction_generator.zernike_polynomials)
 )
+
+# %%
+# Generate physically consistent chromatic PSFs by setting num_channels > 1.
+# Each channel is assigned its own cutoff frequency
+#     fc = NA * pixel_size / lambda,
+# which reproduces the wavelength-dependent diffraction limit.
+#
+# The Zernike coefficients represent wavefront errors in units of wavelength.
+# Therefore, keeping the same physical optical path difference (OPD) across
+# channels requires rescaling the coefficients approximately as
+#
+#     w(lambda) = w(lambda0) * lambda0 / lambda.
+#
+# As a result, shorter wavelengths exhibit both a narrower diffraction pattern
+# and stronger phase aberrations for the same underlying physical wavefront.
+
+diffraction_generator = DiffractionBlurGenerator(
+    (psf_size, psf_size),
+    device=device,
+    dtype=dtype,
+    num_channels=3,
+)
+
+lambdaR = 650  # in nm
+lambdaG = 550  # in nm
+lambdaB = 450  # in nm
+NA = 1.51  # numerical aperture of oil
+pixel_size = 50  # in nm
+fc = (NA * pixel_size / lambdaR, NA * pixel_size / lambdaG, NA * pixel_size / lambdaB)
+
+filters = diffraction_generator.step(batch_size=3, fc=fc)
+plot(
+    [f for f in filters["filter"] ** 0.5],
+    suptitle="Chromatic PSFs",
+)
+
 # %%
 # Generator Mixture
 # ~~~~~~~~~~~~~~~~~
