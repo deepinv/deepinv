@@ -2,6 +2,7 @@ from __future__ import annotations
 import torch
 from torchvision.datasets.utils import download_and_extract_archive
 from PIL import Image
+from collections import OrderedDict
 
 from urllib.parse import urlparse
 from os.path import basename, join
@@ -65,6 +66,7 @@ class Kohler(ImageDataset):
     :param Union[str, pathlib.Path] root: Root directory of the dataset.
     :param Callable transform:: (optional)  A function used to transform both the blurry shots and the sharp frames.
     :param bool download: Download the dataset.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     |sep|
 
@@ -129,7 +131,9 @@ class Kohler(ImageDataset):
         ordering: str = "printout_first",
         transform: Callable = None,
         download: bool = False,
+        use_dict_output: bool = False,
     ) -> None:
+        super().__init__(use_dict_output=use_dict_output)
         self.root = resolve_root(root, "Kohler")
         self.frames = frames
         self.ordering = ordering
@@ -194,7 +198,14 @@ class Kohler(ImageDataset):
             trajectory_index = index // 12 + 1
         else:
             raise ValueError(f"Unsupported ordering: {self.ordering}")
-        return self.get_item(printout_index, trajectory_index, frames=self.frames)
+        out = self.get_item(printout_index, trajectory_index, frames=self.frames)
+        
+        if self.use_dict_output:
+            out = OrderedDict(
+                x=out[0], y=out[1]
+            )
+            
+        return out
 
     # While users might sometimes want to thoroughly compare their own
     # deblurred images to all the sharp frames (about 200 per blurry shot),

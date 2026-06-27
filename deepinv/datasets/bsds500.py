@@ -6,6 +6,7 @@ from deepinv.datasets.utils import calculate_md5, download_archive, extract_zipf
 from deepinv.datasets.base import ImageDataset
 from natsort import natsorted
 from .utils import resolve_root
+from collections import OrderedDict
 
 
 class BSDS500(ImageDataset):
@@ -40,6 +41,7 @@ class BSDS500(ImageDataset):
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``.
     :param bool rotate: If set to ``True`` images are rotated to have all the same orientation. This can be important to use a torch dataloader.
         Default at False.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
     """
 
     def __init__(
@@ -50,7 +52,10 @@ class BSDS500(ImageDataset):
         splits=None,
         transform=None,
         rotate=False,
+        use_dict_output=False,
     ):
+        super().__init__(use_dict_output=use_dict_output)
+        
         checksum = "7bfe17302a219367694200a61ce8256c"
         if splits is None:
             if train:
@@ -105,4 +110,8 @@ class BSDS500(ImageDataset):
                 img = img.transpose(Image.ROTATE_90)
         if self.transforms is not None:
             img = self.transforms(img)
+            
+        if self.use_dict_output:
+            return OrderedDict(x=img)
+            
         return img

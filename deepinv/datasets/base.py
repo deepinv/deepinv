@@ -12,6 +12,7 @@ from PIL import Image
 from PIL.Image import Image as PIL_Image
 from deepinv.utils.tensorlist import TensorList
 from natsort import natsorted
+from collections import OrderedDict
 
 CORE_TYPES = (
     Tensor,
@@ -95,6 +96,34 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
         elif any(not isinstance(k, str) for k in params):
             raise RuntimeError(f"{error}, but params dict has non-string keys.")
 
+    elif isinstance(batch, dict):
+        
+        if "x" in batch:
+            x = batch["x"]
+            warn_core_types(x)
+            if not isinstance(x, image_types):
+                raise RuntimeError(
+                    f"{error}, but dict element with key 'x' is type {type(x)}."
+                ) 
+                
+        if "y" in batch:
+            y = batch["y"]
+            warn_core_types(y)
+            if not isinstance(y, image_types):
+                raise RuntimeError(
+                    f"{error}, but dict element with key 'y' is type {type(x)}."
+                ) 
+                
+        if "x" not in batch and "y" not in batch:
+            raise RuntimeError(
+                f"{error}, batch is type dict but neither 'x' nor 'y' keys are present"
+            )
+              
+        if "params" in batch and any(
+            not isinstance(k, str) for k in batch["params"]
+        ):
+            raise RuntimeError(f"{error}, but params dict has non-string keys.")
+        
     elif isinstance(batch, (list, tuple)):
         raise RuntimeError(
             f"{error}, but returned list or tuple of length {len(batch)}."
@@ -127,6 +156,14 @@ class ImageDataset(Dataset):
 
     If using DeepInverse with your own custom dataset, you should inherit from this class and use :func:`check_dataset` to check your dataset is compatible.
     """
+    
+    def __init__(self, use_dict_output: bool = False):
+        self.use_dict_output = use_dict_output
+        
+        if not self.use_dict_output:
+            warn(
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs. The default is currently `False` for backward compatibility, but will be switched to `True` in a future version."
+            )
 
     def check_dataset(self) -> None:
         """Check dataset returns correct format of images or image tuples."""
@@ -151,6 +188,7 @@ class TensorDataset(ImageDataset):
     :param torch.Tensor, None x: optional input ground truth tensor `x`
     :param torch.Tensor, None y: optional input measurement tensor `y`
     :param dict[str, torch.Tensor], None params: optional input physics parameters `params` of format `{"str": Tensor}`
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple. Default `False` for backward compatibility, but recommend setting to `True` for better readability and flexibility in returned outputs.
 
     |sep|
 
@@ -184,8 +222,9 @@ class TensorDataset(ImageDataset):
         x: Tensor | None = None,
         y: Tensor | None = None,
         params: dict[str, Tensor] | None = None,
+        use_dict_output: bool = False,  # For backward compatibility
     ):
-        super().__init__()
+        super().__init__(use_dict_output=use_dict_output)
 
         if (
             isinstance(x, CORE_TYPES)
@@ -229,6 +268,18 @@ class TensorDataset(ImageDataset):
         return self.x.size(0) if not self._is_none_or_nan(self.x) else self.y.size(0)
 
     def __getitem__(self, idx: int):
+        if self.use_dict_output:
+            out = OrderedDict()
+            
+            if not self._is_none_or_nan(self.x):
+                out["x"] = self.x[idx]
+            if not self._is_none_or_nan(self.y):
+                out["y"] = self.y[idx]
+            if not self._is_none_or_nan(self.params):
+                out["params"] = {k: v[idx] for (k, v) in self.params.items()}
+                
+            return out
+        
         if self._is_none_or_nan(self.y):
             if self._is_none_or_nan(self.params):
                 return self.x[idx]
@@ -264,6 +315,7 @@ class ImageFolder(ImageDataset):
     :param Callable loader: optional function that takes filename string and loads file. If `None`, defaults to `PIL.Image.open`.
     :param Callable estimate_params: optional function that takes tensors `x,y` and returns dict of `params`. Advanced usage only.
     :param Callable, tuple transform: optional callable transform. If `tuple` or `list` of length 2, `x` is transformed with first transform and `y` with second.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple. Default `False` for backward compatibility, but recommend setting to `True` for better readability and flexibility in returned outputs.
 
     |sep|
 
@@ -333,8 +385,9 @@ class ImageFolder(ImageDataset):
         loader: Callable[[str | Path], Tensor] = None,
         estimate_params: Callable[[Tensor, Tensor], dict] | None = None,
         transform: Callable | tuple[Callable, Callable] | None = None,
+        use_dict_output: bool = False,  # For backward compatibility
     ):
-        super().__init__()
+        super().__init__(use_dict_output=use_dict_output)
         self.root = Path(root)
 
         self.x_paths = None
@@ -389,12 +442,23 @@ class ImageFolder(ImageDataset):
 
         params = self.estimate_params(x, y) if self.estimate_params is not None else {}
 
-        out = (x,)
+        if self.use_dict_output:
+            out = OrderedDict()
+        
+            if x is not torch.nan:
+                out["x"] = x
+            if y is not None:
+                out["y"] = y
+                
+            out["params"] = params
 
-        if y is not None:
-            out += (y,)
+        else:
+            out = (x,)
 
-        if params:
-            out += (params,)
+            if y is not None:
+                out += (y,)
 
-        return out[0] if len(out) == 1 else out
+            if params:
+                out += (params,)
+
+            return out[0] if len(out) == 1 else out
