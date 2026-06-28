@@ -63,11 +63,13 @@ class MSE(Metric):
     Mean Squared Error metric.
 
     Calculates :math:`\|\hat{x}-x\|_2^2` where :math:`\hat{x}=\inverse{y}`.
+
     .. note::
 
         By default, no reduction is performed in the batch dimension.
 
     .. note::
+
         :class:`deepinv.loss.metric.MSE` is functionally equivalent to :class:`torch.nn.MSELoss` when ``reduction='mean'`` or ``reduction='sum'``,
         but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behavior as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.
 
@@ -1097,9 +1099,52 @@ class GMSD(Metric):
 
 
 class RecoveryCoefficient(Metric):
-    r"""
-    Recovery Cofficient metric used in emission tomography.
-    Compute the ratio between the total Reconstructed activity and the total ground truth activity inside a given mask.
+    r"""deepinv.metric.RecoveryCoefficient(eps, reduction, **kwargs)
+    Recovery Coefficient metric used in emission tomography.
+
+    Computes the ratio between the total reconstructed activity and the total
+    ground-truth activity inside a given mask:
+
+    .. math::
+
+        RC = \frac{\sum_i \hat{x}_i m_i}
+                  {\sum_i x_i m_i + \varepsilon}
+
+    where :math:`\hat{x}` is the reconstructed image, :math:`x` is the ground-truth
+    image, :math:`m` is a binary or weighted mask defining the region of interest,
+    and :math:`\varepsilon` is a small constant added for numerical stability.
+
+    A value of ``1`` indicates perfect recovery of activity within the masked region.
+    Values below ``1`` indicate underestimation, while values above ``1`` indicate
+    overestimation.
+
+    .. note::
+
+        This metric requires a ``mask`` keyword argument to be provided during
+        evaluation.
+
+    .. note::
+
+        Higher values are better when they are closer to ``1``. Therefore,
+        ``lower_better=False``.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import RecoveryCoefficient
+    >>> m = RecoveryCoefficient()
+    >>> x = torch.ones(2, 1, 4, 4)
+    >>> x_net = torch.ones(2, 1, 4, 4)
+    >>> mask = torch.ones_like(x)
+    >>> m(x_net, x, mask=mask)
+    tensor([1., 1.])
+
+    :param float eps: Small constant added to the denominator for numerical stability.
+    :param str reduction: Method used to reduce metric values across the batch.
+        ``"mean"`` computes the mean, ``"sum"`` computes the sum, and
+        ``None`` or ``"none"`` returns one score per sample.
+    :param kwargs: Additional keyword arguments passed to the parent
+        :class:`deepinv.loss.metric.Metric` class.
     """
 
     def __init__(self, eps: float = 1e-12, **kwargs):
@@ -1107,7 +1152,7 @@ class RecoveryCoefficient(Metric):
         self.eps = eps
         self.lower_better = False
 
-    def metric(self, x_net, x, *args, **kwargs):
+    def metric(self, x_net: Tensor, x: Tensor, mask: Tensor, *args, **kwargs) -> Tensor:
         mask = kwargs.get("mask", None)
         if mask is None:
             raise ValueError("Recovery Coefficient requires a mask argument.")

@@ -157,22 +157,26 @@ def test_full_reference_metrics(
         x_hat = x_hat.clip(min=0.0, max=1.0)
         if channels != 3:
             pytest.skip("LPIPS requires 3 channel input.")
-    if metric_name == "RecoveryCoefficient":
-        pytest.skip("RecoveryCoefficient requires a mask and is tested separately.")
+
+    def get_mask(t):
+        return (
+            {"mask": torch.ones_like(t)} if metric_name == "RecoveryCoefficient" else {}
+        )
+
     # Test metric worse when image worse
     # In general, metrics can be either lower or higher = better
     # However, if we set train_loss=True, all metrics become lower = better.
     if train_loss:
-        assert m(x_hat, x).item() > m(x, x).item()
+        assert m(x_hat, x, **get_mask(x_hat)).item() > m(x, x, **get_mask(x)).item()
 
     # Test various args and kwargs which could be passed to metrics
-    assert m(x_hat, x, None, model=None, some_other_kwarg=None) != 0
-    assert m(x_net=x_hat, x=x, some_other_kwarg=None) != 0
+    assert m(x_hat, x, None, model=None, some_other_kwarg=None, **get_mask(x_hat)) != 0
+    assert m(x_net=x_hat, x=x, some_other_kwarg=None, **get_mask(x_hat)) != 0
 
     # Test summing metrics
     dummy_metric = metric.Metric(metric=lambda *a, **kw: 1)
     m2 = m + dummy_metric
-    assert m2(x_hat, x) == m(x_hat, x) + 1
+    assert m2(x_hat, x, **get_mask(x_hat)) == m(x_hat, x, **get_mask(x_hat)) + 1
 
     # Test no reduce works
     B = 5
@@ -185,7 +189,7 @@ def test_full_reference_metrics(
         norm_inputs=norm_inputs,
         reduction="none",
     )
-    assert len(m(x_hat, x_hat)) == B
+    assert len(m(x_hat, x_hat, **get_mask(x_hat))) == B
 
 
 @pytest.mark.parametrize("metric_name", NO_REFERENCE_METRICS)
