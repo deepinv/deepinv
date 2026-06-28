@@ -366,7 +366,7 @@ class DiffractionBlurGenerator(PSFGenerator):
     r"""
     Diffraction limited blur generator.
 
-    Generates 2D diffraction PSFs in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory).
+    Generates 2D diffraction PSFs in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory, Fourier optics).
 
     Zernike polynomials are a sequence of orthogonal polynomials defined on the unit disk.
     They are commonly used in optical systems to describe wavefront aberrations.
