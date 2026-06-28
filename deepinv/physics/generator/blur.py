@@ -361,7 +361,7 @@ class MotionBlurGenerator(PSFGenerator):
             )
         }
 
-
+###NEW
 class DiffractionBlurGenerator(PSFGenerator):
     r"""
     Diffraction limited blur generator.
@@ -411,16 +411,9 @@ class DiffractionBlurGenerator(PSFGenerator):
     Conversion from the two conventions to the standard radial-angular indexing is done internally (see `wikipedia page <https://en.wikipedia.org/wiki/Zernike_polynomials>`_).
 
     :param tuple psf_size: the shape ``H x W`` of the generated PSF in 2D
-    :param int num_channels: number of image channels. Defaults to ``1``.
-
-        .. note::
-            ``num_channels`` and ``fc`` are coupled. If ``fc`` unambiguously encodes more than
-            one channel at construction time (a sequence or tensor with more than one entry
-            along its channel axis), ``num_channels`` is **inferred from ``fc`` automatically**
-            and this parameter can be omitted. Passing an explicit ``num_channels`` that
-            disagrees with ``fc`` raises a ``ValueError`` at construction time (not lazily
-            on the first :meth:`step` call).
-
+    :param int num_channels: number of image channels, defaults to ``1``. Inferred automatically
+        from ``fc`` if ``fc`` is a 1D sequence/tensor of length ``C > 1``; must equal ``C`` or be
+        left at ``1`` otherwise a ``ValueError`` is raised.
     :param tuple[int, ...], tuple[tuple[int, int], ...] zernike_index: activated Zernike coefficients in the following `index_convention` convention.
         It can be either:
 
@@ -431,27 +424,27 @@ class DiffractionBlurGenerator(PSFGenerator):
         These correspond to the following aberrations: defocus, astigmatism, coma, trefoil and spherical aberration.
     :param float, tuple[float, ...], list[float], torch.Tensor fc: default cutoff frequency
         ``(NA/emission_wavelength) * pixel_size``. Should be in ``[0, 0.25]`` to respect the
-        Shannon-Nyquist sampling theorem, defaults to ``0.2``. Used when ``fc`` is not passed
-        to :meth:`step`. Beyond a single (achromatic) value, ``fc`` can be:
+        Shannon-Nyquist sampling theorem, defaults to ``0.2``.
 
-            - a sequence/tensor of length ``num_channels`` (or that will *define*
-              ``num_channels``, see the note above): one cutoff frequency per channel.
-            - a 2D tensor of shape ``(batch_size, num_channels)`` for full per-(batch, channel)
-              control (only meaningful as a default if every :meth:`step` call uses the same
-              ``batch_size``; prefer passing ``fc`` to :meth:`step` directly otherwise).
-            - a ``torch.Tensor`` (e.g. an ``nn.Parameter``), to estimate ``fc`` jointly with
-              the Zernike coefficients via autograd.
+        At **construction time**, only a scalar ``float`` or a 1D tensor/sequence of length ``C``
+        are accepted. A 2D tensor raises a ``ValueError``.
 
-        Mutating ``self.fc`` after construction takes effect on the next :meth:`step` call (the
-        Zernike basis is synthesized lazily in :meth:`step`, not cached at construction time) --
-        but does **not** retroactively change ``num_channels``.
+        At **step time** (passed to :meth:`step`), ``fc`` may additionally be a 2D tensor of
+        shape ``(B, C)`` for full per-(batch, channel) control. The output PSF shape is then
+        driven by ``fc`` as follows:
+
+            - ``float`` / scalar: ``(batch_size, num_channels, H, W)``.
+            - ``(C,)`` 1D tensor/sequence: ``(batch_size, C, H, W)``.
+            - ``(B, C)`` 2D tensor: ``(B, C, H, W)``.
+            - ``(1, C)`` 2D tensor: ``(batch_size, C, H, W)``.
+            - ``(B, 1)`` 2D tensor: ``(B, 1, H, W)``.
+
     :param float max_zernike_amplitude: default amplitude of the base Zernike coefficients (in
         waves at the channel-0/reference cutoff frequency), defaults to ``0.15``. The amplitude
         of each coefficient is sampled uniformly in ``[-max_zernike_amplitude/2, max_zernike_amplitude/2]``.
         Can be overridden per :meth:`step` call.
     :param float zernike_perturbation_amplitude: default amplitude of the per-channel chromatic
-        perturbations, relative to ``max_zernike_amplitude`` (i.e. the perturbation std is
-        ``zernike_perturbation_amplitude * max_zernike_amplitude``), defaults to ``1e-3``. Only
+        perturbations, defaults to ``0``. Only
         used when ``num_channels > 1``. Can be overridden per :meth:`step` call.
     :param tuple[int] pupil_size: pixel size used to synthesize the super-resolved pupil.
         The higher the more precise, defaults to ``(256, 256)``.
@@ -512,7 +505,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         ),
         fc: float | tuple[float, ...] | list[float] | torch.Tensor = 0.2,
         max_zernike_amplitude: float = 0.15,
-        zernike_perturbation_amplitude: float = 1e-3,
+        zernike_perturbation_amplitude: float = 0.0,
         pupil_size: tuple[int, ...] = (256, 256),
         apodize: bool = False,
         random_rotate: bool = False,
@@ -521,19 +514,21 @@ class DiffractionBlurGenerator(PSFGenerator):
         dtype: torch.dtype = torch.float32,
         rng: torch.Generator = None,
     ):
-        # num_channels and fc are coupled: if fc unambiguously encodes more than
-        # one channel, num_channels is inferred from it automatically -- the
-        # parent class needs num_channels up front to set self.shape, so this
-        # must happen before super().__init__(). An explicitly-passed
-        # num_channels is still allowed as long as it agrees with fc.
-        fc_num_channels = self._infer_num_channels_from_fc(fc)
-        if fc_num_channels is not None:
+        
+        if isinstance(fc, float):
+            self.fc = fc
+        else:
+            self.fc = torch.as_tensor(fc, dtype=dtype)
+            if self.fc.ndim != 1:
+                raise ValueError(
+                    f"fc must be a scalar or 1D tensor/list/tuple at construction time, got {self.fc.ndim}D."
+                )
+
+        if isinstance(self.fc, torch.Tensor) and self.fc.shape[0] > 1:
+            fc_num_channels = self.fc.shape[0]
             if num_channels not in (1, fc_num_channels):
                 raise ValueError(
-                    f"num_channels={num_channels} is inconsistent with fc={fc!r}, "
-                    f"which encodes {fc_num_channels} channel(s). Either omit "
-                    f"num_channels (it will be inferred as {fc_num_channels} "
-                    f"automatically), or pass num_channels={fc_num_channels}."
+                    f"num_channels={num_channels} inconsistent with len(fc)={fc_num_channels}."
                 )
             num_channels = fc_num_channels
 
@@ -555,7 +550,6 @@ class DiffractionBlurGenerator(PSFGenerator):
             zernike_index[i] = index
 
         self.zernike_index = sorted(zernike_index)
-        self.fc = fc
         self.max_zernike_amplitude = max_zernike_amplitude
         self.zernike_perturbation_amplitude = zernike_perturbation_amplitude
         self.apodize = apodize
@@ -618,106 +612,32 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         self.to(device=device, dtype=dtype)
 
-    @staticmethod
-    def _infer_num_channels_from_fc(fc) -> int | None:
-        r"""
-        Best-effort inference of the number of channels encoded by ``fc``.
-        Returns ``None`` when ``fc`` is achromatic (a single value), in which
-        case it carries no information about ``num_channels``.
-
-        Called at construction time, before ``num_channels`` is known to the
-        parent class -- this is a plain function of ``fc`` only, it must not
-        touch ``self``.
-        """
-        if isinstance(fc, (int, float)):
-            return None
-        if isinstance(fc, torch.Tensor):
-            if fc.ndim == 0:
-                return None
-            if fc.ndim == 1:
-                return None if fc.shape[0] <= 1 else fc.shape[0]
-            if fc.ndim == 2:
-                return None if fc.shape[1] <= 1 else fc.shape[1]
-            raise ValueError(
-                f"fc must be 0D, 1D or 2D at construction time, got {fc.ndim}D."
-            )
-        if isinstance(fc, (list, tuple)):
-            return None if len(fc) <= 1 else len(fc)
-        raise TypeError(
-            f"fc must be a float, a tuple/list of floats, or a Tensor, got {type(fc)}."
-        )
-
     def _format_fc(self, fc, batch_size: int) -> torch.Tensor:
         r"""
-        Normalizes ``fc`` into a tensor of shape ``(Bf, Cf)`` with
-        ``Bf in {1, batch_size}`` and ``Cf in {1, num_channels}``, so it
-        broadcasts against a batch of multi-channel PSFs.
+        Normalises ``fc`` into a fully resolved 2D tensor of shape ``(B, C)``.
 
-        Accepted inputs:
+        - scalar / 0-D → ``(batch_size, 1)``
+        - 1D of length ``C`` → ``(batch_size, C)``
+        - 2D ``(B, C)`` → returned as-is; ``batch_size`` is ignored.
 
-        - a Python ``float`` / 0-d tensor: shape ``(1, 1)``, same fc everywhere.
-        - a 1D sequence/tensor of length ``num_channels``: shape ``(1, num_channels)``.
-        - a 1D sequence/tensor of length ``batch_size`` (when different from
-          ``num_channels``, to disambiguate): shape ``(batch_size, 1)``.
-        - a 2D sequence/tensor of shape ``(batch_size, num_channels)``.
+        :param fc: cutoff frequency input.
+        :param int batch_size: used to expand scalar and 1D inputs.
+        :return: ``torch.Tensor`` of shape ``(B, C)``.
         """
-        num_channels = self.shape[0]
-
         if isinstance(fc, torch.Tensor):
             t = fc.to(**self.factory_kwargs)
-        elif isinstance(fc, (int, float)):
-            t = torch.as_tensor(float(fc), **self.factory_kwargs)
-        elif isinstance(fc, (list, tuple)):
-            if any(isinstance(f, torch.Tensor) for f in fc):
-                t = torch.stack(
-                    [
-                        (
-                            f
-                            if isinstance(f, torch.Tensor)
-                            else torch.as_tensor(float(f), **self.factory_kwargs)
-                        )
-                        for f in fc
-                    ]
-                )
-            else:
-                t = torch.as_tensor([float(f) for f in fc], **self.factory_kwargs)
         else:
-            raise TypeError(
-                f"fc must be a float, a tuple/list of floats, or a Tensor, got {type(fc)}."
-            )
-
-        if t.ndim == 0:
-            return t.reshape(1, 1)
-
-        if t.ndim == 1:
-            n = t.shape[0]
-            if n == 1:
-                return t.reshape(1, 1)
-            is_channels = n == num_channels
-            is_batch = n == batch_size
-            if is_channels and not is_batch:
-                return t.reshape(1, num_channels)
-            if is_batch and not is_channels:
-                return t.reshape(batch_size, 1)
-            if is_channels:
-                # Ambiguous (n == num_channels == batch_size): default to
-                # per-channel, matching the original multi-color convention.
-                # Pass an explicit (batch_size, 1) tensor for the per-batch case.
-                return t.reshape(1, num_channels)
-            raise ValueError(
-                f"len(fc) = {n} matches neither num_channels = {num_channels} "
-                f"nor batch_size = {batch_size}."
-            )
+            try:
+                t = torch.as_tensor(fc, **self.factory_kwargs)
+            except (TypeError, ValueError):
+                raise TypeError(f"fc must be a float, list/tuple, or Tensor, got {type(fc)}.")
 
         if t.ndim == 2:
-            Bf, Cf = t.shape
-            if Bf not in (1, batch_size) or Cf not in (1, num_channels):
-                raise ValueError(
-                    f"fc of shape {tuple(t.shape)} does not broadcast against "
-                    f"(batch_size={batch_size}, num_channels={num_channels})."
-                )
             return t
-
+        if t.ndim == 0:
+            return t.reshape(1, 1).expand(batch_size, 1)
+        if t.ndim == 1:
+            return t.unsqueeze(0).expand(batch_size, -1)
         raise ValueError(f"fc must be 0D, 1D or 2D, got {t.ndim}D.")
 
     def _zernike_basis(self, fc: torch.Tensor):
@@ -732,8 +652,8 @@ class DiffractionBlurGenerator(PSFGenerator):
         Bf, Cf = fc.shape
         fc_r = fc.reshape(Bf, Cf, 1, 1)
 
-        XX, YY = torch.meshgrid(self.lin_x, self.lin_y, indexing="ij")  # (H, W)
-        XX = XX.reshape(1, 1, *XX.shape) / fc_r  # (Bf, Cf, H, W)
+        XX, YY = torch.meshgrid(self.lin_x, self.lin_y, indexing="ij")
+        XX = XX.reshape(1, 1, *XX.shape) / fc_r
         YY = YY.reshape(1, 1, *YY.shape) / fc_r
 
         rho = cart2pol(XX, YY)
@@ -748,7 +668,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         Z = torch.stack(
             [Zernike.cartesian_evaluate(n, m, XX, YY) for n, m in self._nm_list],
             dim=-1,
-        )  # (Bf, Cf, H, W, K)
+        )
         return Z, indicator_circ
 
     def step(
@@ -765,19 +685,23 @@ class DiffractionBlurGenerator(PSFGenerator):
         r"""
         Generate a batch of PSFs with a batch of Zernike coefficients.
 
-        :param int batch_size: batch_size.
+        The shape of the output PSF is determined by ``fc`` as follows:
+
+            - ``float`` / scalar: ``(batch_size, num_channels, H, W)`` (backward-compatible).
+            - ``(C,)`` 1D tensor/sequence: ``(batch_size, C, H, W)``.
+            - ``(B, C)`` 2D tensor: ``(B, C, H, W)``.
+            - ``(1, C)`` 2D tensor: ``(batch_size, C, H, W)``.
+            - ``(B, 1)`` 2D tensor: ``(B, 1, H, W)``.
+
+        :param int batch_size: number of PSFs to generate. Ignored when ``fc`` is a 2D
+            tensor with ``B > 1`` (batch size is then read from ``fc``). Defaults to ``1``.
         :param torch.Tensor coeff: Zernike coefficients. Accepted shapes:
 
-            - ``None`` (default): sampled via :meth:`generate_coeff`, producing
-              ``(B, n_zernike)`` when ``num_channels == 1``, or ``(B, C, n_zernike)``
-              (base coefficients rescaled by ``fc_c / fc_ref`` plus chromatic
-              perturbations) otherwise.
-            - ``(B, n_zernike)``: one set of base coefficients per batch element,
-              shared across channels -- automatically rescaled per channel as
-              ``coeff_c = coeff_ref * (fc_c / fc_ref)`` (channel 0 is the
-              reference). No chromatic perturbation is added in this case.
-            - ``(B, C, n_zernike)``: taken as **already fully specified** per
-              channel -- no rescaling and no perturbation is applied.
+            - ``None`` (default): sampled via :meth:`generate_coeff`.
+            - ``(B, n_zernike)``: base coefficients per batch element, shared across
+              channels and rescaled as ``coeff_c = coeff_ref * (fc_c / fc_ref)``.
+              No chromatic perturbation is added.
+            - ``(B, C, n_zernike)``: fully specified per channel, no rescaling applied.
 
         :param torch.Tensor angle: ``(batch_size,)`` angles in degrees for PSF rotation.
         :param float max_zernike_amplitude: overrides ``self.max_zernike_amplitude``
@@ -788,20 +712,18 @@ class DiffractionBlurGenerator(PSFGenerator):
         :param int seed: the seed for the random number generator.
         :param float, tuple[float, ...], list[float], torch.Tensor fc: overrides ``self.fc``
             for this call only (does not mutate ``self.fc``). Defaults to ``None``, in which
-            case ``self.fc`` is used. Accepts the same types as the constructor's ``fc``: a
-            single value (achromatic), a sequence of length ``num_channels`` (one cutoff
-            frequency per channel), a sequence of length ``batch_size`` (one cutoff frequency
-            per batch element, shared across channels), or a 2D tensor of shape
-            ``(batch_size, num_channels)``.
+            case ``self.fc`` is used. See class docstring for accepted shapes and their effect
+            on the output PSF shape.
 
         :return: dictionary with keys
 
-            - `filter`: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of PSFs,
-            - `coeff`: the Zernike coefficients actually used, shape ``(B, n_zernike)`` or ``(B, C, n_zernike)``,
+            - `filter`: tensor of size ``(B, C, H, W)`` where ``B`` and ``C`` are
+              determined by ``fc`` as described above,
+            - `coeff`: the Zernike coefficients actually used, shape ``(B, n_zernike)``
+              or ``(B, C, n_zernike)``,
             - `pupil`: the pupil function,
-            - `angle`: the random rotation angle in degrees if `random_rotate` is `True`, nothing otherwise.
-            - `fc`: tensor of shape `(Bf, Cf)` with the cutoff frequencies actually used, present only if several
-              channels and/or batch elements were involved, or if `fc` was explicitly passed to this call.
+            - `angle`: the random rotation angle in degrees if `random_rotate` is ``True``,
+            - `fc`: tensor of shape ``(Bf, Cf)`` with the cutoff frequencies actually used.
         """
 
         self.rng_manual_seed(seed)
@@ -812,69 +734,46 @@ class DiffractionBlurGenerator(PSFGenerator):
         if zernike_perturbation_amplitude is None:
             zernike_perturbation_amplitude = self.zernike_perturbation_amplitude
 
-        if coeff is None:
-            coeff, fc_used = self.generate_coeff(
-                batch_size,
-                num_channels=num_channels,
-                fc=fc,
-                max_zernike_amplitude=max_zernike_amplitude,
-                zernike_perturbation_amplitude=zernike_perturbation_amplitude,
-            )
-        else:
+        fc_used = self._format_fc(self.fc if fc is None else fc, batch_size)
+        B, C = fc_used.shape
+        C = num_channels if C == 1 else C
+
+        if coeff is not None:
             if coeff.ndim == 2:
-                B = coeff.shape[0]
-                fc_used = self._format_fc(self.fc if fc is None else fc, batch_size=B)
-                Cf = fc_used.shape[1]
+                if coeff.shape[0] != B:
+                    raise ValueError(f"coeff batch dim {coeff.shape[0]} does not match B={B}.")
                 fc_ref = fc_used[:, 0:1]
-                color_scale = fc_used / fc_ref
-                if fc_used.shape[0] == 1 and B > 1:
-                    color_scale = color_scale.expand(B, -1)
-                coeff = coeff.unsqueeze(1) * color_scale.unsqueeze(-1)  # (B, Cf, K)
+                coeff = coeff.unsqueeze(1) * (fc_used / fc_ref).unsqueeze(-1)
             elif coeff.ndim == 3:
-                B, Cf, _ = coeff.shape
-                fc_used = self._format_fc(self.fc if fc is None else fc, batch_size=B)
-                if fc_used.shape[1] not in (1, Cf):
+                if coeff.shape[0] != B or coeff.shape[1] != C:
                     raise ValueError(
-                        f"coeff has {Cf} channel(s) but fc encodes "
-                        f"{fc_used.shape[1]} channel(s); they must match, or "
-                        "one of them must be 1."
+                        f"coeff shape {tuple(coeff.shape)} does not match (B={B}, C={C}, K)."
                     )
             else:
                 raise ValueError(
-                    f"coeff must be 2D (B, K) or 3D (B, C, K), got shape {tuple(coeff.shape)}."
+                    f"coeff must be 2D (B, K) or 3D (B, C, K), got {coeff.ndim}D."
                 )
-
-        # At this point, coeff is (B, K) or (B, C, K), and fc_used is formatted.
-        if coeff.ndim == 2:
-            coeff = coeff.unsqueeze(1)
-        B, Cf, _ = coeff.shape
-
-        if Cf not in (1, num_channels):
-            raise ValueError(
-                f"The supplied coeff/fc combination implies {Cf} channel(s), "
-                f"which is incompatible with num_channels={num_channels}. "
-                f"Provide coeff/fc encoding 1 (broadcast) or {num_channels} "
-                "channel(s)."
+        else:
+            coeff = self.generate_coeff(
+                batch_size=B,
+                fc_used=fc_used,
+                max_zernike_amplitude=max_zernike_amplitude,
+                zernike_perturbation_amplitude=zernike_perturbation_amplitude,
             )
 
-        Z, indicator_circ = self._zernike_basis(
-            fc_used
-        )  # (Bf,Cf_fc,H,W,K), (Bf,Cf_fc,H,W)
+        if coeff.ndim == 2:
+            coeff = coeff.unsqueeze(1)
+        _, C_coeff, _ = coeff.shape
 
-        # Broadcast explicitly along both batch and channel axes, rather than
-        # relying on einsum's implicit broadcasting of size-1 dimensions for an
-        # index that also appears in the output -- not guaranteed across
-        # torch versions, so made explicit here.
-        if Z.shape[0] == 1 and B > 1:
-            Z = Z.expand(B, -1, -1, -1, -1)
-            indicator_circ = indicator_circ.expand(B, -1, -1, -1)
-        if Z.shape[1] == 1 and Cf > 1:
-            Z = Z.expand(-1, Cf, -1, -1, -1)
-            indicator_circ = indicator_circ.expand(-1, Cf, -1, -1)
+        Z, indicator_circ = self._zernike_basis(fc_used)
+
+        if Z.shape[1] == 1 and C_coeff > 1:
+            Z = Z.expand(-1, C_coeff, -1, -1, -1)
+            indicator_circ = indicator_circ.expand(-1, C_coeff, -1, -1)
 
         pupil = torch.einsum("bchwk,bck->bchw", Z, coeff.to(Z.dtype))
         pupil = torch.exp(-2.0j * torch.pi * pupil)
-        pupil = pupil * indicator_circ  # (B, Cf, H, W)
+        pupil = pupil * indicator_circ
 
         psf = torch.fft.ifftshift(
             torch.fft.fft2(torch.fft.fftshift(pupil, dim=(-2, -1)), dim=(-2, -1)),
@@ -883,9 +782,14 @@ class DiffractionBlurGenerator(PSFGenerator):
         psf = psf.abs().pow(2)
         psf = psf[
             ...,
-            self.pad_pre[0] : self.pupil_size[0] - self.pad_post[0],
-            self.pad_pre[1] : self.pupil_size[1] - self.pad_post[1],
-        ]  # (B, Cf, H, W)
+            self.pad_pre[0]: self.pupil_size[0] - self.pad_post[0],
+            self.pad_pre[1]: self.pupil_size[1] - self.pad_post[1],
+        ]
+
+        if C_coeff == 1 and num_channels > 1:
+            psf = psf.expand(-1, num_channels, -1, -1)
+
+        psf = psf / torch.sum(psf, dim=(-1, -2), keepdim=True)
 
         if self.random_rotate:
             if angle is None:
@@ -895,12 +799,8 @@ class DiffractionBlurGenerator(PSFGenerator):
         if self.apodize:
             psf = self.apodize_mask * psf
 
-        psf = psf / torch.sum(psf, dim=(-1, -2), keepdim=True)
-
-        filt = psf.expand(-1, num_channels, -1, -1) if Cf == 1 else psf
-
         params = {
-            "filter": filt,
+            "filter": psf,
             "coeff": coeff,
             "pupil": pupil,
             "fc": fc_used,
@@ -919,43 +819,32 @@ class DiffractionBlurGenerator(PSFGenerator):
     def generate_coeff(
         self,
         batch_size: int,
-        num_channels: int = 1,
+        fc: torch.Tensor = None,
         max_zernike_amplitude: float | None = None,
         zernike_perturbation_amplitude: float | None = None,
-        fc: float | tuple[float, ...] | list[float] | torch.Tensor = None,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> torch.Tensor:
         r"""
         Generate random Zernike coefficients, scaled by cutoff frequency per channel.
-
+ 
         :param int batch_size: number of independent aberration realisations.
-        :param int num_channels: number of spectral channels.
+        :param torch.Tensor fc: already-formatted ``(B, C)`` tensor from
+            :meth:`_format_fc`. If ``None``, ``self.fc`` is used with ``batch_size``,
+            producing a ``(batch_size, K)`` output (backward-compatible behaviour).
         :param float max_zernike_amplitude: amplitude of the base coefficients.
             Defaults to ``self.max_zernike_amplitude``.
-        :param float zernike_perturbation_amplitude: relative amplitude of channel
+        :param float zernike_perturbation_amplitude: amplitude of per-channel
             perturbations. Defaults to ``self.zernike_perturbation_amplitude``.
-        :param fc: cutoff frequency(ies). If ``None``, uses ``self.fc``.
-        :return: ``(coeff_scaled, fc_used)`` where
-
-            - ``coeff_scaled``: ``(B, K)`` if ``num_channels == 1`` else ``(B, C, K)``.
-            - ``fc_used``: ``(Bf, Cf)`` formatted cutoff frequencies.
+        :return: ``(batch_size, K)`` if ``C == 1``, else ``(B, C, K)``.
         """
         if max_zernike_amplitude is None:
             max_zernike_amplitude = self.max_zernike_amplitude
         if zernike_perturbation_amplitude is None:
             zernike_perturbation_amplitude = self.zernike_perturbation_amplitude
-
-        fc_used = self._format_fc(self.fc if fc is None else fc, batch_size=batch_size)
-        Bf, Cf = fc_used.shape
-        if Cf not in (1, num_channels):
-            raise ValueError(
-                f"fc encodes {Cf} channel(s) but num_channels={num_channels}. "
-                f"fc must encode either 1 (achromatic, broadcast to all "
-                f"channels) or exactly {num_channels} channel(s)."
-            )
-
-        fc_ref = fc_used[:, 0:1]
-        color_scale = fc_used / fc_ref  # (Bf, Cf) -- all ones when Cf == 1
-
+        if fc is None:
+            fc = self._format_fc(self.fc, batch_size)
+ 
+        _, C = fc.shape
+ 
         coeff_base = (
             torch.rand(
                 (batch_size, self.n_zernike),
@@ -964,27 +853,22 @@ class DiffractionBlurGenerator(PSFGenerator):
             )
             - 0.5
         ) * max_zernike_amplitude
-
-        if num_channels > 1:
-            coeff_delta = (
-                torch.randn(
-                    (batch_size, num_channels, self.n_zernike),
-                    generator=self.rng,
-                    **self.factory_kwargs,
-                )
-                * zernike_perturbation_amplitude
-                * max_zernike_amplitude
+ 
+        if C == 1:
+            return coeff_base
+ 
+        fc_ref = fc[:, 0:1]
+        color_scale = fc / fc_ref
+ 
+        coeff_delta = (
+            torch.randn(
+                (batch_size, C, self.n_zernike),
+                generator=self.rng,
+                **self.factory_kwargs,
             )
-            coeff_raw = coeff_base.unsqueeze(1) + coeff_delta  # (B, C, K)
-            if Bf == 1 and batch_size > 1:
-                color_scale = color_scale.expand(batch_size, -1)
-            if Cf == 1 and num_channels > 1:
-                color_scale = color_scale.expand(-1, num_channels)
-            coeff_scaled = coeff_raw * color_scale.unsqueeze(-1)  # (B, C, K)
-        else:
-            coeff_scaled = coeff_base  # (B, K)
-
-        return coeff_scaled, fc_used
+            * zernike_perturbation_amplitude
+        )
+        return coeff_base.unsqueeze(1) * color_scale.unsqueeze(-1) + coeff_delta
 
     def generate_angles(self, batch_size: int) -> torch.Tensor:
         r"""
@@ -1218,9 +1102,10 @@ class DiffractionBlurGenerator3D(PSFGenerator):
 
         Defaults to ``(4, 5, 6, 7, 8, 9, 10, 11)``, correspond to radial order `n` from 2 to 3 (included) and the spherical aberration.
         These correspond to the following aberrations: defocus, astigmatism, coma, trefoil and spherical aberration.
-    :param float fc: cutoff frequency `(NA/emission_wavelength) * pixel_size`. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`.
-    :param float kb: wave number `(NI/emission_wavelength) * pixel_size` or `(NA/NI) * fc`. Must be greater than `fc`. Defaults to `0.3`.
+    :param float, tuple[float, ...], list[float], torch.Tensor fc: cutoff frequency `(NA/emission_wavelength) * pixel_size`. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`.
+    :param float, tuple[float, ...], list[float], torch.Tensor kb: wave number `(NI/emission_wavelength) * pixel_size` or `(NA/NI) * fc`. Must be greater than `fc`. Defaults to `0.3`.
     :param float max_zernike_amplitude: maximum amplitude of Zernike coefficients. Defaults to 0.15.
+    :param float zernike_perturbation_amplitude: amplitude of per-channel chromatic perturbations, defaults to ``0``. Only used when ``num_channels > 1``.
     :param tuple[int] pupil_size: pixel size to synthesize the super-resolved pupil. The higher the more precise, defaults to `(512, 512)`.
         If an `int` is given, a square pupil is considered.
     :param bool apodize: whether to apodize the PSF to reduce ringing effects. Defaults to `False`.
@@ -1232,7 +1117,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
     :param str device: device (default to ``'cpu'``).
     :param type dtype: data type (default to `torch.float32`).
     :param kwargs: additional arguments for :class:`deepinv.physics.generator.DiffractionBlurGenerator`.
-
+     
     .. note::
 
         - `NA`: numerical aperture,
@@ -1273,6 +1158,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         fc: float | tuple[float, ...] | list[float] | torch.Tensor = 0.2,
         kb: float | tuple[float, ...] | list[float] | torch.Tensor = 0.25,
         max_zernike_amplitude: float = 0.15,
+        zernike_perturbation_amplitude: float = 0.0,
         pupil_size: tuple[int] = (512, 512),
         apodize: bool = False,
         random_rotate: bool = False,
@@ -1288,16 +1174,20 @@ class DiffractionBlurGenerator3D(PSFGenerator):
                 "You should provide a tuple of len == 3 to generate 3D PSFs."
             )
 
-        # Infer num_channels from fc if it encodes multiple channels,
-        # mirroring DiffractionBlurGenerator.__init__ logic.
-        fc_num_channels = DiffractionBlurGenerator._infer_num_channels_from_fc(fc)
-        if fc_num_channels is not None:
+        if isinstance(fc, float):
+            self.fc = fc
+        else:
+            self.fc = torch.as_tensor(fc, dtype=dtype)
+            if self.fc.ndim != 1:
+                raise ValueError(
+                    f"fc must be a scalar or 1D tensor/list/tuple at construction time, got {self.fc.ndim}D."
+                )
+
+        if isinstance(self.fc, torch.Tensor) and self.fc.shape[0] > 1:
+            fc_num_channels = self.fc.shape[0]
             if num_channels not in (1, fc_num_channels):
                 raise ValueError(
-                    f"num_channels={num_channels} is inconsistent with fc={fc!r}, "
-                    f"which encodes {fc_num_channels} channel(s). Either omit "
-                    f"num_channels (it will be inferred as {fc_num_channels} "
-                    f"automatically), or pass num_channels={fc_num_channels}."
+                    f"num_channels={num_channels} inconsistent with len(fc)={fc_num_channels}."
                 )
             num_channels = fc_num_channels
 
@@ -1315,6 +1205,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
             fc=fc,
             zernike_index=zernike_index,
             max_zernike_amplitude=max_zernike_amplitude,
+            zernike_perturbation_amplitude=zernike_perturbation_amplitude,
             pupil_size=pupil_size,
             apodize=apodize,
             device=device,
@@ -1327,7 +1218,6 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         self.random_rotate = random_rotate
         self.stepz_pixel = stepz_pixel
         self.kb = kb
-        self.fc = fc
         self.psf_size = psf_size
         self.nzs = psf_size[0]
         self.zernike_index = zernike_index
@@ -1339,18 +1229,6 @@ class DiffractionBlurGenerator3D(PSFGenerator):
             * self.stepz_pixel
         )
         self.to(device=device, dtype=dtype)
-
-    def _format_scalar_like_fc(
-        self,
-        val: float | tuple | list | torch.Tensor,
-        batch_size: int,
-    ) -> torch.Tensor:
-        r"""
-        Format ``kb`` (or any scalar-like parameter that follows the same shape
-        convention as ``fc``) into a ``(Bf, Cf)`` tensor, re-using the 2D
-        generator's ``_format_fc`` helper.
-        """
-        return self.generator2d._format_fc(val, batch_size=batch_size)
 
     def step(
         self,
@@ -1368,7 +1246,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         Generate a batch of PSF with a batch of Zernike coefficients
 
         :param int batch_size: number of PSFs to generate.
-        :param torch.Tensor coeff: tensor of size (batch_size x len(zernike_index)) containing the Zernike coefficients.
+        :param torch.Tensor coeff: tensor containing the Zernike coefficients.
             If `None`, random coefficients are generated. Accepts ``(B, K)`` or ``(B, C, K)``, exactly as in
             :class:`deepinv.physics.generator.DiffractionBlurGenerator`.
         :param torch.Tensor angle: ``(batch_size,)`` angles in degrees for PSF rotation.
@@ -1377,15 +1255,16 @@ class DiffractionBlurGenerator3D(PSFGenerator):
             for this call only. Accepts the same types as the constructor's ``fc``.
         :param float, tuple[float, ...], list[float], torch.Tensor kb: overrides ``self.kb``
             for this call only. Accepts the same types as ``fc``.
+        :param float max_zernike_amplitude: overrides ``self.max_zernike_amplitude`` for this call only. Only used when ``coeff`` is ``None``.
+        :param float zernike_perturbation_amplitude: overrides ``self.zernike_perturbation_amplitude`` for this call only. Only used when ``coeff`` is ``None`` and ``num_channels > 1``.
 
         :return: dictionary with keys
 
-            - `filter`: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of PSFs,
+            - `filter`: tensor of size `(B, C, depth, H, W)` batch of 3D PSFs,
             - `pupil`: the pupil function,
             - `coeff`: list of sampled Zernike coefficients in this realization,
             - `angle`: the random rotation angles in degrees if `random_rotate` is `True`, nothing otherwise.
-            - `fc`: tensor of shape `(Bf, Cf)` with the cutoff frequencies used, present only when
-              several channels/batch elements are involved or ``fc`` was explicitly passed.
+            - `fc`: tensor of shape ``(B, C)`` with the cutoff frequencies used.
         """
         # Delegate 2D pupil generation (handles fc, coeff, multi-channel logic).
         gen_dict = self.generator2d.step(
@@ -1398,40 +1277,27 @@ class DiffractionBlurGenerator3D(PSFGenerator):
             **kwargs,
         )
 
-        pupil = gen_dict["pupil"]  # (B, Cf, H, W) complex, or (B, H, W) when Cf==1
-        fc_used = gen_dict["fc"]  # (Bf, Cf)
+        pupil = gen_dict["pupil"]   # (B, C, H, W) complex
+        fc_used = gen_dict["fc"]    # (B, C)
 
-        # Format kb with the same shape convention as fc_used.
         kb_val = self.kb if kb is None else kb
-        kb_used = self._format_scalar_like_fc(kb_val, batch_size=batch_size)
-        # Broadcast kb to match fc_used shape so per-channel kb is supported.
-        kb_used = kb_used.expand_as(fc_used)  # (Bf, Cf)
+        kb_used = self.generator2d._format_fc(kb_val, batch_size=fc_used.shape[0])
+        kb_used = kb_used.expand_as(fc_used)  # (B, C)
 
-        # Lateral frequency grid: rho_norm = cart2pol(lin_x, lin_y),
-        # which equals the original rho * fc (the fc cancels: sqrt((x/fc)^2+(y/fc)^2)*fc = sqrt(x^2+y^2)).
-        # It is therefore fc-independent and does not need a channel dimension.
-        lin_x = self.generator2d.lin_x  # (H,)
-        lin_y = self.generator2d.lin_y  # (W,)
-        XX_norm, YY_norm = torch.meshgrid(lin_x, lin_y, indexing="ij")  # (H, W)
+        lin_x = self.generator2d.lin_x
+        lin_y = self.generator2d.lin_y
+        XX_norm, YY_norm = torch.meshgrid(lin_x, lin_y, indexing="ij")
         k_lat = cart2pol(XX_norm, YY_norm)  # (H, W)
 
-        # Reshape kb for broadcasting against (H, W) and depth D.
-        Bf, Cf = fc_used.shape
-        kb_hw = kb_used.reshape(Bf, Cf, 1, 1)  # (Bf, Cf, 1, 1)
+        B, C = fc_used.shape
+        kb_hw = kb_used.reshape(B, C, 1, 1)
 
-        # Axial propagation kernel per channel and depth:  (Bf, Cf, H, W) → (Bf, Cf, D, H, W)
-        d = (kb_hw**2 - k_lat**2 + 0j) ** 0.5  # (Bf, Cf, H, W)
+        d = (kb_hw**2 - k_lat**2 + 0j) ** 0.5  # (B, C, H, W)
         propKer = torch.exp(
             -1j * 2 * torch.pi * d.unsqueeze(2) * self._defocus[None, None, :, :, :]
-        )  # (Bf, Cf, D, H, W)
-
-        # Ensure pupil has a channel dim: (B, Cf, H, W)
-        if pupil.ndim == 3:
-            pupil = pupil.unsqueeze(1)  # (B, 1, H, W) when Cf==1
-
-        # Modulate pupil by propagation kernel over depth:
-        # pupil: (B, Cf, H, W), propKer: (Bf, Cf, D, H, W)
-        p = pupil.unsqueeze(2) * propKer  # (B, Cf, D, H, W)
+        )  # (B, C, D, H, W)
+ 
+        p = pupil.unsqueeze(2) * propKer   # (B, C, D, H, W) complex
         p = torch.nan_to_num(p, nan=0.0)
 
         pshift = torch.fft.fftshift(p, dim=(-2, -1))
@@ -1446,14 +1312,13 @@ class DiffractionBlurGenerator3D(PSFGenerator):
             - self.generator2d.pad_post[0],
             self.generator2d.pad_pre[1] : self.generator2d.pupil_size[1]
             - self.generator2d.pad_post[1],
-        ]  # (B, Cf, D, H, W)
+        ]  # (B, C, D, H, W)
 
         if self.random_rotate:
             from einops import rearrange
 
             if angle is None:
-                angle = self.generator2d.generate_angles(batch_size)
-
+                angle = self.generator2d.generate_angles(B)
             psf = rotate_via_shear(rearrange(psf, "b c d h w -> b (c d) h w"), angle)
             psf = rearrange(psf, "b (c d) h w -> b c d h w", d=self.psf_size[0])
 
@@ -1467,14 +1332,13 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         filt = psf.expand(-1, num_channels, -1, -1, -1) if Cf_out == 1 else psf
 
         params = {
-            "filter": filt,
-            "pupil": gen_dict["pupil"],
+            "filter": psf,
+            "pupil": pupil,
             "coeff": gen_dict["coeff"],
+            "fc": fc_used,
         }
         if self.random_rotate:
             params["angle"] = angle
-        if "fc" in gen_dict:
-            params["fc"] = gen_dict["fc"]
         return params
 
     @property
@@ -1511,6 +1375,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
     :param float pixelsize_Z:  Physical pixel size in the axial direction (depth). Defaults to `100e-9`.
     :param float pinhole_radius: Radius of pinhole in Airy units. Defaults to `1`.
     :param float max_zernike_amplitude: maximum amplitude of Zernike coefficients. Defaults to `0.1`.
+    :param float zernike_perturbation_amplitude: amplitude of per-channel chromatic perturbations, defaults to ``0``. Only used when ``num_channels > 1``.
     :param tuple[int] pupil_size: pixel size to synthesize the super-resolved pupil. The higher the more precise, defaults to `(512, 512)`.
             If an `int` is given, a square pupil is considered.
     :param str index_convention: convention for the Zernike indices, either ``'noll'`` (default) or ``'ansi'``.
@@ -1571,6 +1436,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         pixelsize_Z: float = 100e-9,
         pinhole_radius: float = 1,
         max_zernike_amplitude: float = 0.1,
+        zernike_perturbation_amplitude: float = 0.0,
         pupil_size: tuple[int] = (512, 512),
         index_convention: str = "noll",
         device: str = "cpu",
@@ -1640,6 +1506,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
             stepz_pixel=int(pixelsize_Z / pixelsize_XY),
             zernike_index=zernike_index,
             max_zernike_amplitude=max_zernike_amplitude,
+            zernike_perturbation_amplitude=zernike_perturbation_amplitude,
             pupil_size=pupil_size,
             index_convention=index_convention,
             rng=rng,
@@ -1656,6 +1523,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
             stepz_pixel=int(pixelsize_Z / pixelsize_XY),
             zernike_index=zernike_index,
             max_zernike_amplitude=max_zernike_amplitude,
+            zernike_perturbation_amplitude=zernike_perturbation_amplitude,
             pupil_size=pupil_size,
             index_convention=index_convention,
             rng=rng,
@@ -1669,6 +1537,10 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         batch_size: int = 1,
         coeff_ill: torch.Tensor = None,
         coeff_coll: torch.Tensor = None,
+        fc_ill: float | tuple[float, ...] | list[float] | torch.Tensor = None,
+        kb_ill: float | tuple[float, ...] | list[float] | torch.Tensor = None,
+        fc_coll: float | tuple[float, ...] | list[float] | torch.Tensor = None,
+        kb_coll: float | tuple[float, ...] | list[float] | torch.Tensor = None,
         **kwargs,
     ) -> dict:
         r"""
@@ -1680,21 +1552,28 @@ class ConfocalBlurGenerator3D(PSFGenerator):
             If `None`, random coefficients are generated.
         :param torch.Tensor coeff_coll: tensor of size `batch_size x len(zernike_index)` containing the Zernike coefficients for collection.
             If `None`, random coefficients are generated.
+        :param float, tuple[float, ...], list[float], torch.Tensor fc_ill: overrides the illumination cutoff frequency for this call only.
+        :param float, tuple[float, ...], list[float], torch.Tensor kb_ill: overrides the illumination wave number for this call only.
+        :param float, tuple[float, ...], list[float], torch.Tensor fc_coll: overrides the collection cutoff frequency for this call only.
+        :param float, tuple[float, ...], list[float], torch.Tensor kb_coll: overrides the collection wave number for this call only.
 
         :return: dictionary with keys
 
-            - `filter`: tensor of size `batch_size x num_channels x psf_size[0] x psf_size[1]` batch of PSFs,
+            - `filter`: tensor of size `batch_size x num_channels x psf_size[0] x psf_size[1] x psf_size[2]` batch of PSFs,
             - `coeff_ill`: list of sampled Zernike coefficients in this realization of illumination,
             - `coeff_coll`: list of sampled Zernike coefficients in this realization of collection,
-
+            - `pupil_ill`: the illumination pupil function,
+            - `pupil_coll`: the collection pupil function,
+            - `fc_ill`: tensor of shape ``(B, C)`` with the illumination cutoff frequencies used,
+            - `fc_coll`: tensor of shape ``(B, C)`` with the collection cutoff frequencies used.
         """
         dict_ill = self.generator_ill.step(
-            batch_size=batch_size, coeff=coeff_ill
+            batch_size=batch_size, coeff=coeff_ill, fc=fc_ill, kb=kb_ill,
         )  # generate illumination PSF
         psf_ill = dict_ill["filter"]
         coeff_ill = dict_ill["coeff"]
         dict_coll = self.generator_coll.step(
-            batch_size=batch_size, coeff=coeff_coll
+            batch_size=batch_size, coeff=coeff_coll, fc=fc_coll, kb=kb_coll,
         )  # generate collection PSF
         psf_coll = dict_coll["filter"]
         coeff_coll = dict_coll["coeff"]
@@ -1737,14 +1616,14 @@ class ConfocalBlurGenerator3D(PSFGenerator):
 
         psf = psf_confocal / torch.sum(psf_confocal, dim=(-3, -2, -1), keepdim=True)
 
-        num_channels = self.shape[0]
-        Cf_out = psf.shape[1]
-        psf = psf.expand(-1, num_channels, -1, -1, -1) if Cf_out == 1 else psf
-
         return {
             "filter": psf,
+            "pupil_ill": dict_ill["pupil"],
+            "pupil_coll": dict_coll["pupil"],
             "coeff_ill": coeff_ill,
             "coeff_coll": coeff_coll,
+            "fc_ill": dict_ill["fc"],
+            "fc_coll": dict_coll["fc"],
         }
 
     @property
