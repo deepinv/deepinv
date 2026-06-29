@@ -34,6 +34,24 @@ jobs:
                   || (inputs.pr_number && format('refs/pull/{0}/head', inputs.pr_number))
                   || github.sha }}
 
+      # When testing a PR, restore the pixi.lock + .testmondata pair solved on
+      # main as a SINGLE cache entry (atomic, no lock/testmondata mismatch) so
+      # pixi installs the exact package set that produced .testmondata, keeping
+      # testmon's environment fingerprint stable. Restored *before* Setup Pixi
+      # so the action installs from this lock. Baseline runs (schedule / push
+      # to main) restore nothing and solve fresh to track latest deps.
+      - name: Restore pixi.lock + .testmondata
+        if: inputs.pr_number != ''
+        uses: actions/cache/restore@v4
+        id: restore-cache
+        with:
+          path: |
+            pixi.lock
+            .testmondata
+          key: testmon-gpu-main-${{ github.run_id }}
+          restore-keys: |
+            testmon-gpu-main-
+
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
@@ -60,24 +78,20 @@ jobs:
                 f'GPU: {torch.cuda.get_device_name(0)}')
           "
 
-      - name: Restore .testmondata # Restore testmon data from main to speed up tests
-        uses: actions/cache/restore@v4
-        id: restore-cache
-        with:
-          path: .testmondata
-          key: testmon-gpu-main-${{ github.run_id }}
-          restore-keys: |
-            testmon-gpu-main-
-
       - name: Test with pytest
         run: |
           pixi run -e full pytest -n 2 --dist=loadgroup --testmon
 
-      - name: Save .testmondata
+      # Save the freshly-solved lock + .testmondata as a single (atomic) matched
+      # baseline pair. Only on main and only for baseline runs (not PR-dispatch),
+      # so a PR's env/results never overwrite the main baseline.
+      - name: Save pixi.lock + .testmondata
         uses: actions/cache/save@v4
-        if: github.ref == 'refs/heads/main' # Only save cache on main branch
+        if: github.ref == 'refs/heads/main' && inputs.pr_number == '' # Only save baseline cache on main
         with:
-          path: .testmondata
+          path: |
+            pixi.lock
+            .testmondata
           key: testmon-gpu-main-${{ github.run_id }}
 
       - name: Post result to PR
