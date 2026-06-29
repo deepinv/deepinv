@@ -1152,7 +1152,7 @@ class RecoveryCoefficient(Metric):
         self.eps = eps
         self.lower_better = False
 
-    def metric(self, x_net: Tensor, x: Tensor, mask: Tensor, *args, **kwargs) -> Tensor:
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
         mask = kwargs.get("mask", None)
         if mask is None:
             raise ValueError("Recovery Coefficient requires a mask argument.")

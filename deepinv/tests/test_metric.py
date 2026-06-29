@@ -170,7 +170,7 @@ def test_full_reference_metrics(
         assert m(x_hat, x, **get_mask(x_hat)).item() > m(x, x, **get_mask(x)).item()
 
     # Test various args and kwargs which could be passed to metrics
-    assert m(x_hat, x, None, model=None, some_other_kwarg=None, **get_mask(x_hat)) != 0
+    assert m(x_hat, x, model=None, some_other_kwarg=None, **get_mask(x_hat)) != 0
     assert m(x_net=x_hat, x=x, some_other_kwarg=None, **get_mask(x_hat)) != 0
 
     # Test summing metrics
