@@ -67,7 +67,6 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
-          environments: ${{ matrix.environment }}
           run-install: false  # we drive installation manually below
 
       # Install dependencies with pixi, using the restored lock if available. If the
