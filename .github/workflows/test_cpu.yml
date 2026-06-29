@@ -74,14 +74,14 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: |
-          echo "pixi install -e ${{ matrix.environment }} --locked"
+          set -x
           if ! pixi install -e ${{ matrix.environment }} --locked --manifest-path pyproject.toml --color always; then
             echo "pixi install with --locked option failed, run install without lock"
             pixi install -e ${{ matrix.environment }} --manifest-path pyproject.toml --color always
           fi
 
-          echo "pixi list -e ${{ matrix.environment }}"
           pixi list -e ${{ matrix.environment }} --manifest-path pyproject.toml --color always
+          set +x
 
       - name: Restore deepinv URL cache # shared across matrix environments
         uses: actions/cache/restore@v4
