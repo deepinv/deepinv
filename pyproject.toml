@@ -50,8 +50,8 @@ Homepage = "https://deepinv.org/"
 Source = "https://github.com/deepinv/deepinv"
 Tracker = "https://github.com/deepinv/deepinv/issues"
 
-# Define groups of optional pypi dependencies. Can be overridden with conda
-# dependencies below using [tool.pixi.feature.*.dependencies] sections.
+# Define groups of optional pypi dependencies. This is use by pip, uv, and pixi. 
+# It can be overridden with conda dependencies below using [tool.pixi.feature.*.dependencies] sections.
 [project.optional-dependencies]
 test = [
     "pytest",
@@ -134,7 +134,6 @@ platforms = ["linux-64", "win-64"]
 
 [tool.pixi.dependencies]
 python = "<3.13.0"
-torchvision = "*"
 numpy = "*"
 matplotlib = "*"
 tqdm = "*"
