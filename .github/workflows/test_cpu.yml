@@ -52,12 +52,11 @@ jobs:
       # full re-run). Restored *before* Setup Pixi so the action installs from
       # this lock. Not restored on push to main: main solves fresh to track
       # latest deps (and re-runs the full suite anyway).
-      - name: Restore pixi.lock + .testmondata
+      - name: Restore .testmondata
         if: github.event_name == 'pull_request'
         uses: actions/cache/restore@v4
         with:
           path: |
-            pixi.lock
             .testmondata
           key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
           restore-keys: |
@@ -83,12 +82,11 @@ jobs:
 
       # Save the freshly-solved lock + .testmondata as a single (atomic) cache
       # entry so PRs always restore a matching pair. Only on push to main.
-      - name: Save pixi.lock + .testmondata # only when pushed to main, not for PRs
+      - name: Save  .testmondata # only when pushed to main, not for PRs
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v4
         with:
           path: |
-            pixi.lock
             .testmondata
           key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
 

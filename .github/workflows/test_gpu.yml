@@ -40,13 +40,12 @@ jobs:
       # testmon's environment fingerprint stable. Restored *before* Setup Pixi
       # so the action installs from this lock. Baseline runs (schedule / push
       # to main) restore nothing and solve fresh to track latest deps.
-      - name: Restore pixi.lock + .testmondata
+      - name: Restore .testmondata
         if: inputs.pr_number != ''
         uses: actions/cache/restore@v4
         id: restore-cache
         with:
           path: |
-            pixi.lock
             .testmondata
           key: testmon-gpu-main-${{ github.run_id }}
           restore-keys: |
@@ -85,12 +84,11 @@ jobs:
       # Save the freshly-solved lock + .testmondata as a single (atomic) matched
       # baseline pair. Only on main and only for baseline runs (not PR-dispatch),
       # so a PR's env/results never overwrite the main baseline.
-      - name: Save pixi.lock + .testmondata
+      - name: Save .testmondata
         uses: actions/cache/save@v4
         if: github.ref == 'refs/heads/main' && inputs.pr_number == '' # Only save baseline cache on main
         with:
           path: |
-            pixi.lock
             .testmondata
           key: testmon-gpu-main-${{ github.run_id }}
 
