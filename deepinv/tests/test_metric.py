@@ -163,6 +163,12 @@ def test_full_reference_metrics(
             {"mask": torch.ones_like(t)} if metric_name == "RecoveryCoefficient" else {}
         )
 
+    if metric_name == "RecoveryCoefficient":
+        with pytest.raises(
+            ValueError, match="Recovery Coefficient requires a mask argument."
+        ):
+            m(x_hat, x)
+
     # Test metric worse when image worse
     # In general, metrics can be either lower or higher = better
     # However, if we set train_loss=True, all metrics become lower = better.
