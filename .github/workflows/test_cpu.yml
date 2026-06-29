@@ -72,6 +72,7 @@ jobs:
       # Install dependencies with pixi, using the restored lock if available. If the
       # lock is unavailable or fails to solve, fall back to a fresh solve. 
       - name: Install dependencies
+        shell: bash
         run: |
           echo "pixi install -e ${{ matrix.environment }} --locked"
           if ! pixi install -e ${{ matrix.environment }} --locked --manifest-path pyproject.toml --color always; then
