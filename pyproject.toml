@@ -99,6 +99,7 @@ physics = [
     "torchkbnufft",
     "array_api_compat",
     "sigpy",
+    "zea>=0.1.0",
 ]
 
 # optional dependencies for specific datasets
@@ -117,11 +118,6 @@ dataset = [
 training = [
     "wandb",
     "mlflow",
-]
-
-# optional dependencies for ultrasound imaging with zea
-ultrasound = [
-    "zea>=0.1.0",
 ]
 
 
