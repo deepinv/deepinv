@@ -52,11 +52,12 @@ jobs:
       # full re-run). Restored *before* Setup Pixi so the action installs from
       # this lock. Not restored on push to main: main solves fresh to track
       # latest deps (and re-runs the full suite anyway).
-      - name: Restore .testmondata
+      - name: Restore pixi.lock + .testmondata
         if: github.event_name == 'pull_request'
         uses: actions/cache/restore@v4
         with:
           path: |
+            pixi.lock
             .testmondata
           key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
           restore-keys: |
@@ -66,7 +67,19 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
-          environments: full-cpu test-cpu
+          environments: ${{ matrix.env_name }}
+          run-install: false  # we drive installation manually below
+
+      - name: Install dependencies
+        run: |
+          echo "pixi install -e ${{ matrix.environment }} --locked"
+          if ! pixi install -e ${{ matrix.environment }} --locked --manifest-path pyproject.toml --color always; then
+            echo "pixi install with --locked option failed, run install without lock"
+                pixi install -e ${{ matrix.environment }} --manifest-path pyproject.toml --color always
+          fi
+
+          echo "pixi list -e ${{ matrix.environment }}"
+          pixi list -e ${{ matrix.environment }} --manifest-path pyproject.toml --color always
 
       - name: Restore deepinv URL cache # shared across matrix environments
         uses: actions/cache/restore@v4
@@ -82,11 +95,12 @@ jobs:
 
       # Save the freshly-solved lock + .testmondata as a single (atomic) cache
       # entry so PRs always restore a matching pair. Only on push to main.
-      - name: Save  .testmondata # only when pushed to main, not for PRs
+      - name: Save pixi.lock + .testmondata # only when pushed to main, not for PRs
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v4
         with:
           path: |
+            pixi.lock
             .testmondata
           key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
 
