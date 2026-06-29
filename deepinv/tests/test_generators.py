@@ -647,21 +647,21 @@ def test_string_seed():
 
 @pytest.mark.parametrize("apodize", [True, False])
 @pytest.mark.parametrize("random_rotate", [True, False])
-@pytest.mark.parametrize("num_channels", [1, 3])
 @pytest.mark.parametrize("convention", ["noll", "ansi"])
 @pytest.mark.parametrize("is_3d", [True, False])
 @pytest.mark.parametrize(
-    "fc_step", [None, 0.2, (0.15, 0.2), torch.tensor([[0.10, 0.11], [0.2, 0.21]])]
+    "fc", [None, 0.2, (0.15, 0.2), torch.tensor([[0.10, 0.11], [0.2, 0.21]])]
 )
+@pytest.mark.parametrize("coeff", [None, torch.zeros(2, 35)])
 def test_diffraction_generator(
     device,
     apodize,
     random_rotate,
-    num_channels,
     convention,
     is_3d,
     rng,
-    fc_step,
+    fc,
+    coeff,
 ):
     r"""
     Test diffraction generator.
@@ -675,7 +675,6 @@ def test_diffraction_generator(
         generator = dinv.physics.generator.DiffractionBlurGenerator3D(
             psf_size=size,
             device=device,
-            num_channels=num_channels,
             zernike_index=zernike_index,
             index_convention=convention,
             apodize=apodize,
@@ -691,7 +690,6 @@ def test_diffraction_generator(
         generator = dinv.physics.generator.DiffractionBlurGenerator(
             psf_size=size,
             device=device,
-            num_channels=num_channels,
             zernike_index=zernike_index,
             index_convention=convention,
             apodize=apodize,
@@ -713,24 +711,31 @@ def test_diffraction_generator(
             aperture_diameter=0.002,
             apodize=apodize,
             random_rotate=random_rotate,
-            fc=fc_step,
+            fc=fc,
+            coeff=coeff.to(device) if coeff is not None else None,
         )
 
-        if fc_step is not None:
-            if isinstance(fc_step, float):
+        if fc is not None:
+            if isinstance(fc, float):
                 num_channels_out = 1
                 batch_size_out = batch_size
             else:
-                fc_tensor = torch.as_tensor(fc_step)
+                fc_tensor = torch.as_tensor(fc)
                 if fc_tensor.ndim == 1:
                     fc_tensor = fc_tensor[None, :].expand(batch_size, -1)
                 batch_size_out, num_channels_out = fc_tensor.shape
         else:
             batch_size_out = batch_size
-            num_channels_out = num_channels
+            num_channels_out = 1
 
-        print(fc_step, batch_size_out, num_channels_out)
-        print(params["filter"].shape, (batch_size_out, num_channels_out, *size))
+        if coeff is not None:
+            if coeff.ndim == 2:
+                batch_size_out = coeff.shape[0]
+            elif coeff.ndim == 3:
+                batch_size_out, num_channels_out = coeff.shape[:2]
+
+        # print(fc, batch_size_out, num_channels_out)
+        # print(params["filter"].shape, (batch_size_out, num_channels_out, *size))
 
         # Test keys and shapes
         assert set(params.keys()) == expected_keys
@@ -744,26 +749,81 @@ def test_diffraction_generator(
         if random_rotate:
             assert params["angle"].shape == (batch_size_out,)
 
-        # Test generator consistency
+        # Test generator consistency when coeff is None
         params2 = generator.step(
             batch_size=batch_size,
             seed=0,
-            fc=fc_step,
+            fc=fc,
         )
-        for key in params.keys():
-            assert torch.allclose(params[key], params2[key])
+        if coeff is None:
+            for key in params.keys():
+                assert torch.allclose(params[key], params2[key])
 
-        # Test generator variability
+        # Test generator variability when coeff is None
         params3 = generator.step(
             batch_size=batch_size,
             seed=1,
-            fc=fc_step,
+            fc=fc,
         )
-        for key in params.keys():
-            if key == "fc":
-                assert torch.allclose(params[key], params3[key])
-            else:
-                assert not torch.allclose(params[key], params3[key])
+        if coeff is None:
+            for key in params.keys():
+                if key == "fc":
+                    assert torch.allclose(params[key], params3[key])
+                else:
+                    assert not torch.allclose(params[key], params3[key])
+
+        # test raising ValueError when incompatible shapes
+        if (
+            fc is None
+            and coeff is None
+            and not apodize
+            and not random_rotate
+            and convention == "noll"
+        ):
+            with pytest.raises(ValueError) as excinfo:
+                generator.step(
+                    batch_size=2,
+                    seed=1,
+                    fc=0.2 * torch.ones(2, 2).to(device),
+                    coeff=torch.zeros(3, 35).to(device),
+                )  # (B_f=2, C_f=2) vs (B_c=3, K)  (B_f != B_c)
+            assert "does not match" in str(excinfo.value)
+
+            with pytest.raises(ValueError) as excinfo:
+                generator.step(
+                    batch_size=2,
+                    seed=1,
+                    fc=0.2 * torch.ones(2, 2).to(device),
+                    coeff=torch.zeros(3, 35).to(device),
+                )  # (B_f=2, C_f=2) vs (B_c=2, K)
+            assert "does not match" in str(excinfo.value)
+
+            with pytest.raises(ValueError) as excinfo:
+                generator.step(
+                    batch_size=5,
+                    seed=1,
+                    fc=0.2 * torch.ones(2, 2).to(device),
+                    coeff=torch.zeros(1, 35).to(device),
+                )  # (B_f=2, C_f=2) vs (1, K)
+            assert "does not match" in str(excinfo.value)
+
+            with pytest.raises(ValueError) as excinfo:
+                generator.step(
+                    batch_size=5,
+                    seed=1,
+                    fc=0.2 * torch.ones(2, 2).to(device),
+                    coeff=torch.zeros(3, 2, 35).to(device),
+                )  # (B_f=2, C_f=2) vs (B_c=3, C_c=2, K)
+            assert "does not match" in str(excinfo.value)
+
+            with pytest.raises(ValueError) as excinfo:
+                generator.step(
+                    batch_size=5,
+                    seed=1,
+                    fc=0.2 * torch.ones(2, 2).to(device),
+                    coeff=torch.zeros(2, 3, 35).to(device),
+                )  # (B_f=2, C_f=2) vs (B_c=2, C_c=3, K)
+            assert "does not match" in str(excinfo.value)
 
 
 @pytest.mark.parametrize("dim", [1, 2, 3])

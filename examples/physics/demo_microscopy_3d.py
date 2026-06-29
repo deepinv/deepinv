@@ -131,8 +131,8 @@ print("Coefficients of the decomposition on Zernike polynomials")
 print(blurs["coeff"])
 
 # %%
-# Generate physically realistic multi-colour diffraction PSFs by setting
-# `num_channels > 1`. By default, `step()` accounts for wavelength-dependent
+# Generate physically realistic multi-colour diffraction PSFs by passing ``fc`` as a list to `.step()`.
+# By default, `step()` accounts for wavelength-dependent
 # diffraction (fc ∝ 1 / lambda) and rescales the Zernike coefficients so that
 # all channels correspond to the same underlying physical aberrations.
 
@@ -148,7 +148,6 @@ diffraction_generator = DiffractionBlurGenerator3D(
     stepz_pixel=2,
     device=device,
     dtype=dtype,
-    num_channels=3,
 )
 
 rgb_blurs = diffraction_generator.step(batch_size=3, fc=fc)
@@ -165,11 +164,13 @@ print("Zernike polynomials used: \n", "\n ".join(zernike_polynomials))
 
 # It is also possible to directly specify the Zernike decomposition.
 # For instance, if the pupil is null, the PSF is the Airy pattern.
+# Notice that you then need to specify a cutoff frequenies with matching number of channels
 n_zernike = len(
     zernike_polynomials
 )  # number of Zernike coefficients in the decomposition
 blurs = diffraction_generator.step(
-    batch_size=2, coeff=torch.zeros(2, 3, n_zernike, device=device)
+    fc=0.2 * torch.ones(3, device=device),
+    coeff=torch.zeros(2, 3, n_zernike, device=device),
 )
 dinv.utils.plot_ortho3D(
     [f**0.5 for f in blurs["filter"][:, None]],
