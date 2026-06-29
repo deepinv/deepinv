@@ -829,14 +829,12 @@ def test_diffraction_generator(
 @pytest.mark.parametrize("dim", [1, 2, 3])
 @pytest.mark.parametrize("isotropic", [True, False])
 @pytest.mark.parametrize("batch_size", [1, 2])
-@pytest.mark.parametrize("num_channels", [1, 2])
-def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channels):
+def test_gaussian_blur_generator(device, dim, isotropic, batch_size):
     r"""
     Validate GaussianBlurGenerator behaviors across 1D/2D/3D:
     - isotropic vs anisotropic sigma handling
     - float or tuple for sigma_min/max
     - float or tuple for angle_min/max
-    - num_channels expansion
     """
     torch.manual_seed(0)
 
@@ -856,22 +854,20 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
             psf_size=psf_size,
             sigma_min=0.5,
             sigma_max=1,
-            num_channels=num_channels,
             device=device,
         )
         params = generator.step(batch_size=batch_size, seed=0)
-        assert params["filter"].shape == (batch_size, num_channels, *psf_size)
+        assert params["filter"].shape == (batch_size, 1, *psf_size)
 
         # providing length-1 tuple should also work
         generator = dinv.physics.generator.GaussianBlurGenerator(
             psf_size=psf_size,
             sigma_min=(0.5,),
             sigma_max=(1,),
-            num_channels=num_channels,
             device=device,
         )
         params = generator.step(batch_size=batch_size, seed=0)
-        assert params["filter"].shape == (batch_size, num_channels, *psf_size)
+        assert params["filter"].shape == (batch_size, 1, *psf_size)
 
         # providing length-2 tuple should raise error
         with pytest.raises(ValueError):
@@ -880,7 +876,6 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
                 isotropic=True,
                 sigma_min=(0.5, 1.1),
                 sigma_max=3.0,
-                num_channels=num_channels,
                 device=device,
             )
 
@@ -897,29 +892,27 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
                 sigma_max=sigma_max,
                 angle_min=0.0,
                 angle_max=(torch.pi,),
-                num_channels=num_channels,
                 device=device,
             )
             params = generator.step(batch_size=batch_size, seed=0)
-            assert params["filter"].shape == (batch_size, num_channels, *psf_size)
+            assert params["filter"].shape == (batch_size, 1, *psf_size)
 
         if isotropic:
             # check that the providing filter is indeed isotropic
             center = tuple(s // 2 for s in psf_size)
             for b in range(batch_size):
-                for c in range(num_channels):
-                    assert torch.isclose(
-                        params["filter"][b, c, center[0] + 2, center[1] + 2],
-                        params["filter"][b, c, center[0] + 2, center[1] - 2],
-                    )
-                    assert torch.isclose(
-                        params["filter"][b, c, center[0] - 2, center[1] - 2],
-                        params["filter"][b, c, center[0] - 2, center[1] - 2],
-                    )
-                    assert torch.isclose(
-                        params["filter"][b, c, center[0] - 2, center[1] - 2],
-                        params["filter"][b, c, center[0] - 2, center[1] + 2],
-                    )
+                assert torch.isclose(
+                    params["filter"][b, 0, center[0] + 2, center[1] + 2],
+                    params["filter"][b, 0, center[0] + 2, center[1] - 2],
+                )
+                assert torch.isclose(
+                    params["filter"][b, 0, center[0] - 2, center[1] - 2],
+                    params["filter"][b, 0, center[0] - 2, center[1] - 2],
+                )
+                assert torch.isclose(
+                    params["filter"][b, 0, center[0] - 2, center[1] - 2],
+                    params["filter"][b, 0, center[0] - 2, center[1] + 2],
+                )
 
         # providing length-2 tuple for angle_min should raise error
         with pytest.raises(ValueError):
@@ -930,7 +923,6 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
                 sigma_max=2.0,
                 angle_min=(0.0, 0.5),
                 angle_max=(1.0),
-                num_channels=num_channels,
                 device=device,
             )
         # providing length-2 tuple for angle_max should raise error
@@ -942,7 +934,6 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
                 sigma_max=2.0,
                 angle_min=(0.0),
                 angle_max=(1.0, 1.5),
-                num_channels=num_channels,
                 device=device,
             )
         # angle_min should be less than angle_max
@@ -954,7 +945,6 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
                 sigma_max=2.0,
                 angle_min=(1.5),
                 angle_max=(0.5),
-                num_channels=num_channels,
                 device=device,
             )
 
@@ -977,11 +967,10 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
                 sigma_max=sigma_max,
                 angle_min=(-torch.pi, 0.0, 0.0),
                 angle_max=(torch.pi, 0.5 * torch.pi, 2 * torch.pi),
-                num_channels=num_channels,
                 device=device,
             )
             params = generator.step(batch_size=batch_size, seed=0)
-            assert params["filter"].shape == (batch_size, num_channels, *psf_size)
+            assert params["filter"].shape == (batch_size, 1, *psf_size)
 
         # Angle constructor validation: 3D must accept length-3
         with pytest.raises(ValueError):
