@@ -40,12 +40,13 @@ jobs:
       # testmon's environment fingerprint stable. Restored *before* Setup Pixi
       # so the action installs from this lock. Baseline runs (schedule / push
       # to main) restore nothing and solve fresh to track latest deps.
-      - name: Restore .testmondata
+      - name: Restore pixi.lock + .testmondata
         if: inputs.pr_number != ''
         uses: actions/cache/restore@v4
         id: restore-cache
         with:
           path: |
+            pixi.lock
             .testmondata
           key: testmon-gpu-main-${{ github.run_id }}
           restore-keys: |
@@ -58,7 +59,23 @@ jobs:
           post-cleanup: true
           environments: full
           pixi-bin-path: /local/jtachell/pixi/bin/pixi
+          run-install: false  # we drive installation manually below
 
+      # Install dependencies with pixi, using the restored lock if available. If the
+      # lock is unavailable or fails to solve, fall back to a fresh solve. 
+      - name: Install dependencies
+        run: |
+          echo "pixi install -e full --locked"
+          if ! pixi install -e full --locked --manifest-path pyproject.toml --color always; then
+            echo "pixi install with --locked option failed, run install without lock"
+            pixi install -e full --manifest-path pyproject.toml --color always
+          fi
+
+          echo "pixi list -e full"
+          pixi list -e full --manifest-path pyproject.toml --color always
+
+          pixi clean cache --yes
+            
       - name: Check import
         run: |
           pixi run -e full python -c "import deepinv"
@@ -84,11 +101,12 @@ jobs:
       # Save the freshly-solved lock + .testmondata as a single (atomic) matched
       # baseline pair. Only on main and only for baseline runs (not PR-dispatch),
       # so a PR's env/results never overwrite the main baseline.
-      - name: Save .testmondata
+      - name: Save pixi.lock + .testmondata
         uses: actions/cache/save@v4
         if: github.ref == 'refs/heads/main' && inputs.pr_number == '' # Only save baseline cache on main
         with:
           path: |
+            pixi.lock
             .testmondata
           key: testmon-gpu-main-${{ github.run_id }}
 
