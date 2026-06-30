@@ -16,7 +16,7 @@ Once the GitHub tests have been approved by a maintainer (only required for firs
 
 ### LLM policy
 
-LLM usage is ok, but not PRs generated 100% by AI. See our [LLM policy](https://deepinv.github.io/deepinv/contributing.html#llm-policy) Tick below as appropriate:
+LLM usage is ok, but not PRs generated 100% by AI. See our [LLM policy](https://deepinv.org/contributing.html#llm-policy) Tick below as appropriate:
 
 - [ ] I did not use LLM tools to write the code
 - [ ] LLM tools helped me to write part of the code
