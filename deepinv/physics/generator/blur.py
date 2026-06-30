@@ -695,9 +695,8 @@ class DiffractionBlurGenerator(PSFGenerator):
 
             - ``None`` (default): sampled via :meth:`generate_coeff`.
             - ``(B, n_zernike_used)``: base coefficients per batch element, shared across
-              channels and rescaled as ``coeff_c = coeff_ref * (fc_c / fc_ref)``.
-              No chromatic perturbation is added.
-            - ``(B, C, n_zernike_used)``: fully specified per channel, no rescaling applied.
+              channels. No rescaling applied. No chromatic perturbation is added.
+            - ``(B, C, n_zernike_used)``: fully specified per channel. No rescaling applied.
 
         :param torch.Tensor angle: ``(batch_size,)`` angles in degrees for PSF rotation.
         :param float max_zernike_amplitude: overrides ``self.max_zernike_amplitude``
@@ -1081,7 +1080,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         self.psf_generator.rng_manual_seed(seed)
 
         # Generating psf_grid on a grid
-        psf_grid = self.psf_generator.step(self.n_psf_prid * batch_size)["filter"]
+        psf_grid = self.psf_generator.step(self.n_psf_prid * batch_size, **kwargs)["filter"]
         psf_size = psf_grid.shape[-2:]
         channels = psf_grid.shape[1]
         psf_grid = psf_grid.view(
