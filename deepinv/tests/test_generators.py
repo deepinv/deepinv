@@ -1076,7 +1076,9 @@ def test_generator_mixture(generators, size, dtype, use_batch_sampling, device, 
         ([489e-9, 561e-9], [525e-9, 620e-9], 2),  # two-channel (list wavelengths)
     ],
 )
-def test_confocal_blur_generator_3d(device, batch_size, lambda_ill, lambda_coll, expected_channels):
+def test_confocal_blur_generator_3d(
+    device, batch_size, lambda_ill, lambda_coll, expected_channels
+):
     r"""
     Test ConfocalBlurGenerator3D output shapes and keys for single- and multi-channel cases.
     """
@@ -1093,7 +1095,15 @@ def test_confocal_blur_generator_3d(device, batch_size, lambda_ill, lambda_coll,
 
     params = generator.step(batch_size=batch_size, seed=0)
 
-    expected_keys = {"filter", "coeff_ill", "coeff_coll", "pupil_ill", "pupil_coll", "fc_ill", "fc_coll"}
+    expected_keys = {
+        "filter",
+        "coeff_ill",
+        "coeff_coll",
+        "pupil_ill",
+        "pupil_coll",
+        "fc_ill",
+        "fc_coll",
+    }
     assert set(params.keys()) == expected_keys
     assert params["filter"].shape == (batch_size, expected_channels, *psf_size)
     assert params["fc_ill"].shape == (batch_size, expected_channels)
@@ -1102,3 +1112,49 @@ def test_confocal_blur_generator_3d(device, batch_size, lambda_ill, lambda_coll,
     # Reproducibility
     params2 = generator.step(batch_size=batch_size, seed=0)
     assert torch.allclose(params["filter"], params2["filter"])
+
+
+########################################
+### DIFFRACTION USED_ZERNIKE_INDEX TEST #
+########################################
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("n_used", [3, 10])
+def test_diffraction_used_zernike_index(device, batch_size, n_used):
+    r"""
+    Test DiffractionBlurGenerator.step(used_zernike_index=...) feature.
+
+    Verifies:
+    - output shape is (B, 1, H, W) regardless of subset size
+    - coeff shape last dim equals n_used
+    - different subsets produce different PSFs (not degenerate)
+    - passing indices outside self.zernike_index raises ValueError
+    """
+    psf_size = (15, 15)
+    full_index = list(range(3, 37))  # 34 Noll indices
+
+    generator = dinv.physics.generator.DiffractionBlurGenerator(
+        psf_size=psf_size,
+        zernike_index=full_index,
+        device=device,
+    )
+
+    used = full_index[:n_used]
+    params = generator.step(batch_size=batch_size, seed=0, used_zernike_index=used)
+
+    assert params["filter"].shape == (batch_size, 1, *psf_size)
+    assert params["coeff"].shape[-1] == n_used
+
+    # Different subset → different PSF
+    other_used = full_index[-n_used:]
+    params_other = generator.step(
+        batch_size=batch_size, seed=0, used_zernike_index=other_used
+    )
+    assert not torch.allclose(params["filter"], params_other["filter"])
+
+    # Passing an index not in self.zernike_index must raise
+    with pytest.raises(ValueError, match="not in self.zernike_index"):
+        generator.step(
+            batch_size=1, used_zernike_index=[1, 2]
+        )  # 1,2 not in range(3,37)

@@ -571,19 +571,35 @@ class DiffractionBlurGenerator(PSFGenerator):
         )
 
         # (n, m) per active Zernike term -- independent of fc, computed once.
-        self._nm_list = []
-        for index in self.zernike_index:
+        self._nm_list = self._zernike_index_to_nm_list(
+            self.zernike_index, index_convention
+        )
+
+        self.to(device=device, dtype=dtype)
+
+    @staticmethod
+    def _zernike_index_to_nm_list(zernike_index, index_convention="noll"):
+        r"""Convert an iterable of Zernike indices to a list of ``(n, m)`` pairs.
+
+        Each element may be an ``int`` (interpreted via ``index_convention``)
+        or a ``(n, m)`` tuple.
+
+        :param zernike_index: iterable of ``int`` or ``(n, m)`` tuples.
+        :param str index_convention: ``"noll"`` or ``"ansi"`` (ignored for tuple inputs).
+        :return: list of ``(n, m)`` pairs.
+        """
+        nm_list = []
+        for index in zernike_index:
             if isinstance(index, int):
                 n, m = Zernike.index_conversion(index, convention=index_convention)
             elif isinstance(index, tuple) and len(index) == 2:
                 n, m = index
             else:
                 raise ValueError(
-                    f"Zernike index must be either int or tuple of (n,m), got {index!r}"
+                    f"Zernike index must be either int or tuple of (n, m), got {index!r}"
                 )
-            self._nm_list.append((n, m))
-
-        self.to(device=device, dtype=dtype)
+            nm_list.append((n, m))
+        return nm_list
 
     def _format_fc(self, fc, batch_size: int) -> torch.Tensor:
         r"""
@@ -615,15 +631,20 @@ class DiffractionBlurGenerator(PSFGenerator):
             return t.unsqueeze(0).expand(batch_size, -1)
         raise ValueError(f"fc must be 0D, 1D or 2D, got {t.ndim}D.")
 
-    def _zernike_basis(self, fc: torch.Tensor):
+    def _zernike_basis(self, fc: torch.Tensor, nm_list=None):
         r"""
         Synthesizes the Zernike polynomials and pupil indicator function for
         the given cutoff frequencies.
 
         :param torch.Tensor fc: tensor of shape ``(Bf, Cf)``.
+        :param list nm_list: list of ``(n, m)`` pairs to use. Defaults to
+            ``self._nm_list`` (the full set built at init).
         :return: tuple ``(Z, indicator_circ)`` of shapes ``(Bf, Cf, H, W, K)``
             and ``(Bf, Cf, H, W)``.
         """
+        if nm_list is None:
+            nm_list = self._nm_list
+
         Bf, Cf = fc.shape
         fc_r = fc.reshape(Bf, Cf, 1, 1)
 
@@ -641,7 +662,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         indicator_circ = bump_function(rho, 1 - step_rho_eff / 2, step_rho_eff / 2)
 
         Z = torch.stack(
-            [Zernike.cartesian_evaluate(n, m, XX, YY) for n, m in self._nm_list],
+            [Zernike.cartesian_evaluate(n, m, XX, YY) for n, m in nm_list],
             dim=-1,
         )
         return Z, indicator_circ
@@ -655,6 +676,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         zernike_perturbation_amplitude: float = None,
         seed: int = None,
         fc: float | tuple[float, ...] | list[float] | torch.Tensor = None,
+        used_zernike_index=None,
         **kwargs,
     ) -> dict:
         r"""
@@ -672,10 +694,10 @@ class DiffractionBlurGenerator(PSFGenerator):
         :param torch.Tensor coeff: Zernike coefficients. Accepted shapes:
 
             - ``None`` (default): sampled via :meth:`generate_coeff`.
-            - ``(B, n_zernike)``: base coefficients per batch element, shared across
+            - ``(B, n_zernike_used)``: base coefficients per batch element, shared across
               channels and rescaled as ``coeff_c = coeff_ref * (fc_c / fc_ref)``.
               No chromatic perturbation is added.
-            - ``(B, C, n_zernike)``: fully specified per channel, no rescaling applied.
+            - ``(B, C, n_zernike_used)``: fully specified per channel, no rescaling applied.
 
         :param torch.Tensor angle: ``(batch_size,)`` angles in degrees for PSF rotation.
         :param float max_zernike_amplitude: overrides ``self.max_zernike_amplitude``
@@ -687,19 +709,45 @@ class DiffractionBlurGenerator(PSFGenerator):
             for this call only (does not mutate ``self.fc``). Defaults to ``None``, in which
             case ``self.fc`` is used. See class docstring for accepted shapes and their effect
             on the output PSF shape.
+        :param used_zernike_index: subset of Zernike indices to activate for this call.
+            Must be a sub-sequence of ``self.zernike_index`` (same format: ints or ``(n, m)``
+            tuples). ``None`` (default) uses the full set ``self.zernike_index``. Useful for
+            varying the active polynomial set without re-instantiating the generator::
+
+                gen = DiffractionBlurGenerator((31, 31), zernike_index=range(3, 37))
+                p1 = gen.step(used_zernike_index=range(3, 16))
+                p2 = gen.step(used_zernike_index=range(3, 28))
 
         :return: dictionary with keys
 
             - `filter`: tensor of size ``(B, C, H, W)`` where ``B`` and ``C`` are
               determined by ``fc`` as described above,
-            - `coeff`: the Zernike coefficients actually used, shape ``(B, n_zernike)``
-              or ``(B, C, n_zernike)``,
+            - `coeff`: the Zernike coefficients actually used, shape
+              ``(B, n_zernike_used)`` or ``(B, C, n_zernike_used)`` where
+              ``n_zernike_used = len(used_zernike_index)`` if specified, else
+              ``self.n_zernike``,
             - `pupil`: the pupil function,
             - `angle`: the random rotation angle in degrees if `random_rotate` is ``True``,
             - `fc`: tensor of shape ``(Bf, Cf)`` with the cutoff frequencies actually used.
         """
 
         self.rng_manual_seed(seed)
+
+        # Resolve the active Zernike set for this call.
+        if used_zernike_index is not None:
+            nm_list_used = self._zernike_index_to_nm_list(
+                used_zernike_index, self.index_convention
+            )
+            invalid = [nm for nm in nm_list_used if nm not in self._nm_list]
+            if invalid:
+                raise ValueError(
+                    f"used_zernike_index contains (n, m) entries {invalid} that are not "
+                    f"in self.zernike_index. Initialise with a larger zernike_index set."
+                )
+            n_zernike_used = len(nm_list_used)
+        else:
+            nm_list_used = self._nm_list
+            n_zernike_used = self.n_zernike
 
         if max_zernike_amplitude is None:
             max_zernike_amplitude = self.max_zernike_amplitude
@@ -711,10 +759,10 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         if coeff is not None:
 
-            if coeff.shape[-1] != self.n_zernike:
+            if coeff.shape[-1] != n_zernike_used:
                 raise ValueError(
                     f"The number of Zernike coefficients {coeff.shape[-1]} "
-                    f"in input coeff does not match self.n_zernike={self.n_zernike}"
+                    f"in input coeff does not match n_zernike_used={n_zernike_used}"
                 )
 
             fc_used = self._format_fc(fc, coeff.shape[0])
@@ -759,13 +807,14 @@ class DiffractionBlurGenerator(PSFGenerator):
                 fc=fc_used,
                 max_zernike_amplitude=max_zernike_amplitude,
                 zernike_perturbation_amplitude=zernike_perturbation_amplitude,
+                n_zernike=n_zernike_used,
             )
 
         if coeff.ndim == 2:
             coeff = coeff.unsqueeze(1).expand(-1, C, -1)
         _, C_coeff, _ = coeff.shape
 
-        Z, indicator_circ = self._zernike_basis(fc_used)
+        Z, indicator_circ = self._zernike_basis(fc_used, nm_list=nm_list_used)
 
         if Z.shape[1] == 1 and C_coeff > 1:
             Z = Z.expand(-1, C_coeff, -1, -1, -1)
@@ -819,6 +868,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         fc: torch.Tensor = None,
         max_zernike_amplitude: float | None = None,
         zernike_perturbation_amplitude: float | None = None,
+        n_zernike: int | None = None,
     ) -> torch.Tensor:
         r"""
         Generate random Zernike coefficients, scaled by cutoff frequency per channel.
@@ -831,6 +881,9 @@ class DiffractionBlurGenerator(PSFGenerator):
             Defaults to ``self.max_zernike_amplitude``.
         :param float zernike_perturbation_amplitude: amplitude of per-channel
             perturbations. Defaults to ``self.zernike_perturbation_amplitude``.
+        :param int n_zernike: number of Zernike coefficients to generate. Defaults to
+            ``self.n_zernike``. Set to ``len(used_zernike_index)`` when called from
+            :meth:`step` with a ``used_zernike_index`` argument.
         :return: ``(batch_size, K)`` if ``C == 1``, else ``(B, C, K)``.
         """
         if max_zernike_amplitude is None:
@@ -839,12 +892,14 @@ class DiffractionBlurGenerator(PSFGenerator):
             zernike_perturbation_amplitude = self.zernike_perturbation_amplitude
         if fc is None:
             fc = self._format_fc(self.fc, batch_size)
+        if n_zernike is None:
+            n_zernike = self.n_zernike
 
         _, C = fc.shape
 
         coeff_base = (
             torch.rand(
-                (batch_size, self.n_zernike),
+                (batch_size, n_zernike),
                 generator=self.rng,
                 **self.factory_kwargs,
             )
@@ -859,7 +914,7 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         coeff_delta = (
             torch.randn(
-                (batch_size, C, self.n_zernike),
+                (batch_size, C, n_zernike),
                 generator=self.rng,
                 **self.factory_kwargs,
             )
