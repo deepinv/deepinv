@@ -874,7 +874,7 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         :param int batch_size: number of independent aberration realisations.
         :param torch.Tensor fc: already-formatted ``(B, C)`` tensor from
-            :meth:`DiffractionBlurGenerator._format_fc`. If ``None``, ``self.fc`` is used with ``batch_size``,
+            :meth:`_format_fc`. If ``None``, ``self.fc`` is used with ``batch_size``,
             producing a ``(batch_size, K)`` output (backward-compatible behaviour).
         :param float max_zernike_amplitude: amplitude of the base coefficients.
             Defaults to ``self.max_zernike_amplitude``.
@@ -1080,7 +1080,9 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         self.psf_generator.rng_manual_seed(seed)
 
         # Generating psf_grid on a grid
-        psf_grid = self.psf_generator.step(self.n_psf_prid * batch_size, **kwargs)["filter"]
+        psf_grid = self.psf_generator.step(self.n_psf_prid * batch_size, **kwargs)[
+            "filter"
+        ]
         psf_size = psf_grid.shape[-2:]
         channels = psf_grid.shape[1]
         psf_grid = psf_grid.view(
