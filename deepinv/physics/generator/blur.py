@@ -51,6 +51,11 @@ class GaussianBlurGenerator(PSFGenerator):
     :param str device: the device to create the tensors on. Defaults to "cpu".
     :param type dtype: the data type of the generated tensors. Defaults to torch.float32.
 
+    .. note::
+        Always generates single-channel PSFs of shape ``(B, 1, H, W)``.
+        For colour/chromatic PSFs (one channel per wavelength), use
+        :class:`DiffractionBlurGenerator` with a tuple of cutoff frequencies.
+
     |sep|
 
     :Examples:
@@ -59,6 +64,8 @@ class GaussianBlurGenerator(PSFGenerator):
     >>> rng = torch.Generator(device="cpu").manual_seed(0)
     >>> generator = dinv.physics.generator.GaussianBlurGenerator((7, 7), device="cpu", rng=rng, isotropic=False)
     >>> params = generator.step(batch_size=4)  # dict_keys(['filter'])
+    >>> print(params['filter'].shape)
+    torch.Size([4, 1, 7, 7])
     >>> dinv.utils.plot(params['filter'])  # doctest: +SKIP
 
     .. plot::
@@ -227,6 +234,11 @@ class MotionBlurGenerator(PSFGenerator):
     :param float l: the length scale of the trajectory, defaults to 0.3
     :param float sigma: the standard deviation of the Gaussian Process, defaults to 0.25
     :param int n_steps: the number of points in the trajectory, defaults to 1000
+
+    .. note::
+        Always generates single-channel PSFs of shape ``(B, 1, H, W)``.
+        For colour/chromatic PSFs (one channel per wavelength), use
+        :class:`DiffractionBlurGenerator` with a tuple of cutoff frequencies.
 
     |sep|
 
@@ -416,7 +428,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         driven by ``fc`` as follows:
 
             - ``float`` / scalar: ``(batch_size, 1, H, W)``.
-            - ``(C,)`` 1D tensor/sequence: ``(batch_size, 1, H, W)``.
+            - ``(C,)`` 1D tensor/sequence: ``(batch_size, C, H, W)``.
             - ``(B, C)`` 2D tensor: ``(B, C, H, W)``.
             - ``(1, C)`` 2D tensor: ``(batch_size, C, H, W)``.
             - ``(B, 1)`` 2D tensor: ``(B, 1, H, W)``.
@@ -756,7 +768,6 @@ class DiffractionBlurGenerator(PSFGenerator):
         Z, indicator_circ = self._zernike_basis(fc_used)
 
         if Z.shape[1] == 1 and C_coeff > 1:
-            print("I am INVOKING THE MAGIC")
             Z = Z.expand(-1, C_coeff, -1, -1, -1)
             indicator_circ = indicator_circ.expand(-1, C_coeff, -1, -1)
 
@@ -1127,7 +1138,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
     >>> n_zernike = len(generator.generator2d.zernike_index)
     >>> dict = generator.step(batch_size=batch_size, coeff=0.1 * torch.rand(batch_size, n_zernike))
     >>> dict.keys()
-    dict_keys(['filter', 'pupil', 'coeff'])
+    dict_keys(['filter', 'pupil', 'coeff', 'fc'])
 
 
     """
@@ -1371,7 +1382,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
     ...                       coeff_ill = 0.1 * torch.rand(batch_size, n_zernike),
     ...                       coeff_coll = 0.1 * torch.rand(batch_size, n_zernike))
     >>> dict.keys()
-    dict_keys(['filter', 'coeff_ill', 'coeff_coll'])
+    dict_keys(['filter', 'pupil_ill', 'pupil_coll', 'coeff_ill', 'coeff_coll', 'fc_ill', 'fc_coll'])
 
     Multi-colour example (one channel per excitation/emission wavelength pair):
 
@@ -1493,6 +1504,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
     def step(
         self,
         batch_size: int = 1,
+        seed: int = None,
         coeff_ill: torch.Tensor = None,
         coeff_coll: torch.Tensor = None,
         fc_ill: float | tuple[float, ...] | list[float] | torch.Tensor = None,
@@ -1527,6 +1539,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         """
         dict_ill = self.generator_ill.step(
             batch_size=batch_size,
+            seed=seed,
             coeff=coeff_ill,
             fc=fc_ill,
             kb=kb_ill,
@@ -1535,6 +1548,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         coeff_ill = dict_ill["coeff"]
         dict_coll = self.generator_coll.step(
             batch_size=batch_size,
+            seed=seed,
             coeff=coeff_coll,
             fc=fc_coll,
             kb=kb_coll,

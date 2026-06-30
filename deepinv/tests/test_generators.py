@@ -69,7 +69,7 @@ def rng(request, device):
     return None
 
 
-def find_generator(name, size, num_channels, device, dtype, psf_size=None, rng=None):
+def find_generator(name, size, device, dtype, psf_size=None, rng=None):
     r"""
     Chooses operator
 
@@ -79,13 +79,12 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None, rng=N
     """
     if name == "GaussianBlurGenerator":
         g = dinv.physics.generator.GaussianBlurGenerator(
-            psf_size=size, device=device, num_channels=num_channels, dtype=dtype
+            psf_size=size, device=device, dtype=dtype
         )
         keys = ["filter"]
     elif name == "MotionBlurGenerator":
         g = dinv.physics.generator.MotionBlurGenerator(
             psf_size=size,
-            num_channels=num_channels,
             device=device,
             dtype=dtype,
             rng=rng,
@@ -95,17 +94,15 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None, rng=N
         g = dinv.physics.generator.DiffractionBlurGenerator(
             psf_size=size,
             device=device,
-            num_channels=num_channels,
             dtype=dtype,
             rng=rng,
         )
-        keys = ["filter", "coeff", "pupil"]
+        keys = ["filter", "coeff", "pupil", "fc"]
     elif name == "ProductConvolutionBlurGenerator":
         g = dinv.physics.generator.ProductConvolutionBlurGenerator(
             psf_generator=dinv.physics.generator.DiffractionBlurGenerator(
                 psf_size=size,
                 device=device,
-                num_channels=num_channels,
                 dtype=dtype,
                 rng=rng,
             ),
@@ -168,16 +165,14 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None, rng=N
 
 @pytest.mark.parametrize("name", GENERATORS)
 @pytest.mark.parametrize("size", SIZES)
-@pytest.mark.parametrize("num_channels", NUM_CHANNELS)
 @pytest.mark.parametrize("dtype", DTYPES)
-def test_shape(name, size, num_channels, device, dtype, rng):
+def test_shape(name, size, device, dtype, rng):
     r"""
-    Tests generators shape.
+    Tests generators shape. All blur generators produce single-channel output by default;
+    multi-channel (colour) output is tested separately in test_diffraction_generator.
     """
 
-    generator, size, keys = find_generator(
-        name, size, num_channels, device, dtype, rng=rng
-    )
+    generator, size, keys = find_generator(name, size, device, dtype, rng=rng)
     batch_size = 4
 
     params = generator.step(batch_size=batch_size)
@@ -185,7 +180,7 @@ def test_shape(name, size, num_channels, device, dtype, rng):
     assert list(params.keys()) == keys
 
     if "filter" in params.keys():
-        assert params["filter"].shape == (batch_size, num_channels, size[0], size[1])
+        assert params["filter"].shape == (batch_size, 1, size[0], size[1])
 
 
 @pytest.mark.parametrize("name", GENERATORS)
@@ -195,7 +190,7 @@ def test_generation_newparams(name, device, dtype, rng):
     Tests generators' ability to generate new parameters at each step.
     """
     size = (32, 32)
-    generator, size, _ = find_generator(name, size, 1, device, dtype, rng=rng)
+    generator, size, _ = find_generator(name, size, device, dtype, rng=rng)
     batch_size = 1
 
     if name == "GaussianBlurGenerator":
@@ -223,7 +218,7 @@ def test_generation_seed(name, device, dtype, rng):
     Tests generators consistency with the same random seed.
     """
     size = (32, 32)
-    generator, size, _ = find_generator(name, size, 1, device, dtype, rng=rng)
+    generator, size, _ = find_generator(name, size, device, dtype, rng=rng)
     batch_size = 1
 
     if name == "GaussianBlurGenerator":
@@ -253,7 +248,7 @@ def test_average(name, device, dtype, rng):
     Tests generators average.
     """
     size = (5, 5)
-    generator, size, _ = find_generator(name, size, 1, device, dtype, rng=rng)
+    generator, size, _ = find_generator(name, size, device, dtype, rng=rng)
     # Set generator seed for reproducibility
     generator.rng_manual_seed(0)
 
@@ -299,7 +294,6 @@ def test_downsampling_generator(num_channels, device, dtype, psf_size, fact, rng
     generator, _, _ = find_generator(
         "DownsamplingGenerator" + str_fact,
         size,
-        num_channels,
         device,
         dtype,
         psf_size=psf_size,
@@ -1033,16 +1027,13 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size):
 
 @pytest.mark.parametrize("generators", MIXTURES)
 @pytest.mark.parametrize("size", SIZES)
-@pytest.mark.parametrize("num_channels", NUM_CHANNELS)
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("use_batch_sampling", [True, False])
-def test_generator_mixture(
-    generators, size, num_channels, dtype, use_batch_sampling, device, rng
-):
+def test_generator_mixture(generators, size, dtype, use_batch_sampling, device, rng):
 
     generator_pair = []
     for name in generators:
-        g, _, _ = find_generator(name, size, num_channels, device, dtype, rng=rng)
+        g, _, _ = find_generator(name, size, device, dtype, rng=rng)
         generator_pair.append(g)
 
     mixture = dinv.physics.generator.GeneratorMixture(
@@ -1070,3 +1061,44 @@ def test_generator_mixture(
     assert set(params.keys()).intersection(
         set.union(*[set(g.step(batch_size=1, seed=0).keys()) for g in generator_pair])
     ) == set(params.keys())
+
+
+#################################
+### CONFOCAL BLUR GENERATOR 3D ##
+#################################
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize(
+    "lambda_ill,lambda_coll,expected_channels",
+    [
+        (489e-9, 525e-9, 1),  # single-channel (scalar wavelengths)
+        ([489e-9, 561e-9], [525e-9, 620e-9], 2),  # two-channel (list wavelengths)
+    ],
+)
+def test_confocal_blur_generator_3d(device, batch_size, lambda_ill, lambda_coll, expected_channels):
+    r"""
+    Test ConfocalBlurGenerator3D output shapes and keys for single- and multi-channel cases.
+    """
+    psf_size = (5, 11, 11)
+    zernike_index = (3,)  # minimal: one coefficient for speed
+
+    generator = dinv.physics.generator.ConfocalBlurGenerator3D(
+        psf_size=psf_size,
+        zernike_index=zernike_index,
+        lambda_ill=lambda_ill,
+        lambda_coll=lambda_coll,
+        device=device,
+    )
+
+    params = generator.step(batch_size=batch_size, seed=0)
+
+    expected_keys = {"filter", "coeff_ill", "coeff_coll", "pupil_ill", "pupil_coll", "fc_ill", "fc_coll"}
+    assert set(params.keys()) == expected_keys
+    assert params["filter"].shape == (batch_size, expected_channels, *psf_size)
+    assert params["fc_ill"].shape == (batch_size, expected_channels)
+    assert params["fc_coll"].shape == (batch_size, expected_channels)
+
+    # Reproducibility
+    params2 = generator.step(batch_size=batch_size, seed=0)
+    assert torch.allclose(params["filter"], params2["filter"])

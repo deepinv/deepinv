@@ -249,7 +249,7 @@ print(
 )
 
 # %%
-# Generate physically consistent chromatic PSFs by setting num_channels > 1.
+# Generate physically consistent chromatic PSFs by passing a tuple of cutoff frequencies to ``step()``.
 # Each channel is assigned its own cutoff frequency
 #     fc = NA * pixel_size / lambda,
 # which reproduces the wavelength-dependent diffraction limit.
@@ -267,7 +267,6 @@ diffraction_generator = DiffractionBlurGenerator(
     (psf_size, psf_size),
     device=device,
     dtype=dtype,
-    num_channels=3,
 )
 
 lambdaR = 650  # in nm
