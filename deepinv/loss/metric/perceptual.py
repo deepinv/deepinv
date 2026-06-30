@@ -25,6 +25,9 @@ class LPIPS(Metric):
 
         By default, no reduction is performed in the batch dimension.
 
+    Note that `torchmetrics` is required to use this metric. `torchvision` is also required to download the pretrained weights. Install them with
+    `pip install torchvision torchmetrics`.
+
     :Example:
 
     ::
