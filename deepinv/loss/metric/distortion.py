@@ -1162,3 +1162,11 @@ class RecoveryCoefficient(Metric):
         gt_activity = (x * mask).sum(dim=dims)
 
         return recon_activity / (gt_activity + self.eps)
+
+    def invert_metric(self, m: Tensor) -> Tensor:
+        r""" "Invert metric for use as a training loss.
+        Recovery Coefficient is optimal at 1 so a sign flip does not produce a valid
+        loss
+        :param torch.Tensor m: calculated metric
+        """
+        return (m - 1).abs()
