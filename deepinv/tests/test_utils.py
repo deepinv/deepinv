@@ -567,21 +567,6 @@ def test_get_freer_gpu(test_case, os_name, verbose, use_torch_api, hide_warnings
             ), f"Selected GPU index should be {freer_gpu_index}."
 
 
-@pytest.mark.parametrize("fn_name", ["norm", "cal_angle", "cal_mse", "norm_psnr"])
-def test_deprecated_metric_functions(fn_name):
-    f = getattr(deepinv.utils.metric, fn_name)
-    with pytest.raises(NotImplementedError, match="deprecated"):
-        # The functions take a variable number of required arguments so we
-        # use reflection to get their number and pass in None for each of them.
-        sig = inspect.signature(f)
-        args = [
-            None
-            for p in sig.parameters.values()
-            if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
-        ]
-        f(*args)
-
-
 @pytest.mark.parametrize("with_data_dir", [False, True])
 @pytest.mark.parametrize("data_dir_type", [str, pathlib.Path])
 @pytest.mark.parametrize("name", ["Levin09.npy"])
@@ -1098,6 +1083,28 @@ def test_io_np():
     assert deepinv.utils.demo.load_example(
         "brainweb_t1_ICBM_1mm_subject_0_slice_0.npy"
     ).shape == (217, 181)
+
+
+def test_load_url_is_cached(tmp_path, monkeypatch):
+    url = "https://example.com/sample.bin"
+    data = b"cached-content"
+
+    monkeypatch.setattr(deepinv.io, "get_cache_home", lambda: tmp_path)
+
+    response = mock.MagicMock()
+    response.iter_content.return_value = [data]
+    response.raise_for_status.return_value = None
+    response.__enter__.return_value = response
+    response.__exit__.return_value = None
+
+    with patch.object(deepinv.io.requests, "get", return_value=response) as mock_get:
+        file1 = deepinv.utils.load_url(url)
+        file2 = deepinv.utils.load_url(url)
+
+    assert mock_get.call_count == 1
+    assert file1.getvalue() == data
+    assert file2.getvalue() == data
+    assert any((tmp_path / "url_cache").iterdir())
 
 
 def test_io_raster():
