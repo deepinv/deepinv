@@ -874,7 +874,7 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         :param int batch_size: number of independent aberration realisations.
         :param torch.Tensor fc: already-formatted ``(B, C)`` tensor from
-            :meth:`_format_fc`. If ``None``, ``self.fc`` is used with ``batch_size``,
+            class method ``_format_fc()``. If ``None``, ``self.fc`` is used with ``batch_size``,
             producing a ``(batch_size, K)`` output (backward-compatible behaviour).
         :param float max_zernike_amplitude: amplitude of the base coefficients.
             Defaults to ``self.max_zernike_amplitude``.
