@@ -250,15 +250,13 @@ print(
 
 # %%
 # Generate physically consistent chromatic PSFs by passing a tuple of cutoff frequencies to ``step()``.
-# Each channel is assigned its own cutoff frequency
-#     fc = NA * pixel_size / lambda,
+# Each channel is assigned its own cutoff frequency ``fc = NA * pixel_size / lambda``,
 # which reproduces the wavelength-dependent diffraction limit.
 #
 # The Zernike coefficients represent wavefront errors in units of wavelength.
 # Therefore, keeping the same physical optical path difference (OPD) across
 # channels requires rescaling the coefficients approximately as
-#
-#     w(lambda) = w(lambda0) * lambda0 / lambda.
+# ``w(lambda) = w(lambda0) * lambda0 / lambda``.
 #
 # As a result, shorter wavelengths exhibit both a narrower diffraction pattern
 # and stronger phase aberrations for the same underlying physical wavefront.
