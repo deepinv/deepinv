@@ -9,10 +9,10 @@ from pathlib import Path
 
 import requests
 from tqdm.auto import tqdm
+from PIL import Image
 
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
-from torchvision.transforms.functional import crop as torchvision_crop
 
 from deepinv.datasets.base import ImageDataset
 from deepinv.utils import normalize_signal, get_cache_home
@@ -215,5 +215,12 @@ class Crop(Module):
             else:
                 raise ValueError("size must be int or tuple of ints of size 2 or 4.")
 
-    def forward(self, x: Tensor):
-        return torchvision_crop(x, *self.size)
+    def forward(self, x: Tensor | Image.Image) -> Tensor | Image.Image:
+        top, left, height, width = self.size
+
+        if isinstance(x, Image.Image):    
+            return x.crop((left, top, left + width, top + height))
+        elif isinstance(x, Tensor):
+            return x[..., top:top + height, left:left + width]
+        else:
+            raise ValueError(f"Crop expected input type torch.Tensor or PIL.Image.Image, but got type {type(x)}.")
