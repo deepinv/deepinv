@@ -647,11 +647,12 @@ def test_string_seed():
 
 @pytest.mark.parametrize("apodize", [True, False])
 @pytest.mark.parametrize("random_rotate", [True, False])
+@pytest.mark.parametrize("center", [True, False])
 @pytest.mark.parametrize("num_channels", [1, 3])
 @pytest.mark.parametrize("convention", ["noll", "ansi"])
 @pytest.mark.parametrize("is_3d", [True, False])
 def test_diffraction_generator(
-    device, apodize, random_rotate, num_channels, convention, is_3d, rng
+    device, apodize, random_rotate, center, num_channels, convention, is_3d, rng
 ):
     r"""
     Test diffraction generator.
@@ -686,6 +687,7 @@ def test_diffraction_generator(
             index_convention=convention,
             apodize=apodize,
             random_rotate=random_rotate,
+            center=center,
             dtype=dtype,
             pupil_size=pupil_size,
             rng=rng,
@@ -693,7 +695,9 @@ def test_diffraction_generator(
 
     batch_sizes = (1, 2)
     expected_keys = set(
-        ["filter", "coeff", "pupil"] + (["angle"] if random_rotate else [])
+        ["filter", "coeff", "pupil"]
+        + (["angle"] if random_rotate else [])
+        + (["tilt_x", "tilt_y"] if ((not is_3d) and center) else [])
     )
     for batch_size in batch_sizes:
         params = generator.step(
@@ -728,6 +732,50 @@ def test_diffraction_generator(
         )
         for key in params.keys():
             assert not torch.allclose(params[key], params3[key])
+
+    # Test centering effect if center is True and psf size is large enough
+    # Test only for 2D case as centering in 3D case is still under development
+    if (not is_3d) and center and (not apodize) and (not random_rotate):
+        batch_sizes = (1, 2)
+        size = (71, 71)
+        pupil_size = (256, 256)
+        generator = dinv.physics.generator.DiffractionBlurGenerator(
+            psf_size=size,
+            device=device,
+            num_channels=num_channels,
+            zernike_index=zernike_index,
+            index_convention=convention,
+            apodize=apodize,
+            random_rotate=random_rotate,
+            center=center,
+            dtype=dtype,
+            pupil_size=pupil_size,
+            rng=rng,
+        )
+        for batch_size in batch_sizes:
+            generated_psf = generator.step(
+                batch_size=batch_size,
+                seed=0,
+                focal_length=0.004,
+                aperture_diameter=0.002,
+                apodize=apodize,
+                random_rotate=random_rotate,
+            )["filter"]
+            com_x, com_y = barycenter(generated_psf)
+            assert torch.all(torch.round(com_x.abs(), decimals=1) <= 0.1)
+            assert torch.all(torch.round(com_y.abs(), decimals=1) <= 0.1)
+
+
+def barycenter(h):
+    Ny, Nx = h.shape[-2:]
+    centerx = (Nx / 2.0) - 0.5
+    centery = (Ny / 2.0) - 0.5
+    x = torch.arange(0, h.shape[-1]).to(h.device)
+    y = torch.arange(0, h.shape[-2]).to(h.device)
+    X, Y = torch.meshgrid(x, y, indexing="xy")
+    com_x = (X[None, None, :, :] * h).sum(dim=(-2, -1)) - centerx
+    com_y = (Y[None, None, :, :] * h).sum(dim=(-2, -1)) - centery
+    return com_x, com_y
 
 
 @pytest.mark.parametrize("dim", [1, 2, 3])

@@ -412,6 +412,9 @@ class DiffractionBlurGenerator(PSFGenerator):
         If a single ``int`` is given, a square pupil is considered.
     :param bool apodize: whether to apodize the PSF to reduce ringing artifacts, defaults to ``False``.
     :param bool random_rotate: whether to randomly rotate the PSF, defaults to ``False``.
+    :param bool center: whether to add tip and tilt Zernike polynomials to center the the barycenter of the PSF, defaults to ``False``.
+        Having effect only when the psf size is large enough.
+        Less effective when the PSF is apodize=True or random_rotate=True.
     :param str index_convention: the convention for the Zernike polynomials indexing. Can be either ``'noll'`` (default) or ``'ansi'``.
     :param str, torch.device device: device where the tensors are allocated and processed, defaults to ``'cpu'``.
     :param torch.dtype dtype: data type of the tensors, defaults to ``torch.float32``.
@@ -452,6 +455,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         pupil_size: tuple[int, ...] = (256, 256),
         apodize: bool = False,
         random_rotate: bool = False,
+        center: bool = False,
         index_convention: str = "noll",
         device: str | torch.device = "cpu",
         dtype: torch.dtype = torch.float32,
@@ -480,6 +484,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         self.apodize = apodize
         self.random_rotate = random_rotate
         self.index_convention = index_convention
+        self.center = center
 
         if self.apodize:
             lin_0 = torch.linspace(
@@ -509,7 +514,9 @@ class DiffractionBlurGenerator(PSFGenerator):
         self.step_rho = lin_x[1] - lin_x[0]
 
         # Fourier plane is discretized on [-0.5,0.5]x[-0.5,0.5]
-        XX, YY = torch.meshgrid(lin_x / self.fc, lin_y / self.fc, indexing="ij")
+        XX, YY = torch.meshgrid(lin_x / self.fc, lin_y / self.fc, indexing="xy")
+        self.register_buffer("XX", XX)
+        self.register_buffer("YY", YY)
         self.register_buffer(
             "rho", cart2pol(XX, YY)
         )  # Cartesian coordinates to polar coordinates
@@ -540,6 +547,7 @@ class DiffractionBlurGenerator(PSFGenerator):
                 **self.factory_kwargs,
             ),
         )
+        self.nontilt_indices = []
         for k, index in enumerate(self.zernike_index):
             if isinstance(index, int):
                 n, m = Zernike.index_conversion(index, convention=index_convention)
@@ -549,6 +557,8 @@ class DiffractionBlurGenerator(PSFGenerator):
                 raise ValueError(
                     f"Zernike index must be either int or tuple of (n,m), got {index!r}"
                 )
+            if (m != 1) and (m != -1):
+                self.nontilt_indices.append(k)
             self.Z[:, :, k] = Zernike.cartesian_evaluate(
                 n, m, XX, YY
             )  # defining the k-th Zernike polynomial
@@ -560,6 +570,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         batch_size: int = 1,
         coeff: torch.Tensor = None,
         angle: torch.Tensor = None,
+        center: bool = None,
         seed: int = None,
         **kwargs,
     ) -> dict:
@@ -569,6 +580,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         :param int batch_size: batch_size.
         :param torch.Tensor coeff: `batch_size x len(zernike_index)` coefficients of the Zernike decomposition (default is `None`)
         :param torch.Tensor angle: `batch_size` angles in degree to rotate the PSF (defaults is `None`)
+        :param bool center: whether to add tip and tilt Zernike polynomials to center the the barycenter of the PSF (defaults to self.center).
         :param int seed: the seed for the random number generator.
 
         :return: dictionary with keys
@@ -577,22 +589,75 @@ class DiffractionBlurGenerator(PSFGenerator):
             - `coeff`: list of sampled Zernike coefficients in this realization,
             - `pupil`: the pupil function,
             - `angle`: the random rotation angle in degrees if `random_rotate` is `True`, nothing otherwise.
+            - `tip`: the added tip zernike if `center` is `True`, nothing otherwise.
+            - `tilt`: the added tilt zernike if `center` is `True`, nothing otherwise.
         """
-
+        if center is None:
+            center = self.center
         self.rng_manual_seed(seed)
         if coeff is None:
             coeff = self.generate_coeff(batch_size)
 
-        pupil = (self.Z @ coeff[:, : self.n_zernike].T).transpose(2, 0)
+        pupil = (self.Z @ coeff[:, : self.n_zernike].T).permute(2, 0, 1)
         pupil = torch.exp(-2.0j * torch.pi * pupil)
-        pupil = pupil * self.indicator_circ
-        psf = torch.fft.ifftshift(torch.fft.fft2(torch.fft.fftshift(pupil)))
+        pupil = pupil * self.indicator_circ[None, :, :]
+        psf = torch.fft.ifftshift(
+            torch.fft.fft2(torch.fft.fftshift(pupil, dim=(-2, -1))), dim=(-2, -1)
+        )
         psf = psf.abs().pow(2)
         psf = psf[
             :,
             self.pad_pre[0] : self.pupil_size[0] - self.pad_post[0],
             self.pad_pre[1] : self.pupil_size[1] - self.pad_post[1],
         ].unsqueeze(1)
+
+        if center:
+            Ny, Nx = psf.shape[-2:]
+            centerx = (Nx / 2.0) - 0.5
+            centery = (Ny / 2.0) - 0.5
+            x = torch.arange(0, psf.shape[-1]).to(self.device)
+            y = torch.arange(0, psf.shape[-2]).to(self.device)
+            x, y = torch.meshgrid(x, y, indexing="xy")
+            normalization = psf.sum(dim=(-3, -2, -1))
+
+            shift_x = (x.unsqueeze(0).unsqueeze(0) * psf).sum(
+                dim=(-3, -2, -1)
+            ) / normalization
+            shift_x = shift_x - centerx
+
+            shift_y = (y.unsqueeze(0).unsqueeze(0) * psf).sum(
+                dim=(-3, -2, -1)
+            ) / normalization
+            shift_y = shift_y - centery
+            Z3 = Zernike.cartesian_evaluate(1, 1, self.XX, self.YY)
+            tangential_coeff_Z3 = (
+                Z3[pupil.shape[-2] // 2, pupil.shape[-1] // 2]
+                - Z3[pupil.shape[-2] // 2, (pupil.shape[-1] // 2) - 1]
+            )
+            coeff_Z3 = shift_x / (pupil.shape[-1] * tangential_coeff_Z3)
+            pupil = pupil * torch.exp(
+                -2.0j * torch.pi * coeff_Z3[:, None, None] * Z3[None, :, :]
+            )
+
+            Z2 = Zernike.cartesian_evaluate(1, -1, self.XX, self.YY)
+            tangential_coeff_Z2 = (
+                Z2[pupil.shape[-2] // 2, pupil.shape[-1] // 2]
+                - Z2[(pupil.shape[-2] // 2) - 1, pupil.shape[-1] // 2]
+            )
+            coeff_Z2 = shift_y / (pupil.shape[-2] * tangential_coeff_Z2)
+            pupil = pupil * torch.exp(
+                -2.0j * torch.pi * coeff_Z2[:, None, None] * Z2[None, :, :]
+            )
+
+            psf = torch.fft.ifftshift(
+                torch.fft.fft2(torch.fft.fftshift(pupil, dim=(-2, -1))), dim=(-2, -1)
+            )
+            psf = psf.abs().pow(2)
+            psf = psf[
+                :,
+                self.pad_pre[0] : self.pupil_size[0] - self.pad_post[0],
+                self.pad_pre[1] : self.pupil_size[1] - self.pad_post[1],
+            ].unsqueeze(1)
 
         # random rotate the PSF if angle is given
         if self.random_rotate:
@@ -604,6 +669,7 @@ class DiffractionBlurGenerator(PSFGenerator):
             psf = self.apodize_mask * psf
 
         psf = psf / torch.sum(psf, dim=(-1, -2), keepdim=True)
+
         params = {
             "filter": psf.expand(-1, self.shape[0], -1, -1),
             "coeff": coeff,
@@ -611,6 +677,10 @@ class DiffractionBlurGenerator(PSFGenerator):
         }
         if self.random_rotate:
             params["angle"] = angle
+
+        if center:
+            params["tilt_x"] = coeff_Z3
+            params["tilt_y"] = coeff_Z2
         return params
 
     @property
