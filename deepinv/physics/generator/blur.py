@@ -601,9 +601,9 @@ class DiffractionBlurGenerator(PSFGenerator):
         r"""
         Normalises ``fc`` into a fully resolved 2D tensor of shape ``(B, C)``.
 
-        - scalar / 0-D → ``(batch_size, 1)``
-        - 1D of length ``C`` → ``(batch_size, C)``
-        - 2D ``(B, C)`` → returned as-is; ``batch_size`` is ignored.
+        - scalar / 0-D : ``(batch_size, 1)``
+        - 1D of length ``C``: ``(batch_size, C)``
+        - 2D ``(B, C)``: returned as-is; ``batch_size`` is ignored.
 
         :param fc: cutoff frequency input.
         :param int batch_size: used to expand scalar and 1D inputs.
