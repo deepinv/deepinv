@@ -53,8 +53,6 @@ class GaussianBlurGenerator(PSFGenerator):
 
     .. note::
         Always generates single-channel PSFs of shape ``(B, 1, H, W)``.
-        For colour/chromatic PSFs (one channel per wavelength), use
-        :class:`DiffractionBlurGenerator` with a tuple of cutoff frequencies.
 
     |sep|
 
@@ -237,8 +235,6 @@ class MotionBlurGenerator(PSFGenerator):
 
     .. note::
         Always generates single-channel PSFs of shape ``(B, 1, H, W)``.
-        For colour/chromatic PSFs (one channel per wavelength), use
-        :class:`DiffractionBlurGenerator` with a tuple of cutoff frequencies.
 
     |sep|
 
