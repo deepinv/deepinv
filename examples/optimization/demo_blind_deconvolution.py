@@ -22,7 +22,7 @@ vmin = 0
 vmax = 1
 
 # Example with the blur physics and noise-free observations
-kernel = deepinv.physics.blur.gaussian_blur(sigma=1.6)
+kernel = deepinv.physics.functional.blur.gaussian_blur(psf_size=(25, 25), sigma=1.6)
 physics = deepinv.physics.Blur(
     filter=kernel,
     padding="circular",
@@ -124,34 +124,34 @@ def _normalize_kernel(k: torch.Tensor, eps: float = 1e-20) -> torch.Tensor:
     return k / z
 
 
-def _get_padding_mode(physics, default: str = "circular") -> str:
-    # deepinv blur physics typically has a `padding` attribute (e.g. "circular").
-    # If not present, fall back to circular (good default for deblurring benchmarks).
-    return getattr(physics, "padding", default)
+def _circular_patches(x: torch.Tensor, kernel_size: tuple[int, int]) -> torch.Tensor:
+    h, w = kernel_size
+    ph, pw = h // 2, w // 2
+    ih, iw = (h - 1) % 2, (w - 1) % 2
+    x_pad = torch.nn.functional.pad(x, (pw - iw, pw, ph - ih, ph), mode="circular")
+    patches = torch.nn.functional.unfold(x_pad, kernel_size=kernel_size)
+    return patches.view(x.shape[0], x.shape[1], h * w, x.shape[-2] * x.shape[-1])
 
 
-def _center_crop_hw(t: torch.Tensor, out_h: int, out_w: int) -> torch.Tensor:
-    H, W = t.shape[-2], t.shape[-1]
-    if out_h > H or out_w > W:
-        raise ValueError(f"Cannot crop ({out_h},{out_w}) from ({H},{W}).")
-    y0 = (H - out_h) // 2
-    x0 = (W - out_w) // 2
-    return t[..., y0 : y0 + out_h, x0 : x0 + out_w]
+def _kernel_forward_from_patches(
+    patches: torch.Tensor, k: torch.Tensor, out_shape: tuple[int, int, int, int]
+) -> torch.Tensor:
+    B, C, H, W = out_shape
+    hk, wk = k.shape[-2:]
+    k_flip = k.flip(-2, -1)
+    if k_flip.shape[1] == 1 and C > 1:
+        k_flip = k_flip.expand(-1, C, -1, -1)
+    return (patches * k_flip.reshape(B, C, hk * wk, 1)).sum(dim=2).view(B, C, H, W)
 
 
-def _center_pad_hw(t: torch.Tensor, out_h: int, out_w: int) -> torch.Tensor:
-    H, W = t.shape[-2], t.shape[-1]
-    if out_h < H or out_w < W:
-        raise ValueError(f"Cannot pad ({H},{W}) to ({out_h},{out_w}).")
-    if out_h == H and out_w == W:
-        return t
-    pad_h = out_h - H
-    pad_w = out_w - W
-    pad_top = pad_h // 2
-    pad_bottom = pad_h - pad_top
-    pad_left = pad_w // 2
-    pad_right = pad_w - pad_left
-    return torch.nn.functional.pad(t, (pad_left, pad_right, pad_top, pad_bottom))
+def _kernel_adjoint_from_patches(
+    patches: torch.Tensor, y: torch.Tensor, kernel_size: tuple[int, int]
+) -> torch.Tensor:
+    hk, wk = kernel_size
+    y_flat = y.reshape(y.shape[0], y.shape[1], 1, -1)
+    return (
+        (patches * y_flat).sum(dim=-1).view(y.shape[0], y.shape[1], hk, wk).flip(-2, -1)
+    )
 
 
 @torch.no_grad()
@@ -206,6 +206,9 @@ def blind_richardson_lucy(
         Numerical stability clamp (avoid division by 0).
     normalize_kernel : bool
         If True, enforces sum(k)=1 after each kernel update.
+    fft : bool
+        If True, use BlurFFT for the image update. The kernel update assumes
+        circular padding and works directly on the kernel support.
 
     Returns
     -------
@@ -237,7 +240,6 @@ def blind_richardson_lucy(
 
     # Precompute shapes
     B_im, C_im, H_im, W_im = y.shape
-    B_k, C_k, H_k, W_k = k.shape
     H_k, W_k = k.shape[-2], k.shape[-1]
 
     def _expand_kernel_channels(k_in: torch.Tensor) -> torch.Tensor:
@@ -245,15 +247,12 @@ def blind_richardson_lucy(
             return k_in.expand(-1, C_im, -1, -1)
         return k_in
 
+    ones_y = torch.ones_like(y)
+
     if fft:
         physics = deepinv.physics.BlurFFT(
             img_size=(C_im, H_im, W_im),
             filter=_expand_kernel_channels(k),
-            device=x.device,
-        )
-        kernel_physics = deepinv.physics.BlurFFT(
-            img_size=(C_im, H_im, W_im),
-            filter=x,
             device=x.device,
         )
 
@@ -264,63 +263,55 @@ def blind_richardson_lucy(
             device=x.device,
         )
 
-        kernel_physics = deepinv.physics.Blur(
-            filter=x,
-            padding="circular",
-            device=x.device,
-        )
-
     for step in tqdm(range(steps), desc="Blind RL", disable=not verbose):
 
         # Kernel updates
-        kernel_physics.update_parameters(filter=x)
+        x_patches = _circular_patches(x, (H_k, W_k))
+        s_k = _kernel_adjoint_from_patches(x_patches, ones_y, (H_k, W_k)).mean(
+            dim=1, keepdim=True
+        )
+        s_k = s_k.clamp_min(filter_epsilon)
 
         for _ in range(k_steps):
-            ones = torch.ones_like(y)
-
-            k_padded = _center_pad_hw(k, H_im, W_im)
-            k_padded_c = _expand_kernel_channels(k_padded)
-            s_img = kernel_physics.A_adjoint(ones).clamp_min(filter_epsilon)
-            num = kernel_physics.A_adjoint(
-                y / kernel_physics.A(k_padded_c).clamp_min(filter_epsilon)
+            ratio = y / _kernel_forward_from_patches(
+                x_patches, k, (B_im, C_im, H_im, W_im)
+            ).clamp_min(filter_epsilon)
+            num = _kernel_adjoint_from_patches(x_patches, ratio, (H_k, W_k)).mean(
+                dim=1, keepdim=True
             )
 
-            # For RGB images, we average the update ratio across channels
-            numL = num.mean(dim=1, keepdim=True)
-
-            # Center crop to kernel size
-            num = _center_crop_hw(numL, H_k, W_k)
-            s_img = _center_crop_hw(s_img, H_k, W_k)
-
-            # Update kernel
-            k = (k / (s_img - k_prior_weight * k_prior.grad(k))) * num
-            k = k.mean(dim=1, keepdim=True)
+            denom_k = (s_k + k_prior_weight * k_prior.grad(k)).clamp_min(filter_epsilon)
+            k = (k / denom_k) * num
             k = k.clamp_min(0.0)
             if normalize_kernel:
                 k = _normalize_kernel(k, eps=filter_epsilon)
 
         # Image updates
         physics.update_parameters(filter=_expand_kernel_channels(k))
-        s = physics.A_adjoint(torch.ones_like(y)).clamp_min(filter_epsilon)
+        s = physics.A_adjoint(ones_y).clamp_min(filter_epsilon)
 
         for _ in range(x_steps):
             if isinstance(x_prior, deepinv.optim.TVPrior):
+                grad_x = x_prior.nabla(x)
+                denom_x = (
+                    s
+                    + x_prior_weight
+                    * x_prior.nabla_adjoint(
+                        grad_x / torch.abs(grad_x).clamp_min(filter_epsilon)
+                    )
+                ).clamp_min(filter_epsilon)
                 x = (
                     x
-                    / (
-                        s
-                        - x_prior_weight
-                        * x_prior.nabla_adjoint(
-                            x_prior.nabla(x)
-                            / torch.abs(x_prior.nabla(x)).clamp_min(filter_epsilon)
-                        )
-                    )
+                    / denom_x
                     * physics.A_adjoint(y / physics.A(x).clamp_min(filter_epsilon))
                 )
-
-            x = (x / (s + x_prior_weight * x_prior.grad(x))) * physics.A_adjoint(
-                y / physics.A(x).clamp_min(filter_epsilon)
-            )
+            else:
+                denom_x = (s + x_prior_weight * x_prior.grad(x)).clamp_min(
+                    filter_epsilon
+                )
+                x = (x / denom_x) * physics.A_adjoint(
+                    y / physics.A(x).clamp_min(filter_epsilon)
+                )
             x = x.clamp_min(filter_epsilon)
 
         if keep_inter:
@@ -346,17 +337,19 @@ x = load_example(
 
 
 # True physics (unknown kernel in blind setting)
-kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
+kernel_true = deepinv.physics.functional.blur.gaussian_blur(
+    psf_size=(25, 25), sigma=1.6
+)
 # kernel_true = torch.nn.functional.pad(
 #     kernel_true,
 #     (0, 1, 0, 1),
 # )
-# physics = deepinv.physics.Blur(filter=kernel_true, padding="circular", device=device)
-physics = deepinv.physics.BlurFFT(
-    img_size=(1, img_size, img_size),
-    filter=kernel_true,
-    device=device,
-)
+physics = deepinv.physics.Blur(filter=kernel_true, padding="circular", device=device)
+# physics = deepinv.physics.BlurFFT(
+#     img_size=(1, img_size, img_size),
+#     filter=kernel_true,
+#     device=device,
+# )
 
 y = physics(x)
 
@@ -364,7 +357,7 @@ y = physics(x)
 k0 = torch.ones_like(kernel_true)
 x0 = y.clone()
 
-max_iter = 300
+max_iter = 20
 x_hat, k_hat, xs, ks = blind_richardson_lucy(
     y=y,
     x0=x0,
@@ -431,7 +424,9 @@ x = load_example(
     resize_mode="resize",
 )
 # True physics (unknown kernel in blind setting)
-kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
+kernel_true = deepinv.physics.functional.blur.gaussian_blur(
+    psf_size=(25, 25), sigma=1.6
+)
 physics = deepinv.physics.Blur(
     filter=kernel_true,
     padding="circular",
@@ -443,7 +438,7 @@ y = physics(x)
 
 # Initial guesses
 k0 = torch.ones_like(kernel_true)
-max_iter = 250
+max_iter = 50
 x_hat, k_hat, xs, ks = blind_richardson_lucy(
     y=y,
     x0=y,
@@ -512,7 +507,9 @@ x = load_example(
 
 
 # True physics (unknown kernel in blind setting)
-kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
+kernel_true = deepinv.physics.functional.blur.gaussian_blur(
+    psf_size=(25, 25), sigma=1.6
+)
 
 physics = deepinv.physics.BlurFFT(
     img_size=(1, img_size, img_size),
@@ -527,7 +524,7 @@ y = physics(x)
 k0 = torch.ones_like(kernel_true)
 x0 = y.clone()
 
-max_iter = 150
+max_iter = 20
 x_hat, k_hat, xs, ks = blind_richardson_lucy(
     y=y,
     x0=x0,
@@ -594,7 +591,9 @@ x = load_example(
     resize_mode="resize",
 )
 # True physics (unknown kernel in blind setting)
-kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
+kernel_true = deepinv.physics.functional.blur.gaussian_blur(
+    psf_size=(25, 25), sigma=1.6
+)
 physics = deepinv.physics.Blur(
     filter=kernel_true,
     padding="circular",
@@ -606,7 +605,7 @@ y = physics(x)
 
 # Initial guesses
 k0 = torch.ones_like(kernel_true)
-max_iter = 150
+max_iter = 50
 x_hat, k_hat, xs, ks = blind_richardson_lucy(
     y=y,
     x0=y,
@@ -663,7 +662,7 @@ plt.title("Blind Richardson-Lucy Deconvolution\nKernel MAE vs Iterations")
 plt.show()
 
 # %%
-# Noisy grayscale with L2 kernel prior example
+# Noisy grayscale with TV image prior example
 
 img_size = 256
 x = load_example(
@@ -681,7 +680,9 @@ x = load_example(
 #     .unsqueeze(0)
 # )
 
-kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
+kernel_true = deepinv.physics.functional.blur.gaussian_blur(
+    psf_size=(25, 25), sigma=3.0
+)
 physics = deepinv.physics.BlurFFT(
     img_size=(1, img_size, img_size),
     noise_model=deepinv.physics.noise.PoissonNoise(gain=1 / 500, clip_positive=True),
@@ -704,7 +705,7 @@ x_hat, k_hat, xs, ks = blind_richardson_lucy(
     x_steps=1,
     k_steps=1,
     x_prior=deepinv.optim.TVPrior(),
-    x_prior_weight=0.005,
+    x_prior_weight=0.008,
     verbose=True,
     keep_inter=True,
     fft=False,
