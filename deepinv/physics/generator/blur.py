@@ -869,7 +869,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         r"""
         Generate random Zernike coefficients, scaled by cutoff frequency per channel.
 
-        :param int batch_size: number of independent aberration realisations.
+        :param int batch_size: number of independent aberration realizations.
         :param torch.Tensor fc: already-formatted ``(B, C)`` tensor from
             class method ``_format_fc()``. If ``None``, ``self.fc`` is used with ``batch_size``,
             producing a ``(batch_size, K)`` output (backward-compatible behaviour).
