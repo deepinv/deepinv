@@ -973,8 +973,8 @@ def bump_function(x, a=1.0, b=1.0):
     transition = torch.exp(-1.0 / (1.0 - safe_t**2)) / np.exp(-1.0)
     return torch.where(
         abs_x <= a,
-        1.0
-        torch.where(abs_x < a + b, transition, 0.),
+        1.0,
+        torch.where(abs_x < a + b, transition, 0.0),
     )
 
 
