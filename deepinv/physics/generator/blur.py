@@ -496,7 +496,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         if isinstance(fc, float):
             self.fc = fc
         else:
-            self.fc = torch.as_tensor(fc, dtype=dtype)
+            self.register_buffer("fc", torch.as_tensor(fc, dtype=dtype))
             if self.fc.ndim != 1:
                 raise ValueError(
                     f"fc must be a scalar or 1D tensor/list/tuple at construction time, got {self.fc.ndim}D."
