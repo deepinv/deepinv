@@ -155,7 +155,7 @@ def _kernel_adjoint_from_patches(
 
 
 @torch.no_grad()
-def blind_richardson_lucy(
+def _blind_richardson_lucy_reference(
     y: torch.Tensor,
     x0: torch.Tensor,
     k0: torch.Tensor,
@@ -358,7 +358,7 @@ k0 = torch.ones_like(kernel_true)
 x0 = y.clone()
 
 max_iter = 20
-x_hat, k_hat, xs, ks = blind_richardson_lucy(
+x_hat_ref, k_hat_ref, xs, ks = _blind_richardson_lucy_reference(
     y=y,
     x0=x0,
     k0=k0,
@@ -370,23 +370,51 @@ x_hat, k_hat, xs, ks = blind_richardson_lucy(
     fft=False,
     normalize_kernel=True,
 )
+
+filter_epsilon = 1e-20
+k0_blindrl = _normalize_kernel(
+    k0.clone().to(dtype=x0.dtype, device=x0.device), eps=filter_epsilon
+)
+physics_blindrl = deepinv.physics.Blur(
+    filter=k0_blindrl,
+    padding="circular",
+    device=device,
+)
+blindrl = deepinv.optim.BlindRL(
+    max_iter=max_iter,
+    x_steps=1,
+    k_steps=2,
+    normalize_kernel=True,
+    eps=filter_epsilon,
+)
+x_hat_blindrl, k_hat_blindrl = blindrl(y, physics_blindrl, init=(x0, k0_blindrl))
+
+print(
+    "BlindRL vs reference: "
+    f"x max diff={(x_hat_blindrl - x_hat_ref).abs().max().item():.2e}, "
+    f"k max diff={(k_hat_blindrl - k_hat_ref).abs().max().item():.2e}"
+)
 plot(
-    [x, y, x_hat, kernel_true, k_hat],
+    [x, y, x_hat_ref, x_hat_blindrl, kernel_true, k_hat_ref, k_hat_blindrl],
     titles=[
         "Ground Truth",
         "Blurry image",
-        "Blind Richardson-Lucy\nDeconvolution",
+        "Reference Blind RL\nDeconvolution",
+        "deepinv.optim.BlindRL\nDeconvolution",
         "True kernel",
-        "Estimated kernel",
+        "Reference kernel",
+        "BlindRL kernel",
     ],
     subtitles=[
         "PSNR (dB)",
         f"{psnr(x, y).item():.2f}",
-        f"{psnr(x, x_hat).item():.2f}",
+        f"{psnr(x, x_hat_ref).item():.2f}",
+        f"{psnr(x, x_hat_blindrl).item():.2f}",
         "MAE",
-        f"{mae(kernel_true, k_hat.cpu()).item():.4f}",
+        f"{mae(kernel_true, k_hat_ref.cpu()).item():.4f}",
+        f"{mae(kernel_true, k_hat_blindrl.cpu()).item():.4f}",
     ],
-    figsize=(12, 4),
+    figsize=(16, 6),
     rescale_mode="clip",
     vmin=vmin,
     vmax=vmax,
@@ -439,7 +467,7 @@ y = physics(x)
 # Initial guesses
 k0 = torch.ones_like(kernel_true)
 max_iter = 50
-x_hat, k_hat, xs, ks = blind_richardson_lucy(
+x_hat, k_hat, xs, ks = _blind_richardson_lucy_reference(
     y=y,
     x0=y,
     k0=k0,
@@ -525,7 +553,7 @@ k0 = torch.ones_like(kernel_true)
 x0 = y.clone()
 
 max_iter = 20
-x_hat, k_hat, xs, ks = blind_richardson_lucy(
+x_hat, k_hat, xs, ks = _blind_richardson_lucy_reference(
     y=y,
     x0=x0,
     k0=k0,
@@ -606,7 +634,7 @@ y = physics(x)
 # Initial guesses
 k0 = torch.ones_like(kernel_true)
 max_iter = 50
-x_hat, k_hat, xs, ks = blind_richardson_lucy(
+x_hat, k_hat, xs, ks = _blind_richardson_lucy_reference(
     y=y,
     x0=y,
     k0=k0,
@@ -697,7 +725,7 @@ k0 = torch.ones_like(kernel_true)
 x0 = y.clone()
 
 max_iter = 100
-x_hat, k_hat, xs, ks = blind_richardson_lucy(
+x_hat, k_hat, xs, ks = _blind_richardson_lucy_reference(
     y=y,
     x0=x0,
     k0=k0,
@@ -705,7 +733,7 @@ x_hat, k_hat, xs, ks = blind_richardson_lucy(
     x_steps=1,
     k_steps=1,
     x_prior=deepinv.optim.TVPrior(),
-    x_prior_weight=0.01,
+    x_prior_weight=0.015,
     verbose=True,
     keep_inter=True,
     fft=False,
@@ -783,7 +811,7 @@ k0 = torch.ones_like(kernel_true)
 x0 = y.clone()
 
 max_iter = 50
-x_hat, k_hat, xs, ks = blind_richardson_lucy(
+x_hat, k_hat, xs, ks = _blind_richardson_lucy_reference(
     y=y,
     x0=x0,
     k0=k0,
