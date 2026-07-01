@@ -122,6 +122,8 @@ Deep Image Prior
 
    deepinv.models.DeepImagePrior
    deepinv.models.ConvDecoder
+   deepinv.models.SIREN
+   deepinv.models.SirenReconstructor
    deepinv.models.Poisson2Sparse
    deepinv.models.ConvLista
 
