@@ -22,7 +22,7 @@ from __future__ import annotations
 from pathlib import Path
 from contextlib import contextmanager
 from typing import Any, Callable, NamedTuple
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 import pickle
 import warnings
 import os
@@ -157,7 +157,7 @@ class SimpleFastMRISliceDataset(ImageDataset):
             x = self.transform(x)
 
         if self.use_dict_output:
-            return OrderedDict(x=x)
+            return {"x": x}
         else:
             return x
 
@@ -509,7 +509,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
             )
 
         if self.use_dict_output:
-            out = OrderedDict()
+            out = {}
 
             if target is not None:
                 out["x"] = target
@@ -519,6 +519,8 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
 
             if params:
                 out["params"] = params
+
+            return out
 
         return (target if target is not None else torch.nan, kspace) + (
             (params,) if params else ()

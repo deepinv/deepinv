@@ -2,7 +2,6 @@ from __future__ import annotations
 import torch
 from torchvision.datasets.utils import download_and_extract_archive
 from PIL import Image
-from collections import OrderedDict
 
 from urllib.parse import urlparse
 from os.path import basename, join
@@ -201,7 +200,7 @@ class Kohler(ImageDataset):
         out = self.get_item(printout_index, trajectory_index, frames=self.frames)
 
         if self.use_dict_output:
-            out = OrderedDict(x=out[0], y=out[1])
+            out = {"x": out[0], "y": out[1]}
 
         return out
 

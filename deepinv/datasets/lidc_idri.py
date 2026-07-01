@@ -5,7 +5,6 @@ from typing import (
     NamedTuple,
 )
 import os
-from collections import OrderedDict
 
 import numpy as np
 from deepinv.datasets.base import ImageDataset
@@ -174,6 +173,6 @@ class LidcIdriSliceDataset(ImageDataset):
         if self.transform is not None:
             slice_array = self.transform(slice_array)
 
-        out = OrderedDict(x=slice_array) if self.use_dict_output else slice_array
+        out = {"x": slice_array} if self.use_dict_output else slice_array
 
         return out

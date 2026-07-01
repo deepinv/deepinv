@@ -178,4 +178,9 @@ class NBUDataset(ImageDataset):
         pan = transform_pan(pan)
 
         # TODO: need to check images, dont know what to do here
-        return TensorList([ms, pan]) if self.return_pan else ms
+        x = TensorList([ms, pan]) if self.return_pan else ms
+
+        if self.use_dict_output:
+            return {"x": x}
+
+        return x

@@ -250,6 +250,10 @@ class FMD(ImageDataset):
             noisy_img = self.transform(noisy_img)
         if self.target_transform is not None:
             clean_img = self.target_transform(clean_img)
+
+        if self.use_dict_output:
+            return {"x": clean_img, "y": noisy_img}
+
         return clean_img, noisy_img
 
     @staticmethod

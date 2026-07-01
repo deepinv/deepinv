@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Callable, Any
 
-from collections import OrderedDict
 from tqdm import tqdm
 import os
 from warnings import warn
@@ -382,7 +381,7 @@ class HDF5Dataset(ImageDataset):
             params = None
 
         if self.use_dict_output:
-            out = OrderedDict(x=x, y=y)
+            out = {"x": x, "y": y}
             if params is not None:
                 out["params"] = params
 

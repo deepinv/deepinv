@@ -6,7 +6,6 @@ from deepinv.datasets.utils import calculate_md5, download_archive, extract_zipf
 from deepinv.datasets.base import ImageDataset
 from natsort import natsorted
 from .utils import resolve_root
-from collections import OrderedDict
 
 
 class BSDS500(ImageDataset):
@@ -112,6 +111,6 @@ class BSDS500(ImageDataset):
             img = self.transforms(img)
 
         if self.use_dict_output:
-            return OrderedDict(x=img)
+            return {"x": img}
 
         return img

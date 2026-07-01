@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import Callable, Any
 import os
 from pathlib import Path
-from collections import OrderedDict
 
 import torch
 import numpy as np
@@ -157,20 +156,21 @@ class RandomPatchSampler(ImageDataset):
                     start_coords=start_coords,
                 )
             )
-            if self.self.y_dir
+            if self.y_dir
             else torch.nan
         )
 
         if self.use_dict_output:
-            out = OrderedDict()
+            out = {}
             if x is not torch.nan:
                 out["x"] = x
 
             if y is not torch.nan:
                 out["y"] = y
 
-        else:
-            return (x, y) if y is not None else x
+            return out
+
+        return (x, y) if self.y_dir else x
 
     def _fix_ch(self, v: torch.Tensor) -> torch.Tensor:
         if self.ch_ax is None:

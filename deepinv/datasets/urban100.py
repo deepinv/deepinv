@@ -1,6 +1,5 @@
 from typing import Callable
 from types import MappingProxyType
-from collections import OrderedDict
 import os
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,

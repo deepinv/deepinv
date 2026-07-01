@@ -114,7 +114,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         noise_model: NoiseModel = None,
         use_dict_output: bool = False,
     ):
-        super().__init__(use_dict_output=True)
+        super().__init__(use_dict_output=use_dict_output)
 
         self.root = resolve_root(root, "CMRxReconSlice")
         self.data_dir = data_dir
@@ -266,6 +266,16 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         if self.apply_mask:
             kspace = kspace * mask + 0.0
-            return target, kspace.float(), {"mask": mask.float()}
+            params = {"mask": mask.float()}
         else:
-            return target, kspace.float()
+            params = None
+
+        if self.use_dict_output:
+            out = {"x": target, "y": kspace.float()}
+            if params is not None:
+                out["params"] = params
+            return out
+
+        if params is not None:
+            return target, kspace.float(), params
+        return target, kspace.float()
