@@ -25,6 +25,7 @@ FULL_REFERENCE_METRICS = [
     "HaarPSI",
     "CosineSimilarity",
     "GMSD",
+    "RecoveryCoefficient",
 ]
 NO_REFERENCE_METRICS = [
     "BlurStrength",
@@ -73,6 +74,8 @@ def choose_full_reference_metric(metric_name, device, **kwargs) -> metric.Metric
         return metric.CosineSimilarity(**kwargs)
     elif metric_name == "GMSD":
         return metric.GMSD(**kwargs)
+    elif metric_name == "RecoveryCoefficient":
+        return metric.RecoveryCoefficient(**kwargs)
     else:
         raise ValueError("Incorrect metric name.")
 
@@ -155,20 +158,31 @@ def test_full_reference_metrics(
         if channels != 3:
             pytest.skip("LPIPS requires 3 channel input.")
 
+    def get_mask(t):
+        return (
+            {"mask": torch.ones_like(t)} if metric_name == "RecoveryCoefficient" else {}
+        )
+
+    if metric_name == "RecoveryCoefficient":
+        with pytest.raises(
+            ValueError, match="Recovery Coefficient requires a mask argument."
+        ):
+            m(x_hat, x)
+
     # Test metric worse when image worse
     # In general, metrics can be either lower or higher = better
     # However, if we set train_loss=True, all metrics become lower = better.
     if train_loss:
-        assert m(x_hat, x).item() > m(x, x).item()
+        assert m(x_hat, x, **get_mask(x_hat)).item() > m(x, x, **get_mask(x)).item()
 
     # Test various args and kwargs which could be passed to metrics
-    assert m(x_hat, x, None, model=None, some_other_kwarg=None) != 0
-    assert m(x_net=x_hat, x=x, some_other_kwarg=None) != 0
+    assert m(x_hat, x, model=None, some_other_kwarg=None, **get_mask(x_hat)) != 0
+    assert m(x_net=x_hat, x=x, some_other_kwarg=None, **get_mask(x_hat)) != 0
 
     # Test summing metrics
     dummy_metric = metric.Metric(metric=lambda *a, **kw: 1)
     m2 = m + dummy_metric
-    assert m2(x_hat, x) == m(x_hat, x) + 1
+    assert m2(x_hat, x, **get_mask(x_hat)) == m(x_hat, x, **get_mask(x_hat)) + 1
 
     # Test no reduce works
     B = 5
@@ -181,7 +195,7 @@ def test_full_reference_metrics(
         norm_inputs=norm_inputs,
         reduction="none",
     )
-    assert len(m(x_hat, x_hat)) == B
+    assert len(m(x_hat, x_hat, **get_mask(x_hat))) == B
 
 
 @pytest.mark.parametrize("metric_name", NO_REFERENCE_METRICS)
