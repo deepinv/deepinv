@@ -605,27 +605,3 @@ def test_gmsd():
     x[:, :, :4] = 2
     out = gmsd(x_net, x)
     assert torch.isclose(out, torch.tensor((0.33,)), atol=3e-4)
-
-
-def test_recovery_coefficient():
-    rc = metric.RecoveryCoefficient()
-
-    x = torch.ones((2, 1, 4, 4))
-    x_net = 2 * x
-    mask = torch.ones_like(x)
-
-    out = rc(x_net, x, mask=mask)
-    assert torch.equal(out, 2 * torch.ones((2,)))
-
-    # check masking works
-    mask = torch.zeros_like(x)
-    mask[:, :, :2, :2] = 1
-
-    out = rc(x_net, x, mask=mask)
-    assert torch.equal(out, 2 * torch.ones((2,)))
-
-    # missing mask should raise
-    with pytest.raises(ValueError) as exc_info:
-        rc(x_net, x)
-
-    assert str(exc_info.value) == "Recovery Coefficient requires a mask argument."

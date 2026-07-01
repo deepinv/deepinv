@@ -1099,11 +1099,11 @@ class GMSD(Metric):
 
 
 class RecoveryCoefficient(Metric):
-    r"""deepinv.metric.RecoveryCoefficient(eps, reduction, **kwargs)
+    r"""
     Recovery Coefficient metric used in emission tomography.
 
     Computes the ratio between the total reconstructed activity and the total
-    ground-truth activity inside a given mask:
+    ground-truth activity inside a given region of interest, defined by a mask:
 
     .. math::
 
@@ -1140,9 +1140,6 @@ class RecoveryCoefficient(Metric):
     tensor([1., 1.])
 
     :param float eps: Small constant added to the denominator for numerical stability.
-    :param str reduction: Method used to reduce metric values across the batch.
-        ``"mean"`` computes the mean, ``"sum"`` computes the sum, and
-        ``None`` or ``"none"`` returns one score per sample.
     :param kwargs: Additional keyword arguments passed to the parent
         :class:`deepinv.loss.metric.Metric` class.
     """
