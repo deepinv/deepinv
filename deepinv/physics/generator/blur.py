@@ -493,6 +493,13 @@ class DiffractionBlurGenerator(PSFGenerator):
         rng: torch.Generator = None,
     ):
 
+        super().__init__(
+            psf_size=psf_size,
+            device=device,
+            dtype=dtype,
+            rng=rng,
+        )
+
         if isinstance(fc, float):
             self.fc = fc
         else:
@@ -502,12 +509,6 @@ class DiffractionBlurGenerator(PSFGenerator):
                     f"fc must be a scalar or 1D tensor/list/tuple at construction time, got {self.fc.ndim}D."
                 )
 
-        super().__init__(
-            psf_size=psf_size,
-            device=device,
-            dtype=dtype,
-            rng=rng,
-        )
         # For backward compatibility if a list / tuple of a string is given
         # Should be removed in future versions
         zernike_index = list(zernike_index)
