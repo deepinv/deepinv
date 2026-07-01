@@ -33,14 +33,18 @@ We show three scenarios of increasing complexity:
 
 1. **Deblurring** with MLEM (no prior)
 2. **Deblurring** with MLEM and Total-Variation (TV) prior
-3. **2D Computed Tomography (CT)** with MLEM and TV prior
+3. **2D Computed Tomography (CT)** with MLEM, ordered subsets, and TV prior
 """
 
 # %%
-import torch
-import deepinv as dinv
+import time
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import torch
 from torchvision import transforms
+
+import deepinv as dinv
 
 from deepinv.utils.demo import load_dataset, load_example
 from deepinv.utils.plotting import plot, plot_curves
@@ -240,51 +244,207 @@ y_ct = physics_ct(x_ct)
 # Filtered back-projection as a simple baseline
 x_fbp = physics_ct.A_dagger(y_ct)
 
-
 # %%
-# Run MLEM + TV on the CT problem
+# Ordered-subsets MLEM (OSEM)
+# -------------------------------------------------------------
+#
+# Ordered-subsets EM accelerates tomographic MLEM by splitting the projection
+# angles into subsets. The user-facing API stays the same: we pass the full
+# sinogram ``y_ct`` and the full tomography operator ``physics_ct``. The
+# :class:`deepinv.optim.MLEM` optimizer builds the subset operators internally
+# when ``num_subsets > 1``.
 
 data_fidelity_ct = dinv.optim.PoissonLikelihood(gain=gain_ct)
+
+ct_mlem_iter = 20
+ct_num_subsets = 12
+ct_osem_epochs = 2
+
+
+def _sync():
+    if torch.device(device).type == "cuda":
+        torch.cuda.synchronize()
+
+
+model_ct_mlem = dinv.optim.MLEM(
+    data_fidelity=data_fidelity_ct,
+    prior=None,
+    max_iter=ct_mlem_iter,
+    early_stop=False,
+    verbose=True,
+)
+
+model_ct_osem = dinv.optim.MLEM(
+    data_fidelity=data_fidelity_ct,
+    prior=None,
+    max_iter=ct_osem_epochs,
+    num_subsets=ct_num_subsets,
+    early_stop=False,
+    verbose=True,
+)
+
+_sync()
+start = time.perf_counter()
+x_ct_mlem, metrics_ct_mlem = model_ct_mlem(
+    y_ct, physics_ct, x_gt=x_ct, compute_metrics=True
+)
+_sync()
+ct_mlem_time = time.perf_counter() - start
+
+_sync()
+start = time.perf_counter()
+x_ct_osem, metrics_ct_osem = model_ct_osem(
+    y_ct, physics_ct, x_gt=x_ct, compute_metrics=True
+)
+_sync()
+ct_osem_time = time.perf_counter() - start
+
+print(f"MLEM runtime: {ct_mlem_time:.2f} s for {ct_mlem_iter} iterations")
+print(
+    f"OSEM runtime: {ct_osem_time:.2f} s for {ct_osem_epochs} epochs "
+    f"({ct_num_subsets} subsets)"
+)
+print(f"Runtime ratio MLEM/OSEM: {ct_mlem_time / ct_osem_time:.2f}x")
+
+# %%
+# Compare reconstructions and convergence curves.
+
+psnr_ct_mlem = dinv.metric.PSNR()(x_ct, x_ct_mlem)
+psnr_ct_osem = dinv.metric.PSNR()(x_ct, x_ct_osem)
+psnr_fbp = dinv.metric.PSNR()(x_ct, x_fbp)
+
+plot(
+    {
+        "Ground Truth": x_ct,
+        "FBP": x_fbp,
+        f"MLEM ({ct_mlem_iter} it.)": x_ct_mlem,
+        f"OSEM ({ct_osem_epochs} epochs)": x_ct_osem,
+    },
+    subtitles=[
+        "Reference",
+        f"PSNR: {psnr_fbp.item():.2f} dB",
+        f"PSNR: {psnr_ct_mlem.item():.2f} dB",
+        f"PSNR: {psnr_ct_osem.item():.2f} dB",
+    ],
+    figsize=(12, 4),
+)
+
+mlem_psnr_axis = range(len(metrics_ct_mlem["psnr"][0]))
+osem_psnr_axis = range(len(metrics_ct_osem["psnr"][0]))
+mlem_cost_axis = range(1, len(metrics_ct_mlem["cost"][0]) + 1)
+osem_cost_axis = range(1, len(metrics_ct_osem["cost"][0]) + 1)
+
+fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+axes[0].plot(mlem_psnr_axis, metrics_ct_mlem["psnr"][0], label="MLEM")
+axes[0].plot(osem_psnr_axis, metrics_ct_osem["psnr"][0], label="OSEM")
+axes[0].set_xlabel("Iteration / epoch")
+axes[0].set_ylabel("PSNR (dB)")
+axes[0].legend()
+
+axes[1].plot(mlem_cost_axis, metrics_ct_mlem["cost"][0], label="MLEM")
+axes[1].plot(osem_cost_axis, metrics_ct_osem["cost"][0], label="OSEM")
+axes[1].set_xlabel("Iteration / epoch")
+axes[1].set_ylabel("Poisson objective")
+axes[1].legend()
+fig.tight_layout()
+
+# %%
+# Run MLEM + TV and OSEM + TV on the CT problem
+
 prior_tv_ct = dinv.optim.prior.TVPrior(n_it_max=50)
+ct_tv_mlem_iter = 50
+ct_tv_osem_epochs = 2
 
 model_ct = dinv.optim.MLEM(
     data_fidelity=data_fidelity_ct,
     prior=prior_tv_ct,
     lambda_reg=1e-2,
-    max_iter=50,
+    max_iter=ct_tv_mlem_iter,
     early_stop=True,
     thres_conv=1e-6,
     crit_conv="residual",
     verbose=True,
 )
 
+model_ct_osem_tv = dinv.optim.MLEM(
+    data_fidelity=data_fidelity_ct,
+    prior=prior_tv_ct,
+    lambda_reg=1e-2,
+    max_iter=ct_tv_osem_epochs,
+    num_subsets=ct_num_subsets,
+    early_stop=True,
+    thres_conv=1e-6,
+    crit_conv="residual",
+    verbose=True,
+)
+
+_sync()
+start = time.perf_counter()
 x_ct_recon, metrics_ct = model_ct(y_ct, physics_ct, x_gt=x_ct, compute_metrics=True)
+_sync()
+ct_tv_mlem_time = time.perf_counter() - start
+
+_sync()
+start = time.perf_counter()
+x_ct_osem_tv, metrics_ct_osem_tv = model_ct_osem_tv(
+    y_ct, physics_ct, x_gt=x_ct, compute_metrics=True
+)
+_sync()
+ct_tv_osem_time = time.perf_counter() - start
+
+print(f"MLEM + TV runtime: {ct_tv_mlem_time:.2f} s for {ct_tv_mlem_iter} iterations")
+print(
+    f"OSEM + TV runtime: {ct_tv_osem_time:.2f} s for {ct_tv_osem_epochs} epochs "
+    f"({ct_num_subsets} subsets)"
+)
+print(f"Runtime ratio MLEM + TV/OSEM + TV: {ct_tv_mlem_time / ct_tv_osem_time:.2f}x")
 
 # %%
 # Visualize CT results and plot convergence curves
 
 psnr_fbp = dinv.metric.PSNR()(x_ct, x_fbp)
 psnr_ct = dinv.metric.PSNR()(x_ct, x_ct_recon)
+psnr_ct_osem_tv = dinv.metric.PSNR()(x_ct, x_ct_osem_tv)
 ssim_fbp = dinv.metric.SSIM()(x_ct, x_fbp)
 ssim_ct = dinv.metric.SSIM()(x_ct, x_ct_recon)
+ssim_ct_osem_tv = dinv.metric.SSIM()(x_ct, x_ct_osem_tv)
 
 plot(
     {
         "Ground Truth": x_ct,
         "Sinogram": y_ct,
         "FBP": x_fbp,
-        "MLEM with TV": x_ct_recon,
+        f"MLEM + TV ({ct_tv_mlem_iter} it.)": x_ct_recon,
+        f"OSEM + TV ({ct_tv_osem_epochs} epochs)": x_ct_osem_tv,
     },
     subtitles=[
         "Reference",
         "Measurements",
         f"PSNR: {psnr_fbp.item():.2f} dB\nSSIM: {ssim_fbp.item():.3f}",
         f"PSNR: {psnr_ct.item():.2f} dB\nSSIM: {ssim_ct.item():.3f}",
+        f"PSNR: {psnr_ct_osem_tv.item():.2f} dB\nSSIM: {ssim_ct_osem_tv.item():.3f}",
     ],
-    figsize=(12, 4),
+    figsize=(15, 4),
 )
 
-plot_curves(metrics_ct)
+ct_tv_mlem_psnr_axis = range(len(metrics_ct["psnr"][0]))
+ct_tv_osem_psnr_axis = range(len(metrics_ct_osem_tv["psnr"][0]))
+ct_tv_mlem_cost_axis = range(1, len(metrics_ct["cost"][0]) + 1)
+ct_tv_osem_cost_axis = range(1, len(metrics_ct_osem_tv["cost"][0]) + 1)
+
+fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+axes[0].plot(ct_tv_mlem_psnr_axis, metrics_ct["psnr"][0], label="MLEM + TV")
+axes[0].plot(ct_tv_osem_psnr_axis, metrics_ct_osem_tv["psnr"][0], label="OSEM + TV")
+axes[0].set_xlabel("Iteration / epoch")
+axes[0].set_ylabel("PSNR (dB)")
+axes[0].legend()
+
+axes[1].plot(ct_tv_mlem_cost_axis, metrics_ct["cost"][0], label="MLEM + TV")
+axes[1].plot(ct_tv_osem_cost_axis, metrics_ct_osem_tv["cost"][0], label="OSEM + TV")
+axes[1].set_xlabel("Iteration / epoch")
+axes[1].set_ylabel("Poisson objective + TV")
+axes[1].legend()
+fig.tight_layout()
 
 # %%
 # :References:
