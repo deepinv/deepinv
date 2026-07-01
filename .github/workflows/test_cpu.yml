@@ -114,7 +114,7 @@ jobs:
           key: deepinv-url-cache-${{ matrix.os }}-${{ github.run_id }}
 
       - name: Upload coverage to Codecov
-        if: runner.os == 'Linux' && matrix.environment == 'full'
+        if: runner.os == 'Linux' && matrix.environment == 'full-cpu'
         uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
