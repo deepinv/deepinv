@@ -98,7 +98,7 @@ jobs:
 
       - uses: prefix-dev/setup-pixi@v0.9.3
         with:
-          pixi-version: v0.70.2
+          pixi-version: latest
           run-install: false  # we drive installation manually below
 
       # --- PyPI source: spin up a temporary project and pull from PyPI ---

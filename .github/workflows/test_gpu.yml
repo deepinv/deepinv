@@ -55,10 +55,25 @@ jobs:
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
-          pixi-version: v0.70.2
+          pixi-version: latest
           post-cleanup: true
-          environments: full
           pixi-bin-path: /local/jtachell/pixi/bin/pixi
+          run-install: false  # we drive installation manually below
+
+      # Install dependencies with pixi, using the restored lock if available. If the
+      # lock is unavailable or fails to solve, fall back to a fresh solve. 
+      - name: Install dependencies
+        run: |
+          set -x
+          if ! pixi install -e full --locked --manifest-path pyproject.toml --color always; then
+            echo "pixi install with --locked option failed, run install without lock"
+            pixi install -e full --manifest-path pyproject.toml --color always
+          fi
+
+          pixi list -e full --manifest-path pyproject.toml --color always
+
+          pixi clean cache --yes
+          set +x
 
       - name: Check import
         run: |

@@ -50,6 +50,8 @@ Homepage = "https://deepinv.org/"
 Source = "https://github.com/deepinv/deepinv"
 Tracker = "https://github.com/deepinv/deepinv/issues"
 
+# Define groups of optional pypi dependencies. This is use by pip, uv, and pixi. 
+# It can be overridden with conda dependencies below using [tool.pixi.feature.*.dependencies] sections.
 [project.optional-dependencies]
 test = [
     "pytest",
@@ -93,9 +95,12 @@ denoisers = [
 ]
 
 # optional dependencies for advanced forward operators
+physics-gpu = [
+    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'"
+]
+
 physics = [
-    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
-    "spyrit>=3.0.0; platform_system=='Linux'",
+    "spyrit>=3.0.0",
     "torchkbnufft",
     "array_api_compat",
     "sigpy",
@@ -103,7 +108,7 @@ physics = [
 
 # optional dependencies for specific datasets
 dataset = [
-    "datasets",
+    "datasets>=3.5.0",
     "pandas",
     "pydicom",
     "mat73",
@@ -129,7 +134,6 @@ platforms = ["linux-64", "win-64"]
 
 [tool.pixi.dependencies]
 python = "<3.13.0"
-torchvision = "*"
 numpy = "*"
 matplotlib = "*"
 tqdm = "*"
@@ -139,15 +143,20 @@ requests = "*"
 h5py = "*"
 natsort = "*"
 
+# Force the CPU environment to ignore CUDA-enabled platforms if they exist, .e.g linux-64-cuda-12-0
+[tool.pixi.feature.cpu]
+platforms = ["linux-64", "win-64"]
+
+[tool.pixi.feature.cpu.pypi-dependencies]
+torch = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
+torchvision = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
+
 [tool.pixi.feature.gpu.system-requirements]
 cuda = "12.0"
 
-[tool.pixi.feature.gpu.dependencies]
-cuda-version = "*"
-pytorch-gpu = "*"
-
-[tool.pixi.feature.cpu.dependencies]
-pytorch-cpu = "*"
+[tool.pixi.feature.gpu.pypi-dependencies]
+torch = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
+torchvision = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
 
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
