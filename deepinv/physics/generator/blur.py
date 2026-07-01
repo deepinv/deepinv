@@ -843,6 +843,7 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         if self.apodize:
             psf = self.apodize_mask * psf
+            psf = psf / torch.sum(psf, dim=(-1, -2), keepdim=True)
 
         params = {
             "filter": psf,
