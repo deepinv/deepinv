@@ -5,6 +5,7 @@ from typing import (
     NamedTuple,
 )
 import os
+from collections import OrderedDict
 
 import numpy as np
 from deepinv.datasets.base import ImageDataset
@@ -44,6 +45,7 @@ class LidcIdriSliceDataset(ImageDataset):
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param Callable transform:: (optional)  A function/transform that takes in a data sample and returns a transformed version.
     :param bool hounsfield_units: If `True`, convert pixel values to `Hounsfield Units (HU) <https://en.wikipedia.org/wiki/Hounsfield_scale>`_. Default is `False`.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     |sep|
 
@@ -86,6 +88,7 @@ class LidcIdriSliceDataset(ImageDataset):
         root: str = None,
         transform: Callable | None = None,
         hounsfield_units: bool = False,
+        use_dict_output: bool = False,
     ) -> None:
         import pandas as pd
 
@@ -140,6 +143,8 @@ class LidcIdriSliceDataset(ImageDataset):
                         )
                     )
 
+        super().__init__(use_dict_output=use_dict_output)
+
     def __len__(self) -> int:
         return len(self.sample_identifiers)
 
@@ -169,4 +174,6 @@ class LidcIdriSliceDataset(ImageDataset):
         if self.transform is not None:
             slice_array = self.transform(slice_array)
 
-        return slice_array
+        out = OrderedDict(x=slice_array) if self.use_dict_output else slice_array
+
+        return out
