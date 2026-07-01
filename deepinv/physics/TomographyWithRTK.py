@@ -222,7 +222,7 @@ class TomographyWithRTK(LinearPhysics):
         # Cast back from itk cuda image to tensor
         projections = torch.as_tensor(
             Ax, device=x.device
-        ).clone()  # This may not be optimized for memory usage
+        )
 
         if self.mode == "fanbeam":
             projections = projections[:, 0, :]
@@ -271,7 +271,7 @@ class TomographyWithRTK(LinearPhysics):
         # Cast back from itk cuda image to tensor
         backproj = torch.as_tensor(
             Atx, device=y.device
-        ).clone()  # This may not be optimized for memory usage
+        )
 
         if self.mode == "fanbeam":
             backproj = backproj.sum(dim=1)
@@ -350,7 +350,7 @@ class TomographyWithRTK(LinearPhysics):
         # Cast back from itk cuda image to tensor
         reco = torch.as_tensor(
             itk_reco, device=y.device
-        ).clone()  # This may not be optimized for memory usage
+        )
 
         if self.mode == "fanbeam":
             reco = reco.sum(dim=1)
