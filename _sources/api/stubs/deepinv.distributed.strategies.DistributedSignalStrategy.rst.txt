@@ -1,0 +1,15 @@
+﻿DistributedSignalStrategy
+=========================
+
+.. currentmodule:: deepinv.distributed.strategies
+
+.. autoclass:: DistributedSignalStrategy
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.distributed.strategies.DistributedSignalStrategy:
+
+.. minigallery:: deepinv.distributed.strategies.DistributedSignalStrategy
+    :add-heading: Examples using ``DistributedSignalStrategy``:

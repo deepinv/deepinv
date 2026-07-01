@@ -1,0 +1,9 @@
+﻿gradient\_descent
+=================
+
+.. currentmodule:: deepinv.optim.utils
+
+.. autofunction:: gradient_descent
+
+.. minigallery:: deepinv.optim.utils.gradient_descent
+    :add-heading: Examples using ``gradient_descent``:

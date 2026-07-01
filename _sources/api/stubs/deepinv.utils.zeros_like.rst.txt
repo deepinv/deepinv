@@ -1,0 +1,9 @@
+﻿zeros\_like
+===========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: zeros_like
+
+.. minigallery:: deepinv.utils.zeros_like
+    :add-heading: Examples using ``zeros_like``:

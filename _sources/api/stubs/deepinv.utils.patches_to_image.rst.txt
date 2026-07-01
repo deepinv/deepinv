@@ -1,0 +1,9 @@
+﻿patches\_to\_image
+==================
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: patches_to_image
+
+.. minigallery:: deepinv.utils.patches_to_image
+    :add-heading: Examples using ``patches_to_image``:

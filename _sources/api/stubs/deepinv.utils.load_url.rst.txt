@@ -1,0 +1,9 @@
+﻿load\_url
+=========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_url
+
+.. minigallery:: deepinv.utils.load_url
+    :add-heading: Examples using ``load_url``:
