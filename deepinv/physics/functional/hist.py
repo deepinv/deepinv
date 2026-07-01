@@ -156,9 +156,8 @@ def histogramdd(
     low = torch.as_tensor(low, dtype=x.dtype, device=x.device).squeeze()
     upp = torch.as_tensor(upp, dtype=x.dtype, device=x.device).squeeze()
 
-    assert torch.all(
-        upp > low
-    ), "The upper bound must be strictly larger than the lower bound"
+    if not torch.all(upp > low):  # pragma: no cover
+        raise ValueError("The upper bound must be strictly larger than the lower bound")
 
     if weights is not None:
         weights = weights.flatten()

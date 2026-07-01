@@ -174,9 +174,7 @@ class SplittingLoss(Loss):
         loss_values = torch.stack(loss_values, dim=-1)
         return loss_values.mean(-1)
 
-    def adapt_model(
-        self, model: torch.nn.Module, eval_n_samples=None
-    ) -> SplittingModel:
+    def adapt_model(self, model: torch.nn.Module) -> SplittingModel:
         r"""
         Apply random splitting to input.
 
@@ -195,13 +193,8 @@ class SplittingLoss(Loss):
         For other parameters that control how splitting is applied, see the class parameters.
 
         :param torch.nn.Module model: Reconstruction model.
-        :param int eval_n_samples: deprecated. Pass ``eval_n_samples`` at class initialisation instead.
         :return: (:class:`torch.nn.Module`) Model modified for evaluation.
         """
-        if eval_n_samples is not None:
-            warn(
-                "eval_n_samples parameter is deprecated. Pass eval_n_samples at init: SplittingLoss(eval_n_samples=...)"
-            )
 
         if isinstance(model, self.SplittingModel):
             return model
@@ -500,10 +493,14 @@ class Neighbor2Neighbor(Loss):
         :return: (:class:`torch.Tensor`) loss.
         """
 
-        assert len(y.shape) == 4, "Input measurements should be images"
-        assert (
-            y.shape[2] % 2 == 0 and y.shape[3] % 2 == 0
-        ), "Image dimensions should be even"
+        if len(y.shape) != 4:  # pragma: no cover
+            raise ValueError(
+                f"Input measurements should be of shape B, C, H, W, got shape {tuple(y.shape)}"
+            )
+        if y.shape[2] % 2 != 0 or y.shape[3] % 2 != 0:  # pragma: no cover
+            raise ValueError(
+                f"Image dimensions (last two dims) should be even, got tensor of shape {tuple(y.shape)}"
+            )
 
         mask1, mask2 = self.generate_mask_pair(y)
 

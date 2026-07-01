@@ -37,6 +37,10 @@ class RAM(Reconstructor, Denoiser):
         The physics operator should be normalized (i.e. have unit norm) for best results.
         Use :func:`physics.compute_norm() <deepinv.physics.LinearPhysics.compute_norm>` to check this.
 
+
+    .. tip:: This model can handle non-uniform `sigma` and `gain` maps, which can be of size `(batch_size, 1, height, width)`.
+
+
     :param Sequence in_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
     :param str device: Device to which the model should be moved. If None, the model will be created on the default device.
     :param bool, str pretrained: If `True`, the model will be initialized with pretrained weights. If `str`, load from file.
@@ -158,18 +162,34 @@ class RAM(Reconstructor, Denoiser):
         return value_map
 
     def base_conditioning(
-        self, x: torch.Tensor, sigma: float, gain: float
+        self, x: torch.Tensor, sigma: float | torch.Tensor, gain: float | torch.Tensor
     ) -> torch.Tensor:
         r"""
         Stacks the sigma and gain value as additional channel dimensions to the input tensor.
 
         :param torch.Tensor x: Input tensor
-        :param float sigma: Gaussian noise level
-        :param float gain: Poisson noise gain
+        :param float, torch.Tensor sigma: Gaussian noise level or noise level map
+        :param float, torch.Tensor gain: Poisson noise gain or Poisson noise map
         :return torch.Tensor: Input tensor with additional channels for sigma and gain
         """
-        noise_level_map = self.constant2map(sigma, x)
-        gain_map = self.constant2map(gain, x)
+        if isinstance(sigma, torch.Tensor) and sigma.shape == (
+            x.size(0),
+            1,
+            *x.shape[2:],
+        ):
+            noise_level_map = sigma
+        else:
+            noise_level_map = self.constant2map(sigma, x)
+
+        if isinstance(gain, torch.Tensor) and gain.shape == (
+            x.size(0),
+            1,
+            *x.shape[2:],
+        ):
+            gain_map = gain
+        else:
+            gain_map = self.constant2map(gain, x)
+
         return torch.cat((x, noise_level_map, gain_map), 1)
 
     def realign_input(
@@ -194,7 +214,16 @@ class RAM(Reconstructor, Denoiser):
         else:
             num = y.reshape(y.shape[0], -1).abs().mean(1)
 
-        snr = num / (sigma + 1e-4)  # SNR equivariant
+        if isinstance(sigma, torch.Tensor) and sigma.shape == (
+            x.shape[0],
+            1,
+            *x.shape[2:],
+        ):
+            snr = num / (torch.amax(sigma, dim=(1, 2, 3)) + 1e-4)
+        else:
+            snr = num / (sigma + 1e-4)
+
+        # SNR equivariant
         gamma = 1 / (1e-4 + 1 / (snr * f**2))
         gamma = gamma[(...,) + (None,) * (x.dim() - 1)]
         gamma = gamma * self.fact_realign
@@ -215,8 +244,8 @@ class RAM(Reconstructor, Denoiser):
         Forward pass of the UNet model.
 
         :param torch.Tensor x0: init image
-        :param float sigma: Gaussian noise level
-        :param float gamma: Poisson noise gain
+        :param float, torch.Tensor sigma: Gaussian noise level or noise level map
+        :param float, torch.Tensor gain: Poisson noise gain or Poisson noise map
         :param deepinv.physics.Physics physics: physics measurement operator
         :param torch.Tensor y: measurements
         """
@@ -326,8 +355,8 @@ class RAM(Reconstructor, Denoiser):
 
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
-        :param float, torch.Tensor sigma: Gaussian noise level.
-        :param float, torch.Tensor gain: Poisson noise level.
+        :param float, torch.Tensor sigma: Gaussian noise level or noise level map
+        :param float, torch.Tensor gain: Poisson noise gain or Poisson noise map
         :param tuple img_size: (optional) size of the image to reconstruct. If None, will be inferred automatically from the physics.
         :return: torch.Tensor: reconstructed signal estimate
         """
@@ -340,6 +369,11 @@ class RAM(Reconstructor, Denoiser):
             max_val = y[0].abs().reshape(y[0].size(0), -1).amax(dim=1, keepdim=False)
         else:
             max_val = y.abs().reshape(y.size(0), -1).amax(dim=1, keepdim=False)
+
+        # Prevent returning NaN if the input image is a torch.zeros
+        if 0 in max_val:
+            indexs = torch.where(max_val == 0)
+            max_val[indexs] = 1e-12 if not max_val.dtype == torch.float16 else 1e-4
 
         # rescale elements in the batch where max_val > 5 * sigma_threshold
         rescale_val = torch.where(
@@ -387,12 +421,40 @@ class RAM(Reconstructor, Denoiser):
         sigma = torch.maximum(
             sigma, torch.tensor(self.sigma_threshold, device=x_in.device)
         )
-        sigma = self._handle_sigma(sigma)
+
+        if isinstance(sigma, torch.Tensor) and sigma.shape == (
+            y.shape[0],
+            1,
+            *y.shape[2:],
+        ):
+            # add padding to match x_in's shape
+            sigma = nn.functional.pad(
+                sigma,
+                (pad[1], 0, pad[0], 0),
+                mode="constant",
+                value=self.sigma_threshold,
+            )
+        else:
+            sigma = self._handle_sigma(sigma)
 
         gain = torch.maximum(
             gain, torch.tensor(self.gain_threshold, device=x_in.device)
         )
-        gain = self._handle_sigma(gain)
+
+        if isinstance(gain, torch.Tensor) and gain.shape == (
+            y.shape[0],
+            1,
+            *y.shape[2:],
+        ):
+            # add padding to match x_in's shape
+            gain = nn.functional.pad(
+                gain,
+                (pad[1], 0, pad[0], 0),
+                mode="constant",
+                value=self.gain_threshold,
+            )
+        else:
+            gain = self._handle_sigma(gain)
 
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
 
@@ -433,7 +495,11 @@ class RAM(Reconstructor, Denoiser):
             if isinstance(sigma, TensorList):
                 sigma = sigma.abs().max()
         else:
-            sigma = sigma / rescale_val
+            if isinstance(sigma, torch.Tensor) and sigma.ndim == 4:
+                rescale_val_map = rescale_val.view(rescale_val.shape[0], 1, 1, 1)
+                sigma = sigma / rescale_val_map
+            else:
+                sigma = sigma / rescale_val
             if hasattr(physics.noise_model, "sigma"):
                 warn(
                     "Both sigma provided to the model and a noise model in the physics. The sigma provided to the model will be used."
@@ -449,7 +515,12 @@ class RAM(Reconstructor, Denoiser):
             if isinstance(gain, TensorList):
                 gain = gain.abs().max()
         else:
-            gain = gain / rescale_val
+            if isinstance(gain, torch.Tensor) and gain.ndim == 4:
+                rescale_val_map = rescale_val.view(rescale_val.shape[0], 1, 1, 1)
+                gain = gain / rescale_val_map
+            else:
+                gain = gain / rescale_val
+
             if hasattr(physics.noise_model, "gain"):
                 warn(
                     "Both gain provided to the model and a noise model in the physics. The gain provided to the model will be used."
@@ -589,8 +660,10 @@ class MeasCondBlock(nn.Module):
 
         self.separate_head = isinstance(img_channels, list)
 
-        assert img_channels is not None, "decode_dimensions should be provided"
-        assert decode_upscale is not None, "decode_upscale should be provided"
+        if img_channels is None:  # pragma: no cover
+            raise ValueError("decode_dimensions should be provided")
+        if decode_upscale is None:  # pragma: no cover
+            raise ValueError("decode_upscale should be provided")
 
         self.N = N
         self.c_mult = c_mult
@@ -678,9 +751,10 @@ class ResBlock(nn.Module):
         super(ResBlock, self).__init__()
 
         if not head and not tail:
-            assert (
-                in_channels == out_channels
-            ), "Only support in_channels==out_channels."
+            if in_channels != out_channels:  # pragma: no cover
+                raise ValueError(
+                    "Only support in_channels==out_channels when both head and tail are False."
+                )
         self.separate_head = isinstance(img_channels, list)
         self.is_head = head
         self.is_tail = tail
@@ -1068,7 +1142,7 @@ def sequential(*args):
     :return: nn.Sequential container containing all the modules.
     """
     if len(args) == 1:
-        if isinstance(args[0], OrderedDict):
+        if isinstance(args[0], OrderedDict):  # pragma: no cover
             raise NotImplementedError("sequential does not support OrderedDict input.")
         return args[0]  # No sequential is needed.
     modules = []
@@ -1156,12 +1230,13 @@ def upsample_convtranspose(
     :param bool bias: Whether to use bias in the convolution.
     :param str mode: Sequence of operations, e.g., "2R", "3", "4R", etc.
     """
-    assert len(mode) < 4 and mode[0] in [
+    if len(mode) > 3 or mode[0] not in [
         "2",
         "3",
         "4",
         "8",
-    ], "mode examples: 2, 2R, 2R, 3, ..., 4R."
+    ]:  # pragma: no cover
+        raise ValueError(f"got mode {mode}, mode examples: 2, 2R, 2R, 3, ..., 4R.")
     kernel_size = int(mode[0])
     stride = int(mode[0])
     mode = mode.replace(mode[0], "T")
@@ -1195,12 +1270,13 @@ def downsample_strideconv(
     :param bool bias: Whether to use bias in the convolution.
     :param str mode: Sequence of operations, e.g., "2R", "3", "4R", etc.
     """
-    assert len(mode) < 4 and mode[0] in [
+    if len(mode) > 3 or mode[0] not in [
         "2",
         "3",
         "4",
         "8",
-    ], "mode examples: 2, 2R, 2BR, 3, ..., 4BR."
+    ]:  # pragma: no cover
+        raise ValueError(f"got mode {mode}, mode examples: 2, 2R, 2BR, 3, ..., 4BR.")
     kernel_size = int(mode[0])
     stride = int(mode[0])
     mode = mode.replace(mode[0], "C")

@@ -483,7 +483,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
         padding="circular",
     )
@@ -599,7 +599,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
         # 2. Set a physical experiment (here, deblurring)
         physics = dinv.physics.Blur(
-            dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+            dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
             padding="circular",
             device=device,
         )
@@ -679,7 +679,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
     )
     y = physics(test_sample)
@@ -721,7 +721,7 @@ def test_dpir(imsize, dummy_dataset, device):
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
         noise_model=dinv.physics.GaussianNoise(0.1),
         padding="circular",
@@ -911,7 +911,7 @@ def test_MLEM(imsize, dummy_dataset, device):
     test_sample = next(iter(dataloader)).to(device)
 
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
         noise_model=dinv.physics.PoissonNoise(gain=1 / 60),
         padding="circular",

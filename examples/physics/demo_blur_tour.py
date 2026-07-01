@@ -44,7 +44,7 @@ torch.cuda.manual_seed(0)
 # The class :class:`deepinv.physics.Blur` implements convolution operations with kernels.
 #
 # For instance, here is the convolution of a grayscale image with a grayscale filter:
-filter_0 = dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=0.0)
+filter_0 = dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=0.0)
 physics = dinv.physics.Blur(filter_0, device=device)
 y = physics(x_gray)
 plot(
@@ -91,7 +91,7 @@ plot(
 
 # %%
 # One can also change the blur filter in the forward pass as follows:
-filter_90 = dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=90.0).to(
+filter_90 = dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=90.0).to(
     device=device, dtype=dtype
 )
 y = physics(x_rgb, filter=filter_90)

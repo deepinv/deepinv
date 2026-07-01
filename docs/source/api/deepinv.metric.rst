@@ -38,6 +38,7 @@ Full Reference Metrics
     deepinv.loss.metric.ERGAS
     deepinv.loss.metric.HaarPSI
     deepinv.loss.metric.CosineSimilarity
+    deepinv.loss.metric.GMSD
 
 
 No Reference Metrics
