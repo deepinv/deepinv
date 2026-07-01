@@ -599,7 +599,7 @@ class DiffractionBlurGenerator(PSFGenerator):
 
     def _format_fc(self, fc, batch_size: int) -> torch.Tensor:
         r"""
-        Normalises ``fc`` into a fully resolved 2D tensor of shape ``(B, C)``.
+        Normalizes ``fc`` into a fully resolved 2D tensor of shape ``(B, C)``.
 
         - scalar / 0-D : ``(batch_size, 1)``
         - 1D of length ``C``: ``(batch_size, C)``
