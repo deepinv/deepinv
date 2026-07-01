@@ -18,6 +18,7 @@ from deepinv.optim.optim_iterators import (
     MDIteration,
     MLEMIteration,
     SIRTIteration,
+    BlindRLIteration,
 )
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import ZeroPrior, Prior
@@ -2358,6 +2359,204 @@ class MLEM(BaseOptim):
             trainable_params=trainable_params,
             **kwargs,
         )
+
+
+class BlindRL(BaseOptim):
+    r"""
+    Blind Richardson-Lucy deconvolution for Poisson inverse problems.
+
+    This algorithm alternates multiplicative MLEM updates for the latent image
+    :math:`x` and the blur kernel :math:`k` under the model
+
+    .. math::
+        y \sim \operatorname{Poisson}(k * x).
+
+    The kernel is constrained to be nonnegative and, by default, normalized to
+    unit sum after each kernel update. The implementation currently supports 2D
+    circular convolution with a spatially invariant kernel shared by all image
+    channels.
+
+    :param deepinv.optim.Prior x_prior: optional image prior. Default: ``None``.
+    :param deepinv.optim.Prior k_prior: optional kernel prior. Default: ``None``.
+    :param float lambda_reg: image regularization parameter. Default: ``0.0``.
+    :param float lambda_kernel: kernel regularization parameter. Default: ``0.0``.
+    :param float g_param: parameter for the image prior. Default: ``None``.
+    :param float g_param_kernel: parameter for the kernel prior. Default: ``None``.
+    :param int x_steps: number of inner image updates per iteration. Default: ``1``.
+    :param int k_steps: number of inner kernel updates per iteration. Default: ``1``.
+    :param bool normalize_kernel: whether to normalize the kernel to unit sum.
+        Default: ``True``.
+    :param float eps: numerical stability constant. Default: ``1e-15``.
+    :param int max_iter: number of alternating BlindRL iterations. Default: ``100``.
+    :param Callable custom_init: optional initializer returning ``(x0, k0)`` or a
+        dictionary with ``{"est": (x0, k0)}``. If omitted, ``x0`` is initialized
+        with ``physics.A_adjoint(y)`` and ``k0`` with ``physics.filter``.
+    :param dict params_algo: optionally provide BlindRL parameters directly.
+    """
+
+    def __init__(
+        self,
+        x_prior: Prior | list[Prior] = None,
+        k_prior: Prior = None,
+        lambda_reg: float = 0.0,
+        lambda_kernel: float = 0.0,
+        g_param: float = None,
+        g_param_kernel: float = None,
+        x_steps: int = 1,
+        k_steps: int = 1,
+        normalize_kernel: bool = True,
+        eps: float = 1e-15,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        params_algo: dict[str, float] = None,
+        unfold: bool = False,
+        DEQ: DEQConfig | bool = None,
+        anderson_acceleration: AndersonAccelerationConfig | bool = False,
+        **kwargs,
+    ):
+        if unfold or DEQ or anderson_acceleration:
+            raise NotImplementedError(
+                "BlindRL currently does not support unfold, DEQ or "
+                "Anderson acceleration."
+            )
+
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "lambda_kernel": lambda_kernel,
+                "g_param": g_param,
+                "g_param_kernel": g_param_kernel,
+                "x_steps": x_steps,
+                "k_steps": k_steps,
+            }
+
+        self.eps = eps
+
+        super(BlindRL, self).__init__(
+            BlindRLIteration(
+                k_prior=k_prior,
+                normalize_kernel=normalize_kernel,
+                eps=eps,
+            ),
+            data_fidelity=None,
+            prior=x_prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
+            get_output=lambda X: X["est"][0],
+            unfold=False,
+            **kwargs,
+        )
+        self.has_cost = False
+        self.fixed_point.iterator.has_cost = False
+
+    @staticmethod
+    def _physics_filter(physics: Physics) -> torch.Tensor:
+        if not hasattr(physics, "filter") or physics.filter is None:
+            raise ValueError(
+                "BlindRL needs an initial kernel. Provide init=(x0, k0), "
+                "custom_init, or a blur physics with a non-None filter."
+            )
+        return physics.filter
+
+    def init_iterate_fn(
+        self,
+        y: torch.Tensor,
+        physics: Physics,
+        init: (
+            Callable[
+                [torch.Tensor, Physics], Iterable[torch.Tensor] | torch.Tensor | dict
+            ]
+            | Iterable[torch.Tensor]
+            | torch.Tensor
+            | dict
+        ) = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float | Iterable],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+    ) -> dict:
+        self.params_algo = self.init_params_algo.copy()
+        init = init if init is not None else self.custom_init
+
+        if init is None:
+            x_init = physics.A_adjoint(y)
+            k_init = self._physics_filter(physics)
+            init_X = {"est": (x_init, k_init)}
+        else:
+            if callable(init):
+                init = init(y, physics)
+            if isinstance(init, torch.Tensor):
+                init_X = {"est": (init, self._physics_filter(physics))}
+            elif isinstance(init, tuple):
+                if len(init) != 2:
+                    raise ValueError("BlindRL tuple initialization must be (x0, k0).")
+                init_X = {"est": init}
+            elif isinstance(init, dict):
+                init_X = init
+            else:
+                raise ValueError(
+                    "BlindRL initialization must be a tensor, tuple or dict. "
+                    f"Got {type(init)}."
+                )
+
+        if len(init_X["est"]) < 2:
+            raise ValueError(
+                "BlindRL initialization must contain both image and kernel."
+            )
+        init_X["cost"] = None
+        return init_X
+
+    def forward(
+        self,
+        y: torch.Tensor,
+        physics: Physics,
+        init: (
+            Callable[
+                [torch.Tensor, Physics], Iterable[torch.Tensor] | torch.Tensor | dict
+            ]
+            | Iterable[torch.Tensor]
+            | torch.Tensor
+            | dict
+        ) = None,
+        x_gt: torch.Tensor = None,
+        compute_metrics: bool = False,
+        **kwargs,
+    ):
+        r"""
+        Runs Blind Richardson-Lucy deconvolution.
+
+        :return: ``(x, k)`` if ``compute_metrics`` is ``False``. Otherwise,
+            returns ``((x, k), metrics)``.
+        """
+        with torch.no_grad():
+            X, metrics = self.fixed_point(
+                y,
+                physics,
+                init=init,
+                x_gt=x_gt,
+                compute_metrics=compute_metrics,
+                **kwargs,
+            )
+        output = X["est"]
+        if compute_metrics:
+            return output, metrics
+        return output
 
 
 class SIRT(BaseOptim):
