@@ -368,7 +368,7 @@ class DiffractionBlurGenerator(PSFGenerator):
 
     .. math::
 
-        h(\boldsymbol{x}; \lambda) = \left| \mathcal{F} \left[ \mathbb{1}_{|\boldsymbol{\rho}| \leq 1} \cdot \exp \left( - i 2 \pi \sum_k \frac{a_k}{\lambda} z_k(\boldsymbol{\rho}) \right) \right](\boldsymbol{x}) \right|^2
+        h(\cdot; \lambda) = \left| \mathcal{F} \left[ \mathbb{1}_{|\boldsymbol{\rho}| \leq 1} \cdot \exp \left( - i 2 \pi \sum_k \frac{a_k}{\lambda} z_k(\boldsymbol{\rho}) \right) \right](\cdot) \right|^2
 
     where :math:`\boldsymbol{\rho}` are normalised pupil-plane coordinates (on the unit disk),
     :math:`a_k` are the Zernike coefficients **in physical units** (nm OPD, wavelength-independent),
