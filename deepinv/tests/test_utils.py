@@ -1085,6 +1085,28 @@ def test_io_np():
     ).shape == (217, 181)
 
 
+def test_load_url_is_cached(tmp_path, monkeypatch):
+    url = "https://example.com/sample.bin"
+    data = b"cached-content"
+
+    monkeypatch.setattr(deepinv.io, "get_cache_home", lambda: tmp_path)
+
+    response = mock.MagicMock()
+    response.iter_content.return_value = [data]
+    response.raise_for_status.return_value = None
+    response.__enter__.return_value = response
+    response.__exit__.return_value = None
+
+    with patch.object(deepinv.io.requests, "get", return_value=response) as mock_get:
+        file1 = deepinv.utils.load_url(url)
+        file2 = deepinv.utils.load_url(url)
+
+    assert mock_get.call_count == 1
+    assert file1.getvalue() == data
+    assert file2.getvalue() == data
+    assert any((tmp_path / "url_cache").iterdir())
+
+
 def test_io_raster():
     pytest.importorskip(
         "rasterio",

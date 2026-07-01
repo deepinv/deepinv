@@ -35,34 +35,83 @@ jobs:
     env:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
+      # Persist deepinv's URL cache to a workspace-local folder so it can be
+      # cached across CI runs (see actions/cache steps below). This avoids
+      # re-downloading example images, models and datasets from HuggingFace
+      # and prevents 429 rate-limit failures.
+      DEEPINV_CACHE_DIR: ${{ github.workspace }}/.cache/deepinv
 
     steps:
       - uses: actions/checkout@v5
+
+      # On PRs, restore the pixi.lock + .testmondata pair solved on main as a
+      # SINGLE cache entry, so it is restored atomically (no lock/testmondata
+      # mismatch). pixi then installs the exact same package set that produced
+      # .testmondata, keeping testmon's environment fingerprint stable
+      # (otherwise an unpinned env re-solves every run, drifts, and forces a
+      # full re-run). Restored *before* Setup Pixi so the action installs from
+      # this lock. Not restored on push to main: main solves fresh to track
+      # latest deps (and re-runs the full suite anyway).
+      - name: Restore pixi.lock + .testmondata
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            pixi.lock
+            .testmondata
+          key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
+          restore-keys: |
+            testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-
 
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
-          environments: full-cpu test-cpu
+          run-install: false  # we drive installation manually below
 
-      - name: Restore .testmondata
-        uses: actions/cache/restore@v3
+      # Install dependencies with pixi, using the restored lock if available. If the
+      # lock is unavailable or fails to solve, fall back to a fresh solve. 
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -x
+          if ! pixi install -e ${{ matrix.environment }} --locked --manifest-path pyproject.toml --color always; then
+            echo "pixi install with --locked option failed, run install without lock"
+            pixi install -e ${{ matrix.environment }} --manifest-path pyproject.toml --color always
+          fi
+
+          pixi list -e ${{ matrix.environment }} --manifest-path pyproject.toml --color always
+          set +x
+
+      - name: Restore deepinv URL cache # shared across matrix environments
+        uses: actions/cache/restore@v4
         with:
-          path: .testmondata
-          key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
+          path: ${{ env.DEEPINV_CACHE_DIR }}
+          key: deepinv-url-cache-${{ matrix.os }}-${{ github.run_id }}
           restore-keys: |
-            testmon-cpu-main-${{ matrix.os }}
+            deepinv-url-cache-${{ matrix.os }}-
 
       - name: Test with pytest
         run: |
           pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml --testmon
 
-      - name: Save .testmondata # only when pushed to main, not for PRs
+      # Save the freshly-solved lock + .testmondata as a single (atomic) cache
+      # entry so PRs always restore a matching pair. Only on push to main.
+      - name: Save pixi.lock + .testmondata # only when pushed to main, not for PRs
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
-          path: .testmondata
+          path: |
+            pixi.lock
+            .testmondata
           key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
+
+      - name: Save deepinv URL cache # only on push to main, mirrors testmondata
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.DEEPINV_CACHE_DIR }}
+          key: deepinv-url-cache-${{ matrix.os }}-${{ github.run_id }}
 
       - name: Upload coverage to Codecov
         if: runner.os == 'Linux' && matrix.environment == 'full'

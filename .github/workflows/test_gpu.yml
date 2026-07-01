@@ -23,7 +23,7 @@ jobs:
       WORKING_DIR: "/local/jtachell"
       PIXI_HOME: "/local/jtachell/.pixi"
       TMP_DIR: "/local/jtachell/tmp"
-      DEEPINV_CACHE: "/local/jtachell/.cache/deepinv"
+      DEEPINV_CACHE_DIR: "/local/jtachell/.cache/deepinv"
       HF_HOME: "/local/jtachell/.cache/huggingface"
       TORCH_HOME: "/local/jtachell/.cache/torch"
 
@@ -34,13 +34,46 @@ jobs:
                   || (inputs.pr_number && format('refs/pull/{0}/head', inputs.pr_number))
                   || github.sha }}
 
+      # When testing a PR, restore the pixi.lock + .testmondata pair solved on
+      # main as a SINGLE cache entry (atomic, no lock/testmondata mismatch) so
+      # pixi installs the exact package set that produced .testmondata, keeping
+      # testmon's environment fingerprint stable. Restored *before* Setup Pixi
+      # so the action installs from this lock. Baseline runs (schedule / push
+      # to main) restore nothing and solve fresh to track latest deps.
+      - name: Restore pixi.lock + .testmondata
+        if: inputs.pr_number != ''
+        uses: actions/cache/restore@v4
+        id: restore-cache
+        with:
+          path: |
+            pixi.lock
+            .testmondata
+          key: testmon-gpu-main-${{ github.run_id }}
+          restore-keys: |
+            testmon-gpu-main-
+
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
           post-cleanup: true
-          environments: full
           pixi-bin-path: /local/jtachell/pixi/bin/pixi
+          run-install: false  # we drive installation manually below
+
+      # Install dependencies with pixi, using the restored lock if available. If the
+      # lock is unavailable or fails to solve, fall back to a fresh solve. 
+      - name: Install dependencies
+        run: |
+          set -x
+          if ! pixi install -e full --locked --manifest-path pyproject.toml --color always; then
+            echo "pixi install with --locked option failed, run install without lock"
+            pixi install -e full --manifest-path pyproject.toml --color always
+          fi
+
+          pixi list -e full --manifest-path pyproject.toml --color always
+
+          pixi clean cache --yes
+          set +x
 
       - name: Check import
         run: |
@@ -60,24 +93,20 @@ jobs:
                 f'GPU: {torch.cuda.get_device_name(0)}')
           "
 
-      - name: Restore .testmondata # Restore testmon data from main to speed up tests
-        uses: actions/cache/restore@v3
-        id: restore-cache
-        with:
-          path: .testmondata
-          key: testmon-${{ github.ref_name }}-${{ github.run_id }}
-          restore-keys: |
-            testmon-gpu-main-
-
       - name: Test with pytest
         run: |
           pixi run -e full pytest -n 2 --dist=loadgroup --testmon
 
-      - name: Save .testmondata
-        uses: actions/cache/save@v3
-        if: github.ref == 'refs/heads/main' # Only save cache on main branch
+      # Save the freshly-solved lock + .testmondata as a single (atomic) matched
+      # baseline pair. Only on main and only for baseline runs (not PR-dispatch),
+      # so a PR's env/results never overwrite the main baseline.
+      - name: Save pixi.lock + .testmondata
+        uses: actions/cache/save@v4
+        if: github.ref == 'refs/heads/main' && inputs.pr_number == '' # Only save baseline cache on main
         with:
-          path: .testmondata
+          path: |
+            pixi.lock
+            .testmondata
           key: testmon-gpu-main-${{ github.run_id }}
 
       - name: Post result to PR
@@ -88,11 +117,11 @@ jobs:
             const pr = context.payload.inputs.pr_number;
             const result = "${{ job.status }}";
             const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
-      
+
             const body = result === "success"
               ? `✅ GPU tests passed\n\n🔗 [View run details](${runUrl})`
               : `❌ GPU tests failed\n\n🔗 [View run details](${runUrl})`;
-      
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
