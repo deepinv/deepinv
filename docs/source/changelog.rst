@@ -9,6 +9,8 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add caching to demo/archive downloads (:gh:`1234` by `Julian Tachella`_)
+- Add :func:`deepinv.utils.load_tiff` to load images/ volumes from TIFF files (:gh:`1249` by `Andrew Wang`_)
+- Add :func:`deepinv.utils.plot_napari` to interactively view 2D images/3D vols with napari (:gh:`1249` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^

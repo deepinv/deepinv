@@ -1160,6 +1160,34 @@ def test_io_blosc2():
         assert out_memmap is mock_arr
 
 
+def test_io_tiff(tmp_path):
+    tifffile = pytest.importorskip(
+        "tifffile",
+        reason="This test requires tifffile. It should be "
+        "installed with `pip install tifffile`",
+    )
+
+    # 2D integer image is normalized to [0, 1] and gets a channel + batch dim
+    gray = np.array([[0, 255], [128, 64]], dtype=np.uint8)
+    tifffile.imwrite(tmp_path / "gray.tif", gray)
+    x = deepinv.io.load_tiff(tmp_path / "gray.tif")
+    assert x.shape == (1, 1, 2, 2)
+    assert x.max() <= 1.0 and x.min() >= 0.0
+    assert torch.allclose(
+        x, torch.from_numpy(gray.astype(np.float64) / 255).reshape(x.shape)
+    )
+
+    # 3D (H, W, C) image is converted to channel-first (1, C, H, W)
+    rgb = np.zeros((4, 5, 3), dtype=np.uint16)
+    tifffile.imwrite(tmp_path / "rgb.tif", rgb)
+    x = deepinv.io.load_tiff(tmp_path / "rgb.tif")
+    assert x.shape == (1, 3, 4, 5)
+
+    # dtype argument casts the output tensor
+    x = deepinv.io.load_tiff(tmp_path / "gray.tif", dtype=torch.float32)
+    assert x.dtype == torch.float32
+
+
 PATCH_CONFIGS = [
     (2, 3, 16, 16, 6, 1),
     (1, 1, 8, 8, 4, 2),
