@@ -96,6 +96,7 @@ jobs:
       # (pytest-cov does not take into account skipped tests by testmon)
       # If .coverage exists, testmon skips the non-related tests and --cov-append updates coverage with respect to related changes.
       - name: Test with pytest
+        shell: bash
         run: |
           TESTMON_FLAG=""
           if [ -f .coverage ]; then
