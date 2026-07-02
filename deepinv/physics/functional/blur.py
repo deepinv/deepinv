@@ -1,7 +1,42 @@
 from __future__ import annotations
 import torch
+import torch.nn.functional as F
 
 from math import sqrt, pi
+
+
+def conv2d_filter_adjoint(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    filter_size: tuple[int, int],
+    padding: str = "circular",
+) -> torch.Tensor:
+    r"""
+    Apply the adjoint of 2D convolution with respect to its filter.
+
+    :param torch.Tensor x: Input tensor of shape ``(B, C, H, W)``.
+    :param torch.Tensor y: Adjoint input of shape ``(B, C, H, W)``.
+    :param tuple[int, int] filter_size: Filter size ``(H_f, W_f)``.
+    :param str padding: Padding mode. Currently only ``"circular"`` is supported.
+    :return: Per-channel filter adjoint of shape ``(B, C, H_f, W_f)``.
+    """
+    if padding != "circular":
+        raise NotImplementedError(
+            "conv2d_filter_adjoint only supports circular padding."
+        )
+
+    hf, wf = filter_size
+    ph, pw = hf // 2, wf // 2
+    ih, iw = (hf - 1) % 2, (wf - 1) % 2
+
+    x = F.pad(x, (pw - iw, pw, ph - ih, ph), mode=padding)
+    b, c, h, w = y.shape
+    adjoint = F.conv2d(
+        x.reshape(1, b * c, *x.shape[-2:]),
+        y.reshape(b * c, 1, h, w),
+        groups=b * c,
+    )
+    return adjoint.view(b, c, hf, wf).flip(-2, -1).contiguous()
 
 
 def _resolve_batch_size(

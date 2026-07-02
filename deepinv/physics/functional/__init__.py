@@ -13,6 +13,7 @@ from .convolution import (
 
 from .blur import (
     gaussian_blur,
+    conv2d_filter_adjoint,
     bilinear_filter,
     bicubic_filter,
     sinc_filter,
