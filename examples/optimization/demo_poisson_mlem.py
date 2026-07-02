@@ -75,7 +75,7 @@ x = dataset[0].unsqueeze(0).to(device)  # ground-truth image
 
 # Define the blur kernel
 n_channels = 3
-filter_torch = dinv.physics.functional.gaussian_blur(sigma=(2, 2))
+filter_torch = dinv.physics.functional.gaussian_blur(psf_size=(17, 17), sigma=2.0)
 
 gain = 1 / 100
 physics_blur = dinv.physics.BlurFFT(

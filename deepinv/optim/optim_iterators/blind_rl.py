@@ -51,7 +51,8 @@ class BlindRLIteration(OptimIterator):
         :param dict X: Current iterate with ``X["est"] = (x, k)``.
         :param deepinv.optim.Prior cur_prior: Image prior.
         :param dict cur_params: Parameters containing ``x_steps``, ``k_steps``,
-            ``lambda``, ``lambda_kernel``, ``g_param`` and ``g_param_kernel``.
+            ``lambda_reg_x``, ``lambda_reg_k``, ``g_param`` and
+            ``g_param_kernel``.
         :param torch.Tensor y: Blurry observation of shape ``(B, C, H, W)``.
         :param deepinv.physics.Physics physics: Blur physics updated in-place with the
             current kernel for the image update.
@@ -65,8 +66,8 @@ class BlindRLIteration(OptimIterator):
             )
         if y.shape != x.shape:
             raise ValueError(
-                "BlindRLIteration requires circular deconvolution with y and x having "
-                f"the same shape. Got y={tuple(y.shape)} and x={tuple(x.shape)}."
+                "BlindRLIteration requires circular deconvolution with y and x having the same shape."
+                f"Got y={tuple(y.shape)} and x={tuple(x.shape)}."
             )
 
         k = k_prev.to(device=x.device, dtype=x.dtype)
@@ -98,8 +99,8 @@ class BlindRLIteration(OptimIterator):
         hk, wk = k.shape[-2:]
         x_steps = int(cur_params.get("x_steps", 1))
         k_steps = int(cur_params.get("k_steps", 1))
-        lambda_x = cur_params.get("lambda", 0.0)
-        lambda_k = cur_params.get("lambda_kernel", 0.0)
+        lambda_x = cur_params.get("lambda_reg_x", 0.0)
+        lambda_k = cur_params.get("lambda_reg_k", 0.0)
         g_param = cur_params.get("g_param", None)
         k_g_param = cur_params.get("g_param_kernel", None)
 

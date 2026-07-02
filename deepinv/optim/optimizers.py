@@ -2378,8 +2378,8 @@ class BlindRL(BaseOptim):
 
     :param deepinv.optim.Prior x_prior: optional image prior. Default: ``None``.
     :param deepinv.optim.Prior k_prior: optional kernel prior. Default: ``None``.
-    :param float lambda_reg: image regularization parameter. Default: ``0.0``.
-    :param float lambda_kernel: kernel regularization parameter. Default: ``0.0``.
+    :param float lambda_reg_x: image regularization parameter. Default: ``0.0``.
+    :param float lambda_reg_k: kernel regularization parameter. Default: ``0.0``.
     :param float g_param: parameter for the image prior. Default: ``None``.
     :param float g_param_kernel: parameter for the kernel prior. Default: ``None``.
     :param int x_steps: number of inner image updates per iteration. Default: ``1``.
@@ -2398,8 +2398,8 @@ class BlindRL(BaseOptim):
         self,
         x_prior: Prior | list[Prior] = None,
         k_prior: Prior = None,
-        lambda_reg: float = 0.0,
-        lambda_kernel: float = 0.0,
+        lambda_reg_x: float = 0.0,
+        lambda_reg_k: float = 0.0,
         g_param: float = None,
         g_param_kernel: float = None,
         x_steps: int = 1,
@@ -2426,8 +2426,8 @@ class BlindRL(BaseOptim):
 
         if params_algo is None:
             params_algo = {
-                "lambda": lambda_reg,
-                "lambda_kernel": lambda_kernel,
+                "lambda_reg_x": lambda_reg_x,
+                "lambda_reg_k": lambda_reg_k,
                 "g_param": g_param,
                 "g_param_kernel": g_param_kernel,
                 "x_steps": x_steps,
