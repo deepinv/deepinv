@@ -4,82 +4,8 @@ import torch
 import torch.nn.functional as F
 
 from .optim_iterator import OptimIterator
+import deepinv.physics.functional as dF
 from deepinv.optim.prior import ZeroPrior
-
-
-def _normalize_kernel(k: torch.Tensor, eps: float) -> torch.Tensor:
-    """Project nonnegative kernels to unit sum per batch."""
-    k = k.clamp_min(0.0)
-    return k / k.sum(dim=tuple(range(1, k.dim())), keepdim=True).clamp_min(eps)
-
-
-def _prepare_kernel(
-    k: torch.Tensor,
-    x: torch.Tensor,
-    normalize: bool,
-    eps: float,
-) -> torch.Tensor:
-    if k.dim() != 4:
-        raise ValueError(
-            "The blur kernel must be a 4D tensor shaped (B or 1, C or 1, H, W)."
-        )
-
-    if k.shape[0] == 1 and x.shape[0] > 1:
-        k = k.expand(x.shape[0], -1, -1, -1).contiguous()
-    elif k.shape[0] != x.shape[0]:
-        raise ValueError(
-            "The kernel batch size must be 1 or match x. "
-            f"Got {k.shape[0]} and {x.shape[0]}."
-        )
-
-    if k.shape[1] == x.shape[1]:
-        k = k.mean(dim=1, keepdim=True)
-    elif k.shape[1] != 1:
-        raise ValueError(
-            "The kernel channel size must be 1 or match x. "
-            f"Got {k.shape[1]} and {x.shape[1]}."
-        )
-
-    k = k.to(device=x.device, dtype=x.dtype)
-    return _normalize_kernel(k, eps) if normalize else k.clamp_min(0.0)
-
-
-def _expand_kernel_channels(k: torch.Tensor, channels: int) -> torch.Tensor:
-    if k.shape[1] == 1 and channels > 1:
-        return k.expand(-1, channels, -1, -1)
-    return k
-
-
-def _circular_patches(x: torch.Tensor, kernel_size: tuple[int, int]) -> torch.Tensor:
-    h, w = kernel_size
-    ph, pw = h // 2, w // 2
-    ih, iw = (h - 1) % 2, (w - 1) % 2
-    x_pad = F.pad(x, (pw - iw, pw, ph - ih, ph), mode="circular")
-    patches = F.unfold(x_pad, kernel_size=kernel_size)
-    return patches.view(x.shape[0], x.shape[1], h * w, x.shape[-2] * x.shape[-1])
-
-
-def _kernel_forward_from_patches(
-    patches: torch.Tensor,
-    k: torch.Tensor,
-    out_shape: tuple[int, int, int, int],
-) -> torch.Tensor:
-    b, c, h, w = out_shape
-    hk, wk = k.shape[-2:]
-    k_flip = _expand_kernel_channels(k.flip(-2, -1), c)
-    return (patches * k_flip.reshape(b, c, hk * wk, 1)).sum(dim=2).view(b, c, h, w)
-
-
-def _kernel_adjoint_from_patches(
-    patches: torch.Tensor,
-    y: torch.Tensor,
-    kernel_size: tuple[int, int],
-) -> torch.Tensor:
-    hk, wk = kernel_size
-    y_flat = y.reshape(y.shape[0], y.shape[1], 1, -1)
-    return (
-        (patches * y_flat).sum(dim=-1).view(y.shape[0], y.shape[1], hk, wk).flip(-2, -1)
-    )
 
 
 def _prior_grad(prior, x: torch.Tensor, g_param, eps: float) -> torch.Tensor:
@@ -132,7 +58,6 @@ class BlindRLIteration(OptimIterator):
         """
         x_prev, k_prev = X["est"][:2]
         x = x_prev.clamp_min(self.eps)
-        k = _prepare_kernel(k_prev, x, self.normalize_kernel, self.eps)
 
         if y.dim() != 4 or x.dim() != 4:
             raise ValueError(
@@ -144,7 +69,32 @@ class BlindRLIteration(OptimIterator):
                 f"the same shape. Got y={tuple(y.shape)} and x={tuple(x.shape)}."
             )
 
-        b, c, h, w = y.shape
+        k = k_prev.to(device=x.device, dtype=x.dtype)
+        if k.dim() != 4:
+            raise ValueError(
+                "The blur kernel must be a 4D tensor shaped (B or 1, C or 1, H, W)."
+            )
+        if k.shape[0] == 1 and x.shape[0] > 1:
+            k = k.expand(x.shape[0], -1, -1, -1).contiguous()
+        elif k.shape[0] != x.shape[0]:
+            raise ValueError(
+                "The kernel batch size must be 1 or match x. "
+                f"Got {k.shape[0]} and {x.shape[0]}."
+            )
+        if k.shape[1] == x.shape[1]:
+            k = k.mean(dim=1, keepdim=True)
+        elif k.shape[1] != 1:
+            raise ValueError(
+                "The kernel channel size must be 1 or match x. "
+                f"Got {k.shape[1]} and {x.shape[1]}."
+            )
+        if self.normalize_kernel:
+            k = F.normalize(
+                k.clamp_min(0.0).flatten(1), p=1, dim=1, eps=self.eps
+            ).view_as(k)
+        else:
+            k = k.clamp_min(0.0)
+
         hk, wk = k.shape[-2:]
         x_steps = int(cur_params.get("x_steps", 1))
         k_steps = int(cur_params.get("k_steps", 1))
@@ -155,26 +105,26 @@ class BlindRLIteration(OptimIterator):
 
         ones_y = torch.ones_like(y)
 
-        x_patches = _circular_patches(x, (hk, wk))
-        sensitivity_k = _kernel_adjoint_from_patches(
-            x_patches, ones_y, (hk, wk)
-        ).mean(dim=1, keepdim=True)
+        sensitivity_k = dF.conv2d_filter_adjoint(x, ones_y, (hk, wk)).mean(
+            dim=1, keepdim=True
+        )
 
         for _ in range(k_steps):
-            y_hat = _kernel_forward_from_patches(x_patches, k, (b, c, h, w))
+            y_hat = dF.conv2d(x, k, padding="circular")
             ratio = y / y_hat.clamp_min(self.eps)
-            numerator_k = _kernel_adjoint_from_patches(
-                x_patches, ratio, (hk, wk)
-            ).mean(dim=1, keepdim=True)
+            numerator_k = dF.conv2d_filter_adjoint(x, ratio, (hk, wk)).mean(
+                dim=1, keepdim=True
+            )
             denom_k = sensitivity_k + lambda_k * self.k_prior.grad(k, k_g_param)
             k = k * numerator_k / denom_k.clamp_min(self.eps)
-            k = (
-                _normalize_kernel(k, self.eps)
-                if self.normalize_kernel
-                else k.clamp_min(0.0)
-            )
+            if self.normalize_kernel:
+                k = F.normalize(
+                    k.clamp_min(0.0).flatten(1), p=1, dim=1, eps=self.eps
+                ).view_as(k)
+            else:
+                k = k.clamp_min(0.0)
 
-        physics.update_parameters(filter=_expand_kernel_channels(k, c))
+        physics.update_parameters(filter=k)
         sensitivity_x = physics.A_adjoint(ones_y).clamp_min(self.eps)
 
         for _ in range(x_steps):
