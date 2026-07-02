@@ -36,7 +36,6 @@ regularization.
 """
 
 # %%
-import matplotlib.pyplot as plt
 import torch
 
 import deepinv as dinv
