@@ -405,7 +405,6 @@ class DiffractionBlurGenerator(PSFGenerator):
     ) -> dict:
         r"""
         Generate a batch of PFS with a batch of Zernike coefficients
-
         :param int batch_size: batch_size.
         :param torch.Tensor coeff: `batch_size x len(zernike_index)` coefficients of the Zernike decomposition (default is `None`)
         :param torch.Tensor angle: `batch_size` angles in degree to rotate the PSF (defaults is `None`)
