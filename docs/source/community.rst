@@ -12,12 +12,12 @@ and we welcome contributions from the community. :ref:`Check out how you can con
    Attending **MICCAI 2026**? Find details of the :ref:`DeepInverse tutorial at MICCAI here <miccai2026>`.
 
 .. image:: figures/hackathon_2025.jpg
-   :width: 100%
+   :width: 60%
    :alt: deepinverse Hackathon 2025 at CIRM, Marseille, France
 
 
 .. image:: figures/hackathon_2024.jpg
-   :width: 100%
+   :width: 60%
    :alt: deepinverse Hackathon 2024 at CIRM, Marseille, France
 
 Future events

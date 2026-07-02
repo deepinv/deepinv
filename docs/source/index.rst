@@ -15,9 +15,9 @@ DeepInverse: a Python library for imaging with deep learning
    auto_examples/index
    user_guide
    API
-   finding_help
-   contributing
    community
+   contributing
+   finding_help
    changelog
 
 DeepInverse is an open-source PyTorch-based library for solving imaging inverse problems with deep learning.
@@ -212,13 +212,8 @@ Finding help
 ------------
 
 If you have any questions or suggestions, please join the conversation in our
-`Discord server <https://discord.gg/qBqY5jKw3p>`_. The recommended way to get in touch with the developers about any bugs or issues is to
-`open an issue <https://github.com/deepinv/deepinv/issues>`_.
-
-Maintainers
-~~~~~~~~~~~
-
-Get in touch with our `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
+`Discord server <https://discord.gg/qBqY5jKw3p>`_. The fastest way to get in touch with the developers about any bugs or issues is to
+`open an issue <https://github.com/deepinv/deepinv/issues>`_. Alternatively, contact a `maintainer <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
 
 Contributing
 ------------
@@ -253,6 +248,7 @@ Star history
 ------------
 
 .. image:: https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date
+   :width: 60%
    :alt: Star History Chart
    :target: https://www.star-history.com/#deepinv/deepinv&Date
 
