@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # On PRs, restore the pixi.lock + .testmondata pair solved on main as a
+      # On PRs, restore the pixi.lock + .testmondata + .coverage triple solved on main as a
       # SINGLE cache entry, so it is restored atomically (no lock/testmondata
       # mismatch). pixi then installs the exact same package set that produced
       # .testmondata, keeping testmon's environment fingerprint stable
@@ -102,9 +102,9 @@ jobs:
           if [ -f .coverage ]; then
             TESTMON_FLAG="--testmon"
           fi
-          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml --cov-append $TESTMON_FLAG
+          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml:coverage-${{ matrix.environment }}.xml --cov-append $TESTMON_FLAG
 
-      # Save the freshly-solved lock + .testmondata as a single (atomic) cache
+      # Save the freshly-solved lock + .testmondata + .coverage as a single (atomic) cache
       # entry so PRs always restore a matching pair. Only on push to main.
       - name: Save pixi.lock + .testmondata + .coverage # only when pushed to main, not for PRs
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -129,4 +129,6 @@ jobs:
         with:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.xml
+          files: ./coverage-${{ matrix.environment }}.xml
+          flags: ${{ matrix.environment }}
+          name: ${{ matrix.environment }}-coverage
