@@ -106,6 +106,9 @@ class BlindRLIteration(OptimIterator):
 
         ones_y = torch.ones_like(y)
 
+        # Kernel update: adjoint of A_x: h -> x * h with respect to h.
+        # This is not physics.A_adjoint, which is the adjoint of A_h with
+        # respect to the image x for a fixed kernel h.
         sensitivity_k = dF.conv2d_filter_adjoint(x, ones_y, (hk, wk)).mean(
             dim=1, keepdim=True
         )

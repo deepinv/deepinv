@@ -60,3 +60,27 @@ The library provides the following parameter estimation models/algorithms:
      - :class:`GaussianNoise <deepinv.physics.GaussianNoise>`
      - `sigma`
      - :ref:`noise level estimation <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_denoising.py>`.
+
+Joint reconstruction and parameter estimation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In some blind inverse problems, the signal and the unknown physics parameters are estimated jointly from a single measurement.
+The library provides the following joint reconstruction algorithms:
+
+.. list-table:: Blind reconstruction algorithms
+   :widths: 18 15 18 20 20
+   :header-rows: 1
+
+   * - Model/Algorithm
+     - Tensor Size (C, H, W)
+     - Physics
+     - Parameters estimated
+     - Examples
+
+   * - :class:`Blind Richardson-Lucy <deepinv.optim.BlindRL>`
+     - C>=1; H,W arbitrary
+     - :class:`Blur <deepinv.physics.Blur>` with circular padding
+     - clean image ``x``, blur kernel ``filter``
+     - :ref:`blind Richardson-Lucy <sphx_glr_auto_examples_optimization_demo_blind_richardsonlucy.py>`.
+
+:class:`deepinv.optim.BlindRL` alternates multiplicative Richardson-Lucy updates for the image and blur kernel under a Poisson observation model.
+It supports optional image and kernel priors through One-Step-Late regularization, and is intended as a simple baseline for blind deconvolution.
