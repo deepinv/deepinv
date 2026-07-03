@@ -1,4 +1,5 @@
 from .optim_iterator import OptimIterator
+import torch
 from torch import ones_like
 
 
@@ -36,9 +37,15 @@ class MLEMIteration(OptimIterator):
         x = x_prev * physics.A_adjoint(y / (physics.A(x_prev).clamp(min=1e-15)))
 
         if cur_prior is not None:
-            denom = sensitivity + cur_params["lambda"] * cur_prior.grad(
-                x, cur_params["g_param"]
+            prior_grad = cur_prior.grad(x, cur_params["g_param"])
+            # Add a safeguard to avoid NaN values in the prior gradient,
+            # which can occur often with non-smooth priors like TV or L1.
+            prior_grad = torch.where(
+                torch.isfinite(prior_grad),
+                prior_grad,
+                torch.zeros_like(prior_grad),
             )
+            denom = sensitivity + cur_params["lambda"] * prior_grad
         else:
             denom = sensitivity
 

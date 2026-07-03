@@ -8,13 +8,6 @@ import deepinv.physics.functional as dF
 from deepinv.optim.prior import ZeroPrior
 
 
-def _prior_grad(prior, x: torch.Tensor, g_param, eps: float) -> torch.Tensor:
-    if hasattr(prior, "nabla") and hasattr(prior, "nabla_adjoint"):
-        grad_x = prior.nabla(x)
-        return prior.nabla_adjoint(grad_x / torch.abs(grad_x).clamp_min(eps))
-    return prior.grad(x, g_param)
-
-
 class BlindRLIteration(OptimIterator):
     r"""
     Iterator for Blind Richardson-Lucy deconvolution.
@@ -134,9 +127,15 @@ class BlindRLIteration(OptimIterator):
         for _ in range(x_steps):
             y_hat = physics.A(x)
             numerator_x = physics.A_adjoint(y / y_hat.clamp_min(self.eps))
-            denom_x = sensitivity_x + lambda_x * _prior_grad(
-                cur_prior, x, g_param, self.eps
+            prior_grad_x = cur_prior.grad(x, g_param)
+            # Add a safeguard to avoid NaN values in the prior gradient,
+            # which can occur often with non-smooth priors like TV or L1.
+            prior_grad_x = torch.where(
+                torch.isfinite(prior_grad_x),
+                prior_grad_x,
+                torch.zeros_like(prior_grad_x),
             )
+            denom_x = sensitivity_x + lambda_x * prior_grad_x
             x = x * numerator_x / denom_x.clamp_min(self.eps)
             x = x.clamp_min(self.eps)
 

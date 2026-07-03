@@ -311,7 +311,7 @@ dinv.utils.plot_curves(metrics)
 #
 # The image is a bit sharper and we get a better estimate of the kernel.
 
-tv_prior = dinv.optim.TVPrior(n_it_max=30)
+tv_prior = dinv.optim.TVPrior(n_it_max=50)
 
 blindrl = dinv.optim.BlindRL(
     x_prior=tv_prior,
