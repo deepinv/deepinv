@@ -69,7 +69,7 @@ def rng(request, device):
     return None
 
 
-def find_generator(name, size, num_channels, device, dtype, psf_size=None, rng=None):
+def find_generator(name, size, device, dtype, psf_size=None, rng=None):
     r"""
     Chooses operator
 
@@ -79,13 +79,12 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None, rng=N
     """
     if name == "GaussianBlurGenerator":
         g = dinv.physics.generator.GaussianBlurGenerator(
-            psf_size=size, device=device, num_channels=num_channels, dtype=dtype
+            psf_size=size, device=device, dtype=dtype
         )
         keys = ["filter"]
     elif name == "MotionBlurGenerator":
         g = dinv.physics.generator.MotionBlurGenerator(
             psf_size=size,
-            num_channels=num_channels,
             device=device,
             dtype=dtype,
             rng=rng,
@@ -95,17 +94,15 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None, rng=N
         g = dinv.physics.generator.DiffractionBlurGenerator(
             psf_size=size,
             device=device,
-            num_channels=num_channels,
             dtype=dtype,
             rng=rng,
         )
-        keys = ["filter", "coeff", "pupil"]
+        keys = ["filter", "coeff", "pupil", "fc"]
     elif name == "ProductConvolutionBlurGenerator":
         g = dinv.physics.generator.ProductConvolutionBlurGenerator(
             psf_generator=dinv.physics.generator.DiffractionBlurGenerator(
                 psf_size=size,
                 device=device,
-                num_channels=num_channels,
                 dtype=dtype,
                 rng=rng,
             ),
@@ -168,16 +165,14 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None, rng=N
 
 @pytest.mark.parametrize("name", GENERATORS)
 @pytest.mark.parametrize("size", SIZES)
-@pytest.mark.parametrize("num_channels", NUM_CHANNELS)
 @pytest.mark.parametrize("dtype", DTYPES)
-def test_shape(name, size, num_channels, device, dtype, rng):
+def test_shape(name, size, device, dtype, rng):
     r"""
-    Tests generators shape.
+    Tests generators shape. All blur generators produce single-channel output by default;
+    multi-channel (colour) output is tested separately in test_diffraction_generator.
     """
 
-    generator, size, keys = find_generator(
-        name, size, num_channels, device, dtype, rng=rng
-    )
+    generator, size, keys = find_generator(name, size, device, dtype, rng=rng)
     batch_size = 4
 
     params = generator.step(batch_size=batch_size)
@@ -185,7 +180,7 @@ def test_shape(name, size, num_channels, device, dtype, rng):
     assert list(params.keys()) == keys
 
     if "filter" in params.keys():
-        assert params["filter"].shape == (batch_size, num_channels, size[0], size[1])
+        assert params["filter"].shape == (batch_size, 1, size[0], size[1])
 
 
 @pytest.mark.parametrize("name", GENERATORS)
@@ -195,7 +190,7 @@ def test_generation_newparams(name, device, dtype, rng):
     Tests generators' ability to generate new parameters at each step.
     """
     size = (32, 32)
-    generator, size, _ = find_generator(name, size, 1, device, dtype, rng=rng)
+    generator, size, _ = find_generator(name, size, device, dtype, rng=rng)
     batch_size = 1
 
     if name == "GaussianBlurGenerator":
@@ -223,7 +218,7 @@ def test_generation_seed(name, device, dtype, rng):
     Tests generators consistency with the same random seed.
     """
     size = (32, 32)
-    generator, size, _ = find_generator(name, size, 1, device, dtype, rng=rng)
+    generator, size, _ = find_generator(name, size, device, dtype, rng=rng)
     batch_size = 1
 
     if name == "GaussianBlurGenerator":
@@ -253,7 +248,7 @@ def test_average(name, device, dtype, rng):
     Tests generators average.
     """
     size = (5, 5)
-    generator, size, _ = find_generator(name, size, 1, device, dtype, rng=rng)
+    generator, size, _ = find_generator(name, size, device, dtype, rng=rng)
     # Set generator seed for reproducibility
     generator.rng_manual_seed(0)
 
@@ -299,7 +294,6 @@ def test_downsampling_generator(num_channels, device, dtype, psf_size, fact, rng
     generator, _, _ = find_generator(
         "DownsamplingGenerator" + str_fact,
         size,
-        num_channels,
         device,
         dtype,
         psf_size=psf_size,
@@ -647,11 +641,21 @@ def test_string_seed():
 
 @pytest.mark.parametrize("apodize", [True, False])
 @pytest.mark.parametrize("random_rotate", [True, False])
-@pytest.mark.parametrize("num_channels", [1, 3])
 @pytest.mark.parametrize("convention", ["noll", "ansi"])
 @pytest.mark.parametrize("is_3d", [True, False])
+@pytest.mark.parametrize(
+    "fc", [None, 0.2, (0.15, 0.2), torch.tensor([[0.10, 0.11], [0.2, 0.21]])]
+)
+@pytest.mark.parametrize("coeff", [None, torch.zeros(2, 35)])
 def test_diffraction_generator(
-    device, apodize, random_rotate, num_channels, convention, is_3d, rng
+    device,
+    apodize,
+    random_rotate,
+    convention,
+    is_3d,
+    rng,
+    fc,
+    coeff,
 ):
     r"""
     Test diffraction generator.
@@ -665,7 +669,6 @@ def test_diffraction_generator(
         generator = dinv.physics.generator.DiffractionBlurGenerator3D(
             psf_size=size,
             device=device,
-            num_channels=num_channels,
             zernike_index=zernike_index,
             index_convention=convention,
             apodize=apodize,
@@ -681,7 +684,6 @@ def test_diffraction_generator(
         generator = dinv.physics.generator.DiffractionBlurGenerator(
             psf_size=size,
             device=device,
-            num_channels=num_channels,
             zernike_index=zernike_index,
             index_convention=convention,
             apodize=apodize,
@@ -693,7 +695,7 @@ def test_diffraction_generator(
 
     batch_sizes = (1, 2)
     expected_keys = set(
-        ["filter", "coeff", "pupil"] + (["angle"] if random_rotate else [])
+        ["filter", "coeff", "pupil", "fc"] + (["angle"] if random_rotate else [])
     )
     for batch_size in batch_sizes:
         params = generator.step(
@@ -703,44 +705,130 @@ def test_diffraction_generator(
             aperture_diameter=0.002,
             apodize=apodize,
             random_rotate=random_rotate,
+            fc=fc,
+            coeff=coeff.to(device) if coeff is not None else None,
         )
+
+        if fc is not None:
+            if isinstance(fc, float):
+                num_channels_out = 1
+                batch_size_out = batch_size
+            else:
+                fc_tensor = torch.as_tensor(fc)
+                if fc_tensor.ndim == 1:
+                    fc_tensor = fc_tensor[None, :].expand(batch_size, -1)
+                batch_size_out, num_channels_out = fc_tensor.shape
+        else:
+            batch_size_out = batch_size
+            num_channels_out = 1
+
+        if coeff is not None:
+            if coeff.ndim == 2:
+                batch_size_out = coeff.shape[0]
+            elif coeff.ndim == 3:
+                batch_size_out, num_channels_out = coeff.shape[:2]
+
+        # print(fc, batch_size_out, num_channels_out)
+        # print(params["filter"].shape, (batch_size_out, num_channels_out, *size))
 
         # Test keys and shapes
         assert set(params.keys()) == expected_keys
-        assert params["filter"].shape == (batch_size, num_channels, *size)
-        assert params["coeff"].shape == (batch_size, len(zernike_index))
-        assert params["pupil"].shape == (batch_size, *pupil_size)
+        assert params["filter"].shape == (batch_size_out, num_channels_out, *size)
+        assert params["coeff"].shape == (
+            batch_size_out,
+            num_channels_out,
+            len(zernike_index),
+        )
+        assert params["pupil"].shape == (batch_size_out, num_channels_out, *pupil_size)
         if random_rotate:
-            assert params["angle"].shape == (batch_size,)
+            assert params["angle"].shape == (batch_size_out,)
 
-        # Test generator consistency
+        # Test generator consistency when coeff is None
         params2 = generator.step(
             batch_size=batch_size,
             seed=0,
+            fc=fc,
         )
-        for key in params.keys():
-            assert torch.allclose(params[key], params2[key])
+        if coeff is None:
+            for key in params.keys():
+                assert torch.allclose(params[key], params2[key])
 
-        # Test generator variability
+        # Test generator variability when coeff is None
         params3 = generator.step(
             batch_size=batch_size,
             seed=1,
+            fc=fc,
         )
-        for key in params.keys():
-            assert not torch.allclose(params[key], params3[key])
+        if coeff is None:
+            for key in params.keys():
+                if key == "fc":
+                    assert torch.allclose(params[key], params3[key])
+                else:
+                    assert not torch.allclose(params[key], params3[key])
+
+        # test raising ValueError when incompatible shapes
+        if (
+            fc is None
+            and coeff is None
+            and not apodize
+            and not random_rotate
+            and convention == "noll"
+        ):
+            with pytest.raises(ValueError) as excinfo:
+                generator.step(
+                    batch_size=2,
+                    seed=1,
+                    fc=0.2 * torch.ones(2, 2).to(device),
+                    coeff=torch.zeros(3, 35).to(device),
+                )  # (B_f=2, C_f=2) vs (B_c=3, K)  (B_f != B_c)
+            assert "does not match" in str(excinfo.value)
+
+            with pytest.raises(ValueError) as excinfo:
+                generator.step(
+                    batch_size=2,
+                    seed=1,
+                    fc=0.2 * torch.ones(2, 2).to(device),
+                    coeff=torch.zeros(3, 35).to(device),
+                )  # (B_f=2, C_f=2) vs (B_c=2, K)
+            assert "does not match" in str(excinfo.value)
+
+            with pytest.raises(ValueError) as excinfo:
+                generator.step(
+                    batch_size=5,
+                    seed=1,
+                    fc=0.2 * torch.ones(2, 2).to(device),
+                    coeff=torch.zeros(1, 35).to(device),
+                )  # (B_f=2, C_f=2) vs (1, K)
+            assert "does not match" in str(excinfo.value)
+
+            with pytest.raises(ValueError) as excinfo:
+                generator.step(
+                    batch_size=5,
+                    seed=1,
+                    fc=0.2 * torch.ones(2, 2).to(device),
+                    coeff=torch.zeros(3, 2, 35).to(device),
+                )  # (B_f=2, C_f=2) vs (B_c=3, C_c=2, K)
+            assert "does not match" in str(excinfo.value)
+
+            with pytest.raises(ValueError) as excinfo:
+                generator.step(
+                    batch_size=5,
+                    seed=1,
+                    fc=0.2 * torch.ones(2, 2).to(device),
+                    coeff=torch.zeros(2, 3, 35).to(device),
+                )  # (B_f=2, C_f=2) vs (B_c=2, C_c=3, K)
+            assert "does not match" in str(excinfo.value)
 
 
 @pytest.mark.parametrize("dim", [1, 2, 3])
 @pytest.mark.parametrize("isotropic", [True, False])
 @pytest.mark.parametrize("batch_size", [1, 2])
-@pytest.mark.parametrize("num_channels", [1, 2])
-def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channels):
+def test_gaussian_blur_generator(device, dim, isotropic, batch_size):
     r"""
     Validate GaussianBlurGenerator behaviors across 1D/2D/3D:
     - isotropic vs anisotropic sigma handling
     - float or tuple for sigma_min/max
     - float or tuple for angle_min/max
-    - num_channels expansion
     """
     torch.manual_seed(0)
 
@@ -760,22 +848,20 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
             psf_size=psf_size,
             sigma_min=0.5,
             sigma_max=1,
-            num_channels=num_channels,
             device=device,
         )
         params = generator.step(batch_size=batch_size, seed=0)
-        assert params["filter"].shape == (batch_size, num_channels, *psf_size)
+        assert params["filter"].shape == (batch_size, 1, *psf_size)
 
         # providing length-1 tuple should also work
         generator = dinv.physics.generator.GaussianBlurGenerator(
             psf_size=psf_size,
             sigma_min=(0.5,),
             sigma_max=(1,),
-            num_channels=num_channels,
             device=device,
         )
         params = generator.step(batch_size=batch_size, seed=0)
-        assert params["filter"].shape == (batch_size, num_channels, *psf_size)
+        assert params["filter"].shape == (batch_size, 1, *psf_size)
 
         # providing length-2 tuple should raise error
         with pytest.raises(ValueError):
@@ -784,7 +870,6 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
                 isotropic=True,
                 sigma_min=(0.5, 1.1),
                 sigma_max=3.0,
-                num_channels=num_channels,
                 device=device,
             )
 
@@ -801,29 +886,27 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
                 sigma_max=sigma_max,
                 angle_min=0.0,
                 angle_max=(torch.pi,),
-                num_channels=num_channels,
                 device=device,
             )
             params = generator.step(batch_size=batch_size, seed=0)
-            assert params["filter"].shape == (batch_size, num_channels, *psf_size)
+            assert params["filter"].shape == (batch_size, 1, *psf_size)
 
         if isotropic:
             # check that the providing filter is indeed isotropic
             center = tuple(s // 2 for s in psf_size)
             for b in range(batch_size):
-                for c in range(num_channels):
-                    assert torch.isclose(
-                        params["filter"][b, c, center[0] + 2, center[1] + 2],
-                        params["filter"][b, c, center[0] + 2, center[1] - 2],
-                    )
-                    assert torch.isclose(
-                        params["filter"][b, c, center[0] - 2, center[1] - 2],
-                        params["filter"][b, c, center[0] - 2, center[1] - 2],
-                    )
-                    assert torch.isclose(
-                        params["filter"][b, c, center[0] - 2, center[1] - 2],
-                        params["filter"][b, c, center[0] - 2, center[1] + 2],
-                    )
+                assert torch.isclose(
+                    params["filter"][b, 0, center[0] + 2, center[1] + 2],
+                    params["filter"][b, 0, center[0] + 2, center[1] - 2],
+                )
+                assert torch.isclose(
+                    params["filter"][b, 0, center[0] - 2, center[1] - 2],
+                    params["filter"][b, 0, center[0] - 2, center[1] - 2],
+                )
+                assert torch.isclose(
+                    params["filter"][b, 0, center[0] - 2, center[1] - 2],
+                    params["filter"][b, 0, center[0] - 2, center[1] + 2],
+                )
 
         # providing length-2 tuple for angle_min should raise error
         with pytest.raises(ValueError):
@@ -834,7 +917,6 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
                 sigma_max=2.0,
                 angle_min=(0.0, 0.5),
                 angle_max=(1.0),
-                num_channels=num_channels,
                 device=device,
             )
         # providing length-2 tuple for angle_max should raise error
@@ -846,7 +928,6 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
                 sigma_max=2.0,
                 angle_min=(0.0),
                 angle_max=(1.0, 1.5),
-                num_channels=num_channels,
                 device=device,
             )
         # angle_min should be less than angle_max
@@ -858,7 +939,6 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
                 sigma_max=2.0,
                 angle_min=(1.5),
                 angle_max=(0.5),
-                num_channels=num_channels,
                 device=device,
             )
 
@@ -881,11 +961,10 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
                 sigma_max=sigma_max,
                 angle_min=(-torch.pi, 0.0, 0.0),
                 angle_max=(torch.pi, 0.5 * torch.pi, 2 * torch.pi),
-                num_channels=num_channels,
                 device=device,
             )
             params = generator.step(batch_size=batch_size, seed=0)
-            assert params["filter"].shape == (batch_size, num_channels, *psf_size)
+            assert params["filter"].shape == (batch_size, 1, *psf_size)
 
         # Angle constructor validation: 3D must accept length-3
         with pytest.raises(ValueError):
@@ -948,16 +1027,13 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size, num_channel
 
 @pytest.mark.parametrize("generators", MIXTURES)
 @pytest.mark.parametrize("size", SIZES)
-@pytest.mark.parametrize("num_channels", NUM_CHANNELS)
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("use_batch_sampling", [True, False])
-def test_generator_mixture(
-    generators, size, num_channels, dtype, use_batch_sampling, device, rng
-):
+def test_generator_mixture(generators, size, dtype, use_batch_sampling, device, rng):
 
     generator_pair = []
     for name in generators:
-        g, _, _ = find_generator(name, size, num_channels, device, dtype, rng=rng)
+        g, _, _ = find_generator(name, size, device, dtype, rng=rng)
         generator_pair.append(g)
 
     mixture = dinv.physics.generator.GeneratorMixture(
@@ -985,3 +1061,100 @@ def test_generator_mixture(
     assert set(params.keys()).intersection(
         set.union(*[set(g.step(batch_size=1, seed=0).keys()) for g in generator_pair])
     ) == set(params.keys())
+
+
+#################################
+### CONFOCAL BLUR GENERATOR 3D ##
+#################################
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize(
+    "lambda_ill,lambda_coll,expected_channels",
+    [
+        (489e-9, 525e-9, 1),  # single-channel (scalar wavelengths)
+        ([489e-9, 561e-9], [525e-9, 620e-9], 2),  # two-channel (list wavelengths)
+    ],
+)
+def test_confocal_blur_generator_3d(
+    device, batch_size, lambda_ill, lambda_coll, expected_channels
+):
+    r"""
+    Test ConfocalBlurGenerator3D output shapes and keys for single- and multi-channel cases.
+    """
+    psf_size = (5, 11, 11)
+    zernike_index = (3,)  # minimal: one coefficient for speed
+
+    generator = dinv.physics.generator.ConfocalBlurGenerator3D(
+        psf_size=psf_size,
+        zernike_index=zernike_index,
+        lambda_ill=lambda_ill,
+        lambda_coll=lambda_coll,
+        device=device,
+    )
+
+    params = generator.step(batch_size=batch_size, seed=0)
+
+    expected_keys = {
+        "filter",
+        "coeff_ill",
+        "coeff_coll",
+        "pupil_ill",
+        "pupil_coll",
+        "fc_ill",
+        "fc_coll",
+    }
+    assert set(params.keys()) == expected_keys
+    assert params["filter"].shape == (batch_size, expected_channels, *psf_size)
+    assert params["fc_ill"].shape == (batch_size, expected_channels)
+    assert params["fc_coll"].shape == (batch_size, expected_channels)
+
+    # Reproducibility
+    params2 = generator.step(batch_size=batch_size, seed=0)
+    assert torch.allclose(params["filter"], params2["filter"])
+
+
+########################################
+### DIFFRACTION USED_ZERNIKE_INDEX TEST #
+########################################
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("n_used", [3, 10])
+def test_diffraction_used_zernike_index(device, batch_size, n_used):
+    r"""
+    Test DiffractionBlurGenerator.step(used_zernike_index=...) feature.
+
+    Verifies:
+    - output shape is (B, 1, H, W) regardless of subset size
+    - coeff shape last dim equals n_used
+    - different subsets produce different PSFs (not degenerate)
+    - passing indices outside self.zernike_index raises ValueError
+    """
+    psf_size = (15, 15)
+    full_index = list(range(3, 37))  # 34 Noll indices
+
+    generator = dinv.physics.generator.DiffractionBlurGenerator(
+        psf_size=psf_size,
+        zernike_index=full_index,
+        device=device,
+    )
+
+    used = full_index[:n_used]
+    params = generator.step(batch_size=batch_size, seed=0, used_zernike_index=used)
+
+    assert params["filter"].shape == (batch_size, 1, *psf_size)
+    assert params["coeff"].shape[-1] == n_used
+
+    # Different subset → different PSF
+    other_used = full_index[-n_used:]
+    params_other = generator.step(
+        batch_size=batch_size, seed=0, used_zernike_index=other_used
+    )
+    assert not torch.allclose(params["filter"], params_other["filter"])
+
+    # Passing an index not in self.zernike_index must raise
+    with pytest.raises(ValueError, match="not in self.zernike_index"):
+        generator.step(
+            batch_size=1, used_zernike_index=[1, 2]
+        )  # 1,2 not in range(3,37)
