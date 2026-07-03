@@ -2,9 +2,8 @@ r"""
 Blind Richardson-Lucy deconvolution
 ===================================
 
-This example introduces the Richardson-Lucy algorithm for deconvolution and
-then moves to the blind setting, where both the sharp image and the blur kernel
-are unknown.
+This example introduces the Richardson-Lucy algorithm for deconvolution in the blind
+setting, where both the underlying clean image and the blur kernel are unknown.
 
 We first consider the non-blind problem
 
@@ -14,8 +13,8 @@ We first consider the non-blind problem
 
 where :math:`A_h` is the convolution operator with known kernel :math:`h`.
 Richardson-Lucy :footcite:t:`richardsonBayesianBasedIterativeMethod1972,lucyIterativeTechniqueRectification1974`
-is the Maximum-Likelihood Expectation-Maximization (MLEM) algorithm for Poisson
-deconvolution. Starting from a nonnegative image :math:`x^{(0)}`, it iterates
+is a deconvolution algorithm used when the data is corrupted by Poisson noise.
+Starting from a nonnegative image :math:`x^{(0)}`, it iterates
 
 .. math::
 
@@ -27,44 +26,56 @@ deconvolution. Starting from a nonnegative image :math:`x^{(0)}`, it iterates
 
 where all products and divisions are pointwise.
 
-When :math:`h` is unknown, blind Richardson-Lucy alternates MLEM updates for the
+When :math:`h` is unknown, blind Richardson-Lucy alternates these updates for the
 image :math:`x` and the kernel :math:`h`. This is a classical, simple baseline
-for blind deconvolution. It is also very sensitive to noise, which motivates
-regularization.
+for blind deconvolution. It can use regularization on the image and/or the kernel to
+improve performances.
 
 
 """
 
 # %%
+# Setup the physics
+# -----------------
+#
+# Here we consider a simple Gaussian blur kernel and a medium amount of Poisson noise.
+
 import torch
-
 import deepinv as dinv
-
-# %%
-# Setup
-# -----
 
 torch.manual_seed(0)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-img_size = 64 if torch.cuda.is_available() else 64
+img_size = 128 if torch.cuda.is_available() else 64
 
 psnr = dinv.metric.PSNR()
 mae = dinv.metric.MAE()
 
 gaussian_psf = dinv.physics.functional.gaussian_blur(
     psf_size=(17, 17),
-    sigma=1.5 if torch.cuda.is_available() else 1.5,
+    sigma=3.0,
     device=device,
+)
+gain = 1 / 100
+
+physics = dinv.physics.BlurFFT(
+    img_size=(1, img_size, img_size),
+    filter=gaussian_psf,
+    device=device,
+    noise_model=dinv.physics.PoissonNoise(
+        gain=gain, normalize=True, clip_positive=True
+    ),
 )
 
 # %%
 # Non-blind Richardson-Lucy on a grayscale image
 # ----------------------------------------------
 #
-# In the non-blind setting, the kernel is known and the only unknown is the
-# image. In deepinv, this is exactly :class:`deepinv.optim.MLEM` applied to a
-# blur physics. We first test it on a grayscale image.
+# In the non-blind setting, the kernel is known and the only unknown is the image.
+# In deepinv, the non-blind Richardson-Lucy algorithm corresponds to the
+# :class:`deepinv.optim.MLEM` used on measurements involving a blur physics.
+# It works both on grayscale and RGB images, but for simplicity we first consider
+# grayscale images.
 
 x_gray = dinv.utils.load_example(
     "SheppLogan.png",
@@ -74,22 +85,13 @@ x_gray = dinv.utils.load_example(
     device=device,
 )
 
-gain = 1 / 100
-physics = dinv.physics.BlurFFT(
-    img_size=(1, img_size, img_size),
-    filter=gaussian_psf,
-    device=device,
-    noise_model=dinv.physics.PoissonNoise(
-        gain=gain, normalize=True, clip_positive=True
-    ),
-)
 y_gray = physics(x_gray)
 
-data_fidelity = dinv.optim.PoissonLikelihood(gain=1)
+data_fidelity = dinv.optim.PoissonLikelihood(gain=gain)
 mlem = dinv.optim.MLEM(
     data_fidelity=data_fidelity,
     prior=None,
-    max_iter=60,
+    max_iter=70,
     early_stop=True,
     thres_conv=1e-6,
     crit_conv="residual",
@@ -128,10 +130,14 @@ dinv.utils.plot_curves(metrics)
 #
 # We now assume that both the clean image :math:`x` and the blur kernel
 # :math:`h` are unknown. Following the library convention, :math:`y` denotes
-# the measurement and :math:`A` denotes a forward operator. For fixed
-# :math:`h`, :math:`A_h` maps an image to :math:`h * x`; for fixed
-# :math:`x`, :math:`A_x` maps a kernel to :math:`x * h`. Thus
-# :math:`y = A_h x = A_x h`, and blind Richardson-Lucy alternates
+# the measurement and :math:`A` denotes the forward operator.
+# Here we will also need to define two different convolution operators.
+# The first one :math:`A_h` models the convolution :math:`h * x` of the image with
+# the kernel.
+# The second one :math:`A_x` models the convolution :math:`x * h` of the kernel with the image.
+# The blind Richardson-Lucy algorithm simply alternates the Richardson-Lucy updates
+# alternatively for the two operators :math:`A_h` and :math:`A_x`.
+# The updates are given by:
 #
 # .. math::
 #
@@ -153,11 +159,16 @@ dinv.utils.plot_curves(metrics)
 #    \odot
 #    A_{h^{(k+1)}}^\top\left(\frac{y}{A_{h^{(k+1)}} x^{(k)}}\right).
 #
-# The projection :math:`\Pi_{\Delta}` keeps the kernel nonnegative and
+# The operation :math:`\Pi_{\Delta}` keeps the kernel nonnegative and
 # normalized to unit sum. The :class:`deepinv.optim.BlindRL` class implements
 # these alternating updates.
 #
-# For simplicity we first test this algorithm on a clean measurement, i.e. without noise. In this case, the algorithm performs fairly well, with some oscillation artefacts near the edges known as [Gibbs phenomenon](https://en.wikipedia.org/wiki/Gibbs_phenomenon).
+# This algorithm is implemented under the :class:`deepinv.optim.BlindRL` class.
+# The number of iterations of each of the two updates can be controlled by the
+# parameters :code:`x_steps` and :code:`k_steps`.
+#
+# For simplicity we first test this algorithm on a clean measurement, i.e. without
+# noise. In this case, the algorithm performs fairly well, with only some oscillation artefacts near the edges known as [Gibbs phenomenon](https://en.wikipedia.org/wiki/Gibbs_phenomenon).
 
 physics_clean = dinv.physics.Blur(
     filter=gaussian_psf,
@@ -208,9 +219,14 @@ dinv.utils.plot_curves(metrics_clean_blind)
 # Blind Richardson-Lucy on noisy data
 # -----------------------------------
 #
-# Blind Richardson-Lucy is much less stable when the data are noisy. With no
-# regularization, the multiplicative updates tend to amplify noise and the blur kernel tends to converge very fast to a Dirac, which is never the expected kernel, otherwise the image would already be sharp.
-# Early stopping is a common heuristic as a form of implicit regularization, but it is not that efficient.
+# Blind Richardson-Lucy is much less stable when the data is noisy.
+# Without regularization, the multiplicative updates tend to amplify noise and
+# the blur kernel tends to converge very fast to a Dirac.
+# The Dirac is unfortunately never a valid solution, because it corresponds to the
+# situation where our input image :math:`y` was already sharp.
+#
+# Here we show an example with a medium amount of Poisson noise.
+# The algorithm further degrades the image and is unable to recover the correct kernel.
 
 y_noisy = physics(x_gray)
 
@@ -257,17 +273,18 @@ dinv.utils.plot_curves(metrics)
 # One-Step-Late regularization
 # ----------------------------
 #
-# A standard heuristic for regularized EM methods is One-Step-Late (OSL)
-# regularization :footcite:t:`greenUseEmAlgorithm1990`. For an image
-# regularizer :math:`R_x` and a kernel regularizer :math:`R_h`, the denominators
-# are modified using the current subgradients:
+# A standard heuristic to extend EM methods to the regularized setting is called
+# One-Step-Late (OSL) regularization :footcite:t:`greenUseEmAlgorithm1990`.
+# Since Richardson-Lucy is an instance of the EM algorithm, it can be extended to the
+# regularized setting using OSL.
+# For an image prior or regularizer :math:`R_x` and a kernel regularizer :math:`R_h`, the denominators are modified using the current gradients:
 #
 # .. math::
 #
 #    x^{(k+1)}
 #    =
 #    \frac{x^{(k)}}{A_h^\top \mathbf{1}
-#    + \lambda_x \partial R_x(x^{(k)})}
+#    + \lambda_x \nabla R_x(x^{(k)})}
 #    \odot
 #    A_h^\top\left(\frac{y}{A_h x^{(k)}}\right),
 #
@@ -282,10 +299,17 @@ dinv.utils.plot_curves(metrics)
 #    A_x^\top\left(\frac{y}{A_x h^{(k)}}\right)
 #    \right].
 #
-# This enables the use of any prior implementing the :class:`deepinv.optim.prior.Prior` interface inside the :class:`deepinv.optim.BlindRL` class.
-# Remember that this method is heuristic and in particular is not guaranteed to converge.
-# Still it is fairly robust in most cases and computationally efficient compared to more sophisticated methods.
-# The image and kernel regularizers are independent. Below, we use TV regularization on the image through the :class:`deepinv.optim.TVPrior` class.
+# In the non-smooth case, the gradients are replaced by subgradients.
+# This enables the use of any prior implementing the :class:`deepinv.optim.prior.Prior`
+# interface inside the :class:`deepinv.optim.BlindRL` class.
+# Remember that the OSL method is heuristic and in particular is not guaranteed
+# to converge.
+# Still it is fairly robust in most cases and computationally efficient compared
+# to more sophisticated regularized algorithms.
+# The image and kernel regularizers can be specified independently using the :code:`x_prior` and :code:`k_prior` arguments of the :class:`deepinv.optim.BlindRL` class.
+# Below, we use TV regularization on the image through the :class:`deepinv.optim.TVPrior` class and no regularization on the kernel.
+#
+# The image is a bit sharper and we get a better estimate of the kernel.
 
 tv_prior = dinv.optim.TVPrior(n_it_max=30)
 
@@ -337,7 +361,8 @@ dinv.utils.plot_curves(metrics)
 #
 # The same algorithm also works on RGB images. The blur kernel is shared across
 # channels, and the kernel update aggregates information from all channels.
-# Here we show a noiseless example.
+# Here we show a noiseless example, but in the noisy setting, regularization
+# should again be used to avoid noise amplification and kernel collapse.
 
 x_rgb = dinv.utils.load_example(
     "butterfly.png",
@@ -351,7 +376,7 @@ physics_clean.update_parameters(filter=gaussian_psf)
 y_rgb = physics_clean(x_rgb)
 
 blindrl = dinv.optim.BlindRL(
-    max_iter=80,
+    max_iter=100,
     x_steps=1,
     k_steps=1,
     normalize_kernel=True,
