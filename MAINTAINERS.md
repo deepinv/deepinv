@@ -12,13 +12,14 @@ If you're a contributor and are interested in becoming a maintainer, please reac
 
 ## Current Maintainers
 
-| Maintainer | GitHub | Affiliation | Email |
-|------|------|-------|-------|
-| Julián Tachella | [@tachella](https://github.com/tachella) | CNRS, ENS Lyon | [📧](mailto:julian.tachella@cnrs.fr) |
-| Samuel Hurault | [@samuro95](https://github.com/samuro95/) | CNRS, ENS Paris | [📧](mailto:huraultsamuel@gmail.com) |
-| Andrew Wang | [@andrewwango](https://github.com/andrewwango) | University of Edinburgh | [📧](mailto:andrew.wang@ed.ac.uk) |
-| Minh-Hai Nguyen | [@mh-nguyen712](https://github.com/mh-nguyen712) | IRIT, CBI, CNRS, Université de Toulouse | [📧](mailto:nguyenhai7120qh@gmail.com) |
-| Jérémy Scanvic | [@jscanvic](https://github.com/jscanvic) | CNRS, ENS Lyon | [📧](mailto:jeremy.scanvic@ens-lyon.fr) |
+| Maintainer      | GitHub                                           | Affiliation | Email                                   |
+|-----------------|--------------------------------------------------|-------|-----------------------------------------|
+| Julián Tachella | [@tachella](https://github.com/tachella)         | CNRS, ENS Lyon | [📧](mailto:julian.tachella@cnrs.fr)    |
+| Samuel Hurault  | [@samuro95](https://github.com/samuro95/)        | CNRS, ENS Paris | [📧](mailto:huraultsamuel@gmail.com)    |
+| Andrew Wang     | [@andrewwango](https://github.com/andrewwango)   | University of Edinburgh | [📧](mailto:andrew.wang@ed.ac.uk)       |
+| Minh-Hai Nguyen | [@mh-nguyen712](https://github.com/mh-nguyen712) | IRIT, CBI, CNRS, Université de Toulouse | [📧](mailto:nguyenhai7120qh@gmail.com)  |
+| Jérémy Scanvic  | [@jscanvic](https://github.com/jscanvic)         | CNRS, ENS Lyon | [📧](mailto:jeremy.scanvic@ens-lyon.fr) |
+| Romain Vo      | [@romainvo](https://github.com/romainvo)         | CNRS, ENS Lyon | [📧](mailto:romain.vo@ens-lyon.fr)      |
 
 ## Emeritus
 
@@ -35,7 +36,7 @@ Maintainers are active and visible members of the community, and have [maintain-
 
 - **Uphold code of conduct**: model the behavior set forward by the [code of conduct](CODE_OF_CONDUCT.md) and raise any violations to other maintainers.
 
-- **Pull requests**: ensure PRs adhere to our [contributing guidelines](https://deepinv.github.io/deepinv/contributing.html) and have completed the checklist in the [PR template](.github/pull_request_template.md). Triage the PR and assign them to maintainers for review. Provide actionable feedback to guide the PR towards a conclusion. In cases of uncertainty, or where contributed code is out of your domain of expertise, reach out to additional maintainers or contributors.
+- **Pull requests**: ensure PRs adhere to our [contributing guidelines](https://deepinv.org/contributing.html) and have completed the checklist in the [PR template](.github/pull_request_template.md). Triage the PR and assign them to maintainers for review. Provide actionable feedback to guide the PR towards a conclusion. In cases of uncertainty, or where contributed code is out of your domain of expertise, reach out to additional maintainers or contributors.
 
 - **Issues**: manage labels, review issues regularly, and triage by labelling them, e.g. `bug`, `documentation`, `duplicate`, `enhancement`, `good first issue`, `help wanted`, `blocker`, `invalid`, `question`, `wontfix`, and `untriaged`. Request further information from a submitter if an issue is not clear. See the [issue template](.github/ISSUE_TEMPLATE.md) for an example.
 

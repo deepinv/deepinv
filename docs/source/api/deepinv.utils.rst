@@ -91,6 +91,13 @@ Image Loading
     deepinv.utils.load_raster
     deepinv.utils.load_ismrmd
 
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.utils.DownloadError
+
 Demo Utils
 ----------
 
@@ -107,7 +114,7 @@ Demo Utils
     deepinv.utils.load_torch_url
     deepinv.utils.load_example
     deepinv.utils.download_example
-    deepinv.utils.get_data_home
+    deepinv.utils.get_cache_home
     deepinv.utils.get_image_url
     deepinv.utils.get_degradation_url
     deepinv.utils.load_dataset
@@ -123,6 +130,7 @@ Phantoms
 
     deepinv.utils.phantoms.generate_shepp_logan
     deepinv.utils.phantoms.generate_random_phantom
+    deepinv.utils.phantoms.generate_pet_phantom
 
 
 .. autosummary::
@@ -132,6 +140,21 @@ Phantoms
 
     deepinv.utils.phantoms.SheppLoganDataset
     deepinv.utils.phantoms.RandomPhantomDataset
+
+Tiling / Untiling (Patching and Unpatching)
+-------------------------------------------
+
+.. userguide:: tiling-utils
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+    deepinv.utils.patch_extractor
+    deepinv.utils.image_to_patches
+    deepinv.utils.patches_to_image
+    deepinv.utils.patchify
 
 Other
 -----

@@ -126,7 +126,12 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - C=1, 2, 3
      - Yes
      - No
-
+   * - :class:`deepinv.models.FFDNet`
+     - CNN
+     - Any C; H,W must be even
+     - No
+     - Yes
+     - No
 .. _non-learned-denoisers:
 
 Classical denoisers
@@ -171,6 +176,15 @@ underlined in the table below by (D) in the tensor size which accounts for depth
 
 Model Utilities
 ~~~~~~~~~~~~~~~
+
+Poisson-Gaussian denoisers
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+The Gaussian denoisers in the library can be turned into Poisson-Gaussian denoisers using the variance-stabilizing Anscombe transform.
+The class :class:`deepinv.models.AnscombeDenoiser` wraps any Gaussian denoiser and applies the Anscombe transform to the input
+and the inverse transform to the output of the denoiser, allowing you to use Gaussian denoisers for Poisson-Gaussian noise.
+Moreover, some denoisers such as :class:`deepinv.models.RAM` are natively trained for Poisson-Gaussian noise,
+and other denoisers such as :class:`deepinv.models.DRUNet` can receive spatial noise levels, allowing them to be used for Poisson-Gaussian noise as well.
+See :ref:`sphx_glr_auto_examples_physics_demo_anscombe.py`.
 
 Equivariant denoisers
 ^^^^^^^^^^^^^^^^^^^^^

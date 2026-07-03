@@ -11,7 +11,14 @@ from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
-from deepinv.utils.io import load_np, load_torch, load_url as _load_url
+from deepinv.utils.io import (
+    DownloadError,
+    get_cache_home,
+    load_np,
+    load_torch,
+    load_url as _load_url,
+)
+from deepinv.utils.decorators import _deprecated_func
 
 if TYPE_CHECKING:
     from deepinv.datasets.base import ImageFolder
@@ -48,6 +55,7 @@ def get_image_url(file_name: str, dataset: str = "images") -> str:
     return f"https://huggingface.co/datasets/deepinv/{dataset}/resolve/main/{file_name}?download=true"
 
 
+@_deprecated_func
 def get_data_home() -> Path:
     """Return a folder to store deepinv datasets.
 
@@ -91,7 +99,7 @@ def load_dataset(
     from deepinv.datasets.base import ImageFolder
 
     if data_dir is None:
-        data_dir = get_data_home()
+        data_dir = get_cache_home() / "datasets" / dataset_name
 
     if isinstance(data_dir, str):
         data_dir = Path(data_dir)
@@ -109,16 +117,24 @@ def load_dataset(
         if url is None:
             url = get_image_url(f"{str(dataset_name)}.{file_type}")
 
-        response = requests.get(url, stream=True)
-        total_size_in_bytes = int(response.headers.get("content-length", 0))
-        block_size = 1024  # 1 Kibibyte
-        print("Downloading " + str(dataset_dir) + f".{file_type}")
-        progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
-        with open(str(dataset_dir) + f".{file_type}", "wb") as file:
-            for data in response.iter_content(block_size):
-                progress_bar.update(len(data))
-                file.write(data)
-        progress_bar.close()
+        try:
+            # ``timeout=(connect, read)``: 10 s to connect, 60 s between chunks.
+            # See https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+            response = requests.get(url, stream=True, timeout=(10, 60))
+            response.raise_for_status()
+            total_size_in_bytes = int(response.headers.get("content-length", 0))
+            block_size = 1024  # 1 Kibibyte
+            print("Downloading " + str(dataset_dir) + f".{file_type}")
+            progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+            with open(str(dataset_dir) + f".{file_type}", "wb") as file:
+                for data in response.iter_content(block_size):
+                    progress_bar.update(len(data))
+                    file.write(data)
+            progress_bar.close()
+        except requests.exceptions.RequestException as exc:
+            raise DownloadError(
+                f"Failed to download dataset {dataset_name} from {url}: {exc}"
+            ) from exc
 
         with zipfile.ZipFile(str(dataset_dir) + ".zip") as zip_ref:
             zip_ref.extractall(str(data_dir))
@@ -144,7 +160,7 @@ def load_degradation(
     :return: (:class:`torch.Tensor`) containing degradation.
     """
     if data_dir is None:
-        data_dir = get_data_home()
+        data_dir = get_cache_home()
 
     if isinstance(data_dir, str):
         data_dir = Path(data_dir)
@@ -154,10 +170,17 @@ def load_degradation(
     if download and not path.exists():
         data_dir.mkdir(parents=True, exist_ok=True)
         url = get_degradation_url(name)
-        with requests.get(url, stream=True) as r:
-            r.raise_for_status()
-            with open(str(data_dir / name), "wb") as f:
-                shutil.copyfileobj(r.raw, f)
+        try:
+            # ``timeout=(connect, read)``: 10 s to connect, 60 s between chunks.
+            # See https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+            with requests.get(url, stream=True, timeout=(10, 60)) as r:
+                r.raise_for_status()
+                with open(str(data_dir / name), "wb") as f:
+                    shutil.copyfileobj(r.raw, f)
+        except requests.exceptions.RequestException as exc:
+            raise DownloadError(
+                f"Failed to download degradation {name} from {url}: {exc}"
+            ) from exc
         print(f"{name} degradation downloaded in {data_dir}")
 
     deg = np.load(path, allow_pickle=True)
@@ -350,7 +373,7 @@ def download_example(name: str, save_dir: str | Path):
     :param str, pathlib.Path save_dir: directory to save image to.
     """
     os.makedirs(save_dir, exist_ok=True)
-    data = requests.get(get_image_url(name)).content
+    data = _load_url(get_image_url(name)).getvalue()
     with open(Path(save_dir) / name, "wb") as f:
         f.write(data)
 

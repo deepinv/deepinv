@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import Prior
 from deepinv.optim import PGD
-from deepinv.utils import get_data_home
+from deepinv.utils import get_cache_home
 
 # %%
 # Setup paths for data loading and results.
@@ -28,7 +28,7 @@ BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 CKPT_DIR = BASE_DIR / "ckpts"
-ORIGINAL_DATA_DIR = get_data_home()
+ORIGINAL_DATA_DIR = get_cache_home() / "datasets" / "MNIST"
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -70,8 +70,10 @@ test_base_dataset = datasets.MNIST(
 num_workers = 4 if torch.cuda.is_available() else 0
 
 # Generate the compressed sensing measurement operator.
-physics = dinv.physics.CompressedSensing(
-    m=200, img_size=(n_channels, img_size, img_size), fast=True, device=device
+physics = dinv.physics.StructuredRandom(
+    img_size=(n_channels, img_size, img_size),
+    output_size=(n_channels, 15, 15),
+    device=device,
 )
 my_dataset_name = "demo_LICP"
 n_images_max = 200

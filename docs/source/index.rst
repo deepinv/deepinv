@@ -35,7 +35,7 @@ GitHub: `<https://github.com/deepinv/deepinv>`_
 Get started
 -----------
 
-Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_, or our :ref:`User Guide <user_guide>`.
+Check out our `5 minute quickstart tutorial <https://deepinv.org/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.org/auto_examples/index.html>`_, or our :ref:`User Guide <user_guide>`.
 
 
 ``deepinv`` features
@@ -60,6 +60,8 @@ Join our **mailing list** for occasional updates on releases and new features:
    <button id="subscribeBtn" class="substack-clone-button" disabled onclick="submitAndRedirect()">Subscribe</button>
    </div></div></div>
    <script src="_static/subscribe/subscribe.js"></script>
+
+.. _install:
 
 Install
 -------
@@ -261,7 +263,7 @@ unfolded, deep equilibrium models
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
-.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg?branch=main&event=push
+.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_cpu.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/test_cpu.yml
 .. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg?branch=main&event=push
    :target: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml
