@@ -907,6 +907,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 # Specific test for MLEM because the data-fidelity can only be the Poisson likelihood,
 # contrary to e.g mirror descent which can be tested on L2
 def test_MLEM(imsize, dummy_dataset, device):
+    # Check that MLEM converges on a realistic Poisson deblurring problem.
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
     test_sample = next(iter(dataloader)).to(device)
 
@@ -934,6 +935,32 @@ def test_MLEM(imsize, dummy_dataset, device):
     x = optimalgo(y, physics)
 
     assert optimalgo.has_converged
+
+    # Check the closed-form one-step update when the physics has additive background.
+    background = torch.tensor([[[[2.0, 3.0], [4.0, 5.0]]]], device=device)
+    x_init = torch.ones_like(background)
+    x_true = torch.tensor([[[[4.0, 6.0], [8.0, 10.0]]]], device=device)
+    y = x_true + background
+
+    def A_forward(x, add_background=False):
+        out = x
+        if add_background:
+            out = out + background
+        return out
+
+    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=lambda v: v)
+    physics.register_buffer("background", background)
+
+    optimalgo_background = dinv.optim.MLEM(
+        data_fidelity=dinv.optim.PoissonLikelihood(),
+        prior=None,
+        max_iter=1,
+    )
+
+    x = optimalgo_background(y, physics, init=x_init)
+
+    expected = x_init * y / (x_init + background)
+    assert torch.allclose(x, expected)
 
 
 def test_patch_prior(imsize, dummy_dataset, device):

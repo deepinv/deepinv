@@ -9,7 +9,7 @@ def _clamp_min(x, min_value):
 
 
 class MLEMIteration(OptimIterator):
-    """
+    r"""
     Iterator for the Maximum-Likelihood Expectation-Maximization (MLEM) algorithm for Poisson inverse problems.
 
     Class for a single iteration of the MLEM algorithm :footcite:t:`sheppMaximumLikelihoodReconstruction1982`,
@@ -31,7 +31,11 @@ class MLEMIteration(OptimIterator):
         prior_scale: float = 1.0,
     ):
         sensitivity = physics.A_adjoint(ones_like(y))
-        x = x_prev * physics.A_adjoint(y / _clamp_min(physics.A(x_prev), self.eps))
+        if hasattr(physics, "background"):
+            proj = physics.A(x_prev, add_background=True)
+        else:
+            proj = physics.A(x_prev)
+        x = x_prev * physics.A_adjoint(y / _clamp_min(proj, self.eps))
 
         if cur_prior is not None:
             denom = sensitivity + prior_scale * cur_params["lambda"] * cur_prior.grad(

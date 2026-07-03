@@ -55,6 +55,7 @@ with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained t
 
 """
 
+# %%
 import deepinv as dinv
 from deepinv.physics import PET
 from deepinv.utils.phantoms import generate_pet_phantom
@@ -230,17 +231,17 @@ dinv.utils.plot(sensitivities[..., mid_slice], ["sensitivities"])
 # We compare MLEM with the least-squares reconstruction.
 
 data_fidelity = dinv.optim.PoissonLikelihood(
-    bkg=background,
     denormalize=False,
 )
 
-x_mlem = torch.ones_like(x)
+mlem = dinv.optim.MLEM(
+    data_fidelity=data_fidelity,
+    prior=None,
+    max_iter=50,
+)
+
 with torch.no_grad():
-    for i in range(50):
-        grad = data_fidelity.grad(x=x_mlem, y=y, physics=physics)
-        preconditioner = (x_mlem + 1e-9) / (sensitivities + 1e-9)
-        x_mlem = x_mlem - preconditioner * grad
-        x_mlem = torch.clamp(x_mlem, min=0.0)
+    x_mlem = mlem(y, physics, init=torch.ones_like(x))
 
 dinv.utils.plot(
     [x[..., mid_slice], x_mlem[..., mid_slice], x_dag[..., mid_slice]],

@@ -2251,10 +2251,11 @@ class MLEM(BaseOptim):
     At each iteration, the algorithm performs a multiplicative update of the form:
 
     .. math::
-        x_{k+1} = \frac{x_k}{A^T \mathbf{1}} \odot A^T \left(\frac{y}{A x_k}\right)
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1}} \odot A^T \left(\frac{y}{A x_k + b}\right)
 
     where :math:`A` is the forward operator, :math:`y` is the observed data,
-    :math:`\mathbf{1}` is a tensor of ones, and :math:`\odot` denotes element-wise multiplication.
+    :math:`b` is an optional additive background, :math:`\mathbf{1}` is a tensor of ones,
+    and :math:`\odot` denotes element-wise multiplication.
 
     The algorithm can be used with a prior term (e.g., for MAP-EM variants) or without
     (standard MLEM). See :class:`deepinv.optim.optim_iterators.MLEMIteration` for the details of the iteration.
@@ -2276,14 +2277,14 @@ class MLEM(BaseOptim):
     It leads to the following update rule:
 
     .. math::
-        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \nabla g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \nabla g(x_k)} \odot A^T \left(\frac{y}{A x_k + b}\right)
 
     where :math:`g` is the prior function and :math:`\lambda` is the regularization parameter.
 
     In the case of a non-differentiable prior, the gradient term :math:`\nabla g(x_k)` is replaced by a subgradient:
 
     .. math::
-        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \partial g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \partial g(x_k)} \odot A^T \left(\frac{y}{A x_k + b}\right)
 
     where :math:`\partial g(x_k)` is a subgradient of :math:`g` at point :math:`x_k`.
 

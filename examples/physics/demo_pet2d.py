@@ -43,6 +43,7 @@ with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained t
 
 """
 
+# %%
 import deepinv as dinv
 from deepinv.physics import PET
 from deepinv.utils.phantoms import generate_pet_phantom
@@ -217,19 +218,18 @@ dinv.utils.plot([x_dag, sensitivities], ["pseudoinverse", "sensitivities"])
 
 gain = physics.noise_model.gain
 data_fidelity = dinv.optim.PoissonLikelihood(
-    bkg=background / gain,
     gain=gain,
     denormalize=True,
 )
 
-stepsize = 1.0
-x_mlem = torch.ones_like(x)
+mlem = dinv.optim.MLEM(
+    data_fidelity=data_fidelity,
+    prior=None,
+    max_iter=100,
+)
+
 with torch.no_grad():
-    for i in range(100):
-        grad = data_fidelity.grad(x=x_mlem, y=y, physics=physics) / gain
-        preconditioner = (x_mlem + 1e-9) / (sensitivities + 1e-9)
-        x_mlem = x_mlem - preconditioner * grad
-        x_mlem = torch.clamp(x_mlem, min=0.0, max=5.0)
+    x_mlem = mlem(y, physics, init=torch.ones_like(x))
 
 
 dinv.utils.plot([x, x_mlem, x_dag], ["Ground truth", "MLEM rec.", "L2 pseudoinv."])
