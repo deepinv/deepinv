@@ -91,6 +91,3 @@ jobs:
             } else {
               core.info('✅ No significant performance regression detected.');
             }
-      
-      - name: Minimize uv cache
-        run: uv cache prune --ci
