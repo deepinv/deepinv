@@ -34,13 +34,13 @@ jobs:
                   || (inputs.pr_number && format('refs/pull/{0}/head', inputs.pr_number))
                   || github.sha }}
 
-      # When testing a PR, restore the pixi.lock + .testmondata pair solved on
+      # When testing a PR, restore the pixi.lock + .testmondata + .coverage triple solved on
       # main as a SINGLE cache entry (atomic, no lock/testmondata mismatch) so
       # pixi installs the exact package set that produced .testmondata, keeping
       # testmon's environment fingerprint stable. Restored *before* Setup Pixi
       # so the action installs from this lock. Baseline runs (schedule / push
       # to main) restore nothing and solve fresh to track latest deps.
-      - name: Restore pixi.lock + .testmondata
+      - name: Restore pixi.lock + .testmondata + .coverage
         if: inputs.pr_number != ''
         uses: actions/cache/restore@v4
         id: restore-cache
@@ -48,6 +48,7 @@ jobs:
           path: |
             pixi.lock
             .testmondata
+            .coverage
           key: testmon-gpu-main-${{ github.run_id }}
           restore-keys: |
             testmon-gpu-main-
@@ -94,19 +95,25 @@ jobs:
           "
 
       - name: Test with pytest
+        shell: bash
         run: |
-          pixi run -e full pytest -n 2 --dist=loadgroup --testmon
+          TESTMON_FLAG=""
+          if [ -f .coverage ]; then
+            TESTMON_FLAG="--testmon"
+          fi
+          pixi run -e full pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml:coverage-full.xml --cov-append $TESTMON_FLAG
 
-      # Save the freshly-solved lock + .testmondata as a single (atomic) matched
+      # Save the freshly-solved lock + .testmondata + .coverage as a single (atomic) matched
       # baseline pair. Only on main and only for baseline runs (not PR-dispatch),
       # so a PR's env/results never overwrite the main baseline.
-      - name: Save pixi.lock + .testmondata
+      - name: Save pixi.lock + .testmondata + .coverage
         uses: actions/cache/save@v4
         if: github.ref == 'refs/heads/main' && inputs.pr_number == '' # Only save baseline cache on main
         with:
           path: |
             pixi.lock
             .testmondata
+            .coverage
           key: testmon-gpu-main-${{ github.run_id }}
 
       - name: Post result to PR
@@ -128,6 +135,15 @@ jobs:
               issue_number: pr,
               body,
             });
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage-full.xml
+          flags: full
+          name: full-coverage
 
       - name: Cleanup Pixi
         if: always()

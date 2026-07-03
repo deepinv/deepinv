@@ -78,6 +78,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
      -
        | :class:`deepinv.physics.Tomography`
        | :class:`deepinv.physics.TomographyWithAstra`
+       | :class:`deepinv.physics.PET`
      -
 
    * - Remote Sensing & Multispectral
