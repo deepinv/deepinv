@@ -12,6 +12,7 @@ from deepinv.physics.forward import (
     StackedLinearPhysics,
     adjoint_function,
 )
+from deepinv.physics.pet import PET
 from deepinv.physics.functional import (
     Radon,
     IRadon,
@@ -71,6 +72,10 @@ def _set_subset_normalization(subset_physics, physics):
         )
 
 
+def _pet_view_dim(physics: PET) -> int:
+    return 2 + physics.proj.lor_descriptor.view_axis_num
+
+
 def split_measurements(
     y: torch.Tensor,
     physics: LinearPhysics,
@@ -92,10 +97,13 @@ def split_measurements(
     elif isinstance(physics, TomographyWithAstra):
         num_angles = physics.num_angles
         dim = -2
+    elif isinstance(physics, PET):
+        num_angles = physics.num_views
+        dim = _pet_view_dim(physics)
     else:
         raise TypeError(
-            "split_measurements is currently supported for Tomography and "
-            "TomographyWithAstra physics."
+            "split_measurements is currently supported for Tomography, "
+            "TomographyWithAstra and PET physics."
         )
 
     if dim < 0:
@@ -222,9 +230,48 @@ def split_physics(
             subset_physics.append(subset)
         return StackedLinearPhysics(subset_physics)
 
+    if isinstance(physics, PET):
+        indices = get_subset_indices(
+            physics.num_views,
+            num_subsets,
+            strategy=strategy,
+            device=physics.views.device,
+        )
+        view_dim = _pet_view_dim(physics)
+        subset_physics = []
+        for idx in indices:
+            views = physics.views.index_select(0, idx.to(physics.views.device))
+            background = physics.background.index_select(
+                view_dim, idx.to(physics.background.device)
+            )
+            attenuation = physics.attenuation.index_select(
+                view_dim, idx.to(physics.attenuation.device)
+            )
+            gain = getattr(physics.noise_model, "gain", torch.ones(1))
+            normalize_counts = getattr(
+                physics.noise_model, "normalize", torch.tensor(False)
+            )
+            subset = PET(
+                img_size=physics.img_size,
+                voxel_size=physics.voxel_size,
+                fwhm_data_mm=physics.fwhm_data_mm,
+                scanner=physics.scanner,
+                radial_trim=physics.radial_trim,
+                gain=gain.detach().clone(),
+                normalize=False,
+                normalize_counts=bool(normalize_counts.item()),
+                device=physics.background.device,
+                views=views,
+                background=background,
+                attenuation=attenuation,
+            )
+            _set_subset_normalization(subset, physics)
+            subset_physics.append(subset)
+        return StackedLinearPhysics(subset_physics)
+
     raise TypeError(
-        "split_physics is currently supported for Tomography and TomographyWithAstra "
-        "physics."
+        "split_physics is currently supported for Tomography, TomographyWithAstra "
+        "and PET physics."
     )
 
 

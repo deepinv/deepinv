@@ -2262,9 +2262,9 @@ class MLEM(BaseOptim):
 
     If ``num_subsets > 1``, each MLEM iteration becomes one ordered-subsets EM epoch.
     The user still calls the algorithm with the full measurement tensor and the full
-    tomography physics; internally, MLEM splits the sinogram over the angle dimension
+    tomography or PET physics; internally, MLEM splits the sinogram over the view dimension
     and builds a :class:`deepinv.physics.StackedLinearPhysics` containing one
-    tomography operator per subset using :func:`deepinv.physics.tomography.split_physics`
+    operator per subset using :func:`deepinv.physics.tomography.split_physics`
     and :func:`deepinv.physics.tomography.split_measurements`.
 
     The MLEM algorithm minimizes the Poisson negative log-likelihood data-fidelity. The ``data_fidelity`` argument
@@ -2296,8 +2296,8 @@ class MLEM(BaseOptim):
     :param float g_param: parameter for the prior. Default: ``None``.
     :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
     :param int num_subsets: number of ordered subsets. If set to ``1``, run standard
-        MLEM. If larger than ``1``, ``physics`` must be a tomography operator whose
-        angle dimension can be split into contiguous subsets. Default: ``1``.
+        MLEM. If larger than ``1``, ``physics`` must be a tomography or PET operator
+        whose view dimension can be split into contiguous subsets. Default: ``1``.
     :param str subset_strategy: ordered-subsets strategy. Currently only ``"default"``
         is supported. Default: ``"default"``.
     :param float eps: positive value used to clamp denominators in the

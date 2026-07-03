@@ -82,6 +82,7 @@ class PET(LinearPhysics):
     :param bool normalize_counts: If `False` the :math:`\gamma` normalization term in front of the Poisson noise is removed,
         so that the measurements :math:`y` are true integer counts.
     :param str | torch.device device: device to run the computations on, e.g. `"cpu"` or `"cuda"`
+    :param None, torch.Tensor views: PET sinogram views to project. If ``None``, all views are projected.
     :param torch.Tensor background: background sinogram :math:`b`, i.e. the expected number of background events in each LOR, with shape `(num_lors,)`
     :param torch.Tensor attenuation: attenuation map. Can be provided either in **image space** as :math:`\mu`
         (linear attenuation coefficients, shape `(H,W)` for 2D or `(D,H,W)` for 3D — typically from an auxiliary CT scan),
@@ -120,6 +121,7 @@ class PET(LinearPhysics):
         normalize: bool = False,
         normalize_counts: bool = False,
         device: str | torch.device = "cpu",
+        views: torch.Tensor | None = None,
         background: torch.Tensor | None = None,
         attenuation: torch.Tensor | None = None,
         **kwargs,
@@ -151,17 +153,22 @@ class PET(LinearPhysics):
             voxel_size = voxel_size + (voxel_size[-1],)
 
         self.img_size = img_size
+        self.voxel_size = voxel_size
+        self.fwhm_data_mm = fwhm_data_mm
+        self.radial_trim = radial_trim
 
         if len(img_size) == 2:
             img_size = img_size + (1,)
             self.is_2d = True
         else:
             self.is_2d = False
+        self.img_shape = img_size
 
         if scanner is None:
             scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
                 torch_compat, dev=device, num_rings=1 if self.is_2d else 16
             )
+        self.scanner = scanner
 
         # setup the LOR descriptor that defines the sinogram
         lor_desc = parallelproj.RegularPolygonPETLORDescriptor(
@@ -170,9 +177,14 @@ class PET(LinearPhysics):
             sinogram_order=parallelproj.SinogramSpatialAxisOrder.RVP,
         )
 
+        if views is not None:
+            views = torch.as_tensor(views, device=device, dtype=torch.int64)
+
         self.proj = parallelproj.RegularPolygonPETProjector(
-            lor_desc, img_shape=img_size, voxel_size=voxel_size
+            lor_desc, img_shape=img_size, voxel_size=voxel_size, views=views
         )
+        self.views = self.proj.views
+        self.num_views = self.views.shape[0]
 
         if background is not None:
             background = background.to(device)
@@ -189,6 +201,9 @@ class PET(LinearPhysics):
         if attenuation is None:
             attenuation = torch.zeros((1, 1) + self.img_size, device=device)
 
+        fwhm_data_mm = torch.as_tensor(
+            fwhm_data_mm, device=device, dtype=self.proj.voxel_size.dtype
+        )
         self.res_model = parallelproj.GaussianFilterOperator(
             img_size, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
         )
