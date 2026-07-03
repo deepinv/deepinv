@@ -22,7 +22,7 @@ from deepinv.optim.optim_iterators import (
 )
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import ZeroPrior, Prior
-from deepinv.optim.data_fidelity import DataFidelity, ZeroFidelity
+from deepinv.optim.data_fidelity import DataFidelity, PoissonLikelihood, ZeroFidelity
 from deepinv.optim.bregman import Bregman
 from deepinv.models import Reconstructor
 from deepinv.optim.bregman import BregmanL2
@@ -2391,6 +2391,8 @@ class BlindRL(BaseOptim):
     :param Callable custom_init: optional initializer returning ``(x0, k0)`` or a
         dictionary with ``{"est": (x0, k0)}``. If omitted, ``x0`` is initialized
         with ``physics.A_adjoint(y)`` and ``k0`` with ``physics.filter``.
+    :param Callable cost_fn: optional cost function. If omitted, the Poisson
+        negative log-likelihood plus explicit image and kernel priors is used.
     :param dict params_algo: optionally provide BlindRL parameters directly.
     """
 
@@ -2412,6 +2414,17 @@ class BlindRL(BaseOptim):
         early_stop: bool = False,
         custom_metrics: dict[str, Metric] = None,
         custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
         params_algo: dict[str, float] = None,
         unfold: bool = False,
         DEQ: DEQConfig | bool = None,
@@ -2435,14 +2448,31 @@ class BlindRL(BaseOptim):
             }
 
         self.eps = eps
+        k_prior_for_cost = ZeroPrior() if k_prior is None else k_prior
+
+        if cost_fn is None:
+
+            def cost_fn(x, data_fidelity, prior, cur_params, y, physics):
+                cost = data_fidelity(x, y, physics)
+                lambda_x = cur_params.get("lambda_reg_x", 0.0)
+                lambda_k = cur_params.get("lambda_reg_k", 0.0)
+                if prior is not None and prior.explicit_prior:
+                    cost = cost + lambda_x * prior(x, cur_params.get("g_param", None))
+                if k_prior_for_cost.explicit_prior:
+                    cost = cost + lambda_k * k_prior_for_cost(
+                        physics.filter,
+                        cur_params.get("g_param_kernel", None),
+                    )
+                return cost
 
         super(BlindRL, self).__init__(
             BlindRLIteration(
                 k_prior=k_prior,
                 normalize_kernel=normalize_kernel,
                 eps=eps,
+                cost_fn=cost_fn,
             ),
-            data_fidelity=None,
+            data_fidelity=PoissonLikelihood(),
             prior=x_prior,
             params_algo=params_algo,
             max_iter=max_iter,
@@ -2455,8 +2485,6 @@ class BlindRL(BaseOptim):
             unfold=False,
             **kwargs,
         )
-        self.has_cost = False
-        self.fixed_point.iterator.has_cost = False
 
     @staticmethod
     def _physics_filter(physics: Physics) -> torch.Tensor:
@@ -2519,7 +2547,19 @@ class BlindRL(BaseOptim):
             raise ValueError(
                 "BlindRL initialization must contain both image and kernel."
             )
-        init_X["cost"] = None
+        if self.has_cost and cost_fn is not None:
+            x_init, k_init = init_X["est"][:2]
+            physics.update_parameters(filter=k_init)
+            init_X["cost"] = cost_fn(
+                x_init,
+                self.update_data_fidelity_fn(0),
+                self.update_prior_fn(0),
+                self.update_params_fn(0),
+                y,
+                physics,
+            )
+        else:
+            init_X["cost"] = None
         return init_X
 
     def forward(

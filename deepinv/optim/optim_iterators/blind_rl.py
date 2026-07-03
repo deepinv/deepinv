@@ -30,7 +30,7 @@ class BlindRLIteration(OptimIterator):
         eps: float = 1e-15,
         **kwargs,
     ):
-        super().__init__(has_cost=False, cost_fn=None, **kwargs)
+        super().__init__(**kwargs)
         self.k_prior = ZeroPrior() if k_prior is None else k_prior
         self.normalize_kernel = normalize_kernel
         self.eps = eps
@@ -140,4 +140,12 @@ class BlindRLIteration(OptimIterator):
             x = x.clamp_min(self.eps)
 
         k_it = 0 if "it" not in X else X["it"]
-        return {"est": (x, k), "cost": None, "it": k_it + 1}
+        cost = (
+            self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            if self.cost_fn is not None
+            and self.has_cost
+            and cur_data_fidelity is not None
+            and cur_prior is not None
+            else None
+        )
+        return {"est": (x, k), "cost": cost, "it": k_it + 1}
