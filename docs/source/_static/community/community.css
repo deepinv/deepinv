@@ -1,0 +1,199 @@
+/* Styling for the Community / landing-page showcases:
+   - "Used, contributed & trusted by" logo cards
+   - "Powering SotA research" scrollable citing-papers list
+   - Contributors grid
+   Colours are taken from the pydata-sphinx-theme CSS variables so the
+   components adapt automatically to light and dark mode. */
+
+.di-showcase {
+    margin: 1.5rem 0 2.5rem;
+}
+
+.di-showcase-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0 0 0.4rem;
+    color: var(--pst-color-text-base, #222);
+}
+
+/* ---------------------------------------------------------------- Used by */
+
+.di-usedby-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;
+    gap: 1rem;
+    margin: 1.25rem 0;
+}
+
+.di-usedby-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: transparent;
+    border: 1px solid var(--pst-color-border, #d0d7de);
+    border-radius: 12px;
+    padding: 1.1rem 1.4rem;
+    min-height: 96px;
+    min-width: 150px;
+}
+
+.di-usedby-card--quote {
+    flex-direction: row;
+    text-align: left;
+    max-width: 460px;
+}
+
+.di-usedby-logo {
+    height: 52px;
+    width: auto;
+    max-width: 180px;
+    object-fit: contain;
+    display: block;
+    flex: 0 0 auto;
+}
+
+/* Keep dark institutional logos legible on the dark theme. */
+html[data-theme="dark"] .di-usedby-logo {
+    background: #f6f7f9;
+    border-radius: 8px;
+    padding: 8px 10px;
+}
+
+.di-usedby-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.di-usedby-person {
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--pst-color-text-base, #222);
+}
+
+.di-usedby-quote {
+    font-size: 0.9rem;
+    line-height: 1.35;
+    color: var(--pst-color-text-muted, #666);
+    font-style: italic;
+}
+
+/* -------------------------------------------------- Powering SotA research */
+
+.di-scholar-list {
+    position: relative;
+    max-height: 32rem;
+    overflow-y: auto;
+    border: 1px solid var(--pst-color-border, #d0d7de);
+    border-radius: 12px;
+    padding: 0.25rem 0.25rem 0.25rem 0;
+}
+
+.di-scholar-item {
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--pst-color-border, #e6e8eb);
+}
+
+.di-scholar-item:last-child {
+    border-bottom: none;
+}
+
+.di-scholar-authors {
+    font-size: 0.85rem;
+    color: var(--pst-color-text-muted, #666);
+    margin-bottom: 0.15rem;
+}
+
+.di-scholar-title {
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.di-scholar-meta {
+    font-size: 0.85rem;
+    color: var(--pst-color-text-muted, #666);
+    margin-top: 0.15rem;
+}
+
+.di-scholar-venue {
+    font-style: italic;
+}
+
+.di-scholar-footer {
+    font-size: 0.8rem;
+    color: var(--pst-color-text-muted, #888);
+    text-align: right;
+    margin-top: 0.4rem;
+}
+
+.di-scholar-footer a {
+    color: inherit;
+}
+
+/* ------------------------------------------------------------ Contributors */
+
+.di-contrib-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1.25rem 0.75rem;
+    margin: 1.25rem 0;
+}
+
+.di-contrib {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.35rem;
+    text-decoration: none !important;
+    color: inherit;
+}
+
+.di-contrib-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--pst-color-border, #d0d7de);
+    background: var(--pst-color-surface, #f0f0f0);
+    transition: transform 0.15s ease;
+}
+
+.di-contrib:hover .di-contrib-avatar {
+    transform: scale(1.06);
+}
+
+.di-contrib-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--pst-color-link, #0a66c2);
+}
+
+.di-contrib-loc {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: var(--pst-color-text-muted, #777);
+}
+
+.di-loading {
+    color: var(--pst-color-text-muted, #888);
+    font-style: italic;
+    text-align: center;
+    margin: 1rem 0;
+}
+
+@media (max-width: 480px) {
+    .di-usedby-card--quote {
+        flex-direction: column;
+        text-align: center;
+    }
+    .di-contrib-grid {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    }
+}

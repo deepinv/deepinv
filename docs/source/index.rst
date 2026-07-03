@@ -244,6 +244,24 @@ If you use DeepInverse in your research, please cite `our paper on JOSS <https:/
         author = {Tachella, Julián and Terris, Matthieu and Hurault, Samuel and Wang, Andrew and Davy, Leo and Scanvic, Jérémy and Sechaud, Victor and Vo, Romain and Moreau, Thomas and Davies, Thomas and Chen, Dongdong and Laurent, Nils and Monroy, Brayan and Dong, Jonathan and Hu, Zhiyuan and Nguyen, Minh-Hai and Sarron, Florian and Weiss, Pierre and Escande, Paul and Massias, Mathurin and Modrzyk, Thibaut and Levac, Brett and Liaudat, Tobías I. and Song, Maxime and Hertrich, Johannes and Neumayer, Sebastian and Schramm, Georg},
     }
 
+.. include:: _includes/usedby.rst
+
+.. raw:: html
+
+   <section class="di-showcase">
+     <h2 class="di-showcase-title">Powering SotA research</h2>
+     <div class="di-scholar-list" data-di-scholar>
+       <p class="di-loading">Loading recent papers&hellip;</p>
+     </div>
+     <div class="di-scholar-footer">
+       Papers citing DeepInverse, via
+       <a href="https://scholar.google.com/scholar?cites=2339544645882267464,1679399233449144578"
+          target="_blank" rel="noopener noreferrer">Google Scholar</a>.
+     </div>
+   </section>
+   <script src="_static/community/data/scholar.data.js"></script>
+   <script src="_static/community/community.js"></script>
+
 Star history
 ------------
 
