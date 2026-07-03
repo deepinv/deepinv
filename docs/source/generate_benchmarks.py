@@ -128,7 +128,7 @@ def process_csv_file(csv_path):
     lines.append(
         f".. code-block:: python\n"
         f"\n"
-        f'   from deepinv_bench import run_benchmark\n'
+        f"   from deepinv_bench import run_benchmark\n"
         f"   my_solver = lambda y, physics: ...  # your solver here\n"
         f'   results = run_benchmark(my_solver, "{benchmark_link}")\n'
         f"\n"
