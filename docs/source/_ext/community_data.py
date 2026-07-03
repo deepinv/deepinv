@@ -32,7 +32,7 @@ except Exception:  # pragma: no cover
 
 
 REPO = "deepinv/deepinv"
-SCHOLAR_CITES = "2339544645882267464,1679399233449144578" # deepinv paper
+SCHOLAR_CITES = "2339544645882267464,1679399233449144578"  # deepinv paper
 SCHOLAR_URL = f"https://scholar.google.com/scholar?hl=en&as_sdt=2005&sciodt=0,5&cites={SCHOLAR_CITES}&scipsc=&q=&scisbd=1"
 SCHOLAR_MAX_PAPERS = 30
 SCHOLAR_PAGE_SIZE = 10
@@ -48,7 +48,9 @@ USER_AGENT = (
 CACHE_TTL_SECONDS = int(os.environ.get("DEEPINV_COMMUNITY_TTL", 12 * 3600))
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_DATA_DIR = os.path.normpath(os.path.join(_HERE, "..", "_static", "community", "data"))
+DEFAULT_DATA_DIR = os.path.normpath(
+    os.path.join(_HERE, "..", "_static", "community", "data")
+)
 
 VENUE_RULES = [
     ("arxiv", "arXiv"),
@@ -58,6 +60,7 @@ VENUE_RULES = [
 
 
 ### Google Scholar
+
 
 def normalize_venue(venue: str) -> str:
     venue = re.sub(r"\s*[…\.]{2,}\s*", " ", venue).strip(" ,-–…")
@@ -69,6 +72,7 @@ def normalize_venue(venue: str) -> str:
         return "CVPR"
     return venue
 
+
 def format_authors(authors: str) -> str:
     truncated = "…" in authors or "..." in authors
     authors = authors.replace("…", "").replace("\xa0", " ")
@@ -77,6 +81,7 @@ def format_authors(authors: str) -> str:
     if truncated or len(parts) > 3:
         label += " et al."
     return label
+
 
 def _parse_gs_a(text: str):
     """Parse Scholar's byline "AUTHORS - VENUE, YEAR - SOURCE"."""
@@ -155,7 +160,9 @@ def fetch_scholar(max_papers: int = SCHOLAR_MAX_PAPERS, timeout=(4, 6)) -> list[
         raise RuntimeError("No papers parsed from Google Scholar")
     return papers[:max_papers]
 
+
 ### GitHub contributors
+
 
 def _github_headers(token):
     headers = {
@@ -216,7 +223,9 @@ def fetch_contributors(timeout=(4, 6), token=None, deadline: float | None = None
             entry["avatar_url"] = prof.get("avatar_url") or entry["avatar_url"]
             entry["html_url"] = prof.get("html_url") or entry["html_url"]
         except Exception as exc:  # keep login-only on failure
-            logger.info("[community] profile enrich failed for %s: %s", entry["login"], exc)
+            logger.info(
+                "[community] profile enrich failed for %s: %s", entry["login"], exc
+            )
         return entry
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
@@ -224,13 +233,17 @@ def fetch_contributors(timeout=(4, 6), token=None, deadline: float | None = None
     return base
 
 
-
 ### Orchestration
+
 
 def _payload(kind: str, items):
     return {
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "source_url": SCHOLAR_URL if kind == "scholar" else f"https://github.com/{REPO}/graphs/contributors",
+        "source_url": (
+            SCHOLAR_URL
+            if kind == "scholar"
+            else f"https://github.com/{REPO}/graphs/contributors"
+        ),
         kind: items,
     }
 
@@ -279,7 +292,9 @@ def _refresh_one(kind, data_dir, fetch_fn):
             logger.info("[community] refreshed %s.data.js (%d items)", kind, len(items))
             return
         except Exception as exc:
-            logger.info("[community] live fetch for %s failed, using fallback: %s", kind, exc)
+            logger.info(
+                "[community] live fetch for %s failed, using fallback: %s", kind, exc
+            )
 
     if _is_fresh(live):
         return  # keep the recent live file
@@ -305,15 +320,15 @@ def generate_community_data(app=None, data_dir=None):
     )
 
 
-
-
 def _cli():
     import argparse
 
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--update-fallback", action="store_true")
     ap.add_argument("--data-dir", default=DEFAULT_DATA_DIR)
-    ap.add_argument("--html", nargs="*", help="local Scholar HTML pages to parse offline")
+    ap.add_argument(
+        "--html", nargs="*", help="local Scholar HTML pages to parse offline"
+    )
     ap.add_argument("--profiles", help="local GitHub profiles JSON to use offline")
     args = ap.parse_args()
 
@@ -343,7 +358,9 @@ def _cli():
         os.path.join(args.data_dir, f"contributors.{suffix}"),
         _payload("contributors", contributors),
     )
-    print(f"Wrote {len(papers)} papers and {len(contributors)} contributors to {args.data_dir}")
+    print(
+        f"Wrote {len(papers)} papers and {len(contributors)} contributors to {args.data_dir}"
+    )
 
 
 if __name__ == "__main__":
