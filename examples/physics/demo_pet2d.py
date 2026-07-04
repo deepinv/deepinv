@@ -225,6 +225,7 @@ dinv.utils.plot([x_dag, sensitivities], ["pseudoinverse", "sensitivities"])
 gain = physics.noise_model.gain
 data_fidelity = dinv.optim.PoissonLikelihood(
     gain=gain,
+    bkg=background,
     denormalize=True,
 )
 

@@ -110,6 +110,11 @@ scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
 # FWHM of the Gaussian blur kernel in mm
 fwhm_data_mm = 4
 
+# gain of the device:
+# higher gains are associated to lower dose and/or shorter acquisition times,
+# while lower gains are associated to higher dose and/or longer acquisition times.
+# larger gain -> more poisson noise -> harder reconstruction
+gain = 0.001
 
 physics = PET(
     device=device,
@@ -119,6 +124,7 @@ physics = PET(
     img_size=img_size,
     normalize_counts=False,
     normalize=False,
+    gain=gain,
 )
 
 physics.plot_geometry()
@@ -133,13 +139,6 @@ physics.plot_geometry()
 
 x, attenuation = generate_pet_phantom(img_size, device=device)
 mid_slice = img_size[-1] // 2
-
-# gain of the device.
-# higher gains are associated to lower dose and/or shorter acquisition times,
-# while lower gains are associated to higher dose and/or longer acquisition times.
-# larger gain -> more poisson noise -> harder reconstruction
-acquisition_time_factor = 10.0
-x = x * acquisition_time_factor
 
 dinv.utils.plot(
     [x[..., mid_slice], attenuation[..., mid_slice]],
@@ -236,8 +235,11 @@ dinv.utils.plot(sensitivities[..., mid_slice], ["sensitivities"])
 # In 2D, subsetting can result in mild speedups, but in 3D tomography it significantly reduces
 # the reconstruction time.
 
+gain = physics.noise_model.gain
 data_fidelity = dinv.optim.PoissonLikelihood(
-    denormalize=False,
+    gain=gain,
+    bkg=background,
+    denormalize=True,
 )
 
 mlem_iter = 40
