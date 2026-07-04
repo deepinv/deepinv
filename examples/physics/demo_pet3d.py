@@ -122,8 +122,8 @@ physics = PET(
     scanner=scanner,
     fwhm_data_mm=fwhm_data_mm,
     img_size=img_size,
-    normalize_counts=False,
-    normalize=False,
+    normalize_counts=True,
+    normalize=True,
     gain=gain,
 )
 
@@ -243,8 +243,8 @@ data_fidelity = dinv.optim.PoissonLikelihood(
 )
 
 mlem_iter = 40
-osem_epochs = 5
-num_subsets = 8
+osem_epochs = 4
+num_subsets = 16
 
 
 def _sync():
