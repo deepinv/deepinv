@@ -2384,7 +2384,20 @@ class MLEM(BaseOptim):
 
     def forward(self, y, physics, *args, **kwargs):
         if self.num_subsets > 1:
-            from deepinv.physics.tomography import split_measurements, split_physics
+            from deepinv.physics.pet import PET
+            from deepinv.physics.tomography import (
+                Tomography,
+                TomographyWithAstra,
+                split_measurements,
+                split_physics,
+            )
+
+            if not isinstance(physics, (Tomography, TomographyWithAstra, PET)):
+                raise TypeError(
+                    "Ordered-subsets MLEM requires a physics operator supporting "
+                    "tomographic subsetting, currently Tomography, "
+                    "TomographyWithAstra or PET."
+                )
 
             kwargs["subset_physics"] = split_physics(
                 physics, self.num_subsets, strategy=self.subset_strategy

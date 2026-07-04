@@ -1,11 +1,8 @@
+import torch
+
+from deepinv.utils.tensorlist import ones_like
+
 from .optim_iterator import OptimIterator
-from deepinv.utils.tensorlist import TensorList, ones_like
-
-
-def _clamp_min(x, min_value):
-    if isinstance(x, TensorList):
-        return TensorList([xi.clamp(min=min_value) for xi in x])
-    return x.clamp(min=min_value)
 
 
 class MLEMIteration(OptimIterator):
@@ -20,57 +17,6 @@ class MLEMIteration(OptimIterator):
     def __init__(self, eps: float = 1e-15, **kwargs):
         self.eps = eps
         super(MLEMIteration, self).__init__(**kwargs)
-
-    def _mlem_update(
-        self,
-        x_prev,
-        cur_prior,
-        cur_params,
-        y,
-        physics,
-        prior_scale: float = 1.0,
-    ):
-        sensitivity = physics.A_adjoint(ones_like(y))
-        if hasattr(physics, "background"):
-            proj = physics.A(x_prev, add_background=True)
-        else:
-            proj = physics.A(x_prev)
-        x = x_prev * physics.A_adjoint(y / _clamp_min(proj, self.eps))
-
-        if cur_prior is not None:
-            denom = sensitivity + prior_scale * cur_params["lambda"] * cur_prior.grad(
-                x, cur_params["g_param"]
-            )
-        else:
-            denom = sensitivity
-
-        return x / denom.clamp(min=self.eps)
-
-    def _ordered_subsets_update(
-        self, x_prev, cur_prior, cur_params, y_subsets, subset_physics
-    ):
-        num_subsets = len(subset_physics)
-        if num_subsets < 1:
-            raise ValueError("MLEM requires at least one subset.")
-
-        num_measurements = len(y_subsets)
-        if num_measurements != num_subsets:
-            raise ValueError(
-                "The number of measurement subsets and physics subsets must match."
-            )
-
-        x = x_prev
-        prior_scale = 1.0 / num_subsets
-        for i in range(num_subsets):
-            x = self._mlem_update(
-                x,
-                cur_prior,
-                cur_params,
-                y_subsets[i],
-                subset_physics[i],
-                prior_scale=prior_scale,
-            )
-        return x
 
     def forward(
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
@@ -92,16 +38,52 @@ class MLEMIteration(OptimIterator):
 
         y_subsets = kwargs.get("y_subsets")
         subset_physics = kwargs.get("subset_physics")
+
+        # Use one full operator for MLEM, or loop over ordered subsets for OSEM.
         if y_subsets is not None or subset_physics is not None:
             if y_subsets is None or subset_physics is None:
                 raise ValueError(
                     "Both y_subsets and subset_physics must be provided together."
                 )
-            x = self._ordered_subsets_update(
-                x_prev, cur_prior, cur_params, y_subsets, subset_physics
-            )
+            num_subsets = len(subset_physics)
+            if num_subsets < 1:
+                raise ValueError("MLEM requires at least one subset.")
+            if len(y_subsets) != num_subsets:
+                raise ValueError(
+                    "The number of measurement subsets and physics subsets must match."
+                )
+            measurements = y_subsets
+            physics_list = subset_physics
+            prior_scale = 1.0 / num_subsets
         else:
-            x = self._mlem_update(x_prev, cur_prior, cur_params, y, physics)
+            measurements = (y,)
+            physics_list = (physics,)
+            prior_scale = 1.0
+
+        x = x_prev
+        for cur_y, cur_physics in zip(measurements, physics_list, strict=True):
+            # E-step/MM correction: compare measured counts to predicted counts.
+            sensitivity = cur_physics.A_adjoint(ones_like(cur_y))
+            if hasattr(cur_physics, "background"):
+                proj = cur_physics.A(x, add_background=True)
+            else:
+                proj = cur_physics.A(x)
+
+            numerator = x * cur_physics.A_adjoint(cur_y / proj.clamp(min=self.eps))
+            denom = sensitivity
+
+            # Optional OSL prior contribution in the multiplicative denominator.
+            if cur_prior is not None:
+                if cur_prior.__class__.__name__ == "TVPrior":
+                    dx = cur_prior.nabla(x)
+                    norm = torch.linalg.vector_norm(dx, ord=2, dim=-1, keepdim=True)
+                    prior_grad = cur_prior.nabla_adjoint(dx / norm.clamp_min(self.eps))
+                else:
+                    prior_grad = cur_prior.grad(x, cur_params["g_param"])
+                denom = denom + prior_scale * cur_params["lambda"] * prior_grad
+
+            # M-step/MM minimizer: multiplicative update normalized by sensitivity.
+            x = numerator / denom.clamp(min=self.eps)
 
         F = (
             self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)

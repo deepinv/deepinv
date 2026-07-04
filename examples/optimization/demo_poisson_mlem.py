@@ -249,14 +249,16 @@ x_fbp = physics_ct.A_dagger(y_ct)
 # -------------------------------------------------------------
 #
 # Ordered-subsets EM accelerates tomographic MLEM by splitting the projection
-# angles into subsets. The user-facing API stays the same: we pass the full
+# angles into subsets. The API stays the same: we pass the full
 # sinogram ``y_ct`` and the full tomography operator ``physics_ct``. The
 # :class:`deepinv.optim.MLEM` optimizer builds the subset operators internally
 # when ``num_subsets > 1``.
+# In 2D tomography, subsetting can result in mild speedups, but in 3D tomography it
+# significantly reduces the reconstruction time.
 
-data_fidelity_ct = dinv.optim.PoissonLikelihood(gain=gain_ct)
+data_fidelity_ct = dinv.optim.PoissonLikelihood(gain=gain_ct, bkg=1e-7)
 
-ct_mlem_iter = 20
+ct_mlem_iter = 25
 ct_num_subsets = 12
 ct_osem_epochs = 2
 
@@ -264,6 +266,32 @@ ct_osem_epochs = 2
 def _sync():
     if torch.device(device).type == "cuda":
         torch.cuda.synchronize()
+
+
+def plot_comparison_curves(metrics_by_label, metric_names=("psnr", "cost")):
+    fig, axes = plt.subplots(1, len(metric_names), figsize=(5 * len(metric_names), 4))
+    if len(metric_names) == 1:
+        axes = [axes]
+
+    metric_labels = {
+        "psnr": "PSNR (dB)",
+        "cost": "Objective",
+        "residual": "residual",
+    }
+
+    for ax, metric_name in zip(axes, metric_names, strict=True):
+        for label, metrics in metrics_by_label.items():
+            values = metrics.get(metric_name, [[]])[0]
+            if len(values) > 0:
+                ax.plot(values, "-o", label=label)
+
+        if metric_name == "residual":
+            ax.set_yscale("log")
+        ax.set_xlabel("Iteration / epoch")
+        ax.set_ylabel(metric_labels.get(metric_name, metric_name))
+        ax.legend()
+
+    fig.tight_layout()
 
 
 model_ct_mlem = dinv.optim.MLEM(
@@ -329,36 +357,24 @@ plot(
     figsize=(12, 4),
 )
 
-mlem_psnr_axis = range(len(metrics_ct_mlem["psnr"][0]))
-osem_psnr_axis = range(len(metrics_ct_osem["psnr"][0]))
-mlem_cost_axis = range(1, len(metrics_ct_mlem["cost"][0]) + 1)
-osem_cost_axis = range(1, len(metrics_ct_osem["cost"][0]) + 1)
-
-fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-axes[0].plot(mlem_psnr_axis, metrics_ct_mlem["psnr"][0], label="MLEM")
-axes[0].plot(osem_psnr_axis, metrics_ct_osem["psnr"][0], label="OSEM")
-axes[0].set_xlabel("Iteration / epoch")
-axes[0].set_ylabel("PSNR (dB)")
-axes[0].legend()
-
-axes[1].plot(mlem_cost_axis, metrics_ct_mlem["cost"][0], label="MLEM")
-axes[1].plot(osem_cost_axis, metrics_ct_osem["cost"][0], label="OSEM")
-axes[1].set_xlabel("Iteration / epoch")
-axes[1].set_ylabel("Poisson objective")
-axes[1].legend()
-fig.tight_layout()
+plot_comparison_curves({"MLEM": metrics_ct_mlem, "OSEM": metrics_ct_osem})
 
 # %%
-# Run MLEM + TV and OSEM + TV on the CT problem
+# The subsetting strategy can also be combined with the use of a prior in the default
+# :class:`dinv.optim.MLEM` implementation which uses the OSL heuristic.
+# However, combining subsets with a prior usually requires more advanced regularization
+# strategies such as [BSREM](http://ieeexplore.ieee.org/document/1207396/).
+# Using subsets with a prior in :class:`dinv.optim.MLEM` can thus lead to more artifacts
+# in the reconstruction.
 
 prior_tv_ct = dinv.optim.prior.TVPrior(n_it_max=50)
 ct_tv_mlem_iter = 50
 ct_tv_osem_epochs = 2
-
+lambda_reg = 0.015
 model_ct = dinv.optim.MLEM(
     data_fidelity=data_fidelity_ct,
     prior=prior_tv_ct,
-    lambda_reg=1e-2,
+    lambda_reg=lambda_reg,
     max_iter=ct_tv_mlem_iter,
     early_stop=True,
     thres_conv=1e-6,
@@ -369,7 +385,7 @@ model_ct = dinv.optim.MLEM(
 model_ct_osem_tv = dinv.optim.MLEM(
     data_fidelity=data_fidelity_ct,
     prior=prior_tv_ct,
-    lambda_reg=1e-2,
+    lambda_reg=lambda_reg,
     max_iter=ct_tv_osem_epochs,
     num_subsets=ct_num_subsets,
     early_stop=True,
@@ -427,24 +443,7 @@ plot(
     figsize=(15, 4),
 )
 
-ct_tv_mlem_psnr_axis = range(len(metrics_ct["psnr"][0]))
-ct_tv_osem_psnr_axis = range(len(metrics_ct_osem_tv["psnr"][0]))
-ct_tv_mlem_cost_axis = range(1, len(metrics_ct["cost"][0]) + 1)
-ct_tv_osem_cost_axis = range(1, len(metrics_ct_osem_tv["cost"][0]) + 1)
-
-fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-axes[0].plot(ct_tv_mlem_psnr_axis, metrics_ct["psnr"][0], label="MLEM + TV")
-axes[0].plot(ct_tv_osem_psnr_axis, metrics_ct_osem_tv["psnr"][0], label="OSEM + TV")
-axes[0].set_xlabel("Iteration / epoch")
-axes[0].set_ylabel("PSNR (dB)")
-axes[0].legend()
-
-axes[1].plot(ct_tv_mlem_cost_axis, metrics_ct["cost"][0], label="MLEM + TV")
-axes[1].plot(ct_tv_osem_cost_axis, metrics_ct_osem_tv["cost"][0], label="OSEM + TV")
-axes[1].set_xlabel("Iteration / epoch")
-axes[1].set_ylabel("Poisson objective + TV")
-axes[1].legend()
-fig.tight_layout()
+plot_comparison_curves({"MLEM + TV": metrics_ct, "OSEM + TV": metrics_ct_osem_tv})
 
 # %%
 # :References:

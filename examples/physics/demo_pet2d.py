@@ -217,7 +217,10 @@ dinv.utils.plot([x_dag, sensitivities], ["pseudoinverse", "sensitivities"])
 # where :math:`f` is the Poisson data-fidelity term, :math:`P=\mathrm{diag}(\frac{x}{A^T\mathbf{1}})` is a preconditioner
 # and :math:`b` is the background.
 #
-# We compare MLEM, ordered-subsets EM (OSEM), and the least-squares reconstruction.
+# In Emission Tomography, the MLEM algorithm is often accelerated by using ordered subsets (OSEM), # which splits the measurements into subsets and performs a gradient step on each subset
+# sequentially.
+# In 2D, subsetting can result in mild speedups, but in 3D tomography it significantly reduces
+# the reconstruction time.
 
 gain = physics.noise_model.gain
 data_fidelity = dinv.optim.PoissonLikelihood(
@@ -226,7 +229,7 @@ data_fidelity = dinv.optim.PoissonLikelihood(
 )
 
 mlem_iter = 40
-osem_epochs = 6
+osem_epochs = 5
 num_subsets = 8
 
 
