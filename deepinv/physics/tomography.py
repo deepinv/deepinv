@@ -134,19 +134,17 @@ class Tomography(LinearPhysics):
         super().__init__(device=device, **kwargs)
 
         if isinstance(angles, int):
-            theta = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1].to(
+            angles = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1].to(
                 device
             )
         elif isinstance(angles, (list, tuple, ndarray)):
-            theta = torch.tensor(angles).to(device)
-        elif isinstance(angles, torch.Tensor):
-            theta = angles
-        else:
+            angles = torch.tensor(angles).to(device)
+        elif not isinstance(angles, torch.Tensor):
             raise ValueError(
                 f"angles must be int, float, iterable or Tensor, but got {type(angles)}"
             )
 
-        self.register_buffer("theta", theta)
+        self.register_buffer("angles", angles)
         self.fan_beam = fan_beam
         self.adjoint_via_backprop = adjoint_via_backprop
         if fan_beam or adjoint_via_backprop:
@@ -163,7 +161,7 @@ class Tomography(LinearPhysics):
         self.dtype = dtype
         self.radon = Radon(
             img_width,
-            theta,
+            angles,
             circle=circle,
             parallel_computation=parallel_computation,
             fan_beam=fan_beam,
@@ -174,7 +172,7 @@ class Tomography(LinearPhysics):
         if not self.fan_beam:
             self.iradon = IRadon(
                 img_width,
-                theta,
+                angles,
                 circle=circle,
                 parallel_computation=parallel_computation,
                 device=device,
