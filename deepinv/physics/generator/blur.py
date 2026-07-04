@@ -440,6 +440,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         If a single ``int`` is given, a square pupil is considered.
     :param bool apodize: whether to apodize the PSF to reduce ringing artifacts, defaults to ``False``.
     :param bool random_rotate: whether to randomly rotate the PSF, defaults to ``False``.
+    :param bool center: whether to center the barycenter of the PSF, defaults to ``False``. Less effective if either ``random_rotate`` or ``apodize`` is True
     :param str index_convention: the convention for the Zernike polynomials indexing. Can be either ``'noll'`` (default) or ``'ansi'``.
     :param str, torch.device device: device where the tensors are allocated and processed, defaults to ``'cpu'``.
     :param torch.dtype dtype: data type of the tensors, defaults to ``torch.float32``.
@@ -487,6 +488,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         pupil_size: tuple[int, ...] = (256, 256),
         apodize: bool = False,
         random_rotate: bool = False,
+        center: bool = False,
         index_convention: str = "noll",
         device: str | torch.device = "cpu",
         dtype: torch.dtype = torch.float32,
@@ -524,19 +526,26 @@ class DiffractionBlurGenerator(PSFGenerator):
         self.zernike_perturbation_amplitude = zernike_perturbation_amplitude
         self.apodize = apodize
         self.random_rotate = random_rotate
+        self.center = center
         self.index_convention = index_convention
         self.n_zernike = len(self.zernike_index)
 
         if self.apodize:
             lin_0 = torch.linspace(
-                -psf_size[0] // 2, psf_size[0] // 2, psf_size[0], **self.factory_kwargs
+                -self.psf_size[0] // 2,
+                self.psf_size[0] // 2,
+                self.psf_size[0],
+                **self.factory_kwargs,
             )
             lin_1 = torch.linspace(
-                -psf_size[1] // 2, psf_size[1] // 2, psf_size[1], **self.factory_kwargs
+                -self.psf_size[1] // 2,
+                self.psf_size[1] // 2,
+                self.psf_size[1],
+                **self.factory_kwargs,
             )
-            XX0, XX1 = torch.meshgrid(lin_0, lin_1, indexing="ij")
+            XX0, XX1 = torch.meshgrid(lin_0, lin_1, indexing="xy")
             dist = (XX0**2 + XX1**2) ** 0.5
-            radius = min(psf_size) / 2
+            radius = min(self.psf_size) / 2
             apodize_length = min(10, radius)
             self.apodize_mask = bump_function(
                 dist, a=radius - apodize_length, b=apodize_length
@@ -552,8 +561,12 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         lin_x = torch.linspace(-0.5, 0.5, self.pupil_size[0], **self.factory_kwargs)
         lin_y = torch.linspace(-0.5, 0.5, self.pupil_size[1], **self.factory_kwargs)
+        XX0, XX1 = torch.meshgrid(lin_x, lin_y, indexing="xy")
+
         self.register_buffer("lin_x", lin_x)
         self.register_buffer("lin_y", lin_y)
+        self.register_buffer("XX0", XX0)
+        self.register_buffer("XX1", XX1)
         self.step_rho = (lin_x[1] - lin_x[0]).item()
 
         # In order to avoid layover in Fourier convolution we need to zero pad and then extract a part of image
@@ -645,9 +658,8 @@ class DiffractionBlurGenerator(PSFGenerator):
         Bf, Cf = fc.shape
         fc_r = fc.reshape(Bf, Cf, 1, 1)
 
-        XX, YY = torch.meshgrid(self.lin_x, self.lin_y, indexing="ij")
-        XX = XX.reshape(1, 1, *XX.shape) / fc_r
-        YY = YY.reshape(1, 1, *YY.shape) / fc_r
+        XX = self.XX0.unsqueeze(0).unsqueeze(0) / fc_r
+        YY = self.XX1.unsqueeze(0).unsqueeze(0) / fc_r
 
         rho = cart2pol(XX, YY)
 
@@ -669,6 +681,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         batch_size: int = 1,
         coeff: torch.Tensor = None,
         angle: torch.Tensor = None,
+        center: bool = None,
         max_zernike_amplitude: float = None,
         zernike_perturbation_amplitude: float = None,
         seed: int = None,
@@ -723,8 +736,10 @@ class DiffractionBlurGenerator(PSFGenerator):
               ``n_zernike_used = len(used_zernike_index)`` if specified, else
               ``self.n_zernike``,
             - `pupil`: the pupil function,
+            - `fc`: tensor of shape ``(Bf, Cf)`` with the cutoff frequencies actually used,
             - `angle`: the random rotation angle in degrees if `random_rotate` is ``True``,
-            - `fc`: tensor of shape ``(Bf, Cf)`` with the cutoff frequencies actually used.
+            - `coeff_tilt_x`: the Zernike coefficient for tilt in the x-direction if center is ``True``,
+            - `coeff_tilt_y`: the Zernike coefficient for tilt in the y-direction if center is ``True``.
         """
 
         self.rng_manual_seed(seed)
@@ -750,6 +765,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         if zernike_perturbation_amplitude is None:
             zernike_perturbation_amplitude = self.zernike_perturbation_amplitude
 
+        center = self.center if center is None else center
         fc = self.fc if fc is None else fc
         fc_check = self._format_fc(fc, 1)  ##for checks on coeff shape
 
@@ -831,6 +847,60 @@ class DiffractionBlurGenerator(PSFGenerator):
             self.pad_pre[1] : self.pupil_size[1] - self.pad_post[1],
         ]
 
+        if center:
+            # Calculate the current barycenter of the PSF
+            Ny, Nx = psf.shape[-2:]
+            centerx = (Nx / 2.0) - 0.5
+            centery = (Ny / 2.0) - 0.5
+            x = torch.arange(0, psf.shape[-1]).to(self.device)
+            y = torch.arange(0, psf.shape[-2]).to(self.device)
+            x, y = torch.meshgrid(x, y, indexing="xy")
+            normalization = psf.sum(dim=(-2, -1))
+
+            shift_x = (x.unsqueeze(0).unsqueeze(0) * psf).sum(
+                dim=(-2, -1)
+            ) / normalization
+            shift_x = shift_x - centerx
+
+            shift_y = (y.unsqueeze(0).unsqueeze(0) * psf).sum(
+                dim=(-2, -1)
+            ) / normalization
+            shift_y = shift_y - centery
+
+            # Calculate the coefficients for tilt Zernikes to compensate for the shift
+
+            Z3, _ = self._zernike_basis(fc_used, nm_list=((1, 1),))
+            Z3 = Z3.squeeze(-1)
+            tangential_coeff_Z3 = (
+                Z3[..., pupil.shape[-2] // 2, pupil.shape[-1] // 2]
+                - Z3[..., pupil.shape[-2] // 2, (pupil.shape[-1] // 2) - 1]
+            )
+            coeff_Z3 = shift_x / (pupil.shape[-1] * tangential_coeff_Z3)
+            pupil = pupil * torch.exp(
+                -2.0j * torch.pi * coeff_Z3.unsqueeze(-1).unsqueeze(-1) * Z3
+            )
+
+            Z2, _ = self._zernike_basis(fc_used, nm_list=((1, -1),))
+            Z2 = Z2.squeeze(-1)
+            tangential_coeff_Z2 = (
+                Z2[..., pupil.shape[-2] // 2, pupil.shape[-1] // 2]
+                - Z2[..., (pupil.shape[-2] // 2) - 1, pupil.shape[-1] // 2]
+            )
+            coeff_Z2 = shift_y / (pupil.shape[-2] * tangential_coeff_Z2)
+            pupil = pupil * torch.exp(
+                -2.0j * torch.pi * coeff_Z2.unsqueeze(-1).unsqueeze(-1) * Z2
+            )
+
+            psf = torch.fft.ifftshift(
+                torch.fft.fft2(torch.fft.fftshift(pupil, dim=(-2, -1))), dim=(-2, -1)
+            )
+            psf = psf.abs().pow(2)
+            psf = psf[
+                ...,
+                self.pad_pre[0] : self.pupil_size[0] - self.pad_post[0],
+                self.pad_pre[1] : self.pupil_size[1] - self.pad_post[1],
+            ]
+
         psf = psf / torch.sum(psf, dim=(-1, -2), keepdim=True)
 
         if self.random_rotate:
@@ -850,6 +920,9 @@ class DiffractionBlurGenerator(PSFGenerator):
         }
         if self.random_rotate:
             params["angle"] = angle
+        if self.center:
+            params["coeff_tilt_x"] = coeff_Z3.unsqueeze(-1)
+            params["coeff_tilt_y"] = coeff_Z2.unsqueeze(-1)
         return params
 
     @property
