@@ -962,6 +962,35 @@ def test_MLEM(imsize, dummy_dataset, device):
     expected = x_init * y / (x_init + background)
     assert torch.allclose(x, expected)
 
+    # Check ordered-subsets MLEM decreases the Poisson likelihood on tomography.
+    imsize = (1, 16, 16)
+    physics = dinv.physics.Tomography(
+        img_width=imsize[-1],
+        angles=8,
+        device=device,
+        circle=True,
+        normalize=False,
+        parallel_computation=False,
+    )
+    x_true = torch.rand(
+        (1, *imsize), generator=torch.Generator(device).manual_seed(0), device=device
+    ).clamp(min=0.1)
+    y = physics(x_true).clamp(min=1e-6)
+    x_init = physics.A_adjoint(y).clamp(min=1e-6)
+
+    osem_data_fidelity = dinv.optim.PoissonLikelihood(bkg=1e-6)
+    cost_init = osem_data_fidelity(x_init, y, physics)
+
+    model = dinv.optim.MLEM(
+        data_fidelity=osem_data_fidelity,
+        prior=dinv.optim.prior.ZeroPrior(),
+        max_iter=1,
+        num_subsets=2,
+    )
+    x = model(y, physics, init=x_init)
+
+    assert torch.all(osem_data_fidelity(x, y, physics) < cost_init)
+
 
 def test_patch_prior(imsize, dummy_dataset, device):
     torch.manual_seed(0)

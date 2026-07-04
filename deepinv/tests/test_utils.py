@@ -130,6 +130,18 @@ def test_tensorlist_any_all_isnan():
     assert tl_nan.isnan().all()
 
 
+def test_tensorlist_clamp():
+    x = torch.tensor([[-1.0, 0.5, 2.0]])
+    y = torch.tensor([[-2.0, 0.25, 3.0]])
+    tl = deepinv.utils.TensorList([x, y])
+
+    clamped = tl.clamp(min=0.0, max=1.0)
+
+    assert isinstance(clamped, deepinv.utils.TensorList)
+    assert torch.allclose(clamped[0], x.clamp(min=0.0, max=1.0))
+    assert torch.allclose(clamped[1], y.clamp(min=0.0, max=1.0))
+
+
 # The class TensorList features many utility methods that we do not test in
 # depth but verify that they do not raise any exception when called. To do
 # that, we get a tensor list instance, we iterate over its methods and try to call
@@ -153,6 +165,10 @@ def test_tensorlist_methods(tensorlist):
 
         # Ignore methods that assume a GPU is available if there is none
         if method_name == "cuda" and not torch.cuda.is_available():
+            continue
+
+        # torch.Tensor.clamp/clip requires at least one of min or max.
+        if method_name in ("clamp", "clip"):
             continue
 
         sig = inspect.signature(method)
