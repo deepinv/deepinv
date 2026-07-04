@@ -276,7 +276,25 @@ def test_plot(
         if titles is not None and isinstance(img_list, dict)
         else nullcontext()
     ):
-        axs = deepinv.utils.plot(
+        plot_kwargs = {}
+        if cbar and C == 1 and n_images == 2 and batched:
+            # Use clipped images with different maxima to check that colorbars keep
+            # the shared [vmin, vmax] scale instead of autoscaling per image.
+            img_list = [
+                torch.tensor([[[[0.0, 2.0], [1.0, 2.0]]]]),
+                torch.tensor([[[[0.0, 1.0], [0.5, 1.0]]]]),
+            ]
+            plot_kwargs.update(
+                {
+                    "rescale_mode": "clip",
+                    "vmin": 0.0,
+                    "vmax": 2.0,
+                    "show": False,
+                    "return_fig": True,
+                }
+            )
+
+        out = deepinv.utils.plot(
             img_list,
             titles=titles,
             save_dir=save_dir,
@@ -284,11 +302,26 @@ def test_plot(
             suptitle=suptitle,
             subtitles=subtitles,
             return_axs=return_axs,
+            **plot_kwargs,
         )
+        if plot_kwargs and return_axs:
+            fig, axs = out
+        elif plot_kwargs:
+            fig, axs = out, None
+        else:
+            fig, axs = None, out
         if return_axs:
             assert axs is not None
         else:
             assert axs is None
+        if plot_kwargs:
+            colorbar_axes = [ax for ax in fig.axes if not ax.images]
+            assert len(colorbar_axes) == len(img_list)
+            for ax in colorbar_axes:
+                assert ax.get_ylim() == (0.0, 1.0)
+            assert [label.get_text() for label in colorbar_axes[-1].get_yticklabels()][
+                -1
+            ] == "2"
 
 
 @pytest.mark.parametrize("n_plots", [1, 2, 3])
