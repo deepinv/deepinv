@@ -2,7 +2,6 @@ from __future__ import annotations
 import os
 import csv
 from datetime import datetime
-import platform
 import numpy as np
 from deepinv.utils.decorators import _deprecated_class, _deprecated_func
 
