@@ -190,7 +190,9 @@ class PET(LinearPhysics):
         self.proj = parallelproj.RegularPolygonPETProjector(
             lor_desc, img_shape=img_size, voxel_size=voxel_size, views=views
         )
-        self.views = self.proj.views
+        # store the views as a buffer but does not add it to state dict since its part
+        # of parallelproj
+        self.register_buffer("views", self.proj.views, persistent=False)
         self.num_views = self.views.shape[0]
 
         if background is not None:
