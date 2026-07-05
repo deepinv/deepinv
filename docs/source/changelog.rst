@@ -9,11 +9,17 @@ Current
 New Features
 ^^^^^^^^^^^^
 <<<<<<< HEAD
+<<<<<<< HEAD
 - Add blind Richardson-Lucy algorithm :class:`deepinv.optim.BlindRL` for blind deconvolution along with a demo (:gh:`988` by `Thibaut Modrzyk`_)
 =======
 - Add 2D and 3D :class:`deepinv.physics.PET` (:gh:`1099` by `Julian Tachella`_)
 - Add support for multi-channel (chromatic) diffraction PSFs in :class:`deepinv.physics.generator.DiffractionBlurGenerator` with physically consistent wavelength scaling of the pupil cut-off frequency and Zernike coefficients.  (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
 >>>>>>> 87a738f45d613353d1c48fea36c73e3978ad865c
+=======
+- Add blind Richardson-Lucy algorithm :class:`deepinv.optim.BlindRL` for blind deconvolution along with a demo (:gh:`988` by `Thibaut Modrzyk`_)
+- Add 2D and 3D :class:`deepinv.physics.PET` (:gh:`1099` by `Julian Tachella`_)
+- Add support for multi-channel (chromatic) diffraction PSFs in :class:`deepinv.physics.generator.DiffractionBlurGenerator` with physically consistent wavelength scaling of the pupil cut-off frequency and Zernike coefficients.  (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
+>>>>>>> b36db1621bc42651e37274ecf25037b5b21e75ef
 - Add caching to demo/archive downloads (:gh:`1234` by `Julian Tachella`_)
 
 Changed
