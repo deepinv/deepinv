@@ -361,10 +361,10 @@ plot_comparison_curves({"MLEM": metrics_ct_mlem, "OSEM": metrics_ct_osem})
 
 # %%
 # The subsetting strategy can also be combined with the use of a prior in the default
-# :class:`dinv.optim.MLEM` implementation which uses the OSL heuristic.
+# :class:`deepinv.optim.MLEM` implementation which uses the OSL heuristic.
 # However, combining subsets with a prior usually requires more advanced regularization
 # strategies such as [BSREM](http://ieeexplore.ieee.org/document/1207396/).
-# Using subsets with a prior in :class:`dinv.optim.MLEM` can thus lead to more artifacts
+# Using subsets with a prior in :class:`deepinv.optim.MLEM` can thus lead to more artifacts
 # in the reconstruction.
 
 prior_tv_ct = dinv.optim.prior.TVPrior(n_it_max=50)
