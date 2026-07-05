@@ -936,6 +936,69 @@ def test_MLEM(imsize, dummy_dataset, device):
     assert optimalgo.has_converged
 
 
+# Specific test for BlindRL because there is no generic test functions for blind
+# algorithms and they don't seem to fit the test structure for non-blind algorithms.
+# The same kind of test could be implemented for other blind optimization algorithms
+# in the furture.
+def test_BlindRL(device):
+    # Build a small positive image so the Poisson/Richardson-Lucy updates are stable.
+    x_true = torch.zeros((1, 1, 16, 16), device=device)
+    x_true[:, :, 4:12, 5:11] = 1.0
+    x_true = x_true + 0.1
+
+    # Generate noiseless blurred data with a known kernel.
+    k_true = dinv.physics.functional.gaussian_blur(
+        psf_size=(5, 5),
+        sigma=(1.0, 1.0),
+        angle=0.0,
+        device=device,
+    )
+    physics_true = dinv.physics.Blur(
+        k_true,
+        padding="circular",
+        device=device,
+    )
+    y = physics_true(x_true).clamp_min(1e-8)
+
+    # Start from the blurred image and pass the true kernel as an oracle estimate.
+    x0 = y.clone()
+    physics = dinv.physics.Blur(
+        k_true.clone(),
+        padding="circular",
+        device=device,
+    )
+
+    # Oracle-kernel test: with the correct kernel fixed, BlindRL should behave
+    # like non-blind Richardson-Lucy and improve the image estimate.
+    blindrl = dinv.optim.BlindRL(
+        max_iter=200,
+        k_steps=0,
+        crit_conv="cost",
+        thres_conv=1e-5,
+        early_stop=True,
+        eps=1e-12,
+    )
+    x_hat, k_hat = blindrl(y, physics, init=(x0, k_true.clone()))
+
+    assert blindrl.has_converged
+    assert x_hat.shape == x_true.shape
+    assert k_hat.shape == k_true.shape
+    assert torch.isfinite(x_hat).all()
+    assert torch.isfinite(k_hat).all()
+    assert (x_hat >= 0).all()
+    assert (k_hat >= 0).all()
+    # The fixed oracle kernel should stay normalized and unchanged.
+    torch.testing.assert_close(
+        k_hat.flatten(1).sum(dim=1),
+        torch.ones(k_hat.shape[0], device=device),
+    )
+    torch.testing.assert_close(k_hat, k_true)
+    # With the correct kernel fixed, the image estimate should move toward x_true.
+    assert torch.linalg.vector_norm(x_hat - x_true) < torch.linalg.vector_norm(
+        x0 - x_true
+    )
+
+
 def test_patch_prior(imsize, dummy_dataset, device):
     torch.manual_seed(0)
 

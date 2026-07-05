@@ -99,6 +99,21 @@ def test_conv2d_spatial_and_fft_equivalence(
         assert torch.allclose(spatial_output, fft_output, rtol=1e-4, atol=1e-4)
 
 
+@pytest.mark.parametrize("kernel_size", [(3, 3), (4, 3), (3, 4)])
+def test_conv2d_filter_adjoint(device, kernel_size):
+    torch.manual_seed(0)
+    x = torch.rand((2, 3, 8, 7), device=device)
+    k = torch.rand((2, 3, *kernel_size), device=device)
+    y = torch.rand_like(x)
+
+    Ax = dF.conv2d(x, k, padding="circular")
+    Aty = dF.conv2d_filter_adjoint(x, y, kernel_size)
+
+    lhs = torch.sum(Ax * y)
+    rhs = torch.sum(k * Aty)
+    assert torch.abs(lhs - rhs) < 1e-5 * max(torch.abs(lhs), torch.abs(rhs))
+
+
 @pytest.mark.parametrize("B", [1, 2])
 @pytest.mark.parametrize("nchan_im,nchan_filt", [(1, 1), (3, 1), (3, 3)])
 @pytest.mark.parametrize("padding", ALL_CONV_PADDING)  # safe set
