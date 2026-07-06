@@ -44,6 +44,7 @@ from deepinv.utils.demo import get_image_url
 from deepinv.physics.generator.mri import BaseMaskGenerator, ceildiv
 from deepinv.physics.mri import MultiCoilMRI
 from deepinv.utils.mixins import MRIMixin
+from .utils import resolve_root
 
 
 class SimpleFastMRISliceDataset(ImageDataset):
@@ -76,8 +77,8 @@ class SimpleFastMRISliceDataset(ImageDataset):
         Load mini demo knee dataset:
 
         >>> from deepinv.datasets import SimpleFastMRISliceDataset
-        >>> from deepinv.utils import get_data_home
-        >>> dataset = SimpleFastMRISliceDataset(get_data_home(), anatomy="knee", download=True)
+        >>> from deepinv.utils import get_cache_home
+        >>> dataset = SimpleFastMRISliceDataset(get_cache_home(), anatomy="knee", download=True)
         >>> len(dataset)
         2
 
@@ -96,7 +97,7 @@ class SimpleFastMRISliceDataset(ImageDataset):
 
     def __init__(
         self,
-        root_dir: str | Path,
+        root_dir: str | Path = None,
         anatomy: str = "knee",
         file_name: str | Path = None,
         train: bool = True,
@@ -110,8 +111,8 @@ class SimpleFastMRISliceDataset(ImageDataset):
         elif anatomy is None and file_name is None:
             raise ValueError("Either anatomy or file_name must be passed.")
 
+        root_dir = resolve_root(root_dir, "SimpleFastMRISlice")
         os.makedirs(root_dir, exist_ok=True)
-        root_dir = Path(root_dir)
         file_name = (
             file_name
             if file_name is not None
@@ -231,9 +232,9 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         Instantiate dataset with sample data (from a demo multicoil brain volume):
 
         >>> from deepinv.datasets import FastMRISliceDataset, download_archive
-        >>> from deepinv.utils import get_image_url, get_data_home
+        >>> from deepinv.utils import get_image_url, get_cache_home
         >>> url = get_image_url("demo_fastmri_brain_multicoil.h5")
-        >>> root = get_data_home() / "fastmri" / "brain"
+        >>> root = get_cache_home() / "fastmri" / "brain"
         >>> download_archive(url, root / "demo.h5")
         >>> dataset = FastMRISliceDataset(root=root, slice_index="all")
         >>> len(dataset)
@@ -337,7 +338,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
 
     def __init__(
         self,
-        root: str | Path,
+        root: str | Path = None,
         target_root: str | Path | None = None,
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
@@ -348,7 +349,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         filter_id: Callable | None = None,
         rng: torch.Generator | None = None,
     ) -> None:
-        self.root = root
+        self.root = resolve_root(root, "FastMRISlice")
         self.transform = transform if transform is not None else MRISliceTransform()
         self.load_metadata_from_cache = load_metadata_from_cache
         self.save_metadata_to_cache = save_metadata_to_cache

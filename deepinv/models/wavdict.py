@@ -437,21 +437,25 @@ class WaveletDenoiser(Denoiser):
         if ths.size(1) == 1:
             return [ths[:, 0]] * numel
         else:
-            assert ths.size(1) == self.level
+            if ths.size(1) != self.level:  # pragma: no cover
+                raise ValueError(
+                    f"Expected tensor of shape (B, {self.level}, ...), got {ths.shape}"
+                )
             return [ths[:, level - 2]] * numel
 
     def _reshape_ths_three_dim(self, ths: Tensor, level: int) -> Tensor | list[Tensor]:
         numel = 3 if self.dimension == 2 else 7
         if ths.size(1) == 1:
             ths = ths.expand(-1, self.level, -1)
-        assert (
-            ths.size(1) == self.level
-        ), f"Expected tensor of shape (B, {self.level}, {numel}), got {ths.shape}"
+        if ths.size(1) != self.level:  # pragma: no cover
+            raise ValueError(
+                f"Expected tensor of shape (B, {self.level}, {numel}), got {ths.shape}"
+            )
         if ths.size(-1) == numel:
             return ths.permute(2, 0, 1)[..., level - 2]
         elif ths.size(-1) == 1:
             return self._reshape_ths_two_dim(ths[..., 0], level)
-        else:
+        else:  # pragma: no cover
             raise ValueError(
                 f"Expected tensor of shape (B, {self.level}, {numel}), got {ths.shape}"
             )
@@ -528,6 +532,7 @@ class WaveletDictDenoiser(Denoiser):
     :param torch.device, str device: cpu or gpu.
     :param int max_iter: number of iterations of the optimization algorithm (default: 10).
     :param str non_linearity: "soft", "hard" or "topk" thresholding (default: "soft")
+    :param str mode: padding mode, "reflect", "zero", "constant", "periodic", "symmetric" (default: "zero")
     :param int wvdim: dimension of the wavelet transform (either 2 or 3) (default: 2).
     :param bool is_complex: whether the input is complex-valued (default: False).
     """
@@ -538,6 +543,7 @@ class WaveletDictDenoiser(Denoiser):
         list_wv: Sequence[str] = ("db8", "db4"),
         max_iter: int = 10,
         non_linearity: str = "soft",
+        mode: str = "zero",
         wvdim: int = 2,
         is_complex: bool = False,
         device: str | torch.device = "cpu",
@@ -554,6 +560,7 @@ class WaveletDictDenoiser(Denoiser):
                     wvdim=wvdim,
                     device=device,
                     is_complex=is_complex,
+                    mode=mode,
                 )
                 for wv in list_wv
             ]
@@ -590,5 +597,7 @@ class WaveletDictDenoiser(Denoiser):
         """
         vec = []
         for p in self.list_prox:
-            vec += p.psi(x, wavelet=p.wv, level=p.level, dimension=p.dimension)
+            vec += p.psi(
+                x, wavelet=p.wv, level=p.level, dimension=p.dimension, mode=p.mode
+            )
         return vec

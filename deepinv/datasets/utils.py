@@ -4,6 +4,7 @@ import os
 import shutil
 import zipfile
 import tarfile
+import sys
 from pathlib import Path
 
 import requests
@@ -14,7 +15,8 @@ from torch.nn import Module
 from torchvision.transforms.functional import crop as torchvision_crop
 
 from deepinv.datasets.base import ImageDataset
-from deepinv.utils import normalize_signal
+from deepinv.utils import normalize_signal, get_cache_home
+from deepinv.utils.io import DownloadError
 
 
 def check_path_is_a_folder(folder_path: str) -> bool:
@@ -50,33 +52,47 @@ def calculate_md5_for_folder(folder_path: str) -> str:
     return md5_folder.hexdigest()
 
 
-def download_archive(url: str, save_path: str | Path, extract: bool = False) -> None:
+def download_archive(
+    url: str, save_path: str | Path, extract: bool = False, force_download: bool = False
+) -> None:
     """Download archive (zipball or tarball) from the Internet.
 
     :param str url: URL of archive.
     :param str, pathlib.Path save_path: path where file should be saved.
     :param bool extract: if ``True``, attempt to extract zipfile or tarball into parent dir.
+    :param bool force_download: if ``True``, download the archive even if it already exists.
+    :raises DownloadError: if the archive cannot be downloaded.
     """
-    # Ensure the directory containing `save_path`` exists
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    save_path = Path(save_path)
+    if not force_download and save_path.exists() and save_path.stat().st_size > 0:
+        print(f"File already downloaded: {save_path}. Skipping...", file=sys.stderr)
+    else:
+        # Ensure the directory containing `save_path`` exists
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
-    # `stream=True` to avoid loading in memory an entire file, instead get a chunk
-    # useful when downloading huge file
-    response = requests.get(url, stream=True)
-    file_size = int(response.headers.get("Content-Length", 0))
-    # use tqdm progress bar to follow progress on downloading archive
-    with tqdm.wrapattr(response.raw, "read", total=file_size) as r_raw:
-        with open(save_path, "wb") as file:
-            # shutil.copyfileobj doesn't require the whole file in memory before writing in a file
-            # https://requests.readthedocs.io/en/latest/user/quickstart/#raw-response-content
-            shutil.copyfileobj(r_raw, file)
-    del response
+        # `stream=True` to avoid loading in memory an entire file, instead get a chunk
+        # useful when downloading huge file.
+        # ``timeout=(connect, read)``: 10 s to connect, 60 s between chunks.
+        # See https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+        try:
+            response = requests.get(url, stream=True, timeout=(10, 60))
+            response.raise_for_status()
+            file_size = int(response.headers.get("Content-Length", 0))
+            # use tqdm progress bar to follow progress on downloading archive
+            with tqdm.wrapattr(response.raw, "read", total=file_size) as r_raw:
+                with open(save_path, "wb") as file:
+                    # shutil.copyfileobj doesn't require the whole file in memory before writing in a file
+                    # https://requests.readthedocs.io/en/latest/user/quickstart/#raw-response-content
+                    shutil.copyfileobj(r_raw, file)
+            del response
+        except requests.exceptions.RequestException as exc:
+            raise DownloadError(f"Failed to download archive {url}: {exc}") from exc
 
-    if extract:
-        if Path(save_path).suffix == ".zip":
-            extract_zipfile(save_path, Path(save_path).parent)
-        elif Path(save_path).suffix == ".tar":
-            extract_tarball(save_path, Path(save_path).parent)
+        if extract:
+            if Path(save_path).suffix == ".zip":
+                extract_zipfile(save_path, Path(save_path).parent)
+            elif Path(save_path).suffix == ".tar":
+                extract_tarball(save_path, Path(save_path).parent)
 
 
 def extract_zipfile(file_path: str | Path, extract_dir: str | Path) -> None:
@@ -99,6 +115,26 @@ def extract_tarball(file_path: str | Path, extract_dir: str | Path) -> None:
         # Thus the progress bar will not move linearly with time
         for file_to_be_extracted in tqdm(tar_ref.getmembers(), desc="Extracting"):
             tar_ref.extract(file_to_be_extracted, extract_dir)
+
+
+def resolve_root(root: str | Path | None, dataset_name: str = None) -> Path:
+    """Resolve the root directory for a dataset.
+
+    If root is None, it defaults to the global cache directory defined by
+    `get_cache_home()` under a subdirectory named `dataset_name`.
+    Otherwise, it returns the provided root as a Path.
+
+    :param str, pathlib.Path, None root: directory of the dataset.
+    :param str dataset_name: name of the dataset.
+    :return: pathlib Path for the dataset root.
+    """
+    if root is None:
+        return (
+            get_cache_home() / "datasets" / dataset_name
+            if dataset_name is not None
+            else get_cache_home() / "datasets"
+        )
+    return Path(root)
 
 
 class PlaceholderDataset(ImageDataset):

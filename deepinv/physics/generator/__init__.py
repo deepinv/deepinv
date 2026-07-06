@@ -1,5 +1,6 @@
 from .base import PhysicsGenerator, GeneratorMixture
 from .blur import (
+    GaussianBlurGenerator,
     MotionBlurGenerator,
     DiffractionBlurGenerator,
     PSFGenerator,
