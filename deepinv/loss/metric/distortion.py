@@ -1144,7 +1144,7 @@ class RecoveryCoefficient(Metric):
         :class:`deepinv.loss.metric.Metric` class.
     """
 
-    def __init__(self, eps: float = 1e-12, **kwargs):
+    def __init__(self, eps: float = None, **kwargs):
         super().__init__(**kwargs)
         self.eps = eps
         self.lower_better = False
@@ -1157,6 +1157,9 @@ class RecoveryCoefficient(Metric):
         dims = tuple(range(1, x.ndim))
         recon_activity = (x_net * mask).sum(dim=dims)
         gt_activity = (x * mask).sum(dim=dims)
+
+        eps_per_dtype = {torch.float16: 1e-4, torch.float32: 1e-7, torch.float64: 1e-12}
+        eps = self.eps if self.eps is not None else eps_per_dtype.get(x_net.dtype, 1e-7)
 
         return recon_activity / (gt_activity + self.eps)
 

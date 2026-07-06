@@ -158,7 +158,7 @@ def test_full_reference_metrics(
         if channels != 3:
             pytest.skip("LPIPS requires 3 channel input.")
 
-    def get_mask(t):
+    def get_metric_kwargs(t):
         return (
             {"mask": torch.ones_like(t)} if metric_name == "RecoveryCoefficient" else {}
         )
