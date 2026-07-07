@@ -88,7 +88,7 @@ dinv.utils.plot(
         "1.5 µW excitation": y,
         "1.5 µW excitation\ndenoised": x_net,
     },
-    figsize=(7, 7),
+    figsize=(7, 5),
 )
 
 # %%
@@ -107,7 +107,7 @@ dinv.utils.plot(
 #
 # Pass ``screenshot=True`` to take a static screenshot instead:
 #
-# .. image:: /_static/demo_microscopy_denoising_screenshot.png
+# .. image:: https://huggingface.co/datasets/deepinv/images/resolve/main/demo_microscopy_denoising_screenshot.png
 #    :width: 600
 #    :align: center
 #    :alt: napari viewer showing the ground truth, noisy and denoised images side by side

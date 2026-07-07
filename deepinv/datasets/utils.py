@@ -62,13 +62,11 @@ def download_archive(
     :param bool extract: if ``True``, attempt to extract zipfile, tarball or RAR archive into parent dir.
         Extracting RAR archives requires `rarfile`, install it with ``pip install rarfile``.
     :param bool force_download: if ``True``, download the archive even if it already exists.
-    :raises DownloadError: if the archive cannot be downloaded.
     """
     save_path = Path(save_path)
     if not force_download and save_path.exists() and save_path.stat().st_size > 0:
         print(f"File already downloaded: {save_path}. Skipping...", file=sys.stderr)
     else:
-        # Ensure the directory containing `save_path`` exists
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
         # `stream=True` to avoid loading in memory an entire file, instead get a chunk
@@ -79,7 +77,7 @@ def download_archive(
             response = requests.get(url, stream=True, timeout=(10, 60))
             response.raise_for_status()
             file_size = int(response.headers.get("Content-Length", 0))
-            # use tqdm progress bar to follow progress on downloading archive
+
             with tqdm.wrapattr(response.raw, "read", total=file_size) as r_raw:
                 with open(save_path, "wb") as file:
                     # shutil.copyfileobj doesn't require the whole file in memory before writing in a file
@@ -137,7 +135,6 @@ def extract_rarfile(file_path: str | Path, extract_dir: str | Path) -> None:
         )
 
     with rarfile.RarFile(file_path) as rar_ref:
-        # Files may vary in size so maybe nonlinear progress bar
         for file_to_be_extracted in tqdm(rar_ref.infolist(), desc="Extracting"):
             rar_ref.extract(file_to_be_extracted, extract_dir)
 

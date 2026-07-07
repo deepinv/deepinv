@@ -44,7 +44,8 @@ def load_tiff(fname: str | Path, dtype: torch.dtype | None = None) -> torch.Tens
     and 3D arrays of shape `(H, W, C)` are converted to channel-first `(C, H, W)`.
     In both cases a leading batch dimension is added.
 
-    Requires `tifffile` to be installed. Install it with `pip install tifffile`.
+    .. warning::
+        Requires `tifffile` to be installed. Install it with `pip install tifffile`.
 
     :param str, pathlib.Path fname: path to TIFF file or buffer.
     :param torch.dtype dtype: if not ``None``, cast the output tensor to this dtype.
