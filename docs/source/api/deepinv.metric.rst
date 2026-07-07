@@ -39,7 +39,7 @@ Full Reference Metrics
     deepinv.loss.metric.HaarPSI
     deepinv.loss.metric.CosineSimilarity
     deepinv.loss.metric.GMSD
-
+    deepinv.metric.RecoveryCoefficient
 
 No Reference Metrics
 --------------------
