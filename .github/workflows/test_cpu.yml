@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # On PRs, restore the pixi.lock + .testmondata pair solved on main as a
+      # On PRs, restore the pixi.lock + .testmondata + .coverage triple solved on main as a
       # SINGLE cache entry, so it is restored atomically (no lock/testmondata
       # mismatch). pixi then installs the exact same package set that produced
       # .testmondata, keeping testmon's environment fingerprint stable
@@ -52,13 +52,14 @@ jobs:
       # full re-run). Restored *before* Setup Pixi so the action installs from
       # this lock. Not restored on push to main: main solves fresh to track
       # latest deps (and re-runs the full suite anyway).
-      - name: Restore pixi.lock + .testmondata
+      - name: Restore pixi.lock + .testmondata + .coverage
         if: github.event_name == 'pull_request'
         uses: actions/cache/restore@v4
         with:
           path: |
             pixi.lock
             .testmondata
+            .coverage
           key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
           restore-keys: |
             testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-
@@ -66,8 +67,22 @@ jobs:
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
-          pixi-version: v0.70.2
-          environments: full-cpu test-cpu
+          pixi-version: latest
+          run-install: false  # we drive installation manually below
+
+      # Install dependencies with pixi, using the restored lock if available. If the
+      # lock is unavailable or fails to solve, fall back to a fresh solve. 
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -x
+          if ! pixi install -e ${{ matrix.environment }} --locked --manifest-path pyproject.toml --color always; then
+            echo "pixi install with --locked option failed, run install without lock"
+            pixi install -e ${{ matrix.environment }} --manifest-path pyproject.toml --color always
+          fi
+
+          pixi list -e ${{ matrix.environment }} --manifest-path pyproject.toml --color always
+          set +x
 
       - name: Restore deepinv URL cache # shared across matrix environments
         uses: actions/cache/restore@v4
@@ -77,19 +92,28 @@ jobs:
           restore-keys: |
             deepinv-url-cache-${{ matrix.os }}-
 
+      # If no .coverage is cached, run pytest without testmon to compute full coverage results
+      # (pytest-cov does not take into account skipped tests by testmon)
+      # If .coverage exists, testmon skips the non-related tests and --cov-append updates coverage with respect to related changes.
       - name: Test with pytest
+        shell: bash
         run: |
-          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml --testmon
+          TESTMON_FLAG=""
+          if [ -f .coverage ]; then
+            TESTMON_FLAG="--testmon"
+          fi
+          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml:coverage-${{ matrix.environment }}.xml --cov-append $TESTMON_FLAG
 
-      # Save the freshly-solved lock + .testmondata as a single (atomic) cache
+      # Save the freshly-solved lock + .testmondata + .coverage as a single (atomic) cache
       # entry so PRs always restore a matching pair. Only on push to main.
-      - name: Save pixi.lock + .testmondata # only when pushed to main, not for PRs
+      - name: Save pixi.lock + .testmondata + .coverage # only when pushed to main, not for PRs
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v4
         with:
           path: |
             pixi.lock
             .testmondata
+            .coverage
           key: testmon-cpu-main-${{ matrix.environment }}-${{ matrix.os }}-${{ github.run_id }}
 
       - name: Save deepinv URL cache # only on push to main, mirrors testmondata
@@ -100,9 +124,11 @@ jobs:
           key: deepinv-url-cache-${{ matrix.os }}-${{ github.run_id }}
 
       - name: Upload coverage to Codecov
-        if: runner.os == 'Linux' && matrix.environment == 'full'
+        if: runner.os == 'Linux' && matrix.environment == 'full-cpu'
         uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.xml
+          files: ./coverage-${{ matrix.environment }}.xml
+          flags: ${{ matrix.environment }}
+          name: ${{ matrix.environment }}-coverage
