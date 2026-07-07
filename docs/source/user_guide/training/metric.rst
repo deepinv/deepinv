@@ -114,7 +114,7 @@ Full reference metrics are used to measure the difference between the original `
      - Gradient Magnitude Similarity Deviation
 
    * - :class:`deepinv.loss.metric.Recovery Coefficient`
-     - :math:\text{RC}(\hat{x}, x) = \dfrac{\sum_{i \in \Omega} \hat{x}i}{\sum{i \in \Omega} x_i}, where :math:\Omega is the region of interest defined by the binary mask.
+     - :math:`\mathrm{RC}(\hat{x}, x) = \frac{\sum_{i \in \Omega} \hat{x}_i}{\sum_{i \in \Omega} x_i}`where :math:\Omega is the region of interest defined by the binary mask.
 .. _no-reference-metrics:
 
 No Reference Metrics
