@@ -1,17 +1,15 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
 from torch import Tensor
 from deepinv.utils.plotting import preprocess_img
-if TYPE_CHECKING:
-    from PIL import Image
+
 
 def plot_napari(
-        *x: Tensor, 
-        screenshot: bool = False,
-        rescale_mode: str = "min_max",
-        vmin: float | None = None,
-        vmax: float | None = None,
-    ) -> None | Image.Image:  # pragma: no cover
+    *x: Tensor,
+    screenshot: bool = False,
+    rescale_mode: str = "min_max",
+    vmin: float | None = None,
+    vmax: float | None = None,
+) -> None:  # pragma: no cover
     """View 2D images or 3D volumes in napari.
 
     Opens an interactive `napari <https://napari.org>`_ viewer displaying the
@@ -59,13 +57,14 @@ def plot_napari(
         )
     is_3d = 5 in ndims
 
-
     viewer = napari.Viewer(ndisplay=3 if is_3d else 2, show=True)
 
     for i, img in enumerate(x):
         if img.shape[0] != 1 or img.shape[1] != 1:
-            raise ValueError(f"Expected batch dim 1 and channel dim 1, got shape {tuple(img.shape)}")
-        
+            raise ValueError(
+                f"Expected batch dim 1 and channel dim 1, got shape {tuple(img.shape)}"
+            )
+
         img = preprocess_img(img, rescale_mode=rescale_mode, vmin=vmin, vmax=vmax)
 
         arr = img.squeeze(1).squeeze(0).detach().cpu().numpy()
