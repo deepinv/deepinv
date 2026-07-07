@@ -4,7 +4,6 @@ import os
 import re
 
 from PIL import Image
-import requests
 
 from deepinv.datasets.utils import (
     download_archive,
@@ -172,6 +171,7 @@ class FMD(ImageDataset):
                 ## Which will be needed to download the archive ------------------------
 
                 # URL to fetch the initial HTML content
+                import requests # lazy import
                 url_initial = (
                     f"https://docs.google.com/uc?export=download&id={gdrive_id}"
                 )

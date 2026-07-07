@@ -16,7 +16,6 @@ from deepinv.utils.plotting import prepare_images
 from deepinv.utils.tensorlist import TensorList
 from deepinv.datasets.base import check_dataset
 from deepinv.models.base import Reconstructor
-from torchvision.utils import save_image
 import inspect
 
 
@@ -1147,6 +1146,8 @@ class Trainer:
                 mlflow.log_image(image, key=f"{post_str} samples", step=epoch)
 
         if save_images:
+            from torchvision.utils import save_image  # lazy import
+
             for k, img in enumerate(imgs):  # ground truths, reconstructions, etc.
                 img_name = f"{self.save_folder_im}/{titles[k]}/"
                 Path(img_name).mkdir(parents=True, exist_ok=True)

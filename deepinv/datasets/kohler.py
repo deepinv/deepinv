@@ -1,6 +1,5 @@
 from __future__ import annotations
 import torch
-from torchvision.datasets.utils import download_and_extract_archive
 from PIL import Image
 
 from urllib.parse import urlparse
@@ -154,6 +153,8 @@ class Kohler(ImageDataset):
                 from deepinv.datasets import Kohler
                 Kohler.download("datasets/Kohler")
         """
+        from torchvision.datasets.utils import download_and_extract_archive
+
         root = resolve_root(root, "Kohler")
         for url in cls._archive_urls:
             archive_name = url_basename(url)

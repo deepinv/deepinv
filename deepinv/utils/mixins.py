@@ -5,7 +5,6 @@ import numpy as np
 import torch
 from torch import Tensor, zeros_like
 from torch.nn import Module
-from torchvision.transforms import CenterCrop, Resize
 from deepinv.utils.decorators import _deprecated_argument
 from ._tiling import (
     _compute_compatible_img_size,
@@ -224,6 +223,8 @@ class MRIMixin:
         :param bool rescale: whether to rescale instead of cropping. If `True`, `crop` must be `False`.
             Note to be careful here as resizing will change aspect ratio.
         """
+        from torchvision.transforms import CenterCrop, Resize
+
         crop_size = shape[-2:] if shape is not None else self.img_size[-2:]
         odd_h = crop_size[0] % 2 == 1
 

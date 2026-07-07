@@ -324,7 +324,17 @@ class ImageFolder(ImageDataset):
 
     """
 
-    IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif", ".tiff", ".webp")
+    IMG_EXTENSIONS = (
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".ppm",
+        ".bmp",
+        ".pgm",
+        ".tif",
+        ".tiff",
+        ".webp",
+    )
 
     def __init__(
         self,

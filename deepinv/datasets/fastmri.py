@@ -36,7 +36,6 @@ except ImportError:  # pragma: no cover
 
 from tqdm import tqdm
 import torch
-from torchvision.transforms import Compose, CenterCrop
 
 from deepinv.datasets.utils import ToComplex, Rescale, download_archive
 from deepinv.datasets.base import ImageDataset
@@ -130,6 +129,8 @@ class SimpleFastMRISliceDataset(ImageDataset):
                 raise FileNotFoundError(
                     "Local dataset not downloaded. Download by setting download=True."
                 )
+
+        from torchvision.transforms import Compose  # lazy import
 
         self.transform = Compose(
             [ToComplex()] + ([transform] if transform is not None else [])
@@ -527,6 +528,8 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         :return: loaded SimpleFastMRISliceDataset
         :rtype: SimpleFastMRISliceDataset
         """
+        from torchvision.transforms import Compose, CenterCrop  # lazy import
+
         transform = [Rescale()]
         if pad_to_size is not None:
             transform += [CenterCrop(pad_to_size)]

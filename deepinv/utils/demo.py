@@ -10,7 +10,6 @@ from PIL import Image
 
 import numpy as np
 import torch
-from torchvision import transforms
 from deepinv.utils.io import (
     DownloadError,
     get_cache_home,
@@ -205,21 +204,23 @@ def load_image(
     :param str device: Device on which to load the image (gpu or cpu).
     :return: :class:`torch.Tensor` containing the image with an added batch dimension.
     """
+    from torchvision.transforms import CenterCrop, Resize, Grayscale, ToTensor, Compose
+
     img = Image.open(path)
     transform_list = []
     if img_size is not None:
         if resize_mode == "crop":
-            transform_list.append(transforms.CenterCrop(img_size))
+            transform_list.append(CenterCrop(img_size))
         elif resize_mode == "resize":
-            transform_list.append(transforms.Resize(img_size))
+            transform_list.append(Resize(img_size))
         else:
             raise ValueError(
                 f"resize_mode must be either 'crop' or 'resize', got {resize_mode}"
             )
     if grayscale:
-        transform_list.append(transforms.Grayscale())
-    transform_list.append(transforms.ToTensor())
-    transform = transforms.Compose(transform_list)
+        transform_list.append(Grayscale())
+    transform_list.append(ToTensor())
+    transform = Compose(transform_list)
     x = transform(img).unsqueeze(0).to(device=device, dtype=dtype)
     return x
 

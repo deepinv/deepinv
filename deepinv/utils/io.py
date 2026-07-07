@@ -4,7 +4,6 @@ from pathlib import Path
 from warnings import warn
 from io import BytesIO
 import os
-import requests
 import numpy as np
 from numpy.lib.format import open_memmap
 import torch
@@ -70,7 +69,7 @@ def get_cache_home() -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path
 
-
+import requests
 class DownloadError(requests.exceptions.RequestException):
     r"""Raised when a network download initiated by deepinv fails.
 
@@ -111,6 +110,8 @@ def load_url(url: str, **kwargs) -> BytesIO:
     :return: `BytesIO` buffer.
     :raises deepinv.utils.DownloadError: if the file cannot be downloaded.
     """
+    import requests # lazy import
+
     cache_home = get_cache_home()
     cache_dir = cache_home / "url_cache"
     cache_path = _get_url_cache_path(url, cache_dir)
