@@ -173,16 +173,24 @@ def test_full_reference_metrics(
     # In general, metrics can be either lower or higher = better
     # However, if we set train_loss=True, all metrics become lower = better.
     if train_loss:
-        assert m(x_hat, x, **get_mask(x_hat)).item() > m(x, x, **get_mask(x)).item()
+        assert (
+            m(x_hat, x, **get_metric_kwargs(x_hat)).item()
+            > m(x, x, **get_metric_kwargs(x)).item()
+        )
 
     # Test various args and kwargs which could be passed to metrics
-    assert m(x_hat, x, model=None, some_other_kwarg=None, **get_mask(x_hat)) != 0
-    assert m(x_net=x_hat, x=x, some_other_kwarg=None, **get_mask(x_hat)) != 0
+    assert (
+        m(x_hat, x, model=None, some_other_kwarg=None, **get_metric_kwargs(x_hat)) != 0
+    )
+    assert m(x_net=x_hat, x=x, some_other_kwarg=None, **get_metric_kwargs(x_hat)) != 0
 
     # Test summing metrics
     dummy_metric = metric.Metric(metric=lambda *a, **kw: 1)
     m2 = m + dummy_metric
-    assert m2(x_hat, x, **get_mask(x_hat)) == m(x_hat, x, **get_mask(x_hat)) + 1
+    assert (
+        m2(x_hat, x, **get_metric_kwargs(x_hat))
+        == m(x_hat, x, **get_metric_kwargs(x_hat)) + 1
+    )
 
     # Test no reduce works
     B = 5
@@ -195,7 +203,7 @@ def test_full_reference_metrics(
         norm_inputs=norm_inputs,
         reduction="none",
     )
-    assert len(m(x_hat, x_hat, **get_mask(x_hat))) == B
+    assert len(m(x_hat, x_hat, **get_metric_kwargs(x_hat))) == B
 
 
 @pytest.mark.parametrize("metric_name", NO_REFERENCE_METRICS)
