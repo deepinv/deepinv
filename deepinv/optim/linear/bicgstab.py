@@ -10,7 +10,8 @@ def bicgstab(
     b: torch.Tensor,
     init: torch.Tensor | None = None,
     max_iter: int = 1e2,
-    tol: float = 1e-5,
+    tol: float = 1e-6,
+    stagtol: float = 1e-6,
     parallel_dim: None | int | list[int] = 0,
     verbose: bool = False,
     left_precon=lambda x: x,
@@ -27,7 +28,8 @@ def bicgstab(
     :param torch.Tensor b: input tensor of shape (B, ...)
     :param torch.Tensor init: Optional initial guess.
     :param int max_iter: maximum number of BiCGSTAB iterations.
-    :param float tol: absolute tolerance for stopping the BiCGSTAB algorithm.
+    :param float tol: relative tolerance for stopping the BiCGSTAB algorithm.
+    :param float stagtol: absolute tolerance for stopping the BiCGSTAB algorithm if iterates stagnate.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :param Callable left_precon: left preconditioner as a callable function.
@@ -46,7 +48,7 @@ def bicgstab(
         dim = [i for i in range(b.ndim) if i not in parallel_dim]
 
     if init is not None:
-        x = init
+        x = init.clone()
     else:
         x = zeros_like(b)
 
@@ -56,7 +58,12 @@ def bicgstab(
     p = r
     max_iter = int(max_iter)
 
-    tol = dot(b, b, dim=dim).real * (tol**2)
+    b_norm_sq = dot(b, b, dim=dim).real
+    # handles case b=0
+    b_norm_sq = torch.where(b_norm_sq > 0, b_norm_sq, torch.ones_like(b_norm_sq))
+    stagtol = stagtol**2
+    tol = b_norm_sq * (tol**2)
+
     eps = torch.finfo(b.dtype).eps  # Breakdown tolerance, to avoid division by zero
     flag = False
     for i in range(max_iter):
@@ -86,10 +93,20 @@ def bicgstab(
 
         x = h + omega * z
         r = s - omega * t
-        if torch.all(dot(r, r, dim=dim).real < tol):
+
+        search_update = alpha * v - omega * z
+        search_update_norm = dot(search_update, search_update, dim=dim)
+        xnorm = dot(x, x, dim=dim)
+
+        if torch.all(dot(r, r, dim=dim) <= tol):
             flag = True
             if verbose:
-                print("BiCGSTAB Converged at iteration", i)
+                print("BiCGSTAB converged at iteration", i + 1)
+            break
+        elif torch.all(search_update_norm <= stagtol * xnorm):
+            flag = True
+            if verbose:
+                print("BiCGSTAB stagnated at iteration", i + 1)
             break
 
         rho_new = dot(r, r_hat, dim=dim)

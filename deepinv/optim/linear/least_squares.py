@@ -10,6 +10,7 @@ from .bicgstab import bicgstab
 from .conjugate_gradient import conjugate_gradient
 from .lsqr import lsqr
 from .minres import minres
+from .lsmr import lsmr
 
 
 def least_squares(
@@ -25,6 +26,7 @@ def least_squares(
     solver: str = "CG",
     max_iter: int = 100,
     tol: float = 1e-6,
+    stagtol: float = 1e-6,
     **kwargs,
 ) -> torch.Tensor:
     r"""
@@ -36,8 +38,8 @@ def least_squares(
     The solution depends on the regularization parameter :math:`\gamma`:
 
     - If `gamma=None` (:math:`\gamma = \infty`), it solves the unregularized least squares problem :math:`\min_x \|Ax-y\|^2`.
-        - If :math:`A` is overcomplete (rows>=columns), it computes the minimum norm solution :math:`x = A^{\top}(AA^{\top})^{-1}y`.
-        - If :math:`A` is undercomplete (columns>rows), it computes the least squares solution :math:`x = (A^{\top}A)^{-1}A^{\top}y`.
+        - If :math:`A` is overcomplete (rows>=columns), it computes the least squares solution :math:`x = (A^{\top}A)^{-1}A^{\top}y`.
+        - If :math:`A` is undercomplete (columns>rows), it computes the minimum norm solution :math:`x = A^{\top}(AA^{\top})^{-1}y`. This is not the standard pseudo inverse but is often used and will raise a warning.
     - If :math:`0 < \gamma < \infty`, it computes the least squares solution :math:`x = (A^{\top}A + \frac{1}{\gamma}I)^{-1}(A^{\top}y + \frac{1}{\gamma}z)`.
 
     .. warning::
@@ -51,10 +53,12 @@ def least_squares(
     - `'BiCGStab'`: `Biconjugate Gradient Stabilized method <https://en.wikipedia.org/wiki/Biconjugate_gradient_stabilized_method>`_
     - `'lsqr'`: `Least Squares QR <https://www-leland.stanford.edu/group/SOL/software/lsqr/lsqr-toms82a.pdf>`_
     - `'minres'`: `Minimal Residual Method <https://en.wikipedia.org/wiki/Minimal_residual_method>`_
+    - `'lsmr'`: `Least Squares Minimal Residual Method <https://web.stanford.edu/group/SOL/software/lsmr/LSMR-SISC-2011.pdf>`_
+
 
     .. note::
 
-        Both `'CG'` and `'BiCGStab'` are used for squared linear systems, while `'lsqr'` is used for rectangular systems.
+        `'CG'`, `'minres'`,  and `'BiCGStab'` are used for squared linear systems, while `'lsqr'` and 'lsmr'` are used for rectangular systems.
 
         If the chosen solver requires a squared system, we map to the problem to the normal equations:
         If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
@@ -74,10 +78,12 @@ def least_squares(
     :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
     :param int max_iter: maximum number of iterations.
     :param float tol: relative tolerance for stopping the algorithm.
+    :param float stagtol: absolute tolerance for stopping the algorithm if iterates stagnate.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param kwargs: Keyword arguments to be passed to the solver.
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...).
     """
+
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
 
@@ -128,6 +134,21 @@ def least_squares(
             eta=eta,
             max_iter=max_iter,
             tol=tol,
+            stagtol=stagtol,
+            parallel_dim=parallel_dim,
+            **kwargs,
+        )
+    elif solver == "lsmr":  # rectangular solver
+        eta = 1 / gamma if gamma_provided else None
+        x, _ = lsmr(
+            A,
+            AT,
+            y,
+            x0=z,
+            eta=eta,
+            max_iter=max_iter,
+            tol=tol,
+            stagtol=stagtol,
             parallel_dim=parallel_dim,
             **kwargs,
         )
@@ -136,7 +157,7 @@ def least_squares(
         complete = Aty.shape == y.shape
         overcomplete = Aty.numel() < y.numel()
 
-        if complete and (solver == "BiCGStab" or solver == "minres"):
+        if complete and solver in {"BiCGStab", "minres", "CG"}:
             H = lambda x: A(x)
             b = y
         else:
@@ -151,6 +172,11 @@ def least_squares(
                 overcomplete = False
             else:
                 if not overcomplete:
+                    warnings.warn(
+                        "A is undercomplete."
+                        "This will determine the least-norm solution instead of the least squares solution."
+                        "Continuing anyway..."
+                    )
                     H = lambda x: AAT(x)
                     b = y
                 else:
@@ -164,6 +190,7 @@ def least_squares(
                 init=init,
                 max_iter=max_iter,
                 tol=tol,
+                stagtol=stagtol,
                 parallel_dim=parallel_dim,
                 **kwargs,
             )
@@ -174,6 +201,7 @@ def least_squares(
                 init=init,
                 max_iter=max_iter,
                 tol=tol,
+                stagtol=stagtol,
                 parallel_dim=parallel_dim,
                 **kwargs,
             )
@@ -184,12 +212,13 @@ def least_squares(
                 init=init,
                 max_iter=max_iter,
                 tol=tol,
+                stagtol=stagtol,
                 parallel_dim=parallel_dim,
                 **kwargs,
             )
         else:
             raise ValueError(
-                f"Solver {solver} not recognized. Choose between 'CG', 'lsqr' and 'BiCGStab'."
+                f"Solver {solver} not recognized. Choose between 'CG', 'minres', 'lsqr', 'lsmr', and 'BiCGStab'."
             )
 
         if not gamma_provided and not overcomplete and not complete:
@@ -229,6 +258,7 @@ class LeastSquaresSolver(torch.autograd.Function):
         trigger: torch.Tensor = None,
         extra_kwargs: dict = None,
     ):
+
         kwargs = extra_kwargs if extra_kwargs is not None else {}
 
         with torch.no_grad():
@@ -334,9 +364,9 @@ class LeastSquaresSolver(torch.autograd.Function):
                         # Avoid warning when reading .grad on non-leaf tensors.
                         p.retain_grad()
                     if p.grad is None:
-                        p.grad = g_det
+                        p.grad = g.det
                     else:
-                        p.grad = p.grad + g_det
+                        p.grad = p.grad + g.det
 
         return tuple(grads)
 
