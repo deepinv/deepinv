@@ -1161,7 +1161,7 @@ class RecoveryCoefficient(Metric):
         eps_per_dtype = {torch.float16: 1e-4, torch.float32: 1e-7, torch.float64: 1e-12}
         eps = self.eps if self.eps is not None else eps_per_dtype.get(x_net.dtype, 1e-7)
 
-        return recon_activity / (gt_activity + self.eps)
+        return recon_activity / (gt_activity + eps)
 
     def invert_metric(self, m: Tensor) -> Tensor:
         r""" "Invert metric for use as a training loss.
