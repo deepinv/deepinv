@@ -17,7 +17,6 @@ from deepinv.utils.tensorlist import TensorList
 from deepinv.datasets.base import check_dataset
 from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
-import torchvision.transforms.functional as TF
 import inspect
 
 
@@ -1141,8 +1140,9 @@ class Trainer:
 
             if self.mlflow_vis:
                 import mlflow
+                from torchvision.transforms.functional import to_pil_image
 
-                image = TF.to_pil_image(grid_image, mode="RGB")
+                image = to_pil_image(grid_image, mode="RGB")
                 mlflow.log_metrics({"step": epoch}, step=epoch)
                 mlflow.log_image(image, key=f"{post_str} samples", step=epoch)
 

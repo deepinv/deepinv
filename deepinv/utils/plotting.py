@@ -9,9 +9,6 @@ from warnings import warn
 
 import torch
 import numpy as np
-from torchvision.utils import make_grid
-import torchvision.transforms as T
-import torchvision.transforms.functional as F
 
 from PIL import Image
 
@@ -102,10 +99,15 @@ def resize_pad_square_tensor(tensor, size):
     r"""
     Resize a tensor BxCxWxH to a square tensor BxCxsizexsize with the same aspect ratio thanks to zero-padding.
 
+    Uses torchvision transforms.
+
     :param torch.Tensor tensor: the tensor to resize.
     :param int size: the new size.
     :return torch.Tensor: the resized tensor.
     """
+
+    from torchvision.transforms import Compose, ToPILImage, Resize, ToTensor
+    from torchvision.transforms.functional import pad as torchvision_pad
 
     class SquarePad:
         def __call__(self, image):
@@ -114,9 +116,9 @@ def resize_pad_square_tensor(tensor, size):
             hp = int((max_wh - W) / 2)
             vp = int((max_wh - H) / 2)
             padding = (hp, vp, hp, vp)
-            return F.pad(image, padding, fill=0, padding_mode="constant")
+            return torchvision_pad(image, padding, fill=0, padding_mode="constant")
 
-    transform = T.Compose([T.ToPILImage(), SquarePad(), T.Resize(size), T.ToTensor()])
+    transform = Compose([ToPILImage(), SquarePad(), Resize(size), ToTensor()])
     return torch.stack([transform(el) for el in tensor])
 
 
@@ -139,7 +141,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
     r"""
     Prepare the images for plotting.
 
-    It prepares the images for plotting by rescaling them and concatenating them in a grid.
+    It prepares the images for plotting by rescaling them and concatenating them in a grid (using torchvision).
 
     :param torch.Tensor x: Ground truth.
     :param torch.Tensor y: Measurement.
@@ -147,6 +149,8 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
     :param torch.Tensor x_nl: No-learning reconstruction.
     :returns: The images, the titles, the grid image, and the caption.
     """
+    from torchvision.utils import make_grid
+
     with torch.no_grad():
         imgs = []
         titles = []

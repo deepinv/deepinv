@@ -28,6 +28,7 @@ dependencies = [
     "tqdm",
     "torch>=2.2.0",
     "torchmetrics",
+    "torchvision",
     "einops",
     "requests",
     "h5py",
@@ -128,6 +129,7 @@ platforms = ["linux-64", "win-64"]
 
 [tool.pixi.dependencies]
 python = "<3.13.0"
+torchvision = "*"
 numpy = "*"
 matplotlib = "*"
 tqdm = "*"
