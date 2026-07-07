@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Iterable, TYPE_CHECKING
 
 import torch
 from torch import Tensor
 
 from deepinv.transform.base import Transform, TransformParam
 from deepinv.utils.mixins import MRIMixin
-from deepinv.physics.noise import GaussianNoise, NoiseModel
+
+if TYPE_CHECKING:
+    from deepinv.physics.noise import NoiseModel
 
 
 class RandomNoise(Transform):
@@ -33,7 +35,9 @@ class RandomNoise(Transform):
         super().__init__(*args, **kwargs)
         self.sigma = sigma
         if noise_type == "gaussian":
-            self.noise_class = GaussianNoise
+            from deepinv.physics.noise import GaussianNoise
+
+            self.noise_class = GaussianNoise  # lazy import
         else:
             raise ValueError(f"Noise type {noise_type} not supported.")
 

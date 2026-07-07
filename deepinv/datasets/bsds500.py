@@ -1,6 +1,5 @@
 import os
 import os.path
-from PIL import Image
 from pathlib import Path
 from deepinv.datasets.utils import calculate_md5, download_archive, extract_zipfile
 from deepinv.datasets.base import ImageDataset
@@ -98,6 +97,8 @@ class BSDS500(ImageDataset):
         return len(self.file_list)
 
     def __getitem__(self, idx):
+        from PIL import Image
+
         img = Image.open(self.file_list[idx]).convert("RGB")
         if self.rotate:
             width, height = img.size

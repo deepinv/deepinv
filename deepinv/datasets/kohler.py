@@ -1,15 +1,17 @@
 from __future__ import annotations
 import torch
-from PIL import Image
 
 from urllib.parse import urlparse
 from os.path import basename, join
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 from types import MappingProxyType
 from pathlib import Path
 
 from deepinv.datasets.base import ImageDataset
 from .utils import resolve_root
+
+if TYPE_CHECKING:
+    from PIL import Image
 
 
 def url_basename(url: str) -> str:
@@ -260,6 +262,8 @@ class Kohler(ImageDataset):
     def get_sharp_frame(
         self, printout_index: int, trajectory_index: int, frame_index: int
     ) -> torch.Tensor | Image.Image | any:
+        from PIL import Image
+
         path = join(
             self.root,
             f"Image{printout_index}",
@@ -274,6 +278,8 @@ class Kohler(ImageDataset):
     def get_blurry_shot(
         self, printout_index: int, trajectory_index: int
     ) -> torch.Tensor | Image.Image | any:
+        from PIL import Image
+
         path = join(self.root, f"Blurry{printout_index}_{trajectory_index}.png")
         blurry_shot = Image.open(path)
         if self.transform is not None:

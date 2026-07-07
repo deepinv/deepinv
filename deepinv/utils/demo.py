@@ -1,12 +1,11 @@
 from __future__ import annotations
 from warnings import warn
 from typing import Callable, TYPE_CHECKING
-import os, shutil, zipfile, requests
+import os, shutil, zipfile
 from io import BytesIO
 
 from pathlib import Path
 from tqdm import tqdm
-from PIL import Image
 
 import numpy as np
 import torch
@@ -111,6 +110,8 @@ def load_dataset(
     dataset_dir = data_dir / dataset_name
 
     if download and not dataset_dir.exists():
+        import requests  # lazy import
+
         dataset_dir.mkdir(parents=True, exist_ok=True)
 
         if url is None:
@@ -167,6 +168,8 @@ def load_degradation(
     path = data_dir / name
 
     if download and not path.exists():
+        import requests  # lazy import
+
         data_dir.mkdir(parents=True, exist_ok=True)
         url = get_degradation_url(name)
         try:
@@ -205,6 +208,7 @@ def load_image(
     :return: :class:`torch.Tensor` containing the image with an added batch dimension.
     """
     from torchvision.transforms import CenterCrop, Resize, Grayscale, ToTensor, Compose
+    from PIL import Image
 
     img = Image.open(path)
     transform_list = []

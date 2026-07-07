@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING
 from torch import Tensor
 import torch
 
-from deepinv.physics.mri import MRI, MRIMixin
-from deepinv.physics.inpainting import Inpainting
 from deepinv.loss.sure import SureGaussianLoss, mc_div
 
 if TYPE_CHECKING:
@@ -85,6 +83,9 @@ class ENSURELoss(SureGaussianLoss):
     def forward(
         self, y: Tensor, x_net: Tensor, physics: Physics, model: Reconstructor, **kwargs
     ) -> Tensor:
+        from deepinv.physics.inpainting import Inpainting
+        from deepinv.physics.mri import MRI, MRIMixin
+
         if isinstance(physics, MRI):
             metric = lambda y: MRIMixin().kspace_to_im(y * self.dsqrti)
         elif isinstance(physics, Inpainting):

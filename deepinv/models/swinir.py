@@ -517,9 +517,10 @@ class BasicLayer(nn.Module):
             )
         else:
             self.downsample = None
-        
+
         from torch.utils.checkpoint import checkpoint as torch_checkpoint
-        self.torch_checkpoint = torch_checkpoint # lazy import
+
+        self.torch_checkpoint = torch_checkpoint  # lazy import
 
     def forward(self, x, x_size):
         for blk in self.blocks:

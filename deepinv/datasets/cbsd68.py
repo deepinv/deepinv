@@ -1,6 +1,5 @@
 from typing import Any, Callable
 import os
-from PIL import Image
 
 from deepinv.datasets.utils import calculate_md5
 from deepinv.datasets.base import ImageDataset
@@ -107,12 +106,13 @@ class CBSD68(ImageDataset):
         return len(self.hf_dataset)
 
     def __getitem__(self, idx: int) -> Any:
-        # PIL Image
         img = self.hf_dataset[idx]["png"]
 
         if self.rotate:
             width, height = img.size
             if width > height:
+                from PIL import Image
+
                 img = img.transpose(Image.ROTATE_90)
 
         if self.transform is not None:

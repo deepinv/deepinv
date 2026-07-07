@@ -1,15 +1,18 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import deepinv as dinv
 
 from deepinv.loss.loss import Loss
 from deepinv.loss.measplit import SplittingLoss
-from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.transform.base import Transform
 
 import torch
 
 import weakref
 import warnings
+
+if TYPE_CHECKING:
+    from deepinv.physics.generator.base import PhysicsGenerator
 
 
 class EquivariantSplittingLoss(Loss):

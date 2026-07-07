@@ -7,7 +7,6 @@ import os
 import numpy as np
 from numpy.lib.format import open_memmap
 import torch
-from deepinv.utils.mixins import MRIMixin
 from urllib.parse import urlparse
 
 if TYPE_CHECKING:
@@ -69,21 +68,24 @@ def get_cache_home() -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path
 
-import requests
-class DownloadError(requests.exceptions.RequestException):
-    r"""Raised when a network download initiated by deepinv fails.
 
-    Wraps any underlying network error (HTTP status, connection failure,
-    SSL error, DNS failure, timeout, …) so that callers — and the test
-    suite in particular — can detect download failures with a single
-    ``except DownloadError:`` rather than enumerating every exception
-    type that the network stack may raise. The original exception is
-    chained via ``__cause__``.
+class DownloadError(IOError):
+    r"""Raised when a deepinv download fails.
 
-    Inherits from :class:`requests.exceptions.RequestException` (and
-    transitively from `IOError`) so existing handlers that catch
-    those broader types keep working.
+    Lets callers catch any download failure with ``except DownloadError``.
+    The underlying error is chained via ``__cause__``.
+
+    Code copied from :class:`requests.exception.RequestException`.
     """
+
+    def __init__(self, *args, **kwargs):
+        """Initialize DownloadError with `request` and `response` objects."""
+        response = kwargs.pop("response", None)
+        self.response = response
+        self.request = kwargs.pop("request", None)
+        if response is not None and not self.request and hasattr(response, "request"):
+            self.request = self.response.request
+        super().__init__(*args, **kwargs)
 
 
 def load_url(url: str, **kwargs) -> BytesIO:
@@ -110,7 +112,7 @@ def load_url(url: str, **kwargs) -> BytesIO:
     :return: `BytesIO` buffer.
     :raises deepinv.utils.DownloadError: if the file cannot be downloaded.
     """
-    import requests # lazy import
+    import requests  # lazy import
 
     cache_home = get_cache_home()
     cache_dir = cache_home / "url_cache"
@@ -241,6 +243,7 @@ def load_ismrmd(
         raise ImportError(
             "The h5py package is not installed. Please install it with `pip install h5py`."
         )
+    from deepinv.utils.mixins import MRIMixin
 
     with h5py.File(fname, "r") as hf:
         data = hf[data_name]
@@ -348,6 +351,8 @@ def load_raster(
         )  # Remove single-band dimension if exists
         if arr.ndim == 2:
             if arr.is_complex():
+                from deepinv.utils.mixins import MRIMixin
+
                 arr = MRIMixin.from_torch_complex(arr.unsqueeze(0)).squeeze(
                     0
                 )  # (2, H, W)

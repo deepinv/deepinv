@@ -1,11 +1,13 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import torch
 import torch.nn as nn
 
 from deepinv.utils.tensorlist import TensorList
-from deepinv.physics.forward import Physics
-from deepinv.physics.noise import PoissonNoise
-from deepinv.physics.blur import Downsampling, Blur
-from deepinv.physics.remote_sensing import Pansharpen
+
+if TYPE_CHECKING:
+    from deepinv.physics.forward import Physics
+    from deepinv.physics.remote_sensing import Pansharpen
 
 
 class ResNet(nn.Module):
@@ -94,6 +96,8 @@ class PanNet(nn.Module):
 
         self.upsampler = self.create_sampler("up", self.hrms_shape)
 
+        from deepinv.physics.blur import Blur
+
         self.boxblur = Blur(
             filter=torch.tensor(1.0 / highpass_kernel_size**2, device=device).expand(
                 1, 1, highpass_kernel_size, highpass_kernel_size
@@ -134,6 +138,9 @@ class PanNet(nn.Module):
         :param float noise_gain: noise applied to downsampling ONLY, defaults to 0.
         :return dinv.physics.Physics: deepinv sampler
         """
+        from deepinv.physics.noise import PoissonNoise
+        from deepinv.physics.blur import Downsampling
+
         sampler = Downsampling(
             img_size=hr_shape,
             factor=self.scale_factor,

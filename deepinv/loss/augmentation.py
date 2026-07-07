@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from typing import TYPE_CHECKING
 
 import torch
 import torch.nn as nn
@@ -7,10 +7,12 @@ from torch import Tensor
 
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
-from deepinv.physics.mri import MRI
 from deepinv.transform.base import Transform, Identity
 from deepinv.transform.rotate import Rotate
 from deepinv.transform.shift import Shift
+
+if TYPE_CHECKING:
+    from deepinv.physics.mri import MRI
 
 
 class AugmentConsistencyLoss(Loss):

@@ -159,8 +159,9 @@ class Client(Reconstructor, Denoiser):
         self.endpoint = endpoint
         self.training = False
         self.return_metadata = return_metadata
-        
-        import requests # lazy import
+
+        import requests  # lazy import
+
         self.requests_post = requests.post
 
     @staticmethod

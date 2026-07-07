@@ -1,11 +1,14 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 from warnings import warn
 import torch
-from deepinv.physics import Inpainting, Physics
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
-from deepinv.physics.generator import BernoulliSplittingMaskGenerator
 from deepinv.models.base import Reconstructor
+
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
+    from deepinv.physics.generator import BernoulliSplittingMaskGenerator
 
 
 class SplittingLoss(Loss):
@@ -125,6 +128,8 @@ class SplittingLoss(Loss):
         :param torch.Tensor y: input data of shape (B,C,...,H,W)
         :param deepinv.physics.Physics physics: physics to split, retaining its original noise model. If ``None``, only :math:`y` is split.
         """
+        from deepinv.physics import Inpainting
+
         if y.shape[-2:] != mask.shape[-2:]:
             raise ValueError(
                 f"y and mask must have same shape in last 2 dimensions, but y has {y.shape} and mask has {mask.shape}"
@@ -275,6 +280,8 @@ class SplittingLoss(Loss):
                 warn(
                     f"Mask generator not defined. Using new Bernoulli mask generator with shape {y.shape[-2:]}."
                 )
+                from deepinv.physics.generator import BernoulliSplittingMaskGenerator
+
                 self.mask_generator = BernoulliSplittingMaskGenerator(
                     img_size=(
                         y.shape[1],

@@ -10,8 +10,6 @@ from warnings import warn
 import torch
 import numpy as np
 
-from PIL import Image
-
 from deepinv.utils.signals import normalize_signal, complex_abs
 
 _DEFAULT_PLOT_FONTSIZE = 17
@@ -1070,6 +1068,7 @@ def save_videos(
     :param \*\*plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
     """
     import matplotlib.pyplot as plt
+    from PIL import Image
 
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]

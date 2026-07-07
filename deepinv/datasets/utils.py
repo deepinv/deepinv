@@ -8,7 +8,6 @@ import sys
 from pathlib import Path
 
 from tqdm.auto import tqdm
-from PIL import Image
 
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
@@ -62,7 +61,7 @@ def download_archive(
     :param bool force_download: if ``True``, download the archive even if it already exists.
     :raises DownloadError: if the archive cannot be downloaded.
     """
-    import requests # lazy import
+    import requests  # lazy import
 
     save_path = Path(save_path)
     if not force_download and save_path.exists() and save_path.stat().st_size > 0:
@@ -216,7 +215,9 @@ class Crop(Module):
             else:
                 raise ValueError("size must be int or tuple of ints of size 2 or 4.")
 
-    def forward(self, x: Tensor | Image.Image) -> Tensor | Image.Image:
+    def forward(self, x: Tensor) -> Tensor:
+        from PIL import Image
+
         top, left, height, width = self.size
 
         if isinstance(x, Image.Image):

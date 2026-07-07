@@ -6,7 +6,7 @@ See deepinv/models/third_party/LICENSE for license details.
 """
 
 from __future__ import annotations
-
+from typing import TYPE_CHECKING
 import warnings
 
 import torch
@@ -22,7 +22,8 @@ from deepinv.models.restormer import (
     OverlapPatchEmbed,
 )
 
-from deepinv.physics import Physics
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
 
 
 class PromptGenBlock(nn.Module):
