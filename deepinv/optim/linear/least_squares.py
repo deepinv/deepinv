@@ -26,7 +26,7 @@ def least_squares(
     solver: str = "CG",
     max_iter: int = 100,
     tol: float = 1e-6,
-    stagtol: float = 1e-6,
+    stagtol: float | None = None,
     **kwargs,
 ) -> torch.Tensor:
     r"""
@@ -84,6 +84,9 @@ def least_squares(
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...).
     """
 
+    if stagtol is None:
+        stagtol = 10.0 * torch.finfo(b.dtype).eps
+            
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
 
