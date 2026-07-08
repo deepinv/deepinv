@@ -95,10 +95,10 @@ def bicgstab(
         r = s - omega * t
 
         search_update = alpha * v - omega * z
-        search_update_norm = dot(search_update, search_update, dim=dim)
-        xnorm = dot(x, x, dim=dim)
+        search_update_norm = dot(search_update, search_update, dim=dim).real
+        xnorm = dot(x, x, dim=dim).real
 
-        if torch.all(dot(r, r, dim=dim) <= tol):
+        if torch.all(dot(r, r, dim=dim).real <= tol):
             flag = True
             if verbose:
                 print("BiCGSTAB converged at iteration", i + 1)
