@@ -31,7 +31,7 @@ def lsmr(
     :param Callable A: Linear operator as a callable function.
     :param Callable AT: Adjoint operator as a callable function.
     :param torch. b: input  of shape (B, ...)
-    :param float, torch.Tensor eta: damping parameter :math:`\eta \geq 0`. Can be batched (shape (B, ...)) or a scalar.
+    :param float, torch.Tensor eta: damping parameter :math:`eta \geq 0`. Can be batched (shape (B, ...)) or a scalar.
     :param None, torch.Tensor x0: Optional :math:`x_0`, which is also used as the initial guess.
     :param float tol: relative tolerance for stopping the LSMR algorithm.
     :param float stagtol: absolute tolerance for stopping the LSMR algorithm if iterates stagnate.
