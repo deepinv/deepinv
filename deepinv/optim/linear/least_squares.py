@@ -106,27 +106,6 @@ def least_squares(
                 "Continuing anyway..."
             )
 
-    Aty = AT(y)
-
-    if gamma.ndim > 0:  # if batched gamma
-        if isinstance(Aty, TensorList):
-            batch_size = Aty[0].size(0)
-            ndim = Aty[0].ndim
-        else:
-            batch_size = Aty.size(0)
-            ndim = Aty.ndim
-
-        if gamma.size(0) != batch_size:
-            raise ValueError(
-                "If gamma is batched, its batch size must match the one of y."
-            )
-        elif gamma.ndim == 1:  # expand gamma to ATy
-            gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
-        elif gamma.ndim != ndim:
-            raise ValueError(
-                f"gamma should either be 0D, 1D, or match same number of dimensions as ATy, but got ndims {gamma.ndim} and {ndim}"
-            )
-
     if solver == "lsqr":  # rectangular solver
         eta = 1 / gamma if gamma_provided else None
         x, _ = lsqr(
@@ -156,6 +135,27 @@ def least_squares(
             **kwargs,
         )
 
+    Aty = AT(y)
+
+    if gamma.ndim > 0:  # if batched gamma
+        if isinstance(Aty, TensorList):
+            batch_size = Aty[0].size(0)
+            ndim = Aty[0].ndim
+        else:
+            batch_size = Aty.size(0)
+            ndim = Aty.ndim
+
+        if gamma.size(0) != batch_size:
+            raise ValueError(
+                "If gamma is batched, its batch size must match the one of y."
+            )
+        elif gamma.ndim == 1:  # expand gamma to ATy
+            gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
+        elif gamma.ndim != ndim:
+            raise ValueError(
+                f"gamma should either be 0D, 1D, or match same number of dimensions as ATy, but got ndims {gamma.ndim} and {ndim}"
+            )
+    
     else:
         complete = Aty.shape == y.shape
         overcomplete = Aty.numel() < y.numel()
