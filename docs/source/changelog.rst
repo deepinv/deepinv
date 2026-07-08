@@ -14,17 +14,23 @@ New Features
 - Add caching to demo/archive downloads (:gh:`1234` by `Julian Tachella`_)
 - Add :func:`deepinv.utils.load_tiff` to load images/ volumes from TIFF files (:gh:`1249` by `Andrew Wang`_)
 - Add :func:`deepinv.utils.plot_napari` to interactively view 2D images/3D vols with napari (:gh:`1249` by `Andrew Wang`_)
+- Add :func:`deepinv.optim.linear.lsmr` (:gh:`...` by `...`_)
 
 Changed
 ^^^^^^^
 - (Breaking) Drop support for deprecated parameters `num_channels` in :class:`deepinv.physics.generator.PSFGenerator`, :class:`deepinv.physics.generator.GaussianBlurGenerator`, :class:`deepinv.physics.generator.MotionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
+- Unified convergence criteria in :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.bicgstab`, :func:`deepinv.optim.linear.lsqr`, :func:`deepinv.optim.linear.minres` (:gh:`...` by `...`_)
+- Rewrote :func:`deepinv.optim.linear.utils._sym_ortho` to have more logic when dealing with vectors with null-components, especially in batched scenarios (:gh:`...` by `...`_)
 
 Fixed
 ^^^^^
 - Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
 - Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
 - Remove unconditional dtype conversion to `torch.cfloat` in :func:`deepinv.optim.phase_retrieval.spectral_methods` (:gh:`1216` by `Zhiyuan Hu`_)
-
+- Remove taking mean when estimating condition number in :func:`deepinv.optim.linear.lsqr` (:gh:`...` by `...`_)
+- Fix :func:`deepinv.optim.linear.lsqr.lsqr.normf` taking the wrong norm over batched dimensions (:gh:`...` by `...`_)
+- Fix zero-initialsation in :func:`deepinv.optim.linear.lsqr` if parameter given is scalar (:gh:`...` by `...`_)
+- Fix least squares problem and minimum norm solution being switched in :func:`deepinv.optim.linear.least_squares` docstring (:gh:`...` by `...`_)
 
 v0.4.1
 ------

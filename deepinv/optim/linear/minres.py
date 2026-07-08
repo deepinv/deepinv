@@ -10,8 +10,9 @@ def minres(
     b: torch.Tensor,
     init: torch.Tensor | None = None,
     max_iter: int = 1e2,
-    tol: float = 1e-5,
-    eps: float = 1e-6,
+    tol: float = 1e-6,
+    stagtol: float | None = None,
+    eps: float = 1e-8,
     parallel_dim: int = 0,
     verbose: bool = False,
     precon=lambda x: x.clone(),
@@ -32,12 +33,16 @@ def minres(
     :param torch.Tensor init: Optional initial guess.
     :param int max_iter: maximum number of MINRES iterations.
     :param float tol: absolute tolerance for stopping the MINRES algorithm.
+    :param float stagtol: absolute tolerance for stopping the MINRES algorithm if iterates stagnate.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :param Callable precon: preconditioner is a callable function (not tested). Must be positive definite
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
     """
 
+    if stagtol is None:
+        stagtol = 10.0 * torch.finfo(b.dtype).eps
+        
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
     if parallel_dim is None:
@@ -148,9 +153,16 @@ def minres(
             search_update, dim=dim, ord=2
         ).unsqueeze(-1)
         solution_norm = torch.linalg.vector_norm(solution, dim=dim, ord=2).unsqueeze(-1)
-        if (search_update_norm / solution_norm).max().item() < tol:
+        rnorm = torch.abs(scale_curr)
+
+        if rnorm.max().item() <= tol:
             if verbose:
                 print("MINRES converged at iteration", i + 1)
+            flag = False
+            break
+        elif (search_update_norm / solution_norm).max().item() <= stagtol:
+            if verbose:
+                print("MINRES stagnated at iteration", i + 1)
             flag = False
             break
 
