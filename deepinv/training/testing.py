@@ -53,7 +53,7 @@ def test(
         ``'A_adjoint'``, ``'prox_l2'``, or ``'y'``. Default is ``'A_adjoint'``. The user can modify the no-learning method
         by overwriting the :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method
     :returns: A dictionary with the metrics computed on the test set, where the keys are the metric names, and include
-        the average and standard deviation of the metric, timing and peak GPU memory usage information. Timings correspond to average inference time per batch in seconds.
+        the average and standard deviation of the metric, timing and peak GPU memory usage information. Timings correspond to total test time in seconds.
     """
     if metrics is None:
         metrics = PSNR()

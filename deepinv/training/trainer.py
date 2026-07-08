@@ -1508,7 +1508,7 @@ class Trainer:
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
         :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If
             ``None``, uses the metrics provided during Trainer initialization.
-        :returns: dict of metrics, timings (in sec) and peak memory usage (in GBy) results with means and stds. Timings correspond to average inference time per sample.
+        :returns: dict of metrics, timings (in sec) and peak GPU memory usage (in GBy) results with means and stds. Timings correspond to total test time.
         """
         if metrics is not None:
             self.metrics = metrics
@@ -1543,6 +1543,10 @@ class Trainer:
 
         batches = min([len(loader) - loader.drop_last for loader in test_dataloader])
 
+        # reset peak GPU memory usage counter
+        if torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats()
+
         perf_counter_start = time.perf_counter()
         for i in (
             progress_bar := tqdm(
@@ -1571,10 +1575,6 @@ class Trainer:
         if self.verbose:
             print("Test results:")
 
-        # reset peak GPU memory usage counter
-        if torch.cuda.is_available():
-            torch.cuda.reset_peak_memory_stats()
-
         out = {}
         for k, l in enumerate(self.logs_metrics_eval):
             if compare_no_learning:
@@ -1598,10 +1598,9 @@ class Trainer:
 
         perf_counter_end = time.perf_counter()
         elapsed_time = perf_counter_end - perf_counter_start
-        avg_time_per_sample = elapsed_time / (batches * test_dataloader[0].batch_size)
 
         # add runtime info
-        out["runtime"] = avg_time_per_sample
+        out["runtime"] = elapsed_time
         if torch.cuda.is_available():
             # report in GB
             out["peak_gpu_memory_usage"] = (
