@@ -58,7 +58,7 @@ def least_squares(
 
     .. note::
 
-        `'CG'`, `'minres'`,  and `'BiCGStab'` are used for squared linear systems, while `'lsqr'` and 'lsmr'` are used for rectangular systems.
+        `'CG'`, `'minres'`,  and `'BiCGStab'` are used for squared linear systems, while `'lsqr'` and `'lsmr'` are used for rectangular systems.
 
         If the chosen solver requires a squared system, we map to the problem to the normal equations:
         If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
