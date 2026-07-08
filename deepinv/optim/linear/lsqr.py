@@ -64,7 +64,7 @@ def lsqr(
         xt = AT(b)
         x = x0 * ones_like(xt)
         x_ref = xt
-        x_is_zero = (x0 == 0.0)
+        x_is_zero = x0 == 0.0
     else:
         x = x0.clone()
         xt = None
@@ -80,8 +80,8 @@ def lsqr(
             dims = [[i for i in range(bi.ndim) if i not in parallel_dim] for bi in b]
             for k in range(len(u)):
                 total += (
-                    torch.linalg.vector_norm(u[k], dim=dims[k], keepdim=False) ** 2 
-                ) # don't keep dim as dims might be different
+                    torch.linalg.vector_norm(u[k], dim=dims[k], keepdim=False) ** 2
+                )  # don't keep dim as dims might be different
             return torch.sqrt(total)
         else:
             dim = [i for i in range(u.ndim) if i not in parallel_dim]
@@ -216,7 +216,7 @@ def lsqr(
         t1 = phi / rho
         t2 = -theta / rho
         dk = scalar(w, 1 / rho, b_domain=False)
-        
+
         search_update = scalar(w, t1, b_domain=False)
 
         x = x + search_update

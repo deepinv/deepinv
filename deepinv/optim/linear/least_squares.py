@@ -86,7 +86,7 @@ def least_squares(
 
     if stagtol is None:
         stagtol = 10.0 * torch.finfo(y.dtype).eps
-            
+
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
 
@@ -134,7 +134,7 @@ def least_squares(
             parallel_dim=parallel_dim,
             **kwargs,
         )
-        
+
     else:
 
         Aty = AT(y)
@@ -157,7 +157,7 @@ def least_squares(
                 raise ValueError(
                     f"gamma should either be 0D, 1D, or match same number of dimensions as ATy, but got ndims {gamma.ndim} and {ndim}"
                 )
-        
+
         complete = Aty.shape == y.shape
         overcomplete = Aty.numel() < y.numel()
 
@@ -180,7 +180,7 @@ def least_squares(
                         "A is not regularized and solver is CG."
                         "Division by zero may occur."
                         "Continuing anyway..."
-                    )   
+                    )
                 if not overcomplete:
                     warnings.warn(
                         "A is undercomplete."

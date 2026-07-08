@@ -75,8 +75,8 @@ def lsmr(
             dims = [[i for i in range(bi.ndim) if i not in parallel_dim] for bi in b]
             for k in range(len(u)):
                 total += (
-                    torch.linalg.vector_norm(u[k], dim=dims[k], keepdim=False) ** 2 
-                ) # don't keep dim as dims might be different
+                    torch.linalg.vector_norm(u[k], dim=dims[k], keepdim=False) ** 2
+                )  # don't keep dim as dims might be different
             return torch.sqrt(total)
         else:
             dim = [i for i in range(u.ndim) if i not in parallel_dim]
@@ -110,21 +110,19 @@ def lsmr(
         else:
             return v * alpha.view(Atb_shape)
 
-    
     bnorm = normf(b)
 
     def _reset_state(x):
         s = SimpleNamespace()
 
         x_is_zero = torch.all(x == 0)
-        
+
         if x_is_zero:
             s.u = b.clone()
             s.beta = bnorm
         else:
             s.u = b.clone() - A(x)
             s.beta = normf(s.u)
-        
 
         if torch.all(s.beta > 0):
             s.u = scalar(s.u, 1 / s.beta, b_domain=True)
