@@ -85,7 +85,7 @@ def least_squares(
     """
 
     if stagtol is None:
-        stagtol = 10.0 * torch.finfo(b.dtype).eps
+        stagtol = 10.0 * torch.finfo(y.dtype).eps
             
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
