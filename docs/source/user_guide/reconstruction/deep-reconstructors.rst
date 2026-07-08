@@ -12,7 +12,7 @@ Artifact Removal
 ~~~~~~~~~~~~~~~~
 
 The simplest reconstruction architecture first maps the measurements
-to the image domain via a non-learned mapping, and then applys a denoiser network to the obtain the final reconstruction.
+to the image domain via a non-learned mapping, and then applies a denoiser network to the obtain the final reconstruction.
 
 The :class:`deepinv.models.ArtifactRemoval` class converts a denoiser :class:`deepinv.models.Denoiser` or other image-to-image network :math:`\phi` into a
 reconstruction network :class:`deepinv.models.Reconstructor` :math:`R` by doing

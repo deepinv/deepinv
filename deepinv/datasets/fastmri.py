@@ -455,7 +455,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
 
         If mask exists (i.e. challenge test set), this is also returned in params dict.
 
-        Outputs may be modifed by transform if specified, in which case may also return params dict,
+        Outputs may be modified by transform if specified, in which case may also return params dict,
         containing optionally mask and coil maps.
         """
         fname, slice_ind, metadata = self.samples[idx]
@@ -670,7 +670,7 @@ class MRISliceTransform(MRIMixin):
             ).squeeze(0)
         except torch.linalg.LinAlgError:
             warnings.warn(
-                "Unable to prewhiten kspace. Noise covariance matric was non-PSD due to kspace being all zeros."
+                "Unable to prewhiten kspace. Noise covariance matrix was non-PSD due to kspace being all zeros."
             )
             return kspace
 

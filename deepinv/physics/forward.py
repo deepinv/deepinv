@@ -312,7 +312,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
             # NOTE: Attribute resolution can be dynamic and return new objects,
             # preventing the algorithm from terminating. To avoid that, we use
-            # insepct.getattr_static. We don't use inspect.getmembers_static
+            # inspect.getattr_static. We don't use inspect.getmembers_static
             # because it was only introduced in Python 3.11 and we currently
             # support Python 3.9 onwards.
             for attr in dir(node):
@@ -485,7 +485,8 @@ class LinearPhysics(Physics):
         :return: device of the physics parameters.
         """
         warnings.warn(
-            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version. To move the module's buffers/parameters to a different device, use the `to()` method."
+            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version. To move the module's buffers/parameters to a different device, use the `to()` method.",
+            DeprecationWarning
         )
 
         return self._device_holder.device
@@ -498,7 +499,8 @@ class LinearPhysics(Physics):
         :param device: device to which the physics parameters will be moved.
         """
         warnings.warn(
-            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version, i.e. doing `physics.device = device` will no longer work and throw an `AttributeError`. Use `physics.to(device)` instead."
+            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version, i.e. doing `physics.device = device` will no longer work and throw an `AttributeError`. Use `physics.to(device)` instead.",
+            DeprecationWarning
         )
 
         self.to(value)
@@ -522,7 +524,7 @@ class LinearPhysics(Physics):
             if self.img_size is None:
                 raise ValueError(
                     "img_size must be set for using the automatic A_adjoint implementation."
-                    "Set img_size in the constructor of the LinearPhyics class or pass it as a keyword argument."
+                    "Set img_size in the constructor of the LinearPhysics class or pass it as a keyword argument."
                 )
             else:
                 tensor_size = (y.shape[0],) + self.img_size
@@ -561,7 +563,7 @@ class LinearPhysics(Physics):
         A helper function that computes :math:`A^{\top}Ax`.
 
         This function can speed up computation when :math:`A^{\top}A` is available in closed form.
-        Otherwise it just cals :func:`deepinv.physics.Physics.A` and :func:`deepinv.physics.LinearPhysics.A_adjoint`.
+        Otherwise it just calls :func:`deepinv.physics.Physics.A` and :func:`deepinv.physics.LinearPhysics.A_adjoint`.
 
         :param torch.Tensor x: signal/image.
         :return: (:class:`torch.Tensor`) the product :math:`A^{\top}Ax`.

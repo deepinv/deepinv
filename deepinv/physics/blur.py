@@ -233,7 +233,7 @@ class Downsampling(LinearPhysics):
         # IF filter_parameters["filter"] is not None then update of "Fh", "Fhc", "Fh2" has
         # already been triggered in `self.get_filter_parameters`
         # ELSE, computation of "Fh", "Fhc", "Fh2" is triggered here in case a
-        # change of domain size (imsize_dynamic) has occured
+        # change of domain size (imsize_dynamic) has occurred
         # FIXME: When `self.imsize` is None, need to track changes of `self.imsize_dynamic`
         # to avoid recomputation of "Fh" when not needed
         if filter_parameters["filter"] is None and self.filter is not None:

@@ -456,7 +456,7 @@ class AdjointLinearSingleChannelOperator(torch.autograd.Function):
         Returns
         -------
         torch.Tensor
-            mini batch of 3D images with dimension (batch_size, 1, opertor.img_size)
+            mini batch of 3D images with dimension (batch_size, 1, operator.img_size)
         """
 
         ctx.set_materialize_grads(False)
@@ -488,7 +488,7 @@ class AdjointLinearSingleChannelOperator(torch.autograd.Function):
         Returns
         -------
         torch.Tensor, None
-            mini batch of 3D images with dimension (batch_size, 1, opertor.out_shape)
+            mini batch of 3D images with dimension (batch_size, 1, operator.out_shape)
         """
         # For details on how to implement the backward pass, see
         # https://pytorch.org/docs/stable/notes/extending.html#how-to-use

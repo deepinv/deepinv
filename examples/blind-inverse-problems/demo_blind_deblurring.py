@@ -96,7 +96,7 @@ x_dpir = x_dpir.clamp(0, 1)
 #
 # As here we assume that we do not have access to the ground truth sharp image,
 # we cannot compute reference metrics such as PSNR or SSIM.
-# However, we can still compute no-reference metrics such as NIQE (lower is better), Blur Strengh (lower is better) and
+# However, we can still compute no-reference metrics such as NIQE (lower is better), Blur Strength (lower is better) and
 # Sharpness Index (higher is better)
 # to assess the quality of the reconstructions.
 
