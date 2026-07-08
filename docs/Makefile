@@ -40,7 +40,6 @@ clean:
 	rm -rf $(BUILDDIR)/*
 	rm -rf source/auto_examples/
 	rm -rf source/auto_benchmarks/
-	rm -rf source/benchmarks.rst
 	rm -rf source/deepinv-benchmarks/
 	rm -rf source/generated/
 	rm -rf source/gen_modules/
@@ -56,4 +55,3 @@ clean-win:
 	@if exist source\gen_modules rmdir /s /q source\gen_modules
 	@if exist source\api\stubs rmdir /s /q source\api\stubs
 	@if exist source\sg_execution_times.rst del source\sg_execution_times.rst
-	@if exist source\benchmarks.rst del source\benchmarks.rst

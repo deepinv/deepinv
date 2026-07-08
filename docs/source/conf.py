@@ -246,7 +246,9 @@ def add_references_block_to_examples():
 add_references_block_to_examples()
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+# ``benchmarks.rst`` is a committed template with placeholders; the filled page
+# is generated at build time under ``auto_benchmarks/`` (see generate_benchmarks.py).
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "benchmarks.rst"]
 
 add_module_names = True  # include the module path in the function name
 
