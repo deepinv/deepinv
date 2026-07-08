@@ -35,11 +35,6 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y hyperfine
 
-      - name: Install deepinv and its dependencies
-        shell: bash
-        run: |
-          pixi install -e ${{ matrix.environment }}
-
       - name: "Benchmark torch+torchvision"
         run: |
           echo "Benchmarking torch..."
