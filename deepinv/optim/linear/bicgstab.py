@@ -97,7 +97,7 @@ def bicgstab(
         x = h + omega * z
         r = s - omega * t
 
-        search_update = alpha * v - omega * z
+        search_update = alpha * y + omega * z
         search_update_norm = dot(search_update, search_update, dim=dim).real
         xnorm = dot(x, x, dim=dim).real
 
