@@ -33,7 +33,7 @@ def minres(
     :param torch.Tensor init: Optional initial guess.
     :param int max_iter: maximum number of MINRES iterations.
     :param float tol: absolute tolerance for stopping the MINRES algorithm.
-    :param float tol: absolute tolerance for stopping the MINRES algorithm if iterates stagnate.
+    :param float stagtol: absolute tolerance for stopping the MINRES algorithm if iterates stagnate.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :param Callable precon: preconditioner is a callable function (not tested). Must be positive definite
