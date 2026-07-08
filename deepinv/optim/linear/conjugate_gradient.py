@@ -9,7 +9,7 @@ def conjugate_gradient(
     b: torch.Tensor,
     max_iter: int = 1e2,
     tol: float = 1e-6,
-    stagtol: float = 1e-6,
+    stagtol: float | None = None,
     eps: float = 1e-8,
     parallel_dim: None | int | list[int] = 0,
     init: torch.Tensor | None = None,
@@ -35,6 +35,9 @@ def conjugate_gradient(
 
     """
 
+    if stagtol is None:
+        stagtol = 10.0 * torch.finfo(b.dtype).eps
+            
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
     if parallel_dim is None:
