@@ -992,7 +992,7 @@ def test_datafid_stacking(imsize, device):
     assert data_fid.grad(x, y2, physics) == -(y2[0] - y[0]) / 4 - (y2[1] - y[1])
 
 
-solvers = ["CG", "BiCGStab", "lsqr", "minres"]
+solvers = ["CG", "BiCGStab", "lsqr", "minres", "lsmr"]
 least_squares_physics = [
     "inpainting",
     "super_resolution_circular",
@@ -1089,6 +1089,8 @@ def test_linear_system(device, solver, dtype, rng, zero_input):
         x = dinv.optim.linear.bicgstab(A, b, tol=tol, max_iter=1000)
     elif solver == "lsqr":
         x = dinv.optim.linear.lsqr(A, AT, b, tol=tol, max_iter=1000)[0]
+    elif solver == "lsmr":
+        x = dinv.optim.linear.lsmr(A, AT, b, tol=tol, max_iter=1000)[0]
     else:
         raise ValueError("Solver not found")
 
