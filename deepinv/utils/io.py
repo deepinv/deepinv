@@ -35,18 +35,18 @@ def load_np(
         return torch.from_numpy(np.load(fname, allow_pickle=False).astype(dtype))
 
 
-
 def load_tiff(fname: str | Path, dtype: torch.dtype | None = None) -> torch.Tensor:
     """Load image or volume from a TIFF file as a torch tensor.
+
     Integer images are normalized to the range ``[0, 1]`` by dividing by the
     maximum value representable by their dtype; floating point images are
     loaded as-is. 2D images of shape `(H, W)` are loaded with a single channel,
     and 3D arrays of shape `(H, W, C)` are converted to channel-first `(C, H, W)`.
     In both cases a leading batch dimension is added.
-    
+
     .. warning::
         Requires `tifffile` to be installed. Install it with `pip install tifffile`.
-        
+
     :param str, pathlib.Path fname: path to TIFF file or buffer.
     :param torch.dtype dtype: if not ``None``, cast the output tensor to this dtype.
     :return: :class:`torch.Tensor` of shape `(1, C, H, W)`.

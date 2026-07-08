@@ -77,7 +77,7 @@ def download_archive(
             response = requests.get(url, stream=True, timeout=(10, 60))
             response.raise_for_status()
             file_size = int(response.headers.get("Content-Length", 0))
-            
+
             with tqdm.wrapattr(response.raw, "read", total=file_size) as r_raw:
                 with open(save_path, "wb") as file:
                     # shutil.copyfileobj doesn't require the whole file in memory before writing in a file
@@ -120,7 +120,7 @@ def extract_tarball(file_path: str | Path, extract_dir: str | Path) -> None:
 
 def extract_rarfile(file_path: str | Path, extract_dir: str | Path) -> None:
     """Extract a local RAR archive.
-    
+
     Requires `rarfile`, install it with ``pip install rarfile``. Note that
     `rarfile` itself relies on an external ``unrar`` or ``bsdtar`` command-line
     tool being available on the system.
