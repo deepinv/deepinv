@@ -62,13 +62,11 @@ def download_archive(
     :param bool extract: if ``True``, attempt to extract zipfile, tarball or RAR archive into parent dir.
         Extracting RAR archives requires `rarfile`, install it with ``pip install rarfile``.
     :param bool force_download: if ``True``, download the archive even if it already exists.
-    :raises DownloadError: if the archive cannot be downloaded.
     """
     save_path = Path(save_path)
     if not force_download and save_path.exists() and save_path.stat().st_size > 0:
         print(f"File already downloaded: {save_path}. Skipping...", file=sys.stderr)
     else:
-        # Ensure the directory containing `save_path`` exists
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
         # `stream=True` to avoid loading in memory an entire file, instead get a chunk
@@ -79,7 +77,7 @@ def download_archive(
             response = requests.get(url, stream=True, timeout=(10, 60))
             response.raise_for_status()
             file_size = int(response.headers.get("Content-Length", 0))
-            # use tqdm progress bar to follow progress on downloading archive
+            
             with tqdm.wrapattr(response.raw, "read", total=file_size) as r_raw:
                 with open(save_path, "wb") as file:
                     # shutil.copyfileobj doesn't require the whole file in memory before writing in a file
@@ -94,6 +92,8 @@ def download_archive(
                 extract_zipfile(save_path, Path(save_path).parent)
             elif Path(save_path).suffix == ".tar":
                 extract_tarball(save_path, Path(save_path).parent)
+            elif Path(save_path).suffix == ".rar":
+                extract_rarfile(save_path, Path(save_path).parent)
 
 
 def extract_zipfile(file_path: str | Path, extract_dir: str | Path) -> None:
@@ -116,6 +116,27 @@ def extract_tarball(file_path: str | Path, extract_dir: str | Path) -> None:
         # Thus the progress bar will not move linearly with time
         for file_to_be_extracted in tqdm(tar_ref.getmembers(), desc="Extracting"):
             tar_ref.extract(file_to_be_extracted, extract_dir)
+
+
+def extract_rarfile(file_path: str | Path, extract_dir: str | Path) -> None:
+    """Extract a local RAR archive.
+    
+    Requires `rarfile`, install it with ``pip install rarfile``. Note that
+    `rarfile` itself relies on an external ``unrar`` or ``bsdtar`` command-line
+    tool being available on the system.
+    """
+    try:
+        import rarfile
+    except ImportError:  # pragma: no cover
+        raise ImportError(
+            "Extracting RAR archives requires rarfile, which is not installed. "
+            "Please install it with `pip install rarfile`. Note that rarfile also "
+            "requires the `unrar` or `bsdtar` command-line tool to be installed."
+        )
+
+    with rarfile.RarFile(file_path) as rar_ref:
+        for file_to_be_extracted in tqdm(rar_ref.infolist(), desc="Extracting"):
+            rar_ref.extract(file_to_be_extracted, extract_dir)
 
 
 def resolve_root(root: str | Path | None, dataset_name: str = None) -> Path:
