@@ -12,7 +12,7 @@ def lsmr(
     eta: float | torch.Tensor = 0.0,
     x0: torch.Tensor = None,
     tol: float = 1e-6,
-    stagtol: float = 1e-6,
+    stagtol: float | None = None,
     conlim: float = 1e8,
     max_iter: int = 100,
     parallel_dim: None | int | list[int] = 0,
@@ -43,6 +43,9 @@ def lsmr(
     :return: (:class:`torch.`) :math:`x` of shape (B, ...), (:class:`torch.`) condition number of the system.
     """
 
+    if stagtol is None:
+        stagtol = 10.0 * torch.finfo(b.dtype).eps
+        
     xt = AT(b)
 
     if isinstance(parallel_dim, int):
