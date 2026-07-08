@@ -11,7 +11,7 @@ def minres(
     init: torch.Tensor | None = None,
     max_iter: int = 1e2,
     tol: float = 1e-6,
-    stagtol: float = 1e-6,
+    stagtol: float | None = None,
     eps: float = 1e-8,
     parallel_dim: int = 0,
     verbose: bool = False,
@@ -40,6 +40,9 @@ def minres(
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
     """
 
+    if stagtol is None:
+        stagtol = 10.0 * torch.finfo(b.dtype).eps
+        
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
     if parallel_dim is None:
