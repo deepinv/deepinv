@@ -167,7 +167,7 @@ def least_squares(
                 ATA = lambda x: AT(A(x))
 
             if gamma_provided:
-                b = AT(y) + 1 / gamma * z
+                b = Aty + 1 / gamma * z
                 H = lambda x: ATA(x) + 1 / gamma * x
                 overcomplete = False
             else:
