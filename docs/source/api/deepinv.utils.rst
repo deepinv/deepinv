@@ -91,6 +91,13 @@ Image Loading
     deepinv.utils.load_raster
     deepinv.utils.load_ismrmd
 
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.utils.DownloadError
+
 Demo Utils
 ----------
 
@@ -123,6 +130,7 @@ Phantoms
 
     deepinv.utils.phantoms.generate_shepp_logan
     deepinv.utils.phantoms.generate_random_phantom
+    deepinv.utils.phantoms.generate_pet_phantom
 
 
 .. autosummary::
@@ -142,8 +150,8 @@ Tiling / Untiling (Patching and Unpatching)
    :toctree: stubs
    :template: myfunc_template.rst
    :nosignatures:
-    
-    deepinv.utils.patch_extractor 
+
+    deepinv.utils.patch_extractor
     deepinv.utils.image_to_patches
     deepinv.utils.patches_to_image
     deepinv.utils.patchify

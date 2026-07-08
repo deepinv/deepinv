@@ -74,7 +74,10 @@ intersphinx_mapping = {
     "torch": ("https://pytorch.org/docs/stable/", None),
     "torchvision": ("https://pytorch.org/vision/stable/", None),
     "python": ("https://docs.python.org/3.9/", None),
+    "deepinv": ("https://deepinv.github.io/deepinv/", None),
+    "parallelproj": ("https://parallelproj.readthedocs.io/en/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
+    "requests": ("https://docs.python-requests.org/en/latest/", None),
 }
 
 # for python3 type hints
@@ -101,6 +104,8 @@ html_copy_source = True
 # For more details, see:
 # https://sphinx-sitemap.readthedocs.io/en/v2.5.0/advanced-configuration.html
 sitemap_url_scheme = "{link}"
+# Filter out irrelevant pages from the sitemap so they are not attempted to be crawled
+sitemap_excludes = ["_modules/*", "search.html", "genindex.html"]
 
 ####  userguide directive ###
 default_role = "code"  # default role for single backticks
@@ -416,9 +421,13 @@ html_theme_options = {
         ],
     },
     "announcement": (
-        "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates."
+        "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br>"
+        "<a href='https://docs.google.com/forms/d/e/1FAIpQLSeAp3sIhD_xDB4SmfPjtUzVM5TBNWlagSeUsG7UBRI5axaUsA/viewform' target='_blank'> Join us in the Sep 2026 hackathon</a>, applications are open!"
     ),
-    "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
+    "analytics": {
+        "plausible_analytics_domain": "deepinv.org",
+        "plausible_analytics_url": "https://plausible.io/js/script.js",
+    },
 }
 
 
