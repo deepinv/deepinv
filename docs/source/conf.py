@@ -410,16 +410,8 @@ numfig_secnum_depth = 3
 html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
-html_js_files = [
-    "https://code.jquery.com/jquery-3.7.1.min.js",
-    "https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js",
-    "main.js",
-]
-
-html_css_files = [
-    "custom.css",
-    "https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css",
-]
+html_css_files = ["custom.css"]
+html_js_files = ["main.js"]
 html_sidebars = {  # pages with no sidebar
     "changelog": [],
     "contributing": [],

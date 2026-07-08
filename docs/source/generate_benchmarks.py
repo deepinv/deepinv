@@ -1,7 +1,6 @@
 import os
 from sphinx.application import Sphinx
 from huggingface_hub import snapshot_download
-from pathlib import Path
 
 # global variable storing benchmark mappings to be used in class templates
 benchmark_mapping = {}
@@ -165,6 +164,11 @@ def process_csv_file(csv_path):
     std_cols = [col for col in metric_cols if col.endswith("_std")]
     mean_cols = [col for col in metric_cols if col not in std_cols]
 
+    # Pre-sort rows by PSNR (descending)
+    psnr_cols = [col for col in mean_cols if "psnr" in col.lower()]
+    if psnr_cols:
+        df = df.sort_values(by=psnr_cols[0], ascending=False, na_position="last")
+
     kept_cells = ["solver_name"] + mean_cols + std_cols
 
     # Filter the dataframe to keep only these columns
@@ -282,7 +286,7 @@ List of benchmarks
       - Physics
       - Noise Model
 """
-    for name, dataset, physics, noise in benchmark_info:
+    for name, dataset, physics, noise in sorted(benchmark_info):
         benchmarks_content += f"    * - :ref:`{name}`\n      - :sclass:`deepinv.datasets.{dataset}`\n      - :sclass:`deepinv.physics.{physics}`\n      - :sclass:`deepinv.physics.{noise}`\n"
 
     # Toctree: first level is physics group pages, each of which contains

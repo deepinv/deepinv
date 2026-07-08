@@ -81,23 +81,32 @@ img.sphx-glr-single-img {
     padding: 5px;
 }
 
+/* Clickable headers for the JS-enhanced sortable benchmark tables. */
 table.sortable-table thead th {
-    cursor: pointer !important;
-    position: relative;
-    padding-right: 26px !important; /* Make room for the arrows */
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
 }
 
-/* Style the sorting arrows so they appear in PyData's dark/light modes */
-table.dataTable thead .sorting:after,
-table.dataTable thead .sorting_asc:after,
-table.dataTable thead .sorting_desc:after {
-    position: absolute;
-    right: 8px;
-    display: block;
-    font-family: "Font Awesome 6 Free"; /* PyData already loads FontAwesome */
-    font-weight: 900;
+/* Sphinx wraps cell text in a block <p>; keep it inline so the sort arrow
+   stays on the same line rather than dropping below the title. */
+table.sortable-table thead th p {
+    display: inline;
 }
 
-table.dataTable thead .sorting:after { content: "\f0dc"; opacity: 0.3; }
-table.dataTable thead .sorting_asc:after { content: "\f0de"; }
-table.dataTable thead .sorting_desc:after { content: "\f0dd"; }
+/* Sort direction indicator sits inline, right after the column title. */
+table.sortable-table thead th::after {
+    content: "\2195"; /* up-down arrow, shown faint by default */
+    margin-left: 0.4em;
+    opacity: 0.3;
+}
+
+table.sortable-table thead th[data-sorted="asc"]::after {
+    content: "\2191";
+    opacity: 1;
+}
+
+table.sortable-table thead th[data-sorted="desc"]::after {
+    content: "\2193";
+    opacity: 1;
+}

@@ -1,59 +1,50 @@
-// Custom DataTables type for "mean ± std" formatted cells.
-// Detects strings like "26.68 ± 1.47" and sorts numerically by the mean value.
-
-// Sphinx wraps list-table cells in <p> tags, so DataTables receives HTML like
-// "<p>26.68 ± 1.47</p>". We strip tags and decode common HTML entities before
-// matching, so that the type detection and sort order work on the plain text.
-function _stripHtml(str) {
-    return str
-        .replace(/<[^>]+>/g, '')          // remove all HTML tags
-        .replace(/&plusmn;/gi, '\u00B1')  // &plusmn; -> ±
-        .replace(/&amp;/gi,   '&')
-        .replace(/&lt;/gi,    '<')
-        .replace(/&gt;/gi,    '>')
-        .replace(/&nbsp;/gi,  ' ')
-        .trim();
-}
-
-$.fn.dataTable.ext.type.detect.unshift(function (data) {
-    if (typeof data === 'string') {
-        var text = _stripHtml(data);
-        if (/^[-+]?\d+(\.\d+)?\s*\u00B1\s*\d+(\.\d+)?$/.test(text)) {
-            return 'mean-std';
-        }
+// Minimal dependency-free sortable tables for the benchmark pages.
+// Click a header cell to sort; toggling direction on repeated clicks.
+// Cells formatted like "26.68 ± 1.47" sort by their leading number, and
+// non-numeric cells (e.g. "nan ± nan") always sink to the bottom.
+document.addEventListener("DOMContentLoaded", function () {
+    function text(row, i) {
+        var cell = row.children[i];
+        return cell ? cell.textContent.trim() : "";
     }
-    return null;
-});
 
-$.fn.dataTable.ext.type.order['mean-std-pre'] = function (data) {
-    if (typeof data === 'string') {
-        var text = _stripHtml(data);
-        var match = text.match(/^([-+]?\d+(?:\.\d+)?)/);
-        if (match) {
-            return parseFloat(match[1]);
-        }
+    function number(value) {
+        var match = value.replace(/,/g, "").match(/-?\d+(\.\d+)?/);
+        return match ? parseFloat(match[0]) : NaN;
     }
-    return 0;
-};
 
-$(document).ready(function () {
-    if ($('.sortable-table').length > 0) {
-        $('.sortable-table').each(function () {
-            var psnrColIndex = -1;
-            $(this).find('thead th').each(function (i) {
-                if ($(this).text().trim().toUpperCase().indexOf('PSNR') !== -1) {
-                    psnrColIndex = i;
-                }
-            });
+    function comparer(i, asc) {
+        return function (a, b) {
+            var v1 = text(a, i),
+                v2 = text(b, i);
+            var n1 = number(v1),
+                n2 = number(v2);
+            // Keep NaN cells at the bottom regardless of sort direction.
+            if (isNaN(n1) !== isNaN(n2)) return isNaN(n1) ? 1 : -1;
+            var result =
+                !isNaN(n1) && !isNaN(n2) ? n1 - n2 : v1.localeCompare(v2);
+            return asc ? result : -result;
+        };
+    }
 
-            $(this).DataTable({
-                "paging": false,    // Often better for benchmark lists
-                "info": false,      // Hides the "Showing 1 of X entries"
-                "searching": true,  // Adds a search box
-                "ordering": true,   // Explicitly enable ordering
-                // Sort by PSNR descending if present, otherwise no default sort
-                "order": psnrColIndex >= 0 ? [[psnrColIndex, 'desc']] : [],
+    document.querySelectorAll("table.sortable-table").forEach(function (table) {
+        var headers = table.querySelectorAll("thead th");
+        var tbody = table.querySelector("tbody");
+        if (!tbody) return;
+
+        headers.forEach(function (th, i) {
+            th.addEventListener("click", function () {
+                var asc = th.dataset.sorted !== "asc";
+                var rows = Array.prototype.slice.call(tbody.rows);
+                rows.sort(comparer(i, asc));
+                rows.forEach(function (row) {
+                    tbody.appendChild(row);
+                });
+                headers.forEach(function (h) {
+                    delete h.dataset.sorted;
+                });
+                th.dataset.sorted = asc ? "asc" : "desc";
             });
         });
-    }
+    });
 });
