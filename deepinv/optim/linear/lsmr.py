@@ -99,14 +99,19 @@ def lsmr(
         else:
             return v * alpha.view(Atb_shape)
 
+    
+    bnorm = normf(b)
+
     def _reset_state(x):
         s = SimpleNamespace()
 
         if torch.all(x == 0):
             s.u = b.clone()
+            s.beta = bnorm
         else:
             s.u = b.clone() - A(x)
-        s.beta = normf(s.u)
+            s.beta = normf(s.u)
+        
 
         if torch.all(s.beta > 0):
             s.u = scalar(s.u, 1 / s.beta, b_domain=True)
@@ -170,8 +175,6 @@ def lsmr(
             x = x0.clone()
 
     init = _reset_state(x)
-
-    bnorm = normf(b)
 
     maxrbar = torch.zeros_like(init.beta, device=device)
     minrbar = torch.full_like(init.beta, torch.inf, device=device)
