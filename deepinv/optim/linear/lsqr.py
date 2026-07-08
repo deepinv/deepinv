@@ -151,10 +151,10 @@ def lsqr(
     bnorm = normf(b)
 
     if x_is_zero:
-        u = b.clone
+        u = b.clone()
         beta = bnorm
     else:
-        u = b.clone - A(x)
+        u = b.clone() - A(x)
         beta = normf(u)
 
     if torch.all(beta > 0):
