@@ -364,9 +364,9 @@ class LeastSquaresSolver(torch.autograd.Function):
                         # Avoid warning when reading .grad on non-leaf tensors.
                         p.retain_grad()
                     if p.grad is None:
-                        p.grad = g.det
+                        p.grad = g_det
                     else:
-                        p.grad = p.grad + g.det
+                        p.grad = p.grad + g_det
 
         return tuple(grads)
 
