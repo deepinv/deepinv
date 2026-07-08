@@ -30,7 +30,7 @@ def lsmr(
 
     :param Callable A: Linear operator as a callable function.
     :param Callable AT: Adjoint operator as a callable function.
-    :param torch. b: input  of shape (B, ...)
+    :param torch.Tensor b: input  of shape (B, ...)
     :param float, torch.Tensor eta: damping parameter :math:`eta \geq 0`. Can be batched (shape (B, ...)) or a scalar.
     :param None, torch.Tensor x0: Optional :math:`x_0`, which is also used as the initial guess.
     :param float tol: relative tolerance for stopping the LSMR algorithm.
@@ -40,7 +40,7 @@ def lsmr(
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param None, int restart: cycle of iterations to restart the algorithm to avoid loss of orthogonality.
     :param bool verbose: Output progress information in the console.
-    :return: (:class:`torch.`) :math:`x` of shape (B, ...), (:class:`torch.`) condition number of the system.
+    :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), (:class:`torch.Tensor`) condition number of the system.
     """
 
     if stagtol is None:
