@@ -161,7 +161,7 @@ def least_squares(
         complete = Aty.shape == y.shape
         overcomplete = Aty.numel() < y.numel()
 
-        if complete and solver in {"BiCGStab", "minres", "CG"}:
+        if complete and not gamma_provided and solver in {"BiCGStab", "minres", "CG"}:
             H = lambda x: A(x)
             b = y
         else:
