@@ -67,7 +67,7 @@ def bicgstab(
     stagtol = stagtol**2
     tol = b_norm_sq * (tol**2)
 
-    eps = torch.finfo(b.dtype).eps  # Breakdown tolerance, to avoid division by zero
+    eps = torch.finfo(b.dtype).tiny  # Breakdown tolerance, to avoid division by zero
     flag = False
     for i in range(max_iter):
         y = right_precon(left_precon(p))
