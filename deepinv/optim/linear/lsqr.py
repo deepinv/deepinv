@@ -43,8 +43,6 @@ def lsqr(
 
     if stagtol is None:
         stagtol = 10.0 * torch.finfo(b.dtype).eps
-            
-    xt = AT(b)
 
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
@@ -56,6 +54,26 @@ def lsqr(
     else:
         device = b.device
 
+    x_is_zero = False
+    if x0 is None:
+        xt = AT(b)
+        x = zeros_like(xt)
+        x_ref = xt
+        x_is_zero = True
+    elif isinstance(x0, float):
+        xt = AT(b)
+        x = x0 * ones_like(xt)
+        x_ref = xt
+        x_is_zero = (x0 == 0.0)
+    else:
+        x = x0.clone()
+        xt = None
+        x_ref = x
+        if isinstance(x, TensorList):
+            x_is_zero = all(torch.all(xi == 0) for xi in x)
+        else:
+            x_is_zero = torch.all(x == 0)
+
     def normf(u):
         if isinstance(u, TensorList):
             total = 0.0
@@ -65,7 +83,6 @@ def lsqr(
                     torch.linalg.vector_norm(u[k], dim=dims[k], keepdim=False) ** 2 
                 ) # don't keep dim as dims might be different
             return torch.sqrt(total)
-            return total
         else:
             dim = [i for i in range(u.ndim) if i not in parallel_dim]
             return torch.linalg.vector_norm(u, dim=dim, keepdim=False)
@@ -81,8 +98,8 @@ def lsqr(
             b_shape.append(b.shape[i] if i in parallel_dim else 1)
 
     Atb_shape = []
-    for i in range(len(xt.shape)):
-        Atb_shape.append(xt.shape[i] if i in parallel_dim else 1)
+    for i in range(len(x_ref.shape)):
+        Atb_shape.append(x_ref.shape[i] if i in parallel_dim else 1)
 
     def scalar(v, alpha, b_domain):
         if b_domain:
@@ -133,24 +150,22 @@ def lsqr(
     u = b.clone()
     bnorm = normf(b)
 
-    if x0 is None:
-        x = zeros_like(xt)
+    if x_is_zero:
+        u = b.clone
         beta = bnorm
     else:
-        if isinstance(x0, float):
-            x = x0 * ones_like(xt)
-        else:
-            x = x0.clone()
-
-        u = u - A(x)
+        u = b.clone - A(x)
         beta = normf(u)
 
     if torch.all(beta > 0):
         u = scalar(u, 1 / beta, b_domain=True)
-        v = AT(u)
+        if xt is not None and x_is_zero:
+            v = scalar(xt, 1 / beta, b_domain=False)
+        else:
+            v = AT(u)
         alpha = normf(v)
     else:
-        v = torch.zeros_like(x)
+        v = torch.zeros_like(x_ref, device=device)
         alpha = torch.zeros(1, device=device)
 
     if torch.all(alpha > 0):
