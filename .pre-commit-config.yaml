@@ -1,0 +1,31 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v3.2.0
+      hooks:
+          - id: check-yaml
+          - id: check-added-large-files
+            args:
+            - --maxkb=2048
+          - id: check-byte-order-marker
+          - id: check-case-conflict
+          - id: check-merge-conflict
+          - id: mixed-line-ending
+    - repo: https://github.com/psf/black
+      rev: 26.5.1
+      hooks:
+          - id: black
+          - id: black-jupyter
+    - repo: https://github.com/astral-sh/ruff-pre-commit
+      # Ruff version.
+      rev: v0.15.20
+      hooks:
+          - id: ruff-check
+          # - id: ruff-format  # 56 files reformatted
+    # - repo: https://github.com/adamchainz/blacken-docs
+    #   rev: "v1.12.1"
+    #   hooks:
+    #     - id: blacken-docs
+    #       additional_dependencies:
+    #       - black==26.3.1

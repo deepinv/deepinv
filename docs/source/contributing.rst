@@ -137,9 +137,8 @@ Writing good documentation is also crucial for helping other users use your code
 Code quality is important to us. We require that your code is compliant with PEP8, the `black <https://black.readthedocs.io>`_ style and `ruff <https://docs.astral.sh/ruff/>`_ checkers:
 
 1. Add `typing <https://fastapi.tiangolo.com/python-types/>`_ to your code and docstrings. Typing rules such as PEP585 are automatically checked using ruff.
-2. Run ``black .`` in the root directory of your repository. This will automatically fix all formatting issues.
-3. Run ``ruff check``, which will check all linting options we've enabled. If it fails, follow the suggestions to make a fix!
-4. Push your code. The automatic checkers will run in GitHub actions, along with other actions that we have in place.
+2. Run ``pre-commit install`` once to set up `pre-commit`. This will run `ruff check` and `black` on your changes when committing.
+3. Push your code. The automatic checkers will run in GitHub actions, along with other actions that we have in place.
 
 .. _log_changes:
 
