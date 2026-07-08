@@ -102,7 +102,10 @@ def lsmr(
     def _reset_state(x):
         s = SimpleNamespace()
 
-        s.u = b.clone() - A(x)
+        if torch.all(x == 0):
+            s.u = b.clone()
+        else:
+            s.u = b.clone() - A(x)
         s.beta = normf(s.u)
 
         if torch.all(s.beta > 0):
