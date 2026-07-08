@@ -36,7 +36,7 @@ def conjugate_gradient(
     """
 
     if stagtol is None:
-        stagtol = 10.0 * torch.finfo(b.dtype).eps
+        stagtol = 8.0 * torch.finfo(b.dtype).eps
 
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
