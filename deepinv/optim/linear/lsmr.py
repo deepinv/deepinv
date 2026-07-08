@@ -62,8 +62,8 @@ def lsmr(
             for k in range(len(u)):
                 total += torch.linalg.vector_norm(
                     u[k], dim=dims[k], keepdim=False
-                )  # don't keep dim as dims might be different
-            return total
+                ) ** 2 # don't keep dim as dims might be different
+            return torch.sqrt(total)
         else:
             dim = [i for i in range(u.ndim) if i not in parallel_dim]
             return torch.linalg.vector_norm(u, dim=dim, keepdim=False)
