@@ -58,9 +58,9 @@ def lsqr(
             total = 0.0
             dims = [[i for i in range(bi.ndim) if i not in parallel_dim] for bi in b]
             for k in range(len(u)):
-                total += torch.linalg.vector_norm(
-                    u[k], dim=dims[k], keepdim=False
-                ) ** 2 # don't keep dim as dims might be different
+                total += (
+                    torch.linalg.vector_norm(u[k], dim=dims[k], keepdim=False) ** 2 
+                ) # don't keep dim as dims might be different
             return torch.sqrt(total)
             return total
         else:
