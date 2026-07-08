@@ -197,12 +197,13 @@ def lsqr(
 
         t1 = phi / rho
         t2 = -theta / rho
-
+        dk = scalar(w, 1 / rho, b_domain=False)
+        
         search_update = scalar(w, t1, b_domain=False)
 
         x = x + search_update
         w = v + scalar(w, t2, b_domain=False)
-        ddnorm = ddnorm + normf(scalar(w, 1 / rho, b_domain=False)) ** 2
+        ddnorm = ddnorm + normf() ** 2
 
         # if calc_var:
         #    var = var + dk ** 2
