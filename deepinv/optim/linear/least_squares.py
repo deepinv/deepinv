@@ -174,7 +174,7 @@ def least_squares(
                 if solver == "CG":
                     warnings.warn(
                         "A is not regularized and solver is CG."
-                        "Beware of possible division by zero."
+                        "Division by zero may occur."
                         "Continuing anyway..."
                     )   
                 if not overcomplete:
