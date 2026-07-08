@@ -25,9 +25,11 @@ Fixed
 - Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
 - Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
 - Remove unconditional dtype conversion to `torch.cfloat` in :func:`deepinv.optim.phase_retrieval.spectral_methods` (:gh:`1216` by `Zhiyuan Hu`_)
-- Removed taking mean when estimating condition number in :func:`deepinv.optim.linear.lsqr` (:gh:`...` by `...`_)
-- Fixed zero-initialsation in :func:`deepinv.optim.linear.lsqr` if parameter given is scalar (:gh:`...` by `...`_)
-- Fixed least squares problem and minimum norm solution being switched in :func:`deepinv.optim.linear.least_squares` docstring (:gh:`...` by `...`_)
+- Remove taking mean when estimating condition number in :func:`deepinv.optim.linear.lsqr` (:gh:`...` by `...`_)
+- Fix :func:`deepinv.optim.linear.lsqr.lsqr.normf` taking the wrong norm over batched dimensions (:gh:`...` by `...`_)
+- Fix zero-initialsation in :func:`deepinv.optim.linear.lsqr` if parameter given is scalar (:gh:`...` by `...`_)
+- Fix least squares problem and minimum norm solution being switched in :func:`deepinv.optim.linear.least_squares` docstring (:gh:`...` by `...`_)
+
 
 v0.4.1
 ------
