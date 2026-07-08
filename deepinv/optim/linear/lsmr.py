@@ -45,8 +45,6 @@ def lsmr(
 
     if stagtol is None:
         stagtol = 10.0 * torch.finfo(b.dtype).eps
-        
-    xt = AT(b)
 
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
@@ -57,6 +55,19 @@ def lsmr(
         device = b[0].device
     else:
         device = b.device
+
+    if x0 is None:
+        xt = AT(b)
+        x = zeros_like(xt)
+        x_ref = xt
+    elif isinstance(x0, float):
+        xt = AT(b)
+        x = x0 * ones_like(xt)
+        x_ref = xt
+    else:
+        x = x0.clone()
+        xt = None
+        x_ref = x
 
     def normf(u):
         if isinstance(u, TensorList):
@@ -82,8 +93,8 @@ def lsmr(
             b_shape.append(b.shape[i] if i in parallel_dim else 1)
 
     Atb_shape = []
-    for i in range(len(xt.shape)):
-        Atb_shape.append(xt.shape[i] if i in parallel_dim else 1)
+    for i in range(len(x_ref.shape)):
+        Atb_shape.append(x_ref.shape[i] if i in parallel_dim else 1)
 
     def scalar(v, alpha, b_domain):
         if b_domain:
@@ -105,7 +116,9 @@ def lsmr(
     def _reset_state(x):
         s = SimpleNamespace()
 
-        if torch.all(x == 0):
+        x_is_zero = torch.all(x == 0)
+        
+        if x_is_zero:
             s.u = b.clone()
             s.beta = bnorm
         else:
@@ -115,7 +128,10 @@ def lsmr(
 
         if torch.all(s.beta > 0):
             s.u = scalar(s.u, 1 / s.beta, b_domain=True)
-            s.v = AT(s.u)
+            if xt is not None and x_is_zero:
+                s.v = scalar(xt, 1 / s.beta, b_domain=False)
+            else:
+                s.v = AT(s.u)
             s.alpha = normf(s.v)
         else:
             s.v = torch.zeros_like(x, device=device)
