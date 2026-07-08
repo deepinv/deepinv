@@ -59,7 +59,8 @@ def download_archive(
 
     :param str url: URL of archive.
     :param str, pathlib.Path save_path: path where file should be saved.
-    :param bool extract: if ``True``, attempt to extract zipfile or tarball into parent dir.
+    :param bool extract: if ``True``, attempt to extract zipfile, tarball or RAR archive into parent dir.
+        Extracting RAR archives requires `rarfile`, install it with ``pip install rarfile``.
     :param bool force_download: if ``True``, download the archive even if it already exists.
     :raises DownloadError: if the archive cannot be downloaded.
     """
