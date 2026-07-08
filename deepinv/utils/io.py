@@ -35,6 +35,50 @@ def load_np(
         return torch.from_numpy(np.load(fname, allow_pickle=False).astype(dtype))
 
 
+
+def load_tiff(fname: str | Path, dtype: torch.dtype | None = None) -> torch.Tensor:
+    """Load image or volume from a TIFF file as a torch tensor.
+    Integer images are normalized to the range ``[0, 1]`` by dividing by the
+    maximum value representable by their dtype; floating point images are
+    loaded as-is. 2D images of shape `(H, W)` are loaded with a single channel,
+    and 3D arrays of shape `(H, W, C)` are converted to channel-first `(C, H, W)`.
+    In both cases a leading batch dimension is added.
+    
+    .. warning::
+        Requires `tifffile` to be installed. Install it with `pip install tifffile`.
+        
+    :param str, pathlib.Path fname: path to TIFF file or buffer.
+    :param torch.dtype dtype: if not ``None``, cast the output tensor to this dtype.
+    :return: :class:`torch.Tensor` of shape `(1, C, H, W)`.
+    """
+    try:
+        import tifffile
+    except ImportError:  # pragma: no cover
+        raise ImportError(
+            "load_tiff requires tifffile, which is not installed. Please install it with `pip install tifffile`."
+        )
+
+    x = tifffile.imread(fname)
+    if x.dtype == np.uintc:
+        x = x.astype(np.uint32)
+
+    if np.issubdtype(x.dtype, np.integer):
+        x = x.astype(np.float64) / np.iinfo(x.dtype).max
+    else:
+        x = x.astype(np.float64)  # already float, just cast
+
+    x = torch.from_numpy(x)
+    if x.ndim == 2:
+        x = x.unsqueeze(0)  # (H, W) -> (1, H, W)
+    elif x.ndim == 3:
+        x = x.moveaxis(-1, 0)  # (H, W, C) -> (C, H, W)
+    else:
+        raise ValueError("Invalid tiff.")
+    x = x.unsqueeze(0)  # add batch dim -> (1, C, H, W)
+
+    return x if dtype is None else x.to(dtype)
+
+
 def load_torch(
     fname: str | Path, device: torch.device | str = None, **kwargs
 ) -> torch.Tensor:
