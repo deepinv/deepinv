@@ -116,6 +116,9 @@ dataset = [
     "nibabel",
     "rasterio",
     "blosc2",
+    "tifffile",
+    "rarfile",
+    "napari[all]",
 ]
 
 # optional dependencies for training
