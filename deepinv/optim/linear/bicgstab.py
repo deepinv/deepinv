@@ -11,7 +11,7 @@ def bicgstab(
     init: torch.Tensor | None = None,
     max_iter: int = 1e2,
     tol: float = 1e-6,
-    stagtol: float = 1e-6,
+    stagtol: float | None = None,
     parallel_dim: None | int | list[int] = 0,
     verbose: bool = False,
     left_precon=lambda x: x,
@@ -36,7 +36,10 @@ def bicgstab(
     :param Callable right_precon: right preconditioner as a callable function.
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
     """
-
+    
+    if stagtol is None:
+        stagtol = 10.0 * torch.finfo(b.dtype).eps
+        
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
     if parallel_dim is None:
