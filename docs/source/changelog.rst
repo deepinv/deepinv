@@ -8,7 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Add :class:`deepinv.loss.metric.RecoveryCoefficient` Recovery Coefficient (RC) metric to evaluate reconstructed activity relative to ground truth within a mask, with dtype-aware numerical stability and a dedicated loss transformation for training  (:gh:`1228` by 'Kushagra481'_)
+- Add :class:`deepinv.loss.metric.RecoveryCoefficient` Recovery Coefficient (RC) metric to evaluate reconstructed activity relative to ground truth within a mask, with dtype-aware numerical stability and a dedicated loss transformation for training (:gh:`1228` by `Kushagra Shukla`_)
 Changed
 ^^^^^^^
 
@@ -655,4 +655,4 @@ Changed
 .. _Baptiste Legouix: https://github.com/blegouix
 .. _Kaibo Tang: https://github.com/kvttt
 .. _Irène Waldspurger: https://github.com/IWalds
-.. _Kushagra481 : https://github.com/Kushagra481
+.. _Kushagra Shukla: https://github.com/Kushagra481
