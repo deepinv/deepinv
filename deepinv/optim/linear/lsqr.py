@@ -158,7 +158,7 @@ def lsqr(
     phibar = beta
     arnorm = alpha * beta
 
-    if torch.any(arnorm == 0):
+    if torch.all(arnorm == 0):
         return x, acond
 
     #    if torch.all(bnorm == 0):
