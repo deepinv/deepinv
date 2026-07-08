@@ -174,7 +174,7 @@ def lsmr(
     rnorm = init.beta
 
     arnorm = init.alpha * init.beta
-    if torch.any(arnorm == 0):
+    if torch.all(arnorm == 0):
         return x, acond
 
     #    if torch.all(bnorm == 0):
