@@ -171,6 +171,12 @@ def least_squares(
                 H = lambda x: ATA(x) + 1 / gamma * x
                 overcomplete = False
             else:
+                if solver == "CG":
+                    warnings.warn(
+                        "A is not regularized and solver is CG."
+                        "Beware of possible division by zero."
+                        "Continuing anyway..."
+                    )   
                 if not overcomplete:
                     warnings.warn(
                         "A is undercomplete."
