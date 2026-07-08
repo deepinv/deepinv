@@ -203,7 +203,7 @@ def lsqr(
 
         x = x + search_update
         w = v + scalar(w, t2, b_domain=False)
-        ddnorm = ddnorm + normf() ** 2
+        ddnorm = ddnorm + normf(dk) ** 2
 
         # if calc_var:
         #    var = var + dk ** 2
