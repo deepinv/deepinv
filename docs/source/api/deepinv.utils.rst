@@ -20,6 +20,7 @@ Plotting
         deepinv.utils.plot_videos
         deepinv.utils.save_videos
         deepinv.utils.plot_ortho3D
+        deepinv.utils.plot_napari
         deepinv.utils.disable_tex
         deepinv.utils.enable_tex
         deepinv.utils.normalize_signal
@@ -84,6 +85,7 @@ Image Loading
 
     deepinv.utils.load_dicom
     deepinv.utils.load_nifti
+    deepinv.utils.load_tiff
     deepinv.utils.load_url
     deepinv.utils.load_np
     deepinv.utils.load_torch
