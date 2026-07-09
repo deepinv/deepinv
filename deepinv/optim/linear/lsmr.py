@@ -2,8 +2,19 @@ from __future__ import annotations
 import torch
 from typing import Callable
 from types import SimpleNamespace
-from deepinv.utils.tensorlist import TensorList, zeros_like, ones_like
-from .utils import _sym_ortho
+from deepinv.utils.tensorlist import zeros_like
+from .utils import (
+    _sym_ortho,
+    _safe_denom,
+    _as_dim_list,
+    _batched_norm,
+    _sample_shape,
+    _make_scalar,
+    _validate_eta,
+    _init_lsq_solution,
+    _all_zero,
+    _resolve_stagtol,
+)
 
 
 def lsmr(
@@ -44,79 +55,26 @@ def lsmr(
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), (:class:`torch.Tensor`) condition number of the system.
     """
 
-    if stagtol is None:
-        stagtol = 8.0 * torch.finfo(b.dtype).eps
+    stagtol = _resolve_stagtol(stagtol, b)
 
-    if isinstance(parallel_dim, int):
-        parallel_dim = [parallel_dim]
-    if parallel_dim is None:
-        parallel_dim = []
+    parallel_dim = _as_dim_list(parallel_dim)
+    device = b.device
 
-    if isinstance(b, TensorList):
-        device = b[0].device
-    else:
-        device = b.device
-
-    if x0 is None:
-        xt = AT(b)
-        x = zeros_like(xt)
-        x_ref = xt
-    elif isinstance(x0, float):
-        xt = AT(b)
-        x = x0 * ones_like(xt)
-        x_ref = xt
-    else:
-        x = x0.clone()
-        xt = None
-        x_ref = x
+    x, xt, x_ref = _init_lsq_solution(x0, b, AT)
 
     def normf(u):
-        if isinstance(u, TensorList):
-            total = 0.0
-            dims = [[i for i in range(bi.ndim) if i not in parallel_dim] for bi in b]
-            for k in range(len(u)):
-                total += (
-                    torch.linalg.vector_norm(u[k], dim=dims[k], keepdim=False) ** 2
-                )  # don't keep dim as dims might be different
-            return torch.sqrt(total)
-        else:
-            dim = [i for i in range(u.ndim) if i not in parallel_dim]
-            return torch.linalg.vector_norm(u, dim=dim, keepdim=False)
+        return _batched_norm(u, parallel_dim)
 
-    b_shape = []
-    if isinstance(b, TensorList):
-        for j in range(len(b)):
-            b_shape.append([])
-            for i in range(len(b[j].shape)):
-                b_shape[j].append(b[j].shape[i] if i in parallel_dim else 1)
-    else:
-        for i in range(len(b.shape)):
-            b_shape.append(b.shape[i] if i in parallel_dim else 1)
-
-    Atb_shape = []
-    for i in range(len(x_ref.shape)):
-        Atb_shape.append(x_ref.shape[i] if i in parallel_dim else 1)
-
-    def scalar(v, alpha, b_domain):
-        if b_domain:
-            if isinstance(v, TensorList):
-                return TensorList(
-                    [
-                        vi * alpha.view(bi_shape)
-                        for vi, bi_shape in zip(v, b_shape, strict=True)
-                    ]
-                )
-            else:
-                return v * alpha.view(b_shape)
-        else:
-            return v * alpha.view(Atb_shape)
+    b_shape = _sample_shape(b, parallel_dim)
+    Atb_shape = _sample_shape(x_ref, parallel_dim)
+    scalar = _make_scalar(b_shape, Atb_shape)
 
     bnorm = normf(b)
 
     def _reset_state(x):
         s = SimpleNamespace()
 
-        x_is_zero = torch.all(x == 0)
+        x_is_zero = _all_zero(x)
 
         if x_is_zero:
             s.u = b.clone()
@@ -125,19 +83,19 @@ def lsmr(
             s.u = b.clone() - A(x)
             s.beta = normf(s.u)
 
-        if torch.all(s.beta > 0):
-            s.u = scalar(s.u, 1 / s.beta, b_domain=True)
-            if xt is not None and x_is_zero:
-                s.v = scalar(xt, 1 / s.beta, b_domain=False)
-            else:
-                s.v = AT(s.u)
-            s.alpha = normf(s.v)
+        # Safe per-element normalization: elements whose residual is already
+        # zero (beta == 0) keep a divisor of 1 so a single trivial system in a
+        # batch does not collapse the whole batch (they stay at 0).
+        safe_beta = _safe_denom(s.beta)
+        s.u = scalar(s.u, 1 / safe_beta, b_domain=True)
+        if xt is not None and x_is_zero:
+            s.v = scalar(xt, 1 / safe_beta, b_domain=False)
         else:
-            s.v = torch.zeros_like(x, device=device)
-            s.alpha = torch.zeros(1, device=device)
+            s.v = AT(s.u)
+        s.alpha = normf(s.v)
 
-        if torch.all(s.alpha > 0):
-            s.v = scalar(s.v, 1 / s.alpha, b_domain=False)
+        safe_alpha = _safe_denom(s.alpha)
+        s.v = scalar(s.v, 1 / safe_alpha, b_domain=False)
 
         s.zetabar = s.alpha * s.beta
         s.alphabar = s.alpha.clone()
@@ -146,7 +104,7 @@ def lsmr(
         s.cbar = 1.0
         s.sbar = 0.0
         s.h = s.v.clone()
-        s.hbar = torch.zeros_like(s.v, device=device)
+        s.hbar = zeros_like(s.v)
 
         s.betadd = s.beta.clone()
         s.betad = torch.zeros_like(s.beta, device=device)
@@ -162,32 +120,8 @@ def lsmr(
 
         return s
 
-    if eta is None:
-        eta = 0.0
-    if not isinstance(eta, torch.Tensor):
-        eta = torch.tensor(eta, device=device)
-    if eta.ndim > 0:  # if batched eta
-        if eta.size(0) != b.size(0):
-            raise ValueError(
-                "If eta is batched, its batch size must match the one of b."
-            )
-        else:  # ensure eta has ndim as b
-            eta = eta.squeeze()
-
-    if torch.any(eta < 0):
-        raise ValueError(
-            "Damping parameter eta must be non-negative. LSMR cannot be applied to problems with negative eta."
-        )
-
+    eta = _validate_eta(eta, b, device)
     damp = torch.sqrt(eta)
-
-    if x0 is None:
-        x = zeros_like(xt)
-    else:
-        if isinstance(x0, float):
-            x = x0 * ones_like(xt)
-        else:
-            x = x0.clone()
 
     init = _reset_state(x)
 
@@ -201,10 +135,6 @@ def lsmr(
     if torch.all(arnorm == 0):
         return x, acond
 
-    #    if torch.all(bnorm == 0):
-    #        x = zeros_like(xt)
-    #        return x, acond
-
     flag = False
     for itn in range(max_iter):
         if restart is not None and itn > 0:
@@ -214,12 +144,14 @@ def lsmr(
         init.u = A(init.v) - scalar(init.u, init.alpha, b_domain=True)
         init.beta = normf(init.u)
 
-        if torch.all(init.beta > 0):
-            init.u = scalar(init.u, 1 / init.beta, b_domain=True)
-            init.v = AT(init.u) - scalar(init.v, init.beta, b_domain=False)
-            init.alpha = normf(init.v)
-            if torch.all(init.alpha > 0):
-                init.v = scalar(init.v, 1 / init.alpha, b_domain=False)
+        # Safe per-element normalization (see _reset_state): a converged element
+        # (beta == 0) uses a divisor of 1 and stays put instead of stalling the batch.
+        safe_beta = _safe_denom(init.beta)
+        init.u = scalar(init.u, 1 / safe_beta, b_domain=True)
+        init.v = AT(init.u) - scalar(init.v, init.beta, b_domain=False)
+        init.alpha = normf(init.v)
+        safe_alpha = _safe_denom(init.alpha)
+        init.v = scalar(init.v, 1 / safe_alpha, b_domain=False)
 
         chat, shat, alphahat = _sym_ortho(init.alphabar, damp)
 
@@ -236,16 +168,19 @@ def lsmr(
         init.zeta = init.cbar * init.zetabar
         init.zetabar = -init.sbar * init.zetabar
 
-        if torch.any(init.rho == 0) or torch.any(init.rhobar == 0):
+        if torch.all(init.rho == 0) or torch.all(init.rhobar == 0):
             if verbose:
                 print(
                     "Error: poorly behaved rotation results in division by zero, try a non-zero eta."
                 )
             break
 
-        t1 = (init.rho * thetabar) / (rhobar0 * rho0)
-        t2 = init.zeta / (init.rhobar * init.rho)
-        t3 = theta / init.rho
+        # _safe_denom keeps a single converged/trivial batch entry (rho == 0)
+        # from turning these updates into 0 / 0 = NaN; its numerators are 0 too,
+        # so it contributes a 0 update and stays put.
+        t1 = (init.rho * thetabar) / _safe_denom(rhobar0 * rho0)
+        t2 = init.zeta / _safe_denom(init.rhobar * init.rho)
+        t3 = theta / _safe_denom(init.rho)
         init.hbar = init.h - scalar(init.hbar, t1, b_domain=False)
         search_update = scalar(init.hbar, t2, b_domain=False)
         x = x + search_update
@@ -262,9 +197,10 @@ def lsmr(
         init.rhod0 = ctilde0 * init.rhobar
         init.betad = -stilde0 * init.betad + ctilde0 * betahat
 
-        init.tautilde0 = (zeta0 - init.thetatilde0 * init.tautilde0) / init.rhotilde0
-        taud = (init.zeta - init.thetatilde * init.tautilde0) / init.rhod0
-        # we already checked for rhod to not be 0 so this should be safe without checks
+        init.tautilde0 = (
+            zeta0 - init.thetatilde0 * init.tautilde0
+        ) / _safe_denom(init.rhotilde0)
+        taud = (init.zeta - init.thetatilde * init.tautilde0) / _safe_denom(init.rhod0)
 
         init.d = init.d + betacheck * betacheck
         gamma = init.d + (init.betad - taud) ** 2 + init.betadd * init.betadd
@@ -281,8 +217,9 @@ def lsmr(
 
         xnorm = normf(x)
         search_update_norm = normf(search_update)
+        converged = rnorm <= tol * bnorm
 
-        if torch.all(rnorm <= tol * bnorm):
+        if torch.all(converged):
             flag = True
             if verbose:
                 print("LSMR converged at iteration", itn + 1)
@@ -292,7 +229,10 @@ def lsmr(
             if verbose:
                 print("LSMR stagnated at iteration", itn + 1)
             break
-        elif torch.any(acond > conlim):
+        elif torch.all(converged | (acond > conlim)):
+            # Stop once every sample is either converged or too ill-conditioned
+            # to progress: a single ill-conditioned sample is still detected here,
+            # while the converged samples keep their solution (no batch collapse).
             flag = True
             if verbose:
                 print(

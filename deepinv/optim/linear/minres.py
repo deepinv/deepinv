@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Callable
 import torch
 from deepinv.utils.tensorlist import TensorList
-from .utils import dot
+from .utils import dot, _as_dim_list, _resolve_stagtol
 
 
 def minres(
@@ -40,18 +40,17 @@ def minres(
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
     """
 
-    if stagtol is None:
-        stagtol = 8.0 * torch.finfo(b.dtype).eps
-
-    if isinstance(parallel_dim, int):
-        parallel_dim = [parallel_dim]
-    if parallel_dim is None:
-        parallel_dim = []
+    stagtol = _resolve_stagtol(stagtol, b)
 
     if isinstance(b, TensorList):
-        dim = [i for i in range(b[0].ndim) if i not in parallel_dim]
-    else:
-        dim = [i for i in range(b.ndim) if i not in parallel_dim]
+        raise TypeError(
+            "minres does not support TensorList inputs. "
+            "Use bicgstab for TensorList (block-structured) square systems."
+        )
+
+    parallel_dim = _as_dim_list(parallel_dim)
+
+    dim = [i for i in range(b.ndim) if i not in parallel_dim]
 
     # Rescale b
     b_norm = torch.linalg.vector_norm(b, dim=dim, keepdim=True, ord=2)

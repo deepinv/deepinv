@@ -1,8 +1,18 @@
 from __future__ import annotations
 import torch
 from typing import Callable
-from deepinv.utils.tensorlist import TensorList, zeros_like, ones_like
-from .utils import _sym_ortho
+from .utils import (
+    _sym_ortho,
+    _safe_denom,
+    _as_dim_list,
+    _batched_norm,
+    _sample_shape,
+    _make_scalar,
+    _validate_eta,
+    _init_lsq_solution,
+    _all_zero,
+    _resolve_stagtol,
+)
 
 
 def lsqr(
@@ -41,97 +51,22 @@ def lsqr(
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), (:class:`torch.Tensor`) condition number of the system.
     """
 
-    if stagtol is None:
-        stagtol = 8.0 * torch.finfo(b.dtype).eps
+    stagtol = _resolve_stagtol(stagtol, b)
 
-    if isinstance(parallel_dim, int):
-        parallel_dim = [parallel_dim]
-    if parallel_dim is None:
-        parallel_dim = []
+    parallel_dim = _as_dim_list(parallel_dim)
+    device = b.device
 
-    if isinstance(b, TensorList):
-        device = b[0].device
-    else:
-        device = b.device
-
-    x_is_zero = False
-    if x0 is None:
-        xt = AT(b)
-        x = zeros_like(xt)
-        x_ref = xt
-        x_is_zero = True
-    elif isinstance(x0, float):
-        xt = AT(b)
-        x = x0 * ones_like(xt)
-        x_ref = xt
-        x_is_zero = x0 == 0.0
-    else:
-        x = x0.clone()
-        xt = None
-        x_ref = x
-        if isinstance(x, TensorList):
-            x_is_zero = all(torch.all(xi == 0) for xi in x)
-        else:
-            x_is_zero = torch.all(x == 0)
+    x, xt, x_ref = _init_lsq_solution(x0, b, AT)
+    x_is_zero = _all_zero(x)
 
     def normf(u):
-        if isinstance(u, TensorList):
-            total = 0.0
-            dims = [[i for i in range(bi.ndim) if i not in parallel_dim] for bi in b]
-            for k in range(len(u)):
-                total += (
-                    torch.linalg.vector_norm(u[k], dim=dims[k], keepdim=False) ** 2
-                )  # don't keep dim as dims might be different
-            return torch.sqrt(total)
-        else:
-            dim = [i for i in range(u.ndim) if i not in parallel_dim]
-            return torch.linalg.vector_norm(u, dim=dim, keepdim=False)
+        return _batched_norm(u, parallel_dim)
 
-    b_shape = []
-    if isinstance(b, TensorList):
-        for j in range(len(b)):
-            b_shape.append([])
-            for i in range(len(b[j].shape)):
-                b_shape[j].append(b[j].shape[i] if i in parallel_dim else 1)
-    else:
-        for i in range(len(b.shape)):
-            b_shape.append(b.shape[i] if i in parallel_dim else 1)
+    b_shape = _sample_shape(b, parallel_dim)
+    Atb_shape = _sample_shape(x_ref, parallel_dim)
+    scalar = _make_scalar(b_shape, Atb_shape)
 
-    Atb_shape = []
-    for i in range(len(x_ref.shape)):
-        Atb_shape.append(x_ref.shape[i] if i in parallel_dim else 1)
-
-    def scalar(v, alpha, b_domain):
-        if b_domain:
-            if isinstance(v, TensorList):
-                return TensorList(
-                    [
-                        vi * alpha.view(bi_shape)
-                        for vi, bi_shape in zip(v, b_shape, strict=True)
-                    ]
-                )
-            else:
-                return v * alpha.view(b_shape)
-        else:
-            return v * alpha.view(Atb_shape)
-
-    if eta is None:
-        eta = 0.0
-    if not isinstance(eta, torch.Tensor):
-        eta = torch.tensor(eta, device=device)
-    if eta.ndim > 0:  # if batched eta
-        if eta.size(0) != b.size(0):
-            raise ValueError(
-                "If eta is batched, its batch size must match the one of b."
-            )
-        else:  # ensure eta has ndim as b
-            eta = eta.squeeze()
-
-    if torch.any(eta < 0):
-        raise ValueError(
-            "Damping parameter eta must be non-negative. LSQR cannot be applied to problems with negative eta."
-        )
-
+    eta = _validate_eta(eta, b, device)
     # this should be safe as eta should be non-negative
     eta_sqrt = torch.sqrt(eta)
 
@@ -157,19 +92,19 @@ def lsqr(
         u = b.clone() - A(x)
         beta = normf(u)
 
-    if torch.all(beta > 0):
-        u = scalar(u, 1 / beta, b_domain=True)
-        if xt is not None and x_is_zero:
-            v = scalar(xt, 1 / beta, b_domain=False)
-        else:
-            v = AT(u)
-        alpha = normf(v)
+    # Safe per-element normalization: elements whose residual is already zero
+    # (beta == 0) keep a divisor of 1 so a single trivial system in a batch does
+    # not collapse the whole batch (they stay at 0).
+    safe_beta = _safe_denom(beta)
+    u = scalar(u, 1 / safe_beta, b_domain=True)
+    if xt is not None and x_is_zero:
+        v = scalar(xt, 1 / safe_beta, b_domain=False)
     else:
-        v = torch.zeros_like(x_ref, device=device)
-        alpha = torch.zeros(1, device=device)
+        v = AT(u)
+    alpha = normf(v)
 
-    if torch.all(alpha > 0):
-        v = scalar(v, 1 / alpha, b_domain=False)  # v / view(alpha, Atb_shape)
+    safe_alpha = _safe_denom(alpha)
+    v = scalar(v, 1 / safe_alpha, b_domain=False)  # v / view(alpha, Atb_shape)
 
     w = v.clone()
     rhobar = alpha
@@ -179,22 +114,20 @@ def lsqr(
     if torch.all(arnorm == 0):
         return x, acond
 
-    #    if torch.all(bnorm == 0):
-    #        x = zeros_like(xt)
-    #        return x, acond
-
     flag = False
     for itn in range(max_iter):
         u = A(v) - scalar(u, alpha, b_domain=True)
         beta = normf(u)
 
-        if torch.all(beta > 0):
-            u = scalar(u, 1 / beta, b_domain=True)
-            anorm = torch.sqrt(anorm**2 + alpha**2 + beta**2 + dampsq)
-            v = AT(u) - scalar(v, beta, b_domain=False)
-            alpha = normf(v)
-            if torch.all(alpha > 0):
-                v = scalar(v, 1 / alpha, b_domain=False)
+        # Safe per-element normalization (see init): a converged element
+        # (beta == 0) uses a divisor of 1 and stays put instead of stalling the batch.
+        safe_beta = _safe_denom(beta)
+        u = scalar(u, 1 / safe_beta, b_domain=True)
+        anorm = torch.sqrt(anorm**2 + alpha**2 + beta**2 + dampsq)
+        v = AT(u) - scalar(v, beta, b_domain=False)
+        alpha = normf(v)
+        safe_alpha = _safe_denom(alpha)
+        v = scalar(v, 1 / safe_alpha, b_domain=False)
 
         if torch.any(eta > 0):
             rhobar1 = torch.sqrt(rhobar**2 + dampsq)
@@ -213,9 +146,13 @@ def lsqr(
         phibar = sn * phibar
         # tau = sn * phi
 
-        t1 = phi / rho
-        t2 = -theta / rho
-        dk = scalar(w, 1 / rho, b_domain=False)
+        # _safe_denom keeps a converged/trivial batch entry (rho == 0) from
+        # turning these updates into 0 / 0 = NaN; its numerators are 0 too, so
+        # it contributes a 0 update and stays put.
+        safe_rho = _safe_denom(rho)
+        t1 = phi / safe_rho
+        t2 = -theta / safe_rho
+        dk = scalar(w, 1 / safe_rho, b_domain=False)
 
         search_update = scalar(w, t1, b_domain=False)
 
@@ -242,8 +179,9 @@ def lsqr(
         # arnorm = alpha * abs(tau)
 
         search_update_norm = normf(search_update)
+        converged = rnorm <= tol * bnorm
 
-        if torch.all(rnorm <= tol * bnorm):
+        if torch.all(converged):
             flag = True
             if verbose:
                 print("LSQR converged at iteration", itn + 1)
@@ -253,7 +191,10 @@ def lsqr(
             if verbose:
                 print("LSQR stagnated at iteration", itn + 1)
             break
-        elif torch.any(acond > conlim):
+        elif torch.all(converged | (acond > conlim)):
+            # Stop once every sample is either converged or too ill-conditioned
+            # to progress: a single ill-conditioned sample is still detected here,
+            # while the converged samples keep their solution (no batch collapse).
             flag = True
             if verbose:
                 print(

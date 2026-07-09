@@ -993,10 +993,14 @@ def test_datafid_stacking(imsize, device):
 
 
 solvers = ["CG", "BiCGStab", "lsqr", "minres", "lsmr"]
+# Physics that actually route A_dagger / prox_l2 through an iterative least-squares
+# solver (decomposable / closed-form physics such as inpainting are excluded here as
+# the solver argument is a no-op for them). deblur_circular is a *square*,
+# non-decomposable operator, exercising the regularized square-operator dispatch.
 least_squares_physics = [
-    "inpainting",
     "super_resolution_circular",
     "deblur_valid",
+    "deblur_circular",
     "MultiCoilMRI",
 ]
 
@@ -1024,7 +1028,10 @@ def test_least_square_solvers(
         < tol
     ).all()
 
-    z = x.clone()
+    # Use z != x so the solver is not seeded at the exact solution (prox_l2 inits at z).
+    # This is what actually exercises convergence and the regularized dispatch: with
+    # z = x the buggy path that drops gamma would still return x and pass.
+    z = torch.randn((batch_size, *img_size), device=device)
     if gamma_scalar:
         gamma = 1.0
     else:
@@ -1032,9 +1039,14 @@ def test_least_square_solvers(
 
     x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=1e-6, max_iter=100)
 
+    # x_hat minimizes ||A x - y||^2 + (1/gamma) ||x - z||^2, so check its (reference-free)
+    # optimality condition A^T(A x_hat - y) + (1/gamma)(x_hat - z) = 0. This directly
+    # fails if gamma is not honored (i.e. if the solver instead solves A x = y).
+    optimality = physics.A_adjoint(physics.A(x_hat) - y) + (1 / gamma) * (x_hat - z)
+    scale = physics.A_adjoint(y) + (1 / gamma) * z
     assert (
-        (x_hat - x).abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
-        / x.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        optimality.abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        / scale.abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
         < tol
     ).all()
 
@@ -1049,7 +1061,7 @@ def test_least_square_solvers(
         assert torch.all(~torch.isnan(y.grad))
 
 
-DTYPES = [torch.float32, torch.complex64]
+DTYPES = [torch.float32, torch.float64, torch.complex64]
 
 
 @pytest.mark.parametrize("solver", solvers)
@@ -1078,7 +1090,7 @@ def test_linear_system(device, solver, dtype, rng, zero_input):
     A = lambda x: (mat @ x.T).T
     AT = lambda x: (mat.adjoint() @ x.T).T
 
-    tol = 1e-4
+    tol = 1e-8 if dtype == torch.float64 else 1e-4
     if solver == "CG":
         x = dinv.optim.linear.conjugate_gradient(
             A, b, tol=tol, max_iter=1000, verbose=True

@@ -291,6 +291,14 @@ class TensorList:
             )
         return self.x[0].device
 
+    @property
+    def dtype(self):
+        if len(set([_x.dtype for _x in self.x])) > 1:
+            warnings.warn(
+                "The tensors in the TensorList do not have the same dtype! Returning the dtype of the first tensor."
+            )
+        return self.x[0].dtype
+
     def isnan(self):
         """
         Returns a TensorList of booleans where each tensor indicates the NaN positions.

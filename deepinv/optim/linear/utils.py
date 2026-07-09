@@ -1,6 +1,7 @@
 from __future__ import annotations
+from typing import Callable
 import torch
-from deepinv.utils.tensorlist import TensorList
+from deepinv.utils.tensorlist import TensorList, zeros_like, ones_like
 
 
 def dot(
@@ -24,6 +25,195 @@ def dot(
     else:
         dot = (a.conj() * b).sum(dim=dim, keepdim=True)  # performs batched dot product
     return dot
+
+
+def _resolve_stagtol(
+    stagtol: float | None, b: torch.Tensor | TensorList
+) -> float:
+    """
+    Default the stagnation tolerance to ``8 * eps`` of ``b``'s floating-point
+    precision when the caller passes ``None``. Shared by every solver so this
+    heuristic constant is defined in a single place.
+    """
+    if stagtol is None:
+        return 8.0 * torch.finfo(b.dtype).eps
+    return stagtol
+
+
+def _safe_denom(d: torch.Tensor) -> torch.Tensor:
+    """
+    Replace exact zeros in a denominator by ones, element-wise.
+
+    Used by the batched LSQR/LSMR recurrences so that an already-converged or
+    trivial batch entry (whose numerators are also zero) yields a ``0 / 1 = 0``
+    update instead of ``0 / 0 = NaN``, without collapsing the rest of the batch.
+    """
+    return torch.where(d != 0, d, torch.ones_like(d))
+
+
+def _safe_b_norm_sq(
+    b: torch.Tensor | TensorList, dim: list[int]
+) -> torch.Tensor:
+    """
+    Squared batched norm ``||b||^2`` with zero entries replaced by one, so the
+    relative stopping tolerance ``tol * ||b||^2`` used by CG/BiCGStab stays
+    well-defined when a right-hand side ``b == 0`` (the solution is then 0).
+    """
+    b_norm_sq = dot(b, b, dim=dim).real
+    return torch.where(b_norm_sq > 0, b_norm_sq, torch.ones_like(b_norm_sq))
+
+
+def _as_dim_list(parallel_dim: None | int | list[int]) -> list[int]:
+    """Normalize the ``parallel_dim`` argument to a list of batch dimensions."""
+    if isinstance(parallel_dim, int):
+        return [parallel_dim]
+    if parallel_dim is None:
+        return []
+    return list(parallel_dim)
+
+
+def _reduce_dims(
+    t: torch.Tensor | TensorList, parallel_dim: list[int]
+) -> list[int]:
+    """
+    List of dimensions to reduce over: every dimension of ``t`` that is not a
+    batch (``parallel_dim``) dimension. For a :class:`TensorList` the first
+    component determines the number of dimensions.
+    """
+    ref = t[0] if isinstance(t, TensorList) else t
+    return [i for i in range(ref.ndim) if i not in parallel_dim]
+
+
+def _all_zero(x: torch.Tensor | TensorList) -> torch.Tensor | bool:
+    """Whether every entry of ``x`` (tensor or :class:`TensorList`) is zero."""
+    if isinstance(x, TensorList):
+        return all(torch.all(xi == 0) for xi in x)
+    return torch.all(x == 0)
+
+
+def _batched_norm(
+    u: torch.Tensor | TensorList, parallel_dim: list[int]
+) -> torch.Tensor:
+    """
+    Euclidean norm reduced over every non-batch dimension (batch dims kept).
+
+    For a :class:`TensorList` it returns the norm of the stacked vector,
+    ``sqrt(sum_k ||u_k||^2)``.
+    """
+    if isinstance(u, TensorList):
+        total = 0.0
+        for uk in u:
+            total += (
+                torch.linalg.vector_norm(
+                    uk, dim=_reduce_dims(uk, parallel_dim), keepdim=False
+                )
+                ** 2
+            )
+        return torch.sqrt(total)
+    return torch.linalg.vector_norm(
+        u, dim=_reduce_dims(u, parallel_dim), keepdim=False
+    )
+
+
+def _sample_shape(
+    t: torch.Tensor | TensorList, parallel_dim: list[int]
+) -> list:
+    """
+    Shape of ``t`` with every non-batch dimension collapsed to 1, so a per-sample
+    scalar can be broadcast back onto ``t`` via ``.view(...)``. Returns a nested
+    list (one shape per component) for a :class:`TensorList`.
+    """
+    if isinstance(t, TensorList):
+        return [
+            [s if i in parallel_dim else 1 for i, s in enumerate(tk.shape)] for tk in t
+        ]
+    return [s if i in parallel_dim else 1 for i, s in enumerate(t.shape)]
+
+
+def _broadcast_batch_to(
+    param: torch.Tensor, ref: torch.Tensor | TensorList
+) -> torch.Tensor:
+    """
+    Reshape a 1-D per-sample ``param`` (shape ``(B,)``) to ``(B, 1, 1, ...)`` so
+    it broadcasts against ``ref``, whose number of dimensions is taken from its
+    first component when ``ref`` is a :class:`TensorList`.
+    """
+    ndim = ref[0].ndim if isinstance(ref, TensorList) else ref.ndim
+    return param.view([param.size(0)] + [1] * (ndim - 1))
+
+
+def _make_scalar(b_shape: list, Atb_shape: list):
+    """
+    Build the ``scalar(v, alpha, b_domain)`` helper used by LSQR/LSMR to multiply
+    a vector ``v`` by a per-sample scalar ``alpha``, broadcasting ``alpha`` onto
+    the measurement-domain (``b_domain=True``) or signal-domain shape.
+    """
+
+    def scalar(v, alpha, b_domain):
+        if b_domain:
+            if isinstance(v, TensorList):
+                return TensorList(
+                    [
+                        vi * alpha.view(bi_shape)
+                        for vi, bi_shape in zip(v, b_shape, strict=True)
+                    ]
+                )
+            return v * alpha.view(b_shape)
+        return v * alpha.view(Atb_shape)
+
+    return scalar
+
+
+def _init_lsq_solution(
+    x0: None | float | torch.Tensor | TensorList,
+    b: torch.Tensor | TensorList,
+    AT: Callable,
+) -> tuple:
+    """
+    Set up the initial iterate shared by LSQR and LSMR from the ``x0`` argument.
+
+    :return: ``(x, xt, x_ref)`` where ``x`` is the initial solution, ``xt`` is
+        the pre-computed ``A^T b`` (``None`` when ``x0`` is an explicit tensor,
+        as it is then not needed), and ``x_ref`` is a signal-domain tensor whose
+        shape is used to broadcast per-sample scalars.
+    """
+    if x0 is None:
+        xt = AT(b)
+        return zeros_like(xt), xt, xt
+    if isinstance(x0, float):
+        xt = AT(b)
+        return x0 * ones_like(xt), xt, xt
+    x = x0.clone()
+    return x, None, x
+
+
+def _validate_eta(
+    eta: None | float | torch.Tensor,
+    b: torch.Tensor | TensorList,
+    device: torch.device,
+) -> torch.Tensor:
+    """
+    Validate and normalize the damping parameter ``eta`` for LSQR/LSMR: default
+    ``None`` to 0, promote to a tensor, check a batched ``eta`` matches ``b``'s
+    batch size, and require ``eta >= 0``.
+    """
+    if eta is None:
+        eta = 0.0
+    if not isinstance(eta, torch.Tensor):
+        eta = torch.tensor(eta, device=device)
+    if eta.ndim > 0:  # if batched eta
+        batch_size = b[0].size(0) if isinstance(b, TensorList) else b.size(0)
+        if eta.size(0) != batch_size:
+            raise ValueError(
+                "If eta is batched, its batch size must match the one of b."
+            )
+        eta = eta.squeeze()  # ensure eta has ndim as b
+    if torch.any(eta < 0):
+        raise ValueError(
+            "Damping parameter eta must be non-negative. The least squares solver "
+            "cannot be applied to problems with negative eta."
+        )
+    return eta
 
 
 def _sym_ortho(

@@ -1,6 +1,6 @@
 from __future__ import annotations
-from .utils import dot
-from deepinv.utils.tensorlist import TensorList, zeros_like
+from .utils import dot, _as_dim_list, _resolve_stagtol, _reduce_dims, _safe_b_norm_sq
+from deepinv.utils.tensorlist import zeros_like
 import torch
 from typing import Callable
 
@@ -37,18 +37,11 @@ def bicgstab(
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
     """
 
-    if stagtol is None:
-        stagtol = 8.0 * torch.finfo(b.dtype).eps
+    stagtol = _resolve_stagtol(stagtol, b)
 
-    if isinstance(parallel_dim, int):
-        parallel_dim = [parallel_dim]
-    if parallel_dim is None:
-        parallel_dim = []
+    parallel_dim = _as_dim_list(parallel_dim)
 
-    if isinstance(b, TensorList):
-        dim = [i for i in range(b[0].ndim) if i not in parallel_dim]
-    else:
-        dim = [i for i in range(b.ndim) if i not in parallel_dim]
+    dim = _reduce_dims(b, parallel_dim)
 
     if init is not None:
         x = init.clone()
@@ -61,9 +54,7 @@ def bicgstab(
     p = r
     max_iter = int(max_iter)
 
-    b_norm_sq = dot(b, b, dim=dim).real
-    # handles case b=0
-    b_norm_sq = torch.where(b_norm_sq > 0, b_norm_sq, torch.ones_like(b_norm_sq))
+    b_norm_sq = _safe_b_norm_sq(b, dim)
     stagtol = stagtol**2
     tol = b_norm_sq * (tol**2)
 
