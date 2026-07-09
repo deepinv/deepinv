@@ -18,7 +18,7 @@ class Learning2RecorruptLoss(Loss):
         y_1 = y + \alpha h(\omega, y),
 
     where :math:`h` is a trainable recorruption network, :math:`\omega` is an i.i.d. Gaussian
-    random tensor, and :math:`\alpha` is a scaling factor.
+    random tensor, and :math:`\alpha>0` is a scaling factor.
 
     Let :math:`R` be the trainable reconstruction network and :math:`A` the
     forward operator. The L2R objective is:
