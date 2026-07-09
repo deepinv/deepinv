@@ -26,7 +26,7 @@ def conjugate_gradient(
     :param torch.Tensor b: input tensor of shape (B, ...)
     :param int max_iter: maximum number of CG iterations
     :param float tol: relative tolerance for stopping the CG algorithm.
-    :param float stagtol: absolute tolerance for stopping the CG algorithm if iterates stagnate.
+    :param float stagtol: absolute tolerance for stopping the CG algorithm if iterates stagnate, default via dtype precision.
     :param float eps: a small value for numerical stability
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param torch.Tensor init: Optional initial guess.
