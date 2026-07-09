@@ -217,7 +217,7 @@ model = trainer.train()
 # We now assume that we have access to a small test set of clean images to evaluate the performance of the trained network,
 # and we compute the PSNR between denoised images and clean ground truth images.
 #
-trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR(), plot_images=True)
 
 # %%
 # :References:
