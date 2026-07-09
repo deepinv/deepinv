@@ -20,7 +20,7 @@ then, the L2R loss is defined as
 .. math::
 
     \mathcal{L}_{\mathrm{L2R}}(f,h)
-    = \mathbb{E}_{y\sim p(y)}\left[  \|AR(y_1) - y\|_2^2 + \frac{2}{\alpha} h(\omega, y)^{\top} (A R(y_1) )  \right],
+    = \mathbb{E}_{y\sim p(y)}\left[  \|AR(y_1) - y\|^2 + \frac{2}{\alpha} h(\omega, y)^{\top} (A R(y_1) )  \right],
 
 and optimize it through the adversarial objective
 
