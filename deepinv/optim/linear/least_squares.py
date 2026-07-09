@@ -11,7 +11,7 @@ from .conjugate_gradient import conjugate_gradient
 from .lsqr import lsqr
 from .minres import minres
 from .lsmr import lsmr
-from .utils import _as_dim_list, _resolve_stagtol, _broadcast_batch_to
+from .utils import _as_dim_list, _resolve_stagtol
 
 # Solver registries: rectangular solvers take (A, AT, ...) and return (x, cond);
 # square solvers take (A=H, b, ...) and return x. See least_squares for dispatch.
@@ -144,7 +144,7 @@ def least_squares(
                     "If gamma is batched, its batch size must match the one of y."
                 )
             elif gamma.ndim == 1:  # expand gamma to ATy
-                gamma = _broadcast_batch_to(gamma, Aty)
+                gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
             elif gamma.ndim != ndim:
                 raise ValueError(
                     f"gamma should either be 0D, 1D, or match same number of dimensions as ATy, but got ndims {gamma.ndim} and {ndim}"
@@ -259,7 +259,11 @@ class LeastSquaresSolver(torch.autograd.Function):
         # For broadcasting with other tensors. Note we already have checked gamma shapes
         # in forward, so the following is just for gamma batched but not shaped.
         if gamma.ndim == 1:
-            gamma = _broadcast_batch_to(gamma, solution)
+            if isinstance(solution, TensorList):
+                ndim = solution[0].ndim
+            else:
+                ndim = solution.ndim
+            gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
 
         ctx.save_for_backward(solution, y, z, gamma)
         # Save other non-tensor contexts

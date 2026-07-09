@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Callable
 import torch
-from .utils import dot, _as_dim_list, _resolve_stagtol, _reduce_dims, _safe_b_norm_sq
+from .utils import dot, _as_dim_list, _resolve_stagtol, _reduce_dims
 from deepinv.utils.tensorlist import zeros_like
 
 
@@ -59,7 +59,9 @@ def conjugate_gradient(
     r = b - A(x)
     p = r
     res_old = dot(r, r, dim=dim).real
-    b_norm_sq = _safe_b_norm_sq(b, dim)
+    b_norm_sq = dot(b, b, dim=dim).real
+    # handles case b=0
+    b_norm_sq = torch.where(b_norm_sq > 0, b_norm_sq, torch.ones_like(b_norm_sq))
     stagtol = stagtol**2
     tol = b_norm_sq * (tol**2)
 

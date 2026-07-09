@@ -51,18 +51,6 @@ def _safe_denom(d: torch.Tensor) -> torch.Tensor:
     return torch.where(d != 0, d, torch.ones_like(d))
 
 
-def _safe_b_norm_sq(
-    b: torch.Tensor | TensorList, dim: list[int]
-) -> torch.Tensor:
-    """
-    Squared batched norm ``||b||^2`` with zero entries replaced by one, so the
-    relative stopping tolerance ``tol * ||b||^2`` used by CG/BiCGStab stays
-    well-defined when a right-hand side ``b == 0`` (the solution is then 0).
-    """
-    b_norm_sq = dot(b, b, dim=dim).real
-    return torch.where(b_norm_sq > 0, b_norm_sq, torch.ones_like(b_norm_sq))
-
-
 def _as_dim_list(parallel_dim: None | int | list[int]) -> list[int]:
     """Normalize the ``parallel_dim`` argument to a list of batch dimensions."""
     if isinstance(parallel_dim, int):
@@ -128,18 +116,6 @@ def _sample_shape(
             [s if i in parallel_dim else 1 for i, s in enumerate(tk.shape)] for tk in t
         ]
     return [s if i in parallel_dim else 1 for i, s in enumerate(t.shape)]
-
-
-def _broadcast_batch_to(
-    param: torch.Tensor, ref: torch.Tensor | TensorList
-) -> torch.Tensor:
-    """
-    Reshape a 1-D per-sample ``param`` (shape ``(B,)``) to ``(B, 1, 1, ...)`` so
-    it broadcasts against ``ref``, whose number of dimensions is taken from its
-    first component when ``ref`` is a :class:`TensorList`.
-    """
-    ndim = ref[0].ndim if isinstance(ref, TensorList) else ref.ndim
-    return param.view([param.size(0)] + [1] * (ndim - 1))
 
 
 def _make_scalar(b_shape: list, Atb_shape: list):
