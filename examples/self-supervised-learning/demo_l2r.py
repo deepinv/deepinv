@@ -28,7 +28,7 @@ and optimize it through the adversarial objective
 
     \min_{f}\;\max_{h}\;\mathcal{L}_{\mathrm{L2R}}(f,h),
 
-where :math:`f` is the denoiser, :math:`h` is the learned re-corruption model,
+where :math:`f` is the denoiser
 :math:`y` is the noisy measurement. Here, the denoiser is encouraged to align predictions with
 noisy obervations and reduce noise correlation with the input noisy image, while the re-corruption model is trained
 to maximize this noise correlation. The central idea is that, given the constraint family indexed by :math:`h \in \mathcal{H},`
