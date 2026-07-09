@@ -22,6 +22,7 @@ Changed
 - Unified convergence criteria in :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.bicgstab`, :func:`deepinv.optim.linear.lsqr`, :func:`deepinv.optim.linear.minres` (:gh:`...` by `...`_)
 - Rewrite ``deepinv.optim.linear.utils._sym_ortho`` to have more logic when dealing with vectors with null-components, especially in batched scenarios (:gh:`...` by `...`_)
 - Added logic to avoid unecessary matmuls in :func:`deepinv.optim.linear.least_squares` and :func:`deepinv.optim.linear.lsqr` (:gh:`...` by `...`_)
+- Add :class:`deepinv.utils.TensorList` support (and a :attr:`deepinv.utils.TensorList.dtype` property) to :func:`deepinv.optim.linear.conjugate_gradient` and :func:`deepinv.optim.linear.lsmr`; :func:`deepinv.optim.linear.minres` now raises an explicit error for :class:`deepinv.utils.TensorList` inputs (:gh:`...` by `...`_)
 
 Fixed
 ^^^^^
@@ -32,6 +33,7 @@ Fixed
 - Fix ``deepinv.optim.linear.lsqr.lsqr.normf`` taking the wrong norm over batched dimensions (:gh:`...` by `...`_)
 - Fix zero-initialsation in :func:`deepinv.optim.linear.lsqr` if parameter given is scalar (:gh:`...` by `...`_)
 - Fix least squares problem and minimum norm solution being switched in :func:`deepinv.optim.linear.least_squares` docstring (:gh:`...` by `...`_)
+- Fix batched :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` where a single already-converged or ill-conditioned sample could corrupt or prematurely halt the whole batch (:gh:`...` by `...`_)
 
 v0.4.1
 ------

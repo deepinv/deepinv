@@ -11,7 +11,7 @@ def conjugate_gradient(
     max_iter: int = 1e2,
     tol: float = 1e-6,
     stagtol: float | None = None,
-    eps: float = 1e-8,
+    eps: float | None = None,
     parallel_dim: None | int | list[int] = 0,
     init: torch.Tensor | None = None,
     verbose: bool = False,
@@ -28,7 +28,10 @@ def conjugate_gradient(
     :param int max_iter: maximum number of CG iterations
     :param float tol: relative tolerance for stopping the CG algorithm.
     :param float stagtol: absolute tolerance for stopping the CG algorithm if iterates stagnate.
-    :param float eps: a small value for numerical stability
+    :param float eps: a small value added to the (squared) denominators for numerical stability.
+        If ``None`` (default), it is set precision-dependently to ``finfo(b.dtype).eps ** 2``,
+        which guards against division by zero at convergence/breakdown without capping the
+        attainable accuracy (a fixed constant here would floor the residual at ``~sqrt(eps)``).
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param torch.Tensor init: Optional initial guess.
     :param bool verbose: Output progress information in the console.
@@ -37,6 +40,12 @@ def conjugate_gradient(
     """
 
     stagtol = _resolve_stagtol(stagtol, b)
+
+    # Precision-dependent stabilization constant. It is added to squared denominators
+    # (curvature ``<p, Ap>`` and ``||r||^2``), so using ``eps**2`` keeps the residual
+    # floor at machine precision instead of a dtype-blind ``~sqrt(eps)``.
+    if eps is None:
+        eps = torch.finfo(b.dtype).eps ** 2
 
     parallel_dim = _as_dim_list(parallel_dim)
 
