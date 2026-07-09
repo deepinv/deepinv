@@ -99,7 +99,9 @@ def get_device(verbose=True, use_torch_api=True):
 
     if torch.backends.mps.is_available():
         if verbose:
-            print("Selected MPS device (Apple Silicon)")
+            print(
+                "Selected MPS device (Apple Silicon). Note that some PyTorch functions are not yet implemented for MPS. Please see https://github.com/deepinv/deepinv/issues/1177 and https://github.com/pytorch/pytorch/issues/141287 for details, and report an issue if you encounter problems. Otherwise, set the environment variable to fallback to CPU: import os; os.environ['PYTORCH_ENABLE_MPS_FALLBACK']='1'"
+            )
         return torch.device("mps")
 
     if verbose:
