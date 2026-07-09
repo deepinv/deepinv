@@ -1,6 +1,6 @@
 from __future__ import annotations
-from .utils import dot
-from deepinv.utils.tensorlist import TensorList, zeros_like
+from .utils import dot, _as_dim_list, _resolve_stagtol, _reduce_dims, _safe_b_norm_sq
+from deepinv.utils.tensorlist import zeros_like
 import torch
 from typing import Callable
 
@@ -9,7 +9,7 @@ def bicgstab(
     A: Callable,
     b: torch.Tensor,
     init: torch.Tensor | None = None,
-    max_iter: int = 1e2,
+    max_iter: int = 100,
     tol: float = 1e-6,
     stagtol: float | None = None,
     parallel_dim: None | int | list[int] = 0,
@@ -32,23 +32,16 @@ def bicgstab(
     :param float stagtol: absolute tolerance for stopping the BiCGSTAB algorithm if iterates stagnate, default via dtype precision.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
-    :param Callable left_precon: left preconditioner as a callable function.
-    :param Callable right_precon: right preconditioner as a callable function.
+    :param Callable left_precon: left preconditioner as a callable function. **Experimental / currently untested.**
+    :param Callable right_precon: right preconditioner as a callable function. **Experimental / currently untested.**
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
     """
 
-    if stagtol is None:
-        stagtol = 8.0 * torch.finfo(b.dtype).eps
+    stagtol = _resolve_stagtol(stagtol, b)
 
-    if isinstance(parallel_dim, int):
-        parallel_dim = [parallel_dim]
-    if parallel_dim is None:
-        parallel_dim = []
+    parallel_dim = _as_dim_list(parallel_dim)
 
-    if isinstance(b, TensorList):
-        dim = [i for i in range(b[0].ndim) if i not in parallel_dim]
-    else:
-        dim = [i for i in range(b.ndim) if i not in parallel_dim]
+    dim = _reduce_dims(b, parallel_dim)
 
     if init is not None:
         x = init.clone()
@@ -61,9 +54,7 @@ def bicgstab(
     p = r
     max_iter = int(max_iter)
 
-    b_norm_sq = dot(b, b, dim=dim).real
-    # handles case b=0
-    b_norm_sq = torch.where(b_norm_sq > 0, b_norm_sq, torch.ones_like(b_norm_sq))
+    b_norm_sq = _safe_b_norm_sq(b, dim)
     stagtol = stagtol**2
     tol = b_norm_sq * (tol**2)
 
@@ -80,11 +71,11 @@ def bicgstab(
 
         h = x + alpha * y
         s = r - alpha * v
-        z = right_precon(left_precon(s))
+        left_s = left_precon(s)
+        z = right_precon(left_s)
         t = A(z)
 
         # Safeguard: avoid division by small/zero
-        left_s = left_precon(s)
         left_t = left_precon(t)
         omega_num = dot(left_t, left_s, dim=dim)
         omega_denom = dot(left_t, left_t, dim=dim)

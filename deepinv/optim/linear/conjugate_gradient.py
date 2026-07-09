@@ -1,16 +1,17 @@
 from __future__ import annotations
 from typing import Callable
 import torch
-from .utils import dot
+from .utils import dot, _as_dim_list, _resolve_stagtol, _reduce_dims, _safe_b_norm_sq
+from deepinv.utils.tensorlist import zeros_like
 
 
 def conjugate_gradient(
     A: Callable,
     b: torch.Tensor,
-    max_iter: int = 1e2,
+    max_iter: int = 100,
     tol: float = 1e-6,
     stagtol: float | None = None,
-    eps: float = 1e-8,
+    eps: float | None = None,
     parallel_dim: None | int | list[int] = 0,
     init: torch.Tensor | None = None,
     verbose: bool = False,
@@ -27,7 +28,10 @@ def conjugate_gradient(
     :param int max_iter: maximum number of CG iterations
     :param float tol: relative tolerance for stopping the CG algorithm.
     :param float stagtol: absolute tolerance for stopping the CG algorithm if iterates stagnate, default via dtype precision.
-    :param float eps: a small value for numerical stability
+    :param float eps: a small value added to the (squared) denominators for numerical stability.
+        If ``None`` (default), it is set precision-dependently to ``finfo(b.dtype).eps ** 2``,
+        which guards against division by zero at convergence/breakdown without capping the
+        attainable accuracy (a fixed constant here would floor the residual at ``~sqrt(eps)``).
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param torch.Tensor init: Optional initial guess.
     :param bool verbose: Output progress information in the console.
@@ -35,27 +39,27 @@ def conjugate_gradient(
 
     """
 
-    if stagtol is None:
-        stagtol = 8.0 * torch.finfo(b.dtype).eps
+    stagtol = _resolve_stagtol(stagtol, b)
 
-    if isinstance(parallel_dim, int):
-        parallel_dim = [parallel_dim]
-    if parallel_dim is None:
-        parallel_dim = []
+    # Precision-dependent stabilization constant. It is added to squared denominators
+    # (curvature ``<p, Ap>`` and ``||r||^2``), so using ``eps**2`` keeps the residual
+    # floor at machine precision instead of a dtype-blind ``~sqrt(eps)``.
+    if eps is None:
+        eps = torch.finfo(b.dtype).eps ** 2
 
-    dim = [i for i in range(b.ndim) if i not in parallel_dim]
+    parallel_dim = _as_dim_list(parallel_dim)
+
+    dim = _reduce_dims(b, parallel_dim)
 
     if init is None:
-        x = torch.zeros_like(b)
+        x = zeros_like(b)
     else:
         x = init.clone()
 
     r = b - A(x)
     p = r
     res_old = dot(r, r, dim=dim).real
-    b_norm_sq = dot(b, b, dim=dim).real
-    # handles case b=0
-    b_norm_sq = torch.where(b_norm_sq > 0, b_norm_sq, torch.ones_like(b_norm_sq))
+    b_norm_sq = _safe_b_norm_sq(b, dim)
     stagtol = stagtol**2
     tol = b_norm_sq * (tol**2)
 

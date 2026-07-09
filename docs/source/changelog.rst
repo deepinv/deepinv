@@ -14,24 +14,28 @@ New Features
 - Add caching to demo/archive downloads (:gh:`1234` by `Julian Tachella`_)
 - Add :func:`deepinv.utils.load_tiff` to load images/ volumes from TIFF files (:gh:`1249` by `Andrew Wang`_)
 - Add :func:`deepinv.utils.plot_napari` to interactively view 2D images/3D vols with napari (:gh:`1249` by `Andrew Wang`_)
-- Add :func:`deepinv.optim.linear.lsmr` (:gh:`...` by `...`_)
+- Add :func:`deepinv.optim.linear.lsmr`, the LSMR (Least Squares Minimal Residual) iterative solver for least-squares problems (:gh:`...` by `msteinberg02`_ and `Sebastian Neumayer`_)
 
 Changed
 ^^^^^^^
 - (Breaking) Drop support for deprecated parameters `num_channels` in :class:`deepinv.physics.generator.PSFGenerator`, :class:`deepinv.physics.generator.GaussianBlurGenerator`, :class:`deepinv.physics.generator.MotionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
-- Unified convergence criteria in :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.bicgstab`, :func:`deepinv.optim.linear.lsqr`, :func:`deepinv.optim.linear.minres` (:gh:`...` by `...`_)
-- Rewrite ``deepinv.optim.linear.utils._sym_ortho`` to have more logic when dealing with vectors with null-components, especially in batched scenarios (:gh:`...` by `...`_)
-- Added logic to avoid unecessary matmuls in :func:`deepinv.optim.linear.least_squares` and :func:`deepinv.optim.linear.lsqr` (:gh:`...` by `...`_)
+- Unified the residual-based convergence criterion across :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.bicgstab`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.minres` (:gh:`...` by `msteinberg02`_ and `Sebastian Neumayer`_)
+- Made the default stagnation tolerance (all solvers) and the :func:`deepinv.optim.linear.conjugate_gradient` numerical-stability constant ``eps`` precision-dependent (scaled by the input dtype's machine epsilon) rather than fixed, so float64 accuracy is no longer capped below the requested tolerance (:gh:`...` by `msteinberg02`_ and `Sebastian Neumayer`_)
+- Added :class:`deepinv.utils.TensorList` support to :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` (both measurement- and signal-domain), together with a :attr:`deepinv.utils.TensorList.dtype` property; :func:`deepinv.optim.linear.minres` now raises an explicit error on :class:`deepinv.utils.TensorList` inputs (:gh:`...` by `msteinberg02`_ and `Sebastian Neumayer`_)
+- Reduced redundant operator applications and temporary allocations in :func:`deepinv.optim.linear.least_squares`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.bicgstab` (:gh:`...` by `msteinberg02`_ and `Sebastian Neumayer`_)
+- Reworked the internal batched Givens-rotation helper (``_sym_ortho``) to correctly handle null-component vectors (:gh:`...` by `msteinberg02`_ and `Sebastian Neumayer`_)
 
 Fixed
 ^^^^^
 - Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
 - Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
 - Remove unconditional dtype conversion to `torch.cfloat` in :func:`deepinv.optim.phase_retrieval.spectral_methods` (:gh:`1216` by `Zhiyuan Hu`_)
-- Remove taking mean when estimating condition number in :func:`deepinv.optim.linear.lsqr` (:gh:`...` by `...`_)
-- Fix ``deepinv.optim.linear.lsqr.lsqr.normf`` taking the wrong norm over batched dimensions (:gh:`...` by `...`_)
-- Fix zero-initialsation in :func:`deepinv.optim.linear.lsqr` if parameter given is scalar (:gh:`...` by `...`_)
-- Fix least squares problem and minimum norm solution being switched in :func:`deepinv.optim.linear.least_squares` docstring (:gh:`...` by `...`_)
+- Fix :func:`deepinv.optim.linear.least_squares` silently ignoring the regularization ``gamma`` and prior ``z`` for square operators solved with CG/minres/BiCGStab; the regularized normal equations are now formed whenever ``gamma`` is given (:gh:`...` by `msteinberg02`_ and `Sebastian Neumayer`_)
+- Fix batched :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` where a single already-converged or ill-conditioned sample could zero out or prematurely halt the whole batch (:gh:`...` by `msteinberg02`_ and `Sebastian Neumayer`_)
+- Fix the batched norm (``normf``) in :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` to use the true L2 norm, correcting multi-block :class:`deepinv.utils.TensorList` inputs (:gh:`...` by `msteinberg02`_ and `Sebastian Neumayer`_)
+- Fix :func:`deepinv.optim.linear.lsqr` taking a spurious mean when estimating the condition number (:gh:`...` by `msteinberg02`_ and `Sebastian Neumayer`_)
+- Fix zero-initialisation in :func:`deepinv.optim.linear.lsqr` when the initial guess is a scalar (:gh:`...` by `msteinberg02`_ and `Sebastian Neumayer`_)
+- Fix the swapped least-squares / minimum-norm description in the :func:`deepinv.optim.linear.least_squares` docstring (:gh:`...` by `msteinberg02`_ and `Sebastian Neumayer`_)
 
 v0.4.1
 ------
@@ -654,6 +658,7 @@ Changed
 .. _Victor Sechaud: https://github.com/vsechaud
 .. _Keying Guo: https://github.com/g-keying
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
+.. _msteinberg02: https://github.com/msteinberg02
 .. _Romain Vo: https://github.com/romainvo
 .. _Quentin Barthélemy: https://github.com/qbarthelemy
 .. _Louise Friot Giroux: https://github.com/Louisefg

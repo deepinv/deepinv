@@ -11,6 +11,16 @@ from .conjugate_gradient import conjugate_gradient
 from .lsqr import lsqr
 from .minres import minres
 from .lsmr import lsmr
+from .utils import _as_dim_list, _resolve_stagtol, _broadcast_batch_to
+
+# Solver registries: rectangular solvers take (A, AT, ...) and return (x, cond);
+# square solvers take (A=H, b, ...) and return x. See least_squares for dispatch.
+_RECTANGULAR_SOLVERS = {"lsqr": lsqr, "lsmr": lsmr}
+_SQUARE_SOLVERS = {
+    "CG": conjugate_gradient,
+    "BiCGStab": bicgstab,
+    "minres": minres,
+}
 
 
 def least_squares(
@@ -73,7 +83,7 @@ def least_squares(
     :param None, float, torch.Tensor gamma: (Optional) inverse regularization parameter. Can be batched (shape (B, ...)) or a scalar.
         If multi-dimensional tensor, then its shape must match that of :math:`A^{\top} y`.
         If None, it is set to :math:`\infty` (no regularization).
-    :param str solver: solver to be used, options are `'CG'`, `'BiCGStab'`, `'lsqr'` and `'minres'`.
+    :param str solver: solver to be used, options are `'CG'`, `'BiCGStab'`, `'lsqr'`, `'lsmr'` and `'minres'`.
     :param Callable AAT: (Optional) Efficient implementation of :math:`A(A^{\top}(x))`. If not provided, it is computed as :math:`A(A^{\top}(x))`.
     :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
     :param int max_iter: maximum number of iterations.
@@ -84,11 +94,9 @@ def least_squares(
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...).
     """
 
-    if stagtol is None:
-        stagtol = 8.0 * torch.finfo(y.dtype).eps
+    stagtol = _resolve_stagtol(stagtol, y)
 
-    if isinstance(parallel_dim, int):
-        parallel_dim = [parallel_dim]
+    parallel_dim = _as_dim_list(parallel_dim)
 
     if gamma is None:
         gamma = torch.tensor(0.0, device=y.device)
@@ -106,23 +114,9 @@ def least_squares(
                 "Continuing anyway..."
             )
 
-    if solver == "lsqr":  # rectangular solver
+    if solver in _RECTANGULAR_SOLVERS:  # rectangular solvers (lsqr, lsmr)
         eta = 1 / gamma if gamma_provided else None
-        x, _ = lsqr(
-            A,
-            AT,
-            y,
-            x0=z,
-            eta=eta,
-            max_iter=max_iter,
-            tol=tol,
-            stagtol=stagtol,
-            parallel_dim=parallel_dim,
-            **kwargs,
-        )
-    elif solver == "lsmr":  # rectangular solver
-        eta = 1 / gamma if gamma_provided else None
-        x, _ = lsmr(
+        x, _ = _RECTANGULAR_SOLVERS[solver](
             A,
             AT,
             y,
@@ -135,24 +129,22 @@ def least_squares(
             **kwargs,
         )
 
-    else:
+    elif solver in _SQUARE_SOLVERS:  # square solvers (CG, BiCGStab, minres)
 
         Aty = AT(y)
 
         if gamma.ndim > 0:  # if batched gamma
             if isinstance(Aty, TensorList):
-                batch_size = Aty[0].size(0)
-                ndim = Aty[0].ndim
+                batch_size, ndim = Aty[0].size(0), Aty[0].ndim
             else:
-                batch_size = Aty.size(0)
-                ndim = Aty.ndim
+                batch_size, ndim = Aty.size(0), Aty.ndim
 
             if gamma.size(0) != batch_size:
                 raise ValueError(
                     "If gamma is batched, its batch size must match the one of y."
                 )
             elif gamma.ndim == 1:  # expand gamma to ATy
-                gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
+                gamma = _broadcast_batch_to(gamma, Aty)
             elif gamma.ndim != ndim:
                 raise ValueError(
                     f"gamma should either be 0D, 1D, or match same number of dimensions as ATy, but got ndims {gamma.ndim} and {ndim}"
@@ -161,7 +153,7 @@ def least_squares(
         complete = Aty.shape == y.shape
         overcomplete = Aty.numel() < y.numel()
 
-        if complete and not gamma_provided and solver in {"BiCGStab", "minres", "CG"}:
+        if complete and not gamma_provided:
             H = lambda x: A(x)
             b = y
         else:
@@ -193,46 +185,24 @@ def least_squares(
                     H = lambda x: ATA(x)
                     b = Aty
 
-        if solver == "CG":
-            x = conjugate_gradient(
-                A=H,
-                b=b,
-                init=init,
-                max_iter=max_iter,
-                tol=tol,
-                stagtol=stagtol,
-                parallel_dim=parallel_dim,
-                **kwargs,
-            )
-        elif solver == "BiCGStab":
-            x = bicgstab(
-                A=H,
-                b=b,
-                init=init,
-                max_iter=max_iter,
-                tol=tol,
-                stagtol=stagtol,
-                parallel_dim=parallel_dim,
-                **kwargs,
-            )
-        elif solver == "minres":
-            x = minres(
-                A=H,
-                b=b,
-                init=init,
-                max_iter=max_iter,
-                tol=tol,
-                stagtol=stagtol,
-                parallel_dim=parallel_dim,
-                **kwargs,
-            )
-        else:
-            raise ValueError(
-                f"Solver {solver} not recognized. Choose between 'CG', 'minres', 'lsqr', 'lsmr', and 'BiCGStab'."
-            )
+        x = _SQUARE_SOLVERS[solver](
+            A=H,
+            b=b,
+            init=init,
+            max_iter=max_iter,
+            tol=tol,
+            stagtol=stagtol,
+            parallel_dim=parallel_dim,
+            **kwargs,
+        )
 
         if not gamma_provided and not overcomplete and not complete:
             x = AT(x)
+
+    else:
+        raise ValueError(
+            f"Solver {solver} not recognized. Choose between 'CG', 'minres', 'lsqr', 'lsmr', and 'BiCGStab'."
+        )
     return x
 
 
@@ -289,12 +259,7 @@ class LeastSquaresSolver(torch.autograd.Function):
         # For broadcasting with other tensors. Note we already have checked gamma shapes
         # in forward, so the following is just for gamma batched but not shaped.
         if gamma.ndim == 1:
-            if isinstance(solution, TensorList):
-                ndim = solution[0].ndim
-            else:
-                ndim = solution.ndim
-
-            gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
+            gamma = _broadcast_batch_to(gamma, solution)
 
         ctx.save_for_backward(solution, y, z, gamma)
         # Save other non-tensor contexts
