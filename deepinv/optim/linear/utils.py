@@ -159,6 +159,13 @@ def _make_scalar(b_shape: list, Atb_shape: list):
                     ]
                 )
             return v * alpha.view(b_shape)
+        if isinstance(v, TensorList):
+            return TensorList(
+                [
+                    vi * alpha.view(ai_shape)
+                    for vi, ai_shape in zip(v, Atb_shape, strict=True)
+                ]
+            )
         return v * alpha.view(Atb_shape)
 
     return scalar

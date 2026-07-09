@@ -8,7 +8,7 @@ from deepinv.utils.tensorlist import zeros_like
 def conjugate_gradient(
     A: Callable,
     b: torch.Tensor,
-    max_iter: int = 1e2,
+    max_iter: int = 100,
     tol: float = 1e-6,
     stagtol: float | None = None,
     eps: float | None = None,
@@ -27,7 +27,7 @@ def conjugate_gradient(
     :param torch.Tensor b: input tensor of shape (B, ...)
     :param int max_iter: maximum number of CG iterations
     :param float tol: relative tolerance for stopping the CG algorithm.
-    :param float stagtol: absolute tolerance for stopping the CG algorithm if iterates stagnate.
+    :param float stagtol: absolute tolerance for stopping the CG algorithm if iterates stagnate, default via dtype precision.
     :param float eps: a small value added to the (squared) denominators for numerical stability.
         If ``None`` (default), it is set precision-dependently to ``finfo(b.dtype).eps ** 2``,
         which guards against division by zero at convergence/breakdown without capping the

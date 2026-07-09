@@ -46,7 +46,7 @@ def lsmr(
     :param float, torch.Tensor eta: damping parameter :math:`eta \geq 0`. Can be batched (shape (B, ...)) or a scalar.
     :param None, torch.Tensor x0: Optional :math:`x_0`, which is also used as the initial guess.
     :param float tol: relative tolerance for stopping the LSMR algorithm.
-    :param float stagtol: absolute tolerance for stopping the LSMR algorithm if iterates stagnate.
+    :param float stagtol: absolute tolerance for stopping the LSMR algorithm if iterates stagnate, default via dtype precision.
     :param float conlim: maximum value of the condition number of the system.
     :param int max_iter: maximum number of LSMR iterations.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.

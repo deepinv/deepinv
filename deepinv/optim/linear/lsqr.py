@@ -43,7 +43,7 @@ def lsqr(
     :param float, torch.Tensor eta: damping parameter :math:`eta \geq 0`. Can be batched (shape (B, ...)) or a scalar.
     :param None, torch.Tensor x0: Optional :math:`x_0`, which is also used as the initial guess.
     :param float tol: relative tolerance for stopping the LSQR algorithm.
-    :param float stagtol: absolute tolerance for stopping the LSQR algorithm if iterates stagnate.
+    :param float stagtol: absolute tolerance for stopping the LSQR algorithm if iterates stagnate, default via dtype precision.
     :param float conlim: maximum value of the condition number of the system.
     :param int max_iter: maximum number of LSQR iterations.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
@@ -152,13 +152,15 @@ def lsqr(
         safe_rho = _safe_denom(rho)
         t1 = phi / safe_rho
         t2 = -theta / safe_rho
-        dk = scalar(w, 1 / safe_rho, b_domain=False)
 
         search_update = scalar(w, t1, b_domain=False)
 
         x = x + search_update
+        # ``dk = w / rho`` is only needed for the condition-number estimate; since
+        # ``rho`` is per-sample, ``||dk|| = ||w|| / |rho|``, so accumulate ``ddnorm``
+        # without allocating the full-vector ``dk`` (uses ``w`` before its update).
+        ddnorm = ddnorm + normf(w) ** 2 / safe_rho**2
         w = v + scalar(w, t2, b_domain=False)
-        ddnorm = ddnorm + normf(dk) ** 2
 
         # if calc_var:
         #    var = var + dk ** 2

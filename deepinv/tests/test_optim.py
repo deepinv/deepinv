@@ -1114,6 +1114,21 @@ def test_linear_system(device, solver, dtype, rng, zero_input):
         assert error < tol * b.abs().pow(2).sum()
 
 
+def test_least_squares_min_norm(device, rng):
+    # Undercomplete A (rows < cols): least_squares with gamma=None returns the
+    # minimum-norm solution x = A^T (A A^T)^{-1} y, not an arbitrary least-squares one.
+    m, n = 4, 8
+    G = torch.randn((m, n), dtype=torch.float64, device=device, generator=rng)
+    A = lambda x: (G @ x.T).T
+    AT = lambda u: (G.T @ u.T).T
+    y = torch.randn((2, m), dtype=torch.float64, device=device, generator=rng)
+    x = dinv.optim.linear.least_squares(
+        A, AT, y, gamma=None, solver="minres", tol=1e-10, max_iter=1000
+    )
+    x_ref = (G.T @ torch.linalg.solve(G @ G.T, y.T)).T  # dense min-norm reference
+    assert (x - x_ref).norm() < 1e-6 * x_ref.norm()
+
+
 def test_condition_number(device):
     imsize = (2, 1, 32, 32)
 

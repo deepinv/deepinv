@@ -9,11 +9,11 @@ def minres(
     A: Callable,
     b: torch.Tensor,
     init: torch.Tensor | None = None,
-    max_iter: int = 1e2,
+    max_iter: int = 100,
     tol: float = 1e-6,
     stagtol: float | None = None,
     eps: float = 1e-8,
-    parallel_dim: int = 0,
+    parallel_dim: None | int | list[int] = 0,
     verbose: bool = False,
     precon=lambda x: x.clone(),
 ) -> torch.Tensor:
@@ -33,10 +33,10 @@ def minres(
     :param torch.Tensor init: Optional initial guess.
     :param int max_iter: maximum number of MINRES iterations.
     :param float tol: relative tolerance for stopping the MINRES algorithm.
-    :param float stagtol: absolute tolerance for stopping the MINRES algorithm if iterates stagnate.
+    :param float stagtol: absolute tolerance for stopping the MINRES algorithm if iterates stagnate, default via dtype precision.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
-    :param Callable precon: preconditioner is a callable function (not tested). Must be positive definite
+    :param Callable precon: preconditioner as a callable function. **Experimental / currently untested.** Must be positive definite.
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
     """
 

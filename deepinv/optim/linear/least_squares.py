@@ -88,7 +88,7 @@ def least_squares(
     :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
     :param int max_iter: maximum number of iterations.
     :param float tol: relative tolerance for stopping the algorithm.
-    :param float stagtol: absolute tolerance for stopping the algorithm if iterates stagnate.
+    :param float stagtol: absolute tolerance for stopping the algorithm if iterates stagnate, default via dtype precision.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param kwargs: Keyword arguments to be passed to the solver.
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...).

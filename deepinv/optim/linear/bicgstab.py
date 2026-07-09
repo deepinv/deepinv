@@ -9,7 +9,7 @@ def bicgstab(
     A: Callable,
     b: torch.Tensor,
     init: torch.Tensor | None = None,
-    max_iter: int = 1e2,
+    max_iter: int = 100,
     tol: float = 1e-6,
     stagtol: float | None = None,
     parallel_dim: None | int | list[int] = 0,
@@ -29,11 +29,11 @@ def bicgstab(
     :param torch.Tensor init: Optional initial guess.
     :param int max_iter: maximum number of BiCGSTAB iterations.
     :param float tol: relative tolerance for stopping the BiCGSTAB algorithm.
-    :param float stagtol: absolute tolerance for stopping the BiCGSTAB algorithm if iterates stagnate.
+    :param float stagtol: absolute tolerance for stopping the BiCGSTAB algorithm if iterates stagnate, default via dtype precision.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
-    :param Callable left_precon: left preconditioner as a callable function.
-    :param Callable right_precon: right preconditioner as a callable function.
+    :param Callable left_precon: left preconditioner as a callable function. **Experimental / currently untested.**
+    :param Callable right_precon: right preconditioner as a callable function. **Experimental / currently untested.**
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
     """
 
@@ -71,11 +71,11 @@ def bicgstab(
 
         h = x + alpha * y
         s = r - alpha * v
-        z = right_precon(left_precon(s))
+        left_s = left_precon(s)
+        z = right_precon(left_s)
         t = A(z)
 
         # Safeguard: avoid division by small/zero
-        left_s = left_precon(s)
         left_t = left_precon(t)
         omega_num = dot(left_t, left_s, dim=dim)
         omega_denom = dot(left_t, left_t, dim=dim)
