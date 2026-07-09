@@ -92,17 +92,20 @@ jobs:
           restore-keys: |
             deepinv-url-cache-${{ matrix.os }}-
 
-      # If no .coverage is cached, run pytest without testmon to compute full coverage results
-      # (pytest-cov does not take into account skipped tests by testmon)
-      # If .coverage exists, testmon skips the non-related tests and --cov-append updates coverage with respect to related changes.
+      # On main, we never restore the cache, so .testmondata and .coverage never exist. We run the full suite to compute a base coverage for the main branch, we also run testmon to compute a base .testmondata for the main branch. 
+
+      # On PRs, we restore the cache from main, so testmon skips unrelated tests and --cov-append updates coverage with respect to related changes. 
+      # In case .coverage is not restored properly (for any reasons), but .testmondata is restored, we run pytest without testmon to compute full coverage results. This is a corner case that should not happen, but we handle it anyway.
       - name: Test with pytest
         shell: bash
         run: |
-          TESTMON_FLAG=""
-          if [ -f .coverage ]; then
-            TESTMON_FLAG="--testmon"
+          TESTMON_FLAG="--testmon"
+          if [ -f .testmondata ] && [ ! -f .coverage ]; then
+            TESTMON_FLAG=""
           fi
+          set -x
           pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml:coverage-${{ matrix.environment }}.xml --cov-append $TESTMON_FLAG
+          set +x
 
       # Save the freshly-solved lock + .testmondata + .coverage as a single (atomic) cache
       # entry so PRs always restore a matching pair. Only on push to main.
