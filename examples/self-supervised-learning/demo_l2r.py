@@ -7,7 +7,7 @@ using only noisy images through the Learning to Recorrupt (L2R) loss
 :footcite:p:`monroy2026learning`, without requiring explicit knowledge of the noise distribution.
 
 L2R avoids comparing predictions to clean targets, which are unavailable in
-self-supervised settings). Instead, the method learns a small trainable re-corruption module that
+self-supervised settings. Instead, the method learns a small trainable re-corruption module that
 maps input noisy image to desired recorruption distribution. For this, the recorrupted image :math:`y_1`
 is constructed by applying the recorruption network as follows
 
