@@ -486,7 +486,7 @@ class LinearPhysics(Physics):
         """
         warnings.warn(
             "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version. To move the module's buffers/parameters to a different device, use the `to()` method.",
-            DeprecationWarning
+            DeprecationWarning,
         )
 
         return self._device_holder.device
@@ -500,7 +500,7 @@ class LinearPhysics(Physics):
         """
         warnings.warn(
             "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version, i.e. doing `physics.device = device` will no longer work and throw an `AttributeError`. Use `physics.to(device)` instead.",
-            DeprecationWarning
+            DeprecationWarning,
         )
 
         self.to(value)
