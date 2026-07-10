@@ -944,7 +944,7 @@ def mock_lidc_idri():
         )
         pytest.importorskip(
             "pydicom",
-            reason="This test requires pandas. It should be "
+            reason="This test requires pydicom. It should be "
             "installed with `pip install pydicom`",
         )
         import pandas as pd
