@@ -116,6 +116,9 @@ class Tomography(LinearPhysics):
 
     """
 
+    @_deprecated_alias(
+        theta="angles",
+    )
     def __init__(
         self,
         angles: int | Iterable[float],
