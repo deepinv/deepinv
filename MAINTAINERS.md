@@ -20,6 +20,8 @@ If you're a contributor and are interested in becoming a maintainer, please reac
 | Minh-Hai Nguyen | [@mh-nguyen712](https://github.com/mh-nguyen712) | IRIT, CBI, CNRS, Université de Toulouse | [📧](mailto:nguyenhai7120qh@gmail.com)  |
 | Jérémy Scanvic  | [@jscanvic](https://github.com/jscanvic)         | CNRS, ENS Lyon | [📧](mailto:jeremy.scanvic@ens-lyon.fr) |
 | Romain Vo      | [@romainvo](https://github.com/romainvo)         | CNRS, ENS Lyon | [📧](mailto:romain.vo@ens-lyon.fr)      |
+| Vicky De Ridder  | [@nucli-vicky](https://github.com/nucli-vicky)  | Nuclivision | [📧](mailto:vicky.deridder@nuclivision.com)      |
+| Paul Bernard      | [@PAUL-BERNARD](https://github.com/PAUL-BERNARD)   | Inria | [📧](mailto:romain.vo@ens-lyon.fr)      |
 
 ## Emeritus
 
