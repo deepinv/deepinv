@@ -179,7 +179,7 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
      - :math:`y\sim\text{Laplace}(z, b)`
 
    * - :class:`deepinv.physics.LogPoissonNoise`
-     - :math:`y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu z) N_0)}{N_0})`
+     - :math:`y = -\frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu z) N_0)}{N_0})`
 
    * - :class:`deepinv.physics.UniformNoise`
      - :math:`y\sim \mathcal{U}(z-a, z+b)`
