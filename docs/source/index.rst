@@ -15,9 +15,9 @@ DeepInverse: a Python library for imaging with deep learning
    auto_examples/index
    user_guide
    API
-   finding_help
-   contributing
    community
+   contributing
+   finding_help
    changelog
 
 DeepInverse is an open-source PyTorch-based library for solving imaging inverse problems with deep learning.
@@ -212,13 +212,8 @@ Finding help
 ------------
 
 If you have any questions or suggestions, please join the conversation in our
-`Discord server <https://discord.gg/qBqY5jKw3p>`_. The recommended way to get in touch with the developers about any bugs or issues is to
-`open an issue <https://github.com/deepinv/deepinv/issues>`_.
-
-Maintainers
-~~~~~~~~~~~
-
-Get in touch with our `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
+`Discord server <https://discord.gg/qBqY5jKw3p>`_. The fastest way to get in touch with the developers about any bugs or issues is to
+`open an issue <https://github.com/deepinv/deepinv/issues>`_. Alternatively, contact a `maintainer <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
 
 Contributing
 ------------
@@ -249,10 +244,29 @@ If you use DeepInverse in your research, please cite `our paper on JOSS <https:/
         author = {Tachella, Julián and Terris, Matthieu and Hurault, Samuel and Wang, Andrew and Davy, Leo and Scanvic, Jérémy and Sechaud, Victor and Vo, Romain and Moreau, Thomas and Davies, Thomas and Chen, Dongdong and Laurent, Nils and Monroy, Brayan and Dong, Jonathan and Hu, Zhiyuan and Nguyen, Minh-Hai and Sarron, Florian and Weiss, Pierre and Escande, Paul and Massias, Mathurin and Modrzyk, Thibaut and Levac, Brett and Liaudat, Tobías I. and Song, Maxime and Hertrich, Johannes and Neumayer, Sebastian and Schramm, Georg},
     }
 
+.. include:: _includes/usedby.rst
+
+.. raw:: html
+
+   <section class="di-showcase">
+     <h2 class="di-showcase-title">Powering SotA research</h2>
+     <div class="di-scholar-list" data-di-scholar>
+       <p class="di-loading">Loading recent papers&hellip;</p>
+     </div>
+     <div class="di-scholar-footer">
+       Papers citing DeepInverse, via
+       <a href="https://scholar.google.com/scholar?cites=2339544645882267464,1679399233449144578"
+          target="_blank" rel="noopener noreferrer">Google Scholar</a>.
+     </div>
+   </section>
+   <script src="_static/community/data/scholar.data.js"></script>
+   <script src="_static/community/community.js"></script>
+
 Star history
 ------------
 
 .. image:: https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date
+   :width: 60%
    :alt: Star History Chart
    :target: https://www.star-history.com/#deepinv/deepinv&Date
 

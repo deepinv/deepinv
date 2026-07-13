@@ -12,12 +12,12 @@ and we welcome contributions from the community. :ref:`Check out how you can con
    Attending **MICCAI 2026**? Find details of the :ref:`DeepInverse tutorial at MICCAI here <miccai2026>`.
 
 .. image:: figures/hackathon_2025.jpg
-   :width: 100%
+   :width: 60%
    :alt: deepinverse Hackathon 2025 at CIRM, Marseille, France
 
 
 .. image:: figures/hackathon_2024.jpg
-   :width: 100%
+   :width: 60%
    :alt: deepinverse Hackathon 2024 at CIRM, Marseille, France
 
 Future events
@@ -42,3 +42,19 @@ Past events
 - Nov 26, 2024: the library obtained the documentation award at the `French Open Source Software for Science Awards <https://www.ouvrirlascience.fr/deepinverse>`_.
 - Oct 28-30, 2024: Hackathon at `CIRM <https://conferences.cirm-math.fr/3396.html>`_ in Marseille, France.
 - June 10-11, 2024: Summer school tutorial at `Mathematics and Machine Learning for Image Analysis <https://site.unibo.it/mathematical-ml-imaging/en/overview>`__ in Bologna, Italy.
+
+|sep|
+
+.. include:: _includes/usedby.rst
+
+.. raw:: html
+
+   <section class="di-showcase">
+     <h2 class="di-showcase-title">Contributed by an international community of researchers and developers:</h2>
+     <div class="di-contrib-grid" data-di-contributors>
+       <p class="di-loading">Loading contributors&hellip;</p>
+     </div>
+   </section>
+   <script src="_static/community/data/contributors.data.js"></script>
+   <script src="_static/community/community.js"></script>
+

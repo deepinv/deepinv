@@ -1,0 +1,216 @@
+{
+  "updated": "2026-07-02T15:57:54Z",
+  "source_url": "https://scholar.google.com/scholar?hl=en&as_sdt=2005&sciodt=0,5&cites=2339544645882267464,1679399233449144578&scipsc=&q=&scisbd=1",
+  "scholar": [
+    {
+      "title": "Wavelet-denoising model for color Fourier ptychographic microscopy",
+      "url": "https://iopscience.iop.org/article/10.1088/2040-8986/ae80df/meta",
+      "authors": "J Ma, L Shen, J Mo et al.",
+      "venue": "Journal of Optics",
+      "year": "2026"
+    },
+    {
+      "title": "Multilevel Stochastic Plug-and-Play for Sparse-View CT Reconstruction",
+      "url": "https://arxiv.org/abs/2606.24567",
+      "authors": "A De Paepe, A Bousse, D Visvikis",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "Plug-and-play post-stack seismic inversion with denoising diffusion model",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0098300426001214",
+      "authors": "L Li, T Zhang, Z Chen et al.",
+      "venue": "Computers & Geosciences",
+      "year": "2026"
+    },
+    {
+      "title": "Variance Reduction for Non-Log-Concave Sampling with Applications to Inverse Problems",
+      "url": "https://arxiv.org/abs/2606.16257",
+      "authors": "MB Sahin, AE Tanriverdi, B Sharif et al.",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "SP: Spherical Priors for Plug-and-Play Restoration",
+      "url": "https://arxiv.org/abs/2606.16396",
+      "authors": "S Man, R Raphaeli, M Kleiner et al.",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "Gradient Step Plug-and-Play Model for Dental Cone-Beam CT Reconstruction",
+      "url": "https://arxiv.org/abs/2605.28124",
+      "authors": "I Tatachak, L Kabongo, N Papadakis et al.",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "Model-Aware Deep Learning Methods for Image Denoising and Reconstruction Filtered Plug-and-Play Algorithm and Lidar Denoising",
+      "url": "https://search.proquest.com/openview/7802cab2b2c70798a6d764985a27be19/1?pq-origsite=gscholar&cbl=18750&diss=y",
+      "authors": "DBF Ehmer",
+      "venue": "",
+      "year": "2026"
+    },
+    {
+      "title": "Self-Supervised Conformal Prediction with Equivariant Bootstrapping for Image Uncertainty Quantification",
+      "url": "https://arxiv.org/abs/2605.18655",
+      "authors": "HJ Aldridge, TI Liaudat, M Pereyra et al.",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "DIPA: Distilled Preconditioned Algorithms for Solving Imaging Inverse Problems",
+      "url": "https://arxiv.org/abs/2605.15456",
+      "authors": "R Gualdrón-Hurtado, R Jacome, L Suarez et al.",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "A Stability Benchmark of Generative Regularizers for Inverse Problems",
+      "url": "https://arxiv.org/abs/2605.10076",
+      "authors": "A Denker, J Hertrich, S Neumayer",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "Geometry-Aware Discretization Error of Diffusion Models",
+      "url": "https://arxiv.org/abs/2605.08392",
+      "authors": "S Hurault, T Moreau, G Peyré",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "P-Flow: Proxy-gradient Flows for Linear Inverse Problems",
+      "url": "https://arxiv.org/abs/2605.08328",
+      "authors": "Z Jiang, F Zhu, X Wang et al.",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "Unrolled Feed Forward NNs for Denoising",
+      "url": "https://uh-ir.tdl.org/items/9fb8411d-312c-49f9-88af-dabd61db27d4",
+      "authors": "DB Le",
+      "venue": "",
+      "year": "2026"
+    },
+    {
+      "title": "Introduction of a Learned Prior to Passive Cavitation Imaging",
+      "url": "https://ieeexplore.ieee.org/abstract/document/11515999/",
+      "authors": "C Lachambre, B Gilles, B Nicolas et al.",
+      "venue": "",
+      "year": "2026"
+    },
+    {
+      "title": "Stochastic Generative Plug-and-Play Priors",
+      "url": "https://arxiv.org/abs/2604.03603",
+      "authors": "CY Park, EP Chandler, Y Hu et al.",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "On the Convergence of Proximal Algorithms for Weakly-convex Min-max Optimization",
+      "url": "https://arxiv.org/abs/2603.28484",
+      "authors": "G Tapia-Riera, C Castera, N Papadakis",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "Weakly Convex Ridge Regularization for 3D Non-Cartesian MRI Reconstruction",
+      "url": "https://arxiv.org/abs/2603.27158",
+      "authors": "GS Wache, A Tanabene, S Neumayer",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "Designing Any Imaging System from Natural Language: Agent-Constrained Composition over a Finite Primitive Basis",
+      "url": "https://arxiv.org/pdf/2603.25636",
+      "authors": "C Yang",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "Learning to Recorrupt: Noise Distribution Agnostic Self-Supervised Image Denoising",
+      "url": "https://arxiv.org/abs/2603.25869",
+      "authors": "B Monroy, J Bacca, J Tachella",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "Learning Representations of Electroencephalogram using Deep Learning",
+      "url": "https://theses.fr/api/v1/document/2026UPASG016",
+      "authors": "BA Pinto",
+      "venue": "",
+      "year": "2026"
+    },
+    {
+      "title": "A plug-and-play approach with fast uncertainty quantification for weak lensing mass mapping",
+      "url": "https://www.aanda.org/articles/aa/pdf/forth/aa57652-25.pdf",
+      "authors": "H Leterme, A Tersenov, J Fadili et al.",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "UNet-AF: An alias-free UNet for image restoration",
+      "url": "https://arxiv.org/abs/2603.11323",
+      "authors": "J Scanvic, Q Barthélemy, J Tachella",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "Plug-and-Play blind super-resolution of real MRI images for improved multiple sclerosis diagnosis",
+      "url": "https://arxiv.org/abs/2603.03876",
+      "authors": "M Cannas, A Mariottini, L Massacesi et al.",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "A Morse-Bott Framework for Blind Inverse Problems Local Recovery Guarantees and the Failure of the MAP",
+      "url": "https://hal.science/hal-05533248/",
+      "authors": "MH Nguyen, E Pauwels, P Weiss",
+      "venue": "",
+      "year": "2026"
+    },
+    {
+      "title": "Block-coordinate Plug-And-Play Methods with Armijo-like line-search for Image Restoration",
+      "url": "https://arxiv.org/abs/2603.01734",
+      "authors": "F Porta, S Rebegoldi, A Sebastiani",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "Plug-and-play forward backward algorithm to restore Landsat images: A preliminary step to uncover the history of surface waters",
+      "url": "https://ieeexplore.ieee.org/abstract/document/11461605/",
+      "authors": "P Audisio, B Belletti, N Pustelnik",
+      "venue": "ICASSP",
+      "year": "2026"
+    },
+    {
+      "title": "Perspective-Equivariant Fine-tuning for Multispectral Demosaicing without Ground Truth",
+      "url": "https://openaccess.thecvf.com/content/CVPR2026W/NTIRE/html/Wang_Perspective-Equivariant_Fine-tuning_for_Multispectral_Demosaicing_without_Ground_Truth_CVPRW_2026_paper.html",
+      "authors": "A Wang, M Davies",
+      "venue": "CVPR",
+      "year": "2026"
+    },
+    {
+      "title": "Targeted inversion of airborne electromagnetic data for improved imaging of large-scale hydrogeologic structures",
+      "url": "https://pubs.geoscienceworld.org/seg/tle/article-abstract/doi/10.1190/tle-2025-1049/727278",
+      "authors": "S Kang",
+      "venue": "The Leading Edge",
+      "year": "2026"
+    },
+    {
+      "title": "The Finite Primitive Basis Theorem for Computational Imaging: Formal Foundations of the OperatorGraph Representation",
+      "url": "https://arxiv.org/abs/2602.20550",
+      "authors": "C Yang",
+      "venue": "arXiv",
+      "year": "2026"
+    },
+    {
+      "title": "GSNR: Graph Smooth Null-Space Representation for Inverse Problems",
+      "url": "https://openaccess.thecvf.com/content/CVPR2026/html/Gualdron-Hurtado_GSNR_Graph_Smooth_Null-Space_Representation_for_Inverse_Problems_CVPR_2026_paper.html",
+      "authors": "R Gualdrón-Hurtado, R Jacome et al.",
+      "venue": "Proceedings of the",
+      "year": "2026"
+    }
+  ]
+}

@@ -1,0 +1,510 @@
+{
+  "updated": "2026-07-02T15:57:54Z",
+  "source_url": "https://github.com/deepinv/deepinv/graphs/contributors",
+  "contributors": [
+    {
+      "login": "tachella",
+      "name": "Julián Tachella",
+      "location": "France",
+      "avatar_url": "https://avatars.githubusercontent.com/u/38355592?v=4",
+      "html_url": "https://github.com/tachella",
+      "contributions": 443
+    },
+    {
+      "login": "matthieutrs",
+      "name": "Matthieu Terris",
+      "location": "Paris",
+      "avatar_url": "https://avatars.githubusercontent.com/u/31830373?v=4",
+      "html_url": "https://github.com/matthieutrs",
+      "contributions": 241
+    },
+    {
+      "login": "samuro95",
+      "name": "Samuel Hurault ",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/34220759?v=4",
+      "html_url": "https://github.com/samuro95",
+      "contributions": 141
+    },
+    {
+      "login": "Andrewwango",
+      "name": "Andrew Wang",
+      "location": "Paris, France",
+      "avatar_url": "https://avatars.githubusercontent.com/u/18752449?v=4",
+      "html_url": "https://github.com/Andrewwango",
+      "contributions": 94
+    },
+    {
+      "login": "jscanvic",
+      "name": "Jérémy Scanvic",
+      "location": "Lyon, France",
+      "avatar_url": "https://avatars.githubusercontent.com/u/95454914?v=4",
+      "html_url": "https://github.com/jscanvic",
+      "contributions": 76
+    },
+    {
+      "login": "mh-nguyen712",
+      "name": "Minh Hai Nguyen",
+      "location": "Toulouse, France",
+      "avatar_url": "https://avatars.githubusercontent.com/u/43115712?v=4",
+      "html_url": "https://github.com/mh-nguyen712",
+      "contributions": 47
+    },
+    {
+      "login": "nucli-vicky",
+      "name": "Vicky De Ridder",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/78253029?v=4",
+      "html_url": "https://github.com/nucli-vicky",
+      "contributions": 25
+    },
+    {
+      "login": "edongdongchen",
+      "name": "Dongdong Chen",
+      "location": "UK",
+      "avatar_url": "https://avatars.githubusercontent.com/u/43349309?v=4",
+      "html_url": "https://github.com/edongdongchen",
+      "contributions": 24
+    },
+    {
+      "login": "romainvo",
+      "name": "Romain Vo",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/43675867?v=4",
+      "html_url": "https://github.com/romainvo",
+      "contributions": 19
+    },
+    {
+      "login": "MaximeSongIdris",
+      "name": "MaximeSongIdris",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/102222793?v=4",
+      "html_url": "https://github.com/MaximeSongIdris",
+      "contributions": 12
+    },
+    {
+      "login": "Tmodrzyk",
+      "name": "Thibaut Modrzyk",
+      "location": "France",
+      "avatar_url": "https://avatars.githubusercontent.com/u/52449813?v=4",
+      "html_url": "https://github.com/Tmodrzyk",
+      "contributions": 12
+    },
+    {
+      "login": "mathurinm",
+      "name": "mathurinm",
+      "location": "Lyon",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8993218?v=4",
+      "html_url": "https://github.com/mathurinm",
+      "contributions": 12
+    },
+    {
+      "login": "bemc22",
+      "name": "Brayan Monroy",
+      "location": "Colombia",
+      "avatar_url": "https://avatars.githubusercontent.com/u/27647840?v=4",
+      "html_url": "https://github.com/bemc22",
+      "contributions": 11
+    },
+    {
+      "login": "tomMoral",
+      "name": "Thomas Moreau",
+      "location": "Paris",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3321081?v=4",
+      "html_url": "https://github.com/tomMoral",
+      "contributions": 9
+    },
+    {
+      "login": "johertrich",
+      "name": "Johannes Hertrich",
+      "location": "Paris",
+      "avatar_url": "https://avatars.githubusercontent.com/u/58875167?v=4",
+      "html_url": "https://github.com/johertrich",
+      "contributions": 8
+    },
+    {
+      "login": "zhiyhucode",
+      "name": "Zhiyuan Hu",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/64891792?v=4",
+      "html_url": "https://github.com/zhiyhucode",
+      "contributions": 7
+    },
+    {
+      "login": "vsechaud",
+      "name": "Victor Sechaud",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/151832573?v=4",
+      "html_url": "https://github.com/vsechaud",
+      "contributions": 6
+    },
+    {
+      "login": "apolychronou",
+      "name": "Athanasios (Thanos) Polychronou",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/22749793?v=4",
+      "html_url": "https://github.com/apolychronou",
+      "contributions": 2
+    },
+    {
+      "login": "PriscillaZixin",
+      "name": "Zixinxin",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/183627932?v=4",
+      "html_url": "https://github.com/PriscillaZixin",
+      "contributions": 2
+    },
+    {
+      "login": "tobias-liaudat",
+      "name": "Tobías Liaudat",
+      "location": "Paris, France",
+      "avatar_url": "https://avatars.githubusercontent.com/u/16106854?v=4",
+      "html_url": "https://github.com/tobias-liaudat",
+      "contributions": 2
+    },
+    {
+      "login": "tibisabau",
+      "name": "Tiberiu Sabău",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/96194994?v=4",
+      "html_url": "https://github.com/tibisabau",
+      "contributions": 2
+    },
+    {
+      "login": "pierre-weiss",
+      "name": "Pierre Weiss",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/19427204?v=4",
+      "html_url": "https://github.com/pierre-weiss",
+      "contributions": 2
+    },
+    {
+      "login": "Nils-Laurent",
+      "name": "Nils-Laurent",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/2873645?v=4",
+      "html_url": "https://github.com/Nils-Laurent",
+      "contributions": 2
+    },
+    {
+      "login": "LeRatonLaveurSolitaire",
+      "name": "LeRaton",
+      "location": "Saclay, France",
+      "avatar_url": "https://avatars.githubusercontent.com/u/49453331?v=4",
+      "html_url": "https://github.com/LeRatonLaveurSolitaire",
+      "contributions": 2
+    },
+    {
+      "login": "kvttt",
+      "name": "Kaibo Tang",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/99367900?v=4",
+      "html_url": "https://github.com/kvttt",
+      "contributions": 2
+    },
+    {
+      "login": "Holimmo7",
+      "name": "Hossein Alimohammadi",
+      "location": "Johannes Kepler university",
+      "avatar_url": "https://avatars.githubusercontent.com/u/103756773?v=4",
+      "html_url": "https://github.com/Holimmo7",
+      "contributions": 2
+    },
+    {
+      "login": "Shamachrist7",
+      "name": "German Shâma Wache",
+      "location": "Germany",
+      "avatar_url": "https://avatars.githubusercontent.com/u/153376431?v=4",
+      "html_url": "https://github.com/Shamachrist7",
+      "contributions": 2
+    },
+    {
+      "login": "dylansechet",
+      "name": "Dylan Sechet",
+      "location": "Paris",
+      "avatar_url": "https://avatars.githubusercontent.com/u/217075816?v=4",
+      "html_url": "https://github.com/dylansechet",
+      "contributions": 2
+    },
+    {
+      "login": "DavyL",
+      "name": "DavyL",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/7920743?v=4",
+      "html_url": "https://github.com/DavyL",
+      "contributions": 2
+    },
+    {
+      "login": "npusteln",
+      "name": "Nelly Pustelnik",
+      "location": "Laboratoire de Physique de l'Ens de Lyon",
+      "avatar_url": "https://avatars.githubusercontent.com/u/30524673?v=4",
+      "html_url": "https://github.com/npusteln",
+      "contributions": 1
+    },
+    {
+      "login": "PAUL-BERNARD",
+      "name": "PAUL BERNARD",
+      "location": "Europe",
+      "avatar_url": "https://avatars.githubusercontent.com/u/74709745?v=4",
+      "html_url": "https://github.com/PAUL-BERNARD",
+      "contributions": 1
+    },
+    {
+      "login": "paquiteau",
+      "name": "Pierre-Antoine Comby",
+      "location": "Neurospin, France",
+      "avatar_url": "https://avatars.githubusercontent.com/u/77174042?v=4",
+      "html_url": "https://github.com/paquiteau",
+      "contributions": 1
+    },
+    {
+      "login": "pitmonticone",
+      "name": "Pietro Monticone",
+      "location": "Italy, United Kingdom, United States",
+      "avatar_url": "https://avatars.githubusercontent.com/u/38562595?v=4",
+      "html_url": "https://github.com/pitmonticone",
+      "contributions": 1
+    },
+    {
+      "login": "qbarthelemy",
+      "name": "Quentin Barthélemy",
+      "location": "France, Lyon",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5346669?v=4",
+      "html_url": "https://github.com/qbarthelemy",
+      "contributions": 1
+    },
+    {
+      "login": "bao-do",
+      "name": "Quoc Bao DO",
+      "location": "31400 Toulouse, Occitanie, France",
+      "avatar_url": "https://avatars.githubusercontent.com/u/101519866?v=4",
+      "html_url": "https://github.com/bao-do",
+      "contributions": 1
+    },
+    {
+      "login": "Seon82",
+      "name": "Seon82",
+      "location": "France",
+      "avatar_url": "https://avatars.githubusercontent.com/u/46298009?v=4",
+      "html_url": "https://github.com/Seon82",
+      "contributions": 1
+    },
+    {
+      "login": "tomdvies",
+      "name": "Tom.",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/24965224?v=4",
+      "html_url": "https://github.com/tomdvies",
+      "contributions": 1
+    },
+    {
+      "login": "Vladimirescu",
+      "name": "Vlad Vasilescu",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/41297787?v=4",
+      "html_url": "https://github.com/Vladimirescu",
+      "contributions": 1
+    },
+    {
+      "login": "avithal",
+      "name": "avithal",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/7418415?v=4",
+      "html_url": "https://github.com/avithal",
+      "contributions": 1
+    },
+    {
+      "login": "blevac",
+      "name": "blevac",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/68337209?v=4",
+      "html_url": "https://github.com/blevac",
+      "contributions": 1
+    },
+    {
+      "login": "chaozg",
+      "name": "Chao Zhang",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/69794131?v=4",
+      "html_url": "https://github.com/chaozg",
+      "contributions": 1
+    },
+    {
+      "login": "g-keying",
+      "name": "g-keying",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/110972263?v=4",
+      "html_url": "https://github.com/g-keying",
+      "contributions": 1
+    },
+    {
+      "login": "taransistor",
+      "name": "taransistor",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/265123795?v=4",
+      "html_url": "https://github.com/taransistor",
+      "contributions": 1
+    },
+    {
+      "login": "tbaudier",
+      "name": "tbaudier",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/15010467?v=4",
+      "html_url": "https://github.com/tbaudier",
+      "contributions": 1
+    },
+    {
+      "login": "torbenmaass",
+      "name": "torbenmaass",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/211052614?v=4",
+      "html_url": "https://github.com/torbenmaass",
+      "contributions": 1
+    },
+    {
+      "login": "yosinn1-blip",
+      "name": "yosinn1-blip",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/269333706?v=4",
+      "html_url": "https://github.com/yosinn1-blip",
+      "contributions": 1
+    },
+    {
+      "login": "alexmehta",
+      "name": "Alex",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/53285116?v=4",
+      "html_url": "https://github.com/alexmehta",
+      "contributions": 1
+    },
+    {
+      "login": "askorikov",
+      "name": "Alexander Skorikov",
+      "location": "Amsterdam",
+      "avatar_url": "https://avatars.githubusercontent.com/u/31259212?v=4",
+      "html_url": "https://github.com/askorikov",
+      "contributions": 1
+    },
+    {
+      "login": "sedaboni",
+      "name": "Andrea Sebastiani",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/33467457?v=4",
+      "html_url": "https://github.com/sedaboni",
+      "contributions": 1
+    },
+    {
+      "login": "blegouix",
+      "name": "Baptiste Legouix",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/22033714?v=4",
+      "html_url": "https://github.com/blegouix",
+      "contributions": 1
+    },
+    {
+      "login": "BenjaminisCoding",
+      "name": "BenjaminisCoding",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/103667717?v=4",
+      "html_url": "https://github.com/BenjaminisCoding",
+      "contributions": 1
+    },
+    {
+      "login": "bmalezieux",
+      "name": "Benoît Malézieux",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/40993275?v=4",
+      "html_url": "https://github.com/bmalezieux",
+      "contributions": 1
+    },
+    {
+      "login": "bruAristimunha",
+      "name": "Bru",
+      "location": "Paris",
+      "avatar_url": "https://avatars.githubusercontent.com/u/42702466?v=4",
+      "html_url": "https://github.com/bruAristimunha",
+      "contributions": 1
+    },
+    {
+      "login": "chaithyagr",
+      "name": "Chaithya G R",
+      "location": "Paris-Saclay",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8596659?v=4",
+      "html_url": "https://github.com/chaithyagr",
+      "contributions": 1
+    },
+    {
+      "login": "ChaoTang0330",
+      "name": "Chao Tang",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/46731373?v=4",
+      "html_url": "https://github.com/ChaoTang0330",
+      "contributions": 1
+    },
+    {
+      "login": "eliottbourrigan",
+      "name": "Eliott Bourrigan",
+      "location": "Rennes, France",
+      "avatar_url": "https://avatars.githubusercontent.com/u/104491822?v=4",
+      "html_url": "https://github.com/eliottbourrigan",
+      "contributions": 1
+    },
+    {
+      "login": "fedor-goncharov",
+      "name": "Fedor",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/5543011?v=4",
+      "html_url": "https://github.com/fedor-goncharov",
+      "contributions": 1
+    },
+    {
+      "login": "fsarron",
+      "name": "Florian Sarron",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/32577460?v=4",
+      "html_url": "https://github.com/fsarron",
+      "contributions": 1
+    },
+    {
+      "login": "gschramm",
+      "name": "gschramm",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/40211162?v=4",
+      "html_url": "https://github.com/gschramm",
+      "contributions": 1
+    },
+    {
+      "login": "HenKlei",
+      "name": "HenKlei",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/28065234?v=4",
+      "html_url": "https://github.com/HenKlei",
+      "contributions": 1
+    },
+    {
+      "login": "IWalds",
+      "name": "IWalds",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/97890775?v=4",
+      "html_url": "https://github.com/IWalds",
+      "contributions": 1
+    },
+    {
+      "login": "LauraCD2",
+      "name": "LauraCD2",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/86331450?v=4",
+      "html_url": "https://github.com/LauraCD2",
+      "contributions": 1
+    },
+    {
+      "login": "Louisefg",
+      "name": "Louisefg",
+      "location": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/83660245?v=4",
+      "html_url": "https://github.com/Louisefg",
+      "contributions": 1
+    }
+  ]
+}

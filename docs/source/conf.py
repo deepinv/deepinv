@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "_ext"))
 
+from community_data import generate_community_data
 
 set_default_plot_fontsize(12)
 
@@ -184,6 +186,9 @@ def setup(app):
     app.add_directive("userguide", UserGuideMacro)
     app.add_directive("image-sg-ignore", TolerantImageSg)
     app.connect("html-page-context", _noindex_viewcode)
+    app.connect(
+        "builder-inited", generate_community_data
+    )  # refresh contributors showcase and google scholar showcase
 
 
 # ---------- doctest configuration -----------------------------------------
@@ -230,7 +235,7 @@ def add_references_block_to_examples():
 add_references_block_to_examples()
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "_includes", "_ext"]
 
 add_module_names = True  # include the module path in the function name
 
