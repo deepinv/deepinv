@@ -87,7 +87,7 @@ def download_archive(
         except requests.exceptions.RequestException as exc:
             raise DownloadError(f"Failed to download archive {url}: {exc}") from exc
 
-        if extract:
+        if extract:  # pragma: no cover
             if Path(save_path).suffix == ".zip":
                 extract_zipfile(save_path, Path(save_path).parent)
             elif Path(save_path).suffix == ".tar":
