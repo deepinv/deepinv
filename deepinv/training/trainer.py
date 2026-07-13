@@ -70,7 +70,7 @@ class Trainer:
     :param bool online_measurements: Generate new measurements `y` in an online manner at each iteration by calling
         `y=physics(x)`. If `False` (default), the measurements are loaded from the training dataset.
     :param str, torch.device device: Device on which to run the training (e.g., 'cuda', 'mps' or 'cpu'). Default is first 'cuda' and second 'mps' if available, otherwise 'cpu'.
-    :param bool, str mixed_precision: Mixed precision to use. If False, standard float32 training is performed. If True, defaults to float16. 
+    :param bool, str mixed_precision: Mixed precision to use. If False, standard float32 training is performed. If True, defaults to float16.
         If a string, that dtype will be used (only 'float16' and 'bfloat16' are supported.) Mixed-precision is only used for training steps, not eval or test.
 
     |sep|
@@ -333,15 +333,26 @@ class Trainer:
         # Cache flag for whether model.forward accepts 'update_parameters'
         self._model_accepts_update_parameters = False
         if isinstance(self.mixed_precision, str):
-            if self.mixed_precision not in ['float16', 'bfloat16']:
-                raise ValueError(f'Mixed precision only supports "float16" and "bfloat16", got {self.mixed_precision}. For full float32 training, simply pass mixed_precision=False.')
-            self.mixed_precision = {'float16' : torch.float16, 'bfloat16' : torch.bfloat16}[self.mixed_precision]
-        if isinstance(self.mixed_precision, torch.dtype) and self.mixed_precision not in [torch.float16, torch.bfloat16]:
-            raise ValueError(f'For mixed-precision training, only float16 and bfloat16 are supported, but got torch dtype {self.mixed_precision}')
+            if self.mixed_precision not in ["float16", "bfloat16"]:
+                raise ValueError(
+                    f'Mixed precision only supports "float16" and "bfloat16", got {self.mixed_precision}. For full float32 training, simply pass mixed_precision=False.'
+                )
+            self.mixed_precision = {
+                "float16": torch.float16,
+                "bfloat16": torch.bfloat16,
+            }[self.mixed_precision]
+        if isinstance(
+            self.mixed_precision, torch.dtype
+        ) and self.mixed_precision not in [torch.float16, torch.bfloat16]:
+            raise ValueError(
+                f"For mixed-precision training, only float16 and bfloat16 are supported, but got torch dtype {self.mixed_precision}"
+            )
         if isinstance(self.mixed_precision, bool) and self.mixed_precision:
-            self.mixed_precision = torch.float16 # Default AMP dtype
+            self.mixed_precision = torch.float16  # Default AMP dtype
         if not isinstance(self.mixed_precision, (bool, torch.dtype)):
-            raise ValueError(f'mixed_precision must be a str, bool, or torch.dtype, but got {self.mixed_precision} of type {type(self.mixed_precision)}')
+            raise ValueError(
+                f"mixed_precision must be a str, bool, or torch.dtype, but got {self.mixed_precision} of type {type(self.mixed_precision)}"
+            )
 
     def setup_train(self, train: bool = True, **kwargs):
         r"""
@@ -895,7 +906,7 @@ class Trainer:
             # Compute the losses
             loss_total = 0
             for k, l in enumerate(self.losses):
-                if train: # we only do mixed precision when training
+                if train:  # we only do mixed precision when training
                     with self.get_autocast_context():
                         loss = l(
                             x=x,
@@ -1116,7 +1127,7 @@ class Trainer:
             self.log_metrics_mlops(logs, step=train_ite, train=train)
 
         if train and self.optimizer_step_multi_dataset:
-            self.scaler.step(self.optimizer) # Optimizer step
+            self.scaler.step(self.optimizer)  # Optimizer step
             self.scaler.update()
 
         if last_batch:
