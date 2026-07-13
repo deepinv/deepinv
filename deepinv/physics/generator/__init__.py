@@ -24,6 +24,7 @@ from .inpainting import (
     Artifact2ArtifactSplittingMaskGenerator,
     Phase2PhaseSplittingMaskGenerator,
     MultiplicativeSplittingMaskGenerator,
+    Noise2VoidMaskGenerator,
 )
 from .downsampling import DownsamplingGenerator
 from .zernike import Zernike
