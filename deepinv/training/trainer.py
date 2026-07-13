@@ -901,7 +901,7 @@ class Trainer:
 
         if train or self.compute_eval_losses:
             # Evaluate reconstruction network
-            x_net = self.model_inference(y=y, physics=physics, x=x, train=train)
+            x_net = self.model_inference(y=y, physics=physics, x=x, train=True)
 
             # Compute the losses
             loss_total = 0

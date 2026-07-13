@@ -337,8 +337,8 @@ def test_trainer_physics_generator_params(
         )
 
 
-@pytest.mark.parametrize("use_amp", [True, False])
-def test_trainer_identity(use_amp, imsize, rng, device):
+@pytest.mark.parametrize("mixed_precision", [True, False])
+def test_trainer_identity(mixed_precision, imsize, rng, device):
     r"""
     A simple test to check that the trainer manages to learn specific functions.
 
@@ -397,7 +397,7 @@ def test_trainer_identity(use_amp, imsize, rng, device):
         save_path=None,
         verbose=False,
         show_progress_bar=False,
-        use_amp=use_amp,
+        mixed_precision=mixed_precision,
     )
 
     trainer.train()
@@ -406,8 +406,8 @@ def test_trainer_identity(use_amp, imsize, rng, device):
     assert torch.isclose(dummy_model.dummy_param, torch.tensor(1.0), atol=1e-6)
 
 
-@pytest.mark.parametrize("use_amp", [True, False])
-def test_trainer_multidatasets(use_amp, imsize, rng, device):
+@pytest.mark.parametrize("mixed_precision", [True, False])
+def test_trainer_multidatasets(mixed_precision, imsize, rng, device):
     r"""
     A simple test to check that the trainer manages to learn specific functions.
 
@@ -462,7 +462,7 @@ def test_trainer_multidatasets(use_amp, imsize, rng, device):
         save_path=None,
         verbose=False,
         show_progress_bar=False,
-        use_amp=use_amp,
+        mixed_precision=mixed_precision,
     )
 
     trainer.train()
@@ -864,13 +864,13 @@ class DummyModel(dinv.models.Reconstructor):
         return x * self.param
 
 
-@pytest.mark.parametrize("use_amp", [True, False])
+@pytest.mark.parametrize("mixed_precision", [True, False])
 @pytest.mark.parametrize("compute_eval_losses", [True, False])
 @pytest.mark.parametrize("compute_train_metrics", [True, False])
 @pytest.mark.parametrize("epochs", [4, 5])
 @pytest.mark.parametrize("eval_interval", [1, 2])
 def test_model_forward_passes(
-    use_amp,
+    mixed_precision,
     dummy_dataset,
     imsize,
     device,
@@ -904,7 +904,7 @@ def test_model_forward_passes(
         online_measurements=True,
         compute_eval_losses=compute_eval_losses,
         compute_train_metrics=compute_train_metrics,
-        use_amp=use_amp,
+        mixed_precision=mixed_precision,
     )
 
     assert model.train_count == 0
@@ -1064,8 +1064,8 @@ def test_out_dir_collision_detection(
                 trainer.train()
 
 
-@pytest.mark.parametrize("use_amp", [True, False])
-def test_trainer_speed(use_amp, device):  # pragma: no cover
+@pytest.mark.parametrize("mixed_precision", [True, False])
+def test_trainer_speed(mixed_precision, device):  # pragma: no cover
     if device == torch.device("cpu"):
         pytest.skip("Skip speed test on CPU")
 
@@ -1099,7 +1099,7 @@ def test_trainer_speed(use_amp, device):  # pragma: no cover
         compute_train_metrics=False,
         verbose=True,
         device=device,
-        use_amp=use_amp,
+        mixed_precision=mixed_precision,
     )
 
     def do_epoch():
