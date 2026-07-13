@@ -25,7 +25,7 @@ def lsmr(
     x0: torch.Tensor = None,
     tol: float = 1e-6,
     stagtol: float | None = None,
-    conlim: float = 1e8,
+    conlim: float | None = None,
     max_iter: int = 100,
     parallel_dim: None | int | list[int] = 0,
     restart: int | None = None,
@@ -47,7 +47,7 @@ def lsmr(
     :param None, torch.Tensor x0: Optional :math:`x_0`, which is also used as the initial guess.
     :param float tol: relative tolerance for stopping the LSMR algorithm.
     :param float stagtol: absolute tolerance for stopping the LSMR algorithm if iterates stagnate, default via dtype precision.
-    :param float conlim: maximum value of the condition number of the system.
+    :param float conlim: maximum value of the condition number of the system, default via dtype precision.
     :param int max_iter: maximum number of LSMR iterations.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param None, int restart: cycle of iterations to restart the algorithm to avoid loss of orthogonality.
@@ -56,6 +56,10 @@ def lsmr(
     """
 
     stagtol = _resolve_stagtol(stagtol, b)
+
+    if conlim is not None:
+        conlim = 12.0 * torch.finfo(b.dtype).eps
+        #multiplication causes the default to be 1e8 on single precision
 
     parallel_dim = _as_dim_list(parallel_dim)
     device = b.device

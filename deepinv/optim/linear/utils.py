@@ -37,6 +37,7 @@ def _resolve_stagtol(
     """
     if stagtol is None:
         return 8.0 * torch.finfo(b.dtype).eps
+        #the 8 approximates stagtol to 1e-6 which has performed well in testing
     return stagtol
 
 
