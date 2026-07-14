@@ -740,24 +740,27 @@ def neighbor_replace(
     :param torch.Generator rng: torch random number generator.
     :return: tensor with masked pixels replaced by a random neighbor value.
     """
-    B, C, H, W = y.shape
-    device = y.device
+    _, _, H, W = y.shape
     r = window_size // 2
+    out = y.clone()
 
-    off_h = torch.randint(-r, r + 1, (B, C, H, W), generator=rng, device=device)
-    off_w = torch.randint(-r, r + 1, (B, C, H, W), generator=rng, device=device)
+    # work only on the pixels to replace (typically a small fraction of the image)
+    coords = mask.expand_as(y).bool().nonzero(as_tuple=False)  # (N, 4): b, c, h, w
+    if coords.numel() == 0:
+        return out
+    n = coords.shape[0]
+
+    off_h = torch.randint(-r, r + 1, (n,), generator=rng, device=y.device)
+    off_w = torch.randint(-r, r + 1, (n,), generator=rng, device=y.device)
     if remove_center:
         # nudge (0, 0) offsets so the center pixel is never sampled
         center = (off_h == 0) & (off_w == 0)
         off_w = torch.where(center, torch.ones_like(off_w), off_w)
 
-    rows = torch.arange(H, device=device).view(1, 1, H, 1)
-    cols = torch.arange(W, device=device).view(1, 1, 1, W)
-    src_h = (rows + off_h).clamp(0, H - 1)
-    src_w = (cols + off_w).clamp(0, W - 1)
+    src_h = (coords[:, 2] + off_h).clamp(0, H - 1)
+    src_w = (coords[:, 3] + off_w).clamp(0, W - 1)
 
-    b_idx = torch.arange(B, device=device).view(B, 1, 1, 1).expand(B, C, H, W)
-    c_idx = torch.arange(C, device=device).view(1, C, 1, 1).expand(B, C, H, W)
-    neighbors = y[b_idx, c_idx, src_h, src_w]
-
-    return torch.where(mask.expand_as(y).bool(), neighbors, y)
+    out[coords[:, 0], coords[:, 1], coords[:, 2], coords[:, 3]] = y[
+        coords[:, 0], coords[:, 1], src_h, src_w
+    ]
+    return out
