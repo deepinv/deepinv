@@ -566,7 +566,6 @@ class Noise2Void(SplittingLoss):
         mask_generator: Noise2VoidMaskGenerator | None = None,
     ):
         if mask_generator is None:
-            # validate early; ignored when a custom mask_generator is supplied
             Noise2VoidMaskGenerator.validate_ratio(masked_pixel_ratio)
         super().__init__(
             metric=metric,
@@ -699,7 +698,6 @@ def _neighbor_replace(
     r = window_size // 2
     out = y.clone()
 
-    # work only on the pixels to replace (typically a small fraction of the image)
     coords = mask.expand_as(y).nonzero(as_tuple=False)  # (N, 4): b, c, h, w
     if coords.numel() == 0:
         return out

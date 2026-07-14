@@ -663,8 +663,7 @@ def _get_stratified_coords(
 
     Divides the image into square boxes and samples one random pixel per box, so
     that the blind spots are spread roughly uniformly over the image at the target
-    density. This is the "uniform pixel selection" (UPS) scheme of Noise2Void
-    :footcite:t:`krull2019noise2void`.
+    density.
     """
     H, W = img_size[-2:]
     # box side length so that ~1 blind spot per box gives the target density
@@ -713,7 +712,7 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
     :param torch.Generator rng: torch random number generator.
     """
 
-    #: maximum allowed ratio; above this the stratified sampling stops honoring the
+    #: above this the stratified sampling stops honoring the
     #: requested density (the box side ``round(sqrt(1 / ratio))`` drops to 2, flattening
     #: the achieved density to 0.25) and the blind-spot assumption breaks down.
     max_ratio: float = 0.1
