@@ -552,13 +552,16 @@ class TVPrior(Prior):
 
         At locations where the finite difference vanishes, the zero element
         of the subdifferential is selected.
+
+        :param torch.Tensor x: Variable :math:`x` at which the subgradient is computed.
+        :return: (:class:`torch.Tensor`) subgradient at :math:`x`.
         """
         dx = self.nabla(x)
         norm_dx = torch.linalg.vector_norm(dx, dim=-1, keepdim=True)
 
         nonzero = norm_dx > 0
 
-        # Do not evaluate an unsafe division by zero, even in the masked branch.
+        # Do not evaluate an unsafe division by zero
         safe_norm = torch.where(nonzero, norm_dx, torch.ones_like(norm_dx))
         normalized_dx = torch.where(
             nonzero,
