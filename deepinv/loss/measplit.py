@@ -745,7 +745,7 @@ def neighbor_replace(
     out = y.clone()
 
     # work only on the pixels to replace (typically a small fraction of the image)
-    coords = mask.expand_as(y).bool().nonzero(as_tuple=False)  # (N, 4): b, c, h, w
+    coords = mask.expand_as(y).nonzero(as_tuple=False)  # (N, 4): b, c, h, w
     if coords.numel() == 0:
         return out
     n = coords.shape[0]
