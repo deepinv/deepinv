@@ -715,13 +715,6 @@ def neighbor_replace(
 ) -> torch.Tensor:
     r"""Replace masked pixels with a random neighbor value.
 
-    Implements the uniform-pixel-selection replacement of Noise2Void
-    :footcite:t:`krull2019noise2void`: each pixel where ``mask == 1`` has its value
-    replaced by that of a pixel drawn uniformly at random from a square window of
-    side ``window_size`` centered on it (the center pixel itself is excluded, so the
-    value is always changed). Coordinates falling outside the image are clamped to the
-    border.
-
     :param torch.Tensor y: input tensor of shape ``(B, C, H, W)``.
     :param torch.Tensor mask: binary mask of shape broadcastable to ``y``, ``1`` marks pixels to replace.
     :param int window_size: side length of the neighborhood window.
