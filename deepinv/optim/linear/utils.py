@@ -27,9 +27,7 @@ def dot(
     return dot
 
 
-def _resolve_stagtol(
-    stagtol: float | None, b: torch.Tensor | TensorList
-) -> float:
+def _resolve_stagtol(stagtol: float | None, b: torch.Tensor | TensorList) -> float:
     """
     Default the stagnation tolerance to ``8 * eps`` of ``b``'s floating-point
     precision when the caller passes ``None``. Shared by every solver so this
@@ -37,7 +35,7 @@ def _resolve_stagtol(
     """
     if stagtol is None:
         return 8.0 * torch.finfo(b.dtype).eps
-        #the 8 approximates stagtol to 1e-6 which has performed well in testing
+        # the 8 approximates stagtol to 1e-6 which has performed well in testing
     return stagtol
 
 
@@ -61,9 +59,7 @@ def _as_dim_list(parallel_dim: None | int | list[int]) -> list[int]:
     return list(parallel_dim)
 
 
-def _reduce_dims(
-    t: torch.Tensor | TensorList, parallel_dim: list[int]
-) -> list[int]:
+def _reduce_dims(t: torch.Tensor | TensorList, parallel_dim: list[int]) -> list[int]:
     """
     List of dimensions to reduce over: every dimension of ``t`` that is not a
     batch (``parallel_dim``) dimension. For a :class:`TensorList` the first
@@ -99,14 +95,10 @@ def _batched_norm(
                 ** 2
             )
         return torch.sqrt(total)
-    return torch.linalg.vector_norm(
-        u, dim=_reduce_dims(u, parallel_dim), keepdim=False
-    )
+    return torch.linalg.vector_norm(u, dim=_reduce_dims(u, parallel_dim), keepdim=False)
 
 
-def _sample_shape(
-    t: torch.Tensor | TensorList, parallel_dim: list[int]
-) -> list:
+def _sample_shape(t: torch.Tensor | TensorList, parallel_dim: list[int]) -> list:
     """
     Shape of ``t`` with every non-batch dimension collapsed to 1, so a per-sample
     scalar can be broadcast back onto ``t`` via ``.view(...)``. Returns a nested

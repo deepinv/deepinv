@@ -59,7 +59,7 @@ def lsmr(
 
     if conlim is None:
         conlim = 12.0 * torch.finfo(b.dtype).eps
-        #multiplication causes the default to be 1e8 on single precision
+        # multiplication causes the default to be 1e8 on single precision
 
     parallel_dim = _as_dim_list(parallel_dim)
     device = b.device
@@ -201,9 +201,9 @@ def lsmr(
         init.rhod0 = ctilde0 * init.rhobar
         init.betad = -stilde0 * init.betad + ctilde0 * betahat
 
-        init.tautilde0 = (
-            zeta0 - init.thetatilde0 * init.tautilde0
-        ) / _safe_denom(init.rhotilde0)
+        init.tautilde0 = (zeta0 - init.thetatilde0 * init.tautilde0) / _safe_denom(
+            init.rhotilde0
+        )
         taud = (init.zeta - init.thetatilde * init.tautilde0) / _safe_denom(init.rhod0)
 
         init.d = init.d + betacheck * betacheck

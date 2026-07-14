@@ -1086,7 +1086,9 @@ def test_linear_system(device, solver, dtype, rng, zero_input):
         b = torch.zeros((batch_size, 32), dtype=dtype, device=device)
     else:
         b = torch.randn((batch_size, 32), dtype=dtype, device=device, generator=rng)
-        b[0] = 0.0  # heterogeneous batch: a trivial element must not zero out the others
+        b[0] = (
+            0.0  # heterogeneous batch: a trivial element must not zero out the others
+        )
 
     A = lambda x: (mat @ x.T).T
     AT = lambda x: (mat.adjoint() @ x.T).T
