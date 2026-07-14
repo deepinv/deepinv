@@ -564,7 +564,6 @@ class Noise2Void(SplittingLoss):
     :param Metric, torch.nn.Module metric: metric used for computing the loss, set to the mean squared error by default.
     :param float masked_pixel_ratio: approximate fraction of pixels used as blind spots. Ignored if ``mask_generator`` is passed.
     :param int window_size: side length of the neighborhood window used for pixel replacement.
-    :param bool remove_center: whether to exclude the center pixel when sampling the replacement neighbor.
     :param deepinv.physics.generator.Noise2VoidMaskGenerator, None mask_generator: blind-spot mask generator. If ``None``, a :class:`deepinv.physics.generator.Noise2VoidMaskGenerator` is created lazily.
     :param bool normalize_loss: whether to normalize the loss by the blind-spot ratio.
 
@@ -592,7 +591,6 @@ class Noise2Void(SplittingLoss):
         metric: Metric | torch.nn.Module | None = None,
         masked_pixel_ratio: float = 0.02,
         window_size: int = 11,
-        remove_center: bool = True,
         mask_generator: Noise2VoidMaskGenerator | None = None,
         normalize_loss: bool = True,
     ):
@@ -612,7 +610,6 @@ class Noise2Void(SplittingLoss):
         self._name = "n2v"
         self.masked_pixel_ratio = masked_pixel_ratio
         self.window_size = window_size
-        self.remove_center = remove_center
 
     def adapt_model(self, model: torch.nn.Module) -> Noise2VoidModel:
         r"""
@@ -628,7 +625,6 @@ class Noise2Void(SplittingLoss):
             mask_generator=self.mask_generator,
             masked_pixel_ratio=self.masked_pixel_ratio,
             window_size=self.window_size,
-            remove_center=self.remove_center,
             eval_split_input=self.eval_split_input,
         )
 
@@ -643,7 +639,6 @@ class Noise2Void(SplittingLoss):
         :param deepinv.physics.generator.Noise2VoidMaskGenerator, None mask_generator: blind-spot mask generator, created lazily if ``None``.
         :param float masked_pixel_ratio: approximate fraction of blind-spot pixels.
         :param int window_size: side length of the neighborhood window.
-        :param bool remove_center: whether to exclude the center pixel from the neighborhood.
         :param bool eval_split_input: if ``False`` (default), denoise the full image at eval time.
         """
 
@@ -653,7 +648,6 @@ class Noise2Void(SplittingLoss):
             mask_generator,
             masked_pixel_ratio,
             window_size,
-            remove_center,
             eval_split_input=False,
         ):
             super().__init__(
@@ -667,7 +661,6 @@ class Noise2Void(SplittingLoss):
             )
             self.masked_pixel_ratio = masked_pixel_ratio
             self.window_size = window_size
-            self.remove_center = remove_center
 
         def forward(
             self, y: torch.Tensor, physics: Physics, update_parameters: bool = False
@@ -700,7 +693,6 @@ class Noise2Void(SplittingLoss):
                 y,
                 blind,
                 window_size=self.window_size,
-                remove_center=self.remove_center,
                 rng=self.mask_generator.rng,
             )
 
@@ -719,7 +711,6 @@ def neighbor_replace(
     y: torch.Tensor,
     mask: torch.Tensor,
     window_size: int = 11,
-    remove_center: bool = True,
     rng: torch.Generator = None,
 ) -> torch.Tensor:
     r"""Replace masked pixels with a random neighbor value.
@@ -727,14 +718,13 @@ def neighbor_replace(
     Implements the uniform-pixel-selection replacement of Noise2Void
     :footcite:t:`krull2019noise2void`: each pixel where ``mask == 1`` has its value
     replaced by that of a pixel drawn uniformly at random from a square window of
-    side ``window_size`` centered on it (the center pixel is excluded if
-    ``remove_center`` is ``True``). Coordinates falling outside the image are clamped
-    to the border.
+    side ``window_size`` centered on it (the center pixel itself is excluded, so the
+    value is always changed). Coordinates falling outside the image are clamped to the
+    border.
 
     :param torch.Tensor y: input tensor of shape ``(B, C, H, W)``.
     :param torch.Tensor mask: binary mask of shape broadcastable to ``y``, ``1`` marks pixels to replace.
     :param int window_size: side length of the neighborhood window.
-    :param bool remove_center: whether to exclude the center pixel from the neighborhood.
     :param torch.Generator rng: torch random number generator.
     :return: tensor with masked pixels replaced by a random neighbor value.
     """
@@ -750,10 +740,9 @@ def neighbor_replace(
 
     off_h = torch.randint(-r, r + 1, (n,), generator=rng, device=y.device)
     off_w = torch.randint(-r, r + 1, (n,), generator=rng, device=y.device)
-    if remove_center:
-        # nudge (0, 0) offsets so the center pixel is never sampled
-        center = (off_h == 0) & (off_w == 0)
-        off_w = torch.where(center, torch.ones_like(off_w), off_w)
+    # nudge (0, 0) offsets so the center pixel is never sampled
+    center = (off_h == 0) & (off_w == 0)
+    off_w = torch.where(center, torch.ones_like(off_w), off_w)
 
     src_h = (coords[:, 2] + off_h).clamp(0, H - 1)
     src_w = (coords[:, 3] + off_w).clamp(0, W - 1)
