@@ -543,10 +543,15 @@ class TVPrior(Prior):
 
     def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
-        Computes a subgradient of the total variation prior.
+        Computes a subgradient of the total variation prior:
 
-        At locations where the spatial gradient vanishes, the zero element
-        of the Euclidean-norm subdifferential is selected.
+        .. math::
+            \partial g_\sigma (x) = -\mathrm{div}\left(\frac{Dx}{|D x|}\right)
+
+        where :math:`D` is the finite differences linear operator and :math:`\mathrm{div}` is its adjoint, the divergence operator.
+
+        At locations where the finite difference vanishes, the zero element
+        of the subdifferential is selected.
         """
         dx = self.nabla(x)
         norm_dx = torch.linalg.vector_norm(dx, dim=-1, keepdim=True)
