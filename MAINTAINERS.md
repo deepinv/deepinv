@@ -21,7 +21,7 @@ If you're a contributor and are interested in becoming a maintainer, please reac
 | Jérémy Scanvic  | [@jscanvic](https://github.com/jscanvic)         | CNRS, ENS Lyon | [📧](mailto:jeremy.scanvic@ens-lyon.fr) |
 | Romain Vo      | [@romainvo](https://github.com/romainvo)         | CNRS, ENS Lyon | [📧](mailto:romain.vo@ens-lyon.fr)      |
 | Vicky De Ridder  | [@nucli-vicky](https://github.com/nucli-vicky)  | Nuclivision | [📧](mailto:vicky.deridder@nuclivision.com)      |
-| Paul Bernard      | [@PAUL-BERNARD](https://github.com/PAUL-BERNARD)   | Inria | [📧](mailto:romain.vo@ens-lyon.fr)      |
+| Paul Bernard      | [@PAUL-BERNARD](https://github.com/PAUL-BERNARD)   | Inria, ENS Lyon | [📧](mailto:Paul.Bernard@inria.fr)      |
 
 ## Emeritus
 
