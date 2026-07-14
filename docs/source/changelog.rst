@@ -15,7 +15,7 @@ New Features
 - Add :func:`deepinv.utils.load_tiff` to load images/ volumes from TIFF files (:gh:`1249` by `Andrew Wang`_)
 - Add :func:`deepinv.utils.plot_napari` to interactively view 2D images/3D vols with napari (:gh:`1249` by `Andrew Wang`_)
 - Add :func:`deepinv.optim.linear.lsmr`, the LSMR (Least Squares Minimal Residual) iterative solver for least-squares problems (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Add :attr:`deepinv.utils.TensorList.dtype` to :class:`deepinv.utils.TensorList` (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Add dtype attribute to :class:`deepinv.utils.TensorList` (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 - Add test_optim.test_least_squares_min_norm for underdetermined systems on linear solvers (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 
 Changed
