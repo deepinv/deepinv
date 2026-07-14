@@ -534,20 +534,11 @@ class Noise2Void(SplittingLoss):
     In the network input, each blind-spot pixel value is replaced by that of a random
     neighbor (see :func:`deepinv.loss.measplit.neighbor_replace`), so the network never
     sees the true value of a pixel it must predict. The loss is then the error on the
-    blind-spot pixels against their original noisy values:
+    blind-spot pixels against their original noisy values.
 
-    .. math::
 
-        \frac{1}{|\Omega|}\sum_{i \in \Omega} \| \inversef{\tilde{y}}{A}_i - y_i \|^2
-
-    where :math:`\Omega` is the set of blind-spot pixels and :math:`\tilde{y}` is the
-    measurement with blind-spot pixels neighbor-replaced. As noise is assumed
-    conditionally pixel-wise independent given the signal, the network cannot copy the
-    noise and instead learns to predict the underlying signal.
-
-    Noise2Void is a special case of measurement splitting (:class:`deepinv.loss.SplittingLoss`)
-    for denoising (:math:`A=\operatorname{Id}`), where the input split uses neighbor
-    replacement rather than zeroing and the loss is evaluated on the held-out pixels.
+    As noise is assumed conditionally pixel-wise independent given the signal, the network
+    cannot copy the noise and instead learns to predict the underlying signal.
 
     .. note::
 
@@ -561,28 +552,10 @@ class Noise2Void(SplittingLoss):
         training using :func:`adapt_model <deepinv.loss.Noise2Void.adapt_model>` to
         include the blind-spot masking at the input.
 
-    :param Metric, torch.nn.Module metric: metric used for computing the loss, set to the mean squared error by default.
+    :param Metric, torch.nn.Module metric: metric used for computing the loss, set to the mean squared error by default. Only pointwise losses are supported.
     :param float masked_pixel_ratio: approximate fraction of pixels used as blind spots. Ignored if ``mask_generator`` is passed.
     :param int window_size: side length of the neighborhood window used for pixel replacement.
     :param deepinv.physics.generator.Noise2VoidMaskGenerator, None mask_generator: blind-spot mask generator. If ``None``, a :class:`deepinv.physics.generator.Noise2VoidMaskGenerator` is created lazily.
-    :param bool normalize_loss: whether to normalize the loss by the blind-spot ratio.
-
-    |sep|
-
-    :Example:
-
-    >>> import torch
-    >>> import deepinv as dinv
-    >>> physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
-    >>> model = dinv.models.MedianFilter()
-    >>> loss = dinv.loss.Noise2Void(masked_pixel_ratio=0.05)
-    >>> model = loss.adapt_model(model) # important step!
-    >>> x = torch.ones((1, 1, 8, 8))
-    >>> y = physics(x)
-    >>> x_net = model(y, physics, update_parameters=True) # replace blind spots in forward pass
-    >>> l = loss(x_net, y, physics, model)
-    >>> print(l.item() > 0)
-    True
 
     """
 
@@ -592,7 +565,6 @@ class Noise2Void(SplittingLoss):
         masked_pixel_ratio: float = 0.02,
         window_size: int = 11,
         mask_generator: Noise2VoidMaskGenerator | None = None,
-        normalize_loss: bool = True,
     ):
         if mask_generator is None:
             # validate early; ignored when a custom mask_generator is supplied
@@ -605,11 +577,26 @@ class Noise2Void(SplittingLoss):
             eval_split_input=False,  # denoise full image at eval time
             eval_split_output=False,
             pixelwise=True,
-            normalize_loss=normalize_loss,
+            normalize_loss=True,
         )
         self._name = "n2v"
         self.masked_pixel_ratio = masked_pixel_ratio
         self.window_size = window_size
+
+    def forward(self, x_net, y, physics, model, **kwargs):
+        r"""
+        Computes the Noise2Void loss on the blind-spot pixels.
+
+        :param torch.Tensor x_net: reconstructions.
+        :param torch.Tensor y: measurements.
+        :param deepinv.physics.Physics physics: forward operator (denoising).
+        :param torch.nn.Module model: adapted reconstruction model.
+        :return: (:class:`torch.Tensor`) loss.
+        """
+        # N2V performs a single blind-spot realization, so there is exactly one mask
+        (blindspot_mask,) = model.get_masks()
+        blindspot = blindspot_mask.bool()
+        return self.metric(x_net[blindspot], y[blindspot])
 
     def adapt_model(self, model: torch.nn.Module) -> Noise2VoidModel:
         r"""
@@ -683,26 +670,22 @@ class Noise2Void(SplittingLoss):
         def _forward_split_input(
             self, y: torch.Tensor, physics: Physics, update_parameters: bool = False
         ):
-            # blind-spot mask: 1 at pixels to replace and supervise.
-            # N2V is a denoising loss, so the mask spans the whole image; pass the
-            # current spatial size so masks track varying image shapes.
-            blind = self.mask_generator.step(y.size(0), img_size=y.shape[-2:])["mask"]
+            blindspot_mask = self.mask_generator.step(y.size(0), img_size=y.shape[-2:])[
+                "mask"
+            ]
 
-            # replace blind-spot pixels with a random neighbor value
             y1 = neighbor_replace(
                 y,
-                blind,
+                blindspot_mask,
                 window_size=self.window_size,
                 rng=self.mask_generator.rng,
             )
 
-            # network sees the manipulated image; physics is left unchanged
             out = self.model(y1, physics)
 
             if update_parameters:
-                # store the kept-input mask so the inherited SplittingLoss.forward
-                # computes the loss on the blind-spot pixels (mask2 = 1 - mask1)
-                self.masks = [(1.0 - blind).clone()]
+                # store the blind-spot mask for the loss to supervise on
+                self.masks = [blindspot_mask.clone()]
 
             return out
 

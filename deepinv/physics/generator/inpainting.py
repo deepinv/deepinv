@@ -665,12 +665,6 @@ def _get_stratified_coords(
     that the blind spots are spread roughly uniformly over the image at the target
     density. This is the "uniform pixel selection" (UPS) scheme of Noise2Void
     :footcite:t:`krull2019noise2void`.
-
-    :param float masked_pixel_ratio: approximate fraction of pixels to select as blind spots, in (0, 1].
-    :param tuple[int, int] img_size: spatial image size ``(H, W)``.
-    :param torch.Generator rng: torch random number generator.
-    :param str, torch.device device: device on which to allocate the coordinates.
-    :return: tuple ``(rows, cols)`` of 1D index tensors.
     """
     H, W = img_size[-2:]
     # box side length so that ~1 blind spot per box gives the target density
@@ -693,28 +687,13 @@ def _get_stratified_coords(
 class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
     r"""Generate blind-spot masks for Noise2Void.
 
-    Selects a small subset of pixels as "blind spots" using the uniform pixel
-    selection (UPS) scheme of :footcite:t:`krull2019noise2void`: the image is
-    divided into square boxes and one random pixel is picked per box, giving an
-    approximately uniform coverage at the target density.
-
-    The returned mask has value ``1`` at blind-spot pixels (the pixels whose input
-    value will be replaced and on which the self-supervised loss is computed) and
+    The returned mask has value ``1`` at blind-spot pixels and
     ``0`` elsewhere. Blind spots are shared across channels.
 
     .. seealso::
 
         :class:`deepinv.loss.Noise2Void`
             Self-supervised denoising loss that uses this generator.
-
-    |sep|
-
-    :Examples:
-
-        >>> from deepinv.physics.generator import Noise2VoidMaskGenerator
-        >>> gen = Noise2VoidMaskGenerator((1, 32, 32), masked_pixel_ratio=0.02)
-        >>> gen.step(batch_size=2)["mask"].shape
-        torch.Size([2, 1, 32, 32])
 
     .. note::
 
