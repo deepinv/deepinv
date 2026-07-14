@@ -54,7 +54,7 @@ def lsqr(
     stagtol = _resolve_stagtol(stagtol, b)
 
     if conlim is None:
-        conlim = 12.0 * torch.finfo(b.dtype).eps
+        conlim = 12.0 / torch.finfo(b.dtype).eps
         # multiplication causes the default to be 1e8 on single precision
 
     parallel_dim = _as_dim_list(parallel_dim)
