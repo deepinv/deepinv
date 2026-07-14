@@ -561,11 +561,6 @@ class Noise2Void(SplittingLoss):
         training using :func:`adapt_model <deepinv.loss.Noise2Void.adapt_model>` to
         include the blind-spot masking at the input.
 
-    .. seealso::
-
-        :class:`deepinv.loss.SplittingLoss`, :class:`deepinv.loss.Neighbor2Neighbor`
-            Related self-supervised losses based on measurement splitting.
-
     :param Metric, torch.nn.Module metric: metric used for computing the loss, set to the mean squared error by default.
     :param float masked_pixel_ratio: approximate fraction of pixels used as blind spots. Ignored if ``mask_generator`` is passed.
     :param int window_size: side length of the neighborhood window used for pixel replacement.
