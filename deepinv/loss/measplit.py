@@ -11,52 +11,6 @@ from deepinv.physics.generator import (
 from deepinv.models.base import Reconstructor
 
 
-def neighbor_replace(
-    y: torch.Tensor,
-    mask: torch.Tensor,
-    window_size: int = 11,
-    remove_center: bool = True,
-    rng: torch.Generator = None,
-) -> torch.Tensor:
-    r"""Replace masked pixels with a random neighbor value.
-
-    Implements the uniform-pixel-selection replacement of Noise2Void
-    :footcite:t:`krull2019noise2void`: each pixel where ``mask == 1`` has its value
-    replaced by that of a pixel drawn uniformly at random from a square window of
-    side ``window_size`` centered on it (the center pixel is excluded if
-    ``remove_center`` is ``True``). Coordinates falling outside the image are clamped
-    to the border.
-
-    :param torch.Tensor y: input tensor of shape ``(B, C, H, W)``.
-    :param torch.Tensor mask: binary mask of shape broadcastable to ``y``, ``1`` marks pixels to replace.
-    :param int window_size: side length of the neighborhood window.
-    :param bool remove_center: whether to exclude the center pixel from the neighborhood.
-    :param torch.Generator rng: torch random number generator.
-    :return: tensor with masked pixels replaced by a random neighbor value.
-    """
-    B, C, H, W = y.shape
-    device = y.device
-    r = window_size // 2
-
-    off_h = torch.randint(-r, r + 1, (B, C, H, W), generator=rng, device=device)
-    off_w = torch.randint(-r, r + 1, (B, C, H, W), generator=rng, device=device)
-    if remove_center:
-        # nudge (0, 0) offsets so the center pixel is never sampled
-        center = (off_h == 0) & (off_w == 0)
-        off_w = torch.where(center, torch.ones_like(off_w), off_w)
-
-    rows = torch.arange(H, device=device).view(1, 1, H, 1)
-    cols = torch.arange(W, device=device).view(1, 1, 1, W)
-    src_h = (rows + off_h).clamp(0, H - 1)
-    src_w = (cols + off_w).clamp(0, W - 1)
-
-    b_idx = torch.arange(B, device=device).view(B, 1, 1, 1).expand(B, C, H, W)
-    c_idx = torch.arange(C, device=device).view(1, C, 1, 1).expand(B, C, H, W)
-    neighbors = y[b_idx, c_idx, src_h, src_w]
-
-    return torch.where(mask.expand_as(y).bool(), neighbors, y)
-
-
 class SplittingLoss(Loss):
     r"""
     Measurement splitting loss.
@@ -738,10 +692,10 @@ class Noise2Void(SplittingLoss):
         def _forward_split_input(
             self, y: torch.Tensor, physics: Physics, update_parameters: bool = False
         ):
-            # blind-spot mask: 1 at pixels to replace and supervise
-            blind = self.mask_generator.step(
-                y.size(0), input_mask=getattr(physics, "mask", None)
-            )["mask"]
+            # blind-spot mask: 1 at pixels to replace and supervise.
+            # N2V is a denoising loss, so the mask spans the whole image; pass the
+            # current spatial size so masks track varying image shapes.
+            blind = self.mask_generator.step(y.size(0), img_size=y.shape[-2:])["mask"]
 
             # replace blind-spot pixels with a random neighbor value
             y1 = neighbor_replace(
@@ -761,3 +715,49 @@ class Noise2Void(SplittingLoss):
                 self.masks = [(1.0 - blind).clone()]
 
             return out
+
+
+def neighbor_replace(
+    y: torch.Tensor,
+    mask: torch.Tensor,
+    window_size: int = 11,
+    remove_center: bool = True,
+    rng: torch.Generator = None,
+) -> torch.Tensor:
+    r"""Replace masked pixels with a random neighbor value.
+
+    Implements the uniform-pixel-selection replacement of Noise2Void
+    :footcite:t:`krull2019noise2void`: each pixel where ``mask == 1`` has its value
+    replaced by that of a pixel drawn uniformly at random from a square window of
+    side ``window_size`` centered on it (the center pixel is excluded if
+    ``remove_center`` is ``True``). Coordinates falling outside the image are clamped
+    to the border.
+
+    :param torch.Tensor y: input tensor of shape ``(B, C, H, W)``.
+    :param torch.Tensor mask: binary mask of shape broadcastable to ``y``, ``1`` marks pixels to replace.
+    :param int window_size: side length of the neighborhood window.
+    :param bool remove_center: whether to exclude the center pixel from the neighborhood.
+    :param torch.Generator rng: torch random number generator.
+    :return: tensor with masked pixels replaced by a random neighbor value.
+    """
+    B, C, H, W = y.shape
+    device = y.device
+    r = window_size // 2
+
+    off_h = torch.randint(-r, r + 1, (B, C, H, W), generator=rng, device=device)
+    off_w = torch.randint(-r, r + 1, (B, C, H, W), generator=rng, device=device)
+    if remove_center:
+        # nudge (0, 0) offsets so the center pixel is never sampled
+        center = (off_h == 0) & (off_w == 0)
+        off_w = torch.where(center, torch.ones_like(off_w), off_w)
+
+    rows = torch.arange(H, device=device).view(1, 1, H, 1)
+    cols = torch.arange(W, device=device).view(1, 1, 1, W)
+    src_h = (rows + off_h).clamp(0, H - 1)
+    src_w = (cols + off_w).clamp(0, W - 1)
+
+    b_idx = torch.arange(B, device=device).view(B, 1, 1, 1).expand(B, C, H, W)
+    c_idx = torch.arange(C, device=device).view(1, C, 1, 1).expand(B, C, H, W)
+    neighbors = y[b_idx, c_idx, src_h, src_w]
+
+    return torch.where(mask.expand_as(y).bool(), neighbors, y)
