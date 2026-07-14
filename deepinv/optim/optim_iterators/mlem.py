@@ -62,10 +62,12 @@ class MLEMIteration(OptimIterator):
 
         x = x_prev
         for cur_y, cur_physics in zip(measurements, physics_list, strict=True):
-            # E-step/MM correction: compare measured counts to predicted counts.
+            # Standard MLEM update to decrease the negative log-likelihood
             sensitivity = cur_physics.A_adjoint(ones_like(cur_y))
+            # For PET we need to add the background term
             if hasattr(cur_physics, "background"):
                 proj = cur_physics.A(x, add_background=True)
+            # For CT there is no background
             else:
                 proj = cur_physics.A(x)
 
