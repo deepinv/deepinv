@@ -541,6 +541,28 @@ class TVPrior(Prior):
         """
         return self.TVModel.nabla_adjoint(x)
 
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Computes a subgradient of the total variation prior.
+
+        At locations where the spatial gradient vanishes, the zero element
+        of the Euclidean-norm subdifferential is selected.
+        """
+        dx = self.nabla(x)
+        norm_dx = torch.linalg.vector_norm(dx, dim=-1, keepdim=True)
+
+        nonzero = norm_dx > 0
+
+        # Do not evaluate an unsafe division by zero, even in the masked branch.
+        safe_norm = torch.where(nonzero, norm_dx, torch.ones_like(norm_dx))
+        normalized_dx = torch.where(
+            nonzero,
+            dx / safe_norm,
+            torch.zeros_like(dx),
+        )
+
+        return self.nabla_adjoint(normalized_dx)
+
 
 class PatchPrior(Prior):
     r"""
