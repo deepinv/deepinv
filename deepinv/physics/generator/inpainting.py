@@ -716,12 +716,39 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
         >>> gen.step(batch_size=2)["mask"].shape
         torch.Size([2, 1, 32, 32])
 
+    .. note::
+
+        ``masked_pixel_ratio`` should be small (Noise2Void typically uses a fraction
+        of a percent up to a few percent). Large values break the blind-spot
+        assumption (blind spots cluster, so a target pixel value can leak into the
+        receptive field via neighbor replacement) and are poorly honored by the
+        stratified sampling: the box side is ``round(sqrt(1 / masked_pixel_ratio))``,
+        which is integer-quantized and collapses to ``1`` (i.e. every pixel becomes a
+        blind spot) once the ratio exceeds ``~0.45``. A :attr:`max_ratio` (default
+        ``0.1``) caps the allowed value; larger ratios raise a ``ValueError``.
+
     :param tuple[int] img_size: size of the tensor to be masked without batch dimension, e.g. of shape ``(C, H, W)``.
-    :param float masked_pixel_ratio: approximate fraction of pixels selected as blind spots.
+    :param float masked_pixel_ratio: approximate fraction of pixels selected as blind spots, in ``(0, max_ratio]``.
     :param str, torch.device device: device where the tensor is stored (default: 'cpu').
     :param torch.dtype dtype: the data type of the generated parameters.
     :param torch.Generator rng: torch random number generator.
     """
+
+    #: maximum allowed ratio; above this the stratified sampling stops honoring the
+    #: requested density (the box side ``round(sqrt(1 / ratio))`` drops to 2, flattening
+    #: the achieved density to 0.25) and the blind-spot assumption breaks down.
+    max_ratio: float = 0.1
+
+    @classmethod
+    def validate_ratio(cls, masked_pixel_ratio: float) -> None:
+        r"""Validate ``masked_pixel_ratio``, raising if out of the allowed range."""
+        if not 0.0 < masked_pixel_ratio <= cls.max_ratio:
+            raise ValueError(
+                f"masked_pixel_ratio must be in (0, {cls.max_ratio}], but got "
+                f"{masked_pixel_ratio}. Above {cls.max_ratio}, blind spots cluster "
+                "(weakening the blind-spot assumption) and the stratified sampling "
+                "saturates towards fully masking the image."
+            )
 
     def __init__(
         self,
@@ -733,6 +760,7 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
         *args,
         **kwargs,
     ):
+        self.validate_ratio(masked_pixel_ratio)
         super().__init__(
             img_size=img_size,
             split_ratio=masked_pixel_ratio,  # fraction of blind spots

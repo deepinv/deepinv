@@ -601,6 +601,9 @@ class Noise2Void(SplittingLoss):
         mask_generator: Noise2VoidMaskGenerator | None = None,
         normalize_loss: bool = True,
     ):
+        if mask_generator is None:
+            # validate early; ignored when a custom mask_generator is supplied
+            Noise2VoidMaskGenerator.validate_ratio(masked_pixel_ratio)
         super().__init__(
             metric=metric,
             split_ratio=masked_pixel_ratio,
