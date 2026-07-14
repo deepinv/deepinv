@@ -644,7 +644,7 @@ class Noise2Void(SplittingLoss):
         Performs blind-spot masking with neighbor replacement at the input during
         training. At evaluation, the full (unmasked) measurement is denoised.
 
-        :param deepinv.models.Reconstructor model: base model.
+        :param deepinv.models.Reconstructor model: base denoiser. Must be a blind denoiser.
         :param deepinv.physics.generator.Noise2VoidMaskGenerator, None mask_generator: blind-spot mask generator, created lazily if ``None``.
         :param float masked_pixel_ratio: approximate fraction of blind-spot pixels.
         :param int window_size: side length of the neighborhood window.
