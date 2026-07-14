@@ -613,3 +613,25 @@ def test_gmsd():
     x[:, :, :4] = 2
     out = gmsd(x_net, x)
     assert torch.isclose(out, torch.tensor((0.33,)), atol=3e-4)
+
+
+def test_spectral_angle_mapper_ignores_zero_pixels():
+    # Regression test for #1047: a pixel whose spectral vector is all-zero
+    # yields a NaN angle in torchmetrics. Because SAM reduces spatially
+    # itself, that NaN must not poison the whole image score.
+    a, b = torch.ones(2, 1, 3, 8, 8)
+    a[:, :, 5, 3] = 0  # one all-zero spectral pixel
+
+    out = metric.SpectralAngleMapper()(a, b)
+    assert not torch.isnan(out).any()
+    # The remaining pixels are identical, so the angle is 0 everywhere kept.
+    assert torch.allclose(out, torch.zeros_like(out), atol=1e-6)
+
+    # Without any degenerate pixel the result is unchanged (matches a plain
+    # spatial mean of the per-pixel angles).
+    from torchmetrics.functional.image import spectral_angle_mapper
+
+    x_net = torch.rand(3, 4, 8, 8)
+    x = torch.rand(3, 4, 8, 8)
+    reference = spectral_angle_mapper(x_net, x, reduction="none").mean(dim=(1, 2))
+    assert torch.allclose(metric.SpectralAngleMapper()(x_net, x), reference)
