@@ -532,9 +532,8 @@ class Noise2Void(SplittingLoss):
     A small subset of "blind-spot" pixels is selected (by default with the uniform
     pixel selection scheme, see :class:`deepinv.physics.generator.Noise2VoidMaskGenerator`).
     In the network input, each blind-spot pixel value is replaced by that of a random
-    neighbor (see :func:`deepinv.loss.measplit.neighbor_replace`), so the network never
-    sees the true value of a pixel it must predict. The loss is then the error on the
-    blind-spot pixels against their original noisy values.
+    neighbor, so the network never sees the true value of a pixel it must predict. The loss
+    is then the error on the blind-spot pixels against their original noisy values.
 
 
     As noise is assumed conditionally pixel-wise independent given the signal, the network
@@ -674,7 +673,7 @@ class Noise2Void(SplittingLoss):
                 "mask"
             ]
 
-            y1 = neighbor_replace(
+            y1 = _neighbor_replace(
                 y,
                 blindspot_mask,
                 window_size=self.window_size,
@@ -690,20 +689,12 @@ class Noise2Void(SplittingLoss):
             return out
 
 
-def neighbor_replace(
+def _neighbor_replace(
     y: torch.Tensor,
     mask: torch.Tensor,
     window_size: int = 11,
     rng: torch.Generator = None,
 ) -> torch.Tensor:
-    r"""Replace masked pixels with a random neighbor value.
-
-    :param torch.Tensor y: input tensor of shape ``(B, C, H, W)``.
-    :param torch.Tensor mask: binary mask of shape broadcastable to ``y``, ``1`` marks pixels to replace.
-    :param int window_size: side length of the neighborhood window.
-    :param torch.Generator rng: torch random number generator.
-    :return: tensor with masked pixels replaced by a random neighbor value.
-    """
     _, _, H, W = y.shape
     r = window_size // 2
     out = y.clone()
