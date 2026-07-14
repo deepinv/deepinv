@@ -684,7 +684,7 @@ class Noise2Void(SplittingLoss):
 
             if update_parameters:
                 # store the blind-spot mask for the loss to supervise on
-                self.masks = [blindspot_mask.clone()]
+                self.masks = [blindspot_mask]
 
             return out
 
