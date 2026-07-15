@@ -9,7 +9,12 @@ from .sampling_iterators import (
     DiffusionIterator,
 )
 from . import diffusion_sde, sde_solver
-from .noisy_datafidelity import NoisyDataFidelity, DPSDataFidelity
+from .noisy_datafidelity import (
+    NoisyDataFidelity,
+    DPSDataFidelity,
+    PiGDMDataFidelity,
+    MomentMatchingDataFidelity,
+)
 from .diffusion_sde import (
     BaseSDE,
     DiffusionSDE,

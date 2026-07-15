@@ -142,10 +142,16 @@ We implement the following noisy data-fidelity terms, which inherit from the :cl
    :header-rows: 1
 
    * - **Class**
-     - :math:`\nabla_{\hat x_t} \log \hat p_t(y| \hat x_t = x + \sigma_t \omega)`
+     - :math:`-\nabla_{\hat x_t} \log \hat p_t(y| \hat x_t = x + \sigma_t \omega)`
 
    * - :class:`deepinv.sampling.DPSDataFidelity`
      - :math:`\nabla_{\hat x_t} \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{\hat x_t}{\sigma_t}} - y \|`
+
+   * - :class:`deepinv.sampling.PiGDMDataFidelity`
+     - :math:`\lambda J_D^\top A^\top (r_t^2 A A^\top + \mathrm{Id})^{-1} (A\denoiser{\hat x_t}{\sigma_t} - y)`, with :math:`r_t^2=\sigma_t^2/(1+\sigma_t^2)`
+
+   * - :class:`deepinv.sampling.MomentMatchingDataFidelity`
+     - :math:`\lambda J_D^\top A^\top (A J_D^\top A^\top + \mathrm{Id})^{-1} (A\denoiser{\hat x_t}{\sigma_t} - y)`
 
 
 .. _diffusion_custom:

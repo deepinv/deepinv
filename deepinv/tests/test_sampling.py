@@ -65,6 +65,15 @@ class GaussianDenoiser(torch.nn.Module):
         return x / (1 + sigma**2 / self.sigma_prior2)
 
 
+class ScaledDenoiser(torch.nn.Module):
+    def __init__(self, scale):
+        super().__init__()
+        self.register_buffer("scale", torch.tensor(scale, dtype=torch.float32))
+
+    def forward(self, x, sigma):
+        return self.scale * x
+
+
 @pytest.mark.parametrize("algo", SAMPLING_ALGOS)
 def test_sampling_algo(algo, imsize, device):
     test_sample = torch.ones((1, *imsize))
@@ -401,10 +410,10 @@ def test_sde(device, load_example_image):
 
 @torch.no_grad()
 def test_noisy_data_fidelity(device):
-    from deepinv.sampling import DPSDataFidelity, NoisyDataFidelity
+    from deepinv.sampling import DPSDataFidelity, NoisyDataFidelity, PiGDMDataFidelity, MomentMatchingDataFidelity
     import itertools
 
-    all_data_fid_classes = [NoisyDataFidelity, DPSDataFidelity]
+    all_data_fid_classes = [NoisyDataFidelity, DPSDataFidelity, PiGDMDataFidelity, MomentMatchingDataFidelity]
     all_clip = [None, (-100, 100)]
     denoiser = dinv.models.DRUNet(pretrained="download").to(device)
     x = torch.rand(2, 3, 64, 64, device=device)
