@@ -410,10 +410,20 @@ def test_sde(device, load_example_image):
 
 @torch.no_grad()
 def test_noisy_data_fidelity(device):
-    from deepinv.sampling import DPSDataFidelity, NoisyDataFidelity, PiGDMDataFidelity, MomentMatchingDataFidelity
+    from deepinv.sampling import (
+        DPSDataFidelity,
+        NoisyDataFidelity,
+        PiGDMDataFidelity,
+        MomentMatchingDataFidelity,
+    )
     import itertools
 
-    all_data_fid_classes = [NoisyDataFidelity, DPSDataFidelity, PiGDMDataFidelity, MomentMatchingDataFidelity]
+    all_data_fid_classes = [
+        NoisyDataFidelity,
+        DPSDataFidelity,
+        PiGDMDataFidelity,
+        MomentMatchingDataFidelity,
+    ]
     all_clip = [None, (-100, 100)]
     denoiser = dinv.models.DRUNet(pretrained="download").to(device)
     x = torch.rand(2, 3, 64, 64, device=device)
