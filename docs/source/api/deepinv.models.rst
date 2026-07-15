@@ -87,6 +87,7 @@ Model Utils
    deepinv.models.TimeAveragingNet
    deepinv.models.Client
    deepinv.models.AnscombeDenoiser
+   deepinv.models.GSPnP
 
 .. autosummary::
    :toctree: stubs

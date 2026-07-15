@@ -35,7 +35,7 @@ class RidgeRegularizer(nn.Module):
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (only available for the default architecture with 3 or 1 input/output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
-        See :ref:`pretrained-weights <pretrained-learned-reg>` for more details.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool warn_output_scaling: warn if `weak_convexity>0` and the output scaling (:math:`\log(\alpha)` in the above description) is not zero. This case
         destroys the weak convexity constant defined by teh `weak_convexity` argument. Default: `True`
     """
