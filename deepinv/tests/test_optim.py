@@ -606,9 +606,6 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "WaveletDictPrior",
         "ZeroPrior",
     ]:
-        if prior_name in learned_priors and pnp_algo != "PGD":
-            continue
-
         # 1. Generate a dummy dataset
         dataloader = DataLoader(
             dummy_dataset, batch_size=1, shuffle=False, num_workers=0
@@ -622,7 +619,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
             device=device,
         )
         y = physics(test_sample)
-        max_iter = 2 if prior_name in learned_priors else 1000
+        max_iter = 2 if prior_name in learned_priors else 1000 # Do not check convergence with learned priors, because too long to compute.
         # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
         # sigma_denoiser = torch.tensor([[0.1]])
         sigma_denoiser = torch.tensor(
