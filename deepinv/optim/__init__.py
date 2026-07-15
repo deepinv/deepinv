@@ -43,7 +43,7 @@ from .prior import (
     ZeroPrior,
     L12Prior,
     RidgeRegularizer,
-    LeastSquaresResidual
+    LeastSquaresResidual,
 )
 from .optim_iterators import (
     OptimIterator,
