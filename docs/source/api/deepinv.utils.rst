@@ -20,6 +20,7 @@ Plotting
         deepinv.utils.plot_videos
         deepinv.utils.save_videos
         deepinv.utils.plot_ortho3D
+        deepinv.utils.plot_napari
         deepinv.utils.disable_tex
         deepinv.utils.enable_tex
         deepinv.utils.normalize_signal
@@ -84,6 +85,7 @@ Image Loading
 
     deepinv.utils.load_dicom
     deepinv.utils.load_nifti
+    deepinv.utils.load_tiff
     deepinv.utils.load_url
     deepinv.utils.load_np
     deepinv.utils.load_torch
@@ -130,6 +132,7 @@ Phantoms
 
     deepinv.utils.phantoms.generate_shepp_logan
     deepinv.utils.phantoms.generate_random_phantom
+    deepinv.utils.phantoms.generate_pet_phantom
 
 
 .. autosummary::
@@ -149,8 +152,8 @@ Tiling / Untiling (Patching and Unpatching)
    :toctree: stubs
    :template: myfunc_template.rst
    :nosignatures:
-    
-    deepinv.utils.patch_extractor 
+
+    deepinv.utils.patch_extractor
     deepinv.utils.image_to_patches
     deepinv.utils.patches_to_image
     deepinv.utils.patchify
