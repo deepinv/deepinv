@@ -112,7 +112,7 @@ If you use DeepInverse in your research, please cite `our paper on JOSS <https:/
 Star history
 ------------
 
-.. image:: https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date
+.. image:: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
    :alt: Star History Chart
    :target: https://www.star-history.com/#deepinv/deepinv&Date
 
