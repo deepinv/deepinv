@@ -992,11 +992,15 @@ def test_datafid_stacking(imsize, device):
     assert data_fid.grad(x, y2, physics) == -(y2[0] - y[0]) / 4 - (y2[1] - y[1])
 
 
-solvers = ["CG", "BiCGStab", "lsqr", "minres"]
+solvers = ["CG", "BiCGStab", "lsqr", "minres", "lsmr"]
+# Physics that actually route A_dagger / prox_l2 through an iterative least-squares
+# solver (decomposable / closed-form physics such as inpainting are excluded here as
+# the solver argument is a no-op for them). deblur_circular is a *square*,
+# non-decomposable operator, exercising the regularized square-operator dispatch.
 least_squares_physics = [
-    "inpainting",
     "super_resolution_circular",
     "deblur_valid",
+    "deblur_circular",
     "MultiCoilMRI",
 ]
 
@@ -1024,7 +1028,10 @@ def test_least_square_solvers(
         < tol
     ).all()
 
-    z = x.clone()
+    # Use z != x so the solver is not seeded at the exact solution (prox_l2 inits at z).
+    # This is what actually exercises convergence and the regularized dispatch: with
+    # z = x the buggy path that drops gamma would still return x and pass.
+    z = torch.randn((batch_size, *img_size), device=device)
     if gamma_scalar:
         gamma = 1.0
     else:
@@ -1032,9 +1039,14 @@ def test_least_square_solvers(
 
     x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=1e-6, max_iter=100)
 
+    # x_hat minimizes ||A x - y||^2 + (1/gamma) ||x - z||^2, so check its (reference-free)
+    # optimality condition A^T(A x_hat - y) + (1/gamma)(x_hat - z) = 0. This directly
+    # fails if gamma is not honored (i.e. if the solver instead solves A x = y).
+    optimality = physics.A_adjoint(physics.A(x_hat) - y) + (1 / gamma) * (x_hat - z)
+    scale = physics.A_adjoint(y) + (1 / gamma) * z
     assert (
-        (x_hat - x).abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
-        / x.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        optimality.abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        / scale.abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
         < tol
     ).all()
 
@@ -1049,7 +1061,7 @@ def test_least_square_solvers(
         assert torch.all(~torch.isnan(y.grad))
 
 
-DTYPES = [torch.float32, torch.complex64]
+DTYPES = [torch.float32, torch.float64, torch.complex64]
 
 
 @pytest.mark.parametrize("solver", solvers)
@@ -1074,11 +1086,14 @@ def test_linear_system(device, solver, dtype, rng, zero_input):
         b = torch.zeros((batch_size, 32), dtype=dtype, device=device)
     else:
         b = torch.randn((batch_size, 32), dtype=dtype, device=device, generator=rng)
+        b[0] = (
+            0.0  # heterogeneous batch: a trivial element must not zero out the others
+        )
 
     A = lambda x: (mat @ x.T).T
     AT = lambda x: (mat.adjoint() @ x.T).T
 
-    tol = 1e-4
+    tol = 1e-8 if dtype == torch.float64 else 1e-4
     if solver == "CG":
         x = dinv.optim.linear.conjugate_gradient(
             A, b, tol=tol, max_iter=1000, verbose=True
@@ -1089,6 +1104,8 @@ def test_linear_system(device, solver, dtype, rng, zero_input):
         x = dinv.optim.linear.bicgstab(A, b, tol=tol, max_iter=1000)
     elif solver == "lsqr":
         x = dinv.optim.linear.lsqr(A, AT, b, tol=tol, max_iter=1000)[0]
+    elif solver == "lsmr":
+        x = dinv.optim.linear.lsmr(A, AT, b, tol=tol, max_iter=1000)[0]
     else:
         raise ValueError("Solver not found")
 
@@ -1097,6 +1114,21 @@ def test_linear_system(device, solver, dtype, rng, zero_input):
     else:
         error = (A(x) - b).abs().pow(2).sum()
         assert error < tol * b.abs().pow(2).sum()
+
+
+def test_least_squares_min_norm(device, rng):
+    # Undercomplete A (rows < cols): least_squares with gamma=None returns the
+    # minimum-norm solution x = A^T (A A^T)^{-1} y, not an arbitrary least-squares one.
+    m, n = 4, 8
+    G = torch.randn((m, n), dtype=torch.float64, device=device, generator=rng)
+    A = lambda x: (G @ x.T).T
+    AT = lambda u: (G.T @ u.T).T
+    y = torch.randn((2, m), dtype=torch.float64, device=device, generator=rng)
+    x = dinv.optim.linear.least_squares(
+        A, AT, y, gamma=None, solver="minres", tol=1e-10, max_iter=1000
+    )
+    x_ref = (G.T @ torch.linalg.solve(G @ G.T, y.T)).T  # dense min-norm reference
+    assert (x - x_ref).norm() < 1e-6 * x_ref.norm()
 
 
 def test_condition_number(device):

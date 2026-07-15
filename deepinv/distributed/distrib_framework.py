@@ -617,7 +617,7 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
 
         :param TensorList | list[torch.Tensor] y: measurements to invert.
         :param str solver: least squares solver to use (only for `local_only=False`).
-            Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. Default is `'CG'`.
+            Choose between `'CG'`, `'lsqr'`, `'BiCGStab'`, `'minres'` and `'lsmr'`. Default is `'CG'`.
         :param int | None max_iter: maximum number of iterations for least squares solver. Default is `None`.
         :param float | None tol: relative tolerance for least squares solver. Default is `None`.
         :param bool verbose: print information (only on rank 0). Default is `False`.

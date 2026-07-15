@@ -179,6 +179,7 @@ Linear Solvers
     deepinv.optim.linear.least_squares
     deepinv.optim.linear.least_squares_implicit_backward
     deepinv.optim.linear.lsqr
+   deepinv.optim.linear.lsmr
     deepinv.optim.linear.bicgstab
     deepinv.optim.linear.minres
     deepinv.optim.linear.conjugate_gradient

@@ -10,6 +10,17 @@ from .bicgstab import bicgstab
 from .conjugate_gradient import conjugate_gradient
 from .lsqr import lsqr
 from .minres import minres
+from .lsmr import lsmr
+from .utils import _as_dim_list, _resolve_stagtol
+
+# Solver registries: rectangular solvers take (A, AT, ...) and return (x, cond);
+# square solvers take (A=H, b, ...) and return x. See least_squares for dispatch.
+_RECTANGULAR_SOLVERS = {"lsqr": lsqr, "lsmr": lsmr}
+_SQUARE_SOLVERS = {
+    "CG": conjugate_gradient,
+    "BiCGStab": bicgstab,
+    "minres": minres,
+}
 
 
 def least_squares(
@@ -25,6 +36,7 @@ def least_squares(
     solver: str = "CG",
     max_iter: int = 100,
     tol: float = 1e-6,
+    stagtol: float | None = None,
     **kwargs,
 ) -> torch.Tensor:
     r"""
@@ -36,8 +48,8 @@ def least_squares(
     The solution depends on the regularization parameter :math:`\gamma`:
 
     - If `gamma=None` (:math:`\gamma = \infty`), it solves the unregularized least squares problem :math:`\min_x \|Ax-y\|^2`.
-        - If :math:`A` is overcomplete (rows>=columns), it computes the minimum norm solution :math:`x = A^{\top}(AA^{\top})^{-1}y`.
-        - If :math:`A` is undercomplete (columns>rows), it computes the least squares solution :math:`x = (A^{\top}A)^{-1}A^{\top}y`.
+        - If :math:`A` is overcomplete (rows>=columns), it computes the least squares solution :math:`x = (A^{\top}A)^{-1}A^{\top}y`.
+        - If :math:`A` is undercomplete (columns>rows), it computes the minimum norm solution :math:`x = A^{\top}(AA^{\top})^{-1}y`. This is not the standard pseudo inverse but is often used and will raise a warning.
     - If :math:`0 < \gamma < \infty`, it computes the least squares solution :math:`x = (A^{\top}A + \frac{1}{\gamma}I)^{-1}(A^{\top}y + \frac{1}{\gamma}z)`.
 
     .. warning::
@@ -51,10 +63,12 @@ def least_squares(
     - `'BiCGStab'`: `Biconjugate Gradient Stabilized method <https://en.wikipedia.org/wiki/Biconjugate_gradient_stabilized_method>`_
     - `'lsqr'`: `Least Squares QR <https://www-leland.stanford.edu/group/SOL/software/lsqr/lsqr-toms82a.pdf>`_
     - `'minres'`: `Minimal Residual Method <https://en.wikipedia.org/wiki/Minimal_residual_method>`_
+    - `'lsmr'`: `Least Squares Minimal Residual Method <https://web.stanford.edu/group/SOL/software/lsmr/LSMR-SISC-2011.pdf>`_
+
 
     .. note::
 
-        Both `'CG'` and `'BiCGStab'` are used for squared linear systems, while `'lsqr'` is used for rectangular systems.
+        `'CG'`, `'minres'`,  and `'BiCGStab'` are used for squared linear systems, while `'lsqr'` and `'lsmr'` are used for rectangular systems.
 
         If the chosen solver requires a squared system, we map to the problem to the normal equations:
         If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
@@ -69,17 +83,20 @@ def least_squares(
     :param None, float, torch.Tensor gamma: (Optional) inverse regularization parameter. Can be batched (shape (B, ...)) or a scalar.
         If multi-dimensional tensor, then its shape must match that of :math:`A^{\top} y`.
         If None, it is set to :math:`\infty` (no regularization).
-    :param str solver: solver to be used, options are `'CG'`, `'BiCGStab'`, `'lsqr'` and `'minres'`.
+    :param str solver: solver to be used, options are `'CG'`, `'BiCGStab'`, `'lsqr'`, `'lsmr'` and `'minres'`.
     :param Callable AAT: (Optional) Efficient implementation of :math:`A(A^{\top}(x))`. If not provided, it is computed as :math:`A(A^{\top}(x))`.
     :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
     :param int max_iter: maximum number of iterations.
     :param float tol: relative tolerance for stopping the algorithm.
+    :param float stagtol: absolute tolerance for stopping the algorithm if iterates stagnate, default via dtype precision.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param kwargs: Keyword arguments to be passed to the solver.
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...).
     """
-    if isinstance(parallel_dim, int):
-        parallel_dim = [parallel_dim]
+
+    stagtol = _resolve_stagtol(stagtol, y)
+
+    parallel_dim = _as_dim_list(parallel_dim)
 
     if gamma is None:
         gamma = torch.tensor(0.0, device=y.device)
@@ -97,30 +114,9 @@ def least_squares(
                 "Continuing anyway..."
             )
 
-    Aty = AT(y)
-
-    if gamma.ndim > 0:  # if batched gamma
-        if isinstance(Aty, TensorList):
-            batch_size = Aty[0].size(0)
-            ndim = Aty[0].ndim
-        else:
-            batch_size = Aty.size(0)
-            ndim = Aty.ndim
-
-        if gamma.size(0) != batch_size:
-            raise ValueError(
-                "If gamma is batched, its batch size must match the one of y."
-            )
-        elif gamma.ndim == 1:  # expand gamma to ATy
-            gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
-        elif gamma.ndim != ndim:
-            raise ValueError(
-                f"gamma should either be 0D, 1D, or match same number of dimensions as ATy, but got ndims {gamma.ndim} and {ndim}"
-            )
-
-    if solver == "lsqr":  # rectangular solver
+    if solver in _RECTANGULAR_SOLVERS:  # rectangular solvers (lsqr, lsmr)
         eta = 1 / gamma if gamma_provided else None
-        x, _ = lsqr(
+        x, _ = _RECTANGULAR_SOLVERS[solver](
             A,
             AT,
             y,
@@ -128,15 +124,36 @@ def least_squares(
             eta=eta,
             max_iter=max_iter,
             tol=tol,
+            stagtol=stagtol,
             parallel_dim=parallel_dim,
             **kwargs,
         )
 
-    else:
+    elif solver in _SQUARE_SOLVERS:  # square solvers (CG, BiCGStab, minres)
+
+        Aty = AT(y)
+
+        if gamma.ndim > 0:  # if batched gamma
+            if isinstance(Aty, TensorList):
+                batch_size, ndim = Aty[0].size(0), Aty[0].ndim
+            else:
+                batch_size, ndim = Aty.size(0), Aty.ndim
+
+            if gamma.size(0) != batch_size:
+                raise ValueError(
+                    "If gamma is batched, its batch size must match the one of y."
+                )
+            elif gamma.ndim == 1:  # expand gamma to ATy
+                gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
+            elif gamma.ndim != ndim:
+                raise ValueError(
+                    f"gamma should either be 0D, 1D, or match same number of dimensions as ATy, but got ndims {gamma.ndim} and {ndim}"
+                )
+
         complete = Aty.shape == y.shape
         overcomplete = Aty.numel() < y.numel()
 
-        if complete and (solver == "BiCGStab" or solver == "minres"):
+        if complete and not gamma_provided:
             H = lambda x: A(x)
             b = y
         else:
@@ -146,54 +163,46 @@ def least_squares(
                 ATA = lambda x: AT(A(x))
 
             if gamma_provided:
-                b = AT(y) + 1 / gamma * z
+                b = Aty + 1 / gamma * z
                 H = lambda x: ATA(x) + 1 / gamma * x
                 overcomplete = False
             else:
+                if solver == "CG":
+                    warnings.warn(
+                        "A is not regularized and solver is CG."
+                        "Division by zero may occur."
+                        "Continuing anyway..."
+                    )
                 if not overcomplete:
+                    warnings.warn(
+                        "A is undercomplete."
+                        "This will determine the least-norm solution instead of the least squares solution."
+                        "Continuing anyway..."
+                    )
                     H = lambda x: AAT(x)
                     b = y
                 else:
                     H = lambda x: ATA(x)
                     b = Aty
 
-        if solver == "CG":
-            x = conjugate_gradient(
-                A=H,
-                b=b,
-                init=init,
-                max_iter=max_iter,
-                tol=tol,
-                parallel_dim=parallel_dim,
-                **kwargs,
-            )
-        elif solver == "BiCGStab":
-            x = bicgstab(
-                A=H,
-                b=b,
-                init=init,
-                max_iter=max_iter,
-                tol=tol,
-                parallel_dim=parallel_dim,
-                **kwargs,
-            )
-        elif solver == "minres":
-            x = minres(
-                A=H,
-                b=b,
-                init=init,
-                max_iter=max_iter,
-                tol=tol,
-                parallel_dim=parallel_dim,
-                **kwargs,
-            )
-        else:
-            raise ValueError(
-                f"Solver {solver} not recognized. Choose between 'CG', 'lsqr' and 'BiCGStab'."
-            )
+        x = _SQUARE_SOLVERS[solver](
+            A=H,
+            b=b,
+            init=init,
+            max_iter=max_iter,
+            tol=tol,
+            stagtol=stagtol,
+            parallel_dim=parallel_dim,
+            **kwargs,
+        )
 
         if not gamma_provided and not overcomplete and not complete:
             x = AT(x)
+
+    else:
+        raise ValueError(
+            f"Solver {solver} not recognized. Choose between 'CG', 'minres', 'lsqr', 'lsmr', and 'BiCGStab'."
+        )
     return x
 
 
@@ -229,6 +238,7 @@ class LeastSquaresSolver(torch.autograd.Function):
         trigger: torch.Tensor = None,
         extra_kwargs: dict = None,
     ):
+
         kwargs = extra_kwargs if extra_kwargs is not None else {}
 
         with torch.no_grad():
@@ -253,7 +263,6 @@ class LeastSquaresSolver(torch.autograd.Function):
                 ndim = solution[0].ndim
             else:
                 ndim = solution.ndim
-
             gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
 
         ctx.save_for_backward(solution, y, z, gamma)

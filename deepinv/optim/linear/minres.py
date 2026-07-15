@@ -2,17 +2,18 @@ from __future__ import annotations
 from typing import Callable
 import torch
 from deepinv.utils.tensorlist import TensorList
-from .utils import dot
+from .utils import dot, _as_dim_list, _resolve_stagtol
 
 
 def minres(
     A: Callable,
     b: torch.Tensor,
     init: torch.Tensor | None = None,
-    max_iter: int = 1e2,
-    tol: float = 1e-5,
-    eps: float = 1e-6,
-    parallel_dim: int = 0,
+    max_iter: int = 100,
+    tol: float = 1e-6,
+    stagtol: float | None = None,
+    eps: float = 1e-8,
+    parallel_dim: None | int | list[int] = 0,
     verbose: bool = False,
     precon=lambda x: x.clone(),
 ) -> torch.Tensor:
@@ -31,22 +32,25 @@ def minres(
     :param torch.Tensor b: input tensor of shape (B, ...)
     :param torch.Tensor init: Optional initial guess.
     :param int max_iter: maximum number of MINRES iterations.
-    :param float tol: absolute tolerance for stopping the MINRES algorithm.
+    :param float tol: relative tolerance for stopping the MINRES algorithm.
+    :param float stagtol: absolute tolerance for stopping the MINRES algorithm if iterates stagnate, default via dtype precision.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
-    :param Callable precon: preconditioner is a callable function (not tested). Must be positive definite
+    :param Callable precon: preconditioner as a callable function. **Experimental / currently untested.** Must be positive definite.
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
     """
 
-    if isinstance(parallel_dim, int):
-        parallel_dim = [parallel_dim]
-    if parallel_dim is None:
-        parallel_dim = []
+    stagtol = _resolve_stagtol(stagtol, b)
 
     if isinstance(b, TensorList):
-        dim = [i for i in range(b[0].ndim) if i not in parallel_dim]
-    else:
-        dim = [i for i in range(b.ndim) if i not in parallel_dim]
+        raise TypeError(
+            "minres does not support TensorList inputs. "
+            "Use bicgstab for TensorList (block-structured) square systems."
+        )
+
+    parallel_dim = _as_dim_list(parallel_dim)
+
+    dim = [i for i in range(b.ndim) if i not in parallel_dim]
 
     # Rescale b
     b_norm = torch.linalg.vector_norm(b, dim=dim, keepdim=True, ord=2)
@@ -148,9 +152,16 @@ def minres(
             search_update, dim=dim, ord=2
         ).unsqueeze(-1)
         solution_norm = torch.linalg.vector_norm(solution, dim=dim, ord=2).unsqueeze(-1)
-        if (search_update_norm / solution_norm).max().item() < tol:
+        rnorm = torch.abs(scale_curr)
+
+        if rnorm.max().item() <= tol:
             if verbose:
                 print("MINRES converged at iteration", i + 1)
+            flag = False
+            break
+        elif (search_update_norm / solution_norm).max().item() <= stagtol:
+            if verbose:
+                print("MINRES stagnated at iteration", i + 1)
             flag = False
             break
 
