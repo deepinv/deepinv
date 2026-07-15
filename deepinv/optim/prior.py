@@ -1050,6 +1050,9 @@ class RidgeRegularizer(Prior):
         """
         return self.model(x, *args, **kwargs)
 
+    def prox(self, x, *args, stepsize_inter=0.1, **kwargs):
+        return super().prox(x, *args, stepsize_inter=stepsize_inter, **kwargs)
+
 
 class LeastSquaresResidual(Prior):
     r"""
@@ -1171,3 +1174,6 @@ class LeastSquaresResidual(Prior):
         return torch.exp(
             self.output_scaling + self.input_scaling
         ) * self.model.potential(torch.exp(self.input_scaling) * x.contiguous(), sigma)
+
+    def prox(self, x, *args, stepsize_inter=0.05, **kwargs):
+        return super().prox(x, *args, stepsize_inter=stepsize_inter, **kwargs)
