@@ -275,6 +275,18 @@ def test_plot(
             assert axs is None
 
 
+def test_plot_without_rescaling():
+    img = torch.tensor([[[[0.25, 0.5], [0.75, 1.0]]]])
+
+    axs = deepinv.utils.plot(img, rescale_mode=None, show=False, return_axs=True)
+    artist = axs[0, 0].images[0]
+
+    np.testing.assert_array_equal(artist.get_array(), img.squeeze().numpy())
+    assert artist.norm.vmin == 0.0
+    assert artist.norm.vmax == 1.0
+    assert artist.norm.clip
+
+
 @pytest.mark.parametrize("n_plots", [1, 2, 3])
 @pytest.mark.parametrize("titles", [None, "Dummy plot"])
 @pytest.mark.parametrize("save_plot", [False, True])
