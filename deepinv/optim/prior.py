@@ -972,11 +972,12 @@ class L12Prior(Prior):
 class RidgeRegularizer(Prior):
     r"""
     (Weakly) Convex Ridge Regularizer :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`
-
-    for filters :math:`W_c` and potentials :math:`\psi_c`. The filters :math:`W_c` are realized by a concatenation multiple convolution
-    layers without nonlinearity. The potentials :math:`\psi_c` are given by scaled versions smoothed absolute values,
-    see :footcite:t:`hertrich2025learning` for a precise description.
-
+    
+    for filters :math:`W_c` and potentials :math:`\psi_c`. See :footcite:t:`hertrich2025learning` for a precise description.
+    
+    The filters :math:`W_c` are realized by a concatenation multiple convolution layers without nonlinearity. 
+    The potentials :math:`\psi_c` are given by scaled versions smoothed absolute values,
+   
     To allow the automatic tuning of the regularization parameter, we parameterize the regularizer with two additional scalings, i.e.,
     we implement :math:`\frac{\alpha}{\sigma^2}\reg{\sigma x}` instead of :math:`\reg{x}` where :math:`\alpha` and :math:`\sigma` are learnable parameters of the regularizer.
     If the weak CRR is used, :math:`\alpha` is fixed per default, since it changes the weak convexity constant.
@@ -1053,7 +1054,7 @@ class RidgeRegularizer(Prior):
 
 class LeastSquaresResidual(Prior):
     r"""
-    Least Squares Regularizer :math:`\reg{x}=\|x-D(x)\|^2` for some denoising network :math:`D`.
+    Least Squares Regularizer :math:`\reg{x}=\|x-D(x)\|^2` for some denoiser :math:`D`.
 
     To allow the automatic tuning of the regularization parameter, the regularizer is optionally parameterized with two additional scalings, i.e.,
     we implement :math:`\alpha\reg{\beta x}` instead of :math:`\reg{x}` where :math:`\alpha` and :math:`\beta` are learnable parameters of the regularizer.
