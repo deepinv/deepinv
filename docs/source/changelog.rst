@@ -14,20 +14,20 @@ New Features
 - Add caching to demo/archive downloads (:gh:`1234` by `Julian Tachella`_)
 - Add :func:`deepinv.utils.load_tiff` to load images/ volumes from TIFF files (:gh:`1249` by `Andrew Wang`_)
 - Add :func:`deepinv.utils.plot_napari` to interactively view 2D images/3D vols with napari (:gh:`1249` by `Andrew Wang`_)
-- Add :func:`deepinv.optim.linear.lsmr`, the LSMR (Least Squares Minimal Residual) iterative solver for least-squares problems (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Add :func:`deepinv.optim.linear.lsmr`, the LSMR (Least Squares Minimal Residual) iterative solver for least-squares problems (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 - Add dtype attribute to :class:`deepinv.utils.TensorList` (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Add test_optim.test_least_squares_min_norm for underdetermined systems on linear solvers (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Add test_optim.test_least_squares_min_norm for underdetermined systems on linear solvers (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 
 Changed
 ^^^^^^^
 - (Breaking) Drop support for deprecated parameters `num_channels` in :class:`deepinv.physics.generator.PSFGenerator`, :class:`deepinv.physics.generator.GaussianBlurGenerator`, :class:`deepinv.physics.generator.MotionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
-- Unify the residual-based convergence criterion across :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.bicgstab`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.minres` (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Make the default stagnation tolerance (all solvers), the :func:`deepinv.optim.linear.lsqr` condition limit and the :func:`deepinv.optim.linear.conjugate_gradient` numerical-stability constant ``eps`` precision-dependent (scaled by the input dtype's machine epsilon) rather than fixed, so float64 accuracy is no longer capped below the requested tolerance (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Change the condition limit based breaking criterion in :func:`deepinv.optim.linear.lsqr` to take effect only when all batches have either converged or surpassed the condition limit (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Add :class:`deepinv.utils.TensorList` support to :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` (both measurement- and signal-domain); :func:`deepinv.optim.linear.minres` now raises an explicit error on :class:`deepinv.utils.TensorList` inputs (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Reduce redundant operator applications and temporary allocations in :func:`deepinv.optim.linear.least_squares`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.bicgstab` (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Rework the internal batched Givens-rotation helper (``_sym_ortho``) to correctly handle null-component vectors (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Change the solvers tested in test_optim.test_least_square_solvers to focus on non-decomposable physics, also change the way this test is initialised so that it doesn't initialise in the correct solution. (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Unify the residual-based convergence criterion across :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.bicgstab`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.minres` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Make the default stagnation tolerance (all solvers), the :func:`deepinv.optim.linear.lsqr` condition limit and the :func:`deepinv.optim.linear.conjugate_gradient` numerical-stability constant ``eps`` precision-dependent (scaled by the input dtype's machine epsilon) rather than fixed, so float64 accuracy is no longer capped below the requested tolerance (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Change the condition limit based breaking criterion in :func:`deepinv.optim.linear.lsqr` to take effect only when all batches have either converged or surpassed the condition limit (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Add :class:`deepinv.utils.TensorList` support to :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` (both measurement- and signal-domain); :func:`deepinv.optim.linear.minres` now raises an explicit error on :class:`deepinv.utils.TensorList` inputs (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Reduce redundant operator applications and temporary allocations in :func:`deepinv.optim.linear.least_squares`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.bicgstab` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Rework the internal batched Givens-rotation helper (``_sym_ortho``) to correctly handle null-component vectors (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Change the solvers tested in test_optim.test_least_square_solvers to focus on non-decomposable physics, also change the way this test is initialised so that it doesn't initialise in the correct solution. (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 
 Fixed
 ^^^^^
