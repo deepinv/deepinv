@@ -1086,6 +1086,7 @@ class LeastSquaresResidual(Prior):
         device: str = "cpu",
     ):
         super(LeastSquaresResidual, self).__init__()
+        self.explicit_prior = True
         self.use_input_output_scaling = use_input_output_scaling
 
 

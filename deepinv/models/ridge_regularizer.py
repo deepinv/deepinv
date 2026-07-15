@@ -111,7 +111,7 @@ class RidgeRegularizer(nn.Module):
                         "Weights are only available for weak_convexity equal to 0.0 or 1.0 and in_channels in [1, 3]!"
                     )
                 url = get_weights_url(
-                    model_name="RidgeRegularizer ", file_name=file_name
+                    model_name="RidgeRegularizer", file_name=file_name
                 )
                 ckpt = torch.hub.load_state_dict_from_url(
                     url,
