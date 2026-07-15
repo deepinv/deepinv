@@ -66,6 +66,7 @@ Deep Architectures
    deepinv.models.NCSNpp
    deepinv.models.DScCP
    deepinv.models.RAM
+   deepinv.models.RidgeRegularizer
    deepinv.models.DEAL
    deepinv.models.ArtifactRemoval
    deepinv.models.SRResNet
