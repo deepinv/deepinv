@@ -7,7 +7,7 @@ We consider denoising, computed tomography and inpainting with the convex ridge 
 weakly convex ridge regularizer (WCRR) (:footcite:t:`goujon2024learning`) and least squares regularizer (LSR) (see, e.g., :footcite:t:`hurault2021gradient` or :footcite:t:`zou2023deep`).
 This example only covers the reconstruction with these regularizers. For the training them in a bilevel regime we refer to :footcite:t:`hertrich2025learning`.
 
-For the reconstructions we sovle the variational problem
+For the reconstructions we solve the variational problem
 
     .. math::
         \begin{equation}
@@ -102,7 +102,7 @@ physics_tomography = Tomography(
 # %%
 # Denoising
 # --------------------------------------------------------------------
-# We start with image denoising. The denoising reconstruction coincides with the proximal operator, which is internally solved with
+# We start with image denoising. Maximum a-posteriori denoising coincides with the proximal operator, which is internally solved with
 # gradient descent, so we only have to call the prox function in this case.
 #
 

@@ -90,6 +90,8 @@ Priors
    deepinv.optim.TVPrior
    deepinv.optim.PatchPrior
    deepinv.optim.L12Prior
+   deepinv.optim.RidgeRegularizer
+   deepinv.optim.LeastSquaresResidual
    deepinv.optim.PatchNR
    deepinv.optim.prior.NormalizingFlow
    deepinv.optim.prior.GLOWCouplingBlock
@@ -202,4 +204,3 @@ Utils
    :nosignatures:
 
    deepinv.optim.utils.GaussianMixtureModel
-
