@@ -62,6 +62,7 @@ from .structured_random import StructuredRandom
 from .cassi import CompressiveSpectralImaging
 
 from .spatial_unwrapping import SpatialUnwrapping
+from .ultrasound import UltrasoundBeamformingWithZea
 
 from . import generator
 from . import functional
