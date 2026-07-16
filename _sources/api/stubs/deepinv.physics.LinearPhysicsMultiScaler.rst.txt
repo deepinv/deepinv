@@ -1,0 +1,15 @@
+﻿LinearPhysicsMultiScaler
+========================
+
+.. currentmodule:: deepinv.physics
+
+.. autoclass:: LinearPhysicsMultiScaler
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.physics.LinearPhysicsMultiScaler:
+
+.. minigallery:: deepinv.physics.LinearPhysicsMultiScaler
+    :add-heading: Examples using ``LinearPhysicsMultiScaler``:

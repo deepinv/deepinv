@@ -1,0 +1,9 @@
+﻿sampling\_builder
+=================
+
+.. currentmodule:: deepinv.sampling
+
+.. autofunction:: sampling_builder
+
+.. minigallery:: deepinv.sampling.sampling_builder
+    :add-heading: Examples using ``sampling_builder``:

@@ -1,0 +1,9 @@
+﻿rand\_like
+==========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: rand_like
+
+.. minigallery:: deepinv.utils.rand_like
+    :add-heading: Examples using ``rand_like``:

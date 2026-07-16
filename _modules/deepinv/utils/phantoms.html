@@ -1,0 +1,847 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.utils.phantoms &#8212; deepinv 0.4.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=c87aa342"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-domain="deepinv.org" defer="defer" src="https://plausible.io/js/script.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/utils/phantoms';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://deepinv.org/_modules/deepinv/utils/phantoms.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br><a href='https://docs.google.com/forms/d/e/1FAIpQLSeAp3sIhD_xDB4SmfPjtUzVM5TBNWlagSeUsG7UBRI5axaUsA/viewform' target='_blank'> Join us in the Sep 2026 hackathon</a>, applications are open!</div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.4.1 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.4.1 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.utils.phantoms</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.utils.phantoms</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">random_shapes</span><span class="p">(</span><span class="n">interior</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate random shape parameters for an ellipse.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">interior</span><span class="p">:</span>
+        <span class="n">x_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">-</span> <span class="mf">0.5</span>
+        <span class="n">y_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">-</span> <span class="mf">0.5</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">x_0</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">-</span> <span class="mf">1.0</span>
+        <span class="n">y_0</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">-</span> <span class="mf">1.0</span>
+
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">exponential</span><span class="p">(</span><span class="mf">0.4</span><span class="p">),</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">exponential</span><span class="p">()</span> <span class="o">*</span> <span class="mf">0.2</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">exponential</span><span class="p">()</span> <span class="o">*</span> <span class="mf">0.2</span><span class="p">,</span>
+        <span class="n">x_0</span><span class="p">,</span>
+        <span class="n">y_0</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="generate_random_phantom">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.utils.phantoms.generate_random_phantom.html#deepinv.utils.phantoms.generate_random_phantom">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_random_phantom</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">n_ellipse</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">interior</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate a random ellipsoid phantom directly using torch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">phantom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">n_ellipse</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">,</span> <span class="n">theta</span> <span class="o">=</span> <span class="n">random_shapes</span><span class="p">(</span><span class="n">interior</span><span class="p">)</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">))</span>
+        <span class="n">x_rot</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_0</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_0</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="n">y_rot</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_0</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_0</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">((</span><span class="n">x_rot</span> <span class="o">/</span> <span class="n">b</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y_rot</span> <span class="o">/</span> <span class="n">c</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+        <span class="n">phantom</span> <span class="o">+=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">mask</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">phantom</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="RandomPhantomDataset">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.utils.phantoms.RandomPhantomDataset.html#deepinv.utils.phantoms.RandomPhantomDataset">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RandomPhantomDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dataset of random ellipsoid phantoms generated on the fly.</span>
+
+<span class="sd">    :param float length: Length of the dataset.</span>
+<span class="sd">    :param int size: Size of the phantom (square) image.</span>
+<span class="sd">    :param int n_data: Number of phantoms to generate per sample.</span>
+<span class="sd">    :param Callable transform: Transformation to apply to the output image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span> <span class="n">n_data</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_data</span> <span class="o">=</span> <span class="n">n_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :return: A torch.Tensor of shape (n_data, size, size).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">generate_random_phantom</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_data</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span></div>
+
+
+
+<div class="viewcode-block" id="generate_shepp_logan">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.utils.phantoms.generate_shepp_logan.html#deepinv.utils.phantoms.generate_shepp_logan">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_shepp_logan</span><span class="p">(</span><span class="n">size</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate a Shepp-Logan phantom approximation in PyTorch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ellipses</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.69</span><span class="p">,</span> <span class="mf">0.92</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.6624</span><span class="p">,</span> <span class="mf">0.874</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0184</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.11</span><span class="p">,</span> <span class="mf">0.31</span><span class="p">,</span> <span class="mf">0.22</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">18</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">),</span>
+        <span class="p">(</span><span class="o">-</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.16</span><span class="p">,</span> <span class="mf">0.41</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.22</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">18</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.21</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.35</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.023</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.08</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.605</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.023</span><span class="p">,</span> <span class="mf">0.023</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.606</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.023</span><span class="p">,</span> <span class="mf">0.046</span><span class="p">,</span> <span class="mf">0.06</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.605</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">]</span>
+    <span class="n">phantom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">x_0</span><span class="p">,</span> <span class="n">y_0</span><span class="p">,</span> <span class="n">theta</span> <span class="ow">in</span> <span class="n">ellipses</span><span class="p">:</span>
+        <span class="n">x_rot</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_0</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_0</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="n">y_rot</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_0</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_0</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">((</span><span class="n">x_rot</span> <span class="o">/</span> <span class="n">b</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y_rot</span> <span class="o">/</span> <span class="n">c</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+        <span class="n">phantom</span> <span class="o">+=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">mask</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+    <span class="n">phantom</span> <span class="o">=</span> <span class="n">phantom</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">phantom</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="SheppLoganDataset">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.utils.phantoms.SheppLoganDataset.html#deepinv.utils.phantoms.SheppLoganDataset">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SheppLoganDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dataset for the single Shepp-Logan phantom. The dataset has length 1.</span>
+
+<span class="sd">    :param int size: Size of the phantom (square) image.</span>
+<span class="sd">    :param int n_data: Number of phantoms to generate per sample.</span>
+<span class="sd">    :param Callable transform: Transformation to apply to the output image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">n_data</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_data</span> <span class="o">=</span> <span class="n">n_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">1</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :return: A torch.Tensor of shape (n_data, size, size).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">generate_shepp_logan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_data</span><span class="p">)])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span></div>
+
+
+
+<div class="viewcode-block" id="generate_pet_phantom">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.utils.phantoms.generate_pet_phantom.html#deepinv.utils.phantoms.generate_pet_phantom">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_pet_phantom</span><span class="p">(</span>
+    <span class="n">img_shape</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">mu_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+    <span class="n">add_spheres</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">add_inner_cylinder</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">r0</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.45</span><span class="p">,</span>
+    <span class="n">r1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.28</span><span class="p">,</span>
+    <span class="n">oversampling_factor</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate a 2D or 3D PET-like phantom and its corresponding attenuation map.</span>
+
+<span class="sd">    The phantom mimics a simplified PET scanner body phantom consisting of:</span>
+
+<span class="sd">    - *Outer elliptical body*: a large elliptical cylinder (or ellipsoid in 3D)</span>
+<span class="sd">      filled with uniform emission activity (value 1.0) and attenuation ``mu_value``.</span>
+<span class="sd">      Its semi-axes are ``r0`` (along the first spatial dimension) and ``r1`` (along</span>
+<span class="sd">      the second spatial dimension), expressed as fractions of the respective image size.</span>
+<span class="sd">    - *Inner cold rod* (optional, ``add_inner_cylinder=True``): a small elliptical</span>
+<span class="sd">      cylinder at the centre of the body with lower emission activity (value 0.25) and</span>
+<span class="sd">      reduced attenuation (``mu_value / 3``), representing a low-activity insert.</span>
+<span class="sd">    - *Hot and cold spheres* (optional, ``add_spheres=True``): four pairs of spheres</span>
+<span class="sd">      placed at two axial offsets inside the body. *Hot* spheres (value 2.5) simulate</span>
+<span class="sd">      lesion-like regions with elevated metabolic activity; *cold* spheres (value 0.25)</span>
+<span class="sd">      simulate photopenic defects (e.g. cysts or necrotic tissue).</span>
+
+<span class="sd">    The function generates the phantom at ``oversampling_factor`` times the requested</span>
+<span class="sd">    resolution and then downsamples by averaging, reducing partial-volume effects at</span>
+<span class="sd">    the boundaries.</span>
+
+<span class="sd">    For 2D inputs (``img_shape = (H, W)``), the phantom is generated as a 3D volume</span>
+<span class="sd">    and the central axial slice is returned.</span>
+
+<span class="sd">    :param tuple img_shape: Shape of the output image ``(H, W)`` or volume ``(D, H, W)``.</span>
+<span class="sd">    :param float mu_value: Attenuation coefficient of the outer body (default: 0.01).</span>
+<span class="sd">    :param bool add_spheres: If ``True``, hot and cold spheres are added inside the body</span>
+<span class="sd">        (default: ``True``).</span>
+<span class="sd">    :param bool add_inner_cylinder: If ``True``, a low-activity inner rod is added at the</span>
+<span class="sd">        centre of the body (default: ``True``).</span>
+<span class="sd">    :param float r0: Fractional semi-axis of the outer ellipse along the *first* spatial</span>
+<span class="sd">        dimension (D or H for 3D/2D inputs). Must satisfy ``0 &lt; r0 &lt;= 0.5`` so that the</span>
+<span class="sd">        ellipse fits within the image. Default: 0.45.</span>
+<span class="sd">    :param float r1: Fractional semi-axis of the outer ellipse along the *second* spatial</span>
+<span class="sd">        dimension (H or W for 3D/2D inputs). Must satisfy ``0 &lt; r1 &lt;= 0.5`` so that the</span>
+<span class="sd">        ellipse fits within the image. If ``add_spheres=True``, ``r1`` should be at least</span>
+<span class="sd">        ~0.25 to ensure the off-centre spheres remain inside the body. Default: 0.28.</span>
+<span class="sd">    :param int oversampling_factor: Upsampling factor used during phantom generation to</span>
+<span class="sd">        reduce partial-volume artefacts (default: 4).</span>
+<span class="sd">    :param str or torch.device device: Device on which tensors are allocated (default:</span>
+<span class="sd">        ``&quot;cpu&quot;``).</span>
+<span class="sd">    :returns: Tuple ``(x_em, x_att)`` where both tensors have shape ``(1, 1, H, W)``</span>
+<span class="sd">        for 2D inputs or ``(1, 1, D, H, W)`` for 3D inputs. ``x_em`` is the emission</span>
+<span class="sd">        activity map and ``x_att`` is the attenuation map.</span>
+<span class="sd">    :rtype: tuple[torch.Tensor, torch.Tensor]</span>
+<span class="sd">    :raises ValueError: If ``r0`` or ``r1`` are outside the valid range ``(0, 0.5]``.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; from deepinv.utils.phantoms import generate_pet_phantom</span>
+<span class="sd">    &gt;&gt;&gt; x_em, x_att = generate_pet_phantom(img_shape=(64, 64, 32))</span>
+<span class="sd">    &gt;&gt;&gt; print(x_em.shape, x_att.shape)</span>
+<span class="sd">    torch.Size([1, 1, 64, 64, 32]) torch.Size([1, 1, 64, 64, 32])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;</span> <span class="n">r0</span> <span class="o">&lt;=</span> <span class="mf">0.5</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;r0=</span><span class="si">{</span><span class="n">r0</span><span class="si">}</span><span class="s2"> is out of range. r0 must satisfy 0 &lt; r0 &lt;= 0.5 so that the outer &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;ellipse fits within the image along the first spatial dimension. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Typical value: r0=0.45.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;</span> <span class="n">r1</span> <span class="o">&lt;=</span> <span class="mf">0.5</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;r1=</span><span class="si">{</span><span class="n">r1</span><span class="si">}</span><span class="s2"> is out of range. r1 must satisfy 0 &lt; r1 &lt;= 0.5 so that the outer &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;ellipse fits within the image along the second spatial dimension. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Typical value: r1=0.28.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">add_spheres</span> <span class="ow">and</span> <span class="n">r1</span> <span class="o">&lt;</span> <span class="mf">0.25</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;r1=</span><span class="si">{</span><span class="n">r1</span><span class="si">}</span><span class="s2"> is too small when add_spheres=True. The off-centre spheres are &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;placed at 1.4 × (image_height / 2), which requires r1 &gt;= 0.25 to remain &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;inside the outer ellipse. Either increase r1 or set add_spheres=False.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">add_spheres</span> <span class="ow">and</span> <span class="n">r0</span> <span class="o">&lt;</span> <span class="mf">0.25</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;r0=</span><span class="si">{</span><span class="n">r0</span><span class="si">}</span><span class="s2"> is too small when add_spheres=True. The off-centre spheres are &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;placed at 1.3 × (image_depth / 2), which requires r0 &gt;= 0.25 to remain &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;inside the outer ellipse. Either increase r0 or set add_spheres=False.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">keep_center_slice</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">img_shape</span> <span class="o">=</span> <span class="n">img_shape</span> <span class="o">+</span> <span class="p">(</span><span class="mi">32</span><span class="p">,)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">keep_center_slice</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">D</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">img_shape</span>
+    <span class="n">od</span><span class="p">,</span> <span class="n">oh</span><span class="p">,</span> <span class="n">ow</span> <span class="o">=</span> <span class="p">[</span><span class="n">oversampling_factor</span> <span class="o">*</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">img_shape</span><span class="p">]</span>
+    <span class="n">x_em</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">od</span><span class="p">,</span> <span class="n">oh</span><span class="p">,</span> <span class="n">ow</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">x_att</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x_em</span><span class="p">)</span>
+
+    <span class="n">c0</span> <span class="o">=</span> <span class="n">od</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">c1</span> <span class="o">=</span> <span class="n">oh</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">c2</span> <span class="o">=</span> <span class="n">ow</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="n">r0</span> <span class="o">*</span> <span class="n">od</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">r1</span> <span class="o">*</span> <span class="n">oh</span>
+
+    <span class="n">rix</span> <span class="o">=</span> <span class="n">od</span> <span class="o">/</span> <span class="mi">25</span>
+    <span class="n">riy</span> <span class="o">=</span> <span class="n">oh</span> <span class="o">/</span> <span class="mi">25</span>
+
+    <span class="n">y</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">od</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">oh</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+        <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">outer_mask</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">c0</span><span class="p">)</span> <span class="o">/</span> <span class="n">a</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">y</span> <span class="o">-</span> <span class="n">c1</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+    <span class="n">inner_mask</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">c0</span><span class="p">)</span> <span class="o">/</span> <span class="n">rix</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">y</span> <span class="o">-</span> <span class="n">c1</span><span class="p">)</span> <span class="o">/</span> <span class="n">riy</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+
+    <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ow</span><span class="p">):</span>
+        <span class="n">x_em</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">z</span><span class="p">][</span><span class="n">outer_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="n">x_att</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">z</span><span class="p">][</span><span class="n">outer_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">mu_value</span>
+
+        <span class="k">if</span> <span class="n">add_inner_cylinder</span><span class="p">:</span>
+            <span class="n">x_em</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">z</span><span class="p">][</span><span class="n">inner_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.25</span>
+            <span class="n">x_att</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">z</span><span class="p">][</span><span class="n">inner_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">mu_value</span> <span class="o">/</span> <span class="mi">3</span>
+
+    <span class="k">if</span> <span class="n">add_spheres</span><span class="p">:</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">od</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">oh</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">ow</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">r_sp</span> <span class="o">=</span> <span class="p">[</span><span class="n">ow</span> <span class="o">/</span> <span class="mi">9</span><span class="p">]</span> <span class="o">*</span> <span class="mi">3</span>
+        <span class="n">r_sp2</span> <span class="o">=</span> <span class="p">[</span><span class="n">ow</span> <span class="o">/</span> <span class="mi">17</span><span class="p">]</span> <span class="o">*</span> <span class="mi">3</span>
+
+        <span class="k">for</span> <span class="n">z_offset</span> <span class="ow">in</span> <span class="p">[</span><span class="n">c2</span><span class="p">,</span> <span class="mf">0.45</span> <span class="o">*</span> <span class="n">c2</span><span class="p">]:</span>
+
+            <span class="n">sp_mask</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">c0</span><span class="p">)</span> <span class="o">/</span> <span class="n">r_sp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">y</span> <span class="o">-</span> <span class="mf">1.4</span> <span class="o">*</span> <span class="n">c1</span><span class="p">)</span> <span class="o">/</span> <span class="n">r_sp</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">z_offset</span><span class="p">)</span> <span class="o">/</span> <span class="n">r_sp</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+            <span class="n">x_em</span><span class="p">[</span><span class="n">sp_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.5</span>
+
+            <span class="n">sp_mask2</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="mf">1.3</span> <span class="o">*</span> <span class="n">c0</span><span class="p">)</span> <span class="o">/</span> <span class="n">r_sp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">y</span> <span class="o">-</span> <span class="n">c1</span><span class="p">)</span> <span class="o">/</span> <span class="n">r_sp</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">z_offset</span><span class="p">)</span> <span class="o">/</span> <span class="n">r_sp</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+            <span class="n">x_em</span><span class="p">[</span><span class="n">sp_mask2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.25</span>
+
+            <span class="n">sp_mask</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">c0</span><span class="p">)</span> <span class="o">/</span> <span class="n">r_sp2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">y</span> <span class="o">-</span> <span class="mf">0.6</span> <span class="o">*</span> <span class="n">c1</span><span class="p">)</span> <span class="o">/</span> <span class="n">r_sp2</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">z_offset</span><span class="p">)</span> <span class="o">/</span> <span class="n">r_sp2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+            <span class="n">x_em</span><span class="p">[</span><span class="n">sp_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.5</span>
+
+            <span class="n">sp_mask2</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="n">c0</span><span class="p">)</span> <span class="o">/</span> <span class="n">r_sp2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">y</span> <span class="o">-</span> <span class="n">c1</span><span class="p">)</span> <span class="o">/</span> <span class="n">r_sp2</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">z_offset</span><span class="p">)</span> <span class="o">/</span> <span class="n">r_sp2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+            <span class="n">x_em</span><span class="p">[</span><span class="n">sp_mask2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.25</span>
+
+    <span class="c1"># downsample by averaging</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">oversampling_factor</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">downsample</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">v</span> <span class="o">/</span> <span class="p">(</span><span class="n">f</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
+
+    <span class="n">x_em</span> <span class="o">=</span> <span class="n">downsample</span><span class="p">(</span><span class="n">x_em</span><span class="p">)</span>
+    <span class="n">x_att</span> <span class="o">=</span> <span class="n">downsample</span><span class="p">(</span><span class="n">x_att</span><span class="p">)</span>
+
+    <span class="n">x_em</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">x_em</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">x_att</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">x_att</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">keep_center_slice</span><span class="p">:</span>
+        <span class="n">x_em</span> <span class="o">=</span> <span class="n">x_em</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">x_em</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="n">x_att</span> <span class="o">=</span> <span class="n">x_att</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">x_att</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
+
+    <span class="c1"># add batch + channel</span>
+    <span class="n">x_em</span> <span class="o">=</span> <span class="n">x_em</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">x_att</span> <span class="o">=</span> <span class="n">x_att</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">x_em</span><span class="p">,</span> <span class="n">x_att</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2026.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

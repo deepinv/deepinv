@@ -1,0 +1,9 @@
+﻿gaussian\_blur
+==============
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: gaussian_blur
+
+.. minigallery:: deepinv.physics.functional.gaussian_blur
+    :add-heading: Examples using ``gaussian_blur``:
