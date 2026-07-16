@@ -134,6 +134,10 @@ def spectral_methods(
     .. math::
         x_{k+1} &= M x_k \\
         x_{k+1} &= \frac{x_{k+1}}{\|x_{k+1}\|}
+        
+    .. note::
+
+        This function assumes that the passed `x` is of consistent shape and dtype with the output of `physics.A_adjoint(y)`.
   
     :param torch.Tensor y: Measurements.
     :param deepinv.physics.Physics physics: Instance of the physics modeling the forward matrix.
@@ -162,11 +166,11 @@ def spectral_methods(
     #! for the structured case, when the mean of the squared diagonal elements is 1, we have norm(x) = sqrt(sum(y)), otherwise y gets scaled by the mean to the power of number of layers
     norm_x = torch.sqrt(y.sum())
 
-    x = x.to(torch.cfloat)
     # y should have mean 1
     y = y / torch.mean(y)
     diag_T = preprocessing(y, physics)
-    diag_T = diag_T.to(torch.cfloat)
+    diag_T = diag_T.to(x)
+
     for i in range(n_iter):
         x_new = physics.B(x)
         x_new = diag_T * x_new

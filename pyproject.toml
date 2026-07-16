@@ -46,10 +46,12 @@ file = "README.rst"
 content-type = "text/x-rst"
 
 [project.urls]
-Homepage = "https://deepinv.github.io/"
+Homepage = "https://deepinv.org/"
 Source = "https://github.com/deepinv/deepinv"
 Tracker = "https://github.com/deepinv/deepinv/issues"
 
+# Define groups of optional pypi dependencies. This is use by pip, uv, and pixi. 
+# It can be overridden with conda dependencies below using [tool.pixi.feature.*.dependencies] sections.
 [project.optional-dependencies]
 test = [
     "pytest",
@@ -67,7 +69,7 @@ doc = [
     "sphinx_copybutton",
     "sphinx_autoapi",
     "sphinx-design",
-    "sphinx_sitemap<2.7.0",
+    "sphinx_sitemap >= 2.6.0, != 2.7.0",
     "sphinxcontrib.bibtex",
     "nbformat",
 ]
@@ -93,9 +95,12 @@ denoisers = [
 ]
 
 # optional dependencies for advanced forward operators
+physics-gpu = [
+    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'"
+]
+
 physics = [
-    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
-    "spyrit>=3.0.0; platform_system=='Linux'",
+    "spyrit>=3.0.0",
     "torchkbnufft",
     "array_api_compat",
     "sigpy",
@@ -103,7 +108,7 @@ physics = [
 
 # optional dependencies for specific datasets
 dataset = [
-    "datasets",
+    "datasets>=3.5.0",
     "pandas",
     "pydicom",
     "mat73",
@@ -111,6 +116,9 @@ dataset = [
     "nibabel",
     "rasterio",
     "blosc2",
+    "tifffile",
+    "rarfile",
+    "napari[all]",
 ]
 
 # optional dependencies for training
@@ -129,7 +137,6 @@ platforms = ["linux-64", "win-64"]
 
 [tool.pixi.dependencies]
 python = "<3.13.0"
-torchvision = "*"
 numpy = "*"
 matplotlib = "*"
 tqdm = "*"
@@ -139,15 +146,20 @@ requests = "*"
 h5py = "*"
 natsort = "*"
 
+# Force the CPU environment to ignore CUDA-enabled platforms if they exist, .e.g linux-64-cuda-12-0
+[tool.pixi.feature.cpu]
+platforms = ["linux-64", "win-64"]
+
+[tool.pixi.feature.cpu.pypi-dependencies]
+torch = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
+torchvision = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
+
 [tool.pixi.feature.gpu.system-requirements]
 cuda = "12.0"
 
-[tool.pixi.feature.gpu.dependencies]
-cuda-version = "*"
-pytorch-gpu = "*"
-
-[tool.pixi.feature.cpu.dependencies]
-pytorch-cpu = "*"
+[tool.pixi.feature.gpu.pypi-dependencies]
+torch = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
+torchvision = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
 
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
@@ -172,11 +184,15 @@ transformers = "*"
 # bm3d, bm4d, libcpab, ptwt are PyPI-only, stay in optional deps
 
 [tool.pixi.feature.physics.dependencies]
-astra-toolbox = ">=2.2.0,!=2.3.0"
 torchkbnufft = "*"
 array-api-compat = "*"
 sigpy = "*"
+parallelproj = ">=1.10.0"
 # spyrit is PyPI-only, stays in optional deps
+
+[tool.pixi.feature.physics-gpu.dependencies]
+astra-toolbox = ">=2.2.0,!=2.3.0"
+cupy = "*"  # for parallelproj's GPU support
 
 [tool.pixi.feature.training.dependencies]
 wandb = "*"
@@ -189,9 +205,9 @@ deepinv = { path = ".", editable = true}
 # gpu environments
 default   = { features = ["gpu"], solve-group = "gpu" }
 test      = { features = ["gpu", "test"], solve-group = "gpu" }
-full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "gpu" }
-docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
-doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "gpu-docs" }
+full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training"], solve-group = "gpu" }
+docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312"], solve-group = "gpu-docs" }
+doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312"], solve-group = "gpu-docs" }
 # cpu environments (same as gpu but without the gpu dependencies)
 test-cpu  = { features = ["cpu", "test"],  solve-group = "cpu" }
 full-cpu  = { features = ["cpu", "doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "cpu" }
