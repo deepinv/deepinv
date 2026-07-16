@@ -1,16 +1,14 @@
 from __future__ import annotations
 from warnings import warn
 from typing import Callable, TYPE_CHECKING
-import os, shutil, zipfile, requests
+import os, shutil, zipfile
 from io import BytesIO
 
 from pathlib import Path
 from tqdm import tqdm
-from PIL import Image
 
 import numpy as np
 import torch
-from torchvision import transforms
 from deepinv.utils.io import (
     DownloadError,
     get_cache_home,
@@ -112,6 +110,8 @@ def load_dataset(
     dataset_dir = data_dir / dataset_name
 
     if download and not dataset_dir.exists():
+        import requests  # lazy import
+
         dataset_dir.mkdir(parents=True, exist_ok=True)
 
         if url is None:
@@ -168,6 +168,8 @@ def load_degradation(
     path = data_dir / name
 
     if download and not path.exists():
+        import requests  # lazy import
+
         data_dir.mkdir(parents=True, exist_ok=True)
         url = get_degradation_url(name)
         try:
@@ -205,21 +207,24 @@ def load_image(
     :param str device: Device on which to load the image (gpu or cpu).
     :return: :class:`torch.Tensor` containing the image with an added batch dimension.
     """
+    from torchvision.transforms import CenterCrop, Resize, Grayscale, ToTensor, Compose
+    from PIL import Image
+
     img = Image.open(path)
     transform_list = []
     if img_size is not None:
         if resize_mode == "crop":
-            transform_list.append(transforms.CenterCrop(img_size))
+            transform_list.append(CenterCrop(img_size))
         elif resize_mode == "resize":
-            transform_list.append(transforms.Resize(img_size))
+            transform_list.append(Resize(img_size))
         else:
             raise ValueError(
                 f"resize_mode must be either 'crop' or 'resize', got {resize_mode}"
             )
     if grayscale:
-        transform_list.append(transforms.Grayscale())
-    transform_list.append(transforms.ToTensor())
-    transform = transforms.Compose(transform_list)
+        transform_list.append(Grayscale())
+    transform_list.append(ToTensor())
+    transform = Compose(transform_list)
     x = transform(img).unsqueeze(0).to(device=device, dtype=dtype)
     return x
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import Sequence, Callable
 from pathlib import Path
 from tqdm import tqdm
-import h5py
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -109,6 +108,8 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
     @staticmethod
     def _retrieve_metadata(fname):
+        import h5py
+
         with h5py.File(fname, "r") as hf:
             shape = hf["kspace"].shape
             metadata = {
@@ -167,6 +168,8 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
         * `maps`: `(N, H, W)` complex
 
         """
+        import h5py
+
         fname, slice_ind, metadata = self.samples[idx]
 
         with h5py.File(fname, "r") as f:

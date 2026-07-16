@@ -1,13 +1,15 @@
 from __future__ import annotations
 from dataclasses import dataclass
 
-from typing import Iterable
+from typing import Iterable, TYPE_CHECKING
 
 import numpy as np
 import torch
-from PIL import Image
 
 from deepinv.transform.base import Transform, TransformParam
+
+if TYPE_CHECKING:
+    from PIL import Image
 
 
 def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
@@ -142,6 +144,8 @@ def apply_homography(
             padding_mode=padding,
         )
     else:
+        from PIL import Image
+
         if interpolation == "bilinear":
             pil_interp = Image.Resampling.BILINEAR
         elif interpolation == "bicubic":

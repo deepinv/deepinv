@@ -7,9 +7,6 @@ from numpy import ndarray
 import torch
 from torch.utils.data import Dataset
 from torch import Tensor
-from torchvision.datasets.folder import IMG_EXTENSIONS
-from PIL import Image
-from PIL.Image import Image as PIL_Image
 from deepinv.utils.tensorlist import TensorList
 from natsort import natsorted
 
@@ -28,6 +25,8 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
     :param bool allow_non_tensor: allow image types that are not tensors (i.e. numpy ndarrays and PIL Images). Default `False`, which
         is recommended so that the dataset is asserted to return tensors to be compatible with deepinv.
     """
+
+    from PIL.Image import Image as PIL_Image
 
     image_types = CORE_TYPES + ((PIL_Image, ndarray, float) if allow_non_tensor else ())
 
@@ -325,6 +324,18 @@ class ImageFolder(ImageDataset):
 
     """
 
+    IMG_EXTENSIONS = (
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".ppm",
+        ".bmp",
+        ".pgm",
+        ".tif",
+        ".tiff",
+        ".webp",
+    )
+
     def __init__(
         self,
         root: str | Path,
@@ -354,7 +365,7 @@ class ImageFolder(ImageDataset):
             raise ValueError("Mismatch in number of GT and LR images.")
         elif self.x_paths is None and self.y_paths is None:
             self.x_paths = sum(
-                (list(self.root.glob(f"**/*{ext}")) for ext in IMG_EXTENSIONS), []
+                (list(self.root.glob(f"**/*{ext}")) for ext in self.IMG_EXTENSIONS), []
             )
 
         if transform is None:
@@ -369,6 +380,9 @@ class ImageFolder(ImageDataset):
             self.transform_x = self.transform_y = transform
 
         self.estimate_params = estimate_params
+
+        from PIL import Image
+
         self.loader = (
             loader if loader is not None else lambda fn: Image.open(fn).convert("RGB")
         )

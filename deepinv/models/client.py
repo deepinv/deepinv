@@ -1,4 +1,3 @@
-import requests
 import io
 import base64
 import json
@@ -161,6 +160,10 @@ class Client(Reconstructor, Denoiser):
         self.training = False
         self.return_metadata = return_metadata
 
+        import requests  # lazy import
+
+        self.requests_post = requests.post
+
     @staticmethod
     def serialize(tensor: torch.Tensor) -> str:
         """Helper function to serialize client inputs.
@@ -248,7 +251,7 @@ class Client(Reconstructor, Denoiser):
         if self.api_key != "":
             headers |= {"Authorization": f"Bearer {self.api_key}"}
 
-        response = requests.post(
+        response = self.requests_post(
             self.endpoint, headers=headers, data=json.dumps(payload)
         )
         if response.status_code != 200:

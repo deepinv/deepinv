@@ -8,8 +8,6 @@ from natsort import natsorted
 
 import numpy as np
 
-from torchvision.transforms import ToTensor, Compose
-
 from deepinv.datasets.utils import (
     download_archive,
     extract_zipfile,
@@ -131,6 +129,11 @@ class NBUDataset(ImageDataset):
         for _ms, _pan in self.image_paths:
             assert _ms.name == _pan.name, "MS and PAN filenames do not match."
 
+        # lazy import torchvision
+        from torchvision.transforms import Compose, ToTensor
+
+        self.compose, self.totensor = Compose, ToTensor()
+
     def check_dataset_exists(self):
         """Verify that the image folders exist and contain all the images.
 
@@ -161,12 +164,12 @@ class NBUDataset(ImageDataset):
         paths = self.image_paths[idx]
         ms, pan = load_mat(paths[0])["imgMS"], load_mat(paths[1])["imgPAN"]
 
-        transform_ms = Compose(
-            [self.normalize, ToTensor()]
+        transform_ms = self.compose(
+            [self.normalize, self.totensor]
             + ([self.transform_ms] if self.transform_ms is not None else [])
         )
-        transform_pan = Compose(
-            [self.normalize, ToTensor()]
+        transform_pan = self.compose(
+            [self.normalize, self.totensor]
             + ([self.transform_pan] if self.transform_pan is not None else [])
         )
 

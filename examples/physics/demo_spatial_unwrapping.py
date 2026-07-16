@@ -21,7 +21,7 @@ The goal is to recover :math:`x` from the observed wrapped image :math:`y`.
 # -------------------------------------------------------
 import torch
 import deepinv as dinv
-import torchvision.transforms as transforms
+from torchvision import transforms
 import matplotlib.pyplot as plt
 from deepinv.optim import ADMM
 from deepinv.utils import load_example

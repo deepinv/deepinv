@@ -1,19 +1,21 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 from warnings import warn
 import torch
-from deepinv.physics.forward import Physics
-from deepinv.physics.noise import GaussianNoise
+
 from deepinv.loss.metric.metric import Metric
-from deepinv.physics.generator import (
-    BaseMaskGenerator,
-    BernoulliSplittingMaskGenerator,
-    Phase2PhaseSplittingMaskGenerator,
-    Artifact2ArtifactSplittingMaskGenerator,
-)
 from deepinv.models.dynamic import TimeAveragingNet
 from deepinv.utils.mixins import TimeMixin
 from deepinv.models.base import Reconstructor
 from deepinv.loss.measplit import SplittingLoss
+
+if TYPE_CHECKING:
+    from deepinv.physics.noise import GaussianNoise
+    from deepinv.physics.forward import Physics
+    from deepinv.physics.generator import (
+        BaseMaskGenerator,
+        BernoulliSplittingMaskGenerator,
+    )
 
 
 class WeightedSplittingLoss(SplittingLoss):
@@ -230,6 +232,8 @@ class RobustSplittingLoss(WeightedSplittingLoss):
         metric: Metric | torch.nn.Module | None = None,
     ):
         if noise_model is None:
+            from deepinv.physics.noise import GaussianNoise
+
             noise_model = GaussianNoise(sigma=0.1)
         if metric is None:
             metric = torch.nn.MSELoss()
@@ -396,6 +400,9 @@ class Phase2PhaseLoss(SplittingLoss):
         self.dynamic_model = dynamic_model
         self.metric = metric
         self.device = device
+
+        from deepinv.physics.generator import Phase2PhaseSplittingMaskGenerator
+
         self.mask_generator = Phase2PhaseSplittingMaskGenerator(
             img_size=self.img_size, device=self.device
         )
@@ -585,6 +592,9 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
             device=device,
         )
         self._name = "artifact2artifact"
+
+        from deepinv.physics.generator import Artifact2ArtifactSplittingMaskGenerator
+
         self.mask_generator = Artifact2ArtifactSplittingMaskGenerator(
             img_size=self.img_size, split_size=split_size, device=self.device
         )

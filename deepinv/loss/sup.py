@@ -6,7 +6,6 @@ from torch import Tensor
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
 from deepinv.models.base import Reconstructor
-from deepinv.physics.forward import Physics
 
 if TYPE_CHECKING:
     from deepinv.physics.forward import Physics

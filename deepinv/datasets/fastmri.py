@@ -27,16 +27,8 @@ import pickle
 import warnings
 import os
 
-try:
-    import h5py
-except ImportError:  # pragma: no cover
-    h5py = ImportError(
-        "The h5py package is not installed. Please install it with `pip install h5py`."
-    )  # pragma: no cover
-
 from tqdm import tqdm
 import torch
-from torchvision.transforms import Compose, CenterCrop
 
 from deepinv.datasets.utils import ToComplex, Rescale, download_archive
 from deepinv.datasets.base import ImageDataset
@@ -130,6 +122,8 @@ class SimpleFastMRISliceDataset(ImageDataset):
                 raise FileNotFoundError(
                     "Local dataset not downloaded. Download by setting download=True."
                 )
+
+        from torchvision.transforms import Compose  # lazy import
 
         self.transform = Compose(
             [ToComplex()] + ([transform] if transform is not None else [])
@@ -356,9 +350,6 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         self.metadata_cache_file = metadata_cache_file
         self.target_root = Path(target_root) if target_root is not None else None
 
-        if isinstance(h5py, ImportError):
-            raise h5py
-
         if not os.path.isdir(root):
             raise ValueError(
                 f"The `root` folder doesn't exist. Please set `root` properly. Current value `{root}`."
@@ -419,6 +410,8 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         :param Union[str, pathlib.Path, os.PathLike] fname: filename to open
         :return: metadata dict of key-value pairs.
         """
+        import h5py
+
         with h5py.File(fname, "r") as hf:
             shape = hf["kspace"].shape
             metadata = (
@@ -458,6 +451,8 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         Outputs may be modifed by transform if specified, in which case may also return params dict,
         containing optionally mask and coil maps.
         """
+        import h5py
+
         fname, slice_ind, metadata = self.samples[idx]
         params = {}
 
@@ -527,6 +522,8 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         :return: loaded SimpleFastMRISliceDataset
         :rtype: SimpleFastMRISliceDataset
         """
+        from torchvision.transforms import Compose, CenterCrop  # lazy import
+
         transform = [Rescale()]
         if pad_to_size is not None:
             transform += [CenterCrop(pad_to_size)]
