@@ -343,6 +343,27 @@ OPTIM_ALGO_PARAMS = [
 ]
 
 
+def test_backtracking_does_not_consume_global_iterations():
+    physics = dinv.physics.LinearPhysics(A=lambda x: x, A_adjoint=lambda x: x)
+    y = torch.ones(1, 1, 1, 1)
+
+    model = dinv.optim.GD(
+        data_fidelity=L2(),
+        stepsize=4.0,
+        max_iter=2,
+        backtracking=dinv.optim.BacktrackingConfig(
+            gamma=0.1,
+            eta=0.5,
+            max_iter=20,
+        ),
+    )
+
+    x = model(y, physics, init=torch.zeros_like(y))
+
+    assert torch.allclose(x, y)
+    assert model.params_algo["stepsize"] == [1.0]
+
+
 @pytest.mark.parametrize(
     "name_algo, and_acc",
     OPTIM_ALGO_PARAMS,

@@ -321,10 +321,12 @@ class FixedPoint(nn.Module):
         if self.anderson_acceleration_config is not None:
             self.init_anderson_acceleration(X)
 
-        for it in tqdm(
-            range(self.max_iter),
+        it = 0
+        progress_bar = tqdm(
+            total=self.max_iter,
             disable=(not self.verbose or not self.show_progress_bar),
-        ):
+        )
+        while it < self.max_iter:
             X_prev = X
             X = self.single_iteration(X, it, *args, **kwargs)
 
@@ -338,12 +340,15 @@ class FixedPoint(nn.Module):
                 )
 
                 # Convergence check
-                if (
+                converged = (
                     self.early_stop
                     and self.check_conv_fn is not None
                     and it > 1
                     and self.check_conv_fn(it, X_prev, X)
-                ):
+                )
+                it += 1
+                progress_bar.update()
+                if converged:
                     break
 
             else:
@@ -354,9 +359,11 @@ class FixedPoint(nn.Module):
                     if self.verbose:
                         print(
                             f"[Stopping] Reached maximum number of failed backtracking checks "
-                            f"({self.max_iter_backtracking})."
+                            f"({self.backtracking_config.max_iter})."
                         )
                     break
+
+        progress_bar.close()
 
         return X, metrics
 
