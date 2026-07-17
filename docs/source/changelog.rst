@@ -10,12 +10,23 @@ New Features
 ^^^^^^^^^^^^
 - Add :class:`deepinv.physics.TomographyWithRTK` class for CT operators using the RTK backend. (by `Idris TATACHAK`_ and `Simon RIT`_)
 - Add example showcasing the use of :class:`deepinv.physics.TomographyWithRTK` for 3D CBCT volume reconstruction with the RTK backend. (by `Idris TATACHAK`_ and `Simon RIT`_)
+- Add :class:`deepinv.loss.metric.RecoveryCoefficient` Recovery Coefficient (RC) metric to evaluate reconstructed activity relative to ground truth within a mask, with dtype-aware numerical stability and a dedicated loss transformation for training (:gh:`1228` by `Kushagra Shukla`_)
+- Add 2D and 3D :class:`deepinv.physics.PET` (:gh:`1099` by `Julian Tachella`_)
+- Add support for multi-channel (chromatic) diffraction PSFs in :class:`deepinv.physics.generator.DiffractionBlurGenerator` with physically consistent wavelength scaling of the pupil cut-off frequency and Zernike coefficients.  (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
+- Add caching to demo/archive downloads (:gh:`1234` by `Julian Tachella`_)
+- Add :func:`deepinv.utils.load_tiff` to load images/ volumes from TIFF files (:gh:`1249` by `Andrew Wang`_)
+- Add :func:`deepinv.utils.plot_napari` to interactively view 2D images/3D vols with napari (:gh:`1249` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
+- (Breaking) Drop support for deprecated parameters `num_channels` in :class:`deepinv.physics.generator.PSFGenerator`, :class:`deepinv.physics.generator.GaussianBlurGenerator`, :class:`deepinv.physics.generator.MotionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
 
 Fixed
 ^^^^^
+- Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
+- Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
+- Remove unconditional dtype conversion to `torch.cfloat` in :func:`deepinv.optim.phase_retrieval.spectral_methods` (:gh:`1216` by `Zhiyuan Hu`_)
+- Fix kwargs applications in parent constructor calls in the constructors of :class:`deepinv.sampling.EDMDiffusionSDE`, :class:`deepinv.sampling.SongDiffusionSDE` and :class:`deepinv.sampling.VariancePreservingDiffusion` (:gh:`1278` by `Jérémy Scanvic`_)
 
 
 v0.4.1
@@ -659,4 +670,4 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Idris TATACHAK: https://github.com/idrisT11
 .. _Simon RIT: https://github.com/SimonRit
-
+.. _Kushagra Shukla: https://github.com/Kushagra481

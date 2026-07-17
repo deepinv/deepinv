@@ -34,7 +34,7 @@ GitHub: `<https://github.com/deepinv/deepinv>`_
 Get started
 -----------
 
-Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_, or our :ref:`User Guide <user_guide>`.
+Check out our `5 minute quickstart tutorial <https://deepinv.org/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.org/auto_examples/index.html>`_, or our :ref:`User Guide <user_guide>`.
 
 
 ``deepinv`` features
@@ -59,6 +59,8 @@ Join our **mailing list** for occasional updates on releases and new features:
    <button id="subscribeBtn" class="substack-clone-button" disabled onclick="submitAndRedirect()">Subscribe</button>
    </div></div></div>
    <script src="_static/subscribe/subscribe.js"></script>
+
+.. _install:
 
 Install
 -------
@@ -250,9 +252,9 @@ If you use DeepInverse in your research, please cite `our paper on JOSS <https:/
 Star history
 ------------
 
-.. image:: https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date
+.. image:: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
    :alt: Star History Chart
-   :target: https://www.star-history.com/#deepinv/deepinv&Date
+   :target: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
 
 Keywords: image processing, image reconstruction, imaging, computational imaging, inverse problems, deep learning, 
 mri, superresolution, computed tomography, plug-and-play, deblurring, diffusion models,
