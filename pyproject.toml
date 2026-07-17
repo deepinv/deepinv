@@ -72,6 +72,7 @@ doc = [
     "sphinx_sitemap >= 2.6.0, != 2.7.0",
     "sphinxcontrib.bibtex",
     "nbformat",
+    "huggingface_hub",
 ]
 
 lint = [
