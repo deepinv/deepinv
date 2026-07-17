@@ -87,9 +87,9 @@ for i in range(0, numberOfProjections):
     geometry.AddProjection(sid, sdd, angle)
 
 projection_stack_information = {
-    "spacing": [1, 1, 1],
-    "size": [100, 100, 600],
-    "origin": [-49.5, -49.5, 0.0],
+    "spacing": [1, 1],
+    "size": [100, 100],
+    "origin": [-49.5, -49.5],
 }
 
 
@@ -103,13 +103,17 @@ volume_information = {
 noise_level = 3e-1
 physics = TomographyWithRTK(
     geometry=geometry,
-    projection_stack_information=projection_stack_information,
-    volume_information=volume_information,
-    verbose=True,
+    n_detector_pixels=projection_stack_information["size"],
+    detector_spacing=projection_stack_information["spacing"],
+    detector_origin=projection_stack_information["origin"],
+    img_size=volume_information["size"],
+    pixel_spacing=volume_information["spacing"],
+    volume_origin=volume_information["origin"],
+    geometry_type="conebeam",
     normalize=False,
-    noise_model=GaussianNoise(sigma=noise_level),
-    mode="conebeam",
     ray_step_size=1.0,
+    verbose=True,
+    noise_model=GaussianNoise(sigma=noise_level),
 )
 
 # Application of the operator and computation of the pseudo inverse using the FDK algorithm
