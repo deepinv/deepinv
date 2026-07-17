@@ -261,6 +261,7 @@ class PiGDMDataFidelity(NoisyDataFidelity):
         ``None`` when the data fidelity is passed to
         :class:`deepinv.sampling.PosteriorDiffusion`, which supplies its denoiser.
     :param float weight: Weighting factor :math:`\lambda`. Default: ``1.0``.
+    :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.
     :param int cg_max_iter: Maximum number of conjugate-gradient iterations.
         Default: ``3``.
     :param float cg_tol: Relative conjugate-gradient tolerance. Default: ``1e-4``.
@@ -272,12 +273,18 @@ class PiGDMDataFidelity(NoisyDataFidelity):
         self,
         denoiser: Denoiser = None,
         weight: float = 1.0,
+        clip: tuple = None,
         cg_max_iter: int = 3,
         cg_tol: float = 1e-4,
         verbose: bool = False,
     ):
         super().__init__(weight=weight)
         self.denoiser = denoiser
+        if clip is not None:
+            if len(clip) != 2:  # pragma: no cover
+                raise ValueError(f"clip must be None or length 2, but got {clip}")
+            clip = sorted(clip)
+        self.clip = clip
         self.cg_max_iter = cg_max_iter
         self.cg_tol = cg_tol
         self.verbose = verbose
@@ -351,6 +358,8 @@ class PiGDMDataFidelity(NoisyDataFidelity):
                 lambda z: self.denoiser(z, sigma, *args, **kwargs),
                 x_denoiser,
             )
+            if self.clip is not None:
+                denoised = torch.clip(denoised, self.clip[0], self.clip[1])
             measurement = physics.A(denoised)
             difference = measurement - y.to(
                 device=measurement.device, dtype=measurement.dtype
@@ -393,6 +402,7 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
         ``None`` when the data fidelity is passed to
         :class:`deepinv.sampling.PosteriorDiffusion`, which supplies its denoiser.
     :param float weight: Weighting factor :math:`\lambda`. Default: ``1.0``.
+    :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.
     :param int cg_max_iter: Maximum number of conjugate-gradient iterations.
         Default: ``3``.
     :param float cg_tol: Relative conjugate-gradient tolerance. Default: ``1e-4``.
@@ -404,12 +414,18 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
         self,
         denoiser: Denoiser = None,
         weight: float = 1.0,
+        clip: tuple = None,
         cg_max_iter: int = 3,
         cg_tol: float = 1e-4,
         verbose: bool = False,
     ):
         super().__init__(weight=weight)
         self.denoiser = denoiser
+        if clip is not None:
+            if len(clip) != 2:  # pragma: no cover
+                raise ValueError(f"clip must be None or length 2, but got {clip}")
+            clip = sorted(clip)
+        self.clip = clip
         self.cg_max_iter = cg_max_iter
         self.cg_tol = cg_tol
         self.verbose = verbose
@@ -447,6 +463,8 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
                 lambda z: self.denoiser(z, sigma, *args, **kwargs),
                 x_denoiser,
             )
+            if self.clip is not None:
+                denoised = torch.clip(denoised, self.clip[0], self.clip[1])
             measurement = physics.A(denoised)
             difference = measurement - y.to(
                 device=measurement.device, dtype=measurement.dtype
