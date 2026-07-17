@@ -1,29 +1,26 @@
 import torch
 from deepinv.physics.forward import LinearPhysics
-from types import ModuleType
+from types import MappingProxyType
 
-
-def import_itk_rtk() -> (ModuleType, ModuleType):
-    try:
-        import itk
-        from itk import RTK as rtk
-
-        return (itk, rtk)
-    except ImportError:  # pragma: no cover
-        raise ImportError(
-            "itk-rtk is required to use TomographyWithRTK. It can be installed with itk-rtk-cuda128."
-        )
+from deepinv.physics.functional.rtk import (
+    XrayTransformRTK,
+    import_itk_rtk,
+    build_rtk_trajectory,
+    build_rtk_info,
+    AutogradTransformRTK as AutogradTransform,
+)
 
 
 class TomographyWithRTK(LinearPhysics):
     r"""Computed Tomography operator with RTK CUDA backend.
 
-    This operator implements a ray transform :math:`A` using the RTK (Reconstruction Toolkit) GPU-accelerated forward and backprojectors.
+    This operator implements a ray transform :math:`\forw{x}` using the RTK (Reconstruction Toolkit) GPU-accelerated forward and backprojectors. This implementation requires ITK with CudaCommon v2.1 and RTK v3. See the `RTK documentation <https://docs.openrtk.org/>`_ for more details.
 
     Mathematically, it computes line integrals of an object :math:`x` along X-ray paths:
 
     .. math::
-        y = Ax
+
+        y = \forw x
 
     where :math:`y` represents projection data.
 
@@ -32,101 +29,202 @@ class TomographyWithRTK(LinearPhysics):
     * ``fanbeam`` (2D-like using the 3D geometry)
     * ``conebeam`` (3D trajectory)
 
-    The adjoint is implemented using RTK's ray-cast adjoint.
-    The pseudo-inverse is approximated using filtered backprojection reconstruction.
+    The adjoint is implemented using RTK's ray-cast adjoint, which is the exact adjoint of the discretized forward operator, unlike :class:`TomographyWithAstra`, which uses an approximate adjoint.
 
-    This implementation requires ITK with CudaCommon v2.1 and RTK v3.
+    .. warning::
+
+        Batch elements are processed sequentially, not in parallel.
+
+    .. warning::
+
+        The pseudo-inverse is approximated using filtered backprojection (FBP) reconstruction, or the Feldkamp-Davis-Kress (FDK) algorithm in the cone-beam case. This is not the exact linear pseudo-inverse of the ray transform.
+
+    .. note::
+
+        If you need a custom acquisition trajectory (e.g. non-circular, or
+        loaded from a real scanner), you can still supply your own pre-built
+        RTK geometry object via ``geometry``. The detector grid and
+        reconstruction volume are still described from ``img_size``, ``n_detector_pixels``,
+        ``pixel_spacing``, ``detector_spacing`` and ``bounding_box``;
+        only the source/detector trajectory itself comes from ``geometry`` in
+        that case, and ``angles``/``angular_range``/``geometry_parameters`` are
+        ignored.
+
+    :param tuple[int, ...] img_size: Shape of the object grid: a 2-element
+        ``(n_rows, n_cols)`` tuple for ``geometry_type='fanbeam'``, or a
+        3-element ``(n_rows, n_slices, n_cols)`` tuple for
+        ``geometry_type='conebeam'``.
+    :param int | torch.Tensor angles: Number of angular positions sampled
+        uniformly in ``angular_range``, or a Tensor of angular positions in
+        degrees. Ignored if a custom ``geometry`` is supplied. (default: 180)
+    :param int | tuple[int, int], None n_detector_pixels: In ``fanbeam``, an
+        integer giving the number of detector cells. In ``conebeam``, a
+        2-element ``(n_rows, n_cols)`` tuple for the detector grid (an int is
+        broadcast to both). (default: None, inferred from ``img_size``)
+    :param tuple[float, float] angular_range: Angular range in degrees.
+        Ignored if a custom ``geometry`` is supplied. (default: ``(0, 360)``,
+        a full circular trajectory)
+    :param float | tuple[float, ...] pixel_spacing: Voxel size(s) of the
+        reconstruction grid: scalar, or ``(x, z)`` in ``fanbeam``, ``(x, y, z)``
+        in ``conebeam``. (default: 1.0)
+    :param float | tuple[float, float] detector_spacing: Detector cell size(s):
+        scalar, or ``(vertical, horizontal)`` in ``conebeam``. (default: 1.0)
+    :param float | tuple[float, float], None detector_origin: Origin of the
+        detector grid: scalar in ``fanbeam``, or ``(vertical, horizontal)`` in
+        ``conebeam``. If ``None`` (default), the detector is centered (i.e.
+        the origin is computed automatically from ``n_detector_pixels`` and
+        ``detector_spacing`` so the detector grid is symmetric about 0).
+    :param tuple[float, ...], None bounding_box: Axis-aligned bounding box of the
+        reconstruction volume, ``[min_0, max_0, min_1, max_1, ...]``. If
+        provided, overrides ``pixel_spacing``. (default: None)
+    :param float | tuple[float, ...], None volume_origin: Origin of the
+        reconstruction volume grid: scalar or ``(x, z)`` in ``fanbeam``,
+        scalar or ``(x, y, z)`` in ``conebeam``. If ``None`` (default), the
+        volume is centered (i.e. the origin is computed automatically from
+        ``img_size`` and ``pixel_spacing``/``bounding_box`` so the volume is
+        symmetric about 0). Takes precedence over the origin implied by
+        ``bounding_box`` if both are given.
+    :param str geometry_type: Either ``'fanbeam'`` or ``'conebeam'``.
+    :param dict[str, float] geometry_parameters: ``"source_radius"`` (distance
+        from the X-ray source to the rotation axis) and ``"detector_radius"``
+        (distance from the rotation axis to the detector). Ignored if a custom
+        ``geometry`` is supplied. (default: ``{"source_radius": 80.0,
+        "detector_radius": 20.0}``)
+    :param geometry: Optional pre-built ``rtk.ThreeDCircularProjectionGeometry``
+        object describing the source/detector
+        trajectory. If given, it is used as-is and ``angles``,
+        ``angular_range``, ``geometry_parameters`` are ignored; the number of
+        projections is read directly off ``geometry``. If left as ``None``
+        (the default), the trajectory is built automatically from ``angles``,
+        ``angular_range`` and ``geometry_parameters``.
+    :param bool verbose: If True, print geometry configuration.
+    :param bool normalize: If True, normalize operator to unit norm.
+    :param float ray_step_size: Step size along the ray. If left at ``0.0``,
+        defaults to the volume spacing along the stacking axis.
+
+    |sep|
+
+    :Examples:
+
+        Fully automatic geometry (typical use case):
+
+        .. doctest::
+
+            >>> physics = TomographyWithRTK(
+            ...     img_size=(64, 64, 64),
+            ...     angles=600,
+            ...     angular_range=(0, 360),
+            ...     n_detector_pixels=(100, 100),
+            ...     geometry_type="conebeam",
+            ...     geometry_parameters={"source_radius": 300.0, "detector_radius": 200.0},
+            ...     normalize=False,
+            ...     ray_step_size=0.5,
+            ... )
+
+        Custom trajectory, everything else still inferred from ``img_size`` etc.:
+
+        .. doctest::
+
+            >>> geometry = rtk.ThreeDCircularProjectionGeometry.New()
+            >>> for i in range(600):
+            ...     geometry.AddProjection(300, 500, i * 360.0 / 600)
+            >>> physics = TomographyWithRTK(
+            ...     geometry=geometry,
+            ...     img_size=(64, 64, 64),
+            ...     n_detector_pixels=(100, 100),
+            ...     geometry_type="conebeam",
+            ...     normalize=False,
+            ...     ray_step_size=0.5,
+            ... )
     """
 
     def __init__(
         self,
-        geometry: any,
-        projection_stack_information: dict[str, list],
-        volume_information: dict[str, list],
-        mode: str,
+        img_size: tuple[int, ...],
+        angles: int | torch.Tensor = 180,
+        n_detector_pixels: int | tuple[int, int] | None = None,
+        angular_range: tuple[float, float] = (0, 360),
+        pixel_spacing: float | tuple[float, ...] = 1.0,
+        detector_spacing: float | tuple[float, float] = 1.0,
+        detector_origin: float | tuple[float, float] | None = None,
+        bounding_box: tuple[float, ...] | None = None,
+        volume_origin: float | tuple[float, ...] | None = None,
+        geometry_type: str | None = None,
+        geometry_parameters: dict[str, float] = MappingProxyType(
+            {
+                "source_radius": 80.0,
+                "detector_radius": 20.0,
+            }
+        ),
+        geometry: any = None,
         verbose: bool = False,
         normalize: bool = False,
         ray_step_size: float = 0.0,
         *args,
         **kwargs,
     ):
-        """
-        :param geometry: RTK geometry object defining source/detector trajectory.
-        :param projection_stack_information: Dictionary describing the projection stack information
-            (size, spacing, origin).
-        :param volume_information: Dictionary describing reconstruction
-            volume grid (size, spacing, origin).
-        :param str mode: Either ``"fanbeam"`` or ``"conebeam"``.
-        :param bool verbose: If True, print geometry configuration.
-        :param bool normalize: If True, normalize operator to unit norm.
-        :param float ray_step_size: Step size along the ray.
-        """
 
         itk, rtk = import_itk_rtk()
 
         super().__init__(*args, **kwargs)
 
-        # A and A_adjoint use a ray-based approach with trilinear interpolation
-        # of the volume so they need at least two volume slices. One projection
-        # line is sufficient.
         self._NB_STACK_VOL = 2
         self._CUDA_IMAGE_TYPE = itk.CudaImage[itk.F, 3]
 
+        if geometry_type is None:
+            geometry_type = "conebeam"
+
+        if geometry_type not in ("fanbeam", "conebeam"):
+            raise ValueError(
+                f"geometry_type {geometry_type!r} unrecognized (expected 'fanbeam' or 'conebeam')"
+            )
+
+        # ---------------------------------------------------------
+        # Trajectory: either provided directly, or built from
+        # angles / angular_range / geometry_parameters.
+        # ---------------------------------------------------------
+        if geometry is not None:
+            n_angles = len(geometry.GetGantryAngles())
+        else:
+            geometry, n_angles = build_rtk_trajectory(
+                rtk=rtk,
+                angles=angles,
+                angular_range=angular_range,
+                geometry_parameters=dict(geometry_parameters),
+            )
+
+        # ---------------------------------------------------------
+        # Projection-stack and volume information computed from the parameters.
+        # ---------------------------------------------------------
+        projection_stack_information, volume_information = build_rtk_info(
+            geometry_type=geometry_type,
+            img_size=img_size,
+            n_angles=n_angles,
+            n_detector_pixels=n_detector_pixels,
+            pixel_spacing=pixel_spacing,
+            detector_spacing=detector_spacing,
+            detector_origin=detector_origin,
+            bounding_box=bounding_box,
+            volume_origin=volume_origin,
+            geometry=geometry,
+            nb_stack_vol=self._NB_STACK_VOL,
+        )
+
         self.geometry = geometry
-        self.mode = mode
+        self.geometry_type = geometry_type
+        self.is_2d = geometry_type == "fanbeam"
 
         self.projection_stack_information = projection_stack_information
         self.volume_information = volume_information
 
-        if mode not in ("fanbeam", "conebeam"):
-            raise ValueError(
-                f"mode {mode!r} unrecognized (expected 'fanbeam' or 'conebeam')"
-            )
-
-        self._validate_info(
-            mode, self.projection_stack_information, "projection_stack_information"
+        self.xray_transform = XrayTransformRTK(
+            geometry,
+            projection_stack_information,
+            volume_information,
+            is_2d=self.is_2d,
         )
-        self._validate_info(mode, self.volume_information, "volume_information")
 
-        # ---------------------------------------------------------
-        # FANBEAM CONFIGURATION (2D embedded in 3D volume)
-        # ---------------------------------------------------------
-        if mode == "fanbeam":
-            # Information for A and A_adjoint. Information for fbp is computed in the function
-            self.projection_stack_information["spacing"] = [
-                self.projection_stack_information["spacing"][0],
-                1.0,
-                self.projection_stack_information["spacing"][1],
-            ]
-            self.projection_stack_information["size"] = [
-                self.projection_stack_information["size"][0],
-                1,
-                self.projection_stack_information["size"][1],
-            ]
-            self.projection_stack_information["origin"] = [
-                self.projection_stack_information["origin"][0],
-                -geometry.GetSourceOffsetsY()[0],
-                self.projection_stack_information["origin"][1],
-            ]
-
-            self.volume_information["spacing"] = [
-                self.volume_information["spacing"][0],
-                1.0,
-                self.volume_information["spacing"][1],
-            ]
-            self.volume_information["size"] = [
-                self.volume_information["size"][0],
-                self._NB_STACK_VOL,
-                self.volume_information["size"][1],
-            ]
-
-            self.volume_information["origin"] = [
-                self.volume_information["origin"][0],
-                -0.5 * (self._NB_STACK_VOL - 1),
-                self.volume_information["origin"][1],
-            ]
-
-        if ray_step_size is 0.0:
+        if ray_step_size == 0.0:
             self.ray_step_size = self.volume_information["spacing"][1]
         else:
             self.ray_step_size = ray_step_size
@@ -134,227 +232,106 @@ class TomographyWithRTK(LinearPhysics):
         self.normalize = False
         if normalize:
             vol_size = self.volume_information["size"]
-            if mode == "fanbeam":
+            if geometry_type == "fanbeam":
                 logical_size = [vol_size[0], vol_size[2]]
             else:
                 logical_size = vol_size
-            self.norm_mat = self.compute_norm(
+            self.operator_norm = self.compute_norm(
                 torch.randn((1, 1, *logical_size), device="cuda")
             ).sqrt()
             self.normalize = True
         else:
-            self.norm_mat = None
+            self.operator_norm = None
 
         if verbose:
             print("Projection stack information: ")
-            print(self.projection_stack_information["size"])
+            print(self.projection_stack_information["size"][::-1])
             print(self.projection_stack_information["origin"])
             print(self.projection_stack_information["spacing"])
 
             print("Output volume information: ")
-            print(self.volume_information["size"])
+            print(self.volume_information["size"][::-1])
             print(self.volume_information["origin"])
             print(self.volume_information["spacing"])
 
-    @staticmethod
-    def _validate_info(
-        mode: str, info: dict[str, int | float], name: str
-    ) -> None:
-        """Validate that all array-like values in ``info`` have the expected length for the given mode.
+    def fbp(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
 
-        :param mode: Either ``"fanbeam"`` or ``"conebeam"``.
-        :param info: Dictionary describing a grid (size, spacing, origin) in the image space or in the observation space.
-        :param name: Name for error throwing.
-        """
-        expected_len = 2 if mode == "fanbeam" else 3
+        B, C = y.shape[0:2]
 
-        for key, element in info.items():
-            # If the element is not array-like, skip
-            if not hasattr(element, "__len__"):
-                continue
+        output = torch.zeros(
+            (B, C) + self.xray_transform.domain_shape, dtype=y.dtype, device=y.device
+        )
+        self.xray_transform.fdk_on_batch(y, output, **kwargs)
 
-            actual_len = len(element)
-            if actual_len != expected_len:
-                raise ValueError(
-                    f"Expected element length {expected_len} for mode {mode!r}, "
-                    f"got {actual_len} for key {key!r} in {name}"
-                )
+        if self.is_2d:
+            return output[:, :, :, 0]
+        else:
+            return output
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward projection.
 
-        :param torch.Tensor x: input of shape [B,C,...,H,W]
-        :return: projection of shape [B,C,...,A,N]
+        In 2D, the output is a sinogram of shape [B,C,A,N],
+        with A the number of angular positions, and N the number of detector cells.
+        In 3D, the output is of shape [B,C,A,V,N], with A the
+        number of angular positions, and (V,N) the shape of the 2D detector grid,
+        where V is the number of rows of the detector and N the number of columns.
+
+        :param torch.Tensor x: input of shape [B,C,H,D,W] for conebeam and [B,C,H,W] for fanbeam
+        :return: projection of shape [B,C,A,V,N] for conebeam and [B,C,A,N] for fanbeam
+
+        :note The measurement shape differs from the `TomographyWithAstra` forward operator . As in TomographyWithRTK is to [B,C,A,V,N] and `TomographyWithAstra` [B,C,V,A,N]
         """
 
-        itk, rtk = import_itk_rtk()
-
-        x_stacked = x.squeeze(0).squeeze(0)
-
-        # Add a dimension to simulate a 2D projection in fanbeam mode
-        if self.mode == "fanbeam":
-            x_stacked = torch.stack([x_stacked.clone()] * self._NB_STACK_VOL, dim=1).to(
-                "cuda:0"
-            )
-
-        # Cast from tensor to ITK cuda image
-        imageSource_cuda = itk.cuda_image_from_cuda_array(x_stacked)
-        imageSource_cuda.SetOrigin(self.volume_information["origin"])
-        imageSource_cuda.SetSpacing(self.volume_information["spacing"])
-
-        fp_source = rtk.ConstantImageSource[self._CUDA_IMAGE_TYPE].New()
-        fp_source.SetSize(self.projection_stack_information["size"])
-        fp_source.SetOrigin(self.projection_stack_information["origin"])
-        fp_source.SetSpacing(self.projection_stack_information["spacing"])
-
-        # Forward projection: Ax
-        forward_projector = rtk.CudaForwardProjectionImageFilter[
-            self._CUDA_IMAGE_TYPE
-        ].New()
-        forward_projector.SetGeometry(self.geometry)
-        forward_projector.SetInput(fp_source.GetOutput())
-        forward_projector.SetInput(1, imageSource_cuda)
-        forward_projector.SetStepSize(self.ray_step_size)
-        forward_projector.Update()
-        Ax = forward_projector.GetOutput()
-        Ax.DisconnectPipeline()
-
-        # Cast back from itk cuda image to tensor
-        projections = torch.as_tensor(
-            Ax, device=x.device
-        )
-
-        if self.mode == "fanbeam":
-            projections = projections[:, 0, :]
-
+        out = AutogradTransform.apply(x, self.xray_transform)
         if self.normalize:
-            projections /= self.norm_mat
+            out /= self.operator_norm
 
-        return projections.unsqueeze(0).unsqueeze(0)
+        return out
 
     def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
-        """Approximation of the adjoint.
+        """Back projection, adjoint of the forward projector.
 
-        :param torch.Tensor y: input of shape [B,C,...,A,N]
-        :return: scaled back-projection of shape [B,C,...,H,W]
+        In 2D, the input is a sinogram of shape [B,C,A,N],
+        with A the number of angular positions, and N the number of detector cells.
+        In 3D, the input is of shape [B,C,A,V,N], with A the
+        number of angular positions, and (V,N) the shape of the 2D detector grid,
+        where V is the number of rows of the detector and N the number of columns.
+
+        :param torch.Tensor y: input of shape [B,C,A,V,N] for conebeam and [B,C,A,N] for fanbeam
+        :return: scaled back-projection of shape [B,C,H,D,W] for conebeam and [B,C,H,W] for fanbeam
         """
-
-        itk, rtk = import_itk_rtk()
-
-        y_stacked = y.squeeze(0).squeeze(0)
-
-        # Add a dimension to simulate a 2D projection in fanbeam mode
-        if self.mode == "fanbeam":
-            y_stacked = torch.stack([y_stacked.clone()] * 1, dim=1).to("cuda:0")
-
-        # Cast from tensor to ITK cuda image
-        projection_cuda = itk.cuda_image_from_cuda_array(y_stacked)
-        projection_cuda.SetOrigin(self.projection_stack_information["origin"])
-        projection_cuda.SetSpacing(self.projection_stack_information["spacing"])
-
-        fp_source = rtk.ConstantImageSource[self._CUDA_IMAGE_TYPE].New()
-
-        fp_source.SetSize(self.volume_information["size"])
-        fp_source.SetOrigin(self.volume_information["origin"])
-        fp_source.SetSpacing(self.volume_information["spacing"])
-
-        # Backprojection: A^T x
-        back_projector = rtk.CudaRayCastBackProjectionImageFilter.New()
-        back_projector.SetGeometry(self.geometry)
-        back_projector.SetInput(0, fp_source.GetOutput())
-        back_projector.SetInput(1, projection_cuda)
-        back_projector.SetStepSize(self.ray_step_size)
-        back_projector.Update()
-        Atx = back_projector.GetOutput()
-        Atx.DisconnectPipeline()
-
-        # Cast back from itk cuda image to tensor
-        backproj = torch.as_tensor(
-            Atx, device=y.device
-        )
-
-        if self.mode == "fanbeam":
-            backproj = backproj.sum(dim=1)
-        else:
-            backproj = backproj.permute(2, 1, 0)
-
+        out = AutogradTransform.apply(y, self.xray_transform.T)
         if self.normalize:
-            backproj /= self.norm_mat
+            out /= self.operator_norm
 
-        return backproj.unsqueeze(0).unsqueeze(0)
+        return out
 
-    def fbp(
+    def A_dagger(
         self,
         y: torch.Tensor,
-        parker_angular_gap_threshold: float = 0,
-        truncation_correction_padding: float = 0,
-        hann_cut_frequency: float = 0,
+        fbp: bool = False,
+        parker_angular_gap_threshold: float = 0.0,
+        truncation_correction_padding: float = 0.0,
         **kwargs,
     ) -> torch.Tensor:
-        """Reconstruct an image from projection data using the FDK algorithm.
+        r"""
+        Computes the solution in :math:`x` to :math:`y = Ax` using a least squares solver. A faster approximation can be obtained by setting ``fbp=True``, which computes the filtered back-projection of the measurements, or the Feldkamp-Davis-Kress algorithm (FDK) in cone-beam 3D.
 
-        :param torch.Tensor y: input of shape [B,C,...,A,N]
-        :param parker_angular_gap_threshold: Angular gap threshold (in degrees) at which [Parker, Med Phys, 1982] weighting is used.
-        :param truncation_correction_padding: Padding ratio applied to reduce truncation artefacts via [Ohnesorge, Eur Radiol, 1999].
-        :param float hann_cut_frequency: Cut frequency for Hann windowing in ]0,1] (0.0 disables it, 1. is Nyquist frequency).
-        :return: reconstruction using the FDK algorithm of shape [B,C,...,H,W]
+        .. warning::
+
+            The filtered back-projection algorithm is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation that is robust to noise.
+
+        :param torch.Tensor y: input of shape [B,C,A,V,N] for conebeam and [B,C,A,N] for fanbeam
+        :param bool fbp: compute the inverse through the FDK algorithm
+        :param float parker_angular_gap_threshold: Angular gap threshold (in degrees) at which :footcite:t:`parker1982optimal` weighting is used. Only used if ``fbp=True``.
+        :param float truncation_correction_padding: Padding ratio applied to reduce truncation artefacts via :footcite:t:`ohnesorge2000efficient`. Only used if ``fbp=True``.
+        :return: reconstruction of shape [B,C,H,D,W] for conebeam and [B,C,H,W] for fanbeam
         """
 
-        itk, rtk = import_itk_rtk()
-
-        y_stacked = y.squeeze(0).squeeze(0)
-
-        # fbp uses a voxel based approach, i.e., a bilinear interpolation of
-        # the projections so it needs at least two slices which is handled in
-        # the fbp function. One volume slice is sufficient.
-        nb_stack_proj = 2
-        if self.mode == "fanbeam":
-            y_stacked = torch.stack(
-                [y_stacked.clone()] * nb_stack_proj, dim=1
-            )  # stack n slices of x
-
-        # Cast from tensor to ITK cuda image
-        projection_cuda = itk.cuda_image_from_cuda_array(y_stacked)
-        origin = self.projection_stack_information["origin"].copy()
-        if self.mode == "fanbeam":
-            origin[1] = -0.5 * (nb_stack_proj - 1)
-        projection_cuda.SetOrigin(origin)
-        projection_cuda.SetSpacing(self.projection_stack_information["spacing"])
-
-        # Initialize the source
-        fp_source = rtk.ConstantImageSource[self._CUDA_IMAGE_TYPE].New()
-        fp_source.SetSize(self.volume_information["size"])
-        origin = self.volume_information["origin"].copy()
-        if self.mode == "fanbeam":
-            origin[1] = 0.0
-        fp_source.SetOrigin(origin)
-        fp_source.SetSpacing(self.volume_information["spacing"])
-
-        # Define the parker filter for short scan artefact correction
-        parker = rtk.CudaParkerShortScanImageFilter.New(Geometry=self.geometry)
-        parker.SetInput(projection_cuda)
-        parker.SetAngularGapThreshold(parker_angular_gap_threshold)
-
-        # FDK reconstruction
-        feldkamp = rtk.CudaFDKConeBeamReconstructionFilter.New()
-        feldkamp.SetInput(0, fp_source.GetOutput())
-        feldkamp.SetInput(1, parker.GetOutput())
-        feldkamp.SetGeometry(self.geometry)
-        feldkamp.GetRampFilter().SetTruncationCorrection(truncation_correction_padding)
-        feldkamp.GetRampFilter().SetHannCutFrequency(hann_cut_frequency)
-        feldkamp.Update()
-
-        itk_reco = feldkamp.GetOutput()
-        itk_reco.DisconnectPipeline()
-
-        # Cast back from itk cuda image to tensor
-        reco = torch.as_tensor(
-            itk_reco, device=y.device
-        )
-
-        if self.mode == "fanbeam":
-            reco = reco.sum(dim=1)
+        if fbp:
+            return self.fbp(
+                y, parker_angular_gap_threshold, truncation_correction_padding, **kwargs
+            )
         else:
-            reco = reco.permute(2, 1, 0)
-
-        return reco.unsqueeze(0).unsqueeze(0)
+            return super(TomographyWithRTK, self).A_dagger(y, **kwargs)
