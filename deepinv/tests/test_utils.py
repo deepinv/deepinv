@@ -24,7 +24,7 @@ import math
 from conftest import non_blocking_plots  # noqa: F401
 
 from deepinv.tests.test_datasets import check_dataset_format
-from deepinv.models.utils import patchify
+from deepinv.utils import image_to_patches, patches_to_image
 from deepinv.datasets import PatchDataset
 
 
@@ -567,21 +567,6 @@ def test_get_freer_gpu(test_case, os_name, verbose, use_torch_api, hide_warnings
             ), f"Selected GPU index should be {freer_gpu_index}."
 
 
-@pytest.mark.parametrize("fn_name", ["norm", "cal_angle", "cal_mse", "norm_psnr"])
-def test_deprecated_metric_functions(fn_name):
-    f = getattr(deepinv.utils.metric, fn_name)
-    with pytest.raises(NotImplementedError, match="deprecated"):
-        # The functions take a variable number of required arguments so we
-        # use reflection to get their number and pass in None for each of them.
-        sig = inspect.signature(f)
-        args = [
-            None
-            for p in sig.parameters.values()
-            if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
-        ]
-        f(*args)
-
-
 @pytest.mark.parametrize("with_data_dir", [False, True])
 @pytest.mark.parametrize("data_dir_type", [str, pathlib.Path])
 @pytest.mark.parametrize("name", ["Levin09.npy"])
@@ -1100,6 +1085,28 @@ def test_io_np():
     ).shape == (217, 181)
 
 
+def test_load_url_is_cached(tmp_path, monkeypatch):
+    url = "https://example.com/sample.bin"
+    data = b"cached-content"
+
+    monkeypatch.setattr(deepinv.io, "get_cache_home", lambda: tmp_path)
+
+    response = mock.MagicMock()
+    response.iter_content.return_value = [data]
+    response.raise_for_status.return_value = None
+    response.__enter__.return_value = response
+    response.__exit__.return_value = None
+
+    with patch.object(deepinv.io.requests, "get", return_value=response) as mock_get:
+        file1 = deepinv.utils.load_url(url)
+        file2 = deepinv.utils.load_url(url)
+
+    assert mock_get.call_count == 1
+    assert file1.getvalue() == data
+    assert file2.getvalue() == data
+    assert any((tmp_path / "url_cache").iterdir())
+
+
 def test_io_raster():
     pytest.importorskip(
         "rasterio",
@@ -1153,6 +1160,34 @@ def test_io_blosc2():
         assert out_memmap is mock_arr
 
 
+def test_io_tiff(tmp_path):
+    tifffile = pytest.importorskip(
+        "tifffile",
+        reason="This test requires tifffile. It should be "
+        "installed with `pip install tifffile`",
+    )
+
+    # 2D integer image is normalized to [0, 1] and gets a channel + batch dim
+    gray = np.array([[0, 255], [128, 64]], dtype=np.uint8)
+    tifffile.imwrite(tmp_path / "gray.tif", gray)
+    x = deepinv.io.load_tiff(tmp_path / "gray.tif")
+    assert x.shape == (1, 1, 2, 2)
+    assert x.max() <= 1.0 and x.min() >= 0.0
+    assert torch.allclose(
+        x, torch.from_numpy(gray.astype(np.float64) / 255).reshape(x.shape)
+    )
+
+    # 3D (H, W, C) image is converted to channel-first (1, C, H, W)
+    rgb = np.zeros((4, 5, 3), dtype=np.uint16)
+    tifffile.imwrite(tmp_path / "rgb.tif", rgb)
+    x = deepinv.io.load_tiff(tmp_path / "rgb.tif")
+    assert x.shape == (1, 3, 4, 5)
+
+    # dtype argument casts the output tensor
+    x = deepinv.io.load_tiff(tmp_path / "gray.tif", dtype=torch.float32)
+    assert x.dtype == torch.float32
+
+
 PATCH_CONFIGS = [
     (2, 3, 16, 16, 6, 1),
     (1, 1, 8, 8, 4, 2),
@@ -1167,11 +1202,11 @@ def test_patchify_shape_and_content(B, C, H, W, patch_size, stride):
     """Output shape is correct and each patch matches the manual slice."""
     torch.manual_seed(0)
     imgs = torch.randn(B, C, H, W)
-    patches = patchify(imgs, patch_size=patch_size, stride=stride)
+    patches = image_to_patches(imgs, patch_size=patch_size, stride=stride)
 
     num_H = (H - patch_size) // stride + 1
     num_W = (W - patch_size) // stride + 1
-    assert patches.shape == (B, C, patch_size, patch_size, num_H * num_W)
+    assert patches.shape == (B, C, num_H, num_W, patch_size, patch_size)
 
     for b in range(B):
         for i in range(num_H):
@@ -1182,45 +1217,62 @@ def test_patchify_shape_and_content(B, C, H, W, patch_size, stride):
                     i * stride : i * stride + patch_size,
                     j * stride : j * stride + patch_size,
                 ]
-                assert torch.equal(patches[b, :, :, :, i * num_W + j], expected)
+                assert torch.equal(patches[b, :, i, j], expected)
 
 
 def test_patchify_single_patch():
     """patch_size == image size => 1 patch identical to the image."""
     imgs = torch.randn(1, 3, 8, 8)
-    patches = patchify(imgs, patch_size=8, stride=1)
-    assert patches.shape == (1, 3, 8, 8, 1)
-    assert torch.equal(patches[0, :, :, :, 0], imgs[0])
+    patches = image_to_patches(imgs, patch_size=8, stride=1)
+    assert patches.shape == (1, 3, 1, 1, 8, 8)
+    assert torch.equal(patches[0, :, 0, 0], imgs[0])
 
 
 def test_patchify_non_overlapping_reconstruction():
     """Non-overlapping patches tile and perfectly reconstruct the image."""
     imgs = torch.randn(1, 1, 8, 8)
-    patches = patchify(imgs, patch_size=4, stride=4)
-    reconstructed = torch.zeros_like(imgs)
-    idx = 0
-    for i in range(2):
-        for j in range(2):
-            reconstructed[0, :, i * 4 : (i + 1) * 4, j * 4 : (j + 1) * 4] = patches[
-                0, :, :, :, idx
-            ]
-            idx += 1
+    patches = image_to_patches(imgs, patch_size=4, stride=4)
+    reconstructed = patches_to_image(patches, stride=4)
     assert torch.equal(reconstructed, imgs)
+
+
+def test_patchify_overlapping_reconstruction_mean():
+    """Overlapping patches reconstruct exactly when overlap is averaged."""
+    torch.manual_seed(0)
+    imgs = torch.randn(1, 2, 8, 8)
+    patches = image_to_patches(imgs, patch_size=4, stride=2)
+    reconstructed = patches_to_image(patches, stride=2, reduce_overlap="mean")
+    assert torch.allclose(reconstructed, imgs)
+
+
+def test_patchify_pad_if_needed_behavior():
+    """pad_if_needed controls whether partial edge patches are included."""
+    imgs = torch.randn(1, 1, 7, 9)
+    no_pad = image_to_patches(imgs, patch_size=4, stride=3, pad_if_needed=False)
+    with_pad = image_to_patches(imgs, patch_size=4, stride=3, pad_if_needed=True)
+
+    # Without padding: floor-based number of patches.
+    assert no_pad.shape == (1, 1, 2, 2, 4, 4)
+    # With padding: one extra column to cover the right border.
+    assert with_pad.shape == (1, 1, 2, 3, 4, 4)
 
 
 @pytest.mark.parametrize("B, C, H, W, patch_size, stride", PATCH_CONFIGS)
 def test_patch_dataset_matches_patchify(B, C, H, W, patch_size, stride):
-    """PatchDataset items are consistent with patchify output."""
+    """PatchDataset items are consistent with image_to_patches output."""
     torch.manual_seed(42)
     imgs = torch.randn(B, C, H, W)
     ds = PatchDataset(imgs, patch_size=patch_size, stride=stride, shape=None)
-    patches = patchify(imgs, patch_size=patch_size, stride=stride)
-    num_pch = patches.shape[-1]
+    patches = image_to_patches(imgs, patch_size=patch_size, stride=stride)
+    num_rows, num_cols = patches.shape[2], patches.shape[3]
+    num_pch = num_rows * num_cols
 
     assert len(ds) == B * num_pch
     for b in range(B):
-        for p in range(num_pch):
-            assert torch.equal(ds[b * num_pch + p], patches[b, :, :, :, p])
+        for i in range(num_rows):
+            for j in range(num_cols):
+                p = i * num_cols + j
+                assert torch.equal(ds[b * num_pch + p], patches[b, :, i, j])
 
 
 def test_patch_dataset_shape_flat():

@@ -14,7 +14,6 @@ from deepinv.models.dynamic import TimeAveragingNet
 from deepinv.utils.mixins import TimeMixin
 from deepinv.models.base import Reconstructor
 from deepinv.loss.measplit import SplittingLoss
-from deepinv.utils.decorators import _deprecated_alias
 
 
 class WeightedSplittingLoss(SplittingLoss):
@@ -382,7 +381,6 @@ class Phase2PhaseLoss(SplittingLoss):
 
     """
 
-    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
         img_size: tuple[int],
@@ -393,7 +391,7 @@ class Phase2PhaseLoss(SplittingLoss):
         if metric is None:
             metric = torch.nn.MSELoss()
         super().__init__()
-        self.name = "phase2phase"
+        self._name = "phase2phase"
         self.img_size = img_size
         self.dynamic_model = dynamic_model
         self.metric = metric
@@ -570,7 +568,6 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
 
     """
 
-    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
         img_size: tuple[int],
@@ -587,7 +584,7 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
             metric=metric,
             device=device,
         )
-        self.name = "artifact2artifact"
+        self._name = "artifact2artifact"
         self.mask_generator = Artifact2ArtifactSplittingMaskGenerator(
             img_size=self.img_size, split_size=split_size, device=self.device
         )

@@ -214,7 +214,7 @@ class Trainer:
     :Comparison with Pseudoinverse Baseline:
 
     :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction. Default is ``False``.
-    :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
+    :param str, Reconstructor no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
         ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the
         :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method. Default is ``'A_adjoint'``.
 
@@ -247,7 +247,6 @@ class Trainer:
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
     :param int plot_interval: Frequency of plotting images to MLOps tools (wandb or MLflow) during evaluation (at the end of each epoch).
         If ``1``, plots at each epoch. Default is ``1``.
-    :param int freq_plot: deprecated. Use ``plot_interval``
 
     |sep|
 
@@ -283,7 +282,7 @@ class Trainer:
     ckpt_pretrained: str | None = None
     save_path: str | Path | None = "."
     compare_no_learning: bool = False
-    no_learning_method: str = "A_adjoint"
+    no_learning_method: str | Reconstructor = "A_adjoint"
     grad_clip: float = None
     check_grad: bool = False
     wandb_vis: bool = False
@@ -293,7 +292,6 @@ class Trainer:
     ckp_interval: int = 1
     eval_interval: int = 1
     plot_interval: int = 1
-    freq_plot: int = None
     plot_images: bool = False
     plot_measurements: bool = True
     plot_convergence_metrics: bool = False
@@ -366,12 +364,6 @@ class Trainer:
         self.save_path = Path(self.save_path) if self.save_path else None
 
         self.G = len(self.train_dataloader)
-
-        if self.freq_plot is not None:
-            warnings.warn(
-                "freq_plot parameter of Trainer is deprecated. Use plot_interval instead."
-            )
-            self.plot_interval = self.freq_plot
 
         if (
             self.wandb_setup != {}
@@ -607,17 +599,6 @@ class Trainer:
             if self.verbose:
                 print(f"{msg} successfully loaded from checkpoint: {ckpt_pretrained}")
             return checkpoint
-
-    def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
-        r"""
-        This method is deprecated and will be removed in a future release. Instead, use :func:`log_metrics_mlops`.
-        """
-        warnings.warn(
-            "This method is deprecated and will be removed in a future release. Use log_metrics_mlops instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.log_metrics_mlops(logs=logs, step=step, train=train)
 
     def log_metrics_mlops(self, logs: dict, step: int, train: bool = True):
         r"""
@@ -969,7 +950,9 @@ class Trainer:
         """
 
         y = y.to(self.device)
-        if self.no_learning_method == "A_adjoint" and hasattr(physics, "A_adjoint"):
+        if isinstance(self.no_learning_method, Reconstructor):
+            x_nl = self.no_learning_method(y, physics)
+        elif self.no_learning_method == "A_adjoint" and hasattr(physics, "A_adjoint"):
             if isinstance(physics, torch.nn.DataParallel):
                 x_nl = physics.module.A_adjoint(y)
             else:
@@ -1609,55 +1592,3 @@ class Trainer:
                 print(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
 
         return out
-
-
-def train(
-    model: torch.nn.Module,
-    physics: Physics,
-    optimizer: torch.optim.Optimizer,
-    train_dataloader: torch.utils.data.DataLoader,
-    epochs: int = 100,
-    losses: Loss | list[Loss] | None = None,
-    eval_dataloader: torch.utils.data.DataLoader = None,
-    *args,
-    **kwargs,
-):
-    """
-    Alias function for training a model using :class:`deepinv.Trainer` class.
-
-    This function creates a Trainer instance and returns the trained model.
-
-    .. warning::
-
-        This function is deprecated and will be removed in future versions. Please use
-        :class:`deepinv.Trainer` instead.
-
-    :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
-    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
-    :param int epochs: Number of training epochs. Default is 100.
-    :param torch.optim.Optimizer optimizer: Torch optimizer for training the network.
-    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see :ref:`datasets user guide <datasets>`
-        for how we expect data to be provided.
-    :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
-        :ref:`See the libraries' training losses <loss>`.
-    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s), see :ref:`datasets user guide <datasets>`
-        for how we expect data to be provided.
-    :param args: Other positional arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
-    :param kwargs: Keyword arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
-    :return: Trained model.
-    """
-    if losses is None:
-        losses = SupLoss()
-    trainer = Trainer(
-        model=model,
-        physics=physics,
-        optimizer=optimizer,
-        epochs=epochs,
-        losses=losses,
-        train_dataloader=train_dataloader,
-        eval_dataloader=eval_dataloader,
-        *args,
-        **kwargs,
-    )
-    trained_model = trainer.train()
-    return trained_model

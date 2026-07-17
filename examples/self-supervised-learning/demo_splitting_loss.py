@@ -17,6 +17,7 @@ See :class:`deepinv.loss.SplittingLoss` for full details.
 
 """
 
+# %%
 from pathlib import Path
 
 import torch
@@ -24,7 +25,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
 import deepinv as dinv
-from deepinv.utils import get_data_home
+from deepinv.utils import get_cache_home
 from deepinv.models.utils import get_weights_url
 
 torch.manual_seed(0)
@@ -32,7 +33,7 @@ device = dinv.utils.get_device()
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
-ORIGINAL_DATA_HOME = get_data_home()
+ORIGINAL_DATA_HOME = get_cache_home() / "datasets" / "MNIST"
 
 
 # %%
@@ -126,7 +127,7 @@ test_dataloader = DataLoader(test_dataset, shuffle=False)
 #
 
 model = dinv.models.ArtifactRemoval(
-    dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device), pinv=True
+    dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device), mode="pinv"
 )
 model = loss.adapt_model(model)
 

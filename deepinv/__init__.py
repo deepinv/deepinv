@@ -55,7 +55,7 @@ from deepinv import training
 
 __all__ += ["training"]
 
-from deepinv.training import train, test, Trainer
+from deepinv.training import test, Trainer
 
 from deepinv.utils import io as io
 
@@ -68,5 +68,7 @@ import warnings
 # Check Python version
 if sys.version_info < (3, 10):  # pragma: no cover
     warnings.warn(
-        "You are using a Python version lower than 3.10. deepinv officially supports Python >= 3.10. Running on < 3.10 may work, but it is unsupported, unstable and may lead to unexpected bugs. For more information on updating to Python 3.10, see https://www.python.org/downloads"
+        "You are using a Python version lower than 3.10. deepinv officially supports Python >= 3.10. "
+        "Running on < 3.10 may work, but it is unsupported, unstable and may lead to unexpected bugs. "
+        "For more information on updating to Python 3.10, see https://www.python.org/downloads"
     )

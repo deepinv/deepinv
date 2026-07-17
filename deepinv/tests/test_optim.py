@@ -483,7 +483,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
         padding="circular",
     )
@@ -599,7 +599,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
         # 2. Set a physical experiment (here, deblurring)
         physics = dinv.physics.Blur(
-            dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+            dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
             padding="circular",
             device=device,
         )
@@ -679,7 +679,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
     )
     y = physics(test_sample)
@@ -721,7 +721,7 @@ def test_dpir(imsize, dummy_dataset, device):
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
         noise_model=dinv.physics.GaussianNoise(0.1),
         padding="circular",
@@ -911,7 +911,7 @@ def test_MLEM(imsize, dummy_dataset, device):
     test_sample = next(iter(dataloader)).to(device)
 
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
         noise_model=dinv.physics.PoissonNoise(gain=1 / 60),
         padding="circular",
@@ -937,11 +937,6 @@ def test_MLEM(imsize, dummy_dataset, device):
 
 
 def test_patch_prior(imsize, dummy_dataset, device):
-    pytest.importorskip(
-        "FrEIA",
-        reason="This test requires FrEIA. It should be "
-        "installed with `pip install FrEIA",
-    )
     torch.manual_seed(0)
 
     dataloader = DataLoader(
@@ -1260,6 +1255,74 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
             )
 
     torch.use_deterministic_algorithms(prev_deterministic)
+
+
+def test_least_squares_implicit_backward_nonleaf_buffer_grad(device):
+    """Compare explicit vs implicit gradient on an intermediate non-leaf physics buffer."""
+    torch.manual_seed(0)
+    dtype = torch.float64
+
+    batch_size = 2
+    dim = 12
+
+    class DummyPhysics(dinv.physics.LinearPhysics):
+        def __init__(self, mat):
+            super().__init__()
+            self.register_buffer("mat", mat)
+
+        def A(self, x):
+            return x @ self.mat.transpose(0, 1)
+
+        def A_adjoint(self, y):
+            return y @ self.mat
+
+    mat = torch.randn((dim, dim), device=device, dtype=dtype)
+    physics = DummyPhysics(mat)
+
+    x = torch.randn((batch_size, dim), device=device, dtype=dtype)
+    y = physics.A(x)
+    y = y + 0.01 * torch.randn_like(y)
+    z = physics.A_adjoint(y)
+
+    # Tiny dummy net that outputs an operator matrix from measurements.
+    kernel_net = torch.nn.Sequential(
+        torch.nn.Linear(dim, 2 * dim),
+        torch.nn.Tanh(),
+        torch.nn.Linear(2 * dim, dim * dim),
+    ).to(device=device, dtype=dtype)
+
+    # Explicit gradient (reference)
+    physics.implicit_backward_solver = False
+    for p in kernel_net.parameters():
+        p.grad = None
+    mat_hat = kernel_net(y).mean(dim=0).view(dim, dim)
+
+    physics.update_parameters(mat=mat_hat)
+    x_hat = physics.prox_l2(z, y, solver="CG", tol=1e-6, max_iter=50, gamma=1e-3)
+    loss = (x_hat - x).pow(2).mean()
+    physics.mat.retain_grad()
+    loss.backward()
+    explicit_grad = physics.mat.grad.detach().clone()
+
+    # Implicit gradient
+    physics.implicit_backward_solver = True
+    for p in kernel_net.parameters():
+        p.grad = None
+
+    mat_hat = kernel_net(y).mean(dim=0).view(dim, dim)
+    physics.update_parameters(mat=mat_hat)
+    x_hat = physics.prox_l2(z, y, solver="CG", tol=1e-6, max_iter=50, gamma=1e-3)
+    loss = (x_hat - x).pow(2).mean()
+    loss.backward()
+    implicit_grad = physics.mat.grad.detach().clone()
+
+    torch.testing.assert_close(
+        implicit_grad,
+        explicit_grad,
+        rtol=1e-4,
+        atol=1e-4,
+        msg=f"Implicit gradient {implicit_grad} does not match explicit gradient {explicit_grad}",
+    )
 
 
 def test_sirt(device):
