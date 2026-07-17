@@ -331,7 +331,7 @@ class TomographyWithRTK(LinearPhysics):
 
         if fbp:
             return self.fbp(
-                y, parker_angular_gap_threshold, truncation_correction_padding, **kwargs
+                y, parker_angular_gap_threshold=parker_angular_gap_threshold, truncation_correction_padding=truncation_correction_padding, **kwargs
             )
         else:
             return super(TomographyWithRTK, self).A_dagger(y, **kwargs)
