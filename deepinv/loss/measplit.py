@@ -524,17 +524,13 @@ class Neighbor2Neighbor(Loss):
 
 class Noise2Void(SplittingLoss):
     r"""
-    Noise2Void self-supervised denoising loss.
-
-    Implements the Noise2Void blind-spot denoising loss of :footcite:t:`krull2019noise2void`,
-    which learns to denoise from single noisy images without ground truth.
+    Noise2Void self-supervised denoising loss. :footcite:t:`krull2019noise2void`
 
     A small subset of "blind-spot" pixels is selected (by default with the uniform
     pixel selection scheme, see :class:`deepinv.physics.generator.Noise2VoidMaskGenerator`).
     In the network input, each blind-spot pixel value is replaced by that of a random
     neighbor, so the network never sees the true value of a pixel it must predict. The loss
     is then the error on the blind-spot pixels against their original noisy values.
-
 
     As noise is assumed conditionally pixel-wise independent given the signal, the network
     cannot copy the noise and instead learns to predict the underlying signal.
