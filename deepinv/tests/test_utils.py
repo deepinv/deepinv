@@ -275,6 +275,23 @@ def test_plot(
             assert axs is None
 
 
+def test_plot_clip_uses_fixed_display_range():
+    from matplotlib.colors import Normalize
+
+    image = torch.tensor([[[0.25, 0.5], [0.5, 0.75]]])
+
+    axs = deepinv.utils.plot(image, rescale_mode="clip", show=False, return_axs=True)
+
+    assert axs[0, 0].images[0].norm.vmin == 0.0
+    assert axs[0, 0].images[0].norm.vmax == 1.0
+
+    norm = Normalize(0.0, 1.0, clip=True)
+    axs = deepinv.utils.plot(
+        image, rescale_mode="clip", norm=norm, show=False, return_axs=True
+    )
+    assert axs[0, 0].images[0].norm is norm
+
+
 @pytest.mark.parametrize("n_plots", [1, 2, 3])
 @pytest.mark.parametrize("titles", [None, "Dummy plot"])
 @pytest.mark.parametrize("save_plot", [False, True])

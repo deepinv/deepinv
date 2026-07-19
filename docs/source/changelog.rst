@@ -21,6 +21,7 @@ Changed
 
 Fixed
 ^^^^^
+- Keep :func:`deepinv.utils.plot` images on a fixed display range when using ``rescale_mode="clip"`` (:gh:`1280` by `nightcityblade`_)
 - Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
 - Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
 - Remove unconditional dtype conversion to `torch.cfloat` in :func:`deepinv.optim.phase_retrieval.spectral_methods` (:gh:`1216` by `Zhiyuan Hu`_)
@@ -667,3 +668,4 @@ Changed
 .. _Kaibo Tang: https://github.com/kvttt
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
+.. _nightcityblade: https://github.com/nightcityblade

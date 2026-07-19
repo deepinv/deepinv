@@ -358,7 +358,7 @@ def plot(
     :param bool tight: use tight layout.
     :param int max_imgs: maximum number of images to plot.
     :param str rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
-        their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
+        their min and max values) or ``'clip'`` (images are clipped and displayed on a fixed scale between 0 and 1).
     :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
     :param bool close: close the image plot. Under the hood, this calls the ``plt.close()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
@@ -447,6 +447,10 @@ def plot(
     if suptitle:
         plt.suptitle(suptitle, wrap=True)
         fig.subplots_adjust(top=0.75)
+
+    if rescale_mode == "clip" and "norm" not in imshow_kwargs:
+        imshow_kwargs.setdefault("vmin", 0.0)
+        imshow_kwargs.setdefault("vmax", 1.0)
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
