@@ -6,10 +6,13 @@ This example shows how to train a denoiser network in a fully self-supervised wa
 using only noisy images through the Learning to Recorrupt (L2R) loss
 :footcite:p:`monroy2026learning`, without requiring explicit knowledge of the noise distribution.
 
-L2R avoids comparing predictions to clean targets, which are unavailable in
-self-supervised settings. Instead, the method learns a small trainable re-corruption module that
-maps input noisy image to desired recorruption distribution. For this, the recorrupted image :math:`y_1`
-is constructed by applying the recorruption network as follows
+Consider measurements :math:`y = Ax + \epsilon`, where :math:`A` is the forward
+operator and :math:`\epsilon` is unknown noise. L2R avoids comparing predictions
+to clean targets, which are unavailable in self-supervised settings. Instead, the
+method learns a small trainable re-corruption module :math:`h` that maps the noisy
+measurement :math:`y` and synthetic Gaussian noise
+:math:`\omega \sim \mathcal{N}(0, I)` to a perturbation. The re-corrupted image
+:math:`y_1` is constructed as follows:
 
 .. math::
 
@@ -19,20 +22,20 @@ then, the L2R loss is defined as
 
 .. math::
 
-    \mathcal{L}_{\mathrm{L2R}}(f,h)
+    \mathcal{L}_{\mathrm{L2R}}(R,h)
     = \mathbb{E}_{y\sim p(y)}\left[  \|AR(y_1) - y\|^2 + \frac{2}{\alpha} h(\omega, y)^{\top} (A R(y_1) )  \right],
 
 and optimize it through the adversarial objective
 
 .. math::
 
-    \min_{f}\;\max_{h}\;\mathcal{L}_{\mathrm{L2R}}(f,h),
+    \min_{R}\;\max_{h}\;\mathcal{L}_{\mathrm{L2R}}(R,h),
 
-where :math:`f` is the denoiser
-Here, the denoiser is encouraged to align predictions with
-noisy obervations and reduce noise correlation with the input noisy image, while the re-corruption model is trained
-to maximize this noise correlation. The central idea is that, given the constraint family indexed by :math:`h \in \mathcal{H},`
-this should be rich enough to capture the uknown noise distribution.
+where :math:`R` is the denoiser. The denoiser is encouraged to align predictions
+with noisy observations and reduce noise correlation with the input noisy image,
+while the re-corruption model is trained to maximize this noise correlation. The
+central idea is that the constraint family indexed by :math:`h \in \mathcal{H}`
+should be rich enough to capture the unknown noise distribution.
 
 To build measurements, we choose a noise model in the physics simulator. By default,
 this demo uses Poisson noise, but you can switch to Gaussian noise by changing ``noise_name``.

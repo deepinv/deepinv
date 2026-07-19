@@ -48,6 +48,9 @@ class Learning2RecorruptLoss(Loss):
 
             \hat{x} = \frac{1}{N}\sum_{i=1}^N R(y_1^{(i)}), \quad N > 1.
 
+        Here, :math:`y_1^{(i)} = y + \alpha h(\omega_i, y)`, where each
+        :math:`\omega_i` is sampled independently.
+
         This is handled automatically by :meth:`adapt_model` in evaluation mode.
 
     :param Metric, torch.nn.Module metric: Metric used to compute the main data
@@ -67,7 +70,7 @@ class Learning2RecorruptLoss(Loss):
     >>> import torch
     >>> import deepinv as dinv
     >>> physics = dinv.physics.Denoising()
-    >>> model = dinv.models.MedianFilter()
+    >>> model = dinv.models.DnCNN(in_channels=1, out_channels=1, depth=3, nf=4, pretrained=None)
     >>> loss = dinv.loss.Learning2RecorruptLoss(metric=torch.nn.MSELoss(), alpha=0.5, eval_n_samples=2)
     >>> model = loss.adapt_model(model)  # important step!
     >>> x = torch.ones((1, 1, 8, 8))
@@ -278,13 +281,13 @@ class Learning2RecorruptLoss(Loss):
 
         def __init__(
             self,
-            depth=3,
-            hidden_features=4,
-            kernel_size=1,
-            multiplicative=False,
-            sigma=0.1,
+            depth: int = 3,
+            hidden_features: int = 4,
+            kernel_size: int = 1,
+            multiplicative: bool = False,
+            sigma: float = 0.1,
             net: str | nn.Module | None = "monotonic",
-        ):
+        ) -> None:
             super().__init__()
 
             self.multiplicative = multiplicative
@@ -319,7 +322,7 @@ class Learning2RecorruptLoss(Loss):
             else:
                 self.sigma = nn.Parameter(torch.tensor(sigma), requires_grad=True)
 
-        def forward(self, w, y):
+        def forward(self, w: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
 
             c = y.shape[1]
 
