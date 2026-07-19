@@ -47,6 +47,7 @@ class LsdirHR(ImageFolder):
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param Callable transform:: (optional)  A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     |sep|
 
@@ -103,6 +104,7 @@ class LsdirHR(ImageFolder):
         mode: str = "train",
         download: bool = False,
         transform: Callable = None,
+        use_dict_output: bool = False,
     ) -> None:
         self.root = resolve_root(root, "LSDIR")
         self.mode = mode
@@ -166,10 +168,11 @@ class LsdirHR(ImageFolder):
 
         # Initialize ImageFolder
         if mode == "val":
-            super().__init__(self.root, x_path="val1/HR/val/*.png", transform=transform)
+            super().__init__(self.root, x_path="val1/HR/val/*.png", transform=transform, use_dict_output=use_dict_output)
         else:  # mode is train for sure, because of earlier check
             super().__init__(
-                self.root, x_path="00[0-8][0-9]000/*.png", transform=transform
+                self.root, x_path="00[0-8][0-9]000/*.png", transform=transform,
+                use_dict_output=use_dict_output
             )
 
     def verify_split_dataset_integrity(self) -> bool:

@@ -96,6 +96,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     :param Callable transform: optional transform to apply to the target image sequences before padding or physics is applied.
     :param tuple pad_size: tuple of 2 ints (W, H) for all images to be padded to, if ``None``, no padding.
     :param deepinv.physics.NoiseModel noise_model: optional noise model to apply to unpadded kspace.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
     """
 
     def __init__(
@@ -111,7 +112,10 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         transform: Callable | None = None,
         pad_size: tuple[int, int] = (512, 256),
         noise_model: NoiseModel = None,
+        use_dict_output: bool = False,
     ):
+        super().__init__(use_dict_output=True)
+        
         self.root = resolve_root(root, "CMRxReconSlice")
         self.data_dir = data_dir
         self.mask_dir = mask_dir
