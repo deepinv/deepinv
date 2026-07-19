@@ -57,6 +57,8 @@ class Learning2RecorruptLoss(Loss):
         term. Defaults to MSE when set to ``None``.
     :param float alpha: Scaling factor controlling the recorruption strength.
     :param int eval_n_samples: Number of Monte Carlo samples used at test time.
+    :param float recorruptor_lr: Learning rate used to maximize the recorruptor
+        objective.
     :param torch.nn.Module recorruptor: Trainable recorruption network
         :math:`h`. It must implement ``forward(w, y)`` where ``w`` is a random
         tensor (typically sampled with ``torch.randn_like(y)``) and ``y`` is the
@@ -86,6 +88,7 @@ class Learning2RecorruptLoss(Loss):
         metric: Metric | torch.nn.Module | None = None,
         alpha: float = 0.5,
         eval_n_samples: int = 5,
+        recorruptor_lr: float = 1e-6,
         recorruptor: torch.nn.Module | None = None,
         device: torch.device | None = None,
         **kwargs,
@@ -98,6 +101,8 @@ class Learning2RecorruptLoss(Loss):
         :param float alpha: Scaling factor controlling recorruption strength.
         :param int eval_n_samples: Number of Monte Carlo samples used at test
             time.
+        :param float recorruptor_lr: Learning rate used to update the
+            recorruptor.
         :param torch.nn.Module recorruptor: Trainable recorruption module
             implementing ``forward(w, y) -> h(w, y)`` with output shape equal to
             ``y.shape``.
@@ -120,7 +125,7 @@ class Learning2RecorruptLoss(Loss):
         self.recorruptor.to(device)
 
         self.recorruptor_optimizer = torch.optim.Adam(
-            self.recorruptor.parameters(), lr=1e-6, weight_decay=1e-6
+            self.recorruptor.parameters(), lr=recorruptor_lr, weight_decay=1e-6
         )
 
     def forward(self, x_net, y, physics, model, **kwargs):

@@ -49,6 +49,7 @@ from torchvision import datasets, transforms
 
 import deepinv as dinv
 from deepinv.loss.l2r import Learning2RecorruptLoss
+from deepinv.models.utils import get_weights_url
 from deepinv.utils import get_data_home
 
 # %%
@@ -99,7 +100,7 @@ test_dataset = datasets.MNIST(
 
 predefined_noise_models = dict(
     gaussian=dinv.physics.GaussianNoise(sigma=0.1),
-    poisson=dinv.physics.PoissonNoise(gain=0.5),
+    poisson=dinv.physics.PoissonNoise(gain=0.3),
 )
 
 noise_name = "poisson"  # default noise model for this demo
@@ -135,10 +136,17 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # Set up the denoiser network
 # ---------------------------------------------------------------
 #
-# We use a simple U-Net architecture with 2 scales as the denoiser network.
+# We use a small DnCNN as the denoiser network.
 
 model = dinv.models.ArtifactRemoval(
-    dinv.models.UNet(in_channels=1, out_channels=1, scales=2, residual=False).to(device)
+    dinv.models.DnCNN(
+        in_channels=1,
+        out_channels=1,
+        depth=4,
+        nf=8,
+        bias=False,
+        pretrained=None,
+    ).to(device)
 )
 
 
@@ -151,19 +159,48 @@ model = dinv.models.ArtifactRemoval(
 #
 #       L2R learns an internal trainable re-corruption network and does not require
 #       explicit knowledge of the measurement noise distribution during optimization.
+#
+# .. note::
+#
+#       We use a model pretrained for 382 epochs to reduce the demo time. Similar
+#       results can be obtained by training from scratch for the same duration.
 
-epochs = 3  # choose training epochs
+epochs = 1  # choose training epochs
 learning_rate = 1e-3
 batch_size = 64 if torch.cuda.is_available() else 1
 
 # choose self-supervised training loss
-loss = Learning2RecorruptLoss(metric=torch.nn.MSELoss(), alpha=0.5, eval_n_samples=2)
+recorruptor = Learning2RecorruptLoss.RecorruptorNet(
+    depth=5,
+    hidden_features=4,
+    kernel_size=1,
+    multiplicative=True,
+    sigma=0.4,
+).to(device)
+loss = Learning2RecorruptLoss(
+    metric=torch.nn.MSELoss(),
+    alpha=0.5,
+    eval_n_samples=10,
+    recorruptor_lr=1e-3,
+    recorruptor=recorruptor,
+)
 model = loss.adapt_model(model).to(device)  # important step!
 
 
 # choose optimizer and scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+optimizer = torch.optim.Adam(
+    model.model.parameters(), lr=learning_rate, weight_decay=1e-4
+)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
+
+# Start with a pretrained model to reduce training time.
+file_name = "demo_l2r_poisson.pth"
+url = get_weights_url(model_name="demo", file_name=file_name)
+ckpt = torch.hub.load_state_dict_from_url(
+    url, map_location=lambda storage, loc: storage, file_name=file_name
+)
+model.load_state_dict(ckpt["state_dict"])
+optimizer.load_state_dict(ckpt["optimizer"])
 
 
 # %%
@@ -220,7 +257,9 @@ model = trainer.train()
 # We now assume that we have access to a small test set of clean images to evaluate the performance of the trained network,
 # and we compute the PSNR between denoised images and clean ground truth images.
 #
-trainer.test(test_dataloader, metrics=dinv.metric.PSNR(), plot_images=True)
+trainer.plot_images = True  # plot images during testing
+trainer.plot_interval = 1
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 # %%
 # :References:
