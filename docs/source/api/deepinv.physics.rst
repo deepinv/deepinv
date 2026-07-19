@@ -87,6 +87,7 @@ Generators
    deepinv.physics.generator.MultiplicativeSplittingMaskGenerator
    deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator
    deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator
+   deepinv.physics.generator.Noise2VoidMaskGenerator
    deepinv.physics.generator.PSFGenerator
    deepinv.physics.generator.GaussianBlurGenerator
    deepinv.physics.generator.MotionBlurGenerator

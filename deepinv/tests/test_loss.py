@@ -465,6 +465,7 @@ def test_sure_losses(device):
         "weighted-splitting",
         "robust-splitting",
         "n2n",
+        "n2v",
         "splitting_eval_split_input",
         "splitting_eval_split_input_output",
     ],
@@ -479,7 +480,7 @@ def test_sure_losses(device):
 @pytest.mark.parametrize("physics_name", ["Denoising", "Inpainting", "MultiCoilMRI"])
 def test_measplit(device, loss_name, rng, imsize, physics_name):
 
-    if loss_name == "n2n":
+    if loss_name == "n2n" or loss_name == "n2v":
         if physics_name != "Denoising":
             pytest.skip("N2N test only available for Denoising")
 
@@ -578,6 +579,8 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
             physics_generator=physics_generator,
             noise_model=physics.noise_model,
         )
+    elif loss_name == "n2v":
+        loss = deepinv.loss.Noise2Void()
     else:
         raise ValueError("Loss name invalid.")
 
@@ -587,7 +590,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
     l = loss(x_net=x_net, y=y, physics=physics, model=f)
 
     # Training recon + loss
-    if loss_name in ("n2n", "weighted-splitting", "robust-splitting"):
+    if loss_name in ("n2n", "weighted-splitting", "robust-splitting", "n2v"):
         assert l >= 0
     elif "splitting" in loss_name:
         y1 = x_net
@@ -621,7 +624,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
         elif loss_name == "splitting_eval_split_input_output":
             # Splits output with complement mask
             assert torch.all(y1_eval == 0)
-        elif loss_name in ("weighted-splitting", "n2n", "robust-splitting"):
+        elif loss_name in ("weighted-splitting", "n2n", "n2v", "robust-splitting"):
             pass
         else:
             raise ValueError("Incorrect loss name.")
