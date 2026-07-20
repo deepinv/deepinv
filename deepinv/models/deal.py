@@ -810,7 +810,7 @@ class _DEALImpl(nn.Module):
     :class:`DEAL` wrapper.
     """
 
-    def __init__(self, color: bool) -> None:
+    def __init__(self, color: bool, max_iter: int = 1000) -> None:
         super().__init__()
 
         self.kernel_size = 9
@@ -885,7 +885,7 @@ class _DEALImpl(nn.Module):
 
         self.number_of_cgs = 0
         self.last_cg_iter = 0
-        self.max_iter = 1000
+        self.max_iter = max_iter
 
     def cal_lambda(self, sigma: torch.Tensor) -> None:
         """Compute the regularization parameter from the noise level."""
