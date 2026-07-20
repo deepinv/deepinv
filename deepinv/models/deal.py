@@ -226,9 +226,6 @@ class DEAL(Reconstructor):
 
         x_init = physics.A_adjoint(y)
 
-        if hasattr(self.model, "max_iter"):
-            self.model.max_iter = max(int(self.max_iter), 1)
-
         x_hat = self.model.solve_inverse_problem(
             y,
             H=physics.A,
@@ -1109,9 +1106,6 @@ class _DEALImpl(nn.Module):
         if path:
             c_ks: list[torch.Tensor] = []
 
-        max_iters = getattr(self, "max_iter", 1000)
-        max_cg_iters = getattr(self, "max_iter", 1000)
-
         with torch.no_grad():
             if x_init is not None:
                 c_k = x_init
@@ -1119,7 +1113,7 @@ class _DEALImpl(nn.Module):
                 c_k = Ht(y) * 0
             c_k_old = c_k.clone()
 
-            for m in range(max_iters):
+            for m in range(self.max_iter):
                 if path:
                     c_ks.append(c_k)
 
@@ -1130,11 +1124,10 @@ class _DEALImpl(nn.Module):
                     A=A_op,
                     b=b,
                     init=c_k_old,
-                    max_iter=max_cg_iters,
+                    max_iter=self.max_iter,
                     tol=eps_in,
                     eps=1e-8,
                 )
-                cg_iters = max_cg_iters
 
                 res = torch.linalg.norm(c_k - c_k_old) / torch.linalg.norm(c_k_old)
                 c_k_old = c_k.clone()
@@ -1144,7 +1137,7 @@ class _DEALImpl(nn.Module):
                         "CG Number:",
                         m,
                         "CG iterations:",
-                        cg_iters,
+                        self.max_iter,
                         "Outer residual:",
                         res,
                     )
