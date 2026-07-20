@@ -988,14 +988,14 @@ def plot_videos(
 
     :Examples:
 
-        Display list of image sequences live in a notebook:
+        Display list of image sequences live in a notebook::
 
-        >>> from deepinv.utils import plot_videos
-        >>> x = torch.rand((1, 3, 5, 8, 8)) # B,C,T,H,W image sequence
-        >>> y = torch.rand((1, 3, 5, 16, 16))
-        >>> plot_videos([x, y], display=True) # Display interactive view in notebook (requires IPython) #doctest: +ELLIPSIS
-        ...
-        >>> plot_videos([x, y], save_fn="vid.gif") # Save video as GIF
+            from deepinv.utils import plot_videos
+            x = torch.rand((1, 3, 5, 8, 8)) # B,C,T,H,W image sequence
+            y = torch.rand((1, 3, 5, 16, 16))
+
+            plot_videos([x, y], display=True) # Display interactive view in notebook (requires IPython)
+            plot_videos([x, y], save_fn="vid.gif") # Save video as GIF
 
 
     :param Union[torch.Tensor, list[torch.Tensor]] vid_list: video or list of videos as defined above.
