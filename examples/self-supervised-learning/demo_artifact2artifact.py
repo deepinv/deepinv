@@ -181,7 +181,7 @@ model = MoDL().to(device)
 #
 # Perform loss on all collected lines by setting ``dynamic_model`` to
 # False. Then adapt model to perform Artifact2Artifact. We set
-# ``split_size=1`` to mean that each Artifact chunk containes only 1
+# ``split_size=1`` to mean that each Artifact chunk contains only 1
 # frame.
 #
 

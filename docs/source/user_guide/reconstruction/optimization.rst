@@ -355,7 +355,7 @@ Alternatively, the parameters can be defined via the dictionary ``params_algo``.
 Each parameter can be given as an iterable (i.e., a list) with a distinct value for each iteration or
 a single float (same parameter value for each iteration).
 
-Moreover, backtracking can be used to automaticaly adapt the stepsize at each iteration. Backtracking consists in choosing
+Moreover, backtracking can be used to automatically adapt the stepsize at each iteration. Backtracking consists in choosing
 the largest stepsize :math:`\tau` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
 More precisely, Given :math:`\gamma \in (0,1/2)` and :math:`\eta \in (0,1)` and an initial stepsize :math:`\tau > 0`,
 the following update rule is applied at each iteration :math:`k`:

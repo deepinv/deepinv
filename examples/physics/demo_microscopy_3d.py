@@ -164,7 +164,7 @@ print("Zernike polynomials used: \n", "\n ".join(zernike_polynomials))
 
 # It is also possible to directly specify the Zernike decomposition.
 # For instance, if the pupil is null, the PSF is the Airy pattern.
-# Notice that you then need to specify a cutoff frequenies with matching number of channels
+# Notice that you then need to specify a cutoff frequencies with matching number of channels
 n_zernike = len(
     zernike_polynomials
 )  # number of Zernike coefficients in the decomposition
@@ -215,7 +215,7 @@ from deepinv.physics.generator import ConfocalBlurGenerator3D
 NI = 1.51  # refractive index of oil
 angAper = 55  ##angular aperture in degrees
 NA = NI * torch.sin(torch.deg2rad(torch.tensor([angAper]))).item()  # numerical aperture
-lambda_ill = [450e-9, 550e-9, 650e-9]  # wavelength for illumniation in m
+lambda_ill = [450e-9, 550e-9, 650e-9]  # wavelength for illumination in m
 lambda_coll = [400e-9, 500e-9, 600e-9]  # wavelength for collection in m
 pixelsize_XY = 70e-9  # in m
 pixelsize_Z = 140e-9  # in m

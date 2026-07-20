@@ -381,7 +381,7 @@ def test_mri_generator(
     generator = choose_mri_generator(
         generator_name, img_size, acc, center_fraction, device, rng
     )
-    # test across different accs and center fracations
+    # test across different accs and center fractions
     H, W = img_size[-2:]
     assert W // generator.acc == (generator.n_lines + generator.n_center)
 

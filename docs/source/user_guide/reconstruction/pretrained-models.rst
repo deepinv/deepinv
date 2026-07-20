@@ -137,19 +137,19 @@ Click on the model name to learn more about the type of model and use `pretraine
      - Denoiser
      - Weights from `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_:
        `Restormer weights <https://github.com/swz30/Restormer/tree/main>`_,
-       also available on the `deepinverse Restormer HuggingfaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
+       also available on the `deepinverse Restormer HuggingFaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
    * - :class:`deepinv.models.PromptIR`
      - Reconstructor & Denoiser
      - Weights from `PromptIR: Prompting for All-in-One Blind Image Restoration <https://arxiv.org/abs/2306.13090>`_:
        `PromptIR weights <https://github.com/va1shn9v/PromptIR>`_,
-       also available on the `deepinverse Promptir HuggingfaceHub <https://huggingface.co/deepinv/promptir/tree/main>`_.
+       also available on the `deepinverse Promptir HuggingFaceHub <https://huggingface.co/deepinv/promptir/tree/main>`_.
    * - :class:`deepinv.models.RAM`
      - Reconstructor & Denoiser
-     - Weights from `Terris et al. <https://github.com/matthieutrs/ram>`_ :footcite:p:`terris2025reconstruct`. Pretrained weights from `RAM HuggingfaceHub <https://huggingface.co/mterris/ram>`_.
+     - Weights from `Terris et al. <https://github.com/matthieutrs/ram>`_ :footcite:p:`terris2025reconstruct`. Pretrained weights from `RAM HuggingFaceHub <https://huggingface.co/mterris/ram>`_.
    * - :class:`deepinv.models.KernelIdentificationNetwork`
      - Kernel identification
      - Weights from `Carbajal et al. <https://github.com/GuillermoCarbajal/J-MKPD>`_ trained on the task of identifying blur kernels from space-varying blurred images.
-       Pretrained weights from `deepinverse HuggingfaceHub <https://huggingface.co/deepinv/kernel_identification>`_.
+       Pretrained weights from `deepinverse HuggingFaceHub <https://huggingface.co/deepinv/kernel_identification>`_.
    * - :class:`deepinv.models.DEAL`
      - Reconstructor
      - Weights from `Pourya et al. <https://arxiv.org/abs/2502.04079>`_ trained on grayscale and color denoising.

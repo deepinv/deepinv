@@ -12,7 +12,7 @@ class ResNet(nn.Module):
     """Simple implementation of ResNet with ReLU activation
 
     :param int hidden_channels: number of hidden channels, defaults to 32
-    :param int num_blocks: numer of ResNet blocks, defaults to 4
+    :param int num_blocks: number of ResNet blocks, defaults to 4
     :param bool batch_norm: whether to add batchnorm layers, defaults to True
     :param bool relu_before_addition: perform activation before residual addition, defaults to False
     """

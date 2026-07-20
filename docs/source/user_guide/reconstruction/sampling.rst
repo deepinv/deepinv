@@ -64,7 +64,7 @@ that is :math:`\denoiser{x+\sigma\omega}{\sigma} \approx \mathbb{E} [ x|x+\sigma
 
 .. note::
 
-    Using a normalized noise levels :math:`\sigma(t)` and scalings :math:`s(t)` lets us use `any denoiser in the library <denoisers>`_
+    Using a normalized noise level :math:`\sigma(t)` and scaling :math:`s(t)` lets us use `any denoiser in the library <denoisers>`_
     trained for multiple noise levels assuming pixel values are in the range :math:`[0,1]`.
 
 Starting from a random point following the end-point distribution :math:`p_T` of the forward process,

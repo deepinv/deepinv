@@ -103,7 +103,7 @@ def GSDRUNet(
     :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "S" for Softplus.
     :param str downsample_mode: Downsampling mode, "avgpool" for average pooling, "maxpool" for max pooling, and
         "strideconv" for convolution with stride 2.
-    :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelsuffle" for pixel
+    :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelshuffle" for pixel
         shuffling, and "upconv" for nearest neighbour upsampling with additional convolution.
     :param bool download: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an

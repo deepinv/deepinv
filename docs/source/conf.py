@@ -431,7 +431,7 @@ html_theme_options = {
 }
 
 
-# Separator substition : Writing |sep| in the rst file will display a horizontal line.
+# Separator substitution : Writing |sep| in the rst file will display a horizontal line.
 rst_prolog = """
 .. |sep| raw:: html
 

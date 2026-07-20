@@ -42,7 +42,7 @@ class Kohler(ImageDataset):
     video, and equivalently by blurry shot. There is a lot of redundancy
     between the frames as the camera barely moves between consecutive frames,
     for this reason the implementation allows selecting a single frame as the
-    priviledged ground truth. This enables using the tooling provided by
+    privileged ground truth. This enables using the tooling provided by
     deepinv such as :func:`deepinv.test` and which gives approximately the same
     performance as comparing to all the frames. It is the parameter ``frames``
     that controls this behavior, when it is set to either ``"first"``,

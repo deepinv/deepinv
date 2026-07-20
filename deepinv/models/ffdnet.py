@@ -100,7 +100,7 @@ class FFDNet(Denoiser):
         """
         if x.size(2) % 2 != 0 or x.size(3) % 2 != 0:  # pragma: no cover
             raise ValueError(
-                f"FFDNet requires H,W both divisble by 2. Got tensor of shape {tuple(x.shape)}"
+                f"FFDNet requires H,W both divisible by 2. Got tensor of shape {tuple(x.shape)}"
             )
         if isinstance(sigma, torch.Tensor):
             if sigma.ndim > 0:

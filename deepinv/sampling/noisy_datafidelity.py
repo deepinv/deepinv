@@ -48,7 +48,7 @@ class NoisyDataFidelity(DataFidelity):
         :param torch.Tensor u: input tensor.
         :param deepinv.physics.Physics physics: physics model.
 
-        :return: (torch.Tensor) preconditionned tensor :math:`P(u)`.
+        :return: (torch.Tensor) preconditioned tensor :math:`P(u)`.
         """
         return (
             physics.A_adjoint(u)

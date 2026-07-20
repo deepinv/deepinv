@@ -1387,7 +1387,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
 
 class ConfocalBlurGenerator3D(PSFGenerator):
     r"""
-    Generates the 3D point spread function (PSF) of a confocal laser scanning microsope.
+    Generates the 3D point spread function (PSF) of a confocal laser scanning microscope.
 
     :param tuple psf_size: give in the order `(depth, height, width)`
     :param tuple[int, ...], tuple[tuple[int, int], ...] zernike_index: activated Zernike coefficients in the following `index_convention` convention.
