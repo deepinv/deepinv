@@ -188,7 +188,7 @@ class Learning2RecorruptLoss(Loss):
         r"""
         Model wrapper when using  Learning to Recorrupt Loss.
 
-        This wrapper injects trainable recorruption before calling the underlying
+        This wrapper injects trainable recorruption noise before calling the underlying
         reconstruction model, and optionally stores the sampled corruption during
         training for use in :class:`Learning2RecorruptLoss`.
         """
