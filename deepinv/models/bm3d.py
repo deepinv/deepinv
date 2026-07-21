@@ -118,8 +118,8 @@ class BM3D(Denoiser):
                 beta=2.0,
                 periodic=False,
                 dtype=torch.float32,
-                device=device,
-            )  # (p,)
+                device="cpu",
+            ).to(device)  # (p,)
             self.register_buffer("win", win_1d[:, None] * win_1d[None, :])  # (p, p)
             # helper arrays for aggregation
             self.register_buffer(
