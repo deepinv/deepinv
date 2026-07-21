@@ -148,7 +148,7 @@ dinv.utils.plot(
 #
 # This is the degenerate Gaussian approximation
 # :math:`\Sigma_t(x_t)=0`. Inserting it into the integral gives
-# :math:`p_t(y\mid x_t)\approx p(y\mid D_{\sigma_t}(x_t))`. 
+# :math:`p_t(y\mid x_t)\approx p(y\mid D_{\sigma_t}(x_t))`.
 # Note that this is equivalent to differentiating the residual norm:
 #
 # .. math::
@@ -195,7 +195,7 @@ dps = dinv.sampling.DPSDataFidelity(denoiser=denoiser, weight=dps_weight)
 #       (A D_{\sigma_t}(x_t)-y).
 #
 # The inverse is evaluated exactly for
-# :class:`deepinv.physics.DecomposablePhysics` operators 
+# :class:`deepinv.physics.DecomposablePhysics` operators
 # and with conjugate gradient for other linear operators. Jacobian-vector
 # products are computed automatically, without forming :math:`J_D` explicitly.
 # The :math:`\lambda` factor is exposed as ``weight`` in
