@@ -344,8 +344,7 @@ posterior_samples = {}
 for name, data_fidelity in data_fidelities.items():
     if name == "Moment Matching" and device.type == "cpu":
         precomputed_sample = dinv.utils.load_url_image(
-            "https://huggingface.co/deepinv/demo/resolve/main/"
-            "moment_matching.png",
+            "https://huggingface.co/deepinv/demo/resolve/main/" "moment_matching.png",
             device=device,
             dtype=x_true.dtype,
         )
@@ -383,7 +382,7 @@ dinv.utils.plot(
             for name, sample in posterior_samples.items()
         },
     },
-    figsize=(15, 3)
+    figsize=(15, 3),
 )
 
 # %%
