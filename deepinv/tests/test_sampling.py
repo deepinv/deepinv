@@ -64,6 +64,7 @@ class GaussianDenoiser(torch.nn.Module):
     def forward(self, x, sigma):
         return x / (1 + sigma**2 / self.sigma_prior2)
 
+
 @pytest.mark.parametrize("algo", SAMPLING_ALGOS)
 def test_sampling_algo(algo, imsize, device):
     test_sample = torch.ones((1, *imsize))

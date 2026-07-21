@@ -297,9 +297,7 @@ data_fidelities = {
 
 gradients = {}
 for name, data_fidelity in data_fidelities.items():
-    gradient = data_fidelity.grad(
-        x_t.clone(), y=y, physics=physics, sigma=sigma_t
-    )
+    gradient = data_fidelity.grad(x_t.clone(), y=y, physics=physics, sigma=sigma_t)
     gradients[name] = gradient
     norm = torch.linalg.vector_norm(gradient).item()
     print(f"{name:>15s} gradient norm: {norm:.3e}")
