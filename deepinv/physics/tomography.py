@@ -20,7 +20,7 @@ from deepinv.physics.functional.astra import (
     create_projection_geometry,
     create_object_geometry,
 )
-from deepinv.utils.decorators import _deprecated_alias, _deprecate_attribute
+from deepinv.utils.decorators import _deprecated_alias
 
 
 class Tomography(LinearPhysics):
@@ -205,13 +205,35 @@ class Tomography(LinearPhysics):
 
         self.to(device)
 
-        _deprecate_attribute(
-            self,
-            attr_name="theta",
-            attr_underscore_name="_theta",
-            attr_initial_value=self.angles,
-            deprecation_message="The attribute `theta` is deprecated and will be removed in future versions. Use attribute `angles` instead.",
+    @property
+    def theta(self) -> torch.Tensor:
+        warn(
+            "The attribute `theta` is deprecated and will be removed in a "
+            "future version. Use `angles` instead.",
+            DeprecationWarning,
+            stacklevel=2,
         )
+        return self.angles
+
+    @theta.setter
+    def theta(self, value: torch.Tensor) -> None:
+        warn(
+            "The attribute `theta` is deprecated and will be removed in a "
+            "future version. Use `angles` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.angles = value
+
+    @theta.deleter
+    def theta(self) -> None:
+        warn(
+            "The attribute `theta` is deprecated and will be removed in a "
+            "future version. Use `angles` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        del self.angles
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward projection.
