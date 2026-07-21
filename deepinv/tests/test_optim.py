@@ -936,6 +936,36 @@ def test_MLEM(imsize, dummy_dataset, device):
     assert optimalgo.has_converged
 
 
+def test_smoothed_tv_prior(device):
+    r"""
+    Tests the SmoothedTVPrior:
+    - the closed-form gradient matches the autograd gradient of `fn`.
+    - `fn` converges to the nonsmooth TVPrior's `fn` as `eps` goes to 0.
+    - the constructor rejects non-positive `eps`.
+
+    :param device: (torch.device) cpu or cuda:x
+    """
+    prior = dinv.optim.prior.SmoothedTVPrior(eps=1e-2)
+
+    x = torch.randn((2, 1, 8, 8), dtype=torch.float64, device=device)
+
+    with torch.enable_grad():
+        x_ag = x.clone().requires_grad_(True)
+        g = prior.fn(x_ag).sum()
+        (autograd_grad,) = torch.autograd.grad(g, x_ag)
+
+    closed_form_grad = prior.grad(x)
+
+    assert torch.allclose(autograd_grad, closed_form_grad, atol=1e-10)
+
+    tv_prior = dinv.optim.prior.TVPrior()
+    smoothed_prior_small_eps = dinv.optim.prior.SmoothedTVPrior(eps=1e-8)
+    assert torch.allclose(tv_prior.fn(x), smoothed_prior_small_eps.fn(x), atol=1e-4)
+
+    with pytest.raises(ValueError):
+        dinv.optim.prior.SmoothedTVPrior(eps=0.0)
+
+
 def test_patch_prior(imsize, dummy_dataset, device):
     torch.manual_seed(0)
 
