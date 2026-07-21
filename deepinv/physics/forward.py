@@ -10,6 +10,7 @@ from torch import Tensor
 import torch.nn as nn
 from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
+from deepinv.utils.nn import devices_equal
 from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_backward
 
 from deepinv.physics.functional import power_method
@@ -1288,7 +1289,7 @@ class Denoising(DecomposablePhysics):
             noise_model = GaussianNoise(sigma=0.1)
 
         if noise_model.rng is not None:
-            if noise_model.rng.device != device:
+            if not devices_equal(noise_model.rng.device, device):
                 warnings.warn(
                     f"argument `device`={device} is different from the random generator device of the noise model, `noise_model.rng.device`={noise_model.rng.device}. This will likely lead to errors during execution. The device argument will be ignored in favor of `noise_model.rng.device`={noise_model.rng.device}."
                 )

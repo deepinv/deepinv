@@ -149,3 +149,19 @@ def get_freer_gpu(verbose=True, use_torch_api=True, hide_warnings=False):
         print(f"Selected GPU {idx} with {mem} MiB free memory")
 
     return device
+
+
+def devices_equal(device1: torch.device | str, device2: torch.device | str) -> bool:
+    """Test whether two torch devices or strs are equal.
+
+    0th index and no index devices are treated equal.
+
+    :param torch.device, str a: device 1 to check
+    :param torch.device, str b: device 2 to check
+    :return: bool check result
+    """
+    d1 = torch.device(device1)
+    d2 = torch.device(device2)
+    if d1.type != d2.type:
+        return False
+    return (d1.index or 0) == (d2.index or 0)

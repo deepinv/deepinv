@@ -1292,3 +1292,19 @@ def test_patch_dataset_transform():
 
     for i in range(len(ds)):
         assert torch.equal(ds[i], ds_raw[i] * 2 + 1)
+
+
+@pytest.mark.parametrize(
+    "a,b,expected",
+    [
+        ("cpu", "cpu", True),
+        ("cpu", torch.device("cpu"), True),
+        ("cuda", "cuda:0", True),
+        ("cuda:0", torch.device("cuda"), True),
+        ("cuda:1", "cuda:0", False),
+        ("cuda", "mps", False),
+        ("mps:0", "mps", True),
+    ],
+)
+def test_devices_equal(a, b, expected):
+    assert deepinv.utils.devices_equal(a, b) == expected

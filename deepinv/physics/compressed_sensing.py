@@ -1,5 +1,6 @@
 from __future__ import annotations
 from deepinv.physics.forward import LinearPhysics
+from deepinv.utils.nn import devices_equal
 import torch
 import numpy as np
 from torch import Tensor
@@ -100,10 +101,10 @@ class CompressedSensing(LinearPhysics):
         if rng is None:
             self.rng = torch.Generator(device=device)
         else:
-            # Make sure that the random generator is on the same device as the physic generator
-            assert rng.device == torch.device(
-                device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+            if not devices_equal(rng.device, device):
+                raise ValueError(
+                    f"The random generator is not on the same device as the physics. Got random generator on {rng.device} and the physics on {device}."
+                )
             self.rng = rng
         self.register_buffer("initial_random_state", self.rng.get_state())
 
