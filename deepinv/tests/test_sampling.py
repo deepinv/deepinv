@@ -404,6 +404,7 @@ def test_sde(device, load_example_image):
                     < 1e-2
                 )
 
+
 @torch.no_grad()
 def test_noisy_data_fidelity(device):
     from deepinv.sampling import (
