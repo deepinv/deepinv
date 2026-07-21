@@ -319,6 +319,10 @@ dinv.utils.plot(
 # diffusion, Euler solver, measurements, and random seed fixed, and change only
 # the noisy data-fidelity approximation. Using the same seed gives every method
 # the same initial noise and Brownian increments.
+#
+# Moment Matching is considerably slower on CPU because every diffusion step
+# contains an inner conjugate-gradient solve. On CPU, we therefore display a
+# precomputed reconstruction; on GPU and MPS devices, we compute it normally.
 
 
 num_steps = 100
@@ -338,6 +342,16 @@ sde = dinv.sampling.VarianceExplodingDiffusion(
 
 posterior_samples = {}
 for name, data_fidelity in data_fidelities.items():
+    if name == "Moment Matching" and device.type == "cpu":
+        precomputed_sample = dinv.utils.load_url_image(
+            "https://huggingface.co/deepinv/demo/resolve/main/"
+            "moment_matching.png",
+            device=device,
+            dtype=x_true.dtype,
+        )
+        posterior_samples[name] = precomputed_sample[:, : x_true.shape[1]]
+        continue
+
     solver = dinv.sampling.EulerSolver(
         timesteps=timesteps,
         rng=torch.Generator(device=device),
@@ -370,6 +384,7 @@ dinv.utils.plot(
         },
     },
     figsize=(15, 3),
+    save_dir='output'
 )
 
 # %%
