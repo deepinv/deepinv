@@ -102,16 +102,27 @@ class DPSDataFidelity(NoisyDataFidelity):
     Diffusion posterior sampling data-fidelity term.
 
     This corresponds to the :math:`p(y|x_t)` approximation proposed in :cite:`chung2022diffusion`.
+    For the VE parametrization :math:`x_t=x_0+\sigma_t\omega`, DPS replaces
+    :math:`p(x_0|x_t)` by a Dirac mass at the denoised posterior mean:
 
     .. math::
-            \nabla_x \log p_t(y|x) = \nabla_x \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|
 
-    where :math:`\sigma = \sigma(t)` is the noise level, :math:`m` is the number of measurements (size of :math:`y`),
-    and :math:`\lambda` controls the strength of the approximation.
+        p(x_0|x_t)
+        \approx \delta\!\left(x_0-D(x_t,\sigma_t)\right).
+
+    The resulting implementation uses the residual-norm guidance
+
+    .. math::
+
+            -\nabla_x \log p_t(y|x) \approx \lambda \nabla_x \| \forw{\denoiser{x}{\sigma}} - y \|
+
+    where :math:`\sigma = \sigma(t)` is the noise level and :math:`\lambda`
+    controls the strength of the approximation.
 
     .. seealso::
         This class can be used for building custom DPS-based diffusion models.
-        A self-contained implementation of the original DPS algorithm can be find in :class:`deepinv.sampling.DPS`.
+        A self-contained implementation of the original DPS algorithm can be
+        found in :class:`deepinv.sampling.DPS`.
 
     :param deepinv.models.Denoiser denoiser: Denoiser network
     :param float weight: Weighting factor for the data fidelity term. Default to 1.0 .
@@ -197,7 +208,8 @@ class DPSDataFidelity(NoisyDataFidelity):
         **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         r"""
-        Returns the loss term :math:`\frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|`.
+        Returns the loss term
+        :math:`\lambda \| \forw{\denoiser{x}{\sigma}} - y \|`.
 
         :param torch.Tensor x: input image
         :param torch.Tensor y: measurements
@@ -215,7 +227,10 @@ class DPSDataFidelity(NoisyDataFidelity):
         if self.clip is not None:
             x0_t = torch.clip(x0_t, self.clip[0], self.clip[1])  # optional
 
-        out = (self.d(physics.A(x0_t), y) * y.numel() / y.size(0)).sqrt() * self.weight
+        difference = physics.A(x0_t) - y
+        out = self.weight * torch.linalg.vector_norm(
+            difference, ord=2, dim=tuple(range(1, difference.ndim))
+        )
 
         if get_model_outputs:
             return out, x0_t
@@ -245,15 +260,33 @@ class PiGDMDataFidelity(NoisyDataFidelity):
     Pseudoinverse-guided diffusion model (PiGDM) data-fidelity term.
 
     This corresponds to the :math:`p(y|x_t)` approximation proposed in :cite:`song2023pseudoinverse`.
+    For the VE parametrization :math:`x_t=x_0+\sigma_t\omega`, PiGDM uses the
+    isotropic Gaussian approximation
 
     .. math::
 
-       \nabla_{x_t} \log p_t(y|x_t) = \lambda J_D(x_t, \sigma_t)^\top A^\top
-        \left(r_t^2 A A^\top + \mathrm{Id}\right)^{-1}
-        \left(A D(x_t, \sigma_t) - y\right),
+        p(x_0|x_t)
+        \approx \mathcal N\!\left(
+            x_0;D(x_t,\sigma_t),\Sigma_t(x_t)
+        \right),
+        \qquad
+        \Sigma_t(x_t)=r_t^2\mathrm{Id},
+        \qquad
+        r_t^2=\frac{\sigma_t^2}{1+\sigma_t^2}.
 
-    where :math:`D` is a denoiser, :math:`J_D` is its Jacobian, and
-    :math:`r_t^2 = \sigma_t^2 / (1 + \sigma_t^2)`. The inverse is evaluated
+    For a linear forward operator and normalized Gaussian measurement noise,
+    integrating this approximation gives a Gaussian approximation of
+    :math:`p_t(y|x_t)`. Its negative log-likelihood gradient is
+
+    .. math::
+
+       -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top
+        \left(r_t^2 A A^\top + \mathrm{Id}\right)^{-1}
+        \left(A D(x_t, \sigma_t) - y\right).
+
+    Here :math:`D` is a denoiser and :math:`J_D` is its Jacobian. The parameter
+    :math:`\lambda`, exposed as ``weight``, controls the scale of the
+    data-fidelity term. The inverse is evaluated
     exactly for :class:`deepinv.physics.DecomposablePhysics` operators and
     approximated with conjugate gradient for other linear operators.
 
@@ -380,15 +413,27 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
     Moment-matching data-fidelity term for diffusion posterior sampling.
 
     This corresponds to the :math:`p(y|x_t)` approximation proposed in :cite:`rozet2024learning`.
-
+    For the VE parametrization, Moment Matching approximates the full conditional distribution with the
+    Gaussian with mean and covariance given by the denoiser and its Jacobian:
 
     .. math::
 
-        \nabla_{x_t} \log p_t(y|x_t) = \lambda J_D(x_t, \sigma_t)^\top A^\top
+        p(x_0|x_t)
+        \approx \mathcal N\!\left(
+            x_0;D(x_t,\sigma_t),\Sigma_t(x_t)
+        \right).
+
+    The resulting negative log-likelihood gradient is
+
+    .. math::
+
+        -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top
         \left(A J_D(x_t, \sigma_t)^\top A^\top + \mathrm{Id}\right)^{-1}
         \left(A D(x_t, \sigma_t) - y\right).
 
-    The Jacobian products are evaluated with vector-Jacobian products, without
+    The parameter :math:`\lambda`, exposed as ``weight``, controls the scale of
+    the data-fidelity term. The Jacobian products are evaluated with
+    vector-Jacobian products, without
     materializing the denoiser Jacobian, and the measurement-space system is
     approximated with conjugate gradient.
 
