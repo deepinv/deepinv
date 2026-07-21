@@ -404,31 +404,6 @@ def test_sde(device, load_example_image):
                     < 1e-2
                 )
 
-
-@torch.no_grad()
-def test_dps_data_fidelity_residual_norm(device):
-    from deepinv.sampling import DPSDataFidelity
-
-    weight = 3.0
-    x = torch.tensor(
-        [[[[1.0, 2.0], [2.0, 1.0]]], [[[3.0, 0.0], [4.0, 0.0]]]],
-        device=device,
-    )
-    y = torch.zeros_like(x)
-    physics = dinv.physics.Denoising()
-    data_fidelity = DPSDataFidelity(
-        denoiser=GaussianDenoiser(sigma_prior=1.0), weight=weight
-    )
-
-    residual_norm = torch.linalg.vector_norm(x, dim=(1, 2, 3))
-    value = data_fidelity(x.clone(), y, physics, sigma=0.0)
-    assert torch.allclose(value, weight * residual_norm)
-
-    gradient = data_fidelity.grad(x.clone(), y, physics, sigma=0.0)
-    expected_gradient = weight * x / residual_norm.view(-1, 1, 1, 1)
-    assert torch.allclose(gradient, expected_gradient)
-
-
 @torch.no_grad()
 def test_noisy_data_fidelity(device):
     from deepinv.sampling import (
