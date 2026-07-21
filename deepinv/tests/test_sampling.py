@@ -167,7 +167,12 @@ def test_algo_inpaint(name_algo, device):
         )
     elif name_algo == "DPS":
         algorithm = DPS(
-            model, num_steps=50, weight=2.0, alpha=0.01, verbose=False, device=device
+            model,
+            num_steps=50,
+            weight=80.0,
+            alpha=0.01,
+            verbose=False,
+            device=device,
         )
     elif name_algo == "DDRM":
         algorithm = DDRM(model)

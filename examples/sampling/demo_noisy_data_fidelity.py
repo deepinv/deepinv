@@ -383,8 +383,7 @@ dinv.utils.plot(
             for name, sample in posterior_samples.items()
         },
     },
-    figsize=(15, 3),
-    save_dir='output'
+    figsize=(15, 3)
 )
 
 # %%
