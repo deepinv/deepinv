@@ -55,7 +55,7 @@ see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py`.
 #         x_0;D_{\sigma_t}(x_t),\Sigma_t(x_t)
 #     \right).
 #
-# For a linear forward model and whitened Gaussian measurement noise, the
+# For a linear forward model and Gaussian measurement noise, the
 # integral of the two Gaussian densities is available in closed form:
 #
 # .. math::
@@ -148,8 +148,8 @@ dinv.utils.plot(
 #
 # This is the degenerate Gaussian approximation
 # :math:`\Sigma_t(x_t)=0`. Inserting it into the integral gives
-# :math:`p_t(y\mid x_t)\approx p(y\mid D_{\sigma_t}(x_t))`. In practice, DPS
-# uses normalized measurement guidance by differentiating the residual norm:
+# :math:`p_t(y\mid x_t)\approx p(y\mid D_{\sigma_t}(x_t))`. 
+# Note that this is equivalent to differentiating the residual norm:
 #
 # .. math::
 #
@@ -157,18 +157,6 @@ dinv.utils.plot(
 #     \approx \nabla_{x_t}\log p_t(x_t)
 #     - \lambda\nabla_{x_t}
 #       \left\|A D_{\sigma_t}(x_t)-y\right\|_2.
-#
-# By the chain rule, this is the denoiser-Jacobian pullback of the normalized
-# measurement residual. Its magnitude is therefore not directly proportional
-# to the residual magnitude, preventing large residuals at early, high-noise
-# diffusion steps from producing disproportionately large guidance updates.
-# This is the residual-norm guidance used in the original DPS implementation.
-#
-# Equivalently, the Dirac mass can be viewed as a Gaussian whose covariance
-# tends to zero. This approximation only requires differentiating the residual
-# through the denoiser and the forward operator. It is therefore broadly
-# applicable, but it discards all conditional uncertainty of :math:`x_0` given
-# :math:`x_t`.
 #
 # In :class:`deepinv.sampling.DPSDataFidelity`, :math:`\lambda` is the
 # ``weight`` parameter. It controls the scale of the data-fidelity contribution
@@ -207,7 +195,7 @@ dps = dinv.sampling.DPSDataFidelity(denoiser=denoiser, weight=dps_weight)
 #       (A D_{\sigma_t}(x_t)-y).
 #
 # The inverse is evaluated exactly for
-# :class:`deepinv.physics.DecomposablePhysics` operators, such as inpainting,
+# :class:`deepinv.physics.DecomposablePhysics` operators 
 # and with conjugate gradient for other linear operators. Jacobian-vector
 # products are computed automatically, without forming :math:`J_D` explicitly.
 # The :math:`\lambda` factor is exposed as ``weight`` in
@@ -227,26 +215,15 @@ pigdm = dinv.sampling.PiGDMDataFidelity(
 #
 # Moment Matching :footcite:t:`rozet2024learning` uses the denoiser Jacobian to
 # approximate the conditional covariance rather than replacing it by an
-# isotropic scalar. In our additive Gaussian parametrization, the first- and
+# isotropic scalar. In our additive Gaussian parametrization, the
 # second-order Tweedie formulas give
 #
 # .. math::
 #
-#     \mu_t(x_t)
-#     &= \mathbb E[x_0\mid x_t]
-#      = D_{\sigma_t}(x_t) \\
-#     &= x_t + \sigma_t^2
-#        \nabla_{x_t}\log p_t(x_t), \\
-#     \Sigma_t(x_t)
-#     &= \operatorname{Cov}[x_0\mid x_t] \\
-#     &= \sigma_t^2 J_D(x_t,\sigma_t) \\
-#     &= \sigma_t^2\left(
-#          \mathrm I + \sigma_t^2
-#          \nabla_{x_t}^2\log p_t(x_t)
-#        \right).
+#     \Sigma_t(x_t) = \operatorname{Cov}[x_0\mid x_t] = \sigma_t^2 J_D(x_t,\sigma_t)
 #
 # Moment Matching explicitly approximates the conditional distribution by the
-# anisotropic Gaussian with these two moments:
+# anisotropic Gaussian with this covariance:
 #
 # .. math::
 #
