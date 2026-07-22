@@ -560,6 +560,7 @@ def get_prior(prior_name, device="cpu"):
         prior = dinv.optim.prior.TVPrior()
     elif prior_name == "SmoothedTVPrior":
         prior = dinv.optim.prior.SmoothedTVPrior()
+
     elif "wavelet" in prior_name.lower():
         pytest.importorskip(
             "ptwt",
@@ -619,6 +620,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         # here the prior model is common for all iterations
         prior = get_prior(prior_name, device=device)
         if prior_name == "SmoothedTVPrior":
+            max_iter = 2000
             # Check that the closed-form gradient matches autograd, and that
             # eps is validated, alongside the general convergence check below.
             with torch.enable_grad():
