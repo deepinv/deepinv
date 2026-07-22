@@ -106,7 +106,7 @@ jobs:
             TESTMON_FLAG=""
           fi
           set -x
-          pixi run -e full pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml:coverage-full.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest_report-${{ matrix.environment }}.xml
+          pixi run -e full pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml:coverage-full.xml --cov-append --durations=30 --junit-xml pytest_report-${{ matrix.environment }}.xml
           set +x
 
       # Save the freshly-solved lock + .testmondata + .coverage as a single (atomic) matched
