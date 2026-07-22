@@ -30,7 +30,7 @@ Future events
 Past events
 ~~~~~~~~~~~
 
-- Jul 8, 2026: Talk at `AIMS conference <https://aimsconference.org/AIMS-Conference/conf-reg2026/ss/detail1.php?abs_no=564>`_ in Athens, Greece.
+- Jul 9, 2026: Talk at `AIMS conference <https://aimsconference.org/AIMS-Conference/conf-reg2026/ss/detail1.php?abs_no=564>`_ in Athens, Greece.
 - June 17-19, 2026: Keynote lecture at `Grenoble AI for Physical Sciences Workshop <https://indico.math.cnrs.fr/event/15724/>`_ in Grenoble, France.
 - June 4-10, 2026: Summer school tutorial at `Mathematics and Machine Learning for Image Analysis <https://site.unibo.it/mml-imaging/en>`_ in Bologna, Italy.
 - May 4, 2026: Tutorial at `ICMS <https://icms.ac.uk/activities/workshop/imaging-inverse-problems-and-generating-models-sparsity-and-robustness-versus-expressivity/>`_ Imaging Inverse Problems workshop in Edinburgh, UK.
