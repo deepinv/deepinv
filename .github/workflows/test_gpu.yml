@@ -161,7 +161,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pytest_report_gpu
-          path: pytest-report-gpu-${{ matrix.environment }}.xml
+          path: pytest-report-${{ matrix.environment }}.xml
 
       - name: Link to generated pytest report
         if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}

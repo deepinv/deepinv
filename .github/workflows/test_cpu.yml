@@ -141,7 +141,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pytest_report_cpu
-          path: pytest_report-cpu-${{ matrix.environment }}.xml
+          path: pytest_report-${{ matrix.environment }}.xml
 
       - name: Link to generated pytest report
         if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
