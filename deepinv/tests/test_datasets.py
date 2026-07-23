@@ -1,3 +1,4 @@
+import gzip
 import shutil, os
 import math
 from typing import NamedTuple, Sequence, Mapping
@@ -15,6 +16,8 @@ import h5py
 
 import deepinv as dinv
 from deepinv.datasets import (
+    BrainWebDataset,
+    BrainWebLesion,
     DIV2K,
     Urban100HR,
     Set14HR,
@@ -1570,3 +1573,81 @@ def test_RandomPatchSampler(make_data):
     assert len(ds) == 2
     x, y = next(iter(ds))
     assert math.isnan(x)
+
+
+@pytest.fixture
+def brainweb_data(tmp_path, monkeypatch):
+    monkeypatch.setattr(BrainWebDataset, "image_size", (15, 17, 19))
+    monkeypatch.setattr(BrainWebDataset, "voxel_size", (1.0, 1.0, 1.0))
+    labels = np.full(BrainWebDataset.image_size, 2, dtype=np.uint8)
+    labels[7, 0, :3] = (0, 3, 7)
+    with gzip.open(tmp_path / "subject_04.raw_byte.bin.gz", "wb") as file:
+        file.write(labels.tobytes())
+    return tmp_path, labels
+
+
+@pytest.mark.parametrize("slice_index", [None, 7])
+def test_brainweb_dataset(brainweb_data, slice_index):
+    root, labels = brainweb_data
+    dataset = BrainWebDataset(
+        root=root,
+        slice_index=slice_index,
+        activity_levels={"gray_matter": 5, "white_matter": 2},
+    )
+    activity, params = dataset[0]
+    expected_shape = labels.shape if slice_index is None else labels.shape[1:]
+
+    assert activity.shape == (1,) + expected_shape
+    assert activity.dtype == torch.float32
+    assert params["attenuation"].shape == activity.shape
+    assert params["attenuation"].max() == pytest.approx(0.13)
+    dataset.check_dataset()
+
+
+@pytest.mark.parametrize(
+    ("slice_index", "center", "lesion_size"),
+    [(None, (7, 8, 9), 7), (7, (8, 9), 5)],
+)
+def test_brainweb_lesions(brainweb_data, slice_index, center, lesion_size):
+    root, _ = brainweb_data
+    dataset = BrainWebDataset(
+        root=root,
+        slice_index=slice_index,
+        lesions=[
+            BrainWebLesion(2, 0, center),
+            BrainWebLesion(2, 10),
+        ],
+        seed=123,
+    )
+    activity_1, params_1 = dataset[0]
+    activity_2, params_2 = dataset[0]
+
+    torch.testing.assert_close(activity_1, activity_2)
+    torch.testing.assert_close(params_1["lesion_mask"], params_2["lesion_mask"])
+    assert torch.count_nonzero(params_1["lesion_mask"] == 1) == lesion_size
+    assert torch.count_nonzero(params_1["lesion_mask"] == 2) == lesion_size
+    torch.testing.assert_close(
+        params_1["lesion_centers"][0], torch.tensor(center, dtype=torch.float32)
+    )
+
+
+def test_brainweb_download(tmp_path, monkeypatch):
+    monkeypatch.setattr(BrainWebDataset, "image_size", (3, 4, 5))
+    monkeypatch.setattr(BrainWebDataset, "voxel_size", (1.0, 1.0, 1.0))
+    requested = []
+
+    def download(url, path):
+        requested.append(url)
+        with gzip.open(path, "wb") as file:
+            file.write(np.zeros(BrainWebDataset.image_size, dtype=np.uint8).tobytes())
+
+    with patch("deepinv.datasets.brainweb.download_archive", side_effect=download):
+        dataset = BrainWebDataset(
+            root=tmp_path, subject_ids=(4, 6), download=True, activity_levels={}
+        )
+
+    assert len(dataset) == 2
+    assert "subject04_crisp" in requested[0]
+    assert "subject06_crisp" in requested[1]
+    with pytest.raises(ValueError, match="Incorrect subject_ids"):
+        BrainWebDataset(root=tmp_path, subject_ids=7)
