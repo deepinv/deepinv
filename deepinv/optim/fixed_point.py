@@ -354,7 +354,7 @@ class FixedPoint(nn.Module):
                     if self.verbose:
                         print(
                             f"[Stopping] Reached maximum number of failed backtracking checks "
-                            f"({self.max_iter_backtracking})."
+                            f"({self.backtracking_config.max_iter})."
                         )
                     break
 

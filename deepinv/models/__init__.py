@@ -36,6 +36,7 @@ from .ncsnpp import NCSNpp
 from .guided_diffusion import ADMUNet
 from .precond import EDMPrecond
 from .ram import RAM
+from .ridge_regularizer import RidgeRegularizer
 from .client import Client
 from .deal import DEAL
 from .mmse import MMSE
