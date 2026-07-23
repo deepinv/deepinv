@@ -8,6 +8,8 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.physics.TomographyWithRTK` class for CT operators using the RTK backend. (by `Idris TATACHAK`_ and `Simon RIT`_)
+- Add example showcasing the use of :class:`deepinv.physics.TomographyWithRTK` for 3D CBCT volume reconstruction with the RTK backend. (by `Idris TATACHAK`_ and `Simon RIT`_)
 - Add :class:`deepinv.loss.metric.RecoveryCoefficient` Recovery Coefficient (RC) metric to evaluate reconstructed activity relative to ground truth within a mask, with dtype-aware numerical stability and a dedicated loss transformation for training (:gh:`1228` by `Kushagra Shukla`_)
 - Add 2D and 3D :class:`deepinv.physics.PET` (:gh:`1099` by `Julian Tachella`_)
 - Add support for multi-channel (chromatic) diffraction PSFs in :class:`deepinv.physics.generator.DiffractionBlurGenerator` with physically consistent wavelength scaling of the pupil cut-off frequency and Zernike coefficients.  (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
@@ -666,4 +668,6 @@ Changed
 .. _Baptiste Legouix: https://github.com/blegouix
 .. _Kaibo Tang: https://github.com/kvttt
 .. _Irène Waldspurger: https://github.com/IWalds
+.. _Idris TATACHAK: https://github.com/idrisT11
+.. _Simon RIT: https://github.com/SimonRit
 .. _Kushagra Shukla: https://github.com/Kushagra481

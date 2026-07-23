@@ -100,6 +100,9 @@ physics-gpu = [
 ]
 
 physics = [
+    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
+    "itk-rtk>=2.6.0; platform_system=='Linux'",
+    "spyrit>=3.0.0; platform_system=='Linux'",
     "spyrit>=3.0.0",
     "torchkbnufft",
     "array_api_compat",
@@ -190,6 +193,8 @@ sigpy = "*"
 parallelproj = ">=1.10.0"
 # spyrit is PyPI-only, stays in optional deps
 
+[tool.pixi.feature.physics.pypi-dependencies]
+itk-rtk = ">=2.6.0"
 [tool.pixi.feature.physics-gpu.dependencies]
 astra-toolbox = ">=2.2.0,!=2.3.0"
 cupy = "*"  # for parallelproj's GPU support
@@ -255,7 +260,7 @@ select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004"
 
 [tool.ruff.lint.flake8-tidy-imports]
 # Modules that slow down startup and should be imported lazily
-banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft"]
+banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "itk-rtk", "torchkbnufft"]
 
 # Deprecated functions that should be replaced
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
