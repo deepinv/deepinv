@@ -140,10 +140,5 @@ jobs:
         id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pytest_report_cpu
-          path: pytest_report-${{ matrix.environment }}.xml
-
-      - name: Link to generated pytest report
-        if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
-        run: |
-          echo "Pytest XML report URL: ${{ steps.upload-artifact.outputs.artifact-url }}"
+          name: pytest-report-${{ matrix.environment }}
+          path: pytest_report_${{ matrix.environment }}.xml
