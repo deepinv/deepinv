@@ -104,7 +104,7 @@ jobs:
             TESTMON_FLAG=""
           fi
           set -x
-          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml:coverage-${{ matrix.environment }}.xml --cov-append $TESTMON_FLAG
+          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml:coverage-${{ matrix.environment }}.xml --cov-append --durations=30 --junit-xml pytest_report-${{ matrix.environment }}.xml 
           set +x
 
       # Save the freshly-solved lock + .testmondata + .coverage as a single (atomic) cache
@@ -135,3 +135,15 @@ jobs:
           files: ./coverage-${{ matrix.environment }}.xml
           flags: ${{ matrix.environment }}
           name: ${{ matrix.environment }}-coverage
+
+      - name: Upload pytest report
+        id: upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest_report_cpu
+          path: pytest_report-${{ matrix.environment }}.xml
+
+      - name: Link to generated pytest report
+        if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
+        run: |
+          echo "Pytest XML report URL: ${{ steps.upload-artifact.outputs.artifact-url }}"
