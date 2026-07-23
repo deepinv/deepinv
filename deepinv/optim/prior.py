@@ -541,6 +541,36 @@ class TVPrior(Prior):
         """
         return self.TVModel.nabla_adjoint(x)
 
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Computes a subgradient of the total variation prior:
+
+        .. math::
+            \partial g_\sigma (x) = -\mathrm{div}\left(\frac{Dx}{|D x|}\right)
+
+        where :math:`D` is the finite differences linear operator and :math:`\mathrm{div}` is its adjoint, the divergence operator.
+
+        At locations where the finite difference vanishes, the zero element
+        of the subdifferential is selected.
+
+        :param torch.Tensor x: Variable :math:`x` at which the subgradient is computed.
+        :return: (:class:`torch.Tensor`) subgradient at :math:`x`.
+        """
+        dx = self.nabla(x)
+        norm_dx = torch.linalg.vector_norm(dx, dim=-1, keepdim=True)
+
+        nonzero = norm_dx > 0
+
+        # Do not evaluate an unsafe division by zero
+        safe_norm = torch.where(nonzero, norm_dx, torch.ones_like(norm_dx))
+        normalized_dx = torch.where(
+            nonzero,
+            dx / safe_norm,
+            torch.zeros_like(dx),
+        )
+
+        return self.nabla_adjoint(normalized_dx)
+
 
 class PatchPrior(Prior):
     r"""
