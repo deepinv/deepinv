@@ -167,7 +167,12 @@ def test_algo_inpaint(name_algo, device):
         )
     elif name_algo == "DPS":
         algorithm = DPS(
-            model, num_steps=50, weight=2.0, alpha=0.01, verbose=False, device=device
+            model,
+            num_steps=50,
+            weight=80.0,
+            alpha=0.01,
+            verbose=False,
+            device=device,
         )
     elif name_algo == "DDRM":
         algorithm = DDRM(model)
@@ -402,10 +407,20 @@ def test_sde(device, load_example_image):
 
 @torch.no_grad()
 def test_noisy_data_fidelity(device):
-    from deepinv.sampling import DPSDataFidelity, NoisyDataFidelity
+    from deepinv.sampling import (
+        DPSDataFidelity,
+        NoisyDataFidelity,
+        PiGDMDataFidelity,
+        MomentMatchingDataFidelity,
+    )
     import itertools
 
-    all_data_fid_classes = [NoisyDataFidelity, DPSDataFidelity]
+    all_data_fid_classes = [
+        NoisyDataFidelity,
+        DPSDataFidelity,
+        PiGDMDataFidelity,
+        MomentMatchingDataFidelity,
+    ]
     all_clip = [None, (-100, 100)]
     denoiser = dinv.models.DRUNet(pretrained="download").to(device)
     x = torch.rand(2, 3, 64, 64, device=device)
