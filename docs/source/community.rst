@@ -25,7 +25,7 @@ Future events
 
 - May 3-7, 2027: Tutorial at "Flows, Physics-Informed Models and Optimization in Inverse Problems" workshop, Rome, Italy.
 - Sept 27th, 2026: Hands-on tutorial at `International Conference on Medical Image Computing and Computer Assisted Intervention (MICCAI) <https://conferences.miccai.org/2026/en/default.asp>`_, Strasbourg, France. :ref:`Find the tutorial page here <miccai2026>`
-- Aug 30- Jul 2, 2026: Hackathon at `CIRM <https://conferences.cirm-math.fr/3396.html>`_ in Marseille, France.
+- Aug 30 - Jul 2, 2026: Hackathon at `CIRM <https://conferences.cirm-math.fr/3396.html>`_ in Marseille, France.
 
 Past events
 ~~~~~~~~~~~
