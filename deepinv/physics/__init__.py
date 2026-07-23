@@ -45,7 +45,13 @@ from .noise import (
 )
 from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI
 from .wrappers import PhysicsMultiScaler, LinearPhysicsMultiScaler, PhysicsCropper
-from .tomography import Tomography, TomographyWithAstra
+from .tomography import (
+    Tomography,
+    TomographyWithAstra,
+    get_subset_indices,
+    split_measurements,
+    split_physics,
+)
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
 from .remote_sensing import Pansharpen

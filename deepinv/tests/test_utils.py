@@ -130,6 +130,18 @@ def test_tensorlist_any_all_isnan():
     assert tl_nan.isnan().all()
 
 
+def test_tensorlist_clamp():
+    x = torch.tensor([[-1.0, 0.5, 2.0]])
+    y = torch.tensor([[-2.0, 0.25, 3.0]])
+    tl = deepinv.utils.TensorList([x, y])
+
+    clamped = tl.clamp(min=0.0, max=1.0)
+
+    assert isinstance(clamped, deepinv.utils.TensorList)
+    assert torch.allclose(clamped[0], x.clamp(min=0.0, max=1.0))
+    assert torch.allclose(clamped[1], y.clamp(min=0.0, max=1.0))
+
+
 # The class TensorList features many utility methods that we do not test in
 # depth but verify that they do not raise any exception when called. To do
 # that, we get a tensor list instance, we iterate over its methods and try to call
@@ -153,6 +165,10 @@ def test_tensorlist_methods(tensorlist):
 
         # Ignore methods that assume a GPU is available if there is none
         if method_name == "cuda" and not torch.cuda.is_available():
+            continue
+
+        # torch.Tensor.clamp/clip requires at least one of min or max.
+        if method_name in ("clamp", "clip"):
             continue
 
         sig = inspect.signature(method)
@@ -260,7 +276,25 @@ def test_plot(
         if titles is not None and isinstance(img_list, dict)
         else nullcontext()
     ):
-        axs = deepinv.utils.plot(
+        plot_kwargs = {}
+        if cbar and C == 1 and n_images == 2 and batched:
+            # Use clipped images with different maxima to check that colorbars keep
+            # the shared [vmin, vmax] scale instead of autoscaling per image.
+            img_list = [
+                torch.tensor([[[[0.0, 2.0], [1.0, 2.0]]]]),
+                torch.tensor([[[[0.0, 1.0], [0.5, 1.0]]]]),
+            ]
+            plot_kwargs.update(
+                {
+                    "rescale_mode": "clip",
+                    "vmin": 0.0,
+                    "vmax": 2.0,
+                    "show": False,
+                    "return_fig": True,
+                }
+            )
+
+        out = deepinv.utils.plot(
             img_list,
             titles=titles,
             save_dir=save_dir,
@@ -268,11 +302,26 @@ def test_plot(
             suptitle=suptitle,
             subtitles=subtitles,
             return_axs=return_axs,
+            **plot_kwargs,
         )
+        if plot_kwargs and return_axs:
+            fig, axs = out
+        elif plot_kwargs:
+            fig, axs = out, None
+        else:
+            fig, axs = None, out
         if return_axs:
             assert axs is not None
         else:
             assert axs is None
+        if plot_kwargs:
+            colorbar_axes = [ax for ax in fig.axes if not ax.images]
+            assert len(colorbar_axes) == len(img_list)
+            for ax in colorbar_axes:
+                assert ax.get_ylim() == (0.0, 1.0)
+            assert [label.get_text() for label in colorbar_axes[-1].get_yticklabels()][
+                -1
+            ] == "2"
 
 
 @pytest.mark.parametrize("n_plots", [1, 2, 3])

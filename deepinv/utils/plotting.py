@@ -450,8 +450,13 @@ def plot(
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
+            display_kwargs = imshow_kwargs.copy()
+            is_rgb = img.ndim == 3 and img.shape[-1] in (3, 4)
+            if not is_rgb and "norm" not in display_kwargs:
+                display_kwargs.setdefault("vmin", 0.0)
+                display_kwargs.setdefault("vmax", 1.0)
             im = axs[r, i].imshow(
-                img, cmap=cmap, interpolation=interpolation, **imshow_kwargs
+                img, cmap=cmap, interpolation=interpolation, **display_kwargs
             )
             if cbar:
                 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -467,6 +472,7 @@ def plot(
                     true_labels = [
                         f"{t * (vmax_true - vmin_true) + vmin_true:.3g}" for t in ticks
                     ]
+                    colbar.set_ticks(ticks)
                     colbar.set_ticklabels(true_labels)
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], wrap=True)

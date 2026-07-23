@@ -2251,13 +2251,21 @@ class MLEM(BaseOptim):
     At each iteration, the algorithm performs a multiplicative update of the form:
 
     .. math::
-        x_{k+1} = \frac{x_k}{A^T \mathbf{1}} \odot A^T \left(\frac{y}{A x_k}\right)
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1}} \odot A^T \left(\frac{y}{A x_k + b}\right)
 
     where :math:`A` is the forward operator, :math:`y` is the observed data,
-    :math:`\mathbf{1}` is a tensor of ones, and :math:`\odot` denotes element-wise multiplication.
+    :math:`b` is an optional additive background, :math:`\mathbf{1}` is a tensor of ones,
+    and :math:`\odot` denotes element-wise multiplication.
 
     The algorithm can be used with a prior term (e.g., for MAP-EM variants) or without
     (standard MLEM). See :class:`deepinv.optim.optim_iterators.MLEMIteration` for the details of the iteration.
+
+    If ``num_subsets > 1``, each MLEM iteration becomes one ordered-subsets EM epoch.
+    The user still calls the algorithm with the full measurement tensor and the full
+    tomography or PET physics; internally, MLEM splits the sinogram over the view dimension
+    and builds a :class:`deepinv.physics.StackedLinearPhysics` containing one
+    operator per subset using :func:`deepinv.physics.tomography.split_physics`
+    and :func:`deepinv.physics.tomography.split_measurements`.
 
     The MLEM algorithm minimizes the Poisson negative log-likelihood data-fidelity. The ``data_fidelity`` argument
     can be used to measure progress during optimization (e.g., for early stopping or metrics computation), but it is
@@ -2269,14 +2277,14 @@ class MLEM(BaseOptim):
     It leads to the following update rule:
 
     .. math::
-        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \nabla g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \nabla g(x_k)} \odot A^T \left(\frac{y}{A x_k + b}\right)
 
     where :math:`g` is the prior function and :math:`\lambda` is the regularization parameter.
 
     In the case of a non-differentiable prior, the gradient term :math:`\nabla g(x_k)` is replaced by a subgradient:
 
     .. math::
-        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \partial g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \partial g(x_k)} \odot A^T \left(\frac{y}{A x_k + b}\right)
 
     where :math:`\partial g(x_k)` is a subgradient of :math:`g` at point :math:`x_k`.
 
@@ -2287,6 +2295,13 @@ class MLEM(BaseOptim):
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
     :param float g_param: parameter for the prior. Default: ``None``.
     :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
+    :param int num_subsets: number of ordered subsets. If set to ``1``, run standard
+        MLEM. If larger than ``1``, ``physics`` must be a tomography or PET operator
+        whose view dimension can be split into contiguous subsets. Default: ``1``.
+    :param str subset_strategy: ordered-subsets strategy. Currently only ``"default"``
+        is supported. Default: ``"default"``.
+    :param float eps: positive value used to clamp denominators in the
+        multiplicative update. Default: ``1e-15``.
     :param int max_iter: maximum number of iterations. Default: ``100``.
     :param str crit_conv: convergence criterion, either ``"residual"`` or ``"cost"``.
         Default: ``"residual"``.
@@ -2313,6 +2328,9 @@ class MLEM(BaseOptim):
         lambda_reg: float = 1.0,
         g_param: float = None,
         sigma_denoiser: float = None,
+        num_subsets: int = 1,
+        subset_strategy: str = "default",
+        eps: float = 1e-15,
         max_iter: int = 100,
         crit_conv: str = "residual",
         thres_conv: float = 1e-5,
@@ -2338,13 +2356,18 @@ class MLEM(BaseOptim):
         if g_param is None and sigma_denoiser is not None:
             g_param = sigma_denoiser
 
+        if not isinstance(num_subsets, int) or num_subsets < 1:
+            raise ValueError("num_subsets must be a positive integer.")
+        self.num_subsets = num_subsets
+        self.subset_strategy = subset_strategy
+
         if params_algo is None:
             params_algo = {
                 "lambda": lambda_reg,
                 "g_param": g_param,
             }
         super(MLEM, self).__init__(
-            MLEMIteration(cost_fn=cost_fn),
+            MLEMIteration(cost_fn=cost_fn, eps=eps),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
@@ -2358,6 +2381,31 @@ class MLEM(BaseOptim):
             trainable_params=trainable_params,
             **kwargs,
         )
+
+    def forward(self, y, physics, *args, **kwargs):
+        if self.num_subsets > 1:
+            from deepinv.physics.pet import PET
+            from deepinv.physics.tomography import (
+                Tomography,
+                TomographyWithAstra,
+                split_measurements,
+                split_physics,
+            )
+
+            if not isinstance(physics, (Tomography, TomographyWithAstra, PET)):
+                raise TypeError(
+                    "Ordered-subsets MLEM requires a physics operator supporting "
+                    "tomographic subsetting, currently Tomography, "
+                    "TomographyWithAstra or PET."
+                )
+
+            kwargs["subset_physics"] = split_physics(
+                physics, self.num_subsets, strategy=self.subset_strategy
+            )
+            kwargs["y_subsets"] = split_measurements(
+                y, physics, self.num_subsets, strategy=self.subset_strategy
+            )
+        return super().forward(y, physics, *args, **kwargs)
 
 
 class SIRT(BaseOptim):

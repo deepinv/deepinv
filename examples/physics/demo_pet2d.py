@@ -43,6 +43,10 @@ with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained t
 
 """
 
+# %%
+import time
+
+import matplotlib.pyplot as plt
 import deepinv as dinv
 from deepinv.physics import PET
 from deepinv.utils.phantoms import generate_pet_phantom
@@ -213,26 +217,93 @@ dinv.utils.plot([x_dag, sensitivities], ["pseudoinverse", "sensitivities"])
 # where :math:`f` is the Poisson data-fidelity term, :math:`P=\mathrm{diag}(\frac{x}{A^T\mathbf{1}})` is a preconditioner
 # and :math:`b` is the background.
 #
-# We compare MLEM with the least-squares reconstruction.
+# In Emission Tomography, the MLEM algorithm is often accelerated by using ordered subsets (OSEM), # which splits the measurements into subsets and performs a gradient step on each subset
+# sequentially.
+# In 2D, subsetting can result in mild speedups, but in 3D tomography it significantly reduces
+# the reconstruction time.
 
 gain = physics.noise_model.gain
 data_fidelity = dinv.optim.PoissonLikelihood(
-    bkg=background / gain,
     gain=gain,
+    bkg=background,
     denormalize=True,
 )
 
-stepsize = 1.0
-x_mlem = torch.ones_like(x)
+mlem_iter = 40
+osem_epochs = 5
+num_subsets = 8
+
+
+def _sync():
+    if torch.device(device).type == "cuda":
+        torch.cuda.synchronize()
+
+
+model_mlem = dinv.optim.MLEM(
+    data_fidelity=data_fidelity,
+    prior=None,
+    max_iter=mlem_iter,
+)
+
+model_osem = dinv.optim.MLEM(
+    data_fidelity=data_fidelity,
+    prior=None,
+    max_iter=osem_epochs,
+    num_subsets=num_subsets,
+)
+
 with torch.no_grad():
-    for i in range(100):
-        grad = data_fidelity.grad(x=x_mlem, y=y, physics=physics) / gain
-        preconditioner = (x_mlem + 1e-9) / (sensitivities + 1e-9)
-        x_mlem = x_mlem - preconditioner * grad
-        x_mlem = torch.clamp(x_mlem, min=0.0, max=5.0)
+    _sync()
+    start = time.perf_counter()
+    x_mlem, metrics_mlem = model_mlem(
+        y, physics, init=torch.ones_like(x), x_gt=x, compute_metrics=True
+    )
+    _sync()
+    mlem_time = time.perf_counter() - start
 
+    _sync()
+    start = time.perf_counter()
+    x_osem, metrics_osem = model_osem(
+        y, physics, init=torch.ones_like(x), x_gt=x, compute_metrics=True
+    )
+    _sync()
+    osem_time = time.perf_counter() - start
 
-dinv.utils.plot([x, x_mlem, x_dag], ["Ground truth", "MLEM rec.", "L2 pseudoinv."])
+print(f"MLEM runtime: {mlem_time:.2f} s for {mlem_iter} iterations")
+print(
+    f"OSEM runtime: {osem_time:.2f} s for {osem_epochs} epochs "
+    f"({num_subsets} subsets)"
+)
+print(f"Runtime ratio MLEM/OSEM: {mlem_time / osem_time:.2f}x")
+
+psnr_mlem = dinv.metric.PSNR()(x, x_mlem)
+psnr_osem = dinv.metric.PSNR()(x, x_osem)
+psnr_dag = dinv.metric.PSNR()(x, x_dag)
+
+dinv.utils.plot(
+    [x, x_mlem, x_osem, x_dag],
+    [
+        "Ground truth",
+        f"MLEM ({mlem_iter} it.)",
+        f"OSEM ({osem_epochs} epochs)",
+        "L2 pseudoinv.",
+    ],
+    subtitles=[
+        "Reference",
+        f"PSNR: {psnr_mlem.item():.2f} dB",
+        f"PSNR: {psnr_osem.item():.2f} dB",
+        f"PSNR: {psnr_dag.item():.2f} dB",
+    ],
+    figsize=(10, 4),
+)
+
+fig, ax = plt.subplots(1, 1, figsize=(5, 4))
+ax.plot(metrics_mlem["psnr"][0], label="MLEM")
+ax.plot(metrics_osem["psnr"][0], label="OSEM")
+ax.set_xlabel("Iteration / epoch")
+ax.set_ylabel("PSNR (dB)")
+ax.legend()
+fig.tight_layout()
 
 
 # %%

@@ -33,14 +33,18 @@ We show three scenarios of increasing complexity:
 
 1. **Deblurring** with MLEM (no prior)
 2. **Deblurring** with MLEM and Total-Variation (TV) prior
-3. **2D Computed Tomography (CT)** with MLEM and TV prior
+3. **2D Computed Tomography (CT)** with MLEM, ordered subsets, and TV prior
 """
 
 # %%
-import torch
-import deepinv as dinv
+import time
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import torch
 from torchvision import transforms
+
+import deepinv as dinv
 
 from deepinv.utils.demo import load_dataset, load_example
 from deepinv.utils.plotting import plot, plot_curves
@@ -240,51 +244,206 @@ y_ct = physics_ct(x_ct)
 # Filtered back-projection as a simple baseline
 x_fbp = physics_ct.A_dagger(y_ct)
 
+# %%
+# Ordered-subsets MLEM (OSEM)
+# -------------------------------------------------------------
+#
+# Ordered-subsets EM accelerates tomographic MLEM by splitting the projection
+# angles into subsets. The API stays the same: we pass the full
+# sinogram ``y_ct`` and the full tomography operator ``physics_ct``. The
+# :class:`deepinv.optim.MLEM` optimizer builds the subset operators internally
+# when ``num_subsets > 1``.
+# In 2D tomography, subsetting can result in mild speedups, but in 3D tomography it
+# significantly reduces the reconstruction time.
+
+data_fidelity_ct = dinv.optim.PoissonLikelihood(gain=gain_ct, bkg=1e-7)
+
+ct_mlem_iter = 25
+ct_num_subsets = 12
+ct_osem_epochs = 2
+
+
+def _sync():
+    if torch.device(device).type == "cuda":
+        torch.cuda.synchronize()
+
+
+def plot_comparison_curves(metrics_by_label, metric_names=("psnr", "cost")):
+    fig, axes = plt.subplots(1, len(metric_names), figsize=(5 * len(metric_names), 4))
+    if len(metric_names) == 1:
+        axes = [axes]
+
+    metric_labels = {
+        "psnr": "PSNR (dB)",
+        "cost": "Objective",
+        "residual": "residual",
+    }
+
+    for ax, metric_name in zip(axes, metric_names, strict=True):
+        for label, metrics in metrics_by_label.items():
+            values = metrics.get(metric_name, [[]])[0]
+            if len(values) > 0:
+                ax.plot(values, "-o", label=label)
+
+        if metric_name == "residual":
+            ax.set_yscale("log")
+        ax.set_xlabel("Iteration / epoch")
+        ax.set_ylabel(metric_labels.get(metric_name, metric_name))
+        ax.legend()
+
+    fig.tight_layout()
+
+
+model_ct_mlem = dinv.optim.MLEM(
+    data_fidelity=data_fidelity_ct,
+    prior=None,
+    max_iter=ct_mlem_iter,
+    early_stop=False,
+    verbose=True,
+)
+
+model_ct_osem = dinv.optim.MLEM(
+    data_fidelity=data_fidelity_ct,
+    prior=None,
+    max_iter=ct_osem_epochs,
+    num_subsets=ct_num_subsets,
+    early_stop=False,
+    verbose=True,
+)
+
+_sync()
+start = time.perf_counter()
+x_ct_mlem, metrics_ct_mlem = model_ct_mlem(
+    y_ct, physics_ct, x_gt=x_ct, compute_metrics=True
+)
+_sync()
+ct_mlem_time = time.perf_counter() - start
+
+_sync()
+start = time.perf_counter()
+x_ct_osem, metrics_ct_osem = model_ct_osem(
+    y_ct, physics_ct, x_gt=x_ct, compute_metrics=True
+)
+_sync()
+ct_osem_time = time.perf_counter() - start
+
+print(f"MLEM runtime: {ct_mlem_time:.2f} s for {ct_mlem_iter} iterations")
+print(
+    f"OSEM runtime: {ct_osem_time:.2f} s for {ct_osem_epochs} epochs "
+    f"({ct_num_subsets} subsets)"
+)
+print(f"Runtime ratio MLEM/OSEM: {ct_mlem_time / ct_osem_time:.2f}x")
 
 # %%
-# Run MLEM + TV on the CT problem
+# Compare reconstructions and convergence curves.
 
-data_fidelity_ct = dinv.optim.PoissonLikelihood(gain=gain_ct)
+psnr_ct_mlem = dinv.metric.PSNR()(x_ct, x_ct_mlem)
+psnr_ct_osem = dinv.metric.PSNR()(x_ct, x_ct_osem)
+psnr_fbp = dinv.metric.PSNR()(x_ct, x_fbp)
+
+plot(
+    {
+        "Ground Truth": x_ct,
+        "FBP": x_fbp,
+        f"MLEM ({ct_mlem_iter} it.)": x_ct_mlem,
+        f"OSEM ({ct_osem_epochs} epochs)": x_ct_osem,
+    },
+    subtitles=[
+        "Reference",
+        f"PSNR: {psnr_fbp.item():.2f} dB",
+        f"PSNR: {psnr_ct_mlem.item():.2f} dB",
+        f"PSNR: {psnr_ct_osem.item():.2f} dB",
+    ],
+    figsize=(12, 4),
+)
+
+plot_comparison_curves({"MLEM": metrics_ct_mlem, "OSEM": metrics_ct_osem})
+
+# %%
+# The subsetting strategy can also be combined with the use of a prior in the default
+# :class:`deepinv.optim.MLEM` implementation which uses the OSL heuristic.
+# However, combining subsets with a prior usually requires more advanced regularization
+# strategies such as [BSREM](http://ieeexplore.ieee.org/document/1207396/).
+# Using subsets with a prior in :class:`deepinv.optim.MLEM` can thus lead to more artifacts
+# in the reconstruction.
+
 prior_tv_ct = dinv.optim.prior.TVPrior(n_it_max=50)
-
+ct_tv_mlem_iter = 50
+ct_tv_osem_epochs = 2
+lambda_reg = 0.015
 model_ct = dinv.optim.MLEM(
     data_fidelity=data_fidelity_ct,
     prior=prior_tv_ct,
-    lambda_reg=1e-2,
-    max_iter=50,
+    lambda_reg=lambda_reg,
+    max_iter=ct_tv_mlem_iter,
     early_stop=True,
     thres_conv=1e-6,
     crit_conv="residual",
     verbose=True,
 )
 
+model_ct_osem_tv = dinv.optim.MLEM(
+    data_fidelity=data_fidelity_ct,
+    prior=prior_tv_ct,
+    lambda_reg=lambda_reg,
+    max_iter=ct_tv_osem_epochs,
+    num_subsets=ct_num_subsets,
+    early_stop=True,
+    thres_conv=1e-6,
+    crit_conv="residual",
+    verbose=True,
+)
+
+_sync()
+start = time.perf_counter()
 x_ct_recon, metrics_ct = model_ct(y_ct, physics_ct, x_gt=x_ct, compute_metrics=True)
+_sync()
+ct_tv_mlem_time = time.perf_counter() - start
+
+_sync()
+start = time.perf_counter()
+x_ct_osem_tv, metrics_ct_osem_tv = model_ct_osem_tv(
+    y_ct, physics_ct, x_gt=x_ct, compute_metrics=True
+)
+_sync()
+ct_tv_osem_time = time.perf_counter() - start
+
+print(f"MLEM + TV runtime: {ct_tv_mlem_time:.2f} s for {ct_tv_mlem_iter} iterations")
+print(
+    f"OSEM + TV runtime: {ct_tv_osem_time:.2f} s for {ct_tv_osem_epochs} epochs "
+    f"({ct_num_subsets} subsets)"
+)
+print(f"Runtime ratio MLEM + TV/OSEM + TV: {ct_tv_mlem_time / ct_tv_osem_time:.2f}x")
 
 # %%
 # Visualize CT results and plot convergence curves
 
 psnr_fbp = dinv.metric.PSNR()(x_ct, x_fbp)
 psnr_ct = dinv.metric.PSNR()(x_ct, x_ct_recon)
+psnr_ct_osem_tv = dinv.metric.PSNR()(x_ct, x_ct_osem_tv)
 ssim_fbp = dinv.metric.SSIM()(x_ct, x_fbp)
 ssim_ct = dinv.metric.SSIM()(x_ct, x_ct_recon)
+ssim_ct_osem_tv = dinv.metric.SSIM()(x_ct, x_ct_osem_tv)
 
 plot(
     {
         "Ground Truth": x_ct,
         "Sinogram": y_ct,
         "FBP": x_fbp,
-        "MLEM with TV": x_ct_recon,
+        f"MLEM + TV ({ct_tv_mlem_iter} it.)": x_ct_recon,
+        f"OSEM + TV ({ct_tv_osem_epochs} epochs)": x_ct_osem_tv,
     },
     subtitles=[
         "Reference",
         "Measurements",
         f"PSNR: {psnr_fbp.item():.2f} dB\nSSIM: {ssim_fbp.item():.3f}",
         f"PSNR: {psnr_ct.item():.2f} dB\nSSIM: {ssim_ct.item():.3f}",
+        f"PSNR: {psnr_ct_osem_tv.item():.2f} dB\nSSIM: {ssim_ct_osem_tv.item():.3f}",
     ],
-    figsize=(12, 4),
+    figsize=(15, 4),
 )
 
-plot_curves(metrics_ct)
+plot_comparison_curves({"MLEM + TV": metrics_ct, "OSEM + TV": metrics_ct_osem_tv})
 
 # %%
 # :References:

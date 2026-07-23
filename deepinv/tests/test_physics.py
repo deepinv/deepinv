@@ -1473,6 +1473,49 @@ def test_tomography(
     ), f"error: {error} > {r_tol}, fanbeam={fan_beam}, circle={circle}, fbp_interpolate_boundary={fbp_interpolate_boundary}, normalize={normalize}, adjoint_via_backprop={adjoint_via_backprop}, parallel_computation={parallel_computation}, fbp_pseudo_inverse={fbp_pseudo_inverse}"
 
 
+def test_tomography_subset_utilities(device):
+    img_width = 16
+    num_angles = 8
+    num_subsets = 4
+    physics = dinv.physics.Tomography(
+        img_width=img_width,
+        angles=num_angles,
+        device=device,
+        circle=True,
+        normalize=False,
+        parallel_computation=False,
+    )
+    x = torch.rand(
+        (1, 1, img_width, img_width),
+        generator=torch.Generator(device).manual_seed(0),
+        device=device,
+    )
+    y = physics.A(x)
+
+    indices = dinv.physics.get_subset_indices(num_angles, num_subsets, device=device)
+    assert len(indices) == num_subsets
+    assert torch.equal(indices[0], torch.tensor([0, 1], device=device))
+
+    y_subsets = dinv.physics.split_measurements(y, physics, num_subsets)
+    subset_physics = dinv.physics.split_physics(physics, num_subsets)
+
+    assert isinstance(y_subsets, TensorList)
+    assert isinstance(subset_physics, dinv.physics.StackedLinearPhysics)
+    assert len(y_subsets) == num_subsets
+    assert len(subset_physics) == num_subsets
+
+    for i, idx in enumerate(indices):
+        expected_y = y.index_select(-1, idx)
+        expected_theta = physics.theta.index_select(0, idx.to(physics.theta.device))
+
+        assert torch.allclose(y_subsets[i], expected_y)
+        assert torch.allclose(subset_physics[i].theta, expected_theta)
+        assert torch.allclose(subset_physics[i].A(x), expected_y, atol=1e-5)
+
+    with pytest.raises(ValueError, match="divisible"):
+        dinv.physics.get_subset_indices(num_angles, 3, device=device)
+
+
 @pytest.mark.parametrize(
     "padding", ("valid", "constant", "circular", "reflect", "replicate")
 )

@@ -907,6 +907,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 # Specific test for MLEM because the data-fidelity can only be the Poisson likelihood,
 # contrary to e.g mirror descent which can be tested on L2
 def test_MLEM(imsize, dummy_dataset, device):
+    # Check that MLEM converges on a realistic Poisson deblurring problem.
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
     test_sample = next(iter(dataloader)).to(device)
 
@@ -934,6 +935,61 @@ def test_MLEM(imsize, dummy_dataset, device):
     x = optimalgo(y, physics)
 
     assert optimalgo.has_converged
+
+    # Check the closed-form one-step update when the physics has additive background.
+    background = torch.tensor([[[[2.0, 3.0], [4.0, 5.0]]]], device=device)
+    x_init = torch.ones_like(background)
+    x_true = torch.tensor([[[[4.0, 6.0], [8.0, 10.0]]]], device=device)
+    y = x_true + background
+
+    def A_forward(x, add_background=False):
+        out = x
+        if add_background:
+            out = out + background
+        return out
+
+    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=lambda v: v)
+    physics.register_buffer("background", background)
+
+    optimalgo_background = dinv.optim.MLEM(
+        data_fidelity=dinv.optim.PoissonLikelihood(),
+        prior=None,
+        max_iter=1,
+    )
+
+    x = optimalgo_background(y, physics, init=x_init)
+
+    expected = x_init * y / (x_init + background)
+    assert torch.allclose(x, expected)
+
+    # Check ordered-subsets MLEM decreases the Poisson likelihood on tomography.
+    imsize = (1, 16, 16)
+    physics = dinv.physics.Tomography(
+        img_width=imsize[-1],
+        angles=8,
+        device=device,
+        circle=True,
+        normalize=False,
+        parallel_computation=False,
+    )
+    x_true = torch.rand(
+        (1, *imsize), generator=torch.Generator(device).manual_seed(0), device=device
+    ).clamp(min=0.1)
+    y = physics(x_true).clamp(min=1e-6)
+    x_init = physics.A_adjoint(y).clamp(min=1e-6)
+
+    osem_data_fidelity = dinv.optim.PoissonLikelihood(bkg=1e-6)
+    cost_init = osem_data_fidelity(x_init, y, physics)
+
+    model = dinv.optim.MLEM(
+        data_fidelity=osem_data_fidelity,
+        prior=dinv.optim.prior.ZeroPrior(),
+        max_iter=1,
+        num_subsets=2,
+    )
+    x = model(y, physics, init=x_init)
+
+    assert torch.all(osem_data_fidelity(x, y, physics) < cost_init)
 
 
 def test_patch_prior(imsize, dummy_dataset, device):
