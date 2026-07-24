@@ -187,7 +187,7 @@ transformers = "*"
 torchkbnufft = "*"
 array-api-compat = "*"
 sigpy = "*"
-parallelproj = ">=1.10.0"
+parallelproj = ">=1.10.0,<2.0.0"
 # spyrit is PyPI-only, stays in optional deps
 
 [tool.pixi.feature.physics-gpu.dependencies]
