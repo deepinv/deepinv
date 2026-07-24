@@ -21,6 +21,12 @@ Run this benchmark with
    my_solver = lambda y, physics: ...  # your solver here
    results = run_benchmark(my_solver, "%%LABEL%%")
 
+
+.. warning::
+
+    Runtimes are only indicative and may vary depending on various factors which are not controlled in the benchmark.
+
+
 .. list-table::
    :class: sortable-table
    :header-rows: 1
