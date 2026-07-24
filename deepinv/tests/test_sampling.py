@@ -302,19 +302,14 @@ def test_build_algo(algo, imsize, device):
     ],
 )
 @pytest.mark.parametrize("solver_class", [EulerSolver, HeunSolver])
-def test_sde(device, load_example_image, sde_class, solver_class):
+@pytest.mark.parametrize("denoiser_class", [NCSNpp, ADMUNet, DRUNet])
+def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class):
 
-    # Set up all denoisers
-    denoisers = []
-    list_kwargs = []
-    denoisers.append(NCSNpp(pretrained="download").to(device))
-    list_kwargs.append(dict())
-
-    denoisers.append(ADMUNet(pretrained="download").to(device))
-    list_kwargs.append(dict(class_labels=torch.eye(1000, device=device)[0:1]))
-
-    denoisers.append(DRUNet(pretrained="download").to(device))
-    list_kwargs.append(dict())
+    if denoiser_class == ADMUNet:
+        kwargs = dict(class_labels=torch.eye(1000, device=device)[0:1])
+    else:
+        kwargs = dict()
+    denoiser = denoiser_class(pretrained="download").to(device)
 
     # Set up the SDEs
     num_steps = 10
@@ -322,85 +317,78 @@ def test_sde(device, load_example_image, sde_class, solver_class):
     # Set up solvers
     timesteps = torch.linspace(0.99, 0.001, num_steps)
     solver = solver_class(timesteps=timesteps, rng=rng)
-    for denoiser, kwargs in zip(denoisers, list_kwargs, strict=True):
-        if sde_class == EDMDiffusionSDE:
-            sigma_t = lambda t: 100 * t**2
-            scale_t = lambda t: 1 / (1 + sigma_t(t) ** 2) ** 0.5
-            sde = sde_class(
-                sigma_t=sigma_t,
-                scale_t=scale_t,
-                denoiser=denoiser,
-                solver=solver,
-                device=device,
-            )
-        else:
-            sde = sde_class(
-                denoiser=denoiser,
-                solver=solver,
-                device=device,
-            )
-        # Test generation
-        sample_1, trajectory = sde.sample(
-            (2, 3, 64, 64),
-            seed=10,
-            get_trajectory=True,
-            **kwargs,
-        )
-        x_init_1 = trajectory[0]
 
-        # Test output shape
-        assert sample_1.shape == (2, 3, 64, 64)
-        sample_2, trajectory = sde.sample(
-            (2, 3, 64, 64),
-            seed=10,
-            get_trajectory=True,
-            **kwargs,
-        )
-        x_init_2 = trajectory[0]
-        # Test reproducibility
-        assert torch.allclose(x_init_1, x_init_2, atol=1e-5, rtol=1e-5)
-        assert (
-            torch.nn.functional.mse_loss(sample_1, sample_2, reduction="mean")
-            < 1e-2
-        )
-
-        # Test posterior sampling
-        posterior = PosteriorDiffusion(
-            data_fidelity=DPSDataFidelity(denoiser=denoiser),
-            sde=sde,
-            denoiser=denoisers[0],
-            solver=EulerSolver(timesteps=timesteps, rng=rng),
-            dtype=torch.float64,
+    if sde_class == EDMDiffusionSDE:
+        sigma_t = lambda t: 100 * t**2
+        scale_t = lambda t: 1 / (1 + sigma_t(t) ** 2) ** 0.5
+        sde = sde_class(
+            sigma_t=sigma_t,
+            scale_t=scale_t,
+            denoiser=denoiser,
+            solver=solver,
             device=device,
         )
-        x = load_example_image(
-            "celeba_example.jpg",
-            img_size=64,
-            resize_mode="resize",
-        ).to(device)
-        physics = dinv.physics.Inpainting(
-            img_size=x.shape[1:], mask=0.5, device=device
+    else:
+        sde = sde_class(
+            denoiser=denoiser,
+            solver=solver,
+            device=device,
         )
-        y = physics(x)
+    # Test generation
+    sample_1, trajectory = sde.sample(
+        (2, 3, 64, 64),
+        seed=10,
+        get_trajectory=True,
+        **kwargs,
+    )
+    x_init_1 = trajectory[0]
 
-        x_hat_1 = posterior(
-            y,
-            physics,
-            x_init=(2, 3, 64, 64),
-            seed=111,
-        )
-        # Test output shape
-        assert x_hat_1.shape == (2, 3, 64, 64)
-        # Test reproducibility
-        x_hat_2 = posterior(
-            y,
-            physics,
-            x_init=(2, 3, 64, 64),
-            seed=111,
-        )
-        assert (
-            torch.nn.functional.mse_loss(x_hat_1, x_hat_2, reduction="mean") < 1e-2
-        )
+    # Test output shape
+    assert sample_1.shape == (2, 3, 64, 64)
+    sample_2, trajectory = sde.sample(
+        (2, 3, 64, 64),
+        seed=10,
+        get_trajectory=True,
+        **kwargs,
+    )
+    x_init_2 = trajectory[0]
+    # Test reproducibility
+    assert torch.allclose(x_init_1, x_init_2, atol=1e-5, rtol=1e-5)
+    assert torch.nn.functional.mse_loss(sample_1, sample_2, reduction="mean") < 1e-2
+
+    # Test posterior sampling
+    posterior = PosteriorDiffusion(
+        data_fidelity=DPSDataFidelity(denoiser=denoiser),
+        sde=sde,
+        denoiser=NCSNpp(),
+        solver=EulerSolver(timesteps=timesteps, rng=rng),
+        dtype=torch.float64,
+        device=device,
+    )
+    x = load_example_image(
+        "celeba_example.jpg",
+        img_size=64,
+        resize_mode="resize",
+    ).to(device)
+    physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=0.5, device=device)
+    y = physics(x)
+
+    x_hat_1 = posterior(
+        y,
+        physics,
+        x_init=(2, 3, 64, 64),
+        seed=111,
+    )
+    # Test output shape
+    assert x_hat_1.shape == (2, 3, 64, 64)
+    # Test reproducibility
+    x_hat_2 = posterior(
+        y,
+        physics,
+        x_init=(2, 3, 64, 64),
+        seed=111,
+    )
+    assert torch.nn.functional.mse_loss(x_hat_1, x_hat_2, reduction="mean") < 1e-2
 
 
 @torch.no_grad()
