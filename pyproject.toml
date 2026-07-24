@@ -118,7 +118,7 @@ dataset = [
     "blosc2",
     "tifffile",
     "rarfile",
-    "napari[all]",
+    "napari[optional]",
 ]
 
 # optional dependencies for training
@@ -138,7 +138,7 @@ platforms = ["linux-64", "win-64"]
 [tool.pixi.dependencies]
 python = "<3.13.0"
 numpy = "*"
-matplotlib = "*"
+matplotlib-base = "*"
 tqdm = "*"
 torchmetrics = "*"
 einops = "*"
