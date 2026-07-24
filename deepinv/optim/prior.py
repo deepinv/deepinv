@@ -542,7 +542,7 @@ class TVPrior(Prior):
         return self.TVModel.nabla_adjoint(x)
 
 
-class SmoothedTVPrior(Prior):
+class SmoothedTVPrior(TVPrior):
     r"""
     Smoothed total variation (TV) prior :math:`\reg{x} = \sum_i \sqrt{\|(Dx)_i\|_2^2 + \varepsilon^2}`.
 
@@ -557,9 +557,9 @@ class SmoothedTVPrior(Prior):
         \nabla \reg{x} = D^\top \left( \frac{Dx}{\sqrt{\|Dx\|_2^2 + \varepsilon^2}} \right)
 
     where :math:`D` is the finite differences linear operator, :math:`D^\top = -\operatorname{div}` its adjoint,
-    and the 2-norm is taken over the dimension of
-    the differences at each pixel. This is useful for algorithms that require an explicit, smooth gradient
-    (e.g. gradient descent) rather than a proximal operator, and is commonly used in emission tomography.
+    and the 2-norm is taken over the dimension of the differences at each pixel. This is useful for algorithms
+    that require an explicit, smooth gradient (e.g. gradient descent) rather than a proximal operator, and is
+    commonly used in emission tomography.
 
     :param float eps: smoothing parameter :math:`\varepsilon > 0`. Larger values yield a smoother, more
         strongly convexified approximation of TV; smaller values approach the nonsmooth TV prior more
@@ -580,13 +580,11 @@ class SmoothedTVPrior(Prior):
     torch.Size([2, 1, 3, 3])
     """
 
-    def __init__(self, eps: float = 1e-3, *args, **kwargs):
+    def __init__(self, eps: float = 1e-5, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.explicit_prior = True
         if eps <= 0:
             raise ValueError(f"eps must be strictly positive, got {eps}")
         self.eps = eps
-        self.TVModel = TVDenoiser()
 
     def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
@@ -619,24 +617,6 @@ class SmoothedTVPrior(Prior):
         Dx = self.nabla(x)
         norm = torch.sqrt(torch.sum(Dx**2, dim=-1, keepdim=True) + eps**2)
         return self.nabla_adjoint(Dx / norm)
-
-    def nabla(self, x: torch.Tensor) -> torch.Tensor:
-        r"""
-        Applies the finite differences operator associated with tensors of the same shape as x.
-
-        :param torch.Tensor x: the input tensor.
-        :return: (:class:`torch.Tensor`) finite differences of x.
-        """
-        return self.TVModel.nabla(x)
-
-    def nabla_adjoint(self, x: torch.Tensor) -> torch.Tensor:
-        r"""
-        Applies the adjoint of the finite difference operator.
-
-        :param torch.Tensor x: the input tensor.
-        :return: (:class:`torch.Tensor`) adjoint of the finite differences of x.
-        """
-        return self.TVModel.nabla_adjoint(x)
 
 
 class PatchPrior(Prior):

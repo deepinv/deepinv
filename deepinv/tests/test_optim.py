@@ -620,9 +620,6 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         # here the prior model is common for all iterations
         prior = get_prior(prior_name, device=device)
         if prior_name == "SmoothedTVPrior":
-            max_iter = 2000
-            # Check that the closed-form gradient matches autograd, and that
-            # eps is validated, alongside the general convergence check below.
             with torch.enable_grad():
                 x_ag = test_sample.clone().double().requires_grad_(True)
                 g = prior.fn(x_ag).sum()
@@ -643,7 +640,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
                 prior=prior,
                 data_fidelity=data_fidelity,
                 max_iter=max_iter,
-                thres_conv=1e-4,
+                thres_conv=thres_conv,
                 verbose=True,
                 stepsize=stepsize,
                 g_param=sigma_denoiser,
@@ -657,7 +654,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
                 prior=prior,
                 data_fidelity=data_fidelity,
                 max_iter=max_iter,
-                thres_conv=1e-4,
+                thres_conv=thres_conv,
                 verbose=True,
                 stepsize=stepsize,
                 g_param=sigma_denoiser,
