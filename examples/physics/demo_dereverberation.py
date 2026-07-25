@@ -31,20 +31,22 @@ call.
 .. note::
 
     This example requires the optional dependencies `pyroomacoustics` (RIR
-    simulation), which can be installed with ``pip install deepinv[audio]`` or
-    ``pip install pyroomacoustics``.
+    simulation) and `sounddevice` (audio playback when running this example as a
+    script), which can be installed with ``pip install deepinv[audio]`` or
+    ``pip install pyroomacoustics sounddevice``.
 
 """
 
 import torch
 import matplotlib.pyplot as plt
+from IPython.display import Audio, display
 
 import deepinv as dinv
 
 device = dinv.utils.get_device()
 
 fs = 16000  # sampling frequency (Hz)
-duration = 1.0  # signal duration (s)
+duration = 5.0  # signal duration (s)
 T = int(duration * fs)
 
 # %%
@@ -56,7 +58,7 @@ T = int(duration * fs)
 # and 1.0s.
 
 rir_generator = dinv.physics.generator.RIRGenerator(
-    filter_length=int(0.3 * fs), fs=fs, t60_range=(0.4, 1.0), device=device
+    filter_length=fs, fs=fs, t60_range=(0.4, 1.0), device=device
 )
 rir_params = rir_generator.step(batch_size=1, seed=0)
 h = rir_params["filter"]
@@ -72,7 +74,7 @@ h = rir_params["filter"]
 physics = dinv.physics.Reverberation(
     filter=h,
     device=device,
-    noise_model=dinv.physics.GaussianNoise(sigma=0.01),
+    noise_model=dinv.physics.GaussianNoise(sigma=0.1),
 )
 
 # %%
@@ -129,6 +131,42 @@ for ax in axs:
     ax.set_xlabel("Time (s)")
 plt.tight_layout()
 plt.show()
+
+# %%
+# Listen to the signals
+# ------------------------
+#
+# We can also listen to the dry, reverberant and dereverberated signals: in a
+# notebook, this displays a playable widget for each signal, while running this
+# example as a script also plays them out loud through the default audio device
+# (using `sounddevice <https://python-sounddevice.readthedocs.io>`_).
+
+try:
+    import sounddevice as sd
+except (ImportError, OSError):
+    # sounddevice not installed, or its PortAudio backend is unavailable
+    sd = None
+
+
+def play(signal):
+    if sd is None:
+        return
+    try:
+        sd.play(signal, fs)
+        sd.wait()
+    except Exception:
+        pass  # no audio output device available, e.g. when building the docs
+
+
+signals = {
+    "Dry signal x": x[0, 0].cpu().numpy(),
+    "Reverberant + noisy measurement y": y[0, 0].cpu().numpy(),
+    "Dereverberation baseline x_hat": x_hat[0, 0].detach().cpu().numpy(),
+}
+for name, signal in signals.items():
+    print(name)
+    display(Audio(signal, rate=fs))
+    play(signal.clip(-1.0, 1.0))
 
 # %%
 # :References:

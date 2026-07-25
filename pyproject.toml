@@ -109,6 +109,7 @@ physics = [
 # optional dependencies for audio physics (e.g. dereverberation)
 audio = [
     "pyroomacoustics",
+    "sounddevice",
 ]
 
 # optional dependencies for specific datasets
@@ -201,6 +202,7 @@ cupy = "*"  # for parallelproj's GPU support
 
 [tool.pixi.feature.audio.dependencies]
 pyroomacoustics = "*"
+sounddevice = "*"
 
 [tool.pixi.feature.training.dependencies]
 wandb = "*"
