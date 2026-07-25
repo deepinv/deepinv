@@ -19,6 +19,8 @@ from .blur import (
     kaiser_window,
 )
 
+from .audio import causal_conv1d, causal_conv1d_adjoint
+
 from .product_convolution import product_convolution2d, product_convolution2d_adjoint
 from .tiled_product_convolution import (
     generate_tiled_multipliers,

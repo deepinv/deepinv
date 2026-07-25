@@ -125,6 +125,13 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Scattering`
      -
 
+   * - Audio (Dereverberation)
+     -
+       | :class:`deepinv.physics.Reverberation`
+     -
+       | :class:`RIRGenerator <deepinv.physics.generator.RIRGenerator>`
+       | :func:`causal_conv1d <deepinv.physics.functional.causal_conv1d>`
+
 .. _wrapper_list:
 
 Wrappers

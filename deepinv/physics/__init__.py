@@ -10,6 +10,7 @@ from .blur import (
     TiledSpaceVaryingBlur,
 )
 from .scattering import Scattering
+from .audio import Reverberation
 from .range import Decolorize
 from .haze import Haze
 from .pet import PET

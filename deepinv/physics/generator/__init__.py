@@ -27,3 +27,4 @@ from .inpainting import (
 )
 from .downsampling import DownsamplingGenerator
 from .zernike import Zernike
+from .audio import RIRGenerator

@@ -69,6 +69,7 @@ Operators
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
    deepinv.physics.Scattering
+   deepinv.physics.Reverberation
 
 
 Generators
@@ -102,6 +103,7 @@ Generators
    deepinv.physics.generator.RandomMaskGenerator
    deepinv.physics.generator.EquispacedMaskGenerator
    deepinv.physics.generator.PolyOrderMaskGenerator
+   deepinv.physics.generator.RIRGenerator
 
 
 .. autosummary::
@@ -183,6 +185,8 @@ Functional
    deepinv.physics.functional.bilinear_filter
    deepinv.physics.functional.bicubic_filter
    deepinv.physics.functional.sinc_filter
+   deepinv.physics.functional.causal_conv1d
+   deepinv.physics.functional.causal_conv1d_adjoint
 
 
 .. autosummary::
