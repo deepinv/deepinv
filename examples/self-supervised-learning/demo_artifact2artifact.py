@@ -28,7 +28,6 @@ from torchvision import transforms
 
 import deepinv as dinv
 from deepinv.datasets import SimpleFastMRISliceDataset
-from deepinv.utils import get_data_home
 from deepinv.models.utils import get_weights_url
 from deepinv.models import MoDL
 from deepinv.physics.generator import (
@@ -37,7 +36,7 @@ from deepinv.physics.generator import (
 )
 
 torch.manual_seed(0)
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Load data
@@ -69,10 +68,10 @@ H = 128
 transform = transforms.Compose([transforms.Resize(H)])
 
 train_dataset = SimpleFastMRISliceDataset(
-    get_data_home(), transform=transform, train=True, download=True, train_percent=0.5
+    transform=transform, train=True, download=True, train_percent=0.5
 )
 test_dataset = SimpleFastMRISliceDataset(
-    get_data_home(), transform=transform, train=False, train_percent=0.5
+    transform=transform, train=False, train_percent=0.5
 )
 
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)

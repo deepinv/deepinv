@@ -8,10 +8,12 @@ import pytest
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
-from torchvision.transforms import ToTensor
+from torchvision.transforms import ToTensor, CenterCrop
 from deepinv.loss import Metric
 import numpy as np
+import h5py
 
+import deepinv as dinv
 from deepinv.datasets import (
     DIV2K,
     Urban100HR,
@@ -57,7 +59,7 @@ from deepinv.loss.metric import PSNR
 from deepinv.training import Trainer, test as trainer_test
 from deepinv.tests.dummy import DummyModel
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 import io
 
 
@@ -104,7 +106,6 @@ def check_dataset_format(
         NamedTuple,
         Sequence,
     ):  # from https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.default_collate
-
         # Define dataloader with random data sample
         dataloader = torch.utils.data.DataLoader(
             torch.utils.data.Subset(
@@ -211,25 +212,324 @@ def test_base_dataset():
             check_dataset(MyDataset(bad_dataset_input))
 
 
+SPLIT_NAMES = ["train", "test", "val", "dummy"]
+
+
+@pytest.mark.parametrize("train", [True, False])
+@pytest.mark.parametrize("split", [*SPLIT_NAMES, None])
+@pytest.mark.parametrize("with_transform", [False, True])
+@pytest.mark.parametrize("load_physics_generator_params", [True, False])
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("complex_dtype", [torch.complex64, torch.complex128])
+@pytest.mark.parametrize("complex_data", [False, True])
+@pytest.mark.parametrize("length", [10])
+@pytest.mark.parametrize("with_params", [False, True])
+@pytest.mark.parametrize("unsupervised", [False, True])
+@pytest.mark.parametrize("close", [False, True])
+@pytest.mark.parametrize("stack_size", [1, 2, 3])
+def test_hdf5dataset(
+    tmpdir,
+    train,
+    split,
+    with_transform,
+    load_physics_generator_params,
+    dtype,
+    complex_dtype,
+    complex_data,
+    length,
+    with_params,
+    unsupervised,
+    close,
+    stack_size,
+):
+    path = f"{tmpdir}/dummy.h5"
+
+    if with_transform:
+        transform = MagicMock(side_effect=lambda x: x)
+    else:
+        transform = None
+
+    # Populate a HDF5 file
+    with h5py.File(path, "w") as f:
+        # The stacked attribute is expected to be present only if stack_size > 1,
+        # even though stacked = 1 could be meaningful.
+        if stack_size > 1:
+            f.attrs["stacked"] = stack_size
+
+        def populate_dummy_data(field_name, *, value: int):
+            data_dtype = complex_dtype if complex_data else dtype
+            data = torch.full((length, 1, 4, 4), value, dtype=data_dtype)
+            data = data.numpy()
+            f.create_dataset(
+                field_name,
+                shape=data.shape,
+                data=data,
+                dtype=data.dtype,
+            )
+
+        # Every tensor has a constant value, which is distinct for different
+        # splits and fields (x, y, and params indiscriminately). It allows
+        # identification of each tensor to detect possible mismatches. The
+        # value is defined as:
+        # value = split_index * 3 + field_index
+        # where field_index = 0 for x, 1 for y, and 2 for params.
+        # Note that different ys in a stack share the same value and that
+        # different params share the same value as well.
+        for idx, split_name in enumerate(SPLIT_NAMES):
+            if not unsupervised:
+                populate_dummy_data(f"x_{split_name}", value=idx * 3 + 0)
+
+            for stack_idx in range(stack_size):
+                subfield_suffix = f"{stack_idx}" if stack_size > 1 else ""
+                populate_dummy_data(
+                    f"y{subfield_suffix}_{split_name}", value=idx * 3 + 1
+                )
+
+            if with_params:
+                param_names = ["kernel"]
+                # We test that y0 is loaded as a parameter if and only if the
+                # measurements are not marked as stacked.
+                if stack_size == 1:
+                    param_names.append("y0")
+                for param_name in param_names:
+                    field_name = f"{param_name}_{split_name}"
+                    populate_dummy_data(f"{param_name}_{split_name}", value=idx * 3 + 2)
+
+    dataset = HDF5Dataset(
+        path,
+        train=train,
+        split=split,
+        transform=transform,
+        load_physics_generator_params=load_physics_generator_params,
+        dtype=dtype,
+        complex_dtype=complex_dtype,
+    )
+
+    # Test HDF5Dataset.__len__
+    assert (
+        len(dataset) == length
+    ), f"Dataset length should be {length} but got {len(dataset)}."
+
+    # Test HDF5Dataset.__getitem__
+    idx = 0
+    entry = dataset[idx]
+    expected_entry_length = 3 if load_physics_generator_params else 2
+    assert (
+        len(entry) == expected_entry_length
+    ), f"Dataset entry should have length {expected_entry_length} but got {len(entry)}."
+
+    x, y = entry[:2]
+    if len(entry) == 3:
+        params = entry[2]
+    else:
+        params = None
+
+    # Make the case disjunction at the start to simplify the logic
+    split_name = split if split is not None else ("train" if train else "test")
+    expected_value_x = SPLIT_NAMES.index(split_name) * 3 + 0
+    expected_value_y = SPLIT_NAMES.index(split_name) * 3 + 1
+    expected_value_params = SPLIT_NAMES.index(split_name) * 3 + 2
+
+    data_dtype = complex_dtype if complex_data else dtype
+
+    if not torch.isnan(x).all():
+        assert torch.allclose(
+            x,
+            torch.full((1, 4, 4), expected_value_x, dtype=data_dtype),
+        ), f"Dataset x tensor has incorrect values."
+
+    if stack_size == 1:
+        expected_type_y = torch.Tensor
+        ys = [y]
+    else:
+        expected_type_y = TensorList
+        ys = y.x
+
+    assert isinstance(y, expected_type_y), f"Dataset y has incorrect type."
+    for y_el in ys:
+        assert torch.allclose(
+            y_el,
+            torch.full((1, 4, 4), expected_value_y, dtype=data_dtype),
+        ), f"Dataset y tensor has incorrect values."
+
+    if with_params and load_physics_generator_params:
+        assert "kernel" in params, "Params should contain kernel."
+
+        if stack_size > 1:
+            assert (
+                "y0" not in params
+            ), "Params should not contain y0 (stacked measurements)."
+            expected_num_params = 1
+        else:
+            assert (
+                "y0" in params
+            ), "Params might contain y0 if the measurements are not stacked."
+            expected_num_params = 2
+
+        assert (
+            len(params) == expected_num_params
+        ), f"Params should contain {expected_num_params} tensors but got {len(params)}."
+
+        assert torch.allclose(
+            params["kernel"],
+            torch.full((1, 4, 4), expected_value_params, dtype=data_dtype),
+        ), f"Dataset params tensor has incorrect values."
+
+    if transform is not None:
+        assert transform.called == (
+            not unsupervised
+        ), "Transform should be called if and only if it is supervised."
+
+    # Test HDF5Dataset.unsupervised
+    # Verify that it is deprecated properly
+    with pytest.warns(
+        DeprecationWarning, match="The attribute 'unsupervised' is deprecated"
+    ) as record:
+        # Verify that it gives the right value
+        assert (
+            dataset.unsupervised == unsupervised
+        ), "Dataset supervision label mismatch."
+
+    # Test HDF5Dataset.close
+    if close:
+        dataset.close()
+        # Reading should fail after closing
+        with pytest.raises(ValueError):
+            _ = dataset[idx]
+
+
 @pytest.mark.parametrize("physgen", [None, "mask"])
-def test_hdfdataset(physgen):
+@pytest.mark.parametrize("stacked", [False, True])
+@pytest.mark.parametrize("supervised", [True, False])
+def test_hdf5dataset_generate_dataset(tmpdir, physgen, stacked, supervised):
     img_size = (1, 4, 4)
-    dataset = MyDataset(torch.zeros(1, *img_size))
-    physics = Inpainting(img_size, mask=0.5)
+    train_dataset = MyDataset(torch.zeros(1, *img_size))
+    test_dataset = MyDataset(torch.ones(1, *img_size))
+
+    base_physics = Inpainting(img_size, mask=0.5)
+    if stacked:
+        physics = dinv.physics.stack(
+            base_physics,
+            Inpainting(img_size, mask=0.5),
+        )
+    else:
+        physics = base_physics
+
     physics_generator = (
         None if physgen is None else BernoulliSplittingMaskGenerator(img_size, 0.5)
     )
+
     path = generate_dataset(
-        dataset,
+        train_dataset,
         physics,
-        save_dir="temp",
+        save_dir=str(tmpdir),
         batch_size=1,
         physics_generator=physics_generator,
+        supervised=supervised,
+        test_dataset=test_dataset,
     )
-    dataset = HDF5Dataset(path, load_physics_generator_params=True)
-    check_dataset_format(dataset, length=1, dtype=tuple, allow_non_tensor=False)
-    dataset.close()
-    assert dataset.hd5 is None
+
+    train_ds = HDF5Dataset(path, split="train", load_physics_generator_params=True)
+    check_dataset_format(
+        train_ds,
+        length=1,
+        dtype=None if stacked else tuple,
+        allow_non_tensor=False,
+    )
+    x_train, y_train, params_train = train_ds[0]
+
+    if supervised:
+        assert not torch.isnan(x_train).all(), "Supervised train split should have x."
+    else:
+        assert torch.isnan(x_train).all(), "Unsupervised train split should have NaN x."
+
+    if stacked:
+        assert isinstance(
+            y_train, TensorList
+        ), "Stacked physics should return TensorList."
+        assert len(y_train) == 2, "Stacked measurements should have two elements."
+    else:
+        assert isinstance(
+            y_train, torch.Tensor
+        ), "Unstacked physics should return Tensor."
+
+    if physgen is None:
+        assert params_train == {}, "Params should be empty when no generator is used."
+    else:
+        assert "mask" in params_train, "Params should contain mask when generator used."
+        assert params_train["mask"].shape == img_size
+
+    train_ds.close()
+    assert train_ds.hd5 is None
+
+    test_ds = HDF5Dataset(path, split="test", load_physics_generator_params=True)
+    check_dataset_format(
+        test_ds,
+        length=1,
+        dtype=None if stacked else tuple,
+        allow_non_tensor=False,
+    )
+    x_test, y_test, params_test = test_ds[0]
+    assert not torch.isnan(x_test).all(), "Test split should have x."
+
+    if stacked:
+        assert isinstance(
+            y_test, TensorList
+        ), "Stacked physics should return TensorList."
+        assert len(y_test) == 2, "Stacked measurements should have two elements."
+    else:
+        assert isinstance(
+            y_test, torch.Tensor
+        ), "Unstacked physics should return Tensor."
+
+    if physgen is None:
+        assert params_test == {}, "Params should be empty when no generator is used."
+    else:
+        assert "mask" in params_test, "Params should contain mask when generator used."
+        assert params_test["mask"].shape == img_size
+
+    test_ds.close()
+    assert test_ds.hd5 is None
+
+
+def test_generate_dataset(tmp_path):
+    tmp_data_dir = str(tmp_path / "set14")
+    # Dataset returns PIL images, no cropping so different sizes
+    ds = Set14HR(tmp_data_dir, download=True)
+
+    physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=0.1))
+    with pytest.raises(
+        RuntimeError,
+        match="generate_dataset expects dataset to return elements of same shape",
+    ):
+        _ = generate_dataset(
+            train_dataset=ds,
+            batch_size=4,
+            physics=physics,
+            device="cpu",
+            save_dir="measurements",
+        )
+    # Test that no error is raised when we add crop
+    ds = Set14HR(tmp_data_dir, transform=CenterCrop(32))
+    hdf_path = generate_dataset(
+        train_dataset=ds,
+        batch_size=1,
+        physics=physics,
+        device="cpu",
+        save_dir="measurements",
+        dataset_filename="generate_dataset_test",
+    )
+    from torchvision.transforms import ToTensor
+
+    hdf_ds = HDF5Dataset(hdf_path)
+    for sample_hdf, sample in zip(hdf_ds, ds, strict=True):
+        sample = ToTensor()(sample)
+        assert sample_hdf[0].equal(
+            sample
+        ), "Ground-truth from HDF5 does not match original dataset, despite going through the same preprocessing."
+    hdf_ds.hd5.close()
+    shutil.rmtree(tmp_data_dir)
+    os.remove(hdf_path)
 
 
 def test_tensordataset():
@@ -283,9 +583,9 @@ def test_transforms(transform_name):
 
 
 @pytest.fixture
-def download_div2k():
+def download_div2k(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "DIV2K"
+    tmp_data_dir = str(tmp_path / "DIV2K")
 
     # Download div2K raw dataset
     DIV2K(tmp_data_dir, mode="val", download=True)
@@ -309,9 +609,9 @@ def test_load_div2k_dataset(download_div2k):
 
 
 @pytest.fixture
-def download_urban100():
+def download_urban100(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "Urban100"
+    tmp_data_dir = str(tmp_path / "Urban100")
 
     # Download Urban100 raw dataset
     Urban100HR(tmp_data_dir, download=True)
@@ -335,10 +635,10 @@ def test_load_urban100_dataset(download_urban100):
 
 
 @pytest.fixture
-def download_set14():
+def download_set14(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = "Set14"
+        tmp_data_dir = str(tmp_path / "Set14")
 
         # Download Set14 raw dataset
         Set14HR(tmp_data_dir, download=True)
@@ -377,10 +677,10 @@ def test_load_set14_dataset(download_set14):
 
 
 @pytest.fixture
-def download_flickr2khr():
+def download_flickr2khr(tmp_path):
     """Download or mock Flickr2kHR before testing"""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = "Flickr2kHR"
+        tmp_data_dir = str(tmp_path / "Flickr2kHR")
 
         # Download Flickr raw dataset
         Flickr2kHR(tmp_data_dir, download=True)
@@ -417,9 +717,9 @@ def test_load_Flickr2kHR_dataset(download_flickr2khr):
 
 
 @pytest.fixture
-def download_cbsd68(download=True):
+def download_cbsd68(tmp_path, download=True):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "CBSD68"
+    tmp_data_dir = str(tmp_path / "CBSD68")
 
     # Download CBSD raw dataset from huggingface
     try:
@@ -453,9 +753,9 @@ def test_load_cbsd68_dataset(download_cbsd68):
 
 
 @pytest.fixture
-def download_bsds500(download=True):
+def download_bsds500(tmp_path, download=True):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "BSDS500"
+    tmp_data_dir = str(tmp_path / "BSDS500")
 
     # Download BSDS500 raw dataset from github
     try:
@@ -492,10 +792,10 @@ def test_load_bsds500_dataset(download_bsds500, train, totensor, rotate):
 
 
 @pytest.fixture
-def download_Kohler():
+def download_Kohler(tmp_path):
     """Download the Köhler dataset before a test and remove it after completion."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        root = "Kohler"
+        root = str(tmp_path / "Kohler")
         Kohler.download(root)
 
         # Return the control flow to the test function
@@ -551,10 +851,10 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering):
 
 
 @pytest.fixture
-def download_lsdir():
+def download_lsdir(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = "LSDIR"
+        tmp_data_dir = str(tmp_path / "LSDIR")
 
         # Download LSDIR raw dataset
         LsdirHR(tmp_data_dir, mode="val", download=True)
@@ -590,10 +890,10 @@ def test_load_lsdir_dataset(download_lsdir):
 
 
 @pytest.fixture
-def download_fmd():
+def download_fmd(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = "FMD"
+        tmp_data_dir = str(tmp_path / "FMD")
 
         # indicates which subsets we want to download
         types = ["TwoPhoton_BPAE_R"]
@@ -701,9 +1001,9 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units):
 
 
 @pytest.fixture
-def download_nbu():
+def download_nbu(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "NBU"
+    tmp_data_dir = str(tmp_path / "NBU")
 
     # Download Urban100 raw dataset
     NBUDataset(tmp_data_dir, satellite="gaofen-1", download=True)
@@ -741,7 +1041,7 @@ def test_load_nbu_dataset(download_nbu):
     # Test ImageFolder with globs
     dataset = ImageFolder(
         download_nbu,
-        x_path="nbu/gaofen-1/MS_256/*.mat",
+        x_path="gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
         loader=lambda f: load_mat(f)["imgMS"],
     )
@@ -749,7 +1049,7 @@ def test_load_nbu_dataset(download_nbu):
 
     dataset = ImageFolder(
         download_nbu,
-        y_path="nbu/gaofen-1/MS_256/*.mat",
+        y_path="gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
         loader=lambda f: load_mat(f)["imgMS"],
     )
@@ -759,9 +1059,9 @@ def test_load_nbu_dataset(download_nbu):
 
 
 @pytest.fixture
-def download_simplefastmri():
+def download_simplefastmri(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "fastmri"
+    tmp_data_dir = str(tmp_path / "fastmri")
 
     # Download simple FastMRI slice dataset
     SimpleFastMRISliceDataset(tmp_data_dir, download=True)
@@ -786,9 +1086,9 @@ def test_SimpleFastMRISliceDataset(download_simplefastmri):
 
 
 @pytest.fixture
-def download_fastmri():
+def download_fastmri(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "fastmri"
+    tmp_data_dir = str(tmp_path / "fastmri")
     file_name = "demo_fastmri_brain_multicoil.h5"
 
     # Download single FastMRI volume
@@ -852,12 +1152,14 @@ def test_FastMRISliceDataset(download_fastmri):
         coil_maps=torch.ones(kspace_shape, dtype=torch.complex64),
         img_size=img_size,
     )
-    rss1 = physics.A_adjoint(kspace1.unsqueeze(0), rss=True, crop=True)
+    rss1 = physics.A_adjoint(kspace1.unsqueeze(0), rss=True)
+    rss1 = physics.crop(rss1, shape=target1.shape)
     assert torch.allclose(target1.unsqueeze(0), rss1)
 
     # Test singlecoil MRI mag works
     physics = MRI(mask=torch.ones(kspace_shape), img_size=img_size)
-    mag1 = physics.A_adjoint(kspace1.unsqueeze(0)[:, :, 0], mag=True, crop=True)
+    mag1 = physics.A_adjoint(kspace1.unsqueeze(0)[:, :, 0], mag=True)
+    mag1 = physics.crop(mag1, shape=target1.shape)
     assert target1.unsqueeze(0).shape == mag1.shape
 
     # Test save simple dataset
@@ -940,9 +1242,9 @@ def test_FastMRISliceDataset(download_fastmri):
 
 
 @pytest.fixture
-def download_CMRxRecon():
+def download_CMRxRecon(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "CMRxRecon"
+    tmp_data_dir = str(tmp_path / "CMRxRecon")
 
     # Download single CMRxRecon volume
     os.makedirs(tmp_data_dir, exist_ok=True)
@@ -1039,9 +1341,9 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
 
 
 @pytest.fixture
-def download_SKMTEA():
+def download_SKMTEA(tmp_path):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "SKMTEA"
+    tmp_data_dir = str(tmp_path / "SKMTEA")
     file_name = "SKMTEA_tiny_2_slice.h5"
 
     # Download tiny SKMTEA volume
@@ -1123,8 +1425,8 @@ def make_data(tmp_path, request):
     # 3D volumes
     shape3d = (40, 40, 40)
     fmt = getattr(request, "param")
-    dx = root / f"{fmt.strip('.').replace('.','_')}_x"
-    dy = root / f"{fmt.strip('.').replace('.','_')}_y"
+    dx = root / f"{fmt.strip('.').replace('.', '_')}_x"
+    dy = root / f"{fmt.strip('.').replace('.', '_')}_y"
     dx.mkdir()
     dy.mkdir()
     for i in range(2):

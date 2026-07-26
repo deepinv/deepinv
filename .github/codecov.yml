@@ -1,5 +1,17 @@
 # Coverage configuration from https://gist.github.com/doaa-altarawy/9e324f2486e53d38de817e0e38e58175
 # ----------------------
+
+# Compute coverage for the the CPU and GPU tests separately
+flags:
+  full-cpu:
+    paths:
+      - deepinv/
+    carryforward: true # For iterative testing with testmon: https://docs.codecov.com/docs/carryforward-flags
+  full:
+    paths:
+      - deepinv/
+    carryforward: true 
+
 coverage:
   status:
     patch: false

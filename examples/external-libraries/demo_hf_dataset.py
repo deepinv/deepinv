@@ -20,7 +20,6 @@ from torchvision import transforms
 
 import deepinv as dinv
 
-
 # %%
 # Stream data from Internet
 # ----------------------------------------------------------------------------------------

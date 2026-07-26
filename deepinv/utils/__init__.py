@@ -1,5 +1,4 @@
 from .logger import AverageMeter, ProgressMeter, get_timestamp
-from .metric import cal_psnr, cal_mse, cal_psnr_complex
 from .plotting import (
     plot,
     torch2cpu,
@@ -29,24 +28,34 @@ from .demo import (
     load_torch_url,
     load_np_url,
 )
-from .nn import get_freer_gpu
+from .nn import get_freer_gpu, get_device
 from .tensorlist import (
     TensorList,
     rand_like,
     zeros_like,
     randn_like,
     ones_like,
+    dirac,
+    dirac_comb,
     dirac_like,
+    dirac_comb_like,
 )
 from .phantoms import RandomPhantomDataset, SheppLoganDataset
-from .patch_extractor import patch_extractor
+from .patch_extractor import (
+    patch_extractor,
+    image_to_patches,
+    patches_to_image,
+    patchify,
+)
 from .parameters import get_GSPnP_params
 from .signals import normalize_signal, complex_abs
-from .mixins import TimeMixin, MRIMixin
-from .compat import zip_strict
+from .mixins import TimeMixin, MRIMixin, TiledMixin2d
 from .io import (
+    DownloadError,
+    get_cache_home,
     load_dicom,
     load_nifti,
+    load_tiff,
     load_url,
     load_np,
     load_torch,
@@ -54,3 +63,4 @@ from .io import (
     load_raster,
     load_ismrmd,
 )
+from .napari import plot_napari

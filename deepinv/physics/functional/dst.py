@@ -9,7 +9,7 @@ def dst1(x):
     Due to orthogonality we have ``dst1(dst1(x)) = x``.
 
     :param torch.Tensor x: the input signal
-    :return: (torch.tensor) the DST-I of the signal over the last dimension
+    :return: (torch.Tensor) the DST-I of the signal over the last dimension
 
     """
     x_shape = x.shape

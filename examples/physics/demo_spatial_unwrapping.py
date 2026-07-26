@@ -23,9 +23,8 @@ import torch
 import deepinv as dinv
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
-
-from deepinv.utils.demo import load_example
-
+from deepinv.optim import ADMM
+from deepinv.utils import load_example
 
 # %%
 # Load image and preprocess
@@ -91,7 +90,7 @@ def plot_itoh(sigma_blur):
     row_x = row_sel.clone()
 
     # Construct 1D Gaussian filter with given sigma
-    filter1d = dinv.physics.blur.gaussian_blur(
+    filter1d = dinv.physics.functional.gaussian_blur(
         sigma=(sigma_blur, sigma_blur), angle=0.0
     ).to(device)
     # Reduce to 1D filter and normalize
@@ -142,7 +141,7 @@ x_rgb = resize(x_rgb)
 if mode == "round":
     x_rgb = x_rgb - dynamic_range / 2
 
-filter_0 = dinv.physics.blur.gaussian_blur(sigma=(1, 1), angle=0.0)
+filter_0 = dinv.physics.functional.gaussian_blur(sigma=(1, 1), angle=0.0)
 blur_op = dinv.physics.Blur(filter_0, device=device)
 x_rgb = blur_op(x_rgb)
 
@@ -166,22 +165,20 @@ wrapped_phase = physics(phase_map)
 
 # ADMM-based inversion with TV prior and Itoh fidelity
 stepsize = 1e-4
-lam = 2.0 / stepsize
+lambda_reg = 2.0 / stepsize
 prior = dinv.optim.TVPrior(n_it_max=10)
 fidelity = dinv.optim.ItohFidelity(threshold=threshold)
 
 # DCT-based inversion
 x_est = fidelity.D_dagger(wrapped_phase)
 
-
-params_algo = {"stepsize": stepsize, "lambda": lam, "g_param": 1.0}
-model = dinv.optim.optim_builder(
-    iteration="ADMM",
+model = ADMM(
     prior=prior,
     data_fidelity=fidelity,
     max_iter=10,
     verbose=False,
-    params_algo=params_algo,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
 )
 x_model = model(wrapped_phase, physics)
 

@@ -13,7 +13,7 @@ as input and returns a denoised image:
 
     >>> import torch
     >>> import deepinv as dinv
-    >>> denoiser = dinv.models.DRUNet()  # doctest: +IGNORE_RESULT
+    >>> denoiser = dinv.models.DRUNet()
     >>> sigma = 0.1
     >>> image = torch.ones(1, 3, 32, 32) * .5
     >>> noisy_image = image + torch.randn(1, 3, 32, 32) * sigma
@@ -126,7 +126,12 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - C=1, 2, 3
      - Yes
      - No
-
+   * - :class:`deepinv.models.FFDNet`
+     - CNN
+     - Any C; H,W must be even
+     - No
+     - Yes
+     - No
 .. _non-learned-denoisers:
 
 Classical denoisers
@@ -145,6 +150,9 @@ underlined in the table below by (D) in the tensor size which accounts for depth
    * - :class:`deepinv.models.BM3D`
      - Patch-based denoiser
      - C=1 or C=3, any H, W.
+   * - :class:`deepinv.models.BilateralFilter`
+     - Distance and range kernel-based filter
+     - Any C, H, W
    * - :class:`deepinv.models.MedianFilter`
      - Non-learned filter
      - Any C, H, W
@@ -169,6 +177,15 @@ underlined in the table below by (D) in the tensor size which accounts for depth
 Model Utilities
 ~~~~~~~~~~~~~~~
 
+Poisson-Gaussian denoisers
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+The Gaussian denoisers in the library can be turned into Poisson-Gaussian denoisers using the variance-stabilizing Anscombe transform.
+The class :class:`deepinv.models.AnscombeDenoiser` wraps any Gaussian denoiser and applies the Anscombe transform to the input
+and the inverse transform to the output of the denoiser, allowing you to use Gaussian denoisers for Poisson-Gaussian noise.
+Moreover, some denoisers such as :class:`deepinv.models.RAM` are natively trained for Poisson-Gaussian noise,
+and other denoisers such as :class:`deepinv.models.DRUNet` can receive spatial noise levels, allowing them to be used for Poisson-Gaussian noise as well.
+See :ref:`sphx_glr_auto_examples_physics_demo_anscombe.py`.
+
 Equivariant denoisers
 ^^^^^^^^^^^^^^^^^^^^^
 Denoisers can be turned into equivariant denoisers by wrapping them with the
@@ -192,3 +209,28 @@ using :class:`deepinv.models.TimeAveragingNet`.
 
 To adapt any existing network to take dynamic data as independent time-slices, :class:`deepinv.models.TimeAgnosticNet`
 creates a time-agnostic wrapper that flattens the time dimension into the batch dimension.
+
+
+MMSE denoiser
+^^^^^^^^^^^^^^
+The :class:`deepinv.models.MMSE` class implements the closed-form MMSE denoiser assuming that the prior distribution is a Dirac-mixture based on a given dataset.
+This closed-form denoiser can be used to obtain a performance upper-bound on deep denoisers trained to approximate the MMSE.
+
+
+.. _model-wrappers:
+
+Wrappers
+~~~~~~~~
+We provide wrappers to use models from other libraries as DeepInv denoisers.
+
+Model from HuggingFace Diffusers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Any diffusion model from the `HuggingFace Diffusers library <https://huggingface.co/docs/diffusers/index>`_ can be wrapped as a DeepInv denoiser
+using the :class:`deepinv.models.DiffusersDenoiserWrapper` class. A model can be instantiated as simply as follows:
+
+    >>> from deepinv.models import DiffusersDenoiserWrapper
+    >>> denoiser = DiffusersDenoiserWrapper(mode_id="google/ddpm-ema-celebahq-256")
+
+It can be used as any other DeepInv denoiser ``denoised_image = denoiser(noisy_image, sigma)``. It also supports conditional denoising as long as the underlying model does. 
+This wrapper allows you to leverage state-of-the-art diffusion models for other inverse problems beyond image generation, in particular for posterior sampling. 
+See :ref:`this example <sphx_glr_auto_examples_sampling_demo_diffusers.py>` for more details.

@@ -5,7 +5,6 @@ import numpy as np
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.sampling import ULA, SKRock, DiffPIR, DPS, sampling_builder, DDRM
-from deepinv.utils.compat import zip_strict
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
@@ -113,7 +112,10 @@ def test_algo(name_algo, device):
     test_sample = torch.ones((1, 3, 64, 64), device=device)
 
     sigma = 1
-    physics = dinv.physics.Denoising()
+    # choose physics that changes the image size
+    physics = dinv.physics.Blur(
+        dinv.physics.functional.gaussian_blur(sigma=(3, 3)), device=device
+    )
     physics.noise_model = dinv.physics.GaussianNoise(sigma)
     y = physics(test_sample)
 
@@ -130,8 +132,7 @@ def test_algo(name_algo, device):
     elif name_algo == "DPS":
         f = DPS(
             dinv.models.DiffUNet().to(device),
-            likelihood,
-            max_iter=5,
+            num_steps=5,
             verbose=False,
             device=device,
         )
@@ -145,9 +146,7 @@ def test_algo(name_algo, device):
 
 @pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS", "DDRM"])
 def test_algo_inpaint(name_algo, device):
-    from deepinv.models import DiffUNet
-
-    x = torch.ones((1, 3, 32, 32)).to(device) / 2.0
+    x = torch.ones((1, 3, 32, 32)).to(device)
     x[:, 0, ...] = 0  # create a colored image
 
     torch.manual_seed(10)
@@ -159,7 +158,7 @@ def test_algo_inpaint(name_algo, device):
 
     y = physics(x)
 
-    model = DiffUNet().to(device)
+    model = dinv.models.DRUNet(device=device)
     likelihood = L2()
 
     if name_algo == "DiffPIR":
@@ -167,7 +166,9 @@ def test_algo_inpaint(name_algo, device):
             model, likelihood, max_iter=20, verbose=False, device=device, sigma=0.01
         )
     elif name_algo == "DPS":
-        algorithm = DPS(model, likelihood, max_iter=100, verbose=False, device=device)
+        algorithm = DPS(
+            model, num_steps=50, weight=2.0, alpha=0.01, verbose=False, device=device
+        )
     elif name_algo == "DDRM":
         algorithm = DDRM(model)
 
@@ -184,7 +185,7 @@ def test_algo_inpaint(name_algo, device):
 
     masked_target = x[mask]
     mean_target_masked = masked_target.mean()
-    mean_target_inmask = 1 / 3.0
+    mean_target_inmask = 2 / 3.0
 
     assert (mean_target_inmask - mean_crop).abs() < 0.2
     assert (mean_target_masked - mean_outside_crop).abs() < 0.02
@@ -275,10 +276,12 @@ def test_build_algo(algo, imsize, device):
 
 @pytest.mark.slow
 @torch.no_grad()
-def test_sde(device):
+def test_sde(device, load_example_image):
     from deepinv.sampling import (
         VarianceExplodingDiffusion,
         VariancePreservingDiffusion,
+        EDMDiffusionSDE,
+        FlowMatching,
         PosteriorDiffusion,
         DPSDataFidelity,
         EulerSolver,
@@ -299,26 +302,42 @@ def test_sde(device):
     list_kwargs.append(dict())
 
     # Set up the SDEs
-    num_steps = 20
+    num_steps = 10
     rng = torch.Generator(device)
     # Set up solvers
-    timesteps = torch.linspace(1, 0.001, num_steps)
+    timesteps = torch.linspace(0.99, 0.001, num_steps)
     solvers = [
         EulerSolver(timesteps=timesteps, rng=rng),
         HeunSolver(timesteps=timesteps, rng=rng),
     ]
-    sde_classes = [VarianceExplodingDiffusion, VariancePreservingDiffusion]
-    for denoiser, kwargs in zip_strict(denoisers, list_kwargs):
+    sde_classes = [
+        FlowMatching,
+        VarianceExplodingDiffusion,
+        VariancePreservingDiffusion,
+        EDMDiffusionSDE,
+    ]
+    for denoiser, kwargs in zip(denoisers, list_kwargs, strict=True):
         for solver in solvers:
             for sde_class in sde_classes:
-                sde = sde_class(
-                    denoiser=denoiser,
-                    solver=solver,
-                    device=device,
-                )
+                if sde_class == EDMDiffusionSDE:
+                    sigma_t = lambda t: 100 * t**2
+                    scale_t = lambda t: 1 / (1 + sigma_t(t) ** 2) ** 0.5
+                    sde = sde_class(
+                        sigma_t=sigma_t,
+                        scale_t=scale_t,
+                        denoiser=denoiser,
+                        solver=solver,
+                        device=device,
+                    )
+                else:
+                    sde = sde_class(
+                        denoiser=denoiser,
+                        solver=solver,
+                        device=device,
+                    )
                 # Test generation
                 sample_1, trajectory = sde.sample(
-                    (1, 3, 64, 64),
+                    (2, 3, 64, 64),
                     seed=10,
                     get_trajectory=True,
                     **kwargs,
@@ -326,9 +345,9 @@ def test_sde(device):
                 x_init_1 = trajectory[0]
 
                 # Test output shape
-                assert sample_1.shape == (1, 3, 64, 64)
+                assert sample_1.shape == (2, 3, 64, 64)
                 sample_2, trajectory = sde.sample(
-                    (1, 3, 64, 64),
+                    (2, 3, 64, 64),
                     seed=10,
                     get_trajectory=True,
                     **kwargs,
@@ -350,7 +369,7 @@ def test_sde(device):
                     dtype=torch.float64,
                     device=device,
                 )
-                x = dinv.utils.load_example(
+                x = load_example_image(
                     "celeba_example.jpg",
                     img_size=64,
                     resize_mode="resize",
@@ -363,16 +382,16 @@ def test_sde(device):
                 x_hat_1 = posterior(
                     y,
                     physics,
-                    x_init=(1, 3, 64, 64),
+                    x_init=(2, 3, 64, 64),
                     seed=111,
                 )
                 # Test output shape
-                assert x_hat_1.shape == (1, 3, 64, 64)
+                assert x_hat_1.shape == (2, 3, 64, 64)
                 # Test reproducibility
                 x_hat_2 = posterior(
                     y,
                     physics,
-                    x_init=(1, 3, 64, 64),
+                    x_init=(2, 3, 64, 64),
                     seed=111,
                 )
                 assert (
@@ -391,7 +410,7 @@ def test_noisy_data_fidelity(device):
     denoiser = dinv.models.DRUNet(pretrained="download").to(device)
     x = torch.rand(2, 3, 64, 64, device=device)
     physics = dinv.physics.Blur(
-        filter=dinv.physics.blur.gaussian_blur(sigma=(3, 3)), device=device
+        filter=dinv.physics.functional.gaussian_blur(sigma=(3, 3)), device=device
     )
     y = physics(x)
     sigma = 0.1

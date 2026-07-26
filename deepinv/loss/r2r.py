@@ -1,7 +1,6 @@
 from __future__ import annotations
 import torch
 import math
-import warnings
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
 from deepinv.physics.noise import NoiseModel, GaussianNoise, PoissonNoise, GammaNoise
@@ -70,9 +69,6 @@ class R2RLoss(Loss):
 
         If the ``noise_model`` parameter is not provided, the noise model from the physics module will be used.
 
-    .. deprecated:: 0.2.3
-
-        The ``sigma`` paramater is deprecated and will be removed in future versions. Use ``noise_model=deepinv.physics.GaussianNoise(sigma=sigma)`` parameter instead.
 
     :param Metric, torch.nn.Module metric: Metric for calculating loss, defaults to MSE.
     :param NoiseModel noise_model: Noise model of the natural exponential family, defaults to None. Implemented options are :class:`deepinv.physics.GaussianNoise`, :class:`deepinv.physics.PoissonNoise` and :class:`deepinv.physics.GammaNoise`
@@ -105,26 +101,16 @@ class R2RLoss(Loss):
         metric: Metric | torch.nn.Module | None = None,
         noise_model: NoiseModel = None,
         alpha=0.15,
-        sigma=None,
         eval_n_samples=5,
     ):
         if metric is None:
             metric = torch.nn.MSELoss()
         super(R2RLoss, self).__init__()
-        self.name = "gr2r"
+        self._name = "gr2r"
         self.metric = metric
         self.alpha = alpha
         self.eval_n_samples = eval_n_samples
         self.noise_model = noise_model
-
-        if sigma is not None:
-
-            warnings.warn(
-                "The sigma parameter is deprecated and will be removed in future versions. "
-                "Please use the noise_model parameter instead."
-            )
-
-            self.noise_model = GaussianNoise(sigma)
 
     def forward(self, x_net, y, physics, model, **kwargs):
         r"""
@@ -209,9 +195,7 @@ class R2RModel(torch.nn.Module):
         self.alpha = alpha
 
     def forward(self, y, physics, update_parameters=False):
-
         if self.noise_model is None:
-
             if isinstance(physics.noise_model, NoiseModel):
                 self.curr_noise_model = physics.noise_model
             else:
@@ -246,17 +230,14 @@ class R2RModel(torch.nn.Module):
         alpha = self.alpha
 
         if isinstance(self.curr_noise_model, GaussianNoise):
-
             sigma = self.curr_noise_model.sigma
             return set_gaussian_corruptor(y, alpha, sigma)
 
         elif isinstance(self.curr_noise_model, PoissonNoise):
-
             gain = self.curr_noise_model.gain
             return set_binomial_corruptor(y, alpha, gain)
 
         elif isinstance(self.curr_noise_model, GammaNoise):
-
             l = self.curr_noise_model.l
             return set_beta_corruptor(y, alpha, l)
 

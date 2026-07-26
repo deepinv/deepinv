@@ -29,7 +29,7 @@ class MCLoss(Loss):
         if metric is None:
             metric = torch.nn.MSELoss()
         super(MCLoss, self).__init__()
-        self.name = "mc"
+        self._name = "mc"
         self.metric = metric
 
     def forward(self, y, x_net, physics, **kwargs):

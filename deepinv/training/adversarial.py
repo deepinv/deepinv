@@ -174,12 +174,12 @@ class AdversarialTrainer(Trainer):
             self.losses_d = [self.losses_d]
 
         self.logs_losses_train += [
-            AverageMeter("Training discrim loss " + l.name, ":.2e")
+            AverageMeter("Training discrim loss " + l.__class__.__name__, ":.2e")
             for l in self.losses_d
         ]
 
         self.logs_losses_eval += [
-            AverageMeter("Validation discrim loss " + l.name, ":.2e")
+            AverageMeter("Validation discrim loss " + l.__class__.__name__, ":.2e")
             for l in self.losses_d
         ]
 
@@ -210,7 +210,7 @@ class AdversarialTrainer(Trainer):
         logs = {}
 
         if train and step:  # remove gradient
-            self.optimizer.G.zero_grad()
+            self.optimizer.G.zero_grad(set_to_none=True)
 
         # Evaluate reconstruction network
         x_net = self.model_inference(y=y, physics=physics)
@@ -233,7 +233,7 @@ class AdversarialTrainer(Trainer):
                     epoch=epoch,
                 )
                 loss_total = loss_total + loss.mean()
-                if len(self.losses) > 1 and self.verbose_individual_losses:
+                if len(self.losses) > 1:
                     current_log = (
                         self.logs_losses_train[k] if train else self.logs_losses_eval[k]
                     )
@@ -264,7 +264,7 @@ class AdversarialTrainer(Trainer):
         for _ in range(self.step_ratio_D):
             if train or self.compute_eval_losses:
 
-                self.optimizer.D.zero_grad()
+                self.optimizer.D.zero_grad(set_to_none=True)
 
                 loss_total_d = 0
                 for k, l in enumerate(self.losses_d):
@@ -279,7 +279,7 @@ class AdversarialTrainer(Trainer):
                         epoch=epoch,
                     )
                     loss_total_d += loss.mean()
-                    if len(self.losses_d) > 1 and self.verbose_individual_losses:
+                    if len(self.losses_d) > 1:
                         current_log = (
                             self.logs_losses_train[k + len(self.losses)]
                             if train
