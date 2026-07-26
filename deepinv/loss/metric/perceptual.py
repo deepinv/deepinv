@@ -311,8 +311,10 @@ class NIQE(Metric):
 
         cov_p = self.cov_p.expand_as(cov_d)  # (B,36,36)
         mu_p = self.mu_p  # (36,)
+        # float64 improves pinv stability; MPS does not support it (#1265).
+        pinv_dtype = torch.float32 if cov_d.device.type == "mps" else torch.float64
         invcov = torch.linalg.pinv(
-            0.5 * (cov_d.to(torch.float64) + cov_p.to(torch.float64))
+            0.5 * (cov_d.to(pinv_dtype) + cov_p.to(pinv_dtype))
         ).to(
             self.dtype
         )  # (B,36,36)
@@ -533,8 +535,11 @@ class NIQE(Metric):
                 device=device, dtype=dtype
             )  # (N,36)
 
-            mu = prisparam.double().mean(dim=0)  # (36,)
-            xc = prisparam.double() - mu.unsqueeze(0)
+            stats_dtype = (
+                torch.float32 if prisparam.device.type == "mps" else torch.float64
+            )
+            mu = prisparam.to(dtype=stats_dtype).mean(dim=0)  # (36,)
+            xc = prisparam.to(dtype=stats_dtype) - mu.unsqueeze(0)
             denom = max(1, prisparam.shape[0] - 1)
             cov = (xc.t() @ xc) / denom  # (36,36)
 
@@ -839,7 +844,9 @@ class SharpnessIndex(Metric):
         :return: p: periodic component minus smooth component (B, C, H, W)
         """
         B, C, H, W = u.shape
-        u = u.double()
+        # Sharpness math prefers float64; MPS only supports float32 (#1265).
+        compute_dtype = torch.float32 if u.device.type == "mps" else torch.float64
+        u = u.to(dtype=compute_dtype)
 
         v = torch.zeros_like(u)
 
@@ -858,8 +865,8 @@ class SharpnessIndex(Metric):
         v[..., :, W - 1] -= u_left - u_right
 
         # frequency grids (fx, fy)
-        X = torch.arange(W, dtype=torch.float64, device=u.device).reshape(1, 1, 1, W)
-        Y = torch.arange(H, dtype=torch.float64, device=u.device).reshape(1, 1, H, 1)
+        X = torch.arange(W, dtype=compute_dtype, device=u.device).reshape(1, 1, 1, W)
+        Y = torch.arange(H, dtype=compute_dtype, device=u.device).reshape(1, 1, H, 1)
 
         fx = torch.cos(2 * torch.pi * (X) / W)  # (1,1,1,W) broadcasted
         fy = torch.cos(2 * torch.pi * (Y) / H)  # (1,1,H,1)
@@ -889,7 +896,8 @@ class SharpnessIndex(Metric):
         :return: (:class:torch.Tensor) dequantized image (B, C, H, W)
         """
         B, C, H, W = u.shape
-        u = u.double()
+        compute_dtype = torch.float32 if u.device.type == "mps" else torch.float64
+        u = u.to(dtype=compute_dtype)
 
         # Compute mx, my exactly as in MATLAB
         mx = W // 2
@@ -927,7 +935,8 @@ class SharpnessIndex(Metric):
         :return: `(B,)` tensor of logarithmic value of `x`
         """
 
-        x = x.double()
+        compute_dtype = torch.float32 if x.device.type == "mps" else torch.float64
+        x = x.to(dtype=compute_dtype)
         y = torch.empty_like(x)
 
         # mask for large x (asymptotic approximation)

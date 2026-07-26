@@ -262,6 +262,8 @@ def test_get_samples(
 def test_trainer_physics_generator_params(
     imsize, loop_random_online_physics, noise, rng, device, model
 ):
+    if device.type == "mps" and noise == "poisson":
+        pytest.skip("PoissonNoise unsupported on MPS (#1265)")
     N = 10
     rng1 = rng
     rng2 = torch.Generator(device).manual_seed(0)
@@ -1058,8 +1060,8 @@ def test_out_dir_collision_detection(
 
 
 def test_trainer_speed(device):  # pragma: no cover
-    if device == torch.device("cpu"):
-        pytest.skip("Skip speed test on CPU")
+    if getattr(device, "type", None) != "cuda":
+        pytest.skip("Speed test requires CUDA synchronize")
 
     torch.manual_seed(42)
 

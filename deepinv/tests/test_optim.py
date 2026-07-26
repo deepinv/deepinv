@@ -1,5 +1,6 @@
 import pytest
 import torch
+from conftest import float_dtype_for_device
 from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.optim import DataFidelity, PDCP
@@ -727,6 +728,14 @@ def test_dpir(imsize, dummy_dataset, device):
         padding="circular",
     )
     y = physics(test_sample)
+
+    # DPIR uses torch.logspace for its parameter schedule, which is not
+    # implemented on MPS (#1177 / #1265). Fail fast with a clear error.
+    if device.type == "mps":
+        with pytest.raises(RuntimeError, match="not supported on MPS"):
+            dinv.optim.DPIR(0.1, device=device)
+        return
+
     model = dinv.optim.DPIR(0.1, device=device)
     out = model(y, physics)
 
@@ -751,7 +760,7 @@ def test_CP_K(imsize, dummy_dataset, device):
 
     for g_first in [True, False]:
         # Define two points
-        x = torch.tensor([[[10], [10]]], dtype=torch.float64).to(device)
+        x = torch.tensor([[[10], [10]]], dtype=float_dtype_for_device(device)).to(device)
 
         # Create a measurement operator
         Id_forward = lambda v: v
@@ -770,11 +779,11 @@ def test_CP_K(imsize, dummy_dataset, device):
         prior = Prior(g=prior_g)  # The prior term
 
         # Define a linear operator
-        K = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64).to(device)
+        K = torch.tensor([[2, 1], [-1, 0.5]], dtype=float_dtype_for_device(device)).to(device)
         K_forward = lambda v: K @ v
         K_adjoint = lambda v: K.transpose(0, 1) @ v
 
-        stepsize = 0.9 / torch.linalg.norm(K, ord=2).item() ** 2
+        stepsize = 0.9 / torch.linalg.norm(K.cpu(), ord=2).item() ** 2
         reg_param = 1.0
         stepsize_dual = 1.0
 
@@ -840,10 +849,10 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 
     g_first = False
     # Define two points
-    x = torch.tensor([[[10], [10]]], dtype=torch.float64).to(device)
+    x = torch.tensor([[[10], [10]]], dtype=float_dtype_for_device(device)).to(device)
 
     # Create a measurement operator
-    A = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64).to(device)
+    A = torch.tensor([[2, 1], [-1, 0.5]], dtype=float_dtype_for_device(device)).to(device)
     A_forward = lambda v: A @ v
     A_adjoint = lambda v: A.transpose(0, 1) @ v
 
@@ -860,7 +869,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     prior = Prior(g=prior_g)  # The prior term
 
     # stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
-    stepsize = 0.9 / torch.linalg.norm(A, ord=2).item() ** 2
+    stepsize = 0.9 / torch.linalg.norm(A.cpu(), ord=2).item() ** 2
     reg_param = 1.0
     stepsize_dual = 1.0
 
@@ -907,6 +916,8 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 # Specific test for MLEM because the data-fidelity can only be the Poisson likelihood,
 # contrary to e.g mirror descent which can be tested on L2
 def test_MLEM(imsize, dummy_dataset, device):
+    if device.type == "mps":
+        pytest.skip("PoissonNoise unsupported on MPS (#1265)")
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
     test_sample = next(iter(dataloader)).to(device)
 
@@ -1057,6 +1068,9 @@ DTYPES = [torch.float32, torch.complex64]
 @pytest.mark.parametrize("zero_input", [False, True])
 def test_linear_system(device, solver, dtype, rng, zero_input):
     # test the solution of linear systems with random matrices
+    # CG on MPS float32 can be numerically unstable for these random systems (#1265).
+    if device.type == "mps" and solver == "CG" and dtype == torch.float32:
+        pytest.skip("CG float32 unstable on MPS for this random system (#1265)")
     batch_size = 2
     mat = torch.randn((32, 32), dtype=dtype, device=device, generator=rng)
     if solver == "CG":
@@ -1148,7 +1162,12 @@ def test_correct_global_phase(device):
 )
 @pytest.mark.parametrize("solver", solvers)
 def test_least_squares_implicit_backward(device, solver, physics_name, batch_size):
-    # Check that the backward gradient matches the finite difference gradient
+    # Check that the backward gradient matches the finite difference gradient.
+    # Deterministic algorithms are incomplete on MPS and can hang (#1265).
+    # gradcheck also requires float64, which MPS does not support.
+    if device.type == "mps":
+        pytest.skip("gradcheck requires float64, unsupported on MPS (#1265)")
+
     prev_deterministic = torch.are_deterministic_algorithms_enabled()
     torch.use_deterministic_algorithms(True)
 
@@ -1259,6 +1278,8 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
 
 def test_least_squares_implicit_backward_nonleaf_buffer_grad(device):
     """Compare explicit vs implicit gradient on an intermediate non-leaf physics buffer."""
+    if device.type == "mps":
+        pytest.skip("requires float64, unsupported on MPS (#1265)")
     torch.manual_seed(0)
     dtype = torch.float64
 

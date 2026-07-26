@@ -2,6 +2,7 @@ import deepinv
 import torch
 import pytest
 from deepinv.utils.decorators import _deprecated_alias
+from deepinv.utils import devices_compatible
 import warnings
 import numpy as np
 import contextlib
@@ -208,7 +209,7 @@ def test_dirac_comb(device, shape):
     x2 = deepinv.utils.dirac_comb_like(x, step=step)
     assert torch.allclose(x1, x2), "dirac_comb and dirac_comb_like outputs differ."
 
-    assert x1.device == device
+    assert devices_compatible(x1.device, device)
     assert x1.sum() == (
         math.ceil(shape[-2] / step) * math.ceil(shape[-1] / step)
     ), "Sum of dirac comb should equal the number of non-zero elements."
@@ -1292,3 +1293,38 @@ def test_patch_dataset_transform():
 
     for i in range(len(ds)):
         assert torch.equal(ds[i], ds_raw[i] * 2 + 1)
+
+
+@pytest.mark.allow_mps_float64
+def test_physics_generator_mps_rejects_float64(device):
+    """PhysicsGenerator fails fast on MPS with float64 (#1265 / #1177)."""
+    if device.type != "mps":
+        pytest.skip("MPS-only check")
+    with pytest.raises(RuntimeError, match="MPS does not support dtype"):
+        deepinv.physics.generator.SigmaGenerator(device=device, dtype=torch.float64)
+
+
+def test_dpir_params_mps_rejects_logspace(device):
+    """get_DPIR_params fails fast on MPS because torch.logspace is missing."""
+    if device.type != "mps":
+        pytest.skip("MPS-only check")
+    with pytest.raises(RuntimeError, match="not supported on MPS"):
+        deepinv.optim.get_DPIR_params(0.1, device=device)
+
+
+def test_scattering_mps_rejects_complex128(device):
+    """Scattering fails fast on MPS with default complex128 (#1265)."""
+    if device.type != "mps":
+        pytest.skip("MPS-only check")
+    transmitters, receivers = deepinv.physics.scattering.circular_sensors(
+        4, radius=1.0, device=device
+    )
+    with pytest.raises(RuntimeError, match="not supported on MPS"):
+        deepinv.physics.Scattering(
+            img_width=16,
+            device=device,
+            background_wavenumber=5.0,
+            wave_type="plane_wave",
+            transmitters=transmitters,
+            receivers=receivers,
+        )

@@ -493,10 +493,16 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
     elif name == "complex_compressed_sensing":
         img_size = (1, 8, 8) if imsize is None else imsize
         m = 50
+        # MPS does not support complex128; use complex64 there (#1265).
+        cs_dtype = (
+            torch.cfloat
+            if getattr(device, "type", None) == "mps"
+            else torch.cdouble
+        )
         p = dinv.physics.CompressedSensing(
             m=m,
             img_size=img_size,
-            dtype=torch.cdouble,
+            dtype=cs_dtype,
             device=device,
             compute_inverse=True,
             rng=rng,
@@ -890,7 +896,8 @@ def test_operators_norm(name, verbose, device, rng):
     if name == "radio_weighted":  # weighted nufft norm is not tested
         return
 
-    if name == "singlepixel" or name == "CS":
+    if name in ("singlepixel", "CS", "complex_compressed_sensing"):
+        # CS / complex CS use linalg.pinv (SVD); run on CPU for a stable reference.
         device = torch.device("cpu")
         rng = torch.Generator("cpu")
 
@@ -901,7 +908,12 @@ def test_operators_norm(name, verbose, device, rng):
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         physics.compute_sqnorm(x, max_iter=1, tol=1e-9, verbose=verbose)
-        assert len(w) == 1
+        # MPS may emit extra backend warnings (e.g. padding fallback); only the
+        # power-iteration convergence warning is required (#1265).
+        power_iter_warnings = [
+            wi for wi in w if "Power iteration" in str(wi.message)
+        ]
+        assert len(power_iter_warnings) == 1
 
     norm = physics.compute_sqnorm(x, max_iter=1000, tol=1e-6, verbose=verbose)
     bound = 1e-2
@@ -933,6 +945,10 @@ def test_nonlinear_operators(name, device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts correct shapes
     """
+    if device.type == "mps" and name == "lidar":
+        pytest.skip("SinglePhotonLidar uses PoissonNoise, unsupported on MPS (#1265)")
+    if device.type == "mps" and name == "scattering":
+        pytest.skip("Scattering defaults to complex128, unsupported on MPS (#1265)")
     physics, x = find_nonlinear_operator(name, device)
     y = physics(x)
     xhat = physics.A_dagger(y)
@@ -1292,6 +1308,17 @@ def test_noise(device, noise_type):
     physics.noise_model = choose_noise(noise_type, device)
     x = torch.ones((1, 3, 2), device=device).unsqueeze(0)
 
+    # torch.poisson is unsupported on MPS (#1265).
+    if device.type == "mps" and noise_type in (
+        "Poisson",
+        "PoissonGaussian",
+        "LogPoisson",
+        "Neighbor2Neighbor",
+    ):
+        with pytest.raises(RuntimeError, match="not supported on MPS"):
+            physics(x)
+        return
+
     y1 = physics(
         x
         # Note: this works but not physics.A(x) because only the noise is reset (A does not encapsulate noise)
@@ -1393,6 +1420,13 @@ def test_reset_noise(device):
     y2 = physics(x, sigma=0.2)
 
     assert physics.noise_model.sigma == 0.2
+
+    if device.type == "mps":
+        # torch.poisson unsupported on MPS (#1265)
+        physics.noise_model = dinv.physics.PoissonNoise(0.1, rng=rng)
+        with pytest.raises(RuntimeError, match="not supported on MPS"):
+            physics(x)
+        return
 
     physics.noise_model = dinv.physics.PoissonNoise(0.1, rng=rng)
 
@@ -2091,6 +2125,14 @@ def test_clone(name, device):
             pytest.skip(
                 "Haze physics takes a TensorList as input, which is not supported by the current test."
             )
+        if device.type == "mps" and name == "lidar":
+            pytest.skip(
+                "SinglePhotonLidar uses PoissonNoise, unsupported on MPS (#1265)"
+            )
+        if device.type == "mps" and name == "scattering":
+            pytest.skip(
+                "Scattering defaults to complex128, unsupported on MPS (#1265)"
+            )
         physics, x = find_nonlinear_operator(name, device)
         imsize = x.shape[1:]
         dtype = x.dtype
@@ -2433,6 +2475,8 @@ def test_scattering_mie(device, wavenumber, contrast, wave_type):
 
     We limit the number of tests, since this is a rather long test
     """
+    if device.type == "mps":
+        pytest.skip("Scattering defaults to complex128, unsupported on MPS (#1265)")
     try:
         import scipy  # noqa: F401
     except ImportError:

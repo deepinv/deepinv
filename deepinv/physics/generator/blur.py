@@ -1091,6 +1091,12 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         psf_grid = psf_grid.flatten(-2, -1).transpose(
             1, 2
         )  # B x C x n_psf_prid x (psf_size*psf_size)
+        if psf_grid.device.type == "mps":
+            raise RuntimeError(
+                "ProductConvolutionBlurGenerator uses torch.linalg.svd, which is not "
+                "supported on MPS. Pass device='cpu' (or run this path on CPU) instead. "
+                "See https://github.com/pytorch/pytorch/issues/141287"
+            )
         _, _, V = torch.linalg.svd(psf_grid, full_matrices=False)
         n_eigen_chosen = min(self.n_eigen_psf, V.size(-2))
         V = V[..., :n_eigen_chosen, :]  # B x C x n_eigen_psf x (psf_size*psf_size)
@@ -1338,7 +1344,14 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         )  # (B, C, D, H, W)
 
         p = pupil.unsqueeze(2) * propKer  # (B, C, D, H, W) complex
-        p = torch.nan_to_num(p, nan=0.0)
+        # MPS does not implement nan_to_num for complex dtypes; apply to real/imag.
+        if p.is_complex():
+            p = torch.complex(
+                torch.nan_to_num(p.real, nan=0.0),
+                torch.nan_to_num(p.imag, nan=0.0),
+            )
+        else:
+            p = torch.nan_to_num(p, nan=0.0)
 
         pshift = torch.fft.fftshift(p, dim=(-2, -1))
         pfft = torch.fft.fft2(pshift, dim=(-2, -1))

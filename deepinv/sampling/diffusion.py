@@ -563,6 +563,18 @@ class DPS(PosteriorDiffusion):
             denoiser=denoiser, clip=[-1.0, 1.0], weight=weight
         )
 
+        device = torch.device(device)
+        # Default dtype is float64 for numerics; MPS only supports float32 (#1265).
+        if device.type == "mps" and dtype in (
+            torch.float64,
+            torch.double,
+        ):
+            raise RuntimeError(
+                "DPS defaults to float64, which is not supported on MPS. "
+                "Pass dtype=torch.float32, or pass device='cpu' instead. "
+                "See https://github.com/pytorch/pytorch/issues/141287"
+            )
+
         solver = EulerSolver(
             timesteps=torch.linspace(1, 0.001, num_steps, device=device, dtype=dtype),
             rng=rng,

@@ -15,9 +15,20 @@ def get_DPIR_params(
     Default parameters for the DPIR Plug-and-Play algorithm.
 
     :param float noise_level_img: Noise level of the input image.
-    :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cpu".
+    :param str, torch.device device: Device to run the algorithm, either ``"cpu"``, ``"cuda"``,
+        or ``"mps"``. Default is ``"cpu"``. Note that the parameter schedule uses
+        :func:`torch.logspace`, which is not implemented on MPS; pass ``device="cpu"``
+        (or another supported device) on Apple Silicon.
     :return: (tuple(:class:`torch.Tensor`, :class:`torch.Tensor`, int)) tuple(tensor with denoiser noise level per iteration, tensor with stepsize per iteration, iterations).
     """
+    device = torch.device(device)
+    if device.type == "mps":
+        raise RuntimeError(
+            "DPIR parameter schedule uses torch.logspace, which is not supported on "
+            "MPS. Pass device='cpu' (or run this path on CPU) instead. "
+            "See https://github.com/pytorch/pytorch/issues/141287"
+        )
+
     max_iter = 8
     s1 = 49.0 / 255.0
     s2 = noise_level_img
@@ -51,7 +62,9 @@ class DPIR(BaseOptim):
     :param float, torch.Tensor sigma: Standard deviation of the measurement noise, which controls the choice of the
         rest of the hyperparameters of the algorithm. Default is ``0.1``.
     :param deepinv.models.Denoiser denoiser: optional denoiser. If `None`, use a pretrained denoiser :class:`deepinv.models.DRUNet`.
-    :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cpu".
+    :param str, torch.device device: Device to run the algorithm (``"cpu"``, ``"cuda"``, or ``"mps"``).
+        Default is ``"cpu"``. MPS is not supported for the DPIR parameter schedule (see
+        :func:`deepinv.optim.get_DPIR_params`); use CPU on Apple Silicon for this algorithm.
 
 
     """

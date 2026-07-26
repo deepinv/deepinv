@@ -64,14 +64,26 @@ class PhysicsGenerator(nn.Module):
 
         self.step_func = step
         self.kwargs = kwargs
+        device = torch.device(device)
+        if device.type == "mps" and dtype in (torch.float64, torch.complex128):
+            raise RuntimeError(
+                f"MPS does not support dtype {dtype}. Use torch.float32 "
+                "(or complex64), or pass device='cpu' instead. "
+                "See https://github.com/pytorch/pytorch/issues/141287"
+            )
         self.factory_kwargs = {"device": device, "dtype": dtype}
         if rng is None:
             self.rng = torch.Generator(device=device)
         else:
-            # Make sure that the random generator is on the same device as the physics generator
-            assert rng.device == torch.device(
-                device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator named {self.__class__.__name__} on {device}."
+            # Compare by type (and index when both set): "mps" vs "mps:0" (#1265).
+            from deepinv.utils import devices_compatible
+
+            if not devices_compatible(rng.device, device):
+                raise AssertionError(
+                    "The random generator is not on the same device as the Physics "
+                    f"Generator. Got random generator on {rng.device} and the Physics "
+                    f"Generator named {self.__class__.__name__} on {device}."
+                )
             self.rng = rng
 
         # NOTE: There is no use in moving RNG states from one device to another

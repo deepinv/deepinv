@@ -15,6 +15,10 @@ Tests are executed in parallel (`-n 2`) on
 - **Ubuntu** without optional dependencies.
 - **Ubuntu** with all optional dependencies and doctests.
 - **Windows** with all optional dependencies.
+- **macOS** (Apple Silicon) without optional dependencies — exercises **MPS** via the `device` fixture.
+- **macOS** (Apple Silicon) with all optional dependencies — exercises **MPS** via the `device` fixture.
+
+macOS jobs assert `torch.backends.mps.is_available()` so coverage cannot silently degrade to CPU-only.
 
 Uses [pytest-testmon](https://github.com/tarpas/pytest-testmon) to skip tests unaffected by the changes, speeding up CI.
 Coverage reports are uploaded to [Codecov](https://codecov.io). Also runs doctests in `.py` files from inline module docstrings (`--doctest-modules`).

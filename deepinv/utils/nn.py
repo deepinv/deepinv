@@ -69,6 +69,22 @@ def _get_freer_gpu_system(hide_warnings=False):
     return device, idx, mem
 
 
+def devices_compatible(a, b) -> bool:
+    """Return True if two devices refer to the same accelerator.
+
+    On some PyTorch builds ``torch.device("mps")`` and ``torch.device("mps:0")``
+    compare unequal even though they are the same device (#1265). Compare by
+    type, and by index only when both sides set an index.
+    """
+    a = torch.device(a)
+    b = torch.device(b)
+    if a.type != b.type:
+        return False
+    if a.index is not None and b.index is not None:
+        return a.index == b.index
+    return True
+
+
 def get_device(verbose=True, use_torch_api=True):
     r"""
     Selects the best available device: CUDA GPU (with most free memory), MPS (Apple Silicon), or CPU.
@@ -100,6 +116,11 @@ def get_device(verbose=True, use_torch_api=True):
     if torch.backends.mps.is_available():
         if verbose:
             print("Selected MPS device (Apple Silicon)")
+            print(
+                "Warning: some torch ops are not implemented on MPS; affected deepinv "
+                "paths raise a clear error and should be run with device='cpu'. "
+                "See https://github.com/pytorch/pytorch/issues/141287"
+            )
         return torch.device("mps")
 
     if verbose:

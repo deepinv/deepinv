@@ -13,6 +13,18 @@ from deepinv.sampling.utils import trapz_torch
 from deepinv.models.wrapper import MinusOneOneDenoiserWrapper
 
 
+def _mps_compatible_dtype(device, dtype):
+    """Raise a clear error when float64 is requested on MPS (#1265)."""
+    device = torch.device(device)
+    if device.type == "mps" and dtype in (torch.float64, torch.double):
+        raise RuntimeError(
+            "float64 is not supported on MPS. Pass dtype=torch.float32, "
+            "or pass device='cpu' instead. "
+            "See https://github.com/pytorch/pytorch/issues/141287"
+        )
+    return device, dtype
+
+
 class BaseSDE(nn.Module):
     r"""
     Base class for Stochastic Differential Equation (SDE):
@@ -44,8 +56,7 @@ class BaseSDE(nn.Module):
         self.drift = drift
         self.diffusion = diffusion
         self.solver = solver
-        self.dtype = dtype
-        self.device = device
+        self.device, self.dtype = _mps_compatible_dtype(device, dtype)
 
     def sample(
         self,
@@ -905,8 +916,7 @@ class PosteriorDiffusion(Reconstructor):
             self.solver = solver
         else:
             self.solver = sde.solver
-        self.dtype = dtype
-        self.device = device
+        self.device, self.dtype = _mps_compatible_dtype(device, dtype)
         self.verbose = verbose
 
         def backward_drift(x, t, y, physics, *args, **kwargs):

@@ -1,5 +1,7 @@
 # UV
 uv.lock
+.venv*/
+.venv-mps/
 
 # Mac
 .DS_Store

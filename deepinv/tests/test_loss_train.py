@@ -189,14 +189,14 @@ optim_algos = ["PGD"]
 
 
 @pytest.mark.parametrize("name_algo", optim_algos)
-def test_optim_algo(name_algo, imsize, device):
+def test_optim_algo(name_algo, imsize, device, tmp_path):
     # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
     pytest.importorskip("ptwt")
 
-    # pths
-    BASE_DIR = Path(".")
-    CKPT_DIR = BASE_DIR / "ckpts"
+    # Use an isolated temp dir so parallel xdist workers do not collide on
+    # Trainer's timestamped save_path (makedirs exist_ok=False).
+    CKPT_DIR = tmp_path / "ckpts"
 
     # Select the data fidelity term
     data_fidelity = L2()

@@ -83,11 +83,11 @@ def choose_denoiser(name, imsize):
             "git+https://github.com/fbcotter/pytorch_wavelets.git`",
         )
     if name == "bm3d":
-        pytest.importorskip(
-            "bm3d",
-            reason="This test requires bm3d. It should be "
-            "installed with `pip install bm3d`",
-        )
+        try:
+            import bm3d  # noqa: F401
+        except Exception as e:
+            # bm3d depends on bm4d native libs that may be x86_64-only on macOS ARM.
+            pytest.skip(f"bm3d unavailable on this platform: {e}")
     if name in ("swinir", "scunet"):
         pytest.importorskip(
             "timm",
@@ -371,11 +371,10 @@ def test_bm3d_consistency(load_example_image):
         "installed with `pip install "
         "git+https://github.com/fbcotter/pytorch_wavelets.git`",
     )
-    pytest.importorskip(
-        "bm3d",
-        reason="This test requires bm3d. It should be "
-        "installed with `pip install bm3d`",
-    )
+    try:
+        import bm3d  # noqa: F401
+    except Exception as e:
+        pytest.skip(f"bm3d unavailable on this platform: {e}")
     # Load 2 example images
     x1 = load_example_image(
         "butterfly.png",
@@ -970,6 +969,8 @@ def test_icnn(dims, device, rng):
 @pytest.mark.parametrize("model_kind", ["DIP", "Poisson2Sparse"])
 def test_dip_like(model_kind, imsize, device):
     torch.manual_seed(0)
+    if model_kind == "Poisson2Sparse" and device.type == "mps":
+        pytest.skip("PoissonNoise unsupported on MPS (#1265)")
     if model_kind == "DIP":
         physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.2))
         channels = 64
@@ -1395,8 +1396,6 @@ def test_denoiser_perf(device, load_example_image):
 
     # Classical denoisers
     classical_denoisers = [
-        (dinv.models.BM3D(use_legacy=True).to(device), (2.7, 7.5, 6.5)),
-        (dinv.models.BM3D(use_legacy=False).to(device), (2.7, 7.5, 6.5)),
         (dinv.models.MedianFilter(kernel_size=5), (-9, 4.25, 2.5)),
         (dinv.models.TVDenoiser(), (1.5, 6.0, 4.0)),
         (dinv.models.TGVDenoiser(), (1.75, 6, 5.0)),
@@ -1413,6 +1412,16 @@ def test_denoiser_perf(device, load_example_image):
             (2.5, 6, 7.5),
         ),
     ]
+    # bm3d depends on bm4d native libs that may be x86_64-only on macOS ARM (#1265).
+    try:
+        classical_denoisers.extend(
+            [
+                (dinv.models.BM3D(use_legacy=True).to(device), (2.7, 7.5, 6.5)),
+                (dinv.models.BM3D(use_legacy=False).to(device), (2.7, 7.5, 6.5)),
+            ]
+        )
+    except (ImportError, OSError):
+        pass
     for denoiser, expected_perf in classical_denoisers:
         kwargs = {}
 
@@ -1454,9 +1463,11 @@ def test_denoiser_perf(device, load_example_image):
 )
 def test_denoiser_perf_noise_map(device, mode, denoiser):
     denoiser = choose_denoiser(denoiser, imsize=(3, 64, 64)).to(device)
-    # Save deterministic setting to restore it after the test
+    # Save deterministic setting to restore it after the test.
+    # Deterministic algorithms are incomplete on MPS and can hang (#1265).
     prev_deterministic = torch.are_deterministic_algorithms_enabled()
-    torch.use_deterministic_algorithms(True)
+    if device.type != "mps":
+        torch.use_deterministic_algorithms(True)
 
     # Load 2 example images
     x1 = dinv.utils.load_example(
@@ -1827,6 +1838,8 @@ def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_iso
 def test_gaussian_noise_estimators(
     model_name, mode, channels, sigma, device, rng, load_example_image
 ):
+    if model_name == "pca" and device.type == "mps":
+        pytest.skip("PCANoiseEstimator uses eigvalsh, unsupported on MPS (#1265)")
     if model_name == "pca":
         model = dinv.models.PatchCovarianceNoiseEstimator().to(device)
     elif model_name == "wavelets":
@@ -1874,6 +1887,8 @@ def test_gaussian_noise_estimators(
 @pytest.mark.parametrize("sigma", [0.0, 0.05])
 @pytest.mark.parametrize("gain", [0.05, 0.5])
 def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
+    if device.type == "mps":
+        pytest.skip("PoissonGaussianNoise unsupported on MPS (#1265)")
     x = torch.ones((1, 1, 16, 16), device=device)
     physics = dinv.physics.Denoising(
         dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)

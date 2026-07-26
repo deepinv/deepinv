@@ -140,6 +140,19 @@ class Scattering(Physics):
                 'Wave type not recognized, options are "circular_wave" or "plane_wave"'
             )
 
+        device = torch.device(device)
+        if device.type == "mps" and dtype in (
+            torch.float64,
+            torch.complex128,
+            torch.double,
+            torch.cdouble,
+        ):
+            raise RuntimeError(
+                f"Scattering defaults to dtype {dtype}, which is not supported on MPS. "
+                "Pass dtype=torch.complex64, or pass device='cpu' instead. "
+                "See https://github.com/pytorch/pytorch/issues/141287"
+            )
+
         # store a single scalar wavenumber (no wavenumber dimension)
         if not isinstance(background_wavenumber, torch.Tensor):
             wavenumber = torch.tensor(background_wavenumber, device=device, dtype=dtype)

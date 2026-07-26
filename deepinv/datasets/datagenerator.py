@@ -734,7 +734,7 @@ def generate_dataset(
                     subset,
                     batch_size=batch_size,
                     num_workers=num_workers,
-                    pin_memory=torch.device(device).type != "cpu",
+                    pin_memory=torch.device(device).type == "cuda",
                     drop_last=False,
                     collate_fn=collate(dataset),
                 )

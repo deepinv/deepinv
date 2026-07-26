@@ -104,9 +104,11 @@ class WMSA(nn.Module):
             p2=self.window_size,
         )
         qkv = self.embedding_layer(x)
-        q, k, v = rearrange(
+        qkv = rearrange(
             qkv, "b nw np (threeh c) -> threeh b nw np c", c=self.head_dim
-        ).chunk(3, dim=0)
+        )
+        # `.chunk` can leave non-contiguous views that break SDPA on MPS (#1265).
+        q, k, v = (t.contiguous() for t in qkv.chunk(3, dim=0))
 
         # Build additive attention bias from relative position embedding.
         rel_bias = rearrange(
@@ -125,14 +127,24 @@ class WMSA(nn.Module):
             attn_mask = rel_bias
 
         # SDPA handles scaling by 1/sqrt(head_dim); no extra scaling needed.
-        out = F.scaled_dot_product_attention(
-            q.contiguous(),
-            k.contiguous(),
-            v.contiguous(),
-            attn_mask=attn_mask,
-            dropout_p=0.0,
-            is_causal=False,
-        )  # [h, b, w, p, c]
+        # MPS SDPA can fail for batch size > 1 with nonstandard attn_mask layouts
+        # ("view size is not compatible..."); use a matmul path there (#1265).
+        attn_mask = attn_mask.contiguous()
+        if q.device.type == "mps":
+            scale = self.head_dim**-0.5
+            attn = torch.matmul(q * scale, k.transpose(-2, -1))
+            attn = attn + attn_mask
+            attn = torch.softmax(attn, dim=-1)
+            out = torch.matmul(attn, v)
+        else:
+            out = F.scaled_dot_product_attention(
+                q,
+                k,
+                v,
+                attn_mask=attn_mask,
+                dropout_p=0.0,
+                is_causal=False,
+            )  # [h, b, w, p, c]
 
         output = rearrange(out, "h b w p c -> b w p (h c)")
         output = self.linear(output)

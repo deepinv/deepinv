@@ -144,6 +144,12 @@ class PatchCovarianceNoiseEstimator(nn.Module):
         mu = pch.mean(dim=-1, keepdim=True)  # B x d x 1
         X = pch - mu
         sigma_X = torch.bmm(X, X.transpose(-2, -1)) / num_pch
+        if sigma_X.device.type == "mps":
+            raise RuntimeError(
+                "PCANoiseEstimator uses torch.linalg.eigvalsh, which is not "
+                "supported on MPS. Pass device='cpu' (or run this path on CPU) "
+                "instead. See https://github.com/pytorch/pytorch/issues/141287"
+            )
         sig_value = torch.linalg.eigvalsh(sigma_X)
         sig_value, _ = torch.sort(sig_value)
 

@@ -12,11 +12,17 @@ import deepinv as dinv
 import itertools
 from pathlib import Path
 
-# Avoiding nondeterministic algorithms
+# Avoiding nondeterministic algorithms.
+# Skip on MPS: deterministic algorithms are incomplete there and can hang
+# (e.g. DiffractionBlurGenerator / ProductConvolutionBlurGenerator). See #1265.
 import os
 
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-if not torch.cuda.is_available() and torch.__version__ >= "2.1.0":
+if (
+    not torch.cuda.is_available()
+    and not torch.backends.mps.is_available()
+    and torch.__version__ >= "2.1.0"
+):
     torch.use_deterministic_algorithms(True)
 
 torch.backends.cudnn.deterministic = True
@@ -172,6 +178,15 @@ def test_shape(name, size, device, dtype, rng):
     multi-channel (colour) output is tested separately in test_diffraction_generator.
     """
 
+    # ProductConvolutionBlurGenerator uses torch.linalg.svd, unsupported on MPS (#1265).
+    if name == "ProductConvolutionBlurGenerator" and device.type == "mps":
+        with pytest.raises(RuntimeError, match="not supported on MPS"):
+            generator, size, keys = find_generator(
+                name, size, device, dtype, rng=rng
+            )
+            generator.step(batch_size=1)
+        return
+
     generator, size, keys = find_generator(name, size, device, dtype, rng=rng)
     batch_size = 4
 
@@ -190,6 +205,14 @@ def test_generation_newparams(name, device, dtype, rng):
     Tests generators' ability to generate new parameters at each step.
     """
     size = (32, 32)
+
+
+    if name == "ProductConvolutionBlurGenerator" and device.type == "mps":
+        with pytest.raises(RuntimeError, match="not supported on MPS"):
+            generator, size, _ = find_generator(name, size, device, dtype, rng=rng)
+            generator.step(batch_size=1, seed=0)
+        return
+
     generator, size, _ = find_generator(name, size, device, dtype, rng=rng)
     batch_size = 1
 
@@ -218,6 +241,14 @@ def test_generation_seed(name, device, dtype, rng):
     Tests generators consistency with the same random seed.
     """
     size = (32, 32)
+
+
+    if name == "ProductConvolutionBlurGenerator" and device.type == "mps":
+        with pytest.raises(RuntimeError, match="not supported on MPS"):
+            generator, size, _ = find_generator(name, size, device, dtype, rng=rng)
+            generator.step(batch_size=1, seed=42)
+        return
+
     generator, size, _ = find_generator(name, size, device, dtype, rng=rng)
     batch_size = 1
 
@@ -248,6 +279,7 @@ def test_average(name, device, dtype, rng):
     Tests generators average.
     """
     size = (5, 5)
+
     generator, size, _ = find_generator(name, size, device, dtype, rng=rng)
     # Set generator seed for reproducibility
     generator.rng_manual_seed(0)
@@ -282,6 +314,7 @@ def test_downsampling_generator(num_channels, device, dtype, psf_size, fact, rng
     """
     # we need sufficiently large sizes to ensure well definedness of the operation
     size = (32, 32)
+
 
     str_fact = "" if fact is None else str(fact)
 
@@ -474,6 +507,10 @@ def test_inpainting_generators(
     )  # Assume generator always receives "correct" img_size i.e. not one with dims missing
 
     def correct_ratio(ratio, rtol=1e-2, atol=1e-2):
+        # MPS RNG can differ slightly from CPU for small masks (#1265).
+        if device.type == "mps":
+            atol = max(atol, 2e-2)
+            rtol = max(rtol, 2e-2)
         assert torch.isclose(
             ratio,
             torch.tensor([split_ratio], device=device),
@@ -1030,6 +1067,15 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size):
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("use_batch_sampling", [True, False])
 def test_generator_mixture(generators, size, dtype, use_batch_sampling, device, rng):
+
+
+    if device.type == "mps" and "ProductConvolutionBlurGenerator" in generators:
+        with pytest.raises(RuntimeError, match="not supported on MPS"):
+            g, _, _ = find_generator(
+                "ProductConvolutionBlurGenerator", size, device, dtype, rng=rng
+            )
+            g.step(batch_size=1)
+        return
 
     generator_pair = []
     for name in generators:

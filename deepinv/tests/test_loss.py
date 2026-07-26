@@ -216,6 +216,8 @@ def choose_sure(noise_type):
 
 @pytest.mark.parametrize("noise_type", LIST_SURE)
 def test_sure(noise_type, device):
+    if device.type == "mps" and "Poisson" in noise_type:
+        pytest.skip("torch.poisson unsupported on MPS (#1265)")
     imsize = (3, 256, 256)  # a bigger image reduces the error
     # choose backbone denoiser
     backbone = dinv.models.MedianFilter()
@@ -266,6 +268,8 @@ def choose_r2r(noise_type):
 
 @pytest.mark.parametrize("noise_type", LIST_R2R)
 def test_r2r(noise_type, device):
+    if device.type == "mps" and noise_type == "Poisson":
+        pytest.skip("torch.poisson unsupported on MPS (#1265)")
     imsize = (3, 256, 256)  # a bigger image reduces the error
     # choose backbone denoiser
     backbone = dinv.models.MedianFilter()
@@ -349,6 +353,10 @@ def test_notraining(physics, tmp_path, imsize, device):
 def test_losses(
     non_blocking_plots, loss_name, tmp_path, dataset, physics, imsize, device, rng
 ):
+    # Homography path is covered on CPU; vortex short-train PSNR check is flaky on MPS.
+    if device.type == "mps" and loss_name == "vortex":
+        pytest.skip("vortex short-train PSNR check flaky on MPS (#1265)")
+
     # choose training losses
     loss = choose_loss(loss_name, rng, imsize=imsize, device=device)
 

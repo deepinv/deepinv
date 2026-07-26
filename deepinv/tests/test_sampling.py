@@ -130,11 +130,14 @@ def test_algo(name_algo, device):
             device=device,
         )
     elif name_algo == "DPS":
+        # DPS defaults to float64; MPS only supports float32 (#1265).
+        dps_dtype = torch.float32 if device.type == "mps" else torch.float64
         f = DPS(
             dinv.models.DiffUNet().to(device),
             num_steps=5,
             verbose=False,
             device=device,
+            dtype=dps_dtype,
         )
     else:
         raise Exception("The sampling algorithm doesn't exist")
@@ -166,8 +169,16 @@ def test_algo_inpaint(name_algo, device):
             model, likelihood, max_iter=20, verbose=False, device=device, sigma=0.01
         )
     elif name_algo == "DPS":
+        # DPS defaults to float64; MPS only supports float32 (#1265).
+        dps_dtype = torch.float32 if device.type == "mps" else torch.float64
         algorithm = DPS(
-            model, num_steps=50, weight=2.0, alpha=0.01, verbose=False, device=device
+            model,
+            num_steps=50,
+            weight=2.0,
+            alpha=0.01,
+            verbose=False,
+            device=device,
+            dtype=dps_dtype,
         )
     elif name_algo == "DDRM":
         algorithm = DDRM(model)
@@ -304,6 +315,8 @@ def test_sde(device, load_example_image):
     # Set up the SDEs
     num_steps = 10
     rng = torch.Generator(device)
+    # float64 is preferred for SDE numerics but unsupported on MPS (#1265).
+    sde_dtype = torch.float32 if device.type == "mps" else torch.float64
     # Set up solvers
     timesteps = torch.linspace(0.99, 0.001, num_steps)
     solvers = [
@@ -328,12 +341,14 @@ def test_sde(device, load_example_image):
                         denoiser=denoiser,
                         solver=solver,
                         device=device,
+                        dtype=sde_dtype,
                     )
                 else:
                     sde = sde_class(
                         denoiser=denoiser,
                         solver=solver,
                         device=device,
+                        dtype=sde_dtype,
                     )
                 # Test generation
                 sample_1, trajectory = sde.sample(
@@ -366,7 +381,7 @@ def test_sde(device, load_example_image):
                     sde=sde,
                     denoiser=denoisers[0],
                     solver=solvers[0],
-                    dtype=torch.float64,
+                    dtype=sde_dtype,
                     device=device,
                 )
                 x = load_example_image(

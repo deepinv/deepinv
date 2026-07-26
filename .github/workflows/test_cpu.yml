@@ -32,6 +32,16 @@ jobs:
             environment: "full-cpu"
             name: "windows all optional dependencies"
             pytest_args: "-n 0 --dist=loadgroup" # n = 0 to avoid conflicts with pytest-xdist on windows
+          # macOS Apple Silicon runners exercise MPS via the device fixture
+          # (cpu + get_device() → mps). See issue #1265.
+          - os: macos-latest
+            environment: "full-cpu"
+            name: "macos all optional dependencies (MPS)"
+            pytest_args: "-n 2 --dist=loadgroup"
+          - os: macos-latest
+            environment: "test-cpu"
+            name: "macos no optional dependencies (MPS)"
+            pytest_args: "-n 2 --dist=loadgroup"
     env:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
@@ -83,6 +93,22 @@ jobs:
 
           pixi list -e ${{ matrix.environment }} --manifest-path pyproject.toml --color always
           set +x
+
+      # macOS jobs are intended to cover Apple MPS (#1265). Fail loudly if the
+      # runner has no MPS so we never silently ship CPU-only "macOS" coverage.
+      - name: Check MPS is available
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          pixi run -e ${{ matrix.environment }} python -c "
+          import torch
+          assert torch.backends.mps.is_built(), 'torch was not built with MPS'
+          assert torch.backends.mps.is_available(), (
+              'torch.backends.mps.is_available() returned False on macOS. '
+              f'PyTorch {torch.__version__}'
+          )
+          print(f'MPS OK — PyTorch {torch.__version__}')
+          "
 
       - name: Restore deepinv URL cache # shared across matrix environments
         uses: actions/cache/restore@v4

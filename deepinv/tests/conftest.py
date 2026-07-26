@@ -98,6 +98,36 @@ def device(request):
     return request.param
 
 
+def float_dtype_for_device(device):
+    """Prefer float64 for numeric tests, but MPS only supports float32 (#1265)."""
+    return torch.float32 if getattr(device, "type", None) == "mps" else torch.float64
+
+
+@pytest.fixture(autouse=True)
+def _skip_mps_float64(request):
+    """Skip float64/complex128 cases on MPS — unsupported by PyTorch (#1265).
+
+    Library code that accepts these dtypes on MPS should fail fast with a clear
+    error (see PhysicsGenerator). Tests that only need float64 precision should
+    run on CPU. Opt out with ``@pytest.mark.allow_mps_float64``.
+    """
+    if request.node.get_closest_marker("allow_mps_float64"):
+        return
+    callspec = getattr(request.node, "callspec", None)
+    if callspec is None:
+        return
+    device = callspec.params.get("device")
+    if device is None:
+        return
+    if getattr(device, "type", None) != "mps":
+        return
+    unsupported = (torch.float64, torch.complex128, torch.double)
+    for val in callspec.params.values():
+        # Params may be lists/dicts (unhashable); only compare torch dtypes.
+        if isinstance(val, torch.dtype) and val in unsupported:
+            pytest.skip(f"MPS does not support dtype {val}")
+
+
 @pytest.fixture
 def toymatrix():
     w = 50

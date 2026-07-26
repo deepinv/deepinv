@@ -156,10 +156,13 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         if rng is None:
             self.rng = torch.Generator(device=device)
         else:
-            # Make sure that the random generator is on the same device as the physic generator
-            if rng.device != torch.device(device):  # pragma: no cover
+            from deepinv.utils import devices_compatible
+
+            if not devices_compatible(rng.device, device):  # pragma: no cover
                 raise ValueError(
-                    f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+                    "The random generator is not on the same device as the Physics "
+                    f"Generator. Got random generator on {rng.device} and the Physics "
+                    f"Generator on {device}."
                 )
             self.rng = rng
 

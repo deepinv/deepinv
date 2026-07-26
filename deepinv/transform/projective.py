@@ -135,8 +135,17 @@ def apply_homography(
                 print(H_inverse)
 
         return warp_perspective(
-            im.double(),
-            torch.from_numpy(H_inverse)[None].to(device),
+            im.to(
+                dtype=(
+                    torch.float32 if im.device.type == "mps" else torch.float64
+                )
+            ),
+            torch.from_numpy(H_inverse)[None].to(
+                device=device,
+                dtype=(
+                    torch.float32 if im.device.type == "mps" else torch.float64
+                ),
+            ),
             dsize=im.shape[2:],
             mode=interpolation,
             padding_mode=padding,
@@ -260,10 +269,13 @@ class Homography(Transform):
         stretch_y: torch.Tensor | Iterable | TransformParam = tuple(),
         **params,
     ) -> torch.Tensor:
+        # Homography math prefers float64; MPS only supports float32 (#1265).
+        compute_dtype = torch.float32 if x.device.type == "mps" else torch.float64
+        x_h = x.to(dtype=compute_dtype)
         return torch.cat(
             [
                 apply_homography(
-                    x.double(),
+                    x_h,
                     theta_x=tx,
                     theta_y=ty,
                     theta_z=tz,

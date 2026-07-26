@@ -1,5 +1,6 @@
 import pytest
 import torch
+from conftest import float_dtype_for_device
 import deepinv.physics.functional as dF
 from functools import partial
 import deepinv as dinv
@@ -134,8 +135,9 @@ def test_conv3d_adjointness(
         conv_transpose3d_fn = dF.conv_transpose3d
 
     for bf in set((1, B)):
-        x = torch.rand((B, *sim), device=device, dtype=torch.float64)
-        h = torch.rand((bf, *sfil), device=device, dtype=torch.float64)
+        dtype = float_dtype_for_device(device)
+        x = torch.rand((B, *sim), device=device, dtype=dtype)
+        h = torch.rand((bf, *sfil), device=device, dtype=dtype)
         h = h / h.sum(
             dim=(-1, -2, -3), keepdim=True
         )  # normalize filter to avoid numerical issues

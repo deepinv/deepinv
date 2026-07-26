@@ -133,7 +133,7 @@ training = [
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
-platforms = ["linux-64", "win-64"]
+platforms = ["linux-64", "win-64", "osx-arm64"]
 
 [tool.pixi.dependencies]
 python = "<3.13.0"
@@ -148,11 +148,21 @@ natsort = "*"
 
 # Force the CPU environment to ignore CUDA-enabled platforms if they exist, .e.g linux-64-cuda-12-0
 [tool.pixi.feature.cpu]
-platforms = ["linux-64", "win-64"]
+platforms = ["linux-64", "win-64", "osx-arm64"]
 
 [tool.pixi.feature.cpu.pypi-dependencies]
 torch = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
 torchvision = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
+
+# macOS Apple Silicon: use default PyPI wheels (include MPS). The pytorch.org/whl/cpu
+# index is for Linux/Windows CPU builds and is not appropriate for MPS coverage (#1265).
+[tool.pixi.feature.cpu.target.osx-arm64.pypi-dependencies]
+torch = "*"
+torchvision = "*"
+
+[tool.pixi.feature.gpu]
+# Self-hosted CUDA runners only; do not solve GPU envs for macOS/Windows.
+platforms = ["linux-64"]
 
 [tool.pixi.feature.gpu.system-requirements]
 cuda = "12.0"
@@ -190,6 +200,9 @@ sigpy = "*"
 parallelproj = ">=1.10.0,<2.0.0"
 # spyrit is PyPI-only, stays in optional deps
 
+[tool.pixi.feature.physics-gpu]
+platforms = ["linux-64"]
+
 [tool.pixi.feature.physics-gpu.dependencies]
 astra-toolbox = ">=2.2.0,!=2.3.0"
 cupy = "*"  # for parallelproj's GPU support
@@ -225,6 +238,7 @@ testpaths = [
 ]
 markers = [
     "slow",
+    "allow_mps_float64: do not skip float64/complex128 parametrizations on MPS",
 ]
 
 [tool.coverage.run]

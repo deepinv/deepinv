@@ -549,6 +549,12 @@ class PoissonNoise(NoiseModel):
         self.update_parameters(gain=gain, **kwargs)
         self.rng_manual_seed(seed)
         self.to(x.device)
+        if x.device.type == "mps":
+            raise RuntimeError(
+                "PoissonNoise uses torch.poisson, which is not supported on MPS. "
+                "Pass device='cpu' (or run this path on CPU) instead. "
+                "See https://github.com/pytorch/pytorch/issues/141287"
+            )
         gain = self.gain[(...,) + (None,) * (x.dim() - 1)]
 
         if self.clip_positive:
@@ -692,6 +698,13 @@ class PoissonGaussianNoise(NoiseModel):
         self.rng_manual_seed(seed)
         self.to(x.device)
 
+        if x.device.type == "mps":
+            raise RuntimeError(
+                "PoissonGaussianNoise uses torch.poisson, which is not supported on "
+                "MPS. Pass device='cpu' (or run this path on CPU) instead. "
+                "See https://github.com/pytorch/pytorch/issues/141287"
+            )
+
         gain = self.gain[(...,) + (None,) * (x.dim() - 1)]
         sigma = self.sigma[(...,) + (None,) * (x.dim() - 1)]
 
@@ -831,6 +844,12 @@ class LogPoissonNoise(NoiseModel):
         self.update_parameters(mu=mu, N0=N0, **kwargs)
         self.rng_manual_seed(seed)
         self.to(x.device)
+        if x.device.type == "mps":
+            raise RuntimeError(
+                "LogPoissonNoise uses torch.poisson, which is not supported on MPS. "
+                "Pass device='cpu' (or run this path on CPU) instead. "
+                "See https://github.com/pytorch/pytorch/issues/141287"
+            )
         N1_tilde = torch.poisson(self.N0 * torch.exp(-x * self.mu), generator=self.rng)
         y = -torch.log(N1_tilde / self.N0) / self.mu
         return y

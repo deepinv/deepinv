@@ -96,14 +96,30 @@ class CompressedSensing(LinearPhysics):
         self.img_size = img_size
         self.channelwise = channelwise
         self.dtype = dtype
+        device = torch.device(device)
+        if device.type == "mps" and dtype in (
+            torch.float64,
+            torch.complex128,
+            torch.double,
+            torch.cdouble,
+        ):
+            raise RuntimeError(
+                f"MPS does not support dtype {dtype}. Use torch.float32 "
+                "(or complex64), or pass device='cpu' instead. "
+                "See https://github.com/pytorch/pytorch/issues/141287"
+            )
 
         if rng is None:
             self.rng = torch.Generator(device=device)
         else:
-            # Make sure that the random generator is on the same device as the physic generator
-            assert rng.device == torch.device(
-                device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
+            from deepinv.utils import devices_compatible
+
+            if not devices_compatible(rng.device, device):
+                raise AssertionError(
+                    "The random generator is not on the same device as the Physics "
+                    f"Generator. Got random generator on {rng.device} and the Physics "
+                    f"Generator on {device}."
+                )
             self.rng = rng
         self.register_buffer("initial_random_state", self.rng.get_state())
 

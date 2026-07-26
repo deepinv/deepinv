@@ -59,7 +59,7 @@ from .optim_iterators import (
     MLEMIteration,
 )
 from .epll import EPLL
-from .dpir import DPIR
+from .dpir import DPIR, get_DPIR_params
 from .bregman import Bregman, BurgEntropy, NegEntropy, BregmanL2, Bregman_ICNN
 from .potential import Potential
 from .distance import (

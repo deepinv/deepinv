@@ -1,6 +1,7 @@
 import pytest
 import deepinv as dinv
 import torch
+from deepinv.utils import devices_compatible
 
 ADD_TIME_DIM = [True, False]
 
@@ -188,7 +189,8 @@ def test_transforms(transform_name, image, add_time_dim: bool, device, rng):
 
     image_t = transform(image)
 
-    assert image.device == image_t.device == device
+    assert devices_compatible(image.device, device)
+    assert devices_compatible(image_t.device, device)
 
     # Check if any constituent part of transform is a stacking
     if "+" in transform_name:
