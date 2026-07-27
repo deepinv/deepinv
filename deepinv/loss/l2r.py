@@ -263,7 +263,7 @@ class Learning2RecorruptLoss(Loss):
             \end{cases}
 
         The term :math:`\mathrm{net}` is the selected network (identity, monotonic MLP, 
-        or MLP) applied pointwise to flattened entries of :math:`w`, and :math:`N` 
+        or MLP) applied pointwise to flattened entries of :math:`w`, and :math:`\text{BN}` 
         is a 1D batch normalization. A learnable scaling/filtering is applied via 
         kernel :math:`k` (scalar if ``kernel_size=1``, spatial convolution otherwise).
 
