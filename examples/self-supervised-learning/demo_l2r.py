@@ -152,7 +152,7 @@ model = dinv.models.ArtifactRemoval(
 
 # %%
 # Set up the training parameters and re-corruption network
-# --------------------------------------------
+# -------------------------------------------------------------------------------------------
 # We set :class:`deepinv.loss.l2r.Learning2RecorruptLoss` as the training loss.
 #
 # .. note::
