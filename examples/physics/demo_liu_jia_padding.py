@@ -23,7 +23,16 @@ import math
 device = "cpu"
 x = dinv.utils.load_example("butterfly.png", img_size=256).to(device)
 
-# Define blur kernel and physics
+# %%
+# Blurring in linear sRGB space
+# ------------------------------
+#
+# We simulate a realistic blur by convolving the clean image with a Gaussian kernel in the
+# *linear* sRGB space, i.e., before the gamma (OETF) encoding, and by using ``padding="valid"``
+# so that no artificial periodic boundary is introduced by the convolution. This is unlike a
+# circularly-padded synthetic blur, and yields a measurement whose opposite boundaries are
+# decorrelated, just like a real-world blurry photograph.
+
 gaussian_std = 1.0
 ksize = 6 * math.ceil(gaussian_std) + 1
 kernel = dinv.physics.functional.gaussian_blur(
@@ -32,7 +41,6 @@ kernel = dinv.physics.functional.gaussian_blur(
 physics = dinv.physics.Blur(filter=kernel, padding="valid")
 
 
-# Compute the blur in linear sRGB space
 def eotf(x: torch.Tensor) -> torch.Tensor:
     # Map from sRGB to linear sRGB
     return torch.where(
@@ -53,7 +61,7 @@ def oetf(x: torch.Tensor) -> torch.Tensor:
 
 y = physics(eotf(x))
 
-# Crop for comparison
+# Crop the ground truth to match the valid-convolution output of the blur
 if kernel.shape[-2] % 2 != 1 or kernel.shape[-1] % 2 != 1:
     raise ValueError("Kernel size is expected to be odd")
 
@@ -62,6 +70,15 @@ margin = (
     (kernel.shape[-1] - 1) // 2,
 )
 x = x[..., margin[0] : -margin[0], margin[1] : -margin[1]]
+
+dinv.utils.plot(
+    [x, kernel, oetf(y)],
+    ["Input", "Blur kernel", "Blurry"],
+)
+
+# %%
+# Deconvolution
+# -------------
 
 
 def deblur(
