@@ -251,7 +251,7 @@ class Learning2RecorruptLoss(Loss):
         The perturbation is defined as:
 
         .. math::
-            h(w, y) = G_y \cdot \bigl(k * N(\mathrm{net}(w))\bigr)
+            h(w, y) = G_y \cdot \bigl(k * \text{BN}(\mathrm{net}(w))\bigr)
 
         where :math:`G_y` is the modulation gain defined by the ``multiplicative`` flag:
 
