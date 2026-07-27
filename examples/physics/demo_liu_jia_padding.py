@@ -33,9 +33,6 @@ physics = dinv.physics.Blur(filter=kernel, padding="valid")
 y = physics(x)
 
 # Crop the ground truth to match the valid-convolution output of the blur
-if kernel.shape[-2] % 2 != 1 or kernel.shape[-1] % 2 != 1:
-    raise ValueError("Kernel size is expected to be odd")
-
 margin = (
     (kernel.shape[-2] - 1) // 2,
     (kernel.shape[-1] - 1) // 2,
