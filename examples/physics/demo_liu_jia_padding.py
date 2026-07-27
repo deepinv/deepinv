@@ -52,14 +52,14 @@ dinv.utils.plot(
 # Fourier transform of the blurry image, and :math:`S` is the Fourier transform of
 # the blur kernel.
 #
-# Inverse filtering is implemented by :meth:`deepinv.physics.BlurFFT.A_dagger` and
+# Inverse filtering is implemented by ``BlurFFT.A_dagger`` and
 # it is defined by the equation
 #
 # .. math::
 #
 #     \hat{X}(f) = \frac{Y(f)}{S(f)}
 #
-# and Wiener filtering is implemented by :meth:`deepinv.physics.BlurFFT.prox_l2` and
+# and Wiener filtering is implemented by ``BlurFFT.prox_l2`` and
 # it is defined by the equation
 #
 # .. math::
