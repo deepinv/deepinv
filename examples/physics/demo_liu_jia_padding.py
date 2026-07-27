@@ -39,8 +39,36 @@ dinv.utils.plot(
 
 
 # %%
-# Deconvolution
-# -------------
+# Spectral deconvolution algorithms
+# ---------------------------------
+# We evaluate the impact of Liu-Jia padding on two spectral deconvolution methods:
+# inverse filtering and Wiener filtering. Both methods assume a circular blur with
+#
+# .. math::
+#
+#      Y(f) = S(f) X(f)
+#
+# where :math:`X` is the Fourier transform of the original image, :math:`Y` is the
+# Fourier transform of the blurry image, and :math:`S` is the Fourier transform of
+# the blur kernel.
+#
+# Inverse filtering is implemented by :meth:`deepinv.physics.BlurFFT.A_dagger` and
+# it is defined by the equation
+#
+# .. math::
+#
+#     \hat{X}(f) = \frac{Y(f)}{S(f)}
+#
+# and Wiener filtering is implemented by :meth:`deepinv.physics.BlurFFT.prox_l2` and
+# it is defined by the equation
+#
+# .. math::
+#
+#    \hat{X}(f) = \frac{S^*(f)}{|S(f)|^2 + 1/\mathrm{SNR}(f)} Y(f)
+#
+# where the SNR depends on the power spectral density of the input image and
+# noise. In our case we assume it is an arbitrary constant that we tune manually.
+
 class SpectralDeconvolution(dinv.models.Reconstructor):
     def __init__(self, liu_jia_padding: bool, kind: str, gamma: float = 1e4):
         super().__init__()
