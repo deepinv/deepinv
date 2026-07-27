@@ -1,6 +1,6 @@
 r"""
-Real-World Non-blind Image Deblurring with Liu-Jia Padding
-==========================================================
+Spectral Methods for Non-Circular Deblurring with Liu-Jia Padding
+=================================================================
 
 Real-world blurry images have decorrelated opposite boundaries, unlike images synthetically
 blurred using circular filters. This makes the use of spectral deconvolution methods (inverse
