@@ -123,33 +123,24 @@ base_psnr = psnr_fn(y, x).item()
 # Compare Liu-Jia padding vs no padding for inverse filtering
 x_hat_inv_pad = model_inv_pad(y, physics)
 x_hat_inv_nopad = model_inv_nopad(y, physics)
-
-psnr_inv_pad = psnr_fn(x_hat_inv_pad, x).item()
-psnr_inv_nopad = psnr_fn(x_hat_inv_nopad, x).item()
-
-dinv.utils.plot(
-    [x, y, x_hat_inv_pad, x_hat_inv_nopad],
-    [
-        f"GT",
-        f"Blurry {base_psnr:.1f} dB",
-        f"Liu-Jia Padding {psnr_inv_pad:.1f} dB",
-        f"No Padding {psnr_inv_nopad:.1f} dB",
-    ],
-)
-
-# Compare Liu-Jia padding vs no padding for Wiener deconvolution
 x_hat_wiener_pad = model_wiener_pad(y, physics)
 x_hat_wiener_nopad = model_wiener_nopad(y, physics)
 
+psnr_inv_pad = psnr_fn(x_hat_inv_pad, x).item()
+psnr_inv_nopad = psnr_fn(x_hat_inv_nopad, x).item()
 psnr_wiener_pad = psnr_fn(x_hat_wiener_pad, x).item()
 psnr_wiener_nopad = psnr_fn(x_hat_wiener_nopad, x).item()
 
 dinv.utils.plot(
+    [x, y, x_hat_inv_pad, x_hat_inv_nopad],
+    [ "GT", "Blurry", "Liu-Jia", "Regular" ],
+    subtitles=["", f"{base_psnr:.1f} dB", f"{psnr_inv_pad:.1f} dB", f"{psnr_inv_nopad:.1f} dB"],
+    suptitle="Deblurring with Inverse Filtering"
+)
+
+dinv.utils.plot(
     [x, y, x_hat_wiener_pad, x_hat_wiener_nopad],
-    [
-        f"GT",
-        f"Blurry {base_psnr:.1f} dB",
-        f"Liu-Jia Padding {psnr_wiener_pad:.1f} dB",
-        f"No Padding {psnr_wiener_nopad:.1f} dB",
-    ],
+    [ "GT", "Blurry", "Liu-Jia", "Regular" ],
+    subtitles=["", f"{base_psnr:.1f} dB", f"{psnr_wiener_pad:.1f} dB", f"{psnr_wiener_nopad:.1f} dB"],
+    suptitle="Deblurring with Wiener Filtering"
 )
