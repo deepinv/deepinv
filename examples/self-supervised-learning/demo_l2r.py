@@ -18,7 +18,7 @@ measurement :math:`y` and synthetic Gaussian noise
 
     y_1 = y + \alpha h(\omega, y),
 
-then, the L2R loss is defined as
+where :math:`\alpha>0` is a fixed hyperparameter. Then, the L2R loss is defined as
 
 .. math::
 
