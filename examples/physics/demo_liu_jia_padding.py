@@ -32,13 +32,6 @@ physics = dinv.physics.Blur(filter=kernel, padding="valid")
 
 y = physics(x)
 
-# Crop the ground truth to match the valid-convolution output of the blur
-margin = (
-    (kernel.shape[-2] - 1) // 2,
-    (kernel.shape[-1] - 1) // 2,
-)
-x = x[..., margin[0] : -margin[0], margin[1] : -margin[1]]
-
 dinv.utils.plot(
     [x, kernel, y],
     ["Input", "Blur kernel", "Blurry"],
@@ -109,7 +102,8 @@ def deblur(
 
 
 # Comparisons
-psnr_fn = dinv.metric.PSNR()
+# y and x_hat are the size of the valid-convolution output of the blur, which is smaller than x
+psnr_fn = dinv.metric.PSNR(center_crop=y.shape[-2:])
 base_psnr = psnr_fn(y, x).item()
 
 # Compare Liu-Jia padding vs no padding for inverse filtering
