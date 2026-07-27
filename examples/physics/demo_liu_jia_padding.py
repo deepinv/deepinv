@@ -23,16 +23,6 @@ import math
 device = "cpu"
 x = dinv.utils.load_example("butterfly.png", img_size=256).to(device)
 
-# %%
-# Blurring in linear sRGB space
-# ------------------------------
-#
-# We simulate a realistic blur by convolving the clean image with a Gaussian kernel in the
-# *linear* sRGB space, i.e., before the gamma (OETF) encoding, and by using ``padding="valid"``
-# so that no artificial periodic boundary is introduced by the convolution. This is unlike a
-# circularly-padded synthetic blur, and yields a measurement whose opposite boundaries are
-# decorrelated, just like a real-world blurry photograph.
-
 gaussian_std = 1.0
 ksize = 6 * math.ceil(gaussian_std) + 1
 kernel = dinv.physics.functional.gaussian_blur(
@@ -40,26 +30,7 @@ kernel = dinv.physics.functional.gaussian_blur(
 )
 physics = dinv.physics.Blur(filter=kernel, padding="valid")
 
-
-def eotf(x: torch.Tensor) -> torch.Tensor:
-    # Map from sRGB to linear sRGB
-    return torch.where(
-        x <= 0.04045,
-        x / 12.92,
-        ((x + 0.055) / 1.055) ** 2.4,
-    )
-
-
-def oetf(x: torch.Tensor) -> torch.Tensor:
-    # Map from linear sRGB to sRGB
-    return torch.where(
-        x <= 0.0031308,
-        x * 12.92,
-        1.055 * (x ** (1 / 2.4)) - 0.055,
-    )
-
-
-y = physics(eotf(x))
+y = physics(x)
 
 # Crop the ground truth to match the valid-convolution output of the blur
 if kernel.shape[-2] % 2 != 1 or kernel.shape[-1] % 2 != 1:
@@ -72,7 +43,7 @@ margin = (
 x = x[..., margin[0] : -margin[0], margin[1] : -margin[1]]
 
 dinv.utils.plot(
-    [x, kernel, oetf(y)],
+    [x, kernel, y],
     ["Input", "Blur kernel", "Blurry"],
 )
 
@@ -130,9 +101,7 @@ def deblur(
     x_hat = torch.fft.ifft2(x_hat).real
     # 6. Clip
     x_hat = torch.clamp(x_hat, 0, 1)
-    # 7. Move to sRGB space
-    x_hat = oetf(x_hat)
-    # 8. Quantize
+    # 7. Quantize
     x_hat = torch.round(x_hat * 255) / 255
 
     # Cropping
@@ -144,7 +113,7 @@ def deblur(
 
 # Comparisons
 psnr_fn = dinv.metric.PSNR()
-base_psnr = psnr_fn(oetf(y), x).item()
+base_psnr = psnr_fn(y, x).item()
 
 # Compare Liu-Jia padding vs no padding for inverse filtering
 x_hat_liu_jia_padding = deblur(
@@ -158,7 +127,7 @@ psnr_liu_jia_padding = psnr_fn(x_hat_liu_jia_padding, x).item()
 psnr_no_padding = psnr_fn(x_hat_no_padding, x).item()
 
 dinv.utils.plot(
-    [x, oetf(y), x_hat_liu_jia_padding, x_hat_no_padding],
+    [x, y, x_hat_liu_jia_padding, x_hat_no_padding],
     [
         f"GT",
         f"Blurry {base_psnr:.1f} dB",
@@ -179,7 +148,7 @@ psnr_liu_jia_padding = psnr_fn(x_hat_liu_jia_padding, x).item()
 psnr_no_padding = psnr_fn(x_hat_no_padding, x).item()
 
 dinv.utils.plot(
-    [x, oetf(y), x_hat_liu_jia_padding, x_hat_no_padding],
+    [x, y, x_hat_liu_jia_padding, x_hat_no_padding],
     [
         f"GT",
         f"Blurry {base_psnr:.1f} dB",
