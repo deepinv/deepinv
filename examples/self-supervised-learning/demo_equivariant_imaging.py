@@ -15,7 +15,7 @@ from torchvision import transforms
 
 import deepinv as dinv
 from deepinv.datasets import SimpleFastMRISliceDataset
-from deepinv.utils import get_data_home, load_degradation
+from deepinv.utils import load_degradation
 from deepinv.models.utils import get_weights_url
 from deepinv.models import MoDL
 
@@ -31,7 +31,7 @@ CKPT_DIR = BASE_DIR / "ckpts"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Load base image datasets and degradation operators.
@@ -60,10 +60,10 @@ img_size = 128
 transform = transforms.Compose([transforms.Resize(img_size)])
 
 train_dataset = SimpleFastMRISliceDataset(
-    get_data_home(), transform=transform, train_percent=0.5, train=True, download=True
+    transform=transform, train_percent=0.5, train=True, download=True
 )
 test_dataset = SimpleFastMRISliceDataset(
-    get_data_home(), transform=transform, train_percent=0.5, train=False
+    transform=transform, train_percent=0.5, train=False
 )
 
 # %%

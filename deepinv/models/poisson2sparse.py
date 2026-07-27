@@ -7,7 +7,6 @@ from tqdm import trange
 from functools import wraps
 from typing import Callable
 from deepinv.models.base import Denoiser
-from deepinv.utils.compat import zip_strict
 
 
 class ConvLista(nn.Module):
@@ -150,7 +149,7 @@ class ConvLista(nn.Module):
             )
             mask = torch.zeros_like(augmented_y)
             for num, (augmented_y_part, mask_part) in enumerate(
-                zip_strict(augmented_y.unbind(dim=1), mask.unbind(dim=1))
+                zip(augmented_y.unbind(dim=1), mask.unbind(dim=1), strict=True)
             ):
                 row_shift = num // stride
                 col_shift = num % stride

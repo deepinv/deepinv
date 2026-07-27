@@ -8,10 +8,128 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.loss.metric.RecoveryCoefficient` Recovery Coefficient (RC) metric to evaluate reconstructed activity relative to ground truth within a mask, with dtype-aware numerical stability and a dedicated loss transformation for training (:gh:`1228` by `Kushagra Shukla`_)
+- Add 2D and 3D :class:`deepinv.physics.PET` (:gh:`1099` by `Julian Tachella`_)
+- Add support for multi-channel (chromatic) diffraction PSFs in :class:`deepinv.physics.generator.DiffractionBlurGenerator` with physically consistent wavelength scaling of the pupil cut-off frequency and Zernike coefficients.  (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
+- Add caching to demo/archive downloads (:gh:`1234` by `Julian Tachella`_)
+- Add :func:`deepinv.utils.load_tiff` to load images/ volumes from TIFF files (:gh:`1249` by `Andrew Wang`_)
+- Add :func:`deepinv.utils.plot_napari` to interactively view 2D images/3D vols with napari (:gh:`1249` by `Andrew Wang`_)
+
+Changed
+^^^^^^^
+- (Breaking) Drop support for deprecated parameters `num_channels` in :class:`deepinv.physics.generator.PSFGenerator`, :class:`deepinv.physics.generator.GaussianBlurGenerator`, :class:`deepinv.physics.generator.MotionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
+
+Fixed
+^^^^^
+- Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
+- Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
+- Remove unconditional dtype conversion to `torch.cfloat` in :func:`deepinv.optim.phase_retrieval.spectral_methods` (:gh:`1216` by `Zhiyuan Hu`_)
+- Fix kwargs applications in parent constructor calls in the constructors of :class:`deepinv.sampling.EDMDiffusionSDE`, :class:`deepinv.sampling.SongDiffusionSDE` and :class:`deepinv.sampling.VariancePreservingDiffusion` (:gh:`1278` by `Jérémy Scanvic`_)
+
+
+v0.4.1
+------
+New Features
+^^^^^^^^^^^^
+- Add :class:`deepinv.models.DEAL` model (:gh:`1107` by `Hossein Alimohammadi`_)
+- Add install guidelines for different platforms (`pixi`, `conda`, `pip`, `uv`) in docs (:gh:`1108` by `Julian Tachella`_)
+- Add :class:`deepinv.optim.SIRT` algorithm for tomographic reconstruction (:gh:`985` by `Thibaut Modrzyk`_)
+- Add :class:`deepinv.optim.MLEM` algorithm for Poisson inverse problems (:gh:`1051` by `Thibaut Modrzyk`_)
+- Add the equivariant splitting loss :class:`deepinv.loss.EquivariantSplittingLoss` with equivariant reconstructors :class:`deepinv.models.EquivariantReconstructor` and virtual physics :class:`deepinv.physics.VirtualLinearPhysics` (:gh:`881` by `Jérémy Scanvic`_)
+- Add `DEEPINV_CACHE_DIR` environment variable to set the cache directory for datasets and pretrained weights (:gh:`1105` by `Minh Hai Nguyen`_)
+- Add :class:`deepinv.models.SRResNet` (the generator of SRGAN) for single image super-resolution. (:gh:`1164` by `Vicky De Ridder`_)
+- NIQE weight fitting on custom datasets, using :class:`deepinv.loss.metric.NIQE.create_weights` (:gh:`911` by `Vicky De Ridder`_)
+- Add :class:`deepinv.loss.metric.GMSD`, the Gradient Magnitude Similarity Deviation metric (:gh:`1171` by `Vicky De Ridder`_)
+- Add :class:`deepinv.models.FFDNet` for non-blind Gaussian denoising (:gh:`1174` by `Vicky De Ridder`_)
+- Extend :func:`deepinv.physics.functional.gaussian_blur` to 1D and 3D. Add :class:`deepinv.physics.generator.GaussianBlurGenerator` (:gh:`1152` by `Romain Vo`_)
+- Add a fast re-implementation of BM3D for :class:`deepinv.models.BM3D` (:gh:`1195` by `Kaibo Tang`_)
+
+Changed
+^^^^^^^
+- Refactor CI to use `pixi` for compatibility with mixed conda/pip environments (:gh:`1108` by `Julian Tachella`_)
+- Add support for arbitrary learning-free reconstructors in the trainer (:gh:`881` by `Jérémy Scanvic`_)
+- Make available every mask used at evaluation for splitting models :class:`deepinv.loss.SplittingLoss.SplittingModel` when ``eval_n_samples > 1`` (:gh:`881` by `Jérémy Scanvic`_)
+- Deprecate `Loss.name` in favor of the class name as done in the trainer (:gh:`881` by `Jérémy Scanvic`_)
+- Update references for single pixel demo (:gh:`1151` by `Laura C. Diaz-Delgado`_)
+- Add changelog section to the contributing guidelines (:gh:`1153` by `Thibaut Modrzyk`_)
+- Unify patching / tiling and unpatching / un-tiling logic in physics and utils, with support for padding and non-overlapping patches. Add :func:`deepinv.utils.image_to_patches` and :func:`deepinv.utils.patches_to_image` utility functions, and refactor physics to use them instead of `unfold` (:gh:`1104` by `Minh Hai Nguyen`_)
+- New :class:`deepinv.loss.metric.NIQE` implementation, this drops PyIQA requirement, values given by NIQE vary between implementations (:gh:`911` by `Vicky De Ridder`_)
+- (Breaking) Drop support for deprecated parameters replaced by `img_size` and `output_size` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of `deepinv.utils.metric` in favor of `deepinv.loss.metric` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of parameter `pinv` in :class:`deepinv.models.ArtifactRemoval` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of `deepinv.train` in favor of :class:`deepinv.Trainer` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of the deprecated parameter `eval_n_samples` in :meth:`deepinv.loss.SplittingLoss.adapt_model` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of the deprecated parameter `fast` in :class:`deepinv.physics.CompressedSensing` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of `deepinv.Trainer.log_metrics_wandb` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of parameter and attribute `freq_plot` in :class:`deepinv.Trainer` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of deprecated value `"old_sequency"` for parameter `ordering` in :class:`deepinv.physics.SinglePixelCamera` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of parameter `sigma` in :class:`deepinv.loss.R2RLoss` in favor of `noise_model` (:gh:`1210` by `Minh Hai Nguyen`_)
+
+Fixed
+^^^^^
+- Add warning when options `reduce="mean"` and `reduce="none"` are used in :class:`deepinv.physics.StackedLinearPhysics`. Remove `reduction` argument from :class:`deepinv.distributed.DistributedStackedLinearPhysics` (:gh:`1071` by `Romain Vo`_)
+- Correct the value of ``Transform.n_trans`` in composed transformations (:gh:`881` by `Jérémy Scanvic`_)
+- Add support for computing the evaluation loss for splitting losses like :class:`deepinv.loss.SplittingLoss` in the trainer (:gh:`881` by `Jérémy Scanvic`_)
+- Add a deprecation warning in :func:`deepinv.utils.plot_inset` in favor of :func:`deepinv.utils.plot` with `plot_inset=True` (:gh:`1148` by `Paul Bernard`_).
+- Fix dimensions mismatch in :class:`deepinv.physics.TomographyWithAstra` with 3D phantoms (:gh:`1137` by `Baptiste Legouix`_)
+- Add warning and error handling for negative inputs in BlurFFT and Poisson noise (:gh:`1155` by `Thibaut Modrzyk`_)
+- Fix a bug in the custom backward of the least-squares solvers for non-leaf tensors (:gh:`1146` by `Minh Hai Nguyen`_)
+- Fix :class:`deepinv.sampling.DPS` instantiation and refactor to use new SDE interface (:gh:`1127` by `Minh Hai Nguyen`_)
+- Fix a bug that caused :class:`deepinv.models.BM3D` to silently break for multi-channel images when the number of channels is not 3 (:gh:`1192` by `Kaibo Tang`_)
+- Fix option "mode" for the wavelet transform, which was not correctly propagated; add this option in :class:`deepinv.models.WaveletDictDenoiser` (:gh:`1162` by `Irène Waldspurger`_)
+
+
+
+v0.4.0
+------
+New Features
+^^^^^^^^^^^^
+- Add :class:`deepinv.models.WaveletNoiseEstimator` and :class:`deepinv.models.PatchCovarianceNoiseEstimator` for noise level estimation (:gh:`1015` by `Matthieu Terris`_)
+- Add :class:`deepinv.physics.Scattering` physics for non-linear inverse scattering problems (:gh:`1020` by `Julian Tachella`_)
+- Add :meth:`deepinv.physics.Physics.compute_norm` local operator norm computation for non-linear physics (:gh:`1020` by `Julian Tachella`_)
+- Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
+- Add distributed computing framework with :class:`deepinv.distributed.DistributedContext`, :class:`deepinv.distributed.DistributedStackedPhysics`, :class:`deepinv.distributed.DistributedProcessing`, :class:`deepinv.distributed.DistributedDataFidelity` and :func:`deepinv.distributed.distribute` factory function. Supports multi-GPU/multi-process execution with physics-based and spatial tiling distribution strategies (:gh:`790`` by `Benoît Malézieux`_)
+- Add :class:`deepinv.loss.metric.CosineSimilarity` to the metrics (:gh:`944` by `Avithal Lautman`_)
+- New option to initialize 3D networks (DRUNet, DnCNN, DScCP) from pretrained 2D weights (:gh:`958` by `Romain Vo`_)
+- Add option to pass a noise level map to DRUNet and RAM (:gh:`1056` by `Thomas Boulanger`_)
+- Add :class:`deepinv.physics.TiledSpaceVaryingBlur` physics and :class:`deepinv.physics.generator.TiledBlurGenerator` (:gh:`1033` by `Minh Hai Nguyen`_ and `Paul Escande`_)
+
+Changed
+^^^^^^^
+- (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.
+- Refactor folder structure of least-squares solvers (:gh:`1011` by `Julian Tachella`_)
+- Removed `eps` parameter from :func:`deepinv.optim.linear.conjugate_gradient` (:gh:`1011` by `Julian Tachella`_)
+- :class:`deepinv.loss.metric.LPIPS` uses `torchmetrics` instead of `pyiqa`. (:gh:`1041` by `Andrew Wang`_)
+- Remove `pyiqa` optional dep (:gh:`1041` by `Andrew Wang`_)
+- Deprecated `verbose_individual_losses` parameter in :class:`deepinv.Trainer`. Individual losses are now always added to logs when multiple losses are present (:gh:`928` by `Tiberiu Sabau`_)
+- Deprecate historical attributes in HDF5Dataset (:gh:`764` by `Jérémy Scanvic`_)
+
+Fixed
+^^^^^
+- Implement/extend functional for 2D/3D convolution with spatial and FFT (:func:`deepinv.physics.functional.conv3d` and  :func:`deepinv.physics.functional.conv_transpose3d`), support all padding modes with equivalent outputs (:gh:`825` by `Minh Hai Nguyen`_)
+- Fix ZeroPrior :class:`deepinv.optim.ZeroPrior` (:gh:`1001` by `Victor Sechaud`_)
+- Fix single-disperser CASSI adjointness (:gh:`1029` by `Andrew Wang`_)
+- Add :class:`deepinv.physics.ComposedPhysics`, :class:`deepinv.physics.ComposedLinearPhysics` to online documentation (:gh:`1000` by `Romain Vo`_)
+- Have test ground truths returned in HDF5Dataset when present (:gh:`764` by `Jérémy Scanvic`_)
+- Dispose of invalid physics parameters in HDF5Dataset loading (:gh:`764` by `Jérémy Scanvic`_)
+- :func:`deepinv.utils.plot_ortho3D` doesn't perform sqrt on images (:gh:`1068` by `Andrew Wang`_)
+- Deprecate `self.device` in :class:`deepinv.physics.LinearPhysics` and remove it from internal logic. Define it as a property until removed. (:gh:`989` by `Romain Vo`_)
+- Sample a unique factor per batch in :class:`deepinv.physics.generator.DownsamplingGenerator` (:gh:`1085` by `Romain Vo`_)
+- Add device argument to :class:`deepinv.physics.generator.GeneratorMixture` to fix mismatch with generator's device and extend test suite in `test_generators.py` (:gh:`1093` by `Romain Vo`_)
+
+
+v0.3.7
+------
+New Features
+^^^^^^^^^^^^
 - Add :class:`deepinv.physics.LaplaceNoise` model (:gh:`921` by `Brayan Monroy`_)
 - New way to create optimization models. Standard optimization algorithms (and their unfolded versions) can be created using their class name directly instead of using the `optim_builder` (or `unfolded_builder`) function. (:gh:`592` by `Samuel Hurault`_)
+- New ``vmin`` and ``vmax`` arguments in :func:`deepinv.utils.plot` to set custom clipping bounds when using ``rescale_mode='clip'`` (:gh:`967` by `Thibaut Modrzyk`_)
 - Added :func:`deepinv.utils.dirac_comb` and :func:`deepinv.utils.dirac_comb_like` (:gh:`946` by `Julian Tachella`_)
-
+- Added `testmon <https://www.testmon.org/>`_ and conditional run of sphinx-gallery examples to CI to speed up tests (:gh:`966` by `Julian Tachella`_)
+- Add :class:`kernel estimation network <deepinv.models.KernelIdentificationNetwork>` for blind deconvolution (:gh:`971` by `Julian Tachella`_)
+- Add blind inverse problems section to reconstruction user guide (:gh:`971` by `Julian Tachella`_)
+- Add :class:`deepinv.loss.metric.BlurStrength` and :class:`deepinv.loss.metric.SharpnessIndex` no-reference metrics for blind deblurring (:gh:`971` by `Julian Tachella`_)
 
 Changed
 ^^^^^^^
@@ -19,14 +137,20 @@ Changed
 - (Breaking) Change :class:`deepinv.physics.TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
 - Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
 - (Breaking) `Tomography` physics uses the true adjoint by default. `Tomography` and `TomographyWithAstra` implement the pseudo-inverse as the solution of a least-squares problem, with the option to use `fbp`. (:gh:`930` by `Romain Vo`_)
-
+- :class:`deepinv.models.UNet` now accepts a new (optional) argument `channels_per_scale` to control the number of feature maps at each stage. It now also supports arbitrary number of scales and bias-free batchnorm is supported for 3D variant; also clean-up code (:gh:`976` by `Vicky De Ridder`_)
+- Add a check in `deepinv.datasets.FMD` to avoid unnecessary downloads (:gh:`962` by `Jérémy Scanvic`_)
+- Trainer checkpoint loading verbose (:gh:`982` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
 - Fixed :class:`deepinv.sampling.DPS` initialization when measurements have different size than image (:gh:`946` by `Julian Tachella`_)
 - Fixed :class:`deepinv.physics.Ptychography` `A_dagger` initialization bug (:gh:`946` by `Julian Tachella`_)
 - Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
+- `generate_dataset` received a general refactor, now supports PIL image datasets and doesn't break when validation dataset returns `TensorList` (:gh:`948` by `Vicky De Ridder`_)
 - test_physics.test_tomography correctly implements the pseudo-inverse test (:gh: `930` by `Romain Vo`_)
+- :class:`deepinv.physics.Tomography` now correctly handles multi-channel data (:gh:`960` by `Julian Tachella`_)
+
+
 
 v0.3.6
 ------
@@ -37,7 +161,11 @@ New Features
 - Add support for complex dtypes in :class:`deepinv.models.WaveletDenoiser`, :class:`deepinv.models.WaveletDictDenoiser` and :class:`deepinv.optim.WaveletPrior` (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
 - Add `Open in Colab` button to examples (:gh:`907` by `Minh Hai Nguyen`_)
+- Better diffraction blur generator with higher Zernike orders, rotation and apodization (:gh:`826` by `Minh Hai Nguyen`_)
+- Rotation transform via shear operations :func:`deepinv.transform.rotate.rotate_via_shear` for reduced interpolation artifacts (:gh:`826` by `Minh Hai Nguyen`_)
+- Zernike polynomials interface :class:`deepinv.physics.generator.Zernike` for any (n, m) order (:gh:`826` by `Minh Hai Nguyen`_)
 - Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (:gh:`893` by `Minh Hai Nguyen`_)
+
 
 Changed
 ^^^^^^^
@@ -48,6 +176,7 @@ Changed
 
 Fixed
 ^^^^^
+- (Breaking) Make the image saving logic in `Trainer` more conventional (:gh:`904` by `Jérémy Scanvic`_)
 - Blur physics objects now put new filters to physics device regardless of input filter device (:gh:`844` by `Vicky De Ridder`_)
 - Set14HR dataset now downloads from a different source (and has slightly different folderstructure), since old link broke. (:gh:`845` by `Vicky De Ridder`_)
 - LsdirHR dataset now downloads from a different source (since old link broke) and correctly contains the specific folder images, instead of everything in root (:gh:`866` by `Vicky De Ridder`_)
@@ -55,6 +184,7 @@ Fixed
 - Fix unhandled import error in CBSD68 if datasets is not installed (:gh:`868` by `Johannes Hertrich`_)
 - Add support for complex signals in PSNR (:gh:`738` by `Jérémy Scanvic`_)
 - Add a warning in SwinIR when upsampling parameters are inconsistent (:gh:`909` by `Jérémy Scanvic`_)
+- Fix formula error in Zernike polynomials, extend to higher order (:gh:`826` by `Minh Hai Nguyen`_)
 - Fix scaling of measurement and samples in posterior sampling with diffusion SDEs (:gh:`893` by `Minh Hai Nguyen`_)
 
 
@@ -81,7 +211,8 @@ Changed
 Fixed
 ^^^^^
 - Use the learning-free model for learning-free metrics in :class:`deepinv.Trainer` (:gh:`788` by `Jérémy Scanvic`_)
-- Fix device :func:`deepinv.utils.dirac_like` and :func:`deepinv.physics.blur.bilinear_filter`, :func:`deepinv.physics.blur.bicubic_filter` and :func:`deepinv.physics.blur.gaussian_blur` filters (:gh:`785` by `Julian Tachella`_)
+- Fix device :func:`deepinv.utils.dirac_like` and ``deepinv.physics.blur.bilinear_filter``, ``deepinv.physics.blur.bicubic_filter`` and ``deepinv.physics.blur.gaussian_blur`` filters (:gh:`785` by `Julian Tachella`_)
+- Fix device :func:`deepinv.utils.dirac_like` and :func:`deepinv.physics.functional.bilinear_filter`, :func:`deepinv.physics.functional.bicubic_filter` and :func:`deepinv.physics.functional.gaussian_blur` filters (:gh:`785` by `Julian Tachella`_)
 - Fix positivity + batching gamma least squares solvers (:gh:`785` by `Julian Tachella`_ and `Minh Hai Nguyen`_)
 - Fix and test :class:`deepinv.models.RAM` scaling issues (:gh:`785` by `Julian Tachella`_)
 - Reduced CI python version tests (:gh:`746` by `Matthieu Terris`_)
@@ -120,7 +251,7 @@ Fixed
 - NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
 - Fix the condition for break in compute_norm (:gh:`699` by `Quentin Barthélemy`_)
 - Python 3.9 backward compatibility and zip_strict (:gh:`707` by `Andrew Wang`_)
-- Fix numerical instability of :func:`deepinv.optim.utils.bicgstab` solver (:gh:`739` by `Minh Hai Nguyen`_)
+- Fix numerical instability of :func:`deepinv.optim.linear.bicgstab` solver (:gh:`739` by `Minh Hai Nguyen`_)
 
 
 v0.3.3
@@ -137,7 +268,7 @@ New Features
 Changed
 ^^^^^^^
 - Rename the normalizing function `deepinv.utils.rescale_img` to :func:`deepinv.utils.normalize_signal` (:gh:`641` by `Jérémy Scanvic`_)
-- Changed default linear solver from `CG` to :func:`deepinv.optim.utils.lsqr` (:gh:`658` by `Julian Tachella`_)
+- Changed default linear solver from `CG` to :func:`deepinv.optim.linear.lsqr` (:gh:`658` by `Julian Tachella`_)
 - Added positive clipping by default and gain minimum in :class:`deepinv.physics.PoissonGaussianNoise` (:gh:`658` by `Julian Tachella`_).
 
 Fixed
@@ -279,7 +410,7 @@ New Features
 - Added example on image generation, working for :class:`deepinv.models.NCSNpp`, :class:`deepinv.models.ADMUNet`, :class:`deepinv.models.DRUNet` and :class:`deepinv.models.DiffUNet` (by `Minh Hai Nguyen`_ and `Matthieu Terris`_)
 - Added VP-SDE for image generation and posterior sampling (:gh:`434` by `Minh Hai Nguyen`_)
 
-- global path for datasets :func:`deepinv.utils.get_data_home` (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
+- global path for datasets `deepinv.utils.get_data_home` (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - New docs user guide (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
@@ -523,3 +654,16 @@ Changed
 .. _Vicky De Ridder: https://github.com/nucli-vicky
 .. _Chaithya G R: https://github.com/chaithyagr
 .. _Alexander Skorikov: https://github.com/askorikov
+.. _Thibaut Modrzyk: https://github.com/Tmodrzyk
+.. _Avithal Lautman: https://github.com/avithal
+.. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
+.. _Tiberiu Sabau: https://github.com/tibisabau
+.. _Benoît Malézieux: https://github.com/bmalezieux
+.. _Paul Escande: https://pescande.perso.math.cnrs.fr/
+.. _Hossein Alimohammadi: https://github.com/Holimmo7
+.. _Laura C. Diaz-Delgado: https://github.com/LauraCD2
+.. _Paul Bernard: https://github.com/PAUL-BERNARD
+.. _Baptiste Legouix: https://github.com/blegouix
+.. _Kaibo Tang: https://github.com/kvttt
+.. _Irène Waldspurger: https://github.com/IWalds
+.. _Kushagra Shukla: https://github.com/Kushagra481

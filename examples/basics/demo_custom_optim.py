@@ -29,7 +29,7 @@ import deepinv as dinv
 import torch
 from deepinv.optim import PGD
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 
 # %%

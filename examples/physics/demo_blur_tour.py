@@ -7,12 +7,12 @@ In particular, we show how to use DiffractionBlurs (Fresnel diffraction), motion
 
 """
 
+# %%
 import torch
 
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.utils import load_example
-
 
 # %% Load test images
 # ----------------
@@ -44,7 +44,7 @@ torch.cuda.manual_seed(0)
 # The class :class:`deepinv.physics.Blur` implements convolution operations with kernels.
 #
 # For instance, here is the convolution of a grayscale image with a grayscale filter:
-filter_0 = dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=0.0)
+filter_0 = dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=0.0)
 physics = dinv.physics.Blur(filter_0, device=device)
 y = physics(x_gray)
 plot(
@@ -91,7 +91,7 @@ plot(
 
 # %%
 # One can also change the blur filter in the forward pass as follows:
-filter_90 = dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=90.0).to(
+filter_90 = dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=90.0).to(
     device=device, dtype=dtype
 )
 y = physics(x_rgb, filter=filter_90)
@@ -166,7 +166,7 @@ plot([f for f in filters["filter"]], suptitle="Different length and regularity")
 # Diffraction blur generators
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# We also implemented diffraction blurs obtained through Fresnel theory and definition of the psf through the pupil
+# We also implemented diffraction blurs obtained through Fourier optics and definition of the psf through the pupil
 # plane expanded in Zernike polynomials
 
 from deepinv.physics.generator import DiffractionBlurGenerator
@@ -182,10 +182,10 @@ filters = diffraction_generator.step(batch_size=3)
 
 # %%
 # In this case, the `step()` function returns a dictionary containing the filters,
-# their pupil function and Zernike coefficients:
+# their pupil function, Zernike coefficients and cutoff frequency:
 print(filters.keys())
 
-# Note that we use **0.2 to increase the image dynamics
+# Note that we use **0.5 to increase the image dynamics
 plot(
     [f for f in filters["filter"] ** 0.5],
     suptitle="Examples of randomly generated diffraction blurs",
@@ -203,20 +203,21 @@ print(filters["coeff"])
 
 # %%
 # We can change the cutoff frequency (below 1/4 to respect Shannon's sampling theorem)
-diffraction_generator = DiffractionBlurGenerator(
-    (psf_size, psf_size), fc=1 / 8, device=device, dtype=dtype
-)
-filters = diffraction_generator.step(batch_size=3)
+filters = diffraction_generator.step(batch_size=3, fc=1 / 8)
 plot(
     [f for f in filters["filter"] ** 0.5],
     suptitle="A different cutoff frequency",
 )
 
 # %%
+# We provide a helper property to get the list of Zernike polynomials used in the decomposition:
+zernike_polynomials = diffraction_generator.zernike_polynomials
+print("Zernike polynomials used:\n", "\n ".join(zernike_polynomials))
+
 # It is also possible to directly specify the Zernike decomposition.
 # For instance, if the pupil is null, the PSF is the Airy pattern
 n_zernike = len(
-    diffraction_generator.list_param
+    zernike_polynomials
 )  # number of Zernike coefficients in the decomposition
 filters = diffraction_generator.step(coeff=torch.zeros(3, n_zernike, device=device))
 plot(
@@ -225,15 +226,58 @@ plot(
 )
 
 # %%
-# Finally, notice that you can activate the aberrations you want in the ANSI
+# Notice that you can activate the aberrations you want in the ANSI/Noll
 # nomenclature https://en.wikipedia.org/wiki/Zernike_polynomials#OSA/ANSI_standard_indices
 diffraction_generator = DiffractionBlurGenerator(
-    (psf_size, psf_size), fc=1 / 8, list_param=["Z5", "Z6"], device=device, dtype=dtype
+    (psf_size, psf_size),
+    fc=1 / 8,
+    zernike_index=(
+        5,
+        6,
+    ),  # or equivalently zernike_index = ((2, 2), (3, -3)) for (n,m) indices
+    index_convention="ansi",
+    device=device,
+    dtype=dtype,
 )
 filters = diffraction_generator.step(batch_size=3)
 plot(
     [f for f in filters["filter"] ** 0.5],
     suptitle="PSF obtained with astigmatism only",
+)
+print(
+    "Zernike polynomials used:\n", "\n ".join(diffraction_generator.zernike_polynomials)
+)
+
+# %%
+# Generate physically consistent chromatic PSFs by passing a tuple of cutoff frequencies to ``step()``.
+# Each channel is assigned its own cutoff frequency ``fc = NA * pixel_size / lambda``,
+# which reproduces the wavelength-dependent diffraction limit.
+#
+# The Zernike coefficients represent wavefront errors in units of wavelength.
+# Therefore, keeping the same physical optical path difference (OPD) across
+# channels requires rescaling the coefficients approximately as
+# ``w(lambda) = w(lambda0) * lambda0 / lambda``.
+#
+# As a result, shorter wavelengths exhibit both a narrower diffraction pattern
+# and stronger phase aberrations for the same underlying physical wavefront.
+
+diffraction_generator = DiffractionBlurGenerator(
+    (psf_size, psf_size),
+    device=device,
+    dtype=dtype,
+)
+
+lambdaR = 650  # in nm
+lambdaG = 550  # in nm
+lambdaB = 450  # in nm
+NA = 1.51  # numerical aperture of oil
+pixel_size = 50  # in nm
+fc = (NA * pixel_size / lambdaR, NA * pixel_size / lambdaG, NA * pixel_size / lambdaB)
+
+filters = diffraction_generator.step(batch_size=3, fc=fc)
+plot(
+    [f for f in filters["filter"] ** 0.5],
+    suptitle="Chromatic PSFs",
 )
 
 # %%
@@ -259,8 +303,8 @@ for i in range(4):
     )
 
 # %%
-# Space varying blurs
-# --------------------
+# Space varying blurs with Eigen PSFs by product convolution
+# ----------------------------------------------------------
 #
 # Space varying blurs are also available using :class:`deepinv.physics.SpaceVaryingBlur`
 #
@@ -271,8 +315,8 @@ from deepinv.physics.generator import (
 )
 from deepinv.physics.blur import SpaceVaryingBlur
 
-img_size = (128, 128)
-n_eigenpsf = 3
+img_size = (256, 256)
+n_eigenpsf = 7
 spacing = (32, 32)
 padding = "valid"
 batch_size = 1
@@ -280,7 +324,7 @@ delta = 16
 
 # Now, scattered random psfs are synthesized and interpolated spatially
 pc_generator = ProductConvolutionBlurGenerator(
-    psf_generator=motion_generator,
+    psf_generator=MotionBlurGenerator((17, 17), device=device, dtype=dtype),
     img_size=img_size,
     n_eigen_psf=n_eigenpsf,
     spacing=spacing,
@@ -293,4 +337,80 @@ physics = SpaceVaryingBlur(**params_pc, device=device)
 
 dirac_comb = dinv.utils.dirac_comb((1, 1) + img_size, step=delta, device=device)
 psf_grid = physics(dirac_comb)
-plot(psf_grid, titles="Space varying impulse responses", rescale_mode="clip")
+plot(
+    psf_grid,
+    titles="Space varying impulse responses",
+    rescale_mode="clip",
+    figsize=(5, 5),
+)
+
+image = dinv.utils.load_example(
+    "celeba_example.jpg", img_size=img_size, resize_mode="resize", device=device
+)
+blurry_image = physics(image)
+plot(
+    [image, blurry_image],
+    titles=["Original image", "Blurry image"],
+    rescale_mode="clip",
+    figsize=(5, 5),
+)
+
+
+# %%
+# Space varying blur with tiles
+# -----------------------------
+#
+# While the :class:`deepinv.physics.blur.SpaceVaryingBlur` physics uses global eigen-PSFs to define the space varying blur, we also provide a local version of space varying blur with the :class:`deepinv.physics.TiledSpaceVaryingBlur` class. In this case, the image is decomposed into overlapping tiles, and each tile is convolved with a different kernel. The kernels are then blended together with a unity partition to ensure a smooth transition between tiles.
+
+# This physics is particularly useful for large images when one can perform local estimation of the PSFs.
+
+
+from deepinv.physics.blur import TiledSpaceVaryingBlur
+from deepinv.physics.generator import TiledBlurGenerator
+
+img_size = (512, 512)  # size of the image to blur
+patch_size = (128, 128)  # size of the tiles on which local convolution is performed
+stride = (64, 64)  # stride between tiles
+
+psf_generator = MotionBlurGenerator(
+    (25, 25),
+    device=device,
+    dtype=dtype,
+)
+
+generator = TiledBlurGenerator(
+    psf_generator=psf_generator, patch_size=patch_size, stride=stride, device=device
+)
+
+
+filters = generator.step(batch_size=batch_size, img_size=img_size)["filters"]
+
+physics = TiledSpaceVaryingBlur(
+    filters=filters,
+    patch_size=patch_size,
+    stride=stride,
+    device=device,
+    use_fft=True,
+)
+
+dirac_comb = dinv.utils.dirac_comb((1, 1) + img_size, step=32, device=device)
+
+y = physics(dirac_comb)
+
+plot(
+    y.abs() ** 0.5,
+    suptitle="Impulse responses of the tiled space varying blur",
+    figsize=(5, 5),
+)
+
+
+image = dinv.utils.load_example(
+    "celeba_example.jpg", img_size=img_size, resize_mode="resize", device=device
+)
+blurry_image = physics(image)
+plot(
+    [image, blurry_image],
+    titles=["Original image", "Blurry image"],
+    rescale_mode="clip",
+    figsize=(5, 5),
+)

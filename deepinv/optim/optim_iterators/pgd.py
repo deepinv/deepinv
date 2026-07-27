@@ -1,6 +1,12 @@
 from __future__ import annotations
 from .optim_iterator import OptimIterator, fStep, gStep
 from deepinv.optim.bregman import Bregman, BregmanL2
+from typing import TYPE_CHECKING
+import torch
+
+if TYPE_CHECKING:
+    from deepinv.optim import DataFidelity, Prior
+    from deepinv.physics import Physics
 
 
 class PGDIteration(OptimIterator):
@@ -12,12 +18,8 @@ class PGDIteration(OptimIterator):
     The iteration is given by
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         u_{k} &= x_k -  \gamma \nabla f(x_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_k),
-        \end{aligned}
-        \end{equation*}
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_k)
 
 
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/\operatorname{Lip}(\|\nabla f\|)`.
@@ -39,13 +41,9 @@ class FISTAIteration(OptimIterator):
     The iteration is given by
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         u_{k} &= z_k -  \gamma \nabla f(z_k) \\
         x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_k) \\
-        z_{k+1} &= x_{k+1} + \alpha_k (x_{k+1} - x_k),
-        \end{aligned}
-        \end{equation*}
+        z_{k+1} &= x_{k+1} + \alpha_k (x_{k+1} - x_k)
 
 
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
@@ -63,8 +61,16 @@ class FISTAIteration(OptimIterator):
             )
 
     def forward(
-        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
-    ):
+        self,
+        X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        cur_data_fidelity: DataFidelity,
+        cur_prior: Prior,
+        cur_params: dict,
+        y: torch.Tensor,
+        physics: Physics,
+        *args,
+        **kwargs,
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor | int]:
         r"""
         Forward pass of an iterate of the FISTA algorithm.
 
@@ -110,15 +116,23 @@ class fStepPGD(fStep):
     def __init__(self, **kwargs):
         super(fStepPGD, self).__init__(**kwargs)
 
-    def forward(self, x, cur_data_fidelity, cur_params, y, physics):
+    def forward(
+        self,
+        x: torch.Tensor,
+        cur_data_fidelity: DataFidelity,
+        cur_params: dict,
+        y: torch.Tensor,
+        physics: Physics,
+    ) -> torch.Tensor:
         r"""
          Single PGD iteration step on the data-fidelity term :math:`f`.
 
-         :param torch.Tensor x: Current iterate :math:`x_k`.
-         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
+        :param torch.Tensor x: Current iterate :math:`x_k`.
+        :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
-         :param torch.Tensor y: Input data.
-         :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
+        :param torch.Tensor y: Input data.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the data-fidelity term.
         """
         if not self.g_first:
             grad = cur_params["stepsize"] * cur_data_fidelity.grad(x, y, physics)
@@ -135,13 +149,16 @@ class gStepPGD(gStep):
     def __init__(self, **kwargs):
         super(gStepPGD, self).__init__(**kwargs)
 
-    def forward(self, x, cur_prior, cur_params):
+    def forward(
+        self, x: torch.Tensor, cur_prior: Prior, cur_params: dict
+    ) -> torch.Tensor:
         r"""
         Single iteration step on the prior term :math:`\lambda \regname`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param dict cur_prior: Dictionary containing the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the prior term.
         """
         if not self.g_first:
             return cur_prior.prox(
@@ -167,12 +184,8 @@ class PMDIteration(OptimIterator):
     For a given Bregman convex potential :math:`h`, the iteration is given by
 
     .. math::
-        \begin{equation*}
-        \begin{aligned}
         u_{k} &= \nabla h^*(\nabla h(x_k) - \gamma \nabla f(x_k)) \\
         x_{k+1} &= \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)
-        \end{aligned}
-        \end{equation*}
 
 
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex.
@@ -197,7 +210,14 @@ class fStepPMD(fStep):
         super(fStepPMD, self).__init__(**kwargs)
         self.bregman_potential = bregman_potential
 
-    def forward(self, x, cur_data_fidelity, cur_params, y, physics):
+    def forward(
+        self,
+        x: torch.Tensor,
+        cur_data_fidelity: DataFidelity,
+        cur_params: dict,
+        y: torch.Tensor,
+        physics: Physics,
+    ):
         r"""
          Single Proximal Mirror Descent iteration step on the data-fidelity term :math:`f`.
 
@@ -207,6 +227,7 @@ class fStepPMD(fStep):
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
         :param deepinv.optim.Bregman Bregman potential used for Bregman optimization algorithms such as Mirror Descent.
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the data-fidelity term.
         """
         if not self.g_first:
             grad = cur_params["stepsize"] * cur_data_fidelity.grad(x, y, physics)
@@ -228,7 +249,9 @@ class gStepPMD(gStep):
         super(gStepPMD, self).__init__(**kwargs)
         self.bregman_potential = bregman_potential
 
-    def forward(self, x, cur_prior, cur_params):
+    def forward(
+        self, x: torch.Tensor, cur_prior: Prior, cur_params: dict
+    ) -> torch.Tensor:
         r"""
         Single iteration step on the prior term :math:`\lambda g`.
 
@@ -236,6 +259,7 @@ class gStepPMD(gStep):
         :param dict cur_prior: Dictionary containing the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param deepinv.optim.Bregman Bregman potential used for Bregman optimization algorithms such as Mirror Descent.
+        :return: (:class:`torch.Tensor`) Updated variable after one step on the prior term.
         """
         if not self.g_first:
             return cur_prior.bregman_prox(

@@ -3,13 +3,15 @@
    :alt: deepinv logo
    :align: center
 
+|pip install| |stars| |discord| |colab| |youtube| |paper|
 
-|Test Status| |GPU Test Status|  |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab| |youtube| |paper|
-
+|Test Status| |GPU Test Status|  |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov|
 
 Introduction
 ------------
-`DeepInverse <https://deepinv.github.io/deepinv>`_ is an open-source PyTorch-based library for solving imaging inverse problems with deep learning. ``deepinv`` accelerates deep learning research across imaging domains, enhances research reproducibility via a common modular framework of problems and algorithms, and lowers the entrance bar to new practitioners.
+`DeepInverse <https://deepinv.org>`_ is an open-source PyTorch-based library for solving imaging inverse problems with deep learning.
+The library is part of the `official PyTorch Ecosystem <https://pytorch.landscape2.io/?item=modeling--computer-vision--deepinverse>`_.
+``deepinv`` accelerates deep learning research across imaging domains, enhances research reproducibility via a common modular framework of problems and algorithms, and lowers the entrance bar to new practitioners.
 
 
 .. image:: https://github.com/deepinv/deepinv/raw/main/docs/source/figures/deepinv_schematic.png
@@ -20,16 +22,16 @@ Introduction
 Get started
 -----------
 
-Read our **documentation** at `deepinv.github.io <https://deepinv.github.io>`_. Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_, or our `User Guide <https://deepinv.github.io/deepinv/user_guide.html>`_.
+Read our **documentation** at `deepinv.org <https://deepinv.org>`_. Check out our `5 minute quickstart tutorial <https://deepinv.org/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.org/auto_examples/index.html>`_, or our `User Guide <https://deepinv.org/user_guide.html>`_.
 
 ``deepinv`` features
 
-* A large framework of `predefined imaging operators <https://deepinv.github.io/deepinv/user_guide/physics/physics.html>`_
-* Many `state-of-the-art deep neural networks <https://deepinv.github.io/deepinv/user_guide/reconstruction/introduction.html>`_, including pretrained out-of-the-box `reconstruction models <https://deepinv.github.io/deepinv/user_guide/reconstruction/pretrained-models.html>`_ and `denoisers <https://deepinv.github.io/deepinv/user_guide/reconstruction/denoisers.html>`_ 
-* Comprehensive frameworks for `plug-and-play restoration <https://deepinv.github.io/deepinv/user_guide/reconstruction/iterative.html>`_, `optimization <https://deepinv.github.io/deepinv/user_guide/reconstruction/optimization.html>`_ and `unfolded architectures <https://deepinv.github.io/deepinv/user_guide/reconstruction/unfolded.html>`_
-* `Training losses <https://deepinv.github.io/deepinv/user_guide/training/loss.html>`_ for inverse problems
-* `Sampling algorithms and diffusion models <https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html>`_ for uncertainty quantification
-* A framework for `building datasets <https://deepinv.github.io/deepinv/user_guide/training/datasets.html>`_ for inverse problems
+* A large framework of `predefined imaging operators <https://deepinv.org/user_guide/physics/physics.html>`_
+* Many `state-of-the-art deep neural networks <https://deepinv.org/user_guide/reconstruction/introduction.html>`_, including pretrained out-of-the-box `reconstruction models <https://deepinv.org/user_guide/reconstruction/pretrained-models.html>`_ and `denoisers <https://deepinv.org/user_guide/reconstruction/denoisers.html>`_ 
+* Comprehensive frameworks for `plug-and-play restoration <https://deepinv.org/user_guide/reconstruction/iterative.html>`_, `optimization <https://deepinv.org/user_guide/reconstruction/optimization.html>`_ and `unfolded architectures <https://deepinv.org/user_guide/reconstruction/unfolded.html>`_
+* `Training losses <https://deepinv.org/user_guide/training/loss.html>`_ for inverse problems
+* `Sampling algorithms and diffusion models <https://deepinv.org/user_guide/reconstruction/sampling.html>`_ for uncertainty quantification
+* A framework for `building datasets <https://deepinv.org/user_guide/training/datasets.html>`_ for inverse problems
 
 Mailing list
 ~~~~~~~~~~~~
@@ -39,17 +41,12 @@ Mailing list
 Install
 -------
 
-Install the latest stable release of ``deepinv``:
+Install the latest stable release of ``deepinv`` with python 3.10 or higher
+(see `docs <https://deepinv.org/#install>`_ installing with `uv`, `pixi` and `conda`):
 
 .. code-block:: bash
 
    pip install deepinv
-
-Or, use `uv` for a faster install:
-
-.. code-block:: bash
-
-   uv pip install deepinv
 
 Or, to also install optional dependencies:
 
@@ -86,11 +83,11 @@ Get in touch with our `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main
 Contributing
 ------------
 
-DeepInverse is a `community-driven project <https://deepinv.github.io/deepinv/community.html>`_ and we encourage contributions of all forms.
+DeepInverse is a `community-driven project <https://deepinv.org/community.html>`_ and we encourage contributions of all forms.
 We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there! 
 
-Interested? `Check out how you can contribute <https://deepinv.github.io/deepinv/contributing.html>`_!
+Interested? `Check out how you can contribute <https://deepinv.org/contributing.html>`_!
 
 Citation
 --------
@@ -115,21 +112,21 @@ If you use DeepInverse in your research, please cite `our paper on JOSS <https:/
 Star history
 ------------
 
-.. image:: https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date
+.. image:: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
    :alt: Star History Chart
-   :target: https://www.star-history.com/#deepinv/deepinv&Date
+   :target: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
 
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
-.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml/badge.svg
-   :target: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml
-.. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg
+.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_cpu.yml/badge.svg?branch=main&event=push
+   :target: https://github.com/deepinv/deepinv/actions/workflows/test_cpu.yml
+.. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg?branch=main&event=push
    :target: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml
-.. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
-   :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
-.. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml/badge.svg
-   :target: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml
+.. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml
+.. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml/badge.svg?branch=main&event=push
+   :target: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml
 .. |Python Version| image:: https://img.shields.io/badge/python-3.10%2B-blue
    :target: https://www.python.org/downloads/release/python-3100/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
@@ -144,3 +141,5 @@ Star history
    :target: https://www.youtube.com/@deepinv
 .. |paper| image:: https://joss.theoj.org/papers/10.21105/joss.08923/status.svg
    :target: https://doi.org/10.21105/joss.08923
+.. |stars| image:: https://img.shields.io/github/stars/deepinv/deepinv?style=flat&label=%E2%AD%90%20Star%20us%20on%20GitHub
+   :target: https://github.com/deepinv/deepinv

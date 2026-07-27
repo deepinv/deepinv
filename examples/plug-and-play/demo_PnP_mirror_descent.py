@@ -42,7 +42,7 @@ CKPT_DIR = BASE_DIR / "ckpts"
 torch.manual_seed(0)
 
 img_size = 64
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 x_true = load_example("butterfly.png", img_size=img_size).to(device)
 x = x_true.clone()
 
@@ -56,7 +56,7 @@ noise_level_img = 1 / 40  # Poisson Noise gain
 # Generate the gaussian blur operator with Poisson noise.
 physics = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
-    filter=dinv.physics.blur.gaussian_blur(),
+    filter=dinv.physics.functional.gaussian_blur(),
     device=device,
     noise_model=dinv.physics.PoissonNoise(gain=noise_level_img),
 )

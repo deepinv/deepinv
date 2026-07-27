@@ -20,7 +20,7 @@ from deepinv.physics import Ptychography
 from deepinv.optim.data_fidelity import L1
 from deepinv.optim.phase_retrieval import correct_global_phase
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 
 # %%

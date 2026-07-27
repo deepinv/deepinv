@@ -18,7 +18,6 @@ from torchvision import transforms
 from deepinv.utils.parameters import get_GSPnP_params
 from deepinv.utils import load_dataset, load_degradation
 
-
 # %%
 # Setup paths for data loading and results.
 # --------------------------------------------------------
@@ -32,7 +31,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # Set the global random seed from pytorch to ensure
 # the reproducibility of the example.
 torch.manual_seed(0)
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Load base image datasets and degradation operators.

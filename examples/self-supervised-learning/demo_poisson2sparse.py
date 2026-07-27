@@ -11,7 +11,6 @@ This method is based on the paper "Poisson2Sparse" :footcite:t:`ta2022poisson2sp
 import deepinv as dinv
 import torch
 
-
 # %%
 # Load a Poisson corrupted image
 # ------------------------------
@@ -76,3 +75,8 @@ dinv.utils.plot(
     titles=["Measurement", "Poisson2Sparse", "Ground truth"],
     subtitles=[f"{learning_free_psnr:.1f} dB", f"{model_psnr:.1f} dB", ""],
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

@@ -19,7 +19,6 @@ from deepinv.optim import PGD
 from torchvision import transforms
 from deepinv.utils import load_dataset, load_degradation
 
-
 # %%
 # Setup paths for data loading and results.
 # ----------------------------------------------------------------------------------------
@@ -34,7 +33,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Load base image datasets and degradation operators.
@@ -75,8 +74,8 @@ noise_level_img = 0.03
 # Generate a motion blur operator.
 kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
 kernel_torch = load_degradation("Levin09.npy", DEG_DIR / "kernels", index=kernel_index)
-kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
-    0
+kernel_torch = (
+    kernel_torch.unsqueeze(0).unsqueeze(0).to(torch.float32)
 )  # add batch and channel dimensions
 
 # Generate the gaussian blur downsampling operator.

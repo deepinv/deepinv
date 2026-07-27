@@ -34,13 +34,13 @@ The **forward-time SDE** is defined as follows, from time :math:`0` to :math:`T`
 
     d x_t = f(t) x_t dt + g(t) d w_t.
 
-where :math:`w_t` is a Brownian process. 
+where :math:`w_t` is a Brownian process.
 Let :math:`p_t` denote the distribution of the random vector :math:`x_t`.
 Under this forward process, we have that:
 
 .. math::
 
-    x_t \vert x_0 \sim \mathcal{N} \left( s(t) x_0, \frac{\sigma(t)^2}{s(t)^2} \mathrm{I} \right),
+    x_t \vert x_0 \sim \mathcal{N} \left( s(t) x_0, \left( s(t)\sigma(t) \right)^2 \mathrm{I} \right),
 
 where the **scaling** over time is :math:`s(t) = \exp\left( \int_0^t f(r) d\,r \right)` and
 the **normalized noise level** is :math:`\sigma(t) = \sqrt{\int_0^t \frac{g(r)^2}{s(r)^2} d\,r}`.
@@ -57,7 +57,7 @@ Tweedie's formula:
 
 .. math::
 
-    \nabla \log p_t(x_t) =  \frac{\mathbb{E}\left[ s(t)x_0|x_t \right] -  x_t }{s(t)^2\sigma(t)^2} \approx \frac{s(t) \denoiser{\frac{x_t}{s(t)}}{\sigma(t)} -  x_t }{s(t)^2\sigma(t)^2}.
+    \nabla \log p_t(x_t) =  \frac{  s(t) \mathbb{E}\left[x_0|x_t \right] -  x_t }{s(t)^2\sigma(t)^2} \approx \frac{s(t) \denoiser{\frac{x_t}{s(t)}}{\sigma(t)} -  x_t }{s(t)^2\sigma(t)^2}.
 
 where :math:`\denoiser{\cdot}{\sigma}` is a denoiser trained to denoise images with noise level :math:`\sigma`
 that is :math:`\denoiser{x+\sigma\omega}{\sigma} \approx \mathbb{E} [ x|x+\sigma\omega ]` with :math:`\omega\sim\mathcal{N}(0,\mathrm{I})`.
@@ -67,7 +67,7 @@ that is :math:`\denoiser{x+\sigma\omega}{\sigma} \approx \mathbb{E} [ x|x+\sigma
     Using a normalized noise levels :math:`\sigma(t)` and scalings :math:`s(t)` lets us use `any denoiser in the library <denoisers>`_
     trained for multiple noise levels assuming pixel values are in the range :math:`[0,1]`.
 
-Starting from a random point following the end-point distribution :math:`p_T` of the forward process, 
+Starting from a random point following the end-point distribution :math:`p_T` of the forward process,
 solving the reverse-time SDE gives us a sample of the data distribution :math:`p_0`.
 
 The base classes for defining a SDEs are :class:`deepinv.sampling.BaseSDE` and :class:`deepinv.sampling.DiffusionSDE`.
@@ -83,7 +83,7 @@ The base classes for defining a SDEs are :class:`deepinv.sampling.BaseSDE` and :
 
    * - :class:`Variance Exploding <deepinv.sampling.VarianceExplodingDiffusion>`
      - :math:`0`
-     - :math:`\sigma_{\mathrm{min}}\left(\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t`
+     - :math:`\sigma(t) \sqrt{2 \log \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)}`
      - :math:`1`
      - :math:`\sigma_{\mathrm{min}}\left(\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t`
 
@@ -97,6 +97,8 @@ Solvers
 ~~~~~~~
 
 Once the SDE is defined, we can obtain an approximate sample with any of the following solvers:
+
+.. _sde_ode_solvers:
 
 .. list-table:: SDE/ODE solvers
    :header-rows: 1
@@ -122,21 +124,28 @@ In the case of posterior sampling, we need simply to replace the (unconditional)
 by the conditional score function :math:`\nabla \log p_t(x_t|y)`. The conditional score can be decomposed using the Bayes' rule:
 
 .. math::
+    \nabla_{x_t} \log p_t(x_t | y) &= \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t \left(y \vert x_t \right) \\
+                            &= \nabla_{x_t} \log p_t(x_t) + \frac{1}{s_t} \nabla_{\hat x_t} \log \hat p_t \left(y \vert \hat x_{t} = \frac{x_t}{s(t)} = x_0 + \sigma(t) \omega \right).
 
-    \nabla \log p_t(x_t | y) = \nabla \log p_t(x_t) + \nabla \log p_t \left(y \vert \frac{x_t}{s(t)} = x_0 + \sigma(t)\omega\right).
+where :math:`\hat p_t` stands for the distribution of the unscaled data :math:`x_t / s(t)`.
+The first term is the unconditional score function and can be approximated by using a denoiser as explained previously.
+The second term is the conditional score function, which is untractable:
 
-The first term is the unconditional score function and can be approximated by using a denoiser as explained previously. 
-The second term is the conditional score function, and can be approximated by the (noisy) data-fidelity term.
-We implement the following data-fidelity terms, which inherit from the :class:`deepinv.sampling.NoisyDataFidelity` base class.
+.. math::
+
+  \hat p_t(y | \hat x_t) = \int p(y|x_0) p(x_0 | \hat x_t = x_0 + \sigma(t) \omega) dx_0 .
+
+This likelihood term :math:`\log \hat p_t`, that we call noisy data-fidelity term, can be approximated in different ways.
+We implement the following noisy data-fidelity terms, which inherit from the :class:`deepinv.sampling.NoisyDataFidelity` base class.
 
 .. list-table:: Noisy data-fidelity terms
    :header-rows: 1
 
    * - **Class**
-     - :math:`\nabla_x \log p_t(y|x + \epsilon\sigma(t))`
+     - :math:`\nabla_{\hat x_t} \log \hat p_t(y| \hat x_t = x + \sigma_t \omega)`
 
    * - :class:`deepinv.sampling.DPSDataFidelity`
-     - :math:`\nabla_x \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|`
+     - :math:`\nabla_{\hat x_t} \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{\hat x_t}{\sigma_t}} - y \|`
 
 
 .. _diffusion_custom:
@@ -172,7 +181,7 @@ Uncertainty quantification
 
 Diffusion methods obtain a single sample per call. If multiple samples are required, the
 :class:`deepinv.sampling.DiffusionSampler` can be used to convert a diffusion method into a sampler that
-obtains multiple samples to compute posterior statistics such as the mean or variance. 
+obtains multiple samples to compute posterior statistics such as the mean or variance.
 It uses the helper class :class:`deepinv.sampling.DiffusionIterator` to interface diffusion samplers with :class:`deepinv.sampling.BaseSampling`.
 
 .. _mcmc:
@@ -225,7 +234,7 @@ A custom iterator needs to implement two methods:
 
 *   ``initialize_latent_variables(self, x_init, y, physics, data_fidelity, prior)``: This method sets up the initial state of your Markov chain. It receives the initial image estimate :math:`x_{\text{init}}`, measurements :math:`y`, the physics operator, data fidelity term, and prior. It should return a dictionary representing the initial state :math:`X_0`, which must include the image as ``{"x": x_init, ...}`` and can include any other latent variables your sampler requires. The default (non overridden) behavior is returning ``{"x":x_init}``
 
-*   ``forward(self, X, y, physics, data_fidelity, prior, iteration_number, **iterator_specific_params)``: This method defines a single step of your MCMC algorithm. It takes the previous state :math:`X` (a dictionary containing at least the previous image ``{"x": x, ...}``), measurements :math:`y`, the data fidelity, the prior, and returns the new state :math:`X_{next}` (again, a dictionary including ``{"x": x_next, ...}``). 
+*   ``forward(self, X, y, physics, data_fidelity, prior, iteration_number, **iterator_specific_params)``: This method defines a single step of your MCMC algorithm. It takes the previous state :math:`X` (a dictionary containing at least the previous image ``{"x": x, ...}``), measurements :math:`y`, the data fidelity, the prior, and returns the new state :math:`X_{next}` (again, a dictionary including ``{"x": x_next, ...}``).
 
 
 Some predefined iterators are provided:

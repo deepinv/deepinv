@@ -1,21 +1,39 @@
 from __future__ import annotations
-import torch
-import torch.nn as nn
 import numpy as np
-import torch.nn.functional as F
+
+import torch
 from torch import Tensor
+
+import torch.nn as nn
+import torch.nn.functional as F
+
 from torch.nn import Linear, GroupNorm
+
 from itertools import chain
+import os
+import io
+import contextlib
+import socket
+import urllib.error
+
+from deepinv.utils.io import DownloadError
 
 
-def tensor2array(img):
+def tensor2array(img: Tensor) -> np.ndarray:
     img = img.cpu().detach().numpy()
-    img = np.transpose(img, (1, 2, 0))
+    if img.shape[0] == 1:  # Grayscale case: cast to numpy format (W,H)
+        img = img[0]
+    else:  # All other cases: cast to numpy format (W,H,C)
+        img = np.transpose(img, (1, 2, 0))
     return img
 
 
-def array2tensor(img):
-    return torch.from_numpy(img).permute(2, 0, 1)
+def array2tensor(img: np.ndarray) -> Tensor:
+    if len(img.shape) == 2:  # Grayscale case: back to (1,W,H)
+        out = torch.from_numpy(img).unsqueeze(0)
+    else:  # All other cases: back to (C,W,H)
+        out = torch.from_numpy(img).permute(2, 0, 1)
+    return out
 
 
 def get_weights_url(model_name, file_name):
@@ -108,7 +126,7 @@ def fix_dim(dim: str | int) -> int:
 
 
 def conv_nd(dim: int) -> nn.Module:
-    return {2: nn.Conv2d, 3: nn.Conv3d}[dim]
+    return {1: nn.Conv1d, 2: nn.Conv2d, 3: nn.Conv3d}[dim]
 
 
 def batchnorm_nd(dim: int) -> nn.Module:
@@ -124,7 +142,7 @@ def maxpool_nd(dim: int) -> nn.Module:
 
 
 def avgpool_nd(dim: int) -> nn.Module:
-    return {2: nn.AvgPool2d, 3: nn.AvgPool3d}[dim]
+    return {1: nn.AvgPool1d, 2: nn.AvgPool2d, 3: nn.AvgPool3d}[dim]
 
 
 def instancenorm_nd(dim: int) -> nn.Module:
@@ -163,19 +181,20 @@ def weight_init(shape, mode, fan_in, fan_out):
 class UpDownConv2d(torch.nn.Module):
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        kernel,
-        bias=True,
-        up=False,
-        down=False,
+        in_channels: int,
+        out_channels: int,
+        kernel: int,
+        bias: bool = True,
+        up: bool = False,
+        down: bool = False,
         resample_filter=(1, 1),
-        fused_resample=False,
-        init_mode="kaiming_normal",
-        init_weight=1,
-        init_bias=0,
+        fused_resample: bool = False,
+        init_mode: str = "kaiming_normal",
+        init_weight: float = 1,
+        init_bias: float = 0,
     ):
-        assert not (up and down)
+        if up and down:  # pragma: no cover
+            raise ValueError("up and down cannot both be True")
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -204,7 +223,7 @@ class UpDownConv2d(torch.nn.Module):
         f = f.outer(f).unsqueeze(0).unsqueeze(1) / f.sum().square()
         self.register_buffer("resample_filter", f if up or down else None)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         w = self.weight.to(x.dtype) if self.weight is not None else None
         b = self.bias.to(x.dtype) if self.bias is not None else None
         f = (
@@ -427,3 +446,101 @@ class FourierEmbedding(torch.nn.Module):
         x = x.outer((2 * np.pi * self.freqs).to(x.dtype))
         x = torch.cat([x.cos(), x.sin()], dim=1)
         return x
+
+
+def initialize_3d_from_2d(
+    model_3d: nn.Module, ckpt_2d: dict[str, torch.Tensor], isotropic: bool = False
+) -> None:
+    r"""
+    Initialize a 3D model's Conv3d and ConvTranspose3d layers from a its 2D counterpart layers.
+    Useful when no pretrained 3D weights are available.
+
+    :param nn.Module model_3d: 3D model to be initialized.
+    :param dict[str, torch.Tensor] ckpt_2d: state_dict of the 2D counterpart of model_3d.
+    :param bool isotropic: If True, for odd kernel sizes, the weights are copied to the center slice
+        of all three dimensions and averaged. For even kernel sizes, the 2D weights are
+        divided by the kernel size and copied to all slices in all three dimensions. Otherwise,
+        only the depth dimension is considered.
+    """
+    for name, module in model_3d.named_modules():
+        if isinstance(module, (nn.Conv3d, nn.ConvTranspose3d)):
+            module.weight.data[:] = 0.0
+            with torch.no_grad():
+                if module.kernel_size[0] % 2 == 1:
+                    if isotropic:
+                        module.weight[:, :, module.kernel_size[0] // 2 + 1] = ckpt_2d[
+                            f"{name}.weight"
+                        ]
+
+                        module.weight[
+                            :, :, :, module.kernel_size[1] // 2 + 1, :
+                        ] += ckpt_2d[f"{name}.weight"]
+
+                        module.weight[..., module.kernel_size[2] // 2 + 1] += ckpt_2d[
+                            f"{name}.weight"
+                        ]
+
+                        module.weight /= 3.0
+                    else:
+                        module.weight[:, :, module.kernel_size[0] // 2 + 1] = ckpt_2d[
+                            f"{name}.weight"
+                        ]
+                else:
+                    if isotropic:
+                        module.weight[:] = (
+                            ckpt_2d[f"{name}.weight"][:, :, None]
+                            / module.kernel_size[0]
+                        )
+                        module.weight[:] += (
+                            ckpt_2d[f"{name}.weight"][:, :, :, None]
+                            / module.kernel_size[1]
+                        )
+                        module.weight[:] += (
+                            ckpt_2d[f"{name}.weight"][..., None] / module.kernel_size[2]
+                        )
+                        module.weight /= 3.0
+                    else:
+                        module.weight[:] = (
+                            ckpt_2d[f"{name}.weight"][:, :, None]
+                            / module.kernel_size[0]
+                        )
+
+                if module.bias is not None:
+                    module.bias[:] = ckpt_2d[f"{name}.bias"]
+
+
+def load_state_dict_from_url(*args, **kwargs) -> dict:
+    """
+    A wrapper for :func:`torch.hub.load_state_dict_from_url` that respects the `DEEPINV_DOWNLOAD_VERBOSE`
+    environment variable. If set to 0, stdout prints are suppressed.
+
+    Network-level failures (HTTP errors, connection failures, timeouts) are
+    re-raised as :class:`deepinv.utils.DownloadError` so they can be handled
+    uniformly with other deepinv downloads.
+    """
+    # Read the environment variable. Default to "1" (True/Verbose) if not set.
+    env_value = os.environ.get("DEEPINV_DOWNLOAD_VERBOSE", "1").lower()
+
+    # Check if the user explicitly turned verbosity off
+    is_silent = env_value in ("0", "false", "no", "f")
+
+    # Choose the context manager based on the is_silent flag
+    if is_silent:
+        ctx = contextlib.redirect_stdout(io.StringIO())
+        # Optional: Also force progress=False to hide the stderr progress bar
+        kwargs["progress"] = False
+    else:
+        # nullcontext() does nothing, allowing stdout to print normally
+        ctx = contextlib.nullcontext()
+
+    try:
+        with ctx:
+            return torch.hub.load_state_dict_from_url(*args, **kwargs)
+    except (
+        urllib.error.URLError,
+        ConnectionError,
+        TimeoutError,
+        socket.gaierror,
+    ) as exc:
+        url = args[0] if args else kwargs.get("url", "<unknown>")
+        raise DownloadError(f"Failed to download state dict from {url}: {exc}") from exc

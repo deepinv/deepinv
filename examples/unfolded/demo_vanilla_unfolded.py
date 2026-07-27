@@ -7,6 +7,7 @@ The DnCNN denoiser and the algorithm parameters (stepsize, regularization parame
 For simplicity, we show how to train the algorithm on a  small dataset. For optimal results, use a larger dataset.
 """
 
+# %%
 import deepinv as dinv
 import torch
 from deepinv.models.utils import get_weights_url
@@ -15,7 +16,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim import DRS
 from torchvision import transforms
-from deepinv.utils import get_data_home
+from deepinv.utils import get_cache_home
 from deepinv.datasets import BSDS500
 
 # %%
@@ -23,7 +24,7 @@ from deepinv.datasets import BSDS500
 # ----------------------------------------------------------------------------------------
 #
 
-BASE_DIR = get_data_home()
+BASE_DIR = get_cache_home() / "demo_unfolded_sr"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 CKPT_DIR = BASE_DIR / "ckpts"
@@ -31,7 +32,7 @@ CKPT_DIR = BASE_DIR / "ckpts"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Load base image datasets and degradation operators.
@@ -58,12 +59,8 @@ train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
 # Define the base train and test datasets of clean images.
-train_base_dataset = BSDS500(
-    BASE_DIR, download=True, train=True, transform=train_transform
-)
-test_base_dataset = BSDS500(
-    BASE_DIR, download=False, train=False, transform=test_transform
-)
+train_base_dataset = BSDS500(download=True, train=True, transform=train_transform)
+test_base_dataset = BSDS500(download=False, train=False, transform=test_transform)
 
 # Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous
 # dataloading.

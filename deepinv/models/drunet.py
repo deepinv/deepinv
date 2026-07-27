@@ -13,13 +13,11 @@ from .utils import (
     instancenorm_nd,
     maxpool_nd,
     avgpool_nd,
+    initialize_3d_from_2d,
+    load_state_dict_from_url,
 )
 from .base import Denoiser
-from typing import Sequence  # noqa: F401
 from collections import OrderedDict
-
-cuda = True if torch.cuda.is_available() else False
-Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
 class DRUNet(Denoiser):
@@ -34,6 +32,8 @@ class DRUNet(Denoiser):
     A pretrained network for (in_channels=out_channels=1 or in_channels=out_channels=3)
     can be downloaded via setting ``pretrained='download'``.
 
+    .. tip:: This model can handle non-uniform `sigma` maps, which can be of size `(batch_size, 1, height, width)`.
+
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
     :param Sequence[int,int,int,int] nc: number of channels per convolutional layer, the network has a fixed number of 4 scales with ``nb`` blocks per scale (default: ``[64,128,256,512]``).
@@ -45,11 +45,24 @@ class DRUNet(Denoiser):
         shuffling, and "upconv" for nearest neighbour upsampling with additional convolution. "pixelshuffle" is not implemented for 3D.
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
-        online repository (only available for the default architecture with 3 or 1 input/output channels).
+        online repository (only available for the default architecture with 3 or 1 input/output channels). When building a 3D network, it is possible to initialize with 2D pretrained weights by using ``pretrained='download_2d'``, which provides a good starting point for fine-tuning.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
+    :param bool pretrained_2d_isotropic: when loading 2D pretrained weights into a 3D network, whether to initialize the 3D kernels isotropically. By default the weights are loaded axially, i.e., by initializing the central slice of the 3D kernels with the 2D weights.
     :param torch.device, str device: Device to put the model on.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
+
+    |sep|
+
+    :Examples:
+
+        >>> import deepinv as dinv
+        >>> import torch
+        >>> denoiser = dinv.models.DRUNet()
+        >>> y = torch.randn(1, 3, 32, 32)
+        >>> sigma = 0.1
+        >>> with torch.no_grad():
+        ...     denoised = denoiser(y, sigma)
 
     """
 
@@ -63,6 +76,7 @@ class DRUNet(Denoiser):
         downsample_mode: str = "strideconv",
         upsample_mode: str = "convtranspose",
         pretrained: str | None = "download",
+        pretrained_2d_isotropic: bool = False,
         device: torch.device | str = None,
         dim: str | int = 2,
     ):
@@ -150,17 +164,17 @@ class DRUNet(Denoiser):
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode="C", dim=dim)
         if pretrained is not None:
-            if pretrained == "download":
-                if dim == 3:  # pragma: no cover
+            if pretrained == "download" or pretrained == "download_2d":
+                if dim == 3 and pretrained == "download":  # pragma: no cover
                     raise ValueError(
-                        "No 3D weights for DRUNet are available for download. Please set pretrained to None or path to your own pretrained weights."
+                        "No 3D weights for DRUNet are available for download. You can either initialize with 2D weights by using `download_2d`, which provides a good starting point for fine-tuning, or set pretrained to None or path to your own pretrained weights."
                     )
                 if in_channels == 4:
                     name = "drunet_deepinv_color_finetune_22k.pth"
                 elif in_channels == 2:
                     name = "drunet_deepinv_gray_finetune_26k.pth"
                 url = get_weights_url(model_name="drunet", file_name=name)
-                ckpt_drunet = torch.hub.load_state_dict_from_url(
+                ckpt_drunet = load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
             else:
@@ -168,7 +182,12 @@ class DRUNet(Denoiser):
                     pretrained, map_location=lambda storage, loc: storage
                 )
 
-            self.load_state_dict(ckpt_drunet, strict=True)
+            if dim == 3 and pretrained == "download_2d":
+                initialize_3d_from_2d(
+                    self, ckpt_drunet, isotropic=pretrained_2d_isotropic
+                )
+            else:
+                self.load_state_dict(ckpt_drunet, strict=True)
             self.eval()
         else:
             self.apply(weights_init_drunet)
@@ -196,30 +215,49 @@ class DRUNet(Denoiser):
 
         :param torch.Tensor x: noisy image
         :param float, torch.Tensor sigma: noise level. If ``sigma`` is a float, it is used for all images in the batch.
-            If ``sigma`` is a tensor, it must be of shape ``(batch_size,)``.
+            If ``sigma`` is a tensor, it can be of shape ``(batch_size,)`` or ``(batch_size, 1, height, width, (depth))``.
         """
         if isinstance(sigma, torch.Tensor):
             if sigma.ndim > 0:
-                noise_level_map = sigma.view(x.size(0), 1, 1, 1)
-                noise_level_map = noise_level_map.expand(-1, 1, x.size(2), x.size(3))
+                if sigma.shape == (x.size(0), 1, *x.shape[2:]):
+                    noise_level_map = sigma
+                elif sigma.shape in [
+                    (x.size(0),),
+                    (x.size(0), 1, *[1 for _ in range(self.dim)]),
+                ]:
+
+                    noise_level_map = sigma.view(
+                        x.size(0), 1, *[1 for _ in range(self.dim)]
+                    )
+                    noise_level_map = noise_level_map.expand(
+                        -1, 1, *[x.size(2 + i) for i in range(self.dim)]
+                    )
+                else:
+                    raise ValueError(
+                        f"Incorrect shape, sigma should be of shape (1,), (batch_size,) or (batch_size, 1, height, width, (depth)), got {tuple(sigma.shape)}"
+                    )
             else:
                 noise_level_map = torch.ones(
                     (x.size(0), 1, *x.shape[2:]), device=x.device
-                ) * sigma[None, None, None, None].to(x.device)
+                ) * sigma.to(x.device)
         else:
-            noise_level_map = (
-                torch.ones((x.size(0), 1, *x.shape[2:]), device=x.device) * sigma
+            noise_level_map = torch.full(
+                (x.size(0), 1, *x.shape[2:]),
+                sigma,
+                device=x.device,
+                dtype=x.dtype,
             )
+
         x = torch.cat((x, noise_level_map), 1)
         shape_is_safe = all((s % 8 == 0 and s > 31) for s in x.shape[2:])
         if shape_is_safe:
             x = self.forward_unet(x)
-        elif self.training or (x.size(2) < 32 or x.size(3) < 32):
+        elif self.training or any([x.size(2 + i) < 64 for i in range(self.dim)]):
             x = test_pad(self.forward_unet, x, modulo=16)
         else:
-            if self.dim == 3:  # pragma: no cover
+            if self.dim == 3:
                 raise NotImplementedError(
-                    f"test_onesplit is not implemented yet for 3D. Please pass images with spatial shape smaller than 32, or multiple of 8 and larger than 32 to DRUNet."
+                    f"test_onesplit is not implemented yet for 3D. Please pass images with spatial shape smaller than 64, or multiple of 8 and larger than 31 to DRUNet."
                 )
             x = test_onesplit(self.forward_unet, x, refield=64)
         return x

@@ -2,7 +2,7 @@ r"""
 Reducing the memory and computational complexity of unfolded network training
 ====================================================================================================
 
-Some unfolded architectures rely on a :func:`least-squares solver <deepinv.optim.utils.least_squares>` to compute the proximal step w.r.t. the data-fidelity term (e.g., :class:`ADMM <deepinv.optim.optim_iterators.ADMMIteration>` or :class:`HQS <deepinv.optim.optim_iterators.HQSIteration>`):  
+Some unfolded architectures rely on a :func:`least-squares solver <deepinv.optim.linear.least_squares>` to compute the proximal step w.r.t. the data-fidelity term (e.g., :class:`ADMM <deepinv.optim.optim_iterators.ADMMIteration>` or :class:`HQS <deepinv.optim.optim_iterators.HQSIteration>`):  
 
 .. math::  
 
@@ -92,7 +92,7 @@ train_loader = DataLoader(
     shuffle=True,
 )
 physics = dinv.physics.Blur(
-    filter=dinv.physics.blur.gaussian_blur(sigma=(2.5, 2.5)),
+    filter=dinv.physics.functional.gaussian_blur(sigma=(2.5, 2.5)),
     padding="valid",
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=0.1),

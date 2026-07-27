@@ -4,7 +4,7 @@ Low-dose CT with ASTRA backend and Total-Variation (TV) prior
 
 This example shows how to use the Astra tomography toolbox with deepinv, a popular toolbox for tomography with GPU acceleration.
 
-We show how to use the :class:`deepinv.physics.TomographyWithAstra` operator (which wraps the [astra-toolbox](https://astra-toolbox.com/) backend) to solve a low-dose computed tomography problem with Total-Variation regularization.
+We show how to use the :class:`deepinv.physics.TomographyWithAstra` operator (which wraps the `astra-toolbox <https://astra-toolbox.com/>`_ backend) to solve a low-dose computed tomography problem with Total-Variation regularization.
 
 :class:`deepinv.physics.TomographyWithAstra` requires the astra-toolbox to function correctly, which can be easily installed using the command: `conda install -c astra-toolbox -c nvidia astra-toolbox`.
 
@@ -30,7 +30,7 @@ else:
         "The TomographyWithAstra operator runs with astra backend"
     )
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 if device == "cpu":
     raise RuntimeError(
@@ -76,6 +76,7 @@ physics = TomographyWithAstra(
     geometry_type="fanbeam",
     n_detector_pixels=2 * img_size,
     geometry_parameters={"source_radius": 800.0, "detector_radius": 200.0},
+    normalize=False,
 )
 observation = physics(test_imgs)
 fbp = physics.A_dagger(observation)
