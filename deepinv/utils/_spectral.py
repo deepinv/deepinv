@@ -7,7 +7,7 @@ import torch
 
 def _dst1(x: torch.Tensor, *, dim: int = -1, inverse: bool) -> torch.Tensor:
     r"""
-    Compute the one-dimensional discrete sine transform of type I (DST-I) or its inverse (IDST-I)
+    Compute the one-dimensional `discrete sine transform <https://en.wikipedia.org/wiki/Discrete_sine_transform>`_ of type I (DST-I) or its inverse (IDST-I)
 
     This implementation computes the real discrete Fourier transform of the input tensor along one of its dimensions using the formula:
 
