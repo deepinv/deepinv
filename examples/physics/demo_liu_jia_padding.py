@@ -1,8 +1,19 @@
-"""
+r"""
 Real-World Non-blind Image Deblurring with Liu-Jia Padding
 ==========================================================
 
-This demo demonstrates the effectiveness of Liu-Jia padding in non-blind image deblurring tasks.
+Real-world blurry images have decorrelated opposite boundaries, unlike images synthetically
+blurred using circular filters. This makes the use of spectral deconvolution methods (inverse
+filtering, Wiener filtering) impractical and prone to ringing artifacts.
+:func:`Liu-Jia padding <deepinv.physics.functional.liu_jia_pad>` :footcite:p:`liu2008reducing`
+is a pre-processing step that pads the input image to make it have smooth circular boundaries,
+while preserving the original spectral content as much as possible.
+
+The implementation used here is adapted from `the one <https://github.com/cszn/USRNet>`_
+featured in the work of :footcite:t:`zhang2020deep`.
+
+This demo compares deconvolution with and without Liu-Jia padding, for both inverse filtering
+and Wiener filtering, on a realistic blurred image obtained using valid (cropped) convolution instead of circular convolution.
 """
 
 import torch
