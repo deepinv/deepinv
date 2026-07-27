@@ -384,7 +384,7 @@ def test_dst1_non_regression(device, shape):
 @pytest.mark.parametrize("shape", [(1, 1, 8, 8), (2, 3, 10, 6)])
 @pytest.mark.parametrize("padding", [(1, 1), (3, 2)])
 @pytest.mark.parametrize("alpha", [1, 2])
-def test_liu_jia_pad(shape, padding):
+def test_liu_jia_pad(shape, padding, alpha):
     torch.manual_seed(0)
     B, C, H, W = shape
     pad_h, pad_w = padding
