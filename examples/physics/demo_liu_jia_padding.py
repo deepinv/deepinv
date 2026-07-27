@@ -37,69 +37,55 @@ dinv.utils.plot(
     ["Input", "Blur kernel", "Blurry"],
 )
 
+
 # %%
 # Deconvolution
 # -------------
+class SpectralDeconvolution(dinv.models.Reconstructor):
+    def __init__(self, liu_jia_padding: bool, kind: str, gamma: float = 1e4):
+        super().__init__()
+        self.liu_jia_padding = liu_jia_padding
+        self.kind = kind
+        self.gamma = gamma
+
+    def forward(self, y: torch.Tensor, physics: dinv.physics.Physics) -> torch.Tensor:
+        # Optional padding
+        if self.liu_jia_padding:
+            H, W = y.shape[-2:]
+            padding = (H // 4, W // 4)
+            y = dinv.physics.functional.liu_jia_pad(y, padding=padding)
+            margin = (
+                (y.shape[-2] - H) // 2,
+                (y.shape[-1] - W) // 2,
+            )
+        else:
+            margin = None
+
+        # Spectral deconvolution
+        kernel = physics.filter
+        physics_circular = dinv.physics.BlurFFT(filter=kernel, img_size=y.shape[1:])
+        match self.kind:
+            case "inverse":
+                x_hat = physics_circular.A_dagger(y)
+            case "wiener":
+                x_hat = physics_circular.prox_l2(y=y, z=0, gamma=self.gamma)
+            case _:
+                raise ValueError(f"Unknown deconvolution kind: {self.kind}")
+
+        # Clipping to attenuate artifacts
+        x_hat = x_hat.clip(0, 1)
+
+        # Cropping if Liu-Jia padding was used
+        if margin is not None:
+            x_hat = x_hat[..., margin[0] : -margin[0], margin[1] : -margin[1]]
+
+        return x_hat
 
 
-def deblur(
-    y: torch.Tensor,
-    *,
-    kernel: torch.Tensor,
-    liu_jia_padding: bool,
-    deconvolution_kind: str,
-    eps: float = 1e-3,
-) -> torch.Tensor:
-    # Liu-Jia Padding
-    if liu_jia_padding:
-        H, W = y.shape[-2:]
-        padding = (H // 4, W // 4)
-        y = dinv.physics.functional.liu_jia_pad(y, padding=padding)
-        margin = (
-            (y.shape[-2] - H) // 2,
-            (y.shape[-1] - W) // 2,
-        )
-    else:
-        margin = None
-
-    # Deconvolution
-    # 1. Pad k to make it the size of y with the central tap at (0,0)
-    k = torch.nn.functional.pad(
-        kernel,
-        (
-            0,
-            y.shape[-1] - kernel.shape[-1],
-            0,
-            y.shape[-2] - kernel.shape[-2],
-        ),
-    )
-    k = k.roll(shifts=(-(kernel.shape[-2] // 2), -(kernel.shape[-1] // 2)), dims=(2, 3))
-    # 2. Compute the OTF
-    otf = torch.fft.fft2(k)
-    # 3. Compute the DFT of y
-    x_hat = torch.fft.fft2(y)
-    # 4. Apply the inverse filter formula
-    if deconvolution_kind == "inverse":
-        x_hat = x_hat / (otf + eps)
-    elif deconvolution_kind == "wiener":
-        x_hat = torch.conj(otf) * x_hat / (torch.abs(otf) ** 2 + eps)
-    elif deconvolution_kind == "richardson-lucy":
-        raise NotImplementedError("Richardson-Lucy deconvolution is not implemented")
-    else:
-        raise ValueError(f"Unknown filter kind: {deconvolution_kind}")
-    # 5. Compute the inverse DFT
-    x_hat = torch.fft.ifft2(x_hat).real
-    # 6. Clip
-    x_hat = torch.clamp(x_hat, 0, 1)
-    # 7. Quantize
-    x_hat = torch.round(x_hat * 255) / 255
-
-    # Cropping
-    if margin is not None:
-        x_hat = x_hat[..., margin[0] : -margin[0], margin[1] : -margin[1]]
-
-    return x_hat
-
+model_inv_pad = SpectralDeconvolution(liu_jia_padding=True, kind="inverse")
+model_inv_nopad = SpectralDeconvolution(liu_jia_padding=False, kind="inverse")
+model_wiener_pad = SpectralDeconvolution(liu_jia_padding=True, kind="wiener")
+model_wiener_nopad = SpectralDeconvolution(liu_jia_padding=False, kind="wiener")
 
 # Comparisons
 # y and x_hat are the size of the valid-convolution output of the blur, which is smaller than x
@@ -107,43 +93,35 @@ psnr_fn = dinv.metric.PSNR(center_crop=y.shape[-2:])
 base_psnr = psnr_fn(y, x).item()
 
 # Compare Liu-Jia padding vs no padding for inverse filtering
-x_hat_liu_jia_padding = deblur(
-    y, kernel=kernel, liu_jia_padding=True, deconvolution_kind="inverse", eps=1e-1
-)
-x_hat_no_padding = deblur(
-    y, kernel=kernel, liu_jia_padding=False, deconvolution_kind="inverse", eps=1e-1
-)
+x_hat_inv_pad = model_inv_pad(y, physics)
+x_hat_inv_nopad = model_inv_nopad(y, physics)
 
-psnr_liu_jia_padding = psnr_fn(x_hat_liu_jia_padding, x).item()
-psnr_no_padding = psnr_fn(x_hat_no_padding, x).item()
+psnr_inv_pad = psnr_fn(x_hat_inv_pad, x).item()
+psnr_inv_nopad = psnr_fn(x_hat_inv_nopad, x).item()
 
 dinv.utils.plot(
-    [x, y, x_hat_liu_jia_padding, x_hat_no_padding],
+    [x, y, x_hat_inv_pad, x_hat_inv_nopad],
     [
         f"GT",
         f"Blurry {base_psnr:.1f} dB",
-        f"Liu-Jia Padding {psnr_liu_jia_padding:.1f} dB",
-        f"No Padding {psnr_no_padding:.1f} dB",
+        f"Liu-Jia Padding {psnr_inv_pad:.1f} dB",
+        f"No Padding {psnr_inv_nopad:.1f} dB",
     ],
 )
 
 # Compare Liu-Jia padding vs no padding for Wiener deconvolution
-x_hat_liu_jia_padding = deblur(
-    y, kernel=kernel, liu_jia_padding=True, deconvolution_kind="wiener"
-)
-x_hat_no_padding = deblur(
-    y, kernel=kernel, liu_jia_padding=False, deconvolution_kind="wiener"
-)
+x_hat_wiener_pad = model_wiener_pad(y, physics)
+x_hat_wiener_nopad = model_wiener_nopad(y, physics)
 
-psnr_liu_jia_padding = psnr_fn(x_hat_liu_jia_padding, x).item()
-psnr_no_padding = psnr_fn(x_hat_no_padding, x).item()
+psnr_wiener_pad = psnr_fn(x_hat_wiener_pad, x).item()
+psnr_wiener_nopad = psnr_fn(x_hat_wiener_nopad, x).item()
 
 dinv.utils.plot(
-    [x, y, x_hat_liu_jia_padding, x_hat_no_padding],
+    [x, y, x_hat_wiener_pad, x_hat_wiener_nopad],
     [
         f"GT",
         f"Blurry {base_psnr:.1f} dB",
-        f"Liu-Jia Padding {psnr_liu_jia_padding:.1f} dB",
-        f"No Padding {psnr_no_padding:.1f} dB",
+        f"Liu-Jia Padding {psnr_wiener_pad:.1f} dB",
+        f"No Padding {psnr_wiener_nopad:.1f} dB",
     ],
 )
