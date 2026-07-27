@@ -379,3 +379,19 @@ def test_dst1_non_regression(device, shape):
 
     assert ref.shape == new.shape
     assert torch.allclose(ref, new, rtol=1e-4, atol=1e-5)
+
+
+@pytest.mark.parametrize("shape", [(1, 1, 8, 8), (2, 3, 10, 6)])
+@pytest.mark.parametrize("padding", [(1, 1), (3, 2)])
+def test_liu_jia_pad(shape, padding):
+    torch.manual_seed(0)
+    B, C, H, W = shape
+    pad_h, pad_w = padding
+    x = torch.rand(*shape)
+
+    y = dF.liu_jia_pad(x, padding=padding)
+
+    assert y.shape == (B, C, H + 2 * pad_h, W + 2 * pad_w)
+
+    center = y[..., pad_h : pad_h + H, pad_w : pad_w + W]
+    assert torch.equal(center, x)
