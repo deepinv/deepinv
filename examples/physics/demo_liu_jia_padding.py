@@ -46,10 +46,10 @@ dinv.utils.plot(
 #
 # .. math::
 #
-#      Y(f) = S(f) X(f)
+#      Y(f) = H(f) X(f)
 #
 # where :math:`X` is the Fourier transform of the original image, :math:`Y` is the
-# Fourier transform of the blurry image, and :math:`S` is the Fourier transform of
+# Fourier transform of the blurry image, and :math:`H` is the Fourier transform of
 # the blur kernel.
 #
 # Inverse filtering is implemented by ``BlurFFT.A_dagger`` and
@@ -57,14 +57,14 @@ dinv.utils.plot(
 #
 # .. math::
 #
-#     \hat{X}(f) = \frac{Y(f)}{S(f)}
+#     \hat{X}(f) = \frac{Y(f)}{H(f)}
 #
 # and Wiener filtering is implemented by ``BlurFFT.prox_l2`` and
 # it is defined by the equation
 #
 # .. math::
 #
-#    \hat{X}(f) = \frac{S^*(f)}{|S(f)|^2 + 1/\mathrm{SNR}(f)} Y(f)
+#    \hat{X}(f) = \frac{H^*(f)}{|H(f)|^2 + 1 / \mathrm{SNR}(f)} Y(f)
 #
 # where the SNR depends on the power spectral density of the input image and
 # noise. In our case we assume it is an arbitrary constant that we tune manually.
