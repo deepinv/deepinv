@@ -34,7 +34,7 @@ and optimize it through the adversarial objective
 where :math:`R` is the denoiser. The denoiser is encouraged to align predictions
 with noisy observations and reduce noise correlation with the input noisy image,
 while the re-corruption model is trained to maximize this noise correlation. The
-central idea is that the constraint family indexed by :math:`h \in \mathcal{H}`
+central idea is that the re-corruptor architecture should be expressive enough to capture the unknown noise distribution.
 should be rich enough to capture the unknown noise distribution.
 
 To build measurements, we choose a noise model in the physics simulator. By default,
