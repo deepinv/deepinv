@@ -65,7 +65,7 @@ def deblur(
     if liu_jia_padding:
         H, W = y.shape[-2:]
         padding = (H // 4, W // 4)
-        y = dinv.utils.liu_jia_pad(y, padding=padding)
+        y = dinv.physics.functional.liu_jia_pad(y, padding=padding)
         margin = (
             (y.shape[-2] - H) // 2,
             (y.shape[-1] - W) // 2,
