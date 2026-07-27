@@ -117,3 +117,6 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
    * - :func:`deepinv.physics.functional.sinc_filter`
      - Generates a sinc filter kernel, used for ideal low-pass filtering in signal processing and image resampling.
 
+   * - :func:`deepinv.physics.functional.liu_jia_pad`
+     - Pads an image to have smooth circular boundaries while preserving its spectral content, reducing ringing artifacts in spectral deconvolution.
+
