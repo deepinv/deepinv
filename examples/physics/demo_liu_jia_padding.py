@@ -115,32 +115,40 @@ model_inv_nopad = SpectralDeconvolution(liu_jia_padding=False, kind="inverse")
 model_wiener_pad = SpectralDeconvolution(liu_jia_padding=True, kind="wiener")
 model_wiener_nopad = SpectralDeconvolution(liu_jia_padding=False, kind="wiener")
 
-# Comparisons
-# y and x_hat are the size of the valid-convolution output of the blur, which is smaller than x
-psnr_fn = dinv.metric.PSNR(center_crop=y.shape[-2:])
-base_psnr = psnr_fn(y, x).item()
+# %%
+# Results
+# -------
+# Liu-Jia padding gives better performance (PSNR) and produces images with less
+# severe ringing artifacts compared to the baselines.
 
-# Compare Liu-Jia padding vs no padding for inverse filtering
+# Define the metric
+psnr_fn = dinv.metric.PSNR(center_crop=y.shape[-2:])
+
+# Estimate the sharp image for each model
 x_hat_inv_pad = model_inv_pad(y, physics)
 x_hat_inv_nopad = model_inv_nopad(y, physics)
 x_hat_wiener_pad = model_wiener_pad(y, physics)
 x_hat_wiener_nopad = model_wiener_nopad(y, physics)
 
+# Compute the performance metrics
+psnr_blurry = psnr_fn(y, x).item()
 psnr_inv_pad = psnr_fn(x_hat_inv_pad, x).item()
 psnr_inv_nopad = psnr_fn(x_hat_inv_nopad, x).item()
 psnr_wiener_pad = psnr_fn(x_hat_wiener_pad, x).item()
 psnr_wiener_nopad = psnr_fn(x_hat_wiener_nopad, x).item()
 
+# Plot results for inverse filtering
 dinv.utils.plot(
     [x, y, x_hat_inv_pad, x_hat_inv_nopad],
     [ "GT", "Blurry", "Liu-Jia", "Regular" ],
-    subtitles=["", f"{base_psnr:.1f} dB", f"{psnr_inv_pad:.1f} dB", f"{psnr_inv_nopad:.1f} dB"],
+    subtitles=["", f"{psnr_blurry:.1f} dB", f"{psnr_inv_pad:.1f} dB", f"{psnr_inv_nopad:.1f} dB"],
     suptitle="Deblurring with Inverse Filtering"
 )
 
+# Plot results for Wiener filtering
 dinv.utils.plot(
     [x, y, x_hat_wiener_pad, x_hat_wiener_nopad],
     [ "GT", "Blurry", "Liu-Jia", "Regular" ],
-    subtitles=["", f"{base_psnr:.1f} dB", f"{psnr_wiener_pad:.1f} dB", f"{psnr_wiener_nopad:.1f} dB"],
+    subtitles=["", f"{psnr_blurry:.1f} dB", f"{psnr_wiener_pad:.1f} dB", f"{psnr_wiener_nopad:.1f} dB"],
     suptitle="Deblurring with Wiener Filtering"
 )
