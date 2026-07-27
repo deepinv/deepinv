@@ -69,6 +69,7 @@ dinv.utils.plot(
 # where the SNR depends on the power spectral density of the input image and
 # noise. In our case we assume it is an arbitrary constant that we tune manually.
 
+
 class SpectralDeconvolution(dinv.models.Reconstructor):
     def __init__(self, liu_jia_padding: bool, kind: str, gamma: float = 1e4):
         super().__init__()
@@ -140,15 +141,25 @@ psnr_wiener_nopad = psnr_fn(x_hat_wiener_nopad, x).item()
 # Plot results for inverse filtering
 dinv.utils.plot(
     [x, y, x_hat_inv_pad, x_hat_inv_nopad],
-    [ "GT", "Blurry", "Liu-Jia", "Regular" ],
-    subtitles=["", f"{psnr_blurry:.1f} dB", f"{psnr_inv_pad:.1f} dB", f"{psnr_inv_nopad:.1f} dB"],
-    suptitle="Deblurring with Inverse Filtering"
+    ["GT", "Blurry", "Liu-Jia", "Regular"],
+    subtitles=[
+        "",
+        f"{psnr_blurry:.1f} dB",
+        f"{psnr_inv_pad:.1f} dB",
+        f"{psnr_inv_nopad:.1f} dB",
+    ],
+    suptitle="Deblurring with Inverse Filtering",
 )
 
 # Plot results for Wiener filtering
 dinv.utils.plot(
     [x, y, x_hat_wiener_pad, x_hat_wiener_nopad],
-    [ "GT", "Blurry", "Liu-Jia", "Regular" ],
-    subtitles=["", f"{psnr_blurry:.1f} dB", f"{psnr_wiener_pad:.1f} dB", f"{psnr_wiener_nopad:.1f} dB"],
-    suptitle="Deblurring with Wiener Filtering"
+    ["GT", "Blurry", "Liu-Jia", "Regular"],
+    subtitles=[
+        "",
+        f"{psnr_blurry:.1f} dB",
+        f"{psnr_wiener_pad:.1f} dB",
+        f"{psnr_wiener_nopad:.1f} dB",
+    ],
+    suptitle="Deblurring with Wiener Filtering",
 )
