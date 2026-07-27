@@ -380,7 +380,7 @@ def liu_jia_pad(
     :param int alpha: Border width for Liu-Jia padding (default: 1)
     :return: Padded tensor of shape (B, C, H + 2 * pad_h, W + 2 * pad_w)
     """
-    if x.ndim != 4:
+    if x.ndim != 4:  # pragma: no cover
         raise ValueError("Input tensor must be 4-dimensional (B, C, H, W)")
 
     padding_h = 2 * padding[0]
