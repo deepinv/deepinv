@@ -186,7 +186,7 @@ class Learning2RecorruptLoss(Loss):
 
     class L2RModel(torch.nn.Module):
         r"""
-        Model wrapper when using  Learning to Recorrupt Loss.
+        Model wrapper when using Learning to Recorrupt Loss.
 
         This wrapper injects trainable recorruption noise before calling the underlying
         reconstruction model, and optionally stores the sampled corruption during
