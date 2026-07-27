@@ -3,6 +3,8 @@ import torch
 
 from math import sqrt, pi
 
+from .dst import dst1
+
 
 def _resolve_batch_size(
     sigma: int | float | tuple[float, ...] | torch.Tensor,
@@ -363,50 +365,6 @@ def bilinear_filter(
     return w.unsqueeze(0).unsqueeze(0)
 
 
-def _dst1(x: torch.Tensor, *, dim: int = -1, inverse: bool) -> torch.Tensor:
-    r"""
-    Compute the one-dimensional `discrete sine transform <https://en.wikipedia.org/wiki/Discrete_sine_transform>`_ of type I (DST-I) or its inverse (IDST-I)
-
-    This implementation computes the real discrete Fourier transform of the input tensor along one of its dimensions using the formula:
-
-    .. math::
-
-        \mathrm{DST-I}(x_k) = - \frac{1}{2} \Im(\mathrm{DFT}(y_(k+1))),
-
-    .. math::
-
-        \mathrm{IDST-I}(x_k) = - \frac{1}{N + 1} \Im(\mathrm{DFT}(y_(k+1))).
-
-    :param torch.Tensor x: Input tensor.
-    :param int dim: Dimension along which to compute the transform. Default is -1 (the last dimension).
-    :param bool inverse: If True, compute the inverse DST-I (IDST-I). If False, compute the DST-I.
-    :return: Transformed tensor.
-    """
-    # Compute the DST-I or IDST-I from the DFT of y
-    N = x.shape[dim]
-
-    # Compute y the odd extension of x
-    # y = (0, x_1, ..., x_N, 0, -x_N, ..., -x_1)
-    shape_zeros = list(x.shape)
-    shape_zeros[dim] = 1
-    zeros = torch.zeros(shape_zeros, dtype=x.dtype, device=x.device)
-    x_flipped = torch.flip(x, dims=[dim])
-    y = torch.cat([zeros, x, zeros, -x_flipped], dim=dim)
-
-    # Compute the DFT of y
-    y = torch.fft.rfft(y, dim=dim, norm="backward")
-    y = y.narrow(dim, 1, N)
-
-    # Set the coefficient for forward and inverse transforms
-    if not inverse:
-        c = -1 / 2
-    else:
-        c = -1 / (N + 1)
-
-    # Compute the transform
-    return c * y.imag
-
-
 def liu_jia_pad(
     x: torch.Tensor, *, padding: tuple[int, int], alpha: int = 1
 ) -> torch.Tensor:
@@ -479,8 +437,8 @@ def liu_jia_pad(
         laplacian = laplacian[..., 1:-1, 1:-1]
 
         # compute sine tranform
-        laplacian = _dst1(laplacian, dim=-2, inverse=False)
-        laplacian = _dst1(laplacian, dim=-1, inverse=False)
+        laplacian = dst1(laplacian, dim=-2, inverse=False, orthosf=False)
+        laplacian = dst1(laplacian, dim=-1, inverse=False, orthosf=False)
 
         # compute Eigen Values
         u = torch.arange(1, H - 1)
@@ -492,8 +450,8 @@ def liu_jia_pad(
         )
 
         # compute Inverse Sine Transform
-        laplacian = _dst1(laplacian, dim=-2, inverse=True)
-        laplacian = _dst1(laplacian, dim=-1, inverse=True)
+        laplacian = dst1(laplacian, dim=-2, inverse=True, orthosf=False)
+        laplacian = dst1(laplacian, dim=-1, inverse=True, orthosf=False)
 
         # put solution in inner points; outer points obtained from boundary image
         x[..., 1:-1, 1:-1] = laplacian
