@@ -15,12 +15,9 @@ x = dinv.utils.load_example("butterfly.png", img_size=256).to(device)
 # Define blur kernel and physics
 gaussian_std = 1.0
 ksize = 6 * math.ceil(gaussian_std) + 1
-u = torch.arange(ksize, device=device) - ksize // 2
-v = torch.arange(ksize, device=device) - ksize // 2
-u, v = torch.meshgrid(u, v, indexing="ij")
-kernel = torch.exp(-(u**2 + v**2) / (2 * gaussian_std**2))
-kernel /= kernel.sum()
-kernel = kernel.unsqueeze(0).unsqueeze(0)
+kernel = dinv.physics.functional.gaussian_blur(
+    psf_size=(ksize, ksize), sigma=gaussian_std, device=device
+)
 physics = dinv.physics.Blur(filter=kernel, padding="valid")
 
 
