@@ -352,7 +352,7 @@ def test_gaussian_blur_non_regression(device, sigma, angle):
 
 # NOTE: This test is a non-regression test that checks that the current
 # implementation of dst1 in deepinv.physics.functional.dst1 (with
-# inverse=False, orthosf=True, dim=-1) produces the same output as the
+# inverse=False, orthosf=True, dim=(-1,)) produces the same output as the
 # original implementation of dst1, which only supported the orthogonal
 # sign-flipped DST-I along the last dimension.
 @pytest.mark.parametrize("shape", [(4,), (3, 8), (2, 3, 7), (5, 1)])
@@ -377,7 +377,7 @@ def test_dst1_non_regression(device, shape):
     x = torch.randn(*shape, device=device)
 
     ref = dst1_legacy(x)
-    new = dF.dst1(x, dim=-1, inverse=False, orthosf=True)
+    new = dF.dst1(x, dim=(-1,), inverse=False, orthosf=True)
 
     assert ref.shape == new.shape
     assert torch.allclose(ref, new, rtol=1e-4, atol=1e-5)

@@ -380,8 +380,7 @@ def _solve_liu_jia(x: torch.Tensor) -> None:
     )
 
     z = -laplacian[..., 1:-1, 1:-1]
-    z = dst1(z, dim=-2, inverse=False, orthosf=False)
-    z = dst1(z, dim=-1, inverse=False, orthosf=False)
+    z = dst1(z, dim=(-2, -1), inverse=False, orthosf=False)
 
     f_h = torch.arange(1, H - 1, device=x.device, dtype=x.dtype)
     f_w = torch.arange(1, W - 1, device=x.device, dtype=x.dtype)
@@ -392,8 +391,7 @@ def _solve_liu_jia(x: torch.Tensor) -> None:
         + 2 * torch.cos(torch.pi * f_w / (W - 1)) - 2
     )
 
-    z = dst1(z, dim=-2, inverse=True, orthosf=False)
-    z = dst1(z, dim=-1, inverse=True, orthosf=False)
+    z = dst1(z, dim=(-2, -1), inverse=True, orthosf=False)
 
     x[..., 1:-1, 1:-1] = z
 
