@@ -365,11 +365,44 @@ def bilinear_filter(
     return w.unsqueeze(0).unsqueeze(0)
 
 
-def _solve_liu_jia(x: torch.Tensor) -> None:
+def _biharmonic_inpainting(x: torch.Tensor) -> None:
+    """
+    Biharmonic inpainting
+
+    The biharmonic inpainting of an image :math:`x` smooth at the image
+    boundary and zero inside the boundary is a smooth image :math:`y`
+    such that :math:`x` and :math:`y` are equal on the boundary and
+    :math:`\nabla^2 y = 0` inside the boundary, where :math:`\nabla^2` is the
+    Laplacian operator :footcite:p:`damelin2018surface`.
+
+    In the discrete setting, the boundary is one pixel thick and the Laplacian
+    operator is approximated by the 5-point stencil. It can be diagonalized in
+    the discrete sine transform of type I (DST-I) basis, which gives the
+    formula:
+
+    .. math::
+
+        y = \mathcal{S}^{-1} \mathrm{diag}(d) \mathcal{S} \nabla^2 x + x
+
+    where :math:`\mathcal{S}` and :math:`\mathcal{S}^{-1}` are the DST-I and
+    its inverse, :math:`d` is the eigenvalues of the 5-point Laplacian operator
+    :math:`\nabla^2`. The eigenvalues :math:`d` are given by
+
+    .. math::
+
+        d_{k,l} = -\frac{1}{2 (\cos(\pi k / (H - 1)) + \cos(\pi l / (W - 1)) - 2)} \quad k = 0, \ldots, H - 1, \quad l = 0, \ldots, W - 1
+
+    .. note::
+
+        This function is used in the Liu-Jia padding :func:`deepinv.physics.functional.liu_jia_pad`.
+
+    .. warning::
+
+        This function modifies the input image in-place and it assumes that it
+        is zero outside the one pixel thick boundary.
+    """
     H, W = x.shape[-2:]
 
-    # Laplacian
-    # boundary image contains image intensities at boundaries
     laplacian = torch.zeros_like(x)
     laplacian[..., 1 : H - 1, 1 : W - 1] = (
         x[..., 1:-1, 2:]
@@ -379,14 +412,14 @@ def _solve_liu_jia(x: torch.Tensor) -> None:
         - 4 * x[..., 1:-1, 1:-1]
     )
 
-    z = -laplacian[..., 1:-1, 1:-1]
+    z = laplacian[..., 1:-1, 1:-1]
     z = dst1(z, dim=(-2, -1), inverse=False, orthosf=False)
 
     f_h = torch.arange(1, H - 1, device=x.device, dtype=x.dtype)
     f_w = torch.arange(1, W - 1, device=x.device, dtype=x.dtype)
     f_h, f_w = torch.meshgrid(f_h, f_w, indexing="ij")
 
-    z = z / (
+    z = -z / (
         2 * torch.cos(torch.pi * f_h / (H - 1)) - 2
         + 2 * torch.cos(torch.pi * f_w / (W - 1)) - 2
     )
@@ -464,15 +497,15 @@ def liu_jia_pad(
     stop_h = A.shape[-2] - (alpha - 1)
     stop_w = B.shape[-1] - (alpha - 1)
 
-    _solve_liu_jia(A[..., alpha - 1 : stop_h, :])
-    _solve_liu_jia(B[..., :, alpha - 1 : stop_w])
+    _biharmonic_inpainting(A[..., alpha - 1 : stop_h, :])
+    _biharmonic_inpainting(B[..., :, alpha - 1 : stop_w])
 
     C[..., :alpha, :] = B[..., -alpha:, :]
     C[..., -alpha:, :] = B[..., :alpha, :]
     C[..., :, :alpha] = A[..., :, -alpha:]
     C[..., :, -alpha:] = A[..., :, :alpha]
 
-    _solve_liu_jia(C[..., alpha - 1 : stop_h, alpha - 1 : stop_w])
+    _biharmonic_inpainting(C[..., alpha - 1 : stop_h, alpha - 1 : stop_w])
 
     # Crop the boundary
     A = A[..., alpha - 1 : -alpha - 1, :]
