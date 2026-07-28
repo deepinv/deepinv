@@ -20,9 +20,18 @@ import torch
 import deepinv as dinv
 import math
 
+# For reproducilibity
+torch.manual_seed(0)
+torch.cuda.manual_seed_all(0)
+torch.backends.cudnn.deterministic = True
+
+# Select the device
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
+# Load in the test image
 x = dinv.utils.load_example("butterfly.png", img_size=256).to(device)
 
+# Define the blur parameters
 gaussian_std = 1.0
 ksize = 6 * math.ceil(gaussian_std) + 1
 kernel = dinv.physics.functional.gaussian_blur(
@@ -30,8 +39,10 @@ kernel = dinv.physics.functional.gaussian_blur(
 )
 physics = dinv.physics.Blur(filter=kernel, padding="valid", device=device)
 
+# Compute the blurry image
 y = physics(x)
 
+# Display both images and the kernel
 dinv.utils.plot(
     [x, kernel, y],
     ["Input", "Blur kernel", "Blurry"],
