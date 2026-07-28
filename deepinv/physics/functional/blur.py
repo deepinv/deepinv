@@ -371,8 +371,7 @@ def _solve_liu_jia(x: torch.Tensor) -> None:
     # Laplacian
     # boundary image contains image intensities at boundaries
     laplacian = torch.zeros_like(x)
-    laplacian_bp = torch.zeros_like(x)
-    laplacian_bp[..., 1 : H - 1, 1 : W - 1] = (
+    laplacian[..., 1 : H - 1, 1 : W - 1] = (
         x[..., 1:-1, 2:]
         + x[..., 1:-1, :-2]
         + x[..., 2:, 1:-1]
@@ -380,30 +379,23 @@ def _solve_liu_jia(x: torch.Tensor) -> None:
         - 4 * x[..., 1:-1, 1:-1]
     )
 
-    laplacian = laplacian - laplacian_bp  # subtract boundary points contribution
+    z = -laplacian[..., 1:-1, 1:-1]
+    z = dst1(z, dim=-2, inverse=False, orthosf=False)
+    z = dst1(z, dim=-1, inverse=False, orthosf=False)
 
-    # DST Sine Transform algo starts here
-    laplacian = laplacian[..., 1:-1, 1:-1]
+    f_h = torch.arange(1, H - 1, device=x.device, dtype=x.dtype)
+    f_w = torch.arange(1, W - 1, device=x.device, dtype=x.dtype)
+    f_h, f_w = torch.meshgrid(f_h, f_w, indexing="ij")
 
-    # compute sine tranform
-    laplacian = dst1(laplacian, dim=-2, inverse=False, orthosf=False)
-    laplacian = dst1(laplacian, dim=-1, inverse=False, orthosf=False)
-
-    # compute Eigen Values
-    u = torch.arange(1, H - 1, device=x.device, dtype=x.dtype)
-    v = torch.arange(1, W - 1, device=x.device, dtype=x.dtype)
-    u, v = torch.meshgrid(u, v, indexing="ij")
-    laplacian = laplacian / (
-        (2 * torch.cos(torch.pi * u / (H - 1)) - 2)
-        + (2 * torch.cos(torch.pi * v / (W - 1)) - 2)
+    z = z / (
+        2 * torch.cos(torch.pi * f_h / (H - 1)) - 2
+        + 2 * torch.cos(torch.pi * f_w / (W - 1)) - 2
     )
 
-    # compute Inverse Sine Transform
-    laplacian = dst1(laplacian, dim=-2, inverse=True, orthosf=False)
-    laplacian = dst1(laplacian, dim=-1, inverse=True, orthosf=False)
+    z = dst1(z, dim=-2, inverse=True, orthosf=False)
+    z = dst1(z, dim=-1, inverse=True, orthosf=False)
 
-    # put solution in inner points; outer points obtained from boundary image
-    x[..., 1:-1, 1:-1] = laplacian
+    x[..., 1:-1, 1:-1] = z
 
 
 def liu_jia_pad(
