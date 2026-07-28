@@ -389,10 +389,10 @@ def liu_jia_pad(
     BC = tuple(x.shape[:-2])
     H, W = x.shape[-2:]
 
-    A = torch.zeros(BC + (2 * alpha + padding_h, W))
+    A = torch.zeros(BC + (2 * alpha + padding_h, W), device=x.device, dtype=x.dtype)
     A[..., :alpha, :] = x[..., -alpha:, :]
     A[..., -alpha:, :] = x[..., :alpha, :]
-    a = torch.arange(padding_h) / (padding_h - 1)
+    a = torch.arange(padding_h, device=x.device, dtype=x.dtype) / (padding_h - 1)
     a = a.view((1,) * len(BC) + a.shape)
     A[..., alpha:-alpha, 0] = (1 - a) * A[..., alpha - 1, 0, None] + a * A[
         ..., -alpha, 0, None
@@ -401,10 +401,10 @@ def liu_jia_pad(
         ..., -alpha, -1, None
     ]
 
-    B = torch.zeros(BC + (H, 2 * alpha + padding_w))
+    B = torch.zeros(BC + (H, 2 * alpha + padding_w), device=x.device, dtype=x.dtype)
     B[..., :, :alpha] = x[..., :, -alpha:]
     B[..., :, -alpha:] = x[..., :, :alpha]
-    b = torch.arange(padding_w) / (padding_w - 1)
+    b = torch.arange(padding_w, device=x.device, dtype=x.dtype) / (padding_w - 1)
     b = b.view((1,) * len(BC) + b.shape)
     B[..., 0, alpha:-alpha] = (1 - b) * B[..., 0, alpha - 1, None] + b * B[
         ..., 0, -alpha, None
@@ -441,8 +441,8 @@ def liu_jia_pad(
         laplacian = dst1(laplacian, dim=-1, inverse=False, orthosf=False)
 
         # compute Eigen Values
-        u = torch.arange(1, H - 1)
-        v = torch.arange(1, W - 1)
+        u = torch.arange(1, H - 1, device=x.device, dtype=x.dtype)
+        v = torch.arange(1, W - 1, device=x.device, dtype=x.dtype)
         u, v = torch.meshgrid(u, v, indexing="ij")
         laplacian = laplacian / (
             (2 * torch.cos(torch.pi * u / (H - 1)) - 2)
@@ -468,7 +468,7 @@ def liu_jia_pad(
             B[..., :, alpha - 1 : -alpha + 1]
         )
 
-    C = torch.zeros(BC + (2 * alpha + padding_h, 2 * alpha + padding_w))
+    C = torch.zeros(BC + (2 * alpha + padding_h, 2 * alpha + padding_w), device=x.device, dtype=x.dtype)
     C[..., :alpha, :] = B[..., -alpha:, :]
     C[..., -alpha:, :] = B[..., :alpha, :]
     C[..., :, :alpha] = A[..., :, -alpha:]

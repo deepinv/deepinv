@@ -28,7 +28,7 @@ ksize = 6 * math.ceil(gaussian_std) + 1
 kernel = dinv.physics.functional.gaussian_blur(
     psf_size=(ksize, ksize), sigma=gaussian_std, device=device
 )
-physics = dinv.physics.Blur(filter=kernel, padding="valid")
+physics = dinv.physics.Blur(filter=kernel, padding="valid", device=device)
 
 y = physics(x)
 
@@ -92,7 +92,7 @@ class SpectralDeconvolution(dinv.models.Reconstructor):
 
         # Spectral deconvolution
         kernel = physics.filter
-        physics_circular = dinv.physics.BlurFFT(filter=kernel, img_size=y.shape[1:])
+        physics_circular = dinv.physics.BlurFFT(filter=kernel, img_size=y.shape[1:], device=y.device)
         match self.kind:
             case "inverse":
                 x_hat = physics_circular.A_dagger(y)
