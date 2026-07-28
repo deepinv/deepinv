@@ -101,12 +101,13 @@ class DEAL(Reconstructor):
     ) -> None:
         super().__init__()
 
-        self.sigma_denoiser = float(sigma_denoiser)
-        self.lambda_reg = float(lambda_reg)
-        self.max_iter = int(max_iter)
-        self.auto_scale = bool(auto_scale)
-        self.target_y_std = float(target_y_std)
-        self.clamp_output = bool(clamp_output)
+        self.sigma_denoiser = sigma_denoiser
+        self.lambda_reg = lambda_reg
+        self.max_iter = max_iter
+        self.auto_scale = auto_scale
+        self.target_y_std = target_y_std
+        self.clamp_output = clamp_output
+        self.cg_max_iter = cg_max_iter
 
         self.model = _DEALImpl(color=color).to(device)
 
