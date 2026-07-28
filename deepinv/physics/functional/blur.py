@@ -450,8 +450,8 @@ def liu_jia_pad(
     B = torch.zeros(B_shape, device=x.device, dtype=x.dtype)
     C = torch.zeros(C_shape, device=x.device, dtype=x.dtype)
 
-    a = torch.arange(padding_h, device=x.device, dtype=x.dtype) / (padding_h - 1)
-    b = torch.arange(padding_w, device=x.device, dtype=x.dtype) / (padding_w - 1)
+    a = torch.linspace(0, 1, padding_h, device=x.device, dtype=x.dtype)
+    b = torch.linspace(0, 1, padding_w, device=x.device, dtype=x.dtype)
 
     a = a.view((1,) * len(BC) + a.shape)
     b = b.view((1,) * len(BC) + b.shape)
