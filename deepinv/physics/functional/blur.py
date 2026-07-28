@@ -365,6 +365,51 @@ def bilinear_filter(
     return w.unsqueeze(0).unsqueeze(0)
 
 
+def _solve_liu_jia(x: torch.Tensor) -> torch.Tensor:
+    H, W = x.shape[-2:]
+
+    # Set the inner points to zero
+    x[..., 1:-1, 1:-1] = 0
+
+    # Laplacian
+    # boundary image contains image intensities at boundaries
+    laplacian = torch.zeros_like(x)
+    laplacian_bp = torch.zeros_like(x)
+    laplacian_bp[..., 1 : H - 1, 1 : W - 1] = (
+        x[..., 1:-1, 2:]
+        + x[..., 1:-1, :-2]
+        + x[..., 2:, 1:-1]
+        + x[..., :-2, 1:-1]
+        - 4 * x[..., 1:-1, 1:-1]
+    )
+
+    laplacian = laplacian - laplacian_bp  # subtract boundary points contribution
+
+    # DST Sine Transform algo starts here
+    laplacian = laplacian[..., 1:-1, 1:-1]
+
+    # compute sine tranform
+    laplacian = dst1(laplacian, dim=-2, inverse=False, orthosf=False)
+    laplacian = dst1(laplacian, dim=-1, inverse=False, orthosf=False)
+
+    # compute Eigen Values
+    u = torch.arange(1, H - 1, device=x.device, dtype=x.dtype)
+    v = torch.arange(1, W - 1, device=x.device, dtype=x.dtype)
+    u, v = torch.meshgrid(u, v, indexing="ij")
+    laplacian = laplacian / (
+        (2 * torch.cos(torch.pi * u / (H - 1)) - 2)
+        + (2 * torch.cos(torch.pi * v / (W - 1)) - 2)
+    )
+
+    # compute Inverse Sine Transform
+    laplacian = dst1(laplacian, dim=-2, inverse=True, orthosf=False)
+    laplacian = dst1(laplacian, dim=-1, inverse=True, orthosf=False)
+
+    # put solution in inner points; outer points obtained from boundary image
+    x[..., 1:-1, 1:-1] = laplacian
+    return x
+
+
 def liu_jia_pad(
     x: torch.Tensor, *, padding: tuple[int, int], alpha: int = 1
 ) -> torch.Tensor:
@@ -391,6 +436,11 @@ def liu_jia_pad(
     shape = x.shape
     BC = tuple(x.shape[:-2])
     H, W = x.shape[-2:]
+
+    # The padded image is written (up to a shift) as
+    # [ x, B ]
+    # [ A, C ]
+    # and A, B and C are computed separately
 
     A_shape = BC + (2 * alpha + padding_h, W)
     B_shape = BC + (H, 2 * alpha + padding_w)
@@ -424,58 +474,14 @@ def liu_jia_pad(
         ..., -1, -alpha, None
     ]
 
-    def _compute_padding(x: torch.Tensor) -> torch.Tensor:
-        H, W = x.shape[-2:]
-
-        # Set the inner points to zero
-        x[..., 1:-1, 1:-1] = 0
-
-        # Laplacian
-        # boundary image contains image intensities at boundaries
-        laplacian = torch.zeros_like(x)
-        laplacian_bp = torch.zeros_like(x)
-        laplacian_bp[..., 1 : H - 1, 1 : W - 1] = (
-            x[..., 1:-1, 2:]
-            + x[..., 1:-1, :-2]
-            + x[..., 2:, 1:-1]
-            + x[..., :-2, 1:-1]
-            - 4 * x[..., 1:-1, 1:-1]
-        )
-
-        laplacian = laplacian - laplacian_bp  # subtract boundary points contribution
-
-        # DST Sine Transform algo starts here
-        laplacian = laplacian[..., 1:-1, 1:-1]
-
-        # compute sine tranform
-        laplacian = dst1(laplacian, dim=-2, inverse=False, orthosf=False)
-        laplacian = dst1(laplacian, dim=-1, inverse=False, orthosf=False)
-
-        # compute Eigen Values
-        u = torch.arange(1, H - 1, device=x.device, dtype=x.dtype)
-        v = torch.arange(1, W - 1, device=x.device, dtype=x.dtype)
-        u, v = torch.meshgrid(u, v, indexing="ij")
-        laplacian = laplacian / (
-            (2 * torch.cos(torch.pi * u / (H - 1)) - 2)
-            + (2 * torch.cos(torch.pi * v / (W - 1)) - 2)
-        )
-
-        # compute Inverse Sine Transform
-        laplacian = dst1(laplacian, dim=-2, inverse=True, orthosf=False)
-        laplacian = dst1(laplacian, dim=-1, inverse=True, orthosf=False)
-
-        # put solution in inner points; outer points obtained from boundary image
-        x[..., 1:-1, 1:-1] = laplacian
-        return x
-
     if alpha == 1:
-        A = _compute_padding(A)
-        B = _compute_padding(B)
+        A = _solve_liu_jia(A)
+        B = _solve_liu_jia(B)
     else:
-        A[..., alpha - 1 : -alpha + 1, :] = _compute_padding(
+        A[..., alpha - 1 : -alpha + 1, :] = _solve_liu_jia(
             A[..., alpha - 1 : -alpha + 1, :]
         )
-        B[..., :, alpha - 1 : -alpha + 1] = _compute_padding(
+        B[..., :, alpha - 1 : -alpha + 1] = _solve_liu_jia(
             B[..., :, alpha - 1 : -alpha + 1]
         )
 
@@ -485,9 +491,9 @@ def liu_jia_pad(
     C[..., :, -alpha:] = A[..., :, :alpha]
 
     if alpha == 1:
-        C = _compute_padding(C)
+        C = _solve_liu_jia(C)
     else:
-        C[..., alpha - 1 : -alpha + 1, alpha - 1 : -alpha + 1] = _compute_padding(
+        C[..., alpha - 1 : -alpha + 1, alpha - 1 : -alpha + 1] = _solve_liu_jia(
             C[..., alpha - 1 : -alpha + 1, alpha - 1 : -alpha + 1]
         )
 
