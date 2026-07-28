@@ -468,7 +468,11 @@ def liu_jia_pad(
             B[..., :, alpha - 1 : -alpha + 1]
         )
 
-    C = torch.zeros(BC + (2 * alpha + padding_h, 2 * alpha + padding_w), device=x.device, dtype=x.dtype)
+    C = torch.zeros(
+        BC + (2 * alpha + padding_h, 2 * alpha + padding_w),
+        device=x.device,
+        dtype=x.dtype,
+    )
     C[..., :alpha, :] = B[..., -alpha:, :]
     C[..., -alpha:, :] = B[..., :alpha, :]
     C[..., :, :alpha] = A[..., :, -alpha:]

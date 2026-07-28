@@ -103,7 +103,9 @@ class SpectralDeconvolution(dinv.models.Reconstructor):
 
         # Spectral deconvolution
         kernel = physics.filter
-        physics_circular = dinv.physics.BlurFFT(filter=kernel, img_size=y.shape[1:], device=y.device)
+        physics_circular = dinv.physics.BlurFFT(
+            filter=kernel, img_size=y.shape[1:], device=y.device
+        )
         match self.kind:
             case "inverse":
                 x_hat = physics_circular.A_dagger(y)
