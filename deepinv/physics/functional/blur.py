@@ -365,7 +365,7 @@ def bilinear_filter(
     return w.unsqueeze(0).unsqueeze(0)
 
 
-def _solve_liu_jia(x: torch.Tensor) -> torch.Tensor:
+def _solve_liu_jia(x: torch.Tensor) -> None:
     H, W = x.shape[-2:]
 
     # Set the inner points to zero
@@ -407,7 +407,6 @@ def _solve_liu_jia(x: torch.Tensor) -> torch.Tensor:
 
     # put solution in inner points; outer points obtained from boundary image
     x[..., 1:-1, 1:-1] = laplacian
-    return x
 
 
 def liu_jia_pad(
@@ -478,17 +477,15 @@ def liu_jia_pad(
     stop_h = A.shape[-2] - (alpha - 1)
     stop_w = B.shape[-1] - (alpha - 1)
 
-    A[..., alpha - 1 : stop_h, :] = _solve_liu_jia(A[..., alpha - 1 : stop_h, :])
-    B[..., :, alpha - 1 : stop_w] = _solve_liu_jia(B[..., :, alpha - 1 : stop_w])
+    _solve_liu_jia(A[..., alpha - 1 : stop_h, :])
+    _solve_liu_jia(B[..., :, alpha - 1 : stop_w])
 
     C[..., :alpha, :] = B[..., -alpha:, :]
     C[..., -alpha:, :] = B[..., :alpha, :]
     C[..., :, :alpha] = A[..., :, -alpha:]
     C[..., :, -alpha:] = A[..., :, :alpha]
 
-    C[..., alpha - 1 : stop_h, alpha - 1 : stop_w] = _solve_liu_jia(
-        C[..., alpha - 1 : stop_h, alpha - 1 : stop_w]
-    )
+    _solve_liu_jia(C[..., alpha - 1 : stop_h, alpha - 1 : stop_w])
 
     # Crop the boundary
     A = A[..., alpha - 1 : -alpha - 1, :]
