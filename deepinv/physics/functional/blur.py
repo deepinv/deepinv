@@ -388,14 +388,26 @@ def liu_jia_pad(
     padding_h = 2 * padding[0]
     padding_w = 2 * padding[1]
 
+    shape = x.shape
     BC = tuple(x.shape[:-2])
     H, W = x.shape[-2:]
 
-    A = torch.zeros(BC + (2 * alpha + padding_h, W), device=x.device, dtype=x.dtype)
+    A_shape = BC + (2 * alpha + padding_h, W)
+    B_shape = BC + (H, 2 * alpha + padding_w)
+    C_shape = BC + (2 * alpha + padding_h, 2 * alpha + padding_w)
+
+    A = torch.zeros(A_shape, device=x.device, dtype=x.dtype)
+    B = torch.zeros(B_shape, device=x.device, dtype=x.dtype)
+    C = torch.zeros(C_shape, device=x.device, dtype=x.dtype)
+
+    a = torch.arange(padding_h, device=x.device, dtype=x.dtype) / (padding_h - 1)
+    b = torch.arange(padding_w, device=x.device, dtype=x.dtype) / (padding_w - 1)
+
+    a = a.view((1,) * len(BC) + a.shape)
+    b = b.view((1,) * len(BC) + b.shape)
+
     A[..., :alpha, :] = x[..., -alpha:, :]
     A[..., -alpha:, :] = x[..., :alpha, :]
-    a = torch.arange(padding_h, device=x.device, dtype=x.dtype) / (padding_h - 1)
-    a = a.view((1,) * len(BC) + a.shape)
     A[..., alpha:-alpha, 0] = (1 - a) * A[..., alpha - 1, 0, None] + a * A[
         ..., -alpha, 0, None
     ]
@@ -403,11 +415,8 @@ def liu_jia_pad(
         ..., -alpha, -1, None
     ]
 
-    B = torch.zeros(BC + (H, 2 * alpha + padding_w), device=x.device, dtype=x.dtype)
     B[..., :, :alpha] = x[..., :, -alpha:]
     B[..., :, -alpha:] = x[..., :, :alpha]
-    b = torch.arange(padding_w, device=x.device, dtype=x.dtype) / (padding_w - 1)
-    b = b.view((1,) * len(BC) + b.shape)
     B[..., 0, alpha:-alpha] = (1 - b) * B[..., 0, alpha - 1, None] + b * B[
         ..., 0, -alpha, None
     ]
@@ -470,11 +479,6 @@ def liu_jia_pad(
             B[..., :, alpha - 1 : -alpha + 1]
         )
 
-    C = torch.zeros(
-        BC + (2 * alpha + padding_h, 2 * alpha + padding_w),
-        device=x.device,
-        dtype=x.dtype,
-    )
     C[..., :alpha, :] = B[..., -alpha:, :]
     C[..., -alpha:, :] = B[..., :alpha, :]
     C[..., :, :alpha] = A[..., :, -alpha:]
