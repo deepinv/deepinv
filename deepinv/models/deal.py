@@ -85,6 +85,8 @@ class DEAL(Reconstructor):
         ``'pretrained'``, or ``None``. If ``None``, no pretrained weights are
         loaded. If ``'download'`` or ``'pretrained'``, the official DEAL
         pretrained weights are downloaded and loaded.
+    :param int cg_max_iter: maximum number of inner fixed-point iterations and conjugate gradient
+        algorithm.
     """
 
     def __init__(
@@ -98,6 +100,8 @@ class DEAL(Reconstructor):
         device: str | None = None,
         clamp_output: bool = True,
         pretrained: str = "pretrained",
+        cg_max_iter: int = 200,
+
     ) -> None:
         super().__init__()
 
@@ -109,7 +113,7 @@ class DEAL(Reconstructor):
         self.clamp_output = clamp_output
         self.cg_max_iter = cg_max_iter
 
-        self.model = _DEALImpl(color=color).to(device)
+        self.model = _DEALImpl(color=color, max_iter=self.cg_max_iter).to(device)
 
         if pretrained is None:
             state = None
@@ -808,7 +812,7 @@ class _DEALImpl(nn.Module):
     :class:`DEAL` wrapper.
     """
 
-    def __init__(self, color: bool, max_iter: int = 1000) -> None:
+    def __init__(self, color: bool, max_iter: int = 200) -> None:
         super().__init__()
 
         self.kernel_size = 9
@@ -1037,7 +1041,7 @@ class _DEALImpl(nn.Module):
         else:
             grad_steps = 0
             n_out = 60
-            n_in = 200
+            n_in = self.max_iter
             eps_in = 1e-6
             eps_out = 1e-5
 
@@ -1114,7 +1118,7 @@ class _DEALImpl(nn.Module):
                 c_k = Ht(y) * 0
             c_k_old = c_k.clone()
 
-            for m in range(self.max_iter):
+            for m in range(1000):
                 if path:
                     c_ks.append(c_k)
 
@@ -1125,7 +1129,7 @@ class _DEALImpl(nn.Module):
                     A=A_op,
                     b=b,
                     init=c_k_old,
-                    max_iter=self.max_iter,
+                    max_iter=1000,
                     tol=eps_in,
                     eps=1e-8,
                 )
@@ -1138,7 +1142,7 @@ class _DEALImpl(nn.Module):
                         "CG Number:",
                         m,
                         "CG iterations:",
-                        self.max_iter,
+                        1000,
                         "Outer residual:",
                         res,
                     )
