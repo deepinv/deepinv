@@ -20,7 +20,7 @@ import torch
 import deepinv as dinv
 import math
 
-device = "cpu"
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 x = dinv.utils.load_example("butterfly.png", img_size=256).to(device)
 
 gaussian_std = 1.0
