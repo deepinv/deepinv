@@ -474,28 +474,21 @@ def liu_jia_pad(
         ..., -1, -alpha, None
     ]
 
-    if alpha == 1:
-        A = _solve_liu_jia(A)
-        B = _solve_liu_jia(B)
-    else:
-        A[..., alpha - 1 : -alpha + 1, :] = _solve_liu_jia(
-            A[..., alpha - 1 : -alpha + 1, :]
-        )
-        B[..., :, alpha - 1 : -alpha + 1] = _solve_liu_jia(
-            B[..., :, alpha - 1 : -alpha + 1]
-        )
+    # Compute the values inside the boundaries
+    stop_h = A.shape[-2] - (alpha - 1)
+    stop_w = B.shape[-1] - (alpha - 1)
+
+    A[..., alpha - 1 : stop_h, :] = _solve_liu_jia(A[..., alpha - 1 : stop_h, :])
+    B[..., :, alpha - 1 : stop_w] = _solve_liu_jia(B[..., :, alpha - 1 : stop_w])
 
     C[..., :alpha, :] = B[..., -alpha:, :]
     C[..., -alpha:, :] = B[..., :alpha, :]
     C[..., :, :alpha] = A[..., :, -alpha:]
     C[..., :, -alpha:] = A[..., :, :alpha]
 
-    if alpha == 1:
-        C = _solve_liu_jia(C)
-    else:
-        C[..., alpha - 1 : -alpha + 1, alpha - 1 : -alpha + 1] = _solve_liu_jia(
-            C[..., alpha - 1 : -alpha + 1, alpha - 1 : -alpha + 1]
-        )
+    C[..., alpha - 1 : stop_h, alpha - 1 : stop_w] = _solve_liu_jia(
+        C[..., alpha - 1 : stop_h, alpha - 1 : stop_w]
+    )
 
     # Crop the boundary
     A = A[..., alpha - 1 : -alpha - 1, :]
