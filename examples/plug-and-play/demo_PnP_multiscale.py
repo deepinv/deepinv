@@ -61,7 +61,7 @@ data_fidelity = L2()
 noise_level = 0.1
 noise_model = GaussianNoise(sigma=noise_level)
 physics = Inpainting(
-    tensor_size=set3c_img_shape, mask=0.5, noise_model=noise_model, device=device
+    img_size=set3c_img_shape, mask=0.5, noise_model=noise_model, device=device
 )
 
 prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
