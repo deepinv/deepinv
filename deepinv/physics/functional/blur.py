@@ -435,9 +435,7 @@ def _biharmonic_inpainting(x: torch.Tensor) -> None:
     x[..., 1:-1, 1:-1] = z
 
 
-def liu_jia_pad(
-    x: torch.Tensor, *, padding: tuple[int, int], alpha: int = 1
-) -> torch.Tensor:
+def liu_jia_pad(x: torch.Tensor, *, padding: tuple[int, int]) -> torch.Tensor:
     """
     Liu-Jia Padding
 
@@ -449,7 +447,6 @@ def liu_jia_pad(
 
     :param torch.Tensor x: Input image of shape (B, C, H, W)
     :param tuple(int, int) padding: Horizontal and vertical padding (px)
-    :param int alpha: Border width (px). Default: 1
     :return: (:class:`torch.Tensor`) Padded image
     """
     if x.ndim != 4:  # pragma: no cover
@@ -467,9 +464,9 @@ def liu_jia_pad(
     # block matrix:
     #   z = [ x, B ]
     #       [ A, C ]
-    A_shape = BC + (2 * alpha + padding_h, W)
-    B_shape = BC + (H, 2 * alpha + padding_w)
-    C_shape = BC + (2 * alpha + padding_h, 2 * alpha + padding_w)
+    A_shape = BC + (2 + padding_h, W)
+    B_shape = BC + (H, 2 + padding_w)
+    C_shape = BC + (2 + padding_h, 2 + padding_w)
 
     A = torch.zeros(A_shape, device=x.device, dtype=x.dtype)
     B = torch.zeros(B_shape, device=x.device, dtype=x.dtype)
@@ -479,10 +476,10 @@ def liu_jia_pad(
     # unlike C which shares none. We start by replicating the shared boundaries
     # up to a distance of alpha pixels. This can be understood as a form of
     # reflect padding.
-    A[..., :alpha, :] = x[..., -alpha:, :]
-    A[..., -alpha:, :] = x[..., :alpha, :]
-    B[..., :, :alpha] = x[..., :, -alpha:]
-    B[..., :, -alpha:] = x[..., :, :alpha]
+    A[..., :1, :] = x[..., -1:, :]
+    A[..., -1:, :] = x[..., :1, :]
+    B[..., :, :1] = x[..., :, -1:]
+    B[..., :, -1:] = x[..., :, :1]
 
     # The remaining sides of A and B are filled by linearly interpolating
     # between opposite corners of the other boundaries.
@@ -492,40 +489,40 @@ def liu_jia_pad(
     a = a.view((1,) * len(BC) + a.shape)
     b = b.view((1,) * len(BC) + b.shape)
 
-    A[..., alpha:-alpha, 0] = (1 - a) * A[..., alpha - 1, 0, None] + a * A[
-        ..., -alpha, 0, None
+    A[..., 1:-1, 0] = (1 - a) * A[..., 0, 0, None] + a * A[
+        ..., -1, 0, None
     ]
-    A[..., alpha:-alpha, -1] = (1 - a) * A[..., alpha - 1, -1, None] + a * A[
-        ..., -alpha, -1, None
+    A[..., 1:-1, -1] = (1 - a) * A[..., 0, -1, None] + a * A[
+        ..., -1, -1, None
     ]
-    B[..., 0, alpha:-alpha] = (1 - b) * B[..., 0, alpha - 1, None] + b * B[
-        ..., 0, -alpha, None
+    B[..., 0, 1:-1] = (1 - b) * B[..., 0, 0, None] + b * B[
+        ..., 0, -1, None
     ]
-    B[..., -1, alpha:-alpha] = (1 - b) * B[..., -1, alpha - 1, None] + b * B[
-        ..., -1, -alpha, None
+    B[..., -1, 1:-1] = (1 - b) * B[..., -1, 0, None] + b * B[
+        ..., -1, -1, None
     ]
 
     # Finally, having filled all sides of A and B, we fill all sides of C by
     # replicating the values across the shared sides with A and B.
-    C[..., :alpha, :] = B[..., -alpha:, :]
-    C[..., -alpha:, :] = B[..., :alpha, :]
-    C[..., :, :alpha] = A[..., :, -alpha:]
-    C[..., :, -alpha:] = A[..., :, :alpha]
+    C[..., :1, :] = B[..., -1:, :]
+    C[..., -1:, :] = B[..., :1, :]
+    C[..., :, :1] = A[..., :, -1:]
+    C[..., :, -1:] = A[..., :, :1]
 
     # At this point, A, B and C have their boundary filled and their inside is
     # zero. It is then filled using harmonic inpainting which creates a smooth
     # extension without changing the boundary values.
-    stop_h = A.shape[-2] - (alpha - 1)
-    stop_w = B.shape[-1] - (alpha - 1)
-    _biharmonic_inpainting(A[..., alpha - 1 : stop_h, :])
-    _biharmonic_inpainting(B[..., :, alpha - 1 : stop_w])
-    _biharmonic_inpainting(C[..., alpha - 1 : stop_h, alpha - 1 : stop_w])
+    stop_h = A.shape[-2]
+    stop_w = B.shape[-1]
+    _biharmonic_inpainting(A[..., :stop_h, :])
+    _biharmonic_inpainting(B[..., :, :stop_w])
+    _biharmonic_inpainting(C[..., :stop_h, :stop_w])
 
     # Remove the excess margin used to control the smoothness of the harmonic
     # inpainting.
-    A = A[..., alpha - 1 : -alpha - 1, :]
-    B = B[..., :, alpha:-alpha]
-    C = C[..., alpha:-alpha, alpha:-alpha]
+    A = A[..., :-2, :]
+    B = B[..., :, 1:-1]
+    C = C[..., 1:-1, 1:-1]
 
     # Concatenate A, B, C and x to form the padded image
     #   z = [ x, B ]
