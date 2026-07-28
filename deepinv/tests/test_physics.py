@@ -2351,6 +2351,7 @@ MULTISCALE_EXCLUSION = [
     "3Ddeblur_circular",
     "3DMRI",
     "3DMultiCoilMRI",
+    "pet_3d",
     "DynamicMRI",
     "fast_singlepixel",
     "fast_singlepixel_zig_zag",
@@ -2367,6 +2368,7 @@ def test_multiscale_coarse_adjointness(name, device):
     if (
         "MRI" in name
         or "cassi" in name
+        or "pet_2d" == name
         or "ptychography_linear" == name
         or "hyperspectral_unmixing" == name
         or "composition2" == name
@@ -2403,6 +2405,7 @@ def test_multiscale_A_adjoint_A(name, device):
     if (
         "MRI" in name
         or "cassi" in name
+        or "pet_2d" == name
         or "ptychography_linear" == name
         or "hyperspectral_unmixing" == name
         or "composition2" == name
