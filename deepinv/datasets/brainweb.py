@@ -33,9 +33,10 @@ class BrainWebDataset(ImageDataset):
 
     Requested subjects are downloaded from the `BrainWeb database
     <https://brainweb.bic.mni.mcgill.ca/brainweb/anatomic_normal_20.html>`_. Samples
-    contain an activity image and an attenuation map that can be passed to
-    :class:`deepinv.physics.PET`. Set ``slice_index`` for a 2D axial slice, or leave
-    it as ``None`` for the full 3D volume.
+    contain an emission map and an attenuation map that can be passed to
+    :class:`deepinv.physics.PET`. The 3D shape is ``(1, 362, 434, 362)`` with a
+    ``(0.5, 0.5, 0.5)`` mm voxel size. Set ``slice_index`` for a 2D axial slice of
+    shape ``(1, 434, 362)``.
 
     Custom activity levels can be given for each tissue. The ``"fdg"`` and
     ``"amyloid"`` presets use values from `casperdcl/brainweb
@@ -45,13 +46,13 @@ class BrainWebDataset(ImageDataset):
 
     Lesions with no centre are placed randomly in ``random_lesion_tissues``.
     Controlled lesions use ``(z, y, x)`` centres in 3D and ``(y, x)`` centres in
-    2D. When requested, ``params`` also contains ``lesion_mask`` and
+    2D. If lesions are requested, ``params`` also contains ``lesion_mask`` and
     ``lesion_centers``.
 
     :param str, pathlib.Path, None root: Dataset directory. Defaults to the DeepInv
         cache.
     :param int, sequence[int] subject_ids: Subjects to expose. Default is subject 4.
-    :param bool download: Download missing subjects. Default is ``False``.
+    :param bool download: Download missing subjects. Default is ``True``.
     :param str, mapping activity_levels: Tissue activities or a preset name.
     :param mapping, None attenuation_levels: Tissue attenuation coefficients in
         ``cm^-1``.
@@ -128,7 +129,7 @@ class BrainWebDataset(ImageDataset):
         self,
         root: str | Path | None = None,
         subject_ids: int | Sequence[int] = 4,
-        download: bool = False,
+        download: bool = True,
         activity_levels: str | Mapping[str, float] = "fdg",
         attenuation_levels: Mapping[str, float] | None = None,
         slice_index: int | None = None,

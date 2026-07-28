@@ -54,10 +54,9 @@ with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained t
     Check the `parallelproj` documentation for more details: https://parallelproj.readthedocs.io/en/stable/.
 
 """
-
+# %%
 import deepinv as dinv
 from deepinv.physics import PET
-from deepinv.utils.phantoms import generate_pet_phantom
 import torch
 import parallelproj
 from array_api_compat import torch as torch_compat
@@ -67,8 +66,8 @@ from array_api_compat import torch as torch_compat
 # -------------------------------------
 #
 # Here we define each voxel to have size :math:`3\times 3\times 3` mm
-# such that the total volume to reconstruct is of size :math:`38.4\times 38.4\times 7.2` cm
-# which fits approximately a portion of a human chest.
+# such that the total volume to reconstruct is of size :math:`38.4\times 38.4\times 7.2` cm,
+# covering a central slab of the BrainWeb head.
 #
 # The maximum achievable resolution (in high count settings) is typically proportional to the full-width at half
 # maximum (FWHM) of the Gaussian blur kernel, which here is set to 4 mm.
@@ -83,8 +82,9 @@ from array_api_compat import torch as torch_compat
 #
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-img_size = (128, 128, 24)
-voxel_size = (3, 3, 3)
+brainweb = dinv.utils.load_example("brainweb_pet_3d.pt", device=device)
+img_size = tuple(brainweb["emission"].shape[2:])
+voxel_size = tuple(brainweb["voxel_size"].tolist())
 
 # number of sides of the polygon approximating a circle
 num_sides = 32
@@ -120,14 +120,16 @@ physics = PET(
 physics.plot_geometry()
 
 # %%
-# Define a phantom and attenuation map
-# ------------------------------------
+# Load a BrainWeb emission and attenuation map
+# --------------------------------------------
 #
-# We define a 3D phantom and attenuation map, whose shape is the same as the phantom.
-#
-# In practice, the attenuation is typically obtained with an auxiliary CT scan of the patient.
+# We use a :class:`deepinv.datasets.BrainWebDataset` brain phantom with hot and cold
+# lesions. The attenuation map can be interpreted as one obtained from an auxiliary
+# CT scan.
 
-x, attenuation = generate_pet_phantom(img_size, device=device)
+x = brainweb["emission"]
+attenuation = brainweb["attenuation"]
+lesion_mask = brainweb["lesion_mask"]
 mid_slice = img_size[-1] // 2
 
 # gain of the device.
@@ -138,8 +140,8 @@ acquisition_time_factor = 10.0
 x = x * acquisition_time_factor
 
 dinv.utils.plot(
-    [x[..., mid_slice], attenuation[..., mid_slice]],
-    titles=["Emission image", "Attenuation image"],
+    [x[..., mid_slice], attenuation[..., mid_slice], lesion_mask[..., mid_slice]],
+    titles=["Emission map", "Attenuation map", "Lesion mask"],
 )
 
 # %%
