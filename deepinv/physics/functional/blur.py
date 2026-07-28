@@ -368,9 +368,6 @@ def bilinear_filter(
 def _solve_liu_jia(x: torch.Tensor) -> None:
     H, W = x.shape[-2:]
 
-    # Set the inner points to zero
-    x[..., 1:-1, 1:-1] = 0
-
     # Laplacian
     # boundary image contains image intensities at boundaries
     laplacian = torch.zeros_like(x)
