@@ -1377,6 +1377,75 @@ def test_blur(img_size, filter_size, filter_type, device):
     assert torch.allclose(back1, back2, atol=1e-5)
 
 
+@pytest.mark.parametrize("batch_size", [1, 3])
+@pytest.mark.parametrize("channels", [1, 2])
+@pytest.mark.parametrize("filter_batch_channel", [(1, 1), (1, 2), (3, 1)])
+def test_reverberation(batch_size, channels, filter_batch_channel, device, rng):
+    r"""
+    Tests the adjointness and shape of :class:`deepinv.physics.Reverberation`, including
+    broadcasting of the RIR filter over the batch and channel dimensions.
+    """
+    T = 32
+    K = 5
+    fb, fc = filter_batch_channel
+    if fb not in (1, batch_size) or fc not in (1, channels):
+        pytest.skip("Filter batch/channel size must be 1 or match the signal.")
+
+    h = torch.randn(fb, fc, K, device=device, generator=rng)
+    physics = dinv.physics.Reverberation(filter=h, device=device)
+
+    x = torch.randn(batch_size, channels, T, device=device, generator=rng)
+    y = physics(x)
+    assert y.shape == x.shape
+
+    error = physics.adjointness_test(x).abs()
+    assert error < 1e-3
+
+
+def test_reverberation_causality(device):
+    r"""
+    Tests that :class:`deepinv.physics.Reverberation` implements a causal convolution:
+    an impulse at time `t` in `x` may only affect `y` at times `>= t`, and the direct
+    path (first filter tap) is reproduced exactly.
+    """
+    x = torch.zeros(1, 1, 10, device=device)
+    x[:, :, 3] = 1.0
+    h = torch.tensor([[[1.0, 0.5, 0.25]]], device=device)
+
+    physics = dinv.physics.Reverberation(filter=h, device=device)
+    y = physics(x)
+
+    expected = torch.zeros(1, 1, 10, device=device)
+    expected[:, :, 3] = 1.0
+    expected[:, :, 4] = 0.5
+    expected[:, :, 5] = 0.25
+
+    assert torch.allclose(y, expected)
+    assert torch.all(y[:, :, :3] == 0)
+
+
+def test_rir_generator(device):
+    r"""
+    Tests :class:`deepinv.physics.generator.RIRGenerator`, and that the generated RIRs
+    can be used directly with :class:`deepinv.physics.Reverberation`.
+    """
+    pytest.importorskip("pyroomacoustics")
+
+    filter_length = 256
+    generator = dinv.physics.generator.RIRGenerator(
+        filter_length=filter_length, fs=16000, device=device
+    )
+    params = generator.step(batch_size=2, seed=0)
+
+    assert "filter" in params
+    assert params["filter"].shape == (2, 1, filter_length)
+
+    physics = dinv.physics.Reverberation(**params, device=device)
+    x = torch.randn(2, 1, 1024, device=device)
+    y = physics(x)
+    assert y.shape == x.shape
+
+
 def test_reset_noise(device):
     r"""
     Tests that the reset function works.

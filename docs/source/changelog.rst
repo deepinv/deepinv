@@ -14,6 +14,7 @@ New Features
 - Add caching to demo/archive downloads (:gh:`1234` by `Julian Tachella`_)
 - Add :func:`deepinv.utils.load_tiff` to load images/ volumes from TIFF files (:gh:`1249` by `Andrew Wang`_)
 - Add :func:`deepinv.utils.plot_napari` to interactively view 2D images/3D vols with napari (:gh:`1249` by `Andrew Wang`_)
+- Add :class:`deepinv.physics.Reverberation` audio dereverberation operator, :class:`deepinv.physics.generator.RIRGenerator` to simulate room impulse responses with `pyroomacoustics`, and causal 1D convolution functionals :func:`deepinv.physics.functional.causal_conv1d` / :func:`deepinv.physics.functional.causal_conv1d_adjoint` (by `Jérémy Scanvic`_)
 
 Changed
 ^^^^^^^

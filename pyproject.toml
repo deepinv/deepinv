@@ -106,6 +106,12 @@ physics = [
     "sigpy",
 ]
 
+# optional dependencies for audio physics (e.g. dereverberation)
+audio = [
+    "pyroomacoustics",
+    "sounddevice",
+]
+
 # optional dependencies for specific datasets
 dataset = [
     "datasets>=3.5.0",
@@ -194,6 +200,10 @@ parallelproj = ">=1.10.0,<2.0.0"
 astra-toolbox = ">=2.2.0,!=2.3.0"
 cupy = "*"  # for parallelproj's GPU support
 
+[tool.pixi.feature.audio.dependencies]
+pyroomacoustics = "*"
+sounddevice = "*"
+
 [tool.pixi.feature.training.dependencies]
 wandb = "*"
 mlflow = "*"
@@ -205,14 +215,14 @@ deepinv = { path = ".", editable = true}
 # gpu environments
 default   = { features = ["gpu"], solve-group = "gpu" }
 test      = { features = ["gpu", "test"], solve-group = "gpu" }
-full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training"], solve-group = "gpu" }
-docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312"], solve-group = "gpu-docs" }
-doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312"], solve-group = "gpu-docs" }
+full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "audio"], solve-group = "gpu" }
+docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "physics-gpu", "training", "audio", "py312"], solve-group = "gpu-docs" }
+doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "audio", "py312"], solve-group = "gpu-docs" }
 # cpu environments (same as gpu but without the gpu dependencies)
 test-cpu  = { features = ["cpu", "test"],  solve-group = "cpu" }
-full-cpu  = { features = ["cpu", "doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "cpu" }
-docs-cpu  = { features = ["cpu", "doc", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
-doctest-cpu = { features = ["cpu", "doc", "test", "dataset", "denoisers", "physics", "training", "py312"], solve-group = "cpu-docs" }
+full-cpu  = { features = ["cpu", "doc", "test", "dataset", "denoisers", "physics", "training", "audio"], solve-group = "cpu" }
+docs-cpu  = { features = ["cpu", "doc", "dataset", "denoisers", "physics", "training", "audio", "py312"], solve-group = "cpu-docs" }
+doctest-cpu = { features = ["cpu", "doc", "test", "dataset", "denoisers", "physics", "training", "audio", "py312"], solve-group = "cpu-docs" }
 
 ##############################################
 # Pytest configuration and coverage reporting
@@ -255,7 +265,7 @@ select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004"
 
 [tool.ruff.lint.flake8-tidy-imports]
 # Modules that slow down startup and should be imported lazily
-banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft"]
+banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft", "pyroomacoustics"]
 
 # Deprecated functions that should be replaced
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
