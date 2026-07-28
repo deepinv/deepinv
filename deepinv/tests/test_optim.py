@@ -558,6 +558,17 @@ def get_prior(prior_name, device="cpu"):
         prior = dinv.optim.prior.Tikhonov()
     elif prior_name == "TVPrior":
         prior = dinv.optim.prior.TVPrior()
+    elif prior_name == "CRR":
+        prior = dinv.optim.prior.RidgeRegularizer(weak_convexity=0.0, device=device)
+    elif prior_name == "WCRR":
+        prior = dinv.optim.prior.RidgeRegularizer(weak_convexity=1.0, device=device)
+    elif prior_name == "LeastSquaresResidual":
+        prior = dinv.optim.prior.LeastSquaresResidual(
+            denoiser=None,
+            use_input_output_scaling=True,
+            pretrained="download",
+            device=device,
+        )
     elif "wavelet" in prior_name.lower():
         pytest.importorskip(
             "ptwt",
@@ -582,11 +593,15 @@ def get_prior(prior_name, device="cpu"):
     ["PGD", "HQS", "DRS", "ADMM", "PDCP", "FISTA"],
 )
 def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
+    learned_priors = ["CRR", "WCRR", "LeastSquaresResidual"]
     for prior_name in [
         "L1Prior",
         "L12Prior",
         "Tikhonov",
         "TVPrior",
+        "CRR",
+        "WCRR",
+        "LeastSquaresResidual",
         "WaveletPrior",
         "WaveletDictPrior",
         "ZeroPrior",
@@ -604,11 +619,19 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
             device=device,
         )
         y = physics(test_sample)
-        max_iter = 1000
+        max_iter = (
+            2 if prior_name in learned_priors else 1000
+        )  # Do not check convergence with learned priors, because too long to compute.
         # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
         # sigma_denoiser = torch.tensor([[0.1]])
-        sigma_denoiser = torch.tensor([[1.0]], device=device)
-        stepsize = 1.0
+        sigma_denoiser = torch.tensor(
+            [[0.03 if prior_name == "LeastSquaresResidual" else 1.0]], device=device
+        )
+        stepsize = (
+            0.04
+            if prior_name == "LeastSquaresResidual"
+            else 0.1 if prior_name in learned_priors else 1.0
+        )
         lambda_reg = 1.0
 
         data_fidelity = L2()
@@ -646,6 +669,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
                 g_param=sigma_denoiser,
                 lambda_reg=lambda_reg,
                 early_stop=True,
+                g_first=prior_name in learned_priors,
             )
 
         x = opt_algo(y, physics, init=init)
@@ -664,7 +688,10 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         #         imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
         #     )
 
-        assert opt_algo.has_converged
+        if prior_name in learned_priors:
+            assert torch.isfinite(x).all()
+        else:
+            assert opt_algo.has_converged
 
 
 @pytest.mark.parametrize("red_algo", ["GD", "PGD", "FISTA"])

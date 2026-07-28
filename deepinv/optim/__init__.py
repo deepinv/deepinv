@@ -42,6 +42,8 @@ from .prior import (
     PatchNR,
     ZeroPrior,
     L12Prior,
+    RidgeRegularizer,
+    LeastSquaresResidual,
 )
 from .optim_iterators import (
     OptimIterator,

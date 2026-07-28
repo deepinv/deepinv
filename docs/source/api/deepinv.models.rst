@@ -66,6 +66,7 @@ Deep Architectures
    deepinv.models.NCSNpp
    deepinv.models.DScCP
    deepinv.models.RAM
+   deepinv.models.RidgeRegularizer
    deepinv.models.DEAL
    deepinv.models.ArtifactRemoval
    deepinv.models.SRResNet
@@ -86,6 +87,7 @@ Model Utils
    deepinv.models.TimeAveragingNet
    deepinv.models.Client
    deepinv.models.AnscombeDenoiser
+   deepinv.models.GSPnP
 
 .. autosummary::
    :toctree: stubs
