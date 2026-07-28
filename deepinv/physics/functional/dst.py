@@ -2,7 +2,11 @@ import torch
 
 
 def dst1(
-    x: torch.Tensor, *, dim: tuple[int] = (-1,), inverse: bool = False, orthosf: bool = True
+    x: torch.Tensor,
+    *,
+    dim: tuple[int] = (-1,),
+    inverse: bool = False,
+    orthosf: bool = True,
 ) -> torch.Tensor:
     r"""
     Compute the one-dimensional `discrete sine transform <https://en.wikipedia.org/wiki/Discrete_sine_transform>`_ of type I (DST-I) or its inverse (IDST-I).

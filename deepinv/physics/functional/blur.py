@@ -420,12 +420,13 @@ def _biharmonic_inpainting(x: torch.Tensor) -> None:
     f_h, f_w = torch.meshgrid(f_h, f_w, indexing="ij")
     d = (
         2 * torch.cos(torch.pi * f_h / (H - 1))
-        + 2 * torch.cos(torch.pi * f_w / (W - 1)) - 4
+        + 2 * torch.cos(torch.pi * f_w / (W - 1))
+        - 4
     )
 
     # Multiply the DST-I by the negative inverse of the eigenvalues of the
     # 5-point Laplacian operator
-    z = - spec / d
+    z = -spec / d
 
     # Compute the inverse DST-I of the result
     z = dst1(z, dim=(-2, -1), inverse=True, orthosf=False)
@@ -489,18 +490,10 @@ def liu_jia_pad(x: torch.Tensor, *, padding: tuple[int, int]) -> torch.Tensor:
     a = a.view((1,) * len(BC) + a.shape)
     b = b.view((1,) * len(BC) + b.shape)
 
-    A[..., 1:-1, 0] = (1 - a) * A[..., 0, 0, None] + a * A[
-        ..., -1, 0, None
-    ]
-    A[..., 1:-1, -1] = (1 - a) * A[..., 0, -1, None] + a * A[
-        ..., -1, -1, None
-    ]
-    B[..., 0, 1:-1] = (1 - b) * B[..., 0, 0, None] + b * B[
-        ..., 0, -1, None
-    ]
-    B[..., -1, 1:-1] = (1 - b) * B[..., -1, 0, None] + b * B[
-        ..., -1, -1, None
-    ]
+    A[..., 1:-1, 0] = (1 - a) * A[..., 0, 0, None] + a * A[..., -1, 0, None]
+    A[..., 1:-1, -1] = (1 - a) * A[..., 0, -1, None] + a * A[..., -1, -1, None]
+    B[..., 0, 1:-1] = (1 - b) * B[..., 0, 0, None] + b * B[..., 0, -1, None]
+    B[..., -1, 1:-1] = (1 - b) * B[..., -1, 0, None] + b * B[..., -1, -1, None]
 
     # Finally, having filled all sides of A and B, we fill all sides of C by
     # replicating the values across the shared sides with A and B.
