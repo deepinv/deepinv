@@ -3,6 +3,7 @@ import torch
 import deepinv.physics.functional as dF
 from functools import partial
 import deepinv as dinv
+from deepinv.utils.decorators import expire
 
 # Some global constants
 ALL_CONV_PADDING = ("valid", "circular", "zeros", "replicate", "reflect")
@@ -355,6 +356,7 @@ def test_gaussian_blur_non_regression(device, sigma, angle):
 # original implementation of dst1, which only supported the orthogonal
 # sign-flipped DST-I along the last dimension.
 @pytest.mark.parametrize("shape", [(4,), (3, 8), (2, 3, 7), (5, 1)])
+@expire(date="2027-02-28")
 def test_dst1_non_regression(device, shape):
     import numpy as np
 
