@@ -375,10 +375,12 @@ def liu_jia_pad(
 
     The implementation is adapted from `the one <https://github.com/cszn/USRNet>`_ featured in the work of :footcite:t:`zhang2020deep`.
 
-    :param torch.Tensor x: Input tensor of shape (B, C, H, W)
-    :param tuple(int, int) padding: Tuple specifying the amount of horizontal and vertical padding (pad_h, pad_w)
-    :param int alpha: Border width for Liu-Jia padding (default: 1)
-    :return: Padded tensor of shape (B, C, H + 2 * pad_h, W + 2 * pad_w)
+    The padded tensor has shape :math:`(B, C, H + 2 * \text{pad}_h, W + 2 * \text{pad}_w)` where :math:`\text{pad}_h` and :math:`\text{pad}_w` are the vertical and horizontal padding respectively.
+
+    :param torch.Tensor x: Input image of shape (B, C, H, W)
+    :param tuple(int, int) padding: Horizontal and vertical padding (px)
+    :param int alpha: Border width (px). Default: 1
+    :return: (:class:`torch.Tensor`) Padded image
     """
     if x.ndim != 4:  # pragma: no cover
         raise ValueError("Input tensor must be 4-dimensional (B, C, H, W)")
@@ -489,11 +491,19 @@ def liu_jia_pad(
     A = A[..., alpha - 1 : -alpha - 1, :]
     B = B[..., :, alpha:-alpha]
     C = C[..., alpha:-alpha, alpha:-alpha]
-    zB = torch.cat((x, B), dim=-1)
-    AC = torch.cat((A, C), dim=-1)
-    zBAC = torch.cat((zB, AC), dim=-2)
 
-    # Center the original image
+    # Form the misaligned padded image from x, A, B, and C:
+    # [ x, B ]
+    # [ A, C ]
+    H, W = x.shape[-2:]
+    Hp, Wp = A.shape[-2], B.shape[-1]
+    zBAC = torch.empty(BC + (Hp + H, Wp + W), device=x.device, dtype=x.dtype)
+    zBAC[..., :H, :W] = x
+    zBAC[..., :H, W:] = B
+    zBAC[..., H:, :W] = A
+    zBAC[..., H:, W:] = C
+
+    # Realign the padded image so the original image is centered
     zBAC = zBAC.roll(shifts=padding, dims=(-2, -1))
 
     return zBAC
