@@ -382,15 +382,15 @@ def _biharmonic_inpainting(x: torch.Tensor) -> None:
 
     .. math::
 
-        y = \mathcal{S}^{-1} \mathrm{diag}(d) \mathcal{S} \nabla^2 x + x
+        y = - \mathcal{S}^{-1} \mathrm{diag}(d^{-1}) \mathcal{S} \nabla^2 x + x
 
     where :math:`\mathcal{S}` and :math:`\mathcal{S}^{-1}` are the DST-I and
-    its inverse, :math:`d` is the eigenvalues of the 5-point Laplacian operator
-    :math:`\nabla^2`. The eigenvalues :math:`d` are given by
+    its inverse, :math:`d` denotes the eigenvalues of the 5-point Laplacian
+    operator :math:`\nabla^2`. The eigenvalues :math:`d` are given by
 
     .. math::
 
-        d_{k,l} = -\frac{1}{2 (\cos(\pi k / (H - 1)) + \cos(\pi l / (W - 1)) - 2)} \quad k = 0, \ldots, H - 1, \quad l = 0, \ldots, W - 1
+        d_{k,l} = 2 (\cos(\pi k / (H - 1)) + \cos(\pi l / (W - 1)) - 2) \quad k = 0, \ldots, H - 1, \quad l = 0, \ldots, W - 1
 
     .. note::
 
@@ -401,10 +401,8 @@ def _biharmonic_inpainting(x: torch.Tensor) -> None:
         This function modifies the input image in-place and it assumes that it
         is zero outside the one pixel thick boundary.
     """
-    H, W = x.shape[-2:]
-
-    laplacian = torch.zeros_like(x)
-    laplacian[..., 1 : H - 1, 1 : W - 1] = (
+    # Compute the 5-point Laplacian of x
+    laplacian = (
         x[..., 1:-1, 2:]
         + x[..., 1:-1, :-2]
         + x[..., 2:, 1:-1]
@@ -412,20 +410,28 @@ def _biharmonic_inpainting(x: torch.Tensor) -> None:
         - 4 * x[..., 1:-1, 1:-1]
     )
 
-    z = laplacian[..., 1:-1, 1:-1]
-    z = dst1(z, dim=(-2, -1), inverse=False, orthosf=False)
+    # Compute the DST-I of the Laplacian
+    spec = dst1(laplacian, dim=(-2, -1), inverse=False, orthosf=False)
 
+    # Compute the eigenvalues of the 5-point Laplacian operator
+    H, W = x.shape[-2:]
     f_h = torch.arange(1, H - 1, device=x.device, dtype=x.dtype)
     f_w = torch.arange(1, W - 1, device=x.device, dtype=x.dtype)
     f_h, f_w = torch.meshgrid(f_h, f_w, indexing="ij")
-
-    z = -z / (
-        2 * torch.cos(torch.pi * f_h / (H - 1)) - 2
-        + 2 * torch.cos(torch.pi * f_w / (W - 1)) - 2
+    d = (
+        2 * torch.cos(torch.pi * f_h / (H - 1))
+        + 2 * torch.cos(torch.pi * f_w / (W - 1)) - 4
     )
 
+    # Multiply the DST-I by the negative inverse of the eigenvalues of the
+    # 5-point Laplacian operator
+    z = - spec / d
+
+    # Compute the inverse DST-I of the result
     z = dst1(z, dim=(-2, -1), inverse=True, orthosf=False)
 
+    # Add the result in-place with the original boundary to get the output
+    # y = z + x
     x[..., 1:-1, 1:-1] = z
 
 
