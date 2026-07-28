@@ -19,7 +19,7 @@ class Prior(Potential):
     r"""
     Prior term :math:`\reg{x}`.
 
-    This is the base class for the prior term :math:`\reg{x}`. As a child class from the Poential class, it comes with methods for computing
+    This is the base class for the prior term :math:`\reg{x}`. As a child class from the Potential class, it comes with methods for computing
     :math:`\operatorname{prox}_{g}` and :math:`\nabla \regname`.
     To implement a custom prior, for an explicit prior, overwrite :math:`\regname` (do not forget to specify
     `self.explicit_prior = True`)

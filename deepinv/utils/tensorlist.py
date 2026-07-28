@@ -189,7 +189,7 @@ class TensorList:
     def __sub__(self, other):
         r"""
 
-        Substract two TensorLists. The sizes of the tensor lists must match.
+        Subtract two TensorLists. The sizes of the tensor lists must match.
 
         """
         if not isinstance(other, list) and not isinstance(other, TensorList):
