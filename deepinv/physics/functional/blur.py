@@ -520,7 +520,7 @@ def liu_jia_pad(x: torch.Tensor, *, padding: tuple[int, int]) -> torch.Tensor:
 
     # Remove the excess margin used to control the smoothness of the harmonic
     # inpainting.
-    A = A[..., :-2, :]
+    A = A[..., 1:-1, :]
     B = B[..., :, 1:-1]
     C = C[..., 1:-1, 1:-1]
 
