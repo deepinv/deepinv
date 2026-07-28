@@ -54,10 +54,12 @@ with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained t
     Check the `parallelproj` documentation for more details: https://parallelproj.readthedocs.io/en/stable/.
 
 """
+
 # %%
 import deepinv as dinv
 from deepinv.physics import PET
 import torch
+import torch.nn.functional as F
 import parallelproj
 from array_api_compat import torch as torch_compat
 
@@ -82,7 +84,37 @@ from array_api_compat import torch as torch_compat
 #
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-brainweb = dinv.utils.load_example("brainweb_pet_3d.pt", device=device)
+# brainweb = dinv.utils.load_example("brainweb_pet_3d.pt", device=device)
+brainweb_dataset = dinv.datasets.BrainWebDataset(
+    lesions=[
+        dinv.datasets.BrainWebLesion(15, 192, (181, 217, 145)),
+        dinv.datasets.BrainWebLesion(15, 0, (181, 217, 217)),
+    ]
+)
+emission, params = brainweb_dataset[0]
+
+
+# Temporarily reproduce the small volume that will eventually be loaded above:
+# resample the 0.5 mm data at 3 mm, keep a central axial slab, and pad the
+# transverse plane to the scanner field of view.
+def prepare_volume(volume, mode):
+    interpolation_kwargs = {"align_corners": False} if mode == "trilinear" else {}
+    volume = F.interpolate(
+        volume.permute(0, 2, 3, 1).unsqueeze(0).float(),
+        size=(72, 60, 60),
+        mode=mode,
+        **interpolation_kwargs,
+    )
+    return F.pad(volume[..., 18:42], (0, 0, 34, 34, 28, 28)).to(device)
+
+
+brainweb = {
+    "emission": prepare_volume(emission, "trilinear"),
+    # BrainWeb coefficients are in cm^-1, whereas the projector integrates in mm.
+    "attenuation": prepare_volume(params["attenuation"], "trilinear") / 10,
+    "lesion_mask": prepare_volume(params["lesion_mask"], "nearest"),
+    "voxel_size": torch.tensor((3.0, 3.0, 3.0)),
+}
 img_size = tuple(brainweb["emission"].shape[2:])
 voxel_size = tuple(brainweb["voxel_size"].tolist())
 
