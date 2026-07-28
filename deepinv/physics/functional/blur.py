@@ -497,17 +497,17 @@ def liu_jia_pad(
             C[..., alpha - 1 : -alpha + 1, alpha - 1 : -alpha + 1]
         )
 
-    # Combine the original image and the padding images to form the final padded image
+    # Crop the boundary
     A = A[..., alpha - 1 : -alpha - 1, :]
     B = B[..., :, alpha:-alpha]
     C = C[..., alpha:-alpha, alpha:-alpha]
 
-    # Form the misaligned padded image from x, A, B, and C:
+    # Concatenate A, B, C and x to form the padded image
     # [ x, B ]
     # [ A, C ]
     H, W = x.shape[-2:]
     Hp, Wp = A.shape[-2], B.shape[-1]
-    zBAC = torch.empty(BC + (Hp + H, Wp + W), device=x.device, dtype=x.dtype)
+    zBAC = torch.empty(BC + (H + Hp, W + Wp), device=x.device, dtype=x.dtype)
     zBAC[..., :H, :W] = x
     zBAC[..., :H, W:] = B
     zBAC[..., H:, :W] = A
