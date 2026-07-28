@@ -2346,6 +2346,7 @@ def test_physics_warn_extra_kwargs():
 
 
 MULTISCALE_EXCLUSION = [
+    # three dimensional signals are currently not supported
     "3Ddeblur_valid",
     "3Ddeblur_circular",
     "3DMRI",
@@ -2362,9 +2363,10 @@ MULTISCALE_EXCLUSION = [
 @pytest.mark.parametrize(
     "name", [op for op in OPERATORS if op not in MULTISCALE_EXCLUSION]
 )
-def test_coarse_physics_adjointness(name, device):
+def test_multiscale_coarse_adjointness(name, device):
     if (
         "MRI" in name
+        or "cassi" in name
         or "ptychography_linear" == name
         or "hyperspectral_unmixing" == name
         or "composition2" == name
@@ -2379,7 +2381,7 @@ def test_coarse_physics_adjointness(name, device):
         pytest.skip("Skip " + name + " : not LinearPhysics")
 
     p_coarse = dinv.physics.wrappers.to_multiscale(
-        physics, imsize, dtype=dtype, factors=(2,)
+        physics, imsize, factors=(2,), dtype=dtype, device=device
     )
     p_coarse.set_scale(1)
 
@@ -2389,6 +2391,7 @@ def test_coarse_physics_adjointness(name, device):
 
     x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
     x_coarse = p_coarse.downsample(x)
+
     error = p_coarse.adjointness_test(x_coarse).abs()
     assert error < 1e-3
 
@@ -2399,6 +2402,7 @@ def test_coarse_physics_adjointness(name, device):
 def test_multiscale_A_adjoint_A(name, device):
     if (
         "MRI" in name
+        or "cassi" in name
         or "ptychography_linear" == name
         or "hyperspectral_unmixing" == name
         or "composition2" == name
@@ -2413,7 +2417,7 @@ def test_multiscale_A_adjoint_A(name, device):
         pytest.skip("Skip " + name + " : not LinearPhysics")
 
     p_coarse = dinv.physics.wrappers.to_multiscale(
-        physics, imsize, dtype=dtype, factors=(2,)
+        physics, imsize, dtype=dtype, factors=(2,), device=device
     )
     p_coarse.set_scale(1)
 

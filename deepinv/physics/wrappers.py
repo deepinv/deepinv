@@ -396,7 +396,7 @@ class InpaintingMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         for upsampling in self.Upsamplings:
             coarse_data = upsampling.A_adjoint(physics.mask.data)
             p = Inpainting(
-                tensor_size=coarse_data.shape[1:],
+                img_size=coarse_data.shape[1:],
                 mask=coarse_data,
                 device=physics.mask.device,
             )
@@ -429,7 +429,13 @@ class InpaintingMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         return physics.A_adjoint_A(x) / factor**2
 
 
-def to_multiscale(physics, img_shape, dtype=None, factors=(2, 4, 8)):
+def to_multiscale(
+    physics: Physics,
+    img_shape: tuple,
+    dtype: type | None = None,
+    factors: tuple = (2, 4, 8),
+    device: str = "cpu",
+):
     r"""
     This function creates the proper MultiScaler object associated with the provided physics.
 
@@ -441,18 +447,28 @@ def to_multiscale(physics, img_shape, dtype=None, factors=(2, 4, 8)):
     :param factors: downsampling factors used to get in coarser scales
     :return: a MultiScaler version of the provided physics
     """
+    if device is None:
+        device = physics.device
     if isinstance(physics, Blur):
-        return BlurMultiScaler(physics, img_shape, dtype=dtype, factors=factors)
+        return BlurMultiScaler(
+            physics, img_shape, dtype=dtype, factors=factors, device=device
+        )
     if isinstance(physics, BlurFFT):
-        return BlurFFTMultiScaler(physics, img_shape, dtype=dtype, factors=factors)
+        return BlurFFTMultiScaler(
+            physics, img_shape, dtype=dtype, factors=factors, device=device
+        )
     if isinstance(physics, Inpainting):
-        return InpaintingMultiScaler(physics, img_shape, dtype=dtype, factors=factors)
+        return InpaintingMultiScaler(
+            physics, img_shape, dtype=dtype, factors=factors, device=device
+        )
     elif isinstance(physics, LinearPhysics):
         return LinearPhysicsMultiScaler(
-            physics, img_shape, dtype=dtype, factors=factors
+            physics, img_shape, dtype=dtype, factors=factors, device=device
         )
     else:
-        return PhysicsMultiScaler(physics, img_shape, dtype=dtype, factors=factors)
+        return PhysicsMultiScaler(
+            physics, img_shape, dtype=dtype, factors=factors, device=device
+        )
 
 
 class PhysicsCropper(LinearPhysics):
