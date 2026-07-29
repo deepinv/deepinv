@@ -116,6 +116,9 @@ dataset = [
     "nibabel",
     "rasterio",
     "blosc2",
+    "tifffile",
+    "rarfile",
+    "napari[optional]",
 ]
 
 # optional dependencies for training
@@ -135,7 +138,7 @@ platforms = ["linux-64", "win-64"]
 [tool.pixi.dependencies]
 python = "<3.13.0"
 numpy = "*"
-matplotlib = "*"
+matplotlib-base = "*"
 tqdm = "*"
 torchmetrics = "*"
 einops = "*"
@@ -184,7 +187,7 @@ transformers = "*"
 torchkbnufft = "*"
 array-api-compat = "*"
 sigpy = "*"
-parallelproj = ">=1.10.0"
+parallelproj = ">=1.10.0,<2.0.0"
 # spyrit is PyPI-only, stays in optional deps
 
 [tool.pixi.feature.physics-gpu.dependencies]

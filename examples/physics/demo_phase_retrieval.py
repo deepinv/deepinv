@@ -184,7 +184,7 @@ for _ in range(num_iter):
     x_phase_gd_spec = res["est"][0]
     loss_hist.append(data_fidelity(x_phase_gd_spec, y, physics).cpu())
 
-print("intial loss:", loss_hist[0])
+print("initial loss:", loss_hist[0])
 print("final loss:", loss_hist[-1])
 plt.plot(loss_hist)
 plt.yscale("log")
@@ -254,7 +254,7 @@ plot([x, x_pnp], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 # -----------------------------------------------------------
 # We visualize the original image and the reconstructed images from the four methods.
 # We further compute the PSNR (Peak Signal-to-Noise Ratio) scores (higher better) for every reconstruction and their cosine similarities with the original image (range in [0,1], higher better).
-# In conclusion, gradient descent with random intialization provides a poor reconstruction, while spectral methods provide a good initial estimate which can later be improved by gradient descent to acquire the best reconstruction results. Besides, the PnP framework with a deep denoiser as the prior also provides a very good denoising results as it exploits prior information about the set of natural images.
+# In conclusion, gradient descent with random initialization provides a poor reconstruction, while spectral methods provide a good initial estimate which can later be improved by gradient descent to acquire the best reconstruction results. Besides, the PnP framework with a deep denoiser as the prior also provides a very good denoising results as it exploits prior information about the set of natural images.
 
 subtitles = [
     "PSNR",

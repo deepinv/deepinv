@@ -266,7 +266,7 @@ Below is a minimal working example of a typical docstring that includes all thes
 Contributing new physics
 -------------------------
 
-Adding a physical operator follows the general contribution guidelines. Specifically, your constribution must include proper :ref:`tests <write_tests>` and :ref:`documentation <write_docs>`, as well as meet our :ref:`code quality standards <code_quality>`. Additionally, the provided code is expected to follow specific design rules to ensure seamless integration into the codebase, this means:
+Adding a physical operator follows the general contribution guidelines. Specifically, your contribution must include proper :ref:`tests <write_tests>` and :ref:`documentation <write_docs>`, as well as meet our :ref:`code quality standards <code_quality>`. Additionally, the provided code is expected to follow specific design rules to ensure seamless integration into the codebase, this means:
 
 - Implementing a new class that inherits from the appropriate physics base class. Refer to the design outlined in `Bring your own physics <https://deepinv.org/auto_examples/basics/demo_custom_physics.html>`_ for guidance.
 

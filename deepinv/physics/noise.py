@@ -264,7 +264,7 @@ class GaussianNoise(NoiseModel):
         :math:`\sigma = \sqrt{\sigma_1^2 + \sigma_2^2}`
 
         :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.
+        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linear operators.
         """
         if not isinstance(other, GaussianNoise):
             raise TypeError(
@@ -331,7 +331,7 @@ class GaussianNoise(NoiseModel):
         :math:`\sigma = \sqrt{\sigma_1^2 + \sigma_2^2}`
 
         :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.
+        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linear operators.
         """
         if not isinstance(other, GaussianNoise):
             raise TypeError(
@@ -770,12 +770,12 @@ class UniformNoise(NoiseModel):
 
 class LogPoissonNoise(NoiseModel):
     r"""
-    Log-Poisson noise :math:`y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu x) N_0)}{N_0})`.
+    Log-Poisson noise :math:`y = -\frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu x) N_0)}{N_0})`.
 
     This noise model is mostly used for modelling the noise for (low dose) computed tomography measurements.
-    Here, N0 describes the average number of measured photons. It acts as a noise-level parameter, where a
-    larger value of N0 corresponds to a lower strength of the noise.
-    The value mu acts as a normalization constant of the forward operator. Consequently it should be chosen antiproportionally to the image size.
+    Here, :math:`N_0` describes the average number of measured photons. It acts as a noise-level parameter, where a
+    larger value of :math:`N_0` corresponds to a lower strength of the noise.
+    The value :math:`\mu` acts as a normalization constant of the forward operator. Consequently, it should be chosen antiproportionally to the image size.
 
     For more details on the interpretation of the parameters for CT measurements, we refer to the paper :footcite:t:`leuschner2021lodopab`.
 
