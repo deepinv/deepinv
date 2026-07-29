@@ -88,12 +88,6 @@ def choose_denoiser(name, imsize):
             reason="This test requires bm3d. It should be "
             "installed with `pip install bm3d`",
         )
-    if name in ("swinir", "scunet"):
-        pytest.importorskip(
-            "timm",
-            reason="This test requires timm. It should be "
-            "installed with `pip install timm`",
-        )
 
     if name == "unet":
         out = dinv.models.UNet(in_channels=imsize[0], out_channels=imsize[0])
@@ -1326,11 +1320,6 @@ def test_dsccp_net(device, n_channels, spatials):
 
 
 def test_denoiser_perf(device, load_example_image):
-    pytest.importorskip(
-        "timm",
-        reason="This test requires timm. It should be "
-        "installed with `pip install timm`",
-    )
     # Load 2 example images
     x1 = load_example_image(
         "butterfly.png",
@@ -1617,12 +1606,6 @@ def test_client_mocked(return_metadata):
 @pytest.mark.parametrize("upscale", [None, 1, 2])
 @pytest.mark.parametrize("upsampler", [None, "pixelshuffle"])
 def test_swinir_upsample_without_upsampler(upscale, upsampler):
-    pytest.importorskip(
-        "timm",
-        reason="This test requires timm. It should be "
-        "installed with `pip install timm`",
-    )
-
     kwargs = {}
 
     if upscale is not None:
