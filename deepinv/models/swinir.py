@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from .base import Denoiser
-from .utils import load_state_dict_from_url
+from .utils import load_state_dict_from_url, to_2tuple
 import warnings
 
 
@@ -259,7 +259,6 @@ class SwinTransformerBlock(nn.Module):
         ), "shift_size must in 0-window_size"
 
         self.norm1 = norm_layer(dim)
-        from timm.layers import to_2tuple
 
         self.attn = WindowAttention(
             dim,
@@ -668,7 +667,6 @@ class PatchEmbed(nn.Module):
         self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None
     ):
         super().__init__()
-        from timm.layers import to_2tuple
 
         img_size = to_2tuple(img_size)
         patch_size = to_2tuple(patch_size)
@@ -718,7 +716,6 @@ class PatchUnEmbed(nn.Module):
         self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None
     ):
         super().__init__()
-        from timm.layers import to_2tuple
 
         img_size = to_2tuple(img_size)
         patch_size = to_2tuple(patch_size)

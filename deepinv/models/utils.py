@@ -9,7 +9,8 @@ import torch.nn.functional as F
 
 from torch.nn import Linear, GroupNorm
 
-from itertools import chain
+from itertools import chain, repeat
+import collections.abc
 import os
 import io
 import contextlib
@@ -544,3 +545,8 @@ def load_state_dict_from_url(*args, **kwargs) -> dict:
     ) as exc:
         url = args[0] if args else kwargs.get("url", "<unknown>")
         raise DownloadError(f"Failed to download state dict from {url}: {exc}") from exc
+
+def to_2tuple(x):
+    if isinstance(x, collections.abc.Iterable) and not isinstance(x, str):
+        return tuple(x)
+    return tuple(repeat(x, n))
