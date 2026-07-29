@@ -105,14 +105,16 @@ Full reference metrics are used to measure the difference between the original `
      - "Error relative global dimensionless synthesis" multispectral image metric for pan-sharpening problems.
 
    * - :class:`deepinv.loss.metric.HaarPSI`
-     - HaarPSI meric tuned for natural and medical images.
+     - HaarPSI metric tuned for natural and medical images.
 
    * - :class:`deepinv.loss.metric.CosineSimilarity`
      - :math:`\text{CosineSim}(\hat{x}, x) =\dfrac{\langle \hat{x}, x \rangle}{\|\hat{x}\|_2 \, \|x\|_2}`,where :math:`\langle \hat{x}, x \rangle` is the Euclidean inner product.
 
    * - :class:`deepinv.loss.metric.GMSD`
      - Gradient Magnitude Similarity Deviation
-     
+
+   * - :class:`deepinv.loss.metric.RecoveryCoefficient`
+     - :math:`\mathrm{RC}(\hat{x}, x) = \frac{\sum_{i \in \Omega} \hat{x}_i}{\sum_{i \in \Omega} x_i}`
 .. _no-reference-metrics:
 
 No Reference Metrics

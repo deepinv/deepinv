@@ -8,13 +8,25 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.loss.metric.RecoveryCoefficient` Recovery Coefficient (RC) metric to evaluate reconstructed activity relative to ground truth within a mask, with dtype-aware numerical stability and a dedicated loss transformation for training (:gh:`1228` by `Kushagra Shukla`_)
+- Add 2D and 3D :class:`deepinv.physics.PET` (:gh:`1099` by `Julian Tachella`_)
+- Add support for multi-channel (chromatic) diffraction PSFs in :class:`deepinv.physics.generator.DiffractionBlurGenerator` with physically consistent wavelength scaling of the pupil cut-off frequency and Zernike coefficients.  (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
+- Add caching to demo/archive downloads (:gh:`1234` by `Julian Tachella`_)
+- Add :func:`deepinv.utils.load_tiff` to load images/ volumes from TIFF files (:gh:`1249` by `Andrew Wang`_)
+- Add :func:`deepinv.utils.plot_napari` to interactively view 2D images/3D vols with napari (:gh:`1249` by `Andrew Wang`_)
 - Add support for TV-L1 priors :class:`deepinv.optim.TVL1Prior` (:gh:`1236` by `Sarra Amiri`_)
 
 Changed
 ^^^^^^^
+- (Breaking) Drop support for deprecated parameters `num_channels` in :class:`deepinv.physics.generator.PSFGenerator`, :class:`deepinv.physics.generator.GaussianBlurGenerator`, :class:`deepinv.physics.generator.MotionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
 
 Fixed
 ^^^^^
+- Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
+- Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
+- Remove unconditional dtype conversion to `torch.cfloat` in :func:`deepinv.optim.phase_retrieval.spectral_methods` (:gh:`1216` by `Zhiyuan Hu`_)
+- Deprecate `deepinv.models.WaveletDenoiser.thresold_2D` and `deepinv.models.WaveletDenoiser.thresold_func` in favor of :func:`deepinv.models.WaveletDenoiser.threshold_2D` and :func:`deepinv.models.WaveletDenoiser.threshold_func` (:gh:`1266` by `Paul Bernard`_)
+- Fix kwargs applications in parent constructor calls in the constructors of :class:`deepinv.sampling.EDMDiffusionSDE`, :class:`deepinv.sampling.SongDiffusionSDE` and :class:`deepinv.sampling.VariancePreservingDiffusion` (:gh:`1278` by `Jérémy Scanvic`_)
 - Fix :func:`deepinv.transform.rotate_via_shear` for angles outside :math:`[0, 2pi)` (:gh:`1236` by `Sarra Amiri`_)
 - Fix inversion in :class:`deepinv.transform.Reflect` (:gh:`1236` by `Sarra Amiri`_)
 - (Breaking) Have `x_shift` represent horizontal shifts and `y_shift` vertical shifts in :class:`deepinv.transform.Shift` (:gh:`1236` by `Sarra Amiri`_)
@@ -47,6 +59,16 @@ Changed
 - Add changelog section to the contributing guidelines (:gh:`1153` by `Thibaut Modrzyk`_)
 - Unify patching / tiling and unpatching / un-tiling logic in physics and utils, with support for padding and non-overlapping patches. Add :func:`deepinv.utils.image_to_patches` and :func:`deepinv.utils.patches_to_image` utility functions, and refactor physics to use them instead of `unfold` (:gh:`1104` by `Minh Hai Nguyen`_)
 - New :class:`deepinv.loss.metric.NIQE` implementation, this drops PyIQA requirement, values given by NIQE vary between implementations (:gh:`911` by `Vicky De Ridder`_)
+- (Breaking) Drop support for deprecated parameters replaced by `img_size` and `output_size` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of `deepinv.utils.metric` in favor of `deepinv.loss.metric` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of parameter `pinv` in :class:`deepinv.models.ArtifactRemoval` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of `deepinv.train` in favor of :class:`deepinv.Trainer` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of the deprecated parameter `eval_n_samples` in :meth:`deepinv.loss.SplittingLoss.adapt_model` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of the deprecated parameter `fast` in :class:`deepinv.physics.CompressedSensing` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of `deepinv.Trainer.log_metrics_wandb` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of parameter and attribute `freq_plot` in :class:`deepinv.Trainer` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of deprecated value `"old_sequency"` for parameter `ordering` in :class:`deepinv.physics.SinglePixelCamera` (:gh:`1210` by `Minh Hai Nguyen`_)
+- (Breaking) Drop support of parameter `sigma` in :class:`deepinv.loss.R2RLoss` in favor of `noise_model` (:gh:`1210` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
@@ -649,4 +671,5 @@ Changed
 .. _Baptiste Legouix: https://github.com/blegouix
 .. _Kaibo Tang: https://github.com/kvttt
 .. _Irène Waldspurger: https://github.com/IWalds
+.. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg

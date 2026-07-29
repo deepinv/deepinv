@@ -48,7 +48,7 @@ class WMSA(nn.Module):
         """
         from einops import rearrange
 
-        # supporting sqaure.
+        # supporting square.
         attn_mask = torch.zeros(
             h,
             w,
