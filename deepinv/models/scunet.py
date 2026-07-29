@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from .utils import get_weights_url, load_state_dict_from_url, trunc_normal_
+from .utils import get_weights_url, load_state_dict_from_url, trunc_normal_, DropPath
 from .base import Denoiser
 
 
@@ -189,7 +189,6 @@ class Block(nn.Module):
 
         self.ln1 = nn.LayerNorm(input_dim)
         self.msa = WMSA(input_dim, input_dim, head_dim, window_size, self.type)
-        from timm.layers import DropPath
 
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.ln2 = nn.LayerNorm(input_dim)

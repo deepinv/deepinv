@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from .base import Denoiser
-from .utils import load_state_dict_from_url, to_2tuple, trunc_normal_
+from .utils import load_state_dict_from_url, to_2tuple, trunc_normal_, DropPath
 import warnings
 
 
@@ -267,8 +267,6 @@ class SwinTransformerBlock(nn.Module):
             attn_drop=attn_drop,
             proj_drop=drop,
         )
-
-        from timm.layers import DropPath
 
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
