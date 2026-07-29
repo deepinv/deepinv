@@ -132,7 +132,7 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
             **kwargs,
         )
 
-    def A_adjoint(self, y: torch.Tensor, scale: int | None=None, **kwargs):
+    def A_adjoint(self, y: torch.Tensor, scale: int | None = None, **kwargs):
         self.set_scale(scale)
         y = self.base.A_adjoint(y, **kwargs)
         if self.scale == 0:
@@ -140,7 +140,7 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
         else:
             return self.Upsamplings[self.scale - 1].A_adjoint(y)
 
-    def A_dagger(self, y: torch.Tensor, scale: int | None=None, **kwargs):
+    def A_dagger(self, y: torch.Tensor, scale: int | None = None, **kwargs):
         r"""
         Computes the pseudo-inverse of the linear operator :math:`A`.
 

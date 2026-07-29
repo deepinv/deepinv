@@ -59,9 +59,9 @@ dataloader = DataLoader(dataset, batch_size=3, shuffle=False)
 data_fidelity = L2()
 noise_level = 0.1
 noise_model = GaussianNoise(sigma=noise_level)
-physics = Inpainting(
-    img_size=set3c_img_shape, mask=0.5, noise_model=noise_model
-).to(device=device)
+physics = Inpainting(img_size=set3c_img_shape, mask=0.5, noise_model=noise_model).to(
+    device=device
+)
 
 prior = PnP(denoiser=DRUNet(pretrained="download")).to(device=device)
 
