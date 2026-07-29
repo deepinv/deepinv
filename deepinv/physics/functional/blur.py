@@ -446,15 +446,30 @@ def liu_jia_pad(x: torch.Tensor, *, padding: tuple[int, int]) -> torch.Tensor:
 
     The padded tensor has shape :math:`(B, C, H + 2 * \text{pad}_h, W + 2 * \text{pad}_w)` where :math:`\text{pad}_h` and :math:`\text{pad}_w` are the vertical and horizontal padding respectively.
 
+
+    .. note::
+
+        Padding a single direction is not supported and a :class:`ValueError`
+        will be raised if only one of the two padding values is non-zero.
+
     :param torch.Tensor x: Input image of shape (B, C, H, W)
-    :param tuple(int, int) padding: Horizontal and vertical padding (px)
+    :param tuple(int, int) padding: Left/right padding, and top/bottom padding (px).
     :return: (:class:`torch.Tensor`) Padded image
     """
     if x.ndim != 4:  # pragma: no cover
         raise ValueError("Input tensor must be 4-dimensional (B, C, H, W)")
 
-    padding_h = 2 * padding[0]
-    padding_w = 2 * padding[1]
+    padding_lr, padding_tb = padding
+
+    if padding_lr < 0 or padding_tb < 0:
+        raise ValueError(f"Padding values must be non-negative. Got: {padding}")
+    elif padding_lr == 0 and padding_tb == 0:
+        return x
+    elif padding_lr == 0 or padding_tb == 0:
+        raise ValueError(f"Single direction padding is not supported. Got: {padding}")
+
+    padding_h = 2 * padding_lr
+    padding_w = 2 * padding_tb
 
     shape = x.shape
     BC = tuple(x.shape[:-2])
