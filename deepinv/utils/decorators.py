@@ -1,6 +1,5 @@
 import warnings
 import functools
-import datetime
 from typing import Any
 
 
@@ -146,32 +145,6 @@ def _deprecated_func_replaced_by(
                 if callable(replacement):
                     return replacement(*args, **kwargs)
                 raise TypeError("redirect=True requires a callable 'replacement'.")
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-
-def expire(date: str):
-    """
-    Decorator to mark a function or method as deprecated after a certain date.
-
-    :param str date: The expiration date in ISO format (YYYY-MM-DD).
-    """
-    expiration_date = datetime.date.fromisoformat(date)
-
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            today = datetime.datetime.now().astimezone().date()
-            if today > expiration_date:
-                warnings.warn(
-                    f"'{func.__name__}' is deprecated from {expiration_date}. "
-                    "Please update your code accordingly.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
             return func(*args, **kwargs)
 
         return wrapper
