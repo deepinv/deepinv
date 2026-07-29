@@ -543,7 +543,7 @@ class TVPrior(Prior):
 
 
 class TVL1Prior(TVPrior):
-    """
+    r"""
     Total Variation (TV) prior with an L1 norm.
 
     This prior computes the isotropic total variation regularization term.
