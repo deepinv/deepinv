@@ -1508,7 +1508,12 @@ class Trainer:
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
         :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If
             ``None``, uses the metrics provided during Trainer initialization.
-        :returns: dict of metrics, timings (in sec) and peak GPU memory usage (in GBy) results with means and stds. Timings correspond to total test time.
+        :returns: dict of metrics, timings (in sec) and peak GPU memory usage (in GB) results with means and stds.
+
+        .. note::
+
+                Timings correspond to total time for `test` to run, which also includes time to load data and compute metrics.
+                Therefore, the reported runtime will be greater than just model inference timings.
         """
         if metrics is not None:
             self.metrics = metrics
@@ -1546,6 +1551,7 @@ class Trainer:
         # reset peak GPU memory usage counter
         if torch.cuda.is_available():
             torch.cuda.reset_peak_memory_stats()
+            torch.cuda.synchronize()
 
         perf_counter_start = time.perf_counter()
         for i in (
@@ -1595,6 +1601,9 @@ class Trainer:
                 out[name + "_vals"] = l.vals
             if self.verbose:
                 print(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
+
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
 
         perf_counter_end = time.perf_counter()
         elapsed_time = perf_counter_end - perf_counter_start
