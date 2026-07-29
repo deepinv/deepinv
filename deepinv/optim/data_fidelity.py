@@ -312,13 +312,20 @@ class L2(DataFidelity):
         r"""
         Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
 
-        The gradient is either computed using the chain rule, or using specific implementation of deepinv.physics.LinearPhysics.A_adjoint_A in the case of a LinearPhysics:
+        The gradient is either computed using the chain rule, or using specific implementation of deepinv.physics.LinearPhysics.A_adjoint_A in the case of a LinearPhysics.
+        Formally, the chain rule is given as
 
         .. math::
 
             \nabla_x \distance{\forw{x}}{y} = \left. \frac{\partial A}{\partial x} \right|_x^\top \nabla_u \distance{u}{y},
 
         where :math:`\left. \frac{\partial A}{\partial x} \right|_x` is the Jacobian of :math:`A` at :math:`x`, and :math:`\nabla_u \distance{u}{y}` is computed using ``grad_d`` with :math:`u = \forw{x}`. The multiplication is computed using the ``A_vjp`` method of the physics.
+
+        In the linear case, the gradient simplifies to
+
+        .. math::
+
+            \nabla_x \distance{\forw{x}}{y} = \frac{1}{\sigma^2}(A^{\top} A x - A^{\top} y).
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y`.

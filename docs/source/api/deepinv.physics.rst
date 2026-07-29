@@ -69,9 +69,6 @@ Operators
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
    deepinv.physics.Scattering
-   deepinv.physics.BlurMultiScaler
-   deepinv.physics.BlurFFTMultiScaler
-   deepinv.physics.InpaintingMultiScaler
    deepinv.physics.to_multiscale
 
 

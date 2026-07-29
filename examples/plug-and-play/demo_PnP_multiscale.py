@@ -20,7 +20,6 @@ from torchvision import transforms
 from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.optim.optimizers import optim_builder
 from deepinv.physics.wrappers import to_multiscale
 from deepinv.training import test
 from deepinv.utils.demo import load_dataset
@@ -61,10 +60,10 @@ data_fidelity = L2()
 noise_level = 0.1
 noise_model = GaussianNoise(sigma=noise_level)
 physics = Inpainting(
-    img_size=set3c_img_shape, mask=0.5, noise_model=noise_model, device=device
-)
+    img_size=set3c_img_shape, mask=0.5, noise_model=noise_model
+).to(device=device)
 
-prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
+prior = PnP(denoiser=DRUNet(pretrained="download")).to(device=device)
 
 # set values of the PnP parameters
 max_iter_pnp = 24
@@ -76,8 +75,7 @@ params_algo = {"stepsize": 1.0, "g_param": 0.05}
 # ----------------------------------------------------------------------------------------
 
 # create the iterative algorithm model
-model = optim_builder(
-    iteration="PGD",
+model = dinv.optim.PGD(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=False,
@@ -101,6 +99,9 @@ test(
     verbose=True,
 )
 
+# We observe that PnP struggles to reconstruct and remains only slightly better than the "No learning" method.
+# Since the denoiser was trained with gaussian noise, it is likely that it interprets the missing pixels as signal.
+
 # %%
 # Multiscale case: use a coarse setting to initialize the fine setting.
 # ----------------------------------------------------------------------------------------
@@ -113,13 +114,12 @@ max_iter_ml_pnp = 8
 
 # define the function which will be used to initialize the fine setting.
 def custom_init(y, physics, F_fn=None):
-    p_multiscale = to_multiscale(physics, y.shape[1:], factors=(2,))
+    p_multiscale = to_multiscale(physics, y.shape[1:], factors=(2,), device=device)
     p_multiscale.set_scale(1)
     y_coarse = p_multiscale.downsample_measurement(y)
     params_algo = {"stepsize": 1.0, "g_param": 0.05}
 
-    model = optim_builder(
-        iteration="PGD",
+    model = dinv.optim.PGD(
         prior=prior,
         data_fidelity=data_fidelity,
         early_stop=False,
@@ -135,8 +135,7 @@ def custom_init(y, physics, F_fn=None):
 
 
 # define the multiscale model by setting the "custom_init" field
-model = optim_builder(
-    iteration="PGD",
+model = dinv.optim.PGD(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=False,
@@ -160,3 +159,6 @@ test(
     plot_convergence_metrics=True,
     verbose=True,
 )
+
+# Using a multiscale strategy to express the image in coarse scale seems to help the denoiser to reconstruct.
+# In this case, the PSNR of the reconstructed image is significantly higher.
