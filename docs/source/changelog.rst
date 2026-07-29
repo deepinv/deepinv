@@ -14,10 +14,12 @@ New Features
 - Add caching to demo/archive downloads (:gh:`1234` by `Julian Tachella`_)
 - Add :func:`deepinv.utils.load_tiff` to load images/ volumes from TIFF files (:gh:`1249` by `Andrew Wang`_)
 - Add :func:`deepinv.utils.plot_napari` to interactively view 2D images/3D vols with napari (:gh:`1249` by `Andrew Wang`_)
+- Add support for :func:`Liu-Jia padding <deepinv.physics.functional.liu_jia_pad>` (:gh:`934` by `Jérémy Scanvic`_)
 
 Changed
 ^^^^^^^
 - (Breaking) Drop support for deprecated parameters `num_channels` in :class:`deepinv.physics.generator.PSFGenerator`, :class:`deepinv.physics.generator.GaussianBlurGenerator`, :class:`deepinv.physics.generator.MotionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
+- Extend :func:`DST-I <deepinv.physics.functional.dst1>` to make it n-dimensional and add an option to have it compute the regular DST-I instead of the non-standard sign-flipped orthogonal variant (:gh:`934` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
