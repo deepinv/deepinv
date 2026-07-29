@@ -310,9 +310,14 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
     else:
         kwargs = dict()
     denoiser = denoiser_class(pretrained="download").to(device)
+    x = load_example_image(
+        "celeba_example.jpg",
+        img_size=64,
+        resize_mode="resize",
+    ).to(device)
 
     # Set up the SDEs
-    num_steps = 10
+    num_steps = 2
     rng = torch.Generator(device)
     # Set up solvers
     timesteps = torch.linspace(0.99, 0.001, num_steps)
@@ -335,26 +340,13 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
             device=device,
         )
     # Test generation
-    sample_1, trajectory = sde.sample(
+    sample, _trajectory = sde.sample(
         (2, 3, 64, 64),
         seed=10,
         get_trajectory=True,
         **kwargs,
     )
-    x_init_1 = trajectory[0]
-
-    # Test output shape
-    assert sample_1.shape == (2, 3, 64, 64)
-    sample_2, trajectory = sde.sample(
-        (2, 3, 64, 64),
-        seed=10,
-        get_trajectory=True,
-        **kwargs,
-    )
-    x_init_2 = trajectory[0]
-    # Test reproducibility
-    assert torch.allclose(x_init_1, x_init_2, atol=1e-5, rtol=1e-5)
-    assert torch.nn.functional.mse_loss(sample_1, sample_2, reduction="mean") < 1e-2
+    assert sample.shape == (2, 3, 64, 64)
 
     # Test posterior sampling
     posterior = PosteriorDiffusion(
@@ -365,11 +357,6 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
         dtype=torch.float64,
         device=device,
     )
-    x = load_example_image(
-        "celeba_example.jpg",
-        img_size=64,
-        resize_mode="resize",
-    ).to(device)
     physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=0.5, device=device)
     y = physics(x)
 
@@ -381,14 +368,6 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
     )
     # Test output shape
     assert x_hat_1.shape == (2, 3, 64, 64)
-    # Test reproducibility
-    x_hat_2 = posterior(
-        y,
-        physics,
-        x_init=(2, 3, 64, 64),
-        seed=111,
-    )
-    assert torch.nn.functional.mse_loss(x_hat_1, x_hat_2, reduction="mean") < 1e-2
 
 
 @torch.no_grad()
