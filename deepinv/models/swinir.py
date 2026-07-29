@@ -390,6 +390,7 @@ class SwinTransformerBlock(nn.Module):
         flops += self.dim * H * W
         return flops
 
+
 class BasicLayer(nn.Module):
     """A basic Swin Transformer layer for one stage.
 
