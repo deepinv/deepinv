@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from .utils import get_weights_url, load_state_dict_from_url
+from .utils import get_weights_url, load_state_dict_from_url, trunc_normal_
 from .base import Denoiser
 
 
@@ -27,8 +27,6 @@ class WMSA(nn.Module):
         )
 
         self.linear = nn.Linear(self.input_dim, self.output_dim)
-
-        from timm.layers import trunc_normal_
 
         trunc_normal_(self.relative_position_params, std=0.02)
         self.relative_position_params = torch.nn.Parameter(
@@ -481,8 +479,6 @@ class SCUNet(Denoiser):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
-            from timm.layers import trunc_normal_
-
             trunc_normal_(m.weight, std=0.02)
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)

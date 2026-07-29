@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from .base import Denoiser
-from .utils import load_state_dict_from_url, to_2tuple
+from .utils import load_state_dict_from_url, to_2tuple, trunc_normal_
 import warnings
 
 
@@ -135,8 +135,6 @@ class WindowAttention(nn.Module):
         self.proj = nn.Linear(dim, dim)
 
         self.proj_drop = nn.Dropout(proj_drop)
-
-        from timm.layers import trunc_normal_
 
         trunc_normal_(self.relative_position_bias_table, std=0.02)
         self.softmax = nn.Softmax(dim=-1)
@@ -918,7 +916,6 @@ class SwinIR(Denoiser):
             self.absolute_pos_embed = nn.Parameter(
                 torch.zeros(1, num_patches, embed_dim)
             )
-            from timm.layers import trunc_normal_
 
             trunc_normal_(self.absolute_pos_embed, std=0.02)
 
@@ -1050,8 +1047,6 @@ class SwinIR(Denoiser):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
-            from timm.layers import trunc_normal_
-
             trunc_normal_(m.weight, std=0.02)
             if isinstance(m, nn.Linear) and m.bias is not None:
                 nn.init.constant_(m.bias, 0)
