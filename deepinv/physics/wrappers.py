@@ -374,7 +374,7 @@ class BlurFFTMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
 
     def A_adjoint_A(self, x: torch.Tensor, scale: int | None = None, **kwargs):
         r"""
-        Less computationnaly expensive version than parent class :class:`LinearPhysicsMultiScaler`
+        Less computationally expensive version than parent class :class:`LinearPhysicsMultiScaler`
 
         :param torch.Tensor x: input signal
         :param int scale: scale in which to apply :math:`U_{scale}^* U_{scale}`
@@ -440,7 +440,7 @@ class InpaintingMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
 
     def A_adjoint_A(self, x: torch.Tensor, scale: int | None = None, **kwargs):
         r"""
-        Less computationnaly expensive version than parent class :class:`LinearPhysicsMultiScaler`
+        Less computationally expensive version than parent class :class:`LinearPhysicsMultiScaler`
 
         :param torch.Tensor x: input signal
         :param int scale: scale in which to apply :math:`U_{scale}^* U_{scale}`
