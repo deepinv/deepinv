@@ -499,7 +499,7 @@ def to_multiscale(
         A_j\left(x\right) = A\left(U_j\left(x_j\right)\right)
 
     where :math:`U_j` denotes upsampling by a factor :math:`\alpha_j`
-    associated to the scale index :math:`j`.
+    associated to the scale index :math:`j`. For more details, see :footcite:p:`laurent2025multilevel`.
 
     .. note::
 
