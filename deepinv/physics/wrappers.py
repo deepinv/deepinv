@@ -485,26 +485,57 @@ def to_multiscale(
     r"""
     Convert a single-scale physics operator to a multi-scale physics operator
 
-    This function creates the proper MultiScalerPhysics associated with the provided Physics.
-    A MultiScalerPhysics adapt itself to several scales of the given signal.
-    Some special cases of Physics have their own implementations, for example :
+    A single-scale physics operator :math:`\forw{\cdot}` can be converted to a
+    multi-scale physics operator, i.e., one operating at multiple coarser
+    scales in addition to the original fine scale.
 
-    - LinearPhysics has an adjoint method computing the observation from a signal given in a coarse scale.
+    A downsampled physics operator :math:`A_j` operating at scale index
+    :math:`j \geq 0` can be evaluated by first upsampling the coarse scale
+    input :math:`x_j` to the original fine scale and then applying the original
+    physics operator
 
-    - Blur and BlurFFT adapt to scale by downsampling their blur filter.
+    .. math::
 
-    - Inpainting adapts to scale by downsampling its mask.
+        A_j\left(x\right) = A\left(U_j\left(x_j\right)\right)
 
-    Other futur specific implementation of MultiScalerPhysics may be added here. Currenlty, only 2D signals are supported.
+    where :math:`U_j` denotes upsampling by a factor :math:`\alpha_j`
+    associated to the scale index :math:`j`.
 
-    See :class:`LinearPhysicsMultiScaler` for details.
+    .. note::
 
-    :param Physics physics: physics that should be converted to a MultiScaler
-    :param tuple[int, ...] img_size: shape of the image in the fine scale
-    :param tuple[int, ...] factors: downsampling factors used to get in coarser scales
-    :return PhysicsMultiScaler: a MultiScaler version of the provided physics
-    :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
-    :param torch.dtype dtype: type to be associated with the signal
+        The scale index :math:`j` is often associated to the scale factor :math:`\alpha_j = 2^j`.
+
+    For linear physics operators, the adjoint operator can be computed from the
+    adjoint of the original physics operator and the adjoint of the upsampling
+    operator, which is the corresponding downsampling operator.
+
+    In certain cases, it is possible to evaluate the downsampled physics
+    operator without first upsampling the input image at the original scale.
+    For instance, for blur and inpainting operators, it is possible to compute
+    the downsampled blur kernels and inpainting masks acting directly on the
+    coarse input.
+
+    .. note::
+
+        In addition to the generic implementation ``MultiScalerPhysics`` which
+        is compatible with arbitrary physics operators, specific
+        implementations cover linear physics operators
+        ``LinearPhysicsMultiScaler`` and specific physics operators such as
+        ``BlurMultiScaler``, ``BlurFFTMultiScaler``, and
+        ``InpaintingMultiScaler``. Users are encouraged to write custom
+        implementations for physics operators that do not have an efficient
+        implementation yet.
+
+    .. note::
+
+        The function ``to_multiscale`` is currently only compatible with 2D input images.
+
+    :param Physics physics: single-scale physics that should be made multi-scale
+    :param tuple[int, ...] img_size: image size in the fine scale
+    :param tuple[int, ...] factors: coarse scales associated to coarse scale indices, default: (2, 4, 8)
+    :param torch.device, str device: device of the inputs, default: 'cpu'
+    :param torch.dtype, None dtype: dtype of the inputs, default: None
+    :return: (PhysicsMultiScaler) the multi-scale physics operator
     """
     if isinstance(physics, Blur):
         return BlurMultiScaler(
