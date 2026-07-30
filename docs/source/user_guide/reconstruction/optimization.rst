@@ -138,7 +138,7 @@ which are used by most optimization algorithms.
    * - :class:`deepinv.optim.AmplitudeLoss`
      - :math:`\sum_{i=1}^{m}{(\sqrt{|b_i^{\top} x|^2}-\sqrt{y_i})^2}`
    * - :class:`deepinv.optim.ZeroFidelity`
-     - :math:`\datafid{x}{y} = 0`. 
+     - :math:`\datafid{x}{y} = 0`.
    * - :class:`deepinv.optim.ItohFidelity`
      - :math:`\datafid{x}{y} = \|Dx - w_t(Dy)\|_2^2` where :math:`D` is a finite difference operator and :math:`w_t` the modulo operator.
 
@@ -184,6 +184,9 @@ priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play
    * - :class:`deepinv.optim.TVPrior`
      - :math:`\reg{x}=\|Dx\|_{1,2}` where :math:`D` is a finite difference operator
      - Yes
+   * - :class:`deepinv.optim.TVL1Prior`
+     - :math:`\reg{x}=\|Dx\|_{1}` where :math:`D` is a finite difference operator
+     - Yes
    * - :class:`deepinv.optim.PatchPrior`
      - :math:`\reg{x} = \sum_i h(P_i x)` for some prior :math:`h(x)` on the space of patches
      - Yes
@@ -214,7 +217,7 @@ For example, we can create the same proximal gradient algorithm as the one at th
     >>> x_hat = model(y, physics)
     >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
-Some predefined optimizers are provided: 
+Some predefined optimizers are provided:
 
 .. list-table::
    :header-rows: 1
@@ -229,7 +232,7 @@ Some predefined optimizers are provided:
    * - :class:`deepinv.optim.PGD`
      - | :math:`u_{k} = x_k - \gamma \nabla f(x_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)`
-   
+
    * - :class:`deepinv.optim.FISTA`
      - | :math:`u_{k} = z_k -  \gamma \nabla f(z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)`
@@ -265,17 +268,17 @@ Some predefined optimizers are provided:
 
    * - :class:`deepinv.optim.SIRT`
      - | :math:`x_{k+1} = x_k + \tau V (A^{\top} W (y - A x_k))`
-     
+
    * - :class:`deepinv.optim.MLEM`
      - | :math:`x_{k+1} = \frac{x_k}{A^{\top} 1} \odot A^{\top} \frac{y}{A x_k}`
 
 
 .. _initialization:
-    
+
 Initialization
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, in these predefined algorithms, the iterates are initialized with the adjoint applied to the measurement :math:`A^{\top}y`, 
+By default, in these predefined algorithms, the iterates are initialized with the adjoint applied to the measurement :math:`A^{\top}y`,
 when the adjoint is defined, and with the observation :math:`y` if the adjoint is not defined.
 
 Custom initialization can be defined in two ways:
@@ -293,7 +296,7 @@ Custom initialization can be defined in two ways:
    the measurement :math:`y` and the physics :math:`A` and returns the initialization in the same form as in case 1.
 
 
-For example, for initializing the above PGD algorithm with the pseudo-inverse of the measurement operator :math:`A^{\dagger}y`, 
+For example, for initializing the above PGD algorithm with the pseudo-inverse of the measurement operator :math:`A^{\dagger}y`,
 one can either use the ``init`` argument when calling the standard ``PGD`` model:
 
 .. doctest::
@@ -319,7 +322,7 @@ Optimization Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~
 The parameters of generic optimization algorithms, such as
 stepsize, regularization parameter, standard deviation of denoiser prior can be passed as arguments to the constructor of the optimization algorithm.
-Alternatively, the parameters can be defined via the dictionary ``params_algo``. This dictionary contains keys that are strings corresponding to the name of the parameters. 
+Alternatively, the parameters can be defined via the dictionary ``params_algo``. This dictionary contains keys that are strings corresponding to the name of the parameters.
 
 
 .. list-table::
@@ -339,7 +342,7 @@ Alternatively, the parameters can be defined via the dictionary ``params_algo``.
        | multiplying the regularization term.
      - Should be positive.
    * - ``"g_param"`` or ``"sigma_denoiser"``
-     - | Optional prior hyper-parameter which :math:`\regname` depends on. 
+     - | Optional prior hyper-parameter which :math:`\regname` depends on.
        | For priors based on denoisers,
        | corresponds to the noise level :math:`\sigma` .
      - Should be positive.
@@ -363,7 +366,7 @@ the following update rule is applied at each iteration :math:`k`:
 .. math::
     \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2, \,\, \text{ do } \tau \leftarrow \eta \tau
 
-In order to use backtracking, the argument  ``backtracking`` of :class:`deepinv.optim.BaseOptim` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, 
+In order to use backtracking, the argument  ``backtracking`` of :class:`deepinv.optim.BaseOptim` must be an instance of :class:`deepinv.optim.BacktrackingConfig`,
 which defines the parameters for backtracking line-search. The :class:`deepinv.optim.BacktrackingConfig` dataclass has the following attributes and default values:
 
 .. code-block:: python
