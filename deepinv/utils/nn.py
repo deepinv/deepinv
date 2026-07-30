@@ -35,7 +35,7 @@ def _get_freer_gpu_system(hide_warnings=False):
     variables are not set.
 
     :param boolean hide_warnings: if True environment variables are not checked and
-    all warning messages are supressed (default `False`)
+    all warning messages are suppressed (default `False`)
     :return tuple (device, idx, mem): cuda device,  index and its free memory in GB:
     """
 
@@ -121,7 +121,7 @@ def get_freer_gpu(verbose=True, use_torch_api=True, hide_warnings=False):
 
     :param bool verbose: print selected GPU index and memory
     :param bool use_torch_api: use torch commands if True, or Nvidia driver otherwise
-    :param bool hide_warnings: supress all warnings for all methods
+    :param bool hide_warnings: suppress all warnings for all methods
     :return torch.device device: selected cuda device
 
     .. warning::
@@ -129,7 +129,7 @@ def get_freer_gpu(verbose=True, use_torch_api=True, hide_warnings=False):
         is not set to ``PCI_BUS_ID``:
         https://discuss.pytorch.org/t/gpu-devices-nvidia-smi-and-cuda-get-device-name-output-appear-inconsistent/13150
         If the variable is not set or has different value, the call to will print a warning
-        (if not supressed with `hide_warnings=True`) but will not change the device.
+        (if not suppressed with `hide_warnings=True`) but will not change the device.
 
     """
     if use_torch_api:
@@ -139,7 +139,7 @@ def get_freer_gpu(verbose=True, use_torch_api=True, hide_warnings=False):
             device, idx, mem = _get_freer_gpu_system(hide_warnings)
         except Exception:
             warn(
-                "an exception occured when selecting GPU using nvidia-driver (nvidia-smi) "
+                "An exception occurred when selecting GPU using nvidia-driver (nvidia-smi) "
                 "falling back to direct PyTorch's runtime API"
             )
             device, idx, mem = _get_freer_gpu_torch(hide_warnings=False)

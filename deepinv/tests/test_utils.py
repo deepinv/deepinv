@@ -869,7 +869,7 @@ def test_normalize_signals(batch_size, img_size, mode, seed):
                 target_c = max(0, min(1, inp_c))
                 assert (
                     out_c == target_c
-                ), "The distance between the input and ouput constants is not minimal."
+                ), "The distance between the input and output constants is not minimal."
     elif mode == "clip":
         # Check that the input is clipped between zero and one
         assert torch.all(
