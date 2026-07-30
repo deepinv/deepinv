@@ -549,21 +549,20 @@ class SmoothedTVPrior(TVPrior):
     This is a differentiable relaxation of the isotropic TV prior :class:`~deepinv.optim.TVPrior`, obtained
     by replacing the (non-differentiable at 0) 2-norm in each pixel's finite-difference vector by a smoothed
     version. As :math:`\varepsilon \to 0`, the smoothed prior converges to the standard TV prior. Unlike
-    :class:`~deepinv.optim.TVPrior`, which is implicit and only exposes a proximal operator, this prior is
-    explicit and differentiable everywhere, with closed-form gradient
+    :class:`~deepinv.optim.TVPrior`, which is non-differentiable and not guaranteed to be stable when using '.grad()', this prior is
+     differentiable everywhere.
+     It does not rely on PyTorch's autodifferientation is is implemented explicitly.
 
     .. math::
 
         \nabla \reg{x} = D^\top \left( \frac{Dx}{\sqrt{\|Dx\|_2^2 + \varepsilon^2}} \right)
 
     where :math:`D` is the finite differences linear operator, :math:`D^\top = -\operatorname{div}` its adjoint,
-    and the 2-norm is taken over the dimension of the differences at each pixel. This is useful for algorithms
-    that require an explicit, smooth gradient (e.g. gradient descent) rather than a proximal operator, and is
-    commonly used in emission tomography.
+    and the 2-norm is taken over the dimension of the differences at each pixel.
 
-    :param float eps: smoothing parameter :math:`\varepsilon > 0`. Larger values yield a smoother, more
-        strongly convexified approximation of TV; smaller values approach the nonsmooth TV prior more
-        closely. Default: 1e-3.
+    :param float eps: smoothing parameter :math:`\varepsilon > 0`. Larger values yield
+    a smoother approximation of TV; smaller values approach the nonsmooth TV prior more
+        closely. Default: 1e-5.
 
     |sep|
 
@@ -617,6 +616,11 @@ class SmoothedTVPrior(TVPrior):
         Dx = self.nabla(x)
         norm = torch.sqrt(torch.sum(Dx**2, dim=-1, keepdim=True) + eps**2)
         return self.nabla_adjoint(Dx / norm)
+
+    def prox(self, x, *args, gamma=1.0, **kwargs):
+        raise NotImplementedError(
+            "Use .grad() instead — prox isn't implemented for this class."
+        )
 
 
 class PatchPrior(Prior):

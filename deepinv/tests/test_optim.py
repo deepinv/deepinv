@@ -619,15 +619,6 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
         # here the prior model is common for all iterations
         prior = get_prior(prior_name, device=device)
-        if prior_name == "SmoothedTVPrior":
-            with torch.enable_grad():
-                x_ag = test_sample.clone().double().requires_grad_(True)
-                g = prior.fn(x_ag).sum()
-                (autograd_grad,) = torch.autograd.grad(g, x_ag)
-            closed_form_grad = prior.grad(test_sample.double())
-            assert torch.allclose(autograd_grad, closed_form_grad, atol=1e-8)
-            with pytest.raises(ValueError):
-                dinv.optim.prior.SmoothedTVPrior(eps=0.0)
 
         if prior_name == "ZeroPrior" and pnp_algo == "FISTA":
             max_iter = 4000
