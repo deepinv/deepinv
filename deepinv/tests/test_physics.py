@@ -1880,6 +1880,70 @@ def test_device_consistency(name):
                     assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5
 
 
+def get_all_tensor_attrs(module, prefix=""):
+    """
+    Get all tensor attributes of a module.
+    """
+    tensor_attrs = {}
+
+    def full_name(name):
+        return f"{prefix}.{name}" if prefix else name
+
+    # Registered parameters
+    for name, parameter in module._parameters.items():
+        if parameter is not None:
+            tensor_attrs[full_name(name)] = parameter
+
+    # Persistent registered buffers
+    for name, buffer in module._buffers.items():
+        if buffer is not None and name not in module._non_persistent_buffers_set:
+            tensor_attrs[full_name(name)] = buffer
+
+    # Unregistered tensor attributes.
+    # Including these preserves the test's ability to detect tensors that
+    # should potentially have been registered.
+    for name, attr in vars(module).items():
+        if isinstance(attr, torch.Tensor):
+            tensor_attrs[full_name(name)] = attr
+
+    # Recurse through registered submodules
+    for name, submodule in module._modules.items():
+        if submodule is not None:
+            tensor_attrs.update(
+                get_all_tensor_attrs(
+                    submodule,
+                    prefix=full_name(name),
+                )
+            )
+
+    return tensor_attrs
+
+
+def test_get_all_tensor_attrs_is_not_vacuous():
+    """
+    Test that the get_all_tensor_attrs behaves as expected.
+    """
+
+    class TestModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.register_buffer("buffer", torch.ones(1))
+            self.parameter = torch.nn.Parameter(torch.ones(1))
+            self.unregistered_tensor = torch.ones(1)
+
+        @property
+        def tensor_property(self):
+            return torch.ones(1)
+
+    attrs = get_all_tensor_attrs(TestModule())
+
+    assert set(attrs) == {
+        "buffer",
+        "parameter",
+        "unregistered_tensor",
+    }
+
+
 @pytest.mark.parametrize("name", OPERATORS)
 def test_physics_state_dict(name, device):
     r"""
@@ -1889,33 +1953,6 @@ def test_physics_state_dict(name, device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts state dict is saved.
     """
-
-    def get_all_tensor_attrs(module, prefix=""):
-        tensor_attrs = {}
-
-        # Check direct attributes
-        for name in dir(module):
-            try:
-                attr = getattr(module, name)
-            except Exception:
-                continue  # skip attributes that raise exceptions on access
-
-            full_name = f"{prefix}.{name}" if prefix else name
-            if (
-                isinstance(attr, torch.Tensor)
-                and name not in module._non_persistent_buffers_set
-            ):
-                tensor_attrs[full_name] = attr
-            elif isinstance(attr, torch.nn.ModuleList):
-                for i, submodule in enumerate(attr):
-                    tensor_attrs.update(
-                        get_all_tensor_attrs(submodule, prefix=f"{full_name}.{i}")
-                    )
-            elif isinstance(attr, torch.nn.Module):
-                # Recurse into submodules
-                tensor_attrs.update(get_all_tensor_attrs(attr, prefix=full_name))
-
-        return tensor_attrs
 
     physics, imsize, _, dtype = find_operator(name, device)
     if name == "radio":
