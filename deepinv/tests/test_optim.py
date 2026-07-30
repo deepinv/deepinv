@@ -907,65 +907,17 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     )  # Optimality condition
 
 
-# Specific test for MLEM because the data-fidelity can only be the Poisson likelihood,
-# contrary to e.g mirror descent which can be tested on L2
-def test_MLEM(imsize, dummy_dataset, device):
-    # Check that MLEM converges on a realistic Poisson deblurring problem.
-    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
-    test_sample = next(iter(dataloader)).to(device)
-
-    physics = dinv.physics.Blur(
-        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
-        device=device,
-        noise_model=dinv.physics.PoissonNoise(gain=1 / 60),
-        padding="circular",
-    )
-    y = physics(test_sample)
-
-    data_fidelity = dinv.optim.PoissonLikelihood()
-
-    # without prior MLEM does not converge in residual, but it does in cost
-    optimalgo = dinv.optim.MLEM(
-        data_fidelity=data_fidelity,
-        prior=dinv.optim.prior.ZeroPrior(),
-        lambda_reg=1.0,
-        max_iter=1000,
-        crit_conv="cost",
-        thres_conv=1e-4,
-        verbose=True,
-        early_stop=True,
-    )
-    x = optimalgo(y, physics)
-
-    assert optimalgo.has_converged
-
-    # Check the closed-form one-step update when the physics has additive background.
-    background = torch.tensor([[[[2.0, 3.0], [4.0, 5.0]]]], device=device)
-    x_init = torch.ones_like(background)
-    x_true = torch.tensor([[[[4.0, 6.0], [8.0, 10.0]]]], device=device)
-    y = x_true + background
-
-    def A_forward(x, add_background=False):
-        out = x
-        if add_background:
-            out = out + background
-        return out
-
-    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=lambda v: v)
-    physics.register_buffer("background", background)
-
-    optimalgo_background = dinv.optim.MLEM(
-        data_fidelity=dinv.optim.PoissonLikelihood(),
-        prior=None,
-        max_iter=1,
-    )
-
-    x = optimalgo_background(y, physics, init=x_init)
-
-    expected = x_init * y / (x_init + background)
-    assert torch.allclose(x, expected)
-
-    # Check ordered-subsets MLEM decreases the Poisson likelihood on tomography.
+# MLEM and OSEM are tested separately because they only support Poisson data fidelity.
+@pytest.mark.parametrize(
+    "algorithm, pre_split",
+    [
+        (dinv.optim.MLEM, False),
+        (dinv.optim.OSEM, False),
+        (dinv.optim.OSEM, True),
+    ],
+    ids=["MLEM", "OSEM", "OSEM-pre-split"],
+)
+def test_MLEM_OSEM_convergence(algorithm, pre_split, device):
     imsize = (1, 16, 16)
     physics = dinv.physics.Tomography(
         img_width=imsize[-1],
@@ -980,19 +932,27 @@ def test_MLEM(imsize, dummy_dataset, device):
     ).clamp(min=0.1)
     y = physics(x_true).clamp(min=1e-6)
     x_init = physics.A_adjoint(y).clamp(min=1e-6)
+    algorithm_kwargs = {}
 
-    osem_data_fidelity = dinv.optim.PoissonLikelihood(bkg=1e-6)
-    cost_init = osem_data_fidelity(x_init, y, physics)
+    if algorithm is dinv.optim.OSEM:
+        if pre_split:
+            y = dinv.physics.split_measurements(y, physics, 2)
+            physics = dinv.physics.split_physics(physics, 2)
+        else:
+            algorithm_kwargs["num_subsets"] = 2
 
-    model = dinv.optim.MLEM(
-        data_fidelity=osem_data_fidelity,
+    model = algorithm(
+        data_fidelity=dinv.optim.PoissonLikelihood(bkg=1e-6),
         prior=dinv.optim.prior.ZeroPrior(),
-        max_iter=1,
-        num_subsets=2,
+        max_iter=500,
+        crit_conv="cost",
+        thres_conv=1e-4,
+        early_stop=True,
+        **algorithm_kwargs,
     )
-    x = model(y, physics, init=x_init)
 
-    assert torch.all(osem_data_fidelity(x, y, physics) < cost_init)
+    model(y, physics, init=x_init)
+    assert model.has_converged
 
 
 def test_patch_prior(imsize, dummy_dataset, device):

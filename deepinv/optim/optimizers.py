@@ -17,6 +17,7 @@ from deepinv.optim.optim_iterators import (
     GDIteration,
     MDIteration,
     MLEMIteration,
+    OSEMIteration,
     SIRTIteration,
 )
 from deepinv.optim.fixed_point import FixedPoint
@@ -32,6 +33,7 @@ from dataclasses import dataclass
 if TYPE_CHECKING:
     from deepinv.physics import Physics
     from deepinv.loss.metric import Metric
+    from deepinv.utils import TensorList
 
 
 @dataclass
@@ -2260,13 +2262,6 @@ class MLEM(BaseOptim):
     The algorithm can be used with a prior term (e.g., for MAP-EM variants) or without
     (standard MLEM). See :class:`deepinv.optim.optim_iterators.MLEMIteration` for the details of the iteration.
 
-    If ``num_subsets > 1``, each MLEM iteration becomes one ordered-subsets EM epoch.
-    The user still calls the algorithm with the full measurement tensor and the full
-    tomography or PET physics; internally, MLEM splits the sinogram over the view dimension
-    and builds a :class:`deepinv.physics.StackedLinearPhysics` containing one
-    operator per subset using :func:`deepinv.physics.tomography.split_physics`
-    and :func:`deepinv.physics.tomography.split_measurements`.
-
     The MLEM algorithm minimizes the Poisson negative log-likelihood data-fidelity. The ``data_fidelity`` argument
     can be used to measure progress during optimization (e.g., for early stopping or metrics computation), but it is
     not used as the objective function to minimize. Only the Poisson negative log-likelihood is minimized regardless
@@ -2295,13 +2290,6 @@ class MLEM(BaseOptim):
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
     :param float g_param: parameter for the prior. Default: ``None``.
     :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
-    :param int num_subsets: number of ordered subsets. If set to ``1``, run standard
-        MLEM. If larger than ``1``, ``physics`` must be a tomography or PET operator
-        whose view dimension can be split into contiguous subsets. Default: ``1``.
-    :param str subset_strategy: ordered-subsets strategy. Currently only ``"default"``
-        is supported. Default: ``"default"``.
-    :param float eps: positive value used to clamp denominators in the
-        multiplicative update. Default: ``1e-15``.
     :param int max_iter: maximum number of iterations. Default: ``100``.
     :param str crit_conv: convergence criterion, either ``"residual"`` or ``"cost"``.
         Default: ``"residual"``.
@@ -2319,6 +2307,129 @@ class MLEM(BaseOptim):
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param dict params_algo: optionally, directly provide the ADMM parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `beta`.
+    """
+
+    def __init__(
+        self,
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        **kwargs,
+    ):
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "g_param": g_param,
+            }
+        super(MLEM, self).__init__(
+            MLEMIteration(cost_fn=cost_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            **kwargs,
+        )
+
+
+class OSEM(BaseOptim):
+    r"""
+    Ordered-Subsets Expectation-Maximization (OSEM) algorithm for Poisson inverse problems.
+
+    OSEM was proposed by Hudson and Larkin
+    :footcite:t:`hudsonAcceleratedImageReconstruction1994` to accelerate the
+    MLEM algorithm of Shepp and Vardi
+    :footcite:t:`sheppMaximumLikelihoodReconstruction1982` by splitting the
+    measurement into ordered subsets. One iteration of this optimizer is one
+    complete epoch over all subsets:
+
+    .. math::
+        x_{k,l+1} =
+        \frac{x_{k,l}}{A_l^T \mathbf{1}}
+        \odot A_l^T \left(\frac{y_l}{A_l x_{k,l} + b_l}\right),
+
+    where :math:`A_l` and :math:`y_l` are the corresponding physics and measurement
+    subset, and :math:`b_l` is an optional additive background.
+
+    .. note::
+
+        The user can provide either the full measurement tensor and full tomography
+        / PET physics, or pre-split measurements and a
+        :class:`deepinv.physics.StackedLinearPhysics`.
+
+        In the first case, OSEM splits the inputs internally using
+        :func:`deepinv.physics.functional.subsets.split_physics` and
+        :func:`deepinv.physics.functional.subsets.split_measurements`.
+        Pre-split measurements can be provided as a :class:`deepinv.utils.TensorList`.
+
+    See :class:`deepinv.optim.optim_iterators.OSEMIteration` for the details of one
+    epoch. For pre-split inputs, a non-stacked ``data_fidelity`` is evaluated
+    independently on each subset and summed when computing the objective.
+
+    A regularization can be included through the ``prior`` argument using the
+    same One-Step-Late (OSL) heuristic of Green
+    :footcite:t:`greenUseEmAlgorithm1990` as :class:`deepinv.optim.MLEM`.
+    Combined with the subset mechanism, this algorithm is sometimes called OS-MAP-OSL.
+
+    :param int num_subsets: number of ordered subsets used when splitting a full
+        physics. This parameter is ignored when a pre-split physics is provided.
+        Default: ``1``.
+    :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity term.
+        If ``None``, the data fidelity term is not used. Default: ``None``.
+    :param deepinv.optim.Prior, list[Prior] prior: prior term. If ``None``, no prior is used.
+        Default: ``None``.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float g_param: parameter for the prior. Default: ``None``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
+    :param str subset_strategy: ordered-subsets strategy. Currently only ``"default"``
+        is supported. Default: ``"default"``.
+    :param float eps: positive value used to clamp denominators in the
+        multiplicative update. Default: ``1e-15``.
+    :param int max_iter: maximum number of OSEM epochs. Default: ``100``.
+    :param str crit_conv: convergence criterion, either ``"residual"`` or ``"cost"``.
+        Default: ``"residual"``.
+    :param float thres_conv: convergence threshold. Default: ``1e-5``.
+    :param bool early_stop: if ``True``, the algorithm stops when the convergence criterion is met.
+        Default: ``False``.
+    :param dict custom_metrics: dictionary of custom metrics to compute at each epoch.
+        Default: ``None``.
+    :param Callable custom_init: custom initialization function. Default: ``None``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: parameters to train if ``unfold`` is ``True``. Default: ``None``.
+    :param Callable cost_fn: custom cost function used for metrics and convergence.
+        Default: ``None``.
+    :param dict params_algo: optionally provide the algorithm parameters directly.
     """
 
     def __init__(
@@ -2366,8 +2477,8 @@ class MLEM(BaseOptim):
                 "lambda": lambda_reg,
                 "g_param": g_param,
             }
-        super(MLEM, self).__init__(
-            MLEMIteration(cost_fn=cost_fn, eps=eps),
+        super(OSEM, self).__init__(
+            OSEMIteration(cost_fn=cost_fn, eps=eps),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
@@ -2382,29 +2493,70 @@ class MLEM(BaseOptim):
             **kwargs,
         )
 
-    def forward(self, y, physics, *args, **kwargs):
-        if self.num_subsets > 1:
-            from deepinv.physics.pet import PET
-            from deepinv.physics.tomography import (
-                Tomography,
-                TomographyWithAstra,
-                split_measurements,
-                split_physics,
-            )
+    def forward(
+        self,
+        y: torch.Tensor | TensorList | list[torch.Tensor],
+        physics: Physics,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, dict]:
+        r"""
+        Run OSEM with full or pre-split measurements and physics.
 
-            if not isinstance(physics, (Tomography, TomographyWithAstra, PET)):
+        :param torch.Tensor, deepinv.utils.TensorList, list[torch.Tensor] y: Full measurement tensor, or pre-split measurements when ``physics`` is a :class:`deepinv.physics.StackedLinearPhysics`.
+        :param deepinv.physics.Physics physics: Full tomography/PET physics or pre-split :class:`deepinv.physics.StackedLinearPhysics`.
+        :return: Reconstructed image, and optionally the metrics dictionary when ``compute_metrics=True``.
+        """
+        from deepinv.physics.forward import StackedLinearPhysics
+        from deepinv.physics.functional.subsets import (
+            split_measurements,
+            split_physics,
+        )
+        from deepinv.physics.pet import PET
+        from deepinv.physics.tomography import Tomography, TomographyWithAstra
+        from deepinv.utils.tensorlist import TensorList
+
+        if isinstance(physics, StackedLinearPhysics):
+            if not isinstance(y, (TensorList, list)):
                 raise TypeError(
-                    "Ordered-subsets MLEM requires a physics operator supporting "
-                    "tomographic subsetting, currently Tomography, "
-                    "TomographyWithAstra or PET."
+                    "A pre-split physics has been provided, but the measurements are not pre-split."
+                    "Provide the measurements either as a "
+                    "deepinv.utils.TensorList or list[torch.Tensor]."
                 )
+            if len(physics) < 1:
+                raise ValueError("OSEM requires at least one subset.")
+            if len(y) != len(physics):
+                raise ValueError(
+                    "The number of measurement subsets and physics subsets "
+                    "must match."
+                )
+            subset_physics = physics
+            y_subsets = y
 
-            kwargs["subset_physics"] = split_physics(
+        # If a full physics is provided, we split it into subsets
+        elif isinstance(physics, (Tomography, TomographyWithAstra, PET)):
+            if not isinstance(y, torch.Tensor):
+                raise TypeError(
+                    "A full deepinv.physics.Tomography, "
+                    "deepinv.physics.TomographyWithAstra, or "
+                    "deepinv.physics.PET requires measurements as a "
+                    "torch.Tensor."
+                )
+            subset_physics = split_physics(
                 physics, self.num_subsets, strategy=self.subset_strategy
             )
-            kwargs["y_subsets"] = split_measurements(
+            y_subsets = split_measurements(
                 y, physics, self.num_subsets, strategy=self.subset_strategy
             )
+        else:
+            raise TypeError(
+                "OSEM requires a full deepinv.physics.Tomography, "
+                "deepinv.physics.TomographyWithAstra, or deepinv.physics.PET, "
+                "or a pre-split deepinv.physics.StackedLinearPhysics."
+            )
+
+        kwargs["subset_physics"] = subset_physics
+        kwargs["y_subsets"] = y_subsets
         return super().forward(y, physics, *args, **kwargs)
 
 

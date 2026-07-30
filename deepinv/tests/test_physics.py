@@ -1494,7 +1494,10 @@ def test_tomography_subset_utilities(device):
 
     indices = dinv.physics.get_subset_indices(num_angles, num_subsets, device=device)
     assert len(indices) == num_subsets
-    assert torch.equal(indices[0], torch.tensor([0, 1], device=device))
+    assert torch.equal(
+        torch.stack(indices),
+        torch.tensor([[0, 4], [1, 5], [2, 6], [3, 7]], device=device),
+    )
 
     y_subsets = dinv.physics.split_measurements(y, physics, num_subsets)
     subset_physics = dinv.physics.split_physics(physics, num_subsets)
@@ -1504,13 +1507,23 @@ def test_tomography_subset_utilities(device):
     assert len(y_subsets) == num_subsets
     assert len(subset_physics) == num_subsets
 
+    stacked_y = subset_physics.A(x)
     for i, idx in enumerate(indices):
         expected_y = y.index_select(-1, idx)
         expected_theta = physics.theta.index_select(0, idx.to(physics.theta.device))
 
         assert torch.allclose(y_subsets[i], expected_y)
+        assert torch.allclose(stacked_y[i], expected_y, atol=1e-5)
         assert torch.allclose(subset_physics[i].theta, expected_theta)
-        assert torch.allclose(subset_physics[i].A(x), expected_y, atol=1e-5)
+
+    assert torch.allclose(
+        subset_physics.A_adjoint(y_subsets), physics.A_adjoint(y), atol=1e-5
+    )
+    assert torch.allclose(
+        subset_physics.compute_sqnorm(x, max_iter=20, verbose=False),
+        physics.compute_sqnorm(x, max_iter=20, verbose=False),
+        rtol=1e-5,
+    )
 
     with pytest.raises(ValueError, match="divisible"):
         dinv.physics.get_subset_indices(num_angles, 3, device=device)

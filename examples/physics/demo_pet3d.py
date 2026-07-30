@@ -258,7 +258,7 @@ model_mlem = dinv.optim.MLEM(
     max_iter=mlem_iter,
 )
 
-model_osem = dinv.optim.MLEM(
+model_osem = dinv.optim.OSEM(
     data_fidelity=data_fidelity,
     prior=None,
     max_iter=osem_epochs,

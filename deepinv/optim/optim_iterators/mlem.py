@@ -1,8 +1,16 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import torch
 
 from deepinv.utils.tensorlist import ones_like
 
 from .optim_iterator import OptimIterator
+
+if TYPE_CHECKING:
+    from deepinv.optim import DataFidelity, Prior
+    from deepinv.physics import Physics
 
 
 class MLEMIteration(OptimIterator):
@@ -14,19 +22,26 @@ class MLEMIteration(OptimIterator):
     More details on the algorithm can be found in the documentation of the :class:`deepinv.optim.optimizers.MLEM` optimizer.
     """
 
-    def __init__(self, eps: float = 1e-15, **kwargs):
-        self.eps = eps
+    def __init__(self, **kwargs):
         super(MLEMIteration, self).__init__(**kwargs)
 
     def forward(
-        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
-    ):
+        self,
+        X: dict[str, tuple[torch.Tensor, None] | torch.Tensor | int | None],
+        cur_data_fidelity: DataFidelity | None,
+        cur_prior: Prior | None,
+        cur_params: dict,
+        y: torch.Tensor,
+        physics: Physics,
+        *args,
+        **kwargs,
+    ) -> dict[str, tuple[torch.Tensor, None] | torch.Tensor | int | None]:
         r"""
         Single Maximum-Likelihood Expectation-Maximization (MLEM) iteration.
 
         This corresponds to an update on both the Poisson negative log-likelihood and prior terms if a prior is provided, and only on Poisson negative log-likelihood otherwise.
 
-        :param torch.Tensor x: Current iterate :math:`x_k`.
+        :param dict X: Dictionary containing the current iterate and the estimated cost.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
@@ -36,56 +51,24 @@ class MLEMIteration(OptimIterator):
         x_prev = X["est"][0]
         k = 0 if "it" not in X else X["it"]
 
-        y_subsets = kwargs.get("y_subsets")
-        subset_physics = kwargs.get("subset_physics")
-
-        # Use one full operator for MLEM, or loop over ordered subsets for OSEM.
-        if y_subsets is not None or subset_physics is not None:
-            if y_subsets is None or subset_physics is None:
-                raise ValueError(
-                    "Both y_subsets and subset_physics must be provided together."
-                )
-            num_subsets = len(subset_physics)
-            if num_subsets < 1:
-                raise ValueError("MLEM requires at least one subset.")
-            if len(y_subsets) != num_subsets:
-                raise ValueError(
-                    "The number of measurement subsets and physics subsets must match."
-                )
-            measurements = y_subsets
-            physics_list = subset_physics
-            prior_scale = 1.0 / num_subsets
+        sensitivity = physics.A_adjoint(ones_like(y))
+        # For deepinv.physics.PET, we need to add the background term
+        if hasattr(physics, "background"):
+            proj = physics.A(x_prev, add_background=True)
+        # Other deepinv.physics.Physics do not have a background term
         else:
-            measurements = (y,)
-            physics_list = (physics,)
-            prior_scale = 1.0
+            proj = physics.A(x_prev)
 
-        x = x_prev
-        for cur_y, cur_physics in zip(measurements, physics_list, strict=True):
-            # Standard MLEM update to decrease the negative log-likelihood
-            sensitivity = cur_physics.A_adjoint(ones_like(cur_y))
-            # For PET we need to add the background term
-            if hasattr(cur_physics, "background"):
-                proj = cur_physics.A(x, add_background=True)
-            # For CT there is no background
-            else:
-                proj = cur_physics.A(x)
+        x = x_prev * physics.A_adjoint(y / proj.clamp(min=1e-15))
 
-            numerator = x * cur_physics.A_adjoint(cur_y / proj.clamp(min=self.eps))
+        if cur_prior is not None:
+            denom = sensitivity + cur_params["lambda"] * cur_prior.grad(
+                x, cur_params["g_param"]
+            )
+        else:
             denom = sensitivity
 
-            # Optional OSL prior contribution in the multiplicative denominator.
-            if cur_prior is not None:
-                if cur_prior.__class__.__name__ == "TVPrior":
-                    dx = cur_prior.nabla(x)
-                    norm = torch.linalg.vector_norm(dx, ord=2, dim=-1, keepdim=True)
-                    prior_grad = cur_prior.nabla_adjoint(dx / norm.clamp_min(self.eps))
-                else:
-                    prior_grad = cur_prior.grad(x, cur_params["g_param"])
-                denom = denom + prior_scale * cur_params["lambda"] * prior_grad
-
-            # M-step/MM minimizer: multiplicative update normalized by sensitivity.
-            x = numerator / denom.clamp(min=self.eps)
+        x = x / denom.clamp(min=1e-15)
 
         F = (
             self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)

@@ -45,9 +45,8 @@ from .noise import (
 )
 from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI
 from .wrappers import PhysicsMultiScaler, LinearPhysicsMultiScaler, PhysicsCropper
-from .tomography import (
-    Tomography,
-    TomographyWithAstra,
+from .tomography import Tomography, TomographyWithAstra
+from .functional.subsets import (
     get_subset_indices,
     split_measurements,
     split_physics,

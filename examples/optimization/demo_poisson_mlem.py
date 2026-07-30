@@ -33,7 +33,7 @@ We show three scenarios of increasing complexity:
 
 1. **Deblurring** with MLEM (no prior)
 2. **Deblurring** with MLEM and Total-Variation (TV) prior
-3. **2D Computed Tomography (CT)** with MLEM, ordered subsets, and TV prior
+3. **2D Computed Tomography (CT)** with MLEM, OSEM, and TV prior
 """
 
 # %%
@@ -251,8 +251,10 @@ x_fbp = physics_ct.A_dagger(y_ct)
 # Ordered-subsets EM accelerates tomographic MLEM by splitting the projection
 # angles into subsets. The API stays the same: we pass the full
 # sinogram ``y_ct`` and the full tomography operator ``physics_ct``. The
-# :class:`deepinv.optim.MLEM` optimizer builds the subset operators internally
-# when ``num_subsets > 1``.
+# :class:`deepinv.optim.OSEM` optimizer builds the subset operators internally.
+# Alternatively, pre-split measurements and a
+# :class:`deepinv.physics.StackedLinearPhysics` can be passed directly; in that
+# case, OSEM infers the number of subsets from the stack.
 # In 2D tomography, subsetting can result in mild speedups, but in 3D tomography it
 # significantly reduces the reconstruction time.
 
@@ -302,7 +304,7 @@ model_ct_mlem = dinv.optim.MLEM(
     verbose=True,
 )
 
-model_ct_osem = dinv.optim.MLEM(
+model_ct_osem = dinv.optim.OSEM(
     data_fidelity=data_fidelity_ct,
     prior=None,
     max_iter=ct_osem_epochs,
@@ -361,10 +363,10 @@ plot_comparison_curves({"MLEM": metrics_ct_mlem, "OSEM": metrics_ct_osem})
 
 # %%
 # The subsetting strategy can also be combined with the use of a prior in the default
-# :class:`deepinv.optim.MLEM` implementation which uses the OSL heuristic.
+# :class:`deepinv.optim.OSEM` implementation which uses the OSL heuristic.
 # However, combining subsets with a prior usually requires more advanced regularization
 # strategies such as [BSREM](http://ieeexplore.ieee.org/document/1207396/).
-# Using subsets with a prior in :class:`deepinv.optim.MLEM` can thus lead to more artifacts
+# Using subsets with a prior in :class:`deepinv.optim.OSEM` can thus lead to more artifacts
 # in the reconstruction.
 
 prior_tv_ct = dinv.optim.prior.TVPrior(n_it_max=50)
@@ -382,7 +384,7 @@ model_ct = dinv.optim.MLEM(
     verbose=True,
 )
 
-model_ct_osem_tv = dinv.optim.MLEM(
+model_ct_osem_tv = dinv.optim.OSEM(
     data_fidelity=data_fidelity_ct,
     prior=prior_tv_ct,
     lambda_reg=lambda_reg,
