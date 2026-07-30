@@ -20,10 +20,9 @@ from torchvision import transforms
 from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.physics.wrappers import to_multiscale
 from deepinv.training import test
 from deepinv.utils.demo import load_dataset
-from deepinv.physics import Inpainting, GaussianNoise
+from deepinv.physics import Inpainting, GaussianNoise, to_multiscale
 
 # %%
 # Setup paths for data loading and results.

@@ -2382,7 +2382,7 @@ def test_multiscale_coarse_adjointness(name, device):
     if not isinstance(physics, dinv.physics.LinearPhysics):
         pytest.skip("Skip " + name + " : not LinearPhysics")
 
-    p_coarse = dinv.physics.wrappers.to_multiscale(
+    p_coarse = dinv.physics.to_multiscale(
         physics, imsize, factors=(2,), device=device, dtype=dtype
     )
     p_coarse.set_scale(1)
@@ -2419,7 +2419,7 @@ def test_multiscale_A_adjoint_A(name, device):
     if not isinstance(physics, dinv.physics.LinearPhysics):
         pytest.skip("Skip " + name + " : not LinearPhysics")
 
-    p_coarse = dinv.physics.wrappers.to_multiscale(
+    p_coarse = dinv.physics.to_multiscale(
         physics, imsize, factors=(2,), device=device, dtype=dtype
     )
     p_coarse.set_scale(1)
