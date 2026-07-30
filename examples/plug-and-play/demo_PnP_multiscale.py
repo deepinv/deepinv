@@ -47,7 +47,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 dataset_name = "set3c"
 img_size = 256 if torch.cuda.is_available() else 32
-set3c_img_shape = (3, img_size, img_size)  # set3c contains 256x256 rgb images
+set3c_img_size = (3, img_size, img_size)  # set3c contains 256x256 rgb images
 val_transform = transforms.Compose(
     [transforms.ToTensor(), transforms.CenterCrop(img_size)]
 )
@@ -59,7 +59,7 @@ dataloader = DataLoader(dataset, batch_size=3, shuffle=False)
 data_fidelity = L2()
 noise_level = 0.1
 noise_model = GaussianNoise(sigma=noise_level)
-physics = Inpainting(img_size=set3c_img_shape, mask=0.5, noise_model=noise_model).to(
+physics = Inpainting(img_size=set3c_img_size, mask=0.5, noise_model=noise_model).to(
     device=device
 )
 
