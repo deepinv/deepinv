@@ -48,7 +48,7 @@ class PhysicsMultiScaler(Physics):
         self.base = physics
         self.factors = factors
         self.img_size = img_size
-        self.Upsamplings = [
+        self.upsamplings = [
             Upsampling(
                 img_size=img_size,
                 filter=filter,
@@ -68,21 +68,21 @@ class PhysicsMultiScaler(Physics):
         if self.scale == 0:
             return self.base.A(x, **kwargs)
         else:
-            return self.base.A(self.Upsamplings[self.scale - 1].A(x), **kwargs)
+            return self.base.A(self.upsamplings[self.scale - 1].A(x), **kwargs)
 
     def downsample(self, x, scale=None):
         self.set_scale(scale)
         if self.scale == 0:
             return x
         else:
-            return self.Upsamplings[self.scale - 1].A_adjoint(x)
+            return self.upsamplings[self.scale - 1].A_adjoint(x)
 
     def upsample(self, x, scale=None):
         self.set_scale(scale)
         if self.scale == 0:
             return x
         else:
-            return self.Upsamplings[self.scale - 1].A(x)
+            return self.upsamplings[self.scale - 1].A(x)
 
     def downsample_measurement(self, y, scale=None):
         r"""
@@ -161,7 +161,7 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
         if self.scale == 0:
             return y
         else:
-            return self.Upsamplings[self.scale - 1].A_adjoint(y)
+            return self.upsamplings[self.scale - 1].A_adjoint(y)
 
     def A_dagger(self, y: torch.Tensor, scale: int | None = None, **kwargs):
         r"""
@@ -305,7 +305,7 @@ class BlurMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         )
 
         self.scaled_physics = []
-        for upsampling in self.Upsamplings:
+        for upsampling in self.upsamplings:
             filt = coarse_blur_filter(
                 physics.filter, upsampling.filter, upsampling.factor
             )
@@ -323,7 +323,7 @@ class BlurMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         if self.scale == 0:
             return y
         else:
-            return self.Upsamplings[self.scale - 1].A_adjoint(y)
+            return self.upsamplings[self.scale - 1].A_adjoint(y)
 
     def A_adjoint_A(self, x: torch.Tensor, scale: int | None = None, **kwargs):
         r"""
@@ -369,7 +369,7 @@ class BlurFFTMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         )
 
         self.scaled_physics = []
-        for upsampling in self.Upsamplings:
+        for upsampling in self.upsamplings:
             factor = upsampling.factor
             filt = coarse_blur_filter(physics.filter, upsampling.filter, factor)
             coarse_shape = (
@@ -393,7 +393,7 @@ class BlurFFTMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         if self.scale == 0:
             return y
         else:
-            return self.Upsamplings[self.scale - 1].A_adjoint(y)
+            return self.upsamplings[self.scale - 1].A_adjoint(y)
 
     def A_adjoint_A(self, x: torch.Tensor, scale: int | None = None, **kwargs):
         r"""
@@ -439,7 +439,7 @@ class InpaintingMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         )
 
         self.scaled_physics = []
-        for upsampling in self.Upsamplings:
+        for upsampling in self.upsamplings:
             coarse_data = upsampling.A_adjoint(physics.mask.data)
             p = Inpainting(
                 img_size=coarse_data.shape[1:],
@@ -459,7 +459,7 @@ class InpaintingMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         if self.scale == 0:
             return y
         else:
-            return self.Upsamplings[self.scale - 1].A_adjoint(y)
+            return self.upsamplings[self.scale - 1].A_adjoint(y)
 
     def A_adjoint_A(self, x: torch.Tensor, scale: int | None = None, **kwargs):
         r"""
