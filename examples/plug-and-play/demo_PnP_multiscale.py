@@ -37,7 +37,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # realistic scenario.
 
 # Create the dataset
-img_size = (3, 32, 32) if device.type == "cpu" else (3, 256, 256)
+img_size = (3, 32, 32) if torch.device(device).type == "cpu" else (3, 256, 256)
 val_transform = transforms.Compose(
     [transforms.ToTensor(), transforms.CenterCrop(img_size[-2:])]
 )
