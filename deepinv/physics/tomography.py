@@ -604,7 +604,7 @@ class TomographyWithAstra(LinearPhysics):
         sinogram_scaled = torch.clone(sinogram)
         is_3d = len(sinogram.shape) == 5
 
-        if self.geometry_type == "conebeam" and is_3d:
+        if self.geometry_type in ("conebeam", "cone_vec") and is_3d:
             # dimensions (V,N) are (row,col) of the 2D detector
             # A is the number of angles
             B, C, V, A, N = sinogram.shape
