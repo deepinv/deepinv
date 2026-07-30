@@ -1,8 +1,11 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import torch.nn as nn
 from torch import Tensor
 from .base import GeneratorLoss
-from deepinv.physics import Physics
+
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
 
 
 class UAIRGeneratorLoss(GeneratorLoss):

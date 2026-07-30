@@ -7,7 +7,6 @@ from .plotting import (
     plot_inset,
     plot_videos,
     save_videos,
-    make_grid,
     resize_pad_square_tensor,
     scatter_plot,
     plot_ortho3D,

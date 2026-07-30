@@ -3,9 +3,6 @@ from types import MappingProxyType
 import os
 import re
 
-from PIL import Image
-import requests
-
 from deepinv.datasets.utils import (
     download_archive,
     extract_tarball,
@@ -172,6 +169,8 @@ class FMD(ImageDataset):
                 ## Which will be needed to download the archive ------------------------
 
                 # URL to fetch the initial HTML content
+                import requests  # lazy import
+
                 url_initial = (
                     f"https://docs.google.com/uc?export=download&id={gdrive_id}"
                 )
@@ -238,7 +237,9 @@ class FMD(ImageDataset):
             self.root, img_type, noise_dirname, str(fov), fname
         )
         clean_img_path = os.path.join(self.root, img_type, "gt", str(fov), "avg50.png")
-        # PIL Image
+
+        from PIL import Image
+
         noisy_img = Image.open(noisy_img_path)
         clean_img = Image.open(clean_img_path)
 

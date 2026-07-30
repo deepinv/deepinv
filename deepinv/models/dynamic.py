@@ -1,8 +1,12 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from torch import Tensor
 import torch.nn as nn
-from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor
 from deepinv.utils.mixins import TimeMixin
+
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
 
 
 class TimeAgnosticNet(Reconstructor, TimeMixin):

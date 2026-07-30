@@ -9,7 +9,6 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.utils.checkpoint as checkpoint
 from .base import Denoiser
 from .utils import load_state_dict_from_url
 import warnings
@@ -519,10 +518,14 @@ class BasicLayer(nn.Module):
         else:
             self.downsample = None
 
+        from torch.utils.checkpoint import checkpoint as torch_checkpoint
+
+        self.torch_checkpoint = torch_checkpoint  # lazy import
+
     def forward(self, x, x_size):
         for blk in self.blocks:
             if self.use_checkpoint:
-                x = checkpoint.checkpoint(blk, x, x_size)
+                x = self.torch_checkpoint(blk, x, x_size)
             else:
                 x = blk(x, x_size)
         if self.downsample is not None:

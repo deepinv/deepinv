@@ -3,7 +3,6 @@ from __future__ import annotations
 from torch import Tensor
 from deepinv.transform import Transform, Rotate, Reflect
 from .base import Denoiser, Reconstructor
-from deepinv.physics.virtual import VirtualLinearPhysics
 import torch
 
 
@@ -141,6 +140,12 @@ class EquivariantReconstructor(Reconstructor):
         self.transform = transform
         self.eval_transform = eval_transform
 
+        from deepinv.physics.virtual import VirtualLinearPhysics
+
+        self.virtual_linear_physics = (
+            VirtualLinearPhysics  # lazy import to break import chains
+        )
+
     def forward(
         self, y: torch.Tensor, physics, *reconstructor_args, **reconstructor_kwargs
     ) -> torch.Tensor:
@@ -170,7 +175,7 @@ class EquivariantReconstructor(Reconstructor):
         # Compute the terms in the sum, i.e., T_g(R(y, AT_g)) for each g
         terms = []
         for g_params in transform.iterate_params(G_params):
-            ATg = VirtualLinearPhysics(
+            ATg = self.virtual_linear_physics(
                 physics=physics, transform=transform, g_params=g_params
             )
 

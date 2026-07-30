@@ -1,6 +1,5 @@
 from .__about__ import *
 import torch
-import torchvision as _torchvision  # early loading
 
 __all__ = [
     "__title__",

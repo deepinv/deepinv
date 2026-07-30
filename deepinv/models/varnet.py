@@ -1,5 +1,6 @@
 from __future__ import annotations
 from warnings import warn
+from typing import TYPE_CHECKING
 
 import torch
 from torch import Tensor
@@ -7,9 +8,11 @@ import torch.nn as nn
 
 from deepinv.models.base import Denoiser
 from deepinv.models.artifactremoval import ArtifactRemoval
-from deepinv.models import DnCNN
-from deepinv.physics.mri import MRI, MultiCoilMRI
+from deepinv.models.dncnn import DnCNN
 from deepinv.utils.mixins import MRIMixin
+
+if TYPE_CHECKING:
+    from deepinv.physics.mri import MRI, MultiCoilMRI
 
 
 class VarNet(ArtifactRemoval, MRIMixin):

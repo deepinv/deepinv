@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 from tqdm import tqdm
 
@@ -7,10 +8,11 @@ from torch import Tensor
 from torch import rand
 import torch
 from torch.optim import Adam
-from deepinv.physics import Physics
-from deepinv.loss import MCLoss
-from .base import Reconstructor
-from .utils import fix_dim, conv_nd, batchnorm_nd, conv_transpose_nd
+from deepinv.models.base import Reconstructor
+from deepinv.models.utils import fix_dim, conv_nd, batchnorm_nd, conv_transpose_nd
+
+if TYPE_CHECKING:
+    from deepinv.physics.forward import Physics
 
 
 class PatchGANDiscriminator(nn.Module):
@@ -326,6 +328,8 @@ class CSGMGenerator(Reconstructor):
         inf_lr: float = 1e-2,
         inf_progress_bar: bool = False,
     ):
+        from deepinv.loss.mc import MCLoss
+
         if backbone_generator is None:
             backbone_generator = DCGANGenerator()
         super().__init__()

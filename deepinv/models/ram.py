@@ -8,7 +8,6 @@ import torch.nn as nn
 from torch import Tensor
 
 import deepinv as dinv
-from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Reconstructor, Denoiser
 from .utils import load_state_dict_from_url
@@ -249,6 +248,10 @@ class RAM(Reconstructor, Denoiser):
         :param deepinv.physics.Physics physics: physics measurement operator
         :param torch.Tensor y: measurements
         """
+        from deepinv.physics import (
+            LinearPhysicsMultiScaler,
+        )  # lazy import to break import chain
+
         img_channels = x0.shape[1]
         physics = LinearPhysicsMultiScaler(physics, x0.shape[-3:], device=x0.device)
 
@@ -413,6 +416,8 @@ class RAM(Reconstructor, Denoiser):
 
         use_pad = False
         if any(p != 0 for p in pad):
+            from deepinv.physics import PhysicsCropper  # lazy import
+
             physics = PhysicsCropper(physics, pad, device=y.device)
             use_pad = True
 

@@ -7,12 +7,10 @@ import tarfile
 import sys
 from pathlib import Path
 
-import requests
 from tqdm.auto import tqdm
 
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
-from torchvision.transforms.functional import crop as torchvision_crop
 
 from deepinv.datasets.base import ImageDataset
 from deepinv.utils import normalize_signal, get_cache_home
@@ -63,6 +61,8 @@ def download_archive(
         Extracting RAR archives requires `rarfile`, install it with ``pip install rarfile``.
     :param bool force_download: if ``True``, download the archive even if it already exists.
     """
+    import requests  # lazy import
+
     save_path = Path(save_path)
     if not force_download and save_path.exists() and save_path.stat().st_size > 0:
         print(f"File already downloaded: {save_path}. Skipping...", file=sys.stderr)
@@ -237,5 +237,16 @@ class Crop(Module):
             else:
                 raise ValueError("size must be int or tuple of ints of size 2 or 4.")
 
-    def forward(self, x: Tensor):
-        return torchvision_crop(x, *self.size)
+    def forward(self, x: Tensor) -> Tensor:
+        from PIL import Image
+
+        top, left, height, width = self.size
+
+        if isinstance(x, Image.Image):
+            return x.crop((left, top, left + width, top + height))
+        elif isinstance(x, Tensor):
+            return x[..., top : top + height, left : left + width]
+        else:
+            raise ValueError(
+                f"Crop expected input type torch.Tensor or PIL.Image.Image, but got type {type(x)}."
+            )

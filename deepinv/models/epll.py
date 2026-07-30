@@ -1,8 +1,7 @@
 from __future__ import annotations
 import torch
 from deepinv.optim.epll import EPLL
-from deepinv.physics import Denoising, GaussianNoise
-from .base import Denoiser
+from deepinv.models.base import Denoiser
 from deepinv.optim.utils import GaussianMixtureModel
 
 
@@ -45,6 +44,9 @@ class EPLLDenoiser(Denoiser):
         self.PatchGMM = EPLL(
             GMM, n_components, pretrained, patch_size, channels, device
         )
+
+        from deepinv.physics import Denoising, GaussianNoise  # lazy import
+
         self.denoising_operator = Denoising(GaussianNoise(0))
 
     def forward(

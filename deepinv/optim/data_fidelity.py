@@ -15,7 +15,6 @@ from deepinv.optim.distance import (
 )
 
 from deepinv.optim.potential import Potential
-from deepinv.physics.functional import dct_2d, idct_2d
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics, StackedPhysics
@@ -350,6 +349,10 @@ class ItohFidelity(L2):
         self.norm = 1 / (sigma**2)
         self.modulo_round = lambda x: x - threshold * torch.round(x / threshold)
 
+        from deepinv.physics.functional import dct_2d, idct_2d
+
+        self.dct_2d, self.idct_2d = dct_2d, idct_2d  # lazy import
+
     def fn(self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs):
         r"""
         Computes the data fidelity term :math:`\datafid{x}{y} = \distance{Dx}{w_{t}(Dy)}`.
@@ -539,14 +542,14 @@ class ItohFidelity(L2):
                 - (torch.cos(torch.pi * I / MX) + torch.cos(torch.pi * J / NX))
             )
 
-        dct_psi = dct_2d(psi, norm="ortho")
+        dct_psi = self.dct_2d(psi, norm="ortho")
 
         denom = denom.to(psi.device)
         denom[..., 0, 0] = 1  # avoid division by zero
 
         dct_phi = dct_psi / denom
 
-        phi = idct_2d(dct_phi, norm="ortho")
+        phi = self.idct_2d(dct_phi, norm="ortho")
 
         return phi
 

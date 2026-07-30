@@ -1,7 +1,12 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 from torch import Generator, randint, Tensor, tensor
 from torch.nn import Module
 from deepinv.loss.loss import Loss
-from deepinv.physics.forward import Physics
+
+if TYPE_CHECKING:
+    from deepinv.physics.forward import Physics
 
 
 class BaseLossScheduler(Loss):

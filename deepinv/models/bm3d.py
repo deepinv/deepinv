@@ -3,7 +3,6 @@ import torch
 from torch import Tensor
 from .base import Denoiser
 from .utils import array2tensor, tensor2array
-from deepinv.physics.functional import dct
 from deepinv.utils import image_to_patches
 
 
@@ -168,6 +167,8 @@ class BM3D(Denoiser):
     def _get_dct_matrix(
         self, n: int, norm: str = "ortho", device: torch.device | None = None
     ) -> tuple[Tensor, Tensor]:
+        from deepinv.physics.functional import dct  # lazy import at init
+
         matrix = dct(torch.eye(n, dtype=torch.float32, device=device), norm=norm).T
         inverse = matrix.T if norm == "ortho" else torch.linalg.inv(matrix)
         return matrix, inverse

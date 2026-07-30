@@ -1,9 +1,12 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import torch
 import math
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
-from deepinv.physics.noise import NoiseModel, GaussianNoise, PoissonNoise, GammaNoise
+
+if TYPE_CHECKING:
+    from deepinv.physics.noise import NoiseModel
 
 
 class R2RLoss(Loss):
@@ -195,6 +198,8 @@ class R2RModel(torch.nn.Module):
         self.alpha = alpha
 
     def forward(self, y, physics, update_parameters=False):
+        from deepinv.physics.noise import NoiseModel
+
         if self.noise_model is None:
             if isinstance(physics.noise_model, NoiseModel):
                 self.curr_noise_model = physics.noise_model
@@ -227,6 +232,8 @@ class R2RModel(torch.nn.Module):
         return out
 
     def get_corruptor(self, y):
+        from deepinv.physics.noise import GaussianNoise, PoissonNoise, GammaNoise
+
         alpha = self.alpha
 
         if isinstance(self.curr_noise_model, GaussianNoise):

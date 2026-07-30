@@ -1,10 +1,11 @@
 from __future__ import annotations
-from typing import Iterable
+from typing import Iterable, TYPE_CHECKING
 import torch
-from torchvision.transforms.functional import rotate
-from torchvision.transforms import InterpolationMode
 from deepinv.transform.base import Transform, TransformParam
 from warnings import warn
+
+if TYPE_CHECKING:
+    from torchvision.transforms import InterpolationMode
 
 
 class Rotate(Transform):
@@ -43,6 +44,9 @@ class Rotate(Transform):
         self.limits = limits
         self.multiples = multiples
         self.positive = positive
+
+        from torchvision.transforms import InterpolationMode
+
         if interpolation_mode is None:
             interpolation_mode = InterpolationMode.NEAREST
             if multiples % 90 != 0:
@@ -56,6 +60,10 @@ class Rotate(Transform):
             if isinstance(interpolation_mode, str)
             else interpolation_mode
         )
+
+        from torchvision.transforms.functional import rotate as torchvision_rotate
+
+        self.torchvision_rotate = torchvision_rotate  # lazy import
 
     def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate rotation parameters.
@@ -86,7 +94,7 @@ class Rotate(Transform):
         """
         return torch.cat(
             [
-                rotate(
+                self.torchvision_rotate(
                     x,
                     float(_theta),
                     interpolation=self.interpolation_mode,

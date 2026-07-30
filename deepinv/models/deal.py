@@ -5,11 +5,13 @@ import torch.nn.functional as F
 import torch.nn.utils.parametrize as P
 from torch import Tensor, nn
 
-from deepinv.physics import Denoising, LinearPhysics
 from deepinv.optim.linear import conjugate_gradient
 from .base import Reconstructor
 from .utils import load_state_dict_from_url
-from typing import Any, Callable
+from typing import Any, Callable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.physics import LinearPhysics
 
 
 class DEAL(Reconstructor):
@@ -174,6 +176,11 @@ class DEAL(Reconstructor):
         # DeepInverse denoisers are commonly called as model(y, sigma).
         # In that case, the second positional argument arrives here as
         # `physics`, so we reinterpret scalar/tensor physics as sigma.
+        from deepinv.physics import (
+            Denoising,
+            LinearPhysics,
+        )  # lazy import to break import chain
+
         if (
             sigma is None
             and physics is not None

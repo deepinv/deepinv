@@ -13,8 +13,6 @@ from deepinv.loss.metric.functional import (
     signal_noise_ratio,
 )
 
-from deepinv.physics.functional import conv2d
-
 if TYPE_CHECKING:
     from deepinv.physics.remote_sensing import Pansharpen
     from deepinv.utils.tensorlist import TensorList
@@ -1043,6 +1041,10 @@ class GMSD(Metric):
         super().__init__(**kwargs)
         self.c = c
 
+        from deepinv.physics.functional import conv2d
+
+        self.conv2d = conv2d  # lazy import
+
     def _build_hx_hy(self, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
         hx = torch.tensor(
             [[1 / 3, 0, -1 / 3], [1 / 3, 0, -1 / 3], [1 / 3, 0, -1 / 3]],
@@ -1076,12 +1078,12 @@ class GMSD(Metric):
         x_net_bc = x_net.reshape(B * C, 1, H, W)
 
         grad_mag_x = torch.hypot(
-            conv2d(x_bc, hx, padding="replicate"),
-            conv2d(x_bc, hy, padding="replicate"),
+            self.conv2d(x_bc, hx, padding="replicate"),
+            self.conv2d(x_bc, hy, padding="replicate"),
         )
         grad_mag_x_net = torch.hypot(
-            conv2d(x_net_bc, hx, padding="replicate"),
-            conv2d(x_net_bc, hy, padding="replicate"),
+            self.conv2d(x_net_bc, hx, padding="replicate"),
+            self.conv2d(x_net_bc, hy, padding="replicate"),
         )
 
         gms = (2 * grad_mag_x * grad_mag_x_net + self.c) / (

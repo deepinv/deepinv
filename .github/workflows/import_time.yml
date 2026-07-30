@@ -60,10 +60,10 @@ jobs:
             uv sync $EXTRAS
           fi
 
-      - name: "Benchmark torch+torchvision"
+      - name: "Benchmark torch"
         run: |
           echo "Benchmarking torch..."
-          hyperfine --warmup 3 --show-output --export-json torch.json 'uv run python -c "import torch, torchvision"'
+          hyperfine --warmup 3 --show-output --export-json torch.json 'uv run python -c "import torch"'
 
       - name: "Benchmark PR"
         run: |

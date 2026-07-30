@@ -5,8 +5,6 @@ import torch
 import torch.nn.functional as F
 
 from deepinv.loss.metric.metric import Metric
-from deepinv.physics.functional.convolution import conv2d
-from deepinv.physics.functional.imresize import imresize_matlab
 from deepinv.models.utils import load_state_dict_from_url, get_weights_url
 
 
@@ -24,6 +22,9 @@ class LPIPS(Metric):
     .. note::
 
         By default, no reduction is performed in the batch dimension.
+
+    Note that `torchmetrics` is required to use this metric. `torchvision` is also required to download the pretrained weights. Install them with
+    `pip install torchvision torchmetrics`.
 
     :Example:
 
@@ -196,6 +197,12 @@ class NIQE(Metric):
 
             self.cov_p = cov.to(dtype=dtype, device=device)
 
+        from deepinv.physics.functional.convolution import conv2d
+        from deepinv.physics.functional.imresize import imresize_matlab
+
+        self.conv2d = conv2d  # lazy import to break import chain
+        self.imresize_matlab = imresize_matlab
+
     def estimate_aggd_param(self, vecs: torch.Tensor, eps: float = 1e-12):
         v = vecs
         neg = v < 0
@@ -284,10 +291,10 @@ class NIQE(Metric):
         all_feats = []
 
         for scale in range(1, self.n_scales + 1):
-            mu = conv2d(x_net, kernel, "replicate")
+            mu = self.conv2d(x_net, kernel, "replicate")
             mu_sq = mu * mu
             sigma = torch.sqrt(
-                torch.abs(conv2d(x_net * x_net, kernel, "replicate") - mu_sq)
+                torch.abs(self.conv2d(x_net * x_net, kernel, "replicate") - mu_sq)
             )
             structdis = (x_net - mu) / (sigma + self.denominator)
             k = max(1, self.patch_size // scale)
@@ -298,7 +305,7 @@ class NIQE(Metric):
             all_feats.append(feats)
 
             if scale < self.n_scales:
-                x_net = imresize_matlab(
+                x_net = self.imresize_matlab(
                     x_net,
                     scale=0.5,
                     kernel="cubic",
@@ -480,11 +487,11 @@ class NIQE(Metric):
 
                 x_scale = x
                 for scale in range(1, self.n_scales + 1):
-                    mu = conv2d(x_scale, kernel, "replicate")
+                    mu = self.conv2d(x_scale, kernel, "replicate")
                     mu_sq = mu * mu
                     sigma = torch.sqrt(
                         torch.abs(
-                            conv2d(x_scale * x_scale, kernel, "replicate") - mu_sq
+                            self.conv2d(x_scale * x_scale, kernel, "replicate") - mu_sq
                         )
                     )
                     structdis = (x_scale - mu) / (sigma + self.denominator)
@@ -502,7 +509,7 @@ class NIQE(Metric):
                         sharpness = U.mean(dim=1).squeeze(0)  # (L,)
 
                     if scale < self.n_scales:
-                        x_scale = imresize_matlab(
+                        x_scale = self.imresize_matlab(
                             x_scale,
                             scale=0.5,
                             kernel="cubic",
