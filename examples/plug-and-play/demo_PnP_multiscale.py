@@ -1,163 +1,147 @@
 """
-Multi-scale Plug-and-Play
-=========================
+Multi-scale Plug-and-Play for Inpainting
+========================================
 
-In this example, multi-scale Plug-and-Play is used to show its benefits
-over the regular Plug-and-Play for solving the inpainting inverse problem.
-First, the results of regular Plug-and-Play is shown.
-In the second part of this example, a coarse inverse problem is designed,
-and the solution of the coarse problem is then used by fine scale algorithm obtain the solution.
-It appears the quality of the obtained solution is worth the small computation overhead introduced
-by the coarse scale operations.
+Plug-and-Play (PnP) is known to be challenging to apply to certain inverse problems
+like inpainting. One way to overcome this is to use a multi-scale approach
+instead of the standard single-scale approach.
+
+In this example, we show how to use multi-scale PnP and we benchmark it against
+a single-scale PnP baseline. Despite being slightly more computationally
+expensive, the results show that multi-scale PnP outputs significantly better
+reconstructions than the baseline.
+
+For more details about multi-scale PnP, please refer to :footcite:t:`laurent2025multilevel`.
 """
 
 import deepinv as dinv
-from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from deepinv.models import DRUNet
-from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import PnP
-from deepinv.training import test
-from deepinv.utils.demo import load_dataset
-from deepinv.physics import Inpainting, GaussianNoise, to_multiscale
-
-# %%
-# Setup paths for data loading and results.
-# ----------------------------------------------------------------------------------------
-
-BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
-DATA_DIR = BASE_DIR / "measurements"
-RESULTS_DIR = BASE_DIR / "results"
-DEG_DIR = BASE_DIR / "degradations"
-
-# %%
-# Define the PnP setting.
-# ----------------------------------------------------------------------------------------
-# In this example, we use the Set3C dataset
-
-# Set the global random seed from pytorch to ensure reproducibility of the example.
+# For reproducilibity
 torch.manual_seed(0)
+torch.cuda.manual_seed_all(0)
+torch.backends.cudnn.deterministic = True
 
+# Select the device
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-dataset_name = "set3c"
-img_size = 256 if torch.cuda.is_available() else 32
-set3c_img_size = (3, img_size, img_size)  # set3c contains 256x256 rgb images
-val_transform = transforms.Compose(
-    [transforms.ToTensor(), transforms.CenterCrop(img_size)]
-)
+# %%
+# The inpainting problem
+# ----------------------
+# We start by defining the inpainting problem. We use images from the
+# :class:`Set3C <deepinv.datasets.Set3C>` dataset and apply a random inpainting
+# mask with 50% of the pixels missing to obtain the measurements. Additive
+# white Gaussian noise is also added to the measurements to simulate a more
+# realistic scenario.
 
-dataset = load_dataset(dataset_name, transform=val_transform)
+# Create the dataset
+img_size = (3, 32, 32) if device.type == "cpu" else (3, 256, 256)
+val_transform = transforms.Compose(
+    [transforms.ToTensor(), transforms.CenterCrop(img_size[-2:])]
+)
+dataset = dinv.utils.load_dataset("set3c", transform=val_transform)
 dataloader = DataLoader(dataset, batch_size=3, shuffle=False)
 
-# set the data-fidelity and the prior
-data_fidelity = L2()
-noise_level = 0.1
-noise_model = GaussianNoise(sigma=noise_level)
-physics = Inpainting(img_size=set3c_img_size, mask=0.5, noise_model=noise_model).to(
-    device=device
+# Create the physics operator
+noise_model = dinv.physics.GaussianNoise(sigma=0.1)
+physics = dinv.physics.Inpainting(
+    img_size=img_size, mask=0.5, noise_model=noise_model, device=device
 )
 
-prior = PnP(denoiser=DRUNet(pretrained="download")).to(device=device)
-
-# set values of the PnP parameters
-max_iter_pnp = 24
-params_algo = {"stepsize": 1.0, "g_param": 0.05}
-
+# Display the ground truths and the measurements
+x = next(iter(dataloader)).to(device)
+y = physics(x)
+dinv.utils.plot([x, y], ["Ground Truth", "Measurements"])
 
 # %%
-# Classical case : single scale PnP.
-# ----------------------------------------------------------------------------------------
+# Single-scale and multi-scale PnP models
+# ---------------------------------------
+# The multi-scale PnP model can be understood as a combination of multiple
+# single-scale PnP models operating at different scales. Here, we use two
+# scales: the fine scale corresponding to the scale of the original image, and
+# a coarse scale corresponding the fine scale downsampled by a factor of 2.
+#
+# A base reconstruction is done in the coarse scale using the single-scale PnP
+# model operating in the coarse scale, using a downsampled version of the
+# measurements and of the physics operator. This base reconstruction is then
+# upsampled in the fine scale and used as the initialization for the
+# single-scale PnP model operating in the fine scale. In the end, this latter
+# model outputs the final reconstruction of the multi-scale PnP model.
+#
+# For both models, we use a :class:`L2 <deepinv.optim.data_fidelity.L2>` data
+# fidelity term and a pre-trained :class:`DRUNet <deepinv.models.DRUNet>`
+# denoiser.
 
-# create the iterative algorithm model
-model = dinv.optim.PGD(
-    prior=prior,
-    data_fidelity=data_fidelity,
-    early_stop=False,
-    max_iter=max_iter_pnp,
-    params_algo=params_algo,
-)
-
-# Set the model to evaluation mode since we do not require training.
-model.eval()
-
-# run the model on chosen dataset
-test(
-    model=model,
-    test_dataloader=dataloader,
-    physics=physics,
-    metrics=[dinv.metric.PSNR()],
-    device=device,
-    online_measurements=True,
-    plot_images=True,
-    plot_convergence_metrics=True,
-    verbose=True,
-)
-
-# We observe that PnP struggles to reconstruct and remains only slightly better than the "No learning" method.
-# Since the denoiser was trained with gaussian noise, it is likely that it interprets the missing pixels as signal.
-
-# %%
-# Multi-scale case: use a coarse setting to initialize the fine setting.
-# ----------------------------------------------------------------------------------------
-# The PnP algorithm iterates on a coarse scale to obtain a first estimate.
-# This estimate is then upsampled and used as initialization in the fine scale.
-# As shown in the result, the reconstruction quality significantly improves.
-
-max_iter_ml_pnp = 8
+# Define the parameters shared between the single- and multi-scale PnP models
+data_fidelity = dinv.optim.data_fidelity.L2()
+denoiser = dinv.models.DRUNet(pretrained="download", device=device)
+prior = dinv.optim.prior.PnP(denoiser=denoiser)
+pgd_kwargs = {
+    "prior": prior,
+    "data_fidelity": data_fidelity,
+    "early_stop": False,
+    "params_algo": {"stepsize": 1.0, "g_param": 0.05},
+}
 
 
-# define the function which will be used to initialize the fine setting.
-def custom_init(y, physics, F_fn=None):
-    p_multiscale = to_multiscale(physics, y.shape[1:], factors=(2,), device=device)
-    p_multiscale.set_scale(1)
-    y_coarse = p_multiscale.downsample_measurement(y)
-    params_algo = {"stepsize": 1.0, "g_param": 0.05}
-
-    model = dinv.optim.PGD(
-        prior=prior,
-        data_fidelity=data_fidelity,
-        early_stop=False,
-        max_iter=16,
-        params_algo=params_algo,
+# Define the initialization scheme for the multi-scale PnP model
+def init_ms(y: torch.Tensor, physics: dinv.physics.Physics) -> dict:
+    # Create a multi-scale physics from the single-scale physics
+    physics_ms = dinv.physics.to_multiscale(
+        physics, y.shape[1:], factors=(2,), device=device
     )
 
-    x_coarse = model(y, p_multiscale)
+    # Set the working scale to the fine scale
+    physics_ms.set_scale(1)
 
-    # upsample coarse estimation
-    x_up = p_multiscale.upsample(x_coarse)
-    return {"est": [x_up]}
+    # Compute the measurements in the coarse scale
+    y_coarse = physics_ms.downsample_measurement(y)
+
+    # Define the single-scale PnP model operating at the coarse scale
+    model_cs = dinv.optim.PGD(max_iter=16, **pgd_kwargs)
+
+    # Reconstruct the image in the coarse scale
+    x_coarse = model_cs(y, physics_ms)
+
+    # Compute the base reconstruction in the fine scale
+    x_fine = physics_ms.upsample(x_coarse)
+
+    # Use the base reconstruction in the fine scale as the initialization for
+    # the PnP model operating at the fine scale
+    return {"est": [x_fine]}
 
 
-# define the multi-scale model by setting the "custom_init" field
-model = dinv.optim.PGD(
-    prior=prior,
-    data_fidelity=data_fidelity,
-    early_stop=False,
-    max_iter=max_iter_ml_pnp,
-    params_algo=params_algo,
-    custom_init=custom_init,
-)
+# Define the single-scale PnP model operating at the fine scale and the
+# multi-scale PnP model
+model_fs = dinv.optim.PGD(max_iter=24, **pgd_kwargs)
+model_ms = dinv.optim.PGD(max_iter=8, custom_init=init_ms, **pgd_kwargs)
+
+# %%
+# Results
+# -------
+# We benchmark the single-scale and multi-scale PnP models on the imaging
+# problem and we see that contrary to the single-scale PnP model which barely
+# improves the quality of the input image (top), the multi-scale PnP model
+# produces a significantly better reconstruction which shows the benefit of the
+# multi-scale approach (bottom).
 
 # Set the model to evaluation mode since we do not require training.
-model.eval()
+# run the model on chosen dataset
+test_kwargs = {
+    "test_dataloader": dataloader,
+    "physics": physics,
+    "metrics": [dinv.metric.PSNR()],
+    "device": device,
+    "online_measurements": True,
+    "plot_images": True,
+    "plot_convergence_metrics": True,
+    "verbose": True,
+}
 
-# run the multi-scale algorithm exactly as any other algorithms
-test(
-    model=model,
-    test_dataloader=dataloader,
-    physics=physics,
-    metrics=[dinv.metric.PSNR()],
-    device=device,
-    online_measurements=True,
-    plot_images=True,
-    plot_convergence_metrics=True,
-    verbose=True,
-)
+# Benchmark single-scale PnP
+dinv.test(model=model_fs, **test_kwargs)
 
-# Using a multi-scale strategy to express the image in coarse scale seems to help the denoiser to reconstruct.
-# In this case, the PSNR of the reconstructed image is significantly higher.
+# Benchmark multi-scale PnP
+dinv.test(model=model_ms, **test_kwargs)
