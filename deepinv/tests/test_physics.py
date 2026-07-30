@@ -803,7 +803,7 @@ def test_upsampling(device, rng, name, kernel):
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operator_multiscale_wrapper(name, device, rng):
     r"""
-    Tests if a linear physics operator can be wrapped with a multiscale wrapper.
+    Tests if a linear physics operator can be wrapped with a multi-scale wrapper.
     """
 
     # defining a list of exceptions to skip  # TODO: fix for those?
@@ -846,7 +846,7 @@ def test_operator_multiscale_wrapper(name, device, rng):
         factors=[2, 4, 8],
         dtype=dtype,
         device=device,
-    )  # define a multiscale physics with base img size (1, 32, 32)
+    )  # define a multi-scale physics with base img size (1, 32, 32)
     y = new_physics(x, scale=scale)
     Aty = new_physics.A_adjoint(y, scale=scale)
 
@@ -2375,7 +2375,7 @@ def test_multiscale_coarse_adjointness(name, device):
     ):
         physics, imsize, _, dtype = find_operator(name, device)
     else:
-        # make sure the imsize is large enough for multiscale tests
+        # make sure the imsize is large enough for multi-scale tests
         imsize = (3, 16, 16)
         physics, imsize, _, dtype = find_operator(name, device, imsize=imsize)
 
@@ -2412,7 +2412,7 @@ def test_multiscale_A_adjoint_A(name, device):
     ):
         physics, imsize, _, dtype = find_operator(name, device)
     else:
-        # make sure the imsize is large enough for multiscale tests
+        # make sure the imsize is large enough for multi-scale tests
         imsize = (3, 16, 16)
         physics, imsize, _, dtype = find_operator(name, device, imsize=imsize)
 

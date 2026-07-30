@@ -1,8 +1,8 @@
 """
-Multiscale Plug-and-Play
-====================================================================================================
+Multi-scale Plug-and-Play
+=========================
 
-In this example, multiscale Plug-and-Play is used to show its benefits
+In this example, multi-scale Plug-and-Play is used to show its benefits
 over the regular Plug-and-Play for solving the inpainting inverse problem.
 First, the results of regular Plug-and-Play is shown.
 In the second part of this example, a coarse inverse problem is designed,
@@ -102,7 +102,7 @@ test(
 # Since the denoiser was trained with gaussian noise, it is likely that it interprets the missing pixels as signal.
 
 # %%
-# Multiscale case: use a coarse setting to initialize the fine setting.
+# Multi-scale case: use a coarse setting to initialize the fine setting.
 # ----------------------------------------------------------------------------------------
 # The PnP algorithm iterates on a coarse scale to obtain a first estimate.
 # This estimate is then upsampled and used as initialization in the fine scale.
@@ -133,7 +133,7 @@ def custom_init(y, physics, F_fn=None):
     return {"est": [x_up]}
 
 
-# define the multiscale model by setting the "custom_init" field
+# define the multi-scale model by setting the "custom_init" field
 model = dinv.optim.PGD(
     prior=prior,
     data_fidelity=data_fidelity,
@@ -146,7 +146,7 @@ model = dinv.optim.PGD(
 # Set the model to evaluation mode since we do not require training.
 model.eval()
 
-# run the multiscale algorithm exactly as any other algorithms
+# run the multi-scale algorithm exactly as any other algorithms
 test(
     model=model,
     test_dataloader=dataloader,
@@ -159,5 +159,5 @@ test(
     verbose=True,
 )
 
-# Using a multiscale strategy to express the image in coarse scale seems to help the denoiser to reconstruct.
+# Using a multi-scale strategy to express the image in coarse scale seems to help the denoiser to reconstruct.
 # In this case, the PSNR of the reconstructed image is significantly higher.
