@@ -185,6 +185,7 @@ Functional
    deepinv.physics.functional.bilinear_filter
    deepinv.physics.functional.bicubic_filter
    deepinv.physics.functional.sinc_filter
+   deepinv.physics.functional.liu_jia_pad
 
 
 .. autosummary::

@@ -1096,3 +1096,77 @@ class GMSD(Metric):
         gmsd_per_channel = gms.std(dim=(-2, -1), correction=0)
 
         return gmsd_per_channel.mean(dim=-1)
+
+
+class RecoveryCoefficient(Metric):
+    r"""
+    Recovery Coefficient metric used in emission tomography.
+
+    Computes the ratio between the total reconstructed activity and the total
+    ground-truth activity inside a given region of interest, defined by a mask:
+
+    .. math::
+
+        RC = \frac{\sum_i \hat{x}_i m_i}
+                  {\sum_i x_i m_i + \varepsilon}
+
+    where :math:`\hat{x}` is the reconstructed image, :math:`x` is the ground-truth
+    image, :math:`m` is a binary or weighted mask defining the region of interest,
+    and :math:`\varepsilon` is a small constant added for numerical stability.
+
+    A value of ``1`` indicates perfect recovery of activity within the masked region.
+    Values below ``1`` indicate underestimation, while values above ``1`` indicate
+    overestimation.
+
+    .. note::
+
+        This metric requires a ``mask`` keyword argument to be provided during
+        evaluation.
+
+    .. note::
+
+        Higher values are better when they are closer to ``1``. Therefore,
+        ``lower_better=False``.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import RecoveryCoefficient
+    >>> m = RecoveryCoefficient()
+    >>> x = torch.ones(2, 1, 4, 4)
+    >>> x_net = torch.ones(2, 1, 4, 4)
+    >>> mask = torch.ones_like(x)
+    >>> m(x_net, x, mask=mask)
+    tensor([1., 1.])
+
+    :param float eps: Small constant added to the denominator for numerical stability.
+    :param kwargs: Additional keyword arguments passed to the parent
+        :class:`deepinv.loss.metric.Metric` class.
+    """
+
+    def __init__(self, eps: float = None, **kwargs):
+        super().__init__(**kwargs)
+        self.eps = eps
+        self.lower_better = False
+
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
+        mask = kwargs.get("mask", None)
+        if mask is None:
+            raise ValueError("Recovery Coefficient requires a mask argument.")
+        mask = mask.to(x.dtype)
+        dims = tuple(range(1, x.ndim))
+        recon_activity = (x_net * mask).sum(dim=dims)
+        gt_activity = (x * mask).sum(dim=dims)
+
+        eps_per_dtype = {torch.float16: 1e-4, torch.float32: 1e-7, torch.float64: 1e-12}
+        eps = self.eps if self.eps is not None else eps_per_dtype.get(x_net.dtype, 1e-7)
+
+        return recon_activity / (gt_activity + eps)
+
+    def invert_metric(self, m: Tensor) -> Tensor:
+        r""" "Invert metric for use as a training loss.
+        Recovery Coefficient is optimal at 1 so a sign flip does not produce a valid
+        loss
+        :param torch.Tensor m: calculated metric
+        """
+        return (m - 1).abs()
