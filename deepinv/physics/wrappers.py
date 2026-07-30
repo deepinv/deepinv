@@ -99,9 +99,9 @@ class PhysicsMultiScaler(Physics):
         .. note::
 
             See also specific implementations in
-            :class:`deepinv.physics.BlurMultiScaler`,
-            :class:`deepinv.physics.BlurFFTMultiScaler`, and
-            :class:`deepinv.physics.InpaintingMultiScaler`.
+            ``deepinv.physics.BlurMultiScaler``,
+            ``deepinv.physics.BlurFFTMultiScaler``, and
+            ``deepinv.physics.InpaintingMultiScaler``.
 
         :param torch.Tensor y: fine scale measurement
         :param int, None scale: target scale in which to express `y`, if None, uses the value of the attribute `scale`, default: None
