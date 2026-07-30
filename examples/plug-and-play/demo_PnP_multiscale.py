@@ -30,11 +30,10 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # The inpainting problem
 # ----------------------
-# We start by defining the inpainting problem. We use images from the
-# :class:`Set3C <deepinv.datasets.Set3C>` dataset and apply a random inpainting
-# mask with 50% of the pixels missing to obtain the measurements. Additive
-# white Gaussian noise is also added to the measurements to simulate a more
-# realistic scenario.
+# We start by defining the inpainting problem. We use images from the Set3C
+# dataset and apply a random inpainting mask with 50% of the pixels missing to
+# obtain the measurements. Additive white Gaussian noise is also added to the
+# measurements to simulate a more realistic scenario.
 
 # Create the dataset
 img_size = (3, 32, 32) if torch.device(device).type == "cpu" else (3, 256, 256)
