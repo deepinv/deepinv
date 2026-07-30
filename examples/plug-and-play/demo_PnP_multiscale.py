@@ -93,7 +93,7 @@ def init_ms(y: torch.Tensor, physics: dinv.physics.Physics) -> dict:
         physics, y.shape[1:], factors=(2,), device=device
     )
 
-    # Set the working scale to the fine scale
+    # Set the working scale to the coarse scale
     physics_ms.set_scale(1)
 
     # Compute the measurements in the coarse scale

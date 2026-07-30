@@ -84,6 +84,29 @@ class PhysicsMultiScaler(Physics):
         else:
             return self.Upsamplings[self.scale - 1].A(x)
 
+    def downsample_measurement(self, y, scale=None):
+        r"""
+        Downsample the measurements to a coarser scale
+
+        Unlike input images and physics operators, downsampling measurements is
+        tricky as it depends on the nullspace of the downsampled physics
+        operator. It is nonetheless possible to compute it for certain physics
+        operators (blur, inpainting).
+
+        By default, this function raises a :class:`NotImplementedError` and it
+        can be reimplemented in subclasses.
+
+        .. note::
+
+            See also specific implementations in :class:`dinv.physics.BlurMultiScaler`, :class:`dinv.physics.BlurFFTMultiScaler`, and :class:`dinv.physics.InpaintingMultiScaler`.
+
+        :param torch.Tensor y: fine scale measurement
+        :param int, None scale: target scale in which to express `y`, if None, uses the value of the attribute `scale`, default: None
+        """
+        raise NotImplementedError(
+            f"The method 'downsample_measurement' should be overidden in subclasses of PhysicsMultiScaler to be used, but it is not implemented for {self.__class__.__name__}."
+        )
+
     def update_parameters(self, **kwargs):
         self.base.update_parameters(**kwargs)
 
@@ -293,7 +316,7 @@ class BlurMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         r"""
         Since the observation `y` lives in image space, it can be passed to a coarse scale.
         :param torch.Tensor y: fine scale observation
-        :param int scale: target scale in which express `y`
+        :param int, None scale: target scale in which express `y`, if None, uses the value of the attribute `scale`, default: None
         :return torch.Tensor: downsampled observation `y`
         """
         self.set_scale(scale)
@@ -363,7 +386,7 @@ class BlurFFTMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         r"""
         Since the observation `y` lives in image space, it can be passed to a coarse scale.
         :param torch.Tensor y: fine scale observation
-        :param int scale: target scale in which express `y`
+        :param int, None scale: target scale in which express `y`, if None, uses the value of the attribute `scale`, default: None
         :return torch.Tensor: downsampled observation `y`
         """
         self.set_scale(scale)
@@ -429,7 +452,7 @@ class InpaintingMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         r"""
         Since the observation `y` lives in image space, it can be passed to a coarse scale.
         :param torch.Tensor y: fine scale observation
-        :param int scale: target scale in which express `y`
+        :param int, None scale: target scale in which express `y`, if None, uses the value of the attribute `scale`, default: None
         :return torch.Tensor: downsampled observation `y`
         """
         self.set_scale(scale)
@@ -460,6 +483,8 @@ def to_multiscale(
     dtype: torch.dtype | None = None,
 ):
     r"""
+    Convert a single-scale physics operator to a multi-scale physics operator
+
     This function creates the proper MultiScalerPhysics associated with the provided Physics.
     A MultiScalerPhysics adapt itself to several scales of the given signal.
     Some special cases of Physics have their own implementations, for example :
