@@ -28,7 +28,7 @@ class MLEMIteration(OptimIterator):
     def forward(
         self,
         X: dict[str, tuple[torch.Tensor, None] | torch.Tensor | int | None],
-        cur_data_fidelity: DataFidelity | None,
+        cur_data_fidelity: DataFidelity,
         cur_prior: Prior | None,
         cur_params: dict,
         y: torch.Tensor,
@@ -72,10 +72,7 @@ class MLEMIteration(OptimIterator):
 
         F = (
             self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-            if self.cost_fn is not None
-            and self.has_cost
-            and cur_data_fidelity is not None
-            and cur_prior is not None
+            if self.cost_fn is not None and self.has_cost and cur_prior is not None
             else None
         )
         return {"est": (x, None), "cost": F, "it": k + 1}

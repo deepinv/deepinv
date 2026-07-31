@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from deepinv.optim.data_fidelity import StackedPhysicsDataFidelity
 from deepinv.optim.utils import objective_function
 from deepinv.utils.tensorlist import ones_like
 
@@ -14,33 +13,6 @@ if TYPE_CHECKING:
     from deepinv.optim import DataFidelity, Prior
     from deepinv.physics import Physics
     from deepinv.utils import TensorList
-
-
-def _osem_objective_function(
-    x: torch.Tensor,
-    data_fidelity: DataFidelity,
-    prior: Prior | None,
-    cur_params: dict,
-    y: torch.Tensor | TensorList | list[torch.Tensor],
-    physics: Physics,
-) -> torch.Tensor:
-    """Evaluate the OSEM objective for full or pre-split inputs."""
-    from deepinv.physics.forward import StackedLinearPhysics
-
-    if not isinstance(physics, StackedLinearPhysics):
-        return objective_function(x, data_fidelity, prior, cur_params, y, physics)
-
-    if isinstance(data_fidelity, StackedPhysicsDataFidelity):
-        data_term = data_fidelity(x, y, physics)
-    else:
-        data_term = sum(
-            data_fidelity(x, cur_y, cur_physics)
-            for cur_y, cur_physics in zip(y, physics, strict=True)
-        )
-
-    if prior is not None and prior.explicit_prior:
-        return data_term + cur_params["lambda"] * prior(x, cur_params["g_param"])
-    return data_term
 
 
 class OSEMIteration(OptimIterator):
@@ -55,15 +27,13 @@ class OSEMIteration(OptimIterator):
 
     def __init__(self, eps: float = 1e-15, cost_fn=None, **kwargs):
         self.eps = eps
-        super(OSEMIteration, self).__init__(
-            cost_fn=_osem_objective_function if cost_fn is None else cost_fn,
-            **kwargs,
-        )
+        super(OSEMIteration, self).__init__(cost_fn=None, **kwargs)
+        self.cost_fn = cost_fn
 
     def forward(
         self,
         X: dict[str, tuple[torch.Tensor, None] | torch.Tensor | int | None],
-        cur_data_fidelity: DataFidelity | None,
+        cur_data_fidelity: DataFidelity,
         cur_prior: Prior | None,
         cur_params: dict,
         y: torch.Tensor | TensorList | list[torch.Tensor],
@@ -117,12 +87,27 @@ class OSEMIteration(OptimIterator):
 
             x = numerator / denom.clamp(min=self.eps)
 
-        F = (
-            self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-            if self.cost_fn is not None
-            and self.has_cost
-            and cur_data_fidelity is not None
-            and cur_prior is not None
-            else None
-        )
+        # Since we support both pre-split and full physics / measurements,
+        # the cost computation logic must branch to handle both cases.
+        F = None
+        if self.has_cost and cur_prior is not None:
+            from deepinv.physics.forward import StackedLinearPhysics
+
+            cost_fn = self.cost_fn or objective_function
+            if isinstance(physics, StackedLinearPhysics):
+                # For pre-split inputs, evaluate each subset objective and sum them.
+                F = 0
+                for cur_y, cur_physics in zip(y, physics, strict=True):
+                    F = F + cost_fn(
+                        x,
+                        cur_data_fidelity,
+                        cur_prior,
+                        cur_params,
+                        cur_y,
+                        cur_physics,
+                    )
+            else:
+                # Full inputs are evaluated directly in a single call.
+                F = cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+
         return {"est": (x, None), "cost": F, "it": k + 1}

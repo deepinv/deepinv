@@ -22,7 +22,7 @@ from deepinv.optim.optim_iterators import (
 )
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import ZeroPrior, Prior
-from deepinv.optim.data_fidelity import DataFidelity, ZeroFidelity
+from deepinv.optim.data_fidelity import DataFidelity, PoissonLikelihood, ZeroFidelity
 from deepinv.optim.bregman import Bregman
 from deepinv.models import Reconstructor
 from deepinv.optim.bregman import BregmanL2
@@ -2284,7 +2284,7 @@ class MLEM(BaseOptim):
     where :math:`\partial g(x_k)` is a subgradient of :math:`g` at point :math:`x_k`.
 
     :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity term.
-        If ``None``, the data fidelity term is not used. Default: ``None``.
+        If ``None``, defaults to :class:`deepinv.optim.PoissonLikelihood`.
     :param deepinv.optim.Prior, list[Prior] prior: prior term. If ``None``, no prior is used.
         Default: ``None``.
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
@@ -2338,6 +2338,9 @@ class MLEM(BaseOptim):
         params_algo: dict[str, float] = None,
         **kwargs,
     ):
+        if data_fidelity is None:
+            data_fidelity = PoissonLikelihood()
+
         if g_param is None and sigma_denoiser is not None:
             g_param = sigma_denoiser
 
@@ -2406,7 +2409,7 @@ class OSEM(BaseOptim):
         physics. This parameter is ignored when a pre-split physics is provided.
         Default: ``1``.
     :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity term.
-        If ``None``, the data fidelity term is not used. Default: ``None``.
+        If ``None``, defaults to :class:`deepinv.optim.PoissonLikelihood`.
     :param deepinv.optim.Prior, list[Prior] prior: prior term. If ``None``, no prior is used.
         Default: ``None``.
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
@@ -2464,6 +2467,9 @@ class OSEM(BaseOptim):
         params_algo: dict[str, float] = None,
         **kwargs,
     ):
+        if data_fidelity is None:
+            data_fidelity = PoissonLikelihood()
+
         if g_param is None and sigma_denoiser is not None:
             g_param = sigma_denoiser
 
@@ -2519,9 +2525,11 @@ class OSEM(BaseOptim):
         if isinstance(physics, StackedLinearPhysics):
             if not isinstance(y, (TensorList, list)):
                 raise TypeError(
-                    "A pre-split physics has been provided, but the measurements are not pre-split."
-                    "Provide the measurements either as a "
-                    "deepinv.utils.TensorList or list[torch.Tensor]."
+                    "A pre-split deepinv.physics.StackedLinearPhysics requires "
+                    "pre-split measurements as a deepinv.utils.TensorList or "
+                    "list[torch.Tensor]. Use "
+                    "deepinv.physics.functional.subsets.split_measurements to "
+                    "split full measurements."
                 )
             if len(physics) < 1:
                 raise ValueError("OSEM requires at least one subset.")
@@ -2540,7 +2548,9 @@ class OSEM(BaseOptim):
                     "A full deepinv.physics.Tomography, "
                     "deepinv.physics.TomographyWithAstra, or "
                     "deepinv.physics.PET requires measurements as a "
-                    "torch.Tensor."
+                    "torch.Tensor. To provide pre-split measurements, first use "
+                    "deepinv.physics.functional.subsets.split_physics to create "
+                    "the matching physics subsets."
                 )
             subset_physics = split_physics(
                 physics, self.num_subsets, strategy=self.subset_strategy
@@ -2552,7 +2562,10 @@ class OSEM(BaseOptim):
             raise TypeError(
                 "OSEM requires a full deepinv.physics.Tomography, "
                 "deepinv.physics.TomographyWithAstra, or deepinv.physics.PET, "
-                "or a pre-split deepinv.physics.StackedLinearPhysics."
+                "or a pre-split deepinv.physics.StackedLinearPhysics. Use "
+                "deepinv.physics.functional.subsets.split_physics and "
+                "deepinv.physics.functional.subsets.split_measurements to "
+                "prepare supported full physics and measurements."
             )
 
         kwargs["subset_physics"] = subset_physics
