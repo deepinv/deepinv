@@ -2290,6 +2290,8 @@ class MLEM(BaseOptim):
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
     :param float g_param: parameter for the prior. Default: ``None``.
     :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
+    :param float eps: positive value used to clamp denominators in the
+        multiplicative update. Default: ``1e-6``.
     :param int max_iter: maximum number of iterations. Default: ``100``.
     :param str crit_conv: convergence criterion, either ``"residual"`` or ``"cost"``.
         Default: ``"residual"``.
@@ -2316,6 +2318,7 @@ class MLEM(BaseOptim):
         lambda_reg: float = 1.0,
         g_param: float = None,
         sigma_denoiser: float = None,
+        eps: float = 1e-6,
         max_iter: int = 100,
         crit_conv: str = "residual",
         thres_conv: float = 1e-5,
@@ -2350,7 +2353,7 @@ class MLEM(BaseOptim):
                 "g_param": g_param,
             }
         super(MLEM, self).__init__(
-            MLEMIteration(cost_fn=cost_fn),
+            MLEMIteration(cost_fn=cost_fn, eps=eps),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,

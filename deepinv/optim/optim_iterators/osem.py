@@ -25,7 +25,7 @@ class OSEMIteration(OptimIterator):
     :class:`deepinv.optim.optimizers.OSEM` optimizer.
     """
 
-    def __init__(self, eps: float = 1e-15, cost_fn=None, **kwargs):
+    def __init__(self, eps: float = 1e-6, cost_fn=None, **kwargs):
         self.eps = eps
         super(OSEMIteration, self).__init__(cost_fn=None, **kwargs)
         self.cost_fn = cost_fn

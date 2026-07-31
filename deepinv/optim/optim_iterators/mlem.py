@@ -20,8 +20,9 @@ class MLEMIteration(OptimIterator):
     More details on the algorithm can be found in the documentation of the :class:`deepinv.optim.optimizers.MLEM` optimizer.
     """
 
-    def __init__(self, **kwargs):
-        super(MLEMIteration, self).__init__(**kwargs)
+    def __init__(self, eps: float = 1e-6, cost_fn=None, **kwargs):
+        self.eps = eps
+        super(MLEMIteration, self).__init__(cost_fn=cost_fn, **kwargs)
 
     def forward(
         self,
@@ -57,7 +58,7 @@ class MLEMIteration(OptimIterator):
         else:
             proj = physics.A(x_prev)
 
-        x = x_prev * physics.A_adjoint(y / proj.clamp(min=1e-15))
+        x = x_prev * physics.A_adjoint(y / proj.clamp(min=self.eps))
 
         if cur_prior is not None:
             denom = sensitivity + cur_params["lambda"] * cur_prior.grad(
@@ -66,7 +67,7 @@ class MLEMIteration(OptimIterator):
         else:
             denom = sensitivity
 
-        x = x / denom.clamp(min=1e-15)
+        x = x / denom.clamp(min=self.eps)
 
         F = (
             self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
