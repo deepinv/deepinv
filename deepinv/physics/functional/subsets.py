@@ -1,12 +1,23 @@
 from __future__ import annotations
 
+from math import sqrt
+
 import torch
 
 from deepinv.physics.forward import LinearPhysics, StackedLinearPhysics
 from deepinv.physics.pet import PET
 from deepinv.physics.tomography import Tomography, TomographyWithAstra
 from deepinv.utils.tensorlist import TensorList
-from math import sqrt
+
+SUPPORTED_TOMOGRAPHY_PHYSICS = (Tomography, TomographyWithAstra, PET)
+UNSUPPORTED_SPLIT_MEASUREMENTS_ERROR = (
+    "split_measurements is currently supported for deepinv.physics.Tomography, "
+    "deepinv.physics.TomographyWithAstra, and deepinv.physics.PET physics."
+)
+UNSUPPORTED_SPLIT_PHYSICS_ERROR = (
+    "split_physics is currently supported for deepinv.physics.Tomography, "
+    "deepinv.physics.TomographyWithAstra, and deepinv.physics.PET physics."
+)
 
 
 def get_subset_indices(
@@ -74,7 +85,7 @@ def split_measurements(
     :return: measurements as a :class:`deepinv.utils.TensorList`.
     """
     if isinstance(physics, Tomography):
-        num_angles = len(physics.theta)
+        num_angles = len(physics.angles)
         dim = -1
     elif isinstance(physics, TomographyWithAstra):
         num_angles = physics.num_angles
@@ -83,10 +94,7 @@ def split_measurements(
         num_angles = physics.num_views
         dim = 2 + physics.proj.lor_descriptor.view_axis_num
     else:
-        raise TypeError(
-            "split_measurements is currently supported for deepinv.physics.Tomography, "
-            "deepinv.physics.TomographyWithAstra, and deepinv.physics.PET physics."
-        )
+        raise TypeError(UNSUPPORTED_SPLIT_MEASUREMENTS_ERROR)
 
     if dim < 0:
         dim = y.dim() + dim
@@ -94,6 +102,170 @@ def split_measurements(
         num_angles, num_subsets, strategy=strategy, device=y.device
     )
     return TensorList([y.index_select(dim, idx) for idx in indices])
+
+
+def _get_tomography_subset_kwargs(physics: Tomography) -> dict:
+    """Extract the geometry needed to rebuild a native tomography subset."""
+    return {
+        "img_width": physics.img_width,
+        "circle": physics.radon.circle,
+        "parallel_computation": physics.radon.parallel_computation,
+        "adjoint_via_backprop": physics.adjoint_via_backprop,
+        "fbp_interpolate_boundary": physics.fbp_interpolate_boundary,
+        "fan_beam": physics.fan_beam,
+        "fan_parameters": physics.radon.fan_parameters,
+        "normalize": False,
+        "device": physics.device,
+        "dtype": physics.dtype,
+    }
+
+
+def _get_astra_subset_kwargs(physics: TomographyWithAstra) -> dict:
+    """Extract the geometry needed to rebuild an ASTRA tomography subset."""
+    projection_geometry = physics.projection_geometry
+    object_geometry = physics.object_geometry
+    object_options = object_geometry["option"]
+    is_vector_geometry = "vec" in projection_geometry["type"]
+
+    if physics.is_2d:
+        detector_spacing = float(projection_geometry["DetectorSpacingX"])
+        pixel_spacing = (
+            (object_options["WindowMaxX"] - object_options["WindowMinX"])
+            / object_geometry["GridColCount"],
+            (object_options["WindowMaxY"] - object_options["WindowMinY"])
+            / object_geometry["GridRowCount"],
+        )
+        bounding_box = (
+            object_options["WindowMinX"],
+            object_options["WindowMaxX"],
+            object_options["WindowMinY"],
+            object_options["WindowMaxY"],
+        )
+    else:
+        detector_spacing = (
+            (1.0, 1.0)
+            if is_vector_geometry
+            else (
+                float(projection_geometry["DetectorSpacingY"]),
+                float(projection_geometry["DetectorSpacingX"]),
+            )
+        )
+        pixel_spacing = (
+            (object_options["WindowMaxX"] - object_options["WindowMinX"])
+            / object_geometry["GridColCount"],
+            (object_options["WindowMaxY"] - object_options["WindowMinY"])
+            / object_geometry["GridRowCount"],
+            (object_options["WindowMaxZ"] - object_options["WindowMinZ"])
+            / object_geometry["GridSliceCount"],
+        )
+        bounding_box = (
+            object_options["WindowMinX"],
+            object_options["WindowMaxX"],
+            object_options["WindowMinY"],
+            object_options["WindowMaxY"],
+            object_options["WindowMinZ"],
+            object_options["WindowMaxZ"],
+        )
+
+    geometry_parameters = (
+        {
+            "source_radius": projection_geometry["DistanceOriginSource"],
+            "detector_radius": projection_geometry["DistanceOriginDetector"],
+        }
+        if physics.geometry_type in ("fanbeam", "conebeam") and not is_vector_geometry
+        else None
+    )
+    return {
+        "img_size": physics.img_size,
+        "n_detector_pixels": physics.n_detector_pixels,
+        "detector_spacing": detector_spacing,
+        "pixel_spacing": pixel_spacing,
+        "bounding_box": bounding_box,
+        "geometry_type": physics.geometry_type,
+        "geometry_parameters": geometry_parameters,
+        "normalize": False,
+        "device": physics.device,
+    }
+
+
+def _get_pet_subset_kwargs(physics: PET) -> dict:
+    """Extract the geometry and acquisition settings for a PET subset."""
+    gain = getattr(physics.noise_model, "gain", torch.ones(1))
+    normalize_counts = getattr(physics.noise_model, "normalize", torch.tensor(False))
+    return {
+        "img_size": physics.img_size,
+        "voxel_size": physics.voxel_size,
+        "fwhm_data_mm": physics.fwhm_data_mm,
+        "scanner": physics.scanner,
+        "radial_trim": physics.radial_trim,
+        "gain": gain.detach().clone(),
+        "normalize": False,
+        "normalize_counts": bool(normalize_counts.item()),
+        "device": physics.background.device,
+    }
+
+
+def _get_tomography_subset_physics(
+    physics: Tomography, indices: list[torch.Tensor], subset_kwargs: dict
+) -> list[Tomography]:
+    """Construct native tomography physics for each angular subset."""
+    return [
+        Tomography(
+            angles=physics.angles.index_select(0, idx.to(physics.angles.device)),
+            **subset_kwargs,
+        )
+        for idx in indices
+    ]
+
+
+def _get_astra_subset_physics(
+    physics: TomographyWithAstra, indices: list[torch.Tensor], subset_kwargs: dict
+) -> list[TomographyWithAstra]:
+    """Construct ASTRA tomography physics for each angular subset."""
+    angles = physics.angles
+    geometry_vectors = (
+        torch.as_tensor(physics.projection_geometry["Vectors"], device=physics.device)
+        if angles is None
+        else None
+    )
+    subsets = []
+    for idx in indices:
+        if angles is not None:
+            subset = TomographyWithAstra(
+                angles=angles.index_select(0, idx.to(angles.device)),
+                **subset_kwargs,
+            )
+        else:
+            subset_vectors = geometry_vectors.index_select(
+                0, idx.to(geometry_vectors.device)
+            )
+            subset = TomographyWithAstra(
+                angles=torch.arange(len(subset_vectors), device=physics.device),
+                geometry_vectors=subset_vectors,
+                **subset_kwargs,
+            )
+        subsets.append(subset)
+    return subsets
+
+
+def _get_pet_subset_physics(
+    physics: PET, indices: list[torch.Tensor], subset_kwargs: dict
+) -> list[PET]:
+    """Construct PET physics for each angular subset."""
+    view_dim = 2 + physics.proj.lor_descriptor.view_axis_num
+    return [
+        PET(
+            views=physics.views.index_select(0, idx.to(physics.views.device)),
+            background=physics.background.index_select(
+                view_dim, idx.to(physics.background.device)
+            ),
+            attenuation=physics.attenuation.index_select(
+                view_dim, idx.to(physics.attenuation.device)
+            ),
+            **subset_kwargs,
+        )
+        for idx in indices
+    ]
 
 
 def split_physics(
@@ -109,113 +281,45 @@ def split_physics(
     :param str strategy: subsetting strategy. Currently only ``"default"`` is supported.
     :return: :class:`deepinv.physics.StackedLinearPhysics` over angular subsets.
     """
+    if not isinstance(physics, SUPPORTED_TOMOGRAPHY_PHYSICS):
+        raise TypeError(UNSUPPORTED_SPLIT_PHYSICS_ERROR)
+
+    # Get the total number of angles
     if isinstance(physics, Tomography):
-        indices = get_subset_indices(
-            len(physics.theta), num_subsets, strategy=strategy, device=physics.device
-        )
-        subset_physics = []
-        subset_operator_norm = (
-            physics.operator_norm.detach().clone() / sqrt(num_subsets)
-            if physics.normalize
-            else None
-        )
-        for idx in indices:
-            # Tomography uses angles only to define the geometry
-            theta_subset = physics.theta.index_select(0, idx.to(physics.theta.device))
-            subset = Tomography(
-                angles=theta_subset,
-                normalize=False,
-                device=physics.device,
-                **physics._subset_kwargs,
-            )
-            subset.normalize = physics.normalize
-            if subset_operator_norm is not None:
-                subset.register_buffer(
-                    "operator_norm", subset_operator_norm.detach().clone()
-                )
-            subset_physics.append(subset)
-        return StackedLinearPhysics(subset_physics)
+        num_angles = len(physics.angles)
+    elif isinstance(physics, TomographyWithAstra):
+        num_angles = physics.num_angles
+    else:
+        num_angles = physics.num_views
 
-    if isinstance(physics, TomographyWithAstra):
-        indices = get_subset_indices(
-            physics.num_angles, num_subsets, strategy=strategy, device=physics.device
-        )
-        astra_geometry_vectors = (
-            torch.as_tensor(
-                physics.projection_geometry["Vectors"], device=physics.device
-            )
-            if "vec" in physics.projection_geometry["type"]
-            else None
-        )
-        astra_angles = physics.angles
-        subset_physics = []
-        for idx in indices:
-            # Astra can use both angles and vectors to define the geometry
-            if astra_geometry_vectors is not None:
-                geometry_vectors = astra_geometry_vectors.index_select(
-                    0, idx.to(astra_geometry_vectors.device)
-                )
-                angles = torch.arange(len(geometry_vectors), device=physics.device)
-            else:
-                geometry_vectors = None
-                angles = astra_angles.index_select(0, idx.to(astra_angles.device))
-
-            subset = TomographyWithAstra(
-                angles=angles,
-                geometry_vectors=geometry_vectors,
-                normalize=False,
-                device=physics.device,
-                **physics._subset_kwargs,
-            )
-            subset.normalize = physics.normalize
-            if physics.normalize:
-                subset.register_buffer(
-                    "operator_norm", subset_operator_norm.detach().clone()
-                )
-            subset_physics.append(subset)
-        return StackedLinearPhysics(subset_physics)
-
-    if isinstance(physics, PET):
-        indices = get_subset_indices(
-            physics.num_views,
-            num_subsets,
-            strategy=strategy,
-            device=physics.views.device,
-        )
-        view_dim = 2 + physics.proj.lor_descriptor.view_axis_num
-        gain = getattr(physics.noise_model, "gain", torch.ones(1))
-        normalize_counts = getattr(
-            physics.noise_model, "normalize", torch.tensor(False)
-        )
-        subset_physics = []
-        for idx in indices:
-            # parallelproj uses angles only to define the geometry
-            views = physics.views.index_select(0, idx.to(physics.views.device))
-            background = physics.background.index_select(
-                view_dim, idx.to(physics.background.device)
-            )
-            attenuation = physics.attenuation.index_select(
-                view_dim, idx.to(physics.attenuation.device)
-            )
-            subset = PET(
-                views=views,
-                background=background,
-                attenuation=attenuation,
-                gain=gain.detach().clone(),
-                normalize=False,
-                normalize_counts=bool(normalize_counts.item()),
-                device=physics.background.device,
-                **physics._subset_kwargs,
-            )
-            subset.normalize = physics.normalize
-            if physics.normalize:
-                subset.register_buffer(
-                    "operator_norm", subset_operator_norm.detach().clone()
-                )
-            subset_physics.append(subset)
-        return StackedLinearPhysics(subset_physics)
-
-    raise TypeError(
-        "split_physics is currently supported for deepinv.physics.Tomography, "
-        "deepinv.physics.TomographyWithAstra, and deepinv.physics.PET physics."
+    # Get the angles indices corresponding to each subset
+    indices = get_subset_indices(
+        num_angles,
+        num_subsets,
+        strategy=strategy,
+        device=physics.device,
     )
+
+    # Branch depending on the tomography physics
+    if isinstance(physics, Tomography):
+        subset_kwargs = _get_tomography_subset_kwargs(physics)
+        subset_physics = _get_tomography_subset_physics(physics, indices, subset_kwargs)
+    elif isinstance(physics, TomographyWithAstra):
+        subset_kwargs = _get_astra_subset_kwargs(physics)
+        subset_physics = _get_astra_subset_physics(physics, indices, subset_kwargs)
+    else:
+        subset_kwargs = _get_pet_subset_kwargs(physics)
+        subset_physics = _get_pet_subset_physics(physics, indices, subset_kwargs)
+
+    # Approximate operator norm of each subset physics
+    if physics.normalize:
+        subset_operator_norm = physics.operator_norm.detach().clone() / sqrt(
+            num_subsets
+        )
+        for subset in subset_physics:
+            subset.normalize = True
+            subset.register_buffer(
+                "operator_norm", subset_operator_norm.detach().clone()
+            )
+
+    return StackedLinearPhysics(subset_physics)

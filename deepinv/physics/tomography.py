@@ -169,16 +169,6 @@ class Tomography(LinearPhysics):
             device=device,
             dtype=dtype,
         ).to(device)
-        self._subset_kwargs = {
-            "img_width": self.img_width,
-            "circle": self.radon.circle,
-            "parallel_computation": self.radon.parallel_computation,
-            "adjoint_via_backprop": self.adjoint_via_backprop,
-            "fbp_interpolate_boundary": self.fbp_interpolate_boundary,
-            "fan_beam": self.fan_beam,
-            "fan_parameters": self.radon.fan_parameters,
-            "dtype": self.dtype,
-        }
         if not self.fan_beam:
             self.iradon = IRadon(
                 img_width,
@@ -558,16 +548,6 @@ class TomographyWithAstra(LinearPhysics):
             else n_detector_pixels
         )
         self.geometry_type = geometry_type
-        self._subset_kwargs = {
-            "img_size": self.img_size,
-            "n_detector_pixels": self.n_detector_pixels,
-            "detector_spacing": detector_spacing,
-            "pixel_spacing": pixel_spacing,
-            "bounding_box": bounding_box,
-            "geometry_type": self.geometry_type,
-            "geometry_parameters": geometry_parameters.copy(),
-        }
-
         if isinstance(angles, int):
             angles = torch.linspace(*angular_range, steps=angles + 1)[:-1]
 
