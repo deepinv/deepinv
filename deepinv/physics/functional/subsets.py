@@ -6,6 +6,7 @@ from deepinv.physics.forward import LinearPhysics, StackedLinearPhysics
 from deepinv.physics.pet import PET
 from deepinv.physics.tomography import Tomography, TomographyWithAstra
 from deepinv.utils.tensorlist import TensorList
+from math import sqrt
 
 
 def get_subset_indices(
@@ -83,8 +84,8 @@ def split_measurements(
         dim = 2 + physics.proj.lor_descriptor.view_axis_num
     else:
         raise TypeError(
-            "split_measurements is currently supported for Tomography, "
-            "TomographyWithAstra and PET physics."
+            "split_measurements is currently supported for deepinv.physics.Tomography, "
+            "deepinv.physics.TomographyWithAstra, and deepinv.physics.PET physics."
         )
 
     if dim < 0:
@@ -113,7 +114,13 @@ def split_physics(
             len(physics.theta), num_subsets, strategy=strategy, device=physics.device
         )
         subset_physics = []
+        subset_operator_norm = (
+            physics.operator_norm.detach().clone() / sqrt(num_subsets)
+            if physics.normalize
+            else None
+        )
         for idx in indices:
+            # Tomography uses angles only to define the geometry
             theta_subset = physics.theta.index_select(0, idx.to(physics.theta.device))
             subset = Tomography(
                 angles=theta_subset,
@@ -122,9 +129,9 @@ def split_physics(
                 **physics._subset_kwargs,
             )
             subset.normalize = physics.normalize
-            if physics.normalize:
+            if subset_operator_norm is not None:
                 subset.register_buffer(
-                    "operator_norm", physics.operator_norm.detach().clone()
+                    "operator_norm", subset_operator_norm.detach().clone()
                 )
             subset_physics.append(subset)
         return StackedLinearPhysics(subset_physics)
@@ -140,18 +147,10 @@ def split_physics(
             if "vec" in physics.projection_geometry["type"]
             else None
         )
-        astra_angles = (
-            None
-            if astra_geometry_vectors is not None
-            else -torch.rad2deg(
-                torch.as_tensor(
-                    physics.projection_geometry["ProjectionAngles"],
-                    device=physics.device,
-                )
-            )
-        )
+        astra_angles = physics.angles
         subset_physics = []
         for idx in indices:
+            # Astra can use both angles and vectors to define the geometry
             if astra_geometry_vectors is not None:
                 geometry_vectors = astra_geometry_vectors.index_select(
                     0, idx.to(astra_geometry_vectors.device)
@@ -171,7 +170,7 @@ def split_physics(
             subset.normalize = physics.normalize
             if physics.normalize:
                 subset.register_buffer(
-                    "operator_norm", physics.operator_norm.detach().clone()
+                    "operator_norm", subset_operator_norm.detach().clone()
                 )
             subset_physics.append(subset)
         return StackedLinearPhysics(subset_physics)
@@ -190,6 +189,7 @@ def split_physics(
         )
         subset_physics = []
         for idx in indices:
+            # parallelproj uses angles only to define the geometry
             views = physics.views.index_select(0, idx.to(physics.views.device))
             background = physics.background.index_select(
                 view_dim, idx.to(physics.background.device)
@@ -210,12 +210,12 @@ def split_physics(
             subset.normalize = physics.normalize
             if physics.normalize:
                 subset.register_buffer(
-                    "operator_norm", physics.operator_norm.detach().clone()
+                    "operator_norm", subset_operator_norm.detach().clone()
                 )
             subset_physics.append(subset)
         return StackedLinearPhysics(subset_physics)
 
     raise TypeError(
-        "split_physics is currently supported for Tomography, TomographyWithAstra "
-        "and PET physics."
+        "split_physics is currently supported for deepinv.physics.Tomography, "
+        "deepinv.physics.TomographyWithAstra, and deepinv.physics.PET physics."
     )

@@ -635,6 +635,22 @@ class TomographyWithAstra(LinearPhysics):
     def num_angles(self) -> int:
         return self.xray_transform.range_shape[1]
 
+    @property
+    def angles(self) -> torch.Tensor | None:
+        """Acquisition angles in degrees.
+
+        Returns ``None`` for vector-based geometries, for which the acquisition
+        trajectory is fully described by `self.projection_geometry["Vectors"]`.
+        """
+        # The type ends with "_vec" for vector-based geometries
+        if "vec" in self.projection_geometry["type"]:
+            return None
+        return -torch.rad2deg(
+            torch.as_tensor(
+                self.projection_geometry["ProjectionAngles"], device=self.device
+            )
+        )
+
     def fbp_weighting(self, sinogram: torch.Tensor) -> torch.Tensor:
         r"""Scales the computation by the inverse number of views and
         object-to-detector cell ratio.

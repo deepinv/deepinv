@@ -201,6 +201,12 @@ class TestTomographyWithAstra:
                 else (64, 48, 32)
             )
         assert physics.num_angles == 32 if cubic else 64
+        expected_angles = torch.linspace(
+            *(0, 180) if geometry_type == "parallel" else (0, 360),
+            steps=num_angles + 1,
+            device=device,
+        )[:-1]
+        assert torch.allclose(physics.angles, expected_angles)
         assert physics.xray_transform.object_cell_volume == pytest.approx(1.0)
         assert physics.xray_transform.detector_cell_u_length == pytest.approx(1.0)
         assert physics.xray_transform.detector_cell_v_length == pytest.approx(1.0)
