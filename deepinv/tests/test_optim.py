@@ -560,7 +560,8 @@ def get_prior(prior_name, device="cpu"):
         prior = dinv.optim.prior.TVPrior()
     elif prior_name == "SmoothedTVPrior":
         prior = dinv.optim.prior.SmoothedTVPrior()
-
+    elif prior_name == "TVL1Prior":
+        prior = dinv.optim.prior.TVL1Prior()
     elif "wavelet" in prior_name.lower():
         pytest.importorskip(
             "ptwt",
@@ -591,6 +592,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "Tikhonov",
         "TVPrior",
         "SmoothedTVPrior",
+        "TVL1Prior",
         "WaveletPrior",
         "WaveletDictPrior",
         "ZeroPrior",

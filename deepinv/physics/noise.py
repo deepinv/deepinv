@@ -264,7 +264,7 @@ class GaussianNoise(NoiseModel):
         :math:`\sigma = \sqrt{\sigma_1^2 + \sigma_2^2}`
 
         :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.
+        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linear operators.
         """
         if not isinstance(other, GaussianNoise):
             raise TypeError(
@@ -331,7 +331,7 @@ class GaussianNoise(NoiseModel):
         :math:`\sigma = \sqrt{\sigma_1^2 + \sigma_2^2}`
 
         :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.
+        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linear operators.
         """
         if not isinstance(other, GaussianNoise):
             raise TypeError(

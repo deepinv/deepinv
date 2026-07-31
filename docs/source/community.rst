@@ -23,13 +23,16 @@ and we welcome contributions from the community. :ref:`Check out how you can con
 Future events
 ~~~~~~~~~~~~~
 
+- May 3-7, 2027: Tutorial at "Flows, Physics-Informed Models and Optimization in Inverse Problems" workshop, Rome, Italy.
 - Sept 27th, 2026: Hands-on tutorial at `International Conference on Medical Image Computing and Computer Assisted Intervention (MICCAI) <https://conferences.miccai.org/2026/en/default.asp>`_, Strasbourg, France. :ref:`Find the tutorial page here <miccai2026>`
-- June 17-19, 2026: Keynote lecture at `Grenoble AI for Physical Sciences Workshop <https://indico.math.cnrs.fr/event/15724/>`_ in Grenoble, France.
-- June 4-10, 2026: Summer school tutorial at `Mathematics and Machine Learning for Image Analysis <https://site.unibo.it/mml-imaging/en>`_ in Bologna, Italy.
+- Aug 30 - Jul 2, 2026: Hackathon at `CIRM <https://conferences.cirm-math.fr/3396.html>`_ in Marseille, France.
 
 Past events
 ~~~~~~~~~~~
 
+- Jul 9, 2026: Talk at `AIMS conference <https://aimsconference.org/AIMS-Conference/conf-reg2026/ss/detail1.php?abs_no=564>`_ in Athens, Greece.
+- June 17-19, 2026: Keynote lecture at `Grenoble AI for Physical Sciences Workshop <https://indico.math.cnrs.fr/event/15724/>`_ in Grenoble, France.
+- June 4-10, 2026: Summer school tutorial at `Mathematics and Machine Learning for Image Analysis <https://site.unibo.it/mml-imaging/en>`_ in Bologna, Italy.
 - May 4, 2026: Tutorial at `ICMS <https://icms.ac.uk/activities/workshop/imaging-inverse-problems-and-generating-models-sparsity-and-robustness-versus-expressivity/>`_ Imaging Inverse Problems workshop in Edinburgh, UK.
 - Apr 7, 2026: Talk at `PyTorch Conference Europe <https://events.linuxfoundation.org/pytorch-conference-europe/>`_ in Paris, France.
 - Mar 9-10, 2026: Hackathon and tutorial at `Symposium on AI and Reconstruction for Biomedical Imaging <https://www.ccpsynerbi.ac.uk/events/airbi/>`_ in London, UK.
