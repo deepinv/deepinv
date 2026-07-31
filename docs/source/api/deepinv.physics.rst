@@ -113,8 +113,8 @@ Generators
    deepinv.physics.phase_retrieval.generate_shifts
    deepinv.physics.scattering.circular_sensors
    deepinv.physics.functional.subsets.get_subset_indices
-   deepinv.physics.functional.subsets.split_measurements
-   deepinv.physics.functional.subsets.split_physics
+   deepinv.physics.split_measurements
+   deepinv.physics.split_physics
 
 Noise distributions
 -------------------
