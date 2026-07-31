@@ -60,7 +60,7 @@ dinv.utils.plot([x, y], ["Ground Truth", "Measurements"])
 # The multi-scale PnP model can be understood as a combination of multiple
 # single-scale PnP models operating at different scales. Here, we use two
 # scales: the fine scale corresponding to the scale of the original image, and
-# a coarse scale corresponding the fine scale downsampled by a factor of 2.
+# a coarse scale corresponding to the fine scale downsampled by a factor of 2.
 #
 # A base reconstruction is done in the coarse scale using the single-scale PnP
 # model operating in the coarse scale, using a downsampled version of the
