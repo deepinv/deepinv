@@ -424,7 +424,7 @@ class EDMDiffusionSDE(DiffusionSDE):
             dtype=dtype,
             device=device,
             *args,
-            *kwargs,
+            **kwargs,
         )
 
     def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> torch.Tensor:
@@ -597,7 +597,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
             dtype=dtype,
             device=device,
             *args,
-            *kwargs,
+            **kwargs,
         )
 
 
@@ -818,7 +818,7 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
             dtype=dtype,
             device=device,
             *args,
-            *kwargs,
+            **kwargs,
         )
 
 

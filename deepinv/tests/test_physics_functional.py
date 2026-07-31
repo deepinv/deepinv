@@ -362,3 +362,19 @@ def test_gaussian_blur_non_regression(device, sigma, angle):
     assert normalized_cross_correlation == pytest.approx(
         1.0, abs=5e-3
     ), f"NCC is {normalized_cross_correlation:.6f}, expected approximately 1.0"
+
+
+@pytest.mark.parametrize("shape", [(1, 1, 8, 8), (2, 3, 10, 6)])
+@pytest.mark.parametrize("padding", [(1, 1), (3, 2)])
+def test_liu_jia_pad(shape, padding):
+    torch.manual_seed(0)
+    B, C, H, W = shape
+    pad_h, pad_w = padding
+    x = torch.rand(*shape)
+
+    y = dF.liu_jia_pad(x, padding=padding)
+
+    assert y.shape == (B, C, H + 2 * pad_h, W + 2 * pad_w)
+
+    center = y[..., pad_h : pad_h + H, pad_w : pad_w + W]
+    assert torch.equal(center, x)

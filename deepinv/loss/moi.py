@@ -46,7 +46,7 @@ class MOILoss(Loss):
     :param bool apply_noise: if ``True``, the augmented measurement is computed with the full sensing model
         :math:`\sensor{\noise{\forw{\hat{x}}}}` (i.e., noise and sensor model),
         otherwise is generated as :math:`\forw{\hat{x}}`.
-    :param torch.Generator rng: torch randon number generator for randomly selecting from physics list. If using physics generator, rng is ignored.
+    :param torch.Generator rng: torch random number generator for randomly selecting from physics list. If using physics generator, rng is ignored.
 
     """
 
@@ -161,7 +161,7 @@ class MOEILoss(EILoss, MOILoss):
     :param float weight: Weight of the loss.
     :param bool no_grad: if ``True``, the gradient does not propagate through :math:`T_g`. Default: ``False``.
         This option is useful for super-resolution problems, see :footcite:t:`scanvic2026scale`.
-    :param torch.Generator rng: torch randon number generator for randomly selecting from physics list. If using physics generator, rng is ignored.
+    :param torch.Generator rng: torch random number generator for randomly selecting from physics list. If using physics generator, rng is ignored.
     """
 
     def __init__(

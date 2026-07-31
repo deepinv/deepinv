@@ -4,6 +4,8 @@ import torch.nn.functional as F
 
 from math import sqrt, pi
 
+from .dst import dst1
+
 
 def conv2d_filter_adjoint(
     x: torch.Tensor,
@@ -396,6 +398,190 @@ def bilinear_filter(
     w = torch.outer(w, w)
     w = w / torch.sum(w)
     return w.unsqueeze(0).unsqueeze(0)
+
+
+def _biharmonic_inpainting(x: torch.Tensor) -> None:
+    """
+    Biharmonic inpainting
+
+    The biharmonic inpainting of an image :math:`x` smooth at the image
+    boundary and zero inside the boundary is a smooth image :math:`y`
+    such that :math:`x` and :math:`y` are equal on the boundary and
+    :math:`\nabla^2 y = 0` inside the boundary, where :math:`\nabla^2` is the
+    Laplacian operator :footcite:p:`damelin2018surface`.
+
+    In the discrete setting, the boundary is one pixel thick and the Laplacian
+    operator is approximated by the 5-point stencil. It can be diagonalized in
+    the discrete sine transform of type I (DST-I) basis, which gives the
+    formula:
+
+    .. math::
+
+        y = - \mathcal{S}^{-1} \mathrm{diag}(d^{-1}) \mathcal{S} \nabla^2 x + x
+
+    where :math:`\mathcal{S}` and :math:`\mathcal{S}^{-1}` are the DST-I and
+    its inverse, :math:`d` denotes the eigenvalues of the 5-point Laplacian
+    operator :math:`\nabla^2`. The eigenvalues :math:`d` are given by
+
+    .. math::
+
+        d_{k,l} = 2 (\cos(\pi k / (H - 1)) + \cos(\pi l / (W - 1)) - 2) \quad k = 0, \ldots, H - 1, \quad l = 0, \ldots, W - 1
+
+    .. note::
+
+        This function is used in the Liu-Jia padding :func:`deepinv.physics.functional.liu_jia_pad`.
+
+    .. warning::
+
+        This function modifies the input image in-place and it assumes that it
+        is zero outside the one pixel thick boundary.
+    """
+    # Compute the 5-point Laplacian of x
+    laplacian = (
+        x[..., 1:-1, 2:]
+        + x[..., 1:-1, :-2]
+        + x[..., 2:, 1:-1]
+        + x[..., :-2, 1:-1]
+        - 4 * x[..., 1:-1, 1:-1]
+    )
+
+    # Compute the DST-I of the Laplacian
+    spec = dst1(laplacian, dim=(-2, -1), inverse=False, orthosf=False)
+
+    # Compute the eigenvalues of the 5-point Laplacian operator
+    H, W = x.shape[-2:]
+    f_h = torch.arange(1, H - 1, device=x.device, dtype=x.dtype)
+    f_w = torch.arange(1, W - 1, device=x.device, dtype=x.dtype)
+    f_h, f_w = torch.meshgrid(f_h, f_w, indexing="ij")
+    d = (
+        2 * torch.cos(torch.pi * f_h / (H - 1))
+        + 2 * torch.cos(torch.pi * f_w / (W - 1))
+        - 4
+    )
+
+    # Multiply the DST-I by the negative inverse of the eigenvalues of the
+    # 5-point Laplacian operator
+    z = -spec / d
+
+    # Compute the inverse DST-I of the result
+    z = dst1(z, dim=(-2, -1), inverse=True, orthosf=False)
+
+    # Add the result in-place with the original boundary to get the output
+    # y = z + x
+    x[..., 1:-1, 1:-1] = z
+
+
+def liu_jia_pad(x: torch.Tensor, *, padding: tuple[int, int]) -> torch.Tensor:
+    """
+    Liu-Jia Padding
+
+    Real-world blurry images have decorrelated opposite boundaries unlike images synthetically blurred using circular filters. This make the use of spectral deconvolution methods (inverse filtering, Wiener filtering) impractical and prone to ringing artifacts. Liu-Jia padding :footcite:p:`liu2008reducing` is a pre-processing step that pads the input image to make it have smooth circular boundaries while preserving the original spectral content as much as possible.
+
+    The implementation is adapted from `the one <https://github.com/cszn/USRNet>`_ featured in the work of :footcite:t:`zhang2020deep`.
+
+    The padded tensor has shape :math:`(B, C, H + 2 * \text{pad}_h, W + 2 * \text{pad}_w)` where :math:`\text{pad}_h` and :math:`\text{pad}_w` are the vertical and horizontal padding respectively.
+
+
+    .. note::
+
+        Padding a single direction is not supported and a :class:`ValueError`
+        will be raised if only one of the two padding values is non-zero.
+
+    :param torch.Tensor x: Input image of shape (B, C, H, W)
+    :param tuple(int, int) padding: Left/right padding, and top/bottom padding (px).
+    :return: (:class:`torch.Tensor`) Padded image
+    """
+    if x.ndim != 4:  # pragma: no cover
+        raise ValueError("Input tensor must be 4-dimensional (B, C, H, W)")
+
+    padding_lr, padding_tb = padding
+
+    if padding_lr < 0 or padding_tb < 0:
+        raise ValueError(f"Padding values must be non-negative. Got: {padding}")
+    elif padding_lr == 0 and padding_tb == 0:
+        return x
+    elif padding_lr == 0 or padding_tb == 0:
+        raise ValueError(f"Single direction padding is not supported. Got: {padding}")
+
+    padding_h = 2 * padding_lr
+    padding_w = 2 * padding_tb
+
+    shape = x.shape
+    BC = tuple(x.shape[:-2])
+    H, W = x.shape[-2:]
+
+    # The image is first padded to its right and bottom before applying a shift
+    # to end up with equal padding on opposite sides. It can be written as the
+    # block matrix:
+    #   z = [ x, B ]
+    #       [ A, C ]
+    A_shape = BC + (2 + padding_h, W)
+    B_shape = BC + (H, 2 + padding_w)
+    C_shape = BC + (2 + padding_h, 2 + padding_w)
+
+    A = torch.zeros(A_shape, device=x.device, dtype=x.dtype)
+    B = torch.zeros(B_shape, device=x.device, dtype=x.dtype)
+    C = torch.zeros(C_shape, device=x.device, dtype=x.dtype)
+
+    # The output image is circular so A and B share two of their sides with x
+    # unlike C which shares none. We start by replicating the shared boundaries
+    # up to a distance of alpha pixels. This can be understood as a form of
+    # reflect padding.
+    A[..., :1, :] = x[..., -1:, :]
+    A[..., -1:, :] = x[..., :1, :]
+    B[..., :, :1] = x[..., :, -1:]
+    B[..., :, -1:] = x[..., :, :1]
+
+    # The remaining sides of A and B are filled by linearly interpolating
+    # between opposite corners of the other boundaries.
+    a = torch.linspace(0, 1, padding_h, device=x.device, dtype=x.dtype)
+    b = torch.linspace(0, 1, padding_w, device=x.device, dtype=x.dtype)
+
+    a = a.view((1,) * len(BC) + a.shape)
+    b = b.view((1,) * len(BC) + b.shape)
+
+    A[..., 1:-1, 0] = (1 - a) * A[..., 0, 0, None] + a * A[..., -1, 0, None]
+    A[..., 1:-1, -1] = (1 - a) * A[..., 0, -1, None] + a * A[..., -1, -1, None]
+    B[..., 0, 1:-1] = (1 - b) * B[..., 0, 0, None] + b * B[..., 0, -1, None]
+    B[..., -1, 1:-1] = (1 - b) * B[..., -1, 0, None] + b * B[..., -1, -1, None]
+
+    # Finally, having filled all sides of A and B, we fill all sides of C by
+    # replicating the values across the shared sides with A and B.
+    C[..., :1, :] = B[..., -1:, :]
+    C[..., -1:, :] = B[..., :1, :]
+    C[..., :, :1] = A[..., :, -1:]
+    C[..., :, -1:] = A[..., :, :1]
+
+    # At this point, A, B and C have their boundary filled and their inside is
+    # zero. It is then filled using harmonic inpainting which creates a smooth
+    # extension without changing the boundary values.
+    stop_h = A.shape[-2]
+    stop_w = B.shape[-1]
+    _biharmonic_inpainting(A[..., :stop_h, :])
+    _biharmonic_inpainting(B[..., :, :stop_w])
+    _biharmonic_inpainting(C[..., :stop_h, :stop_w])
+
+    # Remove the excess margin used to control the smoothness of the harmonic
+    # inpainting.
+    A = A[..., 1:-1, :]
+    B = B[..., :, 1:-1]
+    C = C[..., 1:-1, 1:-1]
+
+    # Concatenate A, B, C and x to form the padded image
+    #   z = [ x, B ]
+    #       [ A, C ]
+    H, W = x.shape[-2:]
+    Hp, Wp = A.shape[-2], B.shape[-1]
+    z = torch.empty(BC + (H + Hp, W + Wp), device=x.device, dtype=x.dtype)
+    z[..., :H, :W] = x
+    z[..., :H, W:] = B
+    z[..., H:, :W] = A
+    z[..., H:, W:] = C
+
+    # Realign the padded image so the original image is centered
+    z = z.roll(shifts=padding, dims=(-2, -1))
+
+    return z
 
 
 def bicubic_filter(factor: int = 2, device: torch.device | str = "cpu") -> torch.Tensor:

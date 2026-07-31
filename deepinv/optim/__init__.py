@@ -38,6 +38,7 @@ from .prior import (
     RED,
     L1Prior,
     TVPrior,
+    TVL1Prior,
     PatchPrior,
     WaveletPrior,
     PatchNR,
