@@ -244,9 +244,7 @@ model_mlem = dinv.optim.MLEM(
     prior=None,
     max_iter=mlem_iter,
     custom_metrics={
-        "nrmse": lambda _values, _x_prev, x_cur: nrmse(
-            x_cur.unsqueeze(0), x
-        ).item()
+        "nrmse": lambda _values, _x_prev, x_cur: nrmse(x_cur.unsqueeze(0), x).item()
     },
 )
 
@@ -336,9 +334,7 @@ model_osem = dinv.optim.OSEM(
     max_iter=osem_epochs,
     num_subsets=num_subsets,
     custom_metrics={
-        "nrmse": lambda _values, _x_prev, x_cur: nrmse(
-            x_cur.unsqueeze(0), x
-        ).item()
+        "nrmse": lambda _values, _x_prev, x_cur: nrmse(x_cur.unsqueeze(0), x).item()
     },
 )
 
