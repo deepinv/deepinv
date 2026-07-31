@@ -1,6 +1,7 @@
-import gzip
 import shutil, os
+import sys
 import math
+from types import SimpleNamespace
 from typing import NamedTuple, Sequence, Mapping
 from pathlib import Path
 import PIL
@@ -16,8 +17,7 @@ import h5py
 
 import deepinv as dinv
 from deepinv.datasets import (
-    BrainWebDataset,
-    BrainWebLesion,
+    BrainWebPET,
     DIV2K,
     Urban100HR,
     Set14HR,
@@ -1576,78 +1576,85 @@ def test_RandomPatchSampler(make_data):
 
 
 @pytest.fixture
-def brainweb_data(tmp_path, monkeypatch):
-    monkeypatch.setattr(BrainWebDataset, "image_size", (15, 17, 19))
-    monkeypatch.setattr(BrainWebDataset, "voxel_size", (1.0, 1.0, 1.0))
-    labels = np.full(BrainWebDataset.image_size, 2, dtype=np.uint8)
-    labels[7, 0, :3] = (0, 3, 7)
-    with gzip.open(tmp_path / "subject_04.raw_byte.bin.gz", "wb") as file:
-        file.write(labels.tobytes())
-    return tmp_path, labels
+def brainweb_pet_module(tmp_path, monkeypatch):
+    calls = {"download": [], "load": [], "lesions": [], "seed": []}
+    emission = np.zeros((3, 4, 5), dtype=np.float32)
+    attenuation = np.full_like(emission, 0.1)
 
+    def get_file(name, url, cache_dir):
+        path = Path(cache_dir) / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.touch()
+        calls["download"].append((name, url))
+        return str(path)
 
-@pytest.mark.parametrize("slice_index", [None, 7])
-def test_brainweb_dataset(brainweb_data, slice_index):
-    root, labels = brainweb_data
-    dataset = BrainWebDataset(
-        root=root,
-        slice_index=slice_index,
-        activity_levels={"gray_matter": 5, "white_matter": 2},
+    def get_mmr_fromfile(path, **kwargs):
+        calls["load"].append((path, kwargs))
+        return {"PET": emission, "uMap": attenuation, "res": (2.0, 2.1, 2.1)}
+
+    def add_lesions(image, **kwargs):
+        calls["lesions"].append(kwargs)
+        image = image.copy()
+        image[1, 2, 3] = 5
+        return image
+
+    brainweb = SimpleNamespace(
+        LINKS={
+            "subject_04.bin.gz": "subject04_crisp",
+            "subject_06.bin.gz": "subject06_crisp",
+        },
+        get_file=get_file,
+        get_mmr_fromfile=get_mmr_fromfile,
+        add_lesions=add_lesions,
+        seed=lambda value: calls["seed"].append(value),
     )
-    activity, params = dataset[0]
-    expected_shape = labels.shape if slice_index is None else labels.shape[1:]
+    monkeypatch.setitem(sys.modules, "brainweb", brainweb)
+    return tmp_path, calls
 
-    assert activity.shape == (1,) + expected_shape
-    assert activity.dtype == torch.float32
-    assert params["attenuation"].shape == activity.shape
-    assert params["attenuation"].max() == pytest.approx(0.13)
+
+def test_brainweb_pet(brainweb_pet_module):
+    root, calls = brainweb_pet_module
+    dataset = BrainWebPET(
+        root=root,
+        subject_ids=(4, 6),
+        brainweb_kwargs={"petNoise": 0.5},
+        lesion_kwargs={"diam": [15]},
+        seed=10,
+    )
+    emission, params = dataset[0]
+
+    assert len(dataset) == 2
+    assert emission.shape == (1, 3, 4, 5)
+    assert emission.dtype == torch.float32
+    torch.testing.assert_close(params["attenuation"], torch.full_like(emission, 0.1))
+    torch.testing.assert_close(params["voxel_size"], torch.tensor((2.0, 2.1, 2.1)))
+    assert params["lesion_mask"].sum() == 1
+    assert calls["load"][0][1] == {
+        "petNoise": 0.5,
+        "t1Noise": 0,
+        "t2Noise": 0,
+    }
+    assert calls["lesions"] == [{"diam": [15]}]
+    assert calls["seed"] == [14]
+    assert [name for name, _ in calls["download"]] == [
+        "subject_04.bin.gz",
+        "subject_06.bin.gz",
+    ]
     dataset.check_dataset()
 
 
-@pytest.mark.parametrize(
-    ("slice_index", "center", "lesion_size"),
-    [(None, (7, 8, 9), 7), (7, (8, 9), 5)],
-)
-def test_brainweb_lesions(brainweb_data, slice_index, center, lesion_size):
-    root, _ = brainweb_data
-    dataset = BrainWebDataset(
-        root=root,
-        slice_index=slice_index,
-        lesions=[
-            BrainWebLesion(2, 0, center),
-            BrainWebLesion(2, 10),
-        ],
-        seed=123,
-    )
-    activity_1, params_1 = dataset[0]
-    activity_2, params_2 = dataset[0]
+def test_brainweb_pet_no_download(brainweb_pet_module, tmp_path):
+    root, calls = brainweb_pet_module
+    BrainWebPET(root=root)
+    calls["download"].clear()
 
-    torch.testing.assert_close(activity_1, activity_2)
-    torch.testing.assert_close(params_1["lesion_mask"], params_2["lesion_mask"])
-    assert torch.count_nonzero(params_1["lesion_mask"] == 1) == lesion_size
-    assert torch.count_nonzero(params_1["lesion_mask"] == 2) == lesion_size
-    torch.testing.assert_close(
-        params_1["lesion_centers"][0], torch.tensor(center, dtype=torch.float32)
-    )
+    emission, params = BrainWebPET(root=root, download=False)[0]
 
-
-def test_brainweb_download(tmp_path, monkeypatch):
-    monkeypatch.setattr(BrainWebDataset, "image_size", (3, 4, 5))
-    monkeypatch.setattr(BrainWebDataset, "voxel_size", (1.0, 1.0, 1.0))
-    requested = []
-
-    def download(url, path):
-        requested.append(url)
-        with gzip.open(path, "wb") as file:
-            file.write(np.zeros(BrainWebDataset.image_size, dtype=np.uint8).tobytes())
-
-    with patch("deepinv.datasets.brainweb.download_archive", side_effect=download):
-        dataset = BrainWebDataset(
-            root=tmp_path, subject_ids=(4, 6), download=True, activity_levels={}
-        )
-
-    assert len(dataset) == 2
-    assert "subject04_crisp" in requested[0]
-    assert "subject06_crisp" in requested[1]
+    assert calls["download"] == []
+    assert calls["load"][-1][1] == {"petNoise": 0, "t1Noise": 0, "t2Noise": 0}
+    assert "lesion_mask" not in params
+    assert emission.shape == params["attenuation"].shape
     with pytest.raises(ValueError, match="Incorrect subject_ids"):
-        BrainWebDataset(root=tmp_path, subject_ids=7)
+        BrainWebPET(root=root, subject_ids=7)
+    with pytest.raises(RuntimeError, match="not found"):
+        BrainWebPET(root=tmp_path / "missing", download=False)
