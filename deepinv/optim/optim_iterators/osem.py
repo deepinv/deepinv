@@ -36,7 +36,7 @@ class OSEMIteration(OptimIterator):
         cur_data_fidelity: DataFidelity,
         cur_prior: Prior | None,
         cur_params: dict,
-        y: torch.Tensor | TensorList | list[torch.Tensor],
+        y: torch.Tensor | TensorList,
         physics: Physics,
         *args,
         **kwargs,
@@ -48,7 +48,7 @@ class OSEMIteration(OptimIterator):
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data fidelity.
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
-        :param torch.Tensor, deepinv.utils.TensorList, list[torch.Tensor] y: Full input data or pre-split measurements.
+        :param torch.Tensor, deepinv.utils.TensorList y: Full input data or pre-split measurements.
         :param deepinv.physics.Physics physics: Full physics or pre-split stacked physics modeling the data-fidelity term.
         :param deepinv.utils.TensorList y_subsets: Measurement subsets.
         :param deepinv.physics.StackedLinearPhysics subset_physics: Physics operators corresponding to the measurement subsets.
@@ -58,10 +58,17 @@ class OSEMIteration(OptimIterator):
         k = 0 if "it" not in X else X["it"]
 
         y_subsets = kwargs["y_subsets"]
+        if isinstance(y, list) or isinstance(y_subsets, list):
+            raise TypeError(
+                "OSEMIteration requires pre-split measurements as a "
+                "deepinv.utils.TensorList."
+            )
         subset_physics = kwargs["subset_physics"]
         num_subsets = len(subset_physics)
-        if num_subsets < 1:
-            raise ValueError("OSEM requires at least one subset.")
+        if num_subsets < 2:
+            raise ValueError(
+                "OSEM requires at least two subsets. " "Use deepinv.optim.MLEM instead."
+            )
         if len(y_subsets) != num_subsets:
             raise ValueError(
                 "The number of measurement subsets and physics subsets must match."

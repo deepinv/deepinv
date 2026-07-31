@@ -130,18 +130,6 @@ def test_tensorlist_any_all_isnan():
     assert tl_nan.isnan().all()
 
 
-def test_tensorlist_clamp():
-    x = torch.tensor([[-1.0, 0.5, 2.0]])
-    y = torch.tensor([[-2.0, 0.25, 3.0]])
-    tl = deepinv.utils.TensorList([x, y])
-
-    clamped = tl.clamp(min=0.0, max=1.0)
-
-    assert isinstance(clamped, deepinv.utils.TensorList)
-    assert torch.allclose(clamped[0], x.clamp(min=0.0, max=1.0))
-    assert torch.allclose(clamped[1], y.clamp(min=0.0, max=1.0))
-
-
 # The class TensorList features many utility methods that we do not test in
 # depth but verify that they do not raise any exception when called. To do
 # that, we get a tensor list instance, we iterate over its methods and try to call
@@ -167,10 +155,6 @@ def test_tensorlist_methods(tensorlist):
         if method_name == "cuda" and not torch.cuda.is_available():
             continue
 
-        # torch.Tensor.clamp/clip requires at least one of min or max.
-        if method_name in ("clamp", "clip"):
-            continue
-
         sig = inspect.signature(method)
 
         # Use the tensor list itself for every required argument
@@ -183,10 +167,14 @@ def test_tensorlist_methods(tensorlist):
             and p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
         ]
 
+        # torch.Tensor.clamp/clip requires at least one of min or max, even
+        # though both are optional in its signature.
+        kwargs = {"min": 0.0, "max": 1.0} if method_name in ("clamp", "clip") else {}
+
         # Test that the method does not raise any exception
         # NOTE: We run the method on a copy of the object to avoid side effects
         x_copy = copy.deepcopy(x)
-        _ = getattr(x_copy, method_name)(*args)
+        _ = getattr(x_copy, method_name)(*args, **kwargs)
 
 
 @pytest.mark.parametrize("shape", [(1, 1, 3, 3), (1, 1, 5, 5)])

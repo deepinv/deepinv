@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from deepinv.utils.tensorlist import ones_like
-
 from .optim_iterator import OptimIterator
 
 if TYPE_CHECKING:
@@ -51,7 +49,7 @@ class MLEMIteration(OptimIterator):
         x_prev = X["est"][0]
         k = 0 if "it" not in X else X["it"]
 
-        sensitivity = physics.A_adjoint(ones_like(y))
+        sensitivity = physics.A_adjoint(torch.ones_like(y))
         # For deepinv.physics.PET, we need to add the background term
         if hasattr(physics, "background"):
             proj = physics.A(x_prev, add_background=True)

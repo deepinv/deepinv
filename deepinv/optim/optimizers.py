@@ -2394,7 +2394,9 @@ class OSEM(BaseOptim):
         In the first case, OSEM splits the inputs internally using
         :func:`deepinv.physics.functional.subsets.split_physics` and
         :func:`deepinv.physics.functional.subsets.split_measurements`.
-        Pre-split measurements can be provided as a :class:`deepinv.utils.TensorList`.
+        Pre-split measurements can be provided as a :class:`deepinv.utils.TensorList`
+        or a list of tensors. Lists are converted to a ``TensorList`` before
+        optimization.
 
     See :class:`deepinv.optim.optim_iterators.OSEMIteration` for the details of one
     epoch. For pre-split inputs, a non-stacked ``data_fidelity`` is evaluated
@@ -2406,8 +2408,9 @@ class OSEM(BaseOptim):
     Combined with the subset mechanism, this algorithm is sometimes called OS-MAP-OSL.
 
     :param int num_subsets: number of ordered subsets used when splitting a full
-        physics. This parameter is ignored when a pre-split physics is provided.
-        Default: ``1``.
+        physics. This must be at least ``2`` and is ignored when a pre-split
+        physics is provided. Use :class:`deepinv.optim.MLEM` for a single subset.
+        Default: ``2``.
     :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity term.
         If ``None``, defaults to :class:`deepinv.optim.PoissonLikelihood`.
     :param deepinv.optim.Prior, list[Prior] prior: prior term. If ``None``, no prior is used.
@@ -2442,7 +2445,7 @@ class OSEM(BaseOptim):
         lambda_reg: float = 1.0,
         g_param: float = None,
         sigma_denoiser: float = None,
-        num_subsets: int = 1,
+        num_subsets: int = 2,
         subset_strategy: str = "default",
         eps: float = 1e-15,
         max_iter: int = 100,
@@ -2473,8 +2476,11 @@ class OSEM(BaseOptim):
         if g_param is None and sigma_denoiser is not None:
             g_param = sigma_denoiser
 
-        if not isinstance(num_subsets, int) or num_subsets < 1:
-            raise ValueError("num_subsets must be a positive integer.")
+        if not isinstance(num_subsets, int) or num_subsets < 2:
+            raise ValueError(
+                "OSEM requires at least two subsets. "
+                "Use deepinv.optim.MLEM instead for a single subset."
+            )
         self.num_subsets = num_subsets
         self.subset_strategy = subset_strategy
 
@@ -2531,8 +2537,13 @@ class OSEM(BaseOptim):
                     "deepinv.physics.functional.subsets.split_measurements to "
                     "split full measurements."
                 )
-            if len(physics) < 1:
-                raise ValueError("OSEM requires at least one subset.")
+            if isinstance(y, list):
+                y = TensorList(y)
+            if len(physics) < 2:
+                raise ValueError(
+                    "OSEM requires at least two subsets. "
+                    "Use deepinv.optim.MLEM instead for a single subset."
+                )
             if len(y) != len(physics):
                 raise ValueError(
                     "The number of measurement subsets and physics subsets "

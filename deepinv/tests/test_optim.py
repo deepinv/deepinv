@@ -938,6 +938,7 @@ def test_MLEM_OSEM_convergence(algorithm, pre_split, device):
         if pre_split:
             y = dinv.physics.split_measurements(y, physics, 2)
             physics = dinv.physics.split_physics(physics, 2)
+            y = list(y)
         else:
             algorithm_kwargs["num_subsets"] = 2
 
