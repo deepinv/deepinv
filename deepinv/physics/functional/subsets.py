@@ -104,6 +104,65 @@ def split_measurements(
     return TensorList([y.index_select(dim, idx) for idx in indices])
 
 
+def split_physics(
+    physics: LinearPhysics,
+    num_subsets: int,
+    strategy: str = "default",
+) -> StackedLinearPhysics:
+    r"""
+    Builds a stacked tomography physics with one operator per angular subset.
+
+    :param deepinv.physics.LinearPhysics physics: tomography physics.
+    :param int num_subsets: number of subsets.
+    :param str strategy: subsetting strategy. Currently only ``"default"`` is supported.
+    :return: :class:`deepinv.physics.StackedLinearPhysics` over angular subsets.
+    """
+    if not isinstance(physics, SUPPORTED_TOMOGRAPHY_PHYSICS):
+        raise TypeError(UNSUPPORTED_SPLIT_PHYSICS_ERROR)
+
+    # Get the total number of angles
+    if isinstance(physics, Tomography):
+        num_angles = len(physics.angles)
+    elif isinstance(physics, TomographyWithAstra):
+        num_angles = physics.num_angles
+    else:
+        num_angles = physics.num_views
+
+    # Get the angle indices corresponding to each subset
+    indices = get_subset_indices(
+        num_angles,
+        num_subsets,
+        strategy=strategy,
+        device=physics.device,
+    )
+
+    # Branch depending on the tomography physics:
+    # first need to extract global geometry information from the physics
+    # second we build the StackedLinearPhysics with one operator per subset
+    if isinstance(physics, Tomography):
+        subset_kwargs = _get_tomography_subset_kwargs(physics)
+        subset_physics = _get_tomography_subset_physics(physics, indices, subset_kwargs)
+    elif isinstance(physics, TomographyWithAstra):
+        subset_kwargs = _get_astra_subset_kwargs(physics)
+        subset_physics = _get_astra_subset_physics(physics, indices, subset_kwargs)
+    else:
+        subset_kwargs = _get_pet_subset_kwargs(physics)
+        subset_physics = _get_pet_subset_physics(physics, indices, subset_kwargs)
+
+    # Affect approximate operator norm of each subset physics
+    if physics.normalize:
+        subset_operator_norm = physics.operator_norm.detach().clone() / sqrt(
+            num_subsets
+        )
+        for subset in subset_physics:
+            subset.normalize = True
+            subset.register_buffer(
+                "operator_norm", subset_operator_norm.detach().clone()
+            )
+
+    return StackedLinearPhysics(subset_physics)
+
+
 def _get_tomography_subset_kwargs(physics: Tomography) -> dict:
     r"""Extract the geometry needed to rebuild a tomography subset.
 
@@ -296,62 +355,3 @@ def _get_pet_subset_physics(
         )
         for idx in indices
     ]
-
-
-def split_physics(
-    physics: LinearPhysics,
-    num_subsets: int,
-    strategy: str = "default",
-) -> StackedLinearPhysics:
-    r"""
-    Builds a stacked tomography physics with one operator per angular subset.
-
-    :param deepinv.physics.LinearPhysics physics: tomography physics.
-    :param int num_subsets: number of subsets.
-    :param str strategy: subsetting strategy. Currently only ``"default"`` is supported.
-    :return: :class:`deepinv.physics.StackedLinearPhysics` over angular subsets.
-    """
-    if not isinstance(physics, SUPPORTED_TOMOGRAPHY_PHYSICS):
-        raise TypeError(UNSUPPORTED_SPLIT_PHYSICS_ERROR)
-
-    # Get the total number of angles
-    if isinstance(physics, Tomography):
-        num_angles = len(physics.angles)
-    elif isinstance(physics, TomographyWithAstra):
-        num_angles = physics.num_angles
-    else:
-        num_angles = physics.num_views
-
-    # Get the angle indices corresponding to each subset
-    indices = get_subset_indices(
-        num_angles,
-        num_subsets,
-        strategy=strategy,
-        device=physics.device,
-    )
-
-    # Branch depending on the tomography physics:
-    # first need to extract global geometry information from the physics
-    # second we build the StackedLinearPhysics with one operator per subset
-    if isinstance(physics, Tomography):
-        subset_kwargs = _get_tomography_subset_kwargs(physics)
-        subset_physics = _get_tomography_subset_physics(physics, indices, subset_kwargs)
-    elif isinstance(physics, TomographyWithAstra):
-        subset_kwargs = _get_astra_subset_kwargs(physics)
-        subset_physics = _get_astra_subset_physics(physics, indices, subset_kwargs)
-    else:
-        subset_kwargs = _get_pet_subset_kwargs(physics)
-        subset_physics = _get_pet_subset_physics(physics, indices, subset_kwargs)
-
-    # Affect approximate operator norm of each subset physics
-    if physics.normalize:
-        subset_operator_norm = physics.operator_norm.detach().clone() / sqrt(
-            num_subsets
-        )
-        for subset in subset_physics:
-            subset.normalize = True
-            subset.register_buffer(
-                "operator_norm", subset_operator_norm.detach().clone()
-            )
-
-    return StackedLinearPhysics(subset_physics)
