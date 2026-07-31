@@ -164,20 +164,12 @@ class PET(LinearPhysics):
             self.is_2d = True
         else:
             self.is_2d = False
-        self.img_shape = img_size
 
         if scanner is None:
             scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
                 torch_compat, dev=device, num_rings=1 if self.is_2d else 16
             )
         self.scanner = scanner
-        self._subset_kwargs = {
-            "img_size": self.img_size,
-            "voxel_size": self.voxel_size,
-            "fwhm_data_mm": self.fwhm_data_mm,
-            "scanner": self.scanner,
-            "radial_trim": self.radial_trim,
-        }
 
         # setup the LOR descriptor that defines the sinogram
         lor_desc = parallelproj.RegularPolygonPETLORDescriptor(

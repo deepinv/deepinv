@@ -548,6 +548,7 @@ class TomographyWithAstra(LinearPhysics):
             else n_detector_pixels
         )
         self.geometry_type = geometry_type
+
         if isinstance(angles, int):
             angles = torch.linspace(*angular_range, steps=angles + 1)[:-1]
 
