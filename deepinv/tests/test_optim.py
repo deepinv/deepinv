@@ -907,7 +907,9 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     )  # Optimality condition
 
 
-# MLEM and OSEM are tested separately because they only support Poisson data fidelity.
+# MLEM and OSEM are tested separately because they only converge
+# with respect to the Poisson data fidelity.
+# Other data fidelities can be passed but the convergence is not guaranteed.
 @pytest.mark.parametrize(
     "algorithm, pre_split",
     [
