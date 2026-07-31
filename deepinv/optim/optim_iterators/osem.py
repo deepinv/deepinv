@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
+from deepinv.optim.data_fidelity import PoissonLikelihood
 from deepinv.optim.utils import objective_function
 from deepinv.utils.tensorlist import ones_like
 
@@ -105,9 +106,21 @@ class OSEMIteration(OptimIterator):
                 # For pre-split inputs, evaluate each subset objective and sum them.
                 F = 0
                 for cur_y, cur_physics in zip(y, physics, strict=True):
+                    subset_data_fidelity = cur_data_fidelity
+                    if (
+                        isinstance(cur_data_fidelity, PoissonLikelihood)
+                        and isinstance(cur_data_fidelity.bkg, torch.Tensor)
+                        and cur_data_fidelity.bkg.numel() > 1
+                        and hasattr(cur_physics, "background")
+                    ):
+                        subset_data_fidelity = PoissonLikelihood(
+                            gain=cur_data_fidelity.gain,
+                            bkg=cur_physics.background / cur_data_fidelity.gain,
+                            denormalize=cur_data_fidelity.d.denormalize,
+                        )
                     F = F + cost_fn(
                         x,
-                        cur_data_fidelity,
+                        subset_data_fidelity,
                         cur_prior,
                         cur_params,
                         cur_y,
