@@ -366,7 +366,7 @@ def bilinear_filter(
 
 
 def _biharmonic_inpainting(x: torch.Tensor) -> None:
-    """
+    r"""
     Biharmonic inpainting
 
     The biharmonic inpainting of an image :math:`x` smooth at the image
@@ -437,7 +437,7 @@ def _biharmonic_inpainting(x: torch.Tensor) -> None:
 
 
 def liu_jia_pad(x: torch.Tensor, *, padding: tuple[int, int]) -> torch.Tensor:
-    """
+    r"""
     Liu-Jia Padding
 
     Real-world blurry images have decorrelated opposite boundaries unlike images synthetically blurred using circular filters. This make the use of spectral deconvolution methods (inverse filtering, Wiener filtering) impractical and prone to ringing artifacts. Liu-Jia padding :footcite:p:`liu2008reducing` is a pre-processing step that pads the input image to make it have smooth circular boundaries while preserving the original spectral content as much as possible.
