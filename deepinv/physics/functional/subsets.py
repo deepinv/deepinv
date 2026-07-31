@@ -105,7 +105,11 @@ def split_measurements(
 
 
 def _get_tomography_subset_kwargs(physics: Tomography) -> dict:
-    """Extract the geometry needed to rebuild a native tomography subset."""
+    r"""Extract the geometry needed to rebuild a tomography subset.
+
+    :param deepinv.physics.Tomography physics: full tomography physics.
+    :return: keyword arguments required to build each subset physics.
+    """
     return {
         "img_width": physics.img_width,
         "circle": physics.radon.circle,
@@ -121,7 +125,11 @@ def _get_tomography_subset_kwargs(physics: Tomography) -> dict:
 
 
 def _get_astra_subset_kwargs(physics: TomographyWithAstra) -> dict:
-    """Extract the geometry needed to rebuild an ASTRA tomography subset."""
+    r"""Extract the geometry needed to rebuild an ASTRA tomography subset.
+
+    :param deepinv.physics.TomographyWithAstra physics: full ASTRA tomography physics.
+    :return: keyword arguments required to build each subset physics.
+    """
     projection_geometry = physics.projection_geometry
     object_geometry = physics.object_geometry
     object_options = object_geometry["option"]
@@ -189,9 +197,13 @@ def _get_astra_subset_kwargs(physics: TomographyWithAstra) -> dict:
 
 
 def _get_pet_subset_kwargs(physics: PET) -> dict:
-    """Extract the geometry and acquisition settings for a PET subset."""
+    r"""Extract the geometry and acquisition settings for a PET subset.
+
+    :param deepinv.physics.PET physics: full PET physics.
+    :return: keyword arguments required to build each subset physics.
+    """
     gain = getattr(physics.noise_model, "gain", torch.ones(1))
-    normalize_counts = getattr(physics.noise_model, "normalize", torch.tensor(False))
+    normalize_counts = bool(getattr(physics.noise_model, "normalize", False))
     return {
         "img_size": physics.img_size,
         "voxel_size": physics.voxel_size,
@@ -200,7 +212,7 @@ def _get_pet_subset_kwargs(physics: PET) -> dict:
         "radial_trim": physics.radial_trim,
         "gain": gain.detach().clone(),
         "normalize": False,
-        "normalize_counts": bool(normalize_counts.item()),
+        "normalize_counts": normalize_counts,
         "device": physics.background.device,
     }
 
@@ -208,7 +220,13 @@ def _get_pet_subset_kwargs(physics: PET) -> dict:
 def _get_tomography_subset_physics(
     physics: Tomography, indices: list[torch.Tensor], subset_kwargs: dict
 ) -> list[Tomography]:
-    """Construct native tomography physics for each angular subset."""
+    r"""Construct native tomography physics for each angular subset.
+
+    :param deepinv.physics.Tomography physics: full native tomography physics.
+    :param list[torch.Tensor] indices: angular indices for each subset.
+    :param dict subset_kwargs: keyword arguments for each subset constructor.
+    :return: native tomography physics for each angular subset.
+    """
     return [
         Tomography(
             angles=physics.angles.index_select(0, idx.to(physics.angles.device)),
@@ -221,7 +239,13 @@ def _get_tomography_subset_physics(
 def _get_astra_subset_physics(
     physics: TomographyWithAstra, indices: list[torch.Tensor], subset_kwargs: dict
 ) -> list[TomographyWithAstra]:
-    """Construct ASTRA tomography physics for each angular subset."""
+    r"""Construct ASTRA tomography physics for each angular subset.
+
+    :param deepinv.physics.TomographyWithAstra physics: full ASTRA tomography physics.
+    :param list[torch.Tensor] indices: angular indices for each subset.
+    :param dict subset_kwargs: keyword arguments for each subset constructor.
+    :return: ASTRA tomography physics for each angular subset.
+    """
     angles = physics.angles
     geometry_vectors = (
         torch.as_tensor(physics.projection_geometry["Vectors"], device=physics.device)
@@ -251,7 +275,13 @@ def _get_astra_subset_physics(
 def _get_pet_subset_physics(
     physics: PET, indices: list[torch.Tensor], subset_kwargs: dict
 ) -> list[PET]:
-    """Construct PET physics for each angular subset."""
+    r"""Construct PET physics for each angular subset.
+
+    :param deepinv.physics.PET physics: full PET physics.
+    :param list[torch.Tensor] indices: angular indices for each subset.
+    :param dict subset_kwargs: keyword arguments for each subset constructor.
+    :return: PET physics for each angular subset.
+    """
     view_dim = 2 + physics.proj.lor_descriptor.view_axis_num
     return [
         PET(
@@ -292,7 +322,7 @@ def split_physics(
     else:
         num_angles = physics.num_views
 
-    # Get the angles indices corresponding to each subset
+    # Get the angle indices corresponding to each subset
     indices = get_subset_indices(
         num_angles,
         num_subsets,
@@ -300,7 +330,9 @@ def split_physics(
         device=physics.device,
     )
 
-    # Branch depending on the tomography physics
+    # Branch depending on the tomography physics:
+    # first need to extract global geometry information from the physics
+    # second we build the StackedLinearPhysics with one operator per subset
     if isinstance(physics, Tomography):
         subset_kwargs = _get_tomography_subset_kwargs(physics)
         subset_physics = _get_tomography_subset_physics(physics, indices, subset_kwargs)
@@ -311,7 +343,7 @@ def split_physics(
         subset_kwargs = _get_pet_subset_kwargs(physics)
         subset_physics = _get_pet_subset_physics(physics, indices, subset_kwargs)
 
-    # Approximate operator norm of each subset physics
+    # Affect approximate operator norm of each subset physics
     if physics.normalize:
         subset_operator_norm = physics.operator_norm.detach().clone() / sqrt(
             num_subsets
