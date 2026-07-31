@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from math import sqrt
-
 import torch
 
 from deepinv.physics.forward import LinearPhysics, StackedLinearPhysics
@@ -149,11 +147,11 @@ def split_physics(
         subset_kwargs = _get_pet_subset_kwargs(physics)
         subset_physics = _get_pet_subset_physics(physics, indices, subset_kwargs)
 
-    # Affect approximate operator norm of each subset physics
+    # Preserve the normalization of the full operator. Measurements are split by
+    # slicing the output of the full normalized operator, so each subset must use
+    # the same normalization factor for its forward model to match those slices.
     if physics.normalize:
-        subset_operator_norm = physics.operator_norm.detach().clone() / sqrt(
-            num_subsets
-        )
+        subset_operator_norm = physics.operator_norm.detach().clone()
         for subset in subset_physics:
             subset.normalize = True
             subset.register_buffer(

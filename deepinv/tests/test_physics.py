@@ -1536,15 +1536,22 @@ def test_tomography_subset_utilities(device):
     normalized_subset_physics = dinv.physics.split_physics(
         normalized_physics, num_subsets
     )
-    for subset in normalized_subset_physics:
-        approximate_norm = subset.operator_norm
-        subset.normalize = False
-        precise_norm = subset.compute_norm(
-            x, max_iter=100, tol=1e-5, verbose=False, squared=False
-        )
-        subset.normalize = True
+    normalized_y = normalized_physics.A(x)
+    normalized_y_subsets = dinv.physics.split_measurements(
+        normalized_y, normalized_physics, num_subsets
+    )
+    normalized_stacked_y = normalized_subset_physics.A(x)
 
-        assert torch.allclose(approximate_norm, precise_norm, rtol=1e-1)
+    for i, idx in enumerate(indices):
+        expected_y = normalized_y.index_select(-1, idx)
+        assert torch.allclose(normalized_y_subsets[i], expected_y)
+        assert torch.allclose(normalized_stacked_y[i], expected_y, atol=1e-5)
+
+    assert torch.allclose(
+        normalized_subset_physics.A_adjoint(normalized_y_subsets),
+        normalized_physics.A_adjoint(normalized_y),
+        atol=1e-5,
+    )
 
     with pytest.raises(ValueError, match="divisible"):
         dinv.physics.get_subset_indices(num_angles, 3, device=device)
