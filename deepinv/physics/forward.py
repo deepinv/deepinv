@@ -1218,7 +1218,16 @@ class DecomposablePhysics(LinearPhysics):
         :return: (:class:`torch.Tensor`) estimated signal tensor
 
         """
-        b = self.A_adjoint(y) + 1 / gamma * z
+        # When z is None or zero, skip the ``1/gamma * z`` term.  This avoids
+        # a shape mismatch when gamma is a frequency-domain tensor: subclasses
+        # like BlurFFT use rfft (real FFT), which produces a half-spectrum of
+        # width W//2+1, so gamma has shape [..., W//2+1] while z and
+        # A_adjoint(y) have full spatial width W.  When z is zero the term
+        # vanishes, so skipping it is correct.
+        if z is None or (isinstance(z, (int, float)) and z == 0):
+            b = self.A_adjoint(y)
+        else:
+            b = self.A_adjoint(y) + 1 / gamma * z
         if isinstance(self.mask, float):
             scaling = self.mask**2 + 1 / gamma
         else:

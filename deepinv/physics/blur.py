@@ -736,6 +736,96 @@ class BlurFFT(DecomposablePhysics):
 
         super().update_parameters(**filter_parameters)
 
+    def A_dagger(
+        self,
+        y: Tensor,
+        wiener: bool = False,
+        gamma: float | Tensor = 1.0,
+        prior: str | None = "laplacian",
+        **kwargs,
+    ) -> Tensor:
+        r"""
+        Computes a reconstruction from measurements :math:`y`.
+
+        When ``wiener=False`` (the default), this delegates to the standard
+        SVD-based pseudo-inverse inherited from
+        :class:`~deepinv.physics.DecomposablePhysics`.
+
+        When ``wiener=True``, it computes the Wiener-filtered (Tikhonov-regularised)
+        solution via :meth:`~deepinv.physics.DecomposablePhysics.prox_l2` with
+        :math:`z = 0`:
+
+        .. math::
+
+            \hat{x} = \arg\min_x \; \frac{\gamma}{2}\|Ax - y\|^2 + \frac{1}{2}\|x\|^2
+
+        This is equivalent to the classical Wiener filter when the forward
+        operator is a convolution.
+
+        :param torch.Tensor y: Measurement tensor.
+        :param bool wiener: If ``True``, use Wiener filtering instead of the
+            plain pseudo-inverse.  Default: ``False``.
+        :param float, torch.Tensor gamma: Regularisation parameter.
+            When ``prior`` is ``None`` or ``"flat"``, a scalar ``gamma`` is
+            passed directly to ``prox_l2``.
+            When ``prior="laplacian"`` and ``gamma`` is a scalar, a
+            frequency-varying gamma tensor is built from the Laplacian's
+            power spectrum (Wiener–Hunt model).
+            When ``gamma`` is a :class:`torch.Tensor`, it is passed directly
+            to ``prox_l2`` and ``prior`` is ignored.
+        :param str, None prior: Regularisation prior (only used when ``gamma``
+            is a scalar).
+
+            - ``None`` or ``"flat"``: Flat SNR assumption.
+            - ``"laplacian"``: Wiener–Hunt model using the discrete Laplacian.
+
+        :return: Reconstructed image tensor.
+        :rtype: torch.Tensor
+
+        |sep|
+
+        :Examples:
+
+            Wiener-filtered reconstruction of a blurred image:
+
+            >>> import torch
+            >>> from deepinv.physics import BlurFFT
+            >>> x = torch.randn(1, 1, 8, 8)
+            >>> filter = torch.ones(1, 1, 3, 3) / 9.0
+            >>> physics = BlurFFT(img_size=(1, 8, 8), filter=filter)
+            >>> y = physics(x)
+            >>> x_hat = physics.A_dagger(y, wiener=True, gamma=1.0)
+            >>> x_hat.shape
+            torch.Size([1, 1, 8, 8])
+
+        """
+        if not wiener:
+            # Default: delegate to the SVD-based pseudo-inverse.
+            return super().A_dagger(y, **kwargs)
+
+        # --- Wiener filtering mode ---
+        if isinstance(gamma, Tensor):
+            # User-supplied frequency-varying tensor: pass through as-is.
+            # The ``prior`` parameter is ignored in this case.
+            pass
+        elif prior in (None, "flat"):
+            # Scalar gamma with flat prior: pass the scalar directly.
+            pass
+        elif prior == "laplacian":
+            # Scalar gamma with Laplacian prior: build a frequency-varying
+            # gamma tensor from the Laplacian's power spectrum.
+            from deepinv.models.wiener import _build_laplacian_gamma
+
+            gamma = _build_laplacian_gamma(gamma, self)
+        else:
+            raise ValueError(
+                f"Invalid prior '{prior}'.  Must be one of (None, 'flat', 'laplacian')."
+            )
+
+        # prox_l2(z=0, y, gamma) solves:
+        #   argmin_x  gamma/2 ||Ax - y||^2  +  1/2 ||x||^2
+        return self.prox_l2(z=0, y=y, gamma=gamma)
+
 
 class SpaceVaryingBlur(LinearPhysics):
     r"""

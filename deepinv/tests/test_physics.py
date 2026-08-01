@@ -2560,3 +2560,84 @@ def test_tiled_product_physics_adjointness(
     lhs = torch.sum(Ax * y)
     rhs = torch.sum(Aty * x)
     assert torch.allclose(lhs, rhs, rtol=tol, atol=5e-4)
+
+
+# ---------------------------------------------------------------------------
+# BlurFFT.A_dagger Wiener mode tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def wiener_blur_physics():
+    """BlurFFT physics with a 3×3 averaging filter, single-channel 16×16 images."""
+    filt = torch.ones(1, 1, 3, 3) / 9.0
+    return dinv.physics.BlurFFT(img_size=(1, 16, 16), filter=filt)
+
+
+class TestBlurFFTADaggerWiener:
+    """BlurFFT.A_dagger default and Wiener mode consistency."""
+
+    def test_default_unchanged(self, wiener_blur_physics):
+        """A_dagger(wiener=False) is identical to the parent
+        DecomposablePhysics.A_dagger."""
+        x = torch.randn(1, 1, 16, 16)
+        y = wiener_blur_physics.A(x)
+        with torch.no_grad():
+            x_default = wiener_blur_physics.A_dagger(y, wiener=False)
+            x_parent = dinv.physics.forward.DecomposablePhysics.A_dagger(
+                wiener_blur_physics, y
+            )
+        assert torch.allclose(x_default, x_parent, atol=1e-7), (
+            f"Default A_dagger changed: max diff = "
+            f"{(x_default - x_parent).abs().max()}"
+        )
+
+    def test_consistency_flat_prior(self, wiener_blur_physics):
+        """A_dagger(wiener=True, gamma=g, prior=None) matches
+        WienerDeconvolution(gamma=g, prior=None)."""
+        gamma = 2.0
+        model = dinv.models.WienerDeconvolution(gamma=gamma, prior=None)
+        x = torch.randn(1, 1, 16, 16)
+        y = wiener_blur_physics.A(x)
+        with torch.no_grad():
+            x_adagger = wiener_blur_physics.A_dagger(
+                y, wiener=True, gamma=gamma, prior=None
+            )
+            x_model = model(y, wiener_blur_physics)
+        assert torch.allclose(x_adagger, x_model, atol=1e-7), (
+            f"A_dagger(flat) != WienerDeconvolution(flat): max diff = "
+            f"{(x_adagger - x_model).abs().max()}"
+        )
+
+    def test_consistency_laplacian_prior(self, wiener_blur_physics):
+        """A_dagger(wiener=True, gamma=g, prior='laplacian') matches
+        WienerDeconvolution(gamma=g, prior='laplacian')."""
+        gamma = 2.0
+        model = dinv.models.WienerDeconvolution(gamma=gamma, prior="laplacian")
+        x = torch.randn(1, 1, 16, 16)
+        y = wiener_blur_physics.A(x)
+        with torch.no_grad():
+            x_adagger = wiener_blur_physics.A_dagger(
+                y, wiener=True, gamma=gamma, prior="laplacian"
+            )
+            x_model = model(y, wiener_blur_physics)
+        assert torch.allclose(x_adagger, x_model, atol=1e-7), (
+            f"A_dagger(laplacian) != WienerDeconvolution(laplacian): max diff = "
+            f"{(x_adagger - x_model).abs().max()}"
+        )
+
+    def test_consistency_tensor_gamma(self, wiener_blur_physics):
+        """A_dagger(wiener=True, gamma=tensor) matches
+        WienerDeconvolution(gamma=tensor)."""
+        H, W = 16, 16
+        gamma_tensor = torch.ones(1, 1, H, W // 2 + 1) * 3.0
+        model = dinv.models.WienerDeconvolution(gamma=gamma_tensor)
+        x = torch.randn(1, 1, H, W)
+        y = wiener_blur_physics.A(x)
+        with torch.no_grad():
+            x_adagger = wiener_blur_physics.A_dagger(y, wiener=True, gamma=gamma_tensor)
+            x_model = model(y, wiener_blur_physics)
+        assert torch.allclose(x_adagger, x_model, atol=1e-7), (
+            f"A_dagger(tensor) != WienerDeconvolution(tensor): max diff = "
+            f"{(x_adagger - x_model).abs().max()}"
+        )
