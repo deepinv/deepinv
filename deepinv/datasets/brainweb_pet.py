@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import torch
@@ -19,11 +20,10 @@ class BrainWebPET(ImageDataset):
     By default, volumes have shape ``(1, 127, 344, 344)`` at the Siemens Biograph
     mMR resolution.
 
-    Spatial intensity variation is disabled by default by setting ``petNoise``,
-    ``t1Noise``, and ``t2Noise`` to zero. Keyword arguments for
-    ``brainweb.get_mmr_fromfile`` can override these defaults or select another
-    tracer or resolution. For example, ``{"PetClass": brainweb.Amyloid}`` selects
-    the amyloid preset. The absolute emission values alone do not determine
+    Spatial intensity variation is disabled by default by setting ``pet_noise``,
+    ``t1_noise``, and ``t2_noise`` to zero. The noise amplitudes and smoothing
+    scales can be configured independently, as can the PET intensity preset and
+    output resolution. The absolute emission values alone do not determine
     simulation SNR; forward-model sensitivity and the Poisson noise gain also
     contribute.
 
@@ -34,11 +34,37 @@ class BrainWebPET(ImageDataset):
 
     :param str, pathlib.Path, None root: Dataset directory. Defaults to the
         DeepInv cache.
-    :param int, collections.abc.Sequence[int] subject_ids: Subjects to expose. Default is subject
-        4.
+    :param int, collections.abc.Sequence[int] subject_ids: Subjects to expose.
+        Default is subject 4.
     :param bool download: Download missing subjects. Default is ``True``.
-    :param collections.abc.Mapping, None brainweb_kwargs: Arguments forwarded to
-        ``brainweb.get_mmr_fromfile``.
+    :param collections.abc.Callable, None transform: Optional transform applied
+        jointly to the channel-first emission, attenuation, and requested T1/T2
+        tensors, as well as the lesion mask when present. The voxel size is
+        unchanged.
+    :param bool return_t1: If ``True``, include the T1 volume in the returned
+        parameters. Defaults to ``False``.
+    :param bool return_t2: If ``True``, include the T2 volume in the returned
+        parameters. Defaults to ``False``.
+    :param float pet_noise: Amplitude of multiplicative random intensity
+        variation in the PET volume. ``0`` disables it, and ``1`` allows values
+        from zero to twice the underlying intensity. Defaults to ``0``.
+    :param float t1_noise: Amplitude of multiplicative random intensity
+        variation in the T1 volume. Defaults to ``0``.
+    :param float t2_noise: Amplitude of multiplicative random intensity
+        variation in the T2 volume. Defaults to ``0``.
+    :param float pet_sigma: Gaussian smoothing scale, in voxels, of the PET
+        random intensity field. Defaults to ``1``.
+    :param float t1_sigma: Gaussian smoothing scale, in voxels, of the T1
+        random intensity field. Defaults to ``1``.
+    :param float t2_sigma: Gaussian smoothing scale, in voxels, of the T2
+        random intensity field. Defaults to ``1``.
+    :param str outres: BrainWeb output resolution. Valid values are ``"mMR"``
+        (default), ``"MR"``, and ``"brainweb"``.
+    :param str pet_class: PET intensity preset. Must be ``"FDG"`` (default) or
+        ``"Amyloids"``. The FDG preset uses white matter ``32``, grey matter
+        ``128``, skin ``16``, hot ``192``, and cold ``16``; the Amyloids preset
+        uses white matter ``29``, grey matter ``66``, skin ``35``, hot ``99``,
+        and cold ``14.5``.
     :param collections.abc.Mapping, None lesion_kwargs: Arguments forwarded to
         ``brainweb.add_lesions``. By default, no lesions are added.
     :param int, None seed: Seed used by ``brainweb`` when adding lesions. A
@@ -51,6 +77,9 @@ class BrainWebPET(ImageDataset):
     >>> from deepinv.datasets import BrainWebPET
     >>> dataset = BrainWebPET(
     ...     root="data/brainweb_pet",
+    ...     pet_noise=0.5,
+    ...     pet_sigma=2,
+    ...     pet_class="Amyloids",
     ...     lesion_kwargs={"diam": [15, 7]},
     ... )
     >>> emission, params = dataset[0]
@@ -63,7 +92,17 @@ class BrainWebPET(ImageDataset):
         root: str | Path | None = None,
         subject_ids: int | Sequence[int] = 4,
         download: bool = True,
-        brainweb_kwargs: Mapping | None = None,
+        transform: Callable | None = None,
+        pet_class: Literal["FDG", "Amyloids"] = "FDG",
+        return_t1: bool = False,
+        return_t2: bool = False,
+        pet_noise: float = 0.0,
+        t1_noise: float = 0.0,
+        t2_noise: float = 0.0,
+        pet_sigma: float = 1.0,
+        t1_sigma: float = 1.0,
+        t2_sigma: float = 1.0,
+        outres: Literal["mMR", "MR", "brainweb"] = "mMR",
         lesion_kwargs: Mapping | None = None,
         seed: int | None = 0,
     ) -> None:
@@ -75,8 +114,14 @@ class BrainWebPET(ImageDataset):
                 "`pip install deepinv[dataset]`."
             ) from error
 
+        if pet_class not in ("FDG", "Amyloids"):
+            raise ValueError("pet_class must be either 'FDG' or 'Amyloids'.")
+
         self._brainweb = brainweb
         self.root = resolve_root(root, "BrainWebPET")
+        self.transform = transform
+        self.return_t1 = return_t1
+        self.return_t2 = return_t2
         self.subject_ids = (
             (subject_ids,) if isinstance(subject_ids, int) else tuple(subject_ids)
         )
@@ -101,12 +146,18 @@ class BrainWebPET(ImageDataset):
                 )
             self.files.append(path)
 
-        self.brainweb_kwargs = {
-            "petNoise": 0,
-            "t1Noise": 0,
-            "t2Noise": 0,
-            **dict(brainweb_kwargs or {}),
+        self.brainweb_kwargs: dict[str, object] = {
+            "petNoise": pet_noise,
+            "t1Noise": t1_noise,
+            "t2Noise": t2_noise,
+            "petSigma": pet_sigma,
+            "t1Sigma": t1_sigma,
+            "t2Sigma": t2_sigma,
+            "outres": outres,
         }
+        self.brainweb_kwargs["PetClass"] = getattr(
+            brainweb, "FDG" if pet_class == "FDG" else "Amyloid"
+        )
         self.lesion_kwargs = None if lesion_kwargs is None else dict(lesion_kwargs)
         self.seed = seed
 
@@ -125,6 +176,14 @@ class BrainWebPET(ImageDataset):
             ).unsqueeze(0),
             "voxel_size": torch.as_tensor(volumes["res"], dtype=torch.float32),
         }
+        if self.return_t1:
+            params["t1"] = torch.from_numpy(
+                np.array(volumes["T1"], dtype=np.float32, copy=True)
+            ).unsqueeze(0)
+        if self.return_t2:
+            params["t2"] = torch.from_numpy(
+                np.array(volumes["T2"], dtype=np.float32, copy=True)
+            ).unsqueeze(0)
 
         if self.lesion_kwargs is not None:
             original = emission.copy()
@@ -133,4 +192,18 @@ class BrainWebPET(ImageDataset):
             emission = self._brainweb.add_lesions(emission, **self.lesion_kwargs)
             params["lesion_mask"] = torch.from_numpy(emission != original).unsqueeze(0)
 
-        return torch.from_numpy(emission).unsqueeze(0), params
+        emission = torch.from_numpy(emission).unsqueeze(0)
+        if self.transform is not None:
+            spatial_keys = [
+                key
+                for key in ("attenuation", "t1", "t2", "lesion_mask")
+                if key in params
+            ]
+            spatial_volumes = self.transform(
+                torch.cat([emission] + [params[key] for key in spatial_keys], dim=0)
+            )
+            emission = spatial_volumes[:1]
+            for channel, key in enumerate(spatial_keys, start=1):
+                params[key] = spatial_volumes[channel : channel + 1]
+
+        return emission, params

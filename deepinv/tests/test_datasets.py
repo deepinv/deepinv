@@ -1580,6 +1580,8 @@ def brainweb_pet_module(tmp_path, monkeypatch):
     calls = {"download": [], "load": [], "lesions": [], "seed": []}
     emission = np.zeros((3, 4, 5), dtype=np.float32)
     attenuation = np.full_like(emission, 0.1)
+    t1 = np.full_like(emission, 0.2)
+    t2 = np.full_like(emission, 0.3)
 
     def get_file(name, url, cache_dir):
         path = Path(cache_dir) / name
@@ -1590,7 +1592,13 @@ def brainweb_pet_module(tmp_path, monkeypatch):
 
     def get_mmr_fromfile(path, **kwargs):
         calls["load"].append((path, kwargs))
-        return {"PET": emission, "uMap": attenuation, "res": (2.0, 2.1, 2.1)}
+        return {
+            "PET": emission,
+            "uMap": attenuation,
+            "T1": t1,
+            "T2": t2,
+            "res": (2.0, 2.1, 2.1),
+        }
 
     def add_lesions(image, **kwargs):
         calls["lesions"].append(kwargs)
@@ -1607,6 +1615,8 @@ def brainweb_pet_module(tmp_path, monkeypatch):
         get_mmr_fromfile=get_mmr_fromfile,
         add_lesions=add_lesions,
         seed=lambda value: calls["seed"].append(value),
+        FDG=object(),
+        Amyloid=object(),
     )
     monkeypatch.setitem(sys.modules, "brainweb", brainweb)
     return tmp_path, calls
@@ -1617,7 +1627,17 @@ def test_brainweb_pet(brainweb_pet_module):
     dataset = BrainWebPET(
         root=root,
         subject_ids=(4, 6),
-        brainweb_kwargs={"petNoise": 0.5},
+        pet_noise=0.5,
+        t1_noise=0.25,
+        t2_noise=0.75,
+        pet_sigma=2.0,
+        t1_sigma=3.0,
+        t2_sigma=4.0,
+        outres="MR",
+        pet_class="Amyloids",
+        return_t1=True,
+        return_t2=True,
+        transform=lambda image: image + 1,
         lesion_kwargs={"diam": [15]},
         seed=10,
     )
@@ -1626,13 +1646,22 @@ def test_brainweb_pet(brainweb_pet_module):
     assert len(dataset) == 2
     assert emission.shape == (1, 3, 4, 5)
     assert emission.dtype == torch.float32
-    torch.testing.assert_close(params["attenuation"], torch.full_like(emission, 0.1))
+    assert emission[0, 1, 2, 3] == 6
+    torch.testing.assert_close(params["attenuation"], torch.full_like(emission, 1.1))
+    torch.testing.assert_close(params["t1"], torch.full_like(emission, 1.2))
+    torch.testing.assert_close(params["t2"], torch.full_like(emission, 1.3))
     torch.testing.assert_close(params["voxel_size"], torch.tensor((2.0, 2.1, 2.1)))
-    assert params["lesion_mask"].sum() == 1
+    assert params["lesion_mask"][0, 1, 2, 3] == 2
+    assert params["lesion_mask"][0, 0, 0, 0] == 1
     assert calls["load"][0][1] == {
         "petNoise": 0.5,
-        "t1Noise": 0,
-        "t2Noise": 0,
+        "t1Noise": 0.25,
+        "t2Noise": 0.75,
+        "petSigma": 2.0,
+        "t1Sigma": 3.0,
+        "t2Sigma": 4.0,
+        "outres": "MR",
+        "PetClass": sys.modules["brainweb"].Amyloid,
     }
     assert calls["lesions"] == [{"diam": [15]}]
     assert calls["seed"] == [14]
@@ -1651,10 +1680,23 @@ def test_brainweb_pet_no_download(brainweb_pet_module, tmp_path):
     emission, params = BrainWebPET(root=root, download=False)[0]
 
     assert calls["download"] == []
-    assert calls["load"][-1][1] == {"petNoise": 0, "t1Noise": 0, "t2Noise": 0}
+    assert calls["load"][-1][1] == {
+        "petNoise": 0.0,
+        "t1Noise": 0.0,
+        "t2Noise": 0.0,
+        "petSigma": 1.0,
+        "t1Sigma": 1.0,
+        "t2Sigma": 1.0,
+        "outres": "mMR",
+        "PetClass": sys.modules["brainweb"].FDG,
+    }
     assert "lesion_mask" not in params
+    assert "t1" not in params
+    assert "t2" not in params
     assert emission.shape == params["attenuation"].shape
     with pytest.raises(ValueError, match="Incorrect subject_ids"):
         BrainWebPET(root=root, subject_ids=7)
+    with pytest.raises(ValueError, match="pet_class must be either"):
+        BrainWebPET(root=root, pet_class="Unknown")
     with pytest.raises(RuntimeError, match="not found"):
         BrainWebPET(root=tmp_path / "missing", download=False)
