@@ -320,10 +320,6 @@ def load_example(
         - `BrainWeb <https://brainweb.bic.mni.mcgill.ca/brainweb/>`_ 3D MRI data
         - (181, 217, 181)
         - medical
-      * - `brainweb_pet_3d.pt`
-        - :class:`BrainWeb <deepinv.datasets.BrainWebDataset>` 3D PET data
-        - (1, 1, 128, 128, 24)
-        - medical
       * - `demo_mini_subset_fastmri_brain_0.pt`
         - :class:`FastMRI <deepinv.datasets.SimpleFastMRISliceDataset>`
         - (2, 320, 320)

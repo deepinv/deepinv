@@ -34,12 +34,12 @@ class BrainWebPET(ImageDataset):
 
     :param str, pathlib.Path, None root: Dataset directory. Defaults to the
         DeepInv cache.
-    :param int, sequence[int] subject_ids: Subjects to expose. Default is subject
+    :param int, collections.abc.Sequence[int] subject_ids: Subjects to expose. Default is subject
         4.
     :param bool download: Download missing subjects. Default is ``True``.
-    :param mapping, None brainweb_kwargs: Arguments forwarded to
+    :param collections.abc.Mapping, None brainweb_kwargs: Arguments forwarded to
         ``brainweb.get_mmr_fromfile``.
-    :param mapping, None lesion_kwargs: Arguments forwarded to
+    :param collections.abc.Mapping, None lesion_kwargs: Arguments forwarded to
         ``brainweb.add_lesions``. By default, no lesions are added.
     :param int, None seed: Seed used by ``brainweb`` when adding lesions. A
         subject-specific seed is used for deterministic lesions by default.
