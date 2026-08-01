@@ -89,11 +89,11 @@ def _build_laplacian_gamma(
         # We cannot apply a frequency-domain Laplacian prior inside its prox_l2.
         raise ValueError(
             "Cannot use prior='laplacian' with Denoising physics because "
-            "Denoising does not use frequency-domain SVD operators. Use a scalar "
-            "gamma instead, or pass a pre-computed spatial gamma tensor. Alternatively, "
-            "this limitation can be bypassed by treating Denoising as a special case "
-            "of Deconvolution. This is achieved by passing a delta function as "
-            "the blur filter to BlurFFT, which provides the necessary frequency-domain SVD."
+            "Denoising does not use frequency-domain SVD operators. "
+            "To apply a Laplacian prior to a denoising problem, bypass this limitation "
+            "by treating Denoising as a special case of Deconvolution: pass a delta "
+            "function as the filter to BlurFFT, which provides the necessary "
+            "frequency-domain SVD."
         )
     else:
         # Should not reach here due to the validation in forward(), but
