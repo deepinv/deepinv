@@ -15,6 +15,7 @@ from torch import Tensor
 from deepinv.models.base import Reconstructor
 from deepinv.physics.blur import BlurFFT
 from deepinv.physics.forward import Denoising, Physics
+from deepinv.physics.functional import filter_fft
 
 # Valid string values for the ``prior`` parameter.
 _VALID_PRIORS = (None, "flat", "laplacian")
@@ -114,7 +115,6 @@ def _build_laplacian_gamma(
     # --- Compute the Laplacian's power spectrum --------------------------
     # Zero-pad to (H, W) and compute centred FFT, matching BlurFFT's
     # convention (real_fft=True → rfft2 → half-spectrum of width W//2+1).
-    from deepinv.physics.functional import filter_fft
 
     # filter_fft expects img_size with same ndim as the filter tensor.
     # Our kernel is (1, 1, 3, 3) so img_size must be (1, 1, H, W).
