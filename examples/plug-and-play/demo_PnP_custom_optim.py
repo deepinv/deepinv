@@ -107,7 +107,7 @@ class fStepCV(fStep):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def forward(self, u, cur_data_fidelity, cur_params, y, phyics):
+    def forward(self, u, cur_data_fidelity, cur_params, y, physics):
         r"""
         Single iteration on the data-fidelity term :math:`f`.
 

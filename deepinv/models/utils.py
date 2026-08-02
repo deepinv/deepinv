@@ -13,6 +13,10 @@ from itertools import chain
 import os
 import io
 import contextlib
+import socket
+import urllib.error
+
+from deepinv.utils.io import DownloadError
 
 
 def tensor2array(img: Tensor) -> np.ndarray:
@@ -100,7 +104,7 @@ def test_onesplit(model, L, refield=32, sf=1):
 
 def fix_dim(dim: str | int) -> int:
     """
-    Takes in dim, checks if it is in alloowed range (2 or 3) and returns dim as int
+    Takes in dim, checks if it is in allowed range (2 or 3) and returns dim as int
     :param str, int dim: dimensionality; can be 2 or 3 and specified as str ('2d', '2', '3D', ...)
     """
     if isinstance(dim, str):
@@ -507,8 +511,12 @@ def initialize_3d_from_2d(
 
 def load_state_dict_from_url(*args, **kwargs) -> dict:
     """
-    A wrapper for :func:`torch.hub.load_state_dict_from_url` that respects the DEEPINV_DOWNLOAD_VERBOSE
+    A wrapper for :func:`torch.hub.load_state_dict_from_url` that respects the `DEEPINV_DOWNLOAD_VERBOSE`
     environment variable. If set to 0, stdout prints are suppressed.
+
+    Network-level failures (HTTP errors, connection failures, timeouts) are
+    re-raised as :class:`deepinv.utils.DownloadError` so they can be handled
+    uniformly with other deepinv downloads.
     """
     # Read the environment variable. Default to "1" (True/Verbose) if not set.
     env_value = os.environ.get("DEEPINV_DOWNLOAD_VERBOSE", "1").lower()
@@ -525,5 +533,14 @@ def load_state_dict_from_url(*args, **kwargs) -> dict:
         # nullcontext() does nothing, allowing stdout to print normally
         ctx = contextlib.nullcontext()
 
-    with ctx:
-        return torch.hub.load_state_dict_from_url(*args, **kwargs)
+    try:
+        with ctx:
+            return torch.hub.load_state_dict_from_url(*args, **kwargs)
+    except (
+        urllib.error.URLError,
+        ConnectionError,
+        TimeoutError,
+        socket.gaierror,
+    ) as exc:
+        url = args[0] if args else kwargs.get("url", "<unknown>")
+        raise DownloadError(f"Failed to download state dict from {url}: {exc}") from exc

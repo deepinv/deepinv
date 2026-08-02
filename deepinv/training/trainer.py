@@ -21,6 +21,7 @@ from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 import inspect
+import time
 
 
 @dataclass
@@ -251,7 +252,6 @@ class Trainer:
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
     :param int plot_interval: Frequency of plotting images to MLOps tools (wandb or MLflow) during evaluation (at the end of each epoch).
         If ``1``, plots at each epoch. Default is ``1``.
-    :param int freq_plot: deprecated. Use ``plot_interval``
 
     |sep|
 
@@ -297,7 +297,6 @@ class Trainer:
     ckp_interval: int = 1
     eval_interval: int = 1
     plot_interval: int = 1
-    freq_plot: int = None
     plot_images: bool = False
     plot_measurements: bool = True
     plot_convergence_metrics: bool = False
@@ -392,12 +391,6 @@ class Trainer:
         self.save_path = Path(self.save_path) if self.save_path else None
 
         self.G = len(self.train_dataloader)
-
-        if self.freq_plot is not None:
-            warnings.warn(
-                "freq_plot parameter of Trainer is deprecated. Use plot_interval instead."
-            )
-            self.plot_interval = self.freq_plot
 
         if (
             self.wandb_setup != {}
@@ -635,17 +628,6 @@ class Trainer:
             if self.verbose:
                 print(f"{msg} successfully loaded from checkpoint: {ckpt_pretrained}")
             return checkpoint
-
-    def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
-        r"""
-        This method is deprecated and will be removed in a future release. Instead, use :func:`log_metrics_mlops`.
-        """
-        warnings.warn(
-            "This method is deprecated and will be removed in a future release. Use log_metrics_mlops instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.log_metrics_mlops(logs=logs, step=step, train=train)
 
     def log_metrics_mlops(self, logs: dict, step: int, train: bool = True):
         r"""
@@ -1251,10 +1233,10 @@ class Trainer:
         r"""
         Save the model.
 
-        It saves the model every ``ckp_interval`` epochs.
+        It saves the model every ``ckp_interval`` epochs in ``save_path/filename``.
 
+        :param str filename: checkpoint filename.
         :param int epoch: Current epoch.
-        :param None, float eval_metrics: Evaluation metrics across epochs.
         :param dict state: custom objects to save with model
         """
         if state is None:
@@ -1600,7 +1582,12 @@ class Trainer:
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
         :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If
             ``None``, uses the metrics provided during Trainer initialization.
-        :returns: dict of metrics results with means and stds.
+        :returns: dict of metrics, timings (in sec) and peak GPU memory usage (in GB) results with means and stds.
+
+        .. note::
+
+                Timings correspond to total time for `test` to run, which also includes time to load data and compute metrics.
+                Therefore, the reported runtime will be greater than just model inference timings.
         """
         if metrics is not None:
             self.metrics = metrics
@@ -1620,7 +1607,6 @@ class Trainer:
         self.mlflow_setup = {}
         self.log_train_batch = False
         self.setup_train(train=False)
-
         self.save_folder_im = save_path
 
         self.reset_metrics()
@@ -1636,6 +1622,12 @@ class Trainer:
 
         batches = min([len(loader) - loader.drop_last for loader in test_dataloader])
 
+        # reset peak GPU memory usage counter
+        if torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats()
+            torch.cuda.synchronize()
+
+        perf_counter_start = time.perf_counter()
         for i in (
             progress_bar := tqdm(
                 range(batches),
@@ -1684,56 +1676,20 @@ class Trainer:
             if self.verbose:
                 print(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
 
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+
+        perf_counter_end = time.perf_counter()
+        elapsed_time = perf_counter_end - perf_counter_start
+
+        # add runtime info
+        out["runtime"] = elapsed_time
+        if torch.cuda.is_available():
+            # report in GB
+            out["peak_gpu_memory_usage"] = (
+                torch.cuda.max_memory_allocated() / (1024**3)
+                if torch.cuda.is_available()
+                else None
+            )
+
         return out
-
-
-def train(
-    model: torch.nn.Module,
-    physics: Physics,
-    optimizer: torch.optim.Optimizer,
-    train_dataloader: torch.utils.data.DataLoader,
-    epochs: int = 100,
-    losses: Loss | list[Loss] | None = None,
-    eval_dataloader: torch.utils.data.DataLoader = None,
-    *args,
-    **kwargs,
-):
-    """
-    Alias function for training a model using :class:`deepinv.Trainer` class.
-
-    This function creates a Trainer instance and returns the trained model.
-
-    .. warning::
-
-        This function is deprecated and will be removed in future versions. Please use
-        :class:`deepinv.Trainer` instead.
-
-    :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
-    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
-    :param int epochs: Number of training epochs. Default is 100.
-    :param torch.optim.Optimizer optimizer: Torch optimizer for training the network.
-    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see :ref:`datasets user guide <datasets>`
-        for how we expect data to be provided.
-    :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
-        :ref:`See the libraries' training losses <loss>`.
-    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s), see :ref:`datasets user guide <datasets>`
-        for how we expect data to be provided.
-    :param args: Other positional arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
-    :param kwargs: Keyword arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
-    :return: Trained model.
-    """
-    if losses is None:
-        losses = SupLoss()
-    trainer = Trainer(
-        model=model,
-        physics=physics,
-        optimizer=optimizer,
-        epochs=epochs,
-        losses=losses,
-        train_dataloader=train_dataloader,
-        eval_dataloader=eval_dataloader,
-        *args,
-        **kwargs,
-    )
-    trained_model = trainer.train()
-    return trained_model

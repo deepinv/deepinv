@@ -200,13 +200,13 @@ class ScoreModelWrapper(Denoiser):
 
     def _pred_to_x0(self, pred, x, sigma, scale):
         pt = self.prediction_type
-        if pt == "epsilon":  # predics white noise
+        if pt == "epsilon":  # predicts white noise
             x0 = x / scale - sigma * pred
         elif (
             pt == "v_prediction"
-        ):  # predics s_t*eps - sigma_t * x. See https://arxiv.org/pdf/2202.00512.
+        ):  # predicts s_t*eps - sigma_t * x. See https://arxiv.org/pdf/2202.00512.
             x0 = scale * (x - sigma * pred)
-        elif pt == "sample":  # predics the denoised image
+        elif pt == "sample":  # predicts the denoised image
             x0 = pred
         else:
             raise ValueError(f"Unsupported prediction_type: {pt}")

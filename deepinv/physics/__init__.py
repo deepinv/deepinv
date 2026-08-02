@@ -12,6 +12,7 @@ from .blur import (
 from .scattering import Scattering
 from .range import Decolorize
 from .haze import Haze
+from .pet import PET
 from .unmixing import HyperSpectralUnmixing
 from .forward import (
     Denoising,
@@ -43,7 +44,15 @@ from .noise import (
     LaplaceNoise,
 )
 from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI
-from .wrappers import PhysicsMultiScaler, LinearPhysicsMultiScaler, PhysicsCropper
+from .wrappers import (
+    PhysicsMultiScaler,
+    LinearPhysicsMultiScaler,
+    BlurMultiScaler,
+    BlurFFTMultiScaler,
+    InpaintingMultiScaler,
+    PhysicsCropper,
+    to_multiscale,
+)
 from .tomography import Tomography, TomographyWithAstra
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
