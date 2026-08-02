@@ -942,9 +942,17 @@ class Trainer:
 
         if train:
             self.scaler.scale(loss_total).backward()  # Backward the total loss
-            norm = self.check_clip_grad()
-            if norm is not None:
-                logs["gradient_norm"] = self.check_grad_val.avg
+
+            # GradScaler forbids calling unscale_() more than once per optimizer between step() calls.
+            defer_clip = (
+                self.scaler.is_enabled()
+                and self.optimizer_step_multi_dataset
+                and not step
+            )
+            if not defer_clip:
+                norm = self.check_clip_grad()
+                if norm is not None:
+                    logs["gradient_norm"] = self.check_grad_val.avg
 
             if step:
                 self.scaler.step(self.optimizer)  # Optimizer step
@@ -1127,6 +1135,11 @@ class Trainer:
             self.log_metrics_mlops(logs, step=train_ite, train=train)
 
         if train and self.optimizer_step_multi_dataset:
+            if self.scaler.is_enabled():
+                # Gradients from all datasets have now been accumulated
+                norm = self.check_clip_grad()
+                if norm is not None:
+                    logs["gradient_norm"] = self.check_grad_val.avg
             self.scaler.step(self.optimizer)  # Optimizer step
             self.scaler.update()
 
