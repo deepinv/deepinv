@@ -1422,7 +1422,8 @@ class Trainer:
             warnings.warn(
                 "Trainer running with AMP, but not training on CUDA device. Performance speedup not guaranteed."
             )
-
+        if self.mixed_precision:
+            warnings.warn('Trainer running with AMP. This is not expected to work with models in complex dtypes.')
         stop_flag = False
         for epoch in range(self.epoch_start, self.epochs):
             self.reset_metrics()
