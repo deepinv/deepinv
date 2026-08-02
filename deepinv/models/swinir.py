@@ -6,12 +6,13 @@
 # -----------------------------------------------------------------------------------
 
 import math
+import collections.abc
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from .base import Denoiser
-from .utils import load_state_dict_from_url, to_2tuple, trunc_normal_, DropPath
+from .utils import load_state_dict_from_url, trunc_normal_, DropPath
 import warnings
 
 
@@ -1092,3 +1093,9 @@ class SwinIR(Denoiser):
         flops += H * W * 3 * self.embed_dim * self.embed_dim
         flops += self.upsample.flops()
         return flops
+
+
+def to_2tuple(x):
+    if isinstance(x, collections.abc.Iterable) and not isinstance(x, str):
+        return tuple(x)
+    return (x, x)
