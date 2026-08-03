@@ -757,7 +757,7 @@ class BlurFFT(DecomposablePhysics):
 
         .. math::
 
-            \hat{x} = \arg\min_x \; \frac{\gamma}{2}\|Ax - y\|^2 + \frac{1}{2}\|x\|^2
+            \hat{x} = \arg\min_x \; \frac{1}{2}\Vert Ax - y \Vert_2^2 + \frac{1}{2} \Vert \tilde{\gamma}^{-1/2} \odot F x \Vert_2^2
 
         This is equivalent to the classical Wiener filter when the forward
         operator is a convolution.
@@ -805,7 +805,7 @@ class BlurFFT(DecomposablePhysics):
 
         # --- Wiener filtering mode ---
         if isinstance(gamma, Tensor):
-            # User-supplied frequency-varying tensor: pass through as-is.
+            # User-supplied tensor: pass through as-is.
             # The ``prior`` parameter is ignored in this case.
             pass
         elif prior in (None, "flat"):
@@ -822,8 +822,8 @@ class BlurFFT(DecomposablePhysics):
                 f"Invalid prior '{prior}'.  Must be one of (None, 'flat', 'laplacian')."
             )
 
-        # prox_l2(z=0, y, gamma) solves:
-        #   argmin_x  gamma/2 ||Ax - y||^2  +  1/2 ||x||^2
+        # prox_l2(z=0, y, gamma) solves the general objective:
+        #   argmin_x  1/2 ||Ax - y||^2  +  1/2 ||gamma^{-1/2} \odot F x||^2
         return self.prox_l2(z=0, y=y, gamma=gamma)
 
 
