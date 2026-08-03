@@ -161,8 +161,8 @@ labels = ["clean", "measurement", "noise2void", "gaussian filter"]
 fig, axs = plt.subplots(
     len(results), 4, figsize=(12, 3.2 * len(results)), squeeze=False
 )
-for row, (name, r) in zip(axs, results.items()):
-    for ax, key, label in zip(row, cols, labels):
+for row, (name, r) in zip(axs, results.items(), strict=False):
+    for ax, key, label in zip(row, cols, labels, strict=False):
         im = r[key][0, 0].detach().cpu().numpy()
         ax.imshow(im, cmap="gray", vmin=0, vmax=1)
         title = (
@@ -190,7 +190,7 @@ plt.show()
 # variance rather than at zero, so its absolute value is not comparable across modalities.
 
 fig, axs = plt.subplots(1, len(results), figsize=(4 * len(results), 3), squeeze=False)
-for ax, (name, r) in zip(axs[0], results.items()):
+for ax, (name, r) in zip(axs[0], results.items(), strict=False):
     ax.plot(r["losses"], lw=0.7)
     ax.set_yscale("log")
     ax.set_title(name)
@@ -199,6 +199,7 @@ for ax, (name, r) in zip(axs[0], results.items()):
     ax.grid(alpha=0.3)
 fig.tight_layout()
 plt.show()
+# Add some commented out part about training on full dataset + how to train n2v with trainer
 
 # %%
 # :References:
