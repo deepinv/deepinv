@@ -647,7 +647,9 @@ class MRISliceTransform(MRIMixin):
         :return: estimated coil maps of shape (N, H, W) and complex dtype
         """
         return MultiCoilMRI.estimate_coil_maps(
-            kspace.unsqueeze(0), calib_size=self.get_acs(metadata=metadata), espirit_crop=self.espirit_crop,
+            kspace.unsqueeze(0),
+            calib_size=self.get_acs(metadata=metadata),
+            espirit_crop=self.espirit_crop,
         ).squeeze(0)
 
     def prewhiten_kspace(self, kspace: torch.Tensor) -> torch.Tensor:

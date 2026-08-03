@@ -417,7 +417,10 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
     @staticmethod
     def estimate_coil_maps(
-        y: Tensor, calib_size: int = 24, use_cupy: bool = False, espirit_crop: float = 0.95,
+        y: Tensor,
+        calib_size: int = 24,
+        use_cupy: bool = False,
+        espirit_crop: float = 0.95,
     ) -> Tensor:
         """Estimate coil sensitivity maps using ESPIRiT.
 
@@ -462,7 +465,11 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             cupy_maps = cp.stack(
                 [
                     EspiritCalib(
-                        yb, calib_size, show_pbar=False, crop=espirit_crop, device=cupy_y.device,
+                        yb,
+                        calib_size,
+                        show_pbar=False,
+                        crop=espirit_crop,
+                        device=cupy_y.device,
                     ).run()
                     for yb in cupy_y
                 ]
@@ -473,7 +480,13 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             device = sp.Device(-1)
             maps = np.stack(
                 [
-                    EspiritCalib(yb, calib_size, show_pbar=False, crop=espirit_crop, device=device).run()
+                    EspiritCalib(
+                        yb,
+                        calib_size,
+                        show_pbar=False,
+                        crop=espirit_crop,
+                        device=device,
+                    ).run()
                     for yb in complex_y.numpy(force=True)
                 ]
             )
