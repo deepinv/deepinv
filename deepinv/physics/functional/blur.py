@@ -4,6 +4,12 @@ import torch.nn.functional as F
 
 from math import sqrt, pi
 
+from .convolution import (
+    conv2d_fft,
+    _flip_filter_if_needed,
+    _prepare_filter_for_grouped,
+    _raise_value_error_padding_messages,
+)
 from .dst import dst1
 
 
@@ -12,55 +18,105 @@ def conv2d_filter_adjoint(
     y: torch.Tensor,
     filter_size: tuple[int, int],
     padding: str = "circular",
+    correlation: bool = False,
 ) -> torch.Tensor:
     r"""
     Apply the adjoint of 2D convolution with respect to its filter.
 
     :param torch.Tensor x: Input tensor of shape ``(B, C, H, W)``.
-    :param torch.Tensor y: Adjoint input of shape ``(B, C, H, W)``.
+    :param torch.Tensor y: Adjoint input. Its spatial shape must match the output
+        of :func:`deepinv.physics.functional.conv2d` applied to ``x``.
     :param tuple[int, int] filter_size: Filter size ``(H_f, W_f)``.
-    :param str padding: Padding mode. Currently only ``"circular"`` is supported.
+    :param str padding: One of ``"valid"``, ``"circular"``, ``"replicate"``,
+        ``"reflect"``, ``"constant"`` or ``"zeros"``.
+    :param bool correlation: If ``True``, return the filter adjoint of
+        cross-correlation rather than convolution.
     :return: Per-channel filter adjoint of shape ``(B, C, H_f, W_f)``.
     """
-    if padding != "circular":
-        raise NotImplementedError(
-            "conv2d_filter_adjoint only supports circular padding."
-        )
-
+    padding = _raise_value_error_padding_messages(padding)
     hf, wf = filter_size
     ph, pw = hf // 2, wf // 2
     ih, iw = (hf - 1) % 2, (wf - 1) % 2
-    # Here typically x is the kernel and y is the image
-    # Unlike standard convolution, we want to compute the convolution of y with x,
-    # i.e the image is the filter and the kernel is the input.
-    # The same result can be obtained by using torch.nn.functional.conv_transpose2d,
-    # and cropping the result, but it is computationaly more expensive
 
-    # Preprocess the kernel x for both padding and alignment
-    x = F.pad(x, (pw - iw, pw, ph - ih, ph), mode=padding)
+    # Unlike a standard convolution, the adjoint with respect to the kernel uses
+    # the image x as the input and the adjoint image y as the convolution filter.
+    # The same result can be obtained with conv_transpose2d followed by cropping,
+    # but computing only the requested filter support is less expensive.
 
-    # Get the dimensions of the adjoint of the image use as filter
-    B, C, H, W = y.shape
+    # Preprocess x using the same padding and even-filter alignment as the forward
+    # convolution.
+    if padding != "valid":
+        x = F.pad(x, (pw - iw, pw, ph - ih, ph), mode=padding, value=0)
 
-    # Expand the batch dim of the kernel and move it to channels
-    x = x.reshape(1, B * C, *x.shape[-2:])
+    # Get the batch and channel dimensions, then broadcast y like the filters used
+    # by the other convolution helpers.
+    B, C = x.shape[:2]
+    filter = _prepare_filter_for_grouped(y, B, C)
+    H, W = filter.shape[-2:]
 
-    # Use y as one full-image filter per batch-channel pair.
-    # These operations will be computed only on the support of the padded kernel
-    filter = y.reshape(B * C, 1, H, W)
+    # Move the batch dimension of x into channels so that every batch-channel pair
+    # is processed independently by grouped convolution.
+    x = x.contiguous().reshape(1, B * C, *x.shape[-2:])
 
-    # compute the cross-corelation of the image with the kernel using conv2d
-    # The output already has the correct shape (B * C, 1, H_f, W_f) and doesn't need
-    # to be cropped
-    adjoint = F.conv2d(
-        x,
-        filter,
-        groups=B * C,
-    )
+    # Use y as one full-image filter per batch-channel pair. These filters are
+    # evaluated only on the requested (H_f, W_f) support.
+    filter = filter.reshape(B * C, 1, H, W)
 
-    # Restore the batch and channel dimensions, then undo the filter flip used
-    # by conv2d to implement convolution rather than cross-correlation.
-    return adjoint.view(B, C, hf, wf).flip(-2, -1).contiguous()
+    # Compute the cross-correlation of x with y. Its spatial output already has
+    # shape (H_f, W_f), so no cropping is required.
+    adjoint = F.conv2d(x, filter, groups=B * C)
+
+    # Restore the batch and channel dimensions, then undo the filter flip used by
+    # conv2d when computing convolution rather than cross-correlation.
+    adjoint = adjoint.reshape(B, C, hf, wf)
+
+    return _flip_filter_if_needed(adjoint, correlation, dims=(-2, -1))
+
+
+def conv2d_filter_adjoint_fft(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    filter_size: tuple[int, int],
+    real_fft: bool = True,
+    padding: str = "circular",
+    correlation: bool = False,
+) -> torch.Tensor:
+    r"""
+    Apply the adjoint of 2D convolution with respect to its filter using FFTs.
+
+    This function gives the same result as
+    :func:`deepinv.physics.functional.conv2d_filter_adjoint`. It is generally
+    faster for large filter supports, while the spatial version is faster for
+    small filters.
+
+    :param torch.Tensor x: Input tensor of shape ``(B, C, H, W)``.
+    :param torch.Tensor y: Adjoint input. Its spatial shape must match the output
+        of :func:`deepinv.physics.functional.conv2d` applied to ``x``.
+    :param tuple[int, int] filter_size: Filter size ``(H_f, W_f)``.
+    :param bool real_fft: Use real FFTs for real-valued inputs.
+    :param str padding: One of ``"valid"``, ``"circular"``, ``"replicate"``,
+        ``"reflect"``, ``"constant"`` or ``"zeros"``.
+    :param bool correlation: If ``True``, return the filter adjoint of
+        cross-correlation rather than convolution.
+    :return: Per-channel filter adjoint of shape ``(B, C, H_f, W_f)``.
+    """
+    padding = _raise_value_error_padding_messages(padding)
+    hf, wf = filter_size
+    ph, pw = hf // 2, wf // 2
+    ih, iw = (hf - 1) % 2, (wf - 1) % 2
+
+    # Apply the same padding and even-filter alignment as the forward convolution.
+    if padding != "valid":
+        x = F.pad(x, (pw - iw, pw, ph - ih, ph), mode=padding, value=0)
+
+    B, C = x.shape[:2]
+    filter = _prepare_filter_for_grouped(y, B, C)
+
+    # Cross-correlation with y equals convolution with spatially flipped y.
+    adjoint = conv2d_fft(x, filter.flip(-2, -1), real_fft=real_fft, padding="valid")
+    adjoint = adjoint.reshape(B, C, hf, wf)
+
+    return _flip_filter_if_needed(adjoint, correlation, dims=(-2, -1))
 
 
 def _resolve_batch_size(
