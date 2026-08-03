@@ -30,15 +30,37 @@ def conv2d_filter_adjoint(
     hf, wf = filter_size
     ph, pw = hf // 2, wf // 2
     ih, iw = (hf - 1) % 2, (wf - 1) % 2
+    # Here typically x is the kernel and y is the image
+    # Unlike standard convolution, we want to compute the convolution of y with x,
+    # i.e the image is the filter and the kernel is the input.
+    # The same result can be obtained by using torch.nn.functional.conv_transpose2d,
+    # and cropping the result, but it is computationaly more expensive
 
+    # Preprocess the kernel x for both padding and alignment
     x = F.pad(x, (pw - iw, pw, ph - ih, ph), mode=padding)
-    b, c, h, w = y.shape
+
+    # Get the dimensions of the adjoint of the image use as filter
+    B, C, H, W = y.shape
+
+    # Expand the batch dim of the kernel and move it to channels
+    x = x.reshape(1, B * C, *x.shape[-2:])
+
+    # Use y as one full-image filter per batch-channel pair.
+    # These operations will be computed only on the support of the padded kernel
+    filter = y.reshape(B * C, 1, H, W)
+
+    # compute the cross-corelation of the image with the kernel using conv2d
+    # The output already has the correct shape (B * C, 1, H_f, W_f) and doesn't need
+    # to be cropped
     adjoint = F.conv2d(
-        x.reshape(1, b * c, *x.shape[-2:]),
-        y.reshape(b * c, 1, h, w),
-        groups=b * c,
+        x,
+        filter,
+        groups=B * C,
     )
-    return adjoint.view(b, c, hf, wf).flip(-2, -1).contiguous()
+
+    # Restore the batch and channel dimensions, then undo the filter flip used
+    # by conv2d to implement convolution rather than cross-correlation.
+    return adjoint.view(B, C, hf, wf).flip(-2, -1).contiguous()
 
 
 def _resolve_batch_size(
