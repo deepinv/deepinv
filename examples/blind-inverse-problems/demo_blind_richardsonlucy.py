@@ -168,7 +168,7 @@ dinv.utils.plot_curves(metrics)
 # parameters :code:`x_steps` and :code:`k_steps`.
 #
 # For simplicity we first test this algorithm on a clean measurement, i.e. without
-# noise. In this case, the algorithm performs fairly well, with only some oscillation artefacts near the edges known as [Gibbs phenomenon](https://en.wikipedia.org/wiki/Gibbs_phenomenon).
+# noise. In this case, the algorithm performs fairly well, with only some oscillation artefacts near the edges known as `Gibbs phenomenon <https://en.wikipedia.org/wiki/Gibbs_phenomenon>`_.
 
 physics_clean = dinv.physics.Blur(
     filter=gaussian_psf,
