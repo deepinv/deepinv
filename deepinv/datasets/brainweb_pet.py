@@ -53,11 +53,11 @@ class BrainWebPET(ImageDataset):
     :param float t2_noise: Amplitude of multiplicative random intensity
         variation in the T2 volume. Defaults to ``0``.
     :param float pet_sigma: Gaussian smoothing scale, in voxels, of the PET
-        random intensity field. Defaults to ``1``.
+        random intensity field. Defaults to ``0``.
     :param float t1_sigma: Gaussian smoothing scale, in voxels, of the T1
-        random intensity field. Defaults to ``1``.
+        random intensity field. Defaults to ``0``.
     :param float t2_sigma: Gaussian smoothing scale, in voxels, of the T2
-        random intensity field. Defaults to ``1``.
+        random intensity field. Defaults to ``0``.
     :param str outres: BrainWeb output resolution. Valid values are ``"mMR"``
         (default), ``"MR"``, and ``"brainweb"``.
     :param str pet_class: PET intensity preset. Must be ``"FDG"`` (default) or
@@ -99,9 +99,9 @@ class BrainWebPET(ImageDataset):
         pet_noise: float = 0.0,
         t1_noise: float = 0.0,
         t2_noise: float = 0.0,
-        pet_sigma: float = 1.0,
-        t1_sigma: float = 1.0,
-        t2_sigma: float = 1.0,
+        pet_sigma: float = 0.0,
+        t1_sigma: float = 0.0,
+        t2_sigma: float = 0.0,
         outres: Literal["mMR", "MR", "brainweb"] = "mMR",
         lesion_kwargs: Mapping | None = None,
         seed: int | None = 0,

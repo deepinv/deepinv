@@ -1684,9 +1684,9 @@ def test_brainweb_pet_no_download(brainweb_pet_module, tmp_path):
         "petNoise": 0.0,
         "t1Noise": 0.0,
         "t2Noise": 0.0,
-        "petSigma": 1.0,
-        "t1Sigma": 1.0,
-        "t2Sigma": 1.0,
+        "petSigma": 0.0,
+        "t1Sigma": 0.0,
+        "t2Sigma": 0.0,
         "outres": "mMR",
         "PetClass": sys.modules["brainweb"].FDG,
     }
