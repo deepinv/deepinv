@@ -2395,8 +2395,8 @@ class OSEM(BaseOptim):
         :class:`deepinv.physics.StackedLinearPhysics`.
 
         In the first case, OSEM splits the inputs internally using
-        :func:`deepinv.physics.functional.subsets.split_physics` and
-        :func:`deepinv.physics.functional.subsets.split_measurements`.
+        :func:`deepinv.physics.split_physics` and
+        :func:`deepinv.physics.split_measurements`.
         Pre-split measurements can be provided as a :class:`deepinv.utils.TensorList`
         or a list of tensors. Lists are converted to a ``TensorList`` before
         optimization.

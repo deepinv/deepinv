@@ -1492,6 +1492,21 @@ def test_tomography_subset_utilities(device):
     )
     y = physics.A(x)
 
+    for invalid_num_subsets, strategy, error in [
+        (0, "default", "positive integer"),
+        (num_angles + 1, "default", "cannot exceed"),
+        (3, "default", "divisible"),
+        (num_subsets, "unknown", "Unknown subsetting strategy"),
+    ]:
+        with pytest.raises(ValueError, match=error):
+            dinv.physics.get_subset_indices(
+                num_angles, invalid_num_subsets, strategy, device=device
+            )
+    with pytest.raises(ValueError, match="divisible"):
+        dinv.physics.split_measurements(y, physics, 3)
+    with pytest.raises(ValueError, match="divisible"):
+        dinv.physics.split_physics(physics, 3)
+
     indices = dinv.physics.get_subset_indices(num_angles, num_subsets, device=device)
     assert len(indices) == num_subsets
     assert torch.equal(
@@ -1552,9 +1567,6 @@ def test_tomography_subset_utilities(device):
         normalized_physics.A_adjoint(normalized_y),
         atol=1e-5,
     )
-
-    with pytest.raises(ValueError, match="divisible"):
-        dinv.physics.get_subset_indices(num_angles, 3, device=device)
 
 
 @pytest.mark.parametrize(

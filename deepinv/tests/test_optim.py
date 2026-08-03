@@ -954,6 +954,16 @@ def test_MLEM_OSEM_convergence(algorithm, pre_split, device):
         **algorithm_kwargs,
     )
 
+    if algorithm is dinv.optim.OSEM:
+        if pre_split:
+            with pytest.raises(ValueError, match="must match"):
+                model(y[:-1], physics, init=x_init)
+        else:
+            with pytest.raises(ValueError, match="at least two subsets"):
+                dinv.optim.OSEM(num_subsets=1)
+            with pytest.raises(TypeError, match="requires measurements as a torch.Tensor"):
+                model(list(dinv.physics.split_measurements(y, physics, 2)), physics)
+
     model(y, physics, init=x_init)
     assert model.has_converged
 
