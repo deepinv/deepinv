@@ -124,15 +124,19 @@ def _build_laplacian_gamma(
         real_fft=use_real_fft,
         dims=(-2, -1),
     )
-    # laplacian_fft is complex, shape (1, 1, H, W//2+1).
+    # laplacian_fft is a complex tensor (though mathematically purely real
+    # because the symmetric kernel was circularly shifted to the spatial origin
+    # in filter_fft()).
+    # Shape: (1, 1, H, W_freq) is determined by use_real_fft.
     # |H_L(f)|^2 is the power spectrum.
     laplacian_power = laplacian_fft.real**2 + laplacian_fft.imag**2
-    # laplacian_power shape: (1, 1, H, W//2+1) — 4D.
+    # laplacian_power shape: (1, 1, H, W_freq) : 4D
     #
-    # BlurFFT's mask is 5D: (1, C, H, W//2+1, 2).
+    # When BlurFFT's mask is 5D: (1, C, H, W_freq, 2) due to view_as_real(),
     # prox_l2's expansion logic adds (mask.dim() - gamma.dim()) = 1
-    # trailing dimension, giving (1, 1, H, W//2+1, 1), which correctly
-    # broadcasts with the 5D mask.
+    # trailing dimension to gamma_tensor, giving (1, 1, H, W_freq, 1), which
+    # correctly broadcasts with the 5D mask.
+
 
     # --- Compute gamma(f) = gamma_scalar / (|H_L(f)|^2 + eps) -----------
     gamma_tensor = gamma / (laplacian_power + eps)
