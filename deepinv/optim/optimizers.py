@@ -2386,6 +2386,8 @@ class BlindRL(BaseOptim):
     :param int k_steps: number of inner kernel updates per iteration. Default: ``1``.
     :param bool normalize_kernel: whether to normalize the kernel to unit sum.
         Default: ``True``.
+    :param bool use_fft: whether to use the FFT implementation of the filter
+        adjoint in kernel updates. Default: ``False``.
     :param float eps: numerical stability constant. Default: ``1e-15``.
     :param int max_iter: number of alternating BlindRL iterations. Default: ``100``.
     :param Callable custom_init: optional initializer returning ``(x0, k0)`` or a
@@ -2407,6 +2409,7 @@ class BlindRL(BaseOptim):
         x_steps: int = 1,
         k_steps: int = 1,
         normalize_kernel: bool = True,
+        use_fft: bool = False,
         eps: float = 1e-15,
         max_iter: int = 100,
         crit_conv: str = "residual",
@@ -2469,6 +2472,7 @@ class BlindRL(BaseOptim):
             BlindRLIteration(
                 k_prior=k_prior,
                 normalize_kernel=normalize_kernel,
+                use_fft=use_fft,
                 eps=eps,
                 cost_fn=cost_fn,
             ),

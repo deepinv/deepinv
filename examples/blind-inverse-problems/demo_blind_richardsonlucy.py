@@ -166,6 +166,7 @@ dinv.utils.plot_curves(metrics)
 # This algorithm is implemented under the :class:`deepinv.optim.BlindRL` class.
 # The number of iterations of each of the two updates can be controlled by the
 # parameters :code:`x_steps` and :code:`k_steps`.
+# Here, we set :code:`use_fft=True` to compute the filter adjoint with FFTs.
 #
 # For simplicity we first test this algorithm on a clean measurement, i.e. without
 # noise. In this case, the algorithm performs fairly well, with only some oscillation artefacts near the edges known as `Gibbs phenomenon <https://en.wikipedia.org/wiki/Gibbs_phenomenon>`_.
@@ -182,6 +183,7 @@ blindrl = dinv.optim.BlindRL(
     x_steps=1,
     k_steps=1,
     normalize_kernel=True,
+    use_fft=True,
     verbose=True,
 )
 (x_blindrl, k_blindrl), metrics_clean_blind = blindrl(
@@ -236,6 +238,7 @@ blindrl = dinv.optim.BlindRL(
     x_steps=1,
     k_steps=1,
     normalize_kernel=True,
+    use_fft=True,
     verbose=True,
 )
 (x_blindrl, k_blindrl), metrics = blindrl(
@@ -322,6 +325,7 @@ blindrl = dinv.optim.BlindRL(
     x_steps=1,
     k_steps=1,
     normalize_kernel=True,
+    use_fft=True,
     verbose=True,
 )
 (x_blindrl, k_blindrl), metrics = blindrl(
@@ -380,6 +384,7 @@ blindrl = dinv.optim.BlindRL(
     x_steps=1,
     k_steps=1,
     normalize_kernel=True,
+    use_fft=True,
     verbose=True,
 )
 (x_blindrl, k_blindrl), metrics = blindrl(

@@ -943,7 +943,8 @@ def test_MLEM(imsize, dummy_dataset, device):
 # algorithms and they don't seem to fit the test structure for non-blind algorithms.
 # The same kind of test could be implemented for other blind optimization algorithms
 # in the furture.
-def test_BlindRL(device):
+@pytest.mark.parametrize("use_fft", [False, True])
+def test_BlindRL(device, use_fft):
     # Build a small positive image so the Poisson/Richardson-Lucy updates are stable.
     x_true = torch.zeros((1, 1, 16, 16), device=device)
     x_true[:, :, 4:12, 5:11] = 1.0
@@ -980,6 +981,7 @@ def test_BlindRL(device):
         thres_conv=1e-5,
         early_stop=True,
         eps=1e-12,
+        use_fft=use_fft,
     )
     x_hat, k_hat = blindrl(y, physics, init=(x0, k_true.clone()))
 

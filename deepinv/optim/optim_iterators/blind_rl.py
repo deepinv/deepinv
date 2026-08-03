@@ -27,12 +27,14 @@ class BlindRLIteration(OptimIterator):
         self,
         k_prior=None,
         normalize_kernel: bool = True,
+        use_fft: bool = False,
         eps: float = 1e-15,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.k_prior = ZeroPrior() if k_prior is None else k_prior
         self.normalize_kernel = normalize_kernel
+        self.use_fft = use_fft
         self.eps = eps
 
     def forward(
@@ -102,16 +104,15 @@ class BlindRLIteration(OptimIterator):
         # Kernel update: adjoint of A_x: h -> x * h with respect to h.
         # This is not physics.A_adjoint, which is the adjoint of A_h with
         # respect to the image x for a fixed kernel h.
-        sensitivity_k = dF.conv2d_filter_adjoint(x, ones_y, (hk, wk)).mean(
-            dim=1, keepdim=True
+        filter_adjoint = (
+            dF.conv2d_filter_adjoint_fft if self.use_fft else dF.conv2d_filter_adjoint
         )
+        sensitivity_k = filter_adjoint(x, ones_y, (hk, wk)).mean(dim=1, keepdim=True)
 
         for _ in range(k_steps):
             y_hat = dF.conv2d(x, k, padding="circular")
             ratio = y / y_hat.clamp_min(self.eps)
-            numerator_k = dF.conv2d_filter_adjoint(x, ratio, (hk, wk)).mean(
-                dim=1, keepdim=True
-            )
+            numerator_k = filter_adjoint(x, ratio, (hk, wk)).mean(dim=1, keepdim=True)
             denom_k = sensitivity_k + lambda_k * self.k_prior.grad(k, k_g_param)
             k = k * numerator_k / denom_k.clamp_min(self.eps)
             if self.normalize_kernel:
