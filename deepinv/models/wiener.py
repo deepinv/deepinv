@@ -197,7 +197,7 @@ class WienerDeconvolution(Reconstructor):
 
     *(Note: By Parseval's theorem, :math:`\Vert L x \Vert_2^2 = \Vert H_L \odot F x \Vert_2^2`.
     Dividing the objective by :math:`\gamma` shows that this is equivalent to the general
-    problem defined above, where :math:`\tilde{\gamma}(f) = \gamma / |H_L(f)|^2`).*
+    problem defined above, where :math:`\tilde{\gamma}(f) = \gamma / (|H_L(f)|^2 + \varepsilon)`).*
 
     **3. Custom Tensor** (``gamma`` is a user-provided tensor):
 
