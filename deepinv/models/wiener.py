@@ -113,11 +113,11 @@ def _build_laplacian_gamma(
     ).reshape(1, 1, 3, 3)
 
     # --- Compute the Laplacian's power spectrum --------------------------
-    # Zero-pad to (H, W) and compute centred FFT, matching BlurFFT's
-    # convention (real_fft=True → rfft2 → half-spectrum of width W//2+1).
+    # Zero-pad to (H, W) and compute FFT, using rfft2 or fft2 as
+    # determined by use_real_fft.
 
-    # filter_fft expects img_size with same ndim as the filter tensor.
-    # Our kernel is (1, 1, 3, 3) so img_size must be (1, 1, H, W).
+    # filter_fft determines the padding from img_size at dims=(-2, -1).
+    # We pass a 4D img_size=(1, 1, H, W) to cleanly match our 4D kernel.
     laplacian_fft = filter_fft(
         laplacian_kernel,
         img_size=(1, 1, H, W),
@@ -136,7 +136,6 @@ def _build_laplacian_gamma(
     # prox_l2's expansion logic adds (mask.dim() - gamma.dim()) = 1
     # trailing dimension to gamma_tensor, giving (1, 1, H, W_freq, 1), which
     # correctly broadcasts with the 5D mask.
-
 
     # --- Compute gamma(f) = gamma_scalar / (|H_L(f)|^2 + eps) -----------
     gamma_tensor = gamma / (laplacian_power + eps)
@@ -159,11 +158,12 @@ class WienerDeconvolution(Reconstructor):
         \hat{x} = \arg\min_x \; \frac{1}{2}\Vert Ax - y \Vert_2^2 + \frac{1}{2} \Vert \tilde{\gamma}^{-1/2} \odot F x \Vert_2^2
 
     where :math:`F` is the Fourier transform, :math:`\odot` is element-wise multiplication,
-    and :math:`\tilde{\gamma}` is an effective frequency-varying regularisation tensor.
+    and :math:`\tilde{\gamma}` is a derived regularisation weight, which can be a constant
+    scalar or a frequency-varying tensor.
     When :math:`A` is a convolution, this is equivalent to the classical Wiener filter.
 
-    Depending on the choice of the ``gamma`` and ``prior`` arguments, the effective
-    tensor :math:`\tilde{\gamma}` is defined such that the objective specialises into
+    Depending on the choice of the ``gamma`` and ``prior`` arguments, the derived
+    weight :math:`\tilde{\gamma}` is defined such that the objective specialises into
     one of three specific cases:
 
     **1. Flat Prior** (``gamma`` is a scalar, ``prior="flat"`` or ``None``):
@@ -188,7 +188,7 @@ class WienerDeconvolution(Reconstructor):
 
     (The kernel is zero-padded to the image dimensions before applying the FFT, allowing
     pointwise division in the Fourier domain). This penalises high frequencies to enforce
-    spatial smoothness. It corresponds to the classical **Wiener–Hunt deconvolution**,
+    spatial smoothness. It corresponds to the classical **Wiener-Hunt deconvolution**,
     solving the objective:
 
     .. math::
@@ -218,7 +218,7 @@ class WienerDeconvolution(Reconstructor):
 
         - If a **scalar** ``float``, it is combined with ``prior`` (as detailed below).
         - If a :class:`torch.Tensor`, it is passed directly to ``prox_l2``
-          and ``prior`` is ignored.  This allows advanced users to supply a
+          and ``prior`` is ignored.  This allows users to supply a
           pre-computed PSD ratio (e.g. :math:`\gamma(f) = S_x(f) / S_n(f)`).
 
     :param str, None prior: Regularisation prior.  Only used when ``gamma``
@@ -228,7 +228,7 @@ class WienerDeconvolution(Reconstructor):
           ``gamma`` is passed directly to ``prox_l2``.
         - ``"laplacian"``: Uses the power spectrum of the 2-D discrete Laplacian
           to build a frequency-varying ``gamma`` tensor, penalising high
-          frequencies more than low frequencies (Wiener–Hunt model).
+          frequencies more than low frequencies (Wiener-Hunt model).
           Note: This is not supported when using :class:`~deepinv.physics.Denoising`.
 
     :param str, torch.device device: Device for the model.  Default: ``"cpu"``.
@@ -306,7 +306,7 @@ class WienerDeconvolution(Reconstructor):
         gamma = self.gamma
 
         if isinstance(gamma, Tensor):
-            # User-supplied frequency-varying tensor: pass through as-is.
+            # User-supplied tensor: pass through as-is.
             # The ``prior`` parameter is ignored in this case.
             pass
         elif self.prior in (None, "flat"):
@@ -318,7 +318,7 @@ class WienerDeconvolution(Reconstructor):
             gamma = _build_laplacian_gamma(gamma, physics)
 
         # --- Compute the Wiener-filtered reconstruction ---
-        # prox_l2(z=0, y, gamma) solves:
-        #   argmin_x  gamma/2 ||Ax - y||^2  +  1/2 ||x||^2
-        # which is the Wiener/Tikhonov solution.
+        # prox_l2(z=0, y, gamma) solves the general objective:
+        #   argmin_x  1/2 ||Ax - y||^2  +  1/2 ||gamma^{-1/2} \odot F x||^2
+        # which evaluates the Wiener/Tikhonov reconstruction.
         return physics.prox_l2(z=0, y=y, gamma=gamma)
