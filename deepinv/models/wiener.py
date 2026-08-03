@@ -195,6 +195,10 @@ class WienerDeconvolution(Reconstructor):
 
         \hat{x} = \arg\min_x \; \frac{\gamma}{2}\Vert Ax - y \Vert_2^2 + \frac{1}{2}\Vert L x \Vert_2^2
 
+    *(Note: By Parseval's theorem, :math:`\Vert L x \Vert_2^2 = \Vert H_L \odot F x \Vert_2^2`.
+    Dividing the objective by :math:`\gamma` shows that this is equivalent to the general
+    problem defined above, where :math:`\tilde{\gamma}(f) = \gamma / |H_L(f)|^2`).*
+
     **3. Custom Tensor** (``gamma`` is a user-provided tensor):
 
     :math:`\tilde{\gamma}` is directly set to the provided tensor ``gamma``, evaluating the
