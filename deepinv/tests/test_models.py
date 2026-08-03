@@ -1320,6 +1320,11 @@ def test_dsccp_net(device, n_channels, spatials):
 
 
 def test_denoiser_perf(device, load_example_image):
+    pytest.importorskip(
+        "diffusers",
+        reason="This test requires diffusers. It should be "
+        "installed with `pip install diffusers`",
+    )
     # Load 2 example images
     x1 = load_example_image(
         "butterfly.png",
