@@ -30,7 +30,7 @@ We consider the following two choices of :math:`h`:
   the Adam optimizer. For an example using the (approximated) half-quadratic splitting algorithm proposed by
   :footcite:t:`zoran2011learning`, we refer to the example :ref:`sphx_glr_auto_examples_optimization_demo_epll.py`.
 * The patch normalizing flow regularizer (PatchNR) was proposed by :footcite:t:`altekruger2023patchnr`.
-  It models :math:`h(x)=-\log(p_{\theta}(x))` as negative log-likelihood function of a probaility density function
+  It models :math:`h(x)=-\log(p_{\theta}(x))` as negative log-likelihood function of a probability density function
   :math:`p_\theta={\mathcal{T}_\theta}_\#\mathcal{N}(0,I)` which is given as the push-forward measure of a standard
   normal distribution under a normalizing flow (invertible neural network) :math:`\mathcal{T}_\theta`.
 
