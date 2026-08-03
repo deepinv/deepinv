@@ -591,7 +591,7 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
         )
 
     def forward(self, x_net, y, physics, model, **kwargs):
-        mask = model.get_mask() * getattr(physics, "mask", 1.0)
+        mask = model.get_masks()[-1] * getattr(physics, "mask", 1.0)
 
         # Create output mask by re-splitting leftover samples
         mask2 = self.mask_generator.step(
