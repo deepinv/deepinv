@@ -37,12 +37,10 @@ We show three scenarios of increasing complexity:
 """
 
 # %%
-from pathlib import Path
-
 import torch
-from torchvision import transforms
-
 import deepinv as dinv
+from pathlib import Path
+from torchvision import transforms
 
 from deepinv.utils.demo import load_dataset, load_example
 from deepinv.utils.plotting import plot, plot_curves
@@ -242,11 +240,13 @@ y_ct = physics_ct(x_ct)
 # Filtered back-projection as a simple baseline
 x_fbp = physics_ct.A_dagger(y_ct)
 
+
 # %%
 # Run MLEM + TV on the CT problem
 
 data_fidelity_ct = dinv.optim.PoissonLikelihood(gain=gain_ct)
 prior_tv_ct = dinv.optim.prior.TVPrior(n_it_max=50)
+
 model_ct = dinv.optim.MLEM(
     data_fidelity=data_fidelity_ct,
     prior=prior_tv_ct,
