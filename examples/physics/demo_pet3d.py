@@ -218,7 +218,7 @@ dinv.utils.plot(sensitivities[..., mid_slice], ["sensitivities"])
 # MLEM reconstruction
 # -------------------
 #
-# We run the standard MLEM reconstruction algorithm
+# We run the standard MLEM reconstruction algorithm :footcite:p:`sheppMaximumLikelihoodReconstruction1982`
 # to obtain a reconstructed emission volume.
 #
 # The algorithm can be seen as a preconditioned gradient descent on the negative log-likelihood of the Poisson model:
@@ -402,3 +402,8 @@ fig.tight_layout()
 #
 # - Reconstructing PET with learning-based methods (:ref:`PnP <iterative>`, :ref:`diffusion <sampling>`, :ref:`unrolled <unfolded>`, etc.)
 # - Playing with the scanner setup: changing number of detectors, voxel size, etc.
+
+# %%
+# :References:
+#
+# .. footbibliography::
