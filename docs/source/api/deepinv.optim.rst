@@ -38,6 +38,27 @@ Base Class
    deepinv.optim.MLEM
 
 
+Bilevel learning (MAID)
+-----------------------
+.. userguide:: bilevel
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.bilevel.MAID
+   deepinv.optim.bilevel.MAIDConfig
+   deepinv.optim.bilevel.HypergradientOracle
+   deepinv.optim.bilevel.SmoothHypergradientOracle
+   deepinv.optim.bilevel.GoalOrientedSmoothOracle
+   deepinv.optim.bilevel.GoalOrientedEstimator
+   deepinv.optim.bilevel.SaddleHypergradientOracle
+   deepinv.optim.bilevel.QuadraticBilevelLS
+   deepinv.optim.bilevel.NonQuadraticBilevel
+   deepinv.optim.bilevel.QuadraticSaddleProblem
+
+
 Potentials
 ----------
 .. userguide:: potentials

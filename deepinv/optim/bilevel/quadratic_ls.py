@@ -86,6 +86,8 @@ class QuadraticBilevelLS:
             gd_stepsize = 1.0 / self.L_h
         self.gd_stepsize = float(gd_stepsize)
         self.gd_max_iter = int(gd_max_iter)
+        # Cumulative GD iterations across solve_lower calls (demo / profiling).
+        self.n_gd_iters = 0
 
         # Closed-form helpers.
         self._P = torch.linalg.solve(self._AtA, A2.T)  # (d, n)
@@ -169,18 +171,21 @@ class QuadraticBilevelLS:
         step = self.gd_stepsize
         grad = self.grad_x_h(x, theta)
         grad_norm = float(grad.norm().item())
+        n_it = 0
         for _ in range(max_iter):
             if grad_norm <= tol:
                 break
             x = x - step * grad
             grad = self.grad_x_h(x, theta)
             grad_norm = float(grad.norm().item())
+            n_it += 1
         else:
             if grad_norm > tol:
                 raise RuntimeError(
                     f"Lower-level GD failed to reach ||grad|| <= {tol} "
                     f"(got {grad_norm}) in {max_iter} iterations."
                 )
+        self.n_gd_iters += n_it
         return x, grad_norm
 
     def inexact_hypergradient(

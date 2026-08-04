@@ -3,6 +3,8 @@
 Optimization
 ============
 
+For bilevel hyperparameter learning with MAID, see :ref:`bilevel`.
+
 This module contains a collection of routines that optimize
 
 .. math::

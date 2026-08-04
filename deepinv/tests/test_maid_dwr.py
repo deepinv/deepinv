@@ -9,11 +9,8 @@ from deepinv.optim.bilevel import (
     GoalOrientedEstimator,
     GoalOrientedSmoothOracle,
     MAID,
-    MAIDConfig,
     NonQuadraticBilevel,
-    QuadraticBilevelLS,
     SmoothHypergradientOracle,
-    hypergradient_error_bound,
 )
 from deepinv.tests.test_maid import _make_section41_problem, _rand_well_conditioned
 
@@ -28,10 +25,7 @@ def test_goal_oriented_requires_opt_in():
 
 
 def test_dwr_safety_factor_never_underestimates_quadratic():
-    """On the section 4.1 problem, default DWR never under-estimates.
-
-    Smaller sweep than the supervisor's dim-200 run, but same estimator.
-    """
+    """On the section 4.1 problem, default DWR never under-estimates."""
     problem, theta0, _ = _make_section41_problem(n=80, d=5, seed=2)
     oracle = GoalOrientedSmoothOracle(problem, safety_factor=1.25, cg_budget=5)
     violations = 0
@@ -54,7 +48,6 @@ def test_dwr_safety_factor_never_underestimates_quadratic():
     assert n == 27
     assert violations == 0, f"{violations}/{n} under-estimates"
     assert min(ratios) >= 1.0 - 1e-9
-    # Should be much tighter than the certified median ~24 on large instances.
     assert sorted(ratios)[len(ratios) // 2] < 5.0
 
 
@@ -70,7 +63,6 @@ def test_raw_dwr_can_underestimate_but_safety_covers():
     omega_raw = raw.error_bound(theta, lower, hyper, 1e-2, 1e-2)
     omega_safe = safe.error_bound(theta, lower, hyper, 1e-2, 1e-2)
     assert abs(omega_safe - 1.25 * omega_raw) < 1e-12 * max(1.0, omega_safe)
-    # Safe bound must dominate when true error is positive.
     if true_err > 1e-15:
         assert omega_safe >= true_err * (1.0 - 1e-9)
 
@@ -94,73 +86,86 @@ def test_estimator_rejects_safety_below_one():
         GoalOrientedEstimator(safety_factor=0.9)
 
 
-def _make_nonquadratic(n=50, d=4, seed=0):
+def _make_nonquadratic_gaussian(n=80, d=20, seed=0, data_scale=1.0):
+    """Nonquadratic problem with i.i.d. Gaussian factors, as in the nonlinearity sweep.
+
+    ``data_scale`` multiplies ``b1`` and ``b2``. At scale 1, ``sech^2`` of the
+    solution stays near 1 (barely nonlinear). At scales 5 and 20 the solution
+    leaves the quadratic regime of log-cosh (supervisor table).
+    """
     gen = torch.Generator().manual_seed(seed)
     dtype = torch.float64
-    A1 = _rand_well_conditioned(n, d, gen, dtype, "cpu")
-    A2 = _rand_well_conditioned(n, d, gen, dtype, "cpu")
-    A3 = _rand_well_conditioned(n, d, gen, dtype, "cpu")
-    b1 = torch.randn(n, generator=gen, dtype=dtype)
-    b2 = torch.randn(n, generator=gen, dtype=dtype)
+    mk = lambda: torch.randn(n, d, generator=gen, dtype=dtype)
     return NonQuadraticBilevel(
-        A1=A1, A2=A2, A3=A3, b1=b1, b2=b2, gamma=1.5, beta=0.5
+        A1=mk(),
+        A2=mk(),
+        A3=mk(),
+        b1=data_scale * torch.randn(n, generator=gen, dtype=dtype),
+        b2=data_scale * torch.randn(n, generator=gen, dtype=dtype),
+        gamma=1.5,
+        beta=0.5,
     )
 
 
-def test_nonquadratic_dwr_underestimation_rate_reported():
-    """Measure DWR on nonquadratic h; do not claim the quadratic safety factor.
+def _sech2_spread(problem: NonQuadraticBilevel, theta: torch.Tensor) -> float:
+    """Range of sech^2(x) over a high-accuracy lower-level solution."""
+    x, _ = problem.solve_lower(theta, eps=1e-10, max_iter=200_000)
+    sech2 = 1.0 / torch.cosh(x).pow(2)
+    return float((sech2.max() - sech2.min()).item())
 
-    Records under-estimation rates for safety factors 1.0 and 1.25 so the
-    docstring recommendation can be decided from data rather than hope.
+
+# Expected sech^2 spread bands from the supervisor nonlinearity sweep.
+# Used as soft regime labels, not exact targets (finite d, n vary).
+_SECH2_REGIME = {
+    1.0: (0.0, 0.25),  # barely nonlinear
+    5.0: (0.2, 1.01),  # genuinely nonlinear
+    20.0: (0.5, 1.01),  # strongly nonlinear
+}
+
+
+@pytest.mark.parametrize("data_scale", [1.0, 5.0, 20.0])
+def test_nonquadratic_dwr_across_nonlinearity_scales(data_scale):
+    """DWR with safety 1.25 does not under-estimate at three nonlinearity levels.
+
+    Records the ``sech^2`` spread so a reader can see which regime is covered.
+    A nonlinearity test that silently runs in the linear regime is not coverage.
     """
-    problem = _make_nonquadratic()
-    theta0 = torch.ones(problem.d, dtype=torch.float64)
-    results = {}
-    for sf in (1.0, 1.25, 2.0, 5.0):
-        oracle = GoalOrientedSmoothOracle(
-            problem, safety_factor=sf, cg_budget=5
-        )
-        under = 0
-        n = 0
-        ratios = []
-        for scale in (0.5, 1.0):
-            theta = scale * theta0
-            z_exact = problem.reference_hypergradient(theta, eps=1e-10, delta=1e-10)
-            for eps in (1e-2, 1e-3):
-                for delta in (1e-2, 1e-3):
-                    lower = oracle.solve_lower_level(theta, eps=eps)
-                    hyper = oracle.hypergradient(theta, lower, delta=delta)
-                    true_err = float((hyper.z - z_exact).norm().item())
-                    omega = oracle.error_bound(theta, lower, hyper, eps, delta)
-                    n += 1
-                    if true_err > 1e-14:
-                        ratios.append(omega / true_err)
-                        if omega < true_err * (1.0 - 1e-9):
-                            under += 1
-        results[sf] = {
-            "under": under,
-            "n": n,
-            "median": sorted(ratios)[len(ratios) // 2] if ratios else float("nan"),
-            "min": min(ratios) if ratios else float("nan"),
-            "max": max(ratios) if ratios else float("nan"),
-        }
-
-    # Always expose the measurement (this is the decision data).
-    print("\nnonquadratic DWR sweep:")
-    for sf, r in results.items():
-        print(
-            f"  safety={sf}: under={r['under']}/{r['n']} "
-            f"median={r['median']:.3f} min={r['min']:.3f} max={r['max']:.3f}"
-        )
-
-    assert results[1.0]["n"] == 8
-    # Raw DWR under-estimates on this nonquadratic instance.
-    assert results[1.0]["under"] > 0
-    # Safety 1.25 is enough here (and on the broader 36-config sweep in the
-    # report). If this fails on a new problem class, raise the factor or
-    # fall back to the certified bound.
-    assert results[1.25]["under"] == 0, (
-        f"safety 1.25 under-estimated {results[1.25]['under']}/"
-        f"{results[1.25]['n']} times on nonquadratic log-cosh; "
-        f"min ratio {results[1.25]['min']:.3f}"
+    problem = _make_nonquadratic_gaussian(
+        n=80, d=20, seed=0, data_scale=data_scale
     )
+    theta0 = torch.zeros(problem.d, dtype=torch.float64)
+    sech2_spread = _sech2_spread(problem, theta0)
+    lo, hi = _SECH2_REGIME[data_scale]
+    assert lo <= sech2_spread <= hi, (
+        f"data_scale={data_scale}: sech2_spread={sech2_spread:.4f} "
+        f"outside expected regime band [{lo}, {hi}]"
+    )
+
+    oracle = GoalOrientedSmoothOracle(problem, safety_factor=1.25, cg_budget=5)
+    under = 0
+    n = 0
+    ratios = []
+    for tscale in (0.1, 1.0):
+        gen = torch.Generator().manual_seed(0)
+        theta = tscale * torch.randn(problem.d, generator=gen, dtype=torch.float64)
+        z_exact = problem.reference_hypergradient(theta, eps=1e-10, delta=1e-10)
+        for eps in (1e-2, 1e-3):
+            for delta in (1e-2, 1e-3):
+                lower = oracle.solve_lower_level(theta, eps=eps)
+                hyper = oracle.hypergradient(theta, lower, delta=delta)
+                true_err = float((hyper.z - z_exact).norm().item())
+                omega = oracle.error_bound(theta, lower, hyper, eps, delta)
+                n += 1
+                if true_err > 1e-14:
+                    ratios.append(omega / true_err)
+                    if omega < true_err * (1.0 - 1e-9):
+                        under += 1
+
+    assert n == 8
+    assert under == 0, (
+        f"data_scale={data_scale} sech2_spread={sech2_spread:.4f}: "
+        f"safety 1.25 under-estimated {under}/{n}, "
+        f"min ratio={min(ratios) if ratios else float('nan'):.4f}, "
+        f"median={sorted(ratios)[len(ratios)//2] if ratios else float('nan'):.4f}"
+    )
+    assert min(ratios) >= 1.0 - 1e-9
