@@ -3,22 +3,29 @@
 The outer method is MAID. Solver-specific lower levels and a posteriori
 error certificates live behind :class:`HypergradientOracle`.
 
-Two published instantiations are included:
+Published instantiations:
 
-* **Smooth** (Salehi et al., SIAM J. Math. Data Sci. 2025 / arXiv 2308.10098):
-  gradient residual + IFT/CG, Theorem 2.1 bound.
-* **Saddle point** (Bogensperger et al., arXiv 2412.06436):
-  PDHG + piggyback adjoints, Theorem 2 bound from residual distances 6a, 6b.
+* **Smooth certified** (Salehi et al., SIAM J. Math. Data Sci. 2025 / arXiv
+  2308.10098): gradient residual + IFT/CG, Theorem 2.1 bound.
+* **Saddle point** (Bogensperger et al., arXiv 2412.06436): PDHG + piggyback
+  adjoints, Theorem 2 bound from residual distances 6a, 6b.
 
-Both rest on the same strong-convexity distance fact: for a ``mu``-strongly
-convex ``Phi`` with minimiser ``x_star``,
-``||x_star - x|| <= ||grad Phi(x)|| / mu``. See :mod:`deepinv.optim.bilevel.oracle`.
+Non-certified estimator:
 
-``certified`` is True only for a bound proven in one of those papers with
-known constants. Non-certified bounds require an explicit opt-in.
+* **Goal-oriented (DWR)** via :class:`GoalOrientedSmoothOracle`: estimates
+  the hypergradient error from dual-weighted residuals. Default safety
+  factor 1.25 is justified by the quadratic sweep (raw under-rate 59/72 at
+  CG budget 5, max shortfall about 0.6 percent; 1.25 removes all
+  under-estimates). Exact only for quadratic lower levels; see the
+  nonquadratic measurement before general use.
+
+``certified`` is True only for a bound proven in a citable paper with
+known constants. Non-certified bounds require ``allow_uncertified=True``.
 """
 
+from .estimators import GoalOrientedEstimator
 from .maid import MAID, MAIDConfig
+from .nonquadratic import NonQuadraticBilevel
 from .oracle import (
     HypergradientOracle,
     HypergradientState,
@@ -35,6 +42,7 @@ from .saddle import (
     saddle_hypergradient_error_bound,
 )
 from .smooth import (
+    GoalOrientedSmoothOracle,
     SmoothHypergradientOracle,
     hypergradient_error_bound,
     inexact_gradient,
@@ -50,7 +58,10 @@ __all__ = [
     "LowerLevelState",
     "strong_convexity_distance_bound",
     "QuadraticBilevelLS",
+    "NonQuadraticBilevel",
     "SmoothHypergradientOracle",
+    "GoalOrientedSmoothOracle",
+    "GoalOrientedEstimator",
     "hypergradient_error_bound",
     "smooth_hypergradient_error_bound",
     "inexact_gradient",

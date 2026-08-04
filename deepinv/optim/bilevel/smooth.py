@@ -5,7 +5,9 @@ Stopping rule
 implies
     ||xbar - xhat|| <= eps
 by the strong-convexity distance fact. The hypergradient is the IFT adjoint
-solved by CG to residual delta, and the error bound is Theorem 2.1.
+solved by CG to residual delta, and the error bound is Theorem 2.1, or
+optionally a goal-oriented (DWR) estimate via
+:class:`~deepinv.optim.bilevel.estimators.GoalOrientedEstimator`.
 
 Maps onto DeepInverse GD, and onto PGD / FISTA when the prior is smooth.
 """
@@ -16,10 +18,14 @@ from typing import TYPE_CHECKING
 
 import torch
 
+from .estimators import GoalOrientedEstimator
 from .oracle import HypergradientOracle, HypergradientState, LowerLevelState
 
 if TYPE_CHECKING:
+    from .nonquadratic import NonQuadraticBilevel
     from .quadratic_ls import QuadraticBilevelLS
+
+    SmoothProblem = QuadraticBilevelLS | NonQuadraticBilevel
 
 
 def smooth_hypergradient_error_bound(
@@ -65,15 +71,15 @@ hypergradient_error_bound = smooth_hypergradient_error_bound
 class SmoothHypergradientOracle(HypergradientOracle):
     """Smooth lower level with IFT+CG hypergradient and Theorem 2.1 bound."""
 
-    def __init__(self, problem: QuadraticBilevelLS):
+    def __init__(self, problem: SmoothProblem):
         self.problem = problem
         self.n_lower_solves = 0
         self.n_hypergradients = 0
 
     @property
     def certified(self) -> bool:
-        # mu is the exact smallest Hessian eigenvalue of the quadratic
-        # lower level, not an online estimate.
+        # mu is a known modulus (exact Hessian eigenvalue or gamma), not an
+        # online estimate.
         return True
 
     @property
@@ -112,18 +118,18 @@ class SmoothHypergradientOracle(HypergradientOracle):
         lower: LowerLevelState,
         delta: float,
     ) -> HypergradientState:
-        z, q, residual = self.problem.inexact_hypergradient(
-            lower.x, theta, delta=delta
+        z, cg = self.problem.inexact_hypergradient(
+            lower.x, theta, delta=delta, store_directions=False
         )
         self.n_hypergradients += 1
-        # J_norm / power method is deferred to error_bound so the default
-        # path (no descent test) never forms the expensive certificate.
         return HypergradientState(
             z=z,
             delta=delta,
             extras={
-                "q": q,
-                "residual": residual,
+                "q": cg.x,
+                "residual": cg.residual_norm,
+                "residual_vec": cg.residual,
+                "cg": cg,
                 "x": lower.x,
                 "theta": theta,
                 "mu": self.problem.mu,
@@ -171,6 +177,151 @@ class SmoothHypergradientOracle(HypergradientOracle):
         self.problem.update_lipschitz_estimates(lower.x, theta)
 
 
+class GoalOrientedSmoothOracle(HypergradientOracle):
+    """Smooth IFT hypergradient with goal-oriented (DWR) error estimate.
+
+    Non-certified. Requires ``allow_uncertified=True`` when passed to MAID.
+
+    Default ``safety_factor=1.25`` and ``cg_budget=5`` are taken from the
+    quadratic dim-200 supervisor sweep: raw DWR under-estimated 59 of 72
+    times at budget 5 but by at most about 0.6 percent; factor 1.25 removed
+    every under-estimate at every budget tested (about 40 times that
+    shortfall). See :class:`~deepinv.optim.bilevel.estimators.GoalOrientedEstimator`.
+
+    On nonquadratic lower levels the Newton identity is only approximate.
+    Read the nonquadratic sweep before treating this as a general default.
+    """
+
+    def __init__(
+        self,
+        problem: SmoothProblem,
+        estimator: GoalOrientedEstimator | None = None,
+        safety_factor: float = 1.25,
+        cg_budget: int = 5,
+        recycle_krylov: bool = True,
+    ):
+        self.problem = problem
+        self.estimator = estimator or GoalOrientedEstimator(
+            safety_factor=safety_factor,
+            cg_budget=cg_budget,
+            recycle_krylov=recycle_krylov,
+        )
+        self.n_lower_solves = 0
+        self.n_hypergradients = 0
+
+    @property
+    def certified(self) -> bool:
+        return False
+
+    @property
+    def citation(self) -> str:
+        return (
+            "goal-oriented / DWR hypergradient error estimate "
+            "(transfer of Becker-Rannacher style dual weighting; "
+            "not a published MAID theorem). safety_factor="
+            f"{self.estimator.safety_factor}, cg_budget={self.estimator.cg_budget}"
+        )
+
+    @property
+    def L_g(self) -> float:
+        return self.problem.L_g
+
+    def reset_counters(self) -> None:
+        self.n_lower_solves = 0
+        self.n_hypergradients = 0
+
+    def solve_lower_level(
+        self,
+        theta: torch.Tensor,
+        eps: float,
+        warm_start: LowerLevelState | None = None,
+    ) -> LowerLevelState:
+        x_init = None if warm_start is None else warm_start.x
+        x, grad_norm = self.problem.solve_lower(theta, eps=eps, x_init=x_init)
+        self.n_lower_solves += 1
+        return LowerLevelState(
+            x=x,
+            eps=eps,
+            extras={"grad_norm": grad_norm, "mu": self.problem.mu},
+        )
+
+    def hypergradient(
+        self,
+        theta: torch.Tensor,
+        lower: LowerLevelState,
+        delta: float,
+    ) -> HypergradientState:
+        # Store Krylov directions from the main adjoint for recycling.
+        z, cg = self.problem.inexact_hypergradient(
+            lower.x, theta, delta=delta, store_directions=True
+        )
+        self.n_hypergradients += 1
+        return HypergradientState(
+            z=z,
+            delta=delta,
+            extras={
+                "q": cg.x,
+                "residual": cg.residual_norm,
+                "residual_vec": cg.residual,
+                "cg": cg,
+                "x": lower.x,
+                "theta": theta,
+                "mu": self.problem.mu,
+            },
+        )
+
+    def error_bound(
+        self,
+        theta: torch.Tensor,
+        lower: LowerLevelState,
+        hyper: HypergradientState,
+        eps: float,
+        delta: float,
+    ) -> float:
+        x = hyper.extras.get("x", lower.x)
+        th = hyper.extras.get("theta", theta)
+        cg = hyper.extras["cg"]
+        residual_vec = hyper.extras["residual_vec"]
+        grad_x_h = self.problem.grad_x_h(x, th)
+
+        # Hessian-vector product at the current lower-level point.
+        # Quadratic: hess_x_matvec(v); nonquadratic: hess_x_matvec(x, v).
+        from .nonquadratic import NonQuadraticBilevel
+
+        if isinstance(self.problem, NonQuadraticBilevel):
+
+            def hess_mv(v: torch.Tensor) -> torch.Tensor:
+                return self.problem.hess_x_matvec(x, v)
+
+        else:
+
+            def hess_mv(v: torch.Tensor) -> torch.Tensor:
+                return self.problem.hess_x_matvec(v)
+
+        return self.estimator.estimate(
+            hess_mv=hess_mv,
+            mixed_jac_T_mv=self.problem.mixed_jac_T_matvec,
+            grad_x_h=grad_x_h,
+            residual_rhs=residual_vec,
+            hess_g_mv=self.problem.hess_g_matvec,
+            main_cg=cg,
+        )
+
+    def g(self, x: torch.Tensor) -> torch.Tensor:
+        return self.problem.g(x)
+
+    def grad_g(self, x: torch.Tensor) -> torch.Tensor:
+        return self.problem.grad_g(x)
+
+    def f_closed_form(self, theta: torch.Tensor) -> torch.Tensor:
+        return self.problem.f_closed_form(theta)
+
+    def update_lipschitz_estimates(
+        self, lower: LowerLevelState, theta: torch.Tensor
+    ) -> None:
+        self.problem.update_lipschitz_estimates(lower.x, theta)
+
+
 def inexact_gradient(
     problem: QuadraticBilevelLS,
     theta: torch.Tensor,
@@ -189,6 +340,10 @@ def inexact_gradient(
     ``False`` to take a single inexact hypergradient without forming
     ``omega`` (then ``omega`` is returned as ``nan``).
     """
+    from .quadratic_ls import QuadraticBilevelLS as _Q
+
+    if not isinstance(problem, _Q) and not hasattr(problem, "solve_lower"):
+        raise TypeError(problem)
     oracle = SmoothHypergradientOracle(problem)
     warm = None if x_init is None else LowerLevelState(x=x_init, eps=eps)
     z, eps, delta, omega, lower = inexact_gradient_from_oracle(

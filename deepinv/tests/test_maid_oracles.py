@@ -139,7 +139,7 @@ def test_smooth_error_bound_never_underestimates_144():
                 for delta in delta_list:
                     n_configs += 1
                     xbar, _ = problem.solve_lower(theta, eps=eps)
-                    z, _, _ = problem.inexact_hypergradient(
+                    z, _ = problem.inexact_hypergradient(
                         xbar, theta, delta=delta
                     )
                     true_err = float((z - z_exact).norm().item())

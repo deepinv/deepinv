@@ -81,7 +81,10 @@ from .bilevel import (
     MAIDConfig,
     HypergradientOracle,
     QuadraticBilevelLS,
+    NonQuadraticBilevel,
     SmoothHypergradientOracle,
+    GoalOrientedSmoothOracle,
+    GoalOrientedEstimator,
     SaddleHypergradientOracle,
     QuadraticSaddleProblem,
 )

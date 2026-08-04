@@ -110,7 +110,8 @@ def test_error_bound_dominates_true_error():
     )
     assert grad_norm <= eps * problem.mu + 1e-12
 
-    z, q, residual = problem.inexact_hypergradient(xbar, theta0, delta=delta)
+    z, cg = problem.inexact_hypergradient(xbar, theta0, delta=delta)
+    residual = cg.residual_norm
     z_exact = problem.exact_hypergradient(theta0, problem.closed_form_x(theta0))
     true_err = (z - z_exact).norm().item()
 

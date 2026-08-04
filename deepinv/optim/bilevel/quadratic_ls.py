@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import torch
 
+from .cg_utils import CGResult, cg_solve
+
 
 class QuadraticBilevelLS:
     """Quadratic least-squares bilevel problem of section 4.1."""
@@ -97,6 +99,10 @@ class QuadraticBilevelLS:
 
     def grad_g(self, x: torch.Tensor) -> torch.Tensor:
         return 2.0 * (self.A1.T @ (self.A1 @ x - self.b1))
+
+    def hess_g_matvec(self, v: torch.Tensor) -> torch.Tensor:
+        """Hessian of ``g`` applied to ``v``: ``G v = 2 A1^T A1 v``."""
+        return 2.0 * (self.A1.T @ (self.A1 @ v))
 
     def f_closed_form(self, theta: torch.Tensor) -> torch.Tensor:
         return self.g(self.closed_form_x(theta))
@@ -183,18 +189,25 @@ class QuadraticBilevelLS:
         theta: torch.Tensor,
         delta: float,
         max_cg_iter: int = 10_000,
-    ) -> tuple[torch.Tensor, torch.Tensor, float]:
+        store_directions: bool = False,
+    ) -> tuple[torch.Tensor, CGResult]:
         r"""Solve :math:`H q = \nabla g(x)` to residual ``delta``, form
         :math:`z = -J^\top q`.
 
-        Returns ``(z, q, residual)``.
+        Returns ``(z, cg_result)`` where ``cg_result.residual`` is
+        ``grad g(x) - H q`` and optional Krylov directions are stored for
+        recycling by the goal-oriented estimator.
         """
         rhs = self.grad_g(x)
-        q, residual = _cg_absolute(
-            self.hess_x_matvec, rhs, tol=delta, max_iter=max_cg_iter
+        cg = cg_solve(
+            self.hess_x_matvec,
+            rhs,
+            tol=delta,
+            max_iter=max_cg_iter,
+            store_directions=store_directions,
         )
-        z = -self.mixed_jac_T_matvec(q)
-        return z, q, residual
+        z = -self.mixed_jac_T_matvec(cg.x)
+        return z, cg
 
     def estimate_J_norm(
         self, x: torch.Tensor, theta: torch.Tensor, n_power: int = 1
@@ -228,34 +241,3 @@ class QuadraticBilevelLS:
     ) -> None:
         """No-op for the quadratic problem (L_H_inv = L_J = 0)."""
         return None
-
-
-def _cg_absolute(
-    A_mv,
-    b: torch.Tensor,
-    tol: float,
-    max_iter: int = 10_000,
-    eps: float = 1e-30,
-) -> tuple[torch.Tensor, float]:
-    r"""CG stopping on the absolute residual :math:`\|A q - b\| \le` ``tol``."""
-    q = torch.zeros_like(b)
-    r = b.clone()
-    p = r.clone()
-    res_sq = torch.dot(r, r)
-    tol_sq = tol * tol
-    if res_sq.item() <= tol_sq:
-        return q, float(res_sq.sqrt().item())
-
-    for _ in range(max_iter):
-        Ap = A_mv(p)
-        alpha = res_sq / (torch.dot(p, Ap) + eps)
-        q = q + alpha * p
-        r = r - alpha * Ap
-        res_sq_new = torch.dot(r, r)
-        if res_sq_new.item() <= tol_sq:
-            return q, float(res_sq_new.sqrt().item())
-        beta = res_sq_new / (res_sq + eps)
-        p = r + beta * p
-        res_sq = res_sq_new
-
-    return q, float(res_sq.sqrt().item())
