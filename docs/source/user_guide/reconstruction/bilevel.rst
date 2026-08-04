@@ -200,6 +200,96 @@ with a default ``safety_factor=1.25`` and ``cg_budget=5``. Measured ratios
 The default safety factor 1.25 is about twelve times the observed requirement
 across these regimes. The estimator remains non-certified.
 
+When to use MAID
+----------------
+
+MAID spends lower-level iterations on line-search trials that a fixed-accuracy
+baseline does not. That overhead only pays when a tight lower-level solve is
+expensive.
+
+**Cheap lower level (fixed accuracy wins).** On a 32x32 Tikhonov inpainting
+problem solved by DeepInverse ``GD`` with residual stopping, a residual of
+``1e-4`` costs about one gradient step per solve. Matched outer-iteration
+count (25 steps):
+
+.. list-table::
+   :header-rows: 1
+
+   * - method
+     - f final
+     - BaseOptim iters
+     - wall
+   * - MAID
+     - 47.2152
+     - 246
+     - 0.086 s
+   * - fixed accuracy ``1e-4``
+     - 47.2307
+     - 26
+     - 0.008 s
+
+MAID recorded 16 backtracking failures. Those failed trials, plus successful
+line-search probes, are why the BaseOptim count is roughly 9 times larger for
+essentially the same upper-level value. Prefer fixed accuracy in this regime.
+
+**Expensive lower level (MAID wins).** On the quadratic least-squares bilevel
+problem of Salehi et al. (section 4.1) with lower-level condition number 30,
+both methods stop at a relative gap of ``5e-3`` to the closed-form optimum:
+
+.. list-table::
+   :header-rows: 1
+
+   * - method
+     - GD iters
+     - outer steps
+     - wall
+   * - MAID
+     - 60 062
+     - 6
+     - 0.75 s
+   * - fixed accuracy ``1e-4``
+     - 129 383
+     - 23
+     - 1.54 s
+
+**Crossover.** Sweeping the lower-level condition number (``n=80``, ``d=4``,
+target relative gap ``5e-3``, fixed residual ``1e-4``):
+
+.. list-table::
+   :header-rows: 1
+
+   * - condition number
+     - GD MAID
+     - GD fixed
+     - ratio MAID/fixed
+   * - 2
+     - 81
+     - 56
+     - 1.45
+   * - 5
+     - 861
+     - 853
+     - 1.01
+   * - 10
+     - 4 606
+     - 5 847
+     - 0.79
+   * - 20
+     - 17 334
+     - 40 691
+     - 0.43
+   * - 30
+     - 60 062
+     - 129 383
+     - 0.46
+
+The scientific claim is therefore: MAID is faster once a tight lower-level
+solve costs more than roughly a few thousand gradient steps, and slower below
+that. Ill-conditioned physics (motion blur, tomography), weak regularisation,
+large images, and nonsmooth priors with many proximal steps are the intended
+regime. The gallery example recomputes the flagship, the crossover table and
+the inpainting counterpoint from scratch.
+
 Minimal usage
 -------------
 
