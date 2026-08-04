@@ -370,8 +370,7 @@ dinv.utils.plot(
     subtitles=[
         "Reference",
         f"PSNR: {psnr_mlem.item():.2f} dB\n" f"NRMSE: {100 * nrmse_mlem.item():.2f}%",
-        f"PSNR: {psnr_osem.item():.2f} dB\n"
-        f"NRMSE: {100 * nrmse_osem.item():.2f}%",
+        f"PSNR: {psnr_osem.item():.2f} dB\n" f"NRMSE: {100 * nrmse_osem.item():.2f}%",
     ],
     rescale_mode="clip",
     vmin=0,

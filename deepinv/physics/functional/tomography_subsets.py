@@ -219,7 +219,9 @@ def split_physics(
         }
         angles = physics.angles
         geometry_vectors = (
-            torch.as_tensor(physics.projection_geometry["Vectors"], device=physics.device)
+            torch.as_tensor(
+                physics.projection_geometry["Vectors"], device=physics.device
+            )
             if angles is None
             else None
         )
