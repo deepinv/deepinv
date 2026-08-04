@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from deepinv.utils.tensorlist import ones_like
-
 from .optim_iterator import OptimIterator
 
 if TYPE_CHECKING:
@@ -16,8 +14,7 @@ if TYPE_CHECKING:
 
 class OSEMIteration(OptimIterator):
     r"""
-    Performs a single iteration of the OSEM algorithm :footcite:p:`hudsonAcceleratedImageReconstruction1994`,
-    which is a classic baseline reconstruction method for inverse problems with Poisson noise statistics.
+    Performs a single iteration of the OSEM algorithm, which is a classic baseline reconstruction method for inverse problems with Poisson noise statistics.
     Note that :class:`deepinv.optim.optim_iterators.MLEMIteration` is a special case with one subset only.
     More details on the algorithm can be found in the documentation of the
     :class:`deepinv.optim.optimizers.OSEM` optimizer.
@@ -35,6 +32,7 @@ class OSEMIteration(OptimIterator):
         cur_params: dict,
         y: TensorList,
         physics: StackedLinearPhysics,
+        sensitivities: list[torch.Tensor],
         *args,
         **kwargs,
     ) -> dict[str, tuple[torch.Tensor, None] | torch.Tensor | int | None]:
@@ -47,6 +45,7 @@ class OSEMIteration(OptimIterator):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param deepinv.utils.TensorList y: Measurement subsets.
         :param deepinv.physics.StackedLinearPhysics physics: Physics operators corresponding to the measurement subsets.
+        :param list[torch.Tensor] sensitivities: Precomputed sensitivity maps :math:`A_l^T \mathbf{1}` for each subset.
         :return: Dictionary ``{"est": (x, None), "cost": F, "it": k + 1}`` containing the updated iterate and estimated cost.
         """
         x = X["est"][0]
@@ -55,8 +54,9 @@ class OSEMIteration(OptimIterator):
         num_subsets = len(physics)
 
         prior_scale = 1.0 / num_subsets
-        for cur_y, cur_physics in zip(y, physics, strict=True):
-            sensitivity = cur_physics.A_adjoint(ones_like(cur_y))
+        for cur_y, cur_physics, cur_sensitivity in zip(
+            y, physics, sensitivities, strict=True
+        ):
             # For deepinv.physics.PET, we need to add the background term
             if hasattr(cur_physics, "background"):
                 proj = cur_physics.A(x, add_background=True)
@@ -64,7 +64,7 @@ class OSEMIteration(OptimIterator):
                 proj = cur_physics.A(x)
 
             numerator = x * cur_physics.A_adjoint(cur_y / proj.clamp(min=self.eps))
-            denom = sensitivity
+            denom = cur_sensitivity
 
             # Scale the OSL prior so that one full epoch applies its total weight.
             if cur_prior is not None:

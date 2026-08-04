@@ -2384,6 +2384,14 @@ class MLEM(BaseOptim):
             **kwargs,
         )
 
+    def forward(
+        self, y: torch.Tensor, physics: Physics, *args, **kwargs
+    ) -> torch.Tensor | tuple[torch.Tensor, dict]:
+        r"""Run MLEM with a sensitivity map computed once for this reconstruction."""
+        with torch.no_grad():
+            sensitivity = physics.A_adjoint(torch.ones_like(y))
+        return super().forward(y, physics, sensitivity=sensitivity, *args, **kwargs)
+
 
 class OSEM(BaseOptim):
     r"""
@@ -2610,7 +2618,13 @@ class OSEM(BaseOptim):
                         denormalize=subset_data_fidelity.d.denormalize,
                     )
 
-        return super().forward(y, physics, *args, **kwargs)
+        with torch.no_grad():
+            sensitivities = [
+                cur_physics.A_adjoint(torch.ones_like(cur_y))
+                for cur_y, cur_physics in zip(y, physics, strict=True)
+            ]
+
+        return super().forward(y, physics, sensitivities=sensitivities, *args, **kwargs)
 
 
 class SIRT(BaseOptim):

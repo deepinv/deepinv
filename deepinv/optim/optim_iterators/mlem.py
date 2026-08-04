@@ -32,6 +32,7 @@ class MLEMIteration(OptimIterator):
         cur_params: dict,
         y: torch.Tensor,
         physics: Physics,
+        sensitivity: torch.Tensor,
         *args,
         **kwargs,
     ) -> dict[str, tuple[torch.Tensor, None] | torch.Tensor | int | None]:
@@ -46,11 +47,11 @@ class MLEMIteration(OptimIterator):
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
+        :param torch.Tensor sensitivity: Precomputed sensitivity map :math:`A^T \mathbf{1}`.
         """
         x_prev = X["est"][0]
         k = 0 if "it" not in X else X["it"]
 
-        sensitivity = physics.A_adjoint(torch.ones_like(y))
         # For deepinv.physics.PET, we need to add the background term
         if hasattr(physics, "background"):
             proj = physics.A(x_prev, add_background=True)
