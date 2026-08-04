@@ -38,7 +38,7 @@ from .base_optim_lower import (
     solve_base_optim,
 )
 from .estimators import GoalOrientedEstimator
-from .maid import MAID, MAIDConfig
+from .maid import MAID, MAIDConfig, accelerated_maid_config
 from .minibatch import (
     MinibatchOracle,
     make_quadratic_dataset,
@@ -74,6 +74,7 @@ from .smooth import (
 __all__ = [
     "MAID",
     "MAIDConfig",
+    "accelerated_maid_config",
     "HypergradientOracle",
     "HypergradientState",
     "LowerLevelState",

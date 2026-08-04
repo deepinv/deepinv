@@ -35,6 +35,74 @@ That implication does not use the descent-direction test.
 If ``g_convex`` is True, the tighter convex form of remark 3.6 is used:
 ``psi_tilde = psi - (L_g / 2) * eps^2``.
 
+The gap ``U_upper - U_lower`` is pure inexactness penalty
+(``2(||grad g|| eps + (L_g/2) eps^2)``). When ``eps`` is loose that gap is
+wide, ``psi <= 0`` is hard to satisfy, backtracking fails, and ``eps``
+tightens. That overhead, not the landscape, is what costs MAID below the
+crossover. The accelerated options below target that mechanism.
+
+Accelerated MAID (optional)
+---------------------------
+Two complementary changes, both off by default so Algorithm 3.1 is unchanged
+unless requested.
+
+**1. Nonmonotone acceptance** (``nonmonotone=True``), Zhang and Hager form.
+
+    Q_0 = 1,   C_0 = U_lower(xbar(theta_0), eps_0)
+    Q_{k+1} = eta_ref * Q_k + 1
+    C_{k+1} = (eta_ref * Q_k * C_k
+               + U_lower(xbar(theta_{k+1}), eps_{k+1})) / Q_{k+1}
+
+with ``eta_ref`` in ``[0, 1)``. Accept when either
+
+    U_upper(xbar(theta+), eps+) - C_k + lambd * alpha * ||z||^2 <= 0
+
+or the monotone Lemma 3.5 test against the current ``U_lower`` holds.
+The monotone fallback is required in practice: ``C_k`` is an average of
+past ``U_lower`` values and can sit below the true objective by a leftover
+sandwich penalty ``||grad g|| eps + (L_g/2) eps^2``. Pure ZH then rejects
+every ``alpha`` even when the monotone test would pass (observed with
+``eta_ref = 0``). When ``C_k >= U_lower(current)`` the ZH test is the
+looser one and is what buys the nonmonotone relaxation. The window is
+updated with ``U_lower`` at the accepted trial accuracy ``eps_k`` (not the
+inflated ``eps_{k+1}``), so an extra ``nu_bar`` factor does not push ``C``
+down further.
+
+Proof sketch (requires the author's verification; not claimed as proven
+here). Pointwise the MAID sandwich gives a controlled relationship between
+``U_lower``, ``U_upper`` and the true ``f`` (Lemma 3.5). ``C_k`` is a
+convex combination of past ``U_lower`` values (Zhang-Hager weights are
+non-negative and sum to one after normalisation by ``Q_k``), so it is a
+lower certificate for the corresponding combination of past objectives in
+the same sense. Accepting the ZH test therefore yields a decrease of the
+true objective relative to that window average. Accepting the monotone
+fallback yields the ordinary one-step decrease of Lemma 3.5. Either way
+an accepted step carries a certificate; the nonmonotone path can only
+make acceptance easier when the window reference sits above the current
+``U_lower``. This is a sketch, not a theorem: the author should check the
+sandwich bookkeeping against Lemma 3.5 before treating nonmonotone MAID
+as certified.
+
+**2. Barzilai-Borwein initial step** (``bb_init=True``).
+
+After an accepted step, Algorithm 3.1 sets ``alpha <- rho_bar * alpha_k``.
+With ``bb_init``, the starting guess for the next outer iteration is
+instead a BB estimate from ``s = theta_k - theta_{k-1}`` and
+``y = z_k - z_{k-1}``:
+
+* long: ``alpha = <s,s> / <s,y>``
+* short: ``alpha = <s,y> / <y,y>``
+
+when ``<s,y> > 0``, clamped to ``[alpha_min, alpha_max]``, else fall back
+to ``rho_bar * alpha_k``. This changes only where backtracking starts.
+Every guarantee attached to an *accepted* step is untouched. BB steps are
+nonmonotone by nature, which is why the two options are intended together.
+
+**What is not done.** Nesterov or heavy-ball momentum on ``theta`` would
+move the search direction away from ``-z``, so Proposition 3.1's descent
+argument and the error-bound machinery would no longer apply. That is
+future work, not part of this extension.
+
 Descent test
 ------------
 The paper's Algorithm 3.2 accepts ``z`` only when
@@ -92,6 +160,18 @@ class MAIDConfig:
         ``omega <= (1 - eta)||z||`` test (certified path). If False
         (default), skip the test and never form ``omega``. See the module
         docstring for what is gained and lost.
+    :param bool nonmonotone: If True, use the Zhang-Hager window reference
+        ``C_k`` in place of ``U_lower`` at the current point. See module
+        docstring for the proof sketch (author verification required).
+    :param float eta_ref: Zhang-Hager memory parameter in ``[0, 1)``.
+        Ignored when ``nonmonotone`` is False. ``eta_ref = 0`` recovers
+        the monotone test against the immediate predecessor after one step.
+    :param bool bb_init: If True, initialise the next outer step size with
+        a Barzilai-Borwein estimate (fallback ``rho_bar * alpha_k``).
+    :param str bb_form: ``"long"`` for ``<s,s>/<s,y>``, ``"short"`` for
+        ``<s,y>/<y,y>``.
+    :param float alpha_min: lower clamp for BB steps.
+    :param float alpha_max: upper clamp for BB steps.
     """
 
     eps0: float = 1e-1
@@ -111,6 +191,25 @@ class MAIDConfig:
     eps_min: float = 1e-14
     delta_min: float = 1e-14
     check_descent_direction: bool = False
+    # Accelerated options (both off => pure Algorithm 3.1).
+    nonmonotone: bool = False
+    eta_ref: float = 0.85
+    bb_init: bool = False
+    bb_form: str = "long"
+    alpha_min: float = 1e-12
+    alpha_max: float = 1e12
+
+
+def accelerated_maid_config(**kwargs) -> MAIDConfig:
+    """MAIDConfig with Zhang-Hager nonmonotone LS and BB step init enabled.
+
+    Keyword arguments override any field of :class:`MAIDConfig`. Defaults
+    keep Algorithm 3.1 hyper-parameters and only flip the two accelerated
+    switches.
+    """
+    kwargs.setdefault("nonmonotone", True)
+    kwargs.setdefault("bb_init", True)
+    return MAIDConfig(**kwargs)
 
 
 @dataclass
@@ -165,6 +264,19 @@ class MAID:
                 )
         if c.max_BT < 1:
             raise ValueError(f"max_BT must be >= 1, got {c.max_BT}")
+        if not (0.0 <= c.eta_ref < 1.0):
+            raise ValueError(
+                f"eta_ref must lie in [0, 1), got {c.eta_ref}"
+            )
+        if c.bb_form not in ("long", "short"):
+            raise ValueError(
+                f"bb_form must be 'long' or 'short', got {c.bb_form!r}"
+            )
+        if not (0.0 < c.alpha_min <= c.alpha_max):
+            raise ValueError(
+                f"require 0 < alpha_min <= alpha_max, got "
+                f"alpha_min={c.alpha_min}, alpha_max={c.alpha_max}"
+            )
 
     def run(
         self, theta0: torch.Tensor
@@ -173,10 +285,12 @@ class MAID:
 
         Returns the final parameter and a history dict. Keys include
         ``f_exact``, ``z_norm``, ``omega``, ``eps``, ``delta``, ``alpha``,
-        ``backtrack_failures`` (per upper-level iteration: 1 if the line
-        search exhausted its budget and accuracies were tightened, else 0),
+        ``backtrack_failures`` (per upper-level iteration: number of
+        accuracy refinements before a step was accepted),
         and scalar totals ``n_backtrack_failures``, ``n_lower_solves``,
-        ``n_hypergradients``, ``n_upper_iters``.
+        ``n_hypergradients``, ``n_upper_iters``. When accelerated options
+        are on, also ``C_ref`` (Zhang-Hager reference) and ``bb_used``
+        (1 if the BB guess was admissible that outer step, else 0).
         """
         c = self.config
         oracle = self.oracle
@@ -196,10 +310,23 @@ class MAID:
             "delta": [],
             "alpha": [],
             "backtrack_failures": [],
+            "C_ref": [],
+            "bb_used": [],
         }
         n_backtrack_failures = 0
 
         warm: LowerLevelState | None = None
+        # Zhang-Hager state. ``window_ready`` is True only after the first
+        # accepted step; until then the reference tracks the current
+        # U_lower so accuracy refinements at the same theta do not freeze
+        # a stale loose certificate into C.
+        Q = 1.0
+        C: float | None = None
+        window_ready = False
+        # BB history: previous accepted (theta, z).
+        theta_prev: torch.Tensor | None = None
+        z_prev: torch.Tensor | None = None
+        last_alpha_accepted = float(c.alpha0)
 
         for _k in range(c.max_iter):
             accepted = False
@@ -210,6 +337,8 @@ class MAID:
             eps_k = eps
             delta_k = delta
             failures_this_iter = 0
+            bb_used_flag = 0.0
+            C_for_hist = float("nan")
 
             for j in range(c.max_BT, c.max_BT + c.max_outer_BT):
                 z, eps_k, delta_k, omega, lower = inexact_gradient_from_oracle(
@@ -224,6 +353,24 @@ class MAID:
                 )
                 oracle.update_lipschitz_estimates(lower, theta)
 
+                # BB initial step: available once we have z at the new theta
+                # and a stored previous (theta, z) pair.
+                if (
+                    c.bb_init
+                    and theta_prev is not None
+                    and z_prev is not None
+                    and failures_this_iter == 0
+                ):
+                    bb_alpha, ok = self._bb_step(
+                        theta - theta_prev, z - z_prev, last_alpha_accepted
+                    )
+                    if ok:
+                        alpha_k = bb_alpha
+                        bb_used_flag = 1.0
+                    else:
+                        alpha_k = c.rho_bar * last_alpha_accepted
+                        bb_used_flag = 0.0
+
                 z_norm_sq = float(torch.sum(z * z).item())
                 z_norm = z_norm_sq**0.5
                 stop_omega = (
@@ -236,7 +383,13 @@ class MAID:
                     history["eps"].append(eps_k)
                     history["delta"].append(delta_k)
                     history["alpha"].append(alpha_k)
-                    history["backtrack_failures"].append(float(failures_this_iter))
+                    history["backtrack_failures"].append(
+                        float(failures_this_iter)
+                    )
+                    history["C_ref"].append(
+                        float(C) if C is not None else float("nan")
+                    )
+                    history["bb_used"].append(bb_used_flag)
                     self._finalise_history(
                         history, oracle, n_backtrack_failures + failures_this_iter
                     )
@@ -247,9 +400,21 @@ class MAID:
                 grad_g_old_norm = float(oracle.grad_g(lower.x).norm().item())
                 U_lower = self._U_lower(g_old, grad_g_old_norm, eps_k)
 
+                # Reference for the acceptance test.
+                if c.nonmonotone and window_ready:
+                    ref = float(C)
+                else:
+                    # Monotone, or first step before the window exists:
+                    # always use the current U_lower (refreshed when eps
+                    # tightens at the same theta).
+                    ref = U_lower
+                C_for_hist = ref
+
                 alpha_try = alpha_k
                 line_ok = False
                 lower_trial = lower
+                g_new = g_old
+                grad_g_new_norm = grad_g_old_norm
                 for _i in range(j):
                     theta_trial = theta - alpha_try * z
                     lower_trial = oracle.solve_lower_level(
@@ -260,21 +425,63 @@ class MAID:
                         oracle.grad_g(lower_trial.x).norm().item()
                     )
                     U_upper = self._U_upper(g_new, grad_g_new_norm, eps_next)
-                    psi = U_upper - U_lower + c.lambd * alpha_try * z_norm_sq
+                    # Nonmonotone test against C (or U_lower on the first step).
+                    psi = U_upper - ref + c.lambd * alpha_try * z_norm_sq
                     if c.g_convex:
                         psi = psi - 0.5 * oracle.L_g * (eps_k**2)
-                    if psi <= 0.0:
+                    # Monotone fallback: U_lower at the current point. Needed
+                    # because C is an average of past U_lower values and can
+                    # sit below the true objective by a leftover sandwich
+                    # penalty; pure ZH then rejects every alpha even when the
+                    # monotone Lemma 3.5 test would pass. Accept if either
+                    # test succeeds. When C >= U_lower the ZH test is the
+                    # looser one and is what buys the nonmonotone relaxation.
+                    psi_mon = (
+                        U_upper - U_lower + c.lambd * alpha_try * z_norm_sq
+                    )
+                    if c.g_convex:
+                        psi_mon = psi_mon - 0.5 * oracle.L_g * (eps_k**2)
+                    if psi <= 0.0 or psi_mon <= 0.0:
                         line_ok = True
                         alpha_k = alpha_try
                         break
                     alpha_try = c.rho * alpha_try
 
                 if line_ok:
+                    # Store previous pair for BB before updating theta.
+                    theta_prev = theta.detach().clone()
+                    z_prev = z.detach().clone()
+                    last_alpha_accepted = float(alpha_k)
+
                     theta = theta - alpha_k * z
                     warm = lower_trial
                     eps = max(c.nu_bar * eps_k, c.eps_min)
                     delta = max(c.nu_bar * delta_k, c.delta_min)
+
+                    # Next starting alpha: provisional rho_bar growth;
+                    # overwritten by BB at the start of the next outer step
+                    # when bb_init is on and the BB estimate is admissible.
                     alpha = c.rho_bar * alpha_k
+
+                    # Zhang-Hager update of the window reference.
+                    # Use the accepted trial accuracy eps_k for U_lower_new,
+                    # not the inflated eps_{k+1}: a larger eps would push C
+                    # below the true objective by an extra sandwich penalty
+                    # and make the next nonmonotone test unsatisfiable
+                    # (observed with eta_ref=0, where C = U_lower_new exactly).
+                    if c.nonmonotone:
+                        U_lower_new = self._U_lower(
+                            g_new, grad_g_new_norm, eps_k
+                        )
+                        if not window_ready:
+                            # C_0 = U_lower at the point we stepped from.
+                            C = ref
+                            Q = 1.0
+                            window_ready = True
+                        Q_new = c.eta_ref * Q + 1.0
+                        C = (c.eta_ref * Q * float(C) + U_lower_new) / Q_new
+                        Q = Q_new
+
                     accepted = True
                     break
 
@@ -301,12 +508,46 @@ class MAID:
             history["delta"].append(delta_k)
             history["alpha"].append(alpha_k)
             history["backtrack_failures"].append(float(failures_this_iter))
+            history["C_ref"].append(C_for_hist)
+            history["bb_used"].append(bb_used_flag)
 
             if history["z_norm"][-1] <= c.tol:
                 break
 
         self._finalise_history(history, oracle, n_backtrack_failures)
         return theta, history
+
+    def _bb_step(
+        self,
+        s: torch.Tensor,
+        y: torch.Tensor,
+        fallback_alpha: float,
+    ) -> tuple[float, bool]:
+        """Barzilai-Borwein step estimate, or fallback when not positive.
+
+        Returns ``(alpha, used_bb)``. ``used_bb`` is False when ``<s,y>``
+        is not positive or the estimate is non-finite, in which case
+        ``rho_bar * fallback_alpha`` style fallback is left to the caller
+        (this method returns ``fallback_alpha`` unchanged as the value).
+        """
+        c = self.config
+        sy = float(torch.sum(s * y).item())
+        if not (sy > 0.0) or not math.isfinite(sy):
+            return float(fallback_alpha), False
+        if c.bb_form == "long":
+            ss = float(torch.sum(s * s).item())
+            if ss <= 0.0 or not math.isfinite(ss):
+                return float(fallback_alpha), False
+            alpha_bb = ss / sy
+        else:
+            yy = float(torch.sum(y * y).item())
+            if yy <= 0.0 or not math.isfinite(yy):
+                return float(fallback_alpha), False
+            alpha_bb = sy / yy
+        if not math.isfinite(alpha_bb) or alpha_bb <= 0.0:
+            return float(fallback_alpha), False
+        alpha_bb = min(max(alpha_bb, c.alpha_min), c.alpha_max)
+        return float(alpha_bb), True
 
     def _finalise_history(
         self,
@@ -325,7 +566,9 @@ class MAID:
         try:
             return float(self.oracle.f_closed_form(theta).item())
         except NotImplementedError:
-            lower = self.oracle.solve_lower_level(theta, eps=max(self.config.eps_min, 1e-8))
+            lower = self.oracle.solve_lower_level(
+                theta, eps=max(self.config.eps_min, 1e-8)
+            )
             return float(self.oracle.g(lower.x).item())
         except RuntimeError:
             # High-accuracy closed form can fail numerically; fall back.

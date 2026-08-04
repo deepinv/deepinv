@@ -45,6 +45,7 @@ from deepinv.optim.bilevel import (
     SmoothHypergradientOracle,
     TikhonovWeightOracle,
     TikhonovWeightProblem,
+    accelerated_maid_config,
     make_quadratic_dataset,
     wrap_smooth_dataset,
 )
@@ -114,15 +115,41 @@ def relative_gap(f: float, f_star: float) -> float:
     return (f - f_star) / max(abs(f_star), 1.0)
 
 
-def run_maid_to_gap(cond: float, target: float = TARGET_GAP, max_discover: int = 50):
+def run_maid_to_gap(
+    cond: float,
+    target: float = TARGET_GAP,
+    max_discover: int = 50,
+    accelerated: bool = False,
+):
     """Return GD count, outer steps and wall time to reach ``target`` gap."""
     prob = make_quadratic(cond)
     theta0 = torch.ones(prob.d, dtype=dtype)
     f_star = float(prob.f_closed_form(prob.closed_form_theta_star()).item())
     alpha0 = 1.0 / max(upper_lipschitz(prob), 1e-8)
 
+    def _cfg(max_iter: int) -> MAIDConfig:
+        base = maid_config(alpha0, max_iter)
+        if not accelerated:
+            return base
+        return accelerated_maid_config(
+            eps0=base.eps0,
+            delta0=base.delta0,
+            alpha0=base.alpha0,
+            rho=base.rho,
+            rho_bar=base.rho_bar,
+            nu=base.nu,
+            nu_bar=base.nu_bar,
+            eta=base.eta,
+            lambd=base.lambd,
+            max_BT=base.max_BT,
+            max_iter=max_iter,
+            tol=base.tol,
+            g_convex=base.g_convex,
+            check_descent_direction=base.check_descent_direction,
+        )
+
     # Discover the first outer step that meets the gap.
-    _, hist = MAID(SmoothHypergradientOracle(prob), maid_config(alpha0, max_discover)).run(
+    _, hist = MAID(SmoothHypergradientOracle(prob), _cfg(max_discover)).run(
         theta0.clone()
     )
     hit = None
@@ -140,7 +167,7 @@ def run_maid_to_gap(cond: float, target: float = TARGET_GAP, max_discover: int =
     prob = make_quadratic(cond)
     t0 = time.perf_counter()
     theta, hist = MAID(
-        SmoothHypergradientOracle(prob), maid_config(alpha0, hit)
+        SmoothHypergradientOracle(prob), _cfg(hit)
     ).run(theta0.clone())
     wall = time.perf_counter() - t0
     f_final = float(prob.f_closed_form(theta).item())
@@ -257,45 +284,57 @@ assert maid_flag["gd"] < fixed_flag["gd"], (
 
 
 # %%
-# 2. Crossover: sweep the lower-level condition number
-# ----------------------------------------------------
+# 2. Three-way crossover: fixed, MAID, accelerated MAID
+# -----------------------------------------------------
 #
-# For each condition number, both methods run to the same relative gap.
-# Ratio below 1 means MAID uses fewer total gradient steps.
+# Accelerated MAID uses Zhang-Hager nonmonotone acceptance and a
+# Barzilai-Borwein initial step (see MAIDConfig.nonmonotone / bb_init).
+# The question is whether the crossover point moves.
 
 CONDS = [2.0, 5.0, 10.0, 20.0, 30.0]
 print()
 print(
-    f"Crossover: total lower-level GD steps to relative gap < {TARGET_GAP:g}"
+    f"Three-way crossover: GD steps to relative gap < {TARGET_GAP:g}"
 )
 print(
-    f"{'cond':>6} {'gd_maid':>10} {'gd_fixed':>10} {'ratio':>8} "
-    f"{'up_maid':>8} {'up_fixed':>9}"
+    f"{'cond':>6} {'gd_fix':>9} {'gd_maid':>9} {'gd_acc':>9} "
+    f"{'r_maid':>7} {'r_acc':>7} {'bt_m':>5} {'bt_a':>5}"
 )
 
 crossover_rows = []
 for cond in CONDS:
-    m = run_maid_to_gap(cond)
     f = run_fixed_to_gap(cond)
-    ratio = m["gd"] / max(f["gd"], 1)
-    crossover_rows.append((cond, m["gd"], f["gd"], ratio, m["upper"], f["upper"]))
+    m = run_maid_to_gap(cond, accelerated=False)
+    a = run_maid_to_gap(cond, accelerated=True)
+    r_m = m["gd"] / max(f["gd"], 1)
+    r_a = a["gd"] / max(f["gd"], 1)
+    crossover_rows.append(
+        (cond, f["gd"], m["gd"], a["gd"], r_m, r_a, m["bt_fail"], a["bt_fail"])
+    )
     print(
-        f"{cond:6.1f} {m['gd']:10d} {f['gd']:10d} {ratio:8.3f} "
-        f"{m['upper']:8d} {f['upper']:9d}"
+        f"{cond:6.1f} {f['gd']:9d} {m['gd']:9d} {a['gd']:9d} "
+        f"{r_m:7.3f} {r_a:7.3f} {m['bt_fail']:5d} {a['bt_fail']:5d}"
     )
 
-# The crossover should appear: ratio > 1 at small cond, ratio < 1 at large cond.
-ratios = [r[3] for r in crossover_rows]
-assert ratios[0] > 1.0, "Cheap end of the sweep should favour fixed accuracy"
-assert ratios[-1] < 1.0, "Expensive end of the sweep should favour MAID"
+# Vanilla MAID: ratio > 1 at small cond, < 1 at large cond.
+assert crossover_rows[0][4] > 1.0, "Cheap end should favour fixed over vanilla MAID"
+assert crossover_rows[-1][4] < 1.0, "Expensive end should favour vanilla MAID"
+# Accelerated should improve on vanilla at the expensive end.
+assert crossover_rows[-1][5] < crossover_rows[-1][4], (
+    "Accelerated MAID should use fewer GD steps than vanilla at high cond"
+)
+# Backtracking should not increase under acceleration on this sweep.
+assert all(r[7] <= r[6] + 2 for r in crossover_rows), (
+    "Accelerated BT count should not substantially exceed vanilla"
+)
 print()
 print(
-    "Reading: at condition number 2 a tight solve is cheap and MAID pays for "
-    "line-search trials. Around condition number 5 to 10 the costs cross. "
-    "Above that, adaptive accuracy saves total gradient work because early "
-    "outer steps use loose tolerances and fewer outer steps are needed. "
-    "The outer-step column is the stronger saving: each outer iteration costs "
-    "a hypergradient, not just a few gradient steps."
+    "Reading: vanilla MAID crosses below ratio 1 near condition number 5 to 10. "
+    "Accelerated MAID is already cheaper at condition number 5 and keeps a "
+    "ratio near 0.2 above that. At condition number 2 it still loses to fixed "
+    "accuracy, but by less than vanilla, and backtracking failures drop. "
+    "The mechanism is the sandwich gap U_upper - U_lower, which nonmonotone "
+    "acceptance and BB steps reduce the cost of."
 )
 
 
@@ -419,6 +458,50 @@ assert gd_maid_img > gd_fixed_img, (
     "Inpainting counterpoint should show fixed accuracy cheaper on BaseOptim iters"
 )
 assert problem_img.residual_kind == "gradient"
+
+# Accelerated MAID on the same inpainting instance: the mechanism check.
+problem_acc = TikhonovWeightProblem(
+    physics=physics,
+    y=y,
+    x_star=x_star,
+    solver="GD",
+    max_iter=20_000,
+)
+cfg_acc_img = accelerated_maid_config(
+    eps0=1e-2,
+    delta0=1e-2,
+    alpha0=0.2,
+    rho=0.5,
+    rho_bar=1.2,
+    nu=0.5,
+    nu_bar=1.1,
+    eta=0.5,
+    lambd=0.1,
+    max_BT=15,
+    max_iter=25,
+    tol=1e-5,
+    g_convex=True,
+    check_descent_direction=False,
+)
+t0 = time.perf_counter()
+theta_acc_img, hist_acc_img = MAID(
+    TikhonovWeightOracle(problem_acc), cfg_acc_img
+).run(theta0_img.clone())
+wall_acc_img = time.perf_counter() - t0
+f_acc_img = float(problem_acc.f_closed_form(theta_acc_img).item())
+print()
+print(
+    f"{'Accelerated MAID':<28} {f_acc_img:>10.4f} "
+    f"{float(torch.exp(theta_acc_img)): >10.4f} "
+    f"{problem_acc.n_gd_iters:>16d} {wall_acc_img:>8.3f}"
+)
+print(
+    f"Accelerated BT failures: {hist_acc_img['n_backtrack_failures']} "
+    f"(vanilla had {hist_img['n_backtrack_failures']}). "
+    f"BaseOptim iters {problem_acc.n_gd_iters} vs vanilla {gd_maid_img}."
+)
+assert hist_acc_img["n_backtrack_failures"] <= hist_img["n_backtrack_failures"]
+assert f_acc_img < f0_img
 
 
 # %%
@@ -676,10 +759,17 @@ print(
     f"(GD ratio {ratio_flag:.3f}, outer ratio {outer_ratio:.3f})"
 )
 cheap = crossover_rows[0]
+# row: cond, gd_fix, gd_maid, gd_acc, r_m, r_a, bt_m, bt_a
 print(
     f"  cheap quadratic (cond={cheap[0]:g}): "
-    f"MAID {cheap[1]} GD vs fixed {cheap[2]} GD "
-    f"(ratio {cheap[3]:.3f})"
+    f"fixed {cheap[1]} GD, MAID {cheap[2]} (ratio {cheap[4]:.3f}), "
+    f"acc {cheap[3]} (ratio {cheap[5]:.3f}), BT {cheap[6]} -> {cheap[7]}"
+)
+exp = crossover_rows[-1]
+print(
+    f"  expensive quadratic (cond={exp[0]:g}): "
+    f"fixed {exp[1]} GD, MAID {exp[2]} (ratio {exp[4]:.3f}), "
+    f"acc {exp[3]} (ratio {exp[5]:.3f}), BT {exp[6]} -> {exp[7]}"
 )
 print(
     f"  inpainting Tikhonov (DeepInverse GD): "

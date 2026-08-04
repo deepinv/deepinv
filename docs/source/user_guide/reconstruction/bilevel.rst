@@ -309,6 +309,117 @@ nonsmooth priors with many proximal steps are the intended regime. The gallery
 example recomputes the flagship, the crossover table and the inpainting
 counterpoint from scratch.
 
+Accelerated MAID
+----------------
+
+Two optional switches on :class:`~deepinv.optim.bilevel.MAIDConfig`
+(both off by default, so Algorithm 3.1 is unchanged):
+
+* ``nonmonotone=True``: Zhang-Hager window reference ``C_k`` in place of
+  ``U_lower`` at the current point, with a monotone Lemma 3.5 fallback so a
+  sandwich-depressed ``C`` cannot block a valid step. Proof sketch in the
+  :mod:`deepinv.optim.bilevel.maid` module docstring (author verification
+  required; not claimed as proven).
+* ``bb_init=True``: Barzilai-Borwein initial step from
+  ``s = theta_k - theta_{k-1}``, ``y = z_k - z_{k-1}``, clamped, with
+  fallback ``rho_bar * alpha_k``. Changes only where backtracking starts.
+
+:func:`~deepinv.optim.bilevel.accelerated_maid_config` enables both.
+
+The acceptance gap ``U_upper - U_lower`` is pure inexactness penalty. When
+``eps`` is loose that gap is wide, backtracking fails, and MAID pays on
+cheap problems. Nonmonotone acceptance and BB steps target that mechanism.
+
+**Three-way crossover** (same protocol as above: relative gap ``5e-3``,
+``n=80``, ``d=4``, fixed residual ``1e-4``):
+
+.. list-table::
+   :header-rows: 1
+
+   * - cond
+     - GD fixed
+     - GD MAID
+     - GD acc.
+     - ratio MAID
+     - ratio acc.
+     - BT MAID
+     - BT acc.
+   * - 2
+     - 56
+     - 81
+     - 67
+     - 1.45
+     - 1.20
+     - 3
+     - 2
+   * - 5
+     - 853
+     - 861
+     - 497
+     - 1.01
+     - 0.58
+     - 4
+     - 2
+   * - 10
+     - 5 847
+     - 4 606
+     - 1 198
+     - 0.79
+     - 0.20
+     - 5
+     - 1
+   * - 20
+     - 40 691
+     - 17 334
+     - 8 025
+     - 0.43
+     - 0.20
+     - 5
+     - 3
+   * - 30
+     - 129 383
+     - 60 062
+     - 25 037
+     - 0.46
+     - 0.19
+     - 6
+     - 4
+
+Vanilla MAID crosses below ratio 1 near condition number 5 to 10.
+Accelerated MAID is already cheaper at condition number 5 (ratio 0.58) and
+cuts the ratio to about 0.20 above that. At condition number 2 it still loses
+to fixed accuracy (1.20 vs 1.45 for vanilla), so the cheap end is improved
+but not inverted. Backtracking failures drop at every condition number.
+
+**Inpainting counterpoint** (same 32x32 Tikhonov setup, ``max_iter=25``):
+
+.. list-table::
+   :header-rows: 1
+
+   * - method
+     - f final
+     - BaseOptim iters
+     - BT failures
+   * - MAID
+     - 47.2152
+     - 246
+     - 16
+   * - accelerated MAID
+     - 47.2152
+     - 24
+     - 1
+   * - fixed accuracy ``1e-4``
+     - 47.2307
+     - 26
+     - n/a
+
+Accelerated MAID cuts backtracking failures from 16 to 1 and BaseOptim
+iterations from 246 to 24, matching fixed accuracy on this cheap problem.
+The mechanism the acceleration targets is the one that was hurting.
+
+Nesterov or heavy-ball momentum on ``theta`` is not included: it would move
+the search direction away from ``-z`` and break Proposition 3.1. Future work.
+
 Minibatch accumulation
 ----------------------
 
