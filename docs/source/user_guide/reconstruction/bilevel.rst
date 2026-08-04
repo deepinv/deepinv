@@ -504,9 +504,9 @@ span a chunk. Cost is ``m`` times the per-sample DWR cost, independent of
 chunk size.
 
 **Cost honesty on the multi-sample path.** On a mean of ``m = 4`` section-4.1
-problems at condition number 20, chunk size 2, MAID with 10 outer steps
-against warm-started fixed accuracy ``1e-4`` to the same upper-level value
-(fresh problem objects per method so ``n_gd_iters`` is not shared):
+problems at condition number 20, chunk size 2, 10 outer steps for MAID,
+warm-started fixed accuracy ``1e-4`` to each method's final ``f`` (fresh
+problem objects per method so ``n_gd_iters`` is not shared):
 
 .. list-table::
    :header-rows: 1
@@ -514,33 +514,103 @@ against warm-started fixed accuracy ``1e-4`` to the same upper-level value
    * - method
      - f final
      - GD steps
-     - sample lower solves
+     - sample lower
+     - BT
      - wall (s)
-   * - MAID
+     - GD / fixed
+   * - vanilla MAID
      - 43.79
      - 355 611
      - 1 168
-     - 4.31
-   * - fixed ``1e-4``
+     - 11
+     - 4.33
+     - 2.88
+   * - fixed to vanilla ``f``
      - 43.83
      - 123 646
      - 72
-     - 1.48
+     - n/a
+     - 1.57
+     - 1
+   * - accelerated MAID
+     - 43.70
+     - 144 294
+     - 688
+     - 7
+     - 1.76
+     - 0.90
+   * - fixed to accel ``f``
+     - 43.74
+     - 160 380
+     - 100
+     - n/a
+     - 1.98
+     - 1
 
-MAID loses on both GD and wall here. The split is almost entirely lower-level
-work (about 99 percent of wall). Hypergradient formation and the certified
-``omega`` bound together are under 1 percent; the goal-oriented estimator is
-not on this path. The structural cause is line search: each trial re-solves
-all ``m`` samples, so sample-lower calls are about 16 times higher for MAID
-(1168 vs 72). Wall tracks total GD (ratio about 2.9 on both).
+Vanilla MAID loses on both GD and wall. The structural cause is line search:
+each trial re-solves all ``m`` samples (1168 sample-lower calls against 72).
+Hypergradient and certified ``omega`` remain under 1 percent of wall; the
+goal-oriented estimator is not on this path.
+
+Accelerated MAID is the measurement that matters on this path. Every avoided
+backtracking failure saves ``m`` lower-level solves rather than one.
+Here sample_lower drops from 1168 to 688, GD from 355611 to 144294, and the
+GD ratio against fixed flips from 2.88 to 0.90. Wall follows (0.89x fixed).
+
+Cost table over condition number (``max_iter=8``, fixed to each method's
+``f``; ``rg`` is GD MAID / GD fixed):
+
+.. list-table::
+   :header-rows: 1
+
+   * - cond
+     - GD van
+     - GD acc
+     - GD fixed (to van)
+     - sl van
+     - sl acc
+     - BT van
+     - BT acc
+     - rg van
+     - rg acc
+   * - 5
+     - 17 112
+     - 5 518
+     - 5 097
+     - 976
+     - 588
+     - 10
+     - 6
+     - 3.36
+     - 0.60
+   * - 10
+     - 73 693
+     - 22 514
+     - 23 200
+     - 1 108
+     - 664
+     - 11
+     - 7
+     - 3.18
+     - 0.97
+   * - 20
+     - 284 232
+     - 72 970
+     - 101 860
+     - 1 060
+     - 576
+     - 10
+     - 6
+     - 2.79
+     - 0.68
 
 An earlier draft reused the same problem objects for both methods, so the
 GD counter summed MAID and fixed and falsely made fixed look more expensive
-(355611 + 123646 = 479257). The table above uses independent counters.
+(355611 + 123646 = 479257). The tables above use independent counters.
 
-Chunking remains a memory control with bitwise trajectory invariance. It is
-not a free speedup on a multi-sample line-search path where call overhead
-and re-solves dominate.
+Chunking is a memory control with bitwise trajectory invariance. With
+vanilla MAID it is not a free speedup on the multi-sample line-search path.
+With acceleration it is competitive on cost as well.
 
 Minimal usage
 -------------

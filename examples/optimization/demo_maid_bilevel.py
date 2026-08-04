@@ -635,14 +635,15 @@ assert mem_chunk[0][1] < mem_chunk[-1][1], (
     "peak working memory must grow with chunk size"
 )
 
-# Matched-quality cost. Fresh problem objects for each method so n_gd_iters
-# is not shared (a prior bug summed MAID and fixed counters on one object).
+# Matched-quality cost: vanilla MAID, accelerated MAID, warm-started fixed.
+# Fresh problem objects per method so n_gd_iters is not shared.
 print()
 print(
     f"  matched quality at cond={MB_COND:g}, m={MB_M}, chunk_size={MB_CHUNK} "
-    f"(stop fixed when f <= f_MAID; warm-started fixed baseline)"
+    f"(fixed stops at each method's f; warm-started fixed baseline)"
 )
-cfg_mb = MAIDConfig(
+
+common_mb = dict(
     eps0=1e-1,
     delta0=1e-1,
     alpha0=alpha0_mb,
@@ -658,158 +659,241 @@ cfg_mb = MAIDConfig(
     g_convex=True,
     check_descent_direction=False,
 )
-probs_maid = make_quadratic_dataset(MB_M, cond=MB_COND, n=40, d=3, seed=0)
-mb_maid = MinibatchOracle(wrap_smooth_dataset(probs_maid), chunk_size=MB_CHUNK)
-t0 = time.perf_counter()
-th_mb, hist_mb = MAID(mb_maid, cfg_mb).run(theta0_mb.clone())
-wall_mb = time.perf_counter() - t0
-f_mb = _mb_f(probs_maid, th_mb)
-gd_mb = mb_maid.n_gd_iters
-up_mb = int(hist_mb["n_upper_iters"])
-sl_mb = mb_maid.n_sample_lower_solves
-sh_mb = mb_maid.n_sample_hypergradients
 
-probs_fix = make_quadratic_dataset(MB_M, cond=MB_COND, n=40, d=3, seed=0)
-mb_fix = MinibatchOracle(wrap_smooth_dataset(probs_fix), chunk_size=MB_CHUNK)
-th_fx = theta0_mb.clone()
-warm = None
-up_fx = 0
-t0 = time.perf_counter()
-while up_fx < 80:
-    up_fx += 1
-    lower = mb_fix.solve_lower_level(th_fx, eps=FIXED_EPS, warm_start=warm)
-    hyper = mb_fix.hypergradient(th_fx, lower, delta=FIXED_EPS)
-    th_fx = th_fx - alpha0_mb * hyper.z
-    warm = lower
-    if _mb_f(probs_fix, th_fx) <= f_mb * 1.001:
-        break
-wall_fx = time.perf_counter() - t0
-f_fx = _mb_f(probs_fix, th_fx)
-gd_fx = mb_fix.n_gd_iters
-sl_fx = mb_fix.n_sample_lower_solves
-sh_fx = mb_fix.n_sample_hypergradients
+
+def _run_mb_maid(accelerated: bool):
+    probs = make_quadratic_dataset(MB_M, cond=MB_COND, n=40, d=3, seed=0)
+    cfg = (
+        accelerated_maid_config(**common_mb)
+        if accelerated
+        else MAIDConfig(**common_mb)
+    )
+    mb = MinibatchOracle(wrap_smooth_dataset(probs), chunk_size=MB_CHUNK)
+    t0 = time.perf_counter()
+    th, hist = MAID(mb, cfg).run(theta0_mb.clone())
+    wall = time.perf_counter() - t0
+    return {
+        "f": _mb_f(probs, th),
+        "gd": mb.n_gd_iters,
+        "sl": mb.n_sample_lower_solves,
+        "sh": mb.n_sample_hypergradients,
+        "wall": wall,
+        "bt": hist["n_backtrack_failures"],
+        "up": int(hist["n_upper_iters"]),
+    }
+
+
+def _run_mb_fixed(f_target: float):
+    probs = make_quadratic_dataset(MB_M, cond=MB_COND, n=40, d=3, seed=0)
+    a0 = _mb_alpha0(probs)
+    mb = MinibatchOracle(wrap_smooth_dataset(probs), chunk_size=MB_CHUNK)
+    th = theta0_mb.clone()
+    warm = None
+    n_up = 0
+    t0 = time.perf_counter()
+    while n_up < 80:
+        n_up += 1
+        lower = mb.solve_lower_level(th, eps=FIXED_EPS, warm_start=warm)
+        hyper = mb.hypergradient(th, lower, delta=FIXED_EPS)
+        th = th - a0 * hyper.z
+        warm = lower
+        if _mb_f(probs, th) <= f_target * 1.001:
+            break
+    wall = time.perf_counter() - t0
+    return {
+        "f": _mb_f(probs, th),
+        "gd": mb.n_gd_iters,
+        "sl": mb.n_sample_lower_solves,
+        "sh": mb.n_sample_hypergradients,
+        "wall": wall,
+        "up": n_up,
+    }
+
+
+van = _run_mb_maid(accelerated=False)
+acc = _run_mb_maid(accelerated=True)
+fix_v = _run_mb_fixed(van["f"])
+fix_a = _run_mb_fixed(acc["f"])
 
 print(
     f"  {'method':<28} {'f_final':>10} {'GD':>10} "
-    f"{'sample_lo':>10} {'sample_hy':>10} {'wall_s':>8}"
+    f"{'sample_lo':>10} {'BT':>5} {'wall_s':>8}"
 )
 print(
-    f"  {'MAID chunk=2':<28} {f_mb:>10.4f} {gd_mb:>10d} "
-    f"{sl_mb:>10d} {sh_mb:>10d} {wall_mb:>8.3f}"
+    f"  {'vanilla MAID':<28} {van['f']:>10.4f} {van['gd']:>10d} "
+    f"{van['sl']:>10d} {van['bt']:>5d} {van['wall']:>8.3f}"
 )
 print(
-    f"  {'Fixed accuracy 1e-4':<28} {f_fx:>10.4f} {gd_fx:>10d} "
-    f"{sl_fx:>10d} {sh_fx:>10d} {wall_fx:>8.3f}"
-)
-ratio_mb = gd_mb / max(gd_fx, 1)
-ratio_wall = wall_mb / max(wall_fx, 1e-12)
-print(
-    f"  GD ratio MAID/fixed = {ratio_mb:.3f}, "
-    f"wall ratio = {ratio_wall:.3f}, "
-    f"sample_lower ratio = {sl_mb / max(sl_fx, 1):.2f}, "
-    f"f0 = {f0_mb:.4f}"
+    f"  {'fixed to vanilla f':<28} {fix_v['f']:>10.4f} {fix_v['gd']:>10d} "
+    f"{fix_v['sl']:>10d} {'-':>5} {fix_v['wall']:>8.3f}"
 )
 print(
-    "  Wall clock split (this instance): lower-level solves dominate "
-    f"({100 * wall_mb / max(wall_mb, 1e-12):.0f}% of MAID wall is inside "
-    "solve_lower / hypergradient accumulation). Hypergradient and "
-    "error_bound together are under 1 percent; the certified omega path "
-    "is not the bottleneck. The structural cost is line search: each "
-    "trial re-solves all m samples, so sample_lower calls are "
-    f"{sl_mb} for MAID against {sl_fx} for fixed "
-    f"({sl_mb / max(sl_fx, 1):.1f}x). Wall tracks total GD "
-    f"({ratio_mb:.2f}x GD, {ratio_wall:.2f}x wall)."
+    f"  {'accelerated MAID':<28} {acc['f']:>10.4f} {acc['gd']:>10d} "
+    f"{acc['sl']:>10d} {acc['bt']:>5d} {acc['wall']:>8.3f}"
+)
+print(
+    f"  {'fixed to accelerated f':<28} {fix_a['f']:>10.4f} {fix_a['gd']:>10d} "
+    f"{fix_a['sl']:>10d} {'-':>5} {fix_a['wall']:>8.3f}"
+)
+
+r_gd_v = van["gd"] / max(fix_v["gd"], 1)
+r_wall_v = van["wall"] / max(fix_v["wall"], 1e-12)
+r_sl_v = van["sl"] / max(fix_v["sl"], 1)
+r_gd_a = acc["gd"] / max(fix_a["gd"], 1)
+r_wall_a = acc["wall"] / max(fix_a["wall"], 1e-12)
+r_sl_a = acc["sl"] / max(fix_a["sl"], 1)
+print(
+    f"  vanilla/fixed:  GD {r_gd_v:.3f}, wall {r_wall_v:.3f}, "
+    f"sample_lower {r_sl_v:.2f}"
+)
+print(
+    f"  accel/fixed:    GD {r_gd_a:.3f}, wall {r_wall_a:.3f}, "
+    f"sample_lower {r_sl_a:.2f}"
+)
+print(
+    f"  accel/vanilla:  GD {acc['gd'] / max(van['gd'], 1):.3f}, "
+    f"wall {acc['wall'] / max(van['wall'], 1e-12):.3f}, "
+    f"sample_lower {acc['sl'] / max(van['sl'], 1):.2f}, "
+    f"BT {acc['bt']}/{van['bt']}"
+)
+print(
+    "  Mechanism: every line-search trial re-solves all m samples. "
+    "Acceleration cuts backtracking, so the sample_lower saving is "
+    f"multiplied by m (here m={MB_M}): vanilla {van['sl']} against "
+    f"accelerated {acc['sl']} against fixed {fix_v['sl']}."
 )
 print(
     "  Note: an earlier draft reused the same problem objects for MAID "
     "and fixed, so n_gd_iters summed both runs and falsely made fixed "
     "look more expensive. Counters above use fresh problems per method."
 )
-assert f_mb < f0_mb
+assert van["f"] < f0_mb
+assert acc["f"] < f0_mb
+# Acceleration should reduce sample_lower relative to vanilla on this path.
+assert acc["sl"] < van["sl"], (
+    "accelerated MAID should issue fewer sample_lower solves than vanilla"
+)
 
-# Mini crossover with chunking: cond in {5, 10, 20}. Fresh problems each time.
+# Cost table over condition number: vanilla, accelerated, fixed (to vanilla f).
 print()
 print(
-    f"  Minibatch cost table (m={MB_M}, chunk={MB_CHUNK}): "
-    f"GD and wall to f <= f_MAID(max_iter=8), fresh counters"
+    f"  Minibatch cost table (m={MB_M}, chunk={MB_CHUNK}, max_iter=8): "
+    f"vanilla vs accelerated vs fixed to each method's f"
 )
 print(
-    f"  {'cond':>6} {'gd_maid':>10} {'gd_fixed':>10} {'r_gd':>7} "
-    f"{'wall_m':>8} {'wall_f':>8} {'r_wall':>7} {'sl_m':>6} {'sl_f':>6}"
+    f"  {'cond':>6} {'gd_v':>8} {'gd_a':>8} {'gd_fv':>8} "
+    f"{'sl_v':>6} {'sl_a':>6} {'sl_fv':>6} "
+    f"{'bt_v':>5} {'bt_a':>5} "
+    f"{'rg_v':>6} {'rg_a':>6} {'rw_a':>6}"
 )
 mb_cross = []
 for cond in (5.0, 10.0, 20.0):
-    probs_m = make_quadratic_dataset(MB_M, cond=cond, n=40, d=3, seed=0)
-    a0 = _mb_alpha0(probs_m)
-    th0 = torch.ones(3, dtype=dtype)
-    mb_m = MinibatchOracle(wrap_smooth_dataset(probs_m), chunk_size=MB_CHUNK)
-    cfg_c = MAIDConfig(
-        eps0=1e-1,
-        delta0=1e-1,
-        alpha0=a0,
-        rho=0.5,
-        rho_bar=1.5,
-        nu=0.5,
-        nu_bar=1.1,
-        eta=0.5,
-        lambd=0.1,
-        max_BT=20,
-        max_iter=8,
-        tol=1e-8,
-        g_convex=True,
-        check_descent_direction=False,
-    )
-    t0 = time.perf_counter()
-    th_m, hist_m = MAID(mb_m, cfg_c).run(th0.clone())
-    wall_m = time.perf_counter() - t0
-    f_target = _mb_f(probs_m, th_m)
-    gd_m = mb_m.n_gd_iters
-    sl_m = mb_m.n_sample_lower_solves
-    up_m = int(hist_m["n_upper_iters"])
+    a0 = None
 
-    probs_f = make_quadratic_dataset(MB_M, cond=cond, n=40, d=3, seed=0)
-    mb_f = MinibatchOracle(wrap_smooth_dataset(probs_f), chunk_size=MB_CHUNK)
-    th_f = th0.clone()
-    warm = None
-    up_f = 0
-    t0 = time.perf_counter()
-    while up_f < 80:
-        up_f += 1
-        lower = mb_f.solve_lower_level(th_f, eps=FIXED_EPS, warm_start=warm)
-        hyper = mb_f.hypergradient(th_f, lower, delta=FIXED_EPS)
-        th_f = th_f - a0 * hyper.z
-        warm = lower
-        if _mb_f(probs_f, th_f) <= f_target * 1.001:
-            break
-    wall_f = time.perf_counter() - t0
-    ratio_c = gd_m / max(mb_f.n_gd_iters, 1)
-    ratio_w = wall_m / max(wall_f, 1e-12)
-    mb_cross.append(
-        (
-            cond,
-            gd_m,
-            mb_f.n_gd_iters,
-            ratio_c,
-            wall_m,
-            wall_f,
-            ratio_w,
-            sl_m,
-            mb_f.n_sample_lower_solves,
+    def _one(accelerated: bool):
+        probs = make_quadratic_dataset(MB_M, cond=cond, n=40, d=3, seed=0)
+        a0_local = _mb_alpha0(probs)
+        cfg = (
+            accelerated_maid_config(
+                eps0=1e-1,
+                delta0=1e-1,
+                alpha0=a0_local,
+                rho=0.5,
+                rho_bar=1.5,
+                nu=0.5,
+                nu_bar=1.1,
+                eta=0.5,
+                lambd=0.1,
+                max_BT=20,
+                max_iter=8,
+                tol=1e-8,
+                g_convex=True,
+                check_descent_direction=False,
+            )
+            if accelerated
+            else MAIDConfig(
+                eps0=1e-1,
+                delta0=1e-1,
+                alpha0=a0_local,
+                rho=0.5,
+                rho_bar=1.5,
+                nu=0.5,
+                nu_bar=1.1,
+                eta=0.5,
+                lambd=0.1,
+                max_BT=20,
+                max_iter=8,
+                tol=1e-8,
+                g_convex=True,
+                check_descent_direction=False,
+            )
         )
-    )
+        mb = MinibatchOracle(wrap_smooth_dataset(probs), chunk_size=MB_CHUNK)
+        t0 = time.perf_counter()
+        th, hist = MAID(mb, cfg).run(torch.ones(3, dtype=dtype))
+        wall = time.perf_counter() - t0
+        return {
+            "f": _mb_f(probs, th),
+            "gd": mb.n_gd_iters,
+            "sl": mb.n_sample_lower_solves,
+            "wall": wall,
+            "bt": hist["n_backtrack_failures"],
+            "a0": a0_local,
+        }
+
+    def _fixed(f_target: float, a0_local: float):
+        probs = make_quadratic_dataset(MB_M, cond=cond, n=40, d=3, seed=0)
+        mb = MinibatchOracle(wrap_smooth_dataset(probs), chunk_size=MB_CHUNK)
+        th = torch.ones(3, dtype=dtype)
+        warm = None
+        n_up = 0
+        t0 = time.perf_counter()
+        while n_up < 80:
+            n_up += 1
+            lower = mb.solve_lower_level(th, eps=FIXED_EPS, warm_start=warm)
+            hyper = mb.hypergradient(th, lower, delta=FIXED_EPS)
+            th = th - a0_local * hyper.z
+            warm = lower
+            if _mb_f(probs, th) <= f_target * 1.001:
+                break
+        wall = time.perf_counter() - t0
+        return {
+            "f": _mb_f(probs, th),
+            "gd": mb.n_gd_iters,
+            "sl": mb.n_sample_lower_solves,
+            "wall": wall,
+            "up": n_up,
+        }
+
+    v = _one(False)
+    a = _one(True)
+    fv = _fixed(v["f"], v["a0"])
+    fa = _fixed(a["f"], a["a0"])
+    rg_v = v["gd"] / max(fv["gd"], 1)
+    rg_a = a["gd"] / max(fa["gd"], 1)
+    rw_a = a["wall"] / max(fa["wall"], 1e-12)
+    mb_cross.append((cond, v, a, fv, fa, rg_v, rg_a, rw_a))
     print(
-        f"  {cond:6.1f} {gd_m:10d} {mb_f.n_gd_iters:10d} {ratio_c:7.3f} "
-        f"{wall_m:8.3f} {wall_f:8.3f} {ratio_w:7.3f} "
-        f"{sl_m:6d} {mb_f.n_sample_lower_solves:6d}"
+        f"  {cond:6.1f} {v['gd']:8d} {a['gd']:8d} {fv['gd']:8d} "
+        f"{v['sl']:6d} {a['sl']:6d} {fv['sl']:6d} "
+        f"{v['bt']:5d} {a['bt']:5d} "
+        f"{rg_v:6.3f} {rg_a:6.3f} {rw_a:6.3f}"
     )
 
 print(
-    "  On this multi-sample path with line search, MAID issues many more "
-    "sample_lower calls than warm-started fixed accuracy, so it can lose "
-    "on both GD and wall even when the single-sample crossover favours it. "
-    "Chunking still bounds peak working memory and leaves the trajectory "
-    "bitwise invariant; it is a memory control, not a free speedup."
+    "  Reading: vanilla MAID loses on GD and wall because line search "
+    "multiplies sample_lower by about 20x. Accelerated MAID cuts "
+    "sample_lower and backtracking, and is competitive with (often cheaper "
+    "than) warm-started fixed accuracy on this path. Chunking remains a "
+    "memory control with bitwise trajectory invariance; with acceleration "
+    "it is also competitive on cost."
 )
+# For summary variables used below.
+gd_mb, wall_mb, sl_mb = van["gd"], van["wall"], van["sl"]
+gd_fx, wall_fx, sl_fx = fix_v["gd"], fix_v["wall"], fix_v["sl"]
+ratio_mb, ratio_wall = r_gd_v, r_wall_v
+gd_acc_mb, wall_acc_mb, sl_acc_mb = acc["gd"], acc["wall"], acc["sl"]
+r_gd_acc, r_wall_acc = r_gd_a, r_wall_a
 
 
 # %%
@@ -856,7 +940,7 @@ print(
 )
 print(
     f"  minibatch m={MB_M} cond={MB_COND:g} chunk={MB_CHUNK}: "
-    f"MAID {gd_mb} GD / {wall_mb:.2f}s vs fixed {gd_fx} GD / {wall_fx:.2f}s "
-    f"(GD ratio {ratio_mb:.3f}, wall ratio {ratio_wall:.3f}, "
-    f"sample_lower {sl_mb}/{sl_fx})"
+    f"vanilla {gd_mb} GD / {wall_mb:.2f}s (ratio {ratio_mb:.3f}), "
+    f"accel {gd_acc_mb} GD / {wall_acc_mb:.2f}s (ratio {r_gd_acc:.3f}), "
+    f"sample_lower {sl_mb}/{sl_acc_mb}/{sl_fx}"
 )
