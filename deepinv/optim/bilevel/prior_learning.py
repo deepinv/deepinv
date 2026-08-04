@@ -182,7 +182,10 @@ class TikhonovWeightProblem:
             stepsize=stepsize,
             max_iter=max_iter if max_iter is not None else self.max_iter,
         )
-        residual_tol = eps * mu
+        # Floor the residual tolerance: when lambda is tiny, eps * mu can fall
+        # below the floating-point residual floor of GD on ill-conditioned
+        # physics (blur, weak regularisation), and the solver never terminates.
+        residual_tol = max(float(eps) * float(mu), 1e-8)
         result = solve_base_optim(
             model,
             self.y,
