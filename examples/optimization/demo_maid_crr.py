@@ -56,6 +56,7 @@ from deepinv.optim.bilevel import (
     accelerated_maid_config,
     build_crr_minibatch_oracle,
     pack_init_theta,
+    renormalise_free_kernels,
     unpack_theta,
 )
 from deepinv.utils.demo import load_dataset
@@ -77,9 +78,9 @@ CRR_CFG = ConvexRidgeConfig(
 )
 N_OUTER = 6
 FIXED_EPS = 1e-3
-ALPHA0_CRR = 5e-4
+ALPHA0_CRR = 2e-2
 ALPHA0_TIK = 1e-3
-MAX_GD = 2_000
+MAX_GD = 8_000
 
 
 def psnr(a: torch.Tensor, b: torch.Tensor) -> float:
@@ -246,6 +247,7 @@ def train_crr_maid(samples, accelerated: bool, n_outer: int = N_OUTER):
     )
     t0 = time.perf_counter()
     th, hist = MAID(oracle, cfg).run(th0.clone())
+    th = renormalise_free_kernels(th, CRR_CFG)
     wall = time.perf_counter() - t0
     gd = sum(
         int(getattr(o.problem, "n_gd_iters", 0)) for o in oracle.sample_oracles
@@ -271,6 +273,7 @@ def train_crr_fixed(samples, n_outer: int = N_OUTER):
         lower = oracle.solve_lower_level(th, eps=FIXED_EPS, warm_start=warm)
         hyper = oracle.hypergradient(th, lower, delta=FIXED_EPS)
         th = th - ALPHA0_CRR * hyper.z
+        th = renormalise_free_kernels(th, CRR_CFG)
         warm = lower
     wall = time.perf_counter() - t0
     gd = sum(
@@ -338,6 +341,29 @@ for pname, make_phys, seed0 in problem_specs:
         f"wall={maid['wall']:.1f}s",
         flush=True,
     )
+    # Acceptance test for the unit-norm fix: lambda_k must move.
+    th0_ref = pack_init_theta(CRR_CFG, dtype=dtype, seed=0, log_lambda0=-1.0)
+    _, lam0 = unpack_theta(th0_ref, CRR_CFG)
+    _, lam1 = unpack_theta(maid["theta"], CRR_CFG)
+    print(
+        f"  {'k':>3} {'lambda0':>10} {'lambda_final':>12} {'ratio':>10}",
+        flush=True,
+    )
+    for k in range(CRR_CFG.n_kernels):
+        r = float(lam1[k] / lam0[k])
+        print(
+            f"  {k:3d} {float(lam0[k]):10.6f} {float(lam1[k]):12.6f} {r:10.4f}",
+            flush=True,
+        )
+    max_move = float((lam1 / lam0).max().item())
+    min_move = float((lam1 / lam0).min().item())
+    print(
+        f"  lambda ratio range [{min_move:.4f}, {max_move:.4f}] "
+        f"(must leave ~1.00 if unit-norm fixed the degeneracy)",
+        flush=True,
+    )
+    maid["lam0"] = lam0.detach().cpu()
+    maid["lam1"] = lam1.detach().cpu()
 
     print("Training CRR with fixed accuracy ...", flush=True)
     fixed = train_crr_fixed(train_samples, n_outer=N_OUTER)
@@ -530,10 +556,35 @@ print(
 )
 print(
     f"  CRR gamma={CRR_CFG.gamma} (mu floor for residual stopping); "
-    "lambda_k=exp(vartheta_k)."
+    "lambda_k=exp(vartheta_k); kernels unit-norm after zero-mean; "
+    f"free_kernel_scale={CRR_CFG.free_kernel_scale} "
+    "(scale degeneracy and Euclidean chart: see convex_ridge module docstring)."
 )
 print(f"  Figures: {FIG_DIR}")
 print(
     "  Numbers are measured. If CRR does not beat grid-tuned Tikhonov on a "
     "problem, that is reported rather than tuned away."
 )
+if "inpainting" in artifacts:
+    lam0 = artifacts["inpainting"]["maid"]["lam0"]
+    lam1 = artifacts["inpainting"]["maid"]["lam1"]
+    ratios = lam1 / lam0
+    print()
+    print("Inpainting CRR-MAID lambda motion (init log_lambda0=-1 => 0.367879):")
+    print(
+        f"  min ratio={float(ratios.min()):.4f}, max ratio={float(ratios.max()):.4f}, "
+        f"std(lambda_final)={float(lam1.std()):.6f}"
+    )
+    if float(ratios.max()) < 1.05 and float(ratios.min()) > 0.95:
+        print(
+            "  WARNING: lambdas barely moved; scale degeneracy may still be present."
+        )
+    else:
+        print(
+            "  Weights moved: scale is no longer absorbed entirely by the kernels."
+        )
+    spread = float(lam1.max() / lam1.min())
+    print(
+        f"  final lambda spread max/min={spread:.3f} "
+        f"({'interchangeable' if spread < 1.2 else 'allocated across filters'})"
+    )

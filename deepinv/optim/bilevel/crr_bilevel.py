@@ -52,7 +52,7 @@ class CRRSampleProblem:
     y: torch.Tensor
     x_star: torch.Tensor
     cfg: ConvexRidgeConfig = field(default_factory=ConvexRidgeConfig)
-    max_iter: int = 3_000
+    max_iter: int = 10_000
     lipschitz_data: float | None = None
 
     def __post_init__(self) -> None:
@@ -154,7 +154,8 @@ class CRRSampleProblem:
         return x - self.x_star
 
     def f_closed_form(self, theta: torch.Tensor) -> torch.Tensor:
-        x, _ = self.solve_lower(theta, eps=1e-4)
+        # Looser than training residuals: diagnostics only, must not hang.
+        x, _ = self.solve_lower(theta, eps=5e-3)
         return self.g(x)
 
     def solve_lower(
@@ -167,8 +168,10 @@ class CRRSampleProblem:
         """Residual-stopped GD on ``h(., theta)``."""
         self.load_theta(theta)
         mu = self.mu(theta)
+        # Lip bound is conservative; take a fraction for stability under
+        # unit-norm kernels (effective scale sits in lambda_k).
         L = self.lipschitz_data + self.prior.lipschitz_bound()
-        step = 1.0 / max(L, 1e-8)
+        step = 0.5 / max(L, 1e-8)
         max_it = int(max_iter if max_iter is not None else self.max_iter)
         if x_init is None:
             x = self.physics.A_adjoint(self.y).detach().clone()
@@ -189,7 +192,7 @@ class CRRSampleProblem:
             if gnorm > tol:
                 raise RuntimeError(
                     f"CRR GD failed residual {tol} (got {gnorm}) "
-                    f"in {max_it} iters"
+                    f"in {max_it} iters (L={L:.4g}, step={step:.4g})"
                 )
         self.n_gd_iters += n_it
         self.n_lower_solves += 1
@@ -330,7 +333,7 @@ def build_crr_minibatch_oracle(
     samples: list[tuple[Any, torch.Tensor, torch.Tensor]],
     cfg: ConvexRidgeConfig | None = None,
     chunk_size: int = 1,
-    max_iter: int = 3_000,
+    max_iter: int = 10_000,
 ):
     """Minibatch oracle over CRR samples sharing one flat theta."""
     from .minibatch import MinibatchOracle

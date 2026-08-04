@@ -57,6 +57,7 @@ from .convex_ridge import (
     ConvexRidgePrior,
     n_crr_params,
     pack_init_theta,
+    renormalise_free_kernels,
     unpack_theta,
 )
 from .crr_bilevel import (
@@ -106,6 +107,7 @@ __all__ = [
     "ConvexRidgePrior",
     "n_crr_params",
     "pack_init_theta",
+    "renormalise_free_kernels",
     "unpack_theta",
     "CRRSampleProblem",
     "CRRSampleOracle",
