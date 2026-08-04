@@ -52,6 +52,18 @@ from .oracle import (
     LowerLevelState,
     strong_convexity_distance_bound,
 )
+from .convex_ridge import (
+    ConvexRidgeConfig,
+    ConvexRidgePrior,
+    n_crr_params,
+    pack_init_theta,
+    unpack_theta,
+)
+from .crr_bilevel import (
+    CRRSampleOracle,
+    CRRSampleProblem,
+    build_crr_minibatch_oracle,
+)
 from .prior_learning import TikhonovWeightOracle, TikhonovWeightProblem
 from .quadratic_ls import QuadraticBilevelLS
 from .saddle import (
@@ -90,6 +102,14 @@ __all__ = [
     "wrap_smooth_dataset",
     "TikhonovWeightProblem",
     "TikhonovWeightOracle",
+    "ConvexRidgeConfig",
+    "ConvexRidgePrior",
+    "n_crr_params",
+    "pack_init_theta",
+    "unpack_theta",
+    "CRRSampleProblem",
+    "CRRSampleOracle",
+    "build_crr_minibatch_oracle",
     "solve_base_optim",
     "build_solver",
     "gradient_residual",
