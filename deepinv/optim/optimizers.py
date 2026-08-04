@@ -22,7 +22,12 @@ from deepinv.optim.optim_iterators import (
 )
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import ZeroPrior, Prior
-from deepinv.optim.data_fidelity import DataFidelity, PoissonLikelihood, ZeroFidelity
+from deepinv.optim.data_fidelity import (
+    DataFidelity,
+    PoissonLikelihood,
+    StackedPhysicsDataFidelity,
+    ZeroFidelity,
+)
 from deepinv.optim.bregman import Bregman
 from deepinv.models import Reconstructor
 from deepinv.optim.bregman import BregmanL2
@@ -2256,7 +2261,7 @@ class MLEM(BaseOptim):
         x_{k+1} = \frac{x_k}{A^T \mathbf{1}} \odot A^T \left(\frac{y}{A x_k + b}\right)
 
     where :math:`A` is the forward operator, :math:`y` is the observed data,
-    :math:`b` is an optional additive background, :math:`\mathbf{1}` is a tensor of ones,
+    :math:`b` is an optional additive background (useful in PET), :math:`\mathbf{1}` is a tensor of ones,
     and :math:`\odot` denotes element-wise multiplication.
 
     The algorithm can be used with a prior term (e.g., for MAP-EM variants) or without
@@ -2384,49 +2389,43 @@ class OSEM(BaseOptim):
     r"""
     Ordered-Subsets Expectation-Maximization (OSEM) algorithm for Poisson inverse problems.
 
-    OSEM was proposed by Hudson and Larkin
-    :footcite:t:`hudsonAcceleratedImageReconstruction1994` to accelerate the
-    MLEM algorithm of Shepp and Vardi
-    :footcite:t:`sheppMaximumLikelihoodReconstruction1982` by splitting the
-    measurement into ordered subsets. One iteration of this optimizer is one
-    complete epoch over all subsets:
+    OSEM was proposed in :footcite:t:`hudsonAcceleratedImageReconstruction1994`
+    to accelerate MLEM :footcite:p:`sheppMaximumLikelihoodReconstruction1982` by
+    splitting the measurement into ordered subsets.
+    Note that MLEM is a special case of OSEM with only one subset.
+    At each iteration, the algorithm performs multiplicative updates over all subsets
+    of the form:
 
     .. math::
-        x_{k,l+1} =
-        \frac{x_{k,l}}{A_l^T \mathbf{1}}
-        \odot A_l^T \left(\frac{y_l}{A_l x_{k,l} + b_l}\right),
+        x_{k,l+1} = \frac{x_{k,l}}{A_l^T \mathbf{1}} \odot A_l^T \left(\frac{y_l}{A_l x_{k,l} + b_l}\right),
 
     where :math:`A_l` and :math:`y_l` are the corresponding physics and measurement
-    subset, and :math:`b_l` is an optional additive background.
+    subset, and :math:`b_l` is an optional additive background and `l` is the subset index.
 
     .. note::
 
-        The user can provide either the full measurement tensor and full tomography
-        / PET physics, or pre-split measurements and a
-        :class:`deepinv.physics.StackedLinearPhysics`.
-
-        In the first case, OSEM splits the inputs internally using
+        The user can provide either the full measurement tensor `y` and full tomography
+        / PET `physics` (and OSEM will split internally using
         :func:`deepinv.physics.split_physics` and
-        :func:`deepinv.physics.split_measurements`.
+        :func:`deepinv.physics.split_measurements`),
+        or pre-split measurements passed as a :class:`deepinv.utils.TensorList` and
+        pre-split physics passed as a :class:`deepinv.physics.StackedLinearPhysics`.
+
         Pre-split measurements can be provided as a :class:`deepinv.utils.TensorList`
-        or a list of tensors. Lists are converted to a ``TensorList`` before
+        or a list of tensors. Lists are converted to a `TensorList` before
         optimization.
 
     See :class:`deepinv.optim.optim_iterators.OSEMIteration` for the details of one
-    epoch. Internally, both accepted input forms are represented as a
-    :class:`deepinv.utils.TensorList` and a
-    :class:`deepinv.physics.StackedLinearPhysics`. The data-fidelity terms of
-    all subsets are summed when computing the objective.
+    iteration.
 
-    A regularization can be included through the ``prior`` argument using the
-    same One-Step-Late (OSL) heuristic of Green
-    :footcite:t:`greenUseEmAlgorithm1990` as :class:`deepinv.optim.MLEM`.
-    Combined with the subset mechanism, this algorithm is sometimes called OS-MAP-OSL.
+    A regularization can be included by specifying a `prior`.
+    This uses One-Step-Late (OS-MAP-OSL) :footcite:p:`greenUseEmAlgorithm1990`,
+    similar to in :class:`deepinv.optim.MLEM`.
 
     .. note::
 
         By default, the alogrithm is initialized with a tensor of ones with the same
-        shape as :math:`A^T y`. This can be overridden using ``custom_init``.
+        shape as :math:`A^T y`. This can be overridden using `custom_init`.
 
     :param int num_subsets: number of ordered subsets used when splitting a full
         physics. It must be positive and is ignored when a pre-split physics is
@@ -2438,7 +2437,7 @@ class OSEM(BaseOptim):
         Default: ``None``.
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
     :param float g_param: parameter for the prior. Default: ``None``.
-    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
+    :param float sigma_denoiser: same as `g_param`. If both `g_param` and `sigma_denoiser` are provided, `g_param` is used. Default: ``None``.
     :param str subset_strategy: ordered-subsets strategy. Currently only ``"default"``
         is supported. Default: ``"default"``.
     :param float eps: positive value used to clamp denominators in the
@@ -2454,7 +2453,7 @@ class OSEM(BaseOptim):
     :param Callable custom_init: custom initialization function. OSEM passes the
         split measurements and stacked subset physics to this function. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
-    :param list trainable_params: parameters to train if ``unfold`` is ``True``. Default: ``None``.
+    :param list trainable_params: parameters to train if `unfold` is ``True``. Default: ``None``.
     :param Callable cost_fn: custom cost function used for metrics and convergence.
         OSEM calls it with a :class:`deepinv.optim.StackedPhysicsDataFidelity`,
         split measurements, and stacked subset physics. Default: ``None``.
@@ -2495,6 +2494,14 @@ class OSEM(BaseOptim):
     ):
         if data_fidelity is None:
             data_fidelity = PoissonLikelihood()
+
+        data_fidelities = (
+            data_fidelity if isinstance(data_fidelity, list) else [data_fidelity]
+        )
+        data_fidelity = [
+            StackedPhysicsDataFidelity([cur_data_fidelity] * num_subsets)
+            for cur_data_fidelity in data_fidelities
+        ]
 
         if g_param is None and sigma_denoiser is not None:
             g_param = sigma_denoiser
@@ -2544,7 +2551,7 @@ class OSEM(BaseOptim):
         :return: Reconstructed image, and optionally the metrics dictionary when ``compute_metrics=True``.
         """
         from deepinv.physics.forward import StackedLinearPhysics
-        from deepinv.physics.functional.subsets import (
+        from deepinv.physics.functional.tomography_subsets import (
             split_measurements,
             split_physics,
         )
@@ -2555,7 +2562,7 @@ class OSEM(BaseOptim):
         if isinstance(physics, StackedLinearPhysics):
             if not isinstance(y, (TensorList, list)):
                 raise TypeError(
-                    "A pre-split deepinv.physics.StackedLinearPhysics requires pre-split measurements as a deepinv.utils.TensorList or list[torch.Tensor]. Use deepinv.physics.functional.subsets.split_measurements to split full measurements."
+                    "A pre-split deepinv.physics.StackedLinearPhysics requires pre-split measurements as a deepinv.utils.TensorList or list[torch.Tensor]. Use deepinv.physics.functional.tomography_subsets.split_measurements to split full measurements."
                 )
             if isinstance(y, list):
                 y = TensorList(y)
@@ -2567,7 +2574,7 @@ class OSEM(BaseOptim):
         elif isinstance(physics, (Tomography, TomographyWithAstra, PET)):
             if not isinstance(y, torch.Tensor):
                 raise TypeError(
-                    "A full deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, or deepinv.physics.PET requires measurements as a torch.Tensor. To provide pre-split measurements, first use deepinv.physics.functional.subsets.split_physics to create the matching physics subsets."
+                    "A full deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, or deepinv.physics.PET requires measurements as a torch.Tensor. To provide pre-split measurements, first use deepinv.physics.functional.tomography_subsets.split_physics to create the matching physics subsets."
                 )
             subset_physics = split_physics(
                 physics, self.num_subsets, strategy=self.subset_strategy
@@ -2579,8 +2586,33 @@ class OSEM(BaseOptim):
             y = y_subsets
         else:
             raise TypeError(
-                "OSEM requires a full deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, or deepinv.physics.PET, or a pre-split deepinv.physics.StackedLinearPhysics. Use deepinv.physics.functional.subsets.split_physics and deepinv.physics.functional.subsets.split_measurements to prepare supported full physics and measurements."
+                "OSEM requires a full deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, or deepinv.physics.PET, or a pre-split deepinv.physics.StackedLinearPhysics. Use deepinv.physics.functional.tomography_subsets.split_physics and deepinv.physics.functional.tomography_subsets.split_measurements to prepare supported full physics and measurements."
             )
+
+        for stacked_data_fidelity in self.data_fidelity:
+            if len(stacked_data_fidelity.data_fidelity_list) != len(physics):
+                stacked_data_fidelity.data_fidelity_list = [
+                    stacked_data_fidelity.data_fidelity_list[0]
+                ] * len(physics)
+
+        # Need to update the PoissonLikelihood data-fidelity with the background
+        # for PET physics
+        if hasattr(physics[0], "background"):
+            for stacked_data_fidelity in self.data_fidelity:
+                for i, (subset_data_fidelity, subset_physics) in enumerate(
+                    zip(
+                        stacked_data_fidelity.data_fidelity_list,
+                        physics,
+                        strict=True,
+                    )
+                ):
+                    if not isinstance(subset_data_fidelity, PoissonLikelihood):
+                        continue
+                    stacked_data_fidelity.data_fidelity_list[i] = PoissonLikelihood(
+                        gain=subset_data_fidelity.gain,
+                        bkg=subset_physics.background / subset_data_fidelity.gain,
+                        denormalize=subset_data_fidelity.d.denormalize,
+                    )
 
         return super().forward(y, physics, *args, **kwargs)
 

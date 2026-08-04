@@ -618,11 +618,8 @@ class TomographyWithAstra(LinearPhysics):
 
     @property
     def angles(self) -> torch.Tensor | None:
-        """Acquisition angles in degrees.
+        """Astra projection geometry angles tensor in degrees. If Astra vector geom, return None."""
 
-        Returns ``None`` for vector-based geometries, for which the acquisition
-        trajectory is fully described by `self.projection_geometry["Vectors"]`.
-        """
         # The type ends with "_vec" for vector-based geometries
         if "vec" in self.projection_geometry["type"]:
             return None

@@ -82,9 +82,7 @@ class PET(LinearPhysics):
     :param bool normalize_counts: If `False` the :math:`\gamma` normalization term in front of the Poisson noise is removed,
         so that the measurements :math:`y` are true integer counts.
     :param str | torch.device device: device to run the computations on, e.g. `"cpu"` or `"cuda"`
-    :param None, torch.Tensor views: one-dimensional tensor of integer indices
-        selecting the PET sinogram views to project. If ``None``, all views are
-        projected.
+    :param None, torch.Tensor views: one-dimensional tensor of integer indices selecting the PET sinogram views to project. If ``None``, all views are projected.
     :param torch.Tensor background: background sinogram :math:`b`, i.e. the expected number of background events in each LOR, with shape `(num_lors,)`
     :param torch.Tensor attenuation: attenuation map. Can be provided either in **image space** as :math:`\mu`
         (linear attenuation coefficients, shape `(H,W)` for 2D or `(D,H,W)` for 3D — typically from an auxiliary CT scan),

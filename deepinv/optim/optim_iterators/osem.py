@@ -4,11 +4,6 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from deepinv.optim.data_fidelity import (
-    PoissonLikelihood,
-    StackedPhysicsDataFidelity,
-)
-from deepinv.optim.utils import objective_function
 from deepinv.utils.tensorlist import ones_like
 
 from .optim_iterator import OptimIterator
@@ -29,40 +24,8 @@ class OSEMIteration(OptimIterator):
     """
 
     def __init__(self, eps: float = 1e-6, cost_fn=None, **kwargs):
-        super(OSEMIteration, self).__init__(cost_fn=None, **kwargs)
+        super(OSEMIteration, self).__init__(cost_fn=cost_fn, **kwargs)
         self.eps = eps
-        self._cost_fn = cost_fn or objective_function
-        self.cost_fn = self._compute_cost
-
-    def _compute_cost(
-        self,
-        x: torch.Tensor,
-        data_fidelity: DataFidelity,
-        prior: Prior,
-        params: dict,
-        y: TensorList,
-        physics: StackedLinearPhysics,
-    ) -> torch.Tensor:
-        subset_data_fidelities = []
-        for cur_physics in physics:
-            subset_data_fidelity = data_fidelity
-            if isinstance(data_fidelity, PoissonLikelihood) and hasattr(
-                cur_physics, "background"
-            ):
-                subset_data_fidelity = PoissonLikelihood(
-                    gain=data_fidelity.gain,
-                    bkg=cur_physics.background / data_fidelity.gain,
-                    denormalize=data_fidelity.d.denormalize,
-                )
-            subset_data_fidelities.append(subset_data_fidelity)
-        return self._cost_fn(
-            x,
-            StackedPhysicsDataFidelity(subset_data_fidelities),
-            prior,
-            params,
-            y,
-            physics,
-        )
 
     def forward(
         self,
