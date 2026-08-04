@@ -2589,16 +2589,14 @@ class OSEM(BaseOptim):
                 "OSEM requires a full deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, or deepinv.physics.PET, or a pre-split deepinv.physics.StackedLinearPhysics. Use deepinv.physics.functional.tomography_subsets.split_physics and deepinv.physics.functional.tomography_subsets.split_measurements to prepare supported full physics and measurements."
             )
 
-        for stacked_data_fidelity in self.data_fidelity:
-            if len(stacked_data_fidelity.data_fidelity_list) != len(physics):
-                stacked_data_fidelity.data_fidelity_list = [
-                    stacked_data_fidelity.data_fidelity_list[0]
-                ] * len(physics)
-
         # Need to update the PoissonLikelihood data-fidelity with the background
         # for PET physics
         if hasattr(physics[0], "background"):
             for stacked_data_fidelity in self.data_fidelity:
+                if not isinstance(
+                    stacked_data_fidelity.data_fidelity_list[0], PoissonLikelihood
+                ):
+                    continue
                 for i, (subset_data_fidelity, subset_physics) in enumerate(
                     zip(
                         stacked_data_fidelity.data_fidelity_list,
@@ -2606,8 +2604,6 @@ class OSEM(BaseOptim):
                         strict=True,
                     )
                 ):
-                    if not isinstance(subset_data_fidelity, PoissonLikelihood):
-                        continue
                     stacked_data_fidelity.data_fidelity_list[i] = PoissonLikelihood(
                         gain=subset_data_fidelity.gain,
                         bkg=subset_physics.background / subset_data_fidelity.gain,

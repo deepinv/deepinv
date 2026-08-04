@@ -309,40 +309,25 @@ dinv.utils.plot(
 #   y = (y_1,\ldots,y_L), \qquad
 #   A = (A_1^\top,\ldots,A_L^\top)^\top.
 #
-# OSEM applies an EM update successively with each pair :math:`(y_l,A_l)`. Processing
-# all subsets once is called an **epoch** here. Each subset update is cheaper than a full
-# MLEM iteration and updates the complete image, so OSEM generally reaches a useful
-# reconstruction in fewer passes over the complete acquisition.
-#
-# The subsets must remain matched: :math:`y_l` must contain exactly the views modeled
-# by :math:`A_l`. DeepInverse provides
-# :func:`deepinv.physics.split_measurements` and
-# :func:`deepinv.physics.split_physics` to construct these pairs.
+# OSEM applies an EM update successively with each pair :math:`(y_l,A_l)`. Each subset
+# update is cheaper than a full MLEM iteration and updates the complete image, so OSEM
+# generally reaches a useful reconstruction in fewer passes over the complete acquisition.
 
 # %%
-# Explicitly splitting the PET acquisition
-# ----------------------------------------
+# OSEM reconstruction
+# -------------------
 #
-# We first split the measurements and physics explicitly with the use of
-# :func:`deepinv.physics.split_measurements` and
-# :func:`deepinv.physics.split_physics`.
-# You can also implement your own splitting strategy, and pass the resulting
-# :class:`deepinv.physics.StackedLinearPhysics` and list of measurements to :class:`deepinv.optim.OSEM`.
+# OSEM accepts the full measurements and physics and splits them internally. Alternatively,
+# pre-split inputs can be created with :func:`deepinv.physics.split_measurements` and
+# :func:`deepinv.physics.split_physics` and passed directly to :class:`deepinv.optim.OSEM`.
 
-osem_epochs = 3
+osem_iter = 3
 num_subsets = 16
-
-_sync()
-start = time.perf_counter()
-subset_physics = dinv.physics.split_physics(physics, num_subsets)
-y_subsets = dinv.physics.split_measurements(y, physics, num_subsets)
-_sync()
-split_time = time.perf_counter() - start
 
 model_osem = dinv.optim.OSEM(
     data_fidelity=data_fidelity,
     prior=None,
-    max_iter=osem_epochs,
+    max_iter=osem_iter,
     num_subsets=num_subsets,
     custom_metrics={
         "nrmse": lambda _values, _x_prev, x_cur: nrmse(x_cur.unsqueeze(0), x).item()
@@ -352,42 +337,41 @@ model_osem = dinv.optim.OSEM(
 with torch.no_grad():
     _sync()
     start = time.perf_counter()
-    x_osem_split, metrics_osem_split = model_osem(
-        y_subsets,
-        subset_physics,
+    x_osem, metrics_osem = model_osem(
+        y,
+        physics,
         init=torch.ones_like(x),
         compute_metrics=True,
     )
     _sync()
-    osem_split_time = time.perf_counter() - start
+    osem_time = time.perf_counter() - start
 
-print(f"Subset construction time: {split_time:.2f} s")
 print(
-    f"OSEM runtime with pre-split inputs: {osem_split_time:.2f} s "
-    f"for {osem_epochs} epochs "
+    f"OSEM runtime: {osem_time:.2f} s "
+    f"for {osem_iter} iterations "
     f"({num_subsets} subsets)"
 )
-print(f"Reconstruction speedup MLEM/OSEM: {mlem_time / osem_split_time:.2f}x")
+print(f"Reconstruction speedup MLEM/OSEM: {mlem_time / osem_time:.2f}x")
 
-psnr_osem_split = psnr(x_osem_split, x)
-nrmse_osem_split = nrmse(x_osem_split, x)
+psnr_osem = psnr(x_osem, x)
+nrmse_osem = nrmse(x_osem, x)
 
 dinv.utils.plot(
     [
         x[..., mid_slice],
         x_mlem[..., mid_slice],
-        x_osem_split[..., mid_slice],
+        x_osem[..., mid_slice],
     ],
     [
         "Ground truth",
         f"MLEM ({mlem_iter} it.)",
-        f"OSEM ({osem_epochs} epochs)",
+        f"OSEM ({osem_iter} it.)",
     ],
     subtitles=[
         "Reference",
         f"PSNR: {psnr_mlem.item():.2f} dB\n" f"NRMSE: {100 * nrmse_mlem.item():.2f}%",
-        f"PSNR: {psnr_osem_split.item():.2f} dB\n"
-        f"NRMSE: {100 * nrmse_osem_split.item():.2f}%",
+        f"PSNR: {psnr_osem.item():.2f} dB\n"
+        f"NRMSE: {100 * nrmse_osem.item():.2f}%",
     ],
     rescale_mode="clip",
     vmin=0,
@@ -396,39 +380,21 @@ dinv.utils.plot(
     cbar=True,
 )
 
-# We also compare the Poisson objective and NRMSE after every MLEM iteration
-# and OSEM epoch.
+# We also compare the Poisson objective and NRMSE after every iteration.
 fig, axes = plt.subplots(1, 2, figsize=(10, 4))
 axes[0].plot(metrics_mlem["cost"][0], label="MLEM")
-axes[0].plot(metrics_osem_split["cost"][0], label="OSEM")
-axes[0].set_xlabel("Iteration / epoch")
+axes[0].plot(metrics_osem["cost"][0], label="OSEM")
+axes[0].set_xlabel("Iteration")
 axes[0].set_ylabel("Poisson NLL")
 axes[0].legend()
 
 axes[1].plot([100 * v for v in metrics_mlem["nrmse"][0]], label="MLEM")
-axes[1].plot([100 * v for v in metrics_osem_split["nrmse"][0]], label="OSEM")
-axes[1].set_xlabel("Iteration / epoch")
+axes[1].plot([100 * v for v in metrics_osem["nrmse"][0]], label="OSEM")
+axes[1].set_xlabel("Iteration")
 axes[1].set_ylabel("NRMSE (%)")
 axes[1].yaxis.set_major_formatter("{x:.0f}%")
 axes[1].legend()
 fig.tight_layout()
-
-# %%
-# Letting OSEM split full inputs automatically
-# ---------------------------------------------
-#
-# For convenience, :class:`deepinv.optim.OSEM` also accepts the original full
-# measurements and physics. It then calls the same splitting utilities internally.
-
-with torch.no_grad():
-    _sync()
-    start = time.perf_counter()
-    x_osem_full = model_osem(y, physics, init=torch.ones_like(x))
-    _sync()
-    osem_full_time = time.perf_counter() - start
-
-print(f"OSEM end-to-end runtime with full inputs: {osem_full_time:.2f} s")
-
 
 # %%
 # What next?
