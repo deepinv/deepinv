@@ -907,19 +907,19 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     )  # Optimality condition
 
 
-# MLEM and OSEM are tested separately because they only converge
-# with respect to the Poisson data fidelity.
-# Other data fidelities can be passed but the convergence is not guaranteed.
+# Specific test for MLEM / OSEM because the data-fidelity can only be the Poisson likelihood,
+# contrary to e.g mirror descent which can be tested on L2
 @pytest.mark.parametrize(
-    "algorithm, pre_split",
+    "algorithm, pre_split, num_subsets",
     [
-        (dinv.optim.MLEM, False),
-        (dinv.optim.OSEM, False),
-        (dinv.optim.OSEM, True),
+        (dinv.optim.MLEM, False, None),
+        (dinv.optim.OSEM, False, 2),
+        (dinv.optim.OSEM, True, 2),
+        (dinv.optim.OSEM, False, 1),
+        (dinv.optim.OSEM, True, 1),
     ],
-    ids=["MLEM", "OSEM", "OSEM-pre-split"],
 )
-def test_MLEM_OSEM_convergence(algorithm, pre_split, device):
+def test_MLEM_OSEM_convergence(algorithm, pre_split, num_subsets, device):
     imsize = (1, 16, 16)
     physics = dinv.physics.Tomography(
         img_width=imsize[-1],
@@ -936,13 +936,13 @@ def test_MLEM_OSEM_convergence(algorithm, pre_split, device):
     x_init = physics.A_adjoint(y).clamp(min=1e-6)
     algorithm_kwargs = {}
 
-    if algorithm is dinv.optim.OSEM:
+    if isinstance(algorithm, dinv.optim.OSEM):
         if pre_split:
-            y = dinv.physics.split_measurements(y, physics, 2)
-            physics = dinv.physics.split_physics(physics, 2)
+            y = dinv.physics.split_measurements(y, physics, num_subsets)
+            physics = dinv.physics.split_physics(physics, num_subsets)
             y = list(y)
         else:
-            algorithm_kwargs["num_subsets"] = 2
+            algorithm_kwargs["num_subsets"] = num_subsets
 
     model = algorithm(
         data_fidelity=dinv.optim.PoissonLikelihood(bkg=1e-6),
@@ -954,17 +954,18 @@ def test_MLEM_OSEM_convergence(algorithm, pre_split, device):
         **algorithm_kwargs,
     )
 
-    if algorithm is dinv.optim.OSEM:
+    if isinstance(algorithm, dinv.optim.OSEM):
         if pre_split:
             with pytest.raises(ValueError, match="must match"):
                 model(y[:-1], physics, init=x_init)
         else:
-            with pytest.raises(ValueError, match="at least two subsets"):
-                dinv.optim.OSEM(num_subsets=1)
             with pytest.raises(
                 TypeError, match="requires measurements as a torch.Tensor"
             ):
-                model(list(dinv.physics.split_measurements(y, physics, 2)), physics)
+                model(
+                    list(dinv.physics.split_measurements(y, physics, num_subsets)),
+                    physics,
+                )
 
     model(y, physics, init=x_init)
     assert model.has_converged

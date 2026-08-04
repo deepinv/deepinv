@@ -15,7 +15,7 @@ class MLEMIteration(OptimIterator):
     r"""
     Iterator for the Maximum-Likelihood Expectation-Maximization (MLEM) algorithm for Poisson inverse problems.
 
-    Class for a single iteration of the MLEM algorithm :footcite:t:`sheppMaximumLikelihoodReconstruction1982`,
+    Class for a single iteration of the MLEM algorithm :footcite:p:`sheppMaximumLikelihoodReconstruction1982`,
     which is a classic baseline reconstruction method for inverse problems with Poisson noise statistics.
     More details on the algorithm can be found in the documentation of the :class:`deepinv.optim.optimizers.MLEM` optimizer.
     """
