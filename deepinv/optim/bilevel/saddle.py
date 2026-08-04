@@ -14,8 +14,11 @@ hypergradient bound is Theorem 2 (displayed as equation 16 in the arXiv
 HTML, constants 17a to 17d; the oracles brief numbers them 17 and 18a to
 18d). Certified only when mu_g and mu_f* are known, not estimated.
 
-Maps onto DeepInverse PDCP, and onto ADMM / DRS / HQS where a saddle form
-is available.
+This module implements the saddle residual certificates and a quadratic
+saddle toy problem with a hand-rolled PDHG loop. Wiring of DeepInverse
+``PDCP`` (and ADMM / DRS / HQS saddle forms) is not done yet; only ``GD``,
+``PGD`` and ``FISTA`` are driven through
+:mod:`deepinv.optim.bilevel.base_optim_lower` for smooth/composite priors.
 """
 
 from __future__ import annotations

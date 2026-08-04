@@ -23,6 +23,13 @@ Non-certified estimator:
 known constants. Non-certified bounds require ``allow_uncertified=True``.
 """
 
+from .base_optim_lower import (
+    build_solver,
+    gradient_residual,
+    proximal_residual,
+    residual_kind_for_solver,
+    solve_base_optim,
+)
 from .estimators import GoalOrientedEstimator
 from .maid import MAID, MAIDConfig
 from .nonquadratic import NonQuadraticBilevel
@@ -32,6 +39,7 @@ from .oracle import (
     LowerLevelState,
     strong_convexity_distance_bound,
 )
+from .prior_learning import TikhonovWeightOracle, TikhonovWeightProblem
 from .quadratic_ls import QuadraticBilevelLS
 from .saddle import (
     QuadraticSaddleProblem,
@@ -62,6 +70,13 @@ __all__ = [
     "SmoothHypergradientOracle",
     "GoalOrientedSmoothOracle",
     "GoalOrientedEstimator",
+    "TikhonovWeightProblem",
+    "TikhonovWeightOracle",
+    "solve_base_optim",
+    "build_solver",
+    "gradient_residual",
+    "proximal_residual",
+    "residual_kind_for_solver",
     "hypergradient_error_bound",
     "smooth_hypergradient_error_bound",
     "inexact_gradient",

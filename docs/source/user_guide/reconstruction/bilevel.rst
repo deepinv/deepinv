@@ -41,19 +41,58 @@ Oracles
      - Lower level
      - Hypergradient
      - Error certificate
+   * - :class:`~deepinv.optim.bilevel.TikhonovWeightOracle`
+     - DeepInverse ``GD`` / ``PGD`` / ``FISTA``
+       with residual stopping
+     - IFT + CG
+     - Theorem 2.1 (certified)
    * - :class:`~deepinv.optim.bilevel.SmoothHypergradientOracle`
-     - Gradient residual
-       :math:`\|\nabla_x h\|\le \varepsilon\mu`
+     - Hand-rolled GD on quadratic /
+       nonquadratic unit-test problems
      - IFT + CG
      - Theorem 2.1 (certified)
    * - :class:`~deepinv.optim.bilevel.SaddleHypergradientOracle`
-     - PDHG residuals (eqs 6a, 6b)
+     - Hand-rolled PDHG on a quadratic saddle
+       (``PDCP`` not wired yet)
      - Piggyback adjoint
      - Theorem 2 of arXiv 2412.06436 (certified)
    * - :class:`~deepinv.optim.bilevel.GoalOrientedSmoothOracle`
-     - Same as smooth
+     - Same as smooth unit-test path
      - IFT + CG
      - Dual-weighted residual estimate (non-certified)
+
+DeepInverse optimiser residuals
+-------------------------------
+
+:mod:`deepinv.optim.bilevel.base_optim_lower` drives
+:class:`~deepinv.optim.BaseOptim` subclasses with residual stopping, not
+the default fixed-point residual ``||x_{k+1}-x_k||``.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Solver
+     - Residual
+     - Why
+   * - ``GD``
+     - Gradient residual
+       ``||grad data + lambda grad prior||``
+     - Smooth objective; strong convexity gives
+       ``||x-xhat|| <= residual / mu``
+   * - ``PGD``, ``FISTA``
+     - Proximal residual
+       ``||x - prox(x - gamma grad f)|| / gamma``
+     - Stationarity measure for composite
+       ``f + lambda g``; reduces to the gradient
+       residual when the prox is a gradient step
+   * - ``ADMM``, ``DRS``, ``PDCP``, ...
+     - Not wired
+     - No honest residual criterion is exposed yet;
+       do not guess
+
+Warm starts pass the previous reconstruction through the ``init`` argument of
+:meth:`~deepinv.optim.BaseOptim.forward` (for FISTA both primal and
+extrapolated points are set).
 
 Unifying fact (Lemma 1 of arXiv 2412.06436): if :math:`\Phi` is
 :math:`\mu`-strongly convex with minimiser :math:`x_\star`, then
@@ -166,20 +205,28 @@ Minimal usage
 
 .. code-block:: python
 
+    import deepinv as dinv
     from deepinv.optim.bilevel import (
         MAID,
         MAIDConfig,
-        QuadraticBilevelLS,
-        SmoothHypergradientOracle,
+        TikhonovWeightOracle,
+        TikhonovWeightProblem,
     )
 
-    problem = QuadraticBilevelLS(A1, A2, A3, b1, b2)
-    oracle = SmoothHypergradientOracle(problem)
-    config = MAIDConfig(alpha0=1e-2, max_iter=50, g_convex=True)
+    physics = dinv.physics.Denoising(
+        noise_model=dinv.physics.GaussianNoise(0.1)
+    )
+    # y, x_star: measurement and ground truth
+    problem = TikhonovWeightProblem(
+        physics=physics, y=y, x_star=x_star, solver="GD"
+    )
+    oracle = TikhonovWeightOracle(problem)
+    config = MAIDConfig(alpha0=0.5, max_iter=30, g_convex=True)
     theta, history = MAID(oracle, config).run(theta0)
 
     # history keys include f_exact, z_norm, n_lower_solves,
     # n_hypergradients, n_backtrack_failures
+    # problem.n_gd_iters counts BaseOptim residual iterations
 
 See also the gallery example
 :ref:`sphx_glr_auto_examples_optimization_demo_maid_bilevel.py`.

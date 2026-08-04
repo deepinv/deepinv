@@ -85,6 +85,8 @@ from .bilevel import (
     SmoothHypergradientOracle,
     GoalOrientedSmoothOracle,
     GoalOrientedEstimator,
+    TikhonovWeightOracle,
+    TikhonovWeightProblem,
     SaddleHypergradientOracle,
     QuadraticSaddleProblem,
 )

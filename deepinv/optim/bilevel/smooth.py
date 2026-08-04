@@ -9,7 +9,11 @@ solved by CG to residual delta, and the error bound is Theorem 2.1, or
 optionally a goal-oriented (DWR) estimate via
 :class:`~deepinv.optim.bilevel.estimators.GoalOrientedEstimator`.
 
-Maps onto DeepInverse GD, and onto PGD / FISTA when the prior is smooth.
+This module is the **hand-rolled** smooth path used for the quadratic /
+nonquadratic unit-test problems. For lower levels driven by DeepInverse
+optimisers (``GD``, ``PGD``, ``FISTA``) and real priors, see
+:mod:`deepinv.optim.bilevel.prior_learning` and
+:mod:`deepinv.optim.bilevel.base_optim_lower`.
 """
 
 from __future__ import annotations

@@ -50,6 +50,8 @@ Bilevel learning (MAID)
    deepinv.optim.bilevel.MAID
    deepinv.optim.bilevel.MAIDConfig
    deepinv.optim.bilevel.HypergradientOracle
+   deepinv.optim.bilevel.TikhonovWeightOracle
+   deepinv.optim.bilevel.TikhonovWeightProblem
    deepinv.optim.bilevel.SmoothHypergradientOracle
    deepinv.optim.bilevel.GoalOrientedSmoothOracle
    deepinv.optim.bilevel.GoalOrientedEstimator

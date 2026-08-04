@@ -28,6 +28,11 @@ class CGResult:
     directions: list[torch.Tensor] = field(default_factory=list)
 
 
+def _inner(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    """Frobenius inner product (works for any tensor shape)."""
+    return torch.sum(a * b)
+
+
 def cg_solve(
     A_mv,
     b: torch.Tensor,
@@ -43,6 +48,7 @@ def cg_solve(
     If ``tol`` is None, runs exactly ``max_iter`` iterations (or until the
     residual is numerically zero). Returns the residual vector so goal-oriented
     estimators can form dual-weighted residuals without re-applying ``A``.
+    Works for multi-dimensional tensors (image batches) via Frobenius products.
     """
     if x0 is None:
         x = torch.zeros_like(b)
@@ -51,7 +57,7 @@ def cg_solve(
         x = x0.clone()
         r = b - A_mv(x)
     p = r.clone()
-    res_sq = torch.dot(r, r)
+    res_sq = _inner(r, r)
     directions: list[torch.Tensor] = []
     if store_directions:
         directions.append(p.clone())
@@ -69,11 +75,11 @@ def cg_solve(
     n_iter = 0
     for n_iter in range(1, int(max_iter) + 1):
         Ap = A_mv(p)
-        pAp = torch.dot(p, Ap)
+        pAp = _inner(p, Ap)
         alpha = res_sq / (pAp + eps)
         x = x + alpha * p
         r = r - alpha * Ap
-        res_sq_new = torch.dot(r, r)
+        res_sq_new = _inner(r, r)
         if tol_sq is not None and res_sq_new.item() <= tol_sq:
             res_sq = res_sq_new
             break
@@ -116,8 +122,8 @@ def cg_recycle(
         r = b.clone()
         for p in directions:
             Ap = A_mv(p)
-            denom = torch.dot(p, Ap) + eps
-            alpha = torch.dot(p, r) / denom
+            denom = _inner(p, Ap) + eps
+            alpha = _inner(p, r) / denom
             x = x + alpha * p
             r = r - alpha * Ap
         return cg_solve(

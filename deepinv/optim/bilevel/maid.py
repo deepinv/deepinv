@@ -224,7 +224,7 @@ class MAID:
                 )
                 oracle.update_lipschitz_estimates(lower, theta)
 
-                z_norm_sq = float(torch.dot(z, z).item())
+                z_norm_sq = float(torch.sum(z * z).item())
                 z_norm = z_norm_sq**0.5
                 stop_omega = (
                     (not math.isnan(omega)) and omega <= c.tol
@@ -325,7 +325,11 @@ class MAID:
         try:
             return float(self.oracle.f_closed_form(theta).item())
         except NotImplementedError:
-            lower = self.oracle.solve_lower_level(theta, eps=self.config.eps_min)
+            lower = self.oracle.solve_lower_level(theta, eps=max(self.config.eps_min, 1e-8))
+            return float(self.oracle.g(lower.x).item())
+        except RuntimeError:
+            # High-accuracy closed form can fail numerically; fall back.
+            lower = self.oracle.solve_lower_level(theta, eps=1e-6)
             return float(self.oracle.g(lower.x).item())
 
     def _U_upper(self, g_val: float, grad_g_norm: float, eps: float) -> float:
