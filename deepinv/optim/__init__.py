@@ -75,3 +75,5 @@ from .distance import (
 )
 from . import utils
 from .linear import least_squares
+from . import bilevel
+from .bilevel import MAID, MAIDConfig, QuadraticBilevelLS
