@@ -746,9 +746,10 @@ def test_ProgressMeter(
         for _ in range(n_updates):
             meter.update(rng.random())
 
-    progress = deepinv.utils.ProgressMeter(
-        num_epochs, meters, surfix=surfix, prefix=prefix
-    )
+    with pytest.warns(DeprecationWarning):
+        progress = deepinv.utils.ProgressMeter(
+            num_epochs, meters, surfix=surfix, prefix=prefix
+        )
 
     stdout_buf = io.StringIO()
     with contextlib.redirect_stdout(stdout_buf):

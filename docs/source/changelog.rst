@@ -21,6 +21,7 @@ Changed
 ^^^^^^^
 - (Breaking) Drop support for deprecated parameters `num_channels` in :class:`deepinv.physics.generator.PSFGenerator`, :class:`deepinv.physics.generator.GaussianBlurGenerator`, :class:`deepinv.physics.generator.MotionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
 - Extend :func:`DST-I <deepinv.physics.functional.dst1>` to make it n-dimensional and add an option to have it compute the regular DST-I instead of the non-standard sign-flipped orthogonal variant (:gh:`934` by `Jérémy Scanvic`_)
+- (Breaking) Make :class:`deepinv.optim.TVPrior()` compute an explicit choice of subgradient instead of using autodiff. (:gh:`1271` by `Thibaut Modrzyk`_)
 
 Fixed
 ^^^^^
