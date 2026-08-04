@@ -1578,32 +1578,30 @@ def test_RandomPatchSampler(make_data):
 
 @pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])
 def test_extract_archive(tmp_path, kind):
+    mocker = MagicMock()
+    mocker.__enter__.return_value = mocker
+    getattr(mocker, "getmembers" if kind == "tarball" else "infolist").return_value = [
+        "a.txt",
+        "b.txt",
+    ]
+
     if kind == "zipfile":
-        mock_zip = MagicMock()
-        mock_zip.__enter__.return_value = mock_zip
-        mock_zip.infolist.return_value = ["a.txt", "b.txt"]
         with patch(
-            "deepinv.datasets.utils.zipfile.ZipFile", return_value=mock_zip
+            "deepinv.datasets.utils.zipfile.ZipFile", return_value=mocker
         ) as cls:
             extract_zipfile("archive.zip", tmp_path)
         cls.assert_called_once_with("archive.zip", "r")
-        assert mock_zip.extract.call_count == 2
 
     elif kind == "tarball":
-        mock_tar = MagicMock()
-        mock_tar.__enter__.return_value = mock_tar
-        mock_tar.getmembers.return_value = ["a.txt", "b.txt"]
-        with patch("deepinv.datasets.utils.tarfile.open", return_value=mock_tar) as fn:
+        with patch("deepinv.datasets.utils.tarfile.open", return_value=mocker) as fn:
             extract_tarball("archive.tar", tmp_path)
         fn.assert_called_once_with("archive.tar", "r:*")
-        assert mock_tar.extract.call_count == 2
 
     elif kind == "rarfile":
-        mock_rarfile_module = MagicMock()
-        mock_rar = mock_rarfile_module.RarFile.return_value
-        mock_rar.__enter__.return_value = mock_rar
-        mock_rar.infolist.return_value = ["a.txt"]
-        with patch.dict(sys.modules, {"rarfile": mock_rarfile_module}):
+        mock_module = MagicMock()
+        mock_module.RarFile.return_value = mocker
+        with patch.dict(sys.modules, {"rarfile": mock_module}):
             extract_rarfile("archive.rar", tmp_path)
-        mock_rarfile_module.RarFile.assert_called_once_with("archive.rar")
-        assert mock_rar.extract.call_count == 1
+        mock_module.RarFile.assert_called_once_with("archive.rar")
+
+    assert mocker.extract.call_count == 2
