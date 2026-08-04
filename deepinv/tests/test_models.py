@@ -1997,11 +1997,11 @@ def wiener_denoising():
 
 
 class TestWienerCoreBlurFFT:
-    """WienerDeconvolution with BlurFFT and various gamma/prior combos."""
+    """WienerDeconvolution with BlurFFT and various lambda_reg/prior combos."""
 
     def test_flat_prior(self, wiener_blur_1ch):
-        """Scalar gamma with flat prior — verify output shape."""
-        model = dinv.models.WienerDeconvolution(gamma=1.0, prior=None)
+        """Scalar lambda_reg with flat prior — verify output shape."""
+        model = dinv.models.WienerDeconvolution(lambda_reg=1.0, prior=None)
         x = torch.randn(1, 1, 16, 16)
         y = wiener_blur_1ch.A(x)
         with torch.no_grad():
@@ -2011,8 +2011,8 @@ class TestWienerCoreBlurFFT:
         ), f"Output shape {x_hat.shape} != input shape {x.shape}"
 
     def test_laplacian_prior(self, wiener_blur_1ch):
-        """Scalar gamma with Laplacian prior — verify output shape."""
-        model = dinv.models.WienerDeconvolution(gamma=1.0, prior="laplacian")
+        """Scalar lambda_reg with Laplacian prior — verify output shape."""
+        model = dinv.models.WienerDeconvolution(lambda_reg=1.0, prior="laplacian")
         x = torch.randn(1, 1, 16, 16)
         y = wiener_blur_1ch.A(x)
         with torch.no_grad():
@@ -2021,11 +2021,11 @@ class TestWienerCoreBlurFFT:
             x_hat.shape == x.shape
         ), f"Output shape {x_hat.shape} != input shape {x.shape}"
 
-    def test_tensor_gamma(self, wiener_blur_1ch):
-        """User-supplied tensor gamma — verify output shape."""
+    def test_tensor_lambda_reg(self, wiener_blur_1ch):
+        """User-supplied tensor lambda_reg (frequency-dependent NSR) — verify shape."""
         H, W = 16, 16
-        gamma_tensor = torch.ones(1, 1, H, W // 2 + 1) * 2.0
-        model = dinv.models.WienerDeconvolution(gamma=gamma_tensor)
+        lambda_tensor = torch.ones(1, 1, H, W // 2 + 1) * 0.5
+        model = dinv.models.WienerDeconvolution(lambda_reg=lambda_tensor)
         x = torch.randn(1, 1, H, W)
         y = wiener_blur_1ch.A(x)
         with torch.no_grad():
@@ -2034,13 +2034,27 @@ class TestWienerCoreBlurFFT:
             x_hat.shape == x.shape
         ), f"Output shape {x_hat.shape} != input shape {x.shape}"
 
+    def test_tensor_lambda_reg_with_zeros_is_finite(self, wiener_blur_1ch):
+        """A tensor lambda_reg containing zeros is clamped, not divided by zero."""
+        H, W = 16, 16
+        lambda_tensor = torch.zeros(1, 1, H, W // 2 + 1)
+        lambda_tensor[..., 0] = 0.5  # mix of zero and non-zero entries
+        model = dinv.models.WienerDeconvolution(lambda_reg=lambda_tensor)
+        x = torch.randn(1, 1, H, W)
+        y = wiener_blur_1ch.A(x)
+        with torch.no_grad():
+            x_hat = model(y, wiener_blur_1ch)
+        assert torch.isfinite(
+            x_hat
+        ).all(), "Zero entries in a tensor lambda_reg produced non-finite output"
+
 
 class TestWienerCoreDenoising:
     """WienerDeconvolution with Denoising physics."""
 
     def test_denoising_flat_prior(self, wiener_denoising):
         """Verify WienerDeconvolution works with Denoising (identity op, mask=1)."""
-        model = dinv.models.WienerDeconvolution(gamma=2.0, prior=None)
+        model = dinv.models.WienerDeconvolution(lambda_reg=0.5, prior=None)
         y = torch.randn(1, 1, 8, 8)
         with torch.no_grad():
             x_hat = model(y, wiener_denoising)
@@ -2048,13 +2062,37 @@ class TestWienerCoreDenoising:
             x_hat.shape == y.shape
         ), f"Output shape {x_hat.shape} != input shape {y.shape}"
 
+    def test_tensor_lambda_reg_weights_pixels(self, wiener_denoising):
+        """With Denoising the SVD basis is the identity, so a tensor lambda_reg
+        weights pixels rather than frequencies (documented in the class
+        docstring).  It must therefore be image-shaped."""
+        y = torch.randn(1, 1, 8, 8)
+
+        # Spatially varying weights: 3.0 on the top half, 1.0 on the bottom.
+        lambda_pixels = torch.ones(1, 1, 8, 8)
+        lambda_pixels[..., :4, :] = 3.0
+        model = dinv.models.WienerDeconvolution(lambda_reg=lambda_pixels)
+        with torch.no_grad():
+            x_hat = model(y, wiener_denoising)
+
+        # Per pixel the solution is y / (1 + lambda), since mask = 1 and V = I.
+        expected = y / (1.0 + lambda_pixels)
+        assert torch.allclose(
+            x_hat, expected, atol=1e-6
+        ), f"Per-pixel weighting mismatch: max diff = {(x_hat - expected).abs().max()}"
+
+        # A half-spectrum tensor is meaningless here and must not silently work.
+        bad = dinv.models.WienerDeconvolution(lambda_reg=torch.ones(1, 1, 8, 5))
+        with pytest.raises(RuntimeError, match="must match the size"):
+            bad(y, wiener_denoising)
+
 
 class TestWienerValidation:
     """Invalid physics and invalid prior string."""
 
     def test_rejects_linear_physics(self):
         """Passing Blur (LinearPhysics) raises ValueError."""
-        model = dinv.models.WienerDeconvolution(gamma=1.0)
+        model = dinv.models.WienerDeconvolution(lambda_reg=1.0)
         blur = dinv.physics.Blur(filter=torch.ones(1, 1, 3, 3) / 9.0)
         y = torch.randn(1, 1, 16, 16)
         with pytest.raises(ValueError, match="BlurFFT or Denoising"):
@@ -2062,7 +2100,7 @@ class TestWienerValidation:
 
     def test_rejects_mri_physics(self):
         """Passing MRI (DecomposablePhysics but not blur) raises ValueError."""
-        model = dinv.models.WienerDeconvolution(gamma=1.0)
+        model = dinv.models.WienerDeconvolution(lambda_reg=1.0)
         mri = dinv.physics.MRI(img_size=(2, 8, 8))
         y = torch.randn(1, 2, 8, 8)
         with pytest.raises(ValueError, match="BlurFFT or Denoising"):
@@ -2071,12 +2109,12 @@ class TestWienerValidation:
     def test_rejects_invalid_prior_string(self):
         """Invalid prior string raises ValueError at construction."""
         with pytest.raises(ValueError, match="Invalid prior"):
-            dinv.models.WienerDeconvolution(gamma=1.0, prior="wavelet")
+            dinv.models.WienerDeconvolution(lambda_reg=1.0, prior="wavelet")
 
     def test_rejects_laplacian_with_denoising(self, wiener_denoising):
         """Laplacian prior with Denoising raises ValueError
         because image dimensions are unknown."""
-        model = dinv.models.WienerDeconvolution(gamma=1.0, prior="laplacian")
+        model = dinv.models.WienerDeconvolution(lambda_reg=1.0, prior="laplacian")
         y = torch.randn(1, 1, 8, 8)
         with pytest.raises(ValueError, match="Denoising"):
             model(y, wiener_denoising)
@@ -2086,45 +2124,78 @@ class TestWienerMathCorrectness:
     """Analytical solution, convergence, and prior-ignored check."""
 
     def test_analytical_solution_denoising(self, wiener_denoising):
-        """With Denoising (mask=1) and flat gamma, the solution is
-        x_hat = gamma / (gamma + 1) * y."""
-        gamma_val = 5.0
-        model = dinv.models.WienerDeconvolution(gamma=gamma_val, prior=None)
+        """With Denoising (mask=1) and a flat lambda_reg, the solution is
+        x_hat = y / (1 + lambda_reg)."""
+        lambda_val = 0.2
+        model = dinv.models.WienerDeconvolution(lambda_reg=lambda_val, prior=None)
         y = torch.randn(2, 1, 8, 8)
         with torch.no_grad():
             x_hat = model(y, wiener_denoising)
+        # The model passes gamma = 1/lambda to prox_l2.
         # Analytical: prox_l2(z=0, y, gamma) with A=I, mask=1:
         #   b = A^T y + (1/gamma)*0 = y
-        #   scaling = mask^2 + 1/gamma = 1 + 1/gamma = (gamma+1)/gamma
-        #   V_adj(b) / scaling = y / ((gamma+1)/gamma) = y * gamma/(gamma+1)
+        #   scaling = mask^2 + 1/gamma = 1 + lambda
+        #   V_adj(b) / scaling = y / (1 + lambda)
         #   x = V(result) = result (since V=identity for Denoising)
-        expected = y * gamma_val / (gamma_val + 1.0)
+        expected = y / (1.0 + lambda_val)
         assert torch.allclose(
             x_hat, expected, atol=1e-6
         ), f"Analytical solution mismatch: max diff = {(x_hat - expected).abs().max()}"
 
-    def test_large_gamma_converges_to_pseudoinverse(self, wiener_blur_1ch):
-        """As gamma → ∞, Wiener filter converges to A_dagger."""
-        model = dinv.models.WienerDeconvolution(gamma=1e8, prior=None)
+    def test_small_lambda_converges_to_pseudoinverse(self, wiener_blur_1ch):
+        """As lambda_reg → 0, the Wiener filter converges to A_dagger."""
+        model = dinv.models.WienerDeconvolution(lambda_reg=1e-8, prior=None)
         x = torch.randn(1, 1, 16, 16)
         y = wiener_blur_1ch.A(x)
         with torch.no_grad():
             x_wiener = model(y, wiener_blur_1ch)
             x_pinv = wiener_blur_1ch.A_dagger(y)
         assert torch.allclose(x_wiener, x_pinv, atol=1e-3), (
-            f"Large-gamma convergence failed: max diff = "
+            f"Small-lambda convergence failed: max diff = "
             f"{(x_wiener - x_pinv).abs().max()}"
         )
 
-    def test_prior_ignored_when_gamma_is_tensor(self, wiener_blur_1ch):
-        """When gamma is a tensor, prior has no effect."""
+    def test_zero_lambda_is_pseudoinverse(self, wiener_blur_1ch):
+        """lambda_reg = 0 means no regularisation and returns A_dagger exactly."""
+        model = dinv.models.WienerDeconvolution(lambda_reg=0.0, prior="laplacian")
+        x = torch.randn(1, 1, 16, 16)
+        y = wiener_blur_1ch.A(x)
+        with torch.no_grad():
+            x_wiener = model(y, wiener_blur_1ch)
+            x_pinv = wiener_blur_1ch.A_dagger(y)
+        assert torch.equal(
+            x_wiener, x_pinv
+        ), "lambda_reg=0 should delegate exactly to the pseudo-inverse"
+
+    def test_larger_lambda_gives_more_regularisation(self, wiener_blur_1ch):
+        """Larger lambda_reg → stronger regularisation → lower-energy output.
+
+        This pins down the direction of the parameter: with a flat prior the
+        reconstruction is H*(f) / (|H(f)|^2 + lambda) * Y(f), whose magnitude is
+        monotonically decreasing in lambda at every frequency.
+        """
+        x = torch.randn(1, 1, 16, 16)
+        y = wiener_blur_1ch.A(x)
+        norms = []
+        for lambda_reg in (0.01, 0.1, 1.0, 10.0):
+            model = dinv.models.WienerDeconvolution(lambda_reg=lambda_reg, prior=None)
+            with torch.no_grad():
+                norms.append(model(y, wiener_blur_1ch).norm().item())
+        assert all(
+            a > b for a, b in zip(norms, norms[1:])
+        ), f"Output energy should decrease as lambda_reg grows, got {norms}"
+
+    def test_prior_ignored_when_lambda_reg_is_tensor(self, wiener_blur_1ch):
+        """When lambda_reg is a tensor, prior has no effect."""
         H, W = 16, 16
-        gamma_tensor = torch.ones(1, 1, H, W // 2 + 1) * 3.0
+        lambda_tensor = torch.ones(1, 1, H, W // 2 + 1) / 3.0
 
         model_laplacian = dinv.models.WienerDeconvolution(
-            gamma=gamma_tensor, prior="laplacian"
+            lambda_reg=lambda_tensor, prior="laplacian"
         )
-        model_flat = dinv.models.WienerDeconvolution(gamma=gamma_tensor, prior=None)
+        model_flat = dinv.models.WienerDeconvolution(
+            lambda_reg=lambda_tensor, prior=None
+        )
 
         y = torch.randn(1, 1, H, W)
         with torch.no_grad():
@@ -2132,8 +2203,8 @@ class TestWienerMathCorrectness:
             x_flat = model_flat(y, wiener_blur_1ch)
 
         assert torch.allclose(x_laplacian, x_flat, atol=1e-7), (
-            f"Prior should be ignored when gamma is a tensor, but outputs differ: "
-            f"max diff = {(x_laplacian - x_flat).abs().max()}"
+            f"Prior should be ignored when lambda_reg is a tensor, but outputs "
+            f"differ: max diff = {(x_laplacian - x_flat).abs().max()}"
         )
 
 
@@ -2142,9 +2213,9 @@ class TestWienerShapes:
 
     def test_laplacian_gamma_shape(self, wiener_blur_1ch):
         """Verify the Laplacian gamma tensor has the correct shape."""
-        from deepinv.models.wiener import _build_laplacian_gamma
+        from deepinv.physics.blur import _build_laplacian_gamma
 
-        gamma_tensor = _build_laplacian_gamma(1.0, wiener_blur_1ch)
+        gamma_tensor = _build_laplacian_gamma(lambda_reg=1.0, physics=wiener_blur_1ch)
         H, W = 16, 16
         expected_shape = (1, 1, H, W // 2 + 1)
         assert gamma_tensor.shape == expected_shape, (
@@ -2159,7 +2230,7 @@ class TestWienerShapes:
 
     def test_multichannel_rgb(self, wiener_blur_3ch):
         """3-channel (RGB) images with Laplacian prior."""
-        model = dinv.models.WienerDeconvolution(gamma=1.0, prior="laplacian")
+        model = dinv.models.WienerDeconvolution(lambda_reg=1.0, prior="laplacian")
         x = torch.randn(1, 3, 16, 16)
         y = wiener_blur_3ch.A(x)
         with torch.no_grad():
@@ -2170,7 +2241,7 @@ class TestWienerShapes:
 
     def test_batched_inputs(self, wiener_blur_1ch):
         """Batched inputs (B=4)."""
-        model = dinv.models.WienerDeconvolution(gamma=1.0, prior="laplacian")
+        model = dinv.models.WienerDeconvolution(lambda_reg=1.0, prior="laplacian")
         x = torch.randn(4, 1, 16, 16)
         y = wiener_blur_1ch.A(x)
         with torch.no_grad():

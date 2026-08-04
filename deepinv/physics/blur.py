@@ -4,7 +4,12 @@ import torch
 import torch.fft as fft
 from torch import Tensor
 import torch.nn.functional as F
-from deepinv.physics.forward import LinearPhysics, DecomposablePhysics, adjoint_function
+from deepinv.physics.forward import (
+    LinearPhysics,
+    DecomposablePhysics,
+    Denoising,
+    adjoint_function,
+)
 import deepinv.physics.functional as dF
 from deepinv.utils.mixins import TiledMixin2d
 from deepinv.utils._internal import _as_pair, _add_tuple
@@ -561,6 +566,225 @@ class Blur(LinearPhysics):
             raise ValueError(f"Expected Tensor dimension to be 4 or 5, is {y.dim()}")
 
 
+# ---------------------------------------------------------------------------
+# Wiener deconvolution helpers
+#
+# These private helpers translate the user-facing regularisation parameter
+# :math:`\lambda` into the ``gamma`` argument of
+# :meth:`~deepinv.physics.DecomposablePhysics.prox_l2`.  They live here, next
+# to :class:`BlurFFT`, because they depend on its Fourier (SVD) conventions.
+# They are shared by :meth:`BlurFFT.A_dagger` and
+# :class:`deepinv.models.WienerDeconvolution`.
+# ---------------------------------------------------------------------------
+
+# Valid string values for the ``prior`` parameter.
+_VALID_PRIORS = (None, "flat", "laplacian")
+
+# Small constant used to clamp tensor lambda_reg values to avoid division by zero.
+_EPS_CLAMP = 1e-9
+
+
+def _build_laplacian_gamma(
+    lambda_reg: float,
+    physics: DecomposablePhysics,
+    eps: float = 1e-9,
+) -> Tensor:
+    r"""Build the ``gamma`` tensor for ``prox_l2`` from a scalar ``lambda_reg`` and a Laplacian prior.
+
+    The 2-D discrete Laplacian kernel is::
+
+        [[ 0, -1,  0],
+         [-1,  4, -1],
+         [ 0, -1,  0]]
+
+    Its power spectrum :math:`|H_L(f)|^2` is larger at high frequencies, therefore
+    using this operator as a regularisation term in the objective function penalises
+    high frequencies more than low frequencies. This enforces spatial smoothness,
+    which is the standard assumption for natural images (Wiener-Hunt deconvolution).
+
+    The objective being solved is:
+
+    .. math::
+
+        \hat{x} = \arg\min_x \; \frac{1}{2}\Vert Ax - y \Vert_2^2
+                  + \frac{\lambda}{2}\Vert L x \Vert_2^2
+
+    To evaluate this via ``physics.prox_l2(z=0, y=y, gamma=gamma_tensor)``,
+    the returned tensor satisfies
+    :math:`\gamma(f) = \frac{1}{\lambda \, (|H_L(f)|^2 + \varepsilon)}`.
+
+    :param float lambda_reg: Scalar regularisation strength (noise-to-signal ratio).
+    :param deepinv.physics.Physics physics: The forward physics operator. Used to determine
+        the spatial dimensions :math:`(H, W)` so that the returned tensor
+        correctly broadcasts with ``physics.mask`` (which contains the singular values
+        of the forward operator, such as the Fourier magnitude of the blur kernel) inside
+        :meth:`~deepinv.physics.DecomposablePhysics.prox_l2`.
+    :param float eps: Small constant added to :math:`|H_L(f)|^2` to avoid
+        division by zero at DC (where the Laplacian is zero). Default is ``1e-9``.
+    :return: Frequency-varying gamma tensor whose shape is compatible with
+        ``physics.mask`` after the trailing-dimension expansion performed
+        by :meth:`~deepinv.physics.DecomposablePhysics.prox_l2`.
+    :rtype: torch.Tensor
+    :raises ValueError: If ``physics`` is a :class:`~deepinv.physics.Denoising` operator,
+        because image dimensions are unknown.
+    """
+    # --- Determine spatial dimensions from the physics operator ----------
+    if isinstance(physics, BlurFFT):
+        if getattr(physics, "mask", None) is None:
+            raise ValueError(
+                "The BlurFFT operator must have a filter initialized before "
+                "constructing the Laplacian prior."
+            )
+
+        # BlurFFT stores img_size as (C, H, W).
+        H, W = physics.img_size[-2], physics.img_size[-1]
+
+        # Future-proofing:
+        # handles both 4D and 5D real-pair tensor formats
+        # (if switched away from view_as_real() in V_adjoint() in BlurFFT)
+        # and half / full spectrum FFTs (if switched to fft2 from rfft2 in BlurFFT).
+        # DeepInverse filters are 4D: (1, C, H, W).
+        # Determine the frequency width (W_freq) by checking the mask's dimensions.
+        # A spatial-frequency mask is 4D: (1, C, H, W_freq).
+        # To broadcast the real singular values against the real-pair representation
+        # of view_as_real outputs, a 5th dimension is added: (1, C, H, W_freq, 2).
+        if physics.mask.dim() > 4:
+            W_freq = physics.mask.shape[-2]  # Extract from 5D tensor
+        else:
+            W_freq = physics.mask.shape[-1]  # Extract from 4D tensor
+
+        use_real_fft = W_freq == (W // 2 + 1)
+    elif isinstance(physics, Denoising):
+        # Denoising uses spatial-domain identity operators for its SVD (V = I).
+        # We cannot apply a frequency-domain Laplacian prior inside its prox_l2.
+        raise ValueError(
+            "Cannot use prior='laplacian' with Denoising physics because "
+            "Denoising does not use frequency-domain SVD operators. "
+            "To apply a Laplacian prior to a denoising problem, bypass this limitation "
+            "by treating Denoising as a special case of Deconvolution: pass a delta "
+            "function as the filter to BlurFFT, which provides the necessary "
+            "frequency-domain SVD."
+        )
+    else:
+        # Should not reach here due to the validation performed by the callers,
+        # but guard defensively.
+        raise TypeError(
+            f"Unsupported physics type {type(physics).__name__} for "
+            f"Laplacian prior construction."
+        )
+
+    # --- Build the 2-D discrete Laplacian kernel -------------------------
+    # Shape: (1, 1, 3, 3) — standard 4-connected Laplacian.
+    laplacian_kernel = torch.tensor(
+        [[0.0, -1.0, 0.0], [-1.0, 4.0, -1.0], [0.0, -1.0, 0.0]],
+        device=physics.mask.device,
+        dtype=physics.mask.real.dtype,
+    ).reshape(1, 1, 3, 3)
+
+    # --- Compute the Laplacian's power spectrum --------------------------
+    # Zero-pad to (H, W) and compute FFT, using rfft2 or fft2 as
+    # determined by use_real_fft.
+
+    # filter_fft determines the padding from img_size at dims=(-2, -1).
+    # We pass a 4D img_size=(1, 1, H, W) to cleanly match our 4D kernel.
+    laplacian_fft = dF.filter_fft(
+        laplacian_kernel,
+        img_size=(1, 1, H, W),
+        real_fft=use_real_fft,
+        dims=(-2, -1),
+    )
+    # laplacian_fft is a complex tensor (though mathematically purely real
+    # because the symmetric kernel was circularly shifted to the spatial origin
+    # in filter_fft()).
+    # Shape: (1, 1, H, W_freq) is determined by use_real_fft.
+    # |H_L(f)|^2 is the power spectrum.
+    laplacian_power = laplacian_fft.real**2 + laplacian_fft.imag**2
+    # laplacian_power shape: (1, 1, H, W_freq) : 4D
+    #
+    # When BlurFFT's mask is 5D: (1, C, H, W_freq, 2) due to view_as_real(),
+    # prox_l2's expansion logic adds (mask.dim() - gamma.dim()) = 1
+    # trailing dimension to gamma_tensor, giving (1, 1, H, W_freq, 1), which
+    # correctly broadcasts with the 5D mask.
+
+    # --- Compute gamma(f) = 1 / (lambda_reg * (|H_L(f)|^2 + eps)) -------
+    # This converts the user-facing lambda_reg (regularisation strength)
+    # to the internal prox_l2 gamma (data fidelity weight).
+    gamma_tensor = 1.0 / (lambda_reg * (laplacian_power + eps))
+
+    return gamma_tensor
+
+
+def _lambda_to_gamma(
+    lambda_reg: float | Tensor,
+    prior: str | None,
+    physics: DecomposablePhysics,
+) -> float | Tensor:
+    r"""Convert the user-facing ``lambda_reg`` into the ``gamma`` expected by ``prox_l2``.
+
+    :meth:`~deepinv.physics.DecomposablePhysics.prox_l2` weights the *data
+    fidelity* term:
+
+    .. math::
+
+        \hat{x} = \arg\min_x \; \frac{\gamma}{2}\Vert Ax - y \Vert_2^2
+                  + \frac{1}{2}\Vert x \Vert_2^2
+
+    whereas ``lambda_reg`` weights the *regularisation* term, which is the
+    convention used elsewhere in DeepInverse (see :mod:`deepinv.optim`).
+    Dividing the objective above by :math:`\gamma` shows that the two
+    conventions are related by :math:`\gamma = 1 / \lambda`.
+
+    This is the single place where that inversion is performed, so that
+    :meth:`BlurFFT.A_dagger` and :class:`deepinv.models.WienerDeconvolution`
+    cannot drift apart.
+
+    .. note::
+
+        The ``lambda_reg = 0`` case (no regularisation) is **not** handled here.
+        It corresponds to :math:`\gamma \to \infty`, and is handled by the
+        callers, which return the pseudo-inverse directly.
+
+    :param float, torch.Tensor lambda_reg: Regularisation strength :math:`\lambda`.
+        A scalar is combined with ``prior``; a tensor is interpreted as a
+        frequency-dependent noise-to-signal ratio and ``prior`` is ignored.
+    :param str, None prior: Regularisation prior (``None``, ``"flat"`` or
+        ``"laplacian"``).  Only used when ``lambda_reg`` is a scalar.
+    :param deepinv.physics.Physics physics: Forward physics operator, needed to
+        build the Laplacian power spectrum when ``prior="laplacian"``.
+    :return: The ``gamma`` value (scalar or tensor) to pass to ``prox_l2``.
+    :rtype: float or torch.Tensor
+    :raises ValueError: If ``prior`` is not one of ``(None, "flat", "laplacian")``.
+    """
+    if isinstance(lambda_reg, Tensor):
+        # Frequency-dependent NSR: gamma(f) = 1 / lambda(f).
+        # Clamping avoids a division by zero: lambda_reg = 0 at a given
+        # frequency means "no noise there", i.e. gamma -> infinity, so the
+        # measurement is trusted (almost) perfectly at that frequency.
+        # The ``prior`` parameter is ignored in this case.
+        return 1.0 / lambda_reg.clamp(min=_EPS_CLAMP)
+
+    if prior in (None, "flat"):
+        # Scalar lambda_reg with flat prior: gamma = 1/lambda_reg.
+        return 1.0 / lambda_reg
+
+    if prior == "laplacian":
+        # Scalar lambda_reg with Laplacian prior: build a frequency-varying
+        # gamma tensor from the Laplacian's power spectrum.
+        return _build_laplacian_gamma(lambda_reg, physics)
+
+    raise ValueError(f"Invalid prior '{prior}'.  Must be one of {_VALID_PRIORS}.")
+
+
+def _is_zero_lambda(lambda_reg: float | Tensor) -> bool:
+    r"""Return ``True`` when ``lambda_reg`` is the scalar zero (no regularisation).
+
+    A tensor ``lambda_reg`` is never treated as "no regularisation", even if all
+    of its entries are zero: it is clamped element-wise by
+    :func:`_lambda_to_gamma` instead.
+    """
+    return not isinstance(lambda_reg, Tensor) and lambda_reg == 0
+
+
 class BlurFFT(DecomposablePhysics):
     """
 
@@ -740,7 +964,7 @@ class BlurFFT(DecomposablePhysics):
         self,
         y: Tensor,
         wiener: bool = False,
-        gamma: float | Tensor = 1.0,
+        lambda_reg: float | Tensor = 1.0,
         prior: str | None = "laplacian",
         **kwargs,
     ) -> Tensor:
@@ -753,31 +977,72 @@ class BlurFFT(DecomposablePhysics):
 
         When ``wiener=True``, it computes the Wiener-filtered (Tikhonov-regularised)
         solution via :meth:`~deepinv.physics.DecomposablePhysics.prox_l2` with
-        :math:`z = 0`:
+        :math:`z = 0`.  Depending on ``lambda_reg`` and ``prior``, the solved
+        problem is one of:
+
+        **1. Flat prior** (scalar ``lambda_reg``, ``prior="flat"`` or ``None``):
 
         .. math::
 
-            \hat{x} = \arg\min_x \; \frac{1}{2}\Vert Ax - y \Vert_2^2 + \frac{1}{2} \Vert \tilde{\gamma}^{-1/2} \odot F x \Vert_2^2
+            \hat{x} = \arg\min_x \; \frac{1}{2}\Vert Ax - y \Vert_2^2
+                      + \frac{\lambda}{2}\Vert x \Vert_2^2
 
-        This is equivalent to the classical Wiener filter when the forward
-        operator is a convolution.
+        **2. Laplacian prior** (scalar ``lambda_reg``, ``prior="laplacian"``) —
+        classical **Wiener-Hunt deconvolution**, where :math:`L` is the
+        :math:`3 \times 3` discrete Laplacian:
+
+        .. math::
+
+            \hat{x} = \arg\min_x \; \frac{1}{2}\Vert Ax - y \Vert_2^2
+                      + \frac{\lambda}{2}\Vert L x \Vert_2^2
+
+        **3. Custom tensor** (``lambda_reg`` is a tensor, ``prior`` ignored):
+
+        .. math::
+
+            \hat{x} = \arg\min_x \; \frac{1}{2}\Vert Ax - y \Vert_2^2
+                      + \frac{1}{2}\Vert \lambda^{1/2} \odot F x \Vert_2^2
+
+        where :math:`F` is the Fourier transform and :math:`\odot` is
+        element-wise multiplication.  Because the forward operator is a
+        convolution, :math:`F` is exactly the SVD basis of :math:`A`, so
+        :math:`\lambda` is a frequency-dependent noise-to-signal PSD ratio
+        :math:`\lambda(f) = S_n(f) / S_x(f)` and the solution is the classical
+        Wiener filter:
+
+        .. math::
+
+            \hat{X}(f) = \frac{H^*(f)}{\vert H(f) \vert^2 + \lambda(f)} \, Y(f)
+
+        .. seealso::
+
+            :class:`deepinv.models.WienerDeconvolution` provides the same
+            reconstruction as a stand-alone :class:`~deepinv.models.Reconstructor`
+            model, usable with the :class:`~deepinv.Trainer` pipeline.
 
         :param torch.Tensor y: Measurement tensor.
         :param bool wiener: If ``True``, use Wiener filtering instead of the
             plain pseudo-inverse.  Default: ``False``.
-        :param float, torch.Tensor gamma: Regularisation parameter.
-            When ``prior`` is ``None`` or ``"flat"``, a scalar ``gamma`` is
-            passed directly to ``prox_l2``.
-            When ``prior="laplacian"`` and ``gamma`` is a scalar, a
-            frequency-varying gamma tensor is built from the Laplacian's
-            power spectrum (Wiener–Hunt model).
-            When ``gamma`` is a :class:`torch.Tensor`, it is passed directly
-            to ``prox_l2`` and ``prior`` is ignored.
-        :param str, None prior: Regularisation prior (only used when ``gamma``
-            is a scalar).
+        :param float, torch.Tensor lambda_reg: Regularisation parameter
+            :math:`\lambda` controlling the trade-off between data fidelity and
+            regularisation.
+            **Larger values produce smoother (more regularised) reconstructions.**
 
-            - ``None`` or ``"flat"``: Flat SNR assumption.
-            - ``"laplacian"``: Wiener–Hunt model using the discrete Laplacian.
+            - If a **scalar** ``float``, it is combined with ``prior``
+              (as detailed above).  Setting ``lambda_reg=0`` returns the
+              pseudo-inverse (no regularisation).
+            - If a :class:`torch.Tensor`, it is interpreted as a
+              frequency-dependent NSR (noise-to-signal PSD ratio,
+              :math:`\lambda(f) = S_n(f) / S_x(f)`), and ``prior`` is ignored.
+              Entries equal to zero are clamped to a small positive value to
+              avoid a division by zero.
+
+        :param str, None prior: Regularisation prior (only used when
+            ``lambda_reg`` is a scalar).
+
+            - ``None`` or ``"flat"``: Flat (constant) regularisation.
+            - ``"laplacian"``: Wiener-Hunt model using the discrete Laplacian,
+              penalising high frequencies more than low frequencies.
 
         :return: Reconstructed image tensor.
         :rtype: torch.Tensor
@@ -794,7 +1059,7 @@ class BlurFFT(DecomposablePhysics):
             >>> filter = torch.ones(1, 1, 3, 3) / 9.0
             >>> physics = BlurFFT(img_size=(1, 8, 8), filter=filter)
             >>> y = physics(x)
-            >>> x_hat = physics.A_dagger(y, wiener=True, gamma=1.0)
+            >>> x_hat = physics.A_dagger(y, wiener=True, lambda_reg=1.0)
             >>> x_hat.shape
             torch.Size([1, 1, 8, 8])
 
@@ -804,26 +1069,26 @@ class BlurFFT(DecomposablePhysics):
             return super().A_dagger(y, **kwargs)
 
         # --- Wiener filtering mode ---
-        if isinstance(gamma, Tensor):
-            # User-supplied tensor: pass through as-is.
-            # The ``prior`` parameter is ignored in this case.
-            pass
-        elif prior in (None, "flat"):
-            # Scalar gamma with flat prior: pass the scalar directly.
-            pass
-        elif prior == "laplacian":
-            # Scalar gamma with Laplacian prior: build a frequency-varying
-            # gamma tensor from the Laplacian's power spectrum.
-            from deepinv.models.wiener import _build_laplacian_gamma
+        # lambda_reg = 0 means no regularisation, which is the pseudo-inverse.
+        if _is_zero_lambda(lambda_reg):
+            return super().A_dagger(y, **kwargs)
 
-            gamma = _build_laplacian_gamma(gamma, self)
-        else:
-            raise ValueError(
-                f"Invalid prior '{prior}'.  Must be one of (None, 'flat', 'laplacian')."
-            )
+        # Convert lambda_reg (regularisation weight) into the internal gamma
+        # (data fidelity weight) expected by prox_l2.
+        gamma = _lambda_to_gamma(lambda_reg, prior, self)
 
-        # prox_l2(z=0, y, gamma) solves the general objective:
-        #   argmin_x  1/2 ||Ax - y||^2  +  1/2 ||gamma^{-1/2} \odot F x||^2
+        # With z = 0, prox_l2 minimises the following, where gamma acts
+        # element-wise in the SVD basis of A, which for BlurFFT is the Fourier
+        # basis (V^* = F):
+        #   argmin_x  1/2 ||Ax - y||^2  +  1/2 || gamma^{-1/2} \odot Fx ||^2
+        # Substituting gamma = 1/lambda_reg gives the objective documented above:
+        #   argmin_x  1/2 ||Ax - y||^2  +  1/2 || lambda_reg^{1/2} \odot Fx ||^2
+        # The three cases are specialisations of that single objective:
+        #   - scalar lambda_reg collapses to  lambda_reg/2 ||x||^2, since F is
+        #     unitary and so ||Fx|| = ||x||;
+        #   - the Laplacian prior sets lambda_reg(f) = lambda_reg (|H_L(f)|^2 + eps),
+        #     which is  lambda_reg/2 ||Lx||^2  by Parseval's theorem;
+        #   - a tensor lambda_reg is used as-is, i.e. a frequency-dependent NSR.
         return self.prox_l2(z=0, y=y, gamma=gamma)
 
 
