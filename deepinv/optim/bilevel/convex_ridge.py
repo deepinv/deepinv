@@ -1,4 +1,4 @@
-"""Convex ridge regulariser (Goujon-Unser style) for bilevel learning.
+r"""Convex ridge regulariser (Goujon-Unser style) for bilevel learning.
 
 .. math::
 
