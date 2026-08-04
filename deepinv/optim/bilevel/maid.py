@@ -1,7 +1,11 @@
 """Algorithm 3.1: Method of Adaptive Inexact Descent (MAID).
 
 Salehi, Mukherjee, Roberts and Ehrhardt, SIAM J. Math. Data Sci. 2025
-(arXiv 2308.10098).
+(arXiv 2308.10098). Reused wholesale for saddle-point lower levels in
+Bogensperger, Ehrhardt, Pock, Salehi and Wong (arXiv 2412.06436).
+
+MAID talks only to a :class:`~deepinv.optim.bilevel.oracle.HypergradientOracle`.
+It does not know which lower-level solver produced ``z``.
 
 Hyperparameters
 --------------
@@ -26,19 +30,23 @@ With g being L_g-smooth,
 
 If ``g_convex`` is True, the tighter convex form of remark 3.6 is used:
 ``psi_tilde = psi - (L_g / 2) * eps^2``.
+
+Certification
+-------------
+By default MAID refuses a non-certified oracle. Convergence of the outer
+loop is proven only when ``oracle.certified`` is True. Opt in with
+``allow_uncertified=True`` and measure under-estimation rate separately.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
 import torch
 
-from .hypergradient import inexact_gradient
-
-if TYPE_CHECKING:
-    from .quadratic_ls import QuadraticBilevelLS
+from .oracle import HypergradientOracle, LowerLevelState
+from .quadratic_ls import QuadraticBilevelLS
+from .smooth import SmoothHypergradientOracle, inexact_gradient_from_oracle
 
 
 @dataclass
@@ -59,7 +67,6 @@ class MAIDConfig:
     tol: float = 1e-6
     g_convex: bool = False
     max_outer_BT: int = 50
-    # Optional hard cap on how small eps / delta may become.
     eps_min: float = 1e-14
     delta_min: float = 1e-14
 
@@ -68,10 +75,32 @@ class MAIDConfig:
 class MAID:
     """Method of Adaptive Inexact Descent (Algorithm 3.1)."""
 
-    problem: QuadraticBilevelLS
+    oracle: HypergradientOracle
     config: MAIDConfig = field(default_factory=MAIDConfig)
+    allow_uncertified: bool = False
 
-    def __post_init__(self) -> None:
+    def __init__(
+        self,
+        oracle,
+        config: MAIDConfig | None = None,
+        allow_uncertified: bool = False,
+    ):
+        # Accept either a HypergradientOracle or the smooth quadratic problem
+        # used in rung 1 tests.
+        if isinstance(oracle, QuadraticBilevelLS):
+            oracle = SmoothHypergradientOracle(oracle)
+        if not isinstance(oracle, HypergradientOracle):
+            raise TypeError(
+                "MAID expects a HypergradientOracle "
+                f"(or QuadraticBilevelLS), got {type(oracle)!r}"
+            )
+        self.oracle = oracle
+        self.config = config if config is not None else MAIDConfig()
+        self.allow_uncertified = allow_uncertified
+        self.oracle.require_certified_or_opt_in(allow_uncertified)
+        self._validate_config()
+
+    def _validate_config(self) -> None:
         c = self.config
         if not (0.0 < c.rho < 1.0):
             raise ValueError(f"rho must lie in (0, 1), got {c.rho}")
@@ -97,7 +126,7 @@ class MAID:
         ``f_exact``, ``z_norm``, ``omega``, ``eps``, ``delta``, ``alpha``.
         """
         c = self.config
-        problem = self.problem
+        oracle = self.oracle
         theta = theta0.detach().clone()
         eps = float(c.eps0)
         delta = float(c.delta0)
@@ -112,38 +141,33 @@ class MAID:
             "alpha": [],
         }
 
-        x_warm: torch.Tensor | None = None
+        warm: LowerLevelState | None = None
 
         for _k in range(c.max_iter):
-            # Outer loop over growing backtracking budgets (Algorithm 3.1).
             accepted = False
             z = torch.zeros_like(theta)
             omega = float("inf")
-            xbar = (
-                x_warm
-                if x_warm is not None
-                else torch.zeros(problem.d, dtype=theta.dtype, device=theta.device)
-            )
+            lower = warm
             alpha_k = alpha
             eps_k = eps
             delta_k = delta
 
             for j in range(c.max_BT, c.max_BT + c.max_outer_BT):
-                z, eps_k, delta_k, omega, xbar = inexact_gradient(
-                    problem,
+                z, eps_k, delta_k, omega, lower = inexact_gradient_from_oracle(
+                    oracle,
                     theta,
                     eps=eps_k,
                     delta=delta_k,
                     eta=c.eta,
                     nu=c.nu,
-                    x_init=x_warm,
+                    warm_start=warm,
                 )
-                problem.update_lipschitz_estimates(xbar, theta)
+                oracle.update_lipschitz_estimates(lower, theta)
 
                 z_norm_sq = float(torch.dot(z, z).item())
                 z_norm = z_norm_sq**0.5
                 if z_norm <= c.tol and omega <= c.tol:
-                    history["f_exact"].append(float(problem.f_closed_form(theta).item()))
+                    history["f_exact"].append(self._f_diag(theta))
                     history["z_norm"].append(z_norm)
                     history["omega"].append(omega)
                     history["eps"].append(eps_k)
@@ -151,29 +175,27 @@ class MAID:
                     history["alpha"].append(alpha_k)
                     return theta, history
 
-                # Prospective accuracy used in U_upper after a successful step.
                 eps_next = c.nu_bar * eps_k
-                g_old = float(problem.g(xbar).item())
-                grad_g_old_norm = float(problem.grad_g(xbar).norm().item())
+                g_old = float(oracle.g(lower.x).item())
+                grad_g_old_norm = float(oracle.grad_g(lower.x).norm().item())
                 U_lower = self._U_lower(g_old, grad_g_old_norm, eps_k)
 
                 alpha_try = alpha_k
                 line_ok = False
-                x_trial = xbar
+                lower_trial = lower
                 for _i in range(j):
                     theta_trial = theta - alpha_try * z
-                    # Solve lower level at the trial point (warm-started).
-                    # Accuracy eps_k is at least as tight as eps_next when
-                    # nu_bar > 1, so U_upper(., eps_next) remains valid.
-                    x_trial, _ = problem.solve_lower(
-                        theta_trial, eps=eps_k, x_init=xbar
+                    lower_trial = oracle.solve_lower_level(
+                        theta_trial, eps=eps_k, warm_start=lower
                     )
-                    g_new = float(problem.g(x_trial).item())
-                    grad_g_new_norm = float(problem.grad_g(x_trial).norm().item())
+                    g_new = float(oracle.g(lower_trial.x).item())
+                    grad_g_new_norm = float(
+                        oracle.grad_g(lower_trial.x).norm().item()
+                    )
                     U_upper = self._U_upper(g_new, grad_g_new_norm, eps_next)
                     psi = U_upper - U_lower + c.lambd * alpha_try * z_norm_sq
                     if c.g_convex:
-                        psi = psi - 0.5 * problem.L_g * (eps_k**2)
+                        psi = psi - 0.5 * oracle.L_g * (eps_k**2)
                     if psi <= 0.0:
                         line_ok = True
                         alpha_k = alpha_try
@@ -182,17 +204,16 @@ class MAID:
 
                 if line_ok:
                     theta = theta - alpha_k * z
-                    x_warm = x_trial
+                    warm = lower_trial
                     eps = max(c.nu_bar * eps_k, c.eps_min)
                     delta = max(c.nu_bar * delta_k, c.delta_min)
                     alpha = c.rho_bar * alpha_k
                     accepted = True
                     break
 
-                # Backtracking failed at this budget: tighten accuracy.
                 eps_k = max(c.nu * eps_k, c.eps_min)
                 delta_k = max(c.nu * delta_k, c.delta_min)
-                alpha_k = alpha  # reset step size for the next outer attempt
+                alpha_k = alpha
 
             if not accepted:
                 raise RuntimeError(
@@ -200,7 +221,7 @@ class MAID:
                     f"max_outer_BT={c.max_outer_BT} accuracy refinements."
                 )
 
-            history["f_exact"].append(float(problem.f_closed_form(theta).item()))
+            history["f_exact"].append(self._f_diag(theta))
             history["z_norm"].append(float(z.norm().item()))
             history["omega"].append(omega)
             history["eps"].append(eps_k)
@@ -212,10 +233,17 @@ class MAID:
 
         return theta, history
 
+    def _f_diag(self, theta: torch.Tensor) -> float:
+        try:
+            return float(self.oracle.f_closed_form(theta).item())
+        except NotImplementedError:
+            lower = self.oracle.solve_lower_level(theta, eps=self.config.eps_min)
+            return float(self.oracle.g(lower.x).item())
+
     def _U_upper(self, g_val: float, grad_g_norm: float, eps: float) -> float:
-        L = self.problem.L_g
+        L = self.oracle.L_g
         return g_val + grad_g_norm * eps + 0.5 * L * (eps**2)
 
     def _U_lower(self, g_val: float, grad_g_norm: float, eps: float) -> float:
-        L = self.problem.L_g
+        L = self.oracle.L_g
         return g_val - grad_g_norm * eps - 0.5 * L * (eps**2)
