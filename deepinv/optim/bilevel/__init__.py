@@ -21,6 +21,13 @@ Non-certified estimator:
 
 ``certified`` is True only for a bound proven in a citable paper with
 known constants. Non-certified bounds require ``allow_uncertified=True``.
+
+Minibatch accumulation of a mean over ``m`` samples lives in
+:class:`MinibatchOracle`: fixed-order sequential reduction (bitwise
+invariant to chunk size), mean error-bound aggregation
+``omega = (1/m) sum omega_i``, and peak working memory proportional to
+chunk size. See the module docstring of
+:mod:`deepinv.optim.bilevel.minibatch`.
 """
 
 from .base_optim_lower import (
@@ -32,6 +39,12 @@ from .base_optim_lower import (
 )
 from .estimators import GoalOrientedEstimator
 from .maid import MAID, MAIDConfig
+from .minibatch import (
+    MinibatchOracle,
+    make_quadratic_dataset,
+    mean_error_bound,
+    wrap_smooth_dataset,
+)
 from .nonquadratic import NonQuadraticBilevel
 from .oracle import (
     HypergradientOracle,
@@ -70,6 +83,10 @@ __all__ = [
     "SmoothHypergradientOracle",
     "GoalOrientedSmoothOracle",
     "GoalOrientedEstimator",
+    "MinibatchOracle",
+    "mean_error_bound",
+    "make_quadratic_dataset",
+    "wrap_smooth_dataset",
     "TikhonovWeightProblem",
     "TikhonovWeightOracle",
     "solve_base_optim",

@@ -252,6 +252,12 @@ both methods stop at a relative gap of ``5e-3`` to the closed-form optimum:
      - 23
      - 1.54 s
 
+The outer-step column is the stronger result. Each upper-level iteration
+costs a hypergradient (a full linear solve plus an adjoint). At condition
+number 30 MAID uses 6 outer steps against 23 for fixed accuracy, a factor of
+nearly 4 on the expensive operation. The gradient-step column (ratio 0.46)
+understates that saving.
+
 **Crossover.** Sweeping the lower-level condition number (``n=80``, ``d=4``,
 target relative gap ``5e-3``, fixed residual ``1e-4``):
 
@@ -261,34 +267,121 @@ target relative gap ``5e-3``, fixed residual ``1e-4``):
    * - condition number
      - GD MAID
      - GD fixed
-     - ratio MAID/fixed
+     - ratio GD
+     - outer MAID
+     - outer fixed
    * - 2
      - 81
      - 56
      - 1.45
+     - 2
+     - 2
    * - 5
      - 861
      - 853
      - 1.01
+     - 3
+     - 5
    * - 10
      - 4 606
      - 5 847
      - 0.79
+     - 4
+     - 9
    * - 20
      - 17 334
      - 40 691
      - 0.43
+     - 5
+     - 16
    * - 30
      - 60 062
      - 129 383
      - 0.46
+     - 6
+     - 23
 
 The scientific claim is therefore: MAID is faster once a tight lower-level
 solve costs more than roughly a few thousand gradient steps, and slower below
-that. Ill-conditioned physics (motion blur, tomography), weak regularisation,
-large images, and nonsmooth priors with many proximal steps are the intended
-regime. The gallery example recomputes the flagship, the crossover table and
-the inpainting counterpoint from scratch.
+that. The outer-step ratio improves with condition number as well. Ill-conditioned
+physics (motion blur, tomography), weak regularisation, large images, and
+nonsmooth priors with many proximal steps are the intended regime. The gallery
+example recomputes the flagship, the crossover table and the inpainting
+counterpoint from scratch.
+
+Minibatch accumulation
+----------------------
+
+When ``f`` is a mean over ``m`` samples, :class:`~deepinv.optim.bilevel.MinibatchOracle`
+walks the dataset in fixed-order chunks and accumulates the inexact
+hypergradient without weakening the a posteriori bound.
+
+**Reduction order (determinism).** Samples are processed in index order
+``0, ..., m-1``. Accumulators use sequential floating-point addition, then a
+single division by ``m``. Chunk size controls only concurrent working memory.
+With a fixed seed the accumulated hypergradient is bitwise identical across
+runs and bitwise invariant to chunk size.
+
+**Error bound for the mean.** If ``||z_i - grad f_i|| <= omega_i``, then
+
+.. math::
+
+    \Bigl\|
+      \tfrac1m\sum_i z_i - \tfrac1m\sum_i \nabla f_i
+    \Bigr\|
+    \le \tfrac1m\sum_i \omega_i.
+
+So ``omega_mean = (1/m) sum_i omega_i`` is the certificate Algorithm 3.2 must
+use. Using a single-sample ``omega`` or a max would either under-bound or
+over-bound the mean; the mean of the bounds is the correct aggregation.
+
+**Memory adaptivity does not change the mathematics.** Chunk sizes 1 and
+``m`` produce bitwise identical MAID trajectories (same ``f``, ``theta``,
+step sizes) under the fixed reduction. Peak working memory for intermediates
+scales with chunk size; a length-``m`` list of reconstructions is kept for
+warm starts and is ``O(m)`` by design.
+
+**Goal-oriented estimator.** Each sample has its own Hessian. The three DWR
+adjoint solves and any Krylov recycling are per sample; recycling does not
+span a chunk. Cost is ``m`` times the per-sample DWR cost, independent of
+chunk size.
+
+**Crossover with minibatching.** Measured on a mean of ``m=4`` independent
+section-4.1 problems, chunk size 2, matched to MAID's objective after 8 outer
+steps (fixed residual ``1e-4``):
+
+.. list-table::
+   :header-rows: 1
+
+   * - condition number
+     - GD MAID
+     - GD fixed
+     - ratio GD
+     - outer MAID
+     - outer fixed
+   * - 5
+     - 17 112
+     - 22 209
+     - 0.77
+     - 8
+     - 10
+   * - 10
+     - 73 693
+     - 96 893
+     - 0.76
+     - 8
+     - 12
+   * - 20
+     - 284 232
+     - 386 092
+     - 0.74
+     - 8
+     - 14
+
+Chunk size 1 and chunk size 4 produce bitwise identical ``f`` paths and final
+``theta``. Peak working bytes scale as 24, 48, 96 for chunk sizes 1, 2, 4 on
+this problem (float64 vectors of length 3). Chunking does not move the
+decision rule: use MAID when tight lower-level solves are expensive.
 
 Minimal usage
 -------------

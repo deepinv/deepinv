@@ -8,20 +8,25 @@ outer step. The benefit appears when a tight lower-level solve is expensive.
 When a tight solve is nearly free, line-search trials dominate and a fixed
 accuracy baseline wins.
 
-This example does three things:
+This example does four things:
 
 1. Flagship: an ill-conditioned quadratic least-squares bilevel problem
    (Salehi et al., SIAM J. Math. Data Sci. 2025, section 4.1) where MAID
-   uses fewer total lower-level gradient steps than fixed accuracy to the
-   same upper-level gap.
+   uses fewer total lower-level gradient steps, and fewer outer steps
+   (each costing a hypergradient), than fixed accuracy to the same
+   upper-level gap.
 2. Crossover: sweep the lower-level condition number and tabulate total
-   gradient steps for MAID against fixed accuracy. The honest claim is not
-   "MAID is always faster", but "MAID is faster once a tight lower-level
-   solve costs more than a few thousand gradient steps".
+   gradient steps and outer steps for MAID against fixed accuracy. The
+   honest claim is not "MAID is always faster", but "MAID is faster once a
+   tight lower-level solve costs more than a few thousand gradient steps".
 3. Counterpoint: learn a Tikhonov weight with DeepInverse
    :class:`~deepinv.optim.GD` on a well-conditioned inpainting problem.
    There a tight residual is nearly free, and fixed accuracy wins. That is
    the regime where MAID should not be used.
+4. Minibatch extension on the expensive end of the crossover: fixed-order
+   chunking with bitwise chunk-size invariance, correct mean error-bound
+   aggregation, peak working memory scaling with chunk size, and the
+   crossover recomputed with chunking enabled.
 
 """
 
@@ -35,10 +40,13 @@ import deepinv as dinv
 from deepinv.optim.bilevel import (
     MAID,
     MAIDConfig,
+    MinibatchOracle,
     QuadraticBilevelLS,
     SmoothHypergradientOracle,
     TikhonovWeightOracle,
     TikhonovWeightProblem,
+    make_quadratic_dataset,
+    wrap_smooth_dataset,
 )
 
 
@@ -232,10 +240,13 @@ print(
     f"{fixed_flag['upper']:>7d} {fixed_flag['wall']:>8.3f}"
 )
 ratio_flag = maid_flag["gd"] / max(fixed_flag["gd"], 1)
+outer_ratio = maid_flag["upper"] / max(fixed_flag["upper"], 1)
 print()
 print(
     f"GD ratio MAID / fixed = {ratio_flag:.3f} "
-    f"({'MAID cheaper' if ratio_flag < 1 else 'fixed cheaper'})"
+    f"({'MAID cheaper' if ratio_flag < 1 else 'fixed cheaper'}). "
+    f"Outer-step ratio = {outer_ratio:.3f} "
+    f"(each outer step costs one hypergradient: a linear solve plus an adjoint)."
 )
 
 assert relative_gap(maid_flag["f"], maid_flag["f_star"]) < TARGET_GAP
@@ -282,7 +293,9 @@ print(
     "Reading: at condition number 2 a tight solve is cheap and MAID pays for "
     "line-search trials. Around condition number 5 to 10 the costs cross. "
     "Above that, adaptive accuracy saves total gradient work because early "
-    "outer steps use loose tolerances and fewer outer steps are needed."
+    "outer steps use loose tolerances and fewer outer steps are needed. "
+    "The outer-step column is the stronger saving: each outer iteration costs "
+    "a hypergradient, not just a few gradient steps."
 )
 
 
@@ -409,6 +422,236 @@ assert problem_img.residual_kind == "gradient"
 
 
 # %%
+# 4. Minibatch extension on the expensive end
+# -------------------------------------------
+#
+# The paper's upper level is already a mean over m samples. Chunking
+# evaluates the inexact hypergradient sequentially so peak working memory
+# tracks the chunk, not the dataset. Reduction order is fixed (index order,
+# sequential floating-point addition), so chunk size does not change the
+# mathematics: trajectories are bitwise identical across chunk sizes.
+#
+# Error bound for the mean: if ||z_i - grad f_i|| <= omega_i, then
+# ||z_mean - grad f|| <= (1/m) sum omega_i.
+
+print()
+print("Minibatch extension (expensive end, condition number 20)")
+
+MB_M = 4
+MB_COND = 20.0
+MB_CHUNK = 2
+mb_problems = make_quadratic_dataset(MB_M, cond=MB_COND, n=40, d=3, seed=0)
+
+
+def _mb_f(problems, theta):
+    return sum(float(p.f_closed_form(theta).item()) for p in problems) / len(
+        problems
+    )
+
+
+def _mb_alpha0(problems):
+    # Lip of the mean upper-level gradient <= mean of per-sample Lips.
+    total = 0.0
+    for p in problems:
+        M = p.A1 @ p._P @ p.A3
+        total += float(2.0 * torch.linalg.eigvalsh(M.T @ M)[-1].item())
+    return 1.0 / max(total / len(problems), 1e-8)
+
+
+theta0_mb = torch.ones(3, dtype=dtype)
+f0_mb = _mb_f(mb_problems, theta0_mb)
+alpha0_mb = _mb_alpha0(mb_problems)
+
+# Trajectory invariance: chunk_size 1 vs m, short run.
+cfg_traj = MAIDConfig(
+    eps0=1e-1,
+    delta0=1e-1,
+    alpha0=alpha0_mb,
+    rho=0.5,
+    rho_bar=1.5,
+    nu=0.5,
+    nu_bar=1.1,
+    eta=0.5,
+    lambd=0.1,
+    max_BT=20,
+    max_iter=5,
+    tol=1e-8,
+    g_convex=True,
+    check_descent_direction=False,
+)
+traj_rows = []
+for cs in (1, MB_M):
+    mb = MinibatchOracle(wrap_smooth_dataset(mb_problems), chunk_size=cs)
+    th_t, hist_t = MAID(mb, cfg_traj).run(theta0_mb.clone())
+    traj_rows.append((cs, list(hist_t["f_exact"]), th_t.clone()))
+    print(
+        f"  trajectory chunk_size={cs}: f path = "
+        f"[{', '.join(f'{v:.6f}' for v in hist_t['f_exact'])}]"
+    )
+
+assert traj_rows[0][1] == traj_rows[1][1], "f path must match across chunk sizes"
+assert torch.equal(traj_rows[0][2], traj_rows[1][2]), (
+    "final theta must be bitwise identical across chunk sizes"
+)
+print("  bitwise trajectory match: yes (chunk 1 vs chunk m)")
+
+# Peak working memory vs chunk size (instrumented inside MinibatchOracle).
+print()
+print(f"  peak working bytes vs chunk_size (m={MB_M}, cond={MB_COND:g}):")
+print(f"  {'chunk':>6} {'peak_working_bytes':>20}")
+mem_peaks = []
+for cs in (1, 2, 4):
+    # Use m>=4 dataset; for cs=4 need m>=4.
+    probs_mem = make_quadratic_dataset(4, cond=MB_COND, n=40, d=3, seed=0)
+    mb = MinibatchOracle(wrap_smooth_dataset(probs_mem), chunk_size=cs)
+    lower = mb.solve_lower_level(theta0_mb, eps=1e-3)
+    mb.hypergradient(theta0_mb, lower, delta=1e-3)
+    mem_peaks.append((cs, mb.peak_working_bytes))
+    print(f"  {cs:6d} {mb.peak_working_bytes:20d}")
+assert mem_peaks[0][1] <= mem_peaks[-1][1]
+
+# Matched-quality cost at cond=20 with chunking, vs fixed accuracy.
+print()
+print(
+    f"  matched quality at cond={MB_COND:g}, m={MB_M}, chunk_size={MB_CHUNK} "
+    f"(stop when f <= f_MAID after a short adaptive run)"
+)
+mb_maid = MinibatchOracle(
+    wrap_smooth_dataset(mb_problems), chunk_size=MB_CHUNK
+)
+cfg_mb = MAIDConfig(
+    eps0=1e-1,
+    delta0=1e-1,
+    alpha0=alpha0_mb,
+    rho=0.5,
+    rho_bar=1.5,
+    nu=0.5,
+    nu_bar=1.1,
+    eta=0.5,
+    lambd=0.1,
+    max_BT=20,
+    max_iter=10,
+    tol=1e-8,
+    g_convex=True,
+    check_descent_direction=False,
+)
+t0 = time.perf_counter()
+th_mb, hist_mb = MAID(mb_maid, cfg_mb).run(theta0_mb.clone())
+wall_mb = time.perf_counter() - t0
+f_mb = _mb_f(mb_problems, th_mb)
+gd_mb = mb_maid.n_gd_iters
+up_mb = int(hist_mb["n_upper_iters"])
+
+# Fixed accuracy to the same f value (or better).
+mb_fix = MinibatchOracle(
+    wrap_smooth_dataset(mb_problems), chunk_size=MB_CHUNK
+)
+th_fx = theta0_mb.clone()
+warm = None
+up_fx = 0
+t0 = time.perf_counter()
+while up_fx < 80:
+    up_fx += 1
+    lower = mb_fix.solve_lower_level(th_fx, eps=FIXED_EPS, warm_start=warm)
+    hyper = mb_fix.hypergradient(th_fx, lower, delta=FIXED_EPS)
+    th_fx = th_fx - alpha0_mb * hyper.z
+    warm = lower
+    if _mb_f(mb_problems, th_fx) <= f_mb * 1.001:
+        break
+wall_fx = time.perf_counter() - t0
+f_fx = _mb_f(mb_problems, th_fx)
+gd_fx = mb_fix.n_gd_iters
+
+print(
+    f"  {'method':<28} {'f_final':>10} {'GD iters':>10} "
+    f"{'upper':>7} {'wall_s':>8}"
+)
+print(
+    f"  {'MAID chunk=2':<28} {f_mb:>10.4f} {gd_mb:>10d} "
+    f"{up_mb:>7d} {wall_mb:>8.3f}"
+)
+print(
+    f"  {'Fixed accuracy 1e-4':<28} {f_fx:>10.4f} {gd_fx:>10d} "
+    f"{up_fx:>7d} {wall_fx:>8.3f}"
+)
+ratio_mb = gd_mb / max(gd_fx, 1)
+print(
+    f"  GD ratio MAID/fixed = {ratio_mb:.3f}, "
+    f"outer ratio = {up_mb / max(up_fx, 1):.3f}, "
+    f"f0 = {f0_mb:.4f}"
+)
+print(
+    "  omega aggregation: mean of per-sample bounds "
+    f"(last omega_parts length = {len(mb_maid.last_omega_parts) if mb_maid.last_omega_parts else 'n/a'}; "
+    "see MinibatchOracle docstring)."
+)
+assert f_mb < f0_mb
+
+# Mini crossover with chunking: cond in {5, 10, 20}.
+print()
+print(
+    f"  Minibatch crossover (m={MB_M}, chunk={MB_CHUNK}): "
+    f"GD steps to f <= f_MAID(max_iter=8)"
+)
+print(
+    f"  {'cond':>6} {'gd_maid':>10} {'gd_fixed':>10} {'ratio':>8} "
+    f"{'up_maid':>8} {'up_fixed':>9}"
+)
+mb_cross = []
+for cond in (5.0, 10.0, 20.0):
+    probs = make_quadratic_dataset(MB_M, cond=cond, n=40, d=3, seed=0)
+    a0 = _mb_alpha0(probs)
+    th0 = torch.ones(3, dtype=dtype)
+    f0c = _mb_f(probs, th0)
+    mb_m = MinibatchOracle(wrap_smooth_dataset(probs), chunk_size=MB_CHUNK)
+    cfg_c = MAIDConfig(
+        eps0=1e-1,
+        delta0=1e-1,
+        alpha0=a0,
+        rho=0.5,
+        rho_bar=1.5,
+        nu=0.5,
+        nu_bar=1.1,
+        eta=0.5,
+        lambd=0.1,
+        max_BT=20,
+        max_iter=8,
+        tol=1e-8,
+        g_convex=True,
+        check_descent_direction=False,
+    )
+    th_m, hist_m = MAID(mb_m, cfg_c).run(th0.clone())
+    f_target = _mb_f(probs, th_m)
+    gd_m = mb_m.n_gd_iters
+    up_m = int(hist_m["n_upper_iters"])
+
+    mb_f = MinibatchOracle(wrap_smooth_dataset(probs), chunk_size=MB_CHUNK)
+    th_f = th0.clone()
+    warm = None
+    up_f = 0
+    while up_f < 80:
+        up_f += 1
+        lower = mb_f.solve_lower_level(th_f, eps=FIXED_EPS, warm_start=warm)
+        hyper = mb_f.hypergradient(th_f, lower, delta=FIXED_EPS)
+        th_f = th_f - a0 * hyper.z
+        warm = lower
+        if _mb_f(probs, th_f) <= f_target * 1.001:
+            break
+    ratio_c = gd_m / max(mb_f.n_gd_iters, 1)
+    mb_cross.append((cond, gd_m, mb_f.n_gd_iters, ratio_c, up_m, up_f, f0c, f_target))
+    print(
+        f"  {cond:6.1f} {gd_m:10d} {mb_f.n_gd_iters:10d} {ratio_c:8.3f} "
+        f"{up_m:8d} {up_f:9d}"
+    )
+
+print(
+    "  Chunking does not change the decision rule: on the expensive end "
+    "(cond 20) MAID still tends to use fewer outer steps; on the cheap end "
+    "line-search overhead can dominate. Peak working memory tracks the chunk."
+)
+
+
+# %%
 # Takeaway
 # --------
 #
@@ -419,13 +662,18 @@ assert problem_img.residual_kind == "gradient"
 #   few gradient steps, as in the inpainting counterpoint.
 # * The crossover table is the decision rule: once total fixed-accuracy GD
 #   work grows into the tens of thousands, adaptive tolerances typically pay.
+# * The outer-step ratio is the stronger result: each outer step costs a
+#   hypergradient.
+# * Minibatch chunking is a memory control with a fixed reduction order; it
+#   does not change the optimisation trajectory.
 
 print()
 print("Summary")
 print(
     f"  expensive quadratic (cond={FLAGSHIP_COND:g}): "
-    f"MAID {maid_flag['gd']} GD vs fixed {fixed_flag['gd']} GD "
-    f"(ratio {ratio_flag:.3f})"
+    f"MAID {maid_flag['gd']} GD / {maid_flag['upper']} outer vs "
+    f"fixed {fixed_flag['gd']} GD / {fixed_flag['upper']} outer "
+    f"(GD ratio {ratio_flag:.3f}, outer ratio {outer_ratio:.3f})"
 )
 cheap = crossover_rows[0]
 print(
@@ -437,4 +685,9 @@ print(
     f"  inpainting Tikhonov (DeepInverse GD): "
     f"MAID {gd_maid_img} BaseOptim iters vs fixed {gd_fixed_img} "
     f"(ratio {gd_maid_img / max(gd_fixed_img, 1):.2f})"
+)
+print(
+    f"  minibatch m={MB_M} cond={MB_COND:g} chunk={MB_CHUNK}: "
+    f"MAID {gd_mb} GD / {up_mb} outer vs fixed {gd_fx} GD / {up_fx} outer "
+    f"(GD ratio {ratio_mb:.3f})"
 )
