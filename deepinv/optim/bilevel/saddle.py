@@ -389,6 +389,8 @@ class SaddleHypergradientOracle(HypergradientOracle):
 
     def __init__(self, problem: QuadraticSaddleProblem):
         self.problem = problem
+        self.n_lower_solves = 0
+        self.n_hypergradients = 0
 
     @property
     def certified(self) -> bool:
@@ -406,6 +408,10 @@ class SaddleHypergradientOracle(HypergradientOracle):
     def L_g(self) -> float:
         return self.problem._L_g_upper
 
+    def reset_counters(self) -> None:
+        self.n_lower_solves = 0
+        self.n_hypergradients = 0
+
     def solve_lower_level(
         self,
         theta: torch.Tensor,
@@ -421,6 +427,7 @@ class SaddleHypergradientOracle(HypergradientOracle):
         x, y, dist_x, dist_y = self.problem.solve_pdhg(
             K, eps_x=eps, eps_y=eps, x_init=x_init, y_init=y_init
         )
+        self.n_lower_solves += 1
         # The certificate for U bounds is the primal distance.
         eps_cert = max(dist_x, dist_y)
         return LowerLevelState(
@@ -446,6 +453,7 @@ class SaddleHypergradientOracle(HypergradientOracle):
         X, Y, dist_X, dist_Y = self.problem.solve_adjoint_pdhg(
             K, x, y, delta_X=delta, delta_Y=delta
         )
+        self.n_hypergradients += 1
         z = self.problem.hypergradient_from_piggyback(x, y, X, Y)
         K_norm = float(torch.linalg.matrix_norm(K, ord=2).item())
         grad_ell1 = x - self.problem.x_target

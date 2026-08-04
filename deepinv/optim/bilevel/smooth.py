@@ -67,6 +67,8 @@ class SmoothHypergradientOracle(HypergradientOracle):
 
     def __init__(self, problem: QuadraticBilevelLS):
         self.problem = problem
+        self.n_lower_solves = 0
+        self.n_hypergradients = 0
 
     @property
     def certified(self) -> bool:
@@ -85,6 +87,10 @@ class SmoothHypergradientOracle(HypergradientOracle):
     def L_g(self) -> float:
         return self.problem.L_g
 
+    def reset_counters(self) -> None:
+        self.n_lower_solves = 0
+        self.n_hypergradients = 0
+
     def solve_lower_level(
         self,
         theta: torch.Tensor,
@@ -93,6 +99,7 @@ class SmoothHypergradientOracle(HypergradientOracle):
     ) -> LowerLevelState:
         x_init = None if warm_start is None else warm_start.x
         x, grad_norm = self.problem.solve_lower(theta, eps=eps, x_init=x_init)
+        self.n_lower_solves += 1
         return LowerLevelState(
             x=x,
             eps=eps,
@@ -108,19 +115,20 @@ class SmoothHypergradientOracle(HypergradientOracle):
         z, q, residual = self.problem.inexact_hypergradient(
             lower.x, theta, delta=delta
         )
-        J_norm = self.problem.estimate_J_norm(lower.x, theta)
-        grad_g_norm = float(self.problem.grad_g(lower.x).norm().item())
+        self.n_hypergradients += 1
+        # J_norm / power method is deferred to error_bound so the default
+        # path (no descent test) never forms the expensive certificate.
         return HypergradientState(
             z=z,
             delta=delta,
             extras={
                 "q": q,
                 "residual": residual,
-                "J_norm": J_norm,
-                "grad_g_norm": grad_g_norm,
+                "x": lower.x,
+                "theta": theta,
+                "mu": self.problem.mu,
                 "L_H_inv": self.problem.L_H_inv,
                 "L_J": self.problem.L_J,
-                "mu": self.problem.mu,
             },
         )
 
@@ -133,13 +141,17 @@ class SmoothHypergradientOracle(HypergradientOracle):
         delta: float,
     ) -> float:
         ex = hyper.extras
+        x = ex.get("x", lower.x)
+        th = ex.get("theta", theta)
+        J_norm = self.problem.estimate_J_norm(x, th)
+        grad_g_norm = float(self.problem.grad_g(x).norm().item())
         return smooth_hypergradient_error_bound(
             eps=eps,
             delta=delta,
             mu=float(ex["mu"]),
             L_g=self.problem.L_g,
-            J_norm=float(ex["J_norm"]),
-            grad_g_norm=float(ex["grad_g_norm"]),
+            J_norm=J_norm,
+            grad_g_norm=grad_g_norm,
             L_H_inv=float(ex["L_H_inv"]),
             L_J=float(ex["L_J"]),
         )
@@ -168,13 +180,29 @@ def inexact_gradient(
     nu: float,
     x_init: torch.Tensor | None = None,
     max_refine: int = 40,
+    check_descent_direction: bool = True,
 ) -> tuple[torch.Tensor, float, float, float, torch.Tensor]:
-    """Algorithm 3.2 on a smooth quadratic problem (backward-compatible API)."""
+    """Algorithm 3.2 on a smooth quadratic problem (backward-compatible API).
+
+    ``check_descent_direction=True`` is the original Algorithm 3.2 path that
+    forms ``omega`` and refines until the descent test holds. Pass
+    ``False`` to take a single inexact hypergradient without forming
+    ``omega`` (then ``omega`` is returned as ``nan``).
+    """
     oracle = SmoothHypergradientOracle(problem)
     warm = None if x_init is None else LowerLevelState(x=x_init, eps=eps)
-    return inexact_gradient_from_oracle(
-        oracle, theta, eps, delta, eta, nu, warm_start=warm, max_refine=max_refine
+    z, eps, delta, omega, lower = inexact_gradient_from_oracle(
+        oracle,
+        theta,
+        eps,
+        delta,
+        eta,
+        nu,
+        warm_start=warm,
+        max_refine=max_refine,
+        check_descent_direction=check_descent_direction,
     )
+    return z, eps, delta, omega, lower.x
 
 
 def inexact_gradient_from_oracle(
@@ -186,15 +214,34 @@ def inexact_gradient_from_oracle(
     nu: float,
     warm_start: LowerLevelState | None = None,
     max_refine: int = 40,
+    check_descent_direction: bool = True,
 ) -> tuple[torch.Tensor, float, float, float, LowerLevelState]:
     r"""Algorithm 3.2 against an arbitrary :class:`HypergradientOracle`.
 
-    Accepts when ``omega <= (1 - eta) * ||z||``.
+    When ``check_descent_direction`` is True (certified Algorithm 3.2 path),
+    refines until ``omega <= (1 - eta) * ||z||``. When False (default for
+    MAID), performs a single lower-level solve and hypergradient evaluation
+    and never forms ``omega``. In that case the returned ``omega`` is
+    ``float('nan')``.
+
+    Sufficient decrease of the true upper-level objective on every accepted
+    MAID step still follows from the line search (Lemma 3.5) alone. What is
+    lost without the descent test is the a priori existence of a valid step
+    size (Lemma 3.8) and therefore the convergence theorem (Theorem 3.19).
+    Backtracking failure is then the a posteriori detector: if ``-z`` is not
+    a descent direction, no ``alpha`` satisfies ``psi(alpha) <= 0``, the
+    budget is exhausted, and Algorithm 3.1 tightens ``eps`` and ``delta``.
     """
-    if not (0.0 < eta < 1.0):
-        raise ValueError(f"eta must lie in (0, 1), got {eta}")
     if not (0.0 < nu < 1.0):
         raise ValueError(f"nu must lie in (0, 1), got {nu}")
+
+    if not check_descent_direction:
+        lower = oracle.solve_lower_level(theta, eps=eps, warm_start=warm_start)
+        hyper = oracle.hypergradient(theta, lower, delta=delta)
+        return hyper.z, eps, delta, float("nan"), lower
+
+    if not (0.0 < eta < 1.0):
+        raise ValueError(f"eta must lie in (0, 1), got {eta}")
 
     lower = warm_start
     z = torch.zeros_like(theta)

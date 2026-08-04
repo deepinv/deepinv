@@ -131,7 +131,7 @@ def test_error_bound_dominates_true_error():
 
 
 def test_inexact_gradient_returns_descent_direction():
-    """Algorithm 3.2 returns z with omega <= (1 - eta) ||z||, so -z is a descent direction."""
+    """Certified Algorithm 3.2 path: omega <= (1 - eta) ||z||."""
     problem, theta0, _ = _make_section41_problem()
     eta = 0.5
     z, eps, delta, omega, xbar = inexact_gradient(
@@ -142,14 +142,30 @@ def test_inexact_gradient_returns_descent_direction():
         eta=eta,
         nu=0.5,
         x_init=None,
+        check_descent_direction=True,
     )
     z_norm = z.norm().item()
     assert z_norm > 0.0
     assert omega <= (1.0 - eta) * z_norm + 1e-12
-    # Angle check against the exact hypergradient.
     z_exact = problem.exact_hypergradient(theta0, problem.closed_form_x(theta0))
     cos = torch.dot(z, z_exact) / (z.norm() * z_exact.norm())
     assert cos.item() > 0.0
+
+
+def test_inexact_gradient_skip_descent_test_returns_nan_omega():
+    """Default skip path never forms omega."""
+    problem, theta0, _ = _make_section41_problem()
+    z, eps, delta, omega, xbar = inexact_gradient(
+        problem,
+        theta0,
+        eps=1e-2,
+        delta=1e-2,
+        eta=0.5,
+        nu=0.5,
+        check_descent_direction=False,
+    )
+    assert z.norm().item() > 0.0
+    assert omega != omega  # nan
 
 
 def _Lf(problem: QuadraticBilevelLS) -> float:
