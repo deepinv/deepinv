@@ -2389,7 +2389,7 @@ class OSEM(BaseOptim):
     r"""
     Ordered-Subsets Expectation-Maximization (OSEM) algorithm for Poisson inverse problems.
 
-    OSEM was proposed in :footcite:t:`hudsonAcceleratedImageReconstruction1994`
+    OSEM was proposed in :footcite:p:`hudsonAcceleratedImageReconstruction1994`
     to accelerate MLEM :footcite:p:`sheppMaximumLikelihoodReconstruction1982` by
     splitting the measurement into ordered subsets.
     Note that MLEM is a special case of OSEM with only one subset.

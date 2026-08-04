@@ -289,8 +289,8 @@ dinv.utils.plot(
 # PET acquisition. This can be slow when the scanner geometry and its measurements
 # are large, especially in 3D.
 #
-# Ordered-Subsets Expectation-Maximization (OSEM) partitions the measurements and
-# the forward operator into :math:`L` matching angular subsets indexed by
+# Ordered-Subsets Expectation-Maximization (OSEM) :footcite:p:`hudsonAcceleratedImageReconstruction1994`
+# partitions the measurements and the forward operator into :math:`L` matching angular subsets indexed by
 # :math:`l=1,\ldots,L`:
 #
 # .. math::
