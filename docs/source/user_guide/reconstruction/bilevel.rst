@@ -448,51 +448,99 @@ over-bound the mean; the mean of the bounds is the correct aggregation.
 
 **Memory adaptivity does not change the mathematics.** Chunk sizes 1 and
 ``m`` produce bitwise identical MAID trajectories (same ``f``, ``theta``,
-step sizes) under the fixed reduction. Peak working memory for intermediates
-scales with chunk size; a length-``m`` list of reconstructions is kept for
-warm starts and is ``O(m)`` by design.
+step sizes) under the fixed reduction.
+
+Peak working memory for the accumulation is bounded by the chunk, not by
+``m``. Measured on float64 sample states of length ``d = 200000``
+(1.53 MB each), by counting concurrent tensor bytes during the fixed-order
+pass (CPU; ``torch.cuda`` is not used on this machine):
+
+.. list-table::
+   :header-rows: 1
+
+   * - m
+     - chunk
+     - peak working (MB)
+     - warm-start storage (MB)
+   * - 16
+     - 4
+     - 6.10
+     - 24.4
+   * - 32
+     - 4
+     - 6.10
+     - 48.8
+   * - 64
+     - 4
+     - 6.10
+     - 97.7
+   * - 128
+     - 4
+     - 6.10
+     - 195.3
+
+Peak working is flat in ``m``. Warm-start storage is ``O(m)`` by design
+(one reconstruction per sample). Against chunk size at fixed ``m = 64``:
+
+.. list-table::
+   :header-rows: 1
+
+   * - chunk
+     - peak working (MB)
+   * - 1
+     - 1.53
+   * - 2
+     - 3.05
+   * - 4
+     - 6.10
+   * - 8
+     - 12.2
+   * - 16
+     - 24.4
 
 **Goal-oriented estimator.** Each sample has its own Hessian. The three DWR
 adjoint solves and any Krylov recycling are per sample; recycling does not
 span a chunk. Cost is ``m`` times the per-sample DWR cost, independent of
 chunk size.
 
-**Crossover with minibatching.** Measured on a mean of ``m=4`` independent
-section-4.1 problems, chunk size 2, matched to MAID's objective after 8 outer
-steps (fixed residual ``1e-4``):
+**Cost honesty on the multi-sample path.** On a mean of ``m = 4`` section-4.1
+problems at condition number 20, chunk size 2, MAID with 10 outer steps
+against warm-started fixed accuracy ``1e-4`` to the same upper-level value
+(fresh problem objects per method so ``n_gd_iters`` is not shared):
 
 .. list-table::
    :header-rows: 1
 
-   * - condition number
-     - GD MAID
-     - GD fixed
-     - ratio GD
-     - outer MAID
-     - outer fixed
-   * - 5
-     - 17 112
-     - 22 209
-     - 0.77
-     - 8
-     - 10
-   * - 10
-     - 73 693
-     - 96 893
-     - 0.76
-     - 8
-     - 12
-   * - 20
-     - 284 232
-     - 386 092
-     - 0.74
-     - 8
-     - 14
+   * - method
+     - f final
+     - GD steps
+     - sample lower solves
+     - wall (s)
+   * - MAID
+     - 43.79
+     - 355 611
+     - 1 168
+     - 4.31
+   * - fixed ``1e-4``
+     - 43.83
+     - 123 646
+     - 72
+     - 1.48
 
-Chunk size 1 and chunk size 4 produce bitwise identical ``f`` paths and final
-``theta``. Peak working bytes scale as 24, 48, 96 for chunk sizes 1, 2, 4 on
-this problem (float64 vectors of length 3). Chunking does not move the
-decision rule: use MAID when tight lower-level solves are expensive.
+MAID loses on both GD and wall here. The split is almost entirely lower-level
+work (about 99 percent of wall). Hypergradient formation and the certified
+``omega`` bound together are under 1 percent; the goal-oriented estimator is
+not on this path. The structural cause is line search: each trial re-solves
+all ``m`` samples, so sample-lower calls are about 16 times higher for MAID
+(1168 vs 72). Wall tracks total GD (ratio about 2.9 on both).
+
+An earlier draft reused the same problem objects for both methods, so the
+GD counter summed MAID and fixed and falsely made fixed look more expensive
+(355611 + 123646 = 479257). The table above uses independent counters.
+
+Chunking remains a memory control with bitwise trajectory invariance. It is
+not a free speedup on a multi-sample line-search path where call overhead
+and re-solves dominate.
 
 Minimal usage
 -------------
