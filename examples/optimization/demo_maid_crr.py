@@ -1,36 +1,37 @@
 """
-Learned convex ridge regulariser trained by MAID
-================================================
+Bilevel learning of a convex ridge regulariser with MAID
+========================================================
 
-Trains a Goujon-Unser convex ridge regulariser
+MAID is the **outer** solver for the bilevel learning problem. It does not
+reconstruct images. Reconstruction is always residual-stopped gradient
+descent on the lower level
 
-    R_theta(x) = sum_k lambda_k sum_j rho((W_k * x)_j)
-    rho(t)     = mu log cosh(t / mu)
-    lambda_k   = exp(vartheta_k)
+    h(x, theta) = 1/2 ||A x - y||^2 + R_theta(x) + (gamma/2) ||x||^2
 
-(8 kernels of 5x5, 208 parameters, plus gamma ||x||^2 / 2 for strong
-convexity) by bilevel learning with MAID on two DeepInverse problems:
+using the regulariser parameters that learning produced (or a grid-tuned
+scalar baseline). Reconstruction panels are labelled by the **prior**, not
+by the learning algorithm. MAID appears in the learning-cost figure.
 
+Regulariser
+-----------
+Multiconv convex ridge regulariser matching the reference CRR/WCRR
+(LearnedRegularizers ``priors/wcrr.py``): multi-layer convolution, Lipschitz
+normalisation, log scaling, smooth L1, zero-mean first layer,
+weak_convexity=0. See :mod:`deepinv.optim.bilevel.convex_ridge`.
+
+Problems (colour Set3C crops)
+-----------------------------
 * random-mask inpainting
 * Gaussian deblurring
 
-on Set3C greyscale crops. Training uses two images; evaluation reports
-PSNR on a held-out third image the learning never saw.
+Train on two images; evaluate PSNR on a held-out third. Every reported PSNR
+comes from a final lower-level solve at a tight residual (stated below).
 
-Comparisons (per problem, grid-tuned scalar baseline is independent of MAID):
-
-1. Best hand-tuned scalar Tikhonov weight (log-spaced grid on the training
-   set upper-level loss).
-2. Fixed-accuracy bilevel learning of the same CRR.
-3. Accelerated MAID learning of the CRR.
-
-Figures in ``.scratch/figs/``:
-
-* Tikhonov inpainting recon (kept: shows spatial-prior limitation)
-* CRR inpainting recon (train and held-out)
-* CRR deblur recon (held-out)
-* learned kernels
-
+Comparisons
+-----------
+1. Baseline: grid-tuned scalar Tikhonov (not a method under test).
+2. Fixed-accuracy bilevel learning of the CRR.
+3. Accelerated MAID learning of the same CRR.
 """
 
 from __future__ import annotations
@@ -55,8 +56,8 @@ from deepinv.optim.bilevel import (
     TikhonovWeightProblem,
     accelerated_maid_config,
     build_crr_minibatch_oracle,
+    exp_scaling,
     pack_init_theta,
-    renormalise_free_kernels,
     unpack_theta,
 )
 from deepinv.utils.demo import load_dataset
@@ -70,17 +71,29 @@ ROOT = Path(__file__).resolve().parents[2]
 FIG_DIR = Path(os.environ.get("FIG_DIR", ROOT / ".scratch" / "figs"))
 FIG_DIR.mkdir(parents=True, exist_ok=True)
 
-IMG_SIZE = 64
+IMG_SIZE = 48
 NOISE = 0.05
 KEEP = 0.5
+# Colour multiconv matching the reference stack (in_channels=3). Last width
+# 32 rather than 64 keeps the CPU example under ~20 minutes; structure is
+# otherwise identical to the reference (3 layers, Lip norm, log scaling).
 CRR_CFG = ConvexRidgeConfig(
-    n_kernels=8, kernel_size=5, n_channels=1, mu_rho=0.05, gamma=1e-2
+    nb_channels=(3, 4, 8, 32),
+    filter_sizes=(5, 5, 5),
+    gamma=1e-2,
+    weak_convexity=0.0,
+    lip_fft_size=96,
+    # Soften reference init (beta=4, sigma=0.1) so residual-stopped GD
+    # on 48x48 colour crops converges within the CPU budget.
+    beta_init=1.0,
+    sigma_init=0.5,
 )
-N_OUTER = 6
+N_OUTER = 4
 FIXED_EPS = 1e-3
-ALPHA0_CRR = 2e-2
-ALPHA0_TIK = 1e-3
-MAX_GD = 8_000
+LEARN_EPS0 = 1e-3
+REPORT_EPS = 1e-4
+ALPHA0_CRR = 5e-3
+MAX_GD = 15_000
 
 
 def psnr(a: torch.Tensor, b: torch.Tensor) -> float:
@@ -90,36 +103,41 @@ def psnr(a: torch.Tensor, b: torch.Tensor) -> float:
     return float(10.0 * torch.log10(torch.tensor(1.0 / mse)).item())
 
 
-def to_np(img: torch.Tensor):
-    return img.detach().cpu().squeeze().numpy()
+def to_np_img(img: torch.Tensor):
+    x = img.detach().cpu()
+    if x.ndim == 4:
+        x = x[0]
+    if x.shape[0] in (1, 3):
+        x = x.permute(1, 2, 0)
+    arr = x.numpy()
+    if arr.ndim == 3 and arr.shape[2] == 1:
+        arr = arr[:, :, 0]
+    return arr.clip(0.0, 1.0)
 
-
-# %%
-# Data: train on images 0 and 1, hold out image 2
-# -----------------------------------------------
 
 val_transform = transforms.Compose(
-    [
-        transforms.CenterCrop(IMG_SIZE),
-        transforms.Grayscale(num_output_channels=1),
-        transforms.ToTensor(),
-    ]
+    [transforms.CenterCrop(IMG_SIZE), transforms.ToTensor()]
 )
 dataset = load_dataset("set3c", transform=val_transform)
-assert len(dataset) >= 3, "Set3C must provide at least 3 images"
+assert len(dataset) >= 3
 train_imgs = [
     dataset[i].unsqueeze(0).to(device=device, dtype=dtype) for i in (0, 1)
 ]
 heldout_img = dataset[2].unsqueeze(0).to(device=device, dtype=dtype)
+assert train_imgs[0].shape[1] == 3
 print(
     f"train images: {len(train_imgs)} x {tuple(train_imgs[0].shape)}; "
     f"held-out: {tuple(heldout_img.shape)}"
 )
 print(
-    f"CRR: {CRR_CFG.n_kernels} kernels of {CRR_CFG.kernel_size}x{CRR_CFG.kernel_size}, "
-    f"n_params={CRR_CFG.n_params}, gamma={CRR_CFG.gamma}, mu_rho={CRR_CFG.mu_rho}"
+    f"CRR multiconv channels={CRR_CFG.nb_channels}, "
+    f"filters={CRR_CFG.filter_sizes}, n_params={CRR_CFG.n_params}, "
+    f"gamma={CRR_CFG.gamma}, weak_convexity={CRR_CFG.weak_convexity}"
 )
-print("lambda_k = exp(vartheta_k) (same positivity pattern as TikhonovWeightProblem)")
+print(
+    f"Reported PSNR: final lower-level solve at eps={REPORT_EPS} "
+    "(residual ||grad h|| <= eps * mu, mu=gamma)."
+)
 
 
 def make_inpaint(x: torch.Tensor, seed: int):
@@ -151,31 +169,20 @@ def make_deblur(x: torch.Tensor, seed: int):
 
 
 def build_samples(make_phys, imgs, seed0: int):
-    samples = []
-    for i, x in enumerate(imgs):
-        physics, y = make_phys(x, seed0 + i)
-        samples.append((physics, y, x))
-    return samples
+    return [(*make_phys(x, seed0 + i), x) for i, x in enumerate(imgs)]
 
 
-# %%
-# Grid-tuned scalar Tikhonov (per problem, on training set)
-# ---------------------------------------------------------
-
-
-def grid_tune_tikhonov(samples, n_grid: int = 13):
-    """Minimise mean train upper-level loss over log-spaced lambda."""
+def grid_tune_tikhonov(samples, n_grid: int = 9):
     log_lams = torch.linspace(-4.0, 1.0, n_grid, dtype=dtype)
     best = None
     for log_lam in log_lams:
         th = log_lam.clone()
-        losses = []
-        psnrs = []
+        losses, psnrs = [], []
         for physics, y, x_star in samples:
             prob = TikhonovWeightProblem(
                 physics=physics, y=y, x_star=x_star, solver="GD", max_iter=MAX_GD
             )
-            xh, _ = prob.solve_lower(th, eps=1e-4)
+            xh, _ = prob.solve_lower(th, eps=REPORT_EPS)
             losses.append(float(prob.g(xh).item()))
             psnrs.append(psnr(xh, x_star))
         mean_f = sum(losses) / len(losses)
@@ -190,55 +197,53 @@ def grid_tune_tikhonov(samples, n_grid: int = 13):
     return best
 
 
-def recon_tikhonov(physics, y, x_star, log_lam: float):
+def recon_tikhonov_converged(physics, y, x_star, log_lam: float):
     th = torch.tensor(log_lam, dtype=dtype)
     prob = TikhonovWeightProblem(
         physics=physics, y=y, x_star=x_star, solver="GD", max_iter=MAX_GD
     )
-    xh, _ = prob.solve_lower(th, eps=1e-4)
-    return xh, psnr(xh, x_star), float(prob.g(xh).item())
+    xh, res = prob.solve_lower(th, eps=REPORT_EPS)
+    tol = max(REPORT_EPS * float(prob.mu(th)), 1e-8)
+    if res > tol * 1.01:
+        raise RuntimeError(f"Tikhonov recon not converged: {res} > {tol}")
+    return xh, psnr(xh, x_star), float(res), float(prob.g(xh).item())
 
 
-def recon_crr(physics, y, x_star, theta: torch.Tensor):
+def recon_crr_converged(physics, y, x_star, theta: torch.Tensor):
     prob = CRRSampleProblem(
-        physics=physics,
-        y=y,
-        x_star=x_star,
-        cfg=CRR_CFG,
-        max_iter=MAX_GD,
+        physics=physics, y=y, x_star=x_star, cfg=CRR_CFG, max_iter=MAX_GD
     )
-    xh, _ = prob.solve_lower(theta, eps=1e-4)
-    return xh, psnr(xh, x_star), float(prob.g(xh).item())
-
-
-# %%
-# Train CRR with accelerated MAID and fixed-accuracy bilevel
-# ----------------------------------------------------------
+    xh, res = prob.solve_lower(theta, eps=REPORT_EPS)
+    tol = max(REPORT_EPS * prob.mu(theta), 1e-8)
+    if res > tol * 1.01:
+        raise RuntimeError(f"CRR recon not converged: {res} > {tol}")
+    return xh, psnr(xh, x_star), float(res), float(prob.g(xh).item())
 
 
 def train_crr_maid(samples, accelerated: bool, n_outer: int = N_OUTER):
     oracle = build_crr_minibatch_oracle(
         samples, cfg=CRR_CFG, chunk_size=1, max_iter=MAX_GD
     )
-    th0 = pack_init_theta(CRR_CFG, dtype=dtype, seed=0, log_lambda0=-1.0)
+    th0 = pack_init_theta(CRR_CFG, dtype=dtype, seed=0)
     common = dict(
-        eps0=5e-2,
-        delta0=5e-2,
+        eps0=LEARN_EPS0,
+        delta0=LEARN_EPS0,
         alpha0=ALPHA0_CRR,
         rho=0.5,
         rho_bar=1.2,
         nu=0.5,
-        nu_bar=1.1,
+        nu_bar=1.05,
         eta=0.5,
-        lambd=0.1,
-        max_BT=10,
+        lambd=0.01,
+        max_BT=12,
         max_iter=n_outer,
         tol=1e-5,
         g_convex=True,
         check_descent_direction=False,
         eps_min=1e-5,
         delta_min=1e-5,
-        max_outer_BT=20,
+        max_outer_BT=25,
+        nonmonotone=False,
     )
     cfg = (
         accelerated_maid_config(**common)
@@ -247,13 +252,13 @@ def train_crr_maid(samples, accelerated: bool, n_outer: int = N_OUTER):
     )
     t0 = time.perf_counter()
     th, hist = MAID(oracle, cfg).run(th0.clone())
-    th = renormalise_free_kernels(th, CRR_CFG)
     wall = time.perf_counter() - t0
     gd = sum(
         int(getattr(o.problem, "n_gd_iters", 0)) for o in oracle.sample_oracles
     )
     return {
         "theta": th.detach(),
+        "theta0": th0.detach(),
         "gd": gd,
         "wall": wall,
         "bt": int(hist["n_backtrack_failures"]),
@@ -266,27 +271,43 @@ def train_crr_fixed(samples, n_outer: int = N_OUTER):
     oracle = build_crr_minibatch_oracle(
         samples, cfg=CRR_CFG, chunk_size=1, max_iter=MAX_GD
     )
-    th = pack_init_theta(CRR_CFG, dtype=dtype, seed=0, log_lambda0=-1.0)
+    th = pack_init_theta(CRR_CFG, dtype=dtype, seed=0)
+    th0 = th.detach().clone()
     warm = None
+    f_trace = []
     t0 = time.perf_counter()
     for _ in range(n_outer):
         lower = oracle.solve_lower_level(th, eps=FIXED_EPS, warm_start=warm)
         hyper = oracle.hypergradient(th, lower, delta=FIXED_EPS)
         th = th - ALPHA0_CRR * hyper.z
-        th = renormalise_free_kernels(th, CRR_CFG)
         warm = lower
+        f_vals = []
+        for o in oracle.sample_oracles:
+            xv, _ = o.problem.solve_lower(th, eps=5e-3)
+            f_vals.append(float(o.problem.g(xv).item()))
+        f_trace.append(sum(f_vals) / len(f_vals))
     wall = time.perf_counter() - t0
     gd = sum(
         int(getattr(o.problem, "n_gd_iters", 0)) for o in oracle.sample_oracles
     )
-    return {"theta": th.detach(), "gd": gd, "wall": wall, "bt": 0, "n_outer": n_outer}
+    return {
+        "theta": th.detach(),
+        "theta0": th0,
+        "gd": gd,
+        "wall": wall,
+        "bt": 0,
+        "n_outer": n_outer,
+        "f_trace": f_trace,
+    }
 
 
-def eval_set(samples, theta_crr, log_lam_tik):
+def eval_set_converged(samples, theta_crr, log_lam_tik):
     rows = []
     for physics, y, x_star in samples:
-        xt, pt, ft = recon_tikhonov(physics, y, x_star, log_lam_tik)
-        xc, pc, fc = recon_crr(physics, y, x_star, theta_crr)
+        xt, pt, rt, ft = recon_tikhonov_converged(
+            physics, y, x_star, log_lam_tik
+        )
+        xc, pc, rc, fc = recon_crr_converged(physics, y, x_star, theta_crr)
         rows.append(
             {
                 "x": x_star,
@@ -295,6 +316,8 @@ def eval_set(samples, theta_crr, log_lam_tik):
                 "crr": xc,
                 "psnr_tik": pt,
                 "psnr_crr": pc,
+                "res_tik": rt,
+                "res_crr": rc,
                 "f_tik": ft,
                 "f_crr": fc,
             }
@@ -302,13 +325,49 @@ def eval_set(samples, theta_crr, log_lam_tik):
     return rows
 
 
-def mean_psnr(rows, key):
+def mean_key(rows, key):
     return sum(r[key] for r in rows) / len(rows)
 
 
-# %%
-# Run both problems
-# -----------------
+def print_scaling_table(label, th0, th1):
+    s0 = exp_scaling(th0, CRR_CFG).detach().cpu()
+    s1 = exp_scaling(th1, CRR_CFG).detach().cpu()
+    ratios = s1 / s0
+    print(f"  {label} exp(scaling) motion (acceptance test):", flush=True)
+    print(
+        f"  {'k':>4} {'exp(s0)':>12} {'exp(s_final)':>14} {'ratio':>10}",
+        flush=True,
+    )
+    n_show = min(8, CRR_CFG.n_filters)
+    for k in range(n_show):
+        print(
+            f"  {k:4d} {float(s0[k]):12.6f} {float(s1[k]):14.6f} "
+            f"{float(ratios[k]):10.4f}",
+            flush=True,
+        )
+    if CRR_CFG.n_filters > n_show:
+        print(
+            f"  ... ({CRR_CFG.n_filters - n_show} further filters omitted)",
+            flush=True,
+        )
+    print(
+        f"  ratio range [{float(ratios.min()):.4f}, {float(ratios.max()):.4f}], "
+        f"mean exp(s_final)={float(s1.mean()):.6f}, std={float(s1.std()):.6f}",
+        flush=True,
+    )
+    if float(ratios.max()) < 1.05 and float(ratios.min()) > 0.95:
+        print(
+            "  WARNING: scaling barely moved; scale degeneracy may remain.",
+            flush=True,
+        )
+    else:
+        print(
+            "  Scaling moved: Lip normalisation separates operator scale "
+            "from the learned log-scale.",
+            flush=True,
+        )
+    return s0, s1, ratios
+
 
 problem_specs = [
     ("inpainting", make_inpaint, 100),
@@ -317,6 +376,7 @@ problem_specs = [
 
 summary = []
 artifacts = {}
+t_demo0 = time.perf_counter()
 
 for pname, make_phys, seed0 in problem_specs:
     print()
@@ -324,77 +384,62 @@ for pname, make_phys, seed0 in problem_specs:
     train_samples = build_samples(make_phys, train_imgs, seed0)
     held_samples = build_samples(make_phys, [heldout_img], seed0 + 50)
 
-    print("Grid-tuning Tikhonov on train set ...", flush=True)
+    print("Grid-tuning scalar Tikhonov baseline on train set ...", flush=True)
     t0 = time.perf_counter()
-    tik = grid_tune_tikhonov(train_samples, n_grid=11)
+    tik = grid_tune_tikhonov(train_samples, n_grid=9)
     print(
-        f"  best lambda={tik['lam']:.4f} (log={tik['log_lam']:.3f}) "
+        f"  baseline lambda={tik['lam']:.4f} (log={tik['log_lam']:.3f}) "
         f"train f={tik['f']:.2f} train PSNR={tik['psnr_train']:.2f} "
         f"wall={time.perf_counter()-t0:.1f}s",
         flush=True,
     )
 
-    print("Training CRR with accelerated MAID ...", flush=True)
+    print("Bilevel learning of CRR with accelerated MAID ...", flush=True)
     maid = train_crr_maid(train_samples, accelerated=True, n_outer=N_OUTER)
     print(
-        f"  MAID outer={maid['n_outer']} GD={maid['gd']} BT={maid['bt']} "
-        f"wall={maid['wall']:.1f}s",
+        f"  MAID (learning) outer={maid['n_outer']} GD={maid['gd']} "
+        f"BT={maid['bt']} wall={maid['wall']:.1f}s",
         flush=True,
     )
-    # Acceptance test for the unit-norm fix: lambda_k must move.
-    th0_ref = pack_init_theta(CRR_CFG, dtype=dtype, seed=0, log_lambda0=-1.0)
-    _, lam0 = unpack_theta(th0_ref, CRR_CFG)
-    _, lam1 = unpack_theta(maid["theta"], CRR_CFG)
-    print(
-        f"  {'k':>3} {'lambda0':>10} {'lambda_final':>12} {'ratio':>10}",
-        flush=True,
+    s0, s1, ratios = print_scaling_table(
+        "MAID", maid["theta0"], maid["theta"]
     )
-    for k in range(CRR_CFG.n_kernels):
-        r = float(lam1[k] / lam0[k])
-        print(
-            f"  {k:3d} {float(lam0[k]):10.6f} {float(lam1[k]):12.6f} {r:10.4f}",
-            flush=True,
-        )
-    max_move = float((lam1 / lam0).max().item())
-    min_move = float((lam1 / lam0).min().item())
-    print(
-        f"  lambda ratio range [{min_move:.4f}, {max_move:.4f}] "
-        f"(must leave ~1.00 if unit-norm fixed the degeneracy)",
-        flush=True,
-    )
-    maid["lam0"] = lam0.detach().cpu()
-    maid["lam1"] = lam1.detach().cpu()
+    maid["s0"], maid["s1"], maid["ratios"] = s0, s1, ratios
 
-    print("Training CRR with fixed accuracy ...", flush=True)
+    print("Bilevel learning of CRR with fixed accuracy ...", flush=True)
     fixed = train_crr_fixed(train_samples, n_outer=N_OUTER)
     print(
-        f"  fixed outer={fixed['n_outer']} GD={fixed['gd']} "
+        f"  fixed (learning) outer={fixed['n_outer']} GD={fixed['gd']} "
         f"wall={fixed['wall']:.1f}s",
         flush=True,
     )
 
-    train_eval_maid = eval_set(
+    print(f"Final recon at eps={REPORT_EPS} ...", flush=True)
+    train_eval_maid = eval_set_converged(
         train_samples, maid["theta"], tik["log_lam"]
     )
-    held_eval_maid = eval_set(
+    held_eval_maid = eval_set_converged(
         held_samples, maid["theta"], tik["log_lam"]
     )
-    train_eval_fixed = eval_set(
+    train_eval_fixed = eval_set_converged(
         train_samples, fixed["theta"], tik["log_lam"]
     )
-    held_eval_fixed = eval_set(
+    held_eval_fixed = eval_set_converged(
         held_samples, fixed["theta"], tik["log_lam"]
     )
 
     row = {
         "problem": pname,
         "tik_lam": tik["lam"],
-        "tik_psnr_train": mean_psnr(train_eval_maid, "psnr_tik"),
-        "tik_psnr_held": mean_psnr(held_eval_maid, "psnr_tik"),
-        "maid_psnr_train": mean_psnr(train_eval_maid, "psnr_crr"),
-        "maid_psnr_held": mean_psnr(held_eval_maid, "psnr_crr"),
-        "fixed_psnr_train": mean_psnr(train_eval_fixed, "psnr_crr"),
-        "fixed_psnr_held": mean_psnr(held_eval_fixed, "psnr_crr"),
+        "tik_psnr_train": mean_key(train_eval_maid, "psnr_tik"),
+        "tik_psnr_held": mean_key(held_eval_maid, "psnr_tik"),
+        "tik_res_held": mean_key(held_eval_maid, "res_tik"),
+        "maid_psnr_train": mean_key(train_eval_maid, "psnr_crr"),
+        "maid_psnr_held": mean_key(held_eval_maid, "psnr_crr"),
+        "maid_res_held": mean_key(held_eval_maid, "res_crr"),
+        "fixed_psnr_train": mean_key(train_eval_fixed, "psnr_crr"),
+        "fixed_psnr_held": mean_key(held_eval_fixed, "psnr_crr"),
+        "fixed_res_held": mean_key(held_eval_fixed, "res_crr"),
         "maid_gd": maid["gd"],
         "fixed_gd": fixed["gd"],
         "maid_wall": maid["wall"],
@@ -411,39 +456,62 @@ for pname, make_phys, seed0 in problem_specs:
         "held_eval_fixed": held_eval_fixed,
     }
     print(
-        f"  TRAIN  Tikhonov PSNR={row['tik_psnr_train']:.2f}  "
-        f"CRR-MAID={row['maid_psnr_train']:.2f}  "
-        f"CRR-fixed={row['fixed_psnr_train']:.2f}",
+        f"  TRAIN  baseline PSNR={row['tik_psnr_train']:.2f}  "
+        f"learned CRR (MAID params)={row['maid_psnr_train']:.2f}  "
+        f"learned CRR (fixed params)={row['fixed_psnr_train']:.2f}",
         flush=True,
     )
     print(
-        f"  HELD   Tikhonov PSNR={row['tik_psnr_held']:.2f}  "
-        f"CRR-MAID={row['maid_psnr_held']:.2f}  "
-        f"CRR-fixed={row['fixed_psnr_held']:.2f}",
+        f"  HELD   baseline PSNR={row['tik_psnr_held']:.2f} "
+        f"(res={row['tik_res_held']:.2e})  "
+        f"learned CRR (MAID params)={row['maid_psnr_held']:.2f} "
+        f"(res={row['maid_res_held']:.2e})  "
+        f"learned CRR (fixed params)={row['fixed_psnr_held']:.2f} "
+        f"(res={row['fixed_res_held']:.2e})",
         flush=True,
     )
 
 
-# %%
-# Figures
-# -------
+CAPTION_RECON = (
+    f"Reconstruction by residual-stopped GD (eps={REPORT_EPS}); "
+    "panels differ only in the regulariser parameters."
+)
 
-# Keep Tikhonov inpainting figure (scalar prior limitation).
+
+def show_img(ax, img, title):
+    arr = to_np_img(img)
+    if arr.ndim == 2:
+        ax.imshow(arr, cmap="gray", vmin=0.0, vmax=1.0)
+    else:
+        ax.imshow(arr, vmin=0.0, vmax=1.0)
+    ax.set_title(title, fontsize=9)
+    ax.axis("off")
+
+
 he = artifacts["inpainting"]["held_eval_maid"][0]
 fig, axes = plt.subplots(1, 4, figsize=(12, 3.2))
-panels = [
-    (he["x"], "ground truth"),
-    (he["y"], "measurement"),
-    (he["tik"], f"grid Tikhonov\nPSNR {he['psnr_tik']:.2f} dB"),
-    (he["crr"], f"CRR-MAID\nPSNR {he['psnr_crr']:.2f} dB"),
-]
-for ax, (img, title) in zip(axes, panels):
-    ax.imshow(to_np(img), cmap="gray", vmin=0.0, vmax=1.0)
-    ax.set_title(title, fontsize=10)
-    ax.axis("off")
+for ax, (img, title) in zip(
+    axes,
+    [
+        (he["x"], "ground truth"),
+        (he["y"], "measurement"),
+        (
+            he["tik"],
+            f"grid-tuned scalar prior\nPSNR {he['psnr_tik']:.2f} dB\n"
+            f"res {he['res_tik']:.1e}",
+        ),
+        (
+            he["crr"],
+            f"learned convex ridge prior\nPSNR {he['psnr_crr']:.2f} dB\n"
+            f"res {he['res_crr']:.1e}",
+        ),
+    ],
+):
+    show_img(ax, img, title)
 fig.suptitle(
-    "Inpainting held-out: grid-tuned Tikhonov vs learned convex ridge regulariser",
-    fontsize=11,
+    "Inpainting held-out: same solver, different regulariser parameters\n"
+    + CAPTION_RECON,
+    fontsize=10,
 )
 fig.tight_layout()
 path = FIG_DIR / "maid_crr_inpainting_heldout.png"
@@ -451,22 +519,30 @@ fig.savefig(path, dpi=150, bbox_inches="tight")
 plt.close(fig)
 print(f"wrote {path}", flush=True)
 
-# Deblur held-out comparison.
 he = artifacts["deblur"]["held_eval_maid"][0]
 fig, axes = plt.subplots(1, 4, figsize=(12, 3.2))
-panels = [
-    (he["x"], "ground truth"),
-    (he["y"], "measurement"),
-    (he["tik"], f"grid Tikhonov\nPSNR {he['psnr_tik']:.2f} dB"),
-    (he["crr"], f"CRR-MAID\nPSNR {he['psnr_crr']:.2f} dB"),
-]
-for ax, (img, title) in zip(axes, panels):
-    ax.imshow(to_np(img), cmap="gray", vmin=0.0, vmax=1.0)
-    ax.set_title(title, fontsize=10)
-    ax.axis("off")
+for ax, (img, title) in zip(
+    axes,
+    [
+        (he["x"], "ground truth"),
+        (he["y"], "measurement"),
+        (
+            he["tik"],
+            f"grid-tuned scalar prior\nPSNR {he['psnr_tik']:.2f} dB\n"
+            f"res {he['res_tik']:.1e}",
+        ),
+        (
+            he["crr"],
+            f"learned convex ridge prior\nPSNR {he['psnr_crr']:.2f} dB\n"
+            f"res {he['res_crr']:.1e}",
+        ),
+    ],
+):
+    show_img(ax, img, title)
 fig.suptitle(
-    "Deblur held-out: grid-tuned Tikhonov vs learned convex ridge regulariser",
-    fontsize=11,
+    "Deblur held-out: same solver, different regulariser parameters\n"
+    + CAPTION_RECON,
+    fontsize=10,
 )
 fig.tight_layout()
 path = FIG_DIR / "maid_crr_deblur_heldout.png"
@@ -474,117 +550,129 @@ fig.savefig(path, dpi=150, bbox_inches="tight")
 plt.close(fig)
 print(f"wrote {path}", flush=True)
 
-# Side-by-side Tikhonov-only inpainting (scalar limitation) already in
-# maid_imaging_inpainting_recon.png; also save a labelled pair comparing
-# train Tikhonov static vs CRR.
-te = artifacts["inpainting"]["train_eval_maid"][0]
-fig, axes = plt.subplots(1, 3, figsize=(9, 3.2))
-for ax, (img, title) in zip(
-    axes,
-    [
-        (te["x"], "ground truth (train)"),
-        (te["tik"], f"grid Tikhonov\nPSNR {te['psnr_tik']:.2f} dB"),
-        (te["crr"], f"CRR-MAID\nPSNR {te['psnr_crr']:.2f} dB"),
-    ],
-):
-    ax.imshow(to_np(img), cmap="gray", vmin=0.0, vmax=1.0)
-    ax.set_title(title, fontsize=10)
-    ax.axis("off")
+fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
+for ax, pname in zip(axes, ("inpainting", "deblur")):
+    maid = artifacts[pname]["maid"]
+    fixed = artifacts[pname]["fixed"]
+    if maid["f_trace"]:
+        ax.plot(
+            range(1, len(maid["f_trace"]) + 1),
+            maid["f_trace"],
+            "-o",
+            label="accelerated MAID",
+            markersize=4,
+        )
+    if fixed["f_trace"]:
+        ax.plot(
+            range(1, len(fixed["f_trace"]) + 1),
+            fixed["f_trace"],
+            "-s",
+            label="fixed-accuracy bilevel",
+            markersize=4,
+        )
+    ax.set_xlabel("outer iteration")
+    ax.set_ylabel("upper-level cost f")
+    ax.set_title(f"{pname}: learning efficiency")
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
 fig.suptitle(
-    "Inpainting train image: zeroth-order Tikhonov has no spatial coupling; CRR does",
+    "MAID is the learning algorithm: upper-level cost vs outer iterations "
+    f"(lower levels solved loosely at eps={LEARN_EPS0} while learning)",
     fontsize=10,
 )
 fig.tight_layout()
-path = FIG_DIR / "maid_crr_inpainting_train_pair.png"
+path = FIG_DIR / "maid_crr_learning_cost.png"
 fig.savefig(path, dpi=150, bbox_inches="tight")
 plt.close(fig)
 print(f"wrote {path}", flush=True)
 
-# Learned kernels from inpainting MAID (the data-adaptive picture).
 th = artifacts["inpainting"]["maid"]["theta"]
-kernels, lambdas = unpack_theta(th, CRR_CFG)
-fig, axes = plt.subplots(2, 4, figsize=(8, 4))
-for i, ax in enumerate(axes.ravel()):
-    k = kernels[i, 0].detach().cpu().numpy()
-    vmax = max(abs(k.min()), abs(k.max()), 1e-8)
-    ax.imshow(k, cmap="RdBu_r", vmin=-vmax, vmax=vmax)
-    ax.set_title(f"k={i} lam={float(lambdas[i]):.3f}", fontsize=8)
-    ax.axis("off")
-fig.suptitle("Learned CRR kernels (inpainting, accelerated MAID)", fontsize=11)
+weights, scaling, beta = unpack_theta(th, CRR_CFG)
+w0 = weights[0].detach().cpu()
+n_out = min(w0.shape[0], 4)
+fig, axes = plt.subplots(n_out, 3, figsize=(6, 2 * n_out))
+for i in range(n_out):
+    for c in range(3):
+        ax = axes[i, c] if n_out > 1 else axes[c]
+        k = w0[i, c].numpy()
+        vmax = max(abs(k.min()), abs(k.max()), 1e-8)
+        ax.imshow(k, cmap="RdBu_r", vmin=-vmax, vmax=vmax)
+        ax.set_title(
+            f"out={i} ch={c} exp(s)={float(torch.exp(scaling[0, i])):.3f}",
+            fontsize=7,
+        )
+        ax.axis("off")
+fig.suptitle(
+    "Learned CRR first-layer filters (inpainting; parameters from accelerated MAID)",
+    fontsize=10,
+)
 fig.tight_layout()
-path = FIG_DIR / "maid_crr_kernels_inpainting.png"
+path = FIG_DIR / "maid_crr_filters_inpainting.png"
 fig.savefig(path, dpi=150, bbox_inches="tight")
 plt.close(fig)
 print(f"wrote {path}", flush=True)
-
-
-# %%
-# Summary table
-# -------------
 
 print()
 print(
-    f"{'problem':<12} {'method':<16} {'PSNR_train':>10} {'PSNR_held':>10} "
-    f"{'GD':>8} {'wall_s':>8}"
+    f"{'problem':<12} {'prior / learning':<28} {'PSNR_train':>10} "
+    f"{'PSNR_held':>10} {'res_held':>10} {'GD':>8} {'wall_s':>8}"
 )
 for row in summary:
     print(
-        f"{row['problem']:<12} {'grid Tikhonov':<16} "
+        f"{row['problem']:<12} {'grid-tuned scalar (baseline)':<28} "
         f"{row['tik_psnr_train']:10.2f} {row['tik_psnr_held']:10.2f} "
-        f"{'-':>8} {'-':>8}"
+        f"{row['tik_res_held']:10.2e} {'-':>8} {'-':>8}"
     )
     print(
-        f"{row['problem']:<12} {'CRR fixed':<16} "
+        f"{row['problem']:<12} {'CRR via fixed bilevel':<28} "
         f"{row['fixed_psnr_train']:10.2f} {row['fixed_psnr_held']:10.2f} "
-        f"{row['fixed_gd']:8d} {row['fixed_wall']:8.1f}"
+        f"{row['fixed_res_held']:10.2e} {row['fixed_gd']:8d} "
+        f"{row['fixed_wall']:8.1f}"
     )
     print(
-        f"{row['problem']:<12} {'CRR MAID':<16} "
+        f"{row['problem']:<12} {'CRR via accelerated MAID':<28} "
         f"{row['maid_psnr_train']:10.2f} {row['maid_psnr_held']:10.2f} "
-        f"{row['maid_gd']:8d} {row['maid_wall']:8.1f}"
+        f"{row['maid_res_held']:10.2e} {row['maid_gd']:8d} "
+        f"{row['maid_wall']:8.1f}"
     )
 
+demo_wall = time.perf_counter() - t_demo0
 print()
 print("Notes")
 print(
-    f"  Train set: {len(train_imgs)} Set3C greyscale {IMG_SIZE}x{IMG_SIZE} images; "
+    f"  Train set: {len(train_imgs)} Set3C colour {IMG_SIZE}x{IMG_SIZE} images; "
     "held-out: 1 image."
 )
 print(
-    f"  Scalar baseline: log-spaced grid over lambda in [e^-4, e^1], "
-    "selected by mean train upper-level loss (not taken from a MAID run)."
+    "  Scalar baseline: log-spaced grid over lambda; not a method under test."
 )
 print(
-    f"  CRR gamma={CRR_CFG.gamma} (mu floor for residual stopping); "
-    "lambda_k=exp(vartheta_k); kernels unit-norm after zero-mean; "
-    f"free_kernel_scale={CRR_CFG.free_kernel_scale} "
-    "(scale degeneracy and Euclidean chart: see convex_ridge module docstring)."
+    f"  CRR: multiconv {CRR_CFG.nb_channels}, Lip-normalised, log scaling, "
+    f"smooth L1, weak_convexity={CRR_CFG.weak_convexity}, "
+    f"gamma={CRR_CFG.gamma}, n_params={CRR_CFG.n_params}."
 )
+print(
+    f"  Reported PSNR: final lower-level solve at eps={REPORT_EPS}; residual "
+    "is ||grad h|| and must meet eps*mu before the number is printed."
+)
+print(
+    "  MAID appears in the learning-cost figure and the wall/GD columns; "
+    "reconstruction panels are labelled by the prior, not by MAID."
+)
+print(f"  Example wall-clock: {demo_wall:.1f}s (~{demo_wall/60:.1f} min).")
 print(f"  Figures: {FIG_DIR}")
-print(
-    "  Numbers are measured. If CRR does not beat grid-tuned Tikhonov on a "
-    "problem, that is reported rather than tuned away."
-)
+
 if "inpainting" in artifacts:
-    lam0 = artifacts["inpainting"]["maid"]["lam0"]
-    lam1 = artifacts["inpainting"]["maid"]["lam1"]
-    ratios = lam1 / lam0
+    ratios = artifacts["inpainting"]["maid"]["ratios"]
+    s1 = artifacts["inpainting"]["maid"]["s1"]
     print()
-    print("Inpainting CRR-MAID lambda motion (init log_lambda0=-1 => 0.367879):")
+    print("Inpainting CRR scaling motion (exp(s)):")
     print(
         f"  min ratio={float(ratios.min()):.4f}, max ratio={float(ratios.max()):.4f}, "
-        f"std(lambda_final)={float(lam1.std()):.6f}"
+        f"std(exp(s_final))={float(s1.std()):.6f}"
     )
-    if float(ratios.max()) < 1.05 and float(ratios.min()) > 0.95:
-        print(
-            "  WARNING: lambdas barely moved; scale degeneracy may still be present."
-        )
-    else:
-        print(
-            "  Weights moved: scale is no longer absorbed entirely by the kernels."
-        )
-    spread = float(lam1.max() / lam1.min())
+    spread = float(s1.max() / s1.min())
     print(
-        f"  final lambda spread max/min={spread:.3f} "
-        f"({'interchangeable' if spread < 1.2 else 'allocated across filters'})"
+        f"  final exp(s) spread max/min={spread:.3f} "
+        f"({'similar across filters' if spread < 1.2 else 'allocated across filters'})"
     )

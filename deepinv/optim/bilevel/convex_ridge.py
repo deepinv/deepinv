@@ -1,189 +1,147 @@
-r"""Convex ridge regulariser (Goujon-Unser style) for bilevel learning.
+"""Convex ridge regulariser for bilevel learning (Goujon-Unser / WCRR structure).
 
-.. math::
+Architecture follows the reference CRR/WCRR implementation
+(LearnedRegularizers, priors/wcrr.py): multi-layer convolution with no
+nonlinearity between layers, Lipschitz normalisation, log-domain scaling,
+and a smoothed-L1 potential.
 
-    R_\theta(x)
-    = \sum_k \lambda_k \sum_j
-      \rho\bigl((W_k * x)_j\bigr)
+Parameters are packed in a flat theta vector for MAID. The lower level also
+carries a ridge floor (gamma/2)||x||^2 so mu >= gamma.
 
-    \rho(t) = \mu \log\cosh(t / \mu)
+Default weak_convexity=0 yields CRR (convex). 
+Even with Lip-normalised multiconv, the log-scale ``s`` cancels exactly in the
+quadratic region of smooth_l1: if ``rho(t) = t^2/2`` then
+``exp(-2s) rho(exp(s) u) = u^2/2``. Scale is identifiable only once features
+enter the linear tails of smooth_l1. The example reports initial and final
+``exp(s)``; if they stay put, features remained small-signal.
 
-    \lambda_k = \exp(\vartheta_k)
-
-with free parameters ``theta = (free kernel entries, vartheta_k)``. The lower
-level also carries a ridge floor ``(gamma / 2) ||x||^2`` so that the
-strong-convexity modulus satisfies ``mu >= gamma`` regardless of the
-weights.
-
-Why ``lambda_k = exp(vartheta_k)`` rather than softplus
-------------------------------------------------------
-1. Positivity is exact for every finite parameter value. A negative weight
-   would make ``h`` nonconvex and void every MAID guarantee.
-2. Gradient descent on the log-weight is multiplicative on ``lambda``,
-   which is the right geometry for a quantity that ranges over orders of
-   magnitude (the same geometry as a log-spaced grid search).
-3. Unlike softplus, ``exp`` does not saturate for large negative arguments,
-   so a weight can keep shrinking toward zero at a steady multiplicative
-   rate.
-
-This matches :class:`~deepinv.optim.bilevel.TikhonovWeightProblem`, which
-already uses ``lambda = exp(theta)`` for the scalar Tikhonov weight.
-
-Scale degeneracy and unit-norm kernels
---------------------------------------
-In the small-signal regime ``rho(t) ~ t^2 / (2 mu)``, so
-
-    lambda_k * sum_j rho((W_k * x)_j)
-        ~ lambda_k * ||W_k * x||^2 / (2 mu).
-
-Scaling ``W_k`` by ``c`` and ``lambda_k`` by ``1/c^2`` leaves the energy
-unchanged. Without a constraint, the pair ``(lambda_k, W_k)`` is degenerate
-along a one-parameter family: the hypergradient with respect to
-``log lambda_k`` points along a nearly flat direction and the optimiser
-moves only the kernels.
-
-The fix used here is to normalise each kernel to unit Frobenius norm
-inside the forward pass (after zero-mean centring). Scale then lives
-entirely in ``lambda_k``, the flat direction disappears, and the weight
-becomes a meaningful learned quantity. The free kernel parameters remain
-unconstrained; the gradient of the composition with the normalisation is
-the projected gradient on the sphere. A near-zero raw kernel is guarded
-by a small floor on the norm.
-
-Somebody extending this with a different profile function needs the same
-constraint whenever the profile is (locally) quadratic: weight and kernel
-scale are only separable once the kernels are normalised.
-
-Euclidean chart on free kernel coordinates
-------------------------------------------
-After unit-norm projection, ``unit_norm(c * free_w) = unit_norm(free_w)``
-for any ``c > 0``, so the forward map depends only on direction. The
-Euclidean hypergradient on free coordinates still scales as
-``1 / ||free_w_k||``: tiny free coordinates inflate the kernel block of
-``z`` by orders of magnitude, line search shrinks the common step size,
-and ``log lambda_k`` barely moves even though its partial is nonzero.
-
-Free kernel coordinates are therefore initialised with per-kernel
-Frobenius norm ``free_kernel_scale`` (default 1). That balances
-``||z_kernels||`` with ``||z_loglambda||`` under a single outer step size
-without changing the forward energy. Re-charting after large steps
-(``renormalise_free_kernels``) keeps the metric from drifting.
-
-Default size: 8 kernels of 5x5 on one channel plus 8 log-weights is 208
-parameters. Convex in ``x`` by construction and ``C^2``, so the smooth MAID
-oracle and the gradient residual apply unchanged.
+DeepInverse adaptations:
+flat theta, detached Lip chart, gamma ridge floor, colour default channels.
+Without Lip normalisation, filter amplitude and log-scale trade off; with it
+the scale lives in s. See the example for the exp(s) motion acceptance test.
 """
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
+from typing import Sequence
 
 import torch
 import torch.nn.functional as F
 
 
+def _as_tuple(x: Sequence[int] | tuple[int, ...]) -> tuple[int, ...]:
+    return tuple(int(v) for v in x)
+
+
 def n_crr_params(
-    n_kernels: int = 8,
-    kernel_size: int = 5,
-    n_channels: int = 1,
+    nb_channels: Sequence[int] = (3, 4, 8, 64),
+    filter_sizes: Sequence[int] = (5, 5, 5),
 ) -> int:
     """Number of free parameters in the flat theta vector."""
-    return n_kernels * n_channels * kernel_size * kernel_size + n_kernels
+    ch = _as_tuple(nb_channels)
+    fs = _as_tuple(filter_sizes)
+    if len(ch) != len(fs) + 1:
+        raise ValueError(
+            f"len(nb_channels)={len(ch)} must be len(filter_sizes)+1={len(fs)+1}"
+        )
+    n_w = 0
+    for i, k in enumerate(fs):
+        n_w += ch[i + 1] * ch[i] * k * k
+    return n_w + ch[-1] + 1
 
 
-def log_cosh(t: torch.Tensor) -> torch.Tensor:
-    """Numerically stable ``log cosh(t)``."""
-    a = t.abs()
-    return a + torch.log1p(torch.exp(-2.0 * a)) - math.log(2.0)
+def smooth_l1(x: torch.Tensor) -> torch.Tensor:
+    """Smoothed L1: t^2/2 for |t|<1, |t|-1/2 otherwise."""
+    return torch.clamp(x * x, 0.0, 1.0) / 2.0 + torch.clamp(x.abs(), min=1.0) - 1.0
+
+
+def grad_smooth_l1(x: torch.Tensor) -> torch.Tensor:
+    return torch.clamp(x, -1.0, 1.0)
 
 
 @dataclass
 class ConvexRidgeConfig:
-    """Architecture and fixed constants for the ridge regulariser.
+    """Architecture and fixed constants for the multiconv ridge regulariser."""
 
-    :param float gamma: strong-convexity floor in the lower level. Residual
-        stopping uses ``mu = gamma``, which is known by design and does not
-        depend on the learned weights (``exp`` can drive any ``lambda_k``
-        toward zero). Default ``1e-2``.
-    :param float mu_rho: scale of ``rho(t) = mu_rho log cosh(t / mu_rho)``.
-    :param float kernel_norm_eps: floor on the Frobenius norm when
-        normalising kernels (avoids division by zero for a collapsed filter).
-    :param float free_kernel_scale: target Frobenius norm of each free kernel
-        block at initialisation (and when re-charting). Sets the Euclidean
-        metric weight on the kernel block; see module docstring. Default 1.
-    """
-
-    n_kernels: int = 8
-    kernel_size: int = 5
-    n_channels: int = 1
-    mu_rho: float = 0.05
+    nb_channels: tuple[int, ...] = (3, 4, 8, 64)
+    filter_sizes: tuple[int, ...] = (5, 5, 5)
     gamma: float = 1e-2
-    kernel_norm_eps: float = 1e-12
-    free_kernel_scale: float = 1.0
+    weak_convexity: float = 0.0
+    sigma_init: float = 0.1
+    beta_init: float = 4.0
+    lip_fft_size: int = 128
+
+    def __post_init__(self) -> None:
+        self.nb_channels = _as_tuple(self.nb_channels)
+        self.filter_sizes = _as_tuple(self.filter_sizes)
+        if len(self.nb_channels) != len(self.filter_sizes) + 1:
+            raise ValueError(
+                "nb_channels must have length len(filter_sizes)+1, "
+                f"got {len(self.nb_channels)} and {len(self.filter_sizes)}"
+            )
+        if not (0.0 <= self.weak_convexity <= 1.0):
+            raise ValueError("weak_convexity must lie in [0, 1]")
 
     @property
     def n_params(self) -> int:
-        return n_crr_params(
-            self.n_kernels, self.kernel_size, self.n_channels
-        )
+        return n_crr_params(self.nb_channels, self.filter_sizes)
+
+    @property
+    def n_filters(self) -> int:
+        return int(self.nb_channels[-1])
+
+    @property
+    def effective_filter_size(self) -> int:
+        return int(sum(self.filter_sizes) - len(self.filter_sizes) + 1)
+
+    @property
+    def in_channels(self) -> int:
+        return int(self.nb_channels[0])
+
+
+def _weight_layout(cfg: ConvexRidgeConfig) -> list[tuple[int, int, int, int, int]]:
+    layout = []
+    n = 0
+    for i, k in enumerate(cfg.filter_sizes):
+        cout = cfg.nb_channels[i + 1]
+        cin = cfg.nb_channels[i]
+        n_w = cout * cin * k * k
+        layout.append((n, n + n_w, cout, cin, k))
+        n += n_w
+    return layout
+
+
+def unpack_weights(theta: torch.Tensor, cfg: ConvexRidgeConfig) -> list[torch.Tensor]:
+    weights = []
+    for i, (start, end, cout, cin, k) in enumerate(_weight_layout(cfg)):
+        w = theta[start:end].reshape(cout, cin, k, k)
+        if i == 0:
+            w = w - w.mean(dim=(1, 2, 3), keepdim=True)
+        weights.append(w)
+    return weights
+
+
+def unpack_scaling_beta(
+    theta: torch.Tensor, cfg: ConvexRidgeConfig
+) -> tuple[torch.Tensor, torch.Tensor]:
+    n_w = sum(end - start for start, end, *_ in _weight_layout(cfg))
+    n_s = cfg.n_filters
+    scaling = theta[n_w : n_w + n_s].view(1, n_s, 1, 1)
+    beta = theta[n_w + n_s : n_w + n_s + 1].view(())
+    return scaling, beta
 
 
 def unpack_theta(
     theta: torch.Tensor, cfg: ConvexRidgeConfig
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """Map flat theta to (unit-norm zero-mean kernels, positive lambdas).
-
-    Each kernel is centred then divided by its Frobenius norm so that scale
-    is absorbed by ``lambda_k = exp(vartheta_k)`` (see module docstring on
-    the scale degeneracy).
-    """
+) -> tuple[list[torch.Tensor], torch.Tensor, torch.Tensor]:
     if theta.ndim != 1:
         raise ValueError(f"theta must be 1-D, got shape {tuple(theta.shape)}")
     if theta.numel() != cfg.n_params:
         raise ValueError(
             f"theta has {theta.numel()} entries, expected {cfg.n_params}"
         )
-    n_w = cfg.n_kernels * cfg.n_channels * cfg.kernel_size * cfg.kernel_size
-    free_w = theta[:n_w].reshape(
-        cfg.n_kernels, cfg.n_channels, cfg.kernel_size, cfg.kernel_size
-    )
-    raw_l = theta[n_w:]
-    # Zero spatial mean so constant images are in each filter's null space.
-    kernels = free_w - free_w.mean(dim=(-2, -1), keepdim=True)
-    # Unit Frobenius norm per kernel: scale lives in lambda_k only.
-    norms = (
-        kernels.flatten(1)
-        .norm(dim=1)
-        .clamp_min(cfg.kernel_norm_eps)
-        .view(cfg.n_kernels, 1, 1, 1)
-    )
-    kernels = kernels / norms
-    lambdas = torch.exp(raw_l)
-    return kernels, lambdas
-
-
-def renormalise_free_kernels(
-    theta: torch.Tensor, cfg: ConvexRidgeConfig
-) -> torch.Tensor:
-    """Re-chart free kernel blocks to Frobenius norm ``free_kernel_scale``.
-
-    Does not change the forward energy (unit-norm projection is scale
-    invariant) but keeps ``||z_kernels||`` comparable to ``||z_loglambda||``
-    under a shared outer step size. Log-weights are left unchanged.
-    """
-    n_w = cfg.n_kernels * cfg.n_channels * cfg.kernel_size * cfg.kernel_size
-    free_w = theta[:n_w].reshape(
-        cfg.n_kernels, cfg.n_channels, cfg.kernel_size, cfg.kernel_size
-    )
-    norms = (
-        free_w.flatten(1)
-        .norm(dim=1)
-        .clamp_min(cfg.kernel_norm_eps)
-        .view(cfg.n_kernels, 1, 1, 1)
-    )
-    free_w = free_w / norms * cfg.free_kernel_scale
-    return torch.cat([free_w.reshape(-1), theta[n_w:].clone()])
+    return unpack_weights(theta, cfg), *unpack_scaling_beta(theta, cfg)
 
 
 def pack_init_theta(
@@ -191,99 +149,161 @@ def pack_init_theta(
     device: torch.device | str = "cpu",
     dtype: torch.dtype = torch.float64,
     seed: int = 0,
-    log_lambda0: float = -1.0,
+    weight_scale: float = 0.05,
 ) -> torch.Tensor:
-    """Random free kernel directions at ``free_kernel_scale``; log-weights fixed.
-
-    Each free kernel block is drawn from a standard normal then rescaled to
-    Frobenius norm ``cfg.free_kernel_scale`` (default 1). Log-weights start
-    at ``log_lambda0`` (default -1, so lambda ~ 0.3679). Forward kernels are
-    unit-norm regardless of the free scale (see module docstring).
-    """
     gen = torch.Generator(device="cpu").manual_seed(seed)
-    n_w = cfg.n_kernels * cfg.n_channels * cfg.kernel_size * cfg.kernel_size
-    free_w = torch.randn(n_w, generator=gen, dtype=dtype)
-    free_w = free_w.reshape(
-        cfg.n_kernels, cfg.n_channels, cfg.kernel_size, cfg.kernel_size
-    )
-    norms = (
-        free_w.flatten(1)
-        .norm(dim=1)
-        .clamp_min(cfg.kernel_norm_eps)
-        .view(cfg.n_kernels, 1, 1, 1)
-    )
-    free_w = free_w / norms * cfg.free_kernel_scale
-    raw_l = torch.full((cfg.n_kernels,), float(log_lambda0), dtype=dtype)
-    return torch.cat([free_w.reshape(-1), raw_l]).to(device=device, dtype=dtype)
+    parts: list[torch.Tensor] = []
+    for start, end, cout, cin, k in _weight_layout(cfg):
+        parts.append(
+            weight_scale * torch.randn(end - start, generator=gen, dtype=dtype)
+        )
+    s0 = float(torch.log(torch.tensor(2.0 / cfg.sigma_init)))
+    parts.append(torch.full((cfg.n_filters,), s0, dtype=dtype))
+    parts.append(torch.tensor([cfg.beta_init], dtype=dtype))
+    return torch.cat(parts).to(device=device, dtype=dtype)
+
+
+def get_conv_lip(
+    weights: list[torch.Tensor],
+    cfg: ConvexRidgeConfig,
+    detach: bool = True,
+) -> torch.Tensor:
+    fs = cfg.effective_filter_size
+    device = weights[0].device
+    dtype = weights[0].dtype
+    cin = cfg.in_channels
+    dirac = torch.zeros(1, cin, 2 * fs - 1, 2 * fs - 1, device=device, dtype=dtype)
+    dirac[0, 0, fs - 1, fs - 1] = 1.0
+    impulse = dirac
+    for w in weights:
+        pad = w.shape[-1] // 2
+        impulse = F.conv2d(impulse, w, padding=pad)
+    for w in reversed(weights):
+        pad = w.shape[-1] // 2
+        impulse = F.conv_transpose2d(impulse, w, padding=pad)
+    if detach:
+        impulse = impulse.detach()
+    n = max(int(cfg.lip_fft_size), 2 * fs)
+    return torch.fft.fft2(impulse, s=[n, n]).abs().amax().clamp_min(1e-12)
+
+
+def apply_conv(
+    x: torch.Tensor,
+    weights: list[torch.Tensor],
+    cfg: ConvexRidgeConfig,
+    lip: torch.Tensor | None = None,
+) -> torch.Tensor:
+    if lip is None:
+        lip = get_conv_lip(weights, cfg, detach=True)
+    x = x / torch.sqrt(lip)
+    for w in weights:
+        pad = w.shape[-1] // 2
+        x = F.conv2d(x, w, padding=pad)
+    return x
+
+
+def apply_conv_transpose(
+    x: torch.Tensor,
+    weights: list[torch.Tensor],
+    cfg: ConvexRidgeConfig,
+    lip: torch.Tensor | None = None,
+) -> torch.Tensor:
+    if lip is None:
+        lip = get_conv_lip(weights, cfg, detach=True)
+    x = x / torch.sqrt(lip)
+    for w in reversed(weights):
+        pad = w.shape[-1] // 2
+        x = F.conv_transpose2d(x, w, padding=pad)
+    return x
 
 
 def ridge_energy(
     x: torch.Tensor,
-    kernels: torch.Tensor,
-    lambdas: torch.Tensor,
+    weights: list[torch.Tensor],
+    scaling: torch.Tensor,
+    beta: torch.Tensor,
     cfg: ConvexRidgeConfig,
+    lip: torch.Tensor | None = None,
 ) -> torch.Tensor:
-    """Scalar energy ``R(x) + (gamma/2)||x||^2``."""
-    pad = cfg.kernel_size // 2
-    feats = F.conv2d(x, kernels, padding=pad)
-    t = feats / cfg.mu_rho
-    rho = cfg.mu_rho * log_cosh(t)
-    weighted = rho * lambdas.view(1, -1, 1, 1)
-    r = weighted.sum()
-    ridge = 0.5 * cfg.gamma * (x * x).sum()
-    return r + ridge
+    feats = apply_conv(x, weights, cfg, lip=lip)
+    scaled = feats * torch.exp(scaling)
+    rho = smooth_l1(torch.exp(beta) * scaled) * torch.exp(-beta)
+    if cfg.weak_convexity != 0.0:
+        rho = rho - smooth_l1(scaled) * cfg.weak_convexity
+    reg = (rho * torch.exp(-2.0 * scaling)).sum()
+    return reg + 0.5 * cfg.gamma * (x * x).sum()
 
 
 def ridge_grad_x(
     x: torch.Tensor,
-    kernels: torch.Tensor,
-    lambdas: torch.Tensor,
+    weights: list[torch.Tensor],
+    scaling: torch.Tensor,
+    beta: torch.Tensor,
     cfg: ConvexRidgeConfig,
+    lip: torch.Tensor | None = None,
 ) -> torch.Tensor:
-    """Gradient of the ridge energy in ``x`` (detached)."""
-    x_ = x.detach().requires_grad_(True)
-    e = ridge_energy(x_, kernels.detach(), lambdas.detach(), cfg)
-    (g,) = torch.autograd.grad(e, x_)
-    return g.detach()
+    """Explicit gradient matching the reference WCRR ``grad`` path.
+
+    Avoids autograd on the lower-level residual loop (which would re-run the
+    multiconv graph thousands of times).
+    """
+    w_det = [w.detach() for w in weights]
+    s = scaling.detach()
+    b = beta.detach()
+    if lip is None:
+        lip = get_conv_lip(w_det, cfg, detach=True)
+    feats = apply_conv(x.detach(), w_det, cfg, lip=lip)
+    scaled = feats * torch.exp(s)
+    g = grad_smooth_l1(torch.exp(b) * scaled)
+    if cfg.weak_convexity != 0.0:
+        g = g - grad_smooth_l1(scaled) * cfg.weak_convexity
+    g = g * torch.exp(-s)
+    g = apply_conv_transpose(g, w_det, cfg, lip=lip)
+    g = g + cfg.gamma * x.detach()
+    return g
 
 
 class ConvexRidgePrior:
-    """Thin energy/grad wrapper driven by a flat theta vector.
-
-    Not a full :class:`~deepinv.optim.Prior` subclass: the bilevel path uses
-    hand-rolled residual-stopped GD that only needs ``grad`` and the energy,
-    which avoids fighting BaseOptim's ``lambda * prior.grad`` scaling.
-    """
+    """Thin energy/grad wrapper driven by a flat theta vector."""
 
     def __init__(self, cfg: ConvexRidgeConfig | None = None):
         self.cfg = cfg if cfg is not None else ConvexRidgeConfig()
-        self._kernels: torch.Tensor | None = None
-        self._lambdas: torch.Tensor | None = None
+        self._weights: list[torch.Tensor] | None = None
+        self._scaling: torch.Tensor | None = None
+        self._beta: torch.Tensor | None = None
+        self._lip: torch.Tensor | None = None
 
     def load_theta(self, theta: torch.Tensor) -> None:
-        k, lam = unpack_theta(theta, self.cfg)
-        self._kernels = k
-        self._lambdas = lam
+        w, s, b = unpack_theta(theta, self.cfg)
+        self._weights = w
+        self._scaling = s
+        self._beta = b
+        self._lip = get_conv_lip(w, self.cfg, detach=True)
 
     def energy(self, x: torch.Tensor) -> torch.Tensor:
-        if self._kernels is None or self._lambdas is None:
+        if self._weights is None or self._scaling is None or self._beta is None:
             raise RuntimeError("call load_theta before energy/grad")
-        return ridge_energy(x, self._kernels, self._lambdas, self.cfg)
+        return ridge_energy(
+            x, self._weights, self._scaling, self._beta, self.cfg, lip=self._lip
+        )
 
     def grad(self, x: torch.Tensor) -> torch.Tensor:
-        if self._kernels is None or self._lambdas is None:
+        if self._weights is None or self._scaling is None or self._beta is None:
             raise RuntimeError("call load_theta before energy/grad")
-        return ridge_grad_x(x, self._kernels, self._lambdas, self.cfg)
+        return ridge_grad_x(
+            x, self._weights, self._scaling, self._beta, self.cfg, lip=self._lip
+        )
 
     def lipschitz_bound(self) -> float:
-        """Conservative Lip of ``grad R`` for stepsize selection.
-
-        With unit-norm kernels, ``||Hess R|| <= sum_k lambda_k / mu_rho + gamma``.
-        """
-        if self._kernels is None or self._lambdas is None:
+        if self._beta is None:
             raise RuntimeError("call load_theta before lipschitz_bound")
-        total = float(self.cfg.gamma)
-        for k in range(self.cfg.n_kernels):
-            # kernels are unit-norm by construction of unpack_theta
-            total += float(self._lambdas[k].item()) / self.cfg.mu_rho
-        return total
+        return float(2.0 * torch.exp(self._beta).item() + self.cfg.gamma)
+
+
+def scaling_vector(theta: torch.Tensor, cfg: ConvexRidgeConfig) -> torch.Tensor:
+    s, _ = unpack_scaling_beta(theta, cfg)
+    return s.view(-1)
+
+
+def exp_scaling(theta: torch.Tensor, cfg: ConvexRidgeConfig) -> torch.Tensor:
+    return torch.exp(scaling_vector(theta, cfg))

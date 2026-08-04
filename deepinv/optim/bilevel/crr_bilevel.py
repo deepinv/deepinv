@@ -1,24 +1,8 @@
 """Bilevel learning of a convex ridge regulariser with MAID.
 
-Lower level
-
-.. math::
-
-    h(x, \\theta)
-    = \\tfrac12\\|A x - y\\|^2
-      + R_\\theta(x)
-      + \\tfrac{\\gamma}{2}\\|x\\|^2
-
-with :math:`R_\\theta` from :mod:`deepinv.optim.bilevel.convex_ridge` and
-``lambda_k = exp(vartheta_k)``. Upper level (per sample)
-
-.. math::
-
-    g(x) = \\tfrac12\\|x - x^\\star\\|^2.
-
-Hessian and mixed-Jacobian products use ``torch.autograd.grad`` with
-``create_graph=True``. Strong convexity modulus is the known floor
-``gamma`` (independent of the learned weights).
+Lower level h(x, theta) = 1/2||A x - y||^2 + R_theta(x) + (gamma/2)||x||^2
+with R the multiconv Lip-normalised CRR. Upper level g(x) = 1/2||x - x*||^2.
+Strong convexity modulus is the known floor gamma.
 """
 
 from __future__ import annotations
@@ -32,6 +16,7 @@ from .cg_utils import CGResult, cg_solve
 from .convex_ridge import (
     ConvexRidgeConfig,
     ConvexRidgePrior,
+    get_conv_lip,
     pack_init_theta,
     ridge_energy,
     unpack_theta,
@@ -67,6 +52,11 @@ class CRRSampleProblem:
         if self.lipschitz_data is None:
             self.lipschitz_data = self._estimate_data_lipschitz()
         self.prior = ConvexRidgePrior(self.cfg)
+        if self.x_star.shape[1] != self.cfg.in_channels:
+            raise ValueError(
+                f"image has {self.x_star.shape[1]} channels, "
+                f"CRR expects in_channels={self.cfg.in_channels}"
+            )
 
     @property
     def n_params(self) -> int:
@@ -85,7 +75,6 @@ class CRRSampleProblem:
         return float(AtAx.flatten().norm().item())
 
     def mu(self, theta: torch.Tensor | None = None) -> float:
-        """Known strong-convexity modulus (the gamma floor)."""
         return float(self.cfg.gamma)
 
     def load_theta(self, theta: torch.Tensor) -> None:
@@ -94,23 +83,37 @@ class CRRSampleProblem:
     def _data_grad(self, x: torch.Tensor) -> torch.Tensor:
         return self.physics.A_adjoint(self.physics.A(x) - self.y)
 
-    def grad_x_h(self, x: torch.Tensor, theta: torch.Tensor) -> torch.Tensor:
-        self.load_theta(theta)
+    def grad_x_h(
+        self, x: torch.Tensor, theta: torch.Tensor, *, reload: bool = True
+    ) -> torch.Tensor:
+        if reload:
+            self.load_theta(theta)
         return self._data_grad(x) + self.prior.grad(x)
 
     def _h_diffable(
-        self, x: torch.Tensor, kernels: torch.Tensor, lambdas: torch.Tensor
+        self,
+        x: torch.Tensor,
+        weights: list[torch.Tensor],
+        scaling: torch.Tensor,
+        beta: torch.Tensor,
+        lip: torch.Tensor | None = None,
     ) -> torch.Tensor:
         r = self.physics.A(x) - self.y
         data = 0.5 * (r * r).sum()
-        return data + ridge_energy(x, kernels, lambdas, self.cfg)
+        return data + ridge_energy(
+            x, weights, scaling, beta, self.cfg, lip=lip
+        )
 
     def hess_x_matvec(
         self, x: torch.Tensor, theta: torch.Tensor, v: torch.Tensor
     ) -> torch.Tensor:
-        kernels, lambdas = unpack_theta(theta.detach(), self.cfg)
+        weights, scaling, beta = unpack_theta(theta.detach(), self.cfg)
+        w_det = [w.detach() for w in weights]
+        lip = get_conv_lip(w_det, self.cfg, detach=True)
         x_ = x.detach().requires_grad_(True)
-        h = self._h_diffable(x_, kernels, lambdas)
+        h = self._h_diffable(
+            x_, w_det, scaling.detach(), beta.detach(), lip=lip
+        )
         (g,) = torch.autograd.grad(h, x_, create_graph=True)
         s = (g * v.detach()).sum()
         (Hv,) = torch.autograd.grad(s, x_, retain_graph=False)
@@ -120,9 +123,10 @@ class CRRSampleProblem:
         self, x: torch.Tensor, theta: torch.Tensor, v: torch.Tensor
     ) -> torch.Tensor:
         th = theta.detach().requires_grad_(True)
-        kernels, lambdas = unpack_theta(th, self.cfg)
+        weights, scaling, beta = unpack_theta(th, self.cfg)
+        lip = get_conv_lip([w.detach() for w in weights], self.cfg, detach=True)
         x_ = x.detach().requires_grad_(True)
-        h = self._h_diffable(x_, kernels, lambdas)
+        h = self._h_diffable(x_, weights, scaling, beta, lip=lip)
         (g,) = torch.autograd.grad(h, x_, create_graph=True)
         s = (g * v.detach()).sum()
         (jtv,) = torch.autograd.grad(s, th, retain_graph=False)
@@ -131,13 +135,15 @@ class CRRSampleProblem:
     def estimate_J_norm(
         self, x: torch.Tensor, theta: torch.Tensor, n_power: int = 2
     ) -> float:
-        """Approximate ``||J||`` by power-style probes of ``J^T e``."""
         nrm = torch.tensor(0.0, dtype=self.dtype, device=self.device)
         for _ in range(max(n_power, 1)):
             th = theta.detach().requires_grad_(True)
-            kernels, lambdas = unpack_theta(th, self.cfg)
+            weights, scaling, beta = unpack_theta(th, self.cfg)
+            lip = get_conv_lip(
+                [w.detach() for w in weights], self.cfg, detach=True
+            )
             x_ = x.detach().requires_grad_(True)
-            h = self._h_diffable(x_, kernels, lambdas)
+            h = self._h_diffable(x_, weights, scaling, beta, lip=lip)
             (g,) = torch.autograd.grad(h, x_, create_graph=True)
             e = torch.randn_like(x)
             e = e / e.flatten().norm().clamp_min(1e-30)
@@ -154,7 +160,6 @@ class CRRSampleProblem:
         return x - self.x_star
 
     def f_closed_form(self, theta: torch.Tensor) -> torch.Tensor:
-        # Looser than training residuals: diagnostics only, must not hang.
         x, _ = self.solve_lower(theta, eps=5e-3)
         return self.g(x)
 
@@ -165,27 +170,25 @@ class CRRSampleProblem:
         x_init: torch.Tensor | None = None,
         max_iter: int | None = None,
     ) -> tuple[torch.Tensor, float]:
-        """Residual-stopped GD on ``h(., theta)``."""
         self.load_theta(theta)
         mu = self.mu(theta)
-        # Lip bound is conservative; take a fraction for stability under
-        # unit-norm kernels (effective scale sits in lambda_k).
         L = self.lipschitz_data + self.prior.lipschitz_bound()
-        step = 0.5 / max(L, 1e-8)
+        step = 1.0 / max(L, 1e-8)
         max_it = int(max_iter if max_iter is not None else self.max_iter)
         if x_init is None:
             x = self.physics.A_adjoint(self.y).detach().clone()
         else:
             x = x_init.detach().clone()
         tol = max(float(eps) * mu, 1e-8)
-        grad = self.grad_x_h(x, theta)
+        # load_theta already called; reuse cached Lip chart inside the loop.
+        grad = self.grad_x_h(x, theta, reload=False)
         gnorm = float(grad.flatten().norm().item())
         n_it = 0
         for _ in range(max_it):
             if gnorm <= tol:
                 break
             x = x - step * grad
-            grad = self.grad_x_h(x, theta)
+            grad = self.grad_x_h(x, theta, reload=False)
             gnorm = float(grad.flatten().norm().item())
             n_it += 1
         else:
@@ -217,7 +220,7 @@ class CRRSampleProblem:
 
 
 class CRRSampleOracle(HypergradientOracle):
-    """Smooth IFT oracle for one :class:`CRRSampleProblem`."""
+    """Smooth IFT oracle for one CRRSampleProblem."""
 
     def __init__(self, problem: CRRSampleProblem):
         self.problem = problem
@@ -226,7 +229,6 @@ class CRRSampleOracle(HypergradientOracle):
 
     @property
     def certified(self) -> bool:
-        # mu = gamma is a known design constant.
         return True
 
     @property
@@ -335,7 +337,6 @@ def build_crr_minibatch_oracle(
     chunk_size: int = 1,
     max_iter: int = 10_000,
 ):
-    """Minibatch oracle over CRR samples sharing one flat theta."""
     from .minibatch import MinibatchOracle
 
     cfg = cfg if cfg is not None else ConvexRidgeConfig()

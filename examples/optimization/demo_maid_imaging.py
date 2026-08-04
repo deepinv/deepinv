@@ -1,15 +1,18 @@
 """
-Bilevel imaging with MAID: inpainting and deblurring
-====================================================
+Bilevel learning of a scalar Tikhonov weight with MAID
+=====================================================
 
-Learn a Tikhonov regularisation weight ``lambda = exp(theta)`` for two
-DeepInverse inverse problems on a real greyscale test image (Set3C,
-128x128):
+MAID is the outer solver for bilevel learning of a Tikhonov weight
+``lambda = exp(theta)``. It does not reconstruct images. Reconstruction is
+residual-stopped DeepInverse ``GD`` on the lower level; reconstruction
+panels are labelled by the prior parameters, not by the learning algorithm.
+
+Problems (Set3C greyscale 128x128):
 
 1. Random-mask inpainting (keep probability 0.5, Gaussian noise sigma 0.05).
 2. Gaussian deblurring (9x9 kernel, sigma 1.5, noise sigma 0.05).
 
-Each problem is solved three ways from the same initial ``theta0``:
+Each learning problem is solved three ways from the same initial ``theta0``:
 
 * fixed residual ``1e-4`` every outer step
 * MAID
@@ -18,9 +21,9 @@ Each problem is solved three ways from the same initial ``theta0``:
 Figures are written to ``.scratch/figs/`` (or ``FIG_DIR`` if set):
 
 * one reconstruction panel figure per problem (ground truth, measurement,
-  recon at ``theta0``, recon at the MAID-learned parameter, with PSNR)
+  scalar prior at init, learned scalar prior), with PSNR
 * one convergence figure (upper-level objective against cumulative
-  lower-level GD iterations for the three methods)
+  lower-level GD iterations: this is where MAID belongs)
 
 Why Tikhonov rather than TV
 ---------------------------
@@ -345,10 +348,15 @@ for name, pack in all_results.items():
     panels = [
         (x_star, "ground truth", None),
         (y, "measurement", None),
-        (maid["x0"], f"init lambda=1\nPSNR {maid['psnr0']:.2f} dB", maid["psnr0"]),
+        (
+            maid["x0"],
+            f"scalar prior lambda=1\nPSNR {maid['psnr0']:.2f} dB",
+            maid["psnr0"],
+        ),
         (
             maid["xhat"],
-            f"MAID lambda={maid['lam']:.3f}\nPSNR {maid['psnr']:.2f} dB",
+            f"learned scalar prior\nlambda={maid['lam']:.3f}\n"
+            f"PSNR {maid['psnr']:.2f} dB",
             maid["psnr"],
         ),
     ]
@@ -359,8 +367,9 @@ for name, pack in all_results.items():
         ax.set_title(title, fontsize=10)
         ax.axis("off")
     fig.suptitle(
-        f"{name}: Tikhonov weight learning (Set3C greyscale {IMG_SIZE}x{IMG_SIZE})",
-        fontsize=11,
+        f"{name}: reconstruction by deepinv.optim GD; panels differ only in "
+        f"the Tikhonov weight (learned by MAID). Set3C greyscale {IMG_SIZE}x{IMG_SIZE}",
+        fontsize=10,
     )
     fig.tight_layout()
     out = FIG_DIR / f"maid_imaging_{name}_recon.png"
