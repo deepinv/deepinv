@@ -317,7 +317,7 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
     ).to(device)
 
     # Set up the SDEs
-    num_steps = 2
+    num_steps = 3
     rng = torch.Generator(device)
     # Set up solvers
     timesteps = torch.linspace(0.99, 0.001, num_steps)
