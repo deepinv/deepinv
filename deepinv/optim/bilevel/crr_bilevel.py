@@ -307,13 +307,14 @@ class CRRSampleProblem:
         return float(self.mu_data) + float(self.cfg.gamma)
 
     def load_theta(
-        self, theta: torch.Tensor, *, refresh_lip: bool = False
+        self, theta: torch.Tensor, *, refresh_lip: bool = True
     ) -> None:
         """Load parameters into the prior.
 
-        ``refresh_lip=True`` recomputes the frozen multiconv Lip from the
-        new weights. That redefines the model: only use it between outer
-        iterations, never inside a solve or a hypergradient.
+        ``lip`` tracks the weights by default, so ``W / sqrt(lip(W))`` stays
+        unit norm for every ``theta`` and the model is invariant under
+        ``W -> c W``. The differentiable energy recomputes it with the graph
+        attached, so the hypergradient carries ``d lip / d w``.
         """
         self.prior.load_theta(theta, refresh_lip=refresh_lip)
 
@@ -413,8 +414,9 @@ class CRRSampleProblem:
     ) -> torch.Tensor:
         weights, scaling, beta = unpack_theta(theta.detach(), self.cfg)
         w_det = [w.detach() for w in weights]
-        # Same frozen lip as the forward solve (not recomputed from w_det).
-        lip = self._ensure_lip(theta)
+        # lip=None: recomputed from w_det inside the energy. Weights are
+        # detached here, so this is a constant for an x-only second derivative.
+        lip = None
         x_ = x.detach().requires_grad_(True)
         h = self._h_diffable(
             x_, w_det, scaling.detach(), beta.detach(), lip=lip
@@ -429,9 +431,9 @@ class CRRSampleProblem:
     ) -> torch.Tensor:
         th = theta.detach().requires_grad_(True)
         weights, scaling, beta = unpack_theta(th, self.cfg)
-        # Frozen constant: do not recompute from live weights (that would
-        # detach lip(theta) and drop d lip / d w from the hypergradient).
-        lip = self._ensure_lip(theta)
+        # lip=None: recomputed from the live, grad-tracking weights so that
+        # d lip / d w is carried into the mixed Jacobian instead of dropped.
+        lip = None
         x_ = x.detach().requires_grad_(True)
         h = self._h_diffable(x_, weights, scaling, beta, lip=lip)
         (g,) = torch.autograd.grad(h, x_, create_graph=True)
@@ -443,7 +445,7 @@ class CRRSampleProblem:
         self, x: torch.Tensor, theta: torch.Tensor, n_power: int = 2
     ) -> float:
         nrm = torch.tensor(0.0, dtype=self.dtype, device=self.device)
-        lip = self._ensure_lip(theta)
+        lip = None
         for _ in range(max(n_power, 1)):
             th = theta.detach().requires_grad_(True)
             weights, scaling, beta = unpack_theta(th, self.cfg)

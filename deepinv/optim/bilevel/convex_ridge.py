@@ -285,6 +285,11 @@ def ridge_energy(
     cfg: ConvexRidgeConfig,
     lip: torch.Tensor | None = None,
 ) -> torch.Tensor:
+    if lip is None:
+        # detach=False so that when the weights carry a graph (the mixed
+        # Jacobian path) the normalisation is differentiated rather than
+        # silently treated as constant. When they do not, this is free.
+        lip = get_conv_lip(weights, cfg, detach=False)
     feats = apply_conv(x, weights, cfg, lip=lip)
     scaled = feats * torch.exp(scaling)
     rho = smooth_l1(torch.exp(beta) * scaled) * torch.exp(-beta)
@@ -355,13 +360,21 @@ class ConvexRidgePrior:
         return self._lip
 
     def load_theta(
-        self, theta: torch.Tensor, *, refresh_lip: bool = False
+        self, theta: torch.Tensor, *, refresh_lip: bool = True
     ) -> None:
         """Unpack theta into weights, scaling and beta.
 
-        On the first call, freezes ``lip`` from the loaded weights. Later
-        calls keep the stored value unless ``refresh_lip=True`` (outer
-        iteration only; see :meth:`refresh_lip`).
+        ``lip`` is recomputed from the loaded weights, so the normalised
+        operator ``W / sqrt(lip(W))`` is unit norm for every ``theta``. The
+        differentiable energy recomputes it with the graph attached, so the
+        hypergradient carries ``d lip / d w`` rather than dropping it.
+
+        Freezing ``lip`` at ``theta_0`` also makes the hypergradient exact,
+        but it destroys the scale invariance ``W -> c W`` that the
+        normalisation exists to provide: with a stale ``lip_0`` the prior
+        curvature grows as ``lip(W) / lip_0``, and a line-search trial that
+        inflates the weights drives the step size to zero. That is not
+        hypothetical, it crashed the demo with ``step=7.8e-09``.
         """
         w, s, b = unpack_theta(theta, self.cfg)
         self._weights = w
@@ -400,18 +413,14 @@ class ConvexRidgePrior:
     def lipschitz_bound(self) -> float:
         """Prior step-size chart under frozen normalisation.
 
-        With frozen ``lip_0``, ``W / sqrt(lip_0)`` is no longer unit-norm
-        once the weights move, so
+        ``lip`` is recomputed per ``theta``, so ``W / sqrt(lip(W))`` is unit
+        norm and the bound is independent of the weight scale:
 
-            L_prior = 2 * exp(beta) * lip(W) / lip_0 + gamma
-
-        where ``lip(W)`` is recomputed for the chart only (no gradient).
+            L_prior = 2 * exp(beta) + gamma
         """
         if self._beta is None or self._weights is None or self._lip is None:
             raise RuntimeError("call load_theta before lipschitz_bound")
-        lip_w = get_conv_lip(self._weights, self.cfg, detach=True)
-        scale = float((lip_w / self._lip.clamp_min(1e-12)).item())
-        return float(2.0 * torch.exp(self._beta).item() * scale + self.cfg.gamma)
+        return float(2.0 * torch.exp(self._beta).item() + self.cfg.gamma)
 
 
 def scaling_vector(theta: torch.Tensor, cfg: ConvexRidgeConfig) -> torch.Tensor:

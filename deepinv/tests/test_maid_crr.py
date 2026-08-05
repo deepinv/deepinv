@@ -325,12 +325,16 @@ def test_hypergradient_moves_scaling():
     assert float(ratios.min()) < 0.97 or float(ratios.max()) > 1.03
 
 
-def test_frozen_lip_stable_across_load_theta():
-    """Lip normalisation is frozen on first load and not recomputed later.
+def test_lip_tracks_weights_and_keeps_scale_invariance():
+    """Lip normalisation follows the weights, so the model is scale invariant.
 
-    Recomputing lip(theta) and detaching it is what made the weight-block
-    hypergradient wrong: the forward solve and the differentiated model
-    must share one constant.
+    The hypergradient bug was that the forward solve recomputed lip(theta)
+    while the differentiated model treated it as constant. Freezing lip also
+    reconciles the two, but it breaks the invariance the normalisation exists
+    to provide: with a stale lip_0 the prior curvature grows as lip(W)/lip_0,
+    so a line-search trial that inflates the weights collapses the step size
+    (observed: step=7.8e-09, Newton then unable to converge). lip therefore
+    tracks theta, and the differentiable energy differentiates through it.
     """
     from deepinv.optim.bilevel.convex_ridge import get_conv_lip
 
@@ -339,18 +343,23 @@ def test_frozen_lip_stable_across_load_theta():
     prob = CRRSampleProblem(physics, y, x_star, cfg=cfg, max_iter=100)
     th0 = pack_init_theta(cfg, seed=2, weight_scale=0.1)
     th1 = th0 + 0.5 * torch.randn_like(th0)
+
+    # lip is recomputed per theta, matching the weights it was loaded from.
+    for th in (th0, th1):
+        prob.load_theta(th)
+        w, _, _ = unpack_theta(th, cfg)
+        expected = float(get_conv_lip(w, cfg, detach=True).item())
+        assert abs(float(prob.prior.lip.item()) - expected) < 1e-12
+
+    # The step-size chart is consequently independent of the weight scale,
+    # which is what stops an inflated trial point driving the step to zero.
     prob.load_theta(th0)
-    lip0 = float(prob.prior.lip.item())
-    prob.load_theta(th1)
-    lip1 = float(prob.prior.lip.item())
-    assert abs(lip0 - lip1) < 1e-15
-    # Explicit refresh redefines the model and is allowed between outer iters.
-    prob.load_theta(th1, refresh_lip=True)
-    lip_refreshed = float(prob.prior.lip.item())
-    w1, _, _ = unpack_theta(th1, cfg)
-    expected = float(get_conv_lip(w1, cfg, detach=True).item())
-    assert abs(lip_refreshed - expected) < 1e-12
-    assert abs(lip_refreshed - lip0) > 1e-10
+    L_ref = prob.prior.lipschitz_bound()
+    n_w = th0.numel() - cfg.nb_channels[-1] - 1
+    th_scaled = th0.clone()
+    th_scaled[:n_w] = th_scaled[:n_w] * 1000.0
+    prob.load_theta(th_scaled)
+    assert abs(prob.prior.lipschitz_bound() - L_ref) < 1e-9 * max(L_ref, 1.0)
 
 
 def test_hypergradient_matches_finite_difference():
