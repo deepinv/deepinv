@@ -2591,6 +2591,16 @@ class OSEM(BaseOptim):
             physics = subset_physics
             y = y_subsets
 
+            if operator_norm is not None:
+                # Keep subset projections in the same normalized domain as y.
+                for cur_physics in physics:
+                    cur_physics.register_buffer(
+                        "operator_norm", operator_norm.detach().clone()
+                    )
+                    cur_physics.normalize = True
+                    if hasattr(cur_physics, "background"):
+                        cur_physics.background /= operator_norm
+
         # Need to update the PoissonLikelihood data-fidelity with the background
         # for PET physics
         if hasattr(physics[0], "background"):
@@ -2606,12 +2616,9 @@ class OSEM(BaseOptim):
                         strict=True,
                     )
                 ):
-                    background = subset_physics.background
-                    if operator_norm is not None:
-                        background = background / operator_norm
                     stacked_data_fidelity.data_fidelity_list[i] = PoissonLikelihood(
                         gain=subset_data_fidelity.gain,
-                        bkg=background / subset_data_fidelity.gain,
+                        bkg=subset_physics.background / subset_data_fidelity.gain,
                         denormalize=subset_data_fidelity.d.denormalize,
                     )
 
@@ -2620,9 +2627,6 @@ class OSEM(BaseOptim):
                 cur_physics.A_adjoint(torch.ones_like(cur_y))
                 for cur_y, cur_physics in zip(y, physics, strict=True)
             ]
-            if operator_norm is not None:
-                sensitivities = [s / operator_norm for s in sensitivities]
-
         return super().forward(y, physics, sensitivities=sensitivities, *args, **kwargs)
 
 
