@@ -38,8 +38,12 @@ Step size
 ``step = 1 / (L_data + L_prior)``. ``L_data`` is an adaptive power
 iteration on ``A^* A`` with a safety factor so the estimate is an upper
 bound in practice (plain fixed-count power iteration converges from
-below). ``L_prior`` is the analytic chart ``2 * exp(beta) + gamma``;
-call :meth:`CRRSampleProblem.measure_prior_lipschitz` to check it against
+below). ``L_prior`` is the analytic chart under frozen Lip normalisation,
+
+    ``2 * exp(beta) * lip(W) / lip_0 + gamma``
+
+(with ``lip_0`` frozen on the prior; see :mod:`convex_ridge`). Call
+:meth:`CRRSampleProblem.measure_prior_lipschitz` to check it against
 the top eigenvalue of ``Hess R``.
 
 The certificate is unchanged by the choice of algorithm. Strong convexity
@@ -70,7 +74,6 @@ from .cg_utils import CGResult, cg_solve
 from .convex_ridge import (
     ConvexRidgeConfig,
     ConvexRidgePrior,
-    get_conv_lip,
     pack_init_theta,
     ridge_energy,
     unpack_theta,
@@ -303,8 +306,22 @@ class CRRSampleProblem:
         """Strong-convexity modulus: ``mu_data + gamma``."""
         return float(self.mu_data) + float(self.cfg.gamma)
 
-    def load_theta(self, theta: torch.Tensor) -> None:
-        self.prior.load_theta(theta)
+    def load_theta(
+        self, theta: torch.Tensor, *, refresh_lip: bool = False
+    ) -> None:
+        """Load parameters into the prior.
+
+        ``refresh_lip=True`` recomputes the frozen multiconv Lip from the
+        new weights. That redefines the model: only use it between outer
+        iterations, never inside a solve or a hypergradient.
+        """
+        self.prior.load_theta(theta, refresh_lip=refresh_lip)
+
+    def _ensure_lip(self, theta: torch.Tensor) -> torch.Tensor:
+        """Return the frozen Lip, initialising it from ``theta`` if needed."""
+        if self.prior._lip is None:
+            self.prior.load_theta(theta)
+        return self.prior.lip
 
     def _data_grad(self, x: torch.Tensor) -> torch.Tensor:
         return self.physics.A_adjoint(self.physics.A(x) - self.y)
@@ -331,7 +348,12 @@ class CRRSampleProblem:
         return 1.0 / max(L, 1e-8)
 
     def analytic_prior_lipschitz(self) -> float:
-        """Analytic chart ``2 * exp(beta) + gamma`` (requires loaded theta)."""
+        """Analytic chart ``2 * exp(beta) * lip(W) / lip_0 + gamma``.
+
+        Requires loaded theta. ``lip_0`` is the frozen normalisation; the
+        current composed Lip of the weights is recomputed for the chart
+        only (no gradient).
+        """
         return self.prior.lipschitz_bound()
 
     def measure_prior_lipschitz(
@@ -391,7 +413,8 @@ class CRRSampleProblem:
     ) -> torch.Tensor:
         weights, scaling, beta = unpack_theta(theta.detach(), self.cfg)
         w_det = [w.detach() for w in weights]
-        lip = get_conv_lip(w_det, self.cfg, detach=True)
+        # Same frozen lip as the forward solve (not recomputed from w_det).
+        lip = self._ensure_lip(theta)
         x_ = x.detach().requires_grad_(True)
         h = self._h_diffable(
             x_, w_det, scaling.detach(), beta.detach(), lip=lip
@@ -406,7 +429,9 @@ class CRRSampleProblem:
     ) -> torch.Tensor:
         th = theta.detach().requires_grad_(True)
         weights, scaling, beta = unpack_theta(th, self.cfg)
-        lip = get_conv_lip([w.detach() for w in weights], self.cfg, detach=True)
+        # Frozen constant: do not recompute from live weights (that would
+        # detach lip(theta) and drop d lip / d w from the hypergradient).
+        lip = self._ensure_lip(theta)
         x_ = x.detach().requires_grad_(True)
         h = self._h_diffable(x_, weights, scaling, beta, lip=lip)
         (g,) = torch.autograd.grad(h, x_, create_graph=True)
@@ -418,12 +443,10 @@ class CRRSampleProblem:
         self, x: torch.Tensor, theta: torch.Tensor, n_power: int = 2
     ) -> float:
         nrm = torch.tensor(0.0, dtype=self.dtype, device=self.device)
+        lip = self._ensure_lip(theta)
         for _ in range(max(n_power, 1)):
             th = theta.detach().requires_grad_(True)
             weights, scaling, beta = unpack_theta(th, self.cfg)
-            lip = get_conv_lip(
-                [w.detach() for w in weights], self.cfg, detach=True
-            )
             x_ = x.detach().requires_grad_(True)
             h = self._h_diffable(x_, weights, scaling, beta, lip=lip)
             (g,) = torch.autograd.grad(h, x_, create_graph=True)

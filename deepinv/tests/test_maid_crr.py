@@ -15,7 +15,15 @@ from deepinv.optim.bilevel import (
     unpack_theta,
     exp_scaling,
     n_crr_params,
+    assert_grad_div_adjoint,
+    grid_tune_tv,
+    isotropic_tv,
+    nabla,
+    div,
+    recon_tv,
+    solve_isotropic_tv,
 )
+from deepinv.optim.bilevel.tv_baseline import primal_objective
 
 
 def _tiny_cfg(**kwargs):
@@ -315,3 +323,166 @@ def test_hypergradient_moves_scaling():
     s1 = exp_scaling(th2, cfg)
     ratios = s1 / s0
     assert float(ratios.min()) < 0.97 or float(ratios.max()) > 1.03
+
+
+def test_frozen_lip_stable_across_load_theta():
+    """Lip normalisation is frozen on first load and not recomputed later.
+
+    Recomputing lip(theta) and detaching it is what made the weight-block
+    hypergradient wrong: the forward solve and the differentiated model
+    must share one constant.
+    """
+    from deepinv.optim.bilevel.convex_ridge import get_conv_lip
+
+    cfg = _tiny_cfg()
+    physics, y, x_star = _tiny_denoising(10, seed=1)
+    prob = CRRSampleProblem(physics, y, x_star, cfg=cfg, max_iter=100)
+    th0 = pack_init_theta(cfg, seed=2, weight_scale=0.1)
+    th1 = th0 + 0.5 * torch.randn_like(th0)
+    prob.load_theta(th0)
+    lip0 = float(prob.prior.lip.item())
+    prob.load_theta(th1)
+    lip1 = float(prob.prior.lip.item())
+    assert abs(lip0 - lip1) < 1e-15
+    # Explicit refresh redefines the model and is allowed between outer iters.
+    prob.load_theta(th1, refresh_lip=True)
+    lip_refreshed = float(prob.prior.lip.item())
+    w1, _, _ = unpack_theta(th1, cfg)
+    expected = float(get_conv_lip(w1, cfg, detach=True).item())
+    assert abs(lip_refreshed - expected) < 1e-12
+    assert abs(lip_refreshed - lip0) > 1e-10
+
+
+def test_hypergradient_matches_finite_difference():
+    """Analytic hypergradient agrees with central FD on every block.
+
+    F(theta) = 1/2 ||x*(theta) - x_gt||^2 with a tight lower-level solve.
+    Detached recomputed Lip normalisation previously made the weight block
+    wrong by O(1) (wrong sign on some coordinates). This test is the gate
+    that catches that class of model/derivative mismatch.
+
+    Checks: scaling block, beta, random weight direction, random full
+    direction, and three individual weight coordinates including a
+    first-layer one.
+    """
+    cfg = _tiny_cfg(
+        nb_channels=(1, 2, 4),
+        filter_sizes=(3, 3),
+        gamma=1e-2,
+        weak_convexity=0.0,
+        lip_fft_size=32,
+        beta_init=4.0,
+        sigma_init=0.1,
+    )
+    physics, y, x_star = _tiny_denoising(12, seed=50, ch=1)
+    prob = CRRSampleProblem(
+        physics, y, x_star, cfg=cfg, max_iter=20_000, solver="NEWTON"
+    )
+    # Nontrivial weight scale so the Lip chart and the filters interact.
+    theta = pack_init_theta(cfg, seed=0, weight_scale=1.0)
+    # Freeze lip once at theta_0 (matches learning: one model for the step).
+    prob.load_theta(theta)
+
+    eps_ll = 1e-10
+
+    def F(th: torch.Tensor) -> float:
+        x, _ = prob.solve_lower(th, eps=eps_ll, max_iter=20_000)
+        return float(prob.g(x).item())
+
+    x0, res0 = prob.solve_lower(theta, eps=eps_ll, max_iter=20_000)
+    assert res0 < 1e-6
+    z, cg = prob.inexact_hypergradient(
+        x0, theta, delta=1e-12, max_cg_iter=2000
+    )
+    assert float(torch.as_tensor(cg.residual).norm().item()) < 1e-8
+
+    n_w = theta.numel() - cfg.n_filters - 1
+    g_rng = torch.Generator().manual_seed(7)
+
+    directions: list[tuple[str, torch.Tensor]] = []
+    d = torch.zeros_like(theta)
+    d[n_w : n_w + cfg.n_filters] = 1.0
+    directions.append(("scaling block", d))
+    d = torch.zeros_like(theta)
+    d[-1] = 1.0
+    directions.append(("beta", d))
+    d = torch.zeros_like(theta)
+    d[:n_w] = torch.randn(n_w, generator=g_rng, dtype=theta.dtype)
+    d = d / d.norm().clamp_min(1e-30)
+    directions.append(("random weight dir", d))
+    d = torch.randn(theta.numel(), generator=g_rng, dtype=theta.dtype)
+    d = d / d.norm().clamp_min(1e-30)
+    directions.append(("random full dir", d))
+    # First-layer coordinate 0 and two further weight coordinates.
+    for idx in (0, min(5, n_w - 1), min(20, n_w - 1)):
+        d = torch.zeros_like(theta)
+        d[idx] = 1.0
+        directions.append((f"weight coord {idx}", d))
+
+    rtol = 5e-3
+    for name, d in directions:
+        analytic = float((z * d).sum().item())
+        best_rel = float("inf")
+        best_fd = 0.0
+        for h in (1e-4, 1e-5, 1e-6):
+            fp = F(theta + h * d)
+            fm = F(theta - h * d)
+            fd = (fp - fm) / (2.0 * h)
+            rel = abs(fd - analytic) / max(abs(fd), abs(analytic), 1e-30)
+            if rel < best_rel:
+                best_rel = rel
+                best_fd = fd
+        assert best_rel < rtol, (
+            f"hypergradient FD mismatch on {name}: "
+            f"analytic={analytic:.6e} fd={best_fd:.6e} rel={best_rel:.2e}"
+        )
+
+
+def test_tv_grad_div_adjoint_identity():
+    """<nabla u, p> = -<u, div p> to machine precision (mandatory TV check)."""
+    residual = assert_grad_div_adjoint(
+        shape=(1, 3, 20, 20), dtype=torch.float64, atol=1e-12, seed=0
+    )
+    assert abs(residual) < 1e-12
+    # Direct probe with the exported nabla / div pair.
+    gen = torch.Generator().manual_seed(1)
+    u = torch.randn(1, 2, 12, 12, generator=gen, dtype=torch.float64)
+    p = torch.randn(1, 2, 12, 12, 2, generator=gen, dtype=torch.float64)
+    lhs = float((nabla(u) * p).sum().item())
+    rhs = float(-(u * div(p)).sum().item())
+    assert abs(lhs - rhs) < 1e-12 * max(abs(lhs), 1.0)
+
+
+def test_tv_objective_decreases_on_denoising():
+    """TV solve must reduce 1/2||x-y||^2 + lam TV(x) vs the measurement.
+
+    This is the solver check the baseline depends on: objective decrease
+    against the measurement, asserted inside solve_isotropic_tv(verify=True).
+    """
+    physics, y, x_star = _tiny_denoising(16, seed=3, ch=1)
+    lam = 0.03
+    obj_y = primal_objective(y, physics, y, lam)
+    xh, info = solve_isotropic_tv(physics, y, lam, n_it=300, verify=True)
+    assert info["obj_final"] < info["obj_init"]
+    assert info["obj_final"] < obj_y - 1e-12
+    assert xh.shape == y.shape
+    # Grid-tuned lambda on this sample must improve PSNR over the measurement.
+    best = grid_tune_tv(
+        [(physics, y, x_star)], n_grid=9, n_it=200, verify_once=True
+    )
+    mse_y = float(torch.mean((y - x_star) ** 2).item())
+    psnr_y = 10.0 * torch.log10(torch.tensor(1.0 / max(mse_y, 1e-30))).item()
+    assert best["psnr_train"] > psnr_y
+
+
+def test_tv_grid_tune_and_recon_on_train_sample():
+    """Grid-tuned TV is a valid baseline: returns positive lambda and PSNR."""
+    physics, y, x_star = _tiny_denoising(12, seed=5, ch=1)
+    samples = [(physics, y, x_star)]
+    best = grid_tune_tv(samples, n_grid=7, n_it=200, verify_once=True)
+    assert best["lam"] > 0
+    assert best["psnr_train"] > 0
+    xh, p, info = recon_tv(physics, y, x_star, best["lam"], verify=True)
+    assert p == best["psnr_train"] or abs(p - best["psnr_train"]) < 0.5
+    assert info["obj_final"] < info["obj_init"]
+    assert float(isotropic_tv(xh).item()) >= 0.0

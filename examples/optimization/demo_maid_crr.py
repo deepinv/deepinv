@@ -32,11 +32,14 @@ printed with the distance bound ``||grad h|| / mu``.
 
 Comparisons
 -----------
-1. Baseline: grid-tuned scalar Tikhonov (not a method under test).
-2. Fixed residual/hypergradient accuracy with the **same Armijo line
+1. Grid-tuned isotropic TV (mandatory baseline): two fixed difference
+   filters and one scalar lambda, tuned on the train set. A learned
+   convex regulariser that does not beat TV has not earned its parameters.
+2. Grid-tuned scalar Tikhonov (second baseline, not a method under test).
+3. Fixed residual/hypergradient accuracy with the **same Armijo line
    search** as MAID (isolates adaptive accuracy).
-3. Accelerated MAID (adapts eps/delta and step size).
-4. Ridge ablation (inpainting, deblur): data term plus the gamma floor
+4. Accelerated MAID (adapts eps/delta and step size).
+5. Ridge ablation (inpainting, deblur): data term plus the gamma floor
    only, prior off. If the floor alone already explains most of the
    deblurring PSNR, that comparison is labelled uninformative about priors.
 
@@ -80,7 +83,9 @@ from deepinv.optim.bilevel import (
     accelerated_maid_config,
     build_crr_minibatch_oracle,
     exp_scaling,
+    grid_tune_tv,
     pack_init_theta,
+    recon_tv,
     unpack_theta,
 )
 from deepinv.utils.demo import load_dataset
@@ -303,7 +308,10 @@ def solver_audit(problem_makers):
 
     # ---- 2. L_prior analytic vs measured Hess R ------------------------
     print()
-    print("--- 2. L_prior: analytic 2*exp(beta)+gamma vs measured Hess R ---")
+    print(
+        "--- 2. L_prior: analytic 2*exp(beta)*lip(W)/lip_0+gamma "
+        "vs measured Hess R ---"
+    )
     print(
         f"{'physics':<12} {'analytic':>12} {'measured':>12} "
         f"{'ratio a/m':>10} {'safe':>6}"
@@ -619,8 +627,20 @@ def recon_tikhonov_converged(physics, y, x_star, log_lam: float):
 
 
 def recon_crr_converged(
-    physics, y, x_star, theta: torch.Tensor, cfg: ConvexRidgeConfig
+    physics,
+    y,
+    x_star,
+    theta: torch.Tensor,
+    cfg: ConvexRidgeConfig,
+    lip_theta: torch.Tensor | None = None,
 ):
+    """Residual-stopped CRR recon under the frozen Lip chart.
+
+    ``lip_theta`` is the parameter vector at which Lip normalisation is
+    frozen (the training initialisation). If omitted, Lip freezes at
+    ``theta`` itself. Using a different freeze point than training
+    redefines the model.
+    """
     prob = CRRSampleProblem(
         physics=physics,
         y=y,
@@ -629,6 +649,8 @@ def recon_crr_converged(
         max_iter=MAX_GD,
         solver=LOWER_SOLVER,
     )
+    freeze = lip_theta if lip_theta is not None else theta
+    prob.load_theta(freeze)
     xh, res = prob.solve_lower(theta, eps=REPORT_EPS)
     mu = float(prob.mu(theta))
     tol = max(REPORT_EPS * mu, 1e-8)
@@ -672,6 +694,10 @@ def train_crr_maid(
     th0 = pack_init_theta(
         cfg, dtype=dtype, seed=0, weight_scale=WEIGHT_SCALE
     )
+    # Freeze Lip once at theta_0 on every sample problem. Later outer
+    # steps keep that constant so the hypergradient matches the solve.
+    for o in oracle.sample_oracles:
+        o.problem.load_theta(th0)
     common = dict(
         eps0=LEARN_EPS0,
         delta0=LEARN_EPS0,
@@ -732,6 +758,8 @@ def train_crr_fixed(
         cfg, dtype=dtype, seed=0, weight_scale=WEIGHT_SCALE
     )
     th0 = th.detach().clone()
+    for o in oracle.sample_oracles:
+        o.problem.load_theta(th0)
     warm = None
     f_trace = []
     n_bt = 0
@@ -790,14 +818,20 @@ def train_crr_fixed(
     }
 
 
-def eval_set_converged(samples, theta_crr, log_lam_tik, cfg: ConvexRidgeConfig):
+def eval_set_converged(
+    samples,
+    theta_crr,
+    log_lam_tik,
+    cfg: ConvexRidgeConfig,
+    lip_theta: torch.Tensor | None = None,
+):
     rows = []
     for physics, y, x_star in samples:
         xt, pt, rt, ft, mt = recon_tikhonov_converged(
             physics, y, x_star, log_lam_tik
         )
         xc, pc, rc, fc, mc = recon_crr_converged(
-            physics, y, x_star, theta_crr, cfg
+            physics, y, x_star, theta_crr, cfg, lip_theta=lip_theta
         )
         psnr_noisy = psnr(y, x_star)
         rows.append(
@@ -930,11 +964,33 @@ for pname, make_phys, seed0, crr_cfg in problem_specs:
         flush=True,
     )
 
+    print("Grid-tuning isotropic TV baseline on train set ...", flush=True)
+    t0 = time.perf_counter()
+    tv = grid_tune_tv(train_samples, n_grid=15, verify_once=True)
+    print(
+        f"  TV lambda={tv['lam']:.4f} train f={tv['f']:.2f} "
+        f"train PSNR={tv['psnr_train']:.2f} "
+        f"wall={time.perf_counter()-t0:.1f}s",
+        flush=True,
+    )
+    # Held-out TV recon at the train-tuned lambda.
+    tv_held_rows = []
+    for physics, y, x_star in held_samples:
+        x_tv, p_tv, info_tv = recon_tv(physics, y, x_star, tv["lam"])
+        tv_held_rows.append(
+            {"tv": x_tv, "psnr_tv": p_tv, "info_tv": info_tv}
+        )
+    tv_psnr_held = mean_key(tv_held_rows, "psnr_tv")
+    print(
+        f"  TV held PSNR={tv_psnr_held:.2f} (lam={tv['lam']:.4f})",
+        flush=True,
+    )
+
     print("Grid-tuning scalar Tikhonov baseline on train set ...", flush=True)
     t0 = time.perf_counter()
     tik = grid_tune_tikhonov(train_samples, n_grid=9)
     print(
-        f"  baseline lambda={tik['lam']:.4f} (log={tik['log_lam']:.3f}) "
+        f"  Tikhonov lambda={tik['lam']:.4f} (log={tik['log_lam']:.3f}) "
         f"train f={tik['f']:.2f} train PSNR={tik['psnr_train']:.2f} "
         f"wall={time.perf_counter()-t0:.1f}s",
         flush=True,
@@ -996,23 +1052,44 @@ for pname, make_phys, seed0, crr_cfg in problem_specs:
     )
 
     print(f"Final recon at eps={REPORT_EPS} ...", flush=True)
+    # Freeze Lip at the training initialisation so the report evaluates
+    # the same model the hypergradient differentiated.
     train_eval_maid = eval_set_converged(
-        train_samples, maid["theta"], tik["log_lam"], crr_cfg
+        train_samples,
+        maid["theta"],
+        tik["log_lam"],
+        crr_cfg,
+        lip_theta=maid["theta0"],
     )
     held_eval_maid = eval_set_converged(
-        held_samples, maid["theta"], tik["log_lam"], crr_cfg
+        held_samples,
+        maid["theta"],
+        tik["log_lam"],
+        crr_cfg,
+        lip_theta=maid["theta0"],
     )
     train_eval_fixed = eval_set_converged(
-        train_samples, fixed["theta"], tik["log_lam"], crr_cfg
+        train_samples,
+        fixed["theta"],
+        tik["log_lam"],
+        crr_cfg,
+        lip_theta=fixed["theta0"],
     )
     held_eval_fixed = eval_set_converged(
-        held_samples, fixed["theta"], tik["log_lam"], crr_cfg
+        held_samples,
+        fixed["theta"],
+        tik["log_lam"],
+        crr_cfg,
+        lip_theta=fixed["theta0"],
     )
 
     row = {
         "problem": pname,
         "gamma": crr_cfg.gamma,
         "y_psnr_held": held_y_psnr,
+        "tv_lam": tv["lam"],
+        "tv_psnr_train": tv["psnr_train"],
+        "tv_psnr_held": tv_psnr_held,
         "tik_lam": tik["lam"],
         "tik_psnr_train": mean_key(train_eval_maid, "psnr_tik"),
         "tik_psnr_held": mean_key(held_eval_maid, "psnr_tik"),
@@ -1041,7 +1118,9 @@ for pname, make_phys, seed0, crr_cfg in problem_specs:
     }
     # If ridge alone already gets most of the reconstruction PSNR, the
     # prior comparison is uninformative on that problem.
-    best_prior = max(row["tik_psnr_held"], row["maid_psnr_held"])
+    best_prior = max(
+        row["tik_psnr_held"], row["maid_psnr_held"], row["tv_psnr_held"]
+    )
     if best_prior > 1e-8:
         ridge_frac = row["ridge_psnr_held"] / best_prior
     else:
@@ -1053,6 +1132,8 @@ for pname, make_phys, seed0, crr_cfg in problem_specs:
     summary.append(row)
     artifacts[pname] = {
         "cfg": crr_cfg,
+        "tv": tv,
+        "tv_held_rows": tv_held_rows,
         "tik": tik,
         "maid": maid,
         "fixed": fixed,
@@ -1062,14 +1143,16 @@ for pname, make_phys, seed0, crr_cfg in problem_specs:
         "held_eval_fixed": held_eval_fixed,
     }
     print(
-        f"  TRAIN  baseline PSNR={row['tik_psnr_train']:.2f}  "
-        f"learned CRR (MAID params)={row['maid_psnr_train']:.2f}  "
-        f"learned CRR (fixed params)={row['fixed_psnr_train']:.2f}",
+        f"  TRAIN  TV={row['tv_psnr_train']:.2f}  "
+        f"Tikhonov={row['tik_psnr_train']:.2f}  "
+        f"CRR MAID={row['maid_psnr_train']:.2f}  "
+        f"CRR fixed={row['fixed_psnr_train']:.2f}",
         flush=True,
     )
     print(
-        f"  HELD   y PSNR={row['y_psnr_held']:.2f}  "
-        f"baseline={row['tik_psnr_held']:.2f} "
+        f"  HELD   y={row['y_psnr_held']:.2f}  "
+        f"TV={row['tv_psnr_held']:.2f}  "
+        f"Tikhonov={row['tik_psnr_held']:.2f} "
         f"({fmt_res(row['tik_res_held'], row['tik_mu_held'])})  "
         f"CRR MAID={row['maid_psnr_held']:.2f} "
         f"({fmt_res(row['maid_res_held'], row['maid_mu_held'])})  "
@@ -1250,7 +1333,13 @@ for row in summary:
         f"{'-':>8} {'-':>8}"
     )
     print(
-        f"{row['problem']:<12} {'grid-tuned scalar (baseline)':<36} "
+        f"{row['problem']:<12} {'grid-tuned isotropic TV':<36} "
+        f"{row['tv_psnr_train']:10.2f} {row['tv_psnr_held']:10.2f} "
+        f"{'-':>10} {'-':>10} "
+        f"{'-':>8} {'-':>8}"
+    )
+    print(
+        f"{row['problem']:<12} {'grid-tuned scalar Tikhonov':<36} "
         f"{row['tik_psnr_train']:10.2f} {row['tik_psnr_held']:10.2f} "
         f"{row['tik_res_held']:10.2e} {row['tik_bound_held']:10.2e} "
         f"{'-':>8} {'-':>8}"
@@ -1291,7 +1380,17 @@ print(
     "accuracy from step-size adaptation."
 )
 print(
-    "  Scalar baseline: log-spaced grid over lambda; not a method under test."
+    "  TV baseline: isotropic total variation, lambda grid-tuned on train; "
+    "mandatory comparison for a learned multi-filter prior."
+)
+print(
+    "  Scalar Tikhonov baseline: log-spaced grid over lambda; second "
+    "baseline, not a method under test."
+)
+print(
+    "  Lip normalisation is frozen at theta_0 for the outer run "
+    "(forward solve, HVP and mixed Jacobian share one constant). "
+    "L_prior uses 2*exp(beta)*lip(W)/lip_0+gamma for the step size."
 )
 print(
     f"  CRR: multiconv {CRR_CFG_RIDGE.nb_channels}, Lip-normalised, log scaling, "

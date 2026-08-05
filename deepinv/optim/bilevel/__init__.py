@@ -67,6 +67,17 @@ from .crr_bilevel import (
     build_crr_minibatch_oracle,
 )
 from .prior_learning import TikhonovWeightOracle, TikhonovWeightProblem
+from .tv_baseline import (
+    assert_grad_div_adjoint,
+    div,
+    grid_tune_tv,
+    isotropic_tv,
+    nabla,
+    nabla_adjoint,
+    primal_objective,
+    recon_tv,
+    solve_isotropic_tv,
+)
 from .quadratic_ls import QuadraticBilevelLS
 from .saddle import (
     QuadraticSaddleProblem,
@@ -104,6 +115,15 @@ __all__ = [
     "wrap_smooth_dataset",
     "TikhonovWeightProblem",
     "TikhonovWeightOracle",
+    "assert_grad_div_adjoint",
+    "div",
+    "grid_tune_tv",
+    "isotropic_tv",
+    "nabla",
+    "nabla_adjoint",
+    "primal_objective",
+    "recon_tv",
+    "solve_isotropic_tv",
     "ConvexRidgeConfig",
     "ConvexRidgePrior",
     "n_crr_params",

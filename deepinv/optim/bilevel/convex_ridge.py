@@ -50,9 +50,35 @@ example reports initial and final ``exp(s)``. Motion of ``s`` means
 responses reached the knee; flat ``s`` means they stayed quadratic at that
 configuration.
 
+Lipschitz normalisation (frozen chart)
+--------------------------------------
+``apply_conv`` scales the input by ``1/sqrt(lip)``. The constant ``lip`` is
+a property of the model, not a function of the live weights under
+differentiation. It is computed once from the weights at freeze time,
+stored on :class:`ConvexRidgePrior`, and reused for every energy, gradient,
+Hessian-vector product and mixed Jacobian evaluation.
+
+Recomputing ``lip`` from the current weights and detaching it makes the
+forward model and the differentiated model disagree: the solve uses
+``lip(theta)`` while the hypergradient treats ``lip`` as constant and
+drops the ``d lip / d w`` term. Freezing removes that term by construction
+and makes the hypergradient exact for the model that is actually solved.
+
+If the normalisation is refreshed to stop drift, do it only between outer
+iterations, never inside a lower-level solve or a hypergradient evaluation.
+Call :meth:`ConvexRidgePrior.refresh_lip` for that.
+
+With frozen ``lip_0`` the filters are no longer unit-norm after the weights
+move, so the prior step-size chart is
+
+    L_prior = 2 * exp(beta) * lip(W) / lip_0 + gamma
+
+where ``lip(W)`` is the current composed multiconv Lip (no gradient is
+taken through it).
+
 DeepInverse adaptations
 -----------------------
-Flat theta, detached Lip chart, gamma ridge floor, colour default channels.
+Flat theta, frozen Lip chart, gamma ridge floor, colour default channels.
 """
 
 from __future__ import annotations
@@ -298,21 +324,58 @@ def ridge_grad_x(
 
 
 class ConvexRidgePrior:
-    """Thin energy/grad wrapper driven by a flat theta vector."""
+    """Thin energy/grad wrapper driven by a flat theta vector.
+
+    Lipschitz normalisation uses a frozen constant ``_lip`` (see module
+    docstring). The first :meth:`load_theta` freezes it from the loaded
+    weights; later loads keep that value so the forward model and the
+    hypergradient differentiate the same map.
+    """
 
     def __init__(self, cfg: ConvexRidgeConfig | None = None):
         self.cfg = cfg if cfg is not None else ConvexRidgeConfig()
         self._weights: list[torch.Tensor] | None = None
         self._scaling: torch.Tensor | None = None
         self._beta: torch.Tensor | None = None
+        # Frozen multiconv Lip used by apply_conv / apply_conv_transpose.
+        # Not a live function of the weights under differentiation.
         self._lip: torch.Tensor | None = None
 
-    def load_theta(self, theta: torch.Tensor) -> None:
+    def refresh_lip(self, weights: list[torch.Tensor] | None = None) -> torch.Tensor:
+        """Recompute and store the frozen Lip from the given (or loaded) weights.
+
+        Redefines the model. Call only between outer iterations, never
+        inside a lower-level solve or a hypergradient evaluation.
+        """
+        if weights is None:
+            if self._weights is None:
+                raise RuntimeError("call load_theta before refresh_lip")
+            weights = self._weights
+        self._lip = get_conv_lip(weights, self.cfg, detach=True)
+        return self._lip
+
+    def load_theta(
+        self, theta: torch.Tensor, *, refresh_lip: bool = False
+    ) -> None:
+        """Unpack theta into weights, scaling and beta.
+
+        On the first call, freezes ``lip`` from the loaded weights. Later
+        calls keep the stored value unless ``refresh_lip=True`` (outer
+        iteration only; see :meth:`refresh_lip`).
+        """
         w, s, b = unpack_theta(theta, self.cfg)
         self._weights = w
         self._scaling = s
         self._beta = b
-        self._lip = get_conv_lip(w, self.cfg, detach=True)
+        if self._lip is None or refresh_lip:
+            self._lip = get_conv_lip(w, self.cfg, detach=True)
+
+    @property
+    def lip(self) -> torch.Tensor:
+        """Frozen Lip normalisation constant (scalar tensor)."""
+        if self._lip is None:
+            raise RuntimeError("call load_theta before reading lip")
+        return self._lip
 
     def energy(self, x: torch.Tensor) -> torch.Tensor:
         if self._weights is None or self._scaling is None or self._beta is None:
@@ -328,10 +391,27 @@ class ConvexRidgePrior:
             x, self._weights, self._scaling, self._beta, self.cfg, lip=self._lip
         )
 
+    def current_weight_lip(self) -> float:
+        """Composed multiconv Lip of the loaded weights (no gradient)."""
+        if self._weights is None:
+            raise RuntimeError("call load_theta before current_weight_lip")
+        return float(get_conv_lip(self._weights, self.cfg, detach=True).item())
+
     def lipschitz_bound(self) -> float:
-        if self._beta is None:
+        """Prior step-size chart under frozen normalisation.
+
+        With frozen ``lip_0``, ``W / sqrt(lip_0)`` is no longer unit-norm
+        once the weights move, so
+
+            L_prior = 2 * exp(beta) * lip(W) / lip_0 + gamma
+
+        where ``lip(W)`` is recomputed for the chart only (no gradient).
+        """
+        if self._beta is None or self._weights is None or self._lip is None:
             raise RuntimeError("call load_theta before lipschitz_bound")
-        return float(2.0 * torch.exp(self._beta).item() + self.cfg.gamma)
+        lip_w = get_conv_lip(self._weights, self.cfg, detach=True)
+        scale = float((lip_w / self._lip.clamp_min(1e-12)).item())
+        return float(2.0 * torch.exp(self._beta).item() * scale + self.cfg.gamma)
 
 
 def scaling_vector(theta: torch.Tensor, cfg: ConvexRidgeConfig) -> torch.Tensor:
