@@ -568,7 +568,7 @@ class BRISQUE(Metric):
     are computed with a :math:`7\times 7` Gaussian window. A generalized Gaussian is fitted
     to the MSCN coefficients and asymmetric generalized Gaussians are fitted to their four
     neighbouring products, yielding 36 features which are mapped to a quality score by a
-    support vector regressor pre-trained on the LIVE IQA database.
+    support vector regressor pre-trained on the LIVE IQA dataset.
 
     This is a PyTorch translation of the ``pybrisque`` implementation
     (https://github.com/bukalapak/pybrisque), itself
