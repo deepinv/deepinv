@@ -1488,6 +1488,7 @@ def test_pet_clone(device):
     assert physics_clone.background.data_ptr() != physics.background.data_ptr()
     assert physics_clone.attenuation.data_ptr() != physics.attenuation.data_ptr()
 
+
 @pytest.mark.parametrize(
     "padding", ("valid", "constant", "circular", "reflect", "replicate")
 )
