@@ -10,8 +10,16 @@ Lower level
       + \\tfrac{\\gamma}{2}\\|x\\|^2
 
 with :math:`R_\\theta` the multiconv Lip-normalised CRR. Upper level
-:math:`g(x) = \\tfrac12\\|x - x^\\star\\|^2`. Strong convexity modulus is the
-known floor ``gamma``.
+:math:`g(x) = \\tfrac12\\|x - x^\\star\\|^2`.
+
+Strong convexity modulus is
+
+    ``mu = mu_data + gamma``
+
+where ``mu_data`` is a lower bound on the strong-convexity contribution of
+the data term (1 for Denoising with ``A = I``, 0 for general ``A``) and
+``gamma`` is the explicit ridge floor. On denoising the floor is unnecessary
+and may be set to zero; ``mu >= 1`` still holds from the data term alone.
 
 Lower-level solver
 ------------------
@@ -29,10 +37,10 @@ gives
 
     ``||x - xstar|| <= ||grad h(x)|| / mu``
 
-with ``mu = gamma``. Any solver that reaches the residual tolerance earns
-the same distance bound. That interchangeability is intentional in the
-oracle design: the residual is a property of the objective, not of GD,
-FISTA or (future) truncated Newton.
+Any solver that reaches the residual tolerance earns the same distance
+bound. That interchangeability is intentional in the oracle design: the
+residual is a property of the objective, not of GD, FISTA or (future)
+truncated Newton.
 
 If FISTA remains slow on a problem, truncated Newton is the next option
 because the Hessian-vector product already exists for the hypergradient.
@@ -147,6 +155,8 @@ class CRRSampleProblem:
         self.L_J = 0.0
         if self.lipschitz_data is None:
             self.lipschitz_data = self._estimate_data_lipschitz()
+        # Lower bound on lambda_min(A^* A). For Denoising (A = Id) this is 1.
+        self.mu_data = self._estimate_mu_data()
         self.prior = ConvexRidgePrior(self.cfg)
         self._fidelity = CRRSmoothFidelity(self.prior)
         self._null_prior = _NullPrior()
@@ -154,6 +164,12 @@ class CRRSampleProblem:
             raise ValueError(
                 f"image has {self.x_star.shape[1]} channels, "
                 f"CRR expects in_channels={self.cfg.in_channels}"
+            )
+        if self.mu() <= 0.0:
+            raise ValueError(
+                "lower level is not strongly convex: mu_data + gamma = "
+                f"{self.mu()}. Use gamma > 0, or a physics with mu_data > 0 "
+                "(for example Denoising with A = I)."
             )
         # residual_kind_for_solver is consulted only for documentation;
         # we always stop on gradient residual (certificate residual).
@@ -175,8 +191,22 @@ class CRRSampleProblem:
         AtAx = self.physics.A_adjoint(Ax)
         return float(AtAx.flatten().norm().item())
 
+    def _estimate_mu_data(self) -> float:
+        """Lower bound on the strong-convexity contribution of the data term.
+
+        For Denoising with ``A = Id`` this is 1. For general ``A`` we use 0
+        (safe: residual_tol is tighter than necessary when gamma alone sets
+        ``mu``).
+        """
+        x = torch.randn_like(self.x_star)
+        Ax = self.physics.A(x)
+        if Ax.shape == x.shape and torch.allclose(Ax, x, atol=1e-12, rtol=0.0):
+            return 1.0
+        return 0.0
+
     def mu(self, theta: torch.Tensor | None = None) -> float:
-        return float(self.cfg.gamma)
+        """Strong-convexity modulus: ``mu_data + gamma``."""
+        return float(self.mu_data) + float(self.cfg.gamma)
 
     def load_theta(self, theta: torch.Tensor) -> None:
         self.prior.load_theta(theta)
@@ -352,7 +382,7 @@ class CRRSampleOracle(HypergradientOracle):
     def citation(self) -> str:
         return (
             "Salehi et al., SIAM J. Math. Data Sci. 2025, Theorem 2.1; "
-            "convex ridge regulariser with known gamma floor"
+            "convex ridge regulariser with mu = mu_data + gamma"
         )
 
     @property

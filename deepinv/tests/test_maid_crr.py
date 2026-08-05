@@ -134,6 +134,26 @@ def test_gd_and_fista_both_reach_residual_via_base_optim():
         assert prob.n_gd_iters >= 1
 
 
+def test_mu_data_plus_gamma_on_denoising():
+    """Denoising (A = I) contributes mu_data = 1, so gamma may be zero.
+
+    Certificate uses mu = mu_data + gamma. With gamma = 0 the residual
+    tolerance is still positive and the distance bound is residual / 1.
+    """
+    cfg = _tiny_cfg(gamma=0.0)
+    physics, y, x_star = _tiny_denoising(12, seed=11)
+    prob = CRRSampleProblem(physics, y, x_star, cfg=cfg, max_iter=8000)
+    assert prob.mu_data == 1.0
+    assert abs(prob.mu() - 1.0) < 1e-12
+    th = pack_init_theta(cfg, seed=12)
+    _, r = prob.solve_lower(th, eps=1e-2)
+    tol = max(1e-2 * prob.mu(), 1e-8)
+    assert r <= tol * 1.01
+    # Distance bound is residual / mu, not the residual alone.
+    dist_bound = r / prob.mu()
+    assert dist_bound <= 1e-2 * 1.01
+
+
 def test_maid_decreases_upper_level():
     """MAID accepts steps and does not increase the upper-level cost."""
     cfg = _tiny_cfg()
