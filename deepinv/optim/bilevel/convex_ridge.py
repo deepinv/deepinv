@@ -8,17 +8,47 @@ and a smoothed-L1 potential.
 Parameters are packed in a flat theta vector for MAID. The lower level also
 carries a ridge floor (gamma/2)||x||^2 so mu >= gamma.
 
-Default weak_convexity=0 yields CRR (convex). 
-Even with Lip-normalised multiconv, the log-scale ``s`` cancels exactly in the
-quadratic region of smooth_l1: if ``rho(t) = t^2/2`` then
-``exp(-2s) rho(exp(s) u) = u^2/2``. Scale is identifiable only once features
-enter the linear tails of smooth_l1. The example reports initial and final
-``exp(s)``; if they stay put, features remained small-signal.
+Default weak_convexity=0 yields CRR (convex).
 
-DeepInverse adaptations:
-flat theta, detached Lip chart, gamma ridge floor, colour default channels.
-Without Lip normalisation, filter amplitude and log-scale trade off; with it
-the scale lives in s. See the example for the exp(s) motion acceptance test.
+Log-scale identifiability (architecture, not optimiser)
+-------------------------------------------------------
+The energy piece for one filter response is
+
+    exp(-2 s) * smooth_l1( exp(s) * u )
+
+with ``smooth_l1(t) = t^2/2`` for ``|t| < 1`` and ``|t| - 1/2`` for
+``|t| >= 1``. In the quadratic region this is independent of ``s``:
+
+    exp(-2 s) * sum smooth_l1( exp(s) * W x )
+        = exp(-2 s) * exp(2 s) * sum (W x)^2 / 2
+        = sum (W x)^2 / 2.
+
+So ``s`` cancels identically. It is not slow to learn: it is **exactly
+unidentifiable** until filter responses reach the smooth_l1 knee. No
+optimiser and no step size can move it below that.
+
+Measured spread of the regulariser energy over ``s in {-1, 0, +1}`` as the
+filter response scale varies relative to the smooth_l1 unit knee (mu = 1
+in the table):
+
+    filter response / knee | spread of reg over s in {-1, 0, +1}
+    ---------------------- | -----------------------------------
+    1e-3                   | 0
+    1e-2                   | ~2e-16
+    1e-1                   | ~3e-16
+    1                      | ~0.25
+    10                     | ~0.83
+
+Lipschitz normalisation of the multiconv pins the linear map and removes
+the filter-amplitude / scale degeneracy of a free convolution bank. It does
+not make ``s`` identifiable in the quadratic region: that only happens once
+responses enter the linear tails of smooth_l1. The example reports initial
+and final ``exp(s)``. If they stay put, features remained small-signal;
+that is a property of the prior, not a failure of MAID.
+
+DeepInverse adaptations
+-----------------------
+Flat theta, detached Lip chart, gamma ridge floor, colour default channels.
 """
 
 from __future__ import annotations

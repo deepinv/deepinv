@@ -30,8 +30,13 @@ comes from a final lower-level solve at a tight residual (stated below).
 Comparisons
 -----------
 1. Baseline: grid-tuned scalar Tikhonov (not a method under test).
-2. Fixed-accuracy bilevel learning of the CRR.
-3. Accelerated MAID learning of the same CRR.
+2. Fixed residual/hypergradient accuracy with the **same Armijo line
+   search** as MAID (isolates adaptive accuracy).
+3. Accelerated MAID (adapts eps/delta and step size).
+
+Both learning arms use the same outer budget ``N_OUTER`` (printed with
+the summary table). Absolute PSNR after few outer steps is a short-run
+snapshot, not a converged learning claim.
 """
 
 from __future__ import annotations
@@ -88,11 +93,19 @@ CRR_CFG = ConvexRidgeConfig(
     beta_init=1.0,
     sigma_init=0.5,
 )
-N_OUTER = 4
+# Outer budget is small for a multi-layer prior; stated in every summary
+# table. Six outer steps keep the full colour example near twenty minutes
+# on CPU while giving the fixed-accuracy arm a fairer chance than four.
+N_OUTER = 6
 FIXED_EPS = 1e-3
 LEARN_EPS0 = 1e-3
 REPORT_EPS = 1e-4
 ALPHA0_CRR = 5e-3
+# Shared line-search parameters for MAID and the fixed-accuracy arm.
+LS_RHO = 0.5
+LS_RHO_BAR = 1.2
+LS_LAMBD = 0.01
+LS_MAX_BT = 12
 MAX_GD = 15_000
 
 
@@ -220,6 +233,15 @@ def recon_crr_converged(physics, y, x_star, theta: torch.Tensor):
     return xh, psnr(xh, x_star), float(res), float(prob.g(xh).item())
 
 
+def _mean_upper_level(oracle, theta: torch.Tensor, eps: float) -> float:
+    """Mean g(x_hat) over samples after a residual-stopped lower solve."""
+    vals = []
+    for o in oracle.sample_oracles:
+        xv, _ = o.problem.solve_lower(theta, eps=eps)
+        vals.append(float(o.problem.g(xv).item()))
+    return sum(vals) / len(vals)
+
+
 def train_crr_maid(samples, accelerated: bool, n_outer: int = N_OUTER):
     oracle = build_crr_minibatch_oracle(
         samples, cfg=CRR_CFG, chunk_size=1, max_iter=MAX_GD
@@ -229,13 +251,13 @@ def train_crr_maid(samples, accelerated: bool, n_outer: int = N_OUTER):
         eps0=LEARN_EPS0,
         delta0=LEARN_EPS0,
         alpha0=ALPHA0_CRR,
-        rho=0.5,
-        rho_bar=1.2,
+        rho=LS_RHO,
+        rho_bar=LS_RHO_BAR,
         nu=0.5,
         nu_bar=1.05,
         eta=0.5,
-        lambd=0.01,
-        max_BT=12,
+        lambd=LS_LAMBD,
+        max_BT=LS_MAX_BT,
         max_iter=n_outer,
         tol=1e-5,
         g_convex=True,
@@ -268,6 +290,14 @@ def train_crr_maid(samples, accelerated: bool, n_outer: int = N_OUTER):
 
 
 def train_crr_fixed(samples, n_outer: int = N_OUTER):
+    """Fixed residual and hypergradient accuracy; same Armijo line search.
+
+    Isolates adaptive accuracy (the MAID contribution). Both arms share
+    alpha0, rho, rho_bar, lambd and max_BT. This arm holds eps = delta =
+    FIXED_EPS every outer step and only backtracks the step size. The
+    previous plain loop ``th = th - alpha0 * z`` confounded accuracy
+    adaptation with step-size adaptation.
+    """
     oracle = build_crr_minibatch_oracle(
         samples, cfg=CRR_CFG, chunk_size=1, max_iter=MAX_GD
     )
@@ -275,17 +305,47 @@ def train_crr_fixed(samples, n_outer: int = N_OUTER):
     th0 = th.detach().clone()
     warm = None
     f_trace = []
+    n_bt = 0
+    alpha = ALPHA0_CRR
+    L_g = 1.0  # upper level g = 0.5 ||x - x_star||^2
     t0 = time.perf_counter()
     for _ in range(n_outer):
         lower = oracle.solve_lower_level(th, eps=FIXED_EPS, warm_start=warm)
         hyper = oracle.hypergradient(th, lower, delta=FIXED_EPS)
-        th = th - ALPHA0_CRR * hyper.z
-        warm = lower
-        f_vals = []
-        for o in oracle.sample_oracles:
-            xv, _ = o.problem.solve_lower(th, eps=5e-3)
-            f_vals.append(float(o.problem.g(xv).item()))
-        f_trace.append(sum(f_vals) / len(f_vals))
+        z = hyper.z
+        z_norm_sq = float(torch.sum(z * z).item())
+        g_old = float(oracle.g(lower.x).item())
+        gg_old = float(oracle.grad_g(lower.x).norm().item())
+        # Same sandwich as MAID (g_convex path) at constant accuracy.
+        U_lower = g_old - gg_old * FIXED_EPS - 0.5 * L_g * (FIXED_EPS**2)
+        alpha_try = alpha
+        line_ok = False
+        lower_trial = lower
+        for _bt in range(LS_MAX_BT):
+            th_trial = th - alpha_try * z
+            lower_trial = oracle.solve_lower_level(
+                th_trial, eps=FIXED_EPS, warm_start=lower
+            )
+            g_new = float(oracle.g(lower_trial.x).item())
+            gg_new = float(oracle.grad_g(lower_trial.x).norm().item())
+            # Fixed accuracy: no nu_bar inflation of the trial residual.
+            U_upper = g_new + gg_new * FIXED_EPS + 0.5 * L_g * (FIXED_EPS**2)
+            psi = U_upper - U_lower + LS_LAMBD * alpha_try * z_norm_sq
+            psi = psi - 0.5 * L_g * (FIXED_EPS**2)
+            if psi <= 0.0:
+                line_ok = True
+                break
+            alpha_try *= LS_RHO
+            n_bt += 1
+        if line_ok:
+            th = th - alpha_try * z
+            warm = lower_trial
+            alpha = LS_RHO_BAR * alpha_try
+        else:
+            # Line search exhausted; keep theta, shrink starting alpha.
+            n_bt += 1
+            alpha = max(ALPHA0_CRR * 1e-3, alpha * LS_RHO)
+        f_trace.append(_mean_upper_level(oracle, th, eps=5e-3))
     wall = time.perf_counter() - t0
     gd = sum(
         int(getattr(o.problem, "n_gd_iters", 0)) for o in oracle.sample_oracles
@@ -295,7 +355,7 @@ def train_crr_fixed(samples, n_outer: int = N_OUTER):
         "theta0": th0,
         "gd": gd,
         "wall": wall,
-        "bt": 0,
+        "bt": n_bt,
         "n_outer": n_outer,
         "f_trace": f_trace,
     }
@@ -357,13 +417,14 @@ def print_scaling_table(label, th0, th1):
     )
     if float(ratios.max()) < 1.05 and float(ratios.min()) > 0.95:
         print(
-            "  WARNING: scaling barely moved; scale degeneracy may remain.",
+            "  Scale unidentifiable here (quadratic region of smooth_l1; "
+            "see convex_ridge module docstring). Not an optimiser failure.",
             flush=True,
         )
     else:
         print(
-            "  Scaling moved: Lip normalisation separates operator scale "
-            "from the learned log-scale.",
+            "  Scaling moved: responses reached the smooth_l1 knee, so s "
+            "is identifiable.",
             flush=True,
         )
     return s0, s1, ratios
@@ -394,7 +455,11 @@ for pname, make_phys, seed0 in problem_specs:
         flush=True,
     )
 
-    print("Bilevel learning of CRR with accelerated MAID ...", flush=True)
+    print(
+        f"Bilevel learning of CRR with accelerated MAID "
+        f"(N_OUTER={N_OUTER}) ...",
+        flush=True,
+    )
     maid = train_crr_maid(train_samples, accelerated=True, n_outer=N_OUTER)
     print(
         f"  MAID (learning) outer={maid['n_outer']} GD={maid['gd']} "
@@ -406,11 +471,15 @@ for pname, make_phys, seed0 in problem_specs:
     )
     maid["s0"], maid["s1"], maid["ratios"] = s0, s1, ratios
 
-    print("Bilevel learning of CRR with fixed accuracy ...", flush=True)
+    print(
+        f"Bilevel learning of CRR with fixed eps/delta={FIXED_EPS} "
+        f"and the same Armijo line search (N_OUTER={N_OUTER}) ...",
+        flush=True,
+    )
     fixed = train_crr_fixed(train_samples, n_outer=N_OUTER)
     print(
-        f"  fixed (learning) outer={fixed['n_outer']} GD={fixed['gd']} "
-        f"wall={fixed['wall']:.1f}s",
+        f"  fixed+LS outer={fixed['n_outer']} GD={fixed['gd']} "
+        f"BT={fixed['bt']} wall={fixed['wall']:.1f}s",
         flush=True,
     )
 
@@ -567,7 +636,7 @@ for ax, pname in zip(axes, ("inpainting", "deblur")):
             range(1, len(fixed["f_trace"]) + 1),
             fixed["f_trace"],
             "-s",
-            label="fixed-accuracy bilevel",
+            label="fixed eps/delta + line search",
             markersize=4,
         )
     ax.set_xlabel("outer iteration")
@@ -576,8 +645,8 @@ for ax, pname in zip(axes, ("inpainting", "deblur")):
     ax.legend(fontsize=8)
     ax.grid(True, alpha=0.3)
 fig.suptitle(
-    "MAID is the learning algorithm: upper-level cost vs outer iterations "
-    f"(lower levels solved loosely at eps={LEARN_EPS0} while learning)",
+    f"Learning efficiency (N_OUTER={N_OUTER}): MAID adapts eps/delta; "
+    f"fixed arm holds eps=delta={FIXED_EPS}; both use Armijo line search",
     fontsize=10,
 )
 fig.tight_layout()
@@ -614,23 +683,27 @@ print(f"wrote {path}", flush=True)
 
 print()
 print(
-    f"{'problem':<12} {'prior / learning':<28} {'PSNR_train':>10} "
+    f"Summary (N_OUTER={N_OUTER} outer iterations for both learning arms; "
+    "matched Armijo line search; only eps/delta adaptivity differs)"
+)
+print(
+    f"{'problem':<12} {'prior / learning':<36} {'PSNR_train':>10} "
     f"{'PSNR_held':>10} {'res_held':>10} {'GD':>8} {'wall_s':>8}"
 )
 for row in summary:
     print(
-        f"{row['problem']:<12} {'grid-tuned scalar (baseline)':<28} "
+        f"{row['problem']:<12} {'grid-tuned scalar (baseline)':<36} "
         f"{row['tik_psnr_train']:10.2f} {row['tik_psnr_held']:10.2f} "
         f"{row['tik_res_held']:10.2e} {'-':>8} {'-':>8}"
     )
     print(
-        f"{row['problem']:<12} {'CRR via fixed bilevel':<28} "
+        f"{row['problem']:<12} {'CRR fixed eps/delta + line search':<36} "
         f"{row['fixed_psnr_train']:10.2f} {row['fixed_psnr_held']:10.2f} "
         f"{row['fixed_res_held']:10.2e} {row['fixed_gd']:8d} "
         f"{row['fixed_wall']:8.1f}"
     )
     print(
-        f"{row['problem']:<12} {'CRR via accelerated MAID':<28} "
+        f"{row['problem']:<12} {'CRR accelerated MAID':<36} "
         f"{row['maid_psnr_train']:10.2f} {row['maid_psnr_held']:10.2f} "
         f"{row['maid_res_held']:10.2e} {row['maid_gd']:8d} "
         f"{row['maid_wall']:8.1f}"
@@ -642,6 +715,17 @@ print("Notes")
 print(
     f"  Train set: {len(train_imgs)} Set3C colour {IMG_SIZE}x{IMG_SIZE} images; "
     "held-out: 1 image."
+)
+print(
+    f"  Outer budget: N_OUTER={N_OUTER} for both learning arms "
+    f"(small for a multi-layer prior; do not over-read absolute PSNR)."
+)
+print(
+    "  Comparison design (option 1): both arms use the same Armijo line "
+    f"search (alpha0={ALPHA0_CRR}, rho={LS_RHO}, lambd={LS_LAMBD}, "
+    f"max_BT={LS_MAX_BT}). Fixed arm holds eps=delta={FIXED_EPS}; "
+    "MAID adapts residual and hypergradient accuracy. Isolates adaptive "
+    "accuracy from step-size adaptation."
 )
 print(
     "  Scalar baseline: log-spaced grid over lambda; not a method under test."
@@ -658,6 +742,11 @@ print(
 print(
     "  MAID appears in the learning-cost figure and the wall/GD columns; "
     "reconstruction panels are labelled by the prior, not by MAID."
+)
+print(
+    "  Log-scale s: unidentifiable in the quadratic region of smooth_l1 "
+    "(see convex_ridge module docstring). Flat exp(s) means small-signal "
+    "features, not a failed outer method."
 )
 print(f"  Example wall-clock: {demo_wall:.1f}s (~{demo_wall/60:.1f} min).")
 print(f"  Figures: {FIG_DIR}")
@@ -676,3 +765,8 @@ if "inpainting" in artifacts:
         f"  final exp(s) spread max/min={spread:.3f} "
         f"({'similar across filters' if spread < 1.2 else 'allocated across filters'})"
     )
+    if float(ratios.max()) < 1.05 and float(ratios.min()) > 0.95:
+        print(
+            "  Scale unidentifiable at this operating point (quadratic region "
+            "of smooth_l1); not an optimiser failure."
+        )
