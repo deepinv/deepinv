@@ -589,8 +589,7 @@ def test_niqe_other_implementations():
 
 
 def test_brisque_reference(test_image):
-    # Reference value obtained by running a faithful NumPy port of the original
-    # pybrisque implementation (https://github.com/bukalapak/pybrisque) on the same image.
+    # Note reference value from original pybrisque implementation (https://github.com/bukalapak/pybrisque) on the same image.
     brisque = metric.BRISQUE()
     assert abs(brisque(test_image).item() - 20.2606) < 1e-2
 

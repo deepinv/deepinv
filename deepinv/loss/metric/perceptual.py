@@ -558,7 +558,8 @@ class BRISQUE(Metric):
     which quantifies how far an image departs from the natural scene statistics of
     pristine natural images. Lower is better, with scores roughly in :math:`[0, 100]`.
 
-    The image is first converted to relative luminance, then, at two scales, the mean
+    BRISQUE works with images of 1 or 3 channels. If the image has 3 channels,
+    it is assumed to be RGB and converted to relative luminance, then, at two scales, the mean
     subtracted contrast normalized (MSCN) coefficients
 
     .. math::
@@ -667,7 +668,7 @@ class BRISQUE(Metric):
         self.max_pixel = max_pixel
         self.dtype = dtype
 
-        if weights_path == "download":
+        if str(weights_path) == "download":
             params = load_state_dict_from_url(
                 get_weights_url("demo", "brisque_weights.pt"),
                 map_location=lambda storage, loc: storage,
@@ -985,14 +986,7 @@ class NIMA(Metric):
     (https://github.com/idealo/image-quality-assessment), which we gratefully acknowledge.
     The MobileNet backbone and both heads use their released weights, converted to PyTorch.
 
-    .. note::
-
-        The two heads do not measure the same thing. The ``'technical'`` head decreases monotonically
-        as distortion is added, whereas the ``'aesthetic'`` head can *reward* mild blur, since shallow
-        depth of field is favoured by the raters of the AVA database. Prefer the ``'technical'`` head
-        when scoring reconstructions.
-
-    .. note::
+    .. warning::
 
         The network expects :math:`224\times 224` inputs, so images are bilinearly resized before
         being scored, without preserving the aspect ratio, as in the original implementation.
@@ -1005,7 +999,7 @@ class NIMA(Metric):
 
         By default, no reduction is performed in the batch dimension.
 
-    :param str variant: which pre-trained head to use, either ``'aesthetic'`` or ``'technical'``. Default: ``'aesthetic'``.
+    :param str variant: which pre-trained head to use, either `'aesthetic'` or `'technical'`. Default: ``'aesthetic'``.
     :param str, pathlib.Path, None weights_path: path to the network weights. If ``'download'`` (default),
         the weights of the chosen ``variant`` are downloaded.
     :param float max_pixel: maximum pixel value of the input images, used to rescale them to the
@@ -1032,8 +1026,6 @@ class NIMA(Metric):
 
     """
 
-    variants = ("aesthetic", "technical")
-
     def __init__(
         self,
         variant: str = "aesthetic",
@@ -1046,10 +1038,9 @@ class NIMA(Metric):
         self.lower_better = False
         self.max_pixel = max_pixel
 
-        if variant not in self.variants:
-            raise ValueError(
-                f"variant must be one of {self.variants}, but got {variant}."
-            )
+        variants = ("aesthetic", "technical")
+        if variant not in variants:
+            raise ValueError(f"variant must be one of {variants}, but got {variant}.")
         self.variant = variant
 
         if weights_path == "download":
@@ -1074,8 +1065,16 @@ class NIMA(Metric):
             persistent=False,
         )
 
-    def _preprocess(self, x_net: torch.Tensor) -> torch.Tensor:
-        r"""Resize to the network input size and rescale to :math:`[-1, 1]`."""
+    def distribution(self, x_net: torch.Tensor) -> torch.Tensor:
+        r"""
+        Predict the distribution of human opinion scores of a batch of images.
+
+        Resizes to the network input size and rescale to :math:`[-1, 1]`.
+
+        :param torch.Tensor x_net: `(B, C, H, W)` input tensors with C=1 or 3 channels.
+        :return: `(B, 10)` tensor of probabilities, where entry :math:`i` is the predicted
+            probability that a rater would give the image a score of :math:`i+1`.
+        """
         if x_net.ndim != 4:
             raise ValueError(
                 f"NIMA expects batched, 2D data of shape (B, C, H, W), but got tensor with {x_net.ndim} dimensions (shape: {x_net.shape})."
@@ -1094,17 +1093,8 @@ class NIMA(Metric):
                 x_net, size=(224, 224), mode="bilinear", align_corners=False
             )
 
-        return 2 * x_net / self.max_pixel - 1
-
-    def distribution(self, x_net: torch.Tensor) -> torch.Tensor:
-        r"""
-        Predict the distribution of human opinion scores of a batch of images.
-
-        :param torch.Tensor x_net: `(B, C, H, W)` input tensors with C=1 or 3 channels.
-        :return: `(B, 10)` tensor of probabilities, where entry :math:`i` is the predicted
-            probability that a rater would give the image a score of :math:`i+1`.
-        """
-        return self.net(self._preprocess(x_net))
+        x_net = 2 * x_net / self.max_pixel - 1
+        return self.net(x_net)
 
     def metric(self, x_net: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         """
