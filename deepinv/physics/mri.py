@@ -417,7 +417,10 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
     @staticmethod
     def estimate_coil_maps(
-        y: Tensor, calib_size: int = 24, use_cupy: bool = False
+        y: Tensor,
+        calib_size: int = 24,
+        use_cupy: bool = False,
+        espirit_crop: float = 0.95,
     ) -> Tensor:
         """Estimate coil sensitivity maps using ESPIRiT.
 
@@ -430,6 +433,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
         :param int calib_size: optional square auto-calibration size in pixels, used by `sigpy`.
         :param bool use_cupy: whether to attempt to use cupy for GPU acceleration.
+        :param float espirit_crop: optionally set crop argument of ESPIRiT algorithm, defaults to 0.95.
         :return: torch.Tensor of coil maps of complex dtype and shape [B,N,...,H,W]
         """
         try:
@@ -461,7 +465,11 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             cupy_maps = cp.stack(
                 [
                     EspiritCalib(
-                        yb, calib_size, show_pbar=False, device=cupy_y.device
+                        yb,
+                        calib_size,
+                        show_pbar=False,
+                        crop=espirit_crop,
+                        device=cupy_y.device,
                     ).run()
                     for yb in cupy_y
                 ]
@@ -472,7 +480,13 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             device = sp.Device(-1)
             maps = np.stack(
                 [
-                    EspiritCalib(yb, calib_size, show_pbar=False, device=device).run()
+                    EspiritCalib(
+                        yb,
+                        calib_size,
+                        show_pbar=False,
+                        crop=espirit_crop,
+                        device=device,
+                    ).run()
                     for yb in complex_y.numpy(force=True)
                 ]
             )

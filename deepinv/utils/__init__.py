@@ -28,7 +28,7 @@ from .demo import (
     load_torch_url,
     load_np_url,
 )
-from .nn import get_freer_gpu, get_device
+from .nn import get_freer_gpu, get_device, devices_equal
 from .tensorlist import (
     TensorList,
     rand_like,
