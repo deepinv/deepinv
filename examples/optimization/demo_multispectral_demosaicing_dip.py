@@ -61,7 +61,7 @@ physics = dinv.physics.Inpainting(img_size=mask.shape[1:], mask=mask, device=dev
 # :footcite:p:`darestani2021accelerated`. A DIP was previously applied to demosaicing by :footcite:t:`park2020joint`.
 #
 # .. note::
-#   We run only 100 iterations, which gives poor reconstructions. Increase it, for example to
+#   We run only 1000 iterations on GPU (or 10 on CPU), which gives relatively poor reconstructions. Increase it, for example to
 #   10000, for better results. The DIP tends to overfit the measurement, so monitor the error.
 #
 # .. note::
@@ -73,7 +73,7 @@ model = dinv.models.DeepImagePrior(
     img_size=(256, 4, 4),
     verbose=True,
     re_init=True,
-    iterations=1000,
+    iterations=10 if dinv.utils.devices_equal(device, "cpu") else 1000,
 ).to(device)
 
 with torch.no_grad():
