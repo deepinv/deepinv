@@ -47,7 +47,8 @@ from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI
 from .wrappers import PhysicsMultiScaler, LinearPhysicsMultiScaler, PhysicsCropper
 from .tomography import Tomography, TomographyWithAstra
 from .functional.tomography_subsets import (
-    get_subset_indices,
+    get_subset_angles,
+    get_subset_vectors,
     split_measurements,
     split_physics,
 )

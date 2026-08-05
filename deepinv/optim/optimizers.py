@@ -36,7 +36,7 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 
 if TYPE_CHECKING:
-    from deepinv.physics import Physics
+    from deepinv.physics import Physics, StackedLinearPhysics
     from deepinv.loss.metric import Metric
     from deepinv.utils import TensorList
 
@@ -2412,16 +2412,15 @@ class OSEM(BaseOptim):
 
     .. note::
 
-        The user can provide either the full measurement tensor `y` and full tomography
-        / PET `physics` (and OSEM will split internally using
-        :func:`deepinv.physics.split_physics` and
-        :func:`deepinv.physics.split_measurements`),
-        or pre-split measurements passed as a :class:`deepinv.utils.TensorList` and
-        pre-split physics passed as a :class:`deepinv.physics.StackedLinearPhysics`.
+        Only :class:`deepinv.physics.Tomograph`, :class:`deepinv.physics.TomographyWithAstra`
+        and :class:`deepinv.physics.PET` are currently supported for OSEM.
 
-        Pre-split measurements can be provided as a :class:`deepinv.utils.TensorList`
-        or a list of tensors. Lists are converted to a `TensorList` before
-        optimization.
+    .. note::
+
+        The user can provide either the full measurement tensor `y` and full tomography
+        `physics`, or pre-split measurements passed as a :class:`deepinv.utils.TensorList`
+        and pre-split physics passed as a :class:`deepinv.physics.StackedLinearPhysics`.
+        See :func:`deepinv.physics.split_physics` and :func:`deepinv.physics.split_measurements`.
 
     See :class:`deepinv.optim.optim_iterators.OSEMIteration` for the details of one
     iteration.
@@ -2446,8 +2445,6 @@ class OSEM(BaseOptim):
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
     :param float g_param: parameter for the prior. Default: ``None``.
     :param float sigma_denoiser: same as `g_param`. If both `g_param` and `sigma_denoiser` are provided, `g_param` is used. Default: ``None``.
-    :param str subset_strategy: ordered-subsets strategy. Currently only ``"default"``
-        is supported. Default: ``"default"``.
     :param float eps: positive value used to clamp denominators in the
         multiplicative update. Default: ``1e-6``.
     :param int max_iter: maximum number of OSEM epochs. Default: ``100``.
@@ -2476,7 +2473,6 @@ class OSEM(BaseOptim):
         g_param: float = None,
         sigma_denoiser: float = None,
         num_subsets: int = 2,
-        subset_strategy: str = "default",
         eps: float = 1e-6,
         max_iter: int = 100,
         crit_conv: str = "residual",
@@ -2515,7 +2511,6 @@ class OSEM(BaseOptim):
             g_param = sigma_denoiser
 
         self.num_subsets = num_subsets
-        self.subset_strategy = subset_strategy
 
         if params_algo is None:
             params_algo = {
@@ -2547,7 +2542,7 @@ class OSEM(BaseOptim):
     def forward(
         self,
         y: torch.Tensor | TensorList | list[torch.Tensor],
-        physics: Physics,
+        physics: Physics | StackedLinearPhysics,
         *args,
         **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor, dict]:
@@ -2563,10 +2558,9 @@ class OSEM(BaseOptim):
             split_measurements,
             split_physics,
         )
-        from deepinv.physics.pet import PET
-        from deepinv.physics.tomography import Tomography, TomographyWithAstra
         from deepinv.utils.tensorlist import TensorList
 
+        operator_norm = None
         if isinstance(physics, StackedLinearPhysics):
             if not isinstance(y, (TensorList, list)):
                 raise TypeError(
@@ -2579,23 +2573,23 @@ class OSEM(BaseOptim):
                     "The number of measurement subsets and physics subsets must match."
                 )
         # If a full physics is provided, we split it into subsets
-        elif isinstance(physics, (Tomography, TomographyWithAstra, PET)):
+        else:
             if not isinstance(y, torch.Tensor):
                 raise TypeError(
                     "A full deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, or deepinv.physics.PET requires measurements as a torch.Tensor. To provide pre-split measurements, first use deepinv.physics.functional.tomography_subsets.split_physics to create the matching physics subsets."
                 )
-            subset_physics = split_physics(
-                physics, self.num_subsets, strategy=self.subset_strategy
-            )
-            y_subsets = split_measurements(
-                y, physics, self.num_subsets, strategy=self.subset_strategy
-            )
+            operator_norm = physics.operator_norm if physics.normalize else None
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="Subsetted physics cannot be normalized.*",
+                    category=UserWarning,
+                )
+                subset_physics = split_physics(physics, self.num_subsets)
+            y_subsets = split_measurements(y, physics, self.num_subsets)
+
             physics = subset_physics
             y = y_subsets
-        else:
-            raise TypeError(
-                "OSEM requires a full deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, or deepinv.physics.PET, or a pre-split deepinv.physics.StackedLinearPhysics. Use deepinv.physics.functional.tomography_subsets.split_physics and deepinv.physics.functional.tomography_subsets.split_measurements to prepare supported full physics and measurements."
-            )
 
         # Need to update the PoissonLikelihood data-fidelity with the background
         # for PET physics
@@ -2612,9 +2606,12 @@ class OSEM(BaseOptim):
                         strict=True,
                     )
                 ):
+                    background = subset_physics.background
+                    if operator_norm is not None:
+                        background = background / operator_norm
                     stacked_data_fidelity.data_fidelity_list[i] = PoissonLikelihood(
                         gain=subset_data_fidelity.gain,
-                        bkg=subset_physics.background / subset_data_fidelity.gain,
+                        bkg=background / subset_data_fidelity.gain,
                         denormalize=subset_data_fidelity.d.denormalize,
                     )
 
@@ -2623,6 +2620,8 @@ class OSEM(BaseOptim):
                 cur_physics.A_adjoint(torch.ones_like(cur_y))
                 for cur_y, cur_physics in zip(y, physics, strict=True)
             ]
+            if operator_norm is not None:
+                sensitivities = [s / operator_norm for s in sensitivities]
 
         return super().forward(y, physics, sensitivities=sensitivities, *args, **kwargs)
 

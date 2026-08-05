@@ -221,6 +221,34 @@ class PET(LinearPhysics):
         self.noise_model = PoissonNoise(gain=gain, normalize=normalize_counts)
         self.to(device)
 
+    def clone(
+        self,
+        views: torch.Tensor | None = None,
+        background: torch.Tensor | None = None,
+        attenuation: torch.Tensor | None = None,
+    ) -> "PET":
+        """Create an unnormalized operator, optionally replacing view data."""
+        return PET(
+            img_size=self.img_size,
+            voxel_size=self.voxel_size,
+            fwhm_data_mm=self.fwhm_data_mm,
+            scanner=self.scanner,
+            radial_trim=self.radial_trim,
+            gain=self.noise_model.gain.detach().clone(),
+            normalize=False,
+            normalize_counts=bool(self.noise_model.normalize),
+            device=self.background.device,
+            views=self.views.detach().clone() if views is None else views,
+            background=(
+                self.background.detach().clone() if background is None else background
+            ),
+            attenuation=(
+                self.attenuation.detach().clone()
+                if attenuation is None
+                else attenuation
+            ),
+        )
+
     def A(
         self,
         x: torch.Tensor,

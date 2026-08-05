@@ -1473,101 +1473,20 @@ def test_tomography(
     ), f"error: {error} > {r_tol}, fanbeam={fan_beam}, circle={circle}, fbp_interpolate_boundary={fbp_interpolate_boundary}, normalize={normalize}, adjoint_via_backprop={adjoint_via_backprop}, parallel_computation={parallel_computation}, fbp_pseudo_inverse={fbp_pseudo_inverse}"
 
 
-def test_tomography_subset_utilities(device):
-    img_width = 16
-    num_angles = 8
-    num_subsets = 4
-    physics = dinv.physics.Tomography(
-        img_width=img_width,
-        angles=num_angles,
-        device=device,
-        circle=True,
-        normalize=False,
-        parallel_computation=False,
-    )
-    x = torch.rand(
-        (1, 1, img_width, img_width),
-        generator=torch.Generator(device).manual_seed(0),
-        device=device,
-    )
-    y = physics.A(x)
+def test_pet_clone(device):
+    pytest.importorskip("parallelproj")
+    physics = dinv.physics.PET(img_size=(8, 8), normalize=False, device=device)
+    physics.normalize = True
+    physics.operator_norm.fill_(2.0)
 
-    for invalid_num_subsets, strategy, error in [
-        (0, "default", "positive integer"),
-        (num_angles + 1, "default", "cannot exceed"),
-        (3, "default", "divisible"),
-        (num_subsets, "unknown", "Unknown subsetting strategy"),
-    ]:
-        with pytest.raises(ValueError, match=error):
-            dinv.physics.get_subset_indices(
-                num_angles, invalid_num_subsets, strategy, device=device
-            )
-    with pytest.raises(ValueError, match="divisible"):
-        dinv.physics.split_measurements(y, physics, 3)
-    with pytest.raises(ValueError, match="divisible"):
-        dinv.physics.split_physics(physics, 3)
-
-    indices = dinv.physics.get_subset_indices(num_angles, num_subsets, device=device)
-    assert len(indices) == num_subsets
+    physics_clone = physics.clone()
+    assert physics_clone.normalize is False
     assert torch.equal(
-        torch.stack(indices),
-        torch.tensor([[0, 4], [1, 5], [2, 6], [3, 7]], device=device),
+        physics_clone.operator_norm, torch.ones_like(physics_clone.operator_norm)
     )
-
-    y_subsets = dinv.physics.split_measurements(y, physics, num_subsets)
-    subset_physics = dinv.physics.split_physics(physics, num_subsets)
-
-    assert isinstance(y_subsets, TensorList)
-    assert isinstance(subset_physics, dinv.physics.StackedLinearPhysics)
-    assert len(y_subsets) == num_subsets
-    assert len(subset_physics) == num_subsets
-
-    stacked_y = subset_physics.A(x)
-    for i, idx in enumerate(indices):
-        expected_y = y.index_select(-1, idx)
-        expected_theta = physics.theta.index_select(0, idx.to(physics.theta.device))
-
-        assert torch.allclose(y_subsets[i], expected_y)
-        assert torch.allclose(stacked_y[i], expected_y, atol=1e-5)
-        assert torch.allclose(subset_physics[i].theta, expected_theta)
-
-    assert torch.allclose(
-        subset_physics.A_adjoint(y_subsets), physics.A_adjoint(y), atol=1e-5
-    )
-    assert torch.allclose(
-        subset_physics.compute_sqnorm(x, max_iter=20, verbose=False),
-        physics.compute_sqnorm(x, max_iter=20, verbose=False),
-        rtol=1e-5,
-    )
-
-    normalized_physics = dinv.physics.Tomography(
-        img_width=img_width,
-        angles=num_angles,
-        device=device,
-        circle=True,
-        normalize=True,
-        parallel_computation=False,
-    )
-    normalized_subset_physics = dinv.physics.split_physics(
-        normalized_physics, num_subsets
-    )
-    normalized_y = normalized_physics.A(x)
-    normalized_y_subsets = dinv.physics.split_measurements(
-        normalized_y, normalized_physics, num_subsets
-    )
-    normalized_stacked_y = normalized_subset_physics.A(x)
-
-    for i, idx in enumerate(indices):
-        expected_y = normalized_y.index_select(-1, idx)
-        assert torch.allclose(normalized_y_subsets[i], expected_y)
-        assert torch.allclose(normalized_stacked_y[i], expected_y, atol=1e-5)
-
-    assert torch.allclose(
-        normalized_subset_physics.A_adjoint(normalized_y_subsets),
-        normalized_physics.A_adjoint(normalized_y),
-        atol=1e-5,
-    )
-
+    assert physics_clone.views.data_ptr() != physics.views.data_ptr()
+    assert physics_clone.background.data_ptr() != physics.background.data_ptr()
+    assert physics_clone.attenuation.data_ptr() != physics.attenuation.data_ptr()
 
 @pytest.mark.parametrize(
     "padding", ("valid", "constant", "circular", "reflect", "replicate")
@@ -2215,10 +2134,12 @@ def test_adjoint_autograd(name, device):
     "name", OPERATORS + NONLINEAR_OPERATORS + PHASE_RETRIEVAL_OPERATORS
 )
 def test_clone(name, device):
+    if name in ("2DParallelBeamCT", "2DFanBeamCT", "pet_2d", "pet_3d"):
+        pytest.skip(
+            "Tomography and PET clones intentionally return unnormalized operators."
+        )
     if name in OPERATORS:
         physics, imsize, _, dtype = find_operator(name, device)
-        if "pet" in name:
-            pytest.skip("PET operators cannot be cloned due to parallelproj.")
     elif name in NONLINEAR_OPERATORS:
         if name == "haze":
             pytest.skip(

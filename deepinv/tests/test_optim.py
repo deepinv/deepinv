@@ -1,5 +1,6 @@
 import pytest
 import torch
+import warnings
 from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.optim import DataFidelity, PDCP
@@ -910,23 +911,24 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 # Specific test for MLEM / OSEM because the data-fidelity can only be the Poisson likelihood,
 # contrary to e.g mirror descent which can be tested on L2
 @pytest.mark.parametrize(
-    "algorithm, pre_split, num_subsets",
+    "algorithm, pre_split, num_subsets, normalize",
     [
-        (dinv.optim.MLEM, False, None),
-        (dinv.optim.OSEM, False, 2),
-        (dinv.optim.OSEM, True, 2),
-        (dinv.optim.OSEM, False, 1),
-        (dinv.optim.OSEM, True, 1),
+        (dinv.optim.MLEM, False, None, False),
+        (dinv.optim.OSEM, False, 2, False),
+        (dinv.optim.OSEM, True, 2, False),
+        (dinv.optim.OSEM, False, 1, False),
+        (dinv.optim.OSEM, True, 1, False),
+        (dinv.optim.OSEM, False, 2, True),
     ],
 )
-def test_MLEM_OSEM_convergence(algorithm, pre_split, num_subsets, device):
+def test_MLEM_OSEM_convergence(algorithm, pre_split, num_subsets, normalize, device):
     imsize = (1, 16, 16)
     physics = dinv.physics.Tomography(
         img_width=imsize[-1],
         angles=8,
         device=device,
         circle=True,
-        normalize=False,
+        normalize=normalize,
         parallel_computation=False,
     )
     x_true = torch.rand(
@@ -967,8 +969,35 @@ def test_MLEM_OSEM_convergence(algorithm, pre_split, num_subsets, device):
                     physics,
                 )
 
-    model(y, physics, init=x_init)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "error", message="Subsetted physics cannot be normalized.*"
+        )
+        model(y, physics, init=x_init)
     assert model.has_converged
+
+
+def test_OSEM_normalized_pet_background(device):
+    pytest.importorskip("parallelproj")
+    physics = dinv.physics.PET(img_size=(8, 8), normalize=False, device=device)
+    physics.background.fill_(0.4)
+    physics.normalize = True
+    physics.operator_norm.fill_(2.0)
+    gain = 0.1
+    x = torch.ones((1, 1, 8, 8), device=device)
+    y = physics.A(x, add_background=True)
+    model = dinv.optim.OSEM(
+        data_fidelity=dinv.optim.PoissonLikelihood(gain=gain),
+        num_subsets=2,
+        max_iter=1,
+    )
+
+    model(y, physics, init=x)
+
+    for data_fidelity in model.data_fidelity[0].data_fidelity_list:
+        assert torch.allclose(
+            data_fidelity.bkg, torch.full_like(data_fidelity.bkg, 4.0)
+        )
 
 
 def test_patch_prior(imsize, dummy_dataset, device):
