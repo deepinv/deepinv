@@ -15,7 +15,7 @@ from torch import Tensor
 from deepinv.models.base import Reconstructor
 from deepinv.physics.blur import (
     BlurFFT,
-    _VALID_PRIORS,
+    _WIENER_VALID_PRIORS,
     _is_zero_lambda,
     _lambda_to_gamma,
 )
@@ -189,9 +189,9 @@ class WienerDeconvolution(Reconstructor):
         super().__init__(device=device)
 
         # --- Validate prior ---
-        if prior not in _VALID_PRIORS:
+        if prior not in _WIENER_VALID_PRIORS:
             raise ValueError(
-                f"Invalid prior '{prior}'.  Must be one of {_VALID_PRIORS}."
+                f"Invalid prior '{prior}'.  Must be one of {_WIENER_VALID_PRIORS}."
             )
 
         # A tensor lambda_reg is registered as a buffer so that it moves with
@@ -243,9 +243,8 @@ class WienerDeconvolution(Reconstructor):
                 "denoising as a deconvolution instead, by passing a unit-impulse "
                 "filter to BlurFFT: BlurFFT(img_size=(C, H, W), filter=impulse) "
                 "where impulse is zero except for a 1 at its centre.  That also "
-                "enables "
-                "prior='laplacian' and frequency-dependent tensor lambda_reg, "
-                "neither of which Denoising physics supports."
+                "enables prior='laplacian' and frequency-dependent tensor "
+                "lambda_reg, neither of which Denoising physics supports."
             )
 
         if not isinstance(physics, BlurFFT):

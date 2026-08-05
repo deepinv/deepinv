@@ -1992,7 +1992,7 @@ def wiener_blur_3ch():
 
 @pytest.fixture
 def wiener_denoising():
-    """Denoising physics — unsupported, kept to test that it is rejected."""
+    """Denoising physics: unsupported, kept to test that it is rejected."""
     return dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=0.0))
 
 
@@ -2013,7 +2013,7 @@ class TestWienerCoreBlurFFT:
     """WienerDeconvolution with BlurFFT and various lambda_reg/prior combos."""
 
     def test_flat_prior(self, wiener_blur_1ch):
-        """Scalar lambda_reg with flat prior — verify output shape."""
+        """Scalar lambda_reg with flat prior; verify output shape."""
         model = dinv.models.WienerDeconvolution(lambda_reg=1.0, prior=None)
         x = torch.randn(1, 1, 16, 16)
         y = wiener_blur_1ch.A(x)
@@ -2024,7 +2024,7 @@ class TestWienerCoreBlurFFT:
         ), f"Output shape {x_hat.shape} != input shape {x.shape}"
 
     def test_laplacian_prior(self, wiener_blur_1ch):
-        """Scalar lambda_reg with Laplacian prior — verify output shape."""
+        """Scalar lambda_reg with Laplacian prior; verify output shape."""
         model = dinv.models.WienerDeconvolution(lambda_reg=1.0, prior="laplacian")
         x = torch.randn(1, 1, 16, 16)
         y = wiener_blur_1ch.A(x)
@@ -2035,7 +2035,7 @@ class TestWienerCoreBlurFFT:
         ), f"Output shape {x_hat.shape} != input shape {x.shape}"
 
     def test_tensor_lambda_reg(self, wiener_blur_1ch):
-        """User-supplied tensor lambda_reg (frequency-dependent NSR) — verify shape."""
+        """User-supplied tensor lambda_reg (frequency-dependent NSR); verify shape."""
         H, W = 16, 16
         lambda_tensor = torch.ones(1, 1, H, W // 2 + 1) * 0.5
         model = dinv.models.WienerDeconvolution(lambda_reg=lambda_tensor)
@@ -2070,7 +2070,7 @@ class TestWienerDenoisingViaUnitImpulse:
     """
 
     def test_denoising_flat_prior(self, wiener_denoise_impulse):
-        """Scalar lambda_reg on a unit-impulse filter — verify output shape."""
+        """Scalar lambda_reg on a unit-impulse filter; verify output shape."""
         model = dinv.models.WienerDeconvolution(lambda_reg=0.5, prior=None)
         y = torch.randn(1, 1, 8, 8)
         with torch.no_grad():
