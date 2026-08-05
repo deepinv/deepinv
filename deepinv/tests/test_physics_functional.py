@@ -9,18 +9,56 @@ from deepinv.utils import TensorList
 ALL_CONV_PADDING = ("valid", "circular", "zeros", "replicate", "reflect")
 
 
-def test_tomography_subset_utilities(device):
+@pytest.mark.parametrize(
+    "physics_class",
+    [
+        dinv.physics.Tomography,
+        dinv.physics.TomographyWithAstra,
+        dinv.physics.PET,
+    ],
+)
+def test_subset_utilities(physics_class, device):
+    if physics_class is dinv.physics.PET:
+        pytest.importorskip("parallelproj")
+        physics = dinv.physics.PET(img_size=(8, 8), normalize=False, device=device)
+        physics.background.fill_(3.0)
+        physics.normalize = True
+        physics.operator_norm.fill_(2.0)
+
+        with pytest.warns(UserWarning, match="Subsetted physics cannot be normalized"):
+            subset_physics = dinv.physics.split_physics(physics, num_subsets=2)
+
+        assert all(torch.all(subset.background == 6.0) for subset in subset_physics)
+        return
+
+    if physics_class is dinv.physics.TomographyWithAstra:
+        pytest.importorskip("astra")
+        if device.type != "cuda":
+            pytest.skip("TomographyWithAstra requires CUDA")
+
     img_width = 16
     num_angles = 8
     num_subsets = 4
-    physics = dinv.physics.Tomography(
-        img_width=img_width,
-        angles=num_angles,
-        device=device,
-        circle=True,
-        normalize=False,
-        parallel_computation=False,
-    )
+
+    def make_physics(normalize):
+        if physics_class is dinv.physics.Tomography:
+            return physics_class(
+                img_width=img_width,
+                angles=num_angles,
+                device=device,
+                circle=True,
+                normalize=normalize,
+                parallel_computation=False,
+            )
+        return physics_class(
+            img_size=(img_width, img_width),
+            angles=num_angles,
+            n_detector_pixels=img_width,
+            device=device,
+            normalize=normalize,
+        )
+
+    physics = make_physics(normalize=False)
     x = torch.rand(
         (1, 1, img_width, img_width),
         generator=torch.Generator(device).manual_seed(0),
@@ -56,12 +94,13 @@ def test_tomography_subset_utilities(device):
 
     stacked_y = subset_physics.A(x)
     for i, idx in enumerate(angle_indices):
-        expected_y = y.index_select(-1, idx)
-        expected_theta = physics.theta.index_select(0, idx.to(physics.theta.device))
+        angle_dim = -1 if physics_class is dinv.physics.Tomography else -2
+        expected_y = y.index_select(angle_dim, idx)
+        expected_angles = physics.angles.index_select(0, idx.to(physics.angles.device))
 
         assert torch.allclose(y_subsets[i], expected_y)
         assert torch.allclose(stacked_y[i], expected_y, atol=1e-5)
-        assert torch.allclose(subset_physics[i].theta, expected_theta)
+        assert torch.allclose(subset_physics[i].angles, expected_angles)
 
     assert torch.allclose(
         subset_physics.A_adjoint(y_subsets), physics.A_adjoint(y), atol=1e-5
@@ -72,14 +111,7 @@ def test_tomography_subset_utilities(device):
         rtol=1e-5,
     )
 
-    normalized_physics = dinv.physics.Tomography(
-        img_width=img_width,
-        angles=num_angles,
-        device=device,
-        circle=True,
-        normalize=True,
-        parallel_computation=False,
-    )
+    normalized_physics = make_physics(normalize=True)
     normalized_clone = normalized_physics.clone()
     assert normalized_clone.normalize is False
     assert not hasattr(normalized_clone, "operator_norm")
@@ -104,7 +136,7 @@ def test_tomography_subset_utilities(device):
     )
 
     for i, idx in enumerate(angle_indices):
-        expected_y = normalized_y.index_select(-1, idx)
+        expected_y = normalized_y.index_select(angle_dim, idx)
         assert torch.allclose(normalized_y_subsets[i], expected_y)
         assert torch.allclose(normalized_stacked_y[i], expected_y, atol=1e-5)
 
@@ -118,19 +150,6 @@ def test_tomography_subset_utilities(device):
         normalized_physics.A_adjoint(normalized_y),
         atol=1e-5,
     )
-
-
-def test_normalized_pet_subset_background(device):
-    pytest.importorskip("parallelproj")
-    physics = dinv.physics.PET(img_size=(8, 8), normalize=False, device=device)
-    physics.background.fill_(3.0)
-    physics.normalize = True
-    physics.operator_norm.fill_(2.0)
-
-    with pytest.warns(UserWarning, match="Subsetted physics cannot be normalized"):
-        subset_physics = dinv.physics.split_physics(physics, num_subsets=2)
-
-    assert all(torch.all(subset.background == 6.0) for subset in subset_physics)
 
 
 @pytest.mark.parametrize("B", [1, 2])

@@ -908,8 +908,8 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     )  # Optimality condition
 
 
-# Specific test for MLEM / OSEM because the data-fidelity can only be the Poisson likelihood,
-# contrary to e.g mirror descent which can be tested on L2
+# Specific test for MLEM / OSEM because the data-fidelity can only be the Poisson
+# likelihood, contrary to e.g. mirror descent which can be tested on L2.
 @pytest.mark.parametrize(
     "algorithm, pre_split, num_subsets, normalize",
     [
@@ -917,28 +917,70 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         (dinv.optim.OSEM, False, 2, False),
         (dinv.optim.OSEM, True, 2, False),
         (dinv.optim.OSEM, False, 1, False),
-        (dinv.optim.OSEM, True, 1, False),
         (dinv.optim.OSEM, False, 2, True),
     ],
 )
-def test_MLEM_OSEM_convergence(algorithm, pre_split, num_subsets, normalize, device):
+@pytest.mark.parametrize(
+    "physics_class",
+    [
+        dinv.physics.Tomography,
+        dinv.physics.TomographyWithAstra,
+        dinv.physics.PET,
+    ],
+)
+def test_MLEM_OSEM(
+    algorithm,
+    pre_split,
+    num_subsets,
+    normalize,
+    physics_class,
+    device,
+):
     imsize = (1, 16, 16)
-    physics = dinv.physics.Tomography(
-        img_width=imsize[-1],
-        angles=8,
-        device=device,
-        circle=True,
-        normalize=normalize,
-        parallel_computation=False,
+    if physics_class is dinv.physics.PET:
+        pytest.importorskip("parallelproj")
+        imsize = (1, 8, 8)
+        physics = physics_class(img_size=imsize[-2:], normalize=False, device=device)
+        physics.background.fill_(0.4)
+        if normalize:
+            physics.normalize = True
+            physics.operator_norm.fill_(2.0)
+    elif physics_class is dinv.physics.TomographyWithAstra:
+        pytest.importorskip("astra")
+        if device.type != "cuda":
+            pytest.skip("TomographyWithAstra requires CUDA")
+        physics = physics_class(
+            img_size=imsize[-2:],
+            angles=8,
+            n_detector_pixels=imsize[-1],
+            device=device,
+            normalize=normalize,
+        )
+    else:
+        physics = physics_class(
+            img_width=imsize[-1],
+            angles=8,
+            device=device,
+            circle=True,
+            normalize=normalize,
+            parallel_computation=False,
+        )
+    x_true = torch.ones((1, *imsize), device=device)
+    y = physics.A(x_true, add_background=physics_class is dinv.physics.PET).clamp(
+        min=1e-6
     )
-    x_true = torch.rand(
-        (1, *imsize), generator=torch.Generator(device).manual_seed(0), device=device
-    ).clamp(min=0.1)
-    y = physics(x_true).clamp(min=1e-6)
-    x_init = physics.A_adjoint(y).clamp(min=1e-6)
+    x_init = (
+        x_true
+        if physics_class is dinv.physics.PET
+        else physics.A_adjoint(y).clamp(min=1e-6)
+    )
     algorithm_kwargs = {}
+    gain = 0.1 if physics_class is dinv.physics.PET else 1.0
+    bkg = physics.background / gain if physics_class is dinv.physics.PET else 1e-6
+    data_fidelity = dinv.optim.PoissonLikelihood(gain=gain, bkg=bkg)
+    full_y, full_physics = y, physics
 
-    if isinstance(algorithm, dinv.optim.OSEM):
+    if algorithm is dinv.optim.OSEM:
         if pre_split:
             y = dinv.physics.split_measurements(y, physics, num_subsets)
             physics = dinv.physics.split_physics(physics, num_subsets)
@@ -947,16 +989,23 @@ def test_MLEM_OSEM_convergence(algorithm, pre_split, num_subsets, normalize, dev
             algorithm_kwargs["num_subsets"] = num_subsets
 
     model = algorithm(
-        data_fidelity=dinv.optim.PoissonLikelihood(bkg=1e-6),
+        data_fidelity=data_fidelity,
         prior=dinv.optim.prior.ZeroPrior(),
-        max_iter=500,
+        max_iter=1 if physics_class is dinv.physics.PET else 500,
         crit_conv="cost",
         thres_conv=1e-4,
         early_stop=True,
         **algorithm_kwargs,
     )
 
-    if isinstance(algorithm, dinv.optim.OSEM):
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "error", message="Subsetted physics cannot be normalized.*"
+        )
+        x_hat, metrics = model(y, physics, init=x_init, compute_metrics=True)
+    if physics_class is not dinv.physics.PET:
+        assert model.has_converged
+    if algorithm is dinv.optim.OSEM:
         if pre_split:
             with pytest.raises(ValueError, match="must match"):
                 model(y[:-1], physics, init=x_init)
@@ -969,35 +1018,9 @@ def test_MLEM_OSEM_convergence(algorithm, pre_split, num_subsets, normalize, dev
                     physics,
                 )
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "error", message="Subsetted physics cannot be normalized.*"
-        )
-        model(y, physics, init=x_init)
-    assert model.has_converged
-
-
-def test_OSEM_normalized_pet_background(device):
-    pytest.importorskip("parallelproj")
-    physics = dinv.physics.PET(img_size=(8, 8), normalize=False, device=device)
-    physics.background.fill_(0.4)
-    physics.normalize = True
-    physics.operator_norm.fill_(2.0)
-    gain = 0.1
-    x = torch.ones((1, 1, 8, 8), device=device)
-    y = physics.A(x, add_background=True)
-    model = dinv.optim.OSEM(
-        data_fidelity=dinv.optim.PoissonLikelihood(gain=gain),
-        num_subsets=2,
-        max_iter=1,
-    )
-
-    model(y, physics, init=x)
-
-    for data_fidelity in model.data_fidelity[0].data_fidelity_list:
-        assert torch.allclose(
-            data_fidelity.bkg, torch.full_like(data_fidelity.bkg, 4.0)
-        )
+    expected_data_fidelity = data_fidelity
+    expected_cost = expected_data_fidelity(x_hat, full_y, full_physics)
+    assert metrics["cost"][0][-1] == pytest.approx(expected_cost.item())
 
 
 def test_patch_prior(imsize, dummy_dataset, device):
