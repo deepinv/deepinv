@@ -98,13 +98,40 @@ def test_hess_matvec_symmetric_probe():
 def test_solve_lower_reduces_residual():
     cfg = _tiny_cfg()
     physics, y, x_star = _tiny_denoising(12, seed=8)
-    prob = CRRSampleProblem(physics, y, x_star, cfg=cfg, max_iter=8000)
+    # Default solver is FISTA via base_optim_lower.
+    prob = CRRSampleProblem(
+        physics, y, x_star, cfg=cfg, max_iter=8000, solver="FISTA"
+    )
     th = pack_init_theta(cfg, seed=9)
     x0 = physics.A_adjoint(y)
     r0 = float(prob.grad_x_h(x0, th).flatten().norm().item())
     x, r = prob.solve_lower(th, eps=1e-2)
     assert r < r0
     assert r <= max(1e-2 * prob.mu(), 1e-8) * 1.01
+    assert prob.n_gd_iters > 0
+
+
+def test_gd_and_fista_both_reach_residual_via_base_optim():
+    """Both DeepInverse solvers reach the same residual tolerance.
+
+    FISTA is the default (smooth CRR is accelerated gradient via
+    base_optim_lower). On some instances GD can take fewer iterations;
+    the certificate depends only on the residual, not the algorithm.
+    """
+    cfg = _tiny_cfg(gamma=1e-2)
+    physics, y, x_star = _tiny_denoising(20, seed=42)
+    th = pack_init_theta(cfg, seed=0, weight_scale=0.05)
+    eps = 1e-3
+    x0 = physics.A_adjoint(y)
+    for name in ("GD", "FISTA"):
+        prob = CRRSampleProblem(
+            physics, y, x_star, cfg=cfg, max_iter=20_000, solver=name
+        )
+        assert prob.solver == name
+        _, r = prob.solve_lower(th, eps=eps, x_init=x0.clone())
+        tol = max(eps * prob.mu(), 1e-8)
+        assert r <= tol * 1.01
+        assert prob.n_gd_iters >= 1
 
 
 def test_maid_decreases_upper_level():

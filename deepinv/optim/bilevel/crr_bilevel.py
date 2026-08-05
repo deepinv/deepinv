@@ -1,8 +1,42 @@
 """Bilevel learning of a convex ridge regulariser with MAID.
 
-Lower level h(x, theta) = 1/2||A x - y||^2 + R_theta(x) + (gamma/2)||x||^2
-with R the multiconv Lip-normalised CRR. Upper level g(x) = 1/2||x - x*||^2.
-Strong convexity modulus is the known floor gamma.
+Lower level
+
+.. math::
+
+    h(x, \\theta)
+    = \\tfrac12\\|A x - y\\|^2
+      + R_\\theta(x)
+      + \\tfrac{\\gamma}{2}\\|x\\|^2
+
+with :math:`R_\\theta` the multiconv Lip-normalised CRR. Upper level
+:math:`g(x) = \\tfrac12\\|x - x^\\star\\|^2`. Strong convexity modulus is the
+known floor ``gamma``.
+
+Lower-level solver
+------------------
+The lower level is driven by DeepInverse ``BaseOptim`` through
+:mod:`deepinv.optim.bilevel.base_optim_lower`, the same path as
+:class:`~deepinv.optim.bilevel.TikhonovWeightProblem`. Default solver is
+``FISTA``. Because the CRR is smooth, FISTA is accelerated gradient descent
+on ``h``: the smooth objective is exposed as a single
+:class:`~deepinv.optim.DataFidelity` and the prior is a null regulariser
+whose prox is the identity, so the proximal residual coincides with the
+gradient residual used for stopping.
+
+The certificate is unchanged by the choice of algorithm. Strong convexity
+gives
+
+    ``||x - xstar|| <= ||grad h(x)|| / mu``
+
+with ``mu = gamma``. Any solver that reaches the residual tolerance earns
+the same distance bound. That interchangeability is intentional in the
+oracle design: the residual is a property of the objective, not of GD,
+FISTA or (future) truncated Newton.
+
+If FISTA remains slow on a problem, truncated Newton is the next option
+because the Hessian-vector product already exists for the hypergradient.
+It is not built here.
 """
 
 from __future__ import annotations
@@ -12,6 +46,14 @@ from typing import Any
 
 import torch
 
+from deepinv.optim.data_fidelity import DataFidelity
+from deepinv.optim.prior import Prior
+
+from .base_optim_lower import (
+    build_solver,
+    residual_kind_for_solver,
+    solve_base_optim,
+)
 from .cg_utils import CGResult, cg_solve
 from .convex_ridge import (
     ConvexRidgeConfig,
@@ -29,20 +71,74 @@ from .oracle import (
 from .smooth import smooth_hypergradient_error_bound
 
 
+class _NullPrior(Prior):
+    """Null regulariser so FISTA/GD act on a single smooth fidelity.
+
+    ``explicit_prior = False`` disables BaseOptim cost evaluation, which
+    would otherwise require a full ``fn`` on the composite fidelity.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.explicit_prior = False
+
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        return torch.zeros_like(x)
+
+    def prox(
+        self, x: torch.Tensor, *args, gamma: float = 1.0, **kwargs
+    ) -> torch.Tensor:
+        return x
+
+
+class CRRSmoothFidelity(DataFidelity):
+    """Smooth lower-level objective as a DeepInverse data-fidelity.
+
+    Combines the measurement term with the loaded CRR energy so that
+    ``BaseOptim`` (GD / FISTA) sees one smooth map whose gradient residual
+    is exactly ``||grad_x h||``.
+    """
+
+    def __init__(self, crr_prior: ConvexRidgePrior):
+        super().__init__()
+        self.crr_prior = crr_prior
+
+    def grad(
+        self, x: torch.Tensor, y: torch.Tensor, physics, *args, **kwargs
+    ) -> torch.Tensor:
+        return physics.A_adjoint(physics.A(x) - y) + self.crr_prior.grad(x)
+
+    def fn(
+        self, x: torch.Tensor, y: torch.Tensor, physics, *args, **kwargs
+    ) -> torch.Tensor:
+        r = physics.A(x) - y
+        return 0.5 * (r * r).sum() + self.crr_prior.energy(x)
+
+
 @dataclass
 class CRRSampleProblem:
-    """One reconstruction sample with a flat CRR parameter vector."""
+    """One reconstruction sample with a flat CRR parameter vector.
+
+    :param str solver: DeepInverse optimiser name. Default ``"FISTA"``
+        (accelerated gradient on the smooth CRR lower level). ``"GD"`` is
+        also supported for ablation.
+    """
 
     physics: Any
     y: torch.Tensor
     x_star: torch.Tensor
     cfg: ConvexRidgeConfig = field(default_factory=ConvexRidgeConfig)
+    solver: str = "FISTA"
     max_iter: int = 10_000
     lipschitz_data: float | None = None
 
     def __post_init__(self) -> None:
         self.dtype = self.x_star.dtype
         self.device = self.x_star.device
+        self.solver = self.solver.upper()
+        # Certificate residual is always the gradient residual of h, for any
+        # BaseOptim algorithm that reaches it.
+        self.residual_kind = "gradient"
         self.n_gd_iters = 0
         self.n_lower_solves = 0
         self.n_hypergradients = 0
@@ -52,11 +148,16 @@ class CRRSampleProblem:
         if self.lipschitz_data is None:
             self.lipschitz_data = self._estimate_data_lipschitz()
         self.prior = ConvexRidgePrior(self.cfg)
+        self._fidelity = CRRSmoothFidelity(self.prior)
+        self._null_prior = _NullPrior()
         if self.x_star.shape[1] != self.cfg.in_channels:
             raise ValueError(
                 f"image has {self.x_star.shape[1]} channels, "
                 f"CRR expects in_channels={self.cfg.in_channels}"
             )
+        # residual_kind_for_solver is consulted only for documentation;
+        # we always stop on gradient residual (certificate residual).
+        _ = residual_kind_for_solver(self.solver)
 
     @property
     def n_params(self) -> int:
@@ -89,6 +190,11 @@ class CRRSampleProblem:
         if reload:
             self.load_theta(theta)
         return self._data_grad(x) + self.prior.grad(x)
+
+    def _stepsize(self) -> float:
+        """Stepsize for smooth GD/FISTA on the full lower-level objective."""
+        L = self.lipschitz_data + self.prior.lipschitz_bound()
+        return 1.0 / max(L, 1e-8)
 
     def _h_diffable(
         self,
@@ -169,37 +275,48 @@ class CRRSampleProblem:
         eps: float,
         x_init: torch.Tensor | None = None,
         max_iter: int | None = None,
+        solver: str | None = None,
     ) -> tuple[torch.Tensor, float]:
+        """Residual-stopped DeepInverse solve of ``h(., theta)``.
+
+        Routes through :func:`~deepinv.optim.bilevel.base_optim_lower.solve_base_optim`.
+        Stops on the gradient residual ``||grad h|| <= max(eps * mu, 1e-8)``.
+        The same residual defines the strong-convexity distance bound for
+        every solver name.
+        """
         self.load_theta(theta)
         mu = self.mu(theta)
-        L = self.lipschitz_data + self.prior.lipschitz_bound()
-        step = 1.0 / max(L, 1e-8)
+        stepsize = self._stepsize()
+        name = (solver if solver is not None else self.solver).upper()
         max_it = int(max_iter if max_iter is not None else self.max_iter)
-        if x_init is None:
-            x = self.physics.A_adjoint(self.y).detach().clone()
-        else:
-            x = x_init.detach().clone()
-        tol = max(float(eps) * mu, 1e-8)
-        # load_theta already called; reuse cached Lip chart inside the loop.
-        grad = self.grad_x_h(x, theta, reload=False)
-        gnorm = float(grad.flatten().norm().item())
-        n_it = 0
-        for _ in range(max_it):
-            if gnorm <= tol:
-                break
-            x = x - step * grad
-            grad = self.grad_x_h(x, theta, reload=False)
-            gnorm = float(grad.flatten().norm().item())
-            n_it += 1
-        else:
-            if gnorm > tol:
-                raise RuntimeError(
-                    f"CRR GD failed residual {tol} (got {gnorm}) "
-                    f"in {max_it} iters (L={L:.4g}, step={step:.4g})"
-                )
-        self.n_gd_iters += n_it
+        model = build_solver(
+            name,
+            data_fidelity=self._fidelity,
+            prior=self._null_prior,
+            lambda_reg=1.0,
+            stepsize=stepsize,
+            max_iter=max_it,
+            has_cost=False,
+        )
+        residual_tol = max(float(eps) * float(mu), 1e-8)
+        result = solve_base_optim(
+            model,
+            self.y,
+            self.physics,
+            residual_tol=residual_tol,
+            residual_kind="gradient",
+            x_init=x_init,
+            max_iter=max_it,
+        )
         self.n_lower_solves += 1
-        return x, gnorm
+        self.n_gd_iters += result.n_iters
+        if not result.converged:
+            raise RuntimeError(
+                f"CRR {name} failed residual {residual_tol} "
+                f"(got {result.residual}) in {result.n_iters} iters "
+                f"(step={stepsize:.4g})"
+            )
+        return result.x, result.residual
 
     def inexact_hypergradient(
         self,
@@ -220,7 +337,7 @@ class CRRSampleProblem:
 
 
 class CRRSampleOracle(HypergradientOracle):
-    """Smooth IFT oracle for one CRRSampleProblem."""
+    """Smooth IFT oracle for one :class:`CRRSampleProblem`."""
 
     def __init__(self, problem: CRRSampleProblem):
         self.problem = problem
@@ -265,6 +382,7 @@ class CRRSampleOracle(HypergradientOracle):
                 "residual": residual,
                 "mu": self.problem.mu(theta),
                 "residual_kind": "gradient",
+                "solver": self.problem.solver,
             },
         )
 
@@ -336,7 +454,9 @@ def build_crr_minibatch_oracle(
     cfg: ConvexRidgeConfig | None = None,
     chunk_size: int = 1,
     max_iter: int = 10_000,
+    solver: str = "FISTA",
 ):
+    """Minibatch oracle over CRR samples sharing one flat theta."""
     from .minibatch import MinibatchOracle
 
     cfg = cfg if cfg is not None else ConvexRidgeConfig()
@@ -348,6 +468,7 @@ def build_crr_minibatch_oracle(
             x_star=x_star,
             cfg=cfg,
             max_iter=max_iter,
+            solver=solver,
         )
         oracles.append(CRRSampleOracle(prob))
     return MinibatchOracle(oracles, chunk_size=chunk_size)
@@ -356,6 +477,7 @@ def build_crr_minibatch_oracle(
 __all__ = [
     "CRRSampleProblem",
     "CRRSampleOracle",
+    "CRRSmoothFidelity",
     "build_crr_minibatch_oracle",
     "pack_init_theta",
     "ConvexRidgeConfig",

@@ -3,8 +3,8 @@ Bilevel learning of a convex ridge regulariser with MAID
 ========================================================
 
 MAID is the **outer** solver for the bilevel learning problem. It does not
-reconstruct images. Reconstruction is always residual-stopped gradient
-descent on the lower level
+reconstruct images. Reconstruction is residual-stopped DeepInverse FISTA
+on the lower level
 
     h(x, theta) = 1/2 ||A x - y||^2 + R_theta(x) + (gamma/2) ||x||^2
 
@@ -33,6 +33,14 @@ Comparisons
 2. Fixed residual/hypergradient accuracy with the **same Armijo line
    search** as MAID (isolates adaptive accuracy).
 3. Accelerated MAID (adapts eps/delta and step size).
+
+Lower-level solver
+------------------
+The CRR lower level is residual-stopped DeepInverse ``FISTA`` (via
+``base_optim_lower``), not a hand-rolled loop. A short GD-vs-FISTA
+ablation is printed before learning so the choice is evidenced. The
+certificate ``||x - xstar|| <= ||grad h|| / mu`` depends only on the
+residual, so any solver that reaches the tolerance earns the same bound.
 
 Both learning arms use the same outer budget ``N_OUTER`` (printed with
 the summary table). Absolute PSNR after few outer steps is a short-run
@@ -151,6 +159,10 @@ print(
     f"Reported PSNR: final lower-level solve at eps={REPORT_EPS} "
     "(residual ||grad h|| <= eps * mu, mu=gamma)."
 )
+print(
+    "Lower-level solver: DeepInverse FISTA via base_optim_lower "
+    "(certificate is residual-based and solver-independent)."
+)
 
 
 def make_inpaint(x: torch.Tensor, seed: int):
@@ -183,6 +195,56 @@ def make_deblur(x: torch.Tensor, seed: int):
 
 def build_samples(make_phys, imgs, seed0: int):
     return [(*make_phys(x, seed0 + i), x) for i, x in enumerate(imgs)]
+
+
+def solver_ablation_on_inpainting():
+    """Iterations and wall clock of GD vs FISTA at the same residual tol."""
+    print()
+    print(
+        "=== lower-level solver ablation (one inpainting sample) ===",
+        flush=True,
+    )
+    x = train_imgs[0]
+    physics, y = make_inpaint(x, 100)
+    th0 = pack_init_theta(CRR_CFG, dtype=dtype, seed=0)
+    eps = 1e-3
+    x_init = physics.A_adjoint(y).detach().clone()
+    rows = []
+    for name in ("GD", "FISTA"):
+        prob = CRRSampleProblem(
+            physics=physics,
+            y=y,
+            x_star=x,
+            cfg=CRR_CFG,
+            max_iter=MAX_GD,
+            solver=name,
+        )
+        t0 = time.perf_counter()
+        _, res = prob.solve_lower(th0, eps=eps, x_init=x_init.clone())
+        wall = time.perf_counter() - t0
+        tol = max(eps * prob.mu(), 1e-8)
+        rows.append(
+            {
+                "solver": name,
+                "iters": prob.n_gd_iters,
+                "wall": wall,
+                "res": res,
+                "tol": tol,
+            }
+        )
+        print(
+            f"  {name:<6} iters={prob.n_gd_iters:6d} wall={wall:6.2f}s "
+            f"res={res:.2e} (tol={tol:.2e})",
+            flush=True,
+        )
+    if rows[0]["iters"] > 0 and rows[1]["iters"] > 0:
+        ratio = rows[0]["iters"] / max(rows[1]["iters"], 1)
+        print(
+            f"  GD/FISTA iteration ratio = {ratio:.2f} "
+            f"(expect > 1 when mu/L is small)",
+            flush=True,
+        )
+    return rows
 
 
 def grid_tune_tikhonov(samples, n_grid: int = 9):
@@ -224,7 +286,12 @@ def recon_tikhonov_converged(physics, y, x_star, log_lam: float):
 
 def recon_crr_converged(physics, y, x_star, theta: torch.Tensor):
     prob = CRRSampleProblem(
-        physics=physics, y=y, x_star=x_star, cfg=CRR_CFG, max_iter=MAX_GD
+        physics=physics,
+        y=y,
+        x_star=x_star,
+        cfg=CRR_CFG,
+        max_iter=MAX_GD,
+        solver="FISTA",
     )
     xh, res = prob.solve_lower(theta, eps=REPORT_EPS)
     tol = max(REPORT_EPS * prob.mu(theta), 1e-8)
@@ -244,7 +311,7 @@ def _mean_upper_level(oracle, theta: torch.Tensor, eps: float) -> float:
 
 def train_crr_maid(samples, accelerated: bool, n_outer: int = N_OUTER):
     oracle = build_crr_minibatch_oracle(
-        samples, cfg=CRR_CFG, chunk_size=1, max_iter=MAX_GD
+        samples, cfg=CRR_CFG, chunk_size=1, max_iter=MAX_GD, solver="FISTA"
     )
     th0 = pack_init_theta(CRR_CFG, dtype=dtype, seed=0)
     common = dict(
@@ -299,7 +366,7 @@ def train_crr_fixed(samples, n_outer: int = N_OUTER):
     adaptation with step-size adaptation.
     """
     oracle = build_crr_minibatch_oracle(
-        samples, cfg=CRR_CFG, chunk_size=1, max_iter=MAX_GD
+        samples, cfg=CRR_CFG, chunk_size=1, max_iter=MAX_GD, solver="FISTA"
     )
     th = pack_init_theta(CRR_CFG, dtype=dtype, seed=0)
     th0 = th.detach().clone()
@@ -438,6 +505,7 @@ problem_specs = [
 summary = []
 artifacts = {}
 t_demo0 = time.perf_counter()
+solver_ablation_rows = solver_ablation_on_inpainting()
 
 for pname, make_phys, seed0 in problem_specs:
     print()
@@ -739,6 +807,19 @@ print(
     f"  Reported PSNR: final lower-level solve at eps={REPORT_EPS}; residual "
     "is ||grad h|| and must meet eps*mu before the number is printed."
 )
+print(
+    "  Lower-level solver: DeepInverse FISTA through base_optim_lower. "
+    "Certificate ||x-xstar|| <= ||grad h||/mu is residual-based and "
+    "independent of the algorithm that produced x."
+)
+if solver_ablation_rows:
+    gd_r = next(r for r in solver_ablation_rows if r["solver"] == "GD")
+    fi_r = next(r for r in solver_ablation_rows if r["solver"] == "FISTA")
+    print(
+        f"  Solver ablation (one inpaint, eps=1e-3): "
+        f"GD {gd_r['iters']} iters / {gd_r['wall']:.2f}s; "
+        f"FISTA {fi_r['iters']} iters / {fi_r['wall']:.2f}s."
+    )
 print(
     "  MAID appears in the learning-cost figure and the wall/GD columns; "
     "reconstruction panels are labelled by the prior, not by MAID."
