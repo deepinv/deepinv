@@ -42,15 +42,19 @@ Comparisons
 
 Lower-level solver
 ------------------
-The CRR lower level is residual-stopped DeepInverse ``FISTA`` (via
-``base_optim_lower``), not a hand-rolled loop. A short GD-vs-FISTA
-ablation is printed before learning so the choice is evidenced. The
-certificate ``||x - xstar|| <= ||grad h|| / mu`` depends only on the
-residual, so any solver that reaches the tolerance earns the same bound.
+Default lower-level solver is FISTA with O'Donoghue-Candes adaptive
+restart. A solver audit runs first: adaptive power iteration for
+``L_data``, numerical check of ``L_prior``, certificate against a tight
+reference solve, residual histories, then GD / FISTA / FISTA_RESTART /
+truncated Newton timings. The certificate
+``||x - xstar|| <= ||grad h|| / mu`` depends only on the residual.
 
 Both learning arms use the same outer budget ``N_OUTER`` (printed with
 the summary table). Absolute PSNR after few outer steps is a short-run
 snapshot, not a converged learning claim.
+
+Regulariser init matches the reference CRR/WCRR: ``sigma = 0.1``,
+``beta = 4``. Softening those for runtime is not allowed.
 """
 
 from __future__ import annotations
@@ -90,40 +94,48 @@ ROOT = Path(__file__).resolve().parents[2]
 FIG_DIR = Path(os.environ.get("FIG_DIR", ROOT / ".scratch" / "figs"))
 FIG_DIR.mkdir(parents=True, exist_ok=True)
 
-IMG_SIZE = 48
+# 32x32 colour crops: model fidelity first (reference sigma/beta), then cost.
+# Larger crops are fine if the machine allows; do not soften the regulariser.
+IMG_SIZE = 32
 NOISE = 0.05
 KEEP = 0.5
 # Colour multiconv matching the reference stack (in_channels=3). Last width
-# 32 rather than 64 keeps the CPU example under ~20 minutes; structure is
-# otherwise identical to the reference (3 layers, Lip norm, log scaling).
-# Soften reference init (beta=4, sigma=0.1) so residual-stopped solves
-# on 48x48 colour crops converge within the CPU budget.
+# 32 rather than 64 keeps the CPU example practical; structure is otherwise
+# identical to the reference (3 layers, Lip norm, log scaling).
+# Reference WCRR init: sigma=0.1 ("we set it always to 0.1"), beta=4.
 _CRR_COMMON = dict(
     nb_channels=(3, 4, 8, 32),
     filter_sizes=(5, 5, 5),
     weak_convexity=0.0,
     lip_fft_size=96,
-    beta_init=1.0,
-    sigma_init=0.5,
+    beta_init=4.0,
+    sigma_init=0.1,
 )
 # Denoising: A = I gives mu_data = 1, so the ridge floor is unnecessary.
 CRR_CFG_DENOISE = ConvexRidgeConfig(gamma=0.0, **_CRR_COMMON)
 # Inpainting / deblur: data term alone is not strongly convex; keep floor.
 CRR_CFG_RIDGE = ConvexRidgeConfig(gamma=1e-2, **_CRR_COMMON)
-# Outer budget is small for a multi-layer prior; stated in every summary
-# table. Six outer steps keep the full colour example near twenty minutes
-# on CPU while giving the fixed-accuracy arm a fairer chance than four.
-N_OUTER = 6
+# Outer budget for a multi-layer prior; stated in every summary table.
+# With truncated Newton lower solves, thirty outer steps on 32x32 colour
+# are practical on CPU. Absolute PSNR is still a short-run snapshot.
+N_OUTER = 30
 FIXED_EPS = 1e-3
 LEARN_EPS0 = 1e-3
 REPORT_EPS = 1e-4
-ALPHA0_CRR = 5e-3
+ALPHA0_CRR = 1e-2
+# Slightly milder random weight init than 0.05 reduces the initial
+# oversmoothing of reference (beta=4, sigma=0.1) without changing the chart.
+WEIGHT_SCALE = 0.02
 # Shared line-search parameters for MAID and the fixed-accuracy arm.
 LS_RHO = 0.5
 LS_RHO_BAR = 1.2
 LS_LAMBD = 0.01
 LS_MAX_BT = 12
-MAX_GD = 15_000
+MAX_GD = 25_000
+# Cap for audit GD/vanilla FISTA only (they fail on ill-conditioned paths).
+AUDIT_MAX_ITER = 5_000
+# Default after the audit: truncated Newton (HVP already used for hypergrad).
+LOWER_SOLVER = "NEWTON"
 
 
 def psnr(a: torch.Tensor, b: torch.Tensor) -> float:
@@ -162,7 +174,8 @@ print(
 print(
     f"CRR multiconv channels={CRR_CFG_RIDGE.nb_channels}, "
     f"filters={CRR_CFG_RIDGE.filter_sizes}, n_params={CRR_CFG_RIDGE.n_params}, "
-    f"weak_convexity={CRR_CFG_RIDGE.weak_convexity}"
+    f"weak_convexity={CRR_CFG_RIDGE.weak_convexity}, "
+    f"sigma_init={CRR_CFG_RIDGE.sigma_init}, beta_init={CRR_CFG_RIDGE.beta_init}"
 )
 print(
     f"Noise: Gaussian sigma={NOISE}. Denoising uses gamma=0 (mu_data=1 from "
@@ -174,7 +187,7 @@ print(
     "||grad h||/mu distance bound)."
 )
 print(
-    "Lower-level solver: DeepInverse FISTA via base_optim_lower "
+    f"Lower-level solver: {LOWER_SOLVER} "
     "(certificate is residual-based and solver-independent)."
 )
 
@@ -228,63 +241,343 @@ def fmt_res(res: float, mu: float) -> str:
     return f"res={res:.2e} dist_bound={bound:.2e} (mu={mu:.3g})"
 
 
-def solver_ablation_on_sample(make_phys, cfg: ConvexRidgeConfig, label: str):
-    """Iterations and wall clock of GD vs FISTA at the same residual tol."""
-    print()
-    print(
-        f"=== lower-level solver ablation (one {label} sample) ===",
-        flush=True,
-    )
+def make_problem(make_phys, cfg: ConvexRidgeConfig, seed: int = 100):
     x = train_imgs[0]
-    physics, y = make_phys(x, 100)
-    th0 = pack_init_theta(cfg, dtype=dtype, seed=0)
-    eps = 1e-3
-    x_init = physics.A_adjoint(y).detach().clone()
-    rows = []
-    for name in ("GD", "FISTA"):
+    physics, y = make_phys(x, seed)
+    return physics, y, x
+
+
+def solver_audit(problem_makers):
+    """Prove L_data, L_prior, the certificate, residual history, then solvers.
+
+    Previous softened-regulariser timings are withdrawn: they used
+    sigma_init=0.5, beta_init=1.0 and a fixed twelve-iteration L_data
+    estimate. Numbers below use the reference chart and the adaptive step.
+    """
+    print()
+    print("=" * 72)
+    print("SOLVER AUDIT (reference sigma=0.1, beta=4)")
+    print("=" * 72)
+
+    th0_den = pack_init_theta(
+        CRR_CFG_DENOISE, dtype=dtype, seed=0, weight_scale=WEIGHT_SCALE
+    )
+    th0_ridge = pack_init_theta(
+        CRR_CFG_RIDGE, dtype=dtype, seed=0, weight_scale=WEIGHT_SCALE
+    )
+
+    # ---- 1. Adaptive L_data vs 200 fixed iterations --------------------
+    print()
+    print("--- 1. L_data: adaptive (+safety) vs 200 fixed power iters ---")
+    print(
+        f"{'physics':<12} {'L_adapt':>12} {'L_raw':>12} {'n_it':>6} "
+        f"{'L_200':>12} {'adapt>=200':>10}"
+    )
+    L_data_rows = []
+    for label, make_phys, cfg in problem_makers:
+        physics, y, x = make_problem(make_phys, cfg)
+        prob = CRRSampleProblem(
+            physics=physics, y=y, x_star=x, cfg=cfg, max_iter=100
+        )
+        L_adapt, n_it, L_raw = prob.estimate_data_lipschitz()
+        L_200, _, _ = prob.estimate_data_lipschitz(fixed_iters=200)
+        ok = L_adapt + 1e-12 >= L_200
+        print(
+            f"{label:<12} {L_adapt:12.6f} {L_raw:12.6f} {n_it:6d} "
+            f"{L_200:12.6f} {str(ok):>10}"
+        )
+        L_data_rows.append(
+            {
+                "label": label,
+                "L_adapt": L_adapt,
+                "L_raw": L_raw,
+                "n_it": n_it,
+                "L_200": L_200,
+                "ok": ok,
+            }
+        )
+        if not ok:
+            raise RuntimeError(
+                f"Adaptive L_data {L_adapt} below L_200 {L_200} on {label}"
+            )
+
+    # ---- 2. L_prior analytic vs measured Hess R ------------------------
+    print()
+    print("--- 2. L_prior: analytic 2*exp(beta)+gamma vs measured Hess R ---")
+    print(
+        f"{'physics':<12} {'analytic':>12} {'measured':>12} "
+        f"{'ratio a/m':>10} {'safe':>6}"
+    )
+    L_prior_rows = []
+    for label, make_phys, cfg in problem_makers:
+        physics, y, x = make_problem(make_phys, cfg)
+        th0 = th0_den if cfg.gamma == 0.0 else th0_ridge
+        prob = CRRSampleProblem(
+            physics=physics, y=y, x_star=x, cfg=cfg, max_iter=100
+        )
+        prob.load_theta(th0)
+        analytic = prob.analytic_prior_lipschitz()
+        # zeros: quadratic region maximises smooth_l1 curvature
+        measured, n_it, raw = prob.measure_prior_lipschitz(
+            th0, x=torch.zeros_like(x)
+        )
+        ratio = analytic / max(raw, 1e-30)
+        safe = analytic + 1e-12 >= raw
+        print(
+            f"{label:<12} {analytic:12.4f} {raw:12.4f} "
+            f"{ratio:10.3f} {str(safe):>6}"
+        )
+        L_prior_rows.append(
+            {
+                "label": label,
+                "analytic": analytic,
+                "measured": raw,
+                "ratio": ratio,
+                "safe": safe,
+            }
+        )
+        if not safe:
+            raise RuntimeError(
+                f"Analytic L_prior {analytic} < measured {raw} on {label}; "
+                "step size is unsafe."
+            )
+
+    # ---- 3. Certificate vs reference solve -----------------------------
+    print()
+    print("--- 3. Certificate: ||x_loose - x_ref|| <= ||grad h|| / mu ---")
+    print(
+        f"{'physics':<12} {'||dx||':>12} {'bound':>12} {'ratio':>10} "
+        f"{'holds':>6}"
+    )
+    cert_rows = []
+    for label, make_phys, cfg in problem_makers:
+        physics, y, x = make_problem(make_phys, cfg)
+        th0 = th0_den if cfg.gamma == 0.0 else th0_ridge
         prob = CRRSampleProblem(
             physics=physics,
             y=y,
             x_star=x,
             cfg=cfg,
             max_iter=MAX_GD,
-            solver=name,
+            solver=LOWER_SOLVER,
         )
-        t0 = time.perf_counter()
-        _, res = prob.solve_lower(th0, eps=eps, x_init=x_init.clone())
-        wall = time.perf_counter() - t0
-        mu = prob.mu()
-        tol = max(eps * mu, 1e-8)
-        rows.append(
+        x_init = physics.A_adjoint(y).detach().clone()
+        x_loose, res_loose = prob.solve_lower(
+            th0, eps=1e-2, x_init=x_init.clone(), solver=LOWER_SOLVER
+        )
+        x_ref, _ = prob.solve_lower(
+            th0, eps=1e-6, x_init=x_init.clone(), solver=LOWER_SOLVER
+        )
+        dist = float((x_loose - x_ref).flatten().norm().item())
+        bound = res_loose / max(prob.mu(), 1e-30)
+        ratio = dist / max(bound, 1e-30)
+        holds = dist <= bound * 1.01
+        print(
+            f"{label:<12} {dist:12.4e} {bound:12.4e} {ratio:10.4f} "
+            f"{str(holds):>6}"
+        )
+        cert_rows.append(
             {
-                "solver": name,
-                "iters": prob.n_gd_iters,
-                "wall": wall,
-                "res": res,
-                "tol": tol,
-                "mu": mu,
+                "label": label,
+                "dist": dist,
+                "bound": bound,
+                "ratio": ratio,
+                "holds": holds,
             }
         )
+        if not holds:
+            raise RuntimeError(
+                f"Certificate failed on {label}: dist={dist} bound={bound}"
+            )
+
+    # ---- 4. Residual histories (GD monotone objective) -----------------
+    print()
+    print("--- 4. Residual histories (first / mid / last) ---")
+    history_rows = []
+    for label, make_phys, cfg in problem_makers:
+        physics, y, x = make_problem(make_phys, cfg)
+        th0 = th0_den if cfg.gamma == 0.0 else th0_ridge
+        x_init = physics.A_adjoint(y).detach().clone()
+        eps = 1e-3
+        # GD: check objective monotonicity. On ill-conditioned paths it may
+        # not hit the residual tol within AUDIT_MAX_ITER; still record.
+        prob_gd = CRRSampleProblem(
+            physics=physics,
+            y=y,
+            x_star=x,
+            cfg=cfg,
+            max_iter=AUDIT_MAX_ITER,
+            solver="GD",
+        )
+        mon = None
+        hist_gd = CRRSampleProblem._empty_history()
+        try:
+            out = prob_gd.solve_lower(
+                th0,
+                eps=eps,
+                x_init=x_init.clone(),
+                solver="GD",
+                record_every=max(1, AUDIT_MAX_ITER // 50),
+            )
+            _, res_gd, hist_gd = out
+            mon = hist_gd["monotone_objective"]
+        except RuntimeError:
+            # Run a short fixed-iteration GD manually for monotonicity only.
+            step = prob_gd._stepsize()
+            prob_gd.load_theta(th0)
+            xg = x_init.clone()
+            prev = float(prob_gd.energy_h(xg, th0, reload=False).item())
+            mon = True
+            res_list_tmp = []
+            for it in range(min(200, AUDIT_MAX_ITER)):
+                g = prob_gd.grad_x_h(xg, th0, reload=False)
+                xg = xg - step * g
+                obj = float(prob_gd.energy_h(xg, th0, reload=False).item())
+                if obj > prev + 1e-12:
+                    mon = False
+                prev = obj
+                if it % 20 == 0:
+                    res_list_tmp.append(
+                        float(g.flatten().norm().item())
+                    )
+            hist_gd = {
+                "iters": list(range(0, len(res_list_tmp) * 20, 20)),
+                "residuals": res_list_tmp,
+                "objectives": [],
+                "monotone_objective": mon,
+                "n_iters": 200,
+                "n_restarts": 0,
+                "n_cg": 0,
+            }
+        res_list = hist_gd["residuals"]
+        it_list = hist_gd["iters"]
+        if len(res_list) >= 3:
+            mid = len(res_list) // 2
+            triple = (res_list[0], res_list[mid], res_list[-1])
+            it_triple = (it_list[0], it_list[mid], it_list[-1])
+        elif res_list:
+            triple = (res_list[0], res_list[-1], res_list[-1])
+            it_triple = (it_list[0], it_list[-1], it_list[-1])
+        else:
+            triple = (float("nan"),) * 3
+            it_triple = (0, 0, 0)
         print(
-            f"  {name:<6} iters={prob.n_gd_iters:6d} wall={wall:6.2f}s "
-            f"{fmt_res(res, mu)} tol={tol:.2e}",
+            f"  {label} GD: iters={hist_gd['n_iters']} "
+            f"res@it {it_triple} = {[f'{r:.2e}' for r in triple]} "
+            f"monotone_obj={mon}",
             flush=True,
         )
-    if rows[0]["iters"] > 0 and rows[1]["iters"] > 0:
-        ratio_it = rows[0]["iters"] / max(rows[1]["iters"], 1)
-        ratio_wall = rows[0]["wall"] / max(rows[1]["wall"], 1e-12)
+        if mon is False:
+            raise RuntimeError(
+                f"GD objective not monotone on {label}: L is under-estimated."
+            )
+        # FISTA_RESTART residual trend
+        prob_fr = CRRSampleProblem(
+            physics=physics,
+            y=y,
+            x_star=x,
+            cfg=cfg,
+            max_iter=MAX_GD,
+            solver="FISTA_RESTART",
+        )
+        out_fr = prob_fr.solve_lower(
+            th0,
+            eps=eps,
+            x_init=x_init.clone(),
+            solver="FISTA_RESTART",
+            record_every=max(1, 50),
+        )
+        _, res_fr, hist_fr = out_fr
+        res_list = hist_fr["residuals"]
+        if len(res_list) >= 2:
+            trend_ok = res_list[-1] < res_list[0]
+        else:
+            trend_ok = True
         print(
-            f"  GD/FISTA iteration ratio = {ratio_it:.2f}, "
-            f"wall ratio = {ratio_wall:.2f}",
+            f"  {label} FISTA_RESTART: iters={hist_fr['n_iters']} "
+            f"restarts={hist_fr.get('n_restarts', 0)} "
+            f"res first={res_list[0]:.2e} last={res_list[-1]:.2e} "
+            f"trend_down={trend_ok}",
             flush=True,
         )
-        if ratio_it < 1.2 and ratio_wall < 1.2:
+        history_rows.append(
+            {
+                "label": label,
+                "gd_iters": hist_gd["n_iters"],
+                "gd_monotone": mon,
+                "fr_iters": hist_fr["n_iters"],
+                "fr_restarts": hist_fr.get("n_restarts", 0),
+            }
+        )
+
+    # ---- 5. Solver comparison at matched residual ----------------------
+    print()
+    print("--- 5. Solver comparison (eps=1e-3, same init) ---")
+    print(
+        f"{'physics':<12} {'solver':<14} {'iters':>8} {'wall_s':>8} "
+        f"{'res':>10}"
+    )
+    solver_rows = []
+    for label, make_phys, cfg in problem_makers:
+        physics, y, x = make_problem(make_phys, cfg)
+        th0 = th0_den if cfg.gamma == 0.0 else th0_ridge
+        x_init = physics.A_adjoint(y).detach().clone()
+        eps = 1e-3
+        for name in ("GD", "FISTA", "FISTA_RESTART", "NEWTON"):
+            # GD / vanilla FISTA may not converge on ill-conditioned paths
+            # with reference beta; cap their budget so the audit finishes.
+            max_it = (
+                MAX_GD if name in ("FISTA_RESTART", "NEWTON") else AUDIT_MAX_ITER
+            )
+            prob = CRRSampleProblem(
+                physics=physics,
+                y=y,
+                x_star=x,
+                cfg=cfg,
+                max_iter=max_it,
+                solver=name,
+            )
+            t0 = time.perf_counter()
+            try:
+                _, res = prob.solve_lower(
+                    th0, eps=eps, x_init=x_init.clone(), solver=name
+                )
+                wall = time.perf_counter() - t0
+                ok = True
+                err = ""
+            except RuntimeError as exc:
+                wall = time.perf_counter() - t0
+                res = float("nan")
+                ok = False
+                err = str(exc)[:80]
             print(
-                "  FISTA is not materially cheaper than GD on this sample; "
-                "kept as the default wiring, not as a measured win.",
+                f"{label:<12} {name:<14} {prob.n_gd_iters:8d} "
+                f"{wall:8.2f} {res:10.2e}"
+                + (f"  FAIL {err}" if not ok else ""),
                 flush=True,
             )
-    return rows
+            solver_rows.append(
+                {
+                    "label": label,
+                    "solver": name,
+                    "iters": prob.n_gd_iters,
+                    "wall": wall,
+                    "res": res,
+                    "ok": ok,
+                }
+            )
+    print(
+        f"Default lower-level solver for learning: {LOWER_SOLVER}",
+        flush=True,
+    )
+    print("=" * 72)
+    return {
+        "L_data": L_data_rows,
+        "L_prior": L_prior_rows,
+        "certificate": cert_rows,
+        "history": history_rows,
+        "solvers": solver_rows,
+    }
 
 
 def grid_tune_tikhonov(samples, n_grid: int = 9):
@@ -334,7 +627,7 @@ def recon_crr_converged(
         x_star=x_star,
         cfg=cfg,
         max_iter=MAX_GD,
-        solver="FISTA",
+        solver=LOWER_SOLVER,
     )
     xh, res = prob.solve_lower(theta, eps=REPORT_EPS)
     mu = float(prob.mu(theta))
@@ -374,9 +667,11 @@ def train_crr_maid(
     samples, cfg: ConvexRidgeConfig, accelerated: bool, n_outer: int = N_OUTER
 ):
     oracle = build_crr_minibatch_oracle(
-        samples, cfg=cfg, chunk_size=1, max_iter=MAX_GD, solver="FISTA"
+        samples, cfg=cfg, chunk_size=1, max_iter=MAX_GD, solver=LOWER_SOLVER
     )
-    th0 = pack_init_theta(cfg, dtype=dtype, seed=0)
+    th0 = pack_init_theta(
+        cfg, dtype=dtype, seed=0, weight_scale=WEIGHT_SCALE
+    )
     common = dict(
         eps0=LEARN_EPS0,
         delta0=LEARN_EPS0,
@@ -431,9 +726,11 @@ def train_crr_fixed(
     adaptation with step-size adaptation.
     """
     oracle = build_crr_minibatch_oracle(
-        samples, cfg=cfg, chunk_size=1, max_iter=MAX_GD, solver="FISTA"
+        samples, cfg=cfg, chunk_size=1, max_iter=MAX_GD, solver=LOWER_SOLVER
     )
-    th = pack_init_theta(cfg, dtype=dtype, seed=0)
+    th = pack_init_theta(
+        cfg, dtype=dtype, seed=0, weight_scale=WEIGHT_SCALE
+    )
     th0 = th.detach().clone()
     warm = None
     f_trace = []
@@ -555,16 +852,39 @@ def print_scaling_table(label, th0, th1, cfg: ConvexRidgeConfig):
         f"mean exp(s_final)={float(s1.mean()):.6f}, std={float(s1.std()):.6f}",
         flush=True,
     )
+    # Knee probe on the first training image at final theta: fraction of
+    # filter responses with |exp(beta) * exp(s) * (W x)| >= 1.
+    from deepinv.optim.bilevel.convex_ridge import apply_conv, get_conv_lip
+
+    w, s_t, b = unpack_theta(th1, cfg)
+    lip = get_conv_lip(w, cfg, detach=True)
+    feats = apply_conv(train_imgs[0], w, cfg, lip=lip)
+    inner = torch.exp(b) * feats * torch.exp(s_t)
+    frac_lin = float((inner.abs() >= 1.0).float().mean().item())
+    print(
+        f"  knee probe on train[0]: frac |exp(beta)*exp(s)*Wx| >= 1 "
+        f"= {frac_lin:.3f} (beta={float(b):.3f})",
+        flush=True,
+    )
     if float(ratios.max()) < 1.05 and float(ratios.min()) > 0.95:
-        print(
-            "  Scale unidentifiable here (quadratic region of smooth_l1; "
-            "see convex_ridge module docstring). Not an optimiser failure.",
-            flush=True,
-        )
+        if frac_lin < 0.05:
+            print(
+                "  Scale flat and responses are quadratic: s cancels in "
+                "smooth_l1 there (see convex_ridge module docstring).",
+                flush=True,
+            )
+        else:
+            print(
+                "  Scale nearly flat despite responses past the knee "
+                f"(frac={frac_lin:.3f}). Identifiable in principle; joint "
+                "Euclidean steps on flat theta under-move s relative to "
+                "the weight block (||z_w|| dominates ||z_s||).",
+                flush=True,
+            )
     else:
         print(
-            "  Scaling moved: responses reached the smooth_l1 knee, so s "
-            "is identifiable.",
+            "  Scaling moved: responses reached the smooth_l1 knee and s "
+            "is identifiable at the reference sigma/beta.",
             flush=True,
         )
     return s0, s1, ratios
@@ -580,10 +900,17 @@ problem_specs = [
 summary = []
 artifacts = {}
 t_demo0 = time.perf_counter()
-# Ablate solvers on the ill-conditioned path (inpainting, gamma floor).
-solver_ablation_rows = solver_ablation_on_sample(
-    make_inpaint, CRR_CFG_RIDGE, "inpainting"
+# Full solver audit before any learning numbers.
+audit = solver_audit(
+    [
+        ("denoising", make_denoise, CRR_CFG_DENOISE),
+        ("inpainting", make_inpaint, CRR_CFG_RIDGE),
+        ("deblur", make_deblur, CRR_CFG_RIDGE),
+    ]
 )
+solver_ablation_rows = [
+    r for r in audit["solvers"] if r["label"] == "inpainting"
+]
 
 for pname, make_phys, seed0, crr_cfg in problem_specs:
     print()
@@ -761,9 +1088,11 @@ for pname, make_phys, seed0, crr_cfg in problem_specs:
 
 
 CAPTION_RECON = (
-    f"Reconstruction by residual-stopped FISTA (eps={REPORT_EPS}); "
+    f"Reconstruction by residual-stopped {LOWER_SOLVER} (eps={REPORT_EPS}); "
     "panels differ only in the regulariser parameters. "
-    "dist_bound = ||grad h|| / mu."
+    "dist_bound = ||grad h|| / mu. "
+    f"sigma_init={CRR_CFG_RIDGE.sigma_init}, beta_init={CRR_CFG_RIDGE.beta_init}, "
+    f"N_OUTER={N_OUTER}, train_n={len(train_imgs)}, img={IMG_SIZE}."
 )
 
 
@@ -897,8 +1226,11 @@ print(f"wrote {path}", flush=True)
 
 print()
 print(
-    f"Summary (N_OUTER={N_OUTER} outer iterations for both learning arms; "
-    "matched Armijo line search; only eps/delta adaptivity differs)"
+    f"Summary (sigma_init={CRR_CFG_RIDGE.sigma_init}, "
+    f"beta_init={CRR_CFG_RIDGE.beta_init}, N_OUTER={N_OUTER}, "
+    f"train_n={len(train_imgs)}, img={IMG_SIZE}x{IMG_SIZE}, "
+    f"lower_solver={LOWER_SOLVER}; matched Armijo line search; "
+    "only eps/delta adaptivity differs)"
 )
 print(
     f"{'problem':<12} {'prior / learning':<36} {'PSNR_train':>10} "
@@ -964,6 +1296,7 @@ print(
 print(
     f"  CRR: multiconv {CRR_CFG_RIDGE.nb_channels}, Lip-normalised, log scaling, "
     f"smooth L1, weak_convexity={CRR_CFG_RIDGE.weak_convexity}, "
+    f"sigma_init={CRR_CFG_RIDGE.sigma_init}, beta_init={CRR_CFG_RIDGE.beta_init}, "
     f"n_params={CRR_CFG_RIDGE.n_params}; gamma=0 on denoising, "
     f"gamma={CRR_CFG_RIDGE.gamma} on inpainting/deblur."
 )
@@ -973,18 +1306,26 @@ print(
     "printed beside every residual (the interpretable certificate)."
 )
 print(
-    "  Lower-level solver: DeepInverse FISTA through base_optim_lower. "
+    f"  Lower-level solver: {LOWER_SOLVER}. "
     "Certificate ||x-xstar|| <= ||grad h||/mu is residual-based and "
     "independent of the algorithm that produced x."
 )
+print(
+    "  Previous softened-regulariser results (sigma_init=0.5, beta_init=1.0) "
+    "and fixed twelve-iteration L_data estimates are withdrawn."
+)
 if solver_ablation_rows:
-    gd_r = next(r for r in solver_ablation_rows if r["solver"] == "GD")
-    fi_r = next(r for r in solver_ablation_rows if r["solver"] == "FISTA")
-    print(
-        f"  Solver ablation (one inpaint, eps=1e-3): "
-        f"GD {gd_r['iters']} iters / {gd_r['wall']:.2f}s; "
-        f"FISTA {fi_r['iters']} iters / {fi_r['wall']:.2f}s."
-    )
+    parts = []
+    for name in ("GD", "FISTA", "FISTA_RESTART", "NEWTON"):
+        r = next((x for x in solver_ablation_rows if x["solver"] == name), None)
+        if r is not None and r.get("ok", True):
+            parts.append(
+                f"{name} {r['iters']} iters / {r['wall']:.2f}s"
+            )
+    if parts:
+        print(
+            "  Solver ablation (one inpaint, eps=1e-3): " + "; ".join(parts) + "."
+        )
 for row in summary:
     if row["ridge_uninformative"]:
         print(
@@ -1005,9 +1346,9 @@ print(
     "reconstruction panels are labelled by the prior, not by MAID."
 )
 print(
-    "  Log-scale s: unidentifiable in the quadratic region of smooth_l1 "
-    "(see convex_ridge module docstring). Flat exp(s) means small-signal "
-    "features, not a failed outer method."
+    "  Log-scale s: cancels exactly in the quadratic region of smooth_l1; "
+    "identifiability depends on sigma relative to filter response scale "
+    "(see convex_ridge module docstring)."
 )
 print(f"  Example wall-clock: {demo_wall:.1f}s (~{demo_wall/60:.1f} min).")
 print(f"  Figures: {FIG_DIR}")
@@ -1016,7 +1357,7 @@ if "denoising" in artifacts:
     ratios = artifacts["denoising"]["maid"]["ratios"]
     s1 = artifacts["denoising"]["maid"]["s1"]
     print()
-    print("Denoising CRR scaling motion (exp(s)):")
+    print("Denoising CRR scaling motion (exp(s)) at reference sigma/beta:")
     print(
         f"  min ratio={float(ratios.min()):.4f}, max ratio={float(ratios.max()):.4f}, "
         f"std(exp(s_final))={float(s1.std()):.6f}"
@@ -1028,6 +1369,11 @@ if "denoising" in artifacts:
     )
     if float(ratios.max()) < 1.05 and float(ratios.min()) > 0.95:
         print(
-            "  Scale unidentifiable at this operating point (quadratic region "
-            "of smooth_l1); not an optimiser failure."
+            "  Scale flat at this operating point (quadratic region of "
+            "smooth_l1 relative to current filter responses)."
+        )
+    else:
+        print(
+            "  Scale moved: knee reached at reference sigma=0.1; s is "
+            "identifiable."
         )

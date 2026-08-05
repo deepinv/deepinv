@@ -10,22 +10,27 @@ carries a ridge floor (gamma/2)||x||^2 so mu >= gamma.
 
 Default weak_convexity=0 yields CRR (convex).
 
-Log-scale identifiability (architecture, not optimiser)
--------------------------------------------------------
+Log-scale ``s`` and the smooth_l1 knee
+--------------------------------------
 The energy piece for one filter response is
 
     exp(-2 s) * smooth_l1( exp(s) * u )
 
 with ``smooth_l1(t) = t^2/2`` for ``|t| < 1`` and ``|t| - 1/2`` for
-``|t| >= 1``. In the quadratic region this is independent of ``s``:
+``|t| >= 1``. In the **quadratic region** this cancels ``s`` identically:
 
     exp(-2 s) * sum smooth_l1( exp(s) * W x )
         = exp(-2 s) * exp(2 s) * sum (W x)^2 / 2
         = sum (W x)^2 / 2.
 
-So ``s`` cancels identically. It is not slow to learn: it is **exactly
-unidentifiable** until filter responses reach the smooth_l1 knee. No
-optimiser and no step size can move it below that.
+That identity is exact inside the knee. Whether a configuration sits there
+depends on ``sigma`` (which sets the initial ``s`` via
+``s0 = log(2 / sigma)``) relative to the filter-response scale after Lip
+normalisation, and on the operating point of the image. It is not an
+inherent limitation of the prior: with the reference ``sigma = 0.1``
+responses often reach the linear tails and ``s`` becomes identifiable.
+Pushing the knee out (large ``sigma``) keeps responses quadratic and
+turns the ridge into a generalised Tikhonov penalty on filter responses.
 
 Measured spread of the regulariser energy over ``s in {-1, 0, +1}`` as the
 filter response scale varies relative to the smooth_l1 unit knee (mu = 1
@@ -40,11 +45,10 @@ in the table):
     10                     | ~0.83
 
 Lipschitz normalisation of the multiconv pins the linear map and removes
-the filter-amplitude / scale degeneracy of a free convolution bank. It does
-not make ``s`` identifiable in the quadratic region: that only happens once
-responses enter the linear tails of smooth_l1. The example reports initial
-and final ``exp(s)``. If they stay put, features remained small-signal;
-that is a property of the prior, not a failure of MAID.
+the filter-amplitude / scale degeneracy of a free convolution bank. The
+example reports initial and final ``exp(s)``. Motion of ``s`` means
+responses reached the knee; flat ``s`` means they stayed quadratic at that
+configuration.
 
 DeepInverse adaptations
 -----------------------

@@ -98,9 +98,9 @@ def test_hess_matvec_symmetric_probe():
 def test_solve_lower_reduces_residual():
     cfg = _tiny_cfg()
     physics, y, x_star = _tiny_denoising(12, seed=8)
-    # Default solver is FISTA via base_optim_lower.
+    # Default solver is FISTA_RESTART (smooth CRR with adaptive restart).
     prob = CRRSampleProblem(
-        physics, y, x_star, cfg=cfg, max_iter=8000, solver="FISTA"
+        physics, y, x_star, cfg=cfg, max_iter=8000, solver="FISTA_RESTART"
     )
     th = pack_init_theta(cfg, seed=9)
     x0 = physics.A_adjoint(y)
@@ -111,19 +111,17 @@ def test_solve_lower_reduces_residual():
     assert prob.n_gd_iters > 0
 
 
-def test_gd_and_fista_both_reach_residual_via_base_optim():
-    """Both DeepInverse solvers reach the same residual tolerance.
+def test_gd_fista_restart_newton_reach_residual():
+    """GD, FISTA, FISTA_RESTART and NEWTON all meet the residual tolerance.
 
-    FISTA is the default (smooth CRR is accelerated gradient via
-    base_optim_lower). On some instances GD can take fewer iterations;
-    the certificate depends only on the residual, not the algorithm.
+    The certificate depends only on the residual, not the algorithm.
     """
     cfg = _tiny_cfg(gamma=1e-2)
-    physics, y, x_star = _tiny_denoising(20, seed=42)
+    physics, y, x_star = _tiny_denoising(16, seed=42)
     th = pack_init_theta(cfg, seed=0, weight_scale=0.05)
     eps = 1e-3
     x0 = physics.A_adjoint(y)
-    for name in ("GD", "FISTA"):
+    for name in ("GD", "FISTA", "FISTA_RESTART", "NEWTON"):
         prob = CRRSampleProblem(
             physics, y, x_star, cfg=cfg, max_iter=20_000, solver=name
         )
@@ -132,6 +130,86 @@ def test_gd_and_fista_both_reach_residual_via_base_optim():
         tol = max(eps * prob.mu(), 1e-8)
         assert r <= tol * 1.01
         assert prob.n_gd_iters >= 1
+
+
+def test_adaptive_data_lipschitz_at_or_above_fixed_200():
+    """Adaptive L_data (with safety) must sit at or above 200 fixed iters."""
+    cfg = _tiny_cfg()
+    # Denoising: exact eigenvalue 1; still checks the adaptive path.
+    physics, y, x_star = _tiny_denoising(12, seed=0)
+    prob = CRRSampleProblem(physics, y, x_star, cfg=cfg, max_iter=100)
+    L_adapt, _, L_raw = prob.estimate_data_lipschitz()
+    L_200, _, _ = prob.estimate_data_lipschitz(fixed_iters=200)
+    assert L_adapt >= L_200 * 0.999
+    assert L_adapt >= L_raw  # safety factor
+
+    # Inpainting mask is a projection: A^* A has eigenvalues in {0, 1}.
+    gen = torch.Generator().manual_seed(1)
+    mask = (torch.rand(x_star.shape, generator=gen, dtype=x_star.dtype) > 0.5).to(
+        x_star.dtype
+    )
+    physics_ip = dinv.physics.Inpainting(
+        img_size=x_star.shape[1:], mask=mask, device=x_star.device
+    )
+    prob_ip = CRRSampleProblem(physics_ip, y * mask, x_star, cfg=cfg, max_iter=100)
+    L_a, _, _ = prob_ip.estimate_data_lipschitz()
+    L_f, _, _ = prob_ip.estimate_data_lipschitz(fixed_iters=200)
+    assert L_a >= L_f * 0.999
+
+
+def test_analytic_prior_lipschitz_covers_measured():
+    """Analytic L_prior must be at least the measured top eigenvalue of Hess R."""
+    cfg = _tiny_cfg(beta_init=4.0, sigma_init=0.1, gamma=1e-2)
+    physics, y, x_star = _tiny_denoising(12, seed=3)
+    prob = CRRSampleProblem(physics, y, x_star, cfg=cfg, max_iter=100)
+    th = pack_init_theta(cfg, seed=4)
+    prob.load_theta(th)
+    analytic = prob.analytic_prior_lipschitz()
+    # Probe at zeros: quadratic region maximises curvature of smooth_l1.
+    measured, _, raw = prob.measure_prior_lipschitz(th, x=torch.zeros_like(x_star))
+    assert analytic >= raw * 0.99
+    assert measured == raw  # safety=1 default
+
+
+def test_certificate_against_reference_solve():
+    """||x_loose - x_ref|| <= ||grad h(x_loose)|| / mu must hold."""
+    cfg = _tiny_cfg(gamma=1e-2)
+    physics, y, x_star = _tiny_denoising(14, seed=7)
+    prob = CRRSampleProblem(
+        physics, y, x_star, cfg=cfg, max_iter=30_000, solver="FISTA_RESTART"
+    )
+    th = pack_init_theta(cfg, seed=8)
+    x0 = physics.A_adjoint(y)
+    x_loose, res_loose = prob.solve_lower(
+        th, eps=1e-2, x_init=x0.clone(), solver="FISTA_RESTART"
+    )
+    x_ref, _ = prob.solve_lower(
+        th, eps=1e-6, x_init=x0.clone(), solver="FISTA_RESTART"
+    )
+    dist = float((x_loose - x_ref).flatten().norm().item())
+    bound = res_loose / max(prob.mu(), 1e-30)
+    assert dist <= bound * 1.05
+
+
+def test_gd_objective_monotone_with_safe_step():
+    """GD at step 1/L on strongly convex h must decrease the objective."""
+    cfg = _tiny_cfg(gamma=1e-2)
+    physics, y, x_star = _tiny_denoising(12, seed=9)
+    prob = CRRSampleProblem(
+        physics, y, x_star, cfg=cfg, max_iter=5_000, solver="GD"
+    )
+    th = pack_init_theta(cfg, seed=10)
+    x0 = physics.A_adjoint(y)
+    out = prob.solve_lower(
+        th, eps=1e-2, x_init=x0.clone(), solver="GD", record_every=1
+    )
+    assert len(out) == 3
+    _, _, hist = out
+    assert hist["monotone_objective"] is True
+    objs = hist["objectives"]
+    assert len(objs) >= 2
+    for a, b in zip(objs, objs[1:]):
+        assert b <= a + 1e-10
 
 
 def test_mu_data_plus_gamma_on_denoising():
