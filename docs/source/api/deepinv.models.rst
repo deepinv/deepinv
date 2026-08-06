@@ -30,6 +30,7 @@ Classical Denoisers
    deepinv.models.BilateralFilter
    deepinv.models.MedianFilter
    deepinv.models.TVDenoiser
+   deepinv.models.TVL1Denoiser
    deepinv.models.TGVDenoiser
    deepinv.models.WaveletDenoiser
    deepinv.models.WaveletDictDenoiser
@@ -66,6 +67,7 @@ Deep Architectures
    deepinv.models.NCSNpp
    deepinv.models.DScCP
    deepinv.models.RAM
+   deepinv.models.DEAL
    deepinv.models.ArtifactRemoval
    deepinv.models.SRResNet
    deepinv.models.FFDNet

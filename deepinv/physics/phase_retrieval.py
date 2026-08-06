@@ -12,7 +12,6 @@ from deepinv.physics.structured_random import (
     generate_diagonal,
     StructuredRandom,
 )
-from deepinv.utils.decorators import _deprecated_alias
 
 
 class PhaseRetrieval(Physics):
@@ -120,8 +119,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
     :param int m: number of measurements.
     :param tuple img_size: shape (C, H, W) of inputs.
     :param bool channelwise: Channels are processed independently using the same random forward operator.
-    :param bool unitary: Use a random unitary matrix instead of Gaussian matrix. Default is False.
-    :param bool compute_inverse: Compute the pseudo-inverse of the forward matrix. Default is False.
     :param torch.dtype dtype: Forward matrix is stored as a dtype. Default is torch.cfloat.
     :param str device: Device to store the forward matrix.
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
@@ -142,7 +139,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
     """
 
-    @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m,
@@ -150,8 +146,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         channelwise=False,
         dtype=torch.cfloat,
         device="cpu",
-        unitary=False,
-        compute_inverse=False,
         rng: torch.Generator = None,
         **kwargs,
     ):
@@ -172,7 +166,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         B = CompressedSensing(
             m=m,
             img_size=img_size,
-            fast=False,
             channelwise=channelwise,
             dtype=dtype,
             device=device,
@@ -211,7 +204,6 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     :param str device: Device for computation. Default is `cpu`.
     """
 
-    @_deprecated_alias(input_shape="img_size", output_shape="output_size")
     def __init__(
         self,
         img_size: tuple,
@@ -471,7 +463,6 @@ class Ptychography(PhaseRetrieval):
     torch.Size([1, 25, 64, 64])
     """
 
-    @_deprecated_alias(in_shape="img_size")
     def __init__(
         self,
         img_size=None,

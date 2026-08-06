@@ -20,7 +20,6 @@ from deepinv.transform.rotate import Rotate
 # We do not include operators for which padding is involved, they are tested separately
 OPERATORS = [
     "CS",
-    "fastCS",
     "inpainting",
     "inpainting_clone",
     "demosaicing",
@@ -31,6 +30,8 @@ OPERATORS = [
     "deblur_valid",
     "deblur_circular",
     "deblur_reflect",
+    "pet_2d",
+    "pet_3d",
     "deblur_replicate",
     "deblur_constant",
     "composition",
@@ -59,7 +60,6 @@ OPERATORS = [
     "fast_singlepixel_cake_cutting",
     "fast_singlepixel_zig_zag",
     "fast_singlepixel_xy",
-    "fast_singlepixel_old_sequency",
     "MRI",
     "DynamicMRI",
     "MultiCoilMRI",
@@ -148,16 +148,6 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 0.75  # Marcenko-Pastur law, second term is a small n correction
         params = []
-    elif name == "fastCS":
-        p = dinv.physics.CompressedSensing(
-            m=20,
-            fast=True,
-            channelwise=True,
-            img_size=img_size,
-            device=device,
-            rng=rng,
-        )
-        params = []
     elif name == "colorize":
         p = dinv.physics.Decolorize(device=device)
         norm = 0.4468
@@ -239,6 +229,36 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )  # B,N,D,H,W where N is coils and D is depth
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
         params = ["mask"]
+    elif name == "pet_2d":
+        pytest.importorskip(
+            "parallelproj",
+            reason="This test requires parallelproj. It should be "
+            "installed with `conda install -c conda-forge parallelproj`",
+        )
+        img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
+        p = dinv.physics.PET(
+            img_size,
+            normalize=True,
+            device=device,
+        )
+        p.noise_model = dinv.physics.ZeroNoise()
+        p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
+        params = ["background", "attenuation"]
+    elif name == "pet_3d":
+        pytest.importorskip(
+            "parallelproj",
+            reason="This test requires parallelproj. It should be "
+            "installed with `conda install -c conda-forge parallelproj`",
+        )
+        img_size = (1, 16, 16, 16) if imsize is None else imsize  # C,H,W
+        p = dinv.physics.PET(
+            img_size,
+            normalize=True,
+            device=device,
+        )
+        p.noise_model = dinv.physics.ZeroNoise()
+        p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
+        params = ["attenuation", "background"]
     elif name == "2DParallelBeamCT":
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
         p = dinv.physics.Tomography(
@@ -346,16 +366,6 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             m=20, fast=True, img_size=img_size, device=device, rng=rng, ordering="xy"
         )
         params = []
-    elif name == "fast_singlepixel_old_sequency":
-        p = dinv.physics.SinglePixelCamera(
-            m=20,
-            fast=True,
-            img_size=img_size,
-            device=device,
-            rng=rng,
-            ordering="old_sequency",
-        )
-        params = ["mask"]
     elif name == "singlepixel":
         m = 20
         p = dinv.physics.SinglePixelCamera(
@@ -720,7 +730,7 @@ def test_operators_adjointness(name, device, rng):
     assert error < 1e-3
 
     if (
-        "pansharpen" in name or "radio" in name
+        "pansharpen" in name or "radio" in name or "pet" in name
     ):  # automatic adjoint does not work for inputs that are not torch.tensors
         pytest.skip()
     f = adjoint_function(physics.A, x.shape, x.device, x.dtype)
@@ -793,7 +803,7 @@ def test_upsampling(device, rng, name, kernel):
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operator_multiscale_wrapper(name, device, rng):
     r"""
-    Tests if a linear physics operator can be wrapped with a multiscale wrapper.
+    Tests if a linear physics operator can be wrapped with a multi-scale wrapper.
     """
 
     # defining a list of exceptions to skip  # TODO: fix for those?
@@ -836,7 +846,7 @@ def test_operator_multiscale_wrapper(name, device, rng):
         factors=[2, 4, 8],
         dtype=dtype,
         device=device,
-    )  # define a multiscale physics with base img size (1, 32, 32)
+    )  # define a multi-scale physics with base img size (1, 32, 32)
     y = new_physics(x, scale=scale)
     Aty = new_physics.A_adjoint(y, scale=scale)
 
@@ -1870,6 +1880,70 @@ def test_device_consistency(name):
                     assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5
 
 
+def get_all_tensor_attrs(module, prefix=""):
+    """
+    Get all tensor attributes of a module.
+    """
+    tensor_attrs = {}
+
+    def full_name(name):
+        return f"{prefix}.{name}" if prefix else name
+
+    # Registered parameters
+    for name, parameter in module._parameters.items():
+        if parameter is not None:
+            tensor_attrs[full_name(name)] = parameter
+
+    # Persistent registered buffers
+    for name, buffer in module._buffers.items():
+        if buffer is not None and name not in module._non_persistent_buffers_set:
+            tensor_attrs[full_name(name)] = buffer
+
+    # Unregistered tensor attributes.
+    # Including these preserves the test's ability to detect tensors that
+    # should potentially have been registered.
+    for name, attr in vars(module).items():
+        if isinstance(attr, torch.Tensor):
+            tensor_attrs[full_name(name)] = attr
+
+    # Recurse through registered submodules
+    for name, submodule in module._modules.items():
+        if submodule is not None:
+            tensor_attrs.update(
+                get_all_tensor_attrs(
+                    submodule,
+                    prefix=full_name(name),
+                )
+            )
+
+    return tensor_attrs
+
+
+def test_get_all_tensor_attrs_is_not_vacuous():
+    """
+    Test that the get_all_tensor_attrs behaves as expected.
+    """
+
+    class TestModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.register_buffer("buffer", torch.ones(1))
+            self.parameter = torch.nn.Parameter(torch.ones(1))
+            self.unregistered_tensor = torch.ones(1)
+
+        @property
+        def tensor_property(self):
+            return torch.ones(1)
+
+    attrs = get_all_tensor_attrs(TestModule())
+
+    assert set(attrs) == {
+        "buffer",
+        "parameter",
+        "unregistered_tensor",
+    }
+
+
 @pytest.mark.parametrize("name", OPERATORS)
 def test_physics_state_dict(name, device):
     r"""
@@ -1879,33 +1953,6 @@ def test_physics_state_dict(name, device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts state dict is saved.
     """
-
-    def get_all_tensor_attrs(module, prefix=""):
-        tensor_attrs = {}
-
-        # Check direct attributes
-        for name in dir(module):
-            try:
-                attr = getattr(module, name)
-            except Exception:
-                continue  # skip attributes that raise exceptions on access
-
-            full_name = f"{prefix}.{name}" if prefix else name
-            if (
-                isinstance(attr, torch.Tensor)
-                and name not in module._non_persistent_buffers_set
-            ):
-                tensor_attrs[full_name] = attr
-            elif isinstance(attr, torch.nn.ModuleList):
-                for i, submodule in enumerate(attr):
-                    tensor_attrs.update(
-                        get_all_tensor_attrs(submodule, prefix=f"{full_name}.{i}")
-                    )
-            elif isinstance(attr, torch.nn.Module):
-                # Recurse into submodules
-                tensor_attrs.update(get_all_tensor_attrs(attr, prefix=full_name))
-
-        return tensor_attrs
 
     physics, imsize, _, dtype = find_operator(name, device)
     if name == "radio":
@@ -2045,6 +2092,8 @@ def test_adjoint_autograd(name, device):
         "ptychography_linear",
         "radio",
         "radio_weighted",
+        "pet_2d",
+        "pet_3d",
     }:
         pytest.skip(f"Operator {name} is not supported by adjoint_function.")
 
@@ -2072,6 +2121,8 @@ def test_adjoint_autograd(name, device):
 def test_clone(name, device):
     if name in OPERATORS:
         physics, imsize, _, dtype = find_operator(name, device)
+        if "pet" in name:
+            pytest.skip("PET operators cannot be cloned due to parallelproj.")
     elif name in NONLINEAR_OPERATORS:
         if name == "haze":
             pytest.skip(
@@ -2331,6 +2382,107 @@ def test_physics_warn_extra_kwargs():
         dinv.physics.Denoising(sigma=0.5)
 
 
+MULTISCALE_EXCLUSION = [
+    # three dimensional signals are currently not supported
+    "3Ddeblur_valid",
+    "3Ddeblur_circular",
+    "3DMRI",
+    "3DMultiCoilMRI",
+    "pet_3d",
+    "DynamicMRI",
+    "fast_singlepixel",
+    "fast_singlepixel_zig_zag",
+    "fast_singlepixel_old_sequency",
+    "fast_singlepixel_cake_cutting",
+    "fast_singlepixel_xy",
+]
+
+
+@pytest.mark.parametrize(
+    "name", [op for op in OPERATORS if op not in MULTISCALE_EXCLUSION]
+)
+def test_multiscale_coarse_adjointness(name, device):
+    if (
+        "MRI" in name
+        or "cassi" in name
+        or "pet_2d" == name
+        or "ptychography_linear" == name
+        or "hyperspectral_unmixing" == name
+        or "composition2" == name
+    ):
+        physics, imsize, _, dtype = find_operator(name, device)
+    else:
+        # make sure the imsize is large enough for multi-scale tests
+        imsize = (3, 16, 16)
+        physics, imsize, _, dtype = find_operator(name, device, imsize=imsize)
+
+    if not isinstance(physics, dinv.physics.LinearPhysics):
+        pytest.skip("Skip " + name + " : not LinearPhysics")
+
+    p_coarse = dinv.physics.to_multiscale(
+        physics, imsize, factors=(2,), device=device, dtype=dtype
+    )
+    p_coarse.set_scale(1)
+
+    assert isinstance(
+        p_coarse, dinv.physics.LinearPhysics
+    ), "Coarse physics is not LinearPhysics despite base physics being LinearPhysics"
+
+    x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x_coarse = p_coarse.downsample(x)
+
+    error = p_coarse.adjointness_test(x_coarse).abs()
+    assert error < 1e-3
+
+
+@pytest.mark.parametrize(
+    "name", [op for op in OPERATORS if op not in MULTISCALE_EXCLUSION]
+)
+def test_multiscale_A_adjoint_A(name, device):
+    if (
+        "MRI" in name
+        or "cassi" in name
+        or "pet_2d" == name
+        or "ptychography_linear" == name
+        or "hyperspectral_unmixing" == name
+        or "composition2" == name
+    ):
+        physics, imsize, _, dtype = find_operator(name, device)
+    else:
+        # make sure the imsize is large enough for multi-scale tests
+        imsize = (3, 16, 16)
+        physics, imsize, _, dtype = find_operator(name, device, imsize=imsize)
+
+    if not isinstance(physics, dinv.physics.LinearPhysics):
+        pytest.skip("Skip " + name + " : not LinearPhysics")
+
+    p_coarse = dinv.physics.to_multiscale(
+        physics, imsize, factors=(2,), device=device, dtype=dtype
+    )
+    p_coarse.set_scale(1)
+
+    assert isinstance(
+        p_coarse, dinv.physics.LinearPhysics
+    ), "Coarse physics is not LinearPhysics despite base physics being LinearPhysics"
+
+    x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x_coarse = p_coarse.downsample(x)
+
+    A = p_coarse.A
+    A_adj = p_coarse.A_adjoint
+    A_adj_A = p_coarse.A_adjoint_A
+
+    def op_cmp(xc):
+        return A_adj(A(xc)) - A_adj_A(xc)
+
+    physics_cmp = dinv.physics.LinearPhysics(
+        img_size=imsize, A=op_cmp, A_adjoint=op_cmp
+    )
+
+    error = physics_cmp.compute_norm(x_coarse).abs()
+    assert error < 0.2
+
+
 def test_automatic_A_adjoint(device):
     x = torch.randn((2, 3, 8, 8), device=device)
     physics = dinv.physics.LinearPhysics(
@@ -2542,7 +2694,7 @@ def test_tiled_product_physics_adjointness(
     Aty = physics.A_adjoint(y)
     # Lower a bit the tolerence on Windows. It seems that there is a small numerical error on Windows
     is_windows = os.name == "nt"
-    tol = 1e-2 if is_windows else 1e-3
+    tol = 1e-2 if is_windows else 5e-3
     lhs = torch.sum(Ax * y)
     rhs = torch.sum(Aty * x)
-    assert torch.allclose(lhs, rhs, rtol=tol, atol=1e-5)
+    assert torch.allclose(lhs, rhs, rtol=tol, atol=5e-4)

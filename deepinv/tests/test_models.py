@@ -27,6 +27,7 @@ MODEL_LIST_1_CHANNEL = [
     "promptir",
     "ncsnpp",
     "adinv.modelsunet",
+    "deal",
     "ffdnet",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
@@ -139,6 +140,7 @@ def choose_denoiser(name, imsize):
             img_resolution=imsize[1],
             pretrained=None,
         )
+
     elif name == "adinv.modelsunet":
         out = dinv.models.ADMUNet(
             in_channels=imsize[0],
@@ -146,6 +148,18 @@ def choose_denoiser(name, imsize):
             img_resolution=imsize[1],
             pretrained=None,
         )
+
+    elif name == "deal":
+        out = dinv.models.DEAL(
+            sigma_denoiser=0.1,
+            lambda_reg=10.0,
+            max_iter=5,
+            auto_scale=False,
+            color=(imsize[0] == 3),
+            pretrained=None,
+        )
+    elif name == "ram":
+        out = dinv.models.RAM()
     elif name == "dsccp":
         out = dinv.models.DScCP()
     elif name == "bilateral":
@@ -350,6 +364,42 @@ def test_TV_models_identity():
     assert torch.allclose(x, x_hat, atol=1e-5)  # The model should be the identity
 
 
+def test_bm3d_consistency(load_example_image):
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
+    pytest.importorskip(
+        "bm3d",
+        reason="This test requires bm3d. It should be "
+        "installed with `pip install bm3d`",
+    )
+    # Load 2 example images
+    x1 = load_example_image(
+        "butterfly.png",
+        img_size=64,
+        resize_mode="resize",
+    )
+    x2 = load_example_image(
+        "celeba_example.jpg",
+        img_size=64,
+        resize_mode="resize",
+    )
+    x = torch.cat([x1, x2, x1], dim=0)
+    sigma = torch.tensor([0.1, 0.1, 0.1])
+    rng = torch.Generator().manual_seed(123)
+    y = x + sigma.view(-1, 1, 1, 1) * torch.randn(x.shape, generator=rng)
+    # Load BM3D
+    model_legacy = dinv.models.BM3D(use_legacy=True)
+    model_new = dinv.models.BM3D(use_legacy=False)
+    x_hat_legacy = model_legacy(y, sigma)
+    x_hat_new = model_new(y, sigma)
+    print(torch.max(torch.abs(x_hat_legacy - x_hat_new)))
+    assert torch.allclose(x_hat_legacy, x_hat_new, atol=1e-1)
+
+
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
     # NCSNpp and Adinv.modelsUnet only support imsize that divisible by 8
@@ -486,6 +536,7 @@ def test_denoiser_sigma_gray(batch_size, denoiser, device):
     img_size = (1, 64, 64)
     model = choose_denoiser(denoiser, img_size).to(device)
     noiser = dinv.physics.GaussianNoise()
+
     x = torch.ones((batch_size,) + img_size, device=device, dtype=torch.float32)
     # Same sigma for all image in the batch
     sigma = torch.tensor(0.1)
@@ -698,6 +749,17 @@ def test_drunet_inputs(dim, spatial_size, device):
     sigma_tensor = torch.tensor(sigma).to(device)
     x_hat = f(y, sigma_tensor)
     assert x_hat.shape == x.shape
+
+    # Case 5: sigma is a nn.Parameter with no dimension
+    sigma_param = torch.nn.Parameter(
+        torch.tensor(sigma, requires_grad=True, device=device)
+    )
+    x_hat = f(y, sigma_param)
+    assert x_hat.shape == x.shape
+
+    loss = x_hat.pow(2).mean()
+    loss.backward()
+    assert sigma_param.grad is not None
 
 
 @pytest.mark.parametrize(
@@ -1333,7 +1395,8 @@ def test_denoiser_perf(device, load_example_image):
 
     # Classical denoisers
     classical_denoisers = [
-        (dinv.models.BM3D(), (2.75, 7.5, 6.5)),
+        (dinv.models.BM3D(use_legacy=True).to(device), (2.7, 7.5, 6.5)),
+        (dinv.models.BM3D(use_legacy=False).to(device), (2.7, 7.5, 6.5)),
         (dinv.models.MedianFilter(kernel_size=5), (-9, 4.25, 2.5)),
         (dinv.models.TVDenoiser(), (1.5, 6.0, 4.0)),
         (dinv.models.TGVDenoiser(), (1.75, 6, 5.0)),
@@ -1387,15 +1450,13 @@ def test_denoiser_perf(device, load_example_image):
 @pytest.mark.parametrize("mode", ["real_imag", "abs_angle"])
 @pytest.mark.parametrize(
     "denoiser",
-    [dinv.models.DRUNet(pretrained="download"), dinv.models.RAM(pretrained=True)],
+    ["drunet", "ram"],
 )
 def test_denoiser_perf_noise_map(device, mode, denoiser):
-
+    denoiser = choose_denoiser(denoiser, imsize=(3, 64, 64)).to(device)
     # Save deterministic setting to restore it after the test
     prev_deterministic = torch.are_deterministic_algorithms_enabled()
     torch.use_deterministic_algorithms(True)
-
-    denoiser.to(device)
 
     # Load 2 example images
     x1 = dinv.utils.load_example(
@@ -1438,7 +1499,7 @@ def test_denoiser_perf_noise_map(device, mode, denoiser):
 
     assert torch.all(
         psnr_fn(x_hat_map, x) >= psnr_fn(x_hat_cst_map, x)
-    ), f"denoiser={type(denoiser).__name__} didn't perfom better with a noise map : psnr_map={psnr_fn(x_hat_map, x).tolist()}, psnr_cst_map={psnr_fn(x_hat_cst_map, x).tolist()}"
+    ), f"denoiser={type(denoiser).__name__} didn't perform better with a noise map : psnr_map={psnr_fn(x_hat_map, x).tolist()}, psnr_cst_map={psnr_fn(x_hat_cst_map, x).tolist()}"
 
     assert torch.all(
         x_hat_values == x_hat_cst_map
@@ -1862,7 +1923,7 @@ def test_super_resolution_nets(upscale_factor, n_channels, model):
             final_kernel_size=3,
         )
     else:
-        raise RuntimeError(f"Unknown super-resolution mdoel {model}")
+        raise RuntimeError(f"Unknown super-resolution model {model}")
     test_input = torch.ones([2, n_channels, 8, 8])
     model_output = super_resolver(
         test_input, physics=dinv.physics.Downsampling(filter=None)

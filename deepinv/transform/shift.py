@@ -34,17 +34,17 @@ class Shift(Transform):
         H_max, W_max = int(self.shift_max * H), int(self.shift_max * W)
 
         x_shift = (
-            torch.arange(-H_max, H_max, device=self.rng.device)[
-                torch.randperm(2 * H_max, generator=self.rng, device=self.rng.device)
-            ][: self.n_trans]
-            if H_max > 0
-            else torch.zeros(self.n_trans, device=x.device)
-        )
-        y_shift = (
             torch.arange(-W_max, W_max, device=self.rng.device)[
                 torch.randperm(2 * W_max, generator=self.rng, device=self.rng.device)
             ][: self.n_trans]
             if W_max > 0
+            else torch.zeros(self.n_trans, device=x.device)
+        )
+        y_shift = (
+            torch.arange(-H_max, H_max, device=self.rng.device)[
+                torch.randperm(2 * H_max, generator=self.rng, device=self.rng.device)
+            ][: self.n_trans]
+            if H_max > 0
             else torch.zeros(self.n_trans, device=x.device)
         )
 
@@ -66,8 +66,8 @@ class Shift(Transform):
         """
         return torch.cat(
             [
-                torch.roll(x, [sx, sy], [-2, -1])
-                for sx, sy in zip_longest(x_shift, y_shift, fillvalue=0)
+                torch.roll(x, [sy, sx], [-2, -1])
+                for sy, sx in zip_longest(y_shift, x_shift, fillvalue=0)
             ],
             dim=0,
         )

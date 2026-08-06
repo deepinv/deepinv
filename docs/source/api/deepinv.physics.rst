@@ -52,6 +52,7 @@ Operators
    deepinv.physics.SequentialMRI
    deepinv.physics.Tomography
    deepinv.physics.TomographyWithAstra
+   deepinv.physics.PET
    deepinv.physics.Pansharpen
    deepinv.physics.CompressiveSpectralImaging
    deepinv.physics.HyperSpectralUnmixing
@@ -68,6 +69,7 @@ Operators
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
    deepinv.physics.Scattering
+   deepinv.physics.to_multiscale
 
 
 Generators
@@ -182,6 +184,7 @@ Functional
    deepinv.physics.functional.bilinear_filter
    deepinv.physics.functional.bicubic_filter
    deepinv.physics.functional.sinc_filter
+   deepinv.physics.functional.liu_jia_pad
 
 
 .. autosummary::
