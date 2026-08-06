@@ -37,7 +37,7 @@ class OSEMIteration(OptimIterator):
         **kwargs,
     ) -> dict[str, tuple[torch.Tensor, None] | torch.Tensor | int | None]:
         r"""
-        Perform one Ordered-Subsets Expectation-Maximization epoch.
+        Perform one Ordered-Subsets Expectation-Maximization step.
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data fidelity.
