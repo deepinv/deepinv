@@ -106,7 +106,7 @@ jobs:
             TESTMON_FLAG=""
           fi
           set -x
-          pixi run -e full pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml:coverage-full.xml --cov-append $TESTMON_FLAG
+          pixi run -e full pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml:coverage-full.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest_report_${{ matrix.environment }}.xml
           set +x
 
       # Save the freshly-solved lock + .testmondata + .coverage as a single (atomic) matched
@@ -155,3 +155,11 @@ jobs:
         if: always()
         run: |
           rm -rf /local/jtachell/pixi
+
+      - name: Upload pytest report
+        id: upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-report-${{ matrix.environment }}
+          path: pytest_report_${{ matrix.environment }}.xml
+
