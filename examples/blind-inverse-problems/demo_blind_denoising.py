@@ -89,7 +89,7 @@ sigma_wavelet = wavelet_estimator(y)
 print("Wavelet-based noise level estimate: ", sigma_wavelet.item())
 
 # %%
-# We notice that this approach provides a signficantly better estimate of the noise level compared to the naive approach.
+# We notice that this approach provides a significantly better estimate of the noise level compared to the naive approach.
 # However, it tends to slightly over-estimate the noise level in this example. As noted in the original paper, this
 # is due to the presence of residual signal in the high-frequency wavelet coefficients (these are not only noise).
 #

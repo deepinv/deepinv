@@ -72,6 +72,7 @@ doc = [
     "sphinx_sitemap >= 2.6.0, != 2.7.0",
     "sphinxcontrib.bibtex",
     "nbformat",
+    "huggingface_hub",
 ]
 
 lint = [
@@ -119,7 +120,7 @@ dataset = [
     "blosc2",
     "tifffile",
     "rarfile",
-    "napari[all]",
+    "napari[optional]",
 ]
 
 # optional dependencies for training
@@ -139,7 +140,7 @@ platforms = ["linux-64", "win-64"]
 [tool.pixi.dependencies]
 python = "<3.13.0"
 numpy = "*"
-matplotlib = "*"
+matplotlib-base = "*"
 tqdm = "*"
 torchmetrics = "*"
 einops = "*"
@@ -191,7 +192,7 @@ transformers = "*"
 torchkbnufft = "*"
 array-api-compat = "*"
 sigpy = "*"
-parallelproj = ">=1.10.0"
+parallelproj = ">=1.10.0,<2.0.0"
 # spyrit is PyPI-only, stays in optional deps
 
 [tool.pixi.feature.physics-gpu.dependencies]
