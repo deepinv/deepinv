@@ -337,9 +337,6 @@ def load_example(
         - (3, 1024, 1024)
         - satellite
 
-    ``brainweb_pet_3d.pt`` returns a dictionary containing the emission map,
-    attenuation map, lesion mask, lesion centres, and voxel size.
-
 
     :param str name: filename of the image from the HuggingFace dataset.
     :param int, tuple[int] img_size: Size of the image to return.

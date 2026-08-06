@@ -1,7 +1,6 @@
 import shutil, os
 import sys
 import math
-from types import SimpleNamespace
 from typing import NamedTuple, Sequence, Mapping
 from pathlib import Path
 import PIL
@@ -1576,6 +1575,36 @@ def test_RandomPatchSampler(make_data):
     assert len(ds) == 2
     x, y = next(iter(ds))
     assert math.isnan(x)
+
+
+@pytest.mark.parametrize("lesion_diameters", [None, [15]])
+def test_brainweb_pet(tmp_path, lesion_diameters):
+    brainweb = pytest.importorskip("brainweb")
+
+    class RandomFDG(brainweb.FDG):
+        greyMatter = lambda: 120.0
+
+    dataset = BrainWebPET(
+        root=tmp_path,
+        pet_class=RandomFDG,
+        return_t1=True,
+        return_t2=True,
+        lesion_diameters=lesion_diameters,
+        lesion_intensities=[200],
+        lesion_blurs=[0],
+        lesion_threshold=30,
+        seed=0,
+    )
+    emission, params = dataset[0]
+
+    assert len(dataset) == 1
+    assert emission.shape == params["attenuation"].shape == params["t1"].shape
+    assert emission.shape == params["t2"].shape
+    assert emission.dtype == torch.float32
+    pet_class = dataset.brainweb_kwargs["PetClass"]
+    assert issubclass(pet_class, RandomFDG)
+    assert pet_class.greyMatter == 120.0
+    assert ("lesion_mask" in params) == bool(lesion_diameters)
 
 
 @pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])

@@ -1,14 +1,17 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import torch
 
 from deepinv.datasets.base import ImageDataset
 from deepinv.datasets.utils import resolve_root
+
+if TYPE_CHECKING:
+    import brainweb
 
 
 class BrainWebPET(ImageDataset):
@@ -22,15 +25,13 @@ class BrainWebPET(ImageDataset):
 
     Spatial intensity variation is disabled by default by setting ``pet_noise``,
     ``t1_noise``, and ``t2_noise`` to zero. The noise amplitudes and smoothing
-    scales can be configured independently, as can the PET intensity preset and
+    scales can be configured independently, as can the PET activity class and
     output resolution. The absolute emission values alone do not determine
     simulation SNR; forward-model sensitivity and the Poisson noise gain also
     contribute.
 
-    Passing ``lesion_kwargs`` adds lesions with ``brainweb.add_lesions`` and
-    includes a binary ``lesion_mask`` in the returned parameters. The mapping is
-    forwarded unchanged, so it can contain ``diam``, ``intensity``, ``blur``, or
-    any other argument accepted upstream.
+    Passing ``lesion_diameters`` adds lesions with ``brainweb.add_lesions`` and
+    includes a binary ``lesion_mask`` in the returned parameters.
 
     :param str, pathlib.Path, None root: Dataset directory. Defaults to the
         DeepInv cache.
@@ -60,13 +61,17 @@ class BrainWebPET(ImageDataset):
         random intensity field. Defaults to ``0``.
     :param str outres: BrainWeb output resolution. Valid values are ``"mMR"``
         (default), ``"MR"``, and ``"brainweb"``.
-    :param str pet_class: PET intensity preset. Must be ``"FDG"`` (default) or
-        ``"Amyloids"``. The FDG preset uses white matter ``32``, grey matter
-        ``128``, skin ``16``, hot ``192``, and cold ``16``; the Amyloids preset
-        uses white matter ``29``, grey matter ``66``, skin ``35``, hot ``99``,
-        and cold ``14.5``.
-    :param collections.abc.Mapping, None lesion_kwargs: Arguments forwarded to
-        ``brainweb.add_lesions``. By default, no lesions are added.
+    :param type[brainweb.Act], None pet_class: BrainWeb PET activity class. Defaults to
+        ``brainweb.FDG``. Zero-argument callables used as activities are sampled
+        when the dataset is initialized.
+    :param list[float], None lesion_diameters: Lesion diameters in mm. Defaults
+        to ``None``, which adds no lesions.
+    :param list[float], None lesion_intensities: Peak lesion activities. Uses
+        the BrainWeb defaults when ``None``.
+    :param list[float], None lesion_blurs: Lesion Gaussian FWHMs in mm. Uses the
+        BrainWeb defaults when ``None``.
+    :param float, None lesion_threshold: Minimum activity on which to place a
+        lesion. Uses the BrainWeb default when ``None``.
     :param int, None seed: Seed used by ``brainweb`` when adding lesions. A
         subject-specific seed is used for deterministic lesions by default.
 
@@ -74,13 +79,17 @@ class BrainWebPET(ImageDataset):
 
     :Example:
 
+    >>> import brainweb
+    >>> import numpy as np
     >>> from deepinv.datasets import BrainWebPET
+    >>> class RandomFDG(brainweb.FDG):
+    ...     greyMatter = lambda: np.random.normal(128, 8)
     >>> dataset = BrainWebPET(
     ...     root="data/brainweb_pet",
     ...     pet_noise=0.5,
     ...     pet_sigma=2,
-    ...     pet_class="Amyloids",
-    ...     lesion_kwargs={"diam": [15, 7]},
+    ...     pet_class=RandomFDG,
+    ...     lesion_diameters=[15, 7],
     ... )
     >>> emission, params = dataset[0]
     >>> emission.shape == params["attenuation"].shape
@@ -93,7 +102,7 @@ class BrainWebPET(ImageDataset):
         subject_ids: int | Sequence[int] = 4,
         download: bool = True,
         transform: Callable | None = None,
-        pet_class: Literal["FDG", "Amyloids"] = "FDG",
+        pet_class: type[brainweb.Act] | None = None,
         return_t1: bool = False,
         return_t2: bool = False,
         pet_noise: float = 0.0,
@@ -103,7 +112,10 @@ class BrainWebPET(ImageDataset):
         t1_sigma: float = 0.0,
         t2_sigma: float = 0.0,
         outres: Literal["mMR", "MR", "brainweb"] = "mMR",
-        lesion_kwargs: Mapping | None = None,
+        lesion_diameters: list[float] | None = None,
+        lesion_intensities: list[float] | None = None,
+        lesion_blurs: list[float] | None = None,
+        lesion_threshold: float | None = None,
         seed: int | None = 0,
     ) -> None:
         try:
@@ -114,8 +126,14 @@ class BrainWebPET(ImageDataset):
                 "`pip install deepinv[dataset]`."
             ) from error
 
-        if pet_class not in ("FDG", "Amyloids"):
-            raise ValueError("pet_class must be either 'FDG' or 'Amyloids'.")
+        pet_class = brainweb.FDG if pet_class is None else pet_class
+        activities = {}
+        for name in (*pet_class.attrs, "hot", "cold"):
+            value = getattr(pet_class, name, None)
+            if callable(value):
+                activities[name] = value()
+        if activities:
+            pet_class = type(pet_class.__name__, (pet_class,), activities)
 
         self._brainweb = brainweb
         self.root = resolve_root(root, "BrainWebPET")
@@ -155,10 +173,18 @@ class BrainWebPET(ImageDataset):
             "t2Sigma": t2_sigma,
             "outres": outres,
         }
-        self.brainweb_kwargs["PetClass"] = getattr(
-            brainweb, "FDG" if pet_class == "FDG" else "Amyloid"
+        self.brainweb_kwargs["PetClass"] = pet_class
+        self.lesion_kwargs = (
+            {
+                "diam": lesion_diameters,
+                "intensity": lesion_intensities,
+                "blur": lesion_blurs,
+                "thresh": lesion_threshold,
+                "PetClass": pet_class,
+            }
+            if lesion_diameters
+            else None
         )
-        self.lesion_kwargs = None if lesion_kwargs is None else dict(lesion_kwargs)
         self.seed = seed
 
     def __len__(self) -> int:

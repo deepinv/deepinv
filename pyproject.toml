@@ -109,7 +109,7 @@ physics = [
 
 # optional dependencies for specific datasets
 dataset = [
-    "brainweb>=1.7.0",
+    "brainweb==1.7.0",
     "datasets>=3.5.0",
     "pandas",
     "pydicom",
@@ -176,7 +176,7 @@ pydicom = "*"
 # brainweb and mat73 are PyPI-only, stay in optional deps
 
 [tool.pixi.feature.dataset.pypi-dependencies]
-brainweb = ">=1.7.0"
+brainweb = "==1.7.0"
 
 [tool.pixi.feature.denoisers.dependencies]
 scipy = "*"
