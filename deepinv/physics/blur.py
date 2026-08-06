@@ -582,6 +582,16 @@ _WIENER_VALID_PRIORS = (None, "flat", "laplacian")
 _WIENER_EPS_CLAMP = 1e-9
 
 
+def _is_frequency_dependent(lambda_reg: float | Tensor) -> bool:
+    r"""Return ``True`` when ``lambda_reg`` carries one value per frequency.
+
+    A 0-dim tensor holds a single value, so it is treated as a scalar rather
+    than as a per-frequency weight: ``prior`` still applies to it, and
+    ``torch.tensor(0.0)`` still means no regularisation.
+    """
+    return isinstance(lambda_reg, Tensor) and lambda_reg.dim() > 0
+
+
 def _build_laplacian_gamma(
     lambda_reg: float,
     physics: "BlurFFT",
@@ -700,7 +710,9 @@ def _lambda_to_gamma(
     r"""Convert the user-facing ``lambda_reg`` into the ``gamma`` expected by ``prox_l2``.
 
     With :math:`z = 0`,
-    :meth:`~deepinv.physics.DecomposablePhysics.prox_l2` minimises
+    :meth:`~deepinv.physics.DecomposablePhysics.prox_l2` minimises the
+    following in the SVD basis of :math:`A`, which for
+    :class:`~deepinv.physics.BlurFFT` is the Fourier basis :math:`F`:
 
     .. math::
 
@@ -709,12 +721,13 @@ def _lambda_to_gamma(
     so ``gamma`` enters inversely: larger values mean weaker regularisation.
     ``lambda_reg`` follows the opposite convention, used elsewhere in
     DeepInverse (see :mod:`deepinv.optim`), where larger means stronger.
-    Comparing the two forms gives :math:`\gamma = 1 / \lambda`, element-wise
-    when either is a tensor.
+    Comparing the two forms gives :math:`\gamma = 1 / \lambda`, element-wise,
+    where :math:`\lambda` is the effective per-frequency weight that
+    ``lambda_reg`` and ``prior`` define together.
 
-    This is the single place where that inversion is performed, so that
+    This is the single entry point for that conversion, so
     :meth:`BlurFFT.A_dagger` and :class:`deepinv.models.WienerDeconvolution`
-    cannot drift apart.
+    stay consistent.
 
     .. note::
 
@@ -733,7 +746,7 @@ def _lambda_to_gamma(
     :rtype: float or torch.Tensor
     :raises ValueError: If ``prior`` is not one of ``(None, "flat", "laplacian")``.
     """
-    if isinstance(lambda_reg, Tensor):
+    if _is_frequency_dependent(lambda_reg):
         # Frequency-dependent NSR: gamma(f) = 1 / lambda(f).
         # Clamping avoids a division by zero: lambda_reg = 0 at a given
         # frequency means "no noise there", i.e. gamma -> infinity, so the
@@ -742,7 +755,7 @@ def _lambda_to_gamma(
         return 1.0 / lambda_reg.clamp(min=_WIENER_EPS_CLAMP)
 
     if prior in (None, "flat"):
-        # Scalar lambda_reg with flat prior: gamma = 1/lambda_reg.
+        # Flat prior: a single scalar weight at every frequency.
         return 1.0 / lambda_reg
 
     if prior == "laplacian":
@@ -756,13 +769,17 @@ def _lambda_to_gamma(
 
 
 def _is_zero_lambda(lambda_reg: float | Tensor) -> bool:
-    r"""Return ``True`` when ``lambda_reg`` is the scalar zero (no regularisation).
+    r"""Return ``True`` when ``lambda_reg`` is a scalar zero (no regularisation).
 
-    A tensor ``lambda_reg`` is never treated as "no regularisation", even if all
-    of its entries are zero: it is clamped element-wise by
+    A per-frequency ``lambda_reg`` is never treated as "no regularisation", even
+    if all of its entries are zero: it is clamped element-wise by
     :func:`_lambda_to_gamma` instead.
     """
-    return not isinstance(lambda_reg, Tensor) and lambda_reg == 0
+    if _is_frequency_dependent(lambda_reg):
+        return False
+    # bool() because ``torch.tensor(0.0) == 0`` evaluates to a tensor.  It is
+    # safe here: multi-element tensors were excluded above.
+    return bool(lambda_reg == 0)
 
 
 class BlurFFT(DecomposablePhysics):

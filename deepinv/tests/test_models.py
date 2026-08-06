@@ -2067,6 +2067,38 @@ def test_wiener_frequency_dependent_nsr(wiener_denoise_impulse):
     assert killed < 0.1, f"High frequencies should be suppressed, got {killed:.4f}"
 
 
+@pytest.mark.parametrize("prior", [None, "laplacian"])
+def test_wiener_zero_dim_tensor_lambda_matches_scalar(wiener_blur_1ch, prior):
+    """A 0-dim tensor lambda_reg behaves exactly like the float of that value.
+
+    It holds a single value, so prior must still apply to it and
+    torch.tensor(0.0) must still mean no regularisation.
+    """
+    x = torch.randn(1, 1, 16, 16)
+    y = wiener_blur_1ch.A(x)
+
+    with torch.no_grad():
+        x_float = dinv.models.WienerDeconvolution(lambda_reg=0.5, prior=prior)(
+            y, wiener_blur_1ch
+        )
+        x_tensor = dinv.models.WienerDeconvolution(
+            lambda_reg=torch.tensor(0.5), prior=prior
+        )(y, wiener_blur_1ch)
+    assert torch.allclose(x_float, x_tensor, atol=1e-6), (
+        f"0-dim tensor lambda_reg differs from the equivalent float: max diff = "
+        f"{(x_float - x_tensor).abs().max()}"
+    )
+
+    # tensor(0.0) short-circuits to the pseudo-inverse, as the float does.
+    with torch.no_grad():
+        x_zero = dinv.models.WienerDeconvolution(
+            lambda_reg=torch.tensor(0.0), prior=prior
+        )(y, wiener_blur_1ch)
+    assert torch.equal(
+        x_zero, wiener_blur_1ch.A_dagger(y)
+    ), "lambda_reg=tensor(0.0) should delegate exactly to the pseudo-inverse"
+
+
 @pytest.mark.parametrize(
     "physics_name,lambda_kind,prior,match",
     [

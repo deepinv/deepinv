@@ -132,14 +132,15 @@ class WienerDeconvolution(Reconstructor):
 
         - If a **scalar** ``float``, it is combined with ``prior``
           (as detailed above).  Setting ``lambda_reg=0`` returns the
-          pseudo-inverse (no regularisation).
-        - If a :class:`torch.Tensor`, it is a frequency-dependent NSR
-          (noise-to-signal PSD ratio, :math:`\lambda(f) = S_n(f) / S_x(f)`),
-          and ``prior`` is ignored.  It must be 4-D, of shape
-          ``(B, C, H, W // 2 + 1)``, the half spectrum returned by
-          :func:`torch.fft.rfft2`; ``B`` and ``C`` may be ``1`` to broadcast.
-          Entries equal to zero are clamped to a small positive value to avoid
-          a division by zero.
+          pseudo-inverse (no regularisation).  A 0-dim tensor holds a single
+          value and is treated the same way.
+        - If a :class:`torch.Tensor` with one or more dimensions, it is a
+          frequency-dependent NSR (noise-to-signal PSD ratio,
+          :math:`\lambda(f) = S_n(f) / S_x(f)`), and ``prior`` is ignored.  It
+          must be 4-D, of shape ``(B, C, H, W // 2 + 1)``, the half spectrum
+          returned by :func:`torch.fft.rfft2`; ``B`` and ``C`` may be ``1`` to
+          broadcast.  Entries equal to zero are clamped to a small positive
+          value to avoid a division by zero.
 
     :param str, None prior: Regularisation prior.  Only used when ``lambda_reg``
         is a scalar.  Default: ``"laplacian"``.
