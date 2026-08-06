@@ -2290,7 +2290,7 @@ class MLEM(BaseOptim):
 
     .. note::
 
-        By default, the alogrithm is initialized with a tensor of ones with the same
+        By default, the algorithm is initialized with a tensor of ones with the same
         shape as :math:`A^T y`. This can be overridden using ``custom_init``.
 
     :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity term.
@@ -2412,7 +2412,7 @@ class OSEM(BaseOptim):
 
     .. note::
 
-        Only :class:`deepinv.physics.Tomograph`, :class:`deepinv.physics.TomographyWithAstra`
+        Only :class:`deepinv.physics.Tomography`, :class:`deepinv.physics.TomographyWithAstra`
         and :class:`deepinv.physics.PET` are currently supported for OSEM.
 
     .. note::
@@ -2431,7 +2431,7 @@ class OSEM(BaseOptim):
 
     .. note::
 
-        By default, the alogrithm is initialized with a tensor of ones with the same
+        By default, the algorithm is initialized with a tensor of ones with the same
         shape as :math:`A^T y`. This can be overridden using `custom_init`.
 
     :param int num_subsets: number of ordered subsets used when splitting a full
