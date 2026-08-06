@@ -10,32 +10,24 @@ from deepinv.physics.tomography import Tomography, TomographyWithAstra
 from deepinv.utils.tensorlist import TensorList
 
 
-def get_subset_angles(
-    angles: torch.Tensor,
+def get_subset_tensor(
+    tensor: torch.Tensor,
     num_subsets: int,
 ) -> list[torch.Tensor]:
-    r"""Return indices that interleave angles into equal subsets.
+    r"""Return indices that interleave a tensor into equal subsets.
 
-    :param torch.Tensor angles: acquisition angles of shape ``(num_angles,)``.
+    :param torch.Tensor tensor: tensor containing angles or geometry vectors to split along its first dimension.
     :param int num_subsets: number of subsets.
     :return: list of index tensors.
     """
-    indices = torch.arange(len(angles), device=angles.device)
-    return list(indices.reshape(-1, num_subsets).T)
+    if not isinstance(num_subsets, int) or num_subsets < 1:
+        raise ValueError("num_subsets must be a positive integer.")
+    if num_subsets > len(tensor):
+        raise ValueError("num_subsets cannot exceed the number of views.")
+    if len(tensor) % num_subsets != 0:
+        raise ValueError("Tensor length must be divisible by num_subsets.")
 
-
-def get_subset_vectors(
-    geometry_vectors: torch.Tensor,
-    num_subsets: int,
-) -> list[torch.Tensor]:
-    r"""Return indices that interleave ASTRA vectors into equal subsets.
-
-    :param torch.Tensor geometry_vectors: ASTRA geometry vectors of shape
-        ``(num_views, 12)``.
-    :param int num_subsets: number of subsets.
-    :return: list of index tensors.
-    """
-    indices = torch.arange(len(geometry_vectors), device=geometry_vectors.device)
+    indices = torch.arange(len(tensor), device=tensor.device)
     return list(indices.reshape(-1, num_subsets).T)
 
 
@@ -67,20 +59,18 @@ def split_measurements(
     :return: measurements as a :class:`deepinv.utils.TensorList`.
     """
     if isinstance(physics, Tomography):
-        indices = get_subset_angles(physics.angles, num_subsets)
+        indices = get_subset_tensor(physics.angles, num_subsets)
         dim = -1
     elif isinstance(physics, TomographyWithAstra):
         angles = physics.angles
         if angles is not None:
-            indices = get_subset_angles(angles, num_subsets)
+            indices = get_subset_tensor(angles, num_subsets)
         else:
-            geometry_vectors = torch.as_tensor(
-                physics.projection_geometry["Vectors"], device=y.device
-            )
-            indices = get_subset_vectors(geometry_vectors, num_subsets)
+            geometry_vectors = physics.geometry_vectors
+            indices = get_subset_tensor(geometry_vectors, num_subsets)
         dim = -2
     elif isinstance(physics, PET):
-        indices = get_subset_angles(physics.views, num_subsets)
+        indices = get_subset_tensor(physics.views, num_subsets)
         dim = 2 + physics.proj.lor_descriptor.view_axis_num
     else:
         raise TypeError(
@@ -118,32 +108,76 @@ def split_physics(
 
     if isinstance(physics, Tomography):
         subset_physics = [
-            physics.clone(angles=physics.angles.index_select(0, idx))
-            for idx in get_subset_angles(physics.angles, num_subsets)
+            Tomography(
+                angles=physics.angles.index_select(0, idx),
+                img_width=physics.img_width,
+                circle=physics.radon.circle,
+                parallel_computation=physics.radon.parallel_computation,
+                adjoint_via_backprop=physics.adjoint_via_backprop,
+                fbp_interpolate_boundary=physics.fbp_interpolate_boundary,
+                normalize=False,
+                fan_beam=physics.fan_beam,
+                fan_parameters=physics.radon.fan_parameters,
+                device=physics.device,
+                dtype=physics.dtype,
+            )
+            for idx in get_subset_tensor(physics.angles, num_subsets)
         ]
 
     elif isinstance(physics, TomographyWithAstra):
         angles = physics.angles
         if angles is not None:
             subset_physics = [
-                physics.clone(angles=angles.index_select(0, idx))
-                for idx in get_subset_angles(angles, num_subsets)
+                TomographyWithAstra(
+                    img_size=physics.img_size,
+                    angles=angles.index_select(0, idx),
+                    angular_range=physics.angular_range,
+                    n_detector_pixels=physics.n_detector_pixels,
+                    detector_spacing=physics.detector_spacing,
+                    pixel_spacing=physics.pixel_spacing,
+                    bounding_box=physics.bounding_box,
+                    geometry_type=physics.geometry_type,
+                    geometry_parameters=physics.geometry_parameters,
+                    normalize=False,
+                    device=physics.device,
+                )
+                for idx in get_subset_tensor(angles, num_subsets)
             ]
         else:
-            geometry_vectors = torch.as_tensor(
-                physics.projection_geometry["Vectors"], device=physics.device
-            )
+            geometry_vectors = physics.geometry_vectors
             subset_physics = [
-                physics.clone(geometry_vectors=geometry_vectors.index_select(0, idx))
-                for idx in get_subset_vectors(geometry_vectors, num_subsets)
+                TomographyWithAstra(
+                    img_size=physics.img_size,
+                    angles=torch.arange(len(idx), device=physics.device),
+                    angular_range=physics.angular_range,
+                    n_detector_pixels=physics.n_detector_pixels,
+                    detector_spacing=physics.detector_spacing,
+                    pixel_spacing=physics.pixel_spacing,
+                    bounding_box=physics.bounding_box,
+                    geometry_type=physics.geometry_type,
+                    geometry_parameters=physics.geometry_parameters,
+                    geometry_vectors=geometry_vectors.index_select(0, idx),
+                    normalize=False,
+                    device=physics.device,
+                )
+                for idx in get_subset_tensor(geometry_vectors, num_subsets)
             ]
 
     else:
-        indices = get_subset_angles(physics.views, num_subsets)
+        indices = get_subset_tensor(physics.views, num_subsets)
         view_dim = 2 + physics.proj.lor_descriptor.view_axis_num
         background_scale = physics.operator_norm if physics.normalize else 1.0
         subset_physics = [
-            physics.clone(
+            PET(
+                img_size=physics.img_size,
+                voxel_size=physics.voxel_size,
+                fwhm_data_mm=physics.fwhm_data_mm,
+                scanner=physics.scanner,
+                radial_trim=physics.radial_trim,
+                gain=physics.noise_model.gain.detach().clone(),
+                normalize=False,
+                normalize_counts=bool(physics.noise_model.normalize),
+                device=physics.background.device,
                 views=physics.views.index_select(0, idx.to(physics.views.device)),
                 background=physics.background.index_select(
                     view_dim, idx.to(physics.background.device)

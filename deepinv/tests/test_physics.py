@@ -1473,22 +1473,6 @@ def test_tomography(
     ), f"error: {error} > {r_tol}, fanbeam={fan_beam}, circle={circle}, fbp_interpolate_boundary={fbp_interpolate_boundary}, normalize={normalize}, adjoint_via_backprop={adjoint_via_backprop}, parallel_computation={parallel_computation}, fbp_pseudo_inverse={fbp_pseudo_inverse}"
 
 
-def test_pet_clone(device):
-    pytest.importorskip("parallelproj")
-    physics = dinv.physics.PET(img_size=(8, 8), normalize=False, device=device)
-    physics.normalize = True
-    physics.operator_norm.fill_(2.0)
-
-    physics_clone = physics.clone()
-    assert physics_clone.normalize is False
-    assert torch.equal(
-        physics_clone.operator_norm, torch.ones_like(physics_clone.operator_norm)
-    )
-    assert physics_clone.views.data_ptr() != physics.views.data_ptr()
-    assert physics_clone.background.data_ptr() != physics.background.data_ptr()
-    assert physics_clone.attenuation.data_ptr() != physics.attenuation.data_ptr()
-
-
 @pytest.mark.parametrize(
     "padding", ("valid", "constant", "circular", "reflect", "replicate")
 )
@@ -2135,12 +2119,10 @@ def test_adjoint_autograd(name, device):
     "name", OPERATORS + NONLINEAR_OPERATORS + PHASE_RETRIEVAL_OPERATORS
 )
 def test_clone(name, device):
-    if name in ("2DParallelBeamCT", "2DFanBeamCT", "pet_2d", "pet_3d"):
-        pytest.skip(
-            "Tomography and PET clones intentionally return unnormalized operators."
-        )
     if name in OPERATORS:
         physics, imsize, _, dtype = find_operator(name, device)
+        if "pet" in name:
+            pytest.skip("PET operators cannot be cloned due to parallelproj.")
     elif name in NONLINEAR_OPERATORS:
         if name == "haze":
             pytest.skip(

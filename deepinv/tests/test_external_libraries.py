@@ -113,6 +113,13 @@ class TestTomographyWithAstra:
                 device=device,
             )
 
+        assert physics.img_size == img_size
+        assert physics.n_detector_pixels == n_detector_pixels
+        assert physics.detector_spacing == (1.0 if is_2d else (1.0, 1.0))
+        assert physics.pixel_spacing == (1.0 if is_2d else (1.0, 1.0, 1.0))
+        assert physics.bounding_box is None
+        assert physics.geometry_vectors is None
+
         x = torch.rand(1, channels, *img_size, device=device)
 
         if device != "cuda":

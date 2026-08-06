@@ -205,28 +205,6 @@ class Tomography(LinearPhysics):
 
         self.to(device)
 
-    def clone(self, angles: int | torch.Tensor | None = None) -> "Tomography":
-        """Create an unnormalized operator, optionally replacing its angles."""
-        clone_angles = self.angles.detach().clone() if angles is None else angles
-        fan_parameters = (
-            None
-            if self.radon.fan_parameters is None
-            else dict(self.radon.fan_parameters)
-        )
-        return Tomography(
-            angles=clone_angles,
-            img_width=self.img_width,
-            circle=self.radon.circle,
-            parallel_computation=self.radon.parallel_computation,
-            adjoint_via_backprop=self.adjoint_via_backprop,
-            fbp_interpolate_boundary=self.fbp_interpolate_boundary,
-            normalize=False,
-            fan_beam=self.fan_beam,
-            fan_parameters=fan_parameters,
-            device=self.angles.device,
-            dtype=self.dtype,
-        )
-
     @property
     def theta(self) -> torch.Tensor:
         warn(
@@ -605,7 +583,6 @@ class TomographyWithAstra(LinearPhysics):
             geometry_parameters=geometry_parameters,
             geometry_vectors=geometry_vectors,
         )
-
         self.xray_transform = XrayTransform(
             object_geometry=self.object_geometry,
             projection_geometry=self.projection_geometry,
@@ -637,52 +614,6 @@ class TomographyWithAstra(LinearPhysics):
 
         self.to(device)
 
-    def clone(
-        self,
-        angles: int | torch.Tensor | None = None,
-        geometry_vectors: torch.Tensor | None = None,
-    ) -> "TomographyWithAstra":
-        """Create an unnormalized operator with the same reconstruction geometry.
-
-        Optionally replace its angles or 3D geometry vectors.
-        """
-        is_vector_geometry = "vec" in self.projection_geometry["type"]
-        if is_vector_geometry:
-            if angles is not None:
-                raise ValueError(
-                    "angles can only be supplied for angle-based geometries."
-                )
-            if geometry_vectors is None:
-                geometry_vectors = torch.as_tensor(
-                    self.projection_geometry["Vectors"], device=self.device
-                )
-            clone_angles = torch.arange(
-                len(geometry_vectors), device=geometry_vectors.device
-            )
-        else:
-            if geometry_vectors is not None:
-                raise ValueError(
-                    "geometry_vectors can only be supplied for vector-based geometries."
-                )
-            clone_angles = self.angles if angles is None else angles
-
-        clone = TomographyWithAstra(
-            img_size=self.img_size,
-            angles=clone_angles,
-            angular_range=self.angular_range,
-            n_detector_pixels=self.n_detector_pixels,
-            detector_spacing=self.detector_spacing,
-            pixel_spacing=self.pixel_spacing,
-            bounding_box=self.bounding_box,
-            geometry_type=self.geometry_type,
-            geometry_parameters=self.geometry_parameters,
-            geometry_vectors=geometry_vectors,
-            normalize=False,
-            device=self.device,
-        )
-
-        return clone
-
     @property
     def measurement_shape(self) -> tuple[int, ...]:
         if self.is_2d:
@@ -706,6 +637,13 @@ class TomographyWithAstra(LinearPhysics):
                 self.projection_geometry["ProjectionAngles"], device=self.device
             )
         )
+
+    @property
+    def geometry_vectors(self) -> torch.Tensor | None:
+        """ASTRA projection geometry vectors, or ``None`` for angle geometries."""
+        if "vec" not in self.projection_geometry["type"]:
+            return None
+        return torch.as_tensor(self.projection_geometry["Vectors"], device=self.device)
 
     def fbp_weighting(self, sinogram: torch.Tensor) -> torch.Tensor:
         r"""Scales the computation by the inverse number of views and

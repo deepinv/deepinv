@@ -2585,21 +2585,21 @@ class OSEM(BaseOptim):
                     message="Subsetted physics cannot be normalized.*",
                     category=UserWarning,
                 )
-                subset_physics = split_physics(physics, self.num_subsets)
+                subsetted_physics = split_physics(physics, self.num_subsets)
             y_subsets = split_measurements(y, physics, self.num_subsets)
 
-            physics = subset_physics
+            physics = subsetted_physics
             y = y_subsets
 
             if operator_norm is not None:
                 # Keep subset projections in the same normalized domain as y.
-                for cur_physics in physics:
-                    cur_physics.register_buffer(
+                for subset_physic in physics:
+                    subset_physic.register_buffer(
                         "operator_norm", operator_norm.detach().clone()
                     )
-                    cur_physics.normalize = True
-                    if hasattr(cur_physics, "background"):
-                        cur_physics.background /= operator_norm
+                    subset_physic.normalize = True
+                    if hasattr(subset_physic, "background"):
+                        subset_physic.background /= operator_norm
 
         # Need to update the PoissonLikelihood data-fidelity with the background
         # for PET physics
@@ -2609,7 +2609,7 @@ class OSEM(BaseOptim):
                     stacked_data_fidelity.data_fidelity_list[0], PoissonLikelihood
                 ):
                     continue
-                for i, (subset_data_fidelity, subset_physics) in enumerate(
+                for i, (data_fidelity, subset_physic) in enumerate(
                     zip(
                         stacked_data_fidelity.data_fidelity_list,
                         physics,
@@ -2617,15 +2617,15 @@ class OSEM(BaseOptim):
                     )
                 ):
                     stacked_data_fidelity.data_fidelity_list[i] = PoissonLikelihood(
-                        gain=subset_data_fidelity.gain,
-                        bkg=subset_physics.background / subset_data_fidelity.gain,
-                        denormalize=subset_data_fidelity.d.denormalize,
+                        gain=data_fidelity.gain,
+                        bkg=subset_physic.background / data_fidelity.gain,
+                        denormalize=data_fidelity.d.denormalize,
                     )
 
         with torch.no_grad():
             sensitivities = [
-                cur_physics.A_adjoint(torch.ones_like(cur_y))
-                for cur_y, cur_physics in zip(y, physics, strict=True)
+                subset_physic.A_adjoint(torch.ones_like(subset_y))
+                for subset_y, subset_physic in zip(y, physics, strict=True)
             ]
         return super().forward(y, physics, sensitivities=sensitivities, *args, **kwargs)
 

@@ -17,7 +17,7 @@ ALL_CONV_PADDING = ("valid", "circular", "zeros", "replicate", "reflect")
         dinv.physics.PET,
     ],
 )
-def test_subset_utilities(physics_class, device):
+def test_tomography_subsets(physics_class, device):
     if physics_class is dinv.physics.PET:
         pytest.importorskip("parallelproj")
         physics = dinv.physics.PET(img_size=(8, 8), normalize=False, device=device)
@@ -40,25 +40,39 @@ def test_subset_utilities(physics_class, device):
     num_angles = 8
     num_subsets = 4
 
-    def make_physics(normalize):
-        if physics_class is dinv.physics.Tomography:
-            return physics_class(
-                img_width=img_width,
-                angles=num_angles,
-                device=device,
-                circle=True,
-                normalize=normalize,
-                parallel_computation=False,
-            )
-        return physics_class(
+    if physics_class is dinv.physics.Tomography:
+        physics = physics_class(
+            img_width=img_width,
+            angles=num_angles,
+            device=device,
+            circle=True,
+            normalize=False,
+            parallel_computation=False,
+        )
+        normalized_physics = physics_class(
+            img_width=img_width,
+            angles=num_angles,
+            device=device,
+            circle=True,
+            normalize=True,
+            parallel_computation=False,
+        )
+    else:
+        physics = physics_class(
             img_size=(img_width, img_width),
             angles=num_angles,
             n_detector_pixels=img_width,
             device=device,
-            normalize=normalize,
+            normalize=False,
+        )
+        normalized_physics = physics_class(
+            img_size=(img_width, img_width),
+            angles=num_angles,
+            n_detector_pixels=img_width,
+            device=device,
+            normalize=True,
         )
 
-    physics = make_physics(normalize=False)
     x = torch.rand(
         (1, 1, img_width, img_width),
         generator=torch.Generator(device).manual_seed(0),
@@ -66,18 +80,13 @@ def test_subset_utilities(physics_class, device):
     )
     y = physics.A(x)
 
-    physics_clone = physics.clone()
-    assert physics_clone.normalize is False
-    assert physics_clone.angles.data_ptr() != physics.angles.data_ptr()
-    assert torch.allclose(physics_clone.A(x), y)
-
     angles = torch.arange(num_angles, device=device)
     geometry_vectors = torch.arange(num_angles * 12, device=device).reshape(
         num_angles, 12
     )
 
-    angle_indices = dinv.physics.get_subset_angles(angles, num_subsets)
-    vector_indices = dinv.physics.get_subset_vectors(geometry_vectors, num_subsets)
+    angle_indices = dinv.physics.get_subset_tensor(angles, num_subsets)
+    vector_indices = dinv.physics.get_subset_tensor(geometry_vectors, num_subsets)
     assert len(angle_indices) == num_subsets
     assert len(vector_indices) == num_subsets
     expected_indices = torch.tensor([[0, 4], [1, 5], [2, 6], [3, 7]], device=device)
@@ -111,15 +120,6 @@ def test_subset_utilities(physics_class, device):
         rtol=1e-5,
     )
 
-    normalized_physics = make_physics(normalize=True)
-    normalized_clone = normalized_physics.clone()
-    assert normalized_clone.normalize is False
-    assert not hasattr(normalized_clone, "operator_norm")
-    assert torch.allclose(
-        normalized_clone.A(x),
-        normalized_physics.A(x) * normalized_physics.operator_norm,
-        atol=1e-5,
-    )
     with pytest.warns(
         UserWarning,
         match="Subsetted physics cannot be normalized.*Divide the output",
