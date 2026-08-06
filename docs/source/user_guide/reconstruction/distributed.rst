@@ -1,7 +1,7 @@
-.. _distributed:
+.. _distributed-reconstruction:
 
-Distributed Computing
-=====================
+Distributed Reconstruction
+==========================
 
 For large-scale inverse problems, the memory and compute of a single device might not be enough.
 The distributed computing framework enables efficient parallel processing across multiple GPUs by distributing physics operators and computations across multiple processes.
@@ -16,8 +16,8 @@ The framework provides an API centered around two key functions:
     The distributed framework is particularly useful when:
     
     - *Multiple physics operators* with individual measurements need to be processed in parallel
-    - *Large images* are too large to fit in a single device's memory
-    - *Denoising priors* need to be applied to large images using spatial tiling
+    - *Large images or volumes* are too large to be processed in a single device's memory
+    - *Denoising priors* need to be applied to large images or volumes using spatial tiling
     - You want to *accelerate reconstruction* by leveraging multiple devices
 
 
@@ -325,7 +325,7 @@ Tiling Parameters
    * - ``overlap``
      - Overlap radius for smooth blending (default: 64).
    * - ``tiling_strategy``
-     - Strategy for tiling: ``'overlap_tiling'`` (default), or ``'basic'``
+     - Strategy for tiling: (default: None, which uses the default overlap tiling strategy). You can implement custom strategies by subclassing :class:`deepinv.distributed.strategies.DistributedSignalStrategy`.
    * - ``max_batch_size``
      - Max patches per batch (default: all). Set to 1 for sequential processing (lowest memory)
 
@@ -335,10 +335,7 @@ Tiling Strategies
 .. code-block:: python
 
     # Tiling with overlap (default)
-    dist_denoiser = distribute(denoiser, ctx, tiling_strategy="overlap_tiling")
-    
-    # Basic (no overlap blending)
-    dist_denoiser = distribute(denoiser, ctx, tiling_strategy="basic")
+    dist_denoiser = distribute(denoiser, ctx)
 
 
 Running Multi-Process

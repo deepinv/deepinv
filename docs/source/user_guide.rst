@@ -165,14 +165,6 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Reconstruction with misspecified physics and/or noise level.
 
-    .. grid-item-card::
-        :link: distributed
-        :link-type: ref
-
-        :octicon:`server` **Distributed Computing**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Large-scale image reconstruction using distributed computing.
-
 .. toctree::
    :maxdepth: 2
    :hidden:
@@ -189,7 +181,6 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
    user_guide/reconstruction/unfolded
    user_guide/reconstruction/adversarial
    user_guide/reconstruction/blind
-   user_guide/reconstruction/distributed
 
 
 Training, Testing and Utilities
@@ -283,3 +274,45 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
    user_guide/other/notation
    user_guide/other/env_variable
    user_guide/other/biblio
+
+
+
+Distributed Computing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In large-scale image reconstruction problems, one GPU might not be enough to handle large images/volumes or large forward operators.
+We provide multi-GPU tools specific to image reconstruction with `deepinv.distributed`:
+
+::
+
+    physics = deepinv.distributed.distribute(physics) # distrubute physics
+    denoiser = deepinv.distributed.distribute(denoiser) # distribute denoiser
+
+
+.. grid:: 1 2 3 3
+    :gutter: 1
+
+    .. grid-item-card::
+            :link: distributed-reconstruction
+            :link-type: ref
+
+            :octicon:`server` **Distributed Reconstruction**
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            Distributed reconstruction for large-scale images and volumes.
+
+    .. grid-item-card::
+            :link: distributed-training
+            :link-type: ref
+
+            :octicon:`server` **Distributed Training**
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            Distributed training for large-scale images and volumes.
+
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: Distributed Computing
+
+   user_guide/reconstruction/distributed
+   user_guide/training/distributed
