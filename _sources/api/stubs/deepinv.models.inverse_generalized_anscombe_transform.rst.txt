@@ -1,0 +1,9 @@
+﻿inverse\_generalized\_anscombe\_transform
+=========================================
+
+.. currentmodule:: deepinv.models
+
+.. autofunction:: inverse_generalized_anscombe_transform
+
+.. minigallery:: deepinv.models.inverse_generalized_anscombe_transform
+    :add-heading: Examples using ``inverse_generalized_anscombe_transform``:

@@ -1,0 +1,9 @@
+﻿to\_complex\_denoiser
+=====================
+
+.. currentmodule:: deepinv.models.complex
+
+.. autofunction:: to_complex_denoiser
+
+.. minigallery:: deepinv.models.complex.to_complex_denoiser
+    :add-heading: Examples using ``to_complex_denoiser``:

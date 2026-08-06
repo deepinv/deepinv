@@ -1,0 +1,9 @@
+﻿generate\_dataset
+=================
+
+.. currentmodule:: deepinv.datasets
+
+.. autofunction:: generate_dataset
+
+.. minigallery:: deepinv.datasets.generate_dataset
+    :add-heading: Examples using ``generate_dataset``:

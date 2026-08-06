@@ -1,0 +1,9 @@
+﻿load\_dataset
+=============
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_dataset
+
+.. minigallery:: deepinv.utils.load_dataset
+    :add-heading: Examples using ``load_dataset``:
