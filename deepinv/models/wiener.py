@@ -259,8 +259,8 @@ class WienerDeconvolution(Reconstructor):
         if _is_zero_lambda(self.lambda_reg):
             return physics.A_dagger(y)
 
-        # --- Convert lambda_reg (regularisation weight) into the internal
-        #     gamma (data fidelity weight) expected by prox_l2 ---
+        # --- Convert lambda_reg (regularisation weight) into the gamma
+        #     expected by prox_l2 ---
         gamma = _lambda_to_gamma(self.lambda_reg, self.prior, physics)
 
         # --- Compute the Wiener-filtered reconstruction ---

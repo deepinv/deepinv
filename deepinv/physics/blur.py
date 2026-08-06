@@ -654,7 +654,8 @@ def _build_laplacian_gamma(
     use_real_fft = True
 
     # --- Build the 2-D discrete Laplacian kernel -------------------------
-    # Shape: (1, 1, 3, 3), the standard 4-connected Laplacian.
+    # Shape: (1, 1, 3, 3), the 4-connected discrete Laplacian.  Only |H_L(f)|^2
+    # is used below, so the overall sign is immaterial.
     laplacian_kernel = torch.tensor(
         [[0.0, -1.0, 0.0], [-1.0, 4.0, -1.0], [0.0, -1.0, 0.0]],
         device=physics.mask.device,
@@ -662,32 +663,30 @@ def _build_laplacian_gamma(
     ).reshape(1, 1, 3, 3)
 
     # --- Compute the Laplacian's power spectrum --------------------------
-    # Zero-pad to (H, W) and transform with rfft2, matching BlurFFT.
-
-    # filter_fft determines the padding from img_size at dims=(-2, -1).
-    # We pass a 4D img_size=(1, 1, H, W) to cleanly match our 4D kernel.
+    # filter_fft zero-pads the kernel to img_size at dims, then rolls it so the
+    # kernel's centre element lands at index (0, 0); only img_size[-2] and
+    # img_size[-1] are read.  The roll makes the transform of this symmetric
+    # kernel purely real.
     laplacian_fft = dF.filter_fft(
         laplacian_kernel,
         img_size=(1, 1, H, W),
         real_fft=use_real_fft,
         dims=(-2, -1),
     )
-    # laplacian_fft is a complex tensor (though mathematically purely real
-    # because the symmetric kernel was circularly shifted to the spatial origin
-    # in filter_fft()).
-    # Shape is (1, 1, H, W // 2 + 1).
-    # |H_L(f)|^2 is the power spectrum.
-    laplacian_power = laplacian_fft.real**2 + laplacian_fft.imag**2
-    # laplacian_power shape: (1, 1, H, W // 2 + 1) : 4D
-    #
-    # BlurFFT's mask is 5D, (1, C, H, W // 2 + 1, 2), because view_as_real()
-    # splits each complex value into a real pair.  prox_l2's expansion logic
-    # adds (mask.dim() - gamma.dim()) = 1 trailing dimension to gamma_tensor,
-    # giving (1, 1, H, W // 2 + 1, 1), which broadcasts with the 5D mask.
+    # laplacian_fft has a complex dtype even though its imaginary part is zero,
+    # hence taking both parts below.  Shape (1, 1, H, W // 2 + 1).
+    laplacian_power = laplacian_fft.real**2 + laplacian_fft.imag**2  # |H_L(f)|^2
+
+    # BlurFFT's mask is 5D, (1, C, H, W // 2 + 1, 2): the real singular values
+    # are duplicated along a trailing axis of length 2 so they broadcast against
+    # the real-imaginary pairs V_adjoint produces via view_as_real.  prox_l2
+    # appends (mask.dim() - gamma.dim()) = 1 trailing dimension to gamma_tensor,
+    # giving (1, 1, H, W // 2 + 1, 1), which broadcasts with it.
 
     # --- Compute gamma(f) = 1 / (lambda_reg * (|H_L(f)|^2 + eps)) -------
-    # This converts the user-facing lambda_reg (regularisation strength)
-    # to the internal prox_l2 gamma (data fidelity weight).
+    # This converts the user-facing lambda_reg (regularisation strength) into
+    # the internal prox_l2 gamma, which enters inversely: larger gamma means
+    # weaker regularisation.
     gamma_tensor = 1.0 / (lambda_reg * (laplacian_power + eps))
 
     return gamma_tensor
@@ -1062,8 +1061,8 @@ class BlurFFT(DecomposablePhysics):
         if _is_zero_lambda(lambda_reg):
             return super().A_dagger(y, **kwargs)
 
-        # Convert lambda_reg (regularisation weight) into the internal gamma
-        # (data fidelity weight) expected by prox_l2.
+        # Convert lambda_reg (regularisation weight) into the gamma expected
+        # by prox_l2.
         gamma = _lambda_to_gamma(lambda_reg, prior, self)
 
         # With z = 0, prox_l2 minimises the following, where gamma acts
