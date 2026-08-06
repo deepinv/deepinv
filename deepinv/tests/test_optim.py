@@ -584,6 +584,8 @@ def get_prior(prior_name, device="cpu"):
         prior = dinv.optim.prior.Tikhonov()
     elif prior_name == "TVPrior":
         prior = dinv.optim.prior.TVPrior()
+    elif prior_name == "SmoothedTVPrior":
+        prior = dinv.optim.prior.SmoothedTVPrior()
     elif prior_name == "TVL1Prior":
         prior = dinv.optim.prior.TVL1Prior()
     elif "wavelet" in prior_name.lower():
@@ -615,6 +617,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "L12Prior",
         "Tikhonov",
         "TVPrior",
+        "SmoothedTVPrior",
         "TVL1Prior",
         "WaveletPrior",
         "WaveletDictPrior",
@@ -644,6 +647,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
         # here the prior model is common for all iterations
         prior = get_prior(prior_name, device=device)
+
         if prior_name == "ZeroPrior" and pnp_algo == "FISTA":
             max_iter = 4000
         if pnp_algo == "PDCP":
