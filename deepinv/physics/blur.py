@@ -564,10 +564,15 @@ class Blur(LinearPhysics):
 # ---------------------------------------------------------------------------
 # Wiener deconvolution helpers
 #
-# These private helpers translate the user-facing regularisation parameter
-# lambda into the gamma argument of DecomposablePhysics.prox_l2.  They live
-# here, next to BlurFFT, because they depend on its Fourier (SVD) conventions.
-# They are shared by BlurFFT.A_dagger and deepinv.models.WienerDeconvolution.
+# Shared by BlurFFT.A_dagger and deepinv.models.WienerDeconvolution.  Their
+# main task is converting the user-facing regularisation parameter lambda into
+# the gamma argument of DecomposablePhysics.prox_l2; the constants and the
+# zero test support that conversion.
+#
+# They are defined in this module, rather than beside WienerDeconvolution,
+# because deepinv.models imports deepinv.physics.  Defining them there would
+# make this module import from deepinv.models, which is circular and would
+# need a deferred in-function import.
 # ---------------------------------------------------------------------------
 
 # Valid string values for the Wiener prior parameter.
@@ -590,10 +595,10 @@ def _build_laplacian_gamma(
          [-1,  4, -1],
          [ 0, -1,  0]]
 
-    Its power spectrum :math:`|H_L(f)|^2` is larger at high frequencies, therefore
-    using this operator as a regularisation term in the objective function penalises
-    high frequencies more than low frequencies. This enforces spatial smoothness,
-    which is the standard assumption for natural images (Wiener-Hunt deconvolution).
+    Its power spectrum :math:`|H_L(f)|^2` is larger at high frequencies, so the
+    regularisation term :math:`\Vert L x \Vert_2^2` penalises high frequencies
+    more than low ones. This enforces spatial smoothness, which is the standard
+    assumption for natural images (Wiener-Hunt deconvolution).
 
     The objective being solved is:
 
@@ -639,24 +644,14 @@ def _build_laplacian_gamma(
             "constructing the Laplacian prior."
         )
 
-    # BlurFFT stores img_size as (C, H, W).
+    # BlurFFT documents img_size as (C, H, W).  Index from the end, so the
+    # spatial dimensions are read correctly whatever precedes them.
     H, W = physics.img_size[-2], physics.img_size[-1]
 
-    # Future-proofing:
-    # handles both 4D and 5D real-pair tensor formats
-    # (if switched away from view_as_real() in V_adjoint() in BlurFFT)
-    # and half / full spectrum FFTs (if switched to fft2 from rfft2 in BlurFFT).
-    # DeepInverse filters are 4D: (1, C, H, W).
-    # Determine the frequency width (W_freq) by checking the mask's dimensions.
-    # A spatial-frequency mask is 4D: (1, C, H, W_freq).
-    # To broadcast the real singular values against the real-pair representation
-    # of view_as_real outputs, a 5th dimension is added: (1, C, H, W_freq, 2).
-    if physics.mask.dim() > 4:
-        W_freq = physics.mask.shape[-2]  # Extract from 5D tensor
-    else:
-        W_freq = physics.mask.shape[-1]  # Extract from 4D tensor
-
-    use_real_fft = W_freq == (W // 2 + 1)
+    # BlurFFT's V_adjoint uses rfft2, so the Laplacian must be transformed to
+    # the same half spectrum, (1, 1, H, W // 2 + 1).  If that ever changes,
+    # prox_l2 raises a broadcasting error against physics.mask.
+    use_real_fft = True
 
     # --- Build the 2-D discrete Laplacian kernel -------------------------
     # Shape: (1, 1, 3, 3), the standard 4-connected Laplacian.
@@ -667,8 +662,7 @@ def _build_laplacian_gamma(
     ).reshape(1, 1, 3, 3)
 
     # --- Compute the Laplacian's power spectrum --------------------------
-    # Zero-pad to (H, W) and compute FFT, using rfft2 or fft2 as
-    # determined by use_real_fft.
+    # Zero-pad to (H, W) and transform with rfft2, matching BlurFFT.
 
     # filter_fft determines the padding from img_size at dims=(-2, -1).
     # We pass a 4D img_size=(1, 1, H, W) to cleanly match our 4D kernel.
@@ -681,15 +675,15 @@ def _build_laplacian_gamma(
     # laplacian_fft is a complex tensor (though mathematically purely real
     # because the symmetric kernel was circularly shifted to the spatial origin
     # in filter_fft()).
-    # Shape is (1, 1, H, W_freq), with W_freq determined by use_real_fft.
+    # Shape is (1, 1, H, W // 2 + 1).
     # |H_L(f)|^2 is the power spectrum.
     laplacian_power = laplacian_fft.real**2 + laplacian_fft.imag**2
-    # laplacian_power shape: (1, 1, H, W_freq) : 4D
+    # laplacian_power shape: (1, 1, H, W // 2 + 1) : 4D
     #
-    # When BlurFFT's mask is 5D: (1, C, H, W_freq, 2) due to view_as_real(),
-    # prox_l2's expansion logic adds (mask.dim() - gamma.dim()) = 1
-    # trailing dimension to gamma_tensor, giving (1, 1, H, W_freq, 1), which
-    # correctly broadcasts with the 5D mask.
+    # BlurFFT's mask is 5D, (1, C, H, W // 2 + 1, 2), because view_as_real()
+    # splits each complex value into a real pair.  prox_l2's expansion logic
+    # adds (mask.dim() - gamma.dim()) = 1 trailing dimension to gamma_tensor,
+    # giving (1, 1, H, W // 2 + 1, 1), which broadcasts with the 5D mask.
 
     # --- Compute gamma(f) = 1 / (lambda_reg * (|H_L(f)|^2 + eps)) -------
     # This converts the user-facing lambda_reg (regularisation strength)
