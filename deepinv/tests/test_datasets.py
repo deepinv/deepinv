@@ -196,6 +196,13 @@ def test_base_dataset():
     check_dataset(MyDataset([torch.nan, y, params]))
     check_dataset(MyDataset([torch.nan, params]))
 
+    # dict-shaped batches (use_dict_output=True)
+    check_dataset(MyDataset({"x": x}, use_dict_output=True))
+    check_dataset(MyDataset({"x": x, "y": y}, use_dict_output=True))
+    check_dataset(MyDataset({"y": y}, use_dict_output=True))
+    check_dataset(MyDataset({"x": x, "y": y, "params": params}, use_dict_output=True))
+    check_dataset(MyDataset({"y": y, "params": params}, use_dict_output=True))
+
     for bad_dataset_input in (
         torch.nan,
         [bad, y],
@@ -211,6 +218,15 @@ def test_base_dataset():
     ):
         with pytest.raises(RuntimeError):
             check_dataset(MyDataset(bad_dataset_input))
+
+    for bad_dict_input in (
+        {"params": params},  # neither x nor y
+        {"x": bad},
+        {"y": bad},
+        {"x": x, "y": y, "params": {1: 2}},
+    ):
+        with pytest.raises(RuntimeError):
+            check_dataset(MyDataset(bad_dict_input, use_dict_output=True))
 
 
 SPLIT_NAMES = ["train", "test", "val", "dummy"]

@@ -278,4 +278,5 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         if params is not None:
             return target, kspace.float(), params
+
         return target, kspace.float()

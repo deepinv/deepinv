@@ -443,11 +443,12 @@ def collate(dataset: Dataset) -> Callable[[list[Any]], Tensor] | None:
     assumed to be type-consistent.
     """
     example_output = dataset[0]
-    example_output = (
-        example_output[0]
-        if isinstance(example_output, (list, tuple))
-        else example_output
-    )
+    if isinstance(example_output, (list, tuple)):
+        example_output = example_output[0]
+    elif isinstance(example_output, dict):
+        example_output = (
+            example_output["x"] if "x" in example_output else example_output["y"]
+        )
 
     if isinstance(example_output, (Tensor, np.ndarray)):
         return None
