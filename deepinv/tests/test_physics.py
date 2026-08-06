@@ -2712,92 +2712,62 @@ def wiener_blur_physics():
     return dinv.physics.BlurFFT(img_size=(1, 16, 16), filter=filt)
 
 
-class TestBlurFFTADaggerWiener:
-    """BlurFFT.A_dagger default and Wiener mode consistency."""
-
-    def test_default_unchanged(self, wiener_blur_physics):
-        """A_dagger(wiener=False) is identical to the parent
-        DecomposablePhysics.A_dagger."""
-        x = torch.randn(1, 1, 16, 16)
-        y = wiener_blur_physics.A(x)
-        with torch.no_grad():
-            x_default = wiener_blur_physics.A_dagger(y, wiener=False)
-            x_parent = dinv.physics.forward.DecomposablePhysics.A_dagger(
-                wiener_blur_physics, y
-            )
-        assert torch.allclose(x_default, x_parent, atol=1e-7), (
-            f"Default A_dagger changed: max diff = "
-            f"{(x_default - x_parent).abs().max()}"
+def test_blurfft_a_dagger_default_unchanged(wiener_blur_physics):
+    """A_dagger(wiener=False) is identical to the parent
+    DecomposablePhysics.A_dagger."""
+    x = torch.randn(1, 1, 16, 16)
+    y = wiener_blur_physics.A(x)
+    with torch.no_grad():
+        x_default = wiener_blur_physics.A_dagger(y, wiener=False)
+        x_parent = dinv.physics.forward.DecomposablePhysics.A_dagger(
+            wiener_blur_physics, y
         )
+    assert torch.allclose(
+        x_default, x_parent, atol=1e-7
+    ), f"Default A_dagger changed: max diff = {(x_default - x_parent).abs().max()}"
 
-    def test_consistency_flat_prior(self, wiener_blur_physics):
-        """A_dagger(wiener=True, lambda_reg=l, prior=None) matches
-        WienerDeconvolution(lambda_reg=l, prior=None)."""
+
+@pytest.mark.parametrize("prior", [None, "laplacian", "tensor"])
+def test_blurfft_a_dagger_matches_model(wiener_blur_physics, prior):
+    """A_dagger(wiener=True, ...) matches WienerDeconvolution for every prior.
+
+    This is what keeps the two entry points from drifting apart.
+    """
+    H, W = 16, 16
+    if prior == "tensor":
+        lambda_reg, prior = torch.ones(1, 1, H, W // 2 + 1) / 3.0, None
+    else:
         lambda_reg = 0.5
-        model = dinv.models.WienerDeconvolution(lambda_reg=lambda_reg, prior=None)
-        x = torch.randn(1, 1, 16, 16)
-        y = wiener_blur_physics.A(x)
-        with torch.no_grad():
-            x_adagger = wiener_blur_physics.A_dagger(
-                y, wiener=True, lambda_reg=lambda_reg, prior=None
-            )
-            x_model = model(y, wiener_blur_physics)
-        assert torch.allclose(x_adagger, x_model, atol=1e-7), (
-            f"A_dagger(flat) != WienerDeconvolution(flat): max diff = "
-            f"{(x_adagger - x_model).abs().max()}"
-        )
 
-    def test_consistency_laplacian_prior(self, wiener_blur_physics):
-        """A_dagger(wiener=True, lambda_reg=l, prior='laplacian') matches
-        WienerDeconvolution(lambda_reg=l, prior='laplacian')."""
-        lambda_reg = 0.5
-        model = dinv.models.WienerDeconvolution(
-            lambda_reg=lambda_reg, prior="laplacian"
+    model = dinv.models.WienerDeconvolution(lambda_reg=lambda_reg, prior=prior)
+    x = torch.randn(1, 1, H, W)
+    y = wiener_blur_physics.A(x)
+    with torch.no_grad():
+        x_adagger = wiener_blur_physics.A_dagger(
+            y, wiener=True, lambda_reg=lambda_reg, prior=prior
         )
-        x = torch.randn(1, 1, 16, 16)
-        y = wiener_blur_physics.A(x)
-        with torch.no_grad():
-            x_adagger = wiener_blur_physics.A_dagger(
-                y, wiener=True, lambda_reg=lambda_reg, prior="laplacian"
-            )
-            x_model = model(y, wiener_blur_physics)
-        assert torch.allclose(x_adagger, x_model, atol=1e-7), (
-            f"A_dagger(laplacian) != WienerDeconvolution(laplacian): max diff = "
-            f"{(x_adagger - x_model).abs().max()}"
-        )
+        x_model = model(y, wiener_blur_physics)
+    assert torch.allclose(x_adagger, x_model, atol=1e-7), (
+        f"A_dagger != WienerDeconvolution: max diff = "
+        f"{(x_adagger - x_model).abs().max()}"
+    )
 
-    def test_consistency_tensor_lambda_reg(self, wiener_blur_physics):
-        """A_dagger(wiener=True, lambda_reg=tensor) matches
-        WienerDeconvolution(lambda_reg=tensor)."""
-        H, W = 16, 16
-        lambda_tensor = torch.ones(1, 1, H, W // 2 + 1) / 3.0
-        model = dinv.models.WienerDeconvolution(lambda_reg=lambda_tensor)
-        x = torch.randn(1, 1, H, W)
-        y = wiener_blur_physics.A(x)
-        with torch.no_grad():
-            x_adagger = wiener_blur_physics.A_dagger(
-                y, wiener=True, lambda_reg=lambda_tensor
-            )
-            x_model = model(y, wiener_blur_physics)
-        assert torch.allclose(x_adagger, x_model, atol=1e-7), (
-            f"A_dagger(tensor) != WienerDeconvolution(tensor): max diff = "
-            f"{(x_adagger - x_model).abs().max()}"
-        )
 
-    def test_zero_lambda_reg_is_pseudoinverse(self, wiener_blur_physics):
-        """A_dagger(wiener=True, lambda_reg=0) falls back to the pseudo-inverse."""
-        x = torch.randn(1, 1, 16, 16)
-        y = wiener_blur_physics.A(x)
-        with torch.no_grad():
-            x_wiener = wiener_blur_physics.A_dagger(y, wiener=True, lambda_reg=0.0)
-            x_pinv = wiener_blur_physics.A_dagger(y)
-        assert torch.equal(
-            x_wiener, x_pinv
-        ), "lambda_reg=0 should delegate exactly to the pseudo-inverse"
+def test_blurfft_a_dagger_zero_lambda_is_pseudoinverse(wiener_blur_physics):
+    """A_dagger(wiener=True, lambda_reg=0) falls back to the pseudo-inverse."""
+    x = torch.randn(1, 1, 16, 16)
+    y = wiener_blur_physics.A(x)
+    with torch.no_grad():
+        x_wiener = wiener_blur_physics.A_dagger(y, wiener=True, lambda_reg=0.0)
+        x_pinv = wiener_blur_physics.A_dagger(y)
+    assert torch.equal(
+        x_wiener, x_pinv
+    ), "lambda_reg=0 should delegate exactly to the pseudo-inverse"
 
-    def test_rejects_invalid_prior(self, wiener_blur_physics):
-        """An invalid prior string raises ValueError."""
-        x = torch.randn(1, 1, 16, 16)
-        y = wiener_blur_physics.A(x)
-        with pytest.raises(ValueError, match="Invalid prior"):
-            wiener_blur_physics.A_dagger(y, wiener=True, prior="wavelet")
+
+def test_blurfft_a_dagger_rejects_invalid_prior(wiener_blur_physics):
+    """An invalid prior string raises ValueError."""
+    x = torch.randn(1, 1, 16, 16)
+    y = wiener_blur_physics.A(x)
+    with pytest.raises(ValueError, match="Invalid prior"):
+        wiener_blur_physics.A_dagger(y, wiener=True, prior="wavelet")
