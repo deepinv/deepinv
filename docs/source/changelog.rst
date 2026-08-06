@@ -19,12 +19,14 @@ New Features
 - Add :class:`deepinv.optim.OSEM` algorithm for tomographic reconstruction and update PET demos to showcase OSEM (:gh:`1255` by `Thibaut Modrzyk`_)
 - Add utilities for subsetted tomography physics :func:`deepinv.physics.split_physics` and :func:`deepinv.physics.split_measurements` (:gh:`1255` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.metrics.NRMSE` metric (:gh:`1256` by `Thibaut Modrzyk`_)
+- Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
 - (Breaking) Drop support for deprecated parameters `num_channels` in :class:`deepinv.physics.generator.PSFGenerator`, :class:`deepinv.physics.generator.GaussianBlurGenerator`, :class:`deepinv.physics.generator.MotionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
 - Extend :func:`DST-I <deepinv.physics.functional.dst1>` to make it n-dimensional and add an option to have it compute the regular DST-I instead of the non-standard sign-flipped orthogonal variant (:gh:`934` by `Jérémy Scanvic`_)
 - Extend: :class:`deepinv.optim.MLEM` now supports :class:`deepinv.physics.PET` (:gh:`1255` by `Thibaut Modrzyk`_)
+- (Breaking) Make :class:`deepinv.optim.TVPrior()` compute an explicit choice of subgradient instead of using autodiff. (:gh:`1271` by `Thibaut Modrzyk`_)
 
 Fixed
 ^^^^^
@@ -32,6 +34,8 @@ Fixed
 - Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
 - Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
 - Remove unconditional dtype conversion to `torch.cfloat` in :func:`deepinv.optim.phase_retrieval.spectral_methods` (:gh:`1216` by `Zhiyuan Hu`_)
+- Let quickstart run as default on Apple MPS, and all BM3D and DPIR to be used on MPS (:gh:`1263` by `Andrew Wang`_)
+- Fix physics and rng devices incorrectly compared in noise and physics and add better device equal checking (:gh:`1263` by `Andrew Wang`_)
 - Deprecate `deepinv.models.WaveletDenoiser.thresold_2D` and `deepinv.models.WaveletDenoiser.thresold_func` in favor of :func:`deepinv.models.WaveletDenoiser.threshold_2D` and :func:`deepinv.models.WaveletDenoiser.threshold_func` (:gh:`1266` by `Paul Bernard`_)
 - Fix kwargs applications in parent constructor calls in the constructors of :class:`deepinv.sampling.EDMDiffusionSDE`, :class:`deepinv.sampling.SongDiffusionSDE` and :class:`deepinv.sampling.VariancePreservingDiffusion` (:gh:`1278` by `Jérémy Scanvic`_)
 - Fix :func:`deepinv.transform.rotate_via_shear` for angles outside :math:`[0, 2pi)` (:gh:`1236` by `Sarra Amiri`_)

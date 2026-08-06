@@ -69,6 +69,7 @@ Operators
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
    deepinv.physics.Scattering
+   deepinv.physics.to_multiscale
 
 
 Generators

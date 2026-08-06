@@ -200,7 +200,7 @@ class SSIM(Metric):
     >>> m(x_net, x)
     tensor([1., 1., 1.])
 
-    :param bool multiscale: if ``True``, computes the multiscale SSIM. Default: ``False``.
+    :param bool multiscale: if ``True``, computes the multi-scale SSIM. Default: ``False``.
     :param float max_pixel: maximum pixel value. If None, uses max pixel value of the ground truth image x.
     :param float min_pixel: minimum pixel value. If None, uses min pixel value of the ground truth image x.
     :param dict torchmetric_kwargs: kwargs for torchmetrics SSIM as dict. See https://lightning.ai/docs/torchmetrics/stable/image/structural_similarity.html

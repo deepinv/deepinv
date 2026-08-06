@@ -803,7 +803,7 @@ def test_upsampling(device, rng, name, kernel):
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operator_multiscale_wrapper(name, device, rng):
     r"""
-    Tests if a linear physics operator can be wrapped with a multiscale wrapper.
+    Tests if a linear physics operator can be wrapped with a multi-scale wrapper.
     """
 
     # defining a list of exceptions to skip  # TODO: fix for those?
@@ -846,7 +846,7 @@ def test_operator_multiscale_wrapper(name, device, rng):
         factors=[2, 4, 8],
         dtype=dtype,
         device=device,
-    )  # define a multiscale physics with base img size (1, 32, 32)
+    )  # define a multi-scale physics with base img size (1, 32, 32)
     y = new_physics(x, scale=scale)
     Aty = new_physics.A_adjoint(y, scale=scale)
 
@@ -2380,6 +2380,107 @@ def test_physics_warn_extra_kwargs():
         UserWarning, match="Arguments {'sigma': 0.5} are passed to Denoising"
     ):
         dinv.physics.Denoising(sigma=0.5)
+
+
+MULTISCALE_EXCLUSION = [
+    # three dimensional signals are currently not supported
+    "3Ddeblur_valid",
+    "3Ddeblur_circular",
+    "3DMRI",
+    "3DMultiCoilMRI",
+    "pet_3d",
+    "DynamicMRI",
+    "fast_singlepixel",
+    "fast_singlepixel_zig_zag",
+    "fast_singlepixel_old_sequency",
+    "fast_singlepixel_cake_cutting",
+    "fast_singlepixel_xy",
+]
+
+
+@pytest.mark.parametrize(
+    "name", [op for op in OPERATORS if op not in MULTISCALE_EXCLUSION]
+)
+def test_multiscale_coarse_adjointness(name, device):
+    if (
+        "MRI" in name
+        or "cassi" in name
+        or "pet_2d" == name
+        or "ptychography_linear" == name
+        or "hyperspectral_unmixing" == name
+        or "composition2" == name
+    ):
+        physics, imsize, _, dtype = find_operator(name, device)
+    else:
+        # make sure the imsize is large enough for multi-scale tests
+        imsize = (3, 16, 16)
+        physics, imsize, _, dtype = find_operator(name, device, imsize=imsize)
+
+    if not isinstance(physics, dinv.physics.LinearPhysics):
+        pytest.skip("Skip " + name + " : not LinearPhysics")
+
+    p_coarse = dinv.physics.to_multiscale(
+        physics, imsize, factors=(2,), device=device, dtype=dtype
+    )
+    p_coarse.set_scale(1)
+
+    assert isinstance(
+        p_coarse, dinv.physics.LinearPhysics
+    ), "Coarse physics is not LinearPhysics despite base physics being LinearPhysics"
+
+    x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x_coarse = p_coarse.downsample(x)
+
+    error = p_coarse.adjointness_test(x_coarse).abs()
+    assert error < 1e-3
+
+
+@pytest.mark.parametrize(
+    "name", [op for op in OPERATORS if op not in MULTISCALE_EXCLUSION]
+)
+def test_multiscale_A_adjoint_A(name, device):
+    if (
+        "MRI" in name
+        or "cassi" in name
+        or "pet_2d" == name
+        or "ptychography_linear" == name
+        or "hyperspectral_unmixing" == name
+        or "composition2" == name
+    ):
+        physics, imsize, _, dtype = find_operator(name, device)
+    else:
+        # make sure the imsize is large enough for multi-scale tests
+        imsize = (3, 16, 16)
+        physics, imsize, _, dtype = find_operator(name, device, imsize=imsize)
+
+    if not isinstance(physics, dinv.physics.LinearPhysics):
+        pytest.skip("Skip " + name + " : not LinearPhysics")
+
+    p_coarse = dinv.physics.to_multiscale(
+        physics, imsize, factors=(2,), device=device, dtype=dtype
+    )
+    p_coarse.set_scale(1)
+
+    assert isinstance(
+        p_coarse, dinv.physics.LinearPhysics
+    ), "Coarse physics is not LinearPhysics despite base physics being LinearPhysics"
+
+    x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x_coarse = p_coarse.downsample(x)
+
+    A = p_coarse.A
+    A_adj = p_coarse.A_adjoint
+    A_adj_A = p_coarse.A_adjoint_A
+
+    def op_cmp(xc):
+        return A_adj(A(xc)) - A_adj_A(xc)
+
+    physics_cmp = dinv.physics.LinearPhysics(
+        img_size=imsize, A=op_cmp, A_adjoint=op_cmp
+    )
+
+    error = physics_cmp.compute_norm(x_coarse).abs()
+    assert error < 0.2
 
 
 def test_automatic_A_adjoint(device):

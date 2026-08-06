@@ -11,7 +11,6 @@ import numpy as np
 from .base import Denoiser
 
 import math
-import math
 
 
 class DiffUNet(Denoiser):
