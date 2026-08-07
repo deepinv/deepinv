@@ -966,17 +966,14 @@ def test_MLEM(imsize, dummy_dataset, device):
 
 
 # Specific test for BlindRL because there is no generic test functions for blind
-# algorithms and they don't seem to fit the test structure for non-blind algorithms.
-# The same kind of test could be implemented for other blind optimization algorithms
-# in the furture.
+# algorithms at the moment.
 @pytest.mark.parametrize("use_fft", [False, True])
 def test_BlindRL(device, use_fft):
-    # Build a small positive image so the Poisson/Richardson-Lucy updates are stable.
     x_true = torch.zeros((1, 1, 16, 16), device=device)
     x_true[:, :, 4:12, 5:11] = 1.0
     x_true = x_true + 0.1
 
-    # Generate noiseless blurred data with a known kernel.
+    # Generate noiseless blurred data with a known kernel
     k_true = dinv.physics.functional.gaussian_blur(
         psf_size=(5, 5),
         sigma=(1.0, 1.0),
@@ -990,16 +987,9 @@ def test_BlindRL(device, use_fft):
     )
     y = physics_true(x_true).clamp_min(1e-8)
 
-    # Start from the blurred image and pass the true kernel as an oracle estimate.
     x0 = y.clone()
-    physics = dinv.physics.Blur(
-        k_true.clone(),
-        padding="circular",
-        device=device,
-    )
-
-    # Oracle-kernel test: with the correct kernel fixed, BlindRL should behave
-    # like non-blind Richardson-Lucy and improve the image estimate.
+    # Start from the blurred image and pass the true kernel as an oracle estimate.
+    # BlindRL should behave like non-blind Richardson-Lucy and improve the image estimate.
     blindrl = dinv.optim.BlindRL(
         max_iter=200,
         k_steps=0,
@@ -1009,7 +999,7 @@ def test_BlindRL(device, use_fft):
         eps=1e-12,
         use_fft=use_fft,
     )
-    x_hat, k_hat = blindrl(y, physics, init=(x0, k_true.clone()))
+    x_hat, k_hat = blindrl(y, init=(x0, k_true.clone()))
 
     assert blindrl.has_converged
     assert x_hat.shape == x_true.shape

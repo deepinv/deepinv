@@ -53,7 +53,7 @@ mae = dinv.metric.MAE()
 
 gaussian_psf = dinv.physics.functional.gaussian_blur(
     psf_size=(17, 17),
-    sigma=3.0,
+    sigma=2.0,
     device=device,
 )
 gain = 1 / 100
@@ -91,7 +91,7 @@ data_fidelity = dinv.optim.PoissonLikelihood(gain=gain)
 mlem = dinv.optim.MLEM(
     data_fidelity=data_fidelity,
     prior=None,
-    max_iter=70,
+    max_iter=70 if torch.cuda.is_available() else 20,
     early_stop=True,
     thres_conv=1e-6,
     crit_conv="residual",
@@ -179,7 +179,8 @@ physics_clean = dinv.physics.Blur(
 y_clean = physics_clean(x_gray)
 
 blindrl = dinv.optim.BlindRL(
-    max_iter=100,
+    max_iter=100 if torch.cuda.is_available() else 40,
+    kernel_size=gaussian_psf.shape[-2:],
     x_steps=1,
     k_steps=1,
     normalize_kernel=True,
@@ -188,7 +189,6 @@ blindrl = dinv.optim.BlindRL(
 )
 (x_blindrl, k_blindrl), metrics_clean_blind = blindrl(
     y_clean,
-    physics_clean,
     init=y_clean.clamp_min(1e-12),
     x_gt=x_gray,
     compute_metrics=True,
@@ -234,7 +234,8 @@ y_noisy = physics(x_gray)
 
 physics_clean.update_parameters(filter=gaussian_psf)
 blindrl = dinv.optim.BlindRL(
-    max_iter=80,
+    max_iter=80 if torch.cuda.is_available() else 40,
+    kernel_size=gaussian_psf.shape[-2:],
     x_steps=1,
     k_steps=1,
     normalize_kernel=True,
@@ -243,7 +244,6 @@ blindrl = dinv.optim.BlindRL(
 )
 (x_blindrl, k_blindrl), metrics = blindrl(
     y_noisy,
-    physics_clean,
     init=y_noisy.clamp_min(1e-12),
     x_gt=x_gray,
     compute_metrics=True,
@@ -314,7 +314,7 @@ dinv.utils.plot_curves(metrics)
 #
 # The image is a bit sharper and we get a better estimate of the kernel.
 
-tv_prior = dinv.optim.TVPrior(n_it_max=50)
+tv_prior = dinv.optim.TVPrior(n_it_max=10)
 
 blindrl = dinv.optim.BlindRL(
     x_prior=tv_prior,
@@ -330,7 +330,6 @@ blindrl = dinv.optim.BlindRL(
 )
 (x_blindrl, k_blindrl), metrics = blindrl(
     y_noisy,
-    physics,
     init=y_noisy.clamp_min(1e-12),
     x_gt=x_gray,
     compute_metrics=True,
@@ -380,16 +379,16 @@ physics_clean.update_parameters(filter=gaussian_psf)
 y_rgb = physics_clean(x_rgb)
 
 blindrl = dinv.optim.BlindRL(
-    max_iter=100,
+    max_iter=400 if torch.cuda.is_available() else 40,
+    kernel_size=gaussian_psf.shape[-2:],
     x_steps=1,
-    k_steps=1,
+    k_steps=2,
     normalize_kernel=True,
     use_fft=True,
     verbose=True,
 )
 (x_blindrl, k_blindrl), metrics = blindrl(
     y_rgb,
-    physics_clean,
     init=y_rgb.clamp_min(1e-12),
     x_gt=x_rgb,
     compute_metrics=True,

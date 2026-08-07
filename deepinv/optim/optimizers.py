@@ -2384,6 +2384,8 @@ class BlindRL(BaseOptim):
     :param float g_param_kernel: parameter for the kernel prior. Default: ``None``.
     :param int x_steps: number of inner image updates per iteration. Default: ``1``.
     :param int k_steps: number of inner kernel updates per iteration. Default: ``1``.
+    :param int, tuple[int, int] kernel_size: spatial size of the default uniform
+        kernel. An explicit kernel in ``init`` overrides this size. Default: ``(17, 17)``.
     :param bool normalize_kernel: whether to normalize the kernel to unit sum.
         Default: ``True``.
     :param bool use_fft: whether to use the FFT implementation of the filter
@@ -2392,7 +2394,8 @@ class BlindRL(BaseOptim):
     :param int max_iter: number of alternating BlindRL iterations. Default: ``100``.
     :param Callable custom_init: optional initializer returning ``(x0, k0)`` or a
         dictionary with ``{"est": (x0, k0)}``. If omitted, ``x0`` is initialized
-        with ``physics.A_adjoint(y)`` and ``k0`` with ``physics.filter``.
+        with ``y`` and ``k0`` with a uniform kernel of the same size as
+        ``kernel_size``.
     :param Callable cost_fn: optional cost function. If omitted, the Poisson
         negative log-likelihood plus explicit image and kernel priors is used.
     :param dict params_algo: optionally provide BlindRL parameters directly.
@@ -2408,6 +2411,7 @@ class BlindRL(BaseOptim):
         g_param_kernel: float = None,
         x_steps: int = 1,
         k_steps: int = 1,
+        kernel_size: int | tuple[int, int] = (17, 17),
         normalize_kernel: bool = True,
         use_fft: bool = False,
         eps: float = 1e-15,
@@ -2439,6 +2443,11 @@ class BlindRL(BaseOptim):
                 "BlindRL currently does not support unfold, DEQ or "
                 "Anderson acceleration."
             )
+        if isinstance(kernel_size, int):
+            kernel_size = (kernel_size, kernel_size)
+        if len(kernel_size) != 2 or any(size <= 0 for size in kernel_size):
+            raise ValueError("kernel_size must contain two positive integers.")
+        self.kernel_size = tuple(kernel_size)
 
         if params_algo is None:
             params_algo = {
@@ -2489,87 +2498,13 @@ class BlindRL(BaseOptim):
             unfold=False,
             **kwargs,
         )
-
-    @staticmethod
-    def _physics_filter(physics: Physics) -> torch.Tensor:
-        if not hasattr(physics, "filter") or physics.filter is None:
-            raise ValueError(
-                "BlindRL needs an initial kernel. Provide init=(x0, k0), "
-                "custom_init, or a blur physics with a non-None filter."
-            )
-        return physics.filter
-
-    def init_iterate_fn(
-        self,
-        y: torch.Tensor,
-        physics: Physics,
-        init: (
-            Callable[
-                [torch.Tensor, Physics], Iterable[torch.Tensor] | torch.Tensor | dict
-            ]
-            | Iterable[torch.Tensor]
-            | torch.Tensor
-            | dict
-        ) = None,
-        cost_fn: Callable[
-            [
-                torch.Tensor,
-                DataFidelity,
-                Prior,
-                dict[str, float | Iterable],
-                torch.Tensor,
-                Physics,
-            ],
-            torch.Tensor,
-        ] = None,
-    ) -> dict:
-        self.params_algo = self.init_params_algo.copy()
-        init = init if init is not None else self.custom_init
-
-        if init is None:
-            x_init = physics.A_adjoint(y)
-            k_init = self._physics_filter(physics)
-            init_X = {"est": (x_init, k_init)}
-        else:
-            if callable(init):
-                init = init(y, physics)
-            if isinstance(init, torch.Tensor):
-                init_X = {"est": (init, self._physics_filter(physics))}
-            elif isinstance(init, tuple):
-                if len(init) != 2:
-                    raise ValueError("BlindRL tuple initialization must be (x0, k0).")
-                init_X = {"est": init}
-            elif isinstance(init, dict):
-                init_X = init
-            else:
-                raise ValueError(
-                    "BlindRL initialization must be a tensor, tuple or dict. "
-                    f"Got {type(init)}."
-                )
-
-        if len(init_X["est"]) < 2:
-            raise ValueError(
-                "BlindRL initialization must contain both image and kernel."
-            )
-        if self.has_cost and cost_fn is not None:
-            x_init, k_init = init_X["est"][:2]
-            physics.update_parameters(filter=k_init)
-            init_X["cost"] = cost_fn(
-                x_init,
-                self.update_data_fidelity_fn(0),
-                self.update_prior_fn(0),
-                self.update_params_fn(0),
-                y,
-                physics,
-            )
-        else:
-            init_X["cost"] = None
-        return init_X
+        # BlindRL defines a Poisson cost even when the image prior is implicit.
+        self.has_cost = True
+        self.fixed_point.iterator.has_cost = True
 
     def forward(
         self,
         y: torch.Tensor,
-        physics: Physics,
         init: (
             Callable[
                 [torch.Tensor, Physics], Iterable[torch.Tensor] | torch.Tensor | dict
@@ -2588,19 +2523,79 @@ class BlindRL(BaseOptim):
         :return: ``(x, k)`` if ``compute_metrics`` is ``False``. Otherwise,
             returns ``((x, k), metrics)``.
         """
-        with torch.no_grad():
-            X, metrics = self.fixed_point(
-                y,
-                physics,
-                init=init,
-                x_gt=x_gt,
-                compute_metrics=compute_metrics,
-                **kwargs,
+        from deepinv.physics.blur import Blur
+
+        init = init if init is not None else self.custom_init
+        if callable(init):
+            default_kernel = torch.ones(
+                (1, 1, *self.kernel_size), device=y.device, dtype=y.dtype
             )
-        output = X["est"]
+            default_kernel = default_kernel / (
+                self.kernel_size[0] * self.kernel_size[1]
+            )
+            init = init(
+                y,
+                Blur(filter=default_kernel, padding="circular", device=y.device),
+            )
+
+        if init is None or isinstance(init, torch.Tensor):
+            x = y if init is None else init
+            k = torch.ones((1, 1, *self.kernel_size), device=x.device, dtype=x.dtype)
+            k = k / (self.kernel_size[0] * self.kernel_size[1])
+            init = (x, k)
+        elif isinstance(init, tuple):
+            if len(init) != 2:
+                raise ValueError("BlindRL initialization must be (x0, k0).")
+            x, k = init
+        elif isinstance(init, dict):
+            if "est" not in init or len(init["est"]) != 2:
+                raise ValueError("BlindRL initialization must be (x0, k0).")
+            x, k = init["est"]
+        else:
+            raise ValueError(
+                "BlindRL initialization must be a tensor, tuple or dict. "
+                f"Got {type(init)}."
+            )
+
+        if y.dim() != 4 or x.dim() != 4:
+            raise ValueError(
+                "BlindRL currently supports 2D images shaped (B, C, H, W)."
+            )
+        if y.shape != x.shape:
+            raise ValueError(
+                "y and x should have the same shape. "
+                f"Got y={tuple(y.shape)} and x={tuple(x.shape)}."
+            )
+        if k.dim() != 4:
+            raise ValueError(
+                "The blur kernel must be a 4D tensor shaped (B or 1, C or 1, H, W)."
+            )
+
+        k = k.to(device=x.device, dtype=x.dtype)
+        if k.shape[0] not in (1, x.shape[0]) or k.shape[1] not in (1, x.shape[1]):
+            raise ValueError(
+                "The kernel batch and channel sizes must be 1 or match x. "
+                f"Got kernel shape {tuple(k.shape)} and x shape {tuple(x.shape)}."
+            )
+        if k.shape[0] == 1 and x.shape[0] > 1:
+            k = k.expand(x.shape[0], -1, -1, -1).contiguous()
+        if k.shape[1] == x.shape[1]:
+            k = k.mean(dim=1, keepdim=True)
+
+        physics = Blur(filter=k, padding="circular", device=x.device)
+        init = {**init, "est": (x, k)} if isinstance(init, dict) else (x, k)
+        output = super().forward(
+            y,
+            physics,
+            init=init,
+            x_gt=x_gt,
+            compute_metrics=compute_metrics,
+            **kwargs,
+        )
         if compute_metrics:
-            return output, metrics
-        return output
+            x, metrics = output
+            return (x, physics.filter), metrics
+        return output, physics.filter
 
 
 class SIRT(BaseOptim):

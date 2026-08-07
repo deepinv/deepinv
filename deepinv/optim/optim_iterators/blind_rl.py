@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import torch
 import torch.nn.functional as F
+from typing import TYPE_CHECKING
 
 from .optim_iterator import OptimIterator
 import deepinv.physics.functional as dF
 from deepinv.optim.prior import ZeroPrior
+
+if TYPE_CHECKING:
+    from deepinv.optim import DataFidelity, Prior
+    from deepinv.physics import Physics
 
 
 class BlindRLIteration(OptimIterator):
@@ -21,6 +26,13 @@ class BlindRLIteration(OptimIterator):
     The current iterate is stored as ``X["est"] = (x, k)``. The kernel update
     assumes 2D circular convolution and a spatially invariant kernel shared by
     all image channels.
+
+    :param deepinv.optim.Prior k_prior: optional kernel prior. Default: ``None``.
+    :param bool normalize_kernel: whether to normalize the kernel to unit sum.
+        Default: ``True``.
+    :param bool use_fft: whether to use the FFT implementation of the filter
+        adjoint in kernel updates. Default: ``False``.
+    :param float eps: numerical stability constant used for divisions. Default: ``1e-8``.
     """
 
     def __init__(
@@ -28,7 +40,7 @@ class BlindRLIteration(OptimIterator):
         k_prior=None,
         normalize_kernel: bool = True,
         use_fft: bool = False,
-        eps: float = 1e-15,
+        eps: float = 1e-8,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -38,12 +50,22 @@ class BlindRLIteration(OptimIterator):
         self.eps = eps
 
     def forward(
-        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
-    ):
+        self,
+        X: dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor],
+        cur_data_fidelity: DataFidelity,
+        cur_prior: Prior,
+        cur_params: dict,
+        y: torch.Tensor,
+        physics: Physics,
+        *args,
+        **kwargs,
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor]:
         r"""
         Single Blind Richardson-Lucy iteration.
 
-        :param dict X: Current iterate with ``X["est"] = (x, k)``.
+        :param dict[str, tuple[torch.Tensor, torch.Tensor] | torch.Tensor] X: Current
+            iterate with ``X["est"] = (x, k)``.
+        :param deepinv.optim.DataFidelity cur_data_fidelity: Data fidelity term.
         :param deepinv.optim.Prior cur_prior: Image prior.
         :param dict cur_params: Parameters containing ``x_steps``, ``k_steps``,
             ``lambda_reg_x``, ``lambda_reg_k``, ``g_param`` and
@@ -51,39 +73,12 @@ class BlindRLIteration(OptimIterator):
         :param torch.Tensor y: Blurry observation of shape ``(B, C, H, W)``.
         :param deepinv.physics.Physics physics: Blur physics updated in-place with the
             current kernel for the image update.
+        :return: Dictionary ``{"est": (x, k), "cost": F, "it": it}`` containing
+            the updated image, kernel, cost, and iteration number.
         """
         x_prev, k_prev = X["est"][:2]
         x = x_prev.clamp_min(self.eps)
-
-        if y.dim() != 4 or x.dim() != 4:
-            raise ValueError(
-                "BlindRLIteration currently supports 2D images shaped (B, C, H, W)."
-            )
-        if y.shape != x.shape:
-            raise ValueError(
-                "BlindRLIteration requires circular deconvolution with y and x having the same shape."
-                f"Got y={tuple(y.shape)} and x={tuple(x.shape)}."
-            )
-
-        k = k_prev.to(device=x.device, dtype=x.dtype)
-        if k.dim() != 4:
-            raise ValueError(
-                "The blur kernel must be a 4D tensor shaped (B or 1, C or 1, H, W)."
-            )
-        if k.shape[0] == 1 and x.shape[0] > 1:
-            k = k.expand(x.shape[0], -1, -1, -1).contiguous()
-        elif k.shape[0] != x.shape[0]:
-            raise ValueError(
-                "The kernel batch size must be 1 or match x. "
-                f"Got {k.shape[0]} and {x.shape[0]}."
-            )
-        if k.shape[1] == x.shape[1]:
-            k = k.mean(dim=1, keepdim=True)
-        elif k.shape[1] != 1:
-            raise ValueError(
-                "The kernel channel size must be 1 or match x. "
-                f"Got {k.shape[1]} and {x.shape[1]}."
-            )
+        k = k_prev
         if self.normalize_kernel:
             k = F.normalize(
                 k.clamp_min(0.0).flatten(1), p=1, dim=1, eps=self.eps
@@ -107,12 +102,12 @@ class BlindRLIteration(OptimIterator):
         filter_adjoint = (
             dF.conv2d_filter_adjoint_fft if self.use_fft else dF.conv2d_filter_adjoint
         )
-        sensitivity_k = filter_adjoint(x, ones_y, (hk, wk)).mean(dim=1, keepdim=True)
+        sensitivity_k = filter_adjoint(x, ones_y, (hk, wk)).sum(dim=1, keepdim=True)
 
         for _ in range(k_steps):
             y_hat = dF.conv2d(x, k, padding="circular")
             ratio = y / y_hat.clamp_min(self.eps)
-            numerator_k = filter_adjoint(x, ratio, (hk, wk)).mean(dim=1, keepdim=True)
+            numerator_k = filter_adjoint(x, ratio, (hk, wk)).sum(dim=1, keepdim=True)
             denom_k = sensitivity_k + lambda_k * self.k_prior.grad(k, k_g_param)
             k = k * numerator_k / denom_k.clamp_min(self.eps)
             if self.normalize_kernel:
@@ -128,15 +123,7 @@ class BlindRLIteration(OptimIterator):
         for _ in range(x_steps):
             y_hat = physics.A(x)
             numerator_x = physics.A_adjoint(y / y_hat.clamp_min(self.eps))
-            prior_grad_x = cur_prior.grad(x, g_param)
-            # Add a safeguard to avoid NaN values in the prior gradient,
-            # which can occur often with non-smooth priors like TV or L1.
-            prior_grad_x = torch.where(
-                torch.isfinite(prior_grad_x),
-                prior_grad_x,
-                torch.zeros_like(prior_grad_x),
-            )
-            denom_x = sensitivity_x + lambda_x * prior_grad_x
+            denom_x = sensitivity_x + lambda_x * cur_prior.grad(x, g_param)
             x = x * numerator_x / denom_x.clamp_min(self.eps)
             x = x.clamp_min(self.eps)
 
