@@ -17,6 +17,18 @@ Base Classes
    deepinv.models.Reconstructor
 
 
+Learning-Free Reconstructors
+----------------------------
+.. userguide:: reconstructors
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.WienerDeconvolution
+
+
 Classical Denoisers
 -------------------
 .. userguide:: non-learned-denoisers
