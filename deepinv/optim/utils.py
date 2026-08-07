@@ -332,10 +332,9 @@ class GaussianMixtureModel(nn.Module):
         :param bool verbose: Output progress information in the console
         """
         if data_init:
-            first_data = next(iter(dataloader))
+            from deepinv.datasets.base import extract_x_tensor
 
-            if isinstance(first_data, (tuple, list)):
-                first_data = first_data[0]
+            first_data = extract_x_tensor(next(iter(dataloader)))
 
             first_data = first_data[: self.n_components].to(self.mu)
 
@@ -377,6 +376,8 @@ class GaussianMixtureModel(nn.Module):
         :param torch.data.Dataloader dataloader: containing the data
         :param bool verbose: Output progress information in the console
         """
+        from deepinv.datasets.base import extract_x_tensor
+
         objective = 0
         weights_new = torch.zeros_like(self._weights)
         mu_new = torch.zeros_like(self.mu)
@@ -384,6 +385,7 @@ class GaussianMixtureModel(nn.Module):
         n = 0
         objective = 0
         for x in tqdm(dataloader, disable=not verbose):
+            x = extract_x_tensor(x)
             x = x.to(self.mu)
             n += x.shape[0]
             component_log_likelihoods = self.component_log_likelihoods(x)

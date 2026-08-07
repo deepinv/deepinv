@@ -13,7 +13,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader, Subset, Dataset
 from deepinv.utils.tensorlist import TensorList
 from deepinv.physics import StackedPhysics
-from deepinv.datasets.base import ImageDataset
+from deepinv.datasets.base import ImageDataset, extract_x_tensor
 from deepinv.utils.decorators import _deprecate_attribute
 
 if TYPE_CHECKING:
@@ -130,7 +130,7 @@ class HDF5Dataset(ImageDataset):
     :param torch.dtype, str dtype: The dtype for real-valued numbers, by default ``torch.float``.
     :param torch.dtype, str complex_dtype: The dtype for complex-valued numbers, by default ``torch.cfloat``.
     :param Transform, Callable, None transform: An optional transformation applied to the ground truth.
-
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
     """
 
     def __init__(
@@ -142,10 +142,11 @@ class HDF5Dataset(ImageDataset):
         load_physics_generator_params: bool = False,
         dtype: torch.dtype | str = torch.float,
         complex_dtype: torch.dtype | str = torch.cfloat,
+        use_dict_output: bool = False,
     ):
         import h5py
 
-        super().__init__()
+        super().__init__(use_dict_output=use_dict_output)
 
         f = h5py.File(path, "r")
 
@@ -379,10 +380,15 @@ class HDF5Dataset(ImageDataset):
         else:
             params = None
 
-        if params is not None:
-            return x, y, params
+        if self.use_dict_output:
+            out = {"x": x, "y": y}
+            if params is not None:
+                out["params"] = params
+
         else:
-            return x, y
+            out = (x, y, params) if params is not None else (x, y)
+
+        return out
 
     def __len__(self) -> int:
         r"""
@@ -437,11 +443,12 @@ def collate(dataset: Dataset) -> Callable[[list[Any]], Tensor] | None:
     assumed to be type-consistent.
     """
     example_output = dataset[0]
-    example_output = (
-        example_output[0]
-        if isinstance(example_output, (list, tuple))
-        else example_output
-    )
+    if isinstance(example_output, (list, tuple)):
+        example_output = example_output[0]
+    elif isinstance(example_output, dict):
+        example_output = (
+            example_output["x"] if "x" in example_output else example_output["y"]
+        )
 
     if isinstance(example_output, (Tensor, np.ndarray)):
         return None
@@ -455,12 +462,8 @@ def collate(dataset: Dataset) -> Callable[[list[Any]], Tensor] | None:
             ) -> Tensor:
                 tensors = []
                 for sample in batch:
-                    if isinstance(sample, Image.Image):
-                        img = sample
-                    elif isinstance(sample, (list, tuple)):
-                        # only keeping the first element is same behavior as when dataset returns list of tensors!
-                        img = sample[0]
-                    else:  # pragma: no cover
+                    img = extract_x_tensor(sample)
+                    if not isinstance(img, Image.Image):  # pragma: no cover
                         raise ValueError(
                             f"generate_dataset expects datasets to consistently return a (list of) Tensor, Array, or PIL images. Detected use of PIL in a sample, but received a new item of type {type(sample)}."
                         )
@@ -633,7 +636,17 @@ def generate_dataset(
             n_split: int,
         ) -> int:
             """Process one batch for a given split and return updated index."""
-            x = x_batch[0] if isinstance(x_batch, (list, tuple)) else x_batch
+
+            x = (
+                x_batch.get("x")
+                if isinstance(x_batch, dict)
+                else extract_x_tensor(x_batch)
+            )
+            if x is None:
+                raise ValueError(
+                    "generate_dataset requires the input dataset to provide ground-truth images under the key 'x'."
+                )
+
             x = x.to(device)
 
             bsize = x.size(0)

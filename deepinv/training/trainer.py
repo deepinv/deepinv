@@ -14,7 +14,7 @@ from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
 from deepinv.utils.tensorlist import TensorList
-from deepinv.datasets.base import check_dataset
+from deepinv.datasets.base import check_dataset, unpack_batch
 from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
@@ -662,26 +662,28 @@ class Trainer:
 
         Assumes the dataloader returns ground truth `x`, or tuples of (`x`, `params`). Note that `params` are ignored if a physics generator is provided.
 
+        The dataloader batch can be a bare ``x``, a tuple (optionally ``(x, params)``), or a dict with
+        ``"x"`` and optional ``"params"`` keys (see :func:`deepinv.datasets.check_dataset`).
+
         :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
         :returns: a tuple containing at least: the ground truth, the measurement, and the current physics operator.
         """
         data = next(iterators[g])
+        x, _y, params = unpack_batch(data)
 
-        params = {}
-        if isinstance(data, (tuple, list)):
-            x = data[0]
-
-            if len(data) == 2 and isinstance(data[1], dict):
-                params = data[1]
-            else:
+        if isinstance(data, dict):
+            pass  # dict is unambiguous and self-describing, params already extracted
+        elif isinstance(data, (tuple, list)):
+            if not (len(data) == 2 and isinstance(data[1], dict)):
+                data_type = type(data[1]) if len(data) > 1 else None
                 warnings.warn(
-                    f"Generating online measurements requires dataloader to return tensor `x` or (tensor `x`, dict `params`) but got ({type(x)}, {type(data[1])}, ...). Discarding all data after `x`."
+                    f"Generating online measurements requires dataloader to return tensor `x` or (tensor `x`, dict `params`) but got ({type(x)}, {data_type}, ...). Discarding all data after `x`."
                 )
-        else:
-            x = data
+                params = {}
+        # else: bare x, params already {}
 
-        if torch.isnan(x).all():
+        if x is None or isinstance(x, float) or torch.isnan(x).all():
             raise ValueError("Online measurements can't be used if x is all NaN.")
 
         x = x.to(self.device, non_blocking=self.non_blocking_transfers)
@@ -709,42 +711,48 @@ class Trainer:
 
         If the dataloader returns 3-tuples, this is assumed to be ``(x, y, params)`` where
         ``params`` is a dict of physics generator params. These params are then used to update
-        the physics.
+        the physics. The dataloader batch can also be a dict with ``"x"``, ``"y"`` and optional
+        ``"params"`` keys (see :func:`deepinv.datasets.check_dataset`).
 
         :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
         :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
         """
         data = next(iterators[g])
-        if not isinstance(data, (tuple, list)) or len(data) < 2:
-            raise ValueError(
-                "If online_measurements=False, the dataloader should output a tuple (x, y) or (x, y, params)"
-            )
 
-        if len(data) == 2:
-            x, y, params = *data, None
-            if isinstance(y, dict):  # x,params offline
+        x, y, params = unpack_batch(data)
+
+        # self.get_samples_offline is called in self.get_samples only when self.online_measurements is False, so y should be provided in the dataloader output
+        if y is None:
+            if isinstance(data, dict):
                 raise ValueError(
-                    "If online_measurements=False, measurements y must be provided as a tensor."
+                    "If online_measurements=False, the dataloader should output a dict with keys 'x' and 'y' (and optionally 'params')"
                 )
-        elif len(data) == 3:
-            x, y, params = data
-        else:
-            raise ValueError(
-                "Dataloader returns too many items. For offline learning, dataloader should either return (x, y) or (x, y, params)."
-            )
+            elif not isinstance(data, (tuple, list)) or len(data) < 2:
+                raise ValueError(
+                    "If online_measurements=False, the dataloader should output a tuple (x, y) or (x, y, params)"
+                )
+            elif len(data) == 2:
+                raise ValueError(
+                    "If online_measurements=False, measurements y must be provided as a tensor. Got (x, params) instead of (x, y) or (x, y, params)."
+                )
 
         batch_size_y = y[0].size(0) if isinstance(y, TensorList) else y.size(0)
-        batch_size_x = x[0].size(0) if isinstance(x, TensorList) else x.size(0)
 
-        if batch_size_x != batch_size_y:  # pragma: no cover
-            raise ValueError(
-                f"Data x, y must have same batch size, but got {batch_size_x}, {batch_size_y}"
-            )
+        # NOTE: if dataset output format is a dict, `unpack_batch` will return x=None, so no complicated checks are needed.
+        # If dataset output format is a tuple, the first element x can be torch.nan, which will be collated to a tensor of shape (batch_size,) with all values being torch.nan. In this case, we set x=None to indicate that there is no ground truth in the deepinv convention.
+        if isinstance(x, (tuple, list)) or x is not None:
+            batch_size_x = x[0].size(0) if isinstance(x, TensorList) else x.size(0)
 
-        if torch.isnan(x).all() and x.ndim <= 1:
-            x = None  # Batch of NaNs -> no ground truth in deepinv convention
-        else:
+            if batch_size_x != batch_size_y:  # pragma: no cover
+                raise ValueError(
+                    f"Data x, y must have same batch size, but got {batch_size_x}, {batch_size_y}"
+                )
+
+            if torch.isnan(x).all() and x.ndim <= 1:
+                x = None  # Batch of NaNs -> no ground truth in deepinv convention
+
+        if x is not None:
             x = x.to(self.device, non_blocking=self.non_blocking_transfers)
 
         y = y.to(self.device, non_blocking=self.non_blocking_transfers)

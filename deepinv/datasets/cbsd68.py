@@ -34,6 +34,7 @@ class CBSD68(ImageDataset):
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
     :param bool rotate: If set to ``True`` images are rotated to have all the same orientation. This can be important to use a torch dataloader.
         Default at False.
+    :param bool use_dict_output: whether to return output as a dict with key ``"x"`` instead of an image (default ``False``).
 
     |sep|
 
@@ -66,6 +67,7 @@ class CBSD68(ImageDataset):
         download: bool = False,
         transform: Callable = None,
         rotate=False,
+        use_dict_output: bool = False,
     ) -> None:
         try:
             from datasets import load_dataset as load_dataset_hf, load_from_disk
@@ -77,6 +79,7 @@ class CBSD68(ImageDataset):
         self.root = resolve_root(root, "CBSD68")
         self.transform = transform
         self.rotate = rotate
+        super().__init__(use_dict_output=use_dict_output)
 
         # download dataset, we check first that dataset isn't already downloaded
         if not self.check_dataset_exists():
@@ -117,7 +120,8 @@ class CBSD68(ImageDataset):
 
         if self.transform is not None:
             img = self.transform(img)
-        return img
+
+        return {"x": img} if self.use_dict_output else img
 
     def check_dataset_exists(self) -> bool:
         """Verify that the HuggingFace dataset folder exists and contains the raw data file.

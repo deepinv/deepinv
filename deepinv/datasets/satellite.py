@@ -71,6 +71,7 @@ class NBUDataset(ImageDataset):
     :param Callable transform_ms: optional transform for multispectral images
     :param Callable transform_pan: optional transform for panchromatic images
     :param bool download: whether to download dataset
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
 
     """
@@ -94,7 +95,9 @@ class NBUDataset(ImageDataset):
         transform_ms: Callable = None,
         transform_pan: Callable = None,
         download: bool = False,
+        use_dict_output: bool = False,
     ):
+        super().__init__(use_dict_output=use_dict_output)
         if satellite not in self._satellites:
             raise ValueError(
                 'satellite must be "ikonos", "gaofen-1", "quickbird", "worldview-2", "worldview-3", or "worldview-4".'
@@ -173,4 +176,10 @@ class NBUDataset(ImageDataset):
         ms = transform_ms(ms)
         pan = transform_pan(pan)
 
-        return TensorList([ms, pan]) if self.return_pan else ms
+        # TODO: need to check images, dont know what to do here
+        x = TensorList([ms, pan]) if self.return_pan else ms
+
+        if self.use_dict_output:
+            return {"x": x}
+
+        return x
