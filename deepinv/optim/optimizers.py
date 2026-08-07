@@ -2397,7 +2397,7 @@ class BlindRL(BaseOptim):
     unit sum by the \Pi_{\Delta} operation after each kernel update.
 
     Image and kernel priors can be used.
-    The regularized algorithm is implemented using the the One-Step-Late (OSL) heuristic 
+    The regularized algorithm is implemented using the the One-Step-Late (OSL) heuristic
     of Green :footcite:t:`greenUseEmAlgorithm1990`.
     The kernel and image updates then become:
 

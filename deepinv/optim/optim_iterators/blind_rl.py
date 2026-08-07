@@ -17,7 +17,7 @@ class BlindRLIteration(OptimIterator):
     r"""
     Iterator for Blind Richardson-Lucy deconvolution.
 
-    This iterator performs one step to estimate the next kernel, and one step to 
+    This iterator performs one step to estimate the next kernel, and one step to
     estimate the next image.
 
     The current iterate is stored as ``X["est"] = (x, k)``. The kernel update
