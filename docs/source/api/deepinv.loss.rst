@@ -45,6 +45,7 @@ Self-Supervised Learning
     deepinv.loss.MOILoss
     deepinv.loss.MOEILoss
     deepinv.loss.Neighbor2Neighbor
+    deepinv.loss.Noise2Void
     deepinv.loss.SplittingLoss
     deepinv.loss.SureGaussianLoss
     deepinv.loss.SurePoissonLoss

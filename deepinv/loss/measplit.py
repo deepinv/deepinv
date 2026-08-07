@@ -4,7 +4,10 @@ import torch
 from deepinv.physics import Inpainting, Physics
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
-from deepinv.physics.generator import BernoulliSplittingMaskGenerator
+from deepinv.physics.generator import (
+    BernoulliSplittingMaskGenerator,
+    Noise2VoidMaskGenerator,
+)
 from deepinv.models.base import Reconstructor
 
 
@@ -517,3 +520,195 @@ class Neighbor2Neighbor(Loss):
         )
 
         return loss_n2n
+
+
+class Noise2Void(SplittingLoss):
+    r"""
+    Noise2Void self-supervised denoising loss. :footcite:t:`krull2019noise2void`
+
+    A small subset of "blind-spot" pixels is selected (by default with the uniform
+    pixel selection scheme, see :class:`deepinv.physics.generator.Noise2VoidMaskGenerator`).
+    In the network input, each blind-spot pixel value is replaced by that of a random
+    neighbor, so the network never sees the true value of a pixel it must predict. The loss
+    is then the error on the blind-spot pixels against their original noisy values.
+
+    As noise is assumed conditionally pixel-wise independent given the signal, the network
+    cannot copy the noise and instead learns to predict the underlying signal.
+
+    .. note::
+
+        Noise2Void is defined for denoising, i.e. the physics is assumed to be
+        :class:`deepinv.physics.Denoising` (or identity). Other forward operators are
+        not supported.
+
+    .. warning::
+
+        As with :class:`deepinv.loss.SplittingLoss`, the model must be adapted before
+        training using :func:`adapt_model <deepinv.loss.Noise2Void.adapt_model>` to
+        include the blind-spot masking at the input.
+
+    :param Metric, torch.nn.Module metric: metric used for computing the loss, set to the mean squared error by default. Only pointwise losses are supported.
+    :param float masked_pixel_ratio: approximate fraction of pixels used as blind spots. Ignored if ``mask_generator`` is passed.
+    :param int window_size: side length of the neighborhood window used for pixel replacement.
+    :param deepinv.physics.generator.Noise2VoidMaskGenerator, None mask_generator: blind-spot mask generator. If ``None``, a :class:`deepinv.physics.generator.Noise2VoidMaskGenerator` is created lazily.
+
+    """
+
+    def __init__(
+        self,
+        metric: Metric | torch.nn.Module | None = None,
+        masked_pixel_ratio: float = 0.02,
+        window_size: int = 11,
+        mask_generator: Noise2VoidMaskGenerator | None = None,
+    ):
+        if mask_generator is None:
+            Noise2VoidMaskGenerator.validate_ratio(masked_pixel_ratio)
+        super().__init__(
+            metric=metric,
+            split_ratio=masked_pixel_ratio,
+            mask_generator=mask_generator,
+            eval_n_samples=1,
+            eval_split_input=False,  # denoise full image at eval time
+            eval_split_output=False,
+            pixelwise=True,
+            normalize_loss=True,
+        )
+        self._name = "n2v"
+        self.masked_pixel_ratio = masked_pixel_ratio
+        self.window_size = window_size
+
+    def forward(self, x_net, y, physics, model, **kwargs):
+        r"""
+        Computes the Noise2Void loss on the blind-spot pixels.
+
+        :param torch.Tensor x_net: reconstructions.
+        :param torch.Tensor y: measurements.
+        :param deepinv.physics.Physics physics: forward operator (denoising).
+        :param torch.nn.Module model: adapted reconstruction model.
+        :return: (:class:`torch.Tensor`) loss.
+        """
+        # N2V performs a single blind-spot realization, so there is exactly one mask
+        (blindspot_mask,) = model.get_masks()
+        blindspot = blindspot_mask.bool()
+        return self.metric(x_net[blindspot], y[blindspot])
+
+    def adapt_model(self, model: torch.nn.Module) -> Noise2VoidModel:
+        r"""
+        Wrap the model to perform blind-spot input masking.
+
+        :param torch.nn.Module model: Reconstruction model.
+        :return: (:class:`torch.nn.Module`) Model adapted for Noise2Void training.
+        """
+        if isinstance(model, self.Noise2VoidModel):
+            return model
+        return self.Noise2VoidModel(
+            model,
+            mask_generator=self.mask_generator,
+            masked_pixel_ratio=self.masked_pixel_ratio,
+            window_size=self.window_size,
+            eval_split_input=self.eval_split_input,
+        )
+
+    class Noise2VoidModel(SplittingLoss.SplittingModel):
+        r"""
+        Model wrapper for Noise2Void.
+
+        Performs blind-spot masking with neighbor replacement at the input during
+        training. At evaluation, the full (unmasked) measurement is denoised.
+
+        :param deepinv.models.Reconstructor model: base denoiser. Must be a blind denoiser.
+        :param deepinv.physics.generator.Noise2VoidMaskGenerator, None mask_generator: blind-spot mask generator, created lazily if ``None``.
+        :param float masked_pixel_ratio: approximate fraction of blind-spot pixels.
+        :param int window_size: side length of the neighborhood window.
+        :param bool eval_split_input: if ``False`` (default), denoise the full image at eval time.
+        """
+
+        def __init__(
+            self,
+            model,
+            mask_generator,
+            masked_pixel_ratio,
+            window_size,
+            eval_split_input=False,
+        ):
+            super().__init__(
+                model,
+                split_ratio=masked_pixel_ratio,
+                mask_generator=mask_generator,
+                eval_n_samples=1,
+                eval_split_input=eval_split_input,
+                eval_split_output=False,
+                pixelwise=True,
+            )
+            self.masked_pixel_ratio = masked_pixel_ratio
+            self.window_size = window_size
+
+        def forward(
+            self, y: torch.Tensor, physics: Physics, update_parameters: bool = False
+        ):
+            if self.mask_generator is None:
+                self.mask_generator = Noise2VoidMaskGenerator(
+                    img_size=(y.shape[1], *y.shape[-2:]),
+                    masked_pixel_ratio=self.masked_pixel_ratio,
+                    device=y.device,
+                )
+
+            with torch.set_grad_enabled(self.training):
+                if not self.eval_split_input and not self.training:
+                    # No masking: denoise the full measurement
+                    return self.model(y, physics)
+                return self._forward_split_input(
+                    y, physics, update_parameters=update_parameters
+                )
+
+        def _forward_split_input(
+            self, y: torch.Tensor, physics: Physics, update_parameters: bool = False
+        ):
+            blindspot_mask = self.mask_generator.step(y.size(0), img_size=y.shape[-2:])[
+                "mask"
+            ]
+
+            y1 = _neighbor_replace(
+                y,
+                blindspot_mask,
+                window_size=self.window_size,
+                rng=self.mask_generator.rng,
+            )
+
+            out = self.model(y1, physics)
+
+            if update_parameters:
+                # store the blind-spot mask for the loss to supervise on
+                self.masks = [blindspot_mask]
+
+            return out
+
+
+def _neighbor_replace(
+    y: torch.Tensor,
+    mask: torch.Tensor,
+    window_size: int = 11,
+    rng: torch.Generator = None,
+) -> torch.Tensor:
+    _, _, H, W = y.shape
+    r = window_size // 2
+    out = y.clone()
+
+    coords = mask.expand_as(y).nonzero(as_tuple=False)  # (N, 4): b, c, h, w
+    if coords.numel() == 0:
+        return out
+    n = coords.shape[0]
+
+    off_h = torch.randint(-r, r + 1, (n,), generator=rng, device=y.device)
+    off_w = torch.randint(-r, r + 1, (n,), generator=rng, device=y.device)
+    # nudge (0, 0) offsets so the center pixel is never sampled
+    center = (off_h == 0) & (off_w == 0)
+    off_w = torch.where(center, torch.ones_like(off_w), off_w)
+
+    src_h = (coords[:, 2] + off_h).clamp(0, H - 1)
+    src_w = (coords[:, 3] + off_w).clamp(0, W - 1)
+
+    out[coords[:, 0], coords[:, 1], coords[:, 2], coords[:, 3]] = y[
+        coords[:, 0], coords[:, 1], src_h, src_w
+    ]
+    return out
