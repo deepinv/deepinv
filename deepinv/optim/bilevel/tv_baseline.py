@@ -70,11 +70,13 @@ def assert_grad_div_adjoint(
 
     Returns the absolute residual of the identity (should be ~0).
     """
+    # Draw on CPU then move, so the seed means the same thing on every
+    # backend and a CPU generator is never asked to fill a device tensor.
     gen = torch.Generator(device="cpu").manual_seed(seed)
-    u = torch.randn(shape, generator=gen, dtype=dtype, device=device)
+    u = torch.randn(shape, generator=gen, dtype=dtype, device="cpu").to(device)
     p = torch.randn(
-        (*shape, 2), generator=gen, dtype=dtype, device=device
-    )
+        (*shape, 2), generator=gen, dtype=dtype, device="cpu"
+    ).to(device)
     Du = nabla(u)
     d = div(p)
     residual = float((Du * p).sum().item() + (u * d).sum().item())
@@ -113,10 +115,14 @@ def estimate_data_lipschitz(
     tol: float = 1e-4,
 ) -> float:
     """Power iteration for the top eigenvalue of A^* A."""
+    # Draw on CPU then move: a CPU generator cannot fill a non-CPU tensor
+    # ("Expected a 'mps' device type for generator but found 'cpu'"), and
+    # drawing on the device would make the seed backend-dependent, so the same
+    # seed would give different numbers on CPU, CUDA and MPS.
     gen = torch.Generator(device="cpu").manual_seed(0)
     v = torch.randn(
-        x_like.shape, generator=gen, dtype=x_like.dtype, device=x_like.device
-    )
+        x_like.shape, generator=gen, dtype=x_like.dtype, device="cpu"
+    ).to(device=x_like.device)
     v = v / v.flatten().norm().clamp_min(1e-30)
     lam = 0.0
     for _ in range(n_iter):

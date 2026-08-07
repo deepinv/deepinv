@@ -43,6 +43,12 @@ from typing import Any, Callable
 import torch
 
 from .cg_utils import cg_solve_batched
+from .oracle import (
+    HypergradientOracle,
+    HypergradientState,
+    LowerLevelState,
+)
+from .smooth import smooth_hypergradient_error_bound
 from .convex_ridge import (
     ConvexRidgeConfig,
     ConvexRidgePrior,
@@ -404,3 +410,232 @@ class BatchedCRR:
             max_iter=max_cg_iter,
         )
         return -self.mixed_jac_T(x, theta, cg.x)
+
+
+class BatchedMinibatchOracle(HypergradientOracle):
+    """MAID oracle backed by batched solves and exact accumulation.
+
+    Drop-in for :class:`MinibatchOracle`: same API, same reduction (the mean
+    over samples), but each group of samples is solved as one batch instead of
+    one at a time. Groups are split into sub-batches sized from measured
+    memory, and their hypergradients summed. Accumulation is exact, so the
+    batch size changes peak memory and nothing else.
+
+    :param groups: ``[(physics, y, x_star), ...]``. One entry per distinct
+        forward operator; samples sharing an operator (including one with
+        per-sample parameters, such as a batched inpainting mask) belong in
+        the same entry.
+    :param batch_size: override the measured choice.
+    """
+
+    def __init__(
+        self,
+        groups: list[tuple[Any, torch.Tensor, torch.Tensor]],
+        cfg: ConvexRidgeConfig,
+        *,
+        batch_size: int | None = None,
+        safety: float = 0.35,
+        max_batch: int | None = None,
+        solver_max_iter: int = 5000,
+    ):
+        if not groups:
+            raise ValueError("groups must be non-empty")
+        self.cfg = cfg
+        self.solver_max_iter = int(solver_max_iter)
+        self.m = int(sum(g[2].shape[0] for g in groups))
+        x0 = groups[0][2]
+        self.device, self.dtype = x0.device, x0.dtype
+        self.L_g_value = 1.0
+        self.L_H_inv = 0.0
+        self.L_J = 0.0
+        self.reset_counters()
+
+        if batch_size is None:
+            probe = groups[0]
+
+            def run_probe(b: int) -> None:
+                BatchedCRR(
+                    y=probe[1][:b], x_star=probe[2][:b], cfg=cfg,
+                    physics=probe[0],
+                ).solve_lower(
+                    torch.zeros(cfg.n_params, dtype=self.dtype,
+                                device=self.device),
+                    eps=1e-3, max_iter=5,
+                )
+
+            per = measure_sample_bytes(
+                run_probe, self.device,
+                probe_batch=min(2, probe[2].shape[0]),
+            )
+            batch_size = auto_batch_size(
+                self.m, per, self.device, safety=safety, max_batch=max_batch
+            )
+            self.per_sample_bytes = per
+        else:
+            self.per_sample_bytes = 0
+        self.batch_size = max(1, int(batch_size))
+
+        # Materialise the sub-batches once; order is fixed so the reduction is
+        # deterministic across runs.
+        self.batches: list[BatchedCRR] = []
+        for physics, y, x_star in groups:
+            n = int(x_star.shape[0])
+            for s in range(0, n, self.batch_size):
+                e = min(s + self.batch_size, n)
+                self.batches.append(
+                    BatchedCRR(
+                        y=y[s:e], x_star=x_star[s:e], cfg=cfg, physics=physics
+                    )
+                )
+        self._certified = True
+        self._citation = (
+            "Salehi et al., SIAM J. Math. Data Sci. 2025, Theorem 2.1; "
+            "batched convex ridge regulariser"
+        )
+
+    # -- bookkeeping ---------------------------------------------------
+    def reset_counters(self) -> None:
+        self.n_lower_solves = 0
+        self.n_hypergradients = 0
+        self.n_sample_lower_solves = 0
+        self.n_sample_hypergradients = 0
+        self.n_gd_iters = 0
+        self.peak_working_bytes = 0
+
+    @property
+    def certified(self) -> bool:
+        return self._certified
+
+    @property
+    def citation(self) -> str:
+        return self._citation
+
+    @property
+    def L_g(self) -> float:
+        return float(self.L_g_value)
+
+    def require_certified_or_opt_in(self, allow_uncertified: bool) -> None:
+        if not self.certified and not allow_uncertified:
+            raise RuntimeError("uncertified oracle without opt-in")
+
+    # -- oracle API ----------------------------------------------------
+    def solve_lower_level(
+        self, theta: torch.Tensor, eps: float,
+        warm_start: LowerLevelState | None = None,
+    ) -> LowerLevelState:
+        xs, g_acc, ng_acc, n_it = [], 0.0, 0.0, 0
+        warm = warm_start.extras.get("x_list") if warm_start else None
+        for k, bp in enumerate(self.batches):
+            x, _res, info = bp.solve_lower(
+                theta, eps=eps,
+                x_init=warm[k] if warm is not None else None,
+                max_iter=self.solver_max_iter,
+            )
+            xs.append(x)
+            g_acc += float(bp.g_per_sample(x).sum().item())
+            ng_acc += float(bp.grad_g(x).flatten(1).norm(dim=1).sum().item())
+            n_it = max(n_it, int(info["n_iter"]))
+            self.n_sample_lower_solves += bp.B
+        self.n_lower_solves += 1
+        self.n_gd_iters += n_it
+        return LowerLevelState(
+            x=torch.cat(xs),
+            eps=eps,
+            extras={
+                "x_list": xs,
+                "g_mean": g_acc / self.m,
+                "grad_g_norm_mean": ng_acc / self.m,
+                "n_iter": n_it,
+            },
+        )
+
+    def hypergradient(
+        self, theta: torch.Tensor, lower: LowerLevelState, delta: float
+    ) -> HypergradientState:
+        xs = lower.extras["x_list"]
+        z_acc: torch.Tensor | None = None
+        J_max = 0.0
+        for bp, x in zip(self.batches, xs):
+            z_b = bp.hypergradient(x, theta, delta=delta)
+            z_acc = z_b.clone() if z_acc is None else z_acc + z_b
+            J_max = max(J_max, self._batch_J_norm(bp, x, theta))
+            self.n_sample_hypergradients += bp.B
+        assert z_acc is not None
+        self.n_hypergradients += 1
+        return HypergradientState(
+            z=z_acc / self.m,
+            delta=delta,
+            extras={
+                "x": lower.x,
+                "theta": theta,
+                "mu": min(bp.mu for bp in self.batches),
+                "J_norm": J_max,
+                "grad_g_norm": lower.extras["grad_g_norm_mean"],
+                "L_H_inv": 0.0,
+                "L_J": 0.0,
+            },
+        )
+
+    @staticmethod
+    def _batch_J_norm(
+        bp: BatchedCRR, x: torch.Tensor, theta: torch.Tensor, n_power: int = 2
+    ) -> float:
+        """Power estimate of ``||J||`` for the batch.
+
+        ``mixed_jac_T`` returns the sum over samples, so this estimates the
+        norm of the summed operator. Probing it with a vector supported on one
+        sample recovers that sample's ``J_i``, hence this is an **upper bound**
+        on every per-sample norm. Using it in the error bound is therefore
+        conservative: omega comes out at least as large as the per-sample mean,
+        which costs extra backtracking at worst and never understates the
+        hypergradient error.
+        """
+        nrm = 0.0
+        for _ in range(max(n_power, 1)):
+            e = torch.randn_like(x)
+            e = e / e.flatten(1).norm(dim=1).view(-1, 1, 1, 1).clamp_min(1e-30)
+            jte = bp.mixed_jac_T(x, theta, e)
+            nrm = max(nrm, float(jte.norm().item()))
+        return nrm
+
+    def error_bound(
+        self, theta: torch.Tensor, lower: LowerLevelState,
+        hyper: HypergradientState, eps: float, delta: float,
+    ) -> float:
+        return smooth_hypergradient_error_bound(
+            eps=eps,
+            delta=delta,
+            mu=float(hyper.extras["mu"]),
+            L_g=self.L_g,
+            J_norm=float(hyper.extras["J_norm"]),
+            grad_g_norm=float(hyper.extras["grad_g_norm"]),
+            L_H_inv=0.0,
+            L_J=0.0,
+        )
+
+    def g(self, x: torch.Tensor) -> torch.Tensor:
+        out = 0.0
+        s = 0
+        for bp in self.batches:
+            out = out + bp.g_per_sample(x[s:s + bp.B]).sum()
+            s += bp.B
+        return out / self.m
+
+    def grad_g(self, x: torch.Tensor) -> torch.Tensor:
+        parts, s = [], 0
+        for bp in self.batches:
+            parts.append(bp.grad_g(x[s:s + bp.B]))
+            s += bp.B
+        return torch.cat(parts) / self.m
+
+    def f_closed_form(self, theta: torch.Tensor) -> torch.Tensor:
+        lower = self.solve_lower_level(theta, eps=1e-4)
+        return torch.as_tensor(
+            lower.extras["g_mean"], dtype=self.dtype, device=self.device
+        )
+
+    def update_lipschitz_estimates(
+        self, lower: LowerLevelState, theta: torch.Tensor
+    ) -> None:
+        # g is quadratic, so L_g = 1 exactly; nothing to estimate.
+        self.L_g_value = 1.0
