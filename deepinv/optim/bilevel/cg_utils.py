@@ -100,6 +100,109 @@ def cg_solve(
     )
 
 
+def _inner_batched(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    """Per-sample Frobenius product, kept broadcastable against ``(B, ...)``."""
+    dims = tuple(range(1, a.dim()))
+    return (a * b).sum(dim=dims, keepdim=True)
+
+
+@dataclass
+class BatchedCGResult:
+    """CG outcome for a block-diagonal system solved sample-by-sample.
+
+    :param x: solutions, shape ``(B, ...)``.
+    :param residual: residual vectors ``b - A x``.
+    :param residual_norm: per-sample residual norms, shape ``(B,)``.
+    :param n_iter: iterations run (the max across samples; converged samples
+        are frozen and cost nothing further).
+    :param n_converged: how many samples met ``tol``.
+    """
+
+    x: torch.Tensor
+    residual: torch.Tensor
+    residual_norm: torch.Tensor
+    n_iter: int
+    n_converged: int
+
+
+def cg_solve_batched(
+    A_mv,
+    b: torch.Tensor,
+    *,
+    tol: torch.Tensor | float | None = None,
+    max_iter: int = 10_000,
+    x0: torch.Tensor | None = None,
+    eps: float = 1e-30,
+) -> BatchedCGResult:
+    r"""CG on ``B`` independent SPD systems sharing one operator call.
+
+    The batched lower-level Hessians are block diagonal: sample ``i`` has its
+    own :math:`H_i`, and ``A_mv`` applies all of them in a single call. CG
+    itself must stay **per sample**: one shared ``alpha`` would couple systems
+    that are mathematically independent and destroy the Krylov property for
+    every one of them. So the inner products, ``alpha`` and ``beta`` all carry
+    a batch dimension.
+
+    Samples reaching ``tol`` are frozen by zeroing their ``alpha`` rather than
+    dropped from the batch: the tensor stays rectangular, which is the point of
+    batching, and a frozen sample contributes no further change to ``x`` or
+    ``r``. Iteration stops once every sample has converged.
+
+    ``tol`` may be a scalar or a per-sample tensor of shape ``(B,)``.
+    """
+    B = b.shape[0]
+    trail = (1,) * (b.dim() - 1)
+    if x0 is None:
+        x = torch.zeros_like(b)
+        r = b.clone()
+    else:
+        x = x0.clone()
+        r = b - A_mv(x)
+    p = r.clone()
+    rs = _inner_batched(r, r)
+
+    if tol is None:
+        tol_sq = None
+    else:
+        t = (
+            tol
+            if torch.is_tensor(tol)
+            else torch.full((B,), float(tol), dtype=b.dtype, device=b.device)
+        )
+        tol_sq = (t.to(device=b.device, dtype=b.dtype) ** 2).view(B, *trail)
+
+    active = (
+        torch.ones((B, *trail), dtype=torch.bool, device=b.device)
+        if tol_sq is None
+        else (rs > tol_sq)
+    )
+    n_iter = 0
+    for it in range(1, int(max_iter) + 1):
+        if not bool(active.any()):
+            break
+        n_iter = it
+        Ap = A_mv(p)
+        pAp = _inner_batched(p, Ap)
+        alpha = torch.where(active, rs / (pAp + eps), torch.zeros_like(rs))
+        x = x + alpha * p
+        r = r - alpha * Ap
+        rs_new = _inner_batched(r, r)
+        if tol_sq is not None:
+            active = active & (rs_new > tol_sq)
+        beta = torch.where(active, rs_new / (rs + eps), torch.zeros_like(rs))
+        p = torch.where(active, r + beta * p, p)
+        rs = rs_new
+
+    n_conv = B if tol_sq is None else int(B - active.reshape(B).sum().item())
+    return BatchedCGResult(
+        x=x,
+        residual=r,
+        residual_norm=rs.reshape(B).sqrt(),
+        n_iter=int(n_iter),
+        n_converged=n_conv,
+    )
+
+
 def cg_recycle(
     A_mv,
     b: torch.Tensor,
