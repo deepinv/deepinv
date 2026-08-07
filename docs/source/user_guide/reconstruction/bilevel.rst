@@ -26,9 +26,9 @@ The functions :math:`g_i` measure reconstruction quality (typically
 reconstruction objectives: data fidelity plus a parameterised prior. The
 parameter :math:`\theta` is what MAID learns.
 
-References: Salehi, Mukherjee, Roberts and Ehrhardt, SIAM J. Math. Data Sci.
-2025 (arXiv 2308.10098); saddle-point extension in Bogensperger, Ehrhardt,
-Pock, Salehi and Wong (arXiv 2412.06436).
+References: :footcite:t:`salehi2025adaptively` for MAID and the Theorem 2.1
+hypergradient bound; :footcite:t:`bogensperger2025adaptively` for the
+saddle-point instantiation with primal-dual style differentiation.
 
 Oracles
 -------
@@ -420,6 +420,65 @@ The mechanism the acceleration targets is the one that was hurting.
 Nesterov or heavy-ball momentum on ``theta`` is not included: it would move
 the search direction away from ``-z`` and break Proposition 3.1. Future work.
 
+
+**Ablation on a real imaging problem.** The crossover above is on synthetic
+quadratics. On bilevel learning of a convex ridge regulariser (CBSD68, 16
+training images, 120 outer iterations, MPS float32, batched oracle), with
+everything else held fixed:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 14 16 14 14 14 14 14
+
+   * - arm
+     - ``f`` final
+     - :math:`\|z\|`
+     - lower-level its
+     - wall (s)
+     - held-out PSNR
+     - monotone
+   * - plain
+     - 2.607
+     - 2.38e-1
+     - 1326
+     - 131
+     - 28.08 dB
+     - yes
+   * - ``bb_init``
+     - 1.190
+     - 1.32e-1
+     - 3593
+     - 627
+     - 31.54 dB
+     - yes
+   * - ``nonmonotone``
+     - 2.537
+     - 3.21e-1
+     - 1295
+     - 124
+     - 28.21 dB
+     - yes
+   * - both
+     - **1.147**
+     - **6.11e-2**
+     - 3377
+     - 724
+     - **31.73 dB**
+     - no
+
+Barzilai-Borwein initialisation carries almost all of the benefit: it more
+than halves the objective and adds 3.46 dB held-out. Zhang-Hager alone is
+near noise on this problem (+0.13 dB), though it does reduce backtracking
+failures from 7 to 4, and combined with BB it reaches the lowest
+:math:`\|z\|` by a factor of four. Only the combined arm is genuinely
+non-monotone, confirming the window reference is active rather than inert.
+
+Read this as an equal-iteration comparison, not equal-time. The BB arms spend
+2.7 times the lower-level iterations and roughly five times the wall clock,
+because larger trial steps demand tighter solves. Whether ``plain`` given the
+same wall clock reaches the same PSNR has not been measured, so no
+per-unit-compute claim is made here.
+
 Minibatch accumulation
 ----------------------
 
@@ -612,6 +671,126 @@ Chunking is a memory control with bitwise trajectory invariance. With
 vanilla MAID it is not a free speedup on the multi-sample line-search path.
 With acceleration it is competitive on cost as well.
 
+
+Numerical precision and GPU backends
+------------------------------------
+
+MAID is usually run in float32, because that is what CUDA and Apple MPS
+provide (MPS has no float64 at all: Metal has no ``double`` type). Two things
+in the implementation are arranged so the certificate survives that.
+
+**Tolerances are dimensionless.** ``eps`` is a per-element root-mean-square
+gradient tolerance, so the solve stops when
+
+.. math::
+
+    \frac{\|\nabla_x h\|}{\sqrt{n}\,\mu} \le \varepsilon ,
+
+with :math:`n` the number of elements. An absolute threshold on the norm
+means different accuracy at different resolutions: 1.8e-7 per element at
+32x32 and 2.3e-8 at 256x256 for the same nominal value. The floor is derived
+from ``torch.finfo(dtype).eps`` rather than hard-coded, since a literal tuned
+for float64 is unreachable in float32.
+
+**Falling short of** ``eps`` **is not an error.** The certificate
+:math:`\|x^\star - x\| \le \|\nabla_x h\|/\mu` holds at *any* residual,
+so a solve that stalls at the precision floor still returns a valid, merely
+wider bound. Raising would discard a correct reconstruction along with a
+usable certificate. The solver detects the floor by observing that the
+residual has stopped improving, rather than predicting it from
+``finfo(dtype).eps``: the reachable value depends on conditioning and on FFT
+error in the Lipschitz normalisation, and a constant calibrated on one
+problem was measured to be out by a factor of four on another. A solve still
+improving when it exhausts ``max_iter`` remains a hard error.
+
+**Verified, not assumed.** Against a float64 reference on identical inputs
+(same data and probe direction generated in float64 and cast down), the
+float32 hypergradient is inexact but not biased:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 20 20 20
+
+   * - configuration
+     - rms residual
+     - relative :math:`\|\Delta z\|`
+     - cosine angle
+   * - CPU float64
+     - 1.59e-9
+     - 0
+     - 1.00000000
+   * - CPU float32
+     - 3.83e-6
+     - 2.40e-3
+     - 0.99999713
+   * - MPS float32
+     - 3.83e-6
+     - 2.40e-3
+     - 0.99999713
+
+The angle is what matters: inexactness shortens the hypergradient, bias would
+rotate it, and only rotation threatens the descent test. MPS float32 agrees
+with CPU float32 to seven significant figures.
+
+Batched solves and memory-aware batching
+----------------------------------------
+
+The samples are independent given :math:`\theta`, so the batched lower-level
+Hessian is block diagonal and every operator applies to all samples in one
+call. :class:`~deepinv.optim.bilevel.BatchedMinibatchOracle` is a drop-in for
+:class:`~deepinv.optim.bilevel.MinibatchOracle` that does this.
+
+Only the *scalars* stay per sample: CG's :math:`\alpha` and :math:`\beta`,
+the Armijo step, and the convergence and stall tests. Sharing any of them
+would couple independent problems and destroy the Krylov property for all of
+them. Converged samples are frozen by zeroing their step rather than dropped,
+so the tensor stays rectangular.
+
+Any DeepInverse physics may be used, including operators with per-sample
+parameters such as a batched inpainting mask. Batching is valid only when
+:math:`A` is block diagonal across the batch, so this is checked at
+construction by perturbing one sample and confirming the others'
+measurements do not move; a physics that mixes samples is refused rather than
+silently producing wrong gradients.
+
+**Batch size is measured, not derived.** ``auto_batch_size`` sizes the batch
+from ``cuda.mem_get_info`` or, on MPS, ``recommended_max_memory`` minus
+current allocation. The per-sample cost comes from two probe runs, taking the
+slope so that fixed overhead is not charged per sample, and the probe
+includes the hypergradient because the mixed-Jacobian autograd graph is the
+peak rather than the solve. Measured on a 12 GiB unified-memory device at a
+0.35 safety factor:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 26 26 28
+
+   * - image size
+     - MiB per sample
+     - batch for 64 samples
+     - batch for 512 samples
+   * - 32x32
+     - 2.87
+     - 64
+     - 512
+   * - 64x64
+     - 8.00
+     - 64
+     - 512
+   * - 128x128
+     - 36.00
+     - 64
+     - 117
+   * - 256x256
+     - 256.05
+     - 16
+     - 16
+
+This is numerically free: the hypergradient is a sum over samples, so
+partitioning changes only peak memory. Splitting eight samples into batches
+of three moves :math:`z` by 2e-15 in float64. Batch size is therefore purely
+a memory decision.
+
 Minimal usage
 -------------
 
@@ -647,3 +826,8 @@ API
 ---
 
 See :mod:`deepinv.optim.bilevel` and the optim API page.
+
+References
+----------
+
+.. footbibliography::
