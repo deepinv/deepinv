@@ -548,6 +548,13 @@ class TomographyWithAstra(LinearPhysics):
             else n_detector_pixels
         )
         self.geometry_type = geometry_type
+        self.detector_spacing = detector_spacing
+        self.pixel_spacing = pixel_spacing
+        self.bounding_box = bounding_box
+        self.angular_range = angular_range
+        self.geometry_parameters = (
+            None if geometry_parameters is None else dict(geometry_parameters)
+        )
 
         if isinstance(angles, int):
             angles = torch.linspace(*angular_range, steps=angles + 1)[:-1]
@@ -576,7 +583,6 @@ class TomographyWithAstra(LinearPhysics):
             geometry_parameters=geometry_parameters,
             geometry_vectors=geometry_vectors,
         )
-
         self.xray_transform = XrayTransform(
             object_geometry=self.object_geometry,
             projection_geometry=self.projection_geometry,
@@ -593,13 +599,16 @@ class TomographyWithAstra(LinearPhysics):
 
         self.normalize = False
         if normalize:
-            self.operator_norm = self.compute_norm(
-                torch.randn(
-                    self.img_size,
-                    generator=torch.Generator(device).manual_seed(0),
-                    device=device,
-                )[None, None],
-                squared=False,
+            self.register_buffer(
+                "operator_norm",
+                self.compute_norm(
+                    torch.randn(
+                        self.img_size,
+                        generator=torch.Generator(device).manual_seed(0),
+                        device=device,
+                    )[None, None],
+                    squared=False,
+                ),
             )
             self.normalize = True
 
@@ -615,6 +624,26 @@ class TomographyWithAstra(LinearPhysics):
     @property
     def num_angles(self) -> int:
         return self.xray_transform.range_shape[1]
+
+    @property
+    def angles(self) -> torch.Tensor | None:
+        """Astra projection geometry angles tensor in degrees, or ``None`` for vector geometries."""
+
+        # The type ends with "_vec" for vector-based geometries
+        if "vec" in self.projection_geometry["type"]:
+            return None
+        return -torch.rad2deg(
+            torch.as_tensor(
+                self.projection_geometry["ProjectionAngles"], device=self.device
+            )
+        )
+
+    @property
+    def geometry_vectors(self) -> torch.Tensor | None:
+        """Astra projection geometry vectors, or ``None`` for angle geometries."""
+        if "vec" not in self.projection_geometry["type"]:
+            return None
+        return torch.as_tensor(self.projection_geometry["Vectors"], device=self.device)
 
     def fbp_weighting(self, sinogram: torch.Tensor) -> torch.Tensor:
         r"""Scales the computation by the inverse number of views and
