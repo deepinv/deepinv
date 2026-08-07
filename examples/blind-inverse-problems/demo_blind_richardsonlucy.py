@@ -284,23 +284,23 @@ dinv.utils.plot_curves(metrics)
 #
 # .. math::
 #
-#    x^{(k+1)}
-#    =
-#    \frac{x^{(k)}}{A_h^\top \mathbf{1}
-#    + \lambda_x \nabla R_x(x^{(k)})}
-#    \odot
-#    A_h^\top\left(\frac{y}{A_h x^{(k)}}\right),
-#
-# .. math::
-#
 #    h^{(k+1)}
 #    =
 #    \Pi_{\Delta}\left[
-#    \frac{h^{(k)}}{A_x^\top \mathbf{1}
+#    \frac{h^{(k)}}{A_{x^{(k)}}^\top \mathbf{1}
 #    + \lambda_h \nabla R_h(h^{(k)})}
 #    \odot
-#    A_x^\top\left(\frac{y}{A_x h^{(k)}}\right)
+#    A_{x^{(k)}}^\top\left(\frac{y}{A_{x^{(k)}} h^{(k)}}\right)
 #    \right].
+#
+# .. math::
+#
+#    x^{(k+1)}
+#    =
+#    \frac{x^{(k)}}{A_{h^{(k+1)}}^\top \mathbf{1}
+#    + \lambda_x \nabla R_x(x^{(k)})}
+#    \odot
+#    A_{h^{(k+1)}}^\top\left(\frac{y}{A_{h^{(k+1)}} x^{(k)}}\right),
 #
 # In the non-smooth case, the gradients are replaced by subgradients.
 # This enables the use of any prior implementing the :class:`deepinv.optim.prior.Prior`

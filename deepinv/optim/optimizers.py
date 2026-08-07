@@ -2365,16 +2365,61 @@ class BlindRL(BaseOptim):
     r"""
     Blind Richardson-Lucy deconvolution for Poisson inverse problems.
 
-    This algorithm alternates multiplicative MLEM updates for the latent image
+    This algorithm alternates multiplicative MLEM updates for the image
     :math:`x` and the blur kernel :math:`k` under the model
 
     .. math::
         y \sim \operatorname{Poisson}(k * x).
 
-    The kernel is constrained to be nonnegative and, by default, normalized to
-    unit sum after each kernel update. The implementation currently supports 2D
-    circular convolution with a spatially invariant kernel shared by all image
-    channels.
+    The updates are given by:
+
+     .. math::
+
+        h^{(k+1)}
+        =
+        \Pi_{\Delta}\left[
+        \frac{h^{(k)}}{A_{x^{(k)}}^\top \mathbf{1}}
+        \odot
+        A_{x^{(k)}}^\top\left(\frac{y}{A_{x^{(k)}} h^{(k)}}\right)
+        \right],
+
+     and:
+
+     .. math::
+
+        x^{(k+1)}
+        =
+        \frac{x^{(k)}}{A_{h^{(k+1)}}^\top \mathbf{1}}
+        \odot
+        A_{h^{(k+1)}}^\top\left(\frac{y}{A_{h^{(k+1)}} x^{(k)}}\right).
+
+    where the kernel is constrained to be nonnegative and, by default, normalized to
+    unit sum by the \Pi_{\Delta} operation after each kernel update.
+
+    Image and kernel priors can be used.
+    The regularized algorithm is implemented using the the One-Step-Late (OSL) heuristic 
+    of Green :footcite:t:`greenUseEmAlgorithm1990`.
+    The kernel and image updates then become:
+
+    .. math::
+
+        h^{(k+1)}
+        =
+        \Pi_{\Delta}\left[
+        \frac{h^{(k)}}{A_{x^{(k)}}^\top \mathbf{1}
+        + \lambda_h \nabla R_h(h^{(k)})}
+        \odot
+        A_{x^{(k)}}^\top\left(\frac{y}{A_{x^{(k)}} h^{(k)}}\right)
+        \right].
+
+    .. math::
+
+        x^{(k+1)}
+        =
+        \frac{x^{(k)}}{A_{h^{(k+1)}}^\top \mathbf{1}
+        + \lambda_x \nabla R_x(x^{(k)})}
+        \odot
+        A_{h^{(k+1)}}^\top\left(\frac{y}{A_{h^{(k+1)}} x^{(k)}}\right),
 
     :param deepinv.optim.Prior x_prior: optional image prior. Default: ``None``.
     :param deepinv.optim.Prior k_prior: optional kernel prior. Default: ``None``.

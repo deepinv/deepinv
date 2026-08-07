@@ -17,21 +17,16 @@ class BlindRLIteration(OptimIterator):
     r"""
     Iterator for Blind Richardson-Lucy deconvolution.
 
-    This iterator alternates multiplicative MLEM updates for a nonnegative blur kernel
-    and a nonnegative image under the Poisson model
-
-    .. math::
-        y \sim \operatorname{Poisson}(k * x).
+    This iterator performs one step to estimate the next kernel, and one step to 
+    estimate the next image.
 
     The current iterate is stored as ``X["est"] = (x, k)``. The kernel update
     assumes 2D circular convolution and a spatially invariant kernel shared by
     all image channels.
 
     :param deepinv.optim.Prior k_prior: optional kernel prior. Default: ``None``.
-    :param bool normalize_kernel: whether to normalize the kernel to unit sum.
-        Default: ``True``.
-    :param bool use_fft: whether to use the FFT implementation of the filter
-        adjoint in kernel updates. Default: ``False``.
+    :param bool normalize_kernel: whether to normalize the kernel to unit sum. Default: ``True``.
+    :param bool use_fft: whether to use the FFT implementations for convolutions. Default: ``False``.
     :param float eps: numerical stability constant used for divisions. Default: ``1e-8``.
     """
 
@@ -96,9 +91,7 @@ class BlindRLIteration(OptimIterator):
 
         ones_y = torch.ones_like(y)
 
-        # Kernel update: adjoint of A_x: h -> x * h with respect to h.
-        # This is not physics.A_adjoint, which is the adjoint of A_h with
-        # respect to the image x for a fixed kernel h.
+        # Kernel update
         filter_adjoint = (
             dF.conv2d_filter_adjoint_fft if self.use_fft else dF.conv2d_filter_adjoint
         )
@@ -120,6 +113,7 @@ class BlindRLIteration(OptimIterator):
         physics.update_parameters(filter=k)
         sensitivity_x = physics.A_adjoint(ones_y).clamp_min(self.eps)
 
+        # Image update
         for _ in range(x_steps):
             y_hat = physics.A(x)
             numerator_x = physics.A_adjoint(y / y_hat.clamp_min(self.eps))
