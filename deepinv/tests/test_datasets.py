@@ -16,6 +16,7 @@ import h5py
 
 import deepinv as dinv
 from deepinv.datasets import (
+    BrainWebMRI,
     DIV2K,
     Urban100HR,
     Set14HR,
@@ -1574,6 +1575,22 @@ def test_RandomPatchSampler(make_data):
     assert len(ds) == 2
     x, y = next(iter(ds))
     assert math.isnan(x)
+
+
+def test_brainweb_mri(tmp_path):
+    pytest.importorskip("brainweb_dl")
+    dataset = BrainWebMRI(
+        root=tmp_path,
+        subject_ids=0,
+        transform=lambda x: x / x.max(),
+    )
+    volume = dataset[0]
+
+    assert len(dataset) == 1
+    assert volume.shape == (1, 181, 217, 181)
+    assert volume.dtype == torch.float32
+    assert volume.min() == 0
+    assert volume.max() == 1
 
 
 @pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])
