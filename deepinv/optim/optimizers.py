@@ -2437,10 +2437,9 @@ class BlindRL(BaseOptim):
         adjoint in kernel updates. Default: ``False``.
     :param float eps: numerical stability constant. Default: ``1e-15``.
     :param int max_iter: number of alternating BlindRL iterations. Default: ``100``.
-    :param Callable custom_init: optional initializer returning ``(x0, k0)`` or a
-        dictionary with ``{"est": (x0, k0)}``. If omitted, ``x0`` is initialized
-        with ``y`` and ``k0`` with a uniform kernel of the same size as
-        ``kernel_size``.
+    :param tuple[torch.Tensor, torch.Tensor] init: initial image and blur kernel
+        ``(x0, k0)``. If ``None``, ``x0`` is initialized with ``y`` and ``k0``
+        with a uniform kernel of the same size as ``kernel_size``.
     :param Callable cost_fn: optional cost function. If omitted, the Poisson
         negative log-likelihood plus explicit image and kernel priors is used.
     :param dict params_algo: optionally provide BlindRL parameters directly.
@@ -2465,7 +2464,7 @@ class BlindRL(BaseOptim):
         thres_conv: float = 1e-5,
         early_stop: bool = False,
         custom_metrics: dict[str, Metric] = None,
-        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        init: tuple[torch.Tensor, torch.Tensor] = None,
         cost_fn: Callable[
             [
                 torch.Tensor,
@@ -2493,6 +2492,7 @@ class BlindRL(BaseOptim):
         if len(kernel_size) != 2 or any(size <= 0 for size in kernel_size):
             raise ValueError("kernel_size must contain two positive integers.")
         self.kernel_size = tuple(kernel_size)
+        self.init = init
 
         if params_algo is None:
             params_algo = {
@@ -2538,7 +2538,6 @@ class BlindRL(BaseOptim):
             thres_conv=thres_conv,
             early_stop=early_stop,
             custom_metrics=custom_metrics,
-            custom_init=custom_init,
             get_output=lambda X: X["est"][0],
             unfold=False,
             **kwargs,
@@ -2550,14 +2549,6 @@ class BlindRL(BaseOptim):
     def forward(
         self,
         y: torch.Tensor,
-        init: (
-            Callable[
-                [torch.Tensor, Physics], Iterable[torch.Tensor] | torch.Tensor | dict
-            ]
-            | Iterable[torch.Tensor]
-            | torch.Tensor
-            | dict
-        ) = None,
         x_gt: torch.Tensor = None,
         compute_metrics: bool = False,
         **kwargs,
@@ -2570,37 +2561,12 @@ class BlindRL(BaseOptim):
         """
         from deepinv.physics.blur import Blur
 
-        init = init if init is not None else self.custom_init
-        if callable(init):
-            default_kernel = torch.ones(
-                (1, 1, *self.kernel_size), device=y.device, dtype=y.dtype
-            )
-            default_kernel = default_kernel / (
-                self.kernel_size[0] * self.kernel_size[1]
-            )
-            init = init(
-                y,
-                Blur(filter=default_kernel, padding="circular", device=y.device),
-            )
-
-        if init is None or isinstance(init, torch.Tensor):
-            x = y if init is None else init
+        if self.init is None:
+            x = y
             k = torch.ones((1, 1, *self.kernel_size), device=x.device, dtype=x.dtype)
             k = k / (self.kernel_size[0] * self.kernel_size[1])
-            init = (x, k)
-        elif isinstance(init, tuple):
-            if len(init) != 2:
-                raise ValueError("BlindRL initialization must be (x0, k0).")
-            x, k = init
-        elif isinstance(init, dict):
-            if "est" not in init or len(init["est"]) != 2:
-                raise ValueError("BlindRL initialization must be (x0, k0).")
-            x, k = init["est"]
         else:
-            raise ValueError(
-                "BlindRL initialization must be a tensor, tuple or dict. "
-                f"Got {type(init)}."
-            )
+            x, k = self.init
 
         if y.dim() != 4 or x.dim() != 4:
             raise ValueError(
@@ -2628,11 +2594,10 @@ class BlindRL(BaseOptim):
             k = k.mean(dim=1, keepdim=True)
 
         physics = Blur(filter=k, padding="circular", device=x.device)
-        init = {**init, "est": (x, k)} if isinstance(init, dict) else (x, k)
         output = super().forward(
             y,
             physics,
-            init=init,
+            init=(x, k),
             x_gt=x_gt,
             compute_metrics=compute_metrics,
             **kwargs,

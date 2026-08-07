@@ -56,6 +56,8 @@ gaussian_psf = dinv.physics.functional.gaussian_blur(
     sigma=2.0,
     device=device,
 )
+kernel_init = torch.ones_like(gaussian_psf)
+kernel_init = kernel_init / kernel_init.sum()
 gain = 1 / 100
 
 physics = dinv.physics.BlurFFT(
@@ -180,7 +182,7 @@ y_clean = physics_clean(x_gray)
 
 blindrl = dinv.optim.BlindRL(
     max_iter=100 if torch.cuda.is_available() else 40,
-    kernel_size=gaussian_psf.shape[-2:],
+    init=(y_clean.clamp_min(1e-12), kernel_init),
     x_steps=1,
     k_steps=1,
     normalize_kernel=True,
@@ -189,7 +191,6 @@ blindrl = dinv.optim.BlindRL(
 )
 (x_blindrl, k_blindrl), metrics_clean_blind = blindrl(
     y_clean,
-    init=y_clean.clamp_min(1e-12),
     x_gt=x_gray,
     compute_metrics=True,
 )
@@ -235,7 +236,7 @@ y_noisy = physics(x_gray)
 physics_clean.update_parameters(filter=gaussian_psf)
 blindrl = dinv.optim.BlindRL(
     max_iter=80 if torch.cuda.is_available() else 40,
-    kernel_size=gaussian_psf.shape[-2:],
+    init=(y_noisy.clamp_min(1e-12), kernel_init),
     x_steps=1,
     k_steps=1,
     normalize_kernel=True,
@@ -244,7 +245,6 @@ blindrl = dinv.optim.BlindRL(
 )
 (x_blindrl, k_blindrl), metrics = blindrl(
     y_noisy,
-    init=y_noisy.clamp_min(1e-12),
     x_gt=x_gray,
     compute_metrics=True,
 )
@@ -321,7 +321,8 @@ blindrl = dinv.optim.BlindRL(
     k_prior=None,
     lambda_reg_x=0.015,
     lambda_reg_k=0.0,
-    max_iter=30,
+    max_iter=100 if torch.cuda.is_available() else 40,
+    init=(y_noisy.clamp_min(1e-12), kernel_init),
     x_steps=1,
     k_steps=1,
     normalize_kernel=True,
@@ -330,7 +331,6 @@ blindrl = dinv.optim.BlindRL(
 )
 (x_blindrl, k_blindrl), metrics = blindrl(
     y_noisy,
-    init=y_noisy.clamp_min(1e-12),
     x_gt=x_gray,
     compute_metrics=True,
 )
@@ -380,7 +380,7 @@ y_rgb = physics_clean(x_rgb)
 
 blindrl = dinv.optim.BlindRL(
     max_iter=400 if torch.cuda.is_available() else 40,
-    kernel_size=gaussian_psf.shape[-2:],
+    init=(y_rgb.clamp_min(1e-12), kernel_init),
     x_steps=1,
     k_steps=2,
     normalize_kernel=True,
@@ -389,7 +389,6 @@ blindrl = dinv.optim.BlindRL(
 )
 (x_blindrl, k_blindrl), metrics = blindrl(
     y_rgb,
-    init=y_rgb.clamp_min(1e-12),
     x_gt=x_rgb,
     compute_metrics=True,
 )

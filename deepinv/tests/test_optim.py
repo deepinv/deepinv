@@ -998,8 +998,9 @@ def test_BlindRL(device, use_fft):
         early_stop=True,
         eps=1e-12,
         use_fft=use_fft,
+        init=(x0, k_true.clone()),
     )
-    x_hat, k_hat = blindrl(y, init=(x0, k_true.clone()))
+    x_hat, k_hat = blindrl(y)
 
     assert blindrl.has_converged
     assert x_hat.shape == x_true.shape
