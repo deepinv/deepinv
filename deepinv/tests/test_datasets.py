@@ -1586,13 +1586,19 @@ def test_brainweb_pet(tmp_path, lesion_diameters):
 
     dataset = BrainWebPET(
         root=tmp_path,
+        subject_ids=4,
         pet_class=RandomFDG,
-        return_t1=True,
-        return_t2=True,
+        contrast=["T1", "T2"],
+        random_degradations_kwargs={
+            "petNoise": 0.0,
+            "t1Noise": 0.0,
+            "t2Noise": 0.0,
+            "petSigma": 0.0,
+            "t1Sigma": 0.0,
+            "t2Sigma": 0.0,
+        },
         lesion_diameters=lesion_diameters,
-        lesion_intensities=[200],
-        lesion_blurs=[0],
-        lesion_threshold=30,
+        lesion_kwargs={"intensity": [200], "blur": [0], "thresh": 30},
         seed=0,
     )
     emission, params = dataset[0]
@@ -1605,6 +1611,22 @@ def test_brainweb_pet(tmp_path, lesion_diameters):
     assert issubclass(pet_class, RandomFDG)
     assert pet_class.greyMatter == 120.0
     assert ("lesion_mask" in params) == bool(lesion_diameters)
+
+
+def test_brainweb_pet_default_subjects(tmp_path, monkeypatch):
+    brainweb = pytest.importorskip("brainweb")
+
+    def get_file(name, url, cache_dir):
+        path = Path(cache_dir) / name
+        path.touch()
+        return str(path)
+
+    monkeypatch.setattr(brainweb, "get_file", get_file)
+    dataset = BrainWebPET(root=tmp_path)
+
+    expected = tuple(int(name[8:10]) for name in brainweb.LINKS)
+    assert dataset.subject_ids == expected
+    assert len(dataset) == len(expected)
 
 
 @pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])
