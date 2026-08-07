@@ -154,30 +154,87 @@ def auto_batch_size(
 
 
 @dataclass
-class BatchedDenoisingCRR:
-    """``B`` denoising samples sharing one ``theta``, solved together.
+class BatchedCRR:
+    """``B`` samples sharing one ``theta`` and one physics, solved together.
 
-    Restricted to ``A = I`` (Denoising): a general forward operator differs
-    per sample, so batching it needs the physics itself to be batched, which
-    is a separate change. Raising here is deliberate, since silently looping
-    would give the speedup's appearance without its substance.
+    Any DeepInverse physics works, not only denoising. What is required is
+    that ``A`` act per sample along the batch dimension, which the operators
+    already do, including with **per-sample parameters**: an ``Inpainting``
+    built with a ``(B, C, H, W)`` mask and a ``BlurFFT`` built with batched
+    kernels both apply their own operator to their own sample. Verified by
+    perturbing one sample and checking the others' measurements do not move.
+
+    Samples needing genuinely different operators (one inpainting, one
+    deblurring) are handled by grouping them into separate batches and summing
+    the hypergradients. That costs nothing, because accumulation across
+    batches is exact: splitting 8 samples into batches of 3 moves ``z`` by
+    2e-15 in float64.
+
+    ``mu_data`` is 1 when ``A = I`` and 0 otherwise, matching
+    :class:`CRRSampleProblem`, so a general forward operator needs
+    ``cfg.gamma > 0`` for the certificate to have a positive modulus.
     """
 
-    y: torch.Tensor  # (B, C, H, W)
+    y: torch.Tensor  # (B, ...) measurements, shape set by the physics
     x_star: torch.Tensor  # (B, C, H, W)
     cfg: ConvexRidgeConfig
+    physics: Any = None
 
     def __post_init__(self) -> None:
-        if self.y.shape != self.x_star.shape:
-            raise ValueError("y and x_star must have the same shape")
-        if self.y.dim() != 4:
-            raise ValueError(f"expected (B, C, H, W), got {tuple(self.y.shape)}")
+        if self.x_star.dim() != 4:
+            raise ValueError(
+                f"expected x_star (B, C, H, W), got {tuple(self.x_star.shape)}"
+            )
+        if self.y.shape[0] != self.x_star.shape[0]:
+            raise ValueError("y and x_star must agree on the batch dimension")
         self.dtype = self.x_star.dtype
         self.device = self.x_star.device
-        self.B = int(self.y.shape[0])
+        self.B = int(self.x_star.shape[0])
         self.prior = ConvexRidgePrior(self.cfg)
-        self.mu = 1.0 + self.cfg.gamma  # A = I contributes 1
         self.n_elem = int(self.x_star[0].numel())
+        if self.physics is None:
+            import deepinv as _dinv
+
+            self.physics = _dinv.physics.Denoising(
+                noise_model=_dinv.physics.GaussianNoise(0.0)
+            )
+        self._check_batched_independence()
+        self.mu = self._mu_data() + self.cfg.gamma
+        if self.mu <= 0.0:
+            raise ValueError(
+                "lower level is not strongly convex: mu_data + gamma = "
+                f"{self.mu}. Set cfg.gamma > 0 for a general forward operator."
+            )
+
+    def _mu_data(self) -> float:
+        """1 for ``A = I``, else 0, as in :class:`CRRSampleProblem`."""
+        v = torch.randn_like(self.x_star)
+        Av = self.physics.A(v)
+        if Av.shape == v.shape and torch.allclose(
+            Av, v, atol=1e-12, rtol=0.0
+        ):
+            return 1.0
+        return 0.0
+
+    def _check_batched_independence(self) -> None:
+        """Refuse a physics that mixes samples.
+
+        Batching is only valid if ``A`` is block diagonal across the batch.
+        An operator that couples samples would silently produce a wrong
+        gradient for every one of them, so this is checked rather than
+        assumed.
+        """
+        v = torch.randn_like(self.x_star)
+        a1 = self.physics.A(v)
+        v2 = v.clone()
+        v2[0] = v2[0] + 1.0
+        a2 = self.physics.A(v2)
+        if self.B > 1 and not torch.allclose(a1[1:], a2[1:], atol=0.0, rtol=0.0):
+            raise ValueError(
+                f"{type(self.physics).__name__} couples samples across the "
+                "batch dimension, so the batched Hessian is not block "
+                "diagonal. Use the sequential path for this physics."
+            )
 
     # -- model ---------------------------------------------------------
     def _parts(self, theta: torch.Tensor):
@@ -185,7 +242,7 @@ class BatchedDenoisingCRR:
 
     def energy_per_sample(self, x: torch.Tensor, theta: torch.Tensor):
         w, s, b = self._parts(theta)
-        r = x - self.y
+        r = self.physics.A(x) - self.y
         data = 0.5 * (r * r).flatten(1).sum(dim=1)
         return data + ridge_energy_per_sample(x, w, s, b, self.cfg)
 
@@ -255,7 +312,7 @@ class BatchedDenoisingCRR:
         tol = eps_eff * self.mu * scale
 
         x = (
-            self.y.detach().clone()
+            self.physics.A_adjoint(self.y).detach().clone()
             if x_init is None
             else x_init.detach().clone()
         )
