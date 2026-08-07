@@ -220,6 +220,12 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
      - Cx256x256 multispectral (C=4 or 8) and 1x1024x1024 panchromatic
      - Multispectral satellite images of urban scenes from 6 different satellites.
 
+   * - :class:`BrainWebPET <deepinv.datasets.BrainWebPET>`
+     - `(x, params)`
+     - 20 synthetic brain volumes
+     - 1x127x344x344
+     - Synthetic PET emission volumes with attenuation maps and optional MRI contrasts from the BrainWeb dataset.
+
 
 .. _data-transforms:
 

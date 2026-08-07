@@ -4,7 +4,6 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import numpy as np
 import torch
 
 from deepinv.datasets.base import ImageDataset
@@ -18,23 +17,23 @@ class BrainWebPET(ImageDataset):
     r"""BrainWeb PET phantoms.
 
     Loads synthetic 3D volumes from BrainWeb dataset :footcite:p:`collinsDesignConstructionRealistic1998`, 
-    of shape ``(1, 127, 344, 344)``.
+    of shape `(1, 127, 344, 344)`.
     The dataset has been adapted to emission tomography, and returns an emission and attenuation map, at the Siemens Biograph mMR isotropic resolution of 2.0863 mm per voxel.
         
-    Passing ``lesion_diameters`` adds high activity lesions with ``brainweb.add_lesions`` and includes a binary ``lesion_mask`` in the returned parameters.
+    Passing `lesion_diameters` adds high activity lesions with `brainweb.add_lesions` and includes a binary `lesion_mask` in the returned parameters.
 
     This dataset relies on the original implementation of Casper da Costa-Luis: 
     <https://github.com/casperdcl/brainweb>`_.  
     See the original implementation for a detailed description of the keyword arguments.
 
     :param str, pathlib.Path, None root: Dataset directory. Defaults to the DeepInv cache.
-    :param int, collections.abc.Sequence[int], None subject_ids: Subjects to include in the dataset. Defaults to ``None`` which includes all subjects.
-    :param bool download: Download missing subjects. Defaults to ``True``.
-    :param type[brainweb.Act], None pet_class: BrainWeb PET activity preset. Defaults to ``brainweb.FDG``. 
-    :param list[float], None lesion_diameters: Lesion diameters in mm. Defaults to ``None``, which adds no lesions.
-    :param str, collections.abc.Sequence[str], None contrast: Contrasts to include in the returned parameters. Valid values are ``"T1"`` and ``"T2"``. Defaults to ``None``.
-    :param dict, None lesion_kwargs: Keyword arguments for ``brainweb.add_lesions``. 
-    :param dict, None random_degradations_kwargs: Keyword arguments for ``brainweb.get_mmr_fromfile`` controlling random structural degradations. 
+    :param int, collections.abc.Sequence[int], None subject_ids: Subjects to include in the dataset. Defaults to `None` which includes all subjects.
+    :param bool download: Download missing subjects. Defaults to `True`.
+    :param type[brainweb.Act], None pet_class: BrainWeb PET activity preset. Defaults to `brainweb.FDG`.
+    :param list[float], None lesion_diameters: Lesion diameters in mm. Defaults to `None`, which adds no lesions.
+    :param str, collections.abc.Sequence[str], None contrast: Contrasts to include in the returned parameters. Valid values are `"T1"` and `"T2"`. Defaults to `None`.
+    :param dict, None lesion_kwargs: Keyword arguments for `brainweb.add_lesions`.
+    :param dict, None random_degradations_kwargs: Keyword arguments for `brainweb.get_mmr_fromfile` controlling random structural degradations.
     :param collections.abc.Callable, None transform: Optional transform to apply to the returned volumes.
     :param int, None seed: Seed used when adding random lesions. 
 
@@ -77,7 +76,7 @@ class BrainWebPET(ImageDataset):
         except ImportError as error:  # pragma: no cover
             raise ImportError(
                 "BrainWebPET requires brainweb. Install it with "
-                "`pip install deepinv[dataset]`."
+                "`pip install brainweb`."
             ) from error
 
         pet_class = brainweb.FDG if pet_class is None else pet_class
@@ -89,7 +88,6 @@ class BrainWebPET(ImageDataset):
         if activities:
             pet_class = type(pet_class.__name__, (pet_class,), activities)
 
-        self._brainweb = brainweb
         self.root = resolve_root(root, "BrainWebPET")
         self.transform = transform
         contrast = (
@@ -100,8 +98,6 @@ class BrainWebPET(ImageDataset):
             else ()
         )
         self.contrast = tuple(name.upper() for name in contrast)
-        if any(name not in ("T1", "T2") for name in self.contrast):
-            raise ValueError("contrast must contain only 'T1' and 'T2'.")
         available = {
             int(name[8:10]): (name, url) for name, url in brainweb.LINKS.items()
         }
@@ -112,7 +108,7 @@ class BrainWebPET(ImageDataset):
             if isinstance(subject_ids, int)
             else tuple(subject_ids)
         )
-        if not self.subject_ids or any(x not in available for x in self.subject_ids):
+        if any(x not in available for x in self.subject_ids):
             raise ValueError(
                 f"Incorrect subject_ids. Available values are {tuple(available)}."
             )
@@ -139,8 +135,6 @@ class BrainWebPET(ImageDataset):
             "t2Sigma": 0.0,
             **(random_degradations_kwargs or {}),
         }
-        if "outres" in random_degradations_kwargs:
-            raise ValueError("BrainWebPET only supports the mMR output resolution.")
         self.brainweb_kwargs: dict[str, object] = {
             **random_degradations_kwargs,
             "PetClass": pet_class,
@@ -161,40 +155,34 @@ class BrainWebPET(ImageDataset):
 
     def __getitem__(self, index: int):
         subject = self.subject_ids[index]
-        volumes = self._brainweb.get_mmr_fromfile(
+        volumes = brainweb.get_mmr_fromfile(
             str(self.files[index]), **self.brainweb_kwargs
         )
-        emission = np.array(volumes["PET"], dtype=np.float32, copy=True)
+        emission = volumes["PET"]
         params = {
-            "attenuation": torch.from_numpy(
-                np.array(volumes["uMap"], dtype=np.float32, copy=True)
+            "attenuation": torch.as_tensor(
+                volumes["uMap"], dtype=torch.float32
             ).unsqueeze(0),
-            "voxel_size": torch.as_tensor(volumes["res"], dtype=torch.float32),
         }
         for contrast in self.contrast:
-            params[contrast.lower()] = torch.from_numpy(
-                np.array(volumes[contrast], dtype=np.float32, copy=True)
+            params[contrast.lower()] = torch.as_tensor(
+                volumes[contrast], dtype=torch.float32
             ).unsqueeze(0)
 
         if self.lesion_kwargs is not None:
             original = emission.copy()
             if self.seed is not None:
-                self._brainweb.seed(self.seed + subject)
-            emission = self._brainweb.add_lesions(emission, **self.lesion_kwargs)
-            params["lesion_mask"] = torch.from_numpy(emission != original).unsqueeze(0)
+                brainweb.seed(self.seed + subject)
+            emission = brainweb.add_lesions(emission, **self.lesion_kwargs)
+            params["lesion_mask"] = torch.as_tensor(
+                emission != original
+            ).unsqueeze(0)
 
-        emission = torch.from_numpy(emission).unsqueeze(0)
+        emission = torch.as_tensor(emission, dtype=torch.float32).unsqueeze(0)
+        
         if self.transform is not None:
-            spatial_keys = [
-                key
-                for key in ("attenuation", "t1", "t2", "lesion_mask")
-                if key in params
-            ]
-            spatial_volumes = self.transform(
-                torch.cat([emission] + [params[key] for key in spatial_keys], dim=0)
-            )
-            emission = spatial_volumes[:1]
-            for channel, key in enumerate(spatial_keys, start=1):
-                params[key] = spatial_volumes[channel : channel + 1]
+            for key in params:
+                params[key] = self.transform(params[key])
+            emission = self.transform(emission)
 
         return emission, params
