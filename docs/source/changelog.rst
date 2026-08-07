@@ -18,7 +18,7 @@ New Features
 - Add support for TV-L1 priors :class:`deepinv.optim.TVL1Prior` (:gh:`1236` by `Sarra Amiri`_)
 - Add :class:`deepinv.optim.OSEM` algorithm for tomographic reconstruction and update PET demos to showcase OSEM (:gh:`1255` by `Thibaut Modrzyk`_)
 - Add utilities for subsetted tomography physics :func:`deepinv.physics.split_physics` and :func:`deepinv.physics.split_measurements` (:gh:`1255` by `Thibaut Modrzyk`_)
-- Add :class:`deepinv.metrics.NRMSE` metric (:gh:`1256` by `Thibaut Modrzyk`_)
+- Add :class:`deepinv.loss.metric.NRMSE` metric (:gh:`1256` by `Thibaut Modrzyk`_)
 - Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
 
 Changed
