@@ -97,6 +97,7 @@ class NBUDataset(ImageDataset):
         download: bool = False,
         use_dict_output: bool = False,
     ):
+        super().__init__(use_dict_output=use_dict_output)
         if satellite not in self._satellites:
             raise ValueError(
                 'satellite must be "ikonos", "gaofen-1", "quickbird", "worldview-2", "worldview-3", or "worldview-4".'
@@ -132,8 +133,6 @@ class NBUDataset(ImageDataset):
         self.image_paths = list(zip(self.ms_paths, self.pan_paths, strict=True))
         for _ms, _pan in self.image_paths:
             assert _ms.name == _pan.name, "MS and PAN filenames do not match."
-
-        super().__init__(use_dict_output=use_dict_output)
 
     def check_dataset_exists(self):
         """Verify that the image folders exist and contain all the images.
