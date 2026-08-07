@@ -467,7 +467,7 @@ class CRRSampleProblem:
         return x - self.x_star
 
     def f_closed_form(self, theta: torch.Tensor) -> torch.Tensor:
-        x, _ = self.solve_lower(theta, eps=5e-3)
+        x, _ = self.solve_lower(theta, eps=1e-4)
         return self.g(x)
 
     def solve_lower(
@@ -482,9 +482,29 @@ class CRRSampleProblem:
     ) -> tuple[torch.Tensor, float] | tuple[torch.Tensor, float, dict]:
         """Residual-stopped solve of ``h(., theta)``.
 
-        Stops on the gradient residual ``||grad h|| <= max(eps * mu, 1e-8)``.
-        The same residual defines the strong-convexity distance bound for
-        every solver name.
+        ``eps`` is a **per-element** (root-mean-square) gradient tolerance:
+        the solve stops when
+
+            ||grad h|| / (sqrt(n) * mu)  <=  eps
+
+        with ``n`` the number of elements. Normalising by ``sqrt(n)`` makes
+        ``eps`` independent of image size: an absolute threshold on the norm
+        silently asks for 1.8e-07 per element at 32x32 and 2.3e-08 per element
+        at 256x256, so the same number means different accuracy at different
+        resolutions.
+
+        ``eps`` is clamped from below at ``100 * finfo(dtype).eps``, which is
+        the measured float32 floor with margin (2.7e-06 per element measured,
+        1.2e-05 clamp) and far under the float64 solver-limited floor. Without
+        this, float32 requests are unsatisfiable: the previous default asked
+        for more accuracy than the dtype can represent and raised on CUDA and
+        MPS.
+
+        Falling short of ``eps`` is not by itself an error. The certificate
+        ``||x* - x|| <= ||grad h|| / mu`` holds at *any* residual, so a solve
+        that stalls at the precision floor still returns a valid, merely wider
+        bound. Only a shortfall too large to be explained by the floor is
+        raised as a failure.
 
         If ``record_every`` is set, also returns a history dict with residual
         (and objective for GD) snapshots.
@@ -494,12 +514,16 @@ class CRRSampleProblem:
         stepsize = self._stepsize()
         name = (solver if solver is not None else self.solver).upper()
         max_it = int(max_iter if max_iter is not None else self.max_iter)
-        residual_tol = max(float(eps) * float(mu), 1e-8)
         x0 = (
             x_init.detach().clone()
             if x_init is not None
             else self.physics.A_adjoint(self.y).detach().clone()
         )
+        scale = float(x0.numel()) ** 0.5
+        eps_floor = 100.0 * float(torch.finfo(self.dtype).eps)
+        eps_eff = max(float(eps), eps_floor)
+        residual_tol = eps_eff * float(mu) * scale
+        floor_tol = eps_floor * float(mu) * scale
 
         if name in ("GD", "FISTA"):
             x, residual, n_iters, hist = self._solve_baseoptim(
@@ -536,11 +560,17 @@ class CRRSampleProblem:
 
         self.n_lower_solves += 1
         self.n_gd_iters += n_iters
-        if residual > residual_tol * 1.01:
+        self.last_residual_rms = residual / (scale * max(float(mu), 1e-30))
+        self.last_reached_eps = residual <= residual_tol * 1.01
+        if residual > residual_tol * 1.01 and residual > floor_tol * 1.5:
+            # Too far short to be the dtype's precision floor: a real failure
+            # (diverged, step size wrong, max_iter too small).
             raise RuntimeError(
-                f"CRR {name} failed residual {residual_tol} "
-                f"(got {residual}) in {n_iters} iters "
-                f"(step={stepsize:.4g})"
+                f"CRR {name} failed residual {residual_tol:.3e} "
+                f"(got {residual:.3e}, rms {self.last_residual_rms:.3e}) in "
+                f"{n_iters} iters (step={stepsize:.4g}, "
+                f"dtype={self.dtype}, floor={floor_tol:.3e}). "
+                "This is not a precision-floor stall."
             )
         if record_every is not None:
             return x, residual, hist

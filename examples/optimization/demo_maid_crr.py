@@ -124,9 +124,9 @@ CRR_CFG_RIDGE = ConvexRidgeConfig(gamma=1e-2, **_CRR_COMMON)
 # With truncated Newton lower solves, thirty outer steps on 32x32 colour
 # are practical on CPU. Absolute PSNR is still a short-run snapshot.
 N_OUTER = 30
-FIXED_EPS = 1e-3
-LEARN_EPS0 = 1e-3
-REPORT_EPS = 1e-4
+FIXED_EPS = 2e-5   # per-element rms gradient tolerance
+LEARN_EPS0 = 2e-5  # per-element rms gradient tolerance
+REPORT_EPS = 2e-6  # per-element rms gradient tolerance
 ALPHA0_CRR = 1e-2
 # Slightly milder random weight init than 0.05 reduces the initial
 # oversmoothing of reference (beta=4, sigma=0.1) without changing the chart.
@@ -620,7 +620,7 @@ def recon_tikhonov_converged(physics, y, x_star, log_lam: float):
     )
     xh, res = prob.solve_lower(th, eps=REPORT_EPS)
     mu = float(prob.mu(th))
-    tol = max(REPORT_EPS * mu, 1e-8)
+    tol = REPORT_EPS * mu * (xh.numel() ** 0.5)
     if res > tol * 1.01:
         raise RuntimeError(f"Tikhonov recon not converged: {res} > {tol}")
     return xh, psnr(xh, x_star), float(res), float(prob.g(xh).item()), mu
@@ -653,7 +653,7 @@ def recon_crr_converged(
     prob.load_theta(freeze)
     xh, res = prob.solve_lower(theta, eps=REPORT_EPS)
     mu = float(prob.mu(theta))
-    tol = max(REPORT_EPS * mu, 1e-8)
+    tol = REPORT_EPS * mu * (xh.numel() ** 0.5)
     if res > tol * 1.01:
         raise RuntimeError(f"CRR recon not converged: {res} > {tol}")
     return xh, psnr(xh, x_star), float(res), float(prob.g(xh).item()), mu

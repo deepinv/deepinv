@@ -115,7 +115,8 @@ def test_solve_lower_reduces_residual():
     r0 = float(prob.grad_x_h(x0, th).flatten().norm().item())
     x, r = prob.solve_lower(th, eps=1e-2)
     assert r < r0
-    assert r <= max(1e-2 * prob.mu(), 1e-8) * 1.01
+    # eps is a per-element rms tolerance: ||grad h|| <= eps * mu * sqrt(n).
+    assert r <= 1e-2 * prob.mu() * (x.numel() ** 0.5) * 1.01
     assert prob.n_gd_iters > 0
 
 
@@ -135,7 +136,7 @@ def test_gd_fista_restart_newton_reach_residual():
         )
         assert prob.solver == name
         _, r = prob.solve_lower(th, eps=eps, x_init=x0.clone())
-        tol = max(eps * prob.mu(), 1e-8)
+        tol = eps * prob.mu() * (prob.x_star.numel() ** 0.5)
         assert r <= tol * 1.01
         assert prob.n_gd_iters >= 1
 
@@ -233,11 +234,13 @@ def test_mu_data_plus_gamma_on_denoising():
     assert abs(prob.mu() - 1.0) < 1e-12
     th = pack_init_theta(cfg, seed=12)
     _, r = prob.solve_lower(th, eps=1e-2)
-    tol = max(1e-2 * prob.mu(), 1e-8)
+    tol = 1e-2 * prob.mu() * (prob.x_star.numel() ** 0.5)
     assert r <= tol * 1.01
-    # Distance bound is residual / mu, not the residual alone.
+    # Distance bound is residual / mu, not the residual alone. Per element it
+    # is directly comparable to the image scale: ||x* - x|| / sqrt(n) <= eps.
     dist_bound = r / prob.mu()
-    assert dist_bound <= 1e-2 * 1.01
+    rms_bound = dist_bound / (prob.x_star.numel() ** 0.5)
+    assert rms_bound <= 1e-2 * 1.01
 
 
 def test_maid_decreases_upper_level():
