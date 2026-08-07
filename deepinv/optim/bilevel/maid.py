@@ -146,6 +146,7 @@ from dataclasses import dataclass, field
 import math
 
 import torch
+from tqdm import tqdm
 
 from .oracle import HypergradientOracle, LowerLevelState
 from .quadratic_ls import QuadraticBilevelLS
@@ -198,6 +199,13 @@ class MAIDConfig:
     bb_form: str = "long"
     alpha_min: float = 1e-12
     alpha_max: float = 1e12
+    # Reporting. Follows the DeepInverse convention (see
+    # :class:`deepinv.optim.fixed_point.FixedPoint`): a ``verbose`` flag with
+    # ``print``, and a tqdm bar gated on ``show_progress_bar``. The library
+    # does not use the ``logging`` module anywhere, so neither does this.
+    verbose: bool = False
+    show_progress_bar: bool = False
+    log_every: int = 1
 
 
 def accelerated_maid_config(**kwargs) -> MAIDConfig:
@@ -314,6 +322,15 @@ class MAID:
             "bb_used": [],
         }
         n_backtrack_failures = 0
+        # Progress reporting, DeepInverse style: tqdm gated on both flags, so
+        # a quiet run stays silent and a verbose one without a bar still gets
+        # the printed lines below.
+        pbar = tqdm(
+            total=int(c.max_iter),
+            disable=(not c.verbose or not c.show_progress_bar),
+            desc="MAID",
+            unit="outer",
+        )
 
         warm: LowerLevelState | None = None
         # Zhang-Hager state. ``window_ready`` is True only after the first
@@ -390,6 +407,7 @@ class MAID:
                         float(C) if C is not None else float("nan")
                     )
                     history["bb_used"].append(bb_used_flag)
+                    pbar.close()
                     self._finalise_history(
                         history, oracle, n_backtrack_failures + failures_this_iter
                     )
@@ -511,8 +529,47 @@ class MAID:
             history["C_ref"].append(C_for_hist)
             history["bb_used"].append(bb_used_flag)
 
+            pbar.update(1)
+            pbar.set_postfix(
+                f=f"{history['f_exact'][-1]:.4e}",
+                z=f"{history['z_norm'][-1]:.2e}",
+                alpha=f"{alpha_k:.2e}",
+                eps=f"{eps_k:.1e}",
+                omega=("off" if math.isnan(omega) else f"{omega:.1e}"),
+            )
+            if c.verbose and not c.show_progress_bar and (
+                _k % max(int(c.log_every), 1) == 0
+            ):
+                # omega is NaN by contract when check_descent_direction is
+                # False (Algorithm 3.1 never forms it). Say so, rather than
+                # printing a bare nan that reads as a numerical failure.
+                omega_str = (
+                    "off" if math.isnan(omega) else f"{omega:.3e}"
+                )
+                print(
+                    f"MAID it={_k:4d}  f={history['f_exact'][-1]:.6e}  "
+                    f"||z||={history['z_norm'][-1]:.3e}  omega={omega_str}  "
+                    f"alpha={alpha_k:.3e}  eps={eps_k:.2e}  "
+                    f"delta={delta_k:.2e}  BT_fail={failures_this_iter}",
+                    flush=True,
+                )
+
             if history["z_norm"][-1] <= c.tol:
+                if c.verbose:
+                    print(
+                        f"[Stopping] ||z|| = {history['z_norm'][-1]:.3e} "
+                        f"<= tol = {c.tol:.3e} at outer iteration {_k}."
+                    )
                 break
+        else:
+            if c.verbose:
+                print(
+                    f"[Stopping] Reached max_iter = {c.max_iter} with "
+                    f"||z|| = {history['z_norm'][-1]:.3e} > tol = {c.tol:.3e}. "
+                    "The objective was still descending; this is a budget "
+                    "limit, not convergence."
+                )
+        pbar.close()
 
         self._finalise_history(history, oracle, n_backtrack_failures)
         return theta, history
