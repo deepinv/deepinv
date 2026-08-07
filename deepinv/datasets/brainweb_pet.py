@@ -16,14 +16,14 @@ if TYPE_CHECKING:
 class BrainWebPET(ImageDataset):
     r"""BrainWeb PET phantoms.
 
-    Loads synthetic 3D volumes from BrainWeb dataset :footcite:p:`collinsDesignConstructionRealistic1998`, 
+    Loads synthetic 3D volumes from BrainWeb dataset :footcite:p:`collinsDesignConstructionRealistic1998`,
     of shape `(1, 127, 344, 344)`.
     The dataset has been adapted to emission tomography, and returns an emission and attenuation map, at the Siemens Biograph mMR isotropic resolution of 2.0863 mm per voxel.
-        
+
     Passing `lesion_diameters` adds high activity lesions with `brainweb.add_lesions` and includes a binary `lesion_mask` in the returned parameters.
 
-    This dataset relies on the original implementation of Casper da Costa-Luis: 
-    <https://github.com/casperdcl/brainweb>`_.  
+    This dataset relies on the original implementation of Casper da Costa-Luis:
+    <https://github.com/casperdcl/brainweb>`_.
     See the original implementation for a detailed description of the keyword arguments.
 
     :param str, pathlib.Path, None root: Dataset directory. Defaults to the DeepInv cache.
@@ -35,7 +35,7 @@ class BrainWebPET(ImageDataset):
     :param dict, None lesion_kwargs: Keyword arguments for `brainweb.add_lesions`.
     :param dict, None random_degradations_kwargs: Keyword arguments for `brainweb.get_mmr_fromfile` controlling random structural degradations.
     :param collections.abc.Callable, None transform: Optional transform to apply to the returned volumes.
-    :param int, None seed: Seed used when adding random lesions. 
+    :param int, None seed: Seed used when adding random lesions.
 
     |sep|
 
@@ -93,9 +93,7 @@ class BrainWebPET(ImageDataset):
         contrast = (
             (contrast,)
             if isinstance(contrast, str)
-            else tuple(contrast)
-            if contrast is not None
-            else ()
+            else tuple(contrast) if contrast is not None else ()
         )
         self.contrast = tuple(name.upper() for name in contrast)
         available = {
@@ -104,9 +102,7 @@ class BrainWebPET(ImageDataset):
         self.subject_ids = (
             tuple(available)
             if subject_ids is None
-            else (subject_ids,)
-            if isinstance(subject_ids, int)
-            else tuple(subject_ids)
+            else (subject_ids,) if isinstance(subject_ids, int) else tuple(subject_ids)
         )
         if any(x not in available for x in self.subject_ids):
             raise ValueError(
@@ -174,12 +170,10 @@ class BrainWebPET(ImageDataset):
             if self.seed is not None:
                 brainweb.seed(self.seed + subject)
             emission = brainweb.add_lesions(emission, **self.lesion_kwargs)
-            params["lesion_mask"] = torch.as_tensor(
-                emission != original
-            ).unsqueeze(0)
+            params["lesion_mask"] = torch.as_tensor(emission != original).unsqueeze(0)
 
         emission = torch.as_tensor(emission, dtype=torch.float32).unsqueeze(0)
-        
+
         if self.transform is not None:
             for key in params:
                 params[key] = self.transform(params[key])
