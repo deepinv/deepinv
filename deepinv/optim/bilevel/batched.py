@@ -110,30 +110,55 @@ def available_memory(device: torch.device | str) -> int:
 def measure_sample_bytes(
     run_one: Callable[[int], None],
     device: torch.device | str,
-    probe_batch: int = 2,
+    probe_batches: tuple[int, int] = (2, 4),
 ) -> int:
-    """Peak bytes per sample, measured by running ``run_one(probe_batch)``.
+    """Marginal bytes per sample, from the slope of two probe runs.
 
-    Returns a positive figure even when the backend reports nothing useful, so
-    callers always get a usable divisor.
+    Two probes, not one, because a single measurement conflates the
+    per-sample cost with fixed overhead (the parameter vector, the FFT plan,
+    the physics). The slope ``(m1 - m0) / (b1 - b0)`` isolates the part that
+    actually scales with batch size, which is the only part that decides how
+    many samples fit.
+
+    Backend accounting differs and the wrong call silently reports zero.
+    CUDA exposes a true high-water mark via ``max_memory_allocated``. MPS has
+    no peak API, and ``current_allocated_memory`` is read after the solve has
+    freed its temporaries, so it returns ~0 and the caller concludes that
+    everything fits: measured 0.06 MiB per sample at every image size from 32
+    to 256, against a true cost rising from 3 MiB to 128 MiB.
+    ``driver_allocated_memory`` tracks what the driver holds and does move.
+
+    ``run_one`` must exercise the hypergradient as well as the solve, since
+    the autograd graph for the mixed Jacobian is the peak, not the solve.
     """
     dev = torch.device(device)
-    if dev.type == "cuda":
-        torch.cuda.synchronize(dev)
-        torch.cuda.reset_peak_memory_stats(dev)
-        run_one(probe_batch)
-        torch.cuda.synchronize(dev)
-        peak = int(torch.cuda.max_memory_allocated(dev))
-    elif dev.type == "mps":
-        torch.mps.synchronize()
-        before = int(torch.mps.current_allocated_memory())
-        run_one(probe_batch)
-        torch.mps.synchronize()
-        peak = max(int(torch.mps.current_allocated_memory()) - before, 0)
-    else:
-        run_one(probe_batch)
-        peak = 0
-    return max(peak // max(probe_batch, 1), 1 << 16)
+    marks: list[int] = []
+    for b in probe_batches:
+        if dev.type == "cuda":
+            torch.cuda.synchronize(dev)
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats(dev)
+            run_one(b)
+            torch.cuda.synchronize(dev)
+            marks.append(int(torch.cuda.max_memory_allocated(dev)))
+        elif dev.type == "mps":
+            torch.mps.synchronize()
+            torch.mps.empty_cache()
+            base = int(torch.mps.driver_allocated_memory())
+            run_one(b)
+            torch.mps.synchronize()
+            marks.append(max(int(torch.mps.driver_allocated_memory()) - base, 0))
+        else:
+            run_one(b)
+            marks.append(0)
+    b0, b1 = probe_batches
+    slope = (marks[1] - marks[0]) / max(b1 - b0, 1)
+    if slope <= 0:
+        # Degenerate probe (allocator reuse, or a backend reporting nothing):
+        # fall back to the average rather than returning a floor that would
+        # claim any batch fits.
+        slope = marks[-1] / max(b1, 1)
+    return max(int(slope), 1 << 16)
 
 
 def auto_batch_size(
@@ -453,20 +478,23 @@ class BatchedMinibatchOracle(HypergradientOracle):
         if batch_size is None:
             probe = groups[0]
 
+            th_probe = torch.zeros(
+                cfg.n_params, dtype=self.dtype, device=self.device
+            )
+
             def run_probe(b: int) -> None:
-                BatchedCRR(
+                bp = BatchedCRR(
                     y=probe[1][:b], x_star=probe[2][:b], cfg=cfg,
                     physics=probe[0],
-                ).solve_lower(
-                    torch.zeros(cfg.n_params, dtype=self.dtype,
-                                device=self.device),
-                    eps=1e-3, max_iter=5,
                 )
+                xp, _r, _i = bp.solve_lower(th_probe, eps=1e-3, max_iter=5)
+                # The mixed-Jacobian graph is the peak, so the probe has to
+                # include it or the estimate is of the wrong quantity.
+                bp.hypergradient(xp, th_probe, delta=1e-3, max_cg_iter=5)
 
-            per = measure_sample_bytes(
-                run_probe, self.device,
-                probe_batch=min(2, probe[2].shape[0]),
-            )
+            n_avail = int(probe[2].shape[0])
+            pb = (1, 2) if n_avail < 4 else (2, 4)
+            per = measure_sample_bytes(run_probe, self.device, probe_batches=pb)
             batch_size = auto_batch_size(
                 self.m, per, self.device, safety=safety, max_batch=max_batch
             )
