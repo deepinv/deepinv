@@ -10,10 +10,11 @@ from pathlib import Path
 import requests
 from tqdm.auto import tqdm
 
-from torch import Tensor, stack, zeros_like
+from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
 from torchvision.transforms.functional import crop as torchvision_crop
 
+from deepinv.datasets import ImageDataset
 from deepinv.utils import normalize_signal, get_cache_home
 from deepinv.utils.io import DownloadError
 
@@ -156,6 +157,27 @@ def resolve_root(root: str | Path | None, dataset_name: str = None) -> Path:
             else get_cache_home() / "datasets"
         )
     return Path(root)
+
+
+class PlaceholderDataset(ImageDataset):
+    """
+    A placeholder dataset for test purposes.
+
+    Produces image pairs x,y that are random tensor of shape specified.
+
+    :param int n: number of samples in dataset, defaults to 1
+    :param tuple shape: image shape, (channel, height, width), defaults to (1, 64, 64)
+    """
+
+    def __init__(self, n=1, shape=(1, 64, 64)):
+        self.n = n
+        self.shape = shape
+
+    def __len__(self):
+        return self.n
+
+    def __getitem__(self, index):
+        return randn(self.shape), randn(self.shape)
 
 
 class Rescale(Module):
