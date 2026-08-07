@@ -223,7 +223,7 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
    * - :class:`BrainWebPET <deepinv.datasets.BrainWebPET>`
      - `(x, params)`
      - 20 synthetic brain volumes
-     - 1x127x344x344
+     - 1x127x344x344 voxels
      - Synthetic PET emission volumes with attenuation maps and optional MRI contrasts from the BrainWeb dataset.
 
 
