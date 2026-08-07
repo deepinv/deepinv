@@ -562,15 +562,19 @@ class CRRSampleProblem:
         self.n_gd_iters += n_iters
         self.last_residual_rms = residual / (scale * max(float(mu), 1e-30))
         self.last_reached_eps = residual <= residual_tol * 1.01
-        if residual > residual_tol * 1.01 and residual > floor_tol * 1.5:
-            # Too far short to be the dtype's precision floor: a real failure
-            # (diverged, step size wrong, max_iter too small).
+        self.last_stalled = bool(hist.get("stalled", False))
+        if not self.last_reached_eps and not (
+            self.last_stalled or residual <= floor_tol * 1.5
+        ):
+            # Not a precision-floor stall: the solve was still improving when
+            # it ran out of iterations, or it diverged. That is a real failure
+            # and stays an error.
             raise RuntimeError(
                 f"CRR {name} failed residual {residual_tol:.3e} "
                 f"(got {residual:.3e}, rms {self.last_residual_rms:.3e}) in "
-                f"{n_iters} iters (step={stepsize:.4g}, "
-                f"dtype={self.dtype}, floor={floor_tol:.3e}). "
-                "This is not a precision-floor stall."
+                f"{n_iters} iters (step={stepsize:.4g}, dtype={self.dtype}). "
+                "Still improving when it stopped, so this is not a "
+                "precision-floor stall: raise max_iter or check the step size."
             )
         if record_every is not None:
             return x, residual, hist
@@ -733,6 +737,7 @@ class CRRSampleProblem:
         armijo_c: float = 1e-4,
         armijo_rho: float = 0.5,
         max_bt: int = 20,
+        stall_patience: int = 25,
     ) -> tuple[torch.Tensor, float, int, dict]:
         """Truncated Newton: CG on Hess h with Armijo line search."""
         x = x0.detach().clone()
@@ -750,6 +755,17 @@ class CRRSampleProblem:
             history["n_iters"] = 0
             history["n_cg"] = 0
             return x, residual, 0, history
+
+        # Precision-floor detection. The reachable residual depends on the
+        # dtype, the conditioning and (since lip is recomputed inside the
+        # gradient) on FFT error, so it cannot be predicted from
+        # finfo(dtype).eps alone: a constant calibrated on one problem was out
+        # by 4x on another. Detect the stall instead, and keep the best iterate
+        # because the residual wobbles once it is precision-limited.
+        best_res = residual
+        best_x = x.detach().clone()
+        since_improve = 0
+        stalled = False
 
         n_iters = 0
         n_cg = 0
@@ -803,11 +819,24 @@ class CRRSampleProblem:
                     residual,
                     float(self.energy_h(x, theta, reload=False).item()),
                 )
+            if residual < best_res * (1.0 - 1e-3):
+                best_res = residual
+                best_x = x.detach().clone()
+                since_improve = 0
+            else:
+                since_improve += 1
+                if since_improve >= stall_patience:
+                    stalled = True
+                    break
+
             if residual <= residual_tol:
                 break
 
+        if stalled or best_res < residual:
+            x, residual = best_x, best_res
         history["n_iters"] = n_iters
         history["n_cg"] = n_cg
+        history["stalled"] = stalled
         return x, residual, n_iters, history
 
     @staticmethod
