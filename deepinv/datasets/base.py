@@ -120,8 +120,15 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
                 f"{error_dict}, batch is type dict but neither 'x' nor 'y' keys are present"
             )
 
-        if "params" in batch and any(not isinstance(k, str) for k in batch["params"]):
-            raise RuntimeError(f"{error_dict}, but params dict has non-string keys.")
+        if "params" in batch:
+            if not isinstance(batch["params"], dict):
+                raise RuntimeError(
+                    f"{error_dict}, but dict element with key 'params' is type {type(batch['params'])}."
+                )
+            if any(not isinstance(k, str) for k in batch["params"]):
+                raise RuntimeError(
+                    f"{error_dict}, but params dict has non-string keys."
+                )
 
     elif isinstance(batch, (list, tuple)):
         raise RuntimeError(
@@ -143,8 +150,8 @@ def unpack_batch(
 
     :param batch: a single batch as returned by a dataset's `__getitem__` (or by a
         `torch.utils.data.DataLoader` wrapping such a dataset).
-    :return: tuple ``(x, y, params)`` where `x` defaults to `torch.nan` if absent (matching the
-        tuple-format convention for ground-truth-free datasets), `y` is `None` if absent, and
+    :return: tuple ``(x, y, params)`` where `x` is `None` if absent (the dict-format equivalent
+        of the tuple-format convention for ground-truth-free datasets), `y` is `None` if absent, and
         `params` is `{}` if absent.
     """
     if isinstance(batch, dict):
@@ -222,7 +229,11 @@ class ImageDataset(Dataset):
 
         if not self.use_dict_output:
             warn(
-                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs. The default is currently `False` for backward compatibility, but will be switched to `True` in a future version."
+                "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs."
+                "The default is currently `False` for backward compatibility, but will be switched to `True` in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
             )
 
     def check_dataset(self) -> None:

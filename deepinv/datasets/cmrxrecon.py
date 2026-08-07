@@ -114,8 +114,6 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         noise_model: NoiseModel = None,
         use_dict_output: bool = False,
     ):
-        super().__init__(use_dict_output=use_dict_output)
-
         self.root = resolve_root(root, "CMRxReconSlice")
         self.data_dir = data_dir
         self.mask_dir = mask_dir
@@ -166,6 +164,21 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
                         samples.append(self.SliceSampleID(fname, slice_ind, metadata))
 
             self.samples = samples
+
+        # NOTE: skip FastMRISliceDataset.__init__ (next in MRO) since it would
+        # re-scan `root` using FastMRI's own file/metadata format; CMRxRecon
+        # already builds `all_fnames` and `self.samples` itself above using its own format.
+        self.use_dict_output = use_dict_output
+
+        # Putting warning here since not triggered on ImageDataset.__init__
+        if not self.use_dict_output:
+            warn(
+                "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs."
+                "The default is currently `False` for backward compatibility, but will be switched to `True` in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
     def _loadmat(self, fname: str | Path | os.PathLike) -> ndarray:
         """Load matrix from MATLAB 7.3 file and parse headers."""

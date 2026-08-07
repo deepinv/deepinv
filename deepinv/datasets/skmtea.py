@@ -118,7 +118,11 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
         # Putting warning here since not triggered on ImageDataset.__init__
         if not self.use_dict_output:
             warn(
-                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs. The default is currently `False` for backward compatibility, but will be switched to `True` in a future version."
+                "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs."
+                "The default is currently `False` for backward compatibility, but will be switched to `True` in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
             )
 
     @staticmethod
