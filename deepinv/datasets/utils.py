@@ -159,27 +159,6 @@ def resolve_root(root: str | Path | None, dataset_name: str = None) -> Path:
     return Path(root)
 
 
-class PlaceholderDataset(ImageDataset):
-    """
-    A placeholder dataset for test purposes.
-
-    Produces image pairs x,y that are random tensor of shape specified.
-
-    :param int n: number of samples in dataset, defaults to 1
-    :param tuple shape: image shape, (channel, height, width), defaults to (1, 64, 64)
-    """
-
-    def __init__(self, n=1, shape=(1, 64, 64)):
-        self.n = n
-        self.shape = shape
-
-    def __len__(self):
-        return self.n
-
-    def __getitem__(self, index):
-        return randn(self.shape), randn(self.shape)
-
-
 class Rescale(Module):
     """Image value rescale torchvision-style transform.
 
