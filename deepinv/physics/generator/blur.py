@@ -90,7 +90,6 @@ class GaussianBlurGenerator(PSFGenerator):
         device: str = "cpu",
         dtype: type = torch.float32,
     ):
-
         dim = len(psf_size)
         if dim not in {1, 2, 3}:
             raise ValueError("Only 1D, 2D, and 3D kernels are supported.")
@@ -127,7 +126,6 @@ class GaussianBlurGenerator(PSFGenerator):
         name_min: str = None,
         name_max: str = None,
     ):
-
         min_vals = _as_sequence(min_vals)
         max_vals = _as_sequence(max_vals)
 
@@ -148,7 +146,6 @@ class GaussianBlurGenerator(PSFGenerator):
     def _generate_parameters(
         self, batch_size: int, min_vals, max_vals, isotropic: bool = False, **kwargs
     ):
-
         if isotropic:
             params = torch.stack(
                 [
@@ -494,7 +491,6 @@ class DiffractionBlurGenerator(PSFGenerator):
         dtype: torch.dtype = torch.float32,
         rng: torch.Generator = None,
     ):
-
         super().__init__(
             psf_size=psf_size,
             device=device,
@@ -565,8 +561,8 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         self.register_buffer("lin_x", lin_x)
         self.register_buffer("lin_y", lin_y)
-        self.register_buffer("XX0", XX0)
-        self.register_buffer("XX1", XX1)
+        self.register_buffer("XX0", XX0.unsqueeze(0).unsqueeze(0))
+        self.register_buffer("XX1", XX1.unsqueeze(0).unsqueeze(0))
         self.step_rho = (lin_x[1] - lin_x[0]).item()
 
         # In order to avoid layover in Fourier convolution we need to zero pad and then extract a part of image
@@ -658,8 +654,8 @@ class DiffractionBlurGenerator(PSFGenerator):
         Bf, Cf = fc.shape
         fc_r = fc.reshape(Bf, Cf, 1, 1)
 
-        XX = self.XX0.unsqueeze(0).unsqueeze(0) / fc_r
-        YY = self.XX1.unsqueeze(0).unsqueeze(0) / fc_r
+        XX = self.XX0 / fc_r
+        YY = self.XX1 / fc_r
 
         rho = cart2pol(XX, YY)
 
@@ -770,7 +766,6 @@ class DiffractionBlurGenerator(PSFGenerator):
         fc_check = self._format_fc(fc, 1)  ##for checks on coeff shape
 
         if coeff is not None:
-
             if coeff.shape[-1] != n_zernike_used:
                 raise ValueError(
                     f"The number of Zernike coefficients {coeff.shape[-1]} "
@@ -852,8 +847,8 @@ class DiffractionBlurGenerator(PSFGenerator):
             Ny, Nx = psf.shape[-2:]
             centerx = (Nx / 2.0) - 0.5
             centery = (Ny / 2.0) - 0.5
-            x = torch.arange(0, psf.shape[-1]).to(self.device)
-            y = torch.arange(0, psf.shape[-2]).to(self.device)
+            x = torch.arange(0, psf.shape[-1], device=self.device)
+            y = torch.arange(0, psf.shape[-2], device=self.device)
             x, y = torch.meshgrid(x, y, indexing="xy")
             normalization = psf.sum(dim=(-2, -1))
 
@@ -867,7 +862,7 @@ class DiffractionBlurGenerator(PSFGenerator):
             ) / normalization
             shift_y = shift_y - centery
 
-            # Calculate the coefficients for tilt Zernikes to compensate for the shift
+            # Calculate the coefficients for tilt Zernike to compensate for the shift
 
             Z3, _ = self._zernike_basis(fc_used, nm_list=((1, 1),))
             Z3 = Z3.squeeze(-1)

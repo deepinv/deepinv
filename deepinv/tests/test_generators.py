@@ -624,7 +624,7 @@ def test_inpainting_generator_random_ratio(num_channels, device, dtype, rng):
 
 def test_string_seed():
     # Dummy long paths
-    paths = [f"{'deepinv/'*10}{p}" for p in Path("deepinv/tests").glob("*.py")]
+    paths = [f"{'deepinv/' * 10}{p}" for p in Path("deepinv/tests").glob("*.py")]
     seeds = [seed_from_string(p) for p in paths]
 
     # Assert unique seeds
@@ -828,8 +828,20 @@ def test_diffraction_generator(
             assert "does not match" in str(excinfo.value)
 
     # Test centering effect if center is True and psf size is large enough
-
     # Test only for 2D case as centering in 3D case is still under development
+
+    # Helper function to compute the barycenter of a PSF
+    def _barycenter(h):
+        Ny, Nx = h.shape[-2:]
+        centerx = (Nx / 2.0) - 0.5
+        centery = (Ny / 2.0) - 0.5
+        x = torch.arange(0, h.shape[-1]).to(h.device)
+        y = torch.arange(0, h.shape[-2]).to(h.device)
+        X, Y = torch.meshgrid(x, y, indexing="xy")
+        com_x = (X[None, None, :, :] * h).sum(dim=(-2, -1)) - centerx
+        com_y = (Y[None, None, :, :] * h).sum(dim=(-2, -1)) - centery
+        return com_x, com_y
+
     if (not is_3d) and center and (not apodize) and (not random_rotate):
         batch_sizes = (1, 2)
         size = (71, 71)
@@ -855,21 +867,9 @@ def test_diffraction_generator(
                 apodize=apodize,
                 random_rotate=random_rotate,
             )["filter"]
-            com_x, com_y = barycenter(generated_psf)
+            com_x, com_y = _barycenter(generated_psf)
             assert torch.all(torch.round(com_x.abs(), decimals=1) <= 0.1)
             assert torch.all(torch.round(com_y.abs(), decimals=1) <= 0.1)
-
-
-def barycenter(h):
-    Ny, Nx = h.shape[-2:]
-    centerx = (Nx / 2.0) - 0.5
-    centery = (Ny / 2.0) - 0.5
-    x = torch.arange(0, h.shape[-1]).to(h.device)
-    y = torch.arange(0, h.shape[-2]).to(h.device)
-    X, Y = torch.meshgrid(x, y, indexing="xy")
-    com_x = (X[None, None, :, :] * h).sum(dim=(-2, -1)) - centerx
-    com_y = (Y[None, None, :, :] * h).sum(dim=(-2, -1)) - centery
-    return com_x, com_y
 
 
 @pytest.mark.parametrize("dim", [1, 2, 3])
@@ -1082,7 +1082,6 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size):
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("use_batch_sampling", [True, False])
 def test_generator_mixture(generators, size, dtype, use_batch_sampling, device, rng):
-
     generator_pair = []
     for name in generators:
         g, _, _ = find_generator(name, size, device, dtype, rng=rng)
