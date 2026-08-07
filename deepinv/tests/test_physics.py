@@ -2771,3 +2771,33 @@ def test_blurfft_a_dagger_rejects_invalid_prior(wiener_blur_physics):
     y = wiener_blur_physics.A(x)
     with pytest.raises(ValueError, match="Invalid prior"):
         wiener_blur_physics.A_dagger(y, wiener=True, prior="wavelet")
+
+
+@pytest.mark.parametrize(
+    "wiener,lambda_reg",
+    [
+        pytest.param(False, 1.0, id="pseudo-inverse"),
+        pytest.param(True, 0.0, id="wiener-zero-lambda"),
+        pytest.param(True, 1.0, id="wiener"),
+    ],
+)
+def test_blurfft_a_dagger_kwargs_update_the_operator(wiener, lambda_reg):
+    """A filter passed through kwargs takes effect on every path.
+
+    The parent A_dagger updates parameters from kwargs before inverting, so all
+    three paths through the override must do the same.
+    """
+    box = torch.ones(1, 1, 3, 3) / 9.0
+    impulse = torch.zeros(1, 1, 3, 3)
+    impulse[0, 0, 1, 1] = 1.0
+    y = torch.randn(1, 1, 8, 8)
+
+    def run(**kw):
+        # A fresh operator per call: update_parameters mutates it in place.
+        physics = dinv.physics.BlurFFT(img_size=(1, 8, 8), filter=box)
+        with torch.no_grad():
+            return physics.A_dagger(y, wiener=wiener, lambda_reg=lambda_reg, **kw)
+
+    assert not torch.allclose(
+        run(filter=impulse), run(), atol=1e-6
+    ), "the filter passed through kwargs was ignored"

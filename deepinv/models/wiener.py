@@ -39,7 +39,7 @@ class WienerDeconvolution(Reconstructor):
 
     The forward operator is a circular convolution, so
     :math:`A = F^{-1} \operatorname{diag}(H) F` is diagonalised by :math:`F`.
-    The minimiser is therefore the classical Wiener filter,
+    The minimiser is therefore given by the classical Wiener filter,
 
     .. math::
 

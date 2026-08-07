@@ -585,9 +585,9 @@ _WIENER_EPS_CLAMP = 1e-9
 def _is_frequency_dependent(lambda_reg: float | Tensor) -> bool:
     r"""Return ``True`` when ``lambda_reg`` carries one value per frequency.
 
-    A 0-dim tensor holds a single value, so it is treated as a scalar rather
-    than as a per-frequency weight: ``prior`` still applies to it, and
-    ``torch.tensor(0.0)`` still means no regularisation.
+    The test is on rank rather than element count: a 0-dim tensor is a scalar,
+    while a tensor with one or more dimensions is per-frequency even when it
+    holds a single value.
     """
     return isinstance(lambda_reg, Tensor) and lambda_reg.dim() > 0
 
@@ -771,14 +771,16 @@ def _lambda_to_gamma(
 def _is_zero_lambda(lambda_reg: float | Tensor) -> bool:
     r"""Return ``True`` when ``lambda_reg`` is a scalar zero (no regularisation).
 
-    A per-frequency ``lambda_reg`` is never treated as "no regularisation", even
-    if all of its entries are zero: it is clamped element-wise by
-    :func:`_lambda_to_gamma` instead.
+    A per-frequency ``lambda_reg`` is never treated as "no regularisation",
+    even when all of its entries are zero.  A zero entry is meaningful on its
+    own, marking a frequency with no noise, so entries are handled individually
+    rather than by inspecting the tensor as a whole.
     """
     if _is_frequency_dependent(lambda_reg):
         return False
-    # bool() because ``torch.tensor(0.0) == 0`` evaluates to a tensor.  It is
-    # safe here: multi-element tensors were excluded above.
+    # bool() because torch.tensor(0.0) == 0 evaluates to a tensor.  It is safe
+    # here: anything with one or more dimensions was excluded above, so only
+    # rank-0 tensors and floats reach this line.
     return bool(lambda_reg == 0)
 
 
@@ -982,15 +984,16 @@ class BlurFFT(DecomposablePhysics):
         multiplication, and :math:`\lambda` is a per-frequency regularisation
         weight.  The forward operator is a circular convolution, so
         :math:`A = F^{-1} \operatorname{diag}(H) F` is diagonalised by
-        :math:`F`, and the minimiser is the classical Wiener filter,
+        :math:`F`, and the minimiser is given by the classical Wiener filter,
 
         .. math::
 
             \hat{X}(f) = \frac{H^*(f)}{\vert H(f) \vert^2 + \lambda(f)} \, Y(f)
 
         in which :math:`\lambda(f)` plays the role of a noise-to-signal PSD
-        ratio :math:`S_n(f) / S_x(f)`.  It is evaluated in closed form through
-        :meth:`~deepinv.physics.DecomposablePhysics.prox_l2` with :math:`z = 0`.
+        ratio :math:`S_n(f) / S_x(f)`.  The reconstruction is computed in closed
+        form by :meth:`~deepinv.physics.DecomposablePhysics.prox_l2` with
+        :math:`z = 0`.
 
         The arguments ``lambda_reg`` and ``prior`` define :math:`\lambda`,
         specialising the problem into one of three cases.
@@ -1016,8 +1019,9 @@ class BlurFFT(DecomposablePhysics):
         The :math:`\varepsilon` term (:math:`10^{-9}`) keeps the DC component
         regularised, since :math:`|H_L(0)|^2 = 0`.
 
-        **3. Custom tensor** (``lambda_reg`` is a tensor, ``prior`` ignored):
-        :math:`\lambda(f)` is taken directly from the tensor.
+        **3. Custom tensor** (``lambda_reg`` is a tensor with one or more
+        dimensions, ``prior`` ignored): :math:`\lambda(f)` is taken directly
+        from the tensor.
 
         .. seealso::
 
@@ -1035,12 +1039,15 @@ class BlurFFT(DecomposablePhysics):
 
             - If a **scalar** ``float``, it is combined with ``prior``
               (as detailed above).  Setting ``lambda_reg=0`` returns the
-              pseudo-inverse (no regularisation).
-            - If a :class:`torch.Tensor`, it is interpreted as a
+              pseudo-inverse (no regularisation).  A 0-dim tensor holds a
+              single value and is treated the same way.
+            - If a :class:`torch.Tensor` with one or more dimensions, it is a
               frequency-dependent NSR (noise-to-signal PSD ratio,
               :math:`\lambda(f) = S_n(f) / S_x(f)`), and ``prior`` is ignored.
-              Entries equal to zero are clamped to a small positive value to
-              avoid a division by zero.
+              It must be 4-D, of shape ``(B, C, H, W // 2 + 1)``, the half
+              spectrum returned by :func:`torch.fft.rfft2`; ``B`` and ``C`` may
+              be ``1`` to broadcast.  Entries equal to zero are clamped to a
+              small positive value to avoid a division by zero.
 
         :param str, None prior: Regularisation prior (only used when
             ``lambda_reg`` is a scalar).  Default: ``"laplacian"``.
@@ -1049,8 +1056,15 @@ class BlurFFT(DecomposablePhysics):
               penalising high frequencies more than low frequencies.
             - ``None`` or ``"flat"``: Flat (constant) regularisation.
 
+        :param kwargs: Forwarded to
+            :meth:`~deepinv.physics.Physics.update_parameters`, so the operator
+            can be updated before inverting, e.g. ``filter=new_filter``.
+
         :return: Reconstructed image tensor.
         :rtype: torch.Tensor
+        :raises ValueError: If ``prior`` is not one of
+            ``(None, "flat", "laplacian")``, or if ``prior="laplacian"`` and the
+            operator has no filter.
 
         |sep|
 
@@ -1074,9 +1088,14 @@ class BlurFFT(DecomposablePhysics):
             return super().A_dagger(y, **kwargs)
 
         # --- Wiener filtering mode ---
+        # kwargs update the operator before inverting, matching the parent
+        # A_dagger.  Skipped when there is nothing to update.
+        if kwargs:
+            self.update_parameters(**kwargs)
+
         # lambda_reg = 0 means no regularisation, which is the pseudo-inverse.
         if _is_zero_lambda(lambda_reg):
-            return super().A_dagger(y, **kwargs)
+            return super().A_dagger(y)
 
         # Convert lambda_reg (regularisation weight) into the gamma expected
         # by prox_l2.
