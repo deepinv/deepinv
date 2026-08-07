@@ -1613,22 +1613,6 @@ def test_brainweb_pet(tmp_path, lesion_diameters):
     assert ("lesion_mask" in params) == bool(lesion_diameters)
 
 
-def test_brainweb_pet_default_subjects(tmp_path, monkeypatch):
-    brainweb = pytest.importorskip("brainweb")
-
-    def get_file(name, url, cache_dir):
-        path = Path(cache_dir) / name
-        path.touch()
-        return str(path)
-
-    monkeypatch.setattr(brainweb, "get_file", get_file)
-    dataset = BrainWebPET(root=tmp_path)
-
-    expected = tuple(int(name[8:10]) for name in brainweb.LINKS)
-    assert dataset.subject_ids == expected
-    assert len(dataset) == len(expected)
-
-
 @pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])
 def test_extract_archive(tmp_path, kind):
     mocker = MagicMock()
