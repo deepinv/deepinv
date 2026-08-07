@@ -14,7 +14,7 @@ from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
 from torchvision.transforms.functional import crop as torchvision_crop
 
-from deepinv.datasets import ImageDataset
+from deepinv.datasets.base import ImageDataset
 from deepinv.utils import normalize_signal, get_cache_home
 from deepinv.utils.io import DownloadError
 
