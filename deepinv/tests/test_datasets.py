@@ -1,6 +1,7 @@
 import shutil, os
 import sys
 import math
+from contextlib import contextmanager
 from typing import NamedTuple, Sequence, Mapping
 from pathlib import Path
 import PIL
@@ -49,7 +50,7 @@ from deepinv.datasets.utils import (
     ToComplex,
 )
 from deepinv.utils.io import load_mat
-from deepinv.datasets.base import check_dataset
+from deepinv.datasets.base import check_dataset, unpack_batch, extract_x_tensor
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
 from deepinv.physics.generator import (
@@ -74,6 +75,16 @@ def get_dummy_pil_png_image():
     im.save(buffer, format="PNG")
     buffer.seek(0)
     return PIL.PngImagePlugin.PngImageFile(buffer)
+
+
+@contextmanager
+def dataset_output_context(use_dict_output):
+    """Capture the deprecation warning for the legacy tuple output format."""
+    if use_dict_output:
+        yield
+    else:
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            yield
 
 
 def check_dataset_format(
@@ -167,6 +178,9 @@ def check_dataset_format(
         if dtype == "tuple_of_pils":
             # This is a workaround for Python not having ability to check a variable is a `tuple[xxx]`.
             assert all(isinstance(d, PIL_Image) for d in dataset[0])
+        elif dtype == "dict_of_pils":
+            # This is a workaround for Python not having ability to check a variable is a `dict[str, PIL_Image]`.
+            assert all(isinstance(d, PIL_Image) for d in dataset[0].values())
         else:
             assert isinstance(
                 dataset[0], dtype
@@ -193,12 +207,13 @@ class MyDataset(ImageDataset):
 def test_base_dataset():
     x, y, params = Tensor([0]), Tensor([0]), {"a": Tensor([0])}
     bad = "hello"
-    check_dataset(MyDataset(x))
-    check_dataset(MyDataset([x, y]))
-    check_dataset(MyDataset([torch.nan, y]))
-    check_dataset(MyDataset([x, y, params]))
-    check_dataset(MyDataset([torch.nan, y, params]))
-    check_dataset(MyDataset([torch.nan, params]))
+    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+        check_dataset(MyDataset(x))
+        check_dataset(MyDataset([x, y]))
+        check_dataset(MyDataset([torch.nan, y]))
+        check_dataset(MyDataset([x, y, params]))
+        check_dataset(MyDataset([torch.nan, y, params]))
+        check_dataset(MyDataset([torch.nan, params]))
 
     # dict-shaped batches (use_dict_output=True)
     check_dataset(MyDataset({"x": x}, use_dict_output=True))
@@ -248,6 +263,7 @@ SPLIT_NAMES = ["train", "test", "val", "dummy"]
 @pytest.mark.parametrize("unsupervised", [False, True])
 @pytest.mark.parametrize("close", [False, True])
 @pytest.mark.parametrize("stack_size", [1, 2, 3])
+@pytest.mark.parametrize("use_dict_output", [True, False])
 def test_hdf5dataset(
     tmpdir,
     train,
@@ -262,6 +278,7 @@ def test_hdf5dataset(
     unsupervised,
     close,
     stack_size,
+    use_dict_output,
 ):
     path = f"{tmpdir}/dummy.h5"
 
@@ -316,15 +333,17 @@ def test_hdf5dataset(
                     field_name = f"{param_name}_{split_name}"
                     populate_dummy_data(f"{param_name}_{split_name}", value=idx * 3 + 2)
 
-    dataset = HDF5Dataset(
-        path,
-        train=train,
-        split=split,
-        transform=transform,
-        load_physics_generator_params=load_physics_generator_params,
-        dtype=dtype,
-        complex_dtype=complex_dtype,
-    )
+    with dataset_output_context(use_dict_output):
+        dataset = HDF5Dataset(
+            path,
+            train=train,
+            split=split,
+            transform=transform,
+            load_physics_generator_params=load_physics_generator_params,
+            dtype=dtype,
+            complex_dtype=complex_dtype,
+            use_dict_output=use_dict_output,
+        )
 
     # Test HDF5Dataset.__len__
     assert (
@@ -335,16 +354,19 @@ def test_hdf5dataset(
     idx = 0
     entry = dataset[idx]
     expected_entry_length = 3 if load_physics_generator_params else 2
-    assert (
-        len(entry) == expected_entry_length
-    ), f"Dataset entry should have length {expected_entry_length} but got {len(entry)}."
+    if use_dict_output:
+        assert (
+            set(entry) == {"x", "y", "params"}
+            if load_physics_generator_params
+            else {"x", "y"}
+        ), f"Dataset should return dict with keys 'x', 'y', and 'params' but got {set(entry)}."
 
-    x, y = entry[:2]
-    if len(entry) == 3:
-        params = entry[2]
     else:
-        params = None
+        assert (
+            len(entry) == expected_entry_length
+        ), f"Dataset entry should have length {expected_entry_length} but got {len(entry)}."
 
+    x, y, params = unpack_batch(entry)
     # Make the case disjunction at the start to simplify the logic
     split_name = split if split is not None else ("train" if train else "test")
     expected_value_x = SPLIT_NAMES.index(split_name) * 3 + 0
@@ -422,10 +444,18 @@ def test_hdf5dataset(
 @pytest.mark.parametrize("physgen", [None, "mask"])
 @pytest.mark.parametrize("stacked", [False, True])
 @pytest.mark.parametrize("supervised", [True, False])
-def test_hdf5dataset_generate_dataset(tmpdir, physgen, stacked, supervised):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_hdf5dataset_generate_dataset(
+    tmpdir, physgen, stacked, supervised, use_dict_output
+):
     img_size = (1, 4, 4)
-    train_dataset = MyDataset(torch.zeros(1, *img_size))
-    test_dataset = MyDataset(torch.ones(1, *img_size))
+    with dataset_output_context(use_dict_output):
+        train_dataset = MyDataset(
+            torch.zeros(1, *img_size), use_dict_output=use_dict_output
+        )
+        test_dataset = MyDataset(
+            torch.ones(1, *img_size), use_dict_output=use_dict_output
+        )
 
     base_physics = Inpainting(img_size, mask=0.5)
     if stacked:
@@ -450,14 +480,20 @@ def test_hdf5dataset_generate_dataset(tmpdir, physgen, stacked, supervised):
         test_dataset=test_dataset,
     )
 
-    train_ds = HDF5Dataset(path, split="train", load_physics_generator_params=True)
+    with dataset_output_context(use_dict_output):
+        train_ds = HDF5Dataset(
+            path,
+            split="train",
+            load_physics_generator_params=True,
+            use_dict_output=use_dict_output,
+        )
     check_dataset_format(
         train_ds,
         length=1,
-        dtype=None if stacked else tuple,
+        dtype=None if stacked else (dict if use_dict_output else tuple),
         allow_non_tensor=False,
     )
-    x_train, y_train, params_train = train_ds[0]
+    x_train, y_train, params_train = unpack_batch(train_ds[0])
 
     if supervised:
         assert not torch.isnan(x_train).all(), "Supervised train split should have x."
@@ -483,14 +519,20 @@ def test_hdf5dataset_generate_dataset(tmpdir, physgen, stacked, supervised):
     train_ds.close()
     assert train_ds.hd5 is None
 
-    test_ds = HDF5Dataset(path, split="test", load_physics_generator_params=True)
+    with dataset_output_context(use_dict_output):
+        test_ds = HDF5Dataset(
+            path,
+            split="test",
+            load_physics_generator_params=True,
+            use_dict_output=use_dict_output,
+        )
     check_dataset_format(
         test_ds,
         length=1,
-        dtype=None if stacked else tuple,
+        dtype=None if stacked else (dict if use_dict_output else tuple),
         allow_non_tensor=False,
     )
-    x_test, y_test, params_test = test_ds[0]
+    x_test, y_test, params_test = unpack_batch(test_ds[0])
     assert not torch.isnan(x_test).all(), "Test split should have x."
 
     if stacked:
@@ -513,62 +555,80 @@ def test_hdf5dataset_generate_dataset(tmpdir, physgen, stacked, supervised):
     assert test_ds.hd5 is None
 
 
-def test_generate_dataset(tmp_path):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_generate_dataset(tmp_path, use_dict_output):
     tmp_data_dir = str(tmp_path / "set14")
-    # Dataset returns PIL images, no cropping so different sizes
-    ds = Set14HR(tmp_data_dir, download=True)
+    with dataset_output_context(use_dict_output):
+        # Dataset returns PIL images, no cropping so different sizes
+        ds = Set14HR(tmp_data_dir, download=True, use_dict_output=use_dict_output)
 
-    physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=0.1))
-    with pytest.raises(
-        RuntimeError,
-        match="generate_dataset expects dataset to return elements of same shape",
-    ):
-        _ = generate_dataset(
+        physics = dinv.physics.Denoising(
+            noise_model=dinv.physics.GaussianNoise(sigma=0.1)
+        )
+        with pytest.raises(
+            RuntimeError,
+            match="generate_dataset expects dataset to return elements of same shape",
+        ):
+            _ = generate_dataset(
+                train_dataset=ds,
+                batch_size=4,
+                physics=physics,
+                device="cpu",
+                save_dir="measurements",
+            )
+        # Test that no error is raised when we add crop
+        ds = Set14HR(
+            tmp_data_dir,
+            transform=CenterCrop(32),
+            use_dict_output=use_dict_output,
+        )
+        hdf_path = generate_dataset(
             train_dataset=ds,
-            batch_size=4,
+            batch_size=1,
             physics=physics,
             device="cpu",
             save_dir="measurements",
+            dataset_filename="generate_dataset_test",
         )
-    # Test that no error is raised when we add crop
-    ds = Set14HR(tmp_data_dir, transform=CenterCrop(32))
-    hdf_path = generate_dataset(
-        train_dataset=ds,
-        batch_size=1,
-        physics=physics,
-        device="cpu",
-        save_dir="measurements",
-        dataset_filename="generate_dataset_test",
-    )
-    from torchvision.transforms import ToTensor
+        from torchvision.transforms import ToTensor
 
-    hdf_ds = HDF5Dataset(hdf_path)
-    for sample_hdf, sample in zip(hdf_ds, ds, strict=True):
-        sample = ToTensor()(sample)
-        assert sample_hdf[0].equal(
-            sample
-        ), "Ground-truth from HDF5 does not match original dataset, despite going through the same preprocessing."
-    hdf_ds.hd5.close()
-    shutil.rmtree(tmp_data_dir)
-    os.remove(hdf_path)
+        hdf_ds = HDF5Dataset(hdf_path, use_dict_output=use_dict_output)
+        for sample_hdf, sample in zip(hdf_ds, ds, strict=True):
+            sample = ToTensor()(extract_x_tensor(sample))
+            sample_hdf = unpack_batch(sample_hdf)[0]
+            assert sample_hdf.equal(
+                sample
+            ), "Ground-truth from HDF5 does not match original dataset, despite going through the same preprocessing."
+        hdf_ds.hd5.close()
+        shutil.rmtree(tmp_data_dir)
+        os.remove(hdf_path)
 
 
-def test_tensordataset():
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_tensordataset(use_dict_output):
     x, y, params = (
         torch.zeros(1, 3, 4, 4),
         torch.zeros(1, 3, 4, 4),
         {"a": torch.zeros(1, 3, 4, 4)},
     )
     bad = np.zeros((1, 3, 4, 4))
-    _ = TensorDataset(x=x)
-    _ = TensorDataset(x=x, y=y)
-    _ = TensorDataset(y=y)
-    _ = TensorDataset(x=x, y=y, params=params)
-    _ = TensorDataset(x=x, params=params)
-    dataset = TensorDataset(y=y, params=params)
-    assert math.isnan(
-        dataset[0][0]
-    ), "Dataset return tuple's first element must be NaN or single-element NaN tensor."
+
+    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+        _ = TensorDataset(x=x)
+        _ = TensorDataset(x=x, y=y)
+        _ = TensorDataset(y=y)
+        _ = TensorDataset(x=x, y=y, params=params)
+        _ = TensorDataset(x=x, params=params)
+    dataset = TensorDataset(y=y, params=params, use_dict_output=use_dict_output)
+
+    if use_dict_output:
+        assert set(dataset[0]) == {"y", "params"}
+        assert dataset[0]["params"]["a"].shape == (1, 3, 4, 4)
+    else:
+        assert isinstance(dataset[0], tuple) and len(dataset[0]) == 2
+        assert math.isnan(
+            dataset[0][0]
+        ), "Dataset return tuple's first element must be NaN or single-element NaN tensor."
 
     for bad_dataset_input in (
         {},
@@ -609,7 +669,8 @@ def download_div2k(tmp_path):
     tmp_data_dir = str(tmp_path / "DIV2K")
 
     # Download div2K raw dataset
-    DIV2K(tmp_data_dir, mode="val", download=True)
+    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+        DIV2K(tmp_data_dir, mode="val", download=True)
 
     # This will return control to the test function
     yield tmp_data_dir
@@ -618,15 +679,24 @@ def download_div2k(tmp_path):
     shutil.rmtree(tmp_data_dir)
 
 
-def test_load_div2k_dataset(download_div2k):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_div2k_dataset(download_div2k, use_dict_output):
     """Check that DIV2K/DIV2K_train_HR contains 800 PIL images."""
     for totensor in [ToTensor(), None]:
-        check_dataset_format(
-            DIV2K(download_div2k, mode="val", download=False, transform=totensor),
-            length=100,
-            dtype=Tensor if totensor else PIL_Image,
-            allow_non_tensor=not totensor,
-        )
+
+        with dataset_output_context(use_dict_output):
+            check_dataset_format(
+                DIV2K(
+                    download_div2k,
+                    mode="val",
+                    download=False,
+                    transform=totensor,
+                    use_dict_output=use_dict_output,
+                ),
+                length=100,
+                dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+                allow_non_tensor=not totensor,
+            )
 
 
 @pytest.fixture
@@ -635,7 +705,8 @@ def download_urban100(tmp_path):
     tmp_data_dir = str(tmp_path / "Urban100")
 
     # Download Urban100 raw dataset
-    Urban100HR(tmp_data_dir, download=True)
+    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+        Urban100HR(tmp_data_dir, download=True)
 
     # This will return control to the test function
     yield tmp_data_dir
@@ -644,15 +715,22 @@ def download_urban100(tmp_path):
     shutil.rmtree(tmp_data_dir)
 
 
-def test_load_urban100_dataset(download_urban100):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_urban100_dataset(download_urban100, use_dict_output):
     """Check that dataset contains 100 PIL images."""
     for totensor in [ToTensor(), None]:
-        check_dataset_format(
-            Urban100HR(download_urban100, download=False, transform=totensor),
-            length=100,
-            dtype=Tensor if totensor else PIL_Image,
-            allow_non_tensor=not totensor,
-        )
+        with dataset_output_context(use_dict_output):
+            check_dataset_format(
+                Urban100HR(
+                    download_urban100,
+                    download=False,
+                    transform=totensor,
+                    use_dict_output=use_dict_output,
+                ),
+                length=100,
+                dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+                allow_non_tensor=not totensor,
+            )
 
 
 @pytest.fixture
@@ -662,7 +740,8 @@ def download_set14(tmp_path):
         tmp_data_dir = str(tmp_path / "Set14")
 
         # Download Set14 raw dataset
-        Set14HR(tmp_data_dir, download=True)
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            Set14HR(tmp_data_dir, download=True)
 
         # This will return control to the test function
         yield tmp_data_dir
@@ -684,17 +763,22 @@ def download_set14(tmp_path):
             yield "/dummy"
 
 
-def test_load_set14_dataset(download_set14):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_set14_dataset(download_set14, use_dict_output):
     """Check that dataset contains 14 PIL images."""
-    for totensor in [
-        ToTensor(),
-    ]:
-        check_dataset_format(
-            Set14HR(download_set14, download=False, transform=totensor),
-            length=14,
-            dtype=Tensor if totensor else PIL_Image,
-            allow_non_tensor=not totensor,
-        )
+    for totensor in [ToTensor(), None]:
+        with dataset_output_context(use_dict_output):
+            check_dataset_format(
+                Set14HR(
+                    download_set14,
+                    download=False,
+                    transform=totensor,
+                    use_dict_output=use_dict_output,
+                ),
+                length=14,
+                dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+                allow_non_tensor=not totensor,
+            )
 
 
 @pytest.fixture
@@ -704,7 +788,8 @@ def download_flickr2khr(tmp_path):
         tmp_data_dir = str(tmp_path / "Flickr2kHR")
 
         # Download Flickr raw dataset
-        Flickr2kHR(tmp_data_dir, download=True)
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            Flickr2kHR(tmp_data_dir, download=True)
 
         # This will return control to the test function
         yield tmp_data_dir
@@ -726,15 +811,22 @@ def download_flickr2khr(tmp_path):
             yield "/dummy"
 
 
-def test_load_Flickr2kHR_dataset(download_flickr2khr):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_Flickr2kHR_dataset(download_flickr2khr, use_dict_output):
     """Test the dataset"""
     for totensor in [ToTensor(), None]:
-        check_dataset_format(
-            Flickr2kHR(download_flickr2khr, download=False, transform=totensor),
-            length=100,
-            dtype=Tensor if totensor else PIL_Image,
-            allow_non_tensor=not totensor,
-        )
+        with dataset_output_context(use_dict_output):
+            check_dataset_format(
+                Flickr2kHR(
+                    download_flickr2khr,
+                    download=False,
+                    transform=totensor,
+                    use_dict_output=use_dict_output,
+                ),
+                length=100,
+                dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+                allow_non_tensor=not totensor,
+            )
 
 
 @pytest.fixture
@@ -744,7 +836,8 @@ def download_cbsd68(tmp_path, download=True):
 
     # Download CBSD raw dataset from huggingface
     try:
-        CBSD68(tmp_data_dir, download=download)
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            CBSD68(tmp_data_dir, download=download)
     except ImportError:
         download = False
 
@@ -756,7 +849,8 @@ def download_cbsd68(tmp_path, download=True):
         shutil.rmtree(tmp_data_dir)
 
 
-def test_load_cbsd68_dataset(download_cbsd68):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_cbsd68_dataset(download_cbsd68, use_dict_output):
     """Check that dataset contains 68 PIL images."""
 
     pytest.importorskip(
@@ -765,12 +859,18 @@ def test_load_cbsd68_dataset(download_cbsd68):
         "installed with `pip install datasets`",
     )
     for totensor in [ToTensor(), None]:
-        check_dataset_format(
-            CBSD68(download_cbsd68, download=False, transform=totensor),
-            length=68,
-            dtype=Tensor if totensor else PIL_Image,
-            allow_non_tensor=not totensor,
-        )
+        with dataset_output_context(use_dict_output):
+            check_dataset_format(
+                CBSD68(
+                    download_cbsd68,
+                    download=False,
+                    transform=totensor,
+                    use_dict_output=use_dict_output,
+                ),
+                length=68,
+                dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+                allow_non_tensor=not totensor,
+            )
 
 
 @pytest.fixture
@@ -780,7 +880,8 @@ def download_bsds500(tmp_path, download=True):
 
     # Download BSDS500 raw dataset from github
     try:
-        BSDS500(tmp_data_dir, download=download)
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            BSDS500(tmp_data_dir, download=download)
     except ImportError:
         download = False
 
@@ -795,21 +896,26 @@ def download_bsds500(tmp_path, download=True):
 @pytest.mark.parametrize("train", [True, False])
 @pytest.mark.parametrize("totensor", [True, False])
 @pytest.mark.parametrize("rotate", [True, False])
-def test_load_bsds500_dataset(download_bsds500, train, totensor, rotate):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_bsds500_dataset(
+    download_bsds500, train, totensor, rotate, use_dict_output
+):
     """Check that dataset contains 400 + 100 PIL images."""
     totensor = ToTensor() if totensor else None
-    check_dataset_format(
-        BSDS500(
-            download_bsds500,
-            download=False,
-            transform=totensor,
-            train=train,
-            rotate=rotate,
-        ),
-        length=400 if train else 100,
-        dtype=Tensor if totensor else PIL_Image,
-        allow_non_tensor=not totensor,
-    )
+    with dataset_output_context(use_dict_output):
+        check_dataset_format(
+            BSDS500(
+                download_bsds500,
+                download=False,
+                transform=totensor,
+                train=train,
+                rotate=rotate,
+                use_dict_output=use_dict_output,
+            ),
+            length=400 if train else 100,
+            dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+            allow_non_tensor=not totensor,
+        )
 
 
 @pytest.fixture
@@ -831,24 +937,27 @@ def download_Kohler(tmp_path):
 
 @pytest.mark.parametrize("frames", ["middle", "first", "last", "all", 0, -1])
 @pytest.mark.parametrize("ordering", ["printout_first", "trajectory_first"])
-def test_load_Kohler_dataset(download_Kohler, frames, ordering):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_Kohler_dataset(download_Kohler, frames, ordering, use_dict_output):
     """Check that the Köhler dataset contains 48 PIL images."""
     root = download_Kohler
 
     for totensor in [ToTensor(), None]:
-        dataset = Kohler(
-            root=root,
-            frames=frames,
-            ordering=ordering,
-            transform=totensor,
-            download=False,
-        )
+        with dataset_output_context(use_dict_output):
+            dataset = Kohler(
+                root=root,
+                frames=frames,
+                ordering=ordering,
+                transform=totensor,
+                download=False,
+                use_dict_output=use_dict_output,
+            )
 
         check_dataset_format(
             dataset,
             length=48,
             dtype=(
-                tuple if totensor else None
+                dict if use_dict_output else (tuple if totensor else None)
             ),  # when no Transform, this is a tuple of list of PILs which is too complicated
             allow_non_tensor=not totensor,
             skip_check=True,
@@ -878,7 +987,8 @@ def download_lsdir(tmp_path):
         tmp_data_dir = str(tmp_path / "LSDIR")
 
         # Download LSDIR raw dataset
-        LsdirHR(tmp_data_dir, mode="val", download=True)
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            LsdirHR(tmp_data_dir, mode="val", download=True)
 
         # This will return control to the test function
         yield tmp_data_dir
@@ -899,15 +1009,23 @@ def download_lsdir(tmp_path):
             yield "/dummy"
 
 
-def test_load_lsdir_dataset(download_lsdir):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_lsdir_dataset(download_lsdir, use_dict_output):
     """Check that dataset contains 250 PIL images."""
     for totensor in [ToTensor(), None]:
-        check_dataset_format(
-            LsdirHR(download_lsdir, mode="val", transform=totensor, download=False),
-            length=250,
-            dtype=Tensor if totensor else PIL_Image,
-            allow_non_tensor=not totensor,
-        )
+        with dataset_output_context(use_dict_output):
+            check_dataset_format(
+                LsdirHR(
+                    download_lsdir,
+                    mode="val",
+                    transform=totensor,
+                    download=False,
+                    use_dict_output=use_dict_output,
+                ),
+                length=250,
+                dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+                allow_non_tensor=not totensor,
+            )
 
 
 @pytest.fixture
@@ -920,7 +1038,8 @@ def download_fmd(tmp_path):
         types = ["TwoPhoton_BPAE_R"]
 
         # Download FMD raw dataset
-        FMD(tmp_data_dir, img_types=types, download=True)
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            FMD(tmp_data_dir, img_types=types, download=True)
 
         # This will return control to the test function
         yield tmp_data_dir
@@ -937,21 +1056,27 @@ def download_fmd(tmp_path):
             yield "/dummy"
 
 
-def test_load_fmd_dataset(download_fmd):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_fmd_dataset(download_fmd, use_dict_output):
     """Check that dataset contains 5000 noisy PIL images with its ground truths."""
     for totensor in [ToTensor(), None]:
-        check_dataset_format(
-            FMD(
-                download_fmd,
-                img_types=["TwoPhoton_BPAE_R"],
-                transform=totensor,
-                target_transform=totensor,
-                download=False,
-            ),
-            length=5000,
-            dtype=tuple if totensor else "tuple_of_pils",
-            allow_non_tensor=not totensor,
-        )
+        with dataset_output_context(use_dict_output):
+            check_dataset_format(
+                FMD(
+                    download_fmd,
+                    img_types=["TwoPhoton_BPAE_R"],
+                    transform=totensor,
+                    target_transform=totensor,
+                    download=False,
+                ),
+                length=5000,
+                dtype=(
+                    dict
+                    if use_dict_output
+                    else (tuple if totensor else "tuple_of_pils")
+                ),
+                allow_non_tensor=not totensor,
+            )
 
 
 @pytest.fixture
@@ -1005,20 +1130,22 @@ def mock_lidc_idri():
 
 # NOTE: The LIDC-IDRI needs to be downloaded manually.
 @pytest.mark.parametrize("hounsfield_units", [False, True])
-def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units, use_dict_output):
     """Test the LIDC-IDRI dataset."""
 
     for totensor in [ToTensor(), None]:
-        check_dataset_format(
-            LidcIdriSliceDataset(
-                root=mock_lidc_idri,
-                transform=totensor,
-                hounsfield_units=hounsfield_units,
-            ),
-            length=2036,
-            dtype=Tensor if totensor else np.ndarray,
-            allow_non_tensor=not totensor,
-        )
+        with dataset_output_context(use_dict_output):
+            check_dataset_format(
+                LidcIdriSliceDataset(
+                    root=mock_lidc_idri,
+                    transform=totensor,
+                    hounsfield_units=hounsfield_units,
+                ),
+                length=2036,
+                dtype=dict if use_dict_output else (Tensor if totensor else np.ndarray),
+                allow_non_tensor=not totensor,
+            )
 
 
 @pytest.fixture
@@ -1027,7 +1154,10 @@ def download_nbu(tmp_path):
     tmp_data_dir = str(tmp_path / "NBU")
 
     # Download Urban100 raw dataset
-    NBUDataset(tmp_data_dir, satellite="gaofen-1", download=True)
+    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+        NBUDataset(
+            tmp_data_dir, satellite="gaofen-1", download=True, use_dict_output=True
+        )
 
     # This will return control to the test function
     yield tmp_data_dir
@@ -1036,7 +1166,8 @@ def download_nbu(tmp_path):
     shutil.rmtree(tmp_data_dir)
 
 
-def test_load_nbu_dataset(download_nbu):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_nbu_dataset(download_nbu, use_dict_output):
     """Check that dataset correct length and type."""
     pytest.importorskip(
         "scipy",
@@ -1045,8 +1176,19 @@ def test_load_nbu_dataset(download_nbu):
         "scipy`",
     )
 
-    dataset = NBUDataset(download_nbu, satellite="gaofen-1", download=False)
-    check_dataset_format(dataset, length=5, dtype=Tensor, shape=(4, 256, 256))
+    with dataset_output_context(use_dict_output):
+        dataset = NBUDataset(
+            download_nbu,
+            satellite="gaofen-1",
+            download=False,
+            use_dict_output=use_dict_output,
+        )
+    check_dataset_format(
+        dataset,
+        length=5,
+        dtype=dict if use_dict_output else Tensor,
+        shape=(4, 256, 256),
+    )
     assert torch.all(
         (0 <= dataset[0]) & (dataset[0] <= 1)
     ), "Dataset image should be Tensor between 0-1."
@@ -1055,28 +1197,42 @@ def test_load_nbu_dataset(download_nbu):
     check_dataset_format(
         NBUDataset(download_nbu, satellite="gaofen-1", download=False, return_pan=True),
         length=5,
-        dtype=TensorList,
+        dtype=dict if use_dict_output else TensorList,
         shape=[(4, 256, 256), (1, 1024, 1024)],
     )
 
     # Test ImageFolder with globs
-    dataset = ImageFolder(
-        download_nbu,
-        x_path="gaofen-1/MS_256/*.mat",
-        transform=ToTensor(),
-        loader=lambda f: load_mat(f)["imgMS"],
-    )
-    check_dataset_format(dataset, length=5, dtype=Tensor, shape=(4, 256, 256))
+    with dataset_output_context(use_dict_output):
+        dataset = ImageFolder(
+            download_nbu,
+            x_path="gaofen-1/MS_256/*.mat",
+            transform=ToTensor(),
+            loader=lambda f: load_mat(f)["imgMS"],
+            use_dict_output=use_dict_output,
+        )
+        check_dataset_format(
+            dataset,
+            length=5,
+            dtype=dict if use_dict_output else Tensor,
+            shape=(4, 256, 256),
+        )
+        dataset = ImageFolder(
+            download_nbu,
+            y_path="gaofen-1/MS_256/*.mat",
+            transform=ToTensor(),
+            loader=lambda f: load_mat(f)["imgMS"],
+            use_dict_output=use_dict_output,
+        )
+        check_dataset_format(
+            dataset,
+            length=5,
+            dtype=dict if use_dict_output else tuple,
+            allow_non_tensor=True,
+        )
 
-    dataset = ImageFolder(
-        download_nbu,
-        y_path="gaofen-1/MS_256/*.mat",
-        transform=ToTensor(),
-        loader=lambda f: load_mat(f)["imgMS"],
-    )
-    check_dataset_format(dataset, length=5, dtype=tuple, allow_non_tensor=True)
-    x, y = dataset[0]
+    x, y, params = unpack_batch(dataset[0])
     assert math.isnan(x) and y.shape == (4, 256, 256)
+    assert params == {}, "Params should be empty when no generator is used."
 
 
 @pytest.fixture
@@ -1085,7 +1241,8 @@ def download_simplefastmri(tmp_path):
     tmp_data_dir = str(tmp_path / "fastmri")
 
     # Download simple FastMRI slice dataset
-    SimpleFastMRISliceDataset(tmp_data_dir, download=True)
+    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+        SimpleFastMRISliceDataset(tmp_data_dir, download=True)
 
     # This will return control to the test function
     yield tmp_data_dir
@@ -1094,14 +1251,17 @@ def download_simplefastmri(tmp_path):
     shutil.rmtree(tmp_data_dir)
 
 
-def test_SimpleFastMRISliceDataset(download_simplefastmri):
-    dataset = SimpleFastMRISliceDataset(
-        root_dir=download_simplefastmri,
-        anatomy="knee",
-        train=True,
-        train_percent=1.0,
-        download=False,
-    )
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_SimpleFastMRISliceDataset(download_simplefastmri, use_dict_output):
+    with dataset_output_context(use_dict_output):
+        dataset = SimpleFastMRISliceDataset(
+            root_dir=download_simplefastmri,
+            anatomy="knee",
+            train=True,
+            train_percent=1.0,
+            download=False,
+            use_dict_output=use_dict_output,
+        )
     check_dataset_format(dataset, length=2, dtype=Tensor, shape=(2, 320, 320))
     assert not torch.all(dataset[0] == dataset[1])
 
@@ -1124,7 +1284,8 @@ def download_fastmri(tmp_path):
     shutil.rmtree(tmp_data_dir)
 
 
-def test_FastMRISliceDataset(download_fastmri):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_FastMRISliceDataset(download_fastmri, use_dict_output):
     pytest.importorskip(
         "sigpy",
         reason="This test requires sigpy. It should be "
@@ -1143,21 +1304,26 @@ def test_FastMRISliceDataset(download_fastmri):
     data_dir = download_fastmri
 
     # Test metadata caching
-    _ = FastMRISliceDataset(
-        root=data_dir,
-        slice_index="all",
-        save_metadata_to_cache=True,
-        metadata_cache_file="fastmrislicedataset_cache.pkl",
-    )
+    with dataset_output_context(use_dict_output):
+        _ = FastMRISliceDataset(
+            root=data_dir,
+            slice_index="all",
+            save_metadata_to_cache=True,
+            metadata_cache_file="fastmrislicedataset_cache.pkl",
+            use_dict_output=use_dict_output,
+        )
 
-    # Test data shapes
-    dataset = FastMRISliceDataset(
-        root=data_dir,
-        slice_index="all",
-        load_metadata_from_cache=True,
-        metadata_cache_file="fastmrislicedataset_cache.pkl",
+        # Test data shapes
+        dataset = FastMRISliceDataset(
+            root=data_dir,
+            slice_index="all",
+            load_metadata_from_cache=True,
+            metadata_cache_file="fastmrislicedataset_cache.pkl",
+            use_dict_output=use_dict_output,
+        )
+    check_dataset_format(
+        dataset, length=n_slices, dtype=dict if use_dict_output else tuple, shape=None
     )
-    check_dataset_format(dataset, length=n_slices, dtype=tuple, shape=None)
 
     target1, kspace1 = dataset[0]
     target2, kspace2 = dataset[1]
@@ -1189,14 +1355,16 @@ def test_FastMRISliceDataset(download_fastmri):
 
     # Test slicing returns correct num of slices
     def num_slices(slice_index):
-        return len(
-            FastMRISliceDataset(
-                root=data_dir,
-                slice_index=slice_index,
-                load_metadata_from_cache=True,
-                metadata_cache_file="fastmrislicedataset_cache.pkl",
-            ).samples
-        )
+        with dataset_output_context(use_dict_output):
+            return len(
+                FastMRISliceDataset(
+                    root=data_dir,
+                    slice_index=slice_index,
+                    load_metadata_from_cache=True,
+                    metadata_cache_file="fastmrislicedataset_cache.pkl",
+                    use_dict_output=use_dict_output,
+                ).samples
+            )
 
     assert (
         num_slices("all"),
@@ -1208,16 +1376,18 @@ def test_FastMRISliceDataset(download_fastmri):
     ) == (n_slices, 1, 3, 1, 2, 1)
 
     # Test raw data transform for estimating maps and generating masks, and test ACS
-    dataset = FastMRISliceDataset(
-        root=data_dir,
-        transform=MRISliceTransform(
-            mask_generator=GaussianMaskGenerator(kspace_shape, acc=4),
-            estimate_coil_maps=True,
-        ),
-        load_metadata_from_cache=True,
-        metadata_cache_file="fastmrislicedataset_cache.pkl",
-    )
-    x, y, params = dataset[0]
+    with dataset_output_context(use_dict_output):
+        dataset = FastMRISliceDataset(
+            root=data_dir,
+            transform=MRISliceTransform(
+                mask_generator=GaussianMaskGenerator(kspace_shape, acc=4),
+                estimate_coil_maps=True,
+            ),
+            load_metadata_from_cache=True,
+            metadata_cache_file="fastmrislicedataset_cache.pkl",
+            use_dict_output=use_dict_output,
+        )
+    x, y, params = unpack_batch(dataset[0])
     assert torch.all(y * params["mask"] == y)
     assert 0.24 < params["mask"].mean() < 0.26
     assert params["coil_maps"].shape == (n_coils, *kspace_shape)
@@ -1234,32 +1404,35 @@ def test_FastMRISliceDataset(download_fastmri):
     )
 
     # Test prewhitening and normalising
-    dataset = FastMRISliceDataset(
-        root=data_dir,
-        transform=MRISliceTransform(
-            acs=11,  # set manually as fully-sampled data has no ACS metadata
-            prewhiten=True,
-            normalize=True,
-        ),
-        load_metadata_from_cache=True,
-        metadata_cache_file="fastmrislicedataset_cache.pkl",
-    )
-    assert dataset.transform.get_acs() == 11
-    assert 1 < dataset[0][1].max() < 100  # normalized
-    # TODO test prewhitening
-
-    # Test filter_id in FastMRI init
-    assert (
-        len(
-            FastMRISliceDataset(
-                root=data_dir,
-                filter_id=lambda s: "brain" in str(s.fname) and s.slice_ind < 3,
-                load_metadata_from_cache=True,
-                metadata_cache_file="fastmrislicedataset_cache.pkl",
-            )
+    with dataset_output_context(use_dict_output):
+        dataset = FastMRISliceDataset(
+            root=data_dir,
+            transform=MRISliceTransform(
+                acs=11,  # set manually as fully-sampled data has no ACS metadata
+                prewhiten=True,
+                normalize=True,
+            ),
+            load_metadata_from_cache=True,
+            metadata_cache_file="fastmrislicedataset_cache.pkl",
+            use_dict_output=use_dict_output,
         )
-        == 3
-    )
+
+        assert dataset.transform.get_acs() == 11
+        assert 1 < dataset[0][1].max() < 100  # normalized
+        # TODO test prewhitening
+
+        # Test filter_id in FastMRI init
+        assert (
+            len(
+                FastMRISliceDataset(
+                    root=data_dir,
+                    filter_id=lambda s: "brain" in str(s.fname) and s.slice_ind < 3,
+                    load_metadata_from_cache=True,
+                    metadata_cache_file="fastmrislicedataset_cache.pkl",
+                )
+            )
+            == 3
+        )
 
 
 @pytest.fixture
@@ -1280,7 +1453,8 @@ def download_CMRxRecon(tmp_path):
     shutil.rmtree(tmp_data_dir)
 
 
-def test_CMRxReconSliceDataset(download_CMRxRecon):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     pytest.importorskip(
         "sigpy",
         reason="This test requires sigpy. It should be "
@@ -1293,9 +1467,14 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
 
     data_dir = download_CMRxRecon
 
+    def make_dataset(**kwargs):
+        with dataset_output_context(use_dict_output):
+            return CMRxReconSliceDataset(
+                root=data_dir, use_dict_output=use_dict_output, **kwargs
+            )
+
     # Test metadata caching
-    _ = CMRxReconSliceDataset(
-        root=data_dir,
+    _ = make_dataset(
         save_metadata_to_cache=True,
         metadata_cache_file="cmrxreconslicedataset_cache.pkl",
         mask_dir=None,
@@ -1303,8 +1482,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
     )
 
     # Test data shapes
-    dataset = CMRxReconSliceDataset(
-        root=data_dir,
+    dataset = make_dataset(
         load_metadata_from_cache=True,
         metadata_cache_file="cmrxreconslicedataset_cache.pkl",
         mask_generator=physics_generator,
@@ -1312,10 +1490,10 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
         apply_mask=True,
     )
 
-    check_dataset_format(dataset, length=3, dtype=tuple)
+    check_dataset_format(dataset, length=3, dtype=dict if use_dict_output else tuple)
 
-    target1, kspace1, params1 = dataset[0]
-    target2, kspace2, params2 = dataset[1]
+    target1, kspace1, params1 = unpack_batch(dataset[0])
+    target2, kspace2, params2 = unpack_batch(dataset[1])
 
     assert target1.shape == kspace1.shape == (2, *img_size)
     assert not torch.all(target1 == target2)
@@ -1327,7 +1505,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
     )  # masked has correct acc (< 0.25 due to padding)
 
     # Test reproducibility
-    _, _, params1_again = dataset[0]
+    _, _, params1_again = unpack_batch(dataset[0])
     assert torch.all(params1_again["mask"] == params1["mask"])
 
     # Loaded kspace is directly compatible with deepinv physics
@@ -1338,26 +1516,24 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
     assert torch.all(kspace1 == kspace1_dinv)
 
     # Test loading mask
-    dataset = CMRxReconSliceDataset(
-        root=data_dir,
+    dataset = make_dataset(
         load_metadata_from_cache=True,
         metadata_cache_file="cmrxreconslicedataset_cache.pkl",
         apply_mask=True,
     )
-    target1, kspace1, params1 = dataset[0]
+    target1, kspace1, params1 = unpack_batch(dataset[0])
     assert torch.all(kspace1 * params1["mask"] == kspace1)  # kspace already masked
     assert (
         0.1 < params1["mask"].mean() < 0.26
     )  # masked has correct acc (< 0.25 due to padding)
 
     # Test no apply mask
-    dataset = CMRxReconSliceDataset(
-        root=data_dir,
+    dataset = make_dataset(
         load_metadata_from_cache=True,
         metadata_cache_file="cmrxreconslicedataset_cache.pkl",
         apply_mask=False,
     )
-    target1, kspace1 = dataset[0]
+    target1, kspace1, _ = unpack_batch(dataset[0])
     assert (kspace1 == 0).sum() == 0
 
 
@@ -1379,25 +1555,31 @@ def download_SKMTEA(tmp_path):
     shutil.rmtree(tmp_data_dir)
 
 
-def test_SKMTEASliceDataset(download_SKMTEA, device):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_SKMTEASliceDataset(download_SKMTEA, device, use_dict_output):
     n_coils, img_size = 8, (512, 160)
 
     data_dir = download_SKMTEA
 
+    def make_dataset(**kwargs):
+        with dataset_output_context(use_dict_output):
+            return SKMTEASliceDataset(
+                root=data_dir, use_dict_output=use_dict_output, **kwargs
+            )
+
     # Test metadata caching
-    dataset = SKMTEASliceDataset(
-        root=data_dir,
+    dataset = make_dataset(
         save_metadata_to_cache=True,
     )
     assert len(dataset) == 2
 
     # Test data shapes and dtypes
-    dataset = SKMTEASliceDataset(
-        root=data_dir,
+    dataset = make_dataset(
         load_metadata_from_cache=True,
     )
     assert len(dataset) == 2
-    x, y, params = next(iter(DataLoader(dataset)))
+    batch = next(iter(DataLoader(dataset)))
+    x, y, params = unpack_batch(batch)
     assert x.shape == (1, 2, *img_size)
     assert y.shape == (1, 2, n_coils, *img_size)
     assert params["mask"].shape == (1, 1, *img_size)
@@ -1414,8 +1596,7 @@ def test_SKMTEASliceDataset(download_SKMTEA, device):
     # Test filter_id
     assert (
         len(
-            SKMTEASliceDataset(
-                root=data_dir,
+            make_dataset(
                 load_metadata_from_cache=True,
                 filter_id=lambda s: s.slice_ind == 1,
             )

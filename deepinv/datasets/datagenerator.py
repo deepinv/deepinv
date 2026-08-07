@@ -13,7 +13,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader, Subset, Dataset
 from deepinv.utils.tensorlist import TensorList
 from deepinv.physics import StackedPhysics
-from deepinv.datasets.base import ImageDataset
+from deepinv.datasets.base import ImageDataset, extract_x_tensor
 from deepinv.utils.decorators import _deprecate_attribute
 
 if TYPE_CHECKING:
@@ -462,12 +462,8 @@ def collate(dataset: Dataset) -> Callable[[list[Any]], Tensor] | None:
             ) -> Tensor:
                 tensors = []
                 for sample in batch:
-                    if isinstance(sample, Image.Image):
-                        img = sample
-                    elif isinstance(sample, (list, tuple)):
-                        # only keeping the first element is same behavior as when dataset returns list of tensors!
-                        img = sample[0]
-                    else:  # pragma: no cover
+                    img = extract_x_tensor(sample)
+                    if not isinstance(img, Image.Image):  # pragma: no cover
                         raise ValueError(
                             f"generate_dataset expects datasets to consistently return a (list of) Tensor, Array, or PIL images. Detected use of PIL in a sample, but received a new item of type {type(sample)}."
                         )
@@ -641,12 +637,15 @@ def generate_dataset(
         ) -> int:
             """Process one batch for a given split and return updated index."""
 
-            if isinstance(x_batch, dict):
-                x = x_batch["x"]
-            elif isinstance(x_batch, (list, tuple)):
-                x = x_batch[0]
-            else:
-                x = x_batch
+            x = (
+                x_batch.get("x")
+                if isinstance(x_batch, dict)
+                else extract_x_tensor(x_batch)
+            )
+            if x is None:
+                raise ValueError(
+                    "generate_dataset requires the input dataset to provide ground-truth images under the key 'x'."
+                )
 
             x = x.to(device)
 

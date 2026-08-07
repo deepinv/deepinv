@@ -676,13 +676,14 @@ class Trainer:
             pass  # dict is unambiguous and self-describing, params already extracted
         elif isinstance(data, (tuple, list)):
             if not (len(data) == 2 and isinstance(data[1], dict)):
+                data_type = type(data[1]) if len(data) > 1 else None
                 warnings.warn(
-                    f"Generating online measurements requires dataloader to return tensor `x` or (tensor `x`, dict `params`) but got ({type(x)}, {type(data[1])}, ...). Discarding all data after `x`."
+                    f"Generating online measurements requires dataloader to return tensor `x` or (tensor `x`, dict `params`) but got ({type(x)}, {data_type}, ...). Discarding all data after `x`."
                 )
                 params = {}
         # else: bare x, params already {}
 
-        if isinstance(x, float) or torch.isnan(x).all():
+        if x is None or isinstance(x, float) or torch.isnan(x).all():
             raise ValueError("Online measurements can't be used if x is all NaN.")
 
         x = x.to(self.device, non_blocking=self.non_blocking_transfers)
