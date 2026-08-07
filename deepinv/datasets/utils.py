@@ -10,11 +10,10 @@ from pathlib import Path
 import requests
 from tqdm.auto import tqdm
 
-from torch import randn, Tensor, stack, zeros_like
+from torch import Tensor, stack, zeros_like
 from torch.nn import Module
 from torchvision.transforms.functional import crop as torchvision_crop
 
-from deepinv.datasets.base import ImageDataset
 from deepinv.utils import normalize_signal, get_cache_home
 from deepinv.utils.io import DownloadError
 
