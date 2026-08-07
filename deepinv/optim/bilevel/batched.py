@@ -1,38 +1,35 @@
 """Batched lower-level solves and hypergradient accumulation for MAID.
 
-Why this exists
----------------
+Motivation
+----------
 :mod:`minibatch` bounds peak memory with ``chunk_size`` but still solves the
 samples one at a time, so a 24-sample outer iteration is 24 sequential Newton
-solves on tensors of a few thousand elements. That is latency bound: measured
-on this machine, three chained convolutions on ``(1, 3, 32, 32)`` take 244 us
-on CPU and 145 us on MPS, while the same work batched to ``(24, 3, 32, 32)``
-takes 446 us on MPS in total, 18.6 us per sample. The GPU is idle waiting for
+solves on tensors of a few thousand elements. That path is latency bound:
+three chained convolutions on ``(1, 3, 32, 32)`` take 244 us on CPU and
+145 us on MPS, while the same work batched to ``(24, 3, 32, 32)`` takes
+446 us on MPS in total (18.6 us per sample). The device is idle waiting for
 dispatch, not for arithmetic.
 
 The samples are independent given ``theta``, so the batched lower-level
 Hessian is block diagonal and every operator applies to all samples at once.
-Only the *scalars* have to stay per sample: CG's ``alpha`` and ``beta``, the
-Armijo step, and the convergence and stall tests. Sharing any of those across
+Only the *scalars* stay per sample: CG's ``alpha`` and ``beta``, the Armijo
+step, and the convergence and stall tests. Sharing any of those across
 samples would couple independent problems and break both the Krylov property
 and the certificate.
 
 Memory
 ------
-Batch size is chosen from a **measured** footprint, not a formula. One probe
-solve is run and its peak allocation observed, then the batch is sized to fit
-the device's free memory with a safety factor. Estimating the working set
-analytically means predicting autograd graph retention through three
-convolutions and a CG basis, which is exactly the kind of guess that has
-already been wrong twice here (the precision floor, and the regularisation
-strength).
+Batch size is chosen from a **measured** footprint, not a closed-form
+estimate. A probe solve records peak allocation, then the batch is sized to
+fit the device's free memory with a safety factor. An analytical working-set
+estimate would require predicting autograd graph retention through three
+convolutions and a CG basis; measurement is more reliable than that prediction.
 
 Accumulation
 ------------
 The hypergradient is a sum over samples, ``z = sum_i z_i``, so batches
-accumulate exactly: partitioning the sample set changes nothing about the
-result, only the peak memory. This is verified against the sequential path
-rather than asserted.
+accumulate exactly: partitioning the sample set changes only the peak
+memory, not the result. This is checked against the sequential path.
 """
 
 from __future__ import annotations
@@ -117,16 +114,16 @@ def measure_sample_bytes(
     Two probes, not one, because a single measurement conflates the
     per-sample cost with fixed overhead (the parameter vector, the FFT plan,
     the physics). The slope ``(m1 - m0) / (b1 - b0)`` isolates the part that
-    actually scales with batch size, which is the only part that decides how
-    many samples fit.
+    scales with batch size, which is the quantity that decides how many
+    samples fit.
 
-    Backend accounting differs and the wrong call silently reports zero.
+    Backend accounting differs: the wrong API can report nearly zero cost.
     CUDA exposes a true high-water mark via ``max_memory_allocated``. MPS has
-    no peak API, and ``current_allocated_memory`` is read after the solve has
-    freed its temporaries, so it returns ~0 and the caller concludes that
-    everything fits: measured 0.06 MiB per sample at every image size from 32
-    to 256, against a true cost rising from 3 MiB to 128 MiB.
-    ``driver_allocated_memory`` tracks what the driver holds and does move.
+    no peak API; ``current_allocated_memory`` is observed after the solve has
+    freed temporaries and reports about 0.06 MiB per sample at every image
+    size from 32 to 256, while the true marginal cost rises from about 3 MiB
+    to 128 MiB. ``driver_allocated_memory`` tracks what the driver still holds
+    and reflects that growth.
 
     ``run_one`` must exercise the hypergradient as well as the solve, since
     the autograd graph for the mixed Jacobian is the peak, not the solve.
@@ -171,10 +168,10 @@ def auto_batch_size(
 ) -> int:
     """Largest batch fitting ``safety`` of free memory, clamped to sanity.
 
-    ``safety`` is deliberately well under 1: the probe measures a steady-state
-    solve, while the real run also holds the autograd graph for the mixed
-    Jacobian and the CG basis, and an out-of-memory abort part-way through
-    training costs far more than a smaller batch does.
+    ``safety`` is kept well under 1 because the probe measures a steady-state
+    solve, while the full run also holds the autograd graph for the mixed
+    Jacobian and the CG basis. A smaller batch is preferable to an
+    out-of-memory abort mid-training.
     """
     budget = int(available_memory(device) * float(safety))
     b = max(1, budget // max(int(per_sample_bytes), 1))
@@ -192,14 +189,14 @@ class BatchedCRR:
     that ``A`` act per sample along the batch dimension, which the operators
     already do, including with **per-sample parameters**: an ``Inpainting``
     built with a ``(B, C, H, W)`` mask and a ``BlurFFT`` built with batched
-    kernels both apply their own operator to their own sample. Verified by
-    perturbing one sample and checking the others' measurements do not move.
+    kernels both apply their own operator to their own sample. Construction
+    checks this by perturbing one sample and confirming that the others'
+    measurements do not move.
 
-    Samples needing genuinely different operators (one inpainting, one
-    deblurring) are handled by grouping them into separate batches and summing
-    the hypergradients. That costs nothing, because accumulation across
-    batches is exact: splitting 8 samples into batches of 3 moves ``z`` by
-    2e-15 in float64.
+    Samples that need genuinely different operators (one inpainting, one
+    deblurring) are grouped into separate batches and their hypergradients
+    summed. Accumulation across batches is exact: splitting 8 samples into
+    batches of 3 moves ``z`` by 2e-15 in float64.
 
     ``mu_data`` is 1 when ``A = I`` and 0 otherwise, matching
     :class:`CRRSampleProblem`, so a general forward operator needs
@@ -250,10 +247,9 @@ class BatchedCRR:
     def _check_batched_independence(self) -> None:
         """Refuse a physics that mixes samples.
 
-        Batching is only valid if ``A`` is block diagonal across the batch.
-        An operator that couples samples would silently produce a wrong
-        gradient for every one of them, so this is checked rather than
-        assumed.
+        Batching is valid only when ``A`` is block diagonal across the batch.
+        An operator that couples samples would produce an incorrect gradient
+        for every sample, so independence is checked at construction.
         """
         v = torch.randn_like(self.x_star)
         a1 = self.physics.A(v)
@@ -488,8 +484,8 @@ class BatchedMinibatchOracle(HypergradientOracle):
                     physics=probe[0],
                 )
                 xp, _r, _i = bp.solve_lower(th_probe, eps=1e-3, max_iter=5)
-                # The mixed-Jacobian graph is the peak, so the probe has to
-                # include it or the estimate is of the wrong quantity.
+                # The mixed-Jacobian graph is the peak allocation; the probe
+                # includes it so the estimate tracks the full working set.
                 bp.hypergradient(xp, th_probe, delta=1e-3, max_cg_iter=5)
 
             n_avail = int(probe[2].shape[0])
@@ -667,3 +663,4 @@ class BatchedMinibatchOracle(HypergradientOracle):
     ) -> None:
         # g is quadratic, so L_g = 1 exactly; nothing to estimate.
         self.L_g_value = 1.0
+

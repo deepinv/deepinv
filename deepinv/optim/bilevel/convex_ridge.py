@@ -50,35 +50,32 @@ example reports initial and final ``exp(s)``. Motion of ``s`` means
 responses reached the knee; flat ``s`` means they stayed quadratic at that
 configuration.
 
-Lipschitz normalisation (frozen chart)
---------------------------------------
-``apply_conv`` scales the input by ``1/sqrt(lip)``. The constant ``lip`` is
-a property of the model, not a function of the live weights under
-differentiation. It is computed once from the weights at freeze time,
-stored on :class:`ConvexRidgePrior`, and reused for every energy, gradient,
-Hessian-vector product and mixed Jacobian evaluation.
+Lipschitz normalisation
+-----------------------
+``apply_conv`` scales the input by ``1/sqrt(lip)``. By default
+:meth:`ConvexRidgePrior.load_theta` refreshes ``lip`` from the loaded
+weights, so ``W / sqrt(lip(W))`` stays unit-norm for every ``theta`` and the
+model is invariant under ``W -> c W``. The prior step-size chart is then
 
-Recomputing ``lip`` from the current weights and detaching it makes the
-forward model and the differentiated model disagree: the solve uses
-``lip(theta)`` while the hypergradient treats ``lip`` as constant and
-drops the ``d lip / d w`` term. Freezing removes that term by construction
-and makes the hypergradient exact for the model that is actually solved.
+    L_prior = 2 * exp(beta) + gamma
 
-If the normalisation is refreshed to stop drift, do it only between outer
-iterations, never inside a lower-level solve or a hypergradient evaluation.
-Call :meth:`ConvexRidgePrior.refresh_lip` for that.
+independent of the weight scale.
 
-With frozen ``lip_0`` the filters are no longer unit-norm after the weights
-move, so the prior step-size chart is
+The differentiable energy recomputes ``lip`` with the autograd graph
+attached (see :func:`ridge_energy`), so the hypergradient carries
+``d lip / d w`` rather than treating the normalisation as a constant.
+Detaching a recomputed ``lip`` would make the forward model and the
+differentiated model disagree: the solve would use ``lip(theta)`` while the
+hypergradient dropped that dependence.
 
-    L_prior = 2 * exp(beta) * lip(W) / lip_0 + gamma
-
-where ``lip(W)`` is the current composed multiconv Lip (no gradient is
-taken through it).
+:meth:`ConvexRidgePrior.refresh_lip` recomputes and stores ``lip``
+explicitly. Call it only between outer iterations, never inside a
+lower-level solve or a hypergradient evaluation.
 
 DeepInverse adaptations
 -----------------------
-Flat theta, frozen Lip chart, gamma ridge floor, colour default channels.
+Flat theta, per-``theta`` Lip normalisation, gamma ridge floor, colour
+default channels.
 """
 
 from __future__ import annotations
@@ -288,7 +285,7 @@ def ridge_energy(
     if lip is None:
         # detach=False so that when the weights carry a graph (the mixed
         # Jacobian path) the normalisation is differentiated rather than
-        # silently treated as constant. When they do not, this is free.
+        # treated as a constant. When the weights are detached, this is free.
         lip = get_conv_lip(weights, cfg, detach=False)
     feats = apply_conv(x, weights, cfg, lip=lip)
     scaled = feats * torch.exp(scaling)
@@ -331,10 +328,12 @@ def ridge_grad_x(
 class ConvexRidgePrior:
     """Thin energy/grad wrapper driven by a flat theta vector.
 
-    Lipschitz normalisation uses a frozen constant ``_lip`` (see module
-    docstring). The first :meth:`load_theta` freezes it from the loaded
-    weights; later loads keep that value so the forward model and the
-    hypergradient differentiate the same map.
+    Lipschitz normalisation stores a scalar ``_lip`` used by energy and
+    gradient evaluation (see module docstring). By default
+    :meth:`load_theta` refreshes it from the loaded weights so
+    ``W / sqrt(lip(W))`` stays unit-norm. Differentiable paths recompute
+    ``lip`` with the graph attached so the hypergradient includes
+    ``d lip / d w``.
     """
 
     def __init__(self, cfg: ConvexRidgeConfig | None = None):
@@ -342,15 +341,15 @@ class ConvexRidgePrior:
         self._weights: list[torch.Tensor] | None = None
         self._scaling: torch.Tensor | None = None
         self._beta: torch.Tensor | None = None
-        # Frozen multiconv Lip used by apply_conv / apply_conv_transpose.
-        # Not a live function of the weights under differentiation.
+        # Multiconv Lip used by apply_conv / apply_conv_transpose for the
+        # non-differentiated energy and gradient paths.
         self._lip: torch.Tensor | None = None
 
     def refresh_lip(self, weights: list[torch.Tensor] | None = None) -> torch.Tensor:
-        """Recompute and store the frozen Lip from the given (or loaded) weights.
+        """Recompute and store ``lip`` from the given (or loaded) weights.
 
-        Redefines the model. Call only between outer iterations, never
-        inside a lower-level solve or a hypergradient evaluation.
+        Call only between outer iterations, never inside a lower-level solve
+        or a hypergradient evaluation.
         """
         if weights is None:
             if self._weights is None:
@@ -364,17 +363,17 @@ class ConvexRidgePrior:
     ) -> None:
         """Unpack theta into weights, scaling and beta.
 
-        ``lip`` is recomputed from the loaded weights, so the normalised
-        operator ``W / sqrt(lip(W))`` is unit norm for every ``theta``. The
-        differentiable energy recomputes it with the graph attached, so the
-        hypergradient carries ``d lip / d w`` rather than dropping it.
+        By default ``lip`` is recomputed from the loaded weights, so the
+        normalised operator ``W / sqrt(lip(W))`` is unit-norm for every
+        ``theta`` and the model is invariant under ``W -> c W``. The
+        differentiable energy recomputes ``lip`` with the graph attached, so
+        the hypergradient carries ``d lip / d w``.
 
-        Freezing ``lip`` at ``theta_0`` also makes the hypergradient exact,
-        but it destroys the scale invariance ``W -> c W`` that the
-        normalisation exists to provide: with a stale ``lip_0`` the prior
-        curvature grows as ``lip(W) / lip_0``, and a line-search trial that
-        inflates the weights drives the step size to zero. That is not
-        hypothetical, it crashed the demo with ``step=7.8e-09``.
+        Keeping a stale ``lip_0`` (``refresh_lip=False`` after the first
+        load) makes the forward map exact for that fixed normalisation, but
+        removes the scale invariance: prior curvature then grows as
+        ``lip(W) / lip_0``, and a line-search trial that inflates the
+        weights can drive the step size to zero.
         """
         w, s, b = unpack_theta(theta, self.cfg)
         self._weights = w
@@ -385,7 +384,7 @@ class ConvexRidgePrior:
 
     @property
     def lip(self) -> torch.Tensor:
-        """Frozen Lip normalisation constant (scalar tensor)."""
+        """Stored Lip normalisation constant (scalar tensor)."""
         if self._lip is None:
             raise RuntimeError("call load_theta before reading lip")
         return self._lip
@@ -411,10 +410,10 @@ class ConvexRidgePrior:
         return float(get_conv_lip(self._weights, self.cfg, detach=True).item())
 
     def lipschitz_bound(self) -> float:
-        """Prior step-size chart under frozen normalisation.
+        """Prior step-size chart under per-``theta`` Lip normalisation.
 
-        ``lip`` is recomputed per ``theta``, so ``W / sqrt(lip(W))`` is unit
-        norm and the bound is independent of the weight scale:
+        When ``lip`` is refreshed with the weights, ``W / sqrt(lip(W))`` is
+        unit-norm and the bound is independent of the weight scale:
 
             L_prior = 2 * exp(beta) + gamma
         """

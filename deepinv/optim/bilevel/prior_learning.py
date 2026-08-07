@@ -103,8 +103,8 @@ class TikhonovWeightProblem:
     def _estimate_mu_data(self) -> float:
         """Lower bound on the strong-convexity contribution of the data term.
 
-        For Denoising with ``A = Id`` this is 1. For general ``A`` we use 0
-        (safe: residual_tol is tighter than necessary).
+        For Denoising with ``A = Id`` this is 1. For general ``A`` the bound
+        is 0 (safe: residual_tol is tighter than necessary).
         """
         # Detect identity-like operators: one power step that preserves a random vector.
         x = torch.randn_like(self.x_star)

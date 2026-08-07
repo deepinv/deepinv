@@ -180,10 +180,10 @@ def solve_isotropic_tv(
 
     # Pure denoising shortcut: one prox of (lambda TV) at y is exact for A = I.
     #
-    # Probe with a random vector, NOT with x0. x0 = A^* y already lies in the
-    # range of A, so every projection satisfies A(x0) = x0 exactly: an
-    # inpainting mask is idempotent and was misread as the identity, silently
-    # taking the one-shot denoising path for a problem it does not solve.
+    # Identity is probed with a random vector, not with x0 = A^* y. Vectors in
+    # the range of A already satisfy A(x0) = x0 for any projection (including
+    # an inpainting mask), so probing with x0 would treat non-identity physics
+    # as identity and take the one-shot path incorrectly.
     is_identity = False
     with torch.no_grad():
         v = torch.randn_like(x0)

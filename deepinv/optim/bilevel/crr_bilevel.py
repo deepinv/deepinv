@@ -38,11 +38,12 @@ Step size
 ``step = 1 / (L_data + L_prior)``. ``L_data`` is an adaptive power
 iteration on ``A^* A`` with a safety factor so the estimate is an upper
 bound in practice (plain fixed-count power iteration converges from
-below). ``L_prior`` is the analytic chart under frozen Lip normalisation,
+below). ``L_prior`` is the analytic chart under per-``theta`` Lip
+normalisation,
 
-    ``2 * exp(beta) * lip(W) / lip_0 + gamma``
+    ``2 * exp(beta) + gamma``
 
-(with ``lip_0`` frozen on the prior; see :mod:`convex_ridge`). Call
+(see :mod:`convex_ridge`). Call
 :meth:`CRRSampleProblem.measure_prior_lipschitz` to check it against
 the top eigenvalue of ``Hess R``.
 
@@ -292,9 +293,9 @@ class CRRSampleProblem:
     def _estimate_mu_data(self) -> float:
         """Lower bound on the strong-convexity contribution of the data term.
 
-        For Denoising with ``A = Id`` this is 1. For general ``A`` we use 0
-        (safe: residual_tol is tighter than necessary when gamma alone sets
-        ``mu``).
+        For Denoising with ``A = Id`` this is 1. For general ``A`` the bound
+        is 0 (safe: residual_tol is tighter than necessary when gamma alone
+        sets ``mu``).
         """
         x = torch.randn_like(self.x_star)
         Ax = self.physics.A(x)
@@ -311,15 +312,16 @@ class CRRSampleProblem:
     ) -> None:
         """Load parameters into the prior.
 
-        ``lip`` tracks the weights by default, so ``W / sqrt(lip(W))`` stays
-        unit norm for every ``theta`` and the model is invariant under
-        ``W -> c W``. The differentiable energy recomputes it with the graph
-        attached, so the hypergradient carries ``d lip / d w``.
+        ``lip`` is refreshed from the weights by default, so
+        ``W / sqrt(lip(W))`` stays unit-norm for every ``theta`` and the
+        model is invariant under ``W -> c W``. The differentiable energy
+        recomputes ``lip`` with the graph attached, so the hypergradient
+        carries ``d lip / d w``.
         """
         self.prior.load_theta(theta, refresh_lip=refresh_lip)
 
     def _ensure_lip(self, theta: torch.Tensor) -> torch.Tensor:
-        """Return the frozen Lip, initialising it from ``theta`` if needed."""
+        """Return the stored Lip, initialising it from ``theta`` if needed."""
         if self.prior._lip is None:
             self.prior.load_theta(theta)
         return self.prior.lip
@@ -349,11 +351,10 @@ class CRRSampleProblem:
         return 1.0 / max(L, 1e-8)
 
     def analytic_prior_lipschitz(self) -> float:
-        """Analytic chart ``2 * exp(beta) * lip(W) / lip_0 + gamma``.
+        """Analytic chart ``2 * exp(beta) + gamma`` under unit-norm Lip.
 
-        Requires loaded theta. ``lip_0`` is the frozen normalisation; the
-        current composed Lip of the weights is recomputed for the chart
-        only (no gradient).
+        Requires loaded theta. When ``lip`` is refreshed with the weights,
+        the bound is independent of the weight scale (no gradient).
         """
         return self.prior.lipschitz_bound()
 
@@ -489,16 +490,15 @@ class CRRSampleProblem:
 
         with ``n`` the number of elements. Normalising by ``sqrt(n)`` makes
         ``eps`` independent of image size: an absolute threshold on the norm
-        silently asks for 1.8e-07 per element at 32x32 and 2.3e-08 per element
-        at 256x256, so the same number means different accuracy at different
-        resolutions.
+        corresponds to 1.8e-07 per element at 32x32 and 2.3e-08 per element
+        at 256x256, so the same nominal value means different accuracy at
+        different resolutions.
 
         ``eps`` is clamped from below at ``100 * finfo(dtype).eps``, which is
         the measured float32 floor with margin (2.7e-06 per element measured,
         1.2e-05 clamp) and far under the float64 solver-limited floor. Without
-        this, float32 requests are unsatisfiable: the previous default asked
-        for more accuracy than the dtype can represent and raised on CUDA and
-        MPS.
+        the floor, float32 requests below what the dtype can represent would
+        fail on CUDA and MPS.
 
         Falling short of ``eps`` is not by itself an error. The certificate
         ``||x* - x|| <= ||grad h|| / mu`` holds at *any* residual, so a solve
@@ -566,9 +566,8 @@ class CRRSampleProblem:
         if not self.last_reached_eps and not (
             self.last_stalled or residual <= floor_tol * 1.5
         ):
-            # Not a precision-floor stall: the solve was still improving when
-            # it ran out of iterations, or it diverged. That is a real failure
-            # and stays an error.
+            # Residual still improving at max_iter (or diverged): not a
+            # precision-floor stall, so treat as a hard failure.
             raise RuntimeError(
                 f"CRR {name} failed residual {residual_tol:.3e} "
                 f"(got {residual:.3e}, rms {self.last_residual_rms:.3e}) in "
@@ -601,8 +600,8 @@ class CRRSampleProblem:
             max_iter=max_it,
             has_cost=False,
         )
-        # Manual residual loop so we can record history (solve_base_optim
-        # does not expose intermediate residuals).
+        # Manual residual loop to record history (solve_base_optim does not
+        # expose intermediate residuals).
         if x0 is not None and name == "FISTA":
             init = (x0, x0.clone())
         else:
@@ -757,11 +756,11 @@ class CRRSampleProblem:
             return x, residual, 0, history
 
         # Precision-floor detection. The reachable residual depends on the
-        # dtype, the conditioning and (since lip is recomputed inside the
-        # gradient) on FFT error, so it cannot be predicted from
-        # finfo(dtype).eps alone: a constant calibrated on one problem was out
-        # by 4x on another. Detect the stall instead, and keep the best iterate
-        # because the residual wobbles once it is precision-limited.
+        # problem's conditioning, the dtype, and (because lip is recomputed
+        # inside the gradient) on FFT error, so it is detected by observing
+        # that the residual has stopped improving rather than predicted from
+        # finfo(dtype).eps alone. The best iterate is retained, since the
+        # residual is not monotone once it is precision-limited.
         best_res = residual
         best_x = x.detach().clone()
         since_improve = 0

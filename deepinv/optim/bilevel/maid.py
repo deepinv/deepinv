@@ -68,20 +68,19 @@ updated with ``U_lower`` at the accepted trial accuracy ``eps_k`` (not the
 inflated ``eps_{k+1}``), so an extra ``nu_bar`` factor does not push ``C``
 down further.
 
-Proof sketch (requires the author's verification; not claimed as proven
-here). Pointwise the MAID sandwich gives a controlled relationship between
-``U_lower``, ``U_upper`` and the true ``f`` (Lemma 3.5). ``C_k`` is a
-convex combination of past ``U_lower`` values (Zhang-Hager weights are
-non-negative and sum to one after normalisation by ``Q_k``), so it is a
-lower certificate for the corresponding combination of past objectives in
-the same sense. Accepting the ZH test therefore yields a decrease of the
-true objective relative to that window average. Accepting the monotone
-fallback yields the ordinary one-step decrease of Lemma 3.5. Either way
-an accepted step carries a certificate; the nonmonotone path can only
-make acceptance easier when the window reference sits above the current
-``U_lower``. This is a sketch, not a theorem: the author should check the
-sandwich bookkeeping against Lemma 3.5 before treating nonmonotone MAID
-as certified.
+Proof sketch (not claimed as proven). Pointwise the MAID sandwich gives a
+controlled relationship between ``U_lower``, ``U_upper`` and the true ``f``
+(Lemma 3.5). ``C_k`` is a convex combination of past ``U_lower`` values
+(Zhang-Hager weights are non-negative and sum to one after normalisation by
+``Q_k``), so it is a lower certificate for the corresponding combination of
+past objectives in the same sense. Accepting the ZH test therefore yields a
+decrease of the true objective relative to that window average. Accepting
+the monotone fallback yields the ordinary one-step decrease of Lemma 3.5.
+Either way an accepted step carries a certificate; the nonmonotone path can
+only make acceptance easier when the window reference sits above the current
+``U_lower``. This is a sketch, not a theorem: the sandwich bookkeeping
+against Lemma 3.5 should be checked before treating nonmonotone MAID as
+certified.
 
 **2. Barzilai-Borwein initial step** (``bb_init=True``).
 
@@ -110,7 +109,7 @@ The paper's Algorithm 3.2 accepts ``z`` only when
 direction and is the hypothesis of Lemma 3.8 (existence of a valid step
 size) and therefore of Theorem 3.19 (convergence).
 
-By contributor decision the default is to **skip** that test
+The default is to **skip** that test
 (``check_descent_direction=False``):
 
 * **What still holds.** Lemma 3.5 is unconditional. Every step that the
@@ -163,7 +162,7 @@ class MAIDConfig:
         docstring for what is gained and lost.
     :param bool nonmonotone: If True, use the Zhang-Hager window reference
         ``C_k`` in place of ``U_lower`` at the current point. See module
-        docstring for the proof sketch (author verification required).
+        docstring for the proof sketch (not claimed as proven).
     :param float eta_ref: Zhang-Hager memory parameter in ``[0, 1)``.
         Ignored when ``nonmonotone`` is False. ``eta_ref = 0`` recovers
         the monotone test against the immediate predecessor after one step.
@@ -199,10 +198,10 @@ class MAIDConfig:
     bb_form: str = "long"
     alpha_min: float = 1e-12
     alpha_max: float = 1e12
-    # Reporting. Follows the DeepInverse convention (see
-    # :class:`deepinv.optim.fixed_point.FixedPoint`): a ``verbose`` flag with
+    # Reporting (DeepInverse convention, see
+    # :class:`deepinv.optim.fixed_point.FixedPoint`): ``verbose`` with
     # ``print``, and a tqdm bar gated on ``show_progress_bar``. The library
-    # does not use the ``logging`` module anywhere, so neither does this.
+    # does not use the ``logging`` module; this class follows the same pattern.
     verbose: bool = False
     show_progress_bar: bool = False
     log_every: int = 1
@@ -370,8 +369,8 @@ class MAID:
                 )
                 oracle.update_lipschitz_estimates(lower, theta)
 
-                # BB initial step: available once we have z at the new theta
-                # and a stored previous (theta, z) pair.
+                # BB initial step: available once z at the new theta and a
+                # stored previous (theta, z) pair exist.
                 if (
                     c.bb_init
                     and theta_prev is not None
@@ -492,7 +491,7 @@ class MAID:
                             g_new, grad_g_new_norm, eps_k
                         )
                         if not window_ready:
-                            # C_0 = U_lower at the point we stepped from.
+                            # C_0 = U_lower at the point the step left from.
                             C = ref
                             Q = 1.0
                             window_ready = True

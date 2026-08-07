@@ -128,10 +128,10 @@ when **both** of the following hold:
 2. ``MAIDConfig.check_descent_direction`` is ``True``
    (the a priori test ``omega <= (1 - eta)||z||``).
 
-By contributor decision the default is ``check_descent_direction=False``:
-every step the line search accepts still provably decreases the true upper
-level (Lemma 3.5), but existence of a valid step size is no longer guaranteed
-a priori. Backtracking failure is the a posteriori detector and is counted in
+The default is ``check_descent_direction=False``: every step the line search
+accepts still provably decreases the true upper level (Lemma 3.5), but
+existence of a valid step size is no longer guaranteed a priori. Backtracking
+failure is the a posteriori detector and is counted in
 ``history["n_backtrack_failures"]``.
 
 Goal-oriented error estimate
@@ -318,8 +318,7 @@ Two optional switches on :class:`~deepinv.optim.bilevel.MAIDConfig`
 * ``nonmonotone=True``: Zhang-Hager window reference ``C_k`` in place of
   ``U_lower`` at the current point, with a monotone Lemma 3.5 fallback so a
   sandwich-depressed ``C`` cannot block a valid step. Proof sketch in the
-  :mod:`deepinv.optim.bilevel.maid` module docstring (author verification
-  required; not claimed as proven).
+  :mod:`deepinv.optim.bilevel.maid` module docstring (not claimed as proven).
 * ``bb_init=True``: Barzilai-Borwein initial step from
   ``s = theta_k - theta_{k-1}``, ``y = z_k - z_{k-1}``, clamped, with
   fallback ``rho_bar * alpha_k``. Changes only where backtracking starts.
@@ -415,7 +414,7 @@ but not inverted. Backtracking failures drop at every condition number.
 
 Accelerated MAID cuts backtracking failures from 16 to 1 and BaseOptim
 iterations from 246 to 24, matching fixed accuracy on this cheap problem.
-The mechanism the acceleration targets is the one that was hurting.
+The acceleration targets that line-search overhead.
 
 Nesterov or heavy-ball momentum on ``theta`` is not included: it would move
 the search direction away from ``-z`` and break Proposition 3.1. Future work.
@@ -470,13 +469,13 @@ Barzilai-Borwein initialisation carries almost all of the benefit: it more
 than halves the objective and adds 3.46 dB held-out. Zhang-Hager alone is
 near noise on this problem (+0.13 dB), though it does reduce backtracking
 failures from 7 to 4, and combined with BB it reaches the lowest
-:math:`\|z\|` by a factor of four. Only the combined arm is genuinely
-non-monotone, confirming the window reference is active rather than inert.
+:math:`\|z\|` by a factor of four. Only the combined arm is non-monotone,
+which shows that the window reference is active rather than inert.
 
-Read this as an equal-iteration comparison, not equal-time. The BB arms spend
-2.7 times the lower-level iterations and roughly five times the wall clock,
-because larger trial steps demand tighter solves. Whether ``plain`` given the
-same wall clock reaches the same PSNR has not been measured, so no
+The table is an equal-iteration comparison, not equal-time. The BB arms
+spend 2.7 times the lower-level iterations and roughly five times the wall
+clock, because larger trial steps demand tighter solves. No equal-wall-clock
+comparison of ``plain`` against the BB arms is reported, so no
 per-unit-compute claim is made here.
 
 Minibatch accumulation
@@ -512,7 +511,7 @@ step sizes) under the fixed reduction.
 Peak working memory for the accumulation is bounded by the chunk, not by
 ``m``. Measured on float64 sample states of length ``d = 200000``
 (1.53 MB each), by counting concurrent tensor bytes during the fixed-order
-pass (CPU; ``torch.cuda`` is not used on this machine):
+pass (CPU; peak working memory counted without ``torch.cuda``):
 
 .. list-table::
    :header-rows: 1
@@ -663,9 +662,9 @@ Cost table over condition number (``max_iter=8``, fixed to each method's
      - 2.79
      - 0.68
 
-An earlier draft reused the same problem objects for both methods, so the
-GD counter summed MAID and fixed and falsely made fixed look more expensive
-(355611 + 123646 = 479257). The tables above use independent counters.
+Each method uses independent problem objects and counters. Sharing objects
+would sum MAID and fixed steps into one GD total (for example
+355611 + 123646 = 479257) and overstate fixed-accuracy cost.
 
 Chunking is a memory control with bitwise trajectory invariance. With
 vanilla MAID it is not a free speedup on the multi-sample line-search path.
@@ -676,8 +675,8 @@ Numerical precision and GPU backends
 ------------------------------------
 
 MAID is usually run in float32, because that is what CUDA and Apple MPS
-provide (MPS has no float64 at all: Metal has no ``double`` type). Two things
-in the implementation are arranged so the certificate survives that.
+provide (MPS has no float64 at all: Metal has no ``double`` type). Two
+design choices keep the certificate meaningful under that constraint.
 
 **Tolerances are dimensionless.** ``eps`` is a per-element root-mean-square
 gradient tolerance, so the solve stops when
@@ -689,23 +688,23 @@ gradient tolerance, so the solve stops when
 with :math:`n` the number of elements. An absolute threshold on the norm
 means different accuracy at different resolutions: 1.8e-7 per element at
 32x32 and 2.3e-8 at 256x256 for the same nominal value. The floor is derived
-from ``torch.finfo(dtype).eps`` rather than hard-coded, since a literal tuned
-for float64 is unreachable in float32.
+from ``torch.finfo(dtype).eps`` rather than hard-coded, so the same rule
+applies in float32 and float64.
 
 **Falling short of** ``eps`` **is not an error.** The certificate
 :math:`\|x^\star - x\| \le \|\nabla_x h\|/\mu` holds at *any* residual,
 so a solve that stalls at the precision floor still returns a valid, merely
 wider bound. Raising would discard a correct reconstruction along with a
-usable certificate. The solver detects the floor by observing that the
-residual has stopped improving, rather than predicting it from
-``finfo(dtype).eps``: the reachable value depends on conditioning and on FFT
-error in the Lipschitz normalisation, and a constant calibrated on one
-problem was measured to be out by a factor of four on another. A solve still
-improving when it exhausts ``max_iter`` remains a hard error.
+usable certificate. The reachable residual depends on the problem's
+conditioning, the dtype, and FFT error in the Lipschitz normalisation, so it
+is detected by observing that the residual has stopped improving rather than
+predicted from ``finfo(dtype).eps`` alone. The best iterate is retained,
+since the residual is not monotone once it is precision-limited. A solve
+still improving when it exhausts ``max_iter`` remains a hard error.
 
-**Verified, not assumed.** Against a float64 reference on identical inputs
-(same data and probe direction generated in float64 and cast down), the
-float32 hypergradient is inexact but not biased:
+**Float32 hypergradient accuracy.** Against a float64 reference on identical
+inputs (same data and probe direction generated in float64 and cast down),
+the float32 hypergradient is inexact but not biased:
 
 .. list-table::
    :header-rows: 1
@@ -751,7 +750,7 @@ parameters such as a batched inpainting mask. Batching is valid only when
 :math:`A` is block diagonal across the batch, so this is checked at
 construction by perturbing one sample and confirming the others'
 measurements do not move; a physics that mixes samples is refused rather than
-silently producing wrong gradients.
+producing incorrect gradients.
 
 **Batch size is measured, not derived.** ``auto_batch_size`` sizes the batch
 from ``cuda.mem_get_info`` or, on MPS, ``recommended_max_memory`` minus
@@ -786,10 +785,10 @@ peak rather than the solve. Measured on a 12 GiB unified-memory device at a
      - 16
      - 16
 
-This is numerically free: the hypergradient is a sum over samples, so
-partitioning changes only peak memory. Splitting eight samples into batches
-of three moves :math:`z` by 2e-15 in float64. Batch size is therefore purely
-a memory decision.
+Partitioning is numerically free: the hypergradient is a sum over samples, so
+batch size changes only peak memory. Splitting eight samples into batches of
+three moves :math:`z` by 2e-15 in float64. Batch size is therefore a memory
+decision only.
 
 Minimal usage
 -------------
