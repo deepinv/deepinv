@@ -16,7 +16,7 @@ import h5py
 
 import deepinv as dinv
 from deepinv.datasets import (
-    BrainwebMRI,
+    BrainWebMRI,
     DIV2K,
     Urban100HR,
     Set14HR,
@@ -1579,7 +1579,7 @@ def test_RandomPatchSampler(make_data):
 
 def test_brainweb_mri(tmp_path):
     pytest.importorskip("brainweb_dl")
-    dataset = BrainwebMRI(
+    dataset = BrainWebMRI(
         root=tmp_path,
         subject_ids=0,
         transform=lambda x: x / x.max(),

@@ -68,7 +68,7 @@ Image Datasets
     deepinv.datasets.FMD
     deepinv.datasets.Kohler
     deepinv.datasets.NBUDataset
-    deepinv.datasets.BrainwebMRI
+    deepinv.datasets.BrainWebMRI
 
 
 Other Datasets
