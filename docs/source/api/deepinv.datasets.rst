@@ -23,8 +23,6 @@ Base Datasets
    :nosignatures:
 
    deepinv.datasets.check_dataset
-   deepinv.datasets.unpack_batch
-   deepinv.datasets.extract_data_tensor
 
 Generating Datasets
 -------------------

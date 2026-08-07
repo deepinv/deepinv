@@ -87,6 +87,17 @@ def dataset_output_context(use_dict_output):
             yield
 
 
+def image_output_type(
+    use_dict_output, transform, *, paired=False, untransformed_type=PIL_Image
+):
+    """Return the expected sample type for an image dataset configuration."""
+    if use_dict_output:
+        return dict if transform is not None else "dict_of_pils"
+    if paired:
+        return tuple if transform is not None else "tuple_of_pils"
+    return Tensor if transform is not None else untransformed_type
+
+
 def check_dataset_format(
     dataset: Dataset,
     length: int = None,
@@ -180,7 +191,9 @@ def check_dataset_format(
             assert all(isinstance(d, PIL_Image) for d in dataset[0])
         elif dtype == "dict_of_pils":
             # This is a workaround for Python not having ability to check a variable is a `dict[str, PIL_Image]`.
-            assert all(isinstance(d, PIL_Image) for d in dataset[0].values())
+            sample = dataset[0]
+            images = [sample[k] for k in ("x", "y") if k in sample]
+            assert images and all(isinstance(image, PIL_Image) for image in images)
         else:
             assert isinstance(
                 dataset[0], dtype
@@ -619,13 +632,14 @@ def test_tensordataset(use_dict_output):
         _ = TensorDataset(y=y)
         _ = TensorDataset(x=x, y=y, params=params)
         _ = TensorDataset(x=x, params=params)
+
     dataset = TensorDataset(y=y, params=params, use_dict_output=use_dict_output)
 
     if use_dict_output:
         assert set(dataset[0]) == {"y", "params"}
         assert dataset[0]["params"]["a"].shape == (1, 3, 4, 4)
     else:
-        assert isinstance(dataset[0], tuple) and len(dataset[0]) == 2
+        assert isinstance(dataset[0], tuple) and len(dataset[0]) == 3
         assert math.isnan(
             dataset[0][0]
         ), "Dataset return tuple's first element must be NaN or single-element NaN tensor."
@@ -685,6 +699,9 @@ def test_load_div2k_dataset(download_div2k, use_dict_output):
     for totensor in [ToTensor(), None]:
 
         with dataset_output_context(use_dict_output):
+            dtype = image_output_type(
+                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+            )
             check_dataset_format(
                 DIV2K(
                     download_div2k,
@@ -694,7 +711,7 @@ def test_load_div2k_dataset(download_div2k, use_dict_output):
                     use_dict_output=use_dict_output,
                 ),
                 length=100,
-                dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+                dtype=dtype,
                 allow_non_tensor=not totensor,
             )
 
@@ -720,6 +737,9 @@ def test_load_urban100_dataset(download_urban100, use_dict_output):
     """Check that dataset contains 100 PIL images."""
     for totensor in [ToTensor(), None]:
         with dataset_output_context(use_dict_output):
+            dtype = image_output_type(
+                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+            )
             check_dataset_format(
                 Urban100HR(
                     download_urban100,
@@ -728,7 +748,7 @@ def test_load_urban100_dataset(download_urban100, use_dict_output):
                     use_dict_output=use_dict_output,
                 ),
                 length=100,
-                dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+                dtype=dtype,
                 allow_non_tensor=not totensor,
             )
 
@@ -768,6 +788,9 @@ def test_load_set14_dataset(download_set14, use_dict_output):
     """Check that dataset contains 14 PIL images."""
     for totensor in [ToTensor(), None]:
         with dataset_output_context(use_dict_output):
+            dtype = image_output_type(
+                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+            )
             check_dataset_format(
                 Set14HR(
                     download_set14,
@@ -776,7 +799,7 @@ def test_load_set14_dataset(download_set14, use_dict_output):
                     use_dict_output=use_dict_output,
                 ),
                 length=14,
-                dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+                dtype=dtype,
                 allow_non_tensor=not totensor,
             )
 
@@ -816,6 +839,9 @@ def test_load_Flickr2kHR_dataset(download_flickr2khr, use_dict_output):
     """Test the dataset"""
     for totensor in [ToTensor(), None]:
         with dataset_output_context(use_dict_output):
+            dtype = image_output_type(
+                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+            )
             check_dataset_format(
                 Flickr2kHR(
                     download_flickr2khr,
@@ -824,7 +850,7 @@ def test_load_Flickr2kHR_dataset(download_flickr2khr, use_dict_output):
                     use_dict_output=use_dict_output,
                 ),
                 length=100,
-                dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+                dtype=dtype,
                 allow_non_tensor=not totensor,
             )
 
@@ -860,6 +886,9 @@ def test_load_cbsd68_dataset(download_cbsd68, use_dict_output):
     )
     for totensor in [ToTensor(), None]:
         with dataset_output_context(use_dict_output):
+            dtype = image_output_type(
+                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+            )
             check_dataset_format(
                 CBSD68(
                     download_cbsd68,
@@ -868,7 +897,7 @@ def test_load_cbsd68_dataset(download_cbsd68, use_dict_output):
                     use_dict_output=use_dict_output,
                 ),
                 length=68,
-                dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+                dtype=dtype,
                 allow_non_tensor=not totensor,
             )
 
@@ -903,6 +932,9 @@ def test_load_bsds500_dataset(
     """Check that dataset contains 400 + 100 PIL images."""
     totensor = ToTensor() if totensor else None
     with dataset_output_context(use_dict_output):
+        dtype = image_output_type(
+            use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+        )
         check_dataset_format(
             BSDS500(
                 download_bsds500,
@@ -913,7 +945,7 @@ def test_load_bsds500_dataset(
                 use_dict_output=use_dict_output,
             ),
             length=400 if train else 100,
-            dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+            dtype=dtype,
             allow_non_tensor=not totensor,
         )
 
@@ -953,12 +985,13 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering, use_dict_output)
                 use_dict_output=use_dict_output,
             )
 
+        dtype = image_output_type(
+            use_dict_output, totensor, paired=True, untransformed_type=PIL_Image
+        )
         check_dataset_format(
             dataset,
             length=48,
-            dtype=(
-                dict if use_dict_output else (tuple if totensor else None)
-            ),  # when no Transform, this is a tuple of list of PILs which is too complicated
+            dtype=dtype,
             allow_non_tensor=not totensor,
             skip_check=True,
         )
@@ -1014,6 +1047,9 @@ def test_load_lsdir_dataset(download_lsdir, use_dict_output):
     """Check that dataset contains 250 PIL images."""
     for totensor in [ToTensor(), None]:
         with dataset_output_context(use_dict_output):
+            dtype = image_output_type(
+                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+            )
             check_dataset_format(
                 LsdirHR(
                     download_lsdir,
@@ -1023,7 +1059,7 @@ def test_load_lsdir_dataset(download_lsdir, use_dict_output):
                     use_dict_output=use_dict_output,
                 ),
                 length=250,
-                dtype=dict if use_dict_output else (Tensor if totensor else PIL_Image),
+                dtype=dtype,
                 allow_non_tensor=not totensor,
             )
 
@@ -1061,6 +1097,9 @@ def test_load_fmd_dataset(download_fmd, use_dict_output):
     """Check that dataset contains 5000 noisy PIL images with its ground truths."""
     for totensor in [ToTensor(), None]:
         with dataset_output_context(use_dict_output):
+            dtype = image_output_type(
+                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+            )
             check_dataset_format(
                 FMD(
                     download_fmd,
@@ -1070,11 +1109,7 @@ def test_load_fmd_dataset(download_fmd, use_dict_output):
                     download=False,
                 ),
                 length=5000,
-                dtype=(
-                    dict
-                    if use_dict_output
-                    else (tuple if totensor else "tuple_of_pils")
-                ),
+                dtype=dtype,
                 allow_non_tensor=not totensor,
             )
 
@@ -1136,6 +1171,9 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units, use_dict_outpu
 
     for totensor in [ToTensor(), None]:
         with dataset_output_context(use_dict_output):
+            dtype = image_output_type(
+                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+            )
             check_dataset_format(
                 LidcIdriSliceDataset(
                     root=mock_lidc_idri,
@@ -1143,7 +1181,7 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units, use_dict_outpu
                     hounsfield_units=hounsfield_units,
                 ),
                 length=2036,
-                dtype=dict if use_dict_output else (Tensor if totensor else np.ndarray),
+                dtype=dtype,
                 allow_non_tensor=not totensor,
             )
 
@@ -1262,7 +1300,12 @@ def test_SimpleFastMRISliceDataset(download_simplefastmri, use_dict_output):
             download=False,
             use_dict_output=use_dict_output,
         )
-    check_dataset_format(dataset, length=2, dtype=Tensor, shape=(2, 320, 320))
+    check_dataset_format(
+        dataset,
+        length=2,
+        dtype=dict if use_dict_output else Tensor,
+        shape=(2, 320, 320),
+    )
     assert not torch.all(dataset[0] == dataset[1])
 
 
