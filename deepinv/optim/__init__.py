@@ -27,6 +27,7 @@ from .optimizers import (
     PMD,
     SIRT,
     MLEM,
+    BlindRL,
 )
 from .fixed_point import FixedPoint
 from .prior import (
@@ -58,6 +59,7 @@ from .optim_iterators import (
     SMIteration,
     SIRTIteration,
     MLEMIteration,
+    BlindRLIteration,
 )
 from .epll import EPLL
 from .dpir import DPIR
