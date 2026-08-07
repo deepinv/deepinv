@@ -75,6 +75,13 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
         ):
             raise RuntimeError(f"{error_dict}, but params dict has non-string keys.")
 
+        warn(
+            "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+            "It is recommended to implement your dataset to return a dict with keys 'x', 'y', and 'params' instead of a tuple.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     elif isinstance(batch, (list, tuple)) and len(batch) == 3:
         x, y, params = batch
 
@@ -96,6 +103,13 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
             )
         elif any(not isinstance(k, str) for k in params):
             raise RuntimeError(f"{error_dict}, but params dict has non-string keys.")
+
+        warn(
+            "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+            "It is recommended to implement your dataset to return a dict with keys 'x', 'y', and 'params' instead of a tuple.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     elif isinstance(batch, dict):
 
