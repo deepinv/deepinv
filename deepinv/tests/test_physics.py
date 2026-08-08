@@ -2707,7 +2707,7 @@ def test_tiled_product_physics_adjointness(
 
 @pytest.fixture
 def wiener_blur_physics():
-    """BlurFFT physics with a 3-by-3 averaging filter, single-channel 16-by-16 images."""
+    """BlurFFT physics with a 3x3 averaging filter, single-channel 16x16 images."""
     filt = torch.ones(1, 1, 3, 3) / 9.0
     return dinv.physics.BlurFFT(img_size=(1, 16, 16), filter=filt)
 
