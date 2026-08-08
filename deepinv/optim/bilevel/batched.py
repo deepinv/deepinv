@@ -710,7 +710,12 @@ class BatchedMinibatchOracle(HypergradientOracle):
 
 
 def auto_initial_accuracy(
-    oracle: Any, theta0: torch.Tensor, *, factor: float = 0.02
+    oracle: Any,
+    theta0: torch.Tensor,
+    *,
+    factor: float = 0.02,
+    min_eps: float | None = None,
+    max_eps: float = 1.0,
 ) -> float:
     r"""Initial lower-level accuracy taken from the problem's own scale.
 
@@ -722,24 +727,60 @@ def auto_initial_accuracy(
         \frac{\|\nabla_x h(x_0, \theta_0)\|}{\sqrt{n}\,\mu},
         \qquad x_0 = A^\ast y,
 
-    a fixed relative reduction of the stationarity residual at the natural
-    initialisation. The reference is observable before any solve and requires
-    neither the noise level nor the ground truth.
+    clamped to ``[min_eps, max_eps]``: a fixed relative reduction of the
+    stationarity residual at the natural initialisation. The reference is
+    observable before any solve and requires neither the noise level nor the
+    ground truth.
 
-    A single absolute ``eps0`` cannot serve every problem, because the
-    residual scale carries the forward operator through :math:`\mu`: a value
-    suited to denoising (:math:`\mu = 1`) is two orders of magnitude away from
-    one suited to a problem whose modulus comes from
-    :math:`\gamma = 10^{-2}`. Expressing the initial accuracy relative to the
-    initial residual removes that dependence.
+    A single absolute ``eps0`` cannot be safe across problems. The residual
+    scale carries the forward operator through :math:`\mu`, and the same
+    constant can be fatal on one problem and harmless on another: on a
+    denoising problem ``eps0 = 1e-1`` leaves the result below the noisy input
+    (24.70 dB against 26.01), while on an inpainting problem with
+    :math:`\gamma = 10^{-2}` the same value sits in a plateau that extends
+    over four orders of magnitude.
+
+    Choice of ``factor``
+    --------------------
+    The default is calibrated on a denoising sweep, the only problem in that
+    study whose performance depends on ``eps0`` at all: ``1e-2`` succeeds and
+    ``1e-1`` fails against an initial residual of ``0.0715``, placing the
+    largest safe factor between 0.14 and 1.4. The default of 0.02 sits about
+    seven times inside that boundary. Problems that are insensitive to
+    ``eps0`` cannot constrain it further, so treat 0.02 as a conservative
+    starting point rather than a tuned optimum, and raise it to trade accuracy
+    for cheaper early solves.
+
+    Clamping
+    --------
+    ``min_eps`` defaults to the dtype's achievable floor, ``100 *
+    finfo(dtype).eps``, matching the lower-level solver: a smaller request
+    cannot be met and would start the accuracy schedule below what the
+    arithmetic supports. ``max_eps`` bounds the loose end, since a per-element
+    tolerance above 1 is uninformative for data on the unit interval. A
+    non-positive residual (an initialisation that is already stationary)
+    returns ``min_eps``.
 
     :param oracle: an oracle exposing ``initial_residual_rms``.
     :param theta0: starting parameters.
     :param float factor: relative reduction requested of the first solve.
+    :param float min_eps: lower clamp; defaults to the dtype floor.
+    :param float max_eps: upper clamp.
     """
     if not hasattr(oracle, "initial_residual_rms"):
         raise TypeError(
             f"{type(oracle).__name__} does not expose initial_residual_rms; "
             "pass eps0 explicitly."
         )
-    return float(factor) * float(oracle.initial_residual_rms(theta0))
+    if factor <= 0.0:
+        raise ValueError(f"factor must be positive, got {factor}")
+    if min_eps is None:
+        min_eps = 100.0 * float(torch.finfo(theta0.dtype).eps)
+    if not (0.0 < min_eps <= max_eps):
+        raise ValueError(
+            f"need 0 < min_eps <= max_eps, got {min_eps} and {max_eps}"
+        )
+    r0 = float(oracle.initial_residual_rms(theta0))
+    if not (r0 > 0.0) or r0 != r0:  # non-positive or NaN
+        return float(min_eps)
+    return float(min(max(float(factor) * r0, min_eps), max_eps))
