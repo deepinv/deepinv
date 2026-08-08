@@ -19,7 +19,7 @@ Base Classes
 
 Learning-Free Reconstructors
 ----------------------------
-.. userguide:: reconstructors
+.. userguide:: least_squares
 
 .. autosummary::
    :toctree: stubs
