@@ -2727,15 +2727,27 @@ def test_blurfft_a_dagger_default_unchanged(wiener_blur_physics):
     ), f"Default A_dagger changed: max diff = {(x_default - x_parent).abs().max()}"
 
 
-@pytest.mark.parametrize("prior", [None, "laplacian", "tensor"])
-def test_blurfft_a_dagger_matches_model(wiener_blur_physics, prior):
-    """A_dagger(wiener=True, ...) matches WienerDeconvolution for every prior.
+@pytest.mark.parametrize(
+    "lambda_kind,prior",
+    [
+        pytest.param("scalar", None, id="flat"),
+        pytest.param("scalar", "laplacian", id="laplacian"),
+        pytest.param("tensor", None, id="tensor"),
+        pytest.param("zero", None, id="zero-lambda"),
+    ],
+)
+def test_blurfft_a_dagger_matches_model(wiener_blur_physics, lambda_kind, prior):
+    """A_dagger(wiener=True, ...) matches WienerDeconvolution on every path.
 
-    This is what keeps the two entry points from drifting apart.
+    The test detects divergence between the two entry points rather than an
+    error common to both.  The zero-lambda case covers the short-circuit, where
+    both must return the pseudo-inverse.
     """
     H, W = 16, 16
-    if prior == "tensor":
-        lambda_reg, prior = torch.ones(1, 1, H, W // 2 + 1) / 3.0, None
+    if lambda_kind == "tensor":
+        lambda_reg = torch.ones(1, 1, H, W // 2 + 1) / 3.0
+    elif lambda_kind == "zero":
+        lambda_reg = 0.0
     else:
         lambda_reg = 0.5
 
@@ -2752,17 +2764,12 @@ def test_blurfft_a_dagger_matches_model(wiener_blur_physics, prior):
         f"{(x_adagger - x_model).abs().max()}"
     )
 
-
-def test_blurfft_a_dagger_zero_lambda_is_pseudoinverse(wiener_blur_physics):
-    """A_dagger(wiener=True, lambda_reg=0) falls back to the pseudo-inverse."""
-    x = torch.randn(1, 1, 16, 16)
-    y = wiener_blur_physics.A(x)
-    with torch.no_grad():
-        x_wiener = wiener_blur_physics.A_dagger(y, wiener=True, lambda_reg=0.0)
-        x_pinv = wiener_blur_physics.A_dagger(y)
-    assert torch.equal(
-        x_wiener, x_pinv
-    ), "lambda_reg=0 should delegate exactly to the pseudo-inverse"
+    if lambda_kind == "zero":
+        with torch.no_grad():
+            x_pinv = wiener_blur_physics.A_dagger(y)
+        assert torch.equal(
+            x_adagger, x_pinv
+        ), "lambda_reg=0 should delegate exactly to the pseudo-inverse"
 
 
 def test_blurfft_a_dagger_rejects_invalid_prior(wiener_blur_physics):
