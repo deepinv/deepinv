@@ -27,14 +27,14 @@ expertise, have a search in our `issues <https://github.com/deepinv/deepinv/issu
 .. list-table::
    :widths: 25 25 25 25
 
-   * - `optimization <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+optim>`_ 
-     - `training <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+trainer>`_ 
-     - `datasets <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+dataset>`_ 
-     - `losses <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+loss>`_ 
-   * - `diffusion <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+diffusion>`_ 
-     - `mri <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+mri>`_ 
-     - `tomography <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+tomography>`_ 
-     - `docs <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+docs>`_ 
+   * - `optimization <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+optim>`_
+     - `training <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+trainer>`_
+     - `datasets <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+dataset>`_
+     - `losses <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+loss>`_
+   * - `diffusion <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+diffusion>`_
+     - `mri <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+mri>`_
+     - `tomography <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+tomography>`_
+     - `docs <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+docs>`_
 
 
 How to Contribute
@@ -59,7 +59,7 @@ You're ready to move on!
 
 .. note::
 
-  Our maintainers will then try to assist you by working directly on your PR. Do not hesitate to ask questions or to leave comments directly on the Pull Request page. 
+  Our maintainers will then try to assist you by working directly on your PR. Do not hesitate to ask questions or to leave comments directly on the Pull Request page.
 
 .. _write_tests:
 
@@ -105,7 +105,7 @@ Writing good documentation is also crucial for helping other users use your code
 2. If you wrote a new class or function, add it to the lists in the `API reference <https://deepinv.org/API.html>`_ and `User Guide <https://deepinv.org/user_guide.html>`_. For API, add to the appropriate `.rst` file `here <https://github.com/deepinv/deepinv/tree/main/docs/source/api>`__. For User Guide, `here <https://github.com/deepinv/deepinv/tree/main/docs/source/user_guide>`__.
 3. Want to share more about your new feature? Consider writing an `example <https://deepinv.org/auto_examples/index.html>`_ in `examples/`!
 4. Check that your documentation is correct by building the docs locally. First `cd docs`, then we use `sphinx <https://www.sphinx-doc.org/en/master/usage/installation.html>`_ to build:
-  
+
 .. list-table::
    :widths: 40 50
    :header-rows: 1
@@ -123,7 +123,7 @@ Writing good documentation is also crucial for helping other users use your code
    * - ``make clean-win``
      - Cleans the documentation files (Windows OS)
 
-.. caution:: 
+.. caution::
   Note that if the build process fails, supplementary additional libraries may need to be manually installed (e.g. ``sphinx-gallery``): please follow instructions in the log.
 
 .. tip::
@@ -147,7 +147,7 @@ Code quality is important to us. We require that your code is compliant with PEP
 ~~~~~~~~~~~~~~~~~~~
 
 We keep a summary of all changes in the `changelog.rst <https://deepinv.org/changelog.html>`_ file in the documentation.
-We separate contributions into three categories: **Added** for new features, **Changed** for changes in existing features, and **Fixed** for bug fixes. 
+We separate contributions into three categories: **Added** for new features, **Changed** for changes in existing features, and **Fixed** for bug fixes.
 To do so, you should first add your GitHub information at the end of the file following the format:
 
 .. code-block:: rest
@@ -179,8 +179,8 @@ Finding help
 .. tip::
 
   **Run into a problem, don't know where to start, or got a question/suggestion?**
-  
-  Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_, open an `issue <https://github.com/deepinv/deepinv/issues>`_, or 
+
+  Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_, open an `issue <https://github.com/deepinv/deepinv/issues>`_, or
   send an email to a `maintainer <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_ and we'll help you out.
 
 .. _llm-policy:
@@ -262,6 +262,17 @@ Below is a minimal working example of a typical docstring that includes all thes
         """
         def __init__(self, in_channels: int, out_channels: int, pretrained: bool = None):
             pass
+
+Backwards Compatibility
+------------------------
+
+Reckless breaking changes cause brittleness and instability, in addition to making the upgrading process tedious for users. Our stance is to handle them with care. When a breaking change is needed, we prefer to start by deprecating the former behavior with an opt-in way to switch to the new behavior early on. After a delay deemed sufficient, we finally drop support for the deprecated feature. We update :ref:`the changelog <log_changes>` at both stages with the new deprecations and dropped features in order to help users with the migration process.
+
+Even though we generally try to avoid unexpected breaking changes, the library is at an early stage of development and we tolerate them in certain cases. Specifically, we allow them when the benefits are considered to far outweigh the negative consequences, especially when proper deprecation would take a lot more effort than the change itself.
+
+As a contributor making a new pull request, it might be tricky to determine a suitable way to handle potential breaking changes. Please do not let this delay your submission needlessly. The maintainers acknowledge this and will provide the necessary guidance when reviewing your changes.
+
+When it comes to implementing the deprecations, we generally endorse the recommendations featured in `scikit-learn's contributing guide <https://scikit-learn.org/dev/developers/contributing.html#maintaining-backwards-compatibility>`_.
 
 Contributing new physics
 -------------------------
