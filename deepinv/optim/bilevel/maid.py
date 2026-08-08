@@ -496,6 +496,43 @@ class MAID:
                 alpha_k = alpha
 
             if not accepted:
+                # Exhausting the accuracy refinements at the accuracy floor is
+                # convergence, not failure. Near a stationary point the
+                # required decrease falls as ||z||^2 while the inexactness gap
+                # is bounded below by the attainable accuracy, so no step can
+                # satisfy the test however far the step size is reduced. This
+                # is reached quickly by priors with few parameters: a
+                # three-parameter learned total variation drives ||z|| from
+                # 2.6e-01 to 1.6e-02 within twenty outer iterations. Report the
+                # iterate reached and why, rather than discarding it.
+                at_floor = eps_k <= c.eps_min * 1.01 and delta_k <= c.delta_min * 1.01
+                if at_floor:
+                    if c.verbose:
+                        print(
+                            f"[Stopping] Accuracy floor reached at outer "
+                            f"iteration {_k} with ||z|| = "
+                            f"{float(z.norm().item()):.3e}: no step satisfies "
+                            f"the descent test at eps_min = {c.eps_min:.1e}. "
+                            "This is convergence to the attainable accuracy; "
+                            "lower eps_min to continue."
+                        )
+                    history["f_exact"].append(self._f_diag(theta))
+                    history["z_norm"].append(float(z.norm().item()))
+                    history["omega"].append(omega)
+                    history["eps"].append(eps_k)
+                    history["delta"].append(delta_k)
+                    history["alpha"].append(alpha_k)
+                    history["backtrack_failures"].append(float(failures_this_iter))
+                    history["C_ref"].append(C_for_hist)
+                    history["bb_used"].append(bb_used_flag)
+                    history["stopped_at_accuracy_floor"] = True
+                    pbar.close()
+                    self._finalise_history(
+                        history,
+                        oracle,
+                        n_backtrack_failures + failures_this_iter,
+                    )
+                    return theta, history
                 raise RuntimeError(
                     "MAID line search failed: no step accepted within "
                     f"max_outer_BT={c.max_outer_BT} accuracy refinements. "
