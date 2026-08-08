@@ -56,6 +56,33 @@ If the forward operator is linear, the damped least-squares solution can be comp
 As with the standard least-squares solution, if the forward operator has a closed-form singular value decomposition, the damped least-squares solution can be computed directly in closed form for efficiency.
 
 
+Wiener Deconvolution
+^^^^^^^^^^^^^^^^^^^^
+
+When the forward operator is a circular convolution, :class:`deepinv.physics.BlurFFT` is diagonalised by the Fourier transform, and the damped least-squares problem above has the classical Wiener filter as its closed-form solution:
+
+.. math::
+
+    \hat{X}(f) = \frac{H^*(f)}{\lvert H(f) \rvert^2 + \lambda(f)} \, Y(f)
+
+where :math:`H` is the transfer function of the blur, and :math:`\lambda` plays the role of a noise-to-signal power ratio :math:`S_n(f)/S_x(f)`: small where the signal dominates, large where the measurement is mostly noise.
+Because the regularization is applied in the Fourier domain, :math:`\lambda` may vary with frequency, which the constant :math:`\ell_2` damping above cannot express.
+
+This is available as a :class:`deepinv.models.Reconstructor`:
+
+    >>> physics = dinv.physics.BlurFFT(img_size=x.shape[1:], filter=dinv.physics.functional.gaussian_blur(sigma=(2, 2)), noise_model=dinv.physics.GaussianNoise(sigma=0.01))
+    >>> y = physics(x)
+    >>> model = dinv.models.WienerDeconvolution(lambda_reg=0.01, prior="laplacian")
+    >>> x_hat = model(y, physics)
+
+or directly on the physics operator, in the same way as filtered back-projection in tomography:
+
+    >>> x_hat = physics.A_dagger(y, wiener=True, lambda_reg=0.01)
+
+The ``prior`` argument controls how :math:`\lambda` depends on frequency. With ``"flat"`` (or ``None``) it is constant, which recovers the damped least-squares solution above. With ``"laplacian"`` it is weighted by the power spectrum of a Laplacian filter, penalizing high frequencies more strongly. Passing a tensor for ``lambda_reg`` instead supplies the noise-to-signal ratio at every frequency directly.
+See :class:`deepinv.models.WienerDeconvolution` for details.
+
+
 Going Beyond Least Squares
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

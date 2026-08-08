@@ -1214,13 +1214,22 @@ class DecomposablePhysics(LinearPhysics):
         Computes proximal operator of :math:`f(x)=\frac{\gamma}{2}\|Ax-y\|^2`
         in an efficient manner leveraging the singular vector decomposition.
 
-        :param torch.Tensor, float z: signal tensor
+        :param torch.Tensor, float, int, None z: signal tensor
         :param torch.Tensor y: measurements tensor
         :param float gamma: hyperparameter :math:`\gamma` of the proximal operator
         :return: (:class:`torch.Tensor`) estimated signal tensor
 
         """
-        b = self.A_adjoint(y) + 1 / gamma * z
+        # The 1 / gamma * z term vanishes when z is None or zero, and is
+        # therefore skipped.  LinearPhysics.prox_l2 accepts the same inputs and
+        # normalises them with torch.full_like, but that approach cannot be used
+        # here: subclasses such as BlurFFT use rfft, so gamma is a half-spectrum
+        # of width W//2+1 while a materialised z has full width W, and the
+        # product fails to broadcast before the addition is reached.
+        if z is None or (isinstance(z, (int, float)) and z == 0):
+            b = self.A_adjoint(y)
+        else:
+            b = self.A_adjoint(y) + 1 / gamma * z
         if isinstance(self.mask, float):
             scaling = self.mask**2 + 1 / gamma
         else:

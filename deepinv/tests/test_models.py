@@ -1969,3 +1969,253 @@ def test_srresnet_inputs():
             16,
             16,
         )
+
+
+# ---------------------------------------------------------------------------
+# WienerDeconvolution tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def wiener_blur_1ch():
+    """BlurFFT physics with a 3x3 averaging filter, single-channel 16x16 images."""
+    filt = torch.ones(1, 1, 3, 3) / 9.0
+    return dinv.physics.BlurFFT(img_size=(1, 16, 16), filter=filt)
+
+
+@pytest.fixture
+def wiener_denoise_impulse():
+    """Denoising expressed as a deconvolution: BlurFFT with a unit-impulse filter.
+
+    This is the supported way to run Wiener smoothing on a noisy image: it gives
+    A = I together with a Fourier SVD basis, so the Laplacian prior and a
+    frequency-dependent tensor lambda_reg both work.
+    """
+    impulse = torch.zeros(1, 1, 3, 3)
+    impulse[0, 0, 1, 1] = 1.0
+    return dinv.physics.BlurFFT(img_size=(1, 8, 8), filter=impulse)
+
+
+@pytest.mark.parametrize("prior", [None, "laplacian", "tensor"])
+def test_wiener_shapes(prior, device):
+    """Shape and device are preserved across priors, batch sizes and channels.
+
+    The Laplacian gamma is (1, 1, H, W // 2 + 1) and broadcasts against a mask
+    of (1, C, H, W // 2 + 1, 2), so a broadcast error would surface in the batch
+    and channel dimensions.  _build_laplacian_gamma allocates the Laplacian
+    kernel on physics.mask.device and a tensor lambda_reg may start anywhere, so
+    the device fixture exercises both allocation paths.
+    """
+    H = W = 16
+    batch, channels = 4, 3
+    physics = dinv.physics.BlurFFT(
+        img_size=(channels, H, W),
+        filter=torch.ones(1, 1, 3, 3, device=device) / 9.0,
+        device=device,
+    )
+    if prior == "tensor":
+        model = dinv.models.WienerDeconvolution(
+            lambda_reg=torch.full((1, 1, H, W // 2 + 1), 0.5, device=device)
+        )
+    else:
+        model = dinv.models.WienerDeconvolution(lambda_reg=1.0, prior=prior)
+
+    x = torch.randn(batch, channels, H, W, device=device)
+    with torch.no_grad():
+        x_hat = model(physics.A(x), physics)
+    assert x_hat.shape == x.shape
+    assert x_hat.device.type == torch.device(device).type
+    assert torch.isfinite(x_hat).all()
+
+
+def test_wiener_tensor_lambda_zero_is_clamped():
+    """Zero entries in a tensor lambda_reg are clamped, not divided by zero.
+
+    The clamp changes the result only where a zero NSR coincides with a spectral
+    null of the operator: without it gamma is infinite, so prox_l2's 1 / gamma
+    term vanishes and the scaling reduces to |H(f)|^2.  A 3x3 averaging filter
+    has exact nulls only when the grid size is a multiple of 3, hence 12 here
+    rather than the 16 used elsewhere in this file.
+    """
+    N = 12
+    physics = dinv.physics.BlurFFT(
+        img_size=(1, N, N), filter=torch.ones(1, 1, 3, 3) / 9.0
+    )
+    assert (
+        physics.mask[..., 0].abs() == 0
+    ).any(), "Fixture has no spectral null, so the clamp would not be exercised"
+
+    lambda_tensor = torch.zeros(1, 1, N, N // 2 + 1)
+    lambda_tensor[..., 0] = 0.5  # mix of zero and non-zero entries
+    model = dinv.models.WienerDeconvolution(lambda_reg=lambda_tensor)
+    x = torch.randn(1, 1, N, N)
+    with torch.no_grad():
+        x_hat = model(physics.A(x), physics)
+    assert torch.isfinite(
+        x_hat
+    ).all(), "Zero entries in a tensor lambda_reg produced non-finite output"
+
+
+def test_wiener_frequency_dependent_nsr(wiener_denoise_impulse):
+    """A frequency-dependent NSR attenuates high frequencies more than low.
+
+    This is the Wiener smoothing behaviour requested in issue #897 ("Wiener
+    filtering from pre-computed PSDs"), which Denoising physics cannot express.
+    """
+    H = W = 8
+    # A low NSR marks a frequency where the measurement is reliable, a high one
+    # a frequency dominated by noise.
+    nsr = torch.full((1, 1, H, W // 2 + 1), 0.01)
+    nsr[..., W // 4 :] = 100.0
+    model = dinv.models.WienerDeconvolution(lambda_reg=nsr)
+
+    y = torch.randn(1, 1, H, W)
+    with torch.no_grad():
+        x_hat = model(y, wiener_denoise_impulse)
+
+    # With A = I the filter is Y(f) / (1 + lambda(f)), so compare spectra.
+    Y = torch.fft.rfft2(y, norm="ortho")
+    X = torch.fft.rfft2(x_hat, norm="ortho")
+    kept = (X[..., : W // 4].abs() / Y[..., : W // 4].abs().clamp(min=1e-12)).mean()
+    killed = (X[..., W // 4 :].abs() / Y[..., W // 4 :].abs().clamp(min=1e-12)).mean()
+    assert kept > 0.9, f"Low frequencies should be preserved, got {kept:.4f}"
+    assert killed < 0.1, f"High frequencies should be suppressed, got {killed:.4f}"
+
+
+@pytest.mark.parametrize("prior", [None, "laplacian"])
+def test_wiener_prior_applies_by_lambda_rank(wiener_blur_1ch, prior):
+    """prior applies to a scalar or 0-dim lambda_reg, and is ignored above rank 0.
+
+    _is_frequency_dependent tests rank, not type: a 0-dim tensor holds a single
+    value, so it must behave exactly like the float, prior included.  A tensor
+    of rank >= 1 is the frequency-dependent NSR and supplies lambda(f) itself,
+    leaving prior nothing to set.
+    """
+    H = W = 16
+    x = torch.randn(1, 1, H, W)
+    y = wiener_blur_1ch.A(x)
+
+    # Rank 0: identical to the float of the same value, prior included.
+    with torch.no_grad():
+        x_float = dinv.models.WienerDeconvolution(lambda_reg=0.5, prior=prior)(
+            y, wiener_blur_1ch
+        )
+        x_tensor = dinv.models.WienerDeconvolution(
+            lambda_reg=torch.tensor(0.5), prior=prior
+        )(y, wiener_blur_1ch)
+    assert torch.allclose(x_float, x_tensor, atol=1e-6), (
+        f"0-dim tensor lambda_reg differs from the equivalent float: max diff = "
+        f"{(x_float - x_tensor).abs().max()}"
+    )
+
+    # Rank 0, value zero: short-circuits to the pseudo-inverse, as the float does.
+    with torch.no_grad():
+        x_zero = dinv.models.WienerDeconvolution(
+            lambda_reg=torch.tensor(0.0), prior=prior
+        )(y, wiener_blur_1ch)
+    assert torch.equal(
+        x_zero, wiener_blur_1ch.A_dagger(y)
+    ), "lambda_reg=tensor(0.0) should delegate exactly to the pseudo-inverse"
+
+    # Rank 1 and above: prior has no effect.
+    lambda_tensor = torch.ones(1, 1, H, W // 2 + 1) / 3.0
+    with torch.no_grad():
+        x_with_prior = dinv.models.WienerDeconvolution(
+            lambda_reg=lambda_tensor, prior=prior
+        )(y, wiener_blur_1ch)
+        x_without_prior = dinv.models.WienerDeconvolution(
+            lambda_reg=lambda_tensor, prior=None
+        )(y, wiener_blur_1ch)
+    assert torch.allclose(x_with_prior, x_without_prior, atol=1e-7), (
+        f"Prior should be ignored when lambda_reg is a tensor, but outputs "
+        f"differ: max diff = {(x_with_prior - x_without_prior).abs().max()}"
+    )
+
+
+@pytest.mark.parametrize(
+    "physics_name,match",
+    [
+        pytest.param("blur", "requires physics to be an instance of", id="blur"),
+        pytest.param("mri", "requires physics to be an instance of", id="mri"),
+        pytest.param("denoising", "unit-impulse", id="denoising"),
+    ],
+)
+def test_wiener_rejects_unsupported_physics(physics_name, match):
+    """Only BlurFFT is accepted.
+
+    Denoising is rejected with a message naming the unit-impulse alternative;
+    other operators get the generic message.  Neither branch reads lambda_reg or
+    prior, so those are held fixed here.
+    """
+    if physics_name == "blur":
+        physics = dinv.physics.Blur(filter=torch.ones(1, 1, 3, 3) / 9.0)
+        y = torch.randn(1, 1, 16, 16)
+    elif physics_name == "mri":
+        physics = dinv.physics.MRI(img_size=(2, 8, 8))
+        y = torch.randn(1, 2, 8, 8)
+    else:
+        physics = dinv.physics.Denoising(
+            noise_model=dinv.physics.GaussianNoise(sigma=0.0)
+        )
+        y = torch.randn(1, 1, 8, 8)
+
+    model = dinv.models.WienerDeconvolution(lambda_reg=1.0, prior="laplacian")
+    with pytest.raises(ValueError, match=match):
+        model(y, physics)
+
+
+def test_wiener_rejects_invalid_prior_at_construction():
+    """An invalid prior string raises at construction, before any forward pass."""
+    with pytest.raises(ValueError, match="Invalid prior"):
+        dinv.models.WienerDeconvolution(lambda_reg=1.0, prior="wavelet")
+
+
+def test_wiener_analytical_solution(wiener_denoise_impulse):
+    """With a unit-impulse filter and a flat lambda_reg, x_hat = y / (1 + lambda)."""
+    lambda_val = 0.2
+    model = dinv.models.WienerDeconvolution(lambda_reg=lambda_val, prior=None)
+    y = torch.randn(2, 1, 8, 8)
+    with torch.no_grad():
+        x_hat = model(y, wiener_denoise_impulse)
+    # prox_l2(z=0, y, gamma) with A = I, so |H(f)| = 1 at every frequency:
+    #   scaling = |H|^2 + 1/gamma = 1 + lambda
+    #   x = V(F(y) / (1 + lambda)) = y / (1 + lambda), since F is unitary and
+    #   the scaling is constant, so it commutes with the inverse transform.
+    expected = y / (1.0 + lambda_val)
+    assert torch.allclose(
+        x_hat, expected, atol=1e-6
+    ), f"Analytical solution mismatch: max diff = {(x_hat - expected).abs().max()}"
+
+
+def test_wiener_pseudoinverse_limit(wiener_blur_1ch):
+    """lambda_reg -> 0 approaches A_dagger; lambda_reg == 0 returns it exactly."""
+    x = torch.randn(1, 1, 16, 16)
+    y = wiener_blur_1ch.A(x)
+    with torch.no_grad():
+        x_pinv = wiener_blur_1ch.A_dagger(y)
+        x_small = dinv.models.WienerDeconvolution(lambda_reg=1e-8, prior=None)(
+            y, wiener_blur_1ch
+        )
+        x_zero = dinv.models.WienerDeconvolution(lambda_reg=0.0, prior="laplacian")(
+            y, wiener_blur_1ch
+        )
+    assert torch.allclose(
+        x_small, x_pinv, atol=1e-3
+    ), f"Small-lambda convergence failed: max diff = {(x_small - x_pinv).abs().max()}"
+    assert torch.equal(
+        x_zero, x_pinv
+    ), "lambda_reg=0 should delegate exactly to the pseudo-inverse"
+
+
+def test_wiener_lambda_reg_buffer_semantics(device):
+    """A tensor lambda_reg is a non-persistent buffer; a scalar stays a float."""
+    tensor_model = dinv.models.WienerDeconvolution(
+        lambda_reg=torch.full((1, 1, 16, 9), 0.1)
+    ).to(device)
+    assert tensor_model.lambda_reg.device.type == torch.device(device).type
+    # Non-persistent: the model has no trainable state to checkpoint.
+    assert "lambda_reg" not in tensor_model.state_dict()
+
+    scalar_model = dinv.models.WienerDeconvolution(lambda_reg=0.5).to(device)
+    assert scalar_model.lambda_reg == 0.5
+    assert not isinstance(scalar_model.lambda_reg, torch.Tensor)
