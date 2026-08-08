@@ -181,9 +181,7 @@ def test_bb_clamp():
     prob = _make_problem(cond=3.0, seed=5)
     maid = MAID(
         SmoothHypergradientOracle(prob),
-        MAIDConfig(
-            bb_init=True, bb_form="long", alpha_min=0.1, alpha_max=0.2
-        ),
+        MAIDConfig(bb_init=True, bb_form="long", alpha_min=0.1, alpha_max=0.2),
     )
     s = torch.tensor([10.0, 0.0, 0.0], dtype=torch.float64)
     y = torch.tensor([1.0, 0.0, 0.0], dtype=torch.float64)

@@ -241,8 +241,6 @@ class QuadraticBilevelLS:
             _ = self.J @ v
         return self.J_norm
 
-    def update_lipschitz_estimates(
-        self, x: torch.Tensor, theta: torch.Tensor
-    ) -> None:
+    def update_lipschitz_estimates(self, x: torch.Tensor, theta: torch.Tensor) -> None:
         """No-op for the quadratic problem (L_H_inv = L_J = 0)."""
         return None

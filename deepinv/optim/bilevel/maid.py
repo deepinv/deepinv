@@ -266,19 +266,13 @@ class MAID:
                 )
         else:
             if not (0.0 < c.lambd < 1.0):
-                raise ValueError(
-                    f"lambd must lie in (0, 1), got {c.lambd}"
-                )
+                raise ValueError(f"lambd must lie in (0, 1), got {c.lambd}")
         if c.max_BT < 1:
             raise ValueError(f"max_BT must be >= 1, got {c.max_BT}")
         if not (0.0 <= c.eta_ref < 1.0):
-            raise ValueError(
-                f"eta_ref must lie in [0, 1), got {c.eta_ref}"
-            )
+            raise ValueError(f"eta_ref must lie in [0, 1), got {c.eta_ref}")
         if c.bb_form not in ("long", "short"):
-            raise ValueError(
-                f"bb_form must be 'long' or 'short', got {c.bb_form!r}"
-            )
+            raise ValueError(f"bb_form must be 'long' or 'short', got {c.bb_form!r}")
         if not (0.0 < c.alpha_min <= c.alpha_max):
             raise ValueError(
                 f"require 0 < alpha_min <= alpha_max, got "
@@ -389,9 +383,9 @@ class MAID:
 
                 z_norm_sq = float(torch.sum(z * z).item())
                 z_norm = z_norm_sq**0.5
-                stop_omega = (
-                    (not math.isnan(omega)) and omega <= c.tol
-                ) or math.isnan(omega)
+                stop_omega = ((not math.isnan(omega)) and omega <= c.tol) or math.isnan(
+                    omega
+                )
                 if z_norm <= c.tol and stop_omega:
                     history["f_exact"].append(self._f_diag(theta))
                     history["z_norm"].append(z_norm)
@@ -399,12 +393,8 @@ class MAID:
                     history["eps"].append(eps_k)
                     history["delta"].append(delta_k)
                     history["alpha"].append(alpha_k)
-                    history["backtrack_failures"].append(
-                        float(failures_this_iter)
-                    )
-                    history["C_ref"].append(
-                        float(C) if C is not None else float("nan")
-                    )
+                    history["backtrack_failures"].append(float(failures_this_iter))
+                    history["C_ref"].append(float(C) if C is not None else float("nan"))
                     history["bb_used"].append(bb_used_flag)
                     pbar.close()
                     self._finalise_history(
@@ -438,9 +428,7 @@ class MAID:
                         theta_trial, eps=eps_k, warm_start=lower
                     )
                     g_new = float(oracle.g(lower_trial.x).item())
-                    grad_g_new_norm = float(
-                        oracle.grad_g(lower_trial.x).norm().item()
-                    )
+                    grad_g_new_norm = float(oracle.grad_g(lower_trial.x).norm().item())
                     U_upper = self._U_upper(g_new, grad_g_new_norm, eps_next)
                     # Nonmonotone test against C (or U_lower on the first step).
                     psi = U_upper - ref + c.lambd * alpha_try * z_norm_sq
@@ -453,9 +441,7 @@ class MAID:
                     # monotone Lemma 3.5 test would pass. Accept if either
                     # test succeeds. When C >= U_lower the ZH test is the
                     # looser one and is what buys the nonmonotone relaxation.
-                    psi_mon = (
-                        U_upper - U_lower + c.lambd * alpha_try * z_norm_sq
-                    )
+                    psi_mon = U_upper - U_lower + c.lambd * alpha_try * z_norm_sq
                     if c.g_convex:
                         psi_mon = psi_mon - 0.5 * oracle.L_g * (eps_k**2)
                     if psi <= 0.0 or psi_mon <= 0.0:
@@ -487,9 +473,7 @@ class MAID:
                     # and make the next nonmonotone test unsatisfiable
                     # (observed with eta_ref=0, where C = U_lower_new exactly).
                     if c.nonmonotone:
-                        U_lower_new = self._U_lower(
-                            g_new, grad_g_new_norm, eps_k
-                        )
+                        U_lower_new = self._U_lower(g_new, grad_g_new_norm, eps_k)
                         if not window_ready:
                             # C_0 = U_lower at the point the step left from.
                             C = ref
@@ -536,15 +520,15 @@ class MAID:
                 eps=f"{eps_k:.1e}",
                 omega=("off" if math.isnan(omega) else f"{omega:.1e}"),
             )
-            if c.verbose and not c.show_progress_bar and (
-                _k % max(int(c.log_every), 1) == 0
+            if (
+                c.verbose
+                and not c.show_progress_bar
+                and (_k % max(int(c.log_every), 1) == 0)
             ):
                 # omega is NaN by contract when check_descent_direction is
                 # False (Algorithm 3.1 never forms it). Say so, rather than
                 # printing a bare nan that reads as a numerical failure.
-                omega_str = (
-                    "off" if math.isnan(omega) else f"{omega:.3e}"
-                )
+                omega_str = "off" if math.isnan(omega) else f"{omega:.3e}"
                 print(
                     f"MAID it={_k:4d}  f={history['f_exact'][-1]:.6e}  "
                     f"||z||={history['z_norm'][-1]:.3e}  omega={omega_str}  "
@@ -614,9 +598,7 @@ class MAID:
         history["n_backtrack_failures"] = int(n_backtrack_failures)
         history["n_upper_iters"] = len(history["f_exact"])
         history["n_lower_solves"] = int(getattr(oracle, "n_lower_solves", -1))
-        history["n_hypergradients"] = int(
-            getattr(oracle, "n_hypergradients", -1)
-        )
+        history["n_hypergradients"] = int(getattr(oracle, "n_hypergradients", -1))
 
     def _f_diag(self, theta: torch.Tensor) -> float:
         try:

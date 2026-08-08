@@ -40,7 +40,9 @@ class NonQuadraticBilevel:
         gd_max_iter: int = 100_000,
     ):
         if gamma <= 0.0:
-            raise ValueError(f"gamma must be positive for strong convexity, got {gamma}")
+            raise ValueError(
+                f"gamma must be positive for strong convexity, got {gamma}"
+            )
         if beta < 0.0:
             raise ValueError(f"beta must be non-negative, got {beta}")
         self.A1 = A1
@@ -91,9 +93,7 @@ class NonQuadraticBilevel:
         data = 2.0 * (self.A2.T @ self.residual_lower(x, theta))
         return data + self.gamma * x + self.beta * torch.tanh(x)
 
-    def hess_x_matvec(
-        self, x: torch.Tensor, v: torch.Tensor
-    ) -> torch.Tensor:
+    def hess_x_matvec(self, x: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         data = 2.0 * (self._AtA @ v)
         # d/dx (beta tanh(x)) [v] = beta sech^2(x) * v
         sech2 = 1.0 / torch.cosh(x).pow(2)
@@ -172,7 +172,9 @@ class NonQuadraticBilevel:
         x, _ = self.solve_lower(theta, eps=1e-12, max_iter=200_000)
         return self.g(x)
 
-    def estimate_J_norm(self, x: torch.Tensor, theta: torch.Tensor, n_power: int = 1) -> float:
+    def estimate_J_norm(
+        self, x: torch.Tensor, theta: torch.Tensor, n_power: int = 1
+    ) -> float:
         return self.J_norm
 
     def update_lipschitz_estimates(self, x: torch.Tensor, theta: torch.Tensor) -> None:

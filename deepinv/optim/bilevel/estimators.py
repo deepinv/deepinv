@@ -127,9 +127,7 @@ class GoalOrientedEstimator:
         (for quadratic ``g(x) = ||A1 x - b1||^2`` this is ``v |-> 2 A1^T A1 v``).
         """
         directions = (
-            main_cg.directions
-            if (self.recycle_krylov and main_cg is not None)
-            else []
+            main_cg.directions if (self.recycle_krylov and main_cg is not None) else []
         )
 
         # s1 ≈ H^{-1} grad_x h
@@ -151,9 +149,5 @@ class GoalOrientedEstimator:
         directions: list[torch.Tensor],
     ) -> torch.Tensor:
         if directions:
-            return cg_recycle(
-                hess_mv, rhs, directions, max_iter=self.cg_budget
-            ).x
-        return cg_solve(
-            hess_mv, rhs, tol=None, max_iter=self.cg_budget
-        ).x
+            return cg_recycle(hess_mv, rhs, directions, max_iter=self.cg_budget).x
+        return cg_solve(hess_mv, rhs, tol=None, max_iter=self.cg_budget).x

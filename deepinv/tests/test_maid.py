@@ -8,7 +8,6 @@ problem of section 4.1 of Salehi et al., SIAM J. Math. Data Sci. 2025
 
 from __future__ import annotations
 
-import pytest
 import torch
 
 from deepinv.optim.bilevel import (
@@ -105,9 +104,7 @@ def test_error_bound_dominates_true_error():
     # Deliberately inexact lower-level and CG solves.
     eps = 1e-2
     delta = 1e-2
-    xbar, grad_norm = problem.solve_lower(
-        theta0, eps=eps, x_init=None, max_iter=10_000
-    )
+    xbar, grad_norm = problem.solve_lower(theta0, eps=eps, x_init=None, max_iter=10_000)
     assert grad_norm <= eps * problem.mu + 1e-12
 
     z, cg = problem.inexact_hypergradient(xbar, theta0, delta=delta)
@@ -125,9 +122,9 @@ def test_error_bound_dominates_true_error():
         L_H_inv=0.0,
         L_J=0.0,
     )
-    assert omega >= true_err - 1e-12, (
-        f"error bound {omega} does not dominate true error {true_err}"
-    )
+    assert (
+        omega >= true_err - 1e-12
+    ), f"error bound {omega} does not dominate true error {true_err}"
     assert omega > 0.0
 
 
@@ -203,9 +200,9 @@ def test_maid_recovers_known_optimum():
     f_final = problem.f_closed_form(theta_final).item()
     assert f_final < f0
     rel_gap = (f_final - f_star) / max(abs(f_star), 1.0)
-    assert rel_gap < 1e-3, (
-        f"relative gap to known optimum is {rel_gap}, f_final={f_final}, f_star={f_star}"
-    )
+    assert (
+        rel_gap < 1e-3
+    ), f"relative gap to known optimum is {rel_gap}, f_final={f_final}, f_star={f_star}"
     param_err = (theta_final - theta_star).norm().item()
     assert param_err < 1e-2, f"||theta - theta_star|| = {param_err}"
     assert history["f_exact"][-1] <= history["f_exact"][0]

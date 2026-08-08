@@ -12,7 +12,7 @@ from deepinv.optim.bilevel import (
     NonQuadraticBilevel,
     SmoothHypergradientOracle,
 )
-from deepinv.tests.test_maid import _make_section41_problem, _rand_well_conditioned
+from deepinv.tests.test_maid import _make_section41_problem
 
 
 def test_goal_oriented_requires_opt_in():
@@ -130,9 +130,7 @@ def test_nonquadratic_dwr_across_nonlinearity_scales(data_scale):
     Records the ``sech^2`` spread so a reader can see which regime is covered.
     A nonlinearity test that silently runs in the linear regime is not coverage.
     """
-    problem = _make_nonquadratic_gaussian(
-        n=80, d=20, seed=0, data_scale=data_scale
-    )
+    problem = _make_nonquadratic_gaussian(n=80, d=20, seed=0, data_scale=data_scale)
     theta0 = torch.zeros(problem.d, dtype=torch.float64)
     sech2_spread = _sech2_spread(problem, theta0)
     lo, hi = _SECH2_REGIME[data_scale]

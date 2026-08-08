@@ -51,7 +51,6 @@ from .convex_ridge import (
     ConvexRidgePrior,
     apply_conv,
     get_conv_lip,
-    grad_smooth_l1,
     smooth_l1,
     unpack_theta,
 )
@@ -238,9 +237,7 @@ class BatchedCRR:
         """1 for ``A = I``, else 0, as in :class:`CRRSampleProblem`."""
         v = torch.randn_like(self.x_star)
         Av = self.physics.A(v)
-        if Av.shape == v.shape and torch.allclose(
-            Av, v, atol=1e-12, rtol=0.0
-        ):
+        if Av.shape == v.shape and torch.allclose(Av, v, atol=1e-12, rtol=0.0):
             return 1.0
         return 0.0
 
@@ -407,9 +404,7 @@ class BatchedCRR:
             improved = res < best_res * (1.0 - 1e-3)
             best_res = torch.where(improved, res, best_res)
             best_x = torch.where(improved.view(self.B, 1, 1, 1), x, best_x)
-            since = torch.where(
-                improved, torch.zeros_like(since), since + 1
-            )
+            since = torch.where(improved, torch.zeros_like(since), since + 1)
             stalled = stalled | (since >= stall_patience)
 
         x = best_x
@@ -438,8 +433,12 @@ class BatchedCRR:
         return float(g.flatten(1).norm(dim=1).mean()) / (scale * self.mu)
 
     def hypergradient(
-        self, x: torch.Tensor, theta: torch.Tensor, delta: float,
-        *, max_cg_iter: int = 200,
+        self,
+        x: torch.Tensor,
+        theta: torch.Tensor,
+        delta: float,
+        *,
+        max_cg_iter: int = 200,
     ) -> torch.Tensor:
         """``z = -sum_i J_i^T H_i^{-1} grad g_i`` over this batch."""
         rhs = self.grad_g(x)
@@ -496,13 +495,13 @@ class BatchedMinibatchOracle(HypergradientOracle):
         if batch_size is None:
             probe = groups[0]
 
-            th_probe = torch.zeros(
-                cfg.n_params, dtype=self.dtype, device=self.device
-            )
+            th_probe = torch.zeros(cfg.n_params, dtype=self.dtype, device=self.device)
 
             def run_probe(b: int) -> None:
                 bp = BatchedCRR(
-                    y=probe[1][:b], x_star=probe[2][:b], cfg=cfg,
+                    y=probe[1][:b],
+                    x_star=probe[2][:b],
+                    cfg=cfg,
                     physics=probe[0],
                 )
                 xp, _r, _i = bp.solve_lower(th_probe, eps=1e-3, max_iter=5)
@@ -513,9 +512,7 @@ class BatchedMinibatchOracle(HypergradientOracle):
             n_avail = int(probe[2].shape[0])
             pb = (1, 2) if n_avail < 4 else (2, 4)
             try:
-                per = measure_sample_bytes(
-                    run_probe, self.device, probe_batches=pb
-                )
+                per = measure_sample_bytes(run_probe, self.device, probe_batches=pb)
             except (ValueError, RuntimeError):
                 # A physics with per-sample parameters cannot be applied to a
                 # slice of its own batch, so the two-point probe is impossible.
@@ -542,9 +539,7 @@ class BatchedMinibatchOracle(HypergradientOracle):
             for s in range(0, n, self.batch_size):
                 e = min(s + self.batch_size, n)
                 self.batches.append(
-                    BatchedCRR(
-                        y=y[s:e], x_star=x_star[s:e], cfg=cfg, physics=physics
-                    )
+                    BatchedCRR(y=y[s:e], x_star=x_star[s:e], cfg=cfg, physics=physics)
                 )
         self._certified = True
         self._citation = (
@@ -579,14 +574,17 @@ class BatchedMinibatchOracle(HypergradientOracle):
 
     # -- oracle API ----------------------------------------------------
     def solve_lower_level(
-        self, theta: torch.Tensor, eps: float,
+        self,
+        theta: torch.Tensor,
+        eps: float,
         warm_start: LowerLevelState | None = None,
     ) -> LowerLevelState:
         xs, g_acc, ng_acc, n_it = [], 0.0, 0.0, 0
         warm = warm_start.extras.get("x_list") if warm_start else None
         for k, bp in enumerate(self.batches):
             x, _res, info = bp.solve_lower(
-                theta, eps=eps,
+                theta,
+                eps=eps,
                 x_init=warm[k] if warm is not None else None,
                 max_iter=self.solver_max_iter,
             )
@@ -614,7 +612,7 @@ class BatchedMinibatchOracle(HypergradientOracle):
         xs = lower.extras["x_list"]
         z_acc: torch.Tensor | None = None
         J_max = 0.0
-        for bp, x in zip(self.batches, xs):
+        for bp, x in zip(self.batches, xs, strict=True):
             z_b = bp.hypergradient(x, theta, delta=delta)
             z_acc = z_b.clone() if z_acc is None else z_acc + z_b
             J_max = max(J_max, self._batch_J_norm(bp, x, theta))
@@ -662,12 +660,17 @@ class BatchedMinibatchOracle(HypergradientOracle):
         vals = [bp.initial_residual_rms(theta) for bp in self.batches]
         weights = [bp.B for bp in self.batches]
         return float(
-            sum(v * w for v, w in zip(vals, weights)) / max(sum(weights), 1)
+            sum(v * w for v, w in zip(vals, weights, strict=True))
+            / max(sum(weights), 1)
         )
 
     def error_bound(
-        self, theta: torch.Tensor, lower: LowerLevelState,
-        hyper: HypergradientState, eps: float, delta: float,
+        self,
+        theta: torch.Tensor,
+        lower: LowerLevelState,
+        hyper: HypergradientState,
+        eps: float,
+        delta: float,
     ) -> float:
         return smooth_hypergradient_error_bound(
             eps=eps,
@@ -684,14 +687,14 @@ class BatchedMinibatchOracle(HypergradientOracle):
         out = 0.0
         s = 0
         for bp in self.batches:
-            out = out + bp.g_per_sample(x[s:s + bp.B]).sum()
+            out = out + bp.g_per_sample(x[s : s + bp.B]).sum()
             s += bp.B
         return out / self.m
 
     def grad_g(self, x: torch.Tensor) -> torch.Tensor:
         parts, s = [], 0
         for bp in self.batches:
-            parts.append(bp.grad_g(x[s:s + bp.B]))
+            parts.append(bp.grad_g(x[s : s + bp.B]))
             s += bp.B
         return torch.cat(parts) / self.m
 
@@ -706,7 +709,6 @@ class BatchedMinibatchOracle(HypergradientOracle):
     ) -> None:
         # g is quadratic, so L_g = 1 exactly; nothing to estimate.
         self.L_g_value = 1.0
-
 
 
 def auto_initial_accuracy(
@@ -777,9 +779,7 @@ def auto_initial_accuracy(
     if min_eps is None:
         min_eps = 100.0 * float(torch.finfo(theta0.dtype).eps)
     if not (0.0 < min_eps <= max_eps):
-        raise ValueError(
-            f"need 0 < min_eps <= max_eps, got {min_eps} and {max_eps}"
-        )
+        raise ValueError(f"need 0 < min_eps <= max_eps, got {min_eps} and {max_eps}")
     r0 = float(oracle.initial_residual_rms(theta0))
     if not (r0 > 0.0) or r0 != r0:  # non-positive or NaN
         return float(min_eps)

@@ -59,11 +59,7 @@ def smooth_hypergradient_error_bound(
     """
     if mu <= 0.0:
         raise ValueError(f"mu must be positive, got {mu}")
-    c = (
-        L_g * J_norm / mu
-        + L_H_inv * grad_g_norm * J_norm
-        + L_J * grad_g_norm / mu
-    )
+    c = L_g * J_norm / mu + L_H_inv * grad_g_norm * J_norm + L_J * grad_g_norm / mu
     omega = c * eps + (J_norm / mu) * delta + (L_J * L_g / mu) * (eps**2)
     return float(omega)
 

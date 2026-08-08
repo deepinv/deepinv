@@ -195,9 +195,7 @@ def unpack_theta(
     if theta.ndim != 1:
         raise ValueError(f"theta must be 1-D, got shape {tuple(theta.shape)}")
     if theta.numel() != cfg.n_params:
-        raise ValueError(
-            f"theta has {theta.numel()} entries, expected {cfg.n_params}"
-        )
+        raise ValueError(f"theta has {theta.numel()} entries, expected {cfg.n_params}")
     return unpack_weights(theta, cfg), *unpack_scaling_beta(theta, cfg)
 
 
@@ -358,9 +356,7 @@ class ConvexRidgePrior:
         self._lip = get_conv_lip(weights, self.cfg, detach=True)
         return self._lip
 
-    def load_theta(
-        self, theta: torch.Tensor, *, refresh_lip: bool = True
-    ) -> None:
+    def load_theta(self, theta: torch.Tensor, *, refresh_lip: bool = True) -> None:
         """Unpack theta into weights, scaling and beta.
 
         By default ``lip`` is recomputed from the loaded weights, so the

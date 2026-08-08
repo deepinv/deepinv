@@ -24,8 +24,6 @@ import torch
 from deepinv.optim.bilevel import (
     MAID,
     MAIDConfig,
-    GoalOrientedSmoothOracle,
-    SmoothHypergradientOracle,
 )
 from deepinv.optim.bilevel.minibatch import (
     MinibatchOracle,
@@ -264,9 +262,7 @@ def test_tracemalloc_peak_not_linear_in_m_at_fixed_chunk():
 def test_goal_oriented_minibatch_runs_and_omega_positive():
     m, d = 4, 3
     problems = make_quadratic_dataset(m, cond=6.0, n=25, d=d, seed=6)
-    oracles = wrap_smooth_dataset(
-        problems, goal_oriented=True, recycle_krylov=True
-    )
+    oracles = wrap_smooth_dataset(problems, goal_oriented=True, recycle_krylov=True)
     mb = MinibatchOracle(oracles, chunk_size=2)
     # Non-certified.
     assert mb.certified is False

@@ -16,12 +16,17 @@ New Features
 - Add :func:`deepinv.utils.plot_napari` to interactively view 2D images/3D vols with napari (:gh:`1249` by `Andrew Wang`_)
 - Add support for :func:`Liu-Jia padding <deepinv.physics.functional.liu_jia_pad>` (:gh:`934` by `Jérémy Scanvic`_)
 - Add support for TV-L1 priors :class:`deepinv.optim.TVL1Prior` (:gh:`1236` by `Sarra Amiri`_)
+- Add batched lower-level solves for :class:`deepinv.optim.bilevel.MAID` with hypergradient accumulation and memory-aware batch sizing (``BatchedCRR``, ``BatchedMinibatchOracle``) (by `Mohammad Sadegh Salehi`_)
+- Add ``auto_initial_accuracy`` to choose the initial lower-level accuracy from the problem's initial residual (by `Mohammad Sadegh Salehi`_)
+- Add an isotropic TV baseline for prior comparisons (:mod:`deepinv.optim.bilevel.tv_baseline`) (by `Mohammad Sadegh Salehi`_)
+- Report :class:`deepinv.optim.bilevel.MAID` progress via ``verbose`` / ``show_progress_bar`` (by `Mohammad Sadegh Salehi`_)
 
 Changed
 ^^^^^^^
 - (Breaking) Drop support for deprecated parameters `num_channels` in :class:`deepinv.physics.generator.PSFGenerator`, :class:`deepinv.physics.generator.GaussianBlurGenerator`, :class:`deepinv.physics.generator.MotionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
 - Extend :func:`DST-I <deepinv.physics.functional.dst1>` to make it n-dimensional and add an option to have it compute the regular DST-I instead of the non-standard sign-flipped orthogonal variant (:gh:`934` by `Jérémy Scanvic`_)
 - (Breaking) Make :class:`deepinv.optim.TVPrior()` compute an explicit choice of subgradient instead of using autodiff. (:gh:`1271` by `Thibaut Modrzyk`_)
+- Make lower-level tolerances per-element and dtype-aware, enabling float32 on CUDA and MPS (by `Mohammad Sadegh Salehi`_)
 
 Fixed
 ^^^^^
@@ -677,3 +682,4 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
+.. _Mohammad Sadegh Salehi: https://github.com/MohammadSadeghSalehi

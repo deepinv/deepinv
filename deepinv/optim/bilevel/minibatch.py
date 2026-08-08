@@ -164,16 +164,12 @@ class MinibatchOracle(HypergradientOracle):
         self.sample_oracles = list(sample_oracles)
         self.m = len(self.sample_oracles)
         if not (1 <= int(chunk_size) <= self.m):
-            raise ValueError(
-                f"chunk_size must lie in 1..{self.m}, got {chunk_size}"
-            )
+            raise ValueError(f"chunk_size must lie in 1..{self.m}, got {chunk_size}")
         self.chunk_size = int(chunk_size)
         # Certification: the mean is certified only if every sample is.
         self._certified = all(o.certified for o in self.sample_oracles)
         citations = sorted({o.citation for o in self.sample_oracles if o.citation})
-        self._citation = (
-            "mean of: " + "; ".join(citations) if citations else ""
-        )
+        self._citation = "mean of: " + "; ".join(citations) if citations else ""
         self.n_lower_solves = 0
         self.n_hypergradients = 0
         self.n_sample_lower_solves = 0
@@ -348,9 +344,7 @@ class MinibatchOracle(HypergradientOracle):
                 omega_parts.append(float(omega_i))
 
                 g_i = float(self.sample_oracles[i].g(x_list[i]).item())
-                ng_i = float(
-                    self.sample_oracles[i].grad_g(x_list[i]).norm().item()
-                )
+                ng_i = float(self.sample_oracles[i].grad_g(x_list[i]).norm().item())
                 g_acc = g_acc + g_i
                 ng_acc = ng_acc + ng_i
             self._note_working(chunk_tensors)
@@ -448,13 +442,9 @@ class MinibatchOracle(HypergradientOracle):
             )
         ng_acc = 0.0
         for i, x_i in enumerate(x_list):
-            ng_acc = ng_acc + float(
-                self.sample_oracles[i].grad_g(x_i).norm().item()
-            )
+            ng_acc = ng_acc + float(self.sample_oracles[i].grad_g(x_i).norm().item())
         mean_ng = ng_acc / float(self.m)
-        return torch.tensor(
-            [mean_ng], dtype=x_list[0].dtype, device=x_list[0].device
-        )
+        return torch.tensor([mean_ng], dtype=x_list[0].dtype, device=x_list[0].device)
 
     def f_closed_form(self, theta: torch.Tensor) -> torch.Tensor:
         total = None

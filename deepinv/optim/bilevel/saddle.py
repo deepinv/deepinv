@@ -35,16 +35,12 @@ from .oracle import (
 )
 
 
-def primal_distance_bound(
-    grad_g_plus_KT_grad_f: float, mu_g: float
-) -> float:
+def primal_distance_bound(grad_g_plus_KT_grad_f: float, mu_g: float) -> float:
     r"""Equation 6a: :math:`\|x - \hat x\| \le \|\nabla g(x) + K^\top\nabla f(Kx)\| / \mu_g`."""
     return strong_convexity_distance_bound(grad_g_plus_KT_grad_f, mu_g)
 
 
-def dual_distance_bound(
-    grad_fstar_minus_K_grad_gstar: float, mu_fstar: float
-) -> float:
+def dual_distance_bound(grad_fstar_minus_K_grad_gstar: float, mu_fstar: float) -> float:
     r"""Equation 6b: :math:`\|y - \hat y\| \le \|\nabla f^*(y) - K\nabla g^*(-K^\top y)\| / \mu_{f^*}`."""
     return strong_convexity_distance_bound(grad_fstar_minus_K_grad_gstar, mu_fstar)
 
@@ -127,14 +123,12 @@ def saddle_bound_constants(
     if mu_g <= 0.0 or mu_fstar <= 0.0:
         raise ValueError("mu_g and mu_fstar must be positive known constants")
     C1X = (L_hess_gstar * (L_g**3) * X_norm + L1) / mu_g
-    C2X = (
-        L_hess_f * L_fstar * K_norm * (K_norm * X_norm + grad_ell2_norm) / mu_g
-        + L2 * K_norm / (mu_g * mu_fstar)
-    )
-    C1Y = (
-        L_hess_gstar * L_g * K_norm * (K_norm * Y_norm + grad_ell1_norm) / mu_fstar
-        + L1 * K_norm / (mu_g * mu_fstar)
-    )
+    C2X = L_hess_f * L_fstar * K_norm * (
+        K_norm * X_norm + grad_ell2_norm
+    ) / mu_g + L2 * K_norm / (mu_g * mu_fstar)
+    C1Y = L_hess_gstar * L_g * K_norm * (
+        K_norm * Y_norm + grad_ell1_norm
+    ) / mu_fstar + L1 * K_norm / (mu_g * mu_fstar)
     C2Y = (L_hess_f * (L_fstar**3) * Y_norm + L2) / mu_fstar
     return float(C1X), float(C2X), float(C1Y), float(C2Y)
 
@@ -217,16 +211,17 @@ class QuadraticSaddleProblem:
         r = self.grad_fstar(y) - K @ self.grad_gstar(-K.T @ y)
         return float(r.norm().item())
 
-    def closed_form_saddle(
-        self, K: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def closed_form_saddle(self, K: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Exact saddle point via the linear KKT system."""
         # From dual stationarity: mu_fstar y - q = K x  => y = (K x + q)/mu_fstar
         # From primal: mu_g x - p + K^T y = 0
         # => mu_g x + K^T (K x + q)/mu_fstar = p
         # => (mu_g I + K^T K / mu_fstar) x = p - K^T q / mu_fstar
         KtK = K.T @ K
-        A = self.mu_g * torch.eye(self.d, dtype=self.dtype, device=self.device) + KtK / self.mu_fstar
+        A = (
+            self.mu_g * torch.eye(self.d, dtype=self.dtype, device=self.device)
+            + KtK / self.mu_fstar
+        )
         rhs = self.p - K.T @ self.q / self.mu_fstar
         x = torch.linalg.solve(A, rhs)
         y = (K @ x + self.q) / self.mu_fstar

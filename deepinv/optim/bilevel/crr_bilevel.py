@@ -69,7 +69,6 @@ from deepinv.optim.prior import Prior
 from .base_optim_lower import (
     build_solver,
     residual_kind_for_solver,
-    solve_base_optim,
 )
 from .cg_utils import CGResult, cg_solve
 from .convex_ridge import (
@@ -85,7 +84,6 @@ from .oracle import (
     LowerLevelState,
 )
 from .smooth import smooth_hypergradient_error_bound
-
 
 # Power-method defaults: converge in relative Rayleigh change, then inflate
 # so the estimate is an upper bound in practice (power iteration approaches
@@ -162,9 +160,9 @@ def power_iteration_lipschitz(
     """
     if seed is not None:
         gen = torch.Generator(device="cpu").manual_seed(int(seed))
-        x = torch.randn(
-            x0.shape, generator=gen, dtype=x0.dtype, device="cpu"
-        ).to(device=x0.device, dtype=x0.dtype)
+        x = torch.randn(x0.shape, generator=gen, dtype=x0.dtype, device="cpu").to(
+            device=x0.device, dtype=x0.dtype
+        )
     else:
         x = torch.randn_like(x0)
     x = x / x.flatten().norm().clamp_min(1e-30)
@@ -307,9 +305,7 @@ class CRRSampleProblem:
         """Strong-convexity modulus: ``mu_data + gamma``."""
         return float(self.mu_data) + float(self.cfg.gamma)
 
-    def load_theta(
-        self, theta: torch.Tensor, *, refresh_lip: bool = True
-    ) -> None:
+    def load_theta(self, theta: torch.Tensor, *, refresh_lip: bool = True) -> None:
         """Load parameters into the prior.
 
         ``lip`` is refreshed from the weights by default, so
@@ -406,9 +402,7 @@ class CRRSampleProblem:
     ) -> torch.Tensor:
         r = self.physics.A(x) - self.y
         data = 0.5 * (r * r).sum()
-        return data + ridge_energy(
-            x, weights, scaling, beta, self.cfg, lip=lip
-        )
+        return data + ridge_energy(x, weights, scaling, beta, self.cfg, lip=lip)
 
     def hess_x_matvec(
         self, x: torch.Tensor, theta: torch.Tensor, v: torch.Tensor
@@ -419,9 +413,7 @@ class CRRSampleProblem:
         # detached here, so this is a constant for an x-only second derivative.
         lip = None
         x_ = x.detach().requires_grad_(True)
-        h = self._h_diffable(
-            x_, w_det, scaling.detach(), beta.detach(), lip=lip
-        )
+        h = self._h_diffable(x_, w_det, scaling.detach(), beta.detach(), lip=lip)
         (g,) = torch.autograd.grad(h, x_, create_graph=True)
         s = (g * v.detach()).sum()
         (Hv,) = torch.autograd.grad(s, x_, retain_graph=False)
@@ -679,9 +671,7 @@ class CRRSampleProblem:
         x = x0.detach().clone()
         y = x.clone()
         history = self._empty_history()
-        residual = float(
-            self.grad_x_h(x, theta, reload=False).flatten().norm().item()
-        )
+        residual = float(self.grad_x_h(x, theta, reload=False).flatten().norm().item())
         self._record(history, 0, residual, None)
         if residual <= residual_tol:
             history["n_iters"] = 0
@@ -741,9 +731,7 @@ class CRRSampleProblem:
         """Truncated Newton: CG on Hess h with Armijo line search."""
         x = x0.detach().clone()
         history = self._empty_history()
-        residual = float(
-            self.grad_x_h(x, theta, reload=False).flatten().norm().item()
-        )
+        residual = float(self.grad_x_h(x, theta, reload=False).flatten().norm().item())
         self._record(
             history,
             0,
@@ -793,9 +781,7 @@ class CRRSampleProblem:
             accepted = False
             for _bt in range(max_bt):
                 x_trial = x + alpha * p
-                f_trial = float(
-                    self.energy_h(x_trial, theta, reload=False).item()
-                )
+                f_trial = float(self.energy_h(x_trial, theta, reload=False).item())
                 if f_trial <= f0 + armijo_c * alpha * gTp:
                     x = x_trial
                     accepted = True
@@ -851,9 +837,7 @@ class CRRSampleProblem:
         }
 
     @staticmethod
-    def _record(
-        history: dict, it: int, residual: float, obj: float | None
-    ) -> None:
+    def _record(history: dict, it: int, residual: float, obj: float | None) -> None:
         history["iters"].append(int(it))
         history["residuals"].append(float(residual))
         if obj is not None:
@@ -933,9 +917,7 @@ class CRRSampleOracle(HypergradientOracle):
         lower: LowerLevelState,
         delta: float,
     ) -> HypergradientState:
-        z, cg = self.problem.inexact_hypergradient(
-            lower.x, theta, delta=delta
-        )
+        z, cg = self.problem.inexact_hypergradient(lower.x, theta, delta=delta)
         self.n_hypergradients += 1
         return HypergradientState(
             z=z,

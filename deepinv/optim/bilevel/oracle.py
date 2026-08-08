@@ -172,6 +172,8 @@ class HypergradientOracle(ABC):
             f"{type(self).__name__} does not expose a closed-form upper level."
         )
 
-    def update_lipschitz_estimates(self, lower: LowerLevelState, theta: torch.Tensor) -> None:
+    def update_lipschitz_estimates(
+        self, lower: LowerLevelState, theta: torch.Tensor
+    ) -> None:
         """Optional running-max update of Lipschitz constants. Default no-op."""
         return None

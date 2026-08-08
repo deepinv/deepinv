@@ -6,7 +6,7 @@ import pytest
 import torch
 
 import deepinv as dinv
-from deepinv.optim import GD, PGD, FISTA, L2, Tikhonov
+from deepinv.optim import L2, Tikhonov
 from deepinv.optim.bilevel import (
     MAID,
     MAIDConfig,
@@ -159,9 +159,7 @@ def test_warm_start_is_used():
 
 def test_tikhonov_weight_hypergradient_matches_finite_difference():
     x_star, y, physics = _denoising_setup(size=12)
-    problem = TikhonovWeightProblem(
-        physics=physics, y=y, x_star=x_star, solver="GD"
-    )
+    problem = TikhonovWeightProblem(physics=physics, y=y, x_star=x_star, solver="GD")
     theta = torch.tensor(0.0, dtype=torch.float64)  # lambda = 1
     z = problem.exact_hypergradient(theta)
     # Central finite difference of f.

@@ -51,7 +51,7 @@ from .oracle import (
 )
 
 if TYPE_CHECKING:
-    from deepinv.physics import Physics
+    pass
 
 
 @dataclass
@@ -232,13 +232,9 @@ class TikhonovWeightProblem:
         self, x: torch.Tensor, theta: torch.Tensor, n_power: int = 1
     ) -> float:
         # ||J|| = ||exp(theta) x|| for the map R -> image space.
-        return float(
-            (self.lambda_from_theta(theta) * x.flatten().norm()).item()
-        )
+        return float((self.lambda_from_theta(theta) * x.flatten().norm()).item())
 
-    def update_lipschitz_estimates(
-        self, x: torch.Tensor, theta: torch.Tensor
-    ) -> None:
+    def update_lipschitz_estimates(self, x: torch.Tensor, theta: torch.Tensor) -> None:
         return None
 
     def exact_hypergradient(self, theta: torch.Tensor) -> torch.Tensor:

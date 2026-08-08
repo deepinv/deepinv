@@ -74,9 +74,7 @@ def assert_grad_div_adjoint(
     # backend and a CPU generator is never asked to fill a device tensor.
     gen = torch.Generator(device="cpu").manual_seed(seed)
     u = torch.randn(shape, generator=gen, dtype=dtype, device="cpu").to(device)
-    p = torch.randn(
-        (*shape, 2), generator=gen, dtype=dtype, device="cpu"
-    ).to(device)
+    p = torch.randn((*shape, 2), generator=gen, dtype=dtype, device="cpu").to(device)
     Du = nabla(u)
     d = div(p)
     residual = float((Du * p).sum().item() + (u * d).sum().item())
@@ -120,9 +118,9 @@ def estimate_data_lipschitz(
     # drawing on the device would make the seed backend-dependent, so the same
     # seed would give different numbers on CPU, CUDA and MPS.
     gen = torch.Generator(device="cpu").manual_seed(0)
-    v = torch.randn(
-        x_like.shape, generator=gen, dtype=x_like.dtype, device="cpu"
-    ).to(device=x_like.device)
+    v = torch.randn(x_like.shape, generator=gen, dtype=x_like.dtype, device="cpu").to(
+        device=x_like.device
+    )
     v = v / v.flatten().norm().clamp_min(1e-30)
     lam = 0.0
     for _ in range(n_iter):
@@ -261,9 +259,7 @@ def grid_tune_tv(
         psnrs: list[float] = []
         for physics, y, x_star in samples:
             do_verify = verify_once and not verified
-            xh, _info = solve_isotropic_tv(
-                physics, y, lam, n_it=n_it, verify=do_verify
-            )
+            xh, _info = solve_isotropic_tv(physics, y, lam, n_it=n_it, verify=do_verify)
             if do_verify:
                 verified = True
             mse = float(torch.mean((xh - x_star) ** 2).item())

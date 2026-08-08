@@ -50,7 +50,6 @@ from deepinv.optim.bilevel import (
     wrap_smooth_dataset,
 )
 
-
 torch.manual_seed(0)
 dtype = torch.float64
 
@@ -166,9 +165,7 @@ def run_maid_to_gap(
     # Recount GD iterations with max_iter fixed at the hit.
     prob = make_quadratic(cond)
     t0 = time.perf_counter()
-    theta, hist = MAID(
-        SmoothHypergradientOracle(prob), _cfg(hit)
-    ).run(theta0.clone())
+    theta, hist = MAID(SmoothHypergradientOracle(prob), _cfg(hit)).run(theta0.clone())
     wall = time.perf_counter() - t0
     f_final = float(prob.f_closed_form(theta).item())
     return {
@@ -254,10 +251,7 @@ print(
     f"wall = {fixed_flag['wall']:.3f}s"
 )
 print()
-print(
-    f"{'method':<28} {'f_final':>10} {'GD iters':>10} "
-    f"{'upper':>7} {'wall_s':>8}"
-)
+print(f"{'method':<28} {'f_final':>10} {'GD iters':>10} " f"{'upper':>7} {'wall_s':>8}")
 print(
     f"{'MAID':<28} {maid_flag['f']:>10.4f} {maid_flag['gd']:>10d} "
     f"{maid_flag['upper']:>7d} {maid_flag['wall']:>8.3f}"
@@ -278,9 +272,9 @@ print(
 
 assert relative_gap(maid_flag["f"], maid_flag["f_star"]) < TARGET_GAP
 assert relative_gap(fixed_flag["f"], fixed_flag["f_star"]) < TARGET_GAP
-assert maid_flag["gd"] < fixed_flag["gd"], (
-    "Flagship should show MAID using fewer GD steps than fixed accuracy"
-)
+assert (
+    maid_flag["gd"] < fixed_flag["gd"]
+), "Flagship should show MAID using fewer GD steps than fixed accuracy"
 
 
 # %%
@@ -293,9 +287,7 @@ assert maid_flag["gd"] < fixed_flag["gd"], (
 
 CONDS = [2.0, 5.0, 10.0, 20.0, 30.0]
 print()
-print(
-    f"Three-way crossover: GD steps to relative gap < {TARGET_GAP:g}"
-)
+print(f"Three-way crossover: GD steps to relative gap < {TARGET_GAP:g}")
 print(
     f"{'cond':>6} {'gd_fix':>9} {'gd_maid':>9} {'gd_acc':>9} "
     f"{'r_maid':>7} {'r_acc':>7} {'bt_m':>5} {'bt_a':>5}"
@@ -320,13 +312,13 @@ for cond in CONDS:
 assert crossover_rows[0][4] > 1.0, "Cheap end should favour fixed over vanilla MAID"
 assert crossover_rows[-1][4] < 1.0, "Expensive end should favour vanilla MAID"
 # Accelerated should improve on vanilla at the expensive end.
-assert crossover_rows[-1][5] < crossover_rows[-1][4], (
-    "Accelerated MAID should use fewer GD steps than vanilla at high cond"
-)
+assert (
+    crossover_rows[-1][5] < crossover_rows[-1][4]
+), "Accelerated MAID should use fewer GD steps than vanilla at high cond"
 # Backtracking should not increase under acceleration on this sweep.
-assert all(r[7] <= r[6] + 2 for r in crossover_rows), (
-    "Accelerated BT count should not substantially exceed vanilla"
-)
+assert all(
+    r[7] <= r[6] + 2 for r in crossover_rows
+), "Accelerated BT count should not substantially exceed vanilla"
 print()
 print(
     "Reading: vanilla MAID crosses below ratio 1 near condition number 5 to 10. "
@@ -360,9 +352,7 @@ size = 32
 x_star = torch.rand(1, 1, size, size, dtype=dtype)
 mask = torch.ones_like(x_star)
 mask[..., ::2, ::2] = 0
-physics = dinv.physics.Inpainting(
-    img_size=x_star.shape[1:], mask=mask, device="cpu"
-)
+physics = dinv.physics.Inpainting(img_size=x_star.shape[1:], mask=mask, device="cpu")
 gen = torch.Generator().manual_seed(1)
 noise = 0.05 * torch.randn(x_star.shape, generator=gen, dtype=dtype)
 y = physics(x_star) + noise
@@ -454,9 +444,9 @@ print(
 )
 
 assert f_maid_img < f0_img
-assert gd_maid_img > gd_fixed_img, (
-    "Inpainting counterpoint should show fixed accuracy cheaper on BaseOptim iters"
-)
+assert (
+    gd_maid_img > gd_fixed_img
+), "Inpainting counterpoint should show fixed accuracy cheaper on BaseOptim iters"
 assert problem_img.residual_kind == "gradient"
 
 # Accelerated MAID on the same inpainting instance: the mechanism check.
@@ -484,9 +474,9 @@ cfg_acc_img = accelerated_maid_config(
     check_descent_direction=False,
 )
 t0 = time.perf_counter()
-theta_acc_img, hist_acc_img = MAID(
-    TikhonovWeightOracle(problem_acc), cfg_acc_img
-).run(theta0_img.clone())
+theta_acc_img, hist_acc_img = MAID(TikhonovWeightOracle(problem_acc), cfg_acc_img).run(
+    theta0_img.clone()
+)
 wall_acc_img = time.perf_counter() - t0
 f_acc_img = float(problem_acc.f_closed_form(theta_acc_img).item())
 print()
@@ -527,9 +517,7 @@ mb_problems = make_quadratic_dataset(MB_M, cond=MB_COND, n=40, d=3, seed=0)
 
 
 def _mb_f(problems, theta):
-    return sum(float(p.f_closed_form(theta).item()) for p in problems) / len(
-        problems
-    )
+    return sum(float(p.f_closed_form(theta).item()) for p in problems) / len(problems)
 
 
 def _mb_alpha0(problems):
@@ -573,9 +561,9 @@ for cs in (1, MB_M):
     )
 
 assert traj_rows[0][1] == traj_rows[1][1], "f path must match across chunk sizes"
-assert torch.equal(traj_rows[0][2], traj_rows[1][2]), (
-    "final theta must be bitwise identical across chunk sizes"
-)
+assert torch.equal(
+    traj_rows[0][2], traj_rows[1][2]
+), "final theta must be bitwise identical across chunk sizes"
 print("  bitwise trajectory match: yes (chunk 1 vs chunk m)")
 
 # Peak working memory. The claim that matters is flat in dataset size m at
@@ -583,16 +571,12 @@ print("  bitwise trajectory match: yes (chunk 1 vs chunk m)")
 # accumulation of float64 vectors of length d (1.53 MB each). Measurement
 # is pure Python/torch tensor sizes, not CUDA (unavailable here).
 print()
-print(
-    "  Peak working memory (float64 state length d=200000 = 1.53 MB/sample)."
-)
+print("  Peak working memory (float64 state length d=200000 = 1.53 MB/sample).")
 print(
     "  Only a chunk of states is live during accumulation; warm-start "
     "storage is O(m) by design and reported separately."
 )
-print(
-    f"  {'m':>6} {'chunk':>6} {'peak_work_MB':>12} {'warm_store_MB':>14}"
-)
+print(f"  {'m':>6} {'chunk':>6} {'peak_work_MB':>12} {'warm_store_MB':>14}")
 
 
 def _peak_chunk_working(m: int, chunk: int, d: int = 200_000):
@@ -617,13 +601,12 @@ for m_mem in (16, 32, 64, 128):
     peak, warm = _peak_chunk_working(m_mem, chunk=4)
     mem_flat.append((m_mem, peak, warm))
     print(
-        f"  {m_mem:6d} {4:6d} {peak / (1024 ** 2):12.2f} "
-        f"{warm / (1024 ** 2):14.2f}"
+        f"  {m_mem:6d} {4:6d} {peak / (1024 ** 2):12.2f} " f"{warm / (1024 ** 2):14.2f}"
     )
 # Flat in m: all peak_work equal.
-assert all(r[1] == mem_flat[0][1] for r in mem_flat), (
-    "peak working memory must be independent of m at fixed chunk"
-)
+assert all(
+    r[1] == mem_flat[0][1] for r in mem_flat
+), "peak working memory must be independent of m at fixed chunk"
 print()
 print(f"  {'chunk':>6} {'m':>6} {'peak_work_MB':>12}")
 mem_chunk = []
@@ -631,9 +614,9 @@ for cs in (1, 2, 4, 8, 16):
     peak, _warm = _peak_chunk_working(64, chunk=cs)
     mem_chunk.append((cs, peak))
     print(f"  {cs:6d} {64:6d} {peak / (1024 ** 2):12.2f}")
-assert mem_chunk[0][1] < mem_chunk[-1][1], (
-    "peak working memory must grow with chunk size"
-)
+assert (
+    mem_chunk[0][1] < mem_chunk[-1][1]
+), "peak working memory must grow with chunk size"
 
 # Matched-quality cost: vanilla MAID, accelerated MAID, warm-started fixed.
 # Fresh problem objects per method so n_gd_iters is not shared.
@@ -664,9 +647,7 @@ common_mb = dict(
 def _run_mb_maid(accelerated: bool):
     probs = make_quadratic_dataset(MB_M, cond=MB_COND, n=40, d=3, seed=0)
     cfg = (
-        accelerated_maid_config(**common_mb)
-        if accelerated
-        else MAIDConfig(**common_mb)
+        accelerated_maid_config(**common_mb) if accelerated else MAIDConfig(**common_mb)
     )
     mb = MinibatchOracle(wrap_smooth_dataset(probs), chunk_size=MB_CHUNK)
     t0 = time.perf_counter()
@@ -770,9 +751,9 @@ print(
 assert van["f"] < f0_mb
 assert acc["f"] < f0_mb
 # Acceleration should reduce sample_lower relative to vanilla on this path.
-assert acc["sl"] < van["sl"], (
-    "accelerated MAID should issue fewer sample_lower solves than vanilla"
-)
+assert (
+    acc["sl"] < van["sl"]
+), "accelerated MAID should issue fewer sample_lower solves than vanilla"
 
 # Cost table over condition number: vanilla, accelerated, fixed (to vanilla f).
 print()

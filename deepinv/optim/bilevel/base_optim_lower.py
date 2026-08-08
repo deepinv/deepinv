@@ -230,6 +230,4 @@ def build_solver(
                 "a": 3,
             }
         return FISTA(**common)
-    raise ValueError(
-        f"Unsupported solver {name!r}. Supported: 'GD', 'PGD', 'FISTA'."
-    )
+    raise ValueError(f"Unsupported solver {name!r}. Supported: 'GD', 'PGD', 'FISTA'.")

@@ -12,19 +12,16 @@ import torch
 from deepinv.optim.bilevel import (
     MAID,
     MAIDConfig,
-    QuadraticBilevelLS,
     QuadraticSaddleProblem,
     SaddleHypergradientOracle,
     SmoothHypergradientOracle,
     dual_distance_bound,
     hypergradient_error_bound,
     primal_distance_bound,
-    saddle_hypergradient_error_bound,
     strong_convexity_distance_bound,
 )
 from deepinv.optim.bilevel.oracle import HypergradientOracle
 from deepinv.tests.test_maid import _make_section41_problem
-
 
 # ---------------------------------------------------------------------------
 # Certification rule
@@ -132,16 +129,12 @@ def test_smooth_error_bound_never_underestimates_144():
             problem, theta0, _ = _make_section41_problem(seed=seed + 10)
             # Scale the starting point so the geometry varies.
             theta = scale * theta0
-            z_exact = problem.exact_hypergradient(
-                theta, problem.closed_form_x(theta)
-            )
+            z_exact = problem.exact_hypergradient(theta, problem.closed_form_x(theta))
             for eps in eps_list:
                 for delta in delta_list:
                     n_configs += 1
                     xbar, _ = problem.solve_lower(theta, eps=eps)
-                    z, _ = problem.inexact_hypergradient(
-                        xbar, theta, delta=delta
-                    )
+                    z, _ = problem.inexact_hypergradient(xbar, theta, delta=delta)
                     true_err = float((z - z_exact).norm().item())
                     omega = hypergradient_error_bound(
                         eps=eps,
@@ -355,9 +348,7 @@ def test_saddle_hypergradient_matches_autograd_when_exact():
     K = problem.K_from_theta(theta)
     x, y = problem.closed_form_saddle(K)
     # Exact adjoint at the exact saddle: solve ASI with tiny delta.
-    X, Y, _, _ = problem.solve_adjoint_pdhg(
-        K, x, y, delta_X=1e-10, delta_Y=1e-10
-    )
+    X, Y, _, _ = problem.solve_adjoint_pdhg(K, x, y, delta_X=1e-10, delta_Y=1e-10)
     z = problem.hypergradient_from_piggyback(x, y, X, Y)
     z_exact = problem.exact_hypergradient(theta)
     assert torch.allclose(z, z_exact, atol=1e-5, rtol=1e-5)

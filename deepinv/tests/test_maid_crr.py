@@ -41,9 +41,7 @@ def _tiny_cfg(**kwargs):
 def _tiny_denoising(size: int = 16, seed: int = 0, dtype=torch.float64, ch: int = 1):
     gen = torch.Generator().manual_seed(seed)
     x = torch.rand(1, ch, size, size, generator=gen, dtype=dtype)
-    physics = dinv.physics.Denoising(
-        noise_model=dinv.physics.GaussianNoise(0.0)
-    )
+    physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(0.0))
     y = physics(x) + 0.05 * torch.randn(x.shape, generator=gen, dtype=dtype)
     return physics, y, x
 
@@ -192,9 +190,7 @@ def test_certificate_against_reference_solve():
     x_loose, res_loose = prob.solve_lower(
         th, eps=1e-2, x_init=x0.clone(), solver="FISTA_RESTART"
     )
-    x_ref, _ = prob.solve_lower(
-        th, eps=1e-6, x_init=x0.clone(), solver="FISTA_RESTART"
-    )
+    x_ref, _ = prob.solve_lower(th, eps=1e-6, x_init=x0.clone(), solver="FISTA_RESTART")
     dist = float((x_loose - x_ref).flatten().norm().item())
     bound = res_loose / max(prob.mu(), 1e-30)
     assert dist <= bound * 1.05
@@ -204,20 +200,16 @@ def test_gd_objective_monotone_with_safe_step():
     """GD at step 1/L on strongly convex h must decrease the objective."""
     cfg = _tiny_cfg(gamma=1e-2)
     physics, y, x_star = _tiny_denoising(12, seed=9)
-    prob = CRRSampleProblem(
-        physics, y, x_star, cfg=cfg, max_iter=5_000, solver="GD"
-    )
+    prob = CRRSampleProblem(physics, y, x_star, cfg=cfg, max_iter=5_000, solver="GD")
     th = pack_init_theta(cfg, seed=10)
     x0 = physics.A_adjoint(y)
-    out = prob.solve_lower(
-        th, eps=1e-2, x_init=x0.clone(), solver="GD", record_every=1
-    )
+    out = prob.solve_lower(th, eps=1e-2, x_init=x0.clone(), solver="GD", record_every=1)
     assert len(out) == 3
     _, _, hist = out
     assert hist["monotone_objective"] is True
     objs = hist["objectives"]
     assert len(objs) >= 2
-    for a, b in zip(objs, objs[1:]):
+    for a, b in zip(objs, objs[1:], strict=False):
         assert b <= a + 1e-10
 
 
@@ -403,9 +395,7 @@ def test_hypergradient_matches_finite_difference():
 
     x0, res0 = prob.solve_lower(theta, eps=eps_ll, max_iter=20_000)
     assert res0 < 1e-6
-    z, cg = prob.inexact_hypergradient(
-        x0, theta, delta=1e-12, max_cg_iter=2000
-    )
+    z, cg = prob.inexact_hypergradient(x0, theta, delta=1e-12, max_cg_iter=2000)
     assert float(torch.as_tensor(cg.residual).norm().item()) < 1e-8
 
     n_w = theta.numel() - cfg.n_filters - 1
@@ -479,9 +469,7 @@ def test_tv_objective_decreases_on_denoising():
     assert info["obj_final"] < obj_y - 1e-12
     assert xh.shape == y.shape
     # Grid-tuned lambda on this sample must improve PSNR over the measurement.
-    best = grid_tune_tv(
-        [(physics, y, x_star)], n_grid=9, n_it=200, verify_once=True
-    )
+    best = grid_tune_tv([(physics, y, x_star)], n_grid=9, n_it=200, verify_once=True)
     mse_y = float(torch.mean((y - x_star) ** 2).item())
     psnr_y = 10.0 * torch.log10(torch.tensor(1.0 / max(mse_y, 1e-30))).item()
     assert best["psnr_train"] > psnr_y

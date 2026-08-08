@@ -62,7 +62,6 @@ from deepinv.optim.bilevel import (
 )
 from deepinv.utils.demo import load_dataset
 
-
 # %%
 # Paths and device
 # ----------------
@@ -97,7 +96,9 @@ val_transform = transforms.Compose(
 )
 dataset = load_dataset("set3c", transform=val_transform)
 x_star = dataset[0].unsqueeze(0).to(device=device, dtype=dtype)
-print(f"image shape {tuple(x_star.shape)}, range [{float(x_star.min()):.3f}, {float(x_star.max()):.3f}]")
+print(
+    f"image shape {tuple(x_star.shape)}, range [{float(x_star.min()):.3f}, {float(x_star.max()):.3f}]"
+)
 
 
 def make_inpainting(x: torch.Tensor):
@@ -105,9 +106,7 @@ def make_inpainting(x: torch.Tensor):
     mask = (torch.rand(x.shape, generator=gen, dtype=dtype, device=device) > 0.5).to(
         dtype
     )
-    physics = dinv.physics.Inpainting(
-        img_size=x.shape[1:], mask=mask, device=device
-    )
+    physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=mask, device=device)
     noise = NOISE_SIGMA * torch.randn(
         x.shape, generator=gen, dtype=dtype, device=device
     )
@@ -121,9 +120,7 @@ def make_deblur(x: torch.Tensor):
     xx, yy = torch.meshgrid(ax, ax, indexing="ij")
     filt = torch.exp(-(xx**2 + yy**2) / (2 * 1.5**2))
     filt = (filt / filt.sum()).view(1, 1, k, k)
-    physics = dinv.physics.Blur(
-        filter=filt, padding="circular", device=device
-    )
+    physics = dinv.physics.Blur(filter=filt, padding="circular", device=device)
     gen = torch.Generator(device=device).manual_seed(2)
     noise = NOISE_SIGMA * torch.randn(
         x.shape, generator=gen, dtype=dtype, device=device
@@ -307,9 +304,7 @@ for physics, y, name, detail in problems:
         flush=True,
     )
 
-    maid = run_maid(
-        physics, y, x_star, theta0, MAX_OUTER, ALPHA0, accelerated=False
-    )
+    maid = run_maid(physics, y, x_star, theta0, MAX_OUTER, ALPHA0, accelerated=False)
     print(
         f"MAID:   lam={maid['lam']:.4f} f={maid['f']:.4f} "
         f"PSNR {maid['psnr0']:.2f} -> {maid['psnr']:.2f} "
@@ -317,9 +312,7 @@ for physics, y, name, detail in problems:
         flush=True,
     )
 
-    acc = run_maid(
-        physics, y, x_star, theta0, MAX_OUTER, ALPHA0, accelerated=True
-    )
+    acc = run_maid(physics, y, x_star, theta0, MAX_OUTER, ALPHA0, accelerated=True)
     print(
         f"accel:  lam={acc['lam']:.4f} f={acc['f']:.4f} "
         f"PSNR {acc['psnr0']:.2f} -> {acc['psnr']:.2f} "
@@ -360,7 +353,7 @@ for name, pack in all_results.items():
             maid["psnr"],
         ),
     ]
-    for ax, (img, title, _) in zip(axes, panels):
+    for ax, (img, title, _) in zip(axes, panels, strict=True):
         im = to_np(img)
         # Measurement for blur is still image-shaped; for display clamp.
         ax.imshow(im, cmap="gray", vmin=0.0, vmax=1.0)
@@ -428,9 +421,7 @@ for name, pack in all_results.items():
 
 print()
 print("Notes")
-print(
-    "  Prior: Tikhonov (TV weight IFT not wired; see module docstring)."
-)
+print("  Prior: Tikhonov (TV weight IFT not wired; see module docstring).")
 print(f"  Image: Set3C greyscale {IMG_SIZE}x{IMG_SIZE}, one supervised image.")
 print(f"  Noise: Gaussian sigma={NOISE_SIGMA}.")
 print(f"  Figures: {FIG_DIR}")

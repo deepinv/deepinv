@@ -90,7 +90,6 @@ from deepinv.optim.bilevel import (
 )
 from deepinv.utils.demo import load_dataset
 
-
 torch.manual_seed(0)
 dtype = torch.float64
 device = "cpu"
@@ -124,7 +123,7 @@ CRR_CFG_RIDGE = ConvexRidgeConfig(gamma=1e-2, **_CRR_COMMON)
 # With truncated Newton lower solves, thirty outer steps on 32x32 colour
 # are practical on CPU. Absolute PSNR is still a short-run snapshot.
 N_OUTER = 30
-FIXED_EPS = 2e-5   # per-element rms gradient tolerance
+FIXED_EPS = 2e-5  # per-element rms gradient tolerance
 LEARN_EPS0 = 2e-5  # per-element rms gradient tolerance
 REPORT_EPS = 2e-6  # per-element rms gradient tolerance
 ALPHA0_CRR = 1e-2
@@ -167,9 +166,7 @@ val_transform = transforms.Compose(
 )
 dataset = load_dataset("set3c", transform=val_transform)
 assert len(dataset) >= 3
-train_imgs = [
-    dataset[i].unsqueeze(0).to(device=device, dtype=dtype) for i in (0, 1)
-]
+train_imgs = [dataset[i].unsqueeze(0).to(device=device, dtype=dtype) for i in (0, 1)]
 heldout_img = dataset[2].unsqueeze(0).to(device=device, dtype=dtype)
 assert train_imgs[0].shape[1] == 3
 print(
@@ -198,13 +195,9 @@ print(
 
 
 def make_denoise(x: torch.Tensor, seed: int):
-    physics = dinv.physics.Denoising(
-        noise_model=dinv.physics.GaussianNoise(0.0)
-    )
+    physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(0.0))
     gen = torch.Generator(device=device).manual_seed(seed)
-    y = x + NOISE * torch.randn(
-        x.shape, generator=gen, dtype=dtype, device=device
-    )
+    y = x + NOISE * torch.randn(x.shape, generator=gen, dtype=dtype, device=device)
     return physics, y
 
 
@@ -213,9 +206,7 @@ def make_inpaint(x: torch.Tensor, seed: int):
     mask = (
         torch.rand(x.shape, generator=gen, dtype=dtype, device=device) > (1 - KEEP)
     ).to(dtype)
-    physics = dinv.physics.Inpainting(
-        img_size=x.shape[1:], mask=mask, device=device
-    )
+    physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=mask, device=device)
     y = physics(x) + NOISE * torch.randn(
         x.shape, generator=gen, dtype=dtype, device=device
     )
@@ -281,9 +272,7 @@ def solver_audit(problem_makers):
     L_data_rows = []
     for label, make_phys, cfg in problem_makers:
         physics, y, x = make_problem(make_phys, cfg)
-        prob = CRRSampleProblem(
-            physics=physics, y=y, x_star=x, cfg=cfg, max_iter=100
-        )
+        prob = CRRSampleProblem(physics=physics, y=y, x_star=x, cfg=cfg, max_iter=100)
         L_adapt, n_it, L_raw = prob.estimate_data_lipschitz()
         L_200, _, _ = prob.estimate_data_lipschitz(fixed_iters=200)
         ok = L_adapt + 1e-12 >= L_200
@@ -320,20 +309,15 @@ def solver_audit(problem_makers):
     for label, make_phys, cfg in problem_makers:
         physics, y, x = make_problem(make_phys, cfg)
         th0 = th0_den if cfg.gamma == 0.0 else th0_ridge
-        prob = CRRSampleProblem(
-            physics=physics, y=y, x_star=x, cfg=cfg, max_iter=100
-        )
+        prob = CRRSampleProblem(physics=physics, y=y, x_star=x, cfg=cfg, max_iter=100)
         prob.load_theta(th0)
         analytic = prob.analytic_prior_lipschitz()
         # zeros: quadratic region maximises smooth_l1 curvature
-        measured, n_it, raw = prob.measure_prior_lipschitz(
-            th0, x=torch.zeros_like(x)
-        )
+        measured, n_it, raw = prob.measure_prior_lipschitz(th0, x=torch.zeros_like(x))
         ratio = analytic / max(raw, 1e-30)
         safe = analytic + 1e-12 >= raw
         print(
-            f"{label:<12} {analytic:12.4f} {raw:12.4f} "
-            f"{ratio:10.3f} {str(safe):>6}"
+            f"{label:<12} {analytic:12.4f} {raw:12.4f} " f"{ratio:10.3f} {str(safe):>6}"
         )
         L_prior_rows.append(
             {
@@ -354,8 +338,7 @@ def solver_audit(problem_makers):
     print()
     print("--- 3. Certificate: ||x_loose - x_ref|| <= ||grad h|| / mu ---")
     print(
-        f"{'physics':<12} {'||dx||':>12} {'bound':>12} {'ratio':>10} "
-        f"{'holds':>6}"
+        f"{'physics':<12} {'||dx||':>12} {'bound':>12} {'ratio':>10} " f"{'holds':>6}"
     )
     cert_rows = []
     for label, make_phys, cfg in problem_makers:
@@ -381,8 +364,7 @@ def solver_audit(problem_makers):
         ratio = dist / max(bound, 1e-30)
         holds = dist <= bound * 1.01
         print(
-            f"{label:<12} {dist:12.4e} {bound:12.4e} {ratio:10.4f} "
-            f"{str(holds):>6}"
+            f"{label:<12} {dist:12.4e} {bound:12.4e} {ratio:10.4f} " f"{str(holds):>6}"
         )
         cert_rows.append(
             {
@@ -445,9 +427,7 @@ def solver_audit(problem_makers):
                     mon = False
                 prev = obj
                 if it % 20 == 0:
-                    res_list_tmp.append(
-                        float(g.flatten().norm().item())
-                    )
+                    res_list_tmp.append(float(g.flatten().norm().item()))
             hist_gd = {
                 "iters": list(range(0, len(res_list_tmp) * 20, 20)),
                 "residuals": res_list_tmp,
@@ -521,10 +501,7 @@ def solver_audit(problem_makers):
     # ---- 5. Solver comparison at matched residual ----------------------
     print()
     print("--- 5. Solver comparison (eps=1e-3, same init) ---")
-    print(
-        f"{'physics':<12} {'solver':<14} {'iters':>8} {'wall_s':>8} "
-        f"{'res':>10}"
-    )
+    print(f"{'physics':<12} {'solver':<14} {'iters':>8} {'wall_s':>8} " f"{'res':>10}")
     solver_rows = []
     for label, make_phys, cfg in problem_makers:
         physics, y, x = make_problem(make_phys, cfg)
@@ -534,9 +511,7 @@ def solver_audit(problem_makers):
         for name in ("GD", "FISTA", "FISTA_RESTART", "NEWTON"):
             # GD / vanilla FISTA may not converge on ill-conditioned paths
             # with reference beta; cap their budget so the audit finishes.
-            max_it = (
-                MAX_GD if name in ("FISTA_RESTART", "NEWTON") else AUDIT_MAX_ITER
-            )
+            max_it = MAX_GD if name in ("FISTA_RESTART", "NEWTON") else AUDIT_MAX_ITER
             prob = CRRSampleProblem(
                 physics=physics,
                 y=y,
@@ -560,8 +535,7 @@ def solver_audit(problem_makers):
                 err = str(exc)[:80]
             print(
                 f"{label:<12} {name:<14} {prob.n_gd_iters:8d} "
-                f"{wall:8.2f} {res:10.2e}"
-                + (f"  FAIL {err}" if not ok else ""),
+                f"{wall:8.2f} {res:10.2e}" + (f"  FAIL {err}" if not ok else ""),
                 flush=True,
             )
             solver_rows.append(
@@ -691,9 +665,7 @@ def train_crr_maid(
     oracle = build_crr_minibatch_oracle(
         samples, cfg=cfg, chunk_size=1, max_iter=MAX_GD, solver=LOWER_SOLVER
     )
-    th0 = pack_init_theta(
-        cfg, dtype=dtype, seed=0, weight_scale=WEIGHT_SCALE
-    )
+    th0 = pack_init_theta(cfg, dtype=dtype, seed=0, weight_scale=WEIGHT_SCALE)
     # Freeze Lip once at theta_0 on every sample problem. Later outer
     # steps keep that constant so the hypergradient matches the solve.
     for o in oracle.sample_oracles:
@@ -718,17 +690,11 @@ def train_crr_maid(
         max_outer_BT=25,
         nonmonotone=False,
     )
-    cfg = (
-        accelerated_maid_config(**common)
-        if accelerated
-        else MAIDConfig(**common)
-    )
+    cfg = accelerated_maid_config(**common) if accelerated else MAIDConfig(**common)
     t0 = time.perf_counter()
     th, hist = MAID(oracle, cfg).run(th0.clone())
     wall = time.perf_counter() - t0
-    gd = sum(
-        int(getattr(o.problem, "n_gd_iters", 0)) for o in oracle.sample_oracles
-    )
+    gd = sum(int(getattr(o.problem, "n_gd_iters", 0)) for o in oracle.sample_oracles)
     return {
         "theta": th.detach(),
         "theta0": th0.detach(),
@@ -740,9 +706,7 @@ def train_crr_maid(
     }
 
 
-def train_crr_fixed(
-    samples, cfg: ConvexRidgeConfig, n_outer: int = N_OUTER
-):
+def train_crr_fixed(samples, cfg: ConvexRidgeConfig, n_outer: int = N_OUTER):
     """Fixed residual and hypergradient accuracy; same Armijo line search.
 
     Isolates adaptive accuracy (the MAID contribution). Both arms share
@@ -754,9 +718,7 @@ def train_crr_fixed(
     oracle = build_crr_minibatch_oracle(
         samples, cfg=cfg, chunk_size=1, max_iter=MAX_GD, solver=LOWER_SOLVER
     )
-    th = pack_init_theta(
-        cfg, dtype=dtype, seed=0, weight_scale=WEIGHT_SCALE
-    )
+    th = pack_init_theta(cfg, dtype=dtype, seed=0, weight_scale=WEIGHT_SCALE)
     th0 = th.detach().clone()
     for o in oracle.sample_oracles:
         o.problem.load_theta(th0)
@@ -804,9 +766,7 @@ def train_crr_fixed(
             alpha = max(ALPHA0_CRR * 1e-3, alpha * LS_RHO)
         f_trace.append(_mean_upper_level(oracle, th, eps=5e-3))
     wall = time.perf_counter() - t0
-    gd = sum(
-        int(getattr(o.problem, "n_gd_iters", 0)) for o in oracle.sample_oracles
-    )
+    gd = sum(int(getattr(o.problem, "n_gd_iters", 0)) for o in oracle.sample_oracles)
     return {
         "theta": th.detach(),
         "theta0": th0,
@@ -827,9 +787,7 @@ def eval_set_converged(
 ):
     rows = []
     for physics, y, x_star in samples:
-        xt, pt, rt, ft, mt = recon_tikhonov_converged(
-            physics, y, x_star, log_lam_tik
-        )
+        xt, pt, rt, ft, mt = recon_tikhonov_converged(physics, y, x_star, log_lam_tik)
         xc, pc, rc, fc, mc = recon_crr_converged(
             physics, y, x_star, theta_crr, cfg, lip_theta=lip_theta
         )
@@ -942,9 +900,7 @@ audit = solver_audit(
         ("deblur", make_deblur, CRR_CFG_RIDGE),
     ]
 )
-solver_ablation_rows = [
-    r for r in audit["solvers"] if r["label"] == "inpainting"
-]
+solver_ablation_rows = [r for r in audit["solvers"] if r["label"] == "inpainting"]
 
 for pname, make_phys, seed0, crr_cfg in problem_specs:
     print()
@@ -959,8 +915,7 @@ for pname, make_phys, seed0, crr_cfg in problem_specs:
     # baseline; for other problems it is the raw observation quality).
     held_y_psnr = psnr(held_samples[0][1], held_samples[0][2])
     print(
-        f"  held-out measurement PSNR={held_y_psnr:.2f} dB "
-        f"(noise sigma={NOISE})",
+        f"  held-out measurement PSNR={held_y_psnr:.2f} dB " f"(noise sigma={NOISE})",
         flush=True,
     )
 
@@ -977,9 +932,7 @@ for pname, make_phys, seed0, crr_cfg in problem_specs:
     tv_held_rows = []
     for physics, y, x_star in held_samples:
         x_tv, p_tv, info_tv = recon_tv(physics, y, x_star, tv["lam"])
-        tv_held_rows.append(
-            {"tv": x_tv, "psnr_tv": p_tv, "info_tv": info_tv}
-        )
+        tv_held_rows.append({"tv": x_tv, "psnr_tv": p_tv, "info_tv": info_tv})
     tv_psnr_held = mean_key(tv_held_rows, "psnr_tv")
     print(
         f"  TV held PSNR={tv_psnr_held:.2f} (lam={tv['lam']:.4f})",
@@ -999,9 +952,7 @@ for pname, make_phys, seed0, crr_cfg in problem_specs:
     # Ridge ablation: prior off, data term + gamma floor only.
     ridge_rows = []
     for physics, y, x_star in held_samples:
-        xr, pr, rr, fr, mr = recon_ridge_only(
-            physics, y, x_star, crr_cfg.gamma
-        )
+        xr, pr, rr, fr, mr = recon_ridge_only(physics, y, x_star, crr_cfg.gamma)
         ridge_rows.append(
             {
                 "ridge": xr,
@@ -1022,21 +973,16 @@ for pname, make_phys, seed0, crr_cfg in problem_specs:
     )
 
     print(
-        f"Bilevel learning of CRR with accelerated MAID "
-        f"(N_OUTER={N_OUTER}) ...",
+        f"Bilevel learning of CRR with accelerated MAID " f"(N_OUTER={N_OUTER}) ...",
         flush=True,
     )
-    maid = train_crr_maid(
-        train_samples, crr_cfg, accelerated=True, n_outer=N_OUTER
-    )
+    maid = train_crr_maid(train_samples, crr_cfg, accelerated=True, n_outer=N_OUTER)
     print(
         f"  MAID (learning) outer={maid['n_outer']} GD={maid['gd']} "
         f"BT={maid['bt']} wall={maid['wall']:.1f}s",
         flush=True,
     )
-    s0, s1, ratios = print_scaling_table(
-        "MAID", maid["theta0"], maid["theta"], crr_cfg
-    )
+    s0, s1, ratios = print_scaling_table("MAID", maid["theta0"], maid["theta"], crr_cfg)
     maid["s0"], maid["s1"], maid["ratios"] = s0, s1, ratios
 
     print(
@@ -1118,17 +1064,13 @@ for pname, make_phys, seed0, crr_cfg in problem_specs:
     }
     # If ridge alone already gets most of the reconstruction PSNR, the
     # prior comparison is uninformative on that problem.
-    best_prior = max(
-        row["tik_psnr_held"], row["maid_psnr_held"], row["tv_psnr_held"]
-    )
+    best_prior = max(row["tik_psnr_held"], row["maid_psnr_held"], row["tv_psnr_held"])
     if best_prior > 1e-8:
         ridge_frac = row["ridge_psnr_held"] / best_prior
     else:
         ridge_frac = 0.0
     row["ridge_frac_of_best"] = ridge_frac
-    row["ridge_uninformative"] = (
-        pname in ("deblur", "inpainting") and ridge_frac >= 0.9
-    )
+    row["ridge_uninformative"] = pname in ("deblur", "inpainting") and ridge_frac >= 0.9
     summary.append(row)
     artifacts[pname] = {
         "cfg": crr_cfg,
@@ -1213,11 +1155,11 @@ def write_heldout_figure(pname: str, title: str, out_name: str):
                 f"dist {he['bound_crr']:.1e}",
             ),
         ],
+        strict=True,
     ):
         show_img(ax, img, panel)
     fig.suptitle(
-        f"{title}: same solver, different regulariser parameters\n"
-        + CAPTION_RECON,
+        f"{title}: same solver, different regulariser parameters\n" + CAPTION_RECON,
         fontsize=10,
     )
     fig.tight_layout()
@@ -1244,7 +1186,7 @@ write_heldout_figure(
 )
 
 fig, axes = plt.subplots(1, 3, figsize=(14, 3.5))
-for ax, pname in zip(axes, ("denoising", "inpainting", "deblur")):
+for ax, pname in zip(axes, ("denoising", "inpainting", "deblur"), strict=True):
     maid = artifacts[pname]["maid"]
     fixed = artifacts[pname]["fixed"]
     if maid["f_trace"]:
@@ -1418,13 +1360,9 @@ if solver_ablation_rows:
     for name in ("GD", "FISTA", "FISTA_RESTART", "NEWTON"):
         r = next((x for x in solver_ablation_rows if x["solver"] == name), None)
         if r is not None and r.get("ok", True):
-            parts.append(
-                f"{name} {r['iters']} iters / {r['wall']:.2f}s"
-            )
+            parts.append(f"{name} {r['iters']} iters / {r['wall']:.2f}s")
     if parts:
-        print(
-            "  Solver ablation (one inpaint, eps=1e-3): " + "; ".join(parts) + "."
-        )
+        print("  Solver ablation (one inpaint, eps=1e-3): " + "; ".join(parts) + ".")
 for row in summary:
     if row["ridge_uninformative"]:
         print(
@@ -1473,6 +1411,5 @@ if "denoising" in artifacts:
         )
     else:
         print(
-            "  Scale moved: knee reached at reference sigma=0.1; s is "
-            "identifiable."
+            "  Scale moved: knee reached at reference sigma=0.1; s is " "identifiable."
         )
