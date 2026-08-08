@@ -31,6 +31,7 @@ Included priors
 
 from __future__ import annotations
 
+import math
 from abc import ABC, abstractmethod
 
 import torch
@@ -208,7 +209,9 @@ class ICNNPrior(ParametricPrior):
         hidden: int = 16,
         depth: int = 2,
         kernel: int = 3,
+        out_init: float = -4.5,
     ):
+        self.out_init = float(out_init)
         if depth < 1:
             raise ValueError(f"depth must be at least 1, got {depth}")
         self.channels, self.hidden = int(channels), int(hidden)
@@ -248,7 +251,22 @@ class ICNNPrior(ParametricPrior):
             ux = F.conv2d(x, p[f"U{i+1}"], p[f"b{i+1}"], padding=pad)
             z = F.softplus(wz + ux)
         v = F.softplus(p["v"]).view(1, -1, 1, 1)
-        return (v * z).flatten(1).sum(dim=1)
+        # Averaged over hidden units, so the energy scale does not change
+        # with the width of the network.
+        e = (v * z).flatten(1).sum(dim=1) / self.hidden
+        # Centre at the zero image. softplus(0) is 0.693, not 0, so an
+        # uncentred network carries a large constant: with 16 hidden channels
+        # over a 32x32 image it contributes on the order of 1e3 per sample
+        # against a data term of order 1. A constant in R leaves the lower-level
+        # minimiser unchanged, but its derivative with respect to theta does
+        # not vanish, so it inflates the hypergradient by orders of magnitude
+        # and swamps the part that carries information about the image.
+        z0 = F.softplus(F.conv2d(torch.zeros_like(x), p["W0"], p["b0"], padding=pad))
+        for i in range(self.depth):
+            wz0 = F.conv2d(z0, F.softplus(p[f"W{i+1}"]), padding=pad)
+            ux0 = F.conv2d(torch.zeros_like(x), p[f"U{i+1}"], p[f"b{i+1}"], padding=pad)
+            z0 = F.softplus(wz0 + ux0)
+        return e - (v * z0).flatten(1).sum(dim=1) / self.hidden
 
     def init_theta(self, *, dtype=torch.float64, device="cpu", seed=0):
         gen = torch.Generator(device="cpu").manual_seed(int(seed))
@@ -258,8 +276,30 @@ class ICNNPrior(ParametricPrior):
             if name.startswith("b"):
                 parts.append(torch.zeros(n, dtype=dtype))
             elif name == "v":
-                # softplus(-2) ~ 0.13, a small positive output weight.
-                parts.append(torch.full((n,), -2.0, dtype=dtype))
+                # The output weight sets the energy scale. Softplus emits
+                # order one per hidden unit per pixel, so the energy scales as
+                # ``softplus(v) * pixels`` after the width normalisation, while
+                # the data term scales as ``pixels * sigma^2``. The default
+                # targets an energy of the same order as a data term at
+                # sigma ~ 0.05; raise ``out_init`` for a stronger initial
+                # prior, lower it for a weaker one.
+                parts.append(torch.full((n,), self.out_init, dtype=dtype))
+            elif name.startswith("W") and name != "W0":
+                # Hidden-to-hidden weights pass through softplus to stay
+                # non-negative, and softplus(0) is 0.693, not 0. Initialising
+                # them near zero therefore gives an effective weight of about
+                # 0.693 per connection, so the hidden activations grow with the
+                # fan-in and the energy scale changes by orders of magnitude
+                # with the width and depth of the network. Initialising at
+                # softplus^-1(1 / fan_in) keeps the sum over the fan-in of
+                # order one at any size.
+                fan = int(torch.tensor(shape[1:]).prod())
+                target = 1.0 / max(fan, 1)
+                raw = math.log(math.expm1(target))
+                parts.append(
+                    torch.full((n,), raw, dtype=dtype)
+                    + 0.01 * torch.randn(n, generator=gen, dtype=dtype)
+                )
             else:
                 fan = int(torch.tensor(shape[1:]).prod())
                 scale = (1.0 / max(fan, 1)) ** 0.5

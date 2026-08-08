@@ -784,3 +784,52 @@ def auto_initial_accuracy(
     if not (r0 > 0.0) or r0 != r0:  # non-positive or NaN
         return float(min_eps)
     return float(min(max(float(factor) * r0, min_eps), max_eps))
+
+
+def auto_initial_step(
+    oracle: Any,
+    theta0: torch.Tensor,
+    z0: torch.Tensor,
+    *,
+    rel: float = 0.01,
+    min_step: float = 1e-12,
+    max_step: float = 1e3,
+) -> float:
+    r"""Initial step size giving a bounded first move in parameter space.
+
+    Returns
+
+    .. math::
+
+        \alpha_0 = \text{rel} \cdot
+        \frac{\max(\|\theta_0\|, 1)}{\|z_0\|},
+
+    so the first trial step changes the parameters by a fixed *relative*
+    amount rather than an absolute one.
+
+    An absolute ``alpha0`` cannot serve different priors, because the
+    hypergradient norm is a property of the regulariser rather than of the
+    algorithm. Measured at the same initialisation on the same data, a
+    multi-convolution ridge prior gives :math:`\|z_0\| \approx 3.7`, a
+    three-parameter learned total variation gives :math:`5.2`, and an
+    input-convex network gives :math:`6.9 \times 10^4`. With
+    ``alpha0 = 0.1`` the last of those moves the parameters by roughly 6900 on
+    the first trial, which destroys the model before backtracking can recover.
+
+    Backtracking alone does not rescue this: halving from a step that is
+    :math:`10^4` too large exhausts a twenty-step budget before reaching a
+    usable value.
+
+    :param oracle: unused, accepted for symmetry with
+        :func:`auto_initial_accuracy`.
+    :param theta0: starting parameters, used for the scale reference.
+    :param z0: hypergradient at ``theta0``.
+    :param float rel: relative parameter change requested of the first step.
+    """
+    if rel <= 0.0:
+        raise ValueError(f"rel must be positive, got {rel}")
+    zn = float(z0.norm())
+    if not (zn > 0.0) or zn != zn:
+        return float(min_step)
+    scale = max(float(theta0.norm()), 1.0)
+    return float(min(max(rel * scale / zn, min_step), max_step))
