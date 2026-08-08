@@ -252,7 +252,16 @@ class BatchedCRR:
         for every sample, so independence is checked at construction.
         """
         v = torch.randn_like(self.x_star)
-        a1 = self.physics.A(v)
+        try:
+            a1 = self.physics.A(v)
+        except RuntimeError as exc:
+            raise ValueError(
+                f"{type(self.physics).__name__} cannot be applied to a batch "
+                f"of {self.B}: {exc}. A physics carrying per-sample parameters "
+                "(for example an Inpainting built with a (B, C, H, W) mask) is "
+                "tied to that batch size. Build one physics per batch, or use "
+                "a shared parameter."
+            ) from exc
         v2 = v.clone()
         v2[0] = v2[0] + 1.0
         a2 = self.physics.A(v2)
@@ -415,6 +424,19 @@ class BatchedCRR:
         }
         return x, res, info
 
+    def initial_residual_rms(self, theta: torch.Tensor) -> float:
+        """Per-element stationarity residual at ``x0 = A^* y``.
+
+        This is the scale ``eps`` is measured against. It is available before
+        any solve and depends on neither the noise level nor the ground truth,
+        which makes it the natural reference for choosing an initial accuracy;
+        see :func:`auto_initial_accuracy`.
+        """
+        x0 = self.physics.A_adjoint(self.y)
+        g = self.grad_x(x0, theta)
+        scale = float(self.n_elem) ** 0.5
+        return float(g.flatten(1).norm(dim=1).mean()) / (scale * self.mu)
+
     def hypergradient(
         self, x: torch.Tensor, theta: torch.Tensor, delta: float,
         *, max_cg_iter: int = 200,
@@ -490,7 +512,20 @@ class BatchedMinibatchOracle(HypergradientOracle):
 
             n_avail = int(probe[2].shape[0])
             pb = (1, 2) if n_avail < 4 else (2, 4)
-            per = measure_sample_bytes(run_probe, self.device, probe_batches=pb)
+            try:
+                per = measure_sample_bytes(
+                    run_probe, self.device, probe_batches=pb
+                )
+            except (ValueError, RuntimeError):
+                # A physics with per-sample parameters cannot be applied to a
+                # slice of its own batch, so the two-point probe is impossible.
+                # Measure once at the full batch and divide; this includes the
+                # fixed overhead and so over-estimates the marginal cost, which
+                # errs towards a smaller batch.
+                per = measure_sample_bytes(
+                    run_probe, self.device, probe_batches=(n_avail, n_avail)
+                ) // max(n_avail, 1)
+                per = max(int(per), 1 << 16)
             batch_size = auto_batch_size(
                 self.m, per, self.device, safety=safety, max_batch=max_batch
             )
@@ -622,6 +657,14 @@ class BatchedMinibatchOracle(HypergradientOracle):
             nrm = max(nrm, float(jte.norm().item()))
         return nrm
 
+    def initial_residual_rms(self, theta: torch.Tensor) -> float:
+        """Sample-weighted mean of the per-batch initial residual."""
+        vals = [bp.initial_residual_rms(theta) for bp in self.batches]
+        weights = [bp.B for bp in self.batches]
+        return float(
+            sum(v * w for v, w in zip(vals, weights)) / max(sum(weights), 1)
+        )
+
     def error_bound(
         self, theta: torch.Tensor, lower: LowerLevelState,
         hyper: HypergradientState, eps: float, delta: float,
@@ -664,3 +707,39 @@ class BatchedMinibatchOracle(HypergradientOracle):
         # g is quadratic, so L_g = 1 exactly; nothing to estimate.
         self.L_g_value = 1.0
 
+
+
+def auto_initial_accuracy(
+    oracle: Any, theta0: torch.Tensor, *, factor: float = 0.02
+) -> float:
+    r"""Initial lower-level accuracy taken from the problem's own scale.
+
+    Returns
+
+    .. math::
+
+        \varepsilon_0 = \text{factor} \cdot
+        \frac{\|\nabla_x h(x_0, \theta_0)\|}{\sqrt{n}\,\mu},
+        \qquad x_0 = A^\ast y,
+
+    a fixed relative reduction of the stationarity residual at the natural
+    initialisation. The reference is observable before any solve and requires
+    neither the noise level nor the ground truth.
+
+    A single absolute ``eps0`` cannot serve every problem, because the
+    residual scale carries the forward operator through :math:`\mu`: a value
+    suited to denoising (:math:`\mu = 1`) is two orders of magnitude away from
+    one suited to a problem whose modulus comes from
+    :math:`\gamma = 10^{-2}`. Expressing the initial accuracy relative to the
+    initial residual removes that dependence.
+
+    :param oracle: an oracle exposing ``initial_residual_rms``.
+    :param theta0: starting parameters.
+    :param float factor: relative reduction requested of the first solve.
+    """
+    if not hasattr(oracle, "initial_residual_rms"):
+        raise TypeError(
+            f"{type(oracle).__name__} does not expose initial_residual_rms; "
+            "pass eps0 explicitly."
+        )
+    return float(factor) * float(oracle.initial_residual_rms(theta0))
