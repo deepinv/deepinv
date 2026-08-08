@@ -2001,10 +2001,10 @@ def test_wiener_shapes(prior, device):
     """Shape and device are preserved across priors, batch sizes and channels.
 
     The Laplacian gamma is (1, 1, H, W // 2 + 1) and broadcasts against a mask
-    of (1, C, H, W // 2 + 1, 2), so batch and channel counts are where a shape
-    bug would hide.  _build_laplacian_gamma allocates the Laplacian kernel on
-    physics.mask.device and a tensor lambda_reg may start anywhere, so the
-    device fixture exercises both allocation paths.
+    of (1, C, H, W // 2 + 1, 2), so a broadcast error would surface in the batch
+    and channel dimensions.  _build_laplacian_gamma allocates the Laplacian
+    kernel on physics.mask.device and a tensor lambda_reg may start anywhere, so
+    the device fixture exercises both allocation paths.
     """
     H = W = 16
     batch, channels = 4, 3
@@ -2043,7 +2043,7 @@ def test_wiener_tensor_lambda_zero_is_clamped():
     )
     assert (
         physics.mask[..., 0].abs() == 0
-    ).any(), "fixture has no spectral null, so the clamp would not be exercised"
+    ).any(), "Fixture has no spectral null, so the clamp would not be exercised"
 
     lambda_tensor = torch.zeros(1, 1, N, N // 2 + 1)
     lambda_tensor[..., 0] = 0.5  # mix of zero and non-zero entries
@@ -2059,12 +2059,14 @@ def test_wiener_tensor_lambda_zero_is_clamped():
 def test_wiener_frequency_dependent_nsr(wiener_denoise_impulse):
     """A frequency-dependent NSR attenuates high frequencies more than low.
 
-    This is the Wiener smoothing behaviour asked for in issue #897 ("Wiener
+    This is the Wiener smoothing behaviour requested in issue #897 ("Wiener
     filtering from pre-computed PSDs"), which Denoising physics cannot express.
     """
     H = W = 8
-    nsr = torch.full((1, 1, H, W // 2 + 1), 0.01)  # trust the low frequencies
-    nsr[..., W // 4 :] = 100.0  # distrust the high ones
+    # A low NSR marks a frequency where the measurement is reliable, a high one
+    # a frequency dominated by noise.
+    nsr = torch.full((1, 1, H, W // 2 + 1), 0.01)
+    nsr[..., W // 4 :] = 100.0
     model = dinv.models.WienerDeconvolution(lambda_reg=nsr)
 
     y = torch.randn(1, 1, H, W)
