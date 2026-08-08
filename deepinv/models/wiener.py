@@ -225,10 +225,13 @@ class WienerDeconvolution(Reconstructor):
         :raises ValueError: If ``physics`` is not a :class:`~deepinv.physics.BlurFFT`.
         """
         # --- Validate physics type ---
-        # Only BlurFFT is accepted.  The two rejected cases fail for different
-        # reasons:
+        # Only BlurFFT is accepted.  The notable rejected cases fail for
+        # different reasons:
         #   - Denoising has the identity as its SVD basis, so no
         #     frequency-domain regularisation can be expressed.
+        #   - Blur is convolutional but is a LinearPhysics, so it carries no
+        #     SVD and prox_l2 there falls back to an iterative solve.  A
+        #     closed-form Wiener filter needs BlurFFT.
         #   - MRI uses the Fourier basis, so a frequency-varying penalty is
         #     expressible, but it subsamples the spectrum rather than
         #     multiplying by a transfer function.  There is no H(f) to invert,
@@ -251,9 +254,13 @@ class WienerDeconvolution(Reconstructor):
         if not isinstance(physics, BlurFFT):
             raise ValueError(
                 f"WienerDeconvolution requires physics to be an instance of "
-                f"BlurFFT, but got {type(physics).__name__}.  Wiener "
-                f"deconvolution is only mathematically valid for convolutional "
-                f"forward operators, whose SVD basis is the Fourier basis."
+                f"BlurFFT, but got {type(physics).__name__}.  The Wiener filter "
+                f"is a closed-form spectral solution, so it needs an operator "
+                f"that the Fourier transform diagonalises.  Being a convolution "
+                f"is not sufficient: Blur is a LinearPhysics with no SVD, so "
+                f"prox_l2 falls back to an iterative solve there.  For a "
+                f"circular convolution, use BlurFFT(img_size=(C, H, W), "
+                f"filter=filter) instead."
             )
 
         # --- lambda_reg = 0 means no regularisation: the pseudo-inverse ---
