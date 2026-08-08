@@ -70,6 +70,8 @@ Because the regularization is applied in the Fourier domain, :math:`\lambda` may
 
 This is available as a :class:`deepinv.models.Reconstructor`:
 
+    >>> physics = dinv.physics.BlurFFT(img_size=x.shape[1:], filter=dinv.physics.functional.gaussian_blur(sigma=(2, 2)), noise_model=dinv.physics.GaussianNoise(sigma=0.01))
+    >>> y = physics(x)
     >>> model = dinv.models.WienerDeconvolution(lambda_reg=0.01, prior="laplacian")
     >>> x_hat = model(y, physics)
 
