@@ -671,6 +671,118 @@ vanilla MAID it is not a free speedup on the multi-sample line-search path.
 With acceleration it is competitive on cost as well.
 
 
+Learning any prior
+------------------
+
+MAID is a bilevel method, not a method for one regulariser. A prior supplies a
+single function, the energy of a batch of images,
+
+.. math::
+
+    R_\theta : \mathbb{R}^{B \times C \times H \times W} \to \mathbb{R}^{B},
+
+and everything the algorithm needs follows from it by automatic
+differentiation: the lower-level gradient is a backward pass in ``x``, the
+Hessian-vector product a second one, and the mixed Jacobian a backward pass in
+``x`` followed by one in ``theta``. No derivative is written by hand, and the
+solved model and the differentiated model are the same object by construction.
+
+Implement :class:`~deepinv.optim.bilevel.ParametricPrior`:
+
+.. code-block:: python
+
+    class MyPrior(ParametricPrior):
+        def __init__(self, channels=3):
+            self.n_params = channels
+
+        def energy(self, x, theta):          # -> (B,)
+            w = torch.exp(theta).view(1, -1, 1, 1)
+            return (w * x.abs()).flatten(1).sum(dim=1)
+
+        def init_theta(self, *, dtype=torch.float64, device="cpu", seed=0):
+            return torch.zeros(self.n_params, dtype=dtype, device=device)
+
+and pass it to :class:`~deepinv.optim.bilevel.BatchedPriorProblem`.
+
+Requirements on the energy
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Convex in** ``x``, so the lower level has a unique minimiser and the
+certificate :math:`\|x^\star - x\| \le \|\nabla_x h\|/\mu` applies.
+**Twice differentiable in** ``x``, so the Hessian-vector product exists;
+piecewise-linear activations give convexity but no second derivative.
+**Differentiable in** ``theta``, so the hypergradient exists.
+
+Enforce convexity by construction rather than by hoping the optimiser stays
+feasible. A weight that must stay positive should be parameterised as
+:math:`\exp(\theta)` or ``softplus(theta)``, so no value of ``theta``
+produces a non-convex energy.
+
+Two checks are worth running on a new prior, and both are cheap. Assemble the
+Hessian on a small image and confirm its smallest eigenvalue is non-negative.
+Then compare the hypergradient against a central finite difference of
+:math:`g(x^\star(\theta))` along a random direction. For the three priors
+supplied here the smallest eigenvalues are 1.00, 1.01 and 10.62, and the
+finite-difference agreement is 2.7e-06, 9.9e-07 and 3.3e-05 with cosine
+1.000000.
+
+Supplied priors
+^^^^^^^^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 26 12 62
+
+   * - Prior
+     - Parameters
+     - Construction
+   * - :class:`ConvexRidgePrior2 <deepinv.optim.bilevel.ConvexRidgePrior2>`
+     - 7533
+     - Multi-convolution ridge regulariser with a smoothed-L1 potential and
+       Lipschitz-normalised filters.
+   * - :class:`LearnedTVPrior <deepinv.optim.bilevel.LearnedTVPrior>`
+     - 3
+     - Isotropic total variation with per-channel weights
+       :math:`\exp(\theta_c)` and Huber smoothing :math:`\eta` for the
+       second derivative.
+   * - :class:`ICNNPrior <deepinv.optim.bilevel.ICNNPrior>`
+     - 5968
+     - Input-convex network: non-negative hidden-to-hidden weights through
+       softplus, unconstrained input skips, softplus activation.
+
+Scale, not tuning
+^^^^^^^^^^^^^^^^^
+
+Hyper-parameters expressed as absolute constants do not transfer between
+priors, because the quantities they are compared against are properties of the
+regulariser. At the same initialisation on the same data, the hypergradient
+norm is 3.7 for the ridge prior, 5.2 for learned total variation and
+:math:`6.9 \times 10^4` for an input-convex network. A step size suited to
+the first moves the third by roughly 6900 on its first trial.
+
+Two helpers remove the dependence, and both are worth using for a new prior:
+
+* :func:`~deepinv.optim.bilevel.auto_initial_accuracy` sets ``eps0`` to a
+  fixed fraction of the stationarity residual at :math:`x_0 = A^\ast y`.
+* :func:`~deepinv.optim.bilevel.auto_initial_step` sets ``alpha0`` so the
+  first trial step changes the parameters by a fixed relative amount.
+
+.. code-block:: python
+
+    eps0 = auto_initial_accuracy(oracle, theta0, factor=0.02)
+    x0, _, _ = problem.solve_lower(theta0, eps=eps0)
+    z0 = problem.hypergradient(x0, theta0, delta=eps0)
+    alpha0 = auto_initial_step(problem, theta0, z0, rel=0.01)
+
+The energy scale itself also matters. A regulariser whose value at
+initialisation is orders of magnitude away from the data term either dominates
+the reconstruction or contributes nothing, and in both cases the hypergradient
+carries little information. Aim for an initial energy of the same order as
+:math:`\tfrac12\|Ax - y\|^2`. Watch for constants: ``softplus(0)`` is
+0.693, so a network built from softplus units carries a large offset that
+leaves the minimiser unchanged while inflating the derivative in ``theta``,
+and near-zero initial weights are not small once passed through it.
+
 Numerical precision and GPU backends
 ------------------------------------
 

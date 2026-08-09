@@ -19,6 +19,8 @@ New Features
 - Add batched lower-level solves for :class:`deepinv.optim.bilevel.MAID` with hypergradient accumulation and memory-aware batch sizing (``BatchedCRR``, ``BatchedMinibatchOracle``) (by `Mohammad Sadegh Salehi`_)
 - Add ``auto_initial_accuracy`` to choose the initial lower-level accuracy from the problem's initial residual (by `Mohammad Sadegh Salehi`_)
 - Add an isotropic TV baseline for prior comparisons (:mod:`deepinv.optim.bilevel.tv_baseline`) (by `Mohammad Sadegh Salehi`_)
+- Make :class:`deepinv.optim.bilevel.MAID` prior-agnostic: a regulariser supplies only a per-sample energy and every derivative is obtained by autograd (``ParametricPrior``, ``BatchedPriorProblem``), with learned total variation and an input-convex network alongside the convex ridge regulariser (by `Mohammad Sadegh Salehi`_)
+- Add ``auto_initial_step`` to scale the initial step size to the hypergradient, which varies by four orders of magnitude between priors (by `Mohammad Sadegh Salehi`_)
 - Report :class:`deepinv.optim.bilevel.MAID` progress via ``verbose`` / ``show_progress_bar`` (by `Mohammad Sadegh Salehi`_)
 
 Changed

@@ -96,6 +96,23 @@ from .smooth import (
     smooth_hypergradient_error_bound,
 )
 
+from .priors import (
+    ParametricPrior,
+    ConvexRidgePrior2,
+    LearnedTVPrior,
+    ICNNPrior,
+    BatchedPriorProblem,
+)
+from .batched import (
+    BatchedCRR,
+    BatchedMinibatchOracle,
+    auto_batch_size,
+    auto_initial_accuracy,
+    auto_initial_step,
+    available_memory,
+    measure_sample_bytes,
+)
+
 __all__ = [
     "MAID",
     "MAIDConfig",
@@ -149,4 +166,16 @@ __all__ = [
     "dual_distance_bound",
     "saddle_hypergradient_error_bound",
     "saddle_bound_constants",
+    "ParametricPrior",
+    "ConvexRidgePrior2",
+    "LearnedTVPrior",
+    "ICNNPrior",
+    "BatchedPriorProblem",
+    "BatchedCRR",
+    "BatchedMinibatchOracle",
+    "auto_batch_size",
+    "auto_initial_accuracy",
+    "auto_initial_step",
+    "available_memory",
+    "measure_sample_bytes",
 ]
