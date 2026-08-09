@@ -205,9 +205,50 @@ class TestTomographyWithAstra:
         assert physics.xray_transform.detector_cell_u_length == pytest.approx(1.0)
         assert physics.xray_transform.detector_cell_v_length == pytest.approx(1.0)
         assert physics.xray_transform.detector_cell_area == pytest.approx(1.0)
-        if geometry_type in ["fanbeam", "conebeam"]:
+        if geometry_type == "fanbeam":
             assert physics.xray_transform.source_radius == pytest.approx(80.0)
             assert physics.xray_transform.detector_radius == pytest.approx(20.0)
             assert physics.xray_transform.magnification_factor == pytest.approx(1.25)
+        elif geometry_type == "conebeam":
+            assert physics.xray_transform.source_radius == pytest.approx(
+                4.0 * img_size[-1]
+            )
+            assert physics.xray_transform.detector_radius == pytest.approx(img_size[-1])
+            assert physics.xray_transform.magnification_factor == pytest.approx(1.25)
         else:
             assert physics.xray_transform.magnification_factor == pytest.approx(1.0)
+
+    def test_tomography_with_astra_default_conebeam_geometry(self, monkeypatch, device):
+        astra = pytest.importorskip(
+            "astra",
+            reason="This test requires astra-toolbox. It should be "
+            "installed with `conda install -c astra-toolbox -c nvidia astra-toolbox`",
+        )
+
+        if "cuda" not in str(device):
+            monkeypatch.setattr(
+                target=dinv.physics.TomographyWithAstra,
+                name="compute_norm",
+                value=self.dummy_compute_norm,
+            )
+            monkeypatch.setattr(
+                target=astra,
+                name="create_projector",
+                value=self.dummy_create_projector,
+            )
+
+        physics = dinv.physics.TomographyWithAstra(
+            img_size=(8, 10, 12),
+            angles=4,
+            geometry_type="conebeam",
+            pixel_spacing=1.0,
+            normalize=False,
+            device=device,
+        )
+
+        assert physics.measurement_shape == (12, 4, 12)
+        assert physics.num_angles == 4
+        assert physics.xray_transform.detector_cell_u_length == pytest.approx(1.5)
+        assert physics.xray_transform.detector_cell_v_length == pytest.approx(1.5)
+        assert physics.xray_transform.source_radius == pytest.approx(48.0)
+        assert physics.xray_transform.detector_radius == pytest.approx(12.0)
