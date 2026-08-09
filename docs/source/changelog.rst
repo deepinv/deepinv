@@ -44,6 +44,7 @@ Fixed
 - Fix inversion in :class:`deepinv.transform.Reflect` (:gh:`1236` by `Sarra Amiri`_)
 - (Breaking) Have `x_shift` represent horizontal shifts and `y_shift` vertical shifts in :class:`deepinv.transform.Shift` (:gh:`1236` by `Sarra Amiri`_)
 - Force trainer non_blocking_transfers=False on MPS and CPU (:gh:`1311` by `Andrew Wang`_)
+- (Breaking) Compute per-sample statistics in :class:`deepinv.loss.metric.Metric` when ``norm_inputs="standardize"``, instead of statistics over the whole batch, so that a sample's score no longer depends on the other samples it is batched with (:gh:`1317` by `digvijaysing`_)
 
 
 v0.4.1
@@ -687,3 +688,4 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
+.. _digvijaysing: https://github.com/itsDigvijaysing
