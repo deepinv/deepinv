@@ -750,6 +750,68 @@ Supplied priors
      - Input-convex network: non-negative hidden-to-hidden weights through
        softplus, unconstrained input skips, softplus activation.
 
+Three priors through one path
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Denoising at :math:`\sigma = 0.05`, trained on one 32x32 crop from each of 16
+distinct CBSD68 images and evaluated on 8 unseen ones. All three priors use
+the same oracle, the same solver and the same accuracy and step rules; only
+the energy differs. The grid-tuned total variation baseline is the same
+isotropic energy with a single weight chosen by search rather than learned.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 12 14 14 18
+
+   * - Prior
+     - Parameters
+     - PSNR (dB)
+     - SSIM
+     - Outer iterations
+   * - noisy input
+     -
+     - 26.05
+     - 0.5992
+     -
+   * - total variation, grid-tuned
+     - 1
+     - 31.28
+     - 0.8215
+     -
+   * - convex ridge regulariser
+     - 7533
+     - 31.64
+     - 0.8499
+     - 400
+   * - learned total variation
+     - 3
+     - 30.82
+     - 0.8154
+     - 25
+   * - input-convex network
+     - 5968
+     - 29.20
+     - 0.7452
+     - 718 + 600
+
+Read this as a demonstration that the interface carries priors spanning three
+to seven thousand parameters, not as a ranking. The budgets are not equal and
+none of the runs is converged.
+
+The learned total variation stops after 25 iterations at the accuracy floor.
+It is initialised at the weight the grid search finds, so there is little left
+to gain, and its remaining difference from the baseline is the ridge floor
+:math:`\gamma` and the Huber smoothing rather than optimisation.
+
+The input-convex network is the instructive case. It begins with an energy far
+smaller than the data term, so early hypergradients are small and it must
+first grow the prior; as it does, the lower level becomes harder and MAID
+tightens ``eps`` until the accuracy floor stops it at 718 iterations with the
+objective still falling. Restarting from those weights, which resets ``eps``
+from the residual and allows a lower floor, continued from 28.51 dB to
+29.20 dB over 600 further iterations. Both stopping points were reported by
+MAID rather than inferred.
+
 Scale, not tuning
 ^^^^^^^^^^^^^^^^^
 
