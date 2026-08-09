@@ -1184,6 +1184,7 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
     prev_deterministic = torch.are_deterministic_algorithms_enabled()
     torch.use_deterministic_algorithms(True)
 
+    torch.manual_seed(0)
     dtype = torch.float64
     physics, img_size, _, _, params = find_operator(
         physics_name, device=device, get_physics_param=True
@@ -1232,7 +1233,7 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
     with torch.enable_grad():
         physics.update_parameters(**parameters)
         sol = least_squares_implicit_backward(
-            physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=50
+            physics, y, z, init, gamma, solver=solver, tol=1e-10, max_iter=50
         )
         # simple loss
         loss = (sol - 1).pow(2).sum()
@@ -1266,13 +1267,13 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
                     v_m = v_m.view_as(v)
                     physics.update_parameters(**{k: v_p})
                     sol_p = least_squares_implicit_backward(
-                        physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=50
+                        physics, y, z, init, gamma, solver=solver, tol=1e-10, max_iter=50
                     )
                     loss_p = (sol_p - 1).pow(2).sum()
 
                     physics.update_parameters(**{k: v_m})
                     sol_m = least_squares_implicit_backward(
-                        physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=50
+                        physics, y, z, init, gamma, solver=solver, tol=1e-10, max_iter=50
                     )
                     loss_m = (sol_m - 1).pow(2).sum()
 
