@@ -452,6 +452,20 @@ class CRRSampleProblem:
             nrm = torch.maximum(nrm, jte.norm())
         return float(nrm.item())
 
+    def initial_residual_rms(self, theta: torch.Tensor) -> float:
+        """Per-element stationarity residual at ``x0 = A^* y``.
+
+        The scale ``eps`` is measured against, available before any solve and
+        independent of the noise level and the ground truth. See
+        :func:`~deepinv.optim.bilevel.auto_initial_accuracy`.
+        """
+        x0 = self.physics.A_adjoint(self.y)
+        g = self.grad_x_h(x0, theta)
+        scale = float(x0[0].numel()) ** 0.5
+        return float(g.flatten(1).norm(dim=1).mean()) / (
+            scale * max(self.mu(theta), 1e-30)
+        )
+
     def g(self, x: torch.Tensor) -> torch.Tensor:
         diff = x - self.x_star
         return 0.5 * (diff * diff).sum()
@@ -956,6 +970,9 @@ class CRRSampleOracle(HypergradientOracle):
             L_H_inv=0.0,
             L_J=0.0,
         )
+
+    def initial_residual_rms(self, theta: torch.Tensor) -> float:
+        return self.problem.initial_residual_rms(theta)
 
     def g(self, x: torch.Tensor) -> torch.Tensor:
         return self.problem.g(x)

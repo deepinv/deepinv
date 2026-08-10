@@ -372,6 +372,23 @@ class MinibatchOracle(HypergradientOracle):
             },
         )
 
+    def initial_residual_rms(self, theta: torch.Tensor) -> float:
+        """Mean of the per-sample initial residual.
+
+        Present so the non-batched path can derive ``eps0`` from the problem
+        in the same way as the batched one, rather than taking a fallback.
+        Samples that cannot supply it are skipped; if none can, the caller
+        falls back.
+        """
+        vals = [
+            o.initial_residual_rms(theta)
+            for o in self.sample_oracles
+            if hasattr(o, "initial_residual_rms")
+        ]
+        if not vals:
+            raise AttributeError("no sample oracle supplies initial_residual_rms")
+        return float(sum(vals) / len(vals))
+
     def error_bound(
         self,
         theta: torch.Tensor,
