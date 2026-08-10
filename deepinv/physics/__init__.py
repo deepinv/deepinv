@@ -54,6 +54,7 @@ from .wrappers import (
     to_multiscale,
 )
 from .tomography import Tomography, TomographyWithAstra
+from .TomographyWithRTK import TomographyWithRTK
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
 from .remote_sensing import Pansharpen
