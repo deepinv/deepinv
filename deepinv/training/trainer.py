@@ -658,8 +658,9 @@ class Trainer:
         Get the samples for the online measurements.
 
         In this setting, a new sample is generated at each iteration by calling the physics operator.
-        This function returns a dictionary containing necessary data for the model inference. It needs to contain
-        the measurement, the ground truth, and the current physics operator, but can also contain additional data.
+        This function returns a tuple `(x, y, physics)` for the model inference.
+
+        Assumes the dataloader returns ground truth `x`, or tuples of (`x`, `params`). Note that `params` are ignored if a physics generator is provided.
 
         :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
@@ -675,7 +676,7 @@ class Trainer:
                 params = data[1]
             else:
                 warnings.warn(
-                    "Generating online measurements from data x but dataloader returns tuples (x, ...). Discarding all data after x."
+                    f"Generating online measurements requires dataloader to return tensor `x` or (tensor `x`, dict `params`) but got ({type(x)}, {type(data[1])}, ...). Discarding all data after `x`."
                 )
         else:
             x = data
@@ -704,9 +705,7 @@ class Trainer:
         Get the samples for the offline measurements.
 
         In this setting, samples have been generated offline and are loaded from the dataloader.
-        This function returns a tuple containing necessary data for the model inference. It needs to contain
-        the measurement, the ground truth, and the current physics operator, but can also contain additional data
-        (you can override this function to add custom data).
+        This function returns a tuple `(x, y, physics)` for the model inference. You can override this function to add custom data.
 
         If the dataloader returns 3-tuples, this is assumed to be ``(x, y, params)`` where
         ``params`` is a dict of physics generator params. These params are then used to update

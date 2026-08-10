@@ -16,19 +16,20 @@ New Features
 - Add :func:`deepinv.utils.plot_napari` to interactively view 2D images/3D vols with napari (:gh:`1249` by `Andrew Wang`_)
 - Add support for :func:`Liu-Jia padding <deepinv.physics.functional.liu_jia_pad>` (:gh:`934` by `Jérémy Scanvic`_)
 - Add support for TV-L1 priors :class:`deepinv.optim.TVL1Prior` (:gh:`1236` by `Sarra Amiri`_)
-- Add batched lower-level solves for :class:`deepinv.optim.bilevel.MAID` with hypergradient accumulation and memory-aware batch sizing (``BatchedCRR``, ``BatchedMinibatchOracle``) (by `Mohammad Sadegh Salehi`_)
-- Add ``auto_initial_accuracy`` to choose the initial lower-level accuracy from the problem's initial residual (by `Mohammad Sadegh Salehi`_)
-- Add an isotropic TV baseline for prior comparisons (:mod:`deepinv.optim.bilevel.tv_baseline`) (by `Mohammad Sadegh Salehi`_)
-- Make :class:`deepinv.optim.bilevel.MAID` prior-agnostic: a regulariser supplies only a per-sample energy and every derivative is obtained by autograd (``ParametricPrior``, ``BatchedPriorProblem``), with learned total variation and an input-convex network alongside the convex ridge regulariser (by `Mohammad Sadegh Salehi`_)
-- Add ``auto_initial_step`` to scale the initial step size to the hypergradient, which varies by four orders of magnitude between priors (by `Mohammad Sadegh Salehi`_)
-- Report :class:`deepinv.optim.bilevel.MAID` progress via ``verbose`` / ``show_progress_bar`` (by `Mohammad Sadegh Salehi`_)
+- Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
+- Add batched lower-level solves for :class:`deepinv.optim.bilevel.MAID` with hypergradient accumulation and memory-aware batch sizing (``BatchedCRR``, ``BatchedMinibatchOracle``) (:gh:`1318` by `Mohammad Sadegh Salehi`_)
+- Add ``auto_initial_accuracy`` to choose the initial lower-level accuracy from the problem's initial residual (:gh:`1318` by `Mohammad Sadegh Salehi`_)
+- Add an isotropic TV baseline for prior comparisons (:mod:`deepinv.optim.bilevel.tv_baseline`) (:gh:`1318` by `Mohammad Sadegh Salehi`_)
+- Make :class:`deepinv.optim.bilevel.MAID` prior-agnostic: a regulariser supplies only a per-sample energy and every derivative is obtained by autograd (``ParametricPrior``, ``BatchedPriorProblem``), with learned total variation and an input-convex network alongside the convex ridge regulariser (:gh:`1318` by `Mohammad Sadegh Salehi`_)
+- Add ``auto_initial_step`` to scale the initial step size to the hypergradient, which varies by four orders of magnitude between priors (:gh:`1318` by `Mohammad Sadegh Salehi`_)
+- Report :class:`deepinv.optim.bilevel.MAID` progress via ``verbose`` / ``show_progress_bar`` (:gh:`1318` by `Mohammad Sadegh Salehi`_)
 
 Changed
 ^^^^^^^
 - (Breaking) Drop support for deprecated parameters `num_channels` in :class:`deepinv.physics.generator.PSFGenerator`, :class:`deepinv.physics.generator.GaussianBlurGenerator`, :class:`deepinv.physics.generator.MotionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator`, :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
 - Extend :func:`DST-I <deepinv.physics.functional.dst1>` to make it n-dimensional and add an option to have it compute the regular DST-I instead of the non-standard sign-flipped orthogonal variant (:gh:`934` by `Jérémy Scanvic`_)
 - (Breaking) Make :class:`deepinv.optim.TVPrior()` compute an explicit choice of subgradient instead of using autodiff. (:gh:`1271` by `Thibaut Modrzyk`_)
-- Make lower-level tolerances per-element and dtype-aware, enabling float32 on CUDA and MPS (by `Mohammad Sadegh Salehi`_)
+- Make lower-level tolerances per-element and dtype-aware, enabling float32 on CUDA and MPS (:gh:`1318` by `Mohammad Sadegh Salehi`_)
 
 Fixed
 ^^^^^
@@ -36,6 +37,8 @@ Fixed
 - Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
 - Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
 - Remove unconditional dtype conversion to `torch.cfloat` in :func:`deepinv.optim.phase_retrieval.spectral_methods` (:gh:`1216` by `Zhiyuan Hu`_)
+- Let quickstart run as default on Apple MPS, and all BM3D and DPIR to be used on MPS (:gh:`1263` by `Andrew Wang`_)
+- Fix physics and rng devices incorrectly compared in noise and physics and add better device equal checking (:gh:`1263` by `Andrew Wang`_)
 - Deprecate `deepinv.models.WaveletDenoiser.thresold_2D` and `deepinv.models.WaveletDenoiser.thresold_func` in favor of :func:`deepinv.models.WaveletDenoiser.threshold_2D` and :func:`deepinv.models.WaveletDenoiser.threshold_func` (:gh:`1266` by `Paul Bernard`_)
 - Fix kwargs applications in parent constructor calls in the constructors of :class:`deepinv.sampling.EDMDiffusionSDE`, :class:`deepinv.sampling.SongDiffusionSDE` and :class:`deepinv.sampling.VariancePreservingDiffusion` (:gh:`1278` by `Jérémy Scanvic`_)
 - Fix :func:`deepinv.transform.rotate_via_shear` for angles outside :math:`[0, 2pi)` (:gh:`1236` by `Sarra Amiri`_)

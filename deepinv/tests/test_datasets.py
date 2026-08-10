@@ -1,4 +1,5 @@
 import shutil, os
+import sys
 import math
 from typing import NamedTuple, Sequence, Mapping
 from pathlib import Path
@@ -40,6 +41,9 @@ from deepinv.datasets import (
 )
 from deepinv.datasets.utils import (
     download_archive,
+    extract_zipfile,
+    extract_tarball,
+    extract_rarfile,
     Crop,
     Rescale,
     ToComplex,
@@ -1570,3 +1574,34 @@ def test_RandomPatchSampler(make_data):
     assert len(ds) == 2
     x, y = next(iter(ds))
     assert math.isnan(x)
+
+
+@pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])
+def test_extract_archive(tmp_path, kind):
+    mocker = MagicMock()
+    mocker.__enter__.return_value = mocker
+    getattr(mocker, "getmembers" if kind == "tarball" else "infolist").return_value = [
+        "a.txt",
+        "b.txt",
+    ]
+
+    if kind == "zipfile":
+        with patch(
+            "deepinv.datasets.utils.zipfile.ZipFile", return_value=mocker
+        ) as cls:
+            extract_zipfile("archive.zip", tmp_path)
+        cls.assert_called_once_with("archive.zip", "r")
+
+    elif kind == "tarball":
+        with patch("deepinv.datasets.utils.tarfile.open", return_value=mocker) as fn:
+            extract_tarball("archive.tar", tmp_path)
+        fn.assert_called_once_with("archive.tar", "r:*")
+
+    elif kind == "rarfile":
+        mock_module = MagicMock()
+        mock_module.RarFile.return_value = mocker
+        with patch.dict(sys.modules, {"rarfile": mock_module}):
+            extract_rarfile("archive.rar", tmp_path)
+        mock_module.RarFile.assert_called_once_with("archive.rar")
+
+    assert mocker.extract.call_count == 2

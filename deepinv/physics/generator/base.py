@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from hashlib import sha256
 import warnings
+from deepinv.utils.nn import devices_equal
 
 
 def seed_from_string(seed: str) -> int:
@@ -68,10 +69,10 @@ class PhysicsGenerator(nn.Module):
         if rng is None:
             self.rng = torch.Generator(device=device)
         else:
-            # Make sure that the random generator is on the same device as the physics generator
-            assert rng.device == torch.device(
-                device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator named {self.__class__.__name__} on {device}."
+            if not devices_equal(rng.device, device):
+                raise ValueError(
+                    f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator named {self.__class__.__name__} on {device}."
+                )
             self.rng = rng
 
         # NOTE: There is no use in moving RNG states from one device to another
