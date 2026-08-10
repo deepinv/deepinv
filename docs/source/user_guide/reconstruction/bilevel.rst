@@ -231,6 +231,16 @@ isotropic energy with a single weight chosen by search rather than learned.
      - 0.7452
      - 718 + 600
 
+.. figure:: ../../figures/maid_bilevel_denoising.png
+   :width: 100%
+   :alt: Denoising comparison on unseen images, with magnified crops
+
+   Denoising at :math:`\sigma = 0.05` on images unseen in training, with the
+   boxed region magnified beneath each panel. Total variation removes noise by
+   flattening, which costs texture: the eyebrow hairs, the spray on the wave
+   and the down on the chick are smoothed away. The learned prior retains
+   them, which is why its advantage is larger in SSIM than in PSNR.
+
 The table shows the same interface carrying priors from three to seven
 thousand parameters. It is not a ranking: the budgets differ and no run is
 converged, so the figures bound what each prior reached under its own budget
@@ -252,6 +262,15 @@ from 28.51 dB to 29.20 dB over 600 further iterations.
 A prior that starts far from the data-term scale therefore benefits from a
 warm start, and MAID reports which of the two limits it reached, so the choice
 between raising the budget and lowering the floor does not require guesswork.
+
+.. figure:: ../../figures/maid_bilevel_convergence.png
+   :width: 100%
+   :alt: Upper-level objective, hypergradient norm, adaptive step and accuracy
+
+   A typical run. The step size :math:`\alpha_k` and the lower-level accuracy
+   :math:`\varepsilon_k` are not monotone: MAID loosens the accuracy while
+   steps are accepted and tightens it when the descent test demands, which is
+   the behaviour a fixed-accuracy method cannot express.
 
 Scale, not tuning
 ^^^^^^^^^^^^^^^^^
