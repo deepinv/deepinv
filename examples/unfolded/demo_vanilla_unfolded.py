@@ -120,7 +120,9 @@ data_fidelity = L2()
 prior = PnP(denoiser=dinv.models.DnCNN(depth=20, pretrained="download").to(device))
 
 # The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
-norm = physics.compute_norm(torch.ones((1, 3, img_size, img_size), device=device), squared=True)
+norm = physics.compute_norm(
+    torch.ones((1, 3, img_size, img_size), device=device), squared=True
+)
 stepsize = [1.0 / norm] * max_iter  # stepsize of the algorithm
 sigma_denoiser = [
     1.0
