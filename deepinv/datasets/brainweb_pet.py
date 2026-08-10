@@ -2,15 +2,18 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import torch
 
 from deepinv.datasets.base import ImageDataset
 from deepinv.datasets.utils import resolve_root
 
-if TYPE_CHECKING:
+try:
     import brainweb
+except ImportError:  # pragma: no cover
+    brainweb = ImportError(
+        "BrainWebPET requires brainweb. Install it with `pip install brainweb`."
+    )
 
 
 class BrainWebPET(ImageDataset):
@@ -56,6 +59,7 @@ class BrainWebPET(ImageDataset):
     ... )
     >>> emission, params = dataset[0]
     >>> emission.shape == params["attenuation"].shape
+    True
     """
 
     def __init__(
@@ -71,13 +75,8 @@ class BrainWebPET(ImageDataset):
         lesion_kwargs: dict[str, object] | None = None,
         seed: int | None = 0,
     ) -> None:
-        try:
-            import brainweb
-        except ImportError as error:  # pragma: no cover
-            raise ImportError(
-                "BrainWebPET requires brainweb. Install it with "
-                "`pip install brainweb`."
-            ) from error
+        if isinstance(brainweb, ImportError):  # pragma: no cover
+            raise brainweb
 
         pet_class = brainweb.FDG if pet_class is None else pet_class
         activities = {}
