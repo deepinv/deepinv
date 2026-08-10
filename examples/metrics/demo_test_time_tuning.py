@@ -238,19 +238,6 @@ plot_sweep(
 )
 
 # %%
-# Conclusion
-# ----------
-# No reference metrics give a useful signal to choose hyperparameters or to tune unknown
-# physics parameters such as noise level or blur kernel width.
-#
-# These results come from a single image and a single noise
-# realization. A real study should average over a dataset.
-# All five metrics were designed for natural photographs, so their behaviour on other modalities
-# (medical, scientific or satellite imaging) has to be validated before being trusted. For
-# domain-specific data, NIQE can be refitted on your own images, as shown in
-# :ref:`sphx_glr_auto_examples_metrics_demo_custom_niqe.py`.
-
-# %%
 # :References:
 #
 # .. footbibliography::
