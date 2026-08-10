@@ -197,9 +197,7 @@ def check_dataset_format(
         elif dtype == "dict_of_tensorlists":
             sample = dataset[0]
             tensorlists = [sample[k] for k in ("x", "y") if k in sample]
-            assert tensorlists and all(
-                isinstance(tl, TensorList) for tl in tensorlists
-            )
+            assert tensorlists and all(isinstance(tl, TensorList) for tl in tensorlists)
         else:
             assert isinstance(
                 dataset[0], dtype
@@ -207,7 +205,7 @@ def check_dataset_format(
 
     if shape is not None:
         x = extract_x_tensor(dataset[0])
-        
+
         assert (
             x.shape == shape
         ), f"Dataset should return data of shape {shape} but got shape {x.shape}"
@@ -1115,7 +1113,7 @@ def test_load_fmd_dataset(download_fmd, use_dict_output):
                     transform=totensor,
                     target_transform=totensor,
                     download=False,
-                    use_dict_output=use_dict_output
+                    use_dict_output=use_dict_output,
                 ),
                 length=5000,
                 dtype=dtype,
@@ -1188,7 +1186,7 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units, use_dict_outpu
                     root=mock_lidc_idri,
                     transform=totensor,
                     hounsfield_units=hounsfield_units,
-                    use_dict_output=use_dict_output
+                    use_dict_output=use_dict_output,
                 ),
                 length=2036,
                 dtype=dtype,
@@ -1228,7 +1226,7 @@ def test_load_nbu_dataset(download_nbu, use_dict_output):
             download=False,
             use_dict_output=use_dict_output,
         )
-        
+
         check_dataset_format(
             dataset,
             length=5,
@@ -1241,7 +1239,13 @@ def test_load_nbu_dataset(download_nbu, use_dict_output):
 
         # Check pan band
         check_dataset_format(
-            NBUDataset(download_nbu, satellite="gaofen-1", download=False, return_pan=True, use_dict_output=use_dict_output),
+            NBUDataset(
+                download_nbu,
+                satellite="gaofen-1",
+                download=False,
+                return_pan=True,
+                use_dict_output=use_dict_output,
+            ),
             length=5,
             dtype="dict_of_tensorlists" if use_dict_output else TensorList,
             shape=[(4, 256, 256), (1, 1024, 1024)],
@@ -1276,7 +1280,7 @@ def test_load_nbu_dataset(download_nbu, use_dict_output):
         )
 
     x, y, params = unpack_batch(dataset[0])
-    if use_dict_output: 
+    if use_dict_output:
         assert x is None
     else:
         assert math.isnan(x)
@@ -1795,7 +1799,7 @@ def test_RandomPatchSampler(make_data, use_dict_output):
             file_format=c["fmt"],
             ch_axis=c["ch_axis"],
             loader=c.get("loader", None),
-            use_dict_output=use_dict_output
+            use_dict_output=use_dict_output,
         )
         assert len(ds) == 2
         x = extract_x_tensor(next(iter(ds)))
@@ -1811,7 +1815,7 @@ def test_RandomPatchSampler(make_data, use_dict_output):
             file_format=c["fmt"],
             ch_axis=c["ch_axis"],
             loader=c.get("loader", None),
-            use_dict_output=use_dict_output
+            use_dict_output=use_dict_output,
         )
         x, y, params = unpack_batch(next(iter(ds)))
         assert x.shape == c["expected"]
@@ -1826,16 +1830,17 @@ def test_RandomPatchSampler(make_data, use_dict_output):
         file_format=c0["fmt"],
         ch_axis=c0["ch_axis"],
         loader=c0.get("loader", None),
-        use_dict_output=use_dict_output
+        use_dict_output=use_dict_output,
     )
     assert len(ds) == 2
     x, y, params = unpack_batch(next(iter(ds)))
-    
+
     if use_dict_output:
         assert x is None
     else:
         assert math.isnan(x)
     assert params == {}
+
 
 @pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])
 def test_extract_archive(tmp_path, kind):

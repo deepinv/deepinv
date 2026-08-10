@@ -45,7 +45,9 @@ def test_generate_dataset(tmp_path, imsize, device, physics_name):
         train_datapoints=max_N,
     )
 
-    dataset = dinv.datasets.HDF5Dataset(path=f"{tmp_path}/dinv_dataset0.h5", train=True, use_dict_output=True)
+    dataset = dinv.datasets.HDF5Dataset(
+        path=f"{tmp_path}/dinv_dataset0.h5", train=True, use_dict_output=True
+    )
 
     assert len(dataset) == min(max_N, N)
 

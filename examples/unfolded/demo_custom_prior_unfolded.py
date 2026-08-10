@@ -90,8 +90,12 @@ generated_datasets_path = dinv.datasets.generate_dataset(
     dataset_filename=str(my_dataset_name),
 )
 
-train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=True, use_dict_output=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False, use_dict_output=True)
+train_dataset = dinv.datasets.HDF5Dataset(
+    path=generated_datasets_path, train=True, use_dict_output=True
+)
+test_dataset = dinv.datasets.HDF5Dataset(
+    path=generated_datasets_path, train=False, use_dict_output=True
+)
 
 # %%
 # Define the unfolded Proximal Gradient algorithm.

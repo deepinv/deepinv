@@ -141,10 +141,12 @@ dataset_path = dinv.datasets.generate_dataset(
 )
 
 train_dataloader = torch.utils.data.DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=True, use_dict_output=True), shuffle=True
+    dinv.datasets.HDF5Dataset(dataset_path, train=True, use_dict_output=True),
+    shuffle=True,
 )
 test_dataloader = torch.utils.data.DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=False, use_dict_output=True), shuffle=False
+    dinv.datasets.HDF5Dataset(dataset_path, train=False, use_dict_output=True),
+    shuffle=False,
 )
 
 # %%

@@ -94,9 +94,15 @@ dataset_path = dinv.datasets.generate_dataset(
     num_workers=num_workers,
 )
 
-train_dataset = dinv.datasets.HDF5Dataset(path=dataset_path, split="train", use_dict_output=True)
-eval_dataset = dinv.datasets.HDF5Dataset(path=dataset_path, split="val", use_dict_output=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=dataset_path, split="test", use_dict_output=True)
+train_dataset = dinv.datasets.HDF5Dataset(
+    path=dataset_path, split="train", use_dict_output=True
+)
+eval_dataset = dinv.datasets.HDF5Dataset(
+    path=dataset_path, split="val", use_dict_output=True
+)
+test_dataset = dinv.datasets.HDF5Dataset(
+    path=dataset_path, split="test", use_dict_output=True
+)
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True

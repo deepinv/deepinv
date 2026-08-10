@@ -129,7 +129,10 @@ dataset_path = dinv.datasets.generate_dataset(
 )
 
 train_dataset = dinv.datasets.HDF5Dataset(
-    dataset_path, split="train", load_physics_generator_params=True, use_dict_output=True
+    dataset_path,
+    split="train",
+    load_physics_generator_params=True,
+    use_dict_output=True,
 )
 test_dataset = dinv.datasets.HDF5Dataset(
     dataset_path, split="test", load_physics_generator_params=True, use_dict_output=True
@@ -459,8 +462,7 @@ dinv.datasets.download_archive(
 )
 
 dataset = dinv.datasets.CMRxReconSliceDataset(
-    dinv.utils.get_cache_home() / "CMRxRecon",
-    use_dict_output=True
+    dinv.utils.get_cache_home() / "CMRxRecon", use_dict_output=True
 )
 
 x, y, params = unpack_batch(next(iter(DataLoader(dataset))))

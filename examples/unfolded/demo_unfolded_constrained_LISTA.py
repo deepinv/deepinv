@@ -107,8 +107,12 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     dataset_filename=str(my_dataset_name),
 )
 
-train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True, use_dict_output=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False, use_dict_output=True)
+train_dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_datasets_path, train=True, use_dict_output=True
+)
+test_dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_datasets_path, train=False, use_dict_output=True
+)
 
 
 train_batch_size = 32 if torch.cuda.is_available() else 3
