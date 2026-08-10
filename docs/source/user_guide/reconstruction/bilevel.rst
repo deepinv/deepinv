@@ -3,7 +3,7 @@
 Bilevel learning with MAID
 ==========================
 
-DeepInverse implements the Method of Adaptive Inexact Descent (MAID) for
+DeepInverse implementation of the Method of Adaptive Inexact Descent (MAID) for
 bilevel hyperparameter learning. The outer loop is solver-agnostic. Everything
 that depends on how the lower level is solved, and on which a posteriori bound
 certifies the hypergradient error, lives behind a
