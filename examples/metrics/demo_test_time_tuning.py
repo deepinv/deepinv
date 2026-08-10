@@ -106,7 +106,7 @@ def plot_sweep(params: list, scores: dict, true_param: float, xlabel: str, title
     r"""Plot each metric against the swept parameter, marking its selected value."""
     fig, axs = plt.subplots(2, 3, figsize=(13, 7))
 
-    for ax, (name, values) in zip(axs.ravel(), scores.items()):
+    for ax, (name, values) in zip(axs.ravel(), scores.items(), strict=True):
         # PSNR and NIMA are higher-is-better, the other metrics are lower-is-better
         lower_better = metrics[name].lower_better if name in metrics else False
         best = min(
