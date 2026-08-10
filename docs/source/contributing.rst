@@ -266,7 +266,7 @@ Below is a minimal working example of a typical docstring that includes all thes
 Backwards Compatibility
 ------------------------
 
-Reckless breaking changes cause brittleness and instability, in addition to making the upgrading process tedious for users. Our stance is to handle them with care. When a breaking change is needed, we prefer to start by deprecating the former behavior with an opt-in way to switch to the new behavior early on. After a delay deemed sufficient, we finally drop support for the deprecated feature. We update :ref:`the changelog <log_changes>` at both stages with the new deprecations and dropped features in order to help users with the migration process.
+If you propose breaking changes, you must prevent your contribution breaking existing user workflows. To do this, you must start by deprecating the former behavior with an opt-in way to switch to the new behavior. After a delay deemed sufficient, we finally drop support for the deprecated feature. We update :ref:`the changelog <log_changes>` at both stages with the new deprecations and dropped features in order to help users with the migration process.
 
 Even though we generally try to avoid unexpected breaking changes, the library is at an early stage of development and we tolerate them in certain cases. Specifically, we allow them when the benefits are considered to far outweigh the negative consequences, especially when proper deprecation would take a lot more effort than the change itself.
 
