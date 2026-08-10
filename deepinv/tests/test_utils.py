@@ -26,6 +26,7 @@ from conftest import non_blocking_plots  # noqa: F401
 from deepinv.tests.test_datasets import check_dataset_format
 from deepinv.utils import image_to_patches, patches_to_image
 from deepinv.datasets import PatchDataset
+from deepinv.datasets.base import extract_x_tensor
 
 
 @pytest.fixture
@@ -1263,7 +1264,7 @@ def test_patch_dataset_matches_patchify(B, C, H, W, patch_size, stride):
     """PatchDataset items are consistent with image_to_patches output."""
     torch.manual_seed(42)
     imgs = torch.randn(B, C, H, W)
-    ds = PatchDataset(imgs, patch_size=patch_size, stride=stride, shape=None)
+    ds = PatchDataset(imgs, patch_size=patch_size, stride=stride, shape=None, use_dict_output=True)
     patches = image_to_patches(imgs, patch_size=patch_size, stride=stride)
     num_rows, num_cols = patches.shape[2], patches.shape[3]
     num_pch = num_rows * num_cols
@@ -1273,14 +1274,14 @@ def test_patch_dataset_matches_patchify(B, C, H, W, patch_size, stride):
         for i in range(num_rows):
             for j in range(num_cols):
                 p = i * num_cols + j
-                assert torch.equal(ds[b * num_pch + p], patches[b, :, i, j])
+                assert torch.equal(extract_x_tensor(ds[b * num_pch + p]), patches[b, :, i, j])
 
 
 def test_patch_dataset_shape_flat():
     """With shape=(-1,), each item is flattened."""
     imgs = torch.randn(2, 3, 12, 12)
-    ds = PatchDataset(imgs, patch_size=4, stride=2, shape=(-1,))
-    assert ds[0].shape == (3 * 4 * 4,)
+    ds = PatchDataset(imgs, patch_size=4, stride=2, shape=(-1,), use_dict_output=True)
+    assert extract_x_tensor(ds[0]).shape == (3 * 4 * 4,)
 
 
 def test_patch_dataset_transform():
@@ -1288,11 +1289,11 @@ def test_patch_dataset_transform():
     torch.manual_seed(0)
     imgs = torch.randn(1, 1, 8, 8)
     transform = lambda x: x * 2 + 1
-    ds = PatchDataset(imgs, patch_size=4, stride=4, transform=transform, shape=None)
-    ds_raw = PatchDataset(imgs, patch_size=4, stride=4, shape=None)
+    ds = PatchDataset(imgs, patch_size=4, stride=4, transform=transform, shape=None, use_dict_output=True)
+    ds_raw = PatchDataset(imgs, patch_size=4, stride=4, shape=None, use_dict_output=True)
 
     for i in range(len(ds)):
-        assert torch.equal(ds[i], ds_raw[i] * 2 + 1)
+        assert torch.equal(extract_x_tensor(ds[i]), extract_x_tensor(ds_raw[i]) * 2 + 1)
 
 
 @pytest.mark.parametrize(

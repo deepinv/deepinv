@@ -25,6 +25,7 @@ import torch
 import matplotlib.pyplot as plt
 
 import deepinv as dinv
+from deepinv.datasets.base import unpack_batch
 
 device = dinv.utils.get_device()
 
@@ -140,17 +141,17 @@ dataset_path = dinv.datasets.generate_dataset(
 )
 
 train_dataloader = torch.utils.data.DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=True), shuffle=True
+    dinv.datasets.HDF5Dataset(dataset_path, train=True, use_dict_output=True), shuffle=True
 )
 test_dataloader = torch.utils.data.DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=False), shuffle=False
+    dinv.datasets.HDF5Dataset(dataset_path, train=False, use_dict_output=True), shuffle=False
 )
 
 # %%
 # Visualise a data sample:
 #
 
-x, y = next(iter(test_dataloader))
+x, y, _ = unpack_batch(next(iter(test_dataloader)))
 dinv.utils.plot({"Ground truth": x, "LR measurement": y}, rescale_mode="clip")
 
 # %%

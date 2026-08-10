@@ -24,6 +24,7 @@ from torchvision import transforms
 import os
 
 import deepinv as dinv
+from deepinv.datasets.base import unpack_batch
 
 # %%
 # Setup random seeds, paths and device
@@ -93,9 +94,9 @@ dataset_path = dinv.datasets.generate_dataset(
     num_workers=num_workers,
 )
 
-train_dataset = dinv.datasets.HDF5Dataset(path=dataset_path, split="train")
-eval_dataset = dinv.datasets.HDF5Dataset(path=dataset_path, split="val")
-test_dataset = dinv.datasets.HDF5Dataset(path=dataset_path, split="test")
+train_dataset = dinv.datasets.HDF5Dataset(path=dataset_path, split="train", use_dict_output=True)
+eval_dataset = dinv.datasets.HDF5Dataset(path=dataset_path, split="val", use_dict_output=True)
+test_dataset = dinv.datasets.HDF5Dataset(path=dataset_path, split="test", use_dict_output=True)
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True
@@ -112,7 +113,7 @@ test_dataloader = DataLoader(
 # ------------------------
 #
 
-x, y = test_dataset[0]
+x, y, _ = unpack_batch(test_dataset[0])
 x, y = x.unsqueeze(0), y.unsqueeze(0)
 x, y = x.to(device), y.to(device)
 

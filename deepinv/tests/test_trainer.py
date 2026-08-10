@@ -66,11 +66,15 @@ def get_dummy_dataset(imsize, N, value):
         Defines a constant value image dataset
         """
 
-        def __init__(self, value=1.0):
+        def __init__(self, value=1.0, use_dict_output=True):
             self.value = value
+            self.use_dict_output = use_dict_output
 
         def __getitem__(self, i):
-            return torch.ones(imsize) * self.value
+            if self.use_dict_output:
+                return {"x": torch.ones(imsize) * self.value}
+            else:
+                return torch.ones(imsize) * self.value
 
         def __len__(self):
             return N

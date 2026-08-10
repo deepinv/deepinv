@@ -31,6 +31,7 @@ Contents:
 import deepinv as dinv
 import torch, torchvision
 from torch.utils.data import DataLoader
+from deepinv.datasets.base import unpack_batch
 
 device = dinv.utils.get_device()
 rng = torch.Generator(device=device).manual_seed(0)
@@ -128,17 +129,17 @@ dataset_path = dinv.datasets.generate_dataset(
 )
 
 train_dataset = dinv.datasets.HDF5Dataset(
-    dataset_path, split="train", load_physics_generator_params=True
+    dataset_path, split="train", load_physics_generator_params=True, use_dict_output=True
 )
 test_dataset = dinv.datasets.HDF5Dataset(
-    dataset_path, split="test", load_physics_generator_params=True
+    dataset_path, split="test", load_physics_generator_params=True, use_dict_output=True
 )
 
 train_dataloader = DataLoader(train_dataset)
 iterator = iter(train_dataloader)
 
-x0, y0, params0 = next(iterator)
-x1, y1, params1 = next(iterator)
+x0, y0, params0 = unpack_batch(next(iterator))
+x1, y1, params1 = unpack_batch(next(iterator))
 
 dinv.utils.plot(
     {
@@ -276,7 +277,7 @@ dataset = dinv.datasets.FastMRISliceDataset(
     dinv.utils.get_cache_home() / "brain", slice_index="middle"
 )
 
-x, y = next(iter(DataLoader(dataset)))
+x, y, _ = unpack_batch(next(iter(DataLoader(dataset))))
 x = x.to(device)
 y = y.to(device)
 
@@ -319,7 +320,7 @@ dataset = dinv.datasets.FastMRISliceDataset(
     ),
 )
 
-x, y, params = next(iter(DataLoader(dataset)))
+x, y, params = unpack_batch(next(iter(DataLoader(dataset))))
 
 physics.update(**params)
 
@@ -459,9 +460,10 @@ dinv.datasets.download_archive(
 
 dataset = dinv.datasets.CMRxReconSliceDataset(
     dinv.utils.get_cache_home() / "CMRxRecon",
+    use_dict_output=True
 )
 
-x, y, params = next(iter(DataLoader(dataset)))
+x, y, params = unpack_batch(next(iter(DataLoader(dataset))))
 
 print(f"""
     Ground truth: {x.shape} (B, C, T, H, W)
@@ -492,7 +494,7 @@ dataset = dinv.datasets.CMRxReconSliceDataset(
     mask_dir=None,
 )
 
-x, y, params = next(iter(DataLoader(dataset)))
+x, y, params = unpack_batch(next(iter(DataLoader(dataset))))
 
 x = x.to(device)
 y = y.to(device)
