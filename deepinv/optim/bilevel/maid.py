@@ -174,9 +174,24 @@ class MAIDConfig:
     :param float alpha_max: upper clamp for BB steps.
     """
 
-    eps0: float = 1e-1
-    delta0: float = 1e-1
-    alpha0: float = 1e-2
+    # None means "derive from the problem at theta0" (the recommended
+    # setting). No absolute value serves every prior: the stationarity
+    # residual and the hypergradient norm are properties of the regulariser,
+    # not of the algorithm. Measured at the same initialisation, eps0 = 1e-1
+    # leaves a denoising problem below its noisy input while sitting in a
+    # plateau for an inpainting problem, and ||z0|| ranges from 3.7 for a
+    # convex ridge prior to 6.9e4 for an input-convex network. Explicit floats
+    # are still honoured. See auto_initial_accuracy and auto_initial_step.
+    eps0: float | None = None
+    delta0: float | None = None
+    alpha0: float | None = None
+    #: Relative reduction of the initial residual requested when eps0 is None.
+    eps0_factor: float = 0.02
+    #: Relative parameter change requested of the first step when alpha0 is None.
+    alpha0_rel: float = 0.01
+    #: Used only when the oracle cannot supply the quantities to derive from.
+    eps0_fallback: float = 1e-3
+    alpha0_fallback: float = 1e-1
     rho: float = 0.5
     rho_bar: float = 1.2
     nu: float = 0.5
@@ -279,6 +294,77 @@ class MAID:
                 f"alpha_min={c.alpha_min}, alpha_max={c.alpha_max}"
             )
 
+    def _initial_accuracy_and_step(
+        self, theta0: torch.Tensor
+    ) -> tuple[float, float, float]:
+        """Resolve ``eps0``, ``delta0`` and ``alpha0``.
+
+        Explicit values are honoured. Where a value is ``None`` it is derived
+        from the problem at ``theta0``: the accuracy from the stationarity
+        residual at :math:`A^\ast y`, the step from the hypergradient norm.
+        Both references are properties of the regulariser rather than of the
+        algorithm, which is why a shared constant cannot serve every prior.
+
+        Falls back to fixed values, with a warning, when the oracle does not
+        expose what the derivation needs.
+        """
+        import warnings
+
+        c = self.config
+        eps = None if c.eps0 is None else float(c.eps0)
+        delta = None if c.delta0 is None else float(c.delta0)
+        alpha = None if c.alpha0 is None else float(c.alpha0)
+
+        need_eps = eps is None or delta is None
+        need_alpha = alpha is None
+        if not (need_eps or need_alpha):
+            return eps, delta, alpha
+
+        from .batched import auto_initial_accuracy, auto_initial_step
+
+        derived_eps = None
+        if need_eps:
+            try:
+                derived_eps = auto_initial_accuracy(
+                    self.oracle, theta0, factor=c.eps0_factor
+                )
+            except (TypeError, AttributeError):
+                derived_eps = float(c.eps0_fallback)
+                warnings.warn(
+                    f"{type(self.oracle).__name__} cannot supply an initial "
+                    "residual, so eps0 falls back to "
+                    f"{c.eps0_fallback:.1e}. Pass eps0 explicitly, or use an "
+                    "oracle exposing initial_residual_rms.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+        if eps is None:
+            eps = derived_eps
+        if delta is None:
+            delta = derived_eps if derived_eps is not None else eps
+
+        if need_alpha:
+            alpha = float(c.alpha0_fallback)
+            solve = getattr(self.oracle, "solve_lower_level", None)
+            hyper = getattr(self.oracle, "hypergradient", None)
+            if solve is not None and hyper is not None:
+                try:
+                    lower = solve(theta0, eps=eps)
+                    z0 = hyper(theta0, lower, delta=delta).z
+                    alpha = auto_initial_step(self.oracle, theta0, z0, rel=c.alpha0_rel)
+                except Exception:
+                    warnings.warn(
+                        "Could not evaluate the hypergradient at theta0, so "
+                        f"alpha0 falls back to {c.alpha0_fallback:.1e}. Pass "
+                        "alpha0 explicitly if this is not suitable.",
+                        RuntimeWarning,
+                        stacklevel=2,
+                    )
+                if hasattr(self.oracle, "reset_counters"):
+                    self.oracle.reset_counters()
+
+        return float(eps), float(delta), float(alpha)
+
     def run(
         self, theta0: torch.Tensor
     ) -> tuple[torch.Tensor, dict[str, list[float] | float | int]]:
@@ -296,9 +382,7 @@ class MAID:
         c = self.config
         oracle = self.oracle
         theta = theta0.detach().clone()
-        eps = float(c.eps0)
-        delta = float(c.delta0)
-        alpha = float(c.alpha0)
+        eps, delta, alpha = self._initial_accuracy_and_step(theta)
 
         if hasattr(oracle, "reset_counters"):
             oracle.reset_counters()
@@ -336,7 +420,7 @@ class MAID:
         # BB history: previous accepted (theta, z).
         theta_prev: torch.Tensor | None = None
         z_prev: torch.Tensor | None = None
-        last_alpha_accepted = float(c.alpha0)
+        last_alpha_accepted = float(alpha)
 
         for _k in range(c.max_iter):
             accepted = False
