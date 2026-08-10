@@ -194,15 +194,23 @@ def check_dataset_format(
             sample = dataset[0]
             images = [sample[k] for k in ("x", "y") if k in sample]
             assert images and all(isinstance(image, PIL_Image) for image in images)
+        elif dtype == "dict_of_tensorlists":
+            sample = dataset[0]
+            tensorlists = [sample[k] for k in ("x", "y") if k in sample]
+            assert tensorlists and all(
+                isinstance(tl, TensorList) for tl in tensorlists
+            )
         else:
             assert isinstance(
                 dataset[0], dtype
             ), f"Dataset should return data of type {dtype} but got type {type(dataset[0])}."
 
     if shape is not None:
+        x = extract_x_tensor(dataset[0])
+        
         assert (
-            dataset[0].shape == shape
-        ), f"Dataset should return data of shape {shape} but got shape {dataset[0].shape}"
+            x.shape == shape
+        ), f"Dataset should return data of shape {shape} but got shape {x.shape}"
 
 
 class MyDataset(ImageDataset):
@@ -996,7 +1004,7 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering, use_dict_output)
             skip_check=True,
         )
 
-    data_points = [dataset[0], dataset.get_item(1, 1, frames)]
+    data_points = [extract_x_tensor(dataset[0]), dataset.get_item(1, 1, frames)]
 
     for sharp_frame, blurry_shot in data_points:
         if frames != "all":
@@ -1098,7 +1106,7 @@ def test_load_fmd_dataset(download_fmd, use_dict_output):
     for totensor in [ToTensor(), None]:
         with dataset_output_context(use_dict_output):
             dtype = image_output_type(
-                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+                use_dict_output, totensor, paired=True, untransformed_type=PIL_Image
             )
             check_dataset_format(
                 FMD(
@@ -1107,6 +1115,7 @@ def test_load_fmd_dataset(download_fmd, use_dict_output):
                     transform=totensor,
                     target_transform=totensor,
                     download=False,
+                    use_dict_output=use_dict_output
                 ),
                 length=5000,
                 dtype=dtype,
@@ -1179,6 +1188,7 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units, use_dict_outpu
                     root=mock_lidc_idri,
                     transform=totensor,
                     hounsfield_units=hounsfield_units,
+                    use_dict_output=use_dict_output
                 ),
                 length=2036,
                 dtype=dtype,
@@ -1192,10 +1202,7 @@ def download_nbu(tmp_path):
     tmp_data_dir = str(tmp_path / "NBU")
 
     # Download Urban100 raw dataset
-    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
-        NBUDataset(
-            tmp_data_dir, satellite="gaofen-1", download=True, use_dict_output=True
-        )
+    NBUDataset(tmp_data_dir, satellite="gaofen-1", download=True)
 
     # This will return control to the test function
     yield tmp_data_dir
@@ -1221,26 +1228,26 @@ def test_load_nbu_dataset(download_nbu, use_dict_output):
             download=False,
             use_dict_output=use_dict_output,
         )
-    check_dataset_format(
-        dataset,
-        length=5,
-        dtype=dict if use_dict_output else Tensor,
-        shape=(4, 256, 256),
-    )
-    assert torch.all(
-        (0 <= dataset[0]) & (dataset[0] <= 1)
-    ), "Dataset image should be Tensor between 0-1."
+        
+        check_dataset_format(
+            dataset,
+            length=5,
+            dtype=dict if use_dict_output else Tensor,
+            shape=(4, 256, 256),
+        )
+        assert torch.all(
+            (0 <= extract_x_tensor(dataset[0])) & (extract_x_tensor(dataset[0]) <= 1)
+        ), "Dataset image should be Tensor between 0-1."
 
-    # Check pan band
-    check_dataset_format(
-        NBUDataset(download_nbu, satellite="gaofen-1", download=False, return_pan=True),
-        length=5,
-        dtype=dict if use_dict_output else TensorList,
-        shape=[(4, 256, 256), (1, 1024, 1024)],
-    )
+        # Check pan band
+        check_dataset_format(
+            NBUDataset(download_nbu, satellite="gaofen-1", download=False, return_pan=True, use_dict_output=use_dict_output),
+            length=5,
+            dtype="dict_of_tensorlists" if use_dict_output else TensorList,
+            shape=[(4, 256, 256), (1, 1024, 1024)],
+        )
 
-    # Test ImageFolder with globs
-    with dataset_output_context(use_dict_output):
+        # Test ImageFolder with globs
         dataset = ImageFolder(
             download_nbu,
             x_path="gaofen-1/MS_256/*.mat",
@@ -1269,7 +1276,11 @@ def test_load_nbu_dataset(download_nbu, use_dict_output):
         )
 
     x, y, params = unpack_batch(dataset[0])
-    assert math.isnan(x) and y.shape == (4, 256, 256)
+    if use_dict_output: 
+        assert x is None
+    else:
+        assert math.isnan(x)
+    assert y.shape == (4, 256, 256)
     assert params == {}, "Params should be empty when no generator is used."
 
 
@@ -1773,7 +1784,8 @@ def make_data(tmp_path, request):
 @pytest.mark.parametrize(
     "make_data", [".npy", ".b2nd", ".nii.gz", ".pt"], indirect=True
 )
-def test_RandomPatchSampler(make_data):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_RandomPatchSampler(make_data, use_dict_output):
     # (i) formats on 3D, (ii) 2D&channels, (iii) 4D no-channels
     for c in make_data:
         # x-only
@@ -1783,9 +1795,10 @@ def test_RandomPatchSampler(make_data):
             file_format=c["fmt"],
             ch_axis=c["ch_axis"],
             loader=c.get("loader", None),
+            use_dict_output=use_dict_output
         )
         assert len(ds) == 2
-        x = next(iter(ds))
+        x = extract_x_tensor(next(iter(ds)))
         assert (
             x.shape == (1,) + tuple(c["patch"])
             if c["ch_axis"] is None
@@ -1798,10 +1811,12 @@ def test_RandomPatchSampler(make_data):
             file_format=c["fmt"],
             ch_axis=c["ch_axis"],
             loader=c.get("loader", None),
+            use_dict_output=use_dict_output
         )
-        x, y = next(iter(ds))
+        x, y, params = unpack_batch(next(iter(ds)))
         assert x.shape == c["expected"]
         assert y.shape == c["expected"]
+        assert params == {}
 
     # check if x is nan behaviour happens
     c0 = make_data[0]
@@ -1811,11 +1826,16 @@ def test_RandomPatchSampler(make_data):
         file_format=c0["fmt"],
         ch_axis=c0["ch_axis"],
         loader=c0.get("loader", None),
+        use_dict_output=use_dict_output
     )
     assert len(ds) == 2
-    x, y = next(iter(ds))
-    assert math.isnan(x)
-
+    x, y, params = unpack_batch(next(iter(ds)))
+    
+    if use_dict_output:
+        assert x is None
+    else:
+        assert math.isnan(x)
+    assert params == {}
 
 @pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])
 def test_extract_archive(tmp_path, kind):

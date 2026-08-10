@@ -162,10 +162,10 @@ class RandomPatchSampler(ImageDataset):
 
         if self.use_dict_output:
             out = {}
-            if x is not torch.nan:
+            if self.x_dir:
                 out["x"] = x
 
-            if y is not None:
+            if self.y_dir:
                 out["y"] = y
 
             return out
