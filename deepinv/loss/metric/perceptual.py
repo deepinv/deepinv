@@ -569,11 +569,10 @@ class BRISQUE(Metric):
     are computed with a :math:`7\times 7` Gaussian window. A generalized Gaussian is fitted
     to the MSCN coefficients and asymmetric generalized Gaussians are fitted to their four
     neighbouring products, yielding 36 features which are mapped to a quality score by a
-    support vector regressor pre-trained on the LIVE IQA dataset.
+    support vector regressor pre-trained on the `LIVE IQA dataset <https://live.ece.utexas.edu/research/quality/subjective.htm>`_.
 
-    This is a PyTorch translation of the ``pybrisque`` implementation
-    (https://github.com/bukalapak/pybrisque), itself
-    adapted from the authors' original MATLAB code. The pre-trained support vector
+    This is a PyTorch translation of the implementation
+    (https://github.com/dsoellinger/blind_image_quality_toolbox). The pre-trained support vector
     regressor is the one released with the original MATLAB implementation.
 
     .. note::
@@ -881,7 +880,9 @@ class BRISQUE(Metric):
 
 
 class _DepthwiseSeparable(torch.nn.Module):
-    r"""Depthwise separable block of MobileNetV1, matching ``tf.keras.applications.mobilenet``."""
+    r"""Depthwise separable block of MobileNetV1, matching ``tf.keras.applications.mobilenet``,
+    see https://www.tensorflow.org/api_docs/python/tf/keras/applications/MobileNet.
+    """
 
     def __init__(self, in_channels: int, out_channels: int, stride: int):
         super().__init__()
@@ -909,7 +910,7 @@ class _DepthwiseSeparable(torch.nn.Module):
 
 class _MobileNetV1(torch.nn.Module):
     r"""
-    MobileNetV1 (width multiplier 1) with a NIMA classification head.
+    MobileNetV1 (width multiplier 1) with a NIMA classification head :cite:p:`howard2017mobilenets`:
 
     Layer-for-layer equivalent of ``tf.keras.applications.mobilenet.MobileNet`` with
     ``include_top=False, pooling='avg'`` followed by a dense softmax layer, so that the
@@ -978,13 +979,13 @@ class NIMA(Metric):
 
     Two pre-trained heads are available, selected with ``variant``:
 
-    - ``'aesthetic'`` (default), trained on the AVA database, which rates the aesthetic appeal of an image;
-    - ``'technical'``, trained on the TID2013 database, which rates the amount of distortion in an image
-      and is therefore usually the relevant one for inverse problems.
+    - ``'aesthetic'`` (default), trained on the AVA dataset :cite:p:`murray2012ava`, which rates the aesthetic appeal of an image;
+    - ``'technical'``, trained on the TID2013 dataset :cite:p:`ponomarenko2015image`, which rates the amount of distortion in an image
 
     This is adapted from the ``image-quality-assessment`` implementation in
     (https://github.com/idealo/image-quality-assessment), which we gratefully acknowledge.
     The MobileNet backbone and both heads use their released weights, converted to PyTorch.
+
 
     .. warning::
 
