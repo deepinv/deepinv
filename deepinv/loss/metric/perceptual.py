@@ -573,7 +573,8 @@ class BRISQUE(Metric):
 
     This is a PyTorch translation of the implementation
     (https://github.com/dsoellinger/blind_image_quality_toolbox). The pre-trained support vector
-    regressor is the one released with the original MATLAB implementation.
+    regressor is the one released with the original MATLAB implementation, and weights
+    were downloaded from https://github.com/dsoellinger/blind_image_quality_toolbox/blob/master/%2Bbrisque/allmodel.
 
     .. note::
 
