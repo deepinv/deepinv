@@ -272,7 +272,7 @@ Even though we generally try to avoid unexpected breaking changes, the library i
 
 As a contributor making a new pull request, it might be tricky to determine a suitable way to handle potential breaking changes. Please do not let this delay your submission needlessly. The maintainers acknowledge this and will provide the necessary guidance when reviewing your changes.
 
-When it comes to implementing the deprecations, we generally endorse the recommendations featured in `scikit-learn's contributing guide <https://scikit-learn.org/dev/developers/contributing.html#maintaining-backwards-compatibility>`_.
+A number of deprecation helpers are featured in the library internals, located in ``deepinv/utils/decorators.py``. Deprecating classes, functions and methods is handled by ``_deprecated_class``, ``_deprecated_func`` and ``_deprecated_func_replaced_by``. Deprecating function and method arguments is handled by ``_deprecated_argument`` and ``_deprecated_alias``. Finally, deprecating attributes is handled by ``_deprecate_attribute``. We also generally endorse the recommendations from `scikit-learn's contributing guide <https://scikit-learn.org/dev/developers/contributing.html#maintaining-backwards-compatibility>`_.
 
 Contributing new physics
 -------------------------
