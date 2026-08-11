@@ -94,7 +94,12 @@ torch.manual_seed(0)
 dtype = torch.float64
 device = "cpu"
 
-ROOT = Path(__file__).resolve().parents[2]
+try:
+    ROOT = Path(__file__).resolve().parents[2]
+except NameError:
+    # sphinx-gallery execs the example rather than importing it, so __file__
+    # is undefined during the docs build.
+    ROOT = Path.cwd()
 FIG_DIR = Path(os.environ.get("FIG_DIR", ROOT / ".scratch" / "figs"))
 FIG_DIR.mkdir(parents=True, exist_ok=True)
 
