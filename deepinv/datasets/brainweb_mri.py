@@ -35,8 +35,7 @@ class BrainWebMRI(ImageDataset):
             from brainweb_dl import get_mri
         except ImportError as error:  # pragma: no cover
             raise ImportError(
-                "BrainWebMRI requires brainweb-dl. Install it with "
-                "`pip install deepinv[dataset]`."
+                "BrainWebMRI requires brainweb-dl. Install it with `pip install deepinv[dataset]`."
             ) from error
 
         self.root = resolve_root(root, "BrainWebMRI")
@@ -44,6 +43,7 @@ class BrainWebMRI(ImageDataset):
             [subject_ids] if isinstance(subject_ids, int) else subject_ids
         )
         self.contrast = contrast
+        self.download = download
         self.transform = transform
         self.get_mri = get_mri
 
@@ -51,10 +51,25 @@ class BrainWebMRI(ImageDataset):
         return len(self.subject_ids)
 
     def __getitem__(self, index: int) -> torch.Tensor:
+        subject_id = self.subject_ids[index]
+        if subject_id == 0 and self.contrast in ("T1", "T2", "PD"):
+            filename = f"{self.contrast}_ICBM_normal_1mm_pn0_rf0.nii.gz"
+        elif subject_id != 0 and self.contrast == "T1":
+            filename = f"subject{subject_id:02d}_t1w.nii.gz"
+        elif subject_id == 0:
+            filename = "phantom_1.0mm_normal_fuzzy.nii.gz"
+        else:
+            filename = f"brainweb_s{subject_id:02d}_fuzzy.nii.gz"
+        if not self.download and not (self.root / filename).exists():
+            raise FileNotFoundError(
+                f"BrainWeb MRI data for subject {subject_id} with "
+                f"contrast {self.contrast!r} was not found at `{self.root / filename}`. "
+                "Set `download=True` to download it."
+            )
         volume = self.get_mri(
-            sub_id=self.subject_ids[index],
+            sub_id=subject_id,
             contrast=self.contrast,
             brainweb_dir=self.root,
         )
-        volume = torch.from_numpy(volume).unsqueeze(0) / 4095
+        volume = torch.from_numpy(volume).to(torch.float32).unsqueeze(0) / 4095
         return self.transform(volume) if self.transform is not None else volume

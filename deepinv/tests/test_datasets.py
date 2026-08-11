@@ -1592,6 +1592,23 @@ def test_brainweb_mri(tmp_path):
     assert volume.min() == 0
     assert volume.max() == 1
 
+    cached_dataset = BrainWebMRI(root=tmp_path, subject_ids=0, download=False)
+    assert cached_dataset[0].shape == (1, 181, 217, 181)
+
+    for subject_id, contrast, filename in [
+        (0, "T1", "T1_ICBM_normal_1mm_pn0_rf0.nii.gz"),
+        (0, "T2*", "phantom_1.0mm_normal_fuzzy.nii.gz"),
+        (4, "T1", "subject04_t1w.nii.gz"),
+        (4, "T2", "brainweb_s04_fuzzy.nii.gz"),
+    ]:
+        with pytest.raises(FileNotFoundError, match=filename):
+            BrainWebMRI(
+                root=tmp_path / "missing",
+                subject_ids=subject_id,
+                contrast=contrast,
+                download=False,
+            )[0]
+
 
 @pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])
 def test_extract_archive(tmp_path, kind):
