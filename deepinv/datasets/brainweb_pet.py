@@ -2,18 +2,15 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import torch
 
 from deepinv.datasets.base import ImageDataset
 from deepinv.datasets.utils import resolve_root
 
-try:
+if TYPE_CHECKING:
     import brainweb
-except ImportError:  # pragma: no cover
-    brainweb = ImportError(
-        "BrainWebPET requires brainweb. Install it with `pip install brainweb`."
-    )
 
 
 class BrainWebPET(ImageDataset):
@@ -26,7 +23,7 @@ class BrainWebPET(ImageDataset):
     Passing `lesion_diameters` adds high activity lesions with `brainweb.add_lesions` and includes a `lesion_mask` in the returned params, where the background is labelled ``0`` and lesions are labelled from ``1`` onwards.
 
     This dataset relies on the original implementation of Casper da Costa-Luis:
-    <https://github.com/casperdcl/brainweb>`_.
+    <https://github.com/casperdcl/brainweb>`_. Install it with `pip install brainweb`.
     See the original implementation for a detailed description of the keyword arguments.
 
     :param str, pathlib.Path, None root: Dataset directory. Defaults to the DeepInv cache.
@@ -34,7 +31,7 @@ class BrainWebPET(ImageDataset):
     :param bool download: Download missing subjects. Defaults to `True`.
     :param type[brainweb.Act], None pet_class: BrainWeb PET activity preset. Defaults to `brainweb.FDG`.
     :param list[float], None lesion_diameters: Lesion diameters in mm. Defaults to `None`, which adds no lesions.
-    :param str, collections.abc.Sequence[str], None contrast: Contrasts to include in the returned parameters. Valid values are `"T1"` and `"T2"`. Defaults to `None`.
+    :param str, collections.abc.Sequence[str] contrast: Contrasts to include in the returned parameters. Valid values are `"T1"` and `"T2"`. Defaults to an empty tuple.
     :param dict, None lesion_kwargs: Keyword arguments for `brainweb.add_lesions`.
     :param dict, None random_degradations_kwargs: Keyword arguments for `brainweb.get_mmr_fromfile` controlling random structural degradations.
     :param collections.abc.Callable, None transform: Optional transform to apply to the returned volumes.
@@ -69,14 +66,18 @@ class BrainWebPET(ImageDataset):
         download: bool = True,
         transform: Callable | None = None,
         pet_class: type[brainweb.Act] | None = None,
-        contrast: str | Sequence[str] | None = None,
+        contrast: str | Sequence[str] = (),
         random_degradations_kwargs: dict[str, object] | None = None,
         lesion_diameters: list[float] | None = None,
         lesion_kwargs: dict[str, object] | None = None,
         seed: int | None = 0,
     ) -> None:
-        if isinstance(brainweb, ImportError):  # pragma: no cover
-            raise brainweb
+        try:
+            import brainweb
+        except ImportError as error:  # pragma: no cover
+            raise ImportError(
+                "BrainWebPET requires brainweb. Install it with `pip install brainweb`."
+            ) from error
 
         pet_class = brainweb.FDG if pet_class is None else pet_class
         activities = {}
@@ -154,6 +155,8 @@ class BrainWebPET(ImageDataset):
         return len(self.files)
 
     def __getitem__(self, index: int):
+        import brainweb
+
         subject = self.subject_ids[index]
         volumes = brainweb.get_mmr_fromfile(
             str(self.files[index]), **self.brainweb_kwargs
