@@ -132,9 +132,13 @@ FIXED_EPS = 2e-5  # per-element rms gradient tolerance
 LEARN_EPS0 = 2e-5  # per-element rms gradient tolerance
 REPORT_EPS = 2e-6  # per-element rms gradient tolerance
 ALPHA0_CRR = 1e-2
-# Slightly milder random weight init than 0.05 reduces the initial
-# oversmoothing of reference (beta=4, sigma=0.1) without changing the chart.
-WEIGHT_SCALE = 0.02
+# Reference filter scale. Initialising much smaller leaves the prior nearly
+# inert: the data term then dominates, the lower level is easy at any
+# accuracy, and the adaptive schedule has nothing to adapt to. At 0.02 this
+# example reported MAID and fixed accuracy as indistinguishable on denoising
+# and MAID as the worse of the two on the ill-conditioned problem, which is
+# an artefact of the initialisation rather than a property of either method.
+WEIGHT_SCALE = 1.0
 # Shared line-search parameters for MAID and the fixed-accuracy arm.
 LS_RHO = 0.5
 LS_RHO_BAR = 1.2
