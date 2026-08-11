@@ -93,8 +93,8 @@ def split_physics(
     .. warning::
 
         If ``physics`` is normalized, each subset reuses the operator norm of the
-        complete physics instead of computing its own. 
-        Computing the real subset physics operator norm would result in a mismatch 
+        complete physics instead of computing its own.
+        Computing the real subset physics operator norm would result in a mismatch
         between the projections of the full physics and the subset physics.
 
     :param deepinv.physics.LinearPhysics physics: tomography physics.
