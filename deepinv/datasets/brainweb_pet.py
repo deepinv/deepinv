@@ -23,7 +23,7 @@ class BrainWebPET(ImageDataset):
     of shape `(1, 127, 344, 344)`.
     The dataset has been adapted to emission tomography, and returns an emission and attenuation map, at the Siemens Biograph mMR isotropic resolution of 2.0863 mm per voxel.
 
-    Passing `lesion_diameters` adds high activity lesions with `brainweb.add_lesions` and includes a binary `lesion_mask` in the returned parameters.
+    Passing `lesion_diameters` adds high activity lesions with `brainweb.add_lesions` and includes a `lesion_mask` in the returned params, where the background is labelled ``0`` and lesions are labelled from ``1`` onwards.
 
     This dataset relies on the original implementation of Casper da Costa-Luis:
     <https://github.com/casperdcl/brainweb>`_.
@@ -121,16 +121,21 @@ class BrainWebPET(ImageDataset):
                 )
             self.files.append(path)
 
-        random_degradations_kwargs = {
+        degradation_defaults = {
             "petNoise": 0.0,
             "t1Noise": 0.0,
             "t2Noise": 0.0,
             "petSigma": 0.0,
             "t1Sigma": 0.0,
             "t2Sigma": 0.0,
-            **(random_degradations_kwargs or {}),
         }
-        self.brainweb_kwargs: dict[str, object] = {
+
+        if random_degradations_kwargs is not None:
+            degradation_defaults.update(random_degradations_kwargs)
+
+        random_degradations_kwargs = degradation_defaults
+
+        self.brainweb_kwargs = {
             **random_degradations_kwargs,
             "PetClass": pet_class,
         }
@@ -165,11 +170,23 @@ class BrainWebPET(ImageDataset):
             ).unsqueeze(0)
 
         if self.lesion_kwargs is not None:
-            original = emission.copy()
             if self.seed is not None:
                 brainweb.seed(self.seed + subject)
-            emission = brainweb.add_lesions(emission, **self.lesion_kwargs)
-            params["lesion_mask"] = torch.as_tensor(emission != original).unsqueeze(0)
+
+            lesion_mask = torch.zeros(emission.shape, dtype=torch.uint8)
+            for lesion_index, diameter in enumerate(self.lesion_kwargs["diam"]):
+                lesion_label = lesion_index + 1
+                original = emission.copy()
+                lesion_kwargs = self.lesion_kwargs.copy()
+                lesion_kwargs["diam"] = [diameter]
+                for name in ("intensity", "blur"):
+                    if name in lesion_kwargs and lesion_kwargs[name] is not None:
+                        lesion_kwargs[name] = [lesion_kwargs[name][lesion_index]]
+
+                emission = brainweb.add_lesions(emission, **lesion_kwargs)
+                lesion_mask[torch.as_tensor(emission != original)] = lesion_label
+
+            params["lesion_mask"] = lesion_mask.unsqueeze(0)
 
         emission = torch.as_tensor(emission, dtype=torch.float32).unsqueeze(0)
 

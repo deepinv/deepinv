@@ -1577,7 +1577,7 @@ def test_RandomPatchSampler(make_data):
     assert math.isnan(x)
 
 
-@pytest.mark.parametrize("lesion_diameters", [None, [15]])
+@pytest.mark.parametrize("lesion_diameters", [None, [15, 7]])
 def test_brainweb_pet(tmp_path, lesion_diameters):
     brainweb = pytest.importorskip("brainweb")
 
@@ -1598,7 +1598,7 @@ def test_brainweb_pet(tmp_path, lesion_diameters):
             "t2Sigma": 0.0,
         },
         lesion_diameters=lesion_diameters,
-        lesion_kwargs={"intensity": [200], "blur": [0], "thresh": 30},
+        lesion_kwargs={"intensity": [1000, 2000], "blur": [0, 0], "thresh": 30},
         seed=0,
     )
     emission, params = dataset[0]
@@ -1611,6 +1611,8 @@ def test_brainweb_pet(tmp_path, lesion_diameters):
     assert issubclass(pet_class, RandomFDG)
     assert pet_class.greyMatter == 120.0
     assert ("lesion_mask" in params) == bool(lesion_diameters)
+    if lesion_diameters:
+        assert torch.unique(params["lesion_mask"]).tolist() == [0, 1, 2]
 
 
 @pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])
