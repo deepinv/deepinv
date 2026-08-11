@@ -17,6 +17,7 @@ New Features
 - Add support for :func:`Liu-Jia padding <deepinv.physics.functional.liu_jia_pad>` (:gh:`934` by `Jérémy Scanvic`_)
 - Add support for TV-L1 priors :class:`deepinv.optim.TVL1Prior` (:gh:`1236` by `Sarra Amiri`_)
 - Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
+- Add :class:`deepinv.datasets.BrainWebPET` (:gh:`1286` by `Thibaut Modrzyk`_)
 
 Changed
 ^^^^^^^
