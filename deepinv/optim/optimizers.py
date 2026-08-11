@@ -2560,7 +2560,6 @@ class OSEM(BaseOptim):
         )
         from deepinv.utils.tensorlist import TensorList
 
-        operator_norm = None
         if isinstance(physics, StackedLinearPhysics):
             if not isinstance(y, (TensorList, list)):
                 raise TypeError(
@@ -2578,28 +2577,13 @@ class OSEM(BaseOptim):
                 raise TypeError(
                     "A full deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, or deepinv.physics.PET requires measurements as a torch.Tensor. To provide pre-split measurements, first use deepinv.physics.functional.tomography_subsets.split_physics to create the matching physics subsets."
                 )
-            operator_norm = physics.operator_norm if physics.normalize else None
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    message="Subsetted physics cannot be normalized.*",
-                    category=UserWarning,
-                )
-                subsetted_physics = split_physics(physics, self.num_subsets)
+            subsetted_physics = split_physics(
+                physics, self.num_subsets, device=y.device
+            )
             y_subsets = split_measurements(y, physics, self.num_subsets)
 
             physics = subsetted_physics
             y = y_subsets
-
-            if operator_norm is not None:
-                # Keep subset projections in the same normalized domain as y.
-                for subset_physic in physics:
-                    subset_physic.register_buffer(
-                        "operator_norm", operator_norm.detach().clone()
-                    )
-                    subset_physic.normalize = True
-                    if hasattr(subset_physic, "background"):
-                        subset_physic.background /= operator_norm
 
         # Need to update the PoissonLikelihood data-fidelity with the background
         # for PET physics

@@ -944,6 +944,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         (dinv.optim.OSEM, True, 2, False),
         (dinv.optim.OSEM, False, 1, False),
         (dinv.optim.OSEM, False, 2, True),
+        (dinv.optim.OSEM, True, 2, True),
     ],
 )
 @pytest.mark.parametrize(
@@ -1009,7 +1010,7 @@ def test_MLEM_OSEM(
     if algorithm is dinv.optim.OSEM:
         if pre_split:
             y = dinv.physics.split_measurements(y, physics, num_subsets)
-            physics = dinv.physics.split_physics(physics, num_subsets)
+            physics = dinv.physics.split_physics(physics, num_subsets, device=device)
             y = list(y)
         else:
             algorithm_kwargs["num_subsets"] = num_subsets
@@ -1042,6 +1043,19 @@ def test_MLEM_OSEM(
                 model(
                     list(dinv.physics.split_measurements(y, physics, num_subsets)),
                     physics,
+                )
+
+        if physics_class is dinv.physics.PET and normalize:
+            expected_backgrounds = dinv.physics.split_measurements(
+                full_physics.background, full_physics, num_subsets
+            )
+            subset_data_fidelities = model.data_fidelity[0].data_fidelity_list
+            for subset_data_fidelity, expected_background in zip(
+                subset_data_fidelities, expected_backgrounds, strict=True
+            ):
+                assert torch.allclose(
+                    subset_data_fidelity.bkg,
+                    expected_background / subset_data_fidelity.gain,
                 )
 
     expected_data_fidelity = data_fidelity

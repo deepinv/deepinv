@@ -25,10 +25,19 @@ def test_tomography_subsets(physics_class, device):
         physics.normalize = True
         physics.operator_norm.fill_(2.0)
 
-        with pytest.warns(UserWarning, match="Subsetted physics cannot be normalized"):
-            subset_physics = dinv.physics.split_physics(physics, num_subsets=2)
+        subset_physics = dinv.physics.split_physics(
+            physics, num_subsets=2, device=device
+        )
+        x = torch.ones((1, 1, *physics.img_size), device=device)
+        y = physics.A(x, add_background=True)
+        y_subsets = dinv.physics.split_measurements(y, physics, num_subsets=2)
 
-        assert all(torch.all(subset.background == 6.0) for subset in subset_physics)
+        assert all(torch.all(subset.background == 3.0) for subset in subset_physics)
+        for subset_y, subset in zip(y_subsets, subset_physics, strict=True):
+            assert torch.allclose(
+                subset.A(x, add_background=True),
+                subset_y,
+            )
         return
 
     if physics_class is dinv.physics.TomographyWithAstra:
@@ -94,7 +103,7 @@ def test_tomography_subsets(physics_class, device):
     assert torch.equal(torch.stack(vector_indices), expected_indices)
 
     y_subsets = dinv.physics.split_measurements(y, physics, num_subsets)
-    subset_physics = dinv.physics.split_physics(physics, num_subsets)
+    subset_physics = dinv.physics.split_physics(physics, num_subsets, device=device)
 
     assert isinstance(y_subsets, TensorList)
     assert isinstance(subset_physics, dinv.physics.StackedLinearPhysics)
@@ -120,33 +129,27 @@ def test_tomography_subsets(physics_class, device):
         rtol=1e-5,
     )
 
-    with pytest.warns(
-        UserWarning,
-        match="Subsetted physics cannot be normalized.*Divide the output",
-    ):
-        normalized_subset_physics = dinv.physics.split_physics(
-            normalized_physics, num_subsets
-        )
+    normalized_subset_physics = dinv.physics.split_physics(
+        normalized_physics, num_subsets, device=device
+    )
     normalized_y = normalized_physics.A(x)
     normalized_y_subsets = dinv.physics.split_measurements(
         normalized_y, normalized_physics, num_subsets
     )
-    normalized_stacked_y = (
-        normalized_subset_physics.A(x) / normalized_physics.operator_norm
-    )
+    normalized_stacked_y = normalized_subset_physics.A(x)
 
     for i, idx in enumerate(angle_indices):
         expected_y = normalized_y.index_select(angle_dim, idx)
         assert torch.allclose(normalized_y_subsets[i], expected_y)
         assert torch.allclose(normalized_stacked_y[i], expected_y, atol=1e-5)
 
-    assert all(not subset.normalize for subset in normalized_subset_physics)
     assert all(
-        not hasattr(subset, "operator_norm") for subset in normalized_subset_physics
+        subset.normalize
+        and torch.equal(subset.operator_norm, normalized_physics.operator_norm)
+        for subset in normalized_subset_physics
     )
     assert torch.allclose(
-        normalized_subset_physics.A_adjoint(normalized_y_subsets)
-        / normalized_physics.operator_norm,
+        normalized_subset_physics.A_adjoint(normalized_y_subsets),
         normalized_physics.A_adjoint(normalized_y),
         atol=1e-5,
     )

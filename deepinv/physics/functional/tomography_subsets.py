@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import warnings
-
 import torch
 
 from deepinv.physics.forward import LinearPhysics, StackedLinearPhysics
@@ -87,12 +85,21 @@ def split_measurements(
 def split_physics(
     physics: LinearPhysics,
     num_subsets: int,
+    device: torch.device | str,
 ) -> StackedLinearPhysics:
     r"""
     Builds a stacked tomography physics with one operator per angular subset.
 
+    .. warning::
+
+        If ``physics`` is normalized, each subset reuses the operator norm of the
+        complete physics instead of computing its own. 
+        Computing the real subset physics operator norm would result in a mismatch 
+        between the projections of the full physics and the subset physics.
+
     :param deepinv.physics.LinearPhysics physics: tomography physics.
     :param int num_subsets: number of subsets.
+    :param torch.device, str device: device on which to create the subset physics.
     :return: :class:`deepinv.physics.StackedLinearPhysics` over angular subsets.
     """
     if not isinstance(physics, (Tomography, TomographyWithAstra, PET)):
@@ -100,16 +107,10 @@ def split_physics(
             "split_physics is currently supported for deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, and deepinv.physics.PET physics."
         )
 
-    if physics.normalize:
-        warnings.warn(
-            "Subsetted physics cannot be normalized. Divide the output of the subsetted physics by the operator norm of the complete physics.",
-            stacklevel=2,
-        )
-
     if isinstance(physics, Tomography):
         subset_physics = [
             Tomography(
-                angles=physics.angles.index_select(0, idx),
+                angles=physics.angles.index_select(0, idx).to(device),
                 img_width=physics.img_width,
                 circle=physics.radon.circle,
                 parallel_computation=physics.radon.parallel_computation,
@@ -118,8 +119,8 @@ def split_physics(
                 normalize=False,
                 fan_beam=physics.fan_beam,
                 fan_parameters=physics.radon.fan_parameters,
-                device=physics.device,
-                dtype=physics.dtype,
+                device=device,
+                dtype=physics.radon.all_grids.dtype,
             )
             for idx in get_subset_tensor(physics.angles, num_subsets)
         ]
@@ -130,7 +131,7 @@ def split_physics(
             subset_physics = [
                 TomographyWithAstra(
                     img_size=physics.img_size,
-                    angles=angles.index_select(0, idx),
+                    angles=angles.index_select(0, idx).to(device),
                     angular_range=physics.angular_range,
                     n_detector_pixels=physics.n_detector_pixels,
                     detector_spacing=physics.detector_spacing,
@@ -139,7 +140,7 @@ def split_physics(
                     geometry_type=physics.geometry_type,
                     geometry_parameters=physics.geometry_parameters,
                     normalize=False,
-                    device=physics.device,
+                    device=device,
                 )
                 for idx in get_subset_tensor(angles, num_subsets)
             ]
@@ -148,7 +149,7 @@ def split_physics(
             subset_physics = [
                 TomographyWithAstra(
                     img_size=physics.img_size,
-                    angles=torch.arange(len(idx), device=physics.device),
+                    angles=torch.arange(len(idx), device=device),
                     angular_range=physics.angular_range,
                     n_detector_pixels=physics.n_detector_pixels,
                     detector_spacing=physics.detector_spacing,
@@ -156,9 +157,9 @@ def split_physics(
                     bounding_box=physics.bounding_box,
                     geometry_type=physics.geometry_type,
                     geometry_parameters=physics.geometry_parameters,
-                    geometry_vectors=geometry_vectors.index_select(0, idx),
+                    geometry_vectors=geometry_vectors.index_select(0, idx).to(device),
                     normalize=False,
-                    device=physics.device,
+                    device=device,
                 )
                 for idx in get_subset_tensor(geometry_vectors, num_subsets)
             ]
@@ -166,7 +167,6 @@ def split_physics(
     else:
         indices = get_subset_tensor(physics.views, num_subsets)
         view_dim = 2 + physics.proj.lor_descriptor.view_axis_num
-        background_scale = physics.operator_norm if physics.normalize else 1.0
         subset_physics = [
             PET(
                 img_size=physics.img_size,
@@ -174,20 +174,23 @@ def split_physics(
                 fwhm_data_mm=physics.fwhm_data_mm,
                 scanner=physics.scanner,
                 radial_trim=physics.radial_trim,
-                gain=physics.noise_model.gain.detach().clone(),
+                gain=physics.noise_model.gain.detach().clone().to(device),
                 normalize=False,
                 normalize_counts=bool(physics.noise_model.normalize),
-                device=physics.background.device,
-                views=physics.views.index_select(0, idx.to(physics.views.device)),
-                background=physics.background.index_select(
-                    view_dim, idx.to(physics.background.device)
-                )
-                * background_scale,
-                attenuation=physics.attenuation.index_select(
-                    view_dim, idx.to(physics.attenuation.device)
-                ),
+                device=device,
+                views=physics.views.index_select(0, idx).to(device),
+                background=physics.background.index_select(view_dim, idx).to(device),
+                attenuation=physics.attenuation.index_select(view_dim, idx).to(device),
             )
             for idx in indices
         ]
+
+    if physics.normalize:
+        for subset in subset_physics:
+            subset.register_buffer(
+                "operator_norm",
+                physics.operator_norm.detach().clone().to(device),
+            )
+            subset.normalize = True
 
     return StackedLinearPhysics(subset_physics)
