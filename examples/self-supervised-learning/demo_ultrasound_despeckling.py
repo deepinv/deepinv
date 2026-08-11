@@ -1,11 +1,13 @@
 r"""
-Ultrasound despeckling with BM3D
-================================
+Ultrasound despeckling from B-mode images
+=========================================
 
-This example despeckles real clinical ultrasound B-mode images with the classical
-BM3D denoiser :class:`deepinv.models.BM3D`.
+This example despeckles real clinical ultrasound B-mode images with Speckle2Self
+:footcite:p:`li2025speckle2self`, a model pretrained without clean reference images.
 
-We use B-mode images from the carotid dataset acquired in Speckle2Self :footcite:p:`li2025speckle2self`.
+We compare its performance against a classical BM3D :class:`deepinv.models.BM3D` baseline.
+
+We use B-mode images from the carotid dataset acquired in Speckle2Self.
 
 Ultrasound B-mode images are corrupted by speckle, a granular noise pattern that
 arises from interference between backscattered echoes. Speckle lowers contrast and
@@ -15,7 +17,8 @@ Speckle arises from the beamforming inverse problem, but often in practice we on
 envelope-detected B-mode grayscale in the log domain. Therefore, here, we treat despeckling as a
 standard image denoising problem.
 
-This example requires the `ptwt` package, which can be installed with ``pip install ptwt``.
+This example requires the `ptwt` (for BM3D) and `zea` (for Speckle2Self) packages, which can be installed with
+``pip install ptwt zea``.
 """
 
 import deepinv as dinv
@@ -45,29 +48,40 @@ y = y / y.max()  # to allow a meaningful sigma
 # %%
 # Despeckle with BM3D
 # -------------------
-# The `sigma` argument sets the noise level used by the denoiser. We use a custom efficient implementation of BM3D
-# :footcite:p:`dabov2007image`, that's faster particularly on GPU.
-#
-# .. note::
-#   BM3D is a non-learned denoiser, and used as a comparison in :footcite:t:`li2025speckle2self`.
+# As a classical baseline, we use a custom efficient implementation of BM3D
+# :footcite:p:`dabov2007image`, faster particularly on GPU. The `sigma` argument sets the assumed noise level.
 #
 # .. note::
 #   Fully-developed speckle is Gamma-distributed, so in log domain, the Gaussian is only an approximation for BM3D.
 #   See the :ref:`denoisers user guide <denoisers>` for further classical and deep denoisers.
 #   For example, you can train your own with :class:`deepinv.physics.FisherTippettNoise`, which models the noise more accurately.
 
-
 model = dinv.models.BM3D(use_legacy=False, device=device)
 with torch.no_grad():
     x_hat = model(y, sigma=0.3)
 
 # %%
+# Despeckle with Speckle2Self
+# ---------------------------
+# We run the pretrained in-vivo Speckle2Self model, which is available in the `zea` toolbox :footcite:p:`stevens2026zea`.
+
+import os
+
+os.environ["KERAS_BACKEND"] = "torch"
+from zea.models.speckle2self import Speckle2Self
+
+model = Speckle2Self.from_preset("hf://zeahub/speckle2self-invivo").to(device)
+
+with torch.no_grad():
+    x_net = model(y.moveaxis(1, -1)).moveaxis(-1, 1)  # zea expects channel last
+
+# %%
 # Visualise the results
 # ---------------------
-# We compare the input image with the BM3D despeckled image, for a few examples.
+# We compare the input B-mode image with the BM3D and Speckle2Self reconstructions.
 
 dinv.utils.plot(
-    {"Vendor bmode image": y, "BM3D despeckled": x_hat},
+    {"Vendor bmode": y, "BM3D": x_hat, "Speckle2Self": x_net},
     figsize=(7, 10),
 )
 

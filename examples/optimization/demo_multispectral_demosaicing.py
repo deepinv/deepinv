@@ -1,6 +1,6 @@
 r"""
-Multispectral demosaicing raw images with Deep Image Prior
-==========================================================
+Multispectral demosaicing from raw sensor data
+==============================================
 
 This example reconstructs a full-resolution multispectral image from raw snapshot
 mosaiced measurements using various reconstruction algorithms.
