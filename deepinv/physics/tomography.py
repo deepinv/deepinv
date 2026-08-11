@@ -547,11 +547,6 @@ class TomographyWithAstra(LinearPhysics):
             if n_detector_pixels is None
             else n_detector_pixels
         )
-        self.geometry_type = geometry_type
-        self.detector_spacing = detector_spacing
-        self.pixel_spacing = pixel_spacing
-        self.bounding_box = bounding_box
-        self.angular_range = angular_range
         self.geometry_parameters = (
             None if geometry_parameters is None else dict(geometry_parameters)
         )
@@ -620,6 +615,63 @@ class TomographyWithAstra(LinearPhysics):
             return self.xray_transform.range_shape[1:]
         else:
             return self.xray_transform.range_shape
+
+    @property
+    def geometry_type(self) -> str:
+        """The geometry type represented by the X-ray transform."""
+        geometry_type = self.xray_transform.projection_geometry["type"]
+        if geometry_type.startswith("parallel"):
+            return "parallel"
+        return "fanbeam" if self.is_2d else "conebeam"
+
+    @property
+    def detector_spacing(self) -> float | tuple[float, float]:
+        """The detector-cell spacing represented by the X-ray transform."""
+        if self.is_2d:
+            return self.xray_transform.detector_cell_u_length
+        return (
+            self.xray_transform.detector_cell_v_length,
+            self.xray_transform.detector_cell_u_length,
+        )
+
+    @property
+    def pixel_spacing(self) -> tuple[float, ...]:
+        """The reconstruction-cell spacing represented by the X-ray transform."""
+        geometry = self.xray_transform.object_geometry
+        spacing = (
+            (geometry["option"]["WindowMaxX"] - geometry["option"]["WindowMinX"])
+            / geometry["GridColCount"],
+            (geometry["option"]["WindowMaxY"] - geometry["option"]["WindowMinY"])
+            / geometry["GridRowCount"],
+        )
+        if self.is_2d:
+            return spacing
+        return spacing + (
+            (geometry["option"]["WindowMaxZ"] - geometry["option"]["WindowMinZ"])
+            / geometry["GridSliceCount"],
+        )
+
+    @property
+    def bounding_box(self) -> tuple[float, ...]:
+        """The reconstruction bounding box represented by the X-ray transform."""
+        geometry = self.xray_transform.object_geometry["option"]
+        bounding_box = (
+            geometry["WindowMinX"],
+            geometry["WindowMaxX"],
+            geometry["WindowMinY"],
+            geometry["WindowMaxY"],
+        )
+        if self.is_2d:
+            return bounding_box
+        return bounding_box + (geometry["WindowMinZ"], geometry["WindowMaxZ"])
+
+    @property
+    def angular_range(self) -> tuple[float, float] | None:
+        """The angular range represented by the X-ray transform in degrees."""
+        angles = self.angles
+        if angles is None:
+            return None
+        return (angles.min().item(), angles.max().item())
 
     @property
     def num_angles(self) -> int:
