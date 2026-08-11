@@ -69,8 +69,8 @@ that your local changes are used when you run code. Choose one of the following
 installation methods.
 
 Some contributions require software beyond Python packages. This is, for
-instance, the case for PET physics. If you want to contribute related features,
-use the repository's full `Pixi <https://pixi.sh>`_ development environment:
+instance, the case for :class:`PET physics <deepinv.physics.PET>`. 
+If you want to contribute related features, use the repository's full `Pixi <https://pixi.sh>`_ development environment:
 
 .. code-block:: bash
 
