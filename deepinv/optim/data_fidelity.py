@@ -14,7 +14,6 @@ from deepinv.optim.distance import (
     ZeroDistance,
 )
 
-import deepinv as dinv
 
 from deepinv.optim.potential import Potential
 from deepinv.physics.functional import dct_2d, idct_2d

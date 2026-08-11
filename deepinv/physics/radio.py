@@ -49,9 +49,7 @@ class RadioInterferometry(Physics):
     ):
         import torchkbnufft as tkbn
 
-        super(RadioInterferometry, self).__init__(
-            device=device, linear=True, **kwargs
-        )
+        super(RadioInterferometry, self).__init__(device=device, linear=True, **kwargs)
 
         if dataWeight is None:
             dataWeight = torch.tensor([1.0], device=device)

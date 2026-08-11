@@ -1016,7 +1016,9 @@ class ComposedPhysics(Physics):
         return self.physics_list[item]
 
 
-class ComposedLinearPhysics(ComposedPhysics, metaclass=_linear_alias_metaclass(ComposedPhysics)):
+class ComposedLinearPhysics(
+    ComposedPhysics, metaclass=_linear_alias_metaclass(ComposedPhysics)
+):
     r"""
     Deprecated alias of :class:`deepinv.physics.ComposedPhysics`.
 
@@ -1592,7 +1594,9 @@ class StackedPhysics(Physics):
         )
 
 
-class StackedLinearPhysics(StackedPhysics, metaclass=_linear_alias_metaclass(StackedPhysics)):
+class StackedLinearPhysics(
+    StackedPhysics, metaclass=_linear_alias_metaclass(StackedPhysics)
+):
     r"""
     Deprecated alias of :class:`deepinv.physics.StackedPhysics`.
 
