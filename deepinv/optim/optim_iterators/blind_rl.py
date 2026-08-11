@@ -24,7 +24,7 @@ class BlindRLIteration(OptimIterator):
     assumes 2D circular convolution and a spatially invariant kernel shared by
     all image channels.
 
-    :param deepinv.optim.Prior k_prior: optional kernel prior. Default: ``None``.
+    :param deepinv.optim.Prior, None k_prior: optional kernel prior. Default: ``None``.
     :param bool normalize_kernel: whether to normalize the kernel to unit sum. Default: ``True``.
     :param bool use_fft: whether to use the FFT implementations for convolutions. Default: ``False``.
     :param float eps: numerical stability constant used for divisions. Default: ``1e-8``.
@@ -32,7 +32,7 @@ class BlindRLIteration(OptimIterator):
 
     def __init__(
         self,
-        k_prior=None,
+        k_prior: Prior = None,
         normalize_kernel: bool = True,
         use_fft: bool = False,
         eps: float = 1e-8,
@@ -71,19 +71,17 @@ class BlindRLIteration(OptimIterator):
         :return: Dictionary ``{"est": (x, k), "cost": F, "it": it}`` containing
             the updated image, kernel, cost, and iteration number.
         """
+
         x_prev, k_prev = X["est"][:2]
         x = x_prev.clamp_min(self.eps)
         k = k_prev
+
         if self.normalize_kernel:
-            k = F.normalize(
-                k.clamp_min(0.0).flatten(1), p=1, dim=1, eps=self.eps
-            ).view_as(k)
-        else:
-            k = k.clamp_min(0.0)
+            k = F.normalize(k.flatten(1), p=1, dim=1, eps=self.eps).view_as(k)
 
         hk, wk = k.shape[-2:]
-        x_steps = int(cur_params.get("x_steps", 1))
-        k_steps = int(cur_params.get("k_steps", 1))
+        x_steps = cur_params.get("x_steps", 1)
+        k_steps = cur_params.get("k_steps", 1)
         lambda_x = cur_params.get("lambda_reg_x", 0.0)
         lambda_k = cur_params.get("lambda_reg_k", 0.0)
         g_param = cur_params.get("g_param", None)
@@ -93,14 +91,18 @@ class BlindRLIteration(OptimIterator):
 
         # Kernel update
         filter_adjoint = (
-            dF.conv2d_filter_adjoint_fft if self.use_fft else dF.conv2d_filter_adjoint
+            dF.conv_filter_transpose2d
+            if self.use_fft
+            else dF.conv_filter_transpose2d_fft
         )
-        sensitivity_k = filter_adjoint(x, ones_y, (hk, wk)).sum(dim=1, keepdim=True)
+        sensitivity_k = filter_adjoint(x, ones_y, (hk, wk), padding="circular").sum(
+            dim=1, keepdim=True
+        )
 
         for _ in range(k_steps):
             y_hat = dF.conv2d(x, k, padding="circular")
             ratio = y / y_hat.clamp_min(self.eps)
-            numerator_k = filter_adjoint(x, ratio, (hk, wk)).sum(dim=1, keepdim=True)
+            numerator_k = filter_adjoint(x, ratio, (hk, wk), padding="circular").sum(dim=1, keepdim=True)
             denom_k = sensitivity_k + lambda_k * self.k_prior.grad(k, k_g_param)
             k = k * numerator_k / denom_k.clamp_min(self.eps)
             if self.normalize_kernel:

@@ -103,14 +103,22 @@ def test_conv2d_spatial_and_fft_equivalence(
 @pytest.mark.parametrize("filter_bc", [(1, 1), (1, 3), (2, 1), (2, 3)])
 @pytest.mark.parametrize("padding", (*ALL_CONV_PADDING, "constant"))
 @pytest.mark.parametrize("correlation", [False, True])
-def test_conv2d_filter_adjoint(device, kernel_size, filter_bc, padding, correlation):
+@pytest.mark.parametrize("use_fft", [False, True])
+def test_conv_filter_transpose2d_adjointness(
+    device, kernel_size, filter_bc, padding, correlation, use_fft
+):
     torch.manual_seed(0)
     x = torch.rand((2, 3, 8, 7), device=device)
     k = torch.rand((*filter_bc, *kernel_size), device=device)
 
     Ax = dF.conv2d(x, k, padding=padding, correlation=correlation)
     y = torch.rand_like(Ax)
-    Aty = dF.conv2d_filter_adjoint(
+    filter_transpose_fn = (
+        partial(dF.conv_filter_transpose2d_fft, real_fft=True)
+        if use_fft
+        else dF.conv_filter_transpose2d
+    )
+    Aty = filter_transpose_fn(
         x, y, kernel_size, padding=padding, correlation=correlation
     )
 
@@ -123,16 +131,18 @@ def test_conv2d_filter_adjoint(device, kernel_size, filter_bc, padding, correlat
 @pytest.mark.parametrize("padding", (*ALL_CONV_PADDING, "constant"))
 @pytest.mark.parametrize("correlation", [False, True])
 @pytest.mark.parametrize("real_fft", [False, True])
-def test_conv2d_filter_adjoint_fft(device, kernel_size, padding, correlation, real_fft):
+def test_conv_filter_transpose2d_spatial_and_fft_equivalence(
+    device, kernel_size, padding, correlation, real_fft
+):
     torch.manual_seed(0)
     x = torch.rand((2, 3, 8, 7), device=device)
     k = torch.rand((1, 1, *kernel_size), device=device)
     y = torch.rand_like(dF.conv2d(x, k, padding=padding))
 
-    expected = dF.conv2d_filter_adjoint(
+    expected = dF.conv_filter_transpose2d(
         x, y, kernel_size, padding=padding, correlation=correlation
     )
-    actual = dF.conv2d_filter_adjoint_fft(
+    actual = dF.conv_filter_transpose2d_fft(
         x,
         y,
         kernel_size,

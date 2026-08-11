@@ -13,7 +13,7 @@ from .convolution import (
 from .dst import dst1
 
 
-def conv2d_filter_adjoint(
+def conv_filter_transpose2d(
     x: torch.Tensor,
     y: torch.Tensor,
     filter_size: tuple[int, int],
@@ -22,6 +22,13 @@ def conv2d_filter_adjoint(
 ) -> torch.Tensor:
     r"""
     Apply the adjoint of 2D convolution with respect to its filter.
+
+    Unlike :func:`torch.nn.functional.conv_transpose2d`, which applies the
+    adjoint with respect to the input image, this function applies the adjoint
+    with respect to the filter, treating ``x`` as fixed and mapping an adjoint
+    output ``y`` back to filter space. Although this result can be obtained
+    with ``conv_transpose2d`` followed by cropping, computing only the
+    requested filter support directly is more efficient.
 
     :param torch.Tensor x: Input tensor of shape ``(B, C, H, W)``.
     :param torch.Tensor y: Adjoint input. Its spatial shape must match the output
@@ -37,11 +44,6 @@ def conv2d_filter_adjoint(
     hf, wf = filter_size
     ph, pw = hf // 2, wf // 2
     ih, iw = (hf - 1) % 2, (wf - 1) % 2
-
-    # Unlike a standard convolution, the adjoint with respect to the kernel uses
-    # the image x as the input and the adjoint image y as the convolution filter.
-    # The same result can be obtained with conv_transpose2d followed by cropping,
-    # but computing only the requested filter support is less expensive.
 
     # Preprocess x using the same padding and even-filter alignment as the forward
     # convolution.
@@ -73,7 +75,7 @@ def conv2d_filter_adjoint(
     return _flip_filter_if_needed(adjoint, correlation, dims=(-2, -1))
 
 
-def conv2d_filter_adjoint_fft(
+def conv_filter_transpose2d_fft(
     x: torch.Tensor,
     y: torch.Tensor,
     filter_size: tuple[int, int],
@@ -85,8 +87,8 @@ def conv2d_filter_adjoint_fft(
     Apply the adjoint of 2D convolution with respect to its filter using FFTs.
 
     This function gives the same result as
-    :func:`deepinv.physics.functional.conv2d_filter_adjoint`. It is generally
-    faster for large filter supports, while the spatial version is faster for
+    :func:`deepinv.physics.functional.conv_filter_transpose2d`. It is generally
+    faster for large filter supports, while the non-fft version is faster for
     small filters.
 
     :param torch.Tensor x: Input tensor of shape ``(B, C, H, W)``.

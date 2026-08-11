@@ -4,6 +4,7 @@ import warnings
 from collections.abc import Iterable
 from types import MappingProxyType
 import torch
+import deepinv as dinv
 from deepinv.optim import optim_iterators as _optim_iterators
 from deepinv.optim.optim_iterators import (
     OptimIterator,
@@ -2421,6 +2422,16 @@ class BlindRL(BaseOptim):
         \odot
         A_{h^{(k+1)}}^\top\left(\frac{y}{A_{h^{(k+1)}} x^{(k)}}\right),
 
+    .. note::
+
+        The parameter ``use_fft`` enables to swap standard convolutions used to update
+        the image and the kernel for FFT based convolutions, which significantly speeds
+        up the algorithm when using a large image and estimating a large kernel.
+        The speedup is particularly important for kernels bigger than 30x30.
+        For small kernels (<15x15) and images (<128x128), it is more efficient to use
+        standard convolutions.
+
+
     :param deepinv.optim.Prior x_prior: optional image prior. Default: ``None``.
     :param deepinv.optim.Prior k_prior: optional kernel prior. Default: ``None``.
     :param float lambda_reg_x: image regularization parameter. Default: ``0.0``.
@@ -2559,8 +2570,6 @@ class BlindRL(BaseOptim):
         :return: ``(x, k)`` if ``compute_metrics`` is ``False``. Otherwise,
             returns ``((x, k), metrics)``.
         """
-        from deepinv.physics.blur import Blur
-
         if self.init is None:
             x = y
             k = torch.ones((1, 1, *self.kernel_size), device=x.device, dtype=x.dtype)
@@ -2593,7 +2602,7 @@ class BlindRL(BaseOptim):
         if k.shape[1] == x.shape[1]:
             k = k.mean(dim=1, keepdim=True)
 
-        physics = Blur(filter=k, padding="circular", device=x.device)
+        physics = dinv.physics.Blur(filter=k, padding="circular", device=x.device)
         output = super().forward(
             y,
             physics,
