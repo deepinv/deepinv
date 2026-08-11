@@ -1618,25 +1618,26 @@ def test_brainweb_pet(tmp_path, lesion_diameters):
 
 def test_brainweb_mri(tmp_path):
     pytest.importorskip("brainweb_dl")
+    default_dataset = BrainWebMRI(root=tmp_path)
+    assert default_dataset.subject_ids == [4, 5, 6, 18, 20, 38, *range(41, 55)]
+
     dataset = BrainWebMRI(
         root=tmp_path,
-        subject_ids=0,
+        subject_ids=4,
         transform=lambda x: x / x.max(),
     )
     volume = dataset[0]
 
     assert len(dataset) == 1
-    assert volume.shape == (1, 181, 217, 181)
+    assert volume.shape == (1, 181, 256, 256)
     assert volume.dtype == torch.float32
     assert volume.min() == 0
     assert volume.max() == 1
 
-    cached_dataset = BrainWebMRI(root=tmp_path, subject_ids=0, download=False)
-    assert cached_dataset[0].shape == (1, 181, 217, 181)
+    cached_dataset = BrainWebMRI(root=tmp_path, subject_ids=4, download=False)
+    assert cached_dataset[0].shape == (1, 181, 256, 256)
 
     for subject_id, contrast, filename in [
-        (0, "T1", "T1_ICBM_normal_1mm_pn0_rf0.nii.gz"),
-        (0, "T2*", "phantom_1.0mm_normal_fuzzy.nii.gz"),
         (4, "T1", "subject04_t1w.nii.gz"),
         (4, "T2", "brainweb_s04_fuzzy.nii.gz"),
     ]:

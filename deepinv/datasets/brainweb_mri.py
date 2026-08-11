@@ -14,9 +14,16 @@ class BrainWebMRI(ImageDataset):
     BrainWeb brain phantom for Magnetic Resonance Imaging (MRI) research :footcite:p:`collinsDesignConstructionRealistic1998`.
     The dataset consists of 22 MRI brain phantom scans: 21 normal brains and 1 multiple sclerosis brain (patient 1).
     Several contrasts are available for each patient: T1, T2, T2* and PD.
-    Each volume has shape (1, 181, 217, 181).
+    Each T1 volume has shape (1, 181, 256, 256) and is scaled by 1 / 4095 to that it is normalized with values in [0, 1].
 
-    :param int, collections.abc.Sequence[int], None subject_ids: Subjects to include in the dataset. Possible values: [0, 1, 4, 5, 6, 18, 20, 38, 41-54]. Defaults to `None` which includes all subjects.
+    This dataset relies on the original implementation of Pierre-Antoine Comby:
+    <https://github.com/paquiteau/brainweb-dl>`_. Install it with `pip install brainweb-dl`.
+
+    .. note::
+        For a version of this dataset with dedicated features for emission tomography, such
+        as emission / attenuation maps and hot lesions, see :class:`deepinv.datasets.BrainWebPET`.
+
+    :param int, collections.abc.Sequence[int], None subject_ids: Subjects to include in the dataset. Possible values: [4, 5, 6, 18, 20, 38, 41-54]. Defaults to all subjects.
     :param str contrast: MRI contrast to return: `"T1"`, `"T2"`, `"T2*"` or `"PD"`. Defaults to ``"T1"``.
     :param bool download: Download missing subjects. Defaults to `True`.
     :param collections.abc.Callable, None transform: Optional volume transform.
@@ -25,7 +32,7 @@ class BrainWebMRI(ImageDataset):
 
     def __init__(
         self,
-        subject_ids: int | list[int] = 0,
+        subject_ids: int | list[int] | None = None,
         contrast: Literal["T1", "T2", "T2*", "PD"] = "T1",
         download: bool = True,
         root: str | Path | None = None,
@@ -39,6 +46,8 @@ class BrainWebMRI(ImageDataset):
             ) from error
 
         self.root = resolve_root(root, "BrainWebMRI")
+        if subject_ids is None:
+            subject_ids = [4, 5, 6, 18, 20, 38, *range(41, 55)]
         self.subject_ids = (
             [subject_ids] if isinstance(subject_ids, int) else subject_ids
         )
@@ -52,12 +61,8 @@ class BrainWebMRI(ImageDataset):
 
     def __getitem__(self, index: int) -> torch.Tensor:
         subject_id = self.subject_ids[index]
-        if subject_id == 0 and self.contrast in ("T1", "T2", "PD"):
-            filename = f"{self.contrast}_ICBM_normal_1mm_pn0_rf0.nii.gz"
-        elif subject_id != 0 and self.contrast == "T1":
+        if self.contrast == "T1":
             filename = f"subject{subject_id:02d}_t1w.nii.gz"
-        elif subject_id == 0:
-            filename = "phantom_1.0mm_normal_fuzzy.nii.gz"
         else:
             filename = f"brainweb_s{subject_id:02d}_fuzzy.nii.gz"
         if not self.download and not (self.root / filename).exists():

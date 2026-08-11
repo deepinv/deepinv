@@ -228,7 +228,7 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
 
    * - :class:`BrainWebMRI <deepinv.datasets.BrainWebMRI>`
      - `x`
-     - 22 BrainWeb MRI subjects
+     - 20 MRI brain volumes
      - 1x181x217x181 voxels
      - 3D MRI volumes with T1, T2, T2* or PD contrast.
 
