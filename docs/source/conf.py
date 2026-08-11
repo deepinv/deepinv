@@ -463,4 +463,5 @@ nitpick_ignore = [
     # These generate warnings for some reason.
     ("py:class", "torchvision.transforms.InterpolationMode"),
     ("py:class", "nib.arrayproxy.ArrayProxy"),
+    ("py:class", "brainweb.Act"),
 ]

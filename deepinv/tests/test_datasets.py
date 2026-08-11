@@ -16,6 +16,7 @@ import h5py
 
 import deepinv as dinv
 from deepinv.datasets import (
+    BrainWebPET,
     DIV2K,
     Urban100HR,
     Set14HR,
@@ -1574,6 +1575,44 @@ def test_RandomPatchSampler(make_data):
     assert len(ds) == 2
     x, y = next(iter(ds))
     assert math.isnan(x)
+
+
+@pytest.mark.parametrize("lesion_diameters", [None, [15, 7]])
+def test_brainweb_pet(tmp_path, lesion_diameters):
+    brainweb = pytest.importorskip("brainweb")
+
+    class RandomFDG(brainweb.FDG):
+        greyMatter = lambda: 120.0
+
+    dataset = BrainWebPET(
+        root=tmp_path,
+        subject_ids=4,
+        pet_class=RandomFDG,
+        contrast=["T1", "T2"],
+        random_degradations_kwargs={
+            "petNoise": 0.0,
+            "t1Noise": 0.0,
+            "t2Noise": 0.0,
+            "petSigma": 0.0,
+            "t1Sigma": 0.0,
+            "t2Sigma": 0.0,
+        },
+        lesion_diameters=lesion_diameters,
+        lesion_kwargs={"intensity": [1000, 2000], "blur": [0, 0], "thresh": 30},
+        seed=0,
+    )
+    emission, params = dataset[0]
+
+    assert len(dataset) == 1
+    assert emission.shape == params["attenuation"].shape == params["t1"].shape
+    assert emission.shape == params["t2"].shape
+    assert emission.dtype == torch.float32
+    pet_class = dataset.brainweb_kwargs["PetClass"]
+    assert issubclass(pet_class, RandomFDG)
+    assert pet_class.greyMatter == 120.0
+    assert ("lesion_mask" in params) == bool(lesion_diameters)
+    if lesion_diameters:
+        assert torch.unique(params["lesion_mask"]).tolist() == [0, 1, 2]
 
 
 @pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])
