@@ -61,9 +61,46 @@ You're ready to move on!
 
   Our maintainers will then try to assist you by working directly on your PR. Do not hesitate to ask questions or to leave comments directly on the Pull Request page.
 
+2. Install DeepInverse
+~~~~~~~~~~~~~~~~~~~~~~
+
+From the root of your cloned repository, install ``deepinv`` in editable mode so
+that your local changes are used when you run code. Choose one of the following
+installation methods.
+
+Some contributions require software beyond Python packages. This is, for
+instance, the case for :class:`PET physics <deepinv.physics.PET>`. 
+If you want to contribute related features, use the repository's full `Pixi <https://pixi.sh>`_ development environment:
+
+.. code-block:: bash
+
+    pixi install -e full
+
+Run commands in this environment with ``pixi run -e full``, for example
+``pixi run -e full python -m pytest deepinv/tests``.
+
+For contributions requiring only Python packages, `uv <https://docs.astral.sh/uv/>`_
+can create a virtual environment and install the development dependencies:
+
+.. code-block:: bash
+
+    uv venv
+    uv pip install -e ".[test,dataset,denoisers,doc,lint,training]"
+
+Run commands in this environment with ``uv run --no-sync``, for example
+``uv run --no-sync python -m pytest deepinv/tests``.
+
+Alternatively, use Python's built-in ``venv`` module and ``pip``:
+
+.. code-block:: bash
+
+    python -m venv .venv
+    source .venv/bin/activate
+    python -m pip install -e ".[test,dataset,denoisers,doc,lint,training]"
+
 .. _write_tests:
 
-2. Write tests
+3. Write tests
 ~~~~~~~~~~~~~~
 
 Tests are crucial for checking your code will always behave as intended, and we encourage you to follow a test-driven development methodology. Tests can consist of:
@@ -73,20 +110,14 @@ Tests are crucial for checking your code will always behave as intended, and we 
 
 How to write and run tests:
 
-1. Install `deepinv` in editable mode so that all your changes are used when you run code:
-
-.. code-block:: bash
-
-    pip install -e .[test,dataset,denoisers,doc,lint,training]
-
-2. Write your tests in ``deepinv/tests``. Check out the existing tests to see examples of where you could insert your tests. We use ``pytest`` and ``unittest.mock``.
+1. Write your tests in ``deepinv/tests``. Check out the existing tests to see examples of where you could insert your tests. We use ``pytest`` and ``unittest.mock``.
 
 .. hint::
 
   If you've contributed a new class (e.g. dataset, physics etc.), you should add it to any existing tests, e.g. those that check physics adjointness, dataset return format, etc.
 
-3. Check your tests pass locally by running ``python -m pytest deepinv/tests`` in the root directory after making the desired changes. Learn more `here <https://realpython.com/pytest-python-testing/>`__. You can also run specific tests by providing the path to the test file, e.g. ``python -m pytest deepinv/tests/test_physics.py``, or even to a specific test function, e.g. ``python -m pytest -k "test_operators_adjointness" deepinv/tests/test_physics.py``.
-4. Push your code to your PR. A maintainer will run the tests on CPU and GPU in the CI, and you will see the results in the `Test PR...` GitHub action.
+2. Check your tests pass locally by running ``python -m pytest deepinv/tests`` in the root directory after making the desired changes. Learn more `here <https://realpython.com/pytest-python-testing/>`__. You can also run specific tests by providing the path to the test file, e.g. ``python -m pytest deepinv/tests/test_physics.py``, or even to a specific test function, e.g. ``python -m pytest -k "test_operators_adjointness" deepinv/tests/test_physics.py``.
+3. Push your code to your PR. A maintainer will run the tests on CPU and GPU in the CI, and you will see the results in the `Test PR...` GitHub action.
 
 .. note::
   Your code coverage will automatically be checked using ``codecov``.
@@ -96,7 +127,7 @@ How to write and run tests:
 
 .. _write_docs:
 
-3. Write docs
+4. Write docs
 ~~~~~~~~~~~~~
 
 Writing good documentation is also crucial for helping other users use your code. This is how:
@@ -131,7 +162,7 @@ Writing good documentation is also crucial for helping other users use your code
 
 .. _code_quality:
 
-4. Code quality
+5. Code quality
 ~~~~~~~~~~~~~~~
 
 Code quality is important to us. We require that your code is compliant with PEP8, the `black <https://black.readthedocs.io>`_ style and `ruff <https://docs.astral.sh/ruff/>`_ checkers:
@@ -143,7 +174,7 @@ Code quality is important to us. We require that your code is compliant with PEP
 
 .. _log_changes:
 
-5. Log your changes
+6. Log your changes
 ~~~~~~~~~~~~~~~~~~~
 
 We keep a summary of all changes in the `changelog.rst <https://deepinv.org/changelog.html>`_ file in the documentation.
@@ -164,7 +195,7 @@ This line should follow the format:
 
 You also need to summarise your changes in the Pull Request description, and tick whether you used LLM tools to generate the code. See :ref:`LLM policy <llm-policy>` for more details.
 
-6. Interact with reviewers
+7. Interact with reviewers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You're done! A maintainer will see your PR and will interact with you. They may suggest changes. It is your responsibility to make all requested fixes!
