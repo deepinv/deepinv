@@ -3,10 +3,12 @@ Multispectral demosaicing raw images with Deep Image Prior
 ==========================================================
 
 This example reconstructs a full-resolution multispectral image from raw snapshot
-mosaiced measurements with an untrained :class:`deepinv.models.DeepImagePrior` :footcite:p:`ulyanov2018deep`.
+mosaiced measurements using various reconstruction algorithms.
 
 Snapshot multispectral cameras cover the sensor with a mosaic of spectral filters (multispectral filter array),
 so that each pixel records only one band. Demosaicing recovers every band at the full sensor resolution.
+
+Demosaicing is a critical part of any ISP pipeline, and using better algorithms results in higher quality images for downstream tasks.
 
 We use raw oral-tissue data from the MODID dataset :footcite:p:`chand2024modid` acquired in-vivo for screening of oral diseases such as oral squamous cell carcinoma.
 The data is unprocessed from an imec CMV2K-SSM4x4-VIS CMOS sensor covering 16 bands from 460 to 600 nm before any corrections.
@@ -54,35 +56,10 @@ y = y / y.max()  # normalise
 physics = dinv.physics.Inpainting(img_size=mask.shape[1:], mask=mask, device=device)
 
 # %%
-# Reconstruct with Deep Image Prior
-# ---------------------------------
-# The Deep Image Prior fits an untrained network to the single measurement, using the network
-# structure itself as the prior. Here the generator is :class:`deepinv.models.ConvDecoder`
-# :footcite:p:`darestani2021accelerated`. A DIP was previously applied to demosaicing by :footcite:t:`park2020joint`.
-#
-# .. note::
-#   We run only 1000 iterations on GPU (or 10 on CPU), which gives relatively poor reconstructions. Increase it, for example to
-#   10000, for better results. The DIP tends to overfit the measurement, so monitor the error.
-#
-# .. note::
-#   You can try out various types of reconstruction algorithms listed in the :ref:`user guide <reconstructors>`. For example, instead of training a DIP from scratch, one can
-#   fine-tune a foundation model such as :class:`deepinv.models.RAM` as done in :footcite:t:`wang2026perspective`.
-
-model = dinv.models.DeepImagePrior(
-    dinv.models.ConvDecoder(img_size=mask.shape[1:]).to(device),
-    img_size=(256, 4, 4),
-    verbose=True,
-    re_init=True,
-    iterations=10 if dinv.utils.devices_equal(device, "cpu") else 1000,
-).to(device)
-
-with torch.no_grad():
-    x_net = model(y, physics)
-
-# %%
-# Compare with classical interpolation
+# Reconstruct with classical interpolation
 # ------------------------------------
 # As a classical baseline we fill the unsampled pixels of each band by Gaussian interpolation.
+# This is a standard reconstruction used in many ISP pipelines.
 
 
 class GaussianInterpolation(dinv.models.Reconstructor):
@@ -104,23 +81,68 @@ with torch.no_grad():
     x_classic = model_classic(y, physics)
 
 # %%
+# Reconstruct with total variation prior
+# --------------------------------------
+#
+# We frame image reconstruction as an optimization problem and use the total variation prior to regularise the problem.
+# We use a Proximal Gradient Descent (PGD) algorithm to solve the inverse problem.
+# We use the classical interpolated reconstruction as a warm initialisation to speed up the optimization.
+#
+# .. note::
+#   We run 100 iterations on GPU, or 10 on CPU, which might not run to convergence. Increase it for better results.
+#
+
+model = dinv.optim.PGD(
+    prior=dinv.optim.TVPrior(n_it_max=20),  # set larger on GPU
+    data_fidelity=dinv.optim.L2(),
+    stepsize=1.0,
+    lambda_reg=0.01,
+    max_iter=10 if dinv.utils.devices_equal(device, "cpu") else 100,
+    custom_init=lambda y, physics: x_classic,
+    verbose=True,
+).to(device)
+
+with torch.no_grad():
+    x_tv = model(y, physics)
+
+
+# %%
 # Visualise the results
 # ---------------------
 # We plot the three bands closest to RGB: the full reconstruction has 16 bands.
 # Interpolation shows chromatic errors at bright spots, an artefact of interpolating across bands.
-# Run the DIP for more iterations for better results!
+# The TV reconstruction displays classic piecewise constant artifacts.
 
 dinv.utils.plot(
     {
         "Raw": y[:, [3, 11, 12]],
         "Interpolated": x_classic[:, [3, 11, 12]],
-        "DIP": x_net[:, [3, 11, 12]],
+        "TV": x_tv[:, [3, 11, 12]],
     },
     plot_inset=True,
     inset_loc=(0.0, 0.6),
     extract_loc=(0.56, 0.13),
     figsize=(9, 3),
 )
+
+# %%
+# What's next?
+# ------------
+#
+# We didn't show any deep learning reconstruction methods in this example to keep the example lightweight.
+# You can try out other types of reconstruction algorithms listed in the :ref:`user guide <reconstructors>`.
+# For example, you could try applying the Deep Image Prior :footcite:p:`ulyanov2018deep,park2020joint`:
+#
+# ::
+#     model = dinv.models.DeepImagePrior(
+#         dinv.models.ConvDecoder(img_size=mask.shape[1:]),
+#         img_size=(256, 4, 4),
+#         iterations=1000,
+#     ).to(device)
+#
+#
+# Instead of training models from scratch, you could also fine-tune a foundation model such as :class:`deepinv.models.RAM`
+# without ground truth as done in :footcite:t:`wang2026perspective`.
 
 # %%
 # :References:
