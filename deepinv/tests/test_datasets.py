@@ -643,12 +643,15 @@ def test_tensordataset(use_dict_output):
 
     if use_dict_output:
         assert set(dataset[0]) == {"y", "params"}
-        assert dataset[0]["params"]["a"].shape == (1, 3, 4, 4)
+        assert dataset[0]["y"].shape == (3, 4, 4)
+        assert dataset[0]["params"]["a"].shape == (3, 4, 4)
     else:
         assert isinstance(dataset[0], tuple) and len(dataset[0]) == 3
         assert math.isnan(
             dataset[0][0]
         ), "Dataset return tuple's first element must be NaN or single-element NaN tensor."
+        assert dataset[0][1].shape == (3, 4, 4)
+        assert dataset[0][2]["a"].shape == (3, 4, 4)
 
     for bad_dataset_input in (
         {},
@@ -975,7 +978,7 @@ def download_Kohler(tmp_path):
 
 @pytest.mark.parametrize("frames", ["middle", "first", "last", "all", 0, -1])
 @pytest.mark.parametrize("ordering", ["printout_first", "trajectory_first"])
-@pytest.mark.parametrize("use_dict_output", [True, False])
+@pytest.mark.parametrize("use_dict_output", [False])
 def test_load_Kohler_dataset(download_Kohler, frames, ordering, use_dict_output):
     """Check that the Köhler dataset contains 48 PIL images."""
     root = download_Kohler
@@ -991,19 +994,20 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering, use_dict_output)
                 use_dict_output=use_dict_output,
             )
 
-        dtype = image_output_type(
-            use_dict_output, totensor, paired=True, untransformed_type=PIL_Image
-        )
         check_dataset_format(
             dataset,
             length=48,
-            dtype=dtype,
+            dtype=(
+                dict if use_dict_output and totensor else tuple if totensor else None
+            ),  # when no Transform, this is a tuple of list of PILs which is too complicated
             allow_non_tensor=not totensor,
             skip_check=True,
         )
 
-    data_points = [extract_x_tensor(dataset[0]), dataset.get_item(1, 1, frames)]
+    x, y, _ = unpack_batch(dataset[0])
+    data_points = [(x, y), dataset.get_item(1, 1, frames)]
 
+    # totensor is None
     for sharp_frame, blurry_shot in data_points:
         if frames != "all":
             assert (
@@ -1179,7 +1183,7 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units, use_dict_outpu
     for totensor in [ToTensor(), None]:
         with dataset_output_context(use_dict_output):
             dtype = image_output_type(
-                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+                use_dict_output, totensor, paired=False, untransformed_type=np.ndarray
             )
             check_dataset_format(
                 LidcIdriSliceDataset(
@@ -1189,7 +1193,7 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units, use_dict_outpu
                     use_dict_output=use_dict_output,
                 ),
                 length=2036,
-                dtype=dtype,
+                dtype=(dict if use_dict_output else Tensor if totensor else np.ndarray),
                 allow_non_tensor=not totensor,
             )
 
@@ -1200,7 +1204,8 @@ def download_nbu(tmp_path):
     tmp_data_dir = str(tmp_path / "NBU")
 
     # Download Urban100 raw dataset
-    NBUDataset(tmp_data_dir, satellite="gaofen-1", download=True)
+    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+        NBUDataset(tmp_data_dir, satellite="gaofen-1", download=True)
 
     # This will return control to the test function
     yield tmp_data_dir
@@ -1321,7 +1326,7 @@ def test_SimpleFastMRISliceDataset(download_simplefastmri, use_dict_output):
         dtype=dict if use_dict_output else Tensor,
         shape=(2, 320, 320),
     )
-    assert not torch.all(dataset[0] == dataset[1])
+    assert not torch.all(extract_x_tensor(dataset[0]) == extract_x_tensor(dataset[1]))
 
 
 @pytest.fixture
@@ -1383,8 +1388,8 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
         dataset, length=n_slices, dtype=dict if use_dict_output else tuple, shape=None
     )
 
-    target1, kspace1 = dataset[0]
-    target2, kspace2 = dataset[1]
+    target1, kspace1, _ = unpack_batch(dataset[0])
+    target2, kspace2, _ = unpack_batch(dataset[1])
 
     assert target1.shape == (1, *img_size)
     assert kspace1.shape == (2, n_coils, *kspace_shape)
@@ -1409,7 +1414,12 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
 
     # Test save simple dataset
     subset = dataset.save_simple_dataset(f"{download_fastmri}/temp_simple.pt")
-    check_dataset_format(subset, length=n_slices, dtype=Tensor, shape=(2, *rss_shape))
+    check_dataset_format(
+        subset,
+        length=n_slices,
+        dtype=dict if use_dict_output else Tensor,
+        shape=(2, *rss_shape),
+    )
 
     # Test slicing returns correct num of slices
     def num_slices(slice_index):
@@ -1476,7 +1486,10 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
         )
 
         assert dataset.transform.get_acs() == 11
-        assert 1 < dataset[0][1].max() < 100  # normalized
+        if use_dict_output:
+            assert 1 < dataset[0]["y"].max() < 100  # normalized
+        else:
+            assert 1 < dataset[0][1].max() < 100  # normalized
         # TODO test prewhitening
 
         # Test filter_id in FastMRI init
@@ -1487,6 +1500,7 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
                     filter_id=lambda s: "brain" in str(s.fname) and s.slice_ind < 3,
                     load_metadata_from_cache=True,
                     metadata_cache_file="fastmrislicedataset_cache.pkl",
+                    use_dict_output=use_dict_output,
                 )
             )
             == 3

@@ -147,9 +147,10 @@ def test_get_samples(
 
         def __getitem__(self, i):
             if self.use_dict_output:
-                return {"x": dummy_dataset[0]}
-            else:
+                # the dummy_dataset fixture returns a dict by default now
                 return dummy_dataset[0]
+            else:
+                return dummy_dataset[0]["x"]
 
     # Define physics
     if physics_type == "blur":
