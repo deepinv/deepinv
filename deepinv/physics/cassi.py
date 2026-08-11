@@ -3,12 +3,12 @@ import torch
 from torch import Tensor
 from torch.nn.functional import pad
 
-from deepinv.physics.forward import LinearPhysics
+from deepinv.physics.forward import Physics
 from deepinv.physics.generator import BernoulliSplittingMaskGenerator
 from deepinv.physics.functional.convolution import conv2d
 
 
-class CompressiveSpectralImaging(LinearPhysics):
+class CompressiveSpectralImaging(Physics):
     r"""Compressive Hyperspectral Imaging operator.
 
     Coded-aperture snapshot spectral imaging (CASSI) operator, which is a popular
@@ -70,7 +70,7 @@ class CompressiveSpectralImaging(LinearPhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(device=device, **kwargs)
+        super().__init__(device=device, linear=True, **kwargs)
 
         if len(img_size) != 3:
             raise ValueError("img_size must be (C, H, W)")

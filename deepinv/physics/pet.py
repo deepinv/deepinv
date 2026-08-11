@@ -1,5 +1,5 @@
 from __future__ import annotations
-from .forward import LinearPhysics
+from .forward import Physics
 from .noise import PoissonNoise
 import torch
 from typing import TYPE_CHECKING
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     import parallelproj
 
 
-class PET(LinearPhysics):
+class PET(Physics):
     r"""
     Non time-of-flight Positron emission tomography (PET) physics model.
 
@@ -33,7 +33,7 @@ class PET(LinearPhysics):
 
     The operator relies on parameters `background` and `attenuation` that can be updated through the
     :meth:`physics.update <deepinv.physics.Physics.update>` method or when evaluating
-    :meth:`physics.A <deepinv.physics.Physics.A>` or :meth:`physics.A_adjoint <deepinv.physics.LinearPhysics.A_adjoint>`.
+    :meth:`physics.A <deepinv.physics.Physics.A>` or :meth:`physics.A_adjoint <deepinv.physics.Physics.A_adjoint>`.
 
     .. note::
 
@@ -124,7 +124,7 @@ class PET(LinearPhysics):
         attenuation: torch.Tensor | None = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(linear=True, **kwargs)
         if isinstance(img_size, tuple):
             # remove first entries = 1
             while len(img_size) > 0 and img_size[0] == 1:

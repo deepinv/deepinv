@@ -7,7 +7,7 @@ import math
 from numpy import ndarray
 import torch
 
-from deepinv.physics.forward import LinearPhysics, adjoint_function
+from deepinv.physics.forward import Physics, adjoint_function
 from deepinv.physics.functional import (
     Radon,
     IRadon,
@@ -23,7 +23,7 @@ from deepinv.physics.functional.astra import (
 from deepinv.utils.decorators import _deprecated_alias
 
 
-class Tomography(LinearPhysics):
+class Tomography(Physics):
     r"""
     (Computed) Tomography operator.
 
@@ -131,7 +131,7 @@ class Tomography(LinearPhysics):
         dtype: torch.dtype = torch.float,
         **kwargs,
     ):
-        super().__init__(device=device, **kwargs)
+        super().__init__(device=device, linear=True, **kwargs)
 
         if isinstance(angles, int):
             angles = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1].to(
@@ -350,7 +350,7 @@ class Tomography(LinearPhysics):
         return output
 
 
-class TomographyWithAstra(LinearPhysics):
+class TomographyWithAstra(Physics):
     r"""Computed Tomography operator with `astra-toolbox <https://astra-toolbox.com/>`_ backend.
     It is more memory efficient than the :class:`deepinv.physics.Tomography` operator and support 3D geometries.
     See documentation of :class:`deepinv.physics.functional.XrayTransform` for more
@@ -524,7 +524,7 @@ class TomographyWithAstra(LinearPhysics):
         device: torch.device | str = torch.device("cuda"),
         **kwargs,
     ):
-        super().__init__(device=device, **kwargs)
+        super().__init__(device=device, linear=True, **kwargs)
 
         if isinstance(geometry_parameters, MappingProxyType):
             geometry_parameters = geometry_parameters.copy()

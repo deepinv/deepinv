@@ -10,8 +10,7 @@ you can also bring your own forward operator for your specific imaging problem.
 DeepInverse's modular :ref:`physics framework <physics_intro>` makes this easy by letting you inherit useful methods from the most appropriate
 physics base class:
 
-* :class:`deepinv.physics.Physics` for non-linear operators;
-* :class:`deepinv.physics.LinearPhysics` for linear operators;
+* :class:`deepinv.physics.Physics` for non-linear operators, or linear operators by passing ``linear=True``;
 * :class:`deepinv.physics.DecomposablePhysics` for linear operators with a closed-form singular value decomposition.
 
 .. seealso::
@@ -36,14 +35,14 @@ import torch
 # Creating a custom forward operator.
 # ----------------------------------------------------------------------------------------
 # Defining a new linear operator only requires a forward function :math:`\forw{\cdot}` and its adjoint operation :math:`A^\top(\cdot)`,
-# inheriting the remaining structure of the :class:`deepinv.physics.LinearPhysics` class.
+# inheriting the remaining structure of the :class:`deepinv.physics.Physics` class by passing ``linear=True``
+# to ``super().__init__()``.
 #
-# Once the operator is defined, we can use any of the functions in the :class:`deepinv.physics.Physics` class and
-# :class:`deepinv.physics.LinearPhysics` class, such as computing the norm of the operator, testing the adjointness,
-# computing the proximal operator, etc.
+# Once the operator is defined, we can use any of the linear-only methods of the :class:`deepinv.physics.Physics`
+# class, such as computing the norm of the operator, testing the adjointness, computing the proximal operator, etc.
 #
 # .. tip::
-#     By default, the adjoint of a :class:`LinearPhysics <deepinv.physics.LinearPhysics>` is computed using autograd with :class:`deepinv.physics.adjoint_function`.
+#     By default, the adjoint of a linear :class:`Physics <deepinv.physics.Physics>` operator is computed using autograd with :class:`deepinv.physics.adjoint_function`.
 #     Note however that defining a closed form adjoint is generally more computationally efficient in memory and time.
 #
 # .. note::
@@ -59,7 +58,7 @@ import torch
 #     Inherit from :ref:`mixin <mixin>` classes to provide specialized methods for your physics.
 
 
-class Decolorize(dinv.physics.LinearPhysics):
+class Decolorize(dinv.physics.Physics):
     r"""
     Converts RGB images to grayscale.
     """
@@ -70,7 +69,7 @@ class Decolorize(dinv.physics.LinearPhysics):
         dtype: torch.dtype = torch.float32,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(linear=True, **kwargs)
         coefficients = torch.tensor(
             [0.2989, 0.5870, 0.1140], dtype=dtype, device=device
         )
@@ -118,7 +117,7 @@ y = physics(x)
 dinv.utils.plot({"x": x, "y": y, "Linear pseudo-inverse": physics.A_dagger(y)})
 
 # %%
-# It is often useful for reconstruction algorithms that the physics has unit norm, which you can verify using :func:`deepinv.physics.LinearPhysics.compute_norm`.
+# It is often useful for reconstruction algorithms that the physics has unit norm, which you can verify using :func:`deepinv.physics.Physics.compute_norm`.
 # We see that this physics fails this.
 
 print(f"The linear operator has norm={physics.compute_sqnorm(x):.2f}")
@@ -151,14 +150,14 @@ print(
 # Implementing a closed form adjoint
 # --------------------------------------------
 # Instead, if we know the closed form of the adjoint operator, we can implement it directly in
-# :func:`deepinv.physics.LinearPhysics.A_adjoint`, instead of relying on
+# :func:`deepinv.physics.Physics.A_adjoint`, instead of relying on
 # :func:`autodifferentiation <deepinv.physics.adjoint_function>` which is generally less efficient.
 #
 # An additional benefit of implementing the adjoint is that we no longer require the `img_size` parameter when creating the
 # operator, which was needed for autodifferentiation.
 #
 # If you implement your own adjoint, it is recommended to verify that it is well-defined using
-# :func:`deepinv.physics.LinearPhysics.adjointness_test`.
+# :func:`deepinv.physics.Physics.adjointness_test`.
 
 
 class Decolorize2(Decolorize):
@@ -199,8 +198,9 @@ if physics.adjointness_test(x) < 1e-5:
 #
 #
 # .. tip::
-#    As in the case of `LinearPhysics`, `V` and `U_adjoint` are implemented using autodifferentiation by default,
-#    but you can implement them directly if you know the closed form of the operator.
+#    As in the case of a linear `Physics <deepinv.physics.Physics>` operator, `V` and `U_adjoint` are implemented
+#    using autodifferentiation by default, but you can implement them directly if you know the closed form of the
+#    operator.
 
 
 class DecolorizeSVD(dinv.physics.DecomposablePhysics):
@@ -260,7 +260,7 @@ for i in range(10):
 
 sync_cuda()
 end = time.time()
-print(f"Elapsed time for LinearPhysics: {end - start:.2f} seconds")
+print(f"Elapsed time for Physics(linear=True): {end - start:.2f} seconds")
 
 sync_cuda()
 start = time.time()

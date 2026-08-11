@@ -8,7 +8,8 @@ import warnings
 import torch
 import torch.distributed as dist
 
-from deepinv.physics import Physics, LinearPhysics
+from deepinv.physics import Physics
+from deepinv.physics.forward import _linear_alias_metaclass
 from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.utils.tensorlist import TensorList
 
@@ -304,6 +305,8 @@ class DistributedStackedPhysics(Physics):
             p_i = factory(i, ctx.device, self.factory_kwargs)
             self.local_physics.append(p_i)
 
+        self.linear = all(getattr(p, "linear", False) for p in self.local_physics)
+
     # -------- Factorized map-reduce logic --------
     def _map_reduce_gather(
         self,
@@ -383,70 +386,6 @@ class DistributedStackedPhysics(Physics):
             **kwargs,
         )
 
-
-class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
-    r"""
-    Distributed linear physics operators.
-
-    This class extends :class:`DistributedStackedPhysics` for linear operators. It provides distributed
-    operations that automatically handle communication and reductions.
-
-    .. note::
-
-        This class is intended to distribute a *collection* of linear operators (e.g.,
-        :class:`deepinv.physics.StackedLinearPhysics` or an explicit Python list of
-        :class:`deepinv.physics.LinearPhysics` objects) across ranks. It is **not** a
-        mechanism to shard a single linear operator internally.
-
-    If you have one linear physics operator that can naturally be split into multiple
-    operators, you must do that split yourself (build a stacked/list representation) and
-    provide those operators through the `factory`.
-
-    All linear operations (`A_adjoint`, `A_vjp`, etc.) support a `reduce_op` parameter:
-
-        - If `reduce_op='sum'` (default): The method computes the global result by performing a single all-reduce across all ranks.
-        - If `reduce_op=None`: The method computes only the local contribution from operators owned by this rank, without any inter-rank communication. This is useful for deferring reductions in custom algorithms. Beware, using `reduce_op=None` may lead to errors or incorrect results if the full global operation is required (e.g., for correct gradients in training) and should be used with caution.
-
-    :param DistributedContext ctx: distributed context manager.
-    :param int num_operators: total number of physics operators to distribute.
-    :param Callable factory: factory function that creates linear physics operators.
-        Should have signature `factory(index: int, device: torch.device, factory_kwargs: dict | None) -> LinearPhysics`.
-    :param dict | None factory_kwargs: shared data dictionary passed to factory function for all operators. Default is `None`.
-    :param torch.dtype | None dtype: data type for operations. Default is `None`.
-    :param str gather_strategy: strategy for gathering distributed results in forward operations.
-        Options are `'naive'`, `'concatenated'`, or `'broadcast'`. Default is `'concatenated'`.
-    """
-
-    def __init__(
-        self,
-        ctx: DistributedContext,
-        num_operators: int,
-        factory,
-        *,
-        factory_kwargs: dict | None = None,
-        dtype: torch.dtype | None = None,
-        gather_strategy: str = "concatenated",
-        **kwargs,
-    ):
-        r"""
-        Initialize distributed linear physics operators.
-        """
-        super().__init__(
-            ctx=ctx,
-            num_operators=num_operators,
-            factory=factory,
-            factory_kwargs=factory_kwargs,
-            dtype=dtype,
-            gather_strategy=gather_strategy,
-            A=lambda x, **kw: x,
-            A_adjoint=lambda y, **kw: y,
-            **kwargs,
-        )
-
-        for p in self.local_physics:
-            if not isinstance(p, LinearPhysics):
-                raise ValueError("factory must return LinearPhysics instances.")
-
     def A_adjoint(
         self,
         y: TensorList | list[torch.Tensor],
@@ -461,12 +400,18 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         across all ranks to obtain the complete :math:`A^T y = \sum_{i=1}^n A_i^T y_i` where :math:`A` is the
         stacked operator :math:`A = [A_1, A_2, \ldots, A_n]`, :math:`A_i` and :math:`y_i` are the individual linear operators and measurements respectively.
 
+        Only available when ``self.linear=True``, i.e. when every local physics operator is linear.
+
         :param TensorList | list[torch.Tensor] y: full list of measurements from all operators.
         :param bool gather: whether to gather results across ranks. If False, returns local contribution. Default is `True`.
         :param str | None reduce_op: reduction operation to apply across ranks. If `None`, no reduction (neither local or global) is performed, reduction must be performed manually to produce complete adjoint result :math:`A^T y`. Default is `"sum"`.
         :param kwargs: optional parameters for the adjoint operation.
         :return: complete adjoint result :math:`A^T y` (or local contribution if gather=False).
         """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.A_adjoint requires all local physics to have linear=True."
+            )
 
         # Extract local measurements
         if len(y) == self.num_operators:
@@ -502,6 +447,8 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         Extracts local cotangent vectors, computes local VJP contributions, and reduces
         across all ranks to obtain the complete VJP.
 
+        Only available when ``self.linear=True``, i.e. when every local physics operator is linear.
+
         :param torch.Tensor x: input tensor.
         :param TensorList | list[torch.Tensor] v: full list of cotangent vectors from all operators.
         :param bool gather: whether to gather results across ranks. If False, returns local contribution. Default is `True`.
@@ -509,6 +456,10 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         :param kwargs: optional parameters for the VJP operation.
         :return: complete VJP result (or local contribution if gather=False).
         """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.A_vjp requires all local physics to have linear=True."
+            )
 
         if len(v) == self.num_operators:
             v_local = [v[i] for i in self.local_indexes]
@@ -540,12 +491,18 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         Computes the complete normal operator :math:`A^T A x = \sum_i A_i^T A_i x` by
         combining local contributions from all ranks.
 
+        Only available when ``self.linear=True``, i.e. when every local physics operator is linear.
+
         :param torch.Tensor x: input tensor.
         :param bool gather: whether to gather results across ranks. If False, returns local contribution. Default is `True`.
         :param str | None reduce_op: reduction operation to apply across ranks. If `None`, no reduction (neither local or global) is performed, reduction must be performed manually to produce complete  result :math:`A^T A x`. Default is `"sum"`.
         :param kwargs: optional parameters for the operation.
         :return: complete :math:`A^T A x` result (or local contribution if gather=False).
         """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.A_adjoint_A requires all local physics to have linear=True."
+            )
 
         return self._map_reduce_gather(
             x,
@@ -567,6 +524,8 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         For stacked operators, this computes :math:`A A^T y` where :math:`A^T y = \sum_i A_i^T y_i`
         and then applies the forward operator to get :math:`[A_1(A^T y), A_2(A^T y), \ldots, A_n(A^T y)]`.
 
+        Only available when ``self.linear=True``, i.e. when every local physics operator is linear.
+
         .. note::
 
             Unlike other operations, the adjoint step `A^T y` is always computed globally (with full
@@ -580,6 +539,10 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         :param kwargs: optional parameters for the operation.
         :return: TensorList with entries :math:`A_i A^T y` for all operators (or local list if `gather=False`).
         """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.A_A_adjoint requires all local physics to have linear=True."
+            )
 
         # First compute A^T y globally (always with reduction to get the full adjoint)
         # This is necessary because A_A_adjoint(y) = A(A^T y) and A^T y = sum_i A_i^T y_i
@@ -615,6 +578,8 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
             with distributed :meth:`A_adjoint_A` and :meth:`A_A_adjoint` operations.
             This computes the exact pseudoinverse but requires communication at every iteration.
 
+        Only available when ``self.linear=True``, i.e. when every local physics operator is linear.
+
         :param TensorList | list[torch.Tensor] y: measurements to invert.
         :param str solver: least squares solver to use (only for `local_only=False`).
             Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. Default is `'CG'`.
@@ -629,6 +594,11 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         :return: pseudoinverse solution. If `local_only=True`, returns approximation.
             If `local_only=False`, returns exact least squares solution.
         """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.A_dagger requires all local physics to have linear=True."
+            )
+
         if local_only:
             # Efficient local computation with single sum reduction
             if isinstance(y, TensorList):
@@ -690,6 +660,8 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
             with communication at every power iteration. This computes the exact norm but is
             communication-intensive.
 
+        Only available when ``self.linear=True``, i.e. when every local physics operator is linear.
+
         :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate.
         :param int max_iter: maximum number of iterations for power method. Default is `50`.
         :param float tol: relative variation criterion for convergence. Default is `1e-3`.
@@ -702,6 +674,10 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         :return: Squared spectral norm. If `local_only=True`, returns upper bound.
             If `local_only=False`, returns exact value.
         """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.compute_sqnorm requires all local physics to have linear=True."
+            )
 
         if local_only:
             # Efficient local computation with single max reduction
@@ -728,6 +704,66 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
             verbose_flag = verbose and self.ctx.rank == 0
             return super().compute_sqnorm(
                 x0, max_iter=max_iter, tol=tol, verbose=verbose_flag, **kwargs
+            )
+
+
+class DistributedStackedLinearPhysics(
+    DistributedStackedPhysics,
+    metaclass=_linear_alias_metaclass(DistributedStackedPhysics),
+):
+    r"""
+    Deprecated alias of :class:`deepinv.distributed.DistributedStackedPhysics`.
+
+    .. deprecated::
+
+        :class:`deepinv.distributed.DistributedStackedPhysics` now supports linear physics
+        operators directly (its linearity, ``physics.linear``, is derived automatically from the
+        local physics operators built by the factory). This class is kept only for backward
+        compatibility (including ``isinstance`` checks against it, and the eager validation that
+        the factory returns linear operators) and will be removed in a future version.
+
+    :param DistributedContext ctx: distributed context manager.
+    :param int num_operators: total number of physics operators to distribute.
+    :param Callable factory: factory function that creates linear physics operators.
+        Should have signature `factory(index: int, device: torch.device, factory_kwargs: dict | None) -> Physics`.
+    :param dict | None factory_kwargs: shared data dictionary passed to factory function for all operators. Default is `None`.
+    :param torch.dtype | None dtype: data type for operations. Default is `None`.
+    :param str gather_strategy: strategy for gathering distributed results in forward operations.
+        Options are `'naive'`, `'concatenated'`, or `'broadcast'`. Default is `'concatenated'`.
+    """
+
+    def __init__(
+        self,
+        ctx: DistributedContext,
+        num_operators: int,
+        factory,
+        *,
+        factory_kwargs: dict | None = None,
+        dtype: torch.dtype | None = None,
+        gather_strategy: str = "concatenated",
+        **kwargs,
+    ):
+        warnings.warn(
+            "DistributedStackedLinearPhysics is deprecated and will be removed in a future "
+            "version. Use DistributedStackedPhysics instead — linearity is now derived "
+            "automatically from the local physics operators via `.linear`.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(
+            ctx=ctx,
+            num_operators=num_operators,
+            factory=factory,
+            factory_kwargs=factory_kwargs,
+            dtype=dtype,
+            gather_strategy=gather_strategy,
+            **kwargs,
+        )
+
+        if not self.linear:
+            raise ValueError(
+                "factory must return physics instances with linear=True when using "
+                "DistributedStackedLinearPhysics."
             )
 
 
@@ -1015,10 +1051,14 @@ class DistributedDataFidelity:
             return self.single_fidelity
         return self.local_data_fidelities[i]
 
-    def _check_is_distributed_physics(self, physics: DistributedStackedLinearPhysics):
-        if not isinstance(physics, DistributedStackedLinearPhysics):
+    def _check_is_distributed_physics(self, physics: DistributedStackedPhysics):
+        if not isinstance(physics, DistributedStackedPhysics):
             raise ValueError(
-                "physics must be a DistributedStackedLinearPhysics instance to be used with DistributedDataFidelity."
+                "physics must be a DistributedStackedPhysics instance to be used with DistributedDataFidelity."
+            )
+        if not physics.linear:
+            raise ValueError(
+                "physics must be linear (physics.linear=True) to be used with DistributedDataFidelity."
             )
 
     def _apply_op(

@@ -10,7 +10,7 @@ from deepinv.models import Reconstructor
 from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.optim.prior import Prior
 from deepinv.optim.utils import check_conv
-from deepinv.physics import Physics, LinearPhysics
+from deepinv.physics import Physics
 from deepinv.sampling import sampling_iterators as _sampling_iterators
 from deepinv.sampling.sampling_iterators import SamplingIterator
 from deepinv.sampling.utils import Welford
@@ -195,7 +195,7 @@ class BaseSampling(Reconstructor):
             # Initialization of both our image chain and any latent variables
             if x_init is None:
                 # if linear take adjoint (pseudo-inverse can be a bit unstable) else fall back to pseudoinverse
-                if isinstance(physics, LinearPhysics):
+                if getattr(physics, "linear", False):
                     X = self.iterator.initialize_latent_variables(
                         physics.A_adjoint(y), y, physics, self.data_fidelity, self.prior
                     )

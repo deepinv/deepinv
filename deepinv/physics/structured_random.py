@@ -4,7 +4,7 @@ from deepinv.physics.functional import dst1
 import numpy as np
 import torch
 
-from deepinv.physics.forward import LinearPhysics
+from deepinv.physics.forward import Physics
 
 
 def compare(img_size: tuple, output_size: tuple) -> str:
@@ -105,7 +105,7 @@ def generate_diagonal(
     return diag.to(device)
 
 
-class StructuredRandom(LinearPhysics):
+class StructuredRandom(Physics):
     r"""
     Structured random linear operator model corresponding to the operator
 
@@ -137,7 +137,7 @@ class StructuredRandom(LinearPhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(device=device, **kwargs)
+        super().__init__(device=device, linear=True, **kwargs)
 
         if len(img_size) == 3:
             self.mode = compare(img_size, output_size)

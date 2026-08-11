@@ -1133,14 +1133,14 @@ def test_condition_number(device):
 
     c = torch.rand(imsize, device=device) * 0.95 + 0.05
 
-    class DummyPhysics(dinv.physics.LinearPhysics):
+    class DummyPhysics(dinv.physics.Physics):
         def A(self, x, **kwargs):
             return x * c
 
         def A_adjoint(self, y, **kwargs):
             return y * c
 
-    physics = DummyPhysics()
+    physics = DummyPhysics(linear=True)
     x = torch.randn(imsize, device=device)
     cond = physics.condition_number(x)
     gt_cond = c.max() / c.min()
@@ -1294,9 +1294,9 @@ def test_least_squares_implicit_backward_nonleaf_buffer_grad(device):
     batch_size = 2
     dim = 12
 
-    class DummyPhysics(dinv.physics.LinearPhysics):
+    class DummyPhysics(dinv.physics.Physics):
         def __init__(self, mat):
-            super().__init__()
+            super().__init__(linear=True)
             self.register_buffer("mat", mat)
 
         def A(self, x):

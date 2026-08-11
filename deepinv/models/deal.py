@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.nn.utils.parametrize as P
 from torch import Tensor, nn
 
-from deepinv.physics import Denoising, LinearPhysics
+from deepinv.physics import Denoising, Physics
 from deepinv.optim.linear import conjugate_gradient
 from .base import Reconstructor
 from .utils import load_state_dict_from_url
@@ -156,14 +156,14 @@ class DEAL(Reconstructor):
         return self.model.mask
 
     def forward(
-        self, y: torch.Tensor, physics: LinearPhysics | None = None, sigma: float = None
+        self, y: torch.Tensor, physics: Physics | None = None, sigma: float = None
     ) -> torch.Tensor:
         """
         Run DEAL as either a denoiser or a reconstructor.
 
         :param torch.Tensor y: input measurements
-        :param LinearPhysics | None physics: forward operator for reconstruction. If
-            ``None``, DEAL is applied as a denoiser.
+        :param Physics | None physics: forward operator for reconstruction (``physics.linear``
+            should be `True`). If ``None``, DEAL is applied as a denoiser.
         :param float | None sigma: denoising noise level used when ``physics`` is
             ``None``
         :return: reconstructed or denoised image
@@ -177,7 +177,7 @@ class DEAL(Reconstructor):
         if (
             sigma is None
             and physics is not None
-            and not isinstance(physics, LinearPhysics)
+            and not getattr(physics, "linear", False)
         ):
             sigma = physics
             physics = None

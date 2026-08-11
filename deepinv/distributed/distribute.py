@@ -4,8 +4,8 @@ from typing import Callable
 
 import torch
 
-from deepinv.physics import Physics, LinearPhysics
-from deepinv.physics.forward import StackedPhysics, StackedLinearPhysics
+from deepinv.physics import Physics
+from deepinv.physics.forward import StackedPhysics
 from deepinv.optim.data_fidelity import DataFidelity, StackedPhysicsDataFidelity
 from deepinv.optim.prior import Prior
 from deepinv.models.base import Denoiser
@@ -54,7 +54,7 @@ def _distribute_physics(
     :return: Distributed version of the input Physics object.
     """
     # Physics factory
-    if isinstance(physics, (StackedPhysics, StackedLinearPhysics)):
+    if isinstance(physics, StackedPhysics):
         # Extract physics_list from StackedPhysics
         physics_list_extracted = physics.physics_list
         num_operators = len(physics_list_extracted)
@@ -79,24 +79,20 @@ def _distribute_physics(
         ):
             return physics_list_extracted[idx].to(device)
 
-    if type_object == "linear_physics":
-        return DistributedStackedLinearPhysics(
-            ctx,
-            num_operators=num_operators,
-            factory=physics_factory,
-            dtype=dtype,
-            gather_strategy=gather_strategy,
-            **kwargs,
+    result = DistributedStackedPhysics(
+        ctx,
+        num_operators=num_operators,
+        factory=physics_factory,
+        dtype=dtype,
+        gather_strategy=gather_strategy,
+        **kwargs,
+    )
+    if type_object == "linear_physics" and not result.linear:
+        raise ValueError(
+            "factory must return physics instances with linear=True when "
+            "type_object='linear_physics'."
         )
-    else:
-        return DistributedStackedPhysics(
-            ctx,
-            num_operators=num_operators,
-            factory=physics_factory,
-            dtype=dtype,
-            gather_strategy=gather_strategy,
-            **kwargs,
-        )
+    return result
 
 
 def _distribute_processor(
@@ -320,19 +316,17 @@ def distribute(
     """
     # Check object type and distribute accordingly
     if type_object == "auto":
-        if isinstance(object, (StackedPhysics, StackedLinearPhysics)) or (
+        if isinstance(object, StackedPhysics) or (
             isinstance(object, list)
             and len(object) > 0
             and isinstance(object[0], Physics)
         ):
-            type_object = (
-                "linear_physics"
-                if isinstance(object, (StackedLinearPhysics, list))
-                and (
-                    not isinstance(object, list) or isinstance(object[0], LinearPhysics)
-                )
-                else "physics"
+            is_linear = (
+                object.linear
+                if isinstance(object, StackedPhysics)
+                else getattr(object[0], "linear", False)
             )
+            type_object = "linear_physics" if is_linear else "physics"
         elif isinstance(object, (DataFidelity, StackedPhysicsDataFidelity)) or (
             isinstance(object, list)
             and len(object) > 0

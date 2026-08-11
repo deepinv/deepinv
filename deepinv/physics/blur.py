@@ -4,7 +4,7 @@ import torch
 import torch.fft as fft
 from torch import Tensor
 import torch.nn.functional as F
-from deepinv.physics.forward import LinearPhysics, DecomposablePhysics, adjoint_function
+from deepinv.physics.forward import Physics, DecomposablePhysics, adjoint_function
 import deepinv.physics.functional as dF
 from deepinv.utils.mixins import TiledMixin2d
 from deepinv.utils._internal import _as_pair, _add_tuple
@@ -12,7 +12,7 @@ from deepinv.utils._tiling import _resolve_tiling_params, _compute_needed_pad
 from deepinv.utils.decorators import _deprecated_func_replaced_by
 
 
-class Downsampling(LinearPhysics):
+class Downsampling(Physics):
     r"""
     Downsampling operator for super-resolution problems.
 
@@ -69,7 +69,7 @@ class Downsampling(LinearPhysics):
                 stacklevel=2,
             )
             filter = None
-        super().__init__(device=device, **kwargs)
+        super().__init__(device=device, linear=True, **kwargs)
         self.imsize = tuple(img_size) if isinstance(img_size, list) else img_size
         self.imsize_dynamic = (3, 128, 128)  # placeholder
         self.padding = padding
@@ -360,7 +360,7 @@ class Downsampling(LinearPhysics):
             r = torch.real(fft.ifft2(rc))
             return (z_hat - r) * gamma
         else:
-            return LinearPhysics.prox_l2(self, z, y, gamma, **kwargs)
+            return Physics.prox_l2(self, z, y, gamma, **kwargs)
 
     @staticmethod
     def check_factor(factor: int | float | Tensor) -> int:
@@ -440,7 +440,7 @@ class Upsampling(Downsampling):
         return super().prox_l2(z, y, gamma, **kwargs)
 
 
-class Blur(LinearPhysics):
+class Blur(Physics):
     r"""
 
     Blur operator.
@@ -501,7 +501,7 @@ class Blur(LinearPhysics):
         device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(linear=True, **kwargs)
         self.device = device
         self.padding = padding
         assert (
@@ -737,7 +737,7 @@ class BlurFFT(DecomposablePhysics):
         super().update_parameters(**filter_parameters)
 
 
-class SpaceVaryingBlur(LinearPhysics):
+class SpaceVaryingBlur(Physics):
     r"""
     Space varying blur via product-convolution.
 
@@ -792,7 +792,7 @@ class SpaceVaryingBlur(LinearPhysics):
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-        super().__init__(device=device, **kwargs)
+        super().__init__(device=device, linear=True, **kwargs)
 
         self.register_buffer("filters", filters)
         self.register_buffer("multipliers", multipliers)
@@ -868,7 +868,7 @@ class SpaceVaryingBlur(LinearPhysics):
         super().update_parameters(filters=filters, multipliers=multipliers, **kwargs)
 
 
-class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
+class TiledSpaceVaryingBlur(TiledMixin2d, Physics):
     r"""
     Space varying blur via tiled-convolution.
 
@@ -955,7 +955,11 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         **kwargs,
     ):
         super().__init__(
-            patch_size=patch_size, stride=stride, pad_if_needed=True, **kwargs
+            patch_size=patch_size,
+            stride=stride,
+            pad_if_needed=True,
+            linear=True,
+            **kwargs,
         )
         # Always use pad_if_needed=True to ensure that the image is padded to fit an integer number of patches, and the extra padding is removed automatically after processing.
 

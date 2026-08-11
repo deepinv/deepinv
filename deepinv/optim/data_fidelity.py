@@ -312,7 +312,7 @@ class L2(DataFidelity):
         r"""
         Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
 
-        The gradient is either computed using the chain rule, or using specific implementation of deepinv.physics.LinearPhysics.A_adjoint_A in the case of a LinearPhysics.
+        The gradient is either computed using the chain rule, or using specific implementation of deepinv.physics.Physics.A_adjoint_A in the case of a linear physics (``physics.linear=True``).
         Formally, the chain rule is given as
 
         .. math::
@@ -332,7 +332,7 @@ class L2(DataFidelity):
         :param deepinv.physics.Physics physics: physics model.
         :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
         """
-        if isinstance(physics, dinv.physics.LinearPhysics):
+        if getattr(physics, "linear", False):
             return self.norm * (physics.A_adjoint_A(x) - physics.A_adjoint(y))
         else:
             return super().grad(x, y, physics, *args, **kwargs)

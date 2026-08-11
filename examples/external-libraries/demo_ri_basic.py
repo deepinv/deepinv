@@ -44,13 +44,13 @@ device = dinv.utils.get_device()
 # and :math:`\epsilon \in \mathbb{C}^{m}` is a realization of some i.i.d. Gaussian random noise.
 #
 # This operator can be implemented with `TorchKbNUFFT <https://github.com/mmuckley/torchkbnufft>`_.
-# Below, we propose an implementation using the :class:`deepinv.physics.LinearPhysics`.
+# Below, we propose an implementation using the :class:`deepinv.physics.Physics` class with ``linear=True``.
 # As such, operations like grad and prox are available.
 
-from deepinv.physics import LinearPhysics
+from deepinv.physics import Physics
 
 
-class RadioInterferometry(LinearPhysics):
+class RadioInterferometry(Physics):
     r"""
     Radio Interferometry measurement operator.
 
@@ -79,7 +79,7 @@ class RadioInterferometry(LinearPhysics):
         device="cpu",
         **kwargs,
     ):
-        super(RadioInterferometry, self).__init__(**kwargs)
+        super(RadioInterferometry, self).__init__(linear=True, **kwargs)
 
         if dataWeight is None:
             dataWeight = torch.tensor([1.0], device=device)
