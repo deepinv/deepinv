@@ -17,6 +17,7 @@ New Features
 - Add support for :func:`Liu-Jia padding <deepinv.physics.functional.liu_jia_pad>` (:gh:`934` by `Jérémy Scanvic`_)
 - Add support for TV-L1 priors :class:`deepinv.optim.TVL1Prior` (:gh:`1236` by `Sarra Amiri`_)
 - Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
+- Add :class:`deepinv.datasets.BrainWebPET` (:gh:`1286` by `Thibaut Modrzyk`_)
 - Add batched lower-level solves for :class:`deepinv.optim.bilevel.MAID` with hypergradient accumulation and memory-aware batch sizing (``BatchedCRR``, ``BatchedMinibatchOracle``) (:gh:`1318` by `Mohammad Sadegh Salehi`_)
 - Add ``auto_initial_accuracy`` to choose the initial lower-level accuracy from the problem's initial residual (:gh:`1318` by `Mohammad Sadegh Salehi`_)
 - Add an isotropic TV baseline for prior comparisons (:mod:`deepinv.optim.bilevel.tv_baseline`) (:gh:`1318` by `Mohammad Sadegh Salehi`_)
