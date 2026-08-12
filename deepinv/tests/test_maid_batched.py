@@ -78,12 +78,29 @@ def test_solve_lower_reaches_tolerance_and_certificate_holds():
     problem = BatchedCRR(y=y, x_star=x_star, cfg=cfg, physics=physics)
 
     x_loose, res_loose, _info = problem.solve_lower(theta, 1e-3, max_iter=2000)
-    x_tight, _res, info = problem.solve_lower(theta, 1e-11, max_iter=5000)
+    # Above the float64 floor, so "reached" is a meaningful assertion. Asking
+    # for 1e-11 puts the solve at the precision floor, where stalling short of
+    # eps is by design not an error: the certificate still holds, only wider.
+    x_tight, _res, info = problem.solve_lower(theta, 1e-9, max_iter=5000)
     assert info["reached"]
 
     distance = (x_loose - x_tight).flatten(1).norm(dim=1)
     bound = res_loose / problem.mu
     assert torch.all(distance <= bound * 1.05 + 1e-9)
+
+
+def test_stalling_at_the_precision_floor_is_not_an_error():
+    """A solve that cannot reach eps returns a valid, wider certificate."""
+    physics, y, x_star = _denoising(n=3, size=8)
+    cfg = _tiny_cfg()
+    theta = pack_init_theta(cfg, seed=1)
+    problem = BatchedCRR(y=y, x_star=x_star, cfg=cfg, physics=physics)
+
+    # Far below what float64 can deliver on this problem.
+    x, res, info = problem.solve_lower(theta, 1e-14, max_iter=3000)
+    assert not info["reached"]
+    assert torch.isfinite(res).all() and torch.all(res >= 0)
+    assert torch.isfinite(x).all()
 
 
 def test_batching_does_not_change_the_hypergradient():
