@@ -97,7 +97,7 @@ denoisers = [
 
 # optional dependencies for advanced forward operators
 physics-gpu = [
-    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'"
+    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'" 
 ]
 
 physics = [
