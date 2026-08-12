@@ -26,6 +26,10 @@ class BrainWebPET(ImageDataset):
     <https://github.com/casperdcl/brainweb>`_. Install it with `pip install brainweb`.
     See the original implementation for a detailed description of the keyword arguments.
 
+    .. note::
+        For a version of this dataset dedicated to magnetic resonance imaging, which contains
+        more contrast options, see :class:`deepinv.datasets.BrainWebMRI`.
+
     :param str, pathlib.Path, None root: Dataset directory. Defaults to the DeepInv cache.
     :param int, collections.abc.Sequence[int], None subject_ids: Subjects to include in the dataset. Defaults to `None` which includes all subjects.
     :param bool download: Download missing subjects. Defaults to `True`.

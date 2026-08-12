@@ -226,6 +226,12 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
      - 1x127x344x344 voxels
      - Synthetic PET emission volumes with attenuation maps and optional MRI contrasts from the BrainWeb dataset.
 
+   * - :class:`BrainWebMRI <deepinv.datasets.BrainWebMRI>`
+     - `x`
+     - 20 MRI brain volumes
+     - 1x181x217x181 voxels
+     - 3D MRI volumes with T1, T2, T2* or PD contrast.
+
 
 .. _data-transforms:
 
