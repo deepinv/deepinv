@@ -37,6 +37,7 @@ Fixed
 - Fix :func:`deepinv.transform.rotate_via_shear` for angles outside :math:`[0, 2pi)` (:gh:`1236` by `Sarra Amiri`_)
 - Fix inversion in :class:`deepinv.transform.Reflect` (:gh:`1236` by `Sarra Amiri`_)
 - (Breaking) Have `x_shift` represent horizontal shifts and `y_shift` vertical shifts in :class:`deepinv.transform.Shift` (:gh:`1236` by `Sarra Amiri`_)
+- Force trainer non_blocking_transfers=False on MPS and CPU (:gh:`1311` by `Andrew Wang`_)
 
 
 v0.4.1
