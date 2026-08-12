@@ -23,10 +23,25 @@ reconstruction with an a posteriori bound
 
     \|x^\star - x\| \le \|\nabla_x h(x)\| / \mu .
 
-To show that the adaptive accuracy is what does the work, a second arm runs the
-identical line search at a *fixed* accuracy. Both arms share the initial step
-size, the backtracking constants and the same batched oracle, so the only
-difference between them is whether the accuracy adapts.
+Three arms are run so that each switch can be attributed separately: a fixed
+accuracy chosen by hand, plain MAID, and MAID with its accelerated switches.
+All three share the derived initial step, the backtracking constants and the
+same batched oracle.
+
+The honest result at this budget is that adaptive accuracy alone does not beat
+a well-chosen fixed accuracy on PSNR: the two land within 0.01 dB, and MAID
+spends about twice the lower-level iterations getting there. What clears the
+total variation baseline is the accelerated pair, Barzilai-Borwein step
+initialisation and the nonmonotone test.
+
+That is not an argument against adapting the accuracy, but it does locate what
+adapting buys. The fixed arm only matches because its tolerance was chosen
+after seeing which values fail; at MAID's own starting accuracy of 1e-3 the
+same arm cannot certify descent at all, exhausts its line search every
+iteration and never takes a step. MAID reaches the same solution from that
+starting point without being told. The property is robustness to a tolerance
+nobody knows in advance, and PSNR at matched tuning is the wrong instrument
+for measuring it.
 """
 
 # %%
