@@ -167,10 +167,14 @@ def test_tensorlist_methods(tensorlist):
             and p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
         ]
 
+        # torch.Tensor.clamp/clip requires at least one of min or max, even
+        # though both are optional in its signature.
+        kwargs = {"min": 0.0, "max": 1.0} if method_name in ("clamp", "clip") else {}
+
         # Test that the method does not raise any exception
         # NOTE: We run the method on a copy of the object to avoid side effects
         x_copy = copy.deepcopy(x)
-        _ = getattr(x_copy, method_name)(*args)
+        _ = getattr(x_copy, method_name)(*args, **kwargs)
 
 
 @pytest.mark.parametrize("shape", [(1, 1, 3, 3), (1, 1, 5, 5)])
