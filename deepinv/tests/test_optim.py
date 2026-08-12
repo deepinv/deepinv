@@ -275,6 +275,32 @@ def test_zero_prior():
         assert torch.allclose(xhat, x)
 
 
+def test_tvprior_gradient(device):
+    """Test the TVPrior gradient against autodiff away from constant regions."""
+    prior = dinv.optim.TVPrior()
+    x = torch.tensor(
+        [[[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]]],
+        dtype=torch.float64,
+        device=device,
+    )
+    # The image is zero except for the center pixel, so that we have both
+    # zero finite difference everywhere except for the center pixel
+    x.requires_grad_()
+
+    grad_value = prior.grad(x)
+    grad_autodiff = torch.func.grad(lambda z: prior.fn(z)[0])(x)
+
+    nonzero_diff = torch.zeros_like(x, dtype=torch.bool)
+    nonzero_diff[..., 1, 1] = True
+    zero_diff = ~nonzero_diff
+
+    assert (~zero_diff[nonzero_diff]).all()
+    assert torch.allclose(grad_value[nonzero_diff], grad_autodiff[nonzero_diff])
+    assert torch.isnan(grad_autodiff[zero_diff]).all()
+    assert torch.isfinite(grad_value[zero_diff]).all()
+    assert torch.isfinite(grad_value).all()
+
+
 def test_data_fidelity_amplitude_loss(device):
     r"""
     Tests if the gradient computed with grad_d method of amplitude loss is consistent with the autograd gradient.
@@ -561,6 +587,8 @@ def get_prior(prior_name, device="cpu"):
     elif prior_name == "SmoothedTVPrior":
         prior = dinv.optim.prior.SmoothedTVPrior()
 
+    elif prior_name == "TVL1Prior":
+        prior = dinv.optim.prior.TVL1Prior()
     elif "wavelet" in prior_name.lower():
         pytest.importorskip(
             "ptwt",
@@ -591,6 +619,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "Tikhonov",
         "TVPrior",
         "SmoothedTVPrior",
+        "TVL1Prior",
         "WaveletPrior",
         "WaveletDictPrior",
         "ZeroPrior",
