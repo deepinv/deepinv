@@ -102,7 +102,9 @@ class BlindRLIteration(OptimIterator):
         for _ in range(k_steps):
             y_hat = dF.conv2d(x, k, padding="circular")
             ratio = y / y_hat.clamp_min(self.eps)
-            numerator_k = filter_adjoint(x, ratio, (hk, wk), padding="circular").sum(dim=1, keepdim=True)
+            numerator_k = filter_adjoint(x, ratio, (hk, wk), padding="circular").sum(
+                dim=1, keepdim=True
+            )
             denom_k = sensitivity_k + lambda_k * self.k_prior.grad(k, k_g_param)
             k = k * numerator_k / denom_k.clamp_min(self.eps)
             if self.normalize_kernel:
