@@ -57,7 +57,7 @@ physics = dinv.physics.Inpainting(img_size=mask.shape[1:], mask=mask, device=dev
 
 # %%
 # Reconstruct with classical interpolation
-# ------------------------------------
+# ----------------------------------------
 # As a classical baseline we fill the unsampled pixels of each band by Gaussian interpolation.
 # This is a standard reconstruction used in many ISP pipelines.
 
@@ -89,7 +89,7 @@ with torch.no_grad():
 # We use the classical interpolated reconstruction as a warm initialisation to speed up the optimization.
 #
 # .. note::
-#   We run 100 iterations on GPU, or 10 on CPU, which might not run to convergence. Increase it for better results.
+#     We run 100 iterations on GPU, or 10 on CPU, which might not run to convergence. Increase it for better results.
 #
 
 model = dinv.optim.PGD(
