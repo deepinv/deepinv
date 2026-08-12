@@ -228,6 +228,19 @@ def accelerated_maid_config(**kwargs) -> MAIDConfig:
     Keyword arguments override any field of :class:`MAIDConfig`. Defaults
     keep Algorithm 3.1 hyper-parameters and only flip the two accelerated
     switches.
+
+    .. warning::
+
+        Expanding an existing config, ``accelerated_maid_config(**cfg.__dict__)``,
+        returns a **non**-accelerated config. Every field is then present as an
+        explicit keyword, including ``bb_init=False`` and ``nonmonotone=False``
+        from the defaults, and an explicit value wins. The call looks like it
+        enables acceleration and silently does nothing. Pass the switches
+        alongside the expansion when deriving one config from another::
+
+            acc = accelerated_maid_config(
+                **{**cfg.__dict__, "bb_init": True, "nonmonotone": True}
+            )
     """
     kwargs.setdefault("nonmonotone", True)
     kwargs.setdefault("bb_init", True)

@@ -224,3 +224,29 @@ def test_accelerated_on_cheap_problem_reduces_or_keeps_bt():
     # a large multiple of vanilla (sanity, not a hard performance claim).
     assert hist_a["n_backtrack_failures"] <= max(5 * hist_v["n_backtrack_failures"], 20)
     assert hist_a["f_exact"][-1] <= hist_v["f_exact"][0] * 1.01
+
+
+def test_accelerated_config_from_expanded_config_needs_explicit_switches():
+    """Expanding a config makes every field explicit, so setdefault is a no-op.
+
+    Guards the documented pitfall: the natural-looking
+    ``accelerated_maid_config(**cfg.__dict__)`` silently returns a config with
+    acceleration off, because the expansion carries bb_init=False through as an
+    explicit keyword.
+    """
+    from deepinv.optim.bilevel import MAIDConfig, accelerated_maid_config
+
+    plain = MAIDConfig(max_iter=5)
+    assert not plain.bb_init and not plain.nonmonotone
+
+    silently_not_accelerated = accelerated_maid_config(**{**plain.__dict__})
+    assert not silently_not_accelerated.bb_init
+    assert not silently_not_accelerated.nonmonotone
+
+    accelerated = accelerated_maid_config(
+        **{**plain.__dict__, "bb_init": True, "nonmonotone": True}
+    )
+    assert accelerated.bb_init and accelerated.nonmonotone
+
+    # A bare call, with nothing expanded, does enable both.
+    assert accelerated_maid_config(max_iter=5).bb_init
