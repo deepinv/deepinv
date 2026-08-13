@@ -1223,10 +1223,10 @@ class DecomposablePhysics(LinearPhysics):
         # The 1 / gamma * z term is omitted when z is a zero scalar, where it
         # contributes nothing, and when z is None, which means "no z" as it
         # does in LinearPhysics.prox_l2.  That method accepts the same inputs
-        # and normalises them with torch.full_like, but materialising z is not
-        # an option here: subclasses such as BlurFFT use rfft, so gamma is a
-        # half-spectrum of width W//2+1 while a materialised z has full width
-        # W, and the product fails to broadcast before the addition is
+        # and normalises them with torch.full_like, but expanding z into a full
+        # tensor is not an option here: subclasses such as BlurFFT use rfft, so
+        # gamma is a half-spectrum of width W//2+1 while an expanded z has full
+        # width W, and the product fails to broadcast before the addition is
         # reached.
         if z is None or (isinstance(z, (int, float)) and z == 0):
             b = self.A_adjoint(y)
