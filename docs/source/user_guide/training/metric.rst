@@ -77,6 +77,9 @@ Full reference metrics are used to measure the difference between the original `
    * - :class:`deepinv.loss.metric.NMSE`
      - :math:`\text{NMSE}(\hat{x},x) = \frac{\| x - \hat{x} \|_2^2}{\| x \|_2^2}`
 
+   * - :class:`deepinv.loss.metric.NRMSE`
+     - :math:`\text{NRMSE}(\hat{x},x) = \frac{\| x - \hat{x} \|_2}{\| x \|_2} = \sqrt{\text{NMSE}(\hat{x},x)}`
+
    * - :class:`deepinv.loss.metric.MAE`
      - :math:`\text{MAE}(\hat{x},x) = \frac{1}{n} \sum_{i=1}^n |x_i - \hat{x}_i|`
 

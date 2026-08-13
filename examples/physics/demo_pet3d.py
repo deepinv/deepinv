@@ -55,6 +55,10 @@ with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained t
 
 """
 
+# %%
+import time
+
+import matplotlib.pyplot as plt
 import deepinv as dinv
 from deepinv.physics import PET
 from deepinv.utils.phantoms import generate_pet_phantom
@@ -106,6 +110,11 @@ scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
 # FWHM of the Gaussian blur kernel in mm
 fwhm_data_mm = 4
 
+# gain of the device:
+# higher gains are associated to lower dose and/or shorter acquisition times,
+# while lower gains are associated to higher dose and/or longer acquisition times.
+# larger gain -> more poisson noise -> harder reconstruction
+gain = 0.001
 
 physics = PET(
     device=device,
@@ -113,8 +122,9 @@ physics = PET(
     scanner=scanner,
     fwhm_data_mm=fwhm_data_mm,
     img_size=img_size,
-    normalize_counts=False,
-    normalize=False,
+    normalize_counts=True,
+    normalize=True,
+    gain=gain,
 )
 
 physics.plot_geometry()
@@ -129,13 +139,6 @@ physics.plot_geometry()
 
 x, attenuation = generate_pet_phantom(img_size, device=device)
 mid_slice = img_size[-1] // 2
-
-# gain of the device.
-# higher gains are associated to lower dose and/or shorter acquisition times,
-# while lower gains are associated to higher dose and/or longer acquisition times.
-# larger gain -> more poisson noise -> harder reconstruction
-acquisition_time_factor = 10.0
-x = x * acquisition_time_factor
 
 dinv.utils.plot(
     [x[..., mid_slice], attenuation[..., mid_slice]],
@@ -215,7 +218,7 @@ dinv.utils.plot(sensitivities[..., mid_slice], ["sensitivities"])
 # MLEM reconstruction
 # -------------------
 #
-# We run the standard MLEM reconstruction algorithm
+# We run the standard MLEM reconstruction algorithm :footcite:p:`sheppMaximumLikelihoodReconstruction1982`
 # to obtain a reconstructed emission volume.
 #
 # The algorithm can be seen as a preconditioned gradient descent on the negative log-likelihood of the Poisson model:
@@ -226,28 +229,171 @@ dinv.utils.plot(sensitivities[..., mid_slice], ["sensitivities"])
 #
 # where :math:`f` is the Poisson data-fidelity term, :math:`P=\mathrm{diag}(\frac{x}{A^T\mathbf{1}})` is a preconditioner
 # and :math:`b` is the background.
-#
-# We compare MLEM with the least-squares reconstruction.
 
+gain = physics.noise_model.gain
+mlem_iter = 40
+
+
+def _sync():
+    if torch.device(device).type == "cuda":
+        torch.cuda.synchronize()
+
+
+nrmse = dinv.metric.NRMSE()
+
+
+# With ``denormalize=True``, the likelihood is evaluated in the count domain.
+# The background produced by PET is in the normalized measurement domain, so it
+# must be divided by the gain as well.
 data_fidelity = dinv.optim.PoissonLikelihood(
-    bkg=background,
-    denormalize=False,
+    gain=gain,
+    bkg=background / gain,
+    denormalize=True,
+)
+model_mlem = dinv.optim.MLEM(
+    data_fidelity=data_fidelity,
+    prior=None,
+    max_iter=mlem_iter,
+    custom_metrics={
+        "nrmse": lambda _values, _x_prev, x_cur: nrmse(x_cur.unsqueeze(0), x).item()
+    },
 )
 
-x_mlem = torch.ones_like(x)
 with torch.no_grad():
-    for i in range(50):
-        grad = data_fidelity.grad(x=x_mlem, y=y, physics=physics)
-        preconditioner = (x_mlem + 1e-9) / (sensitivities + 1e-9)
-        x_mlem = x_mlem - preconditioner * grad
-        x_mlem = torch.clamp(x_mlem, min=0.0)
+    _sync()
+    start = time.perf_counter()
+    x_mlem, metrics_mlem = model_mlem(
+        y, physics, init=torch.ones_like(x), compute_metrics=True
+    )
+    _sync()
+    mlem_time = time.perf_counter() - start
+
+print(f"MLEM runtime: {mlem_time:.2f} s for {mlem_iter} iterations")
+
+psnr = dinv.metric.PSNR(max_pixel=x.max().item())
+
+psnr_mlem = psnr(x_mlem, x)
+psnr_dag = psnr(x_dag, x)
+nrmse_mlem = nrmse(x_mlem, x)
+nrmse_dag = nrmse(x_dag, x)
 
 dinv.utils.plot(
     [x[..., mid_slice], x_mlem[..., mid_slice], x_dag[..., mid_slice]],
-    ["Ground truth", "MLEM rec.", "L2 pseudoinv."],
+    ["Ground truth", f"MLEM ({mlem_iter} it.)", "L2 pseudoinv."],
+    subtitles=[
+        "Reference",
+        f"PSNR: {psnr_mlem.item():.2f} dB\n" f"NRMSE: {100 * nrmse_mlem.item():.2f}%",
+        f"PSNR: {psnr_dag.item():.2f} dB\n" f"NRMSE: {100 * nrmse_dag.item():.2f}%",
+    ],
+    rescale_mode="clip",
+    vmin=0,
+    vmax=x.max().item(),
+    figsize=(8, 4),
     cbar=True,
 )
 
+# %%
+# Accelerating MLEM with ordered subsets
+# ---------------------------------------
+#
+# One MLEM iteration evaluates the forward and adjoint operators using the complete
+# PET acquisition. This can be slow when the scanner geometry and its measurements
+# are large, especially in 3D.
+#
+# Ordered-Subsets Expectation-Maximization (OSEM) :footcite:p:`hudsonAcceleratedImageReconstruction1994`
+# partitions the measurements and the forward operator into :math:`L` matching angular subsets indexed by
+# :math:`l=1,\ldots,L`:
+#
+# .. math::
+#
+#   y = (y_1,\ldots,y_L), \qquad
+#   A = (A_1^\top,\ldots,A_L^\top)^\top.
+#
+# OSEM applies an EM update successively with each pair :math:`(y_l,A_l)`. Each subset
+# update is cheaper than a full MLEM iteration and updates the complete image, so OSEM
+# generally reaches a useful reconstruction in fewer passes over the complete acquisition.
+
+# %%
+# OSEM reconstruction
+# -------------------
+#
+# OSEM accepts the full measurements and physics and splits them internally. Alternatively,
+# pre-split inputs can be created with :func:`deepinv.physics.split_measurements` and
+# :func:`deepinv.physics.split_physics` and passed directly to :class:`deepinv.optim.OSEM`.
+
+osem_iter = 3
+num_subsets = 16
+
+model_osem = dinv.optim.OSEM(
+    data_fidelity=data_fidelity,
+    prior=None,
+    max_iter=osem_iter,
+    num_subsets=num_subsets,
+    custom_metrics={
+        "nrmse": lambda _values, _x_prev, x_cur: nrmse(x_cur.unsqueeze(0), x).item()
+    },
+)
+
+with torch.no_grad():
+    _sync()
+    start = time.perf_counter()
+    x_osem, metrics_osem = model_osem(
+        y,
+        physics,
+        init=torch.ones_like(x),
+        compute_metrics=True,
+    )
+    _sync()
+    osem_time = time.perf_counter() - start
+
+print(
+    f"OSEM runtime: {osem_time:.2f} s "
+    f"for {osem_iter} iterations "
+    f"({num_subsets} subsets)"
+)
+print(f"Reconstruction speedup MLEM/OSEM: {mlem_time / osem_time:.2f}x")
+
+psnr_osem = psnr(x_osem, x)
+nrmse_osem = nrmse(x_osem, x)
+
+dinv.utils.plot(
+    [
+        x[..., mid_slice],
+        x_mlem[..., mid_slice],
+        x_osem[..., mid_slice],
+    ],
+    [
+        "Ground truth",
+        f"MLEM ({mlem_iter} it.)",
+        f"OSEM ({osem_iter} it.)",
+    ],
+    subtitles=[
+        "Reference",
+        f"PSNR: {psnr_mlem.item():.2f} dB\n" f"NRMSE: {100 * nrmse_mlem.item():.2f}%",
+        f"PSNR: {psnr_osem.item():.2f} dB\n" f"NRMSE: {100 * nrmse_osem.item():.2f}%",
+    ],
+    rescale_mode="clip",
+    vmin=0,
+    vmax=x.max().item(),
+    figsize=(8, 4),
+    cbar=True,
+)
+
+# We also compare the Poisson objective and NRMSE after every iteration.
+fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+axes[0].plot(metrics_mlem["cost"][0], label="MLEM")
+axes[0].plot(metrics_osem["cost"][0], label="OSEM")
+axes[0].set_xlabel("Iteration")
+axes[0].set_ylabel("Poisson NLL")
+axes[0].legend()
+
+axes[1].plot([100 * v for v in metrics_mlem["nrmse"][0]], label="MLEM")
+axes[1].plot([100 * v for v in metrics_osem["nrmse"][0]], label="OSEM")
+axes[1].set_xlabel("Iteration")
+axes[1].set_ylabel("NRMSE (%)")
+axes[1].yaxis.set_major_formatter("{x:.0f}%")
+axes[1].legend()
+fig.tight_layout()
 
 # %%
 # What next?
@@ -256,3 +402,8 @@ dinv.utils.plot(
 #
 # - Reconstructing PET with learning-based methods (:ref:`PnP <iterative>`, :ref:`diffusion <sampling>`, :ref:`unrolled <unfolded>`, etc.)
 # - Playing with the scanner setup: changing number of detectors, voxel size, etc.
+
+# %%
+# :References:
+#
+# .. footbibliography::
