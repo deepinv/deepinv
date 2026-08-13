@@ -175,11 +175,11 @@ scipy = "*"
 nibabel = "*"
 rasterio = "*"
 pydicom = "*"
-# brainweb, brainweb-dl and mat73 are PyPI-only, stay in optional deps
 
 [tool.pixi.feature.dataset.pypi-dependencies]
 brainweb = "==1.7.0"
 brainweb-dl = ">=0.4.6"
+zea = ">=0.1.0"
 
 
 [tool.pixi.feature.denoisers.dependencies]
