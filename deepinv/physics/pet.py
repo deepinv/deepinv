@@ -71,7 +71,8 @@ class PET(LinearPhysics):
         you can easily swap out the projector `self.proj` for the appropriate listmode or ToF projector.
         See `parallelproj` `docs <https://parallelproj.readthedocs.io/>`_ for more details.
 
-    :param tuple img_size: shape of the input 2D `(H, W)` or 3D volumes `(D, H, W)`.
+    :param tuple img_size: shape of the input 2D ``(H, W)`` images or 3D
+        ``(H, W, D)`` volumes, where ``D`` is the scanner depth.
     :param tuple voxel_size: voxel size in mm. Default is 2 x 2 x 2 mm.
     :param float fwhm_data_mm: full width at half maximum (FWHM) of the Gaussian blur :math:`g`. It has a crucial impact on the maximum achievable resolution,
         which is typically a fraction of the FWHM.
@@ -85,7 +86,8 @@ class PET(LinearPhysics):
     :param None, torch.Tensor views: one-dimensional tensor of integer indices selecting the PET sinogram views to project. If ``None``, all views are projected.
     :param torch.Tensor background: background sinogram :math:`b`, i.e. the expected number of background events in each LOR, with shape `(num_lors,)`
     :param torch.Tensor attenuation: attenuation map. Can be provided either in **image space** as :math:`\mu`
-        (linear attenuation coefficients, shape `(H,W)` for 2D or `(D,H,W)` for 3D — typically from an auxiliary CT scan),
+        (linear attenuation coefficients in :math:`\mathrm{mm}^{-1}`, shape
+        ``(H, W)`` for 2D or ``(H, W, D)`` for 3D—typically from an auxiliary CT scan),
         or in **sinogram/projection space** as :math:`c=\exp(-H\mu)`. The space is inferred automatically
         by comparing the spatial dimensions of the tensor against `img_size`: if they match, image space is assumed
         and the attenuation is projected; otherwise, sinogram space is assumed and the tensor is used directly.
@@ -133,7 +135,7 @@ class PET(LinearPhysics):
                 img_size = img_size[1:]
         if not isinstance(img_size, tuple) or not len(img_size) in (2, 3):
             raise ValueError(
-                "img_size must be a tuple of length 2 or 3, e.g. (H, W) or (D, H, W)"
+                "img_size must be a tuple of length 2 or 3, e.g. (H, W) or (H, W, D)"
             )
 
         try:  # avoids doctest failing when parallelproj prints banner
@@ -232,7 +234,9 @@ class PET(LinearPhysics):
         r"""
         Apply the linear operator :math:`Ax=c \circ H(g*x)` to a signal :math:`x`
 
-        :param torch.Tensor x: input image or volume of shape `(B,1,H,W)` for 2D or `(B,1,D,H,W)` for 3D where `B` is the batch size.
+        :param torch.Tensor x: input image or volume of shape ``(B, 1, H, W)``
+            for 2D or ``(B, 1, H, W, D)`` for 3D, where ``B`` is the batch size
+            and ``D`` is the scanner depth.
         :param torch.Tensor add_background: whether to add background :math:`b`. By default, no background is added.
         :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator.
         :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator.

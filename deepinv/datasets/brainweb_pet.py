@@ -17,8 +17,12 @@ class BrainWebPET(ImageDataset):
     r"""BrainWeb PET phantoms.
 
     Loads synthetic 3D volumes from BrainWeb dataset :footcite:p:`collinsDesignConstructionRealistic1998`,
-    of shape `(1, 127, 344, 344)`.
-    The dataset has been adapted to emission tomography, and returns an emission and attenuation map, at the Siemens Biograph mMR isotropic resolution of 2.0863 mm per voxel.
+    in the PET-compatible ``(C, H, W, D)`` layout, with shape
+    ``(1, 344, 344, 127)``. The dataset has been adapted to emission tomography,
+    and returns emission and attenuation maps on the Siemens Biograph mMR grid,
+    with transverse voxel size 2.0863 mm and axial voxel size 2.03125 mm. The
+    attenuation coefficients are returned in :math:`\mathrm{mm}^{-1}`, as
+    expected by :class:`deepinv.physics.PET`.
 
     Passing `lesion_diameters` adds high activity lesions with `brainweb.add_lesions` and includes a `lesion_mask` in the returned params, where the background is labelled ``0`` and lesions are labelled from ``1`` onwards.
 
@@ -166,10 +170,12 @@ class BrainWebPET(ImageDataset):
             str(self.files[index]), **self.brainweb_kwargs
         )
         emission = volumes["PET"]
+        # BrainWeb stores linear attenuation in cm^-1, while PET uses mm.
         params = {
             "attenuation": torch.as_tensor(
                 volumes["uMap"], dtype=torch.float32
-            ).unsqueeze(0),
+            ).unsqueeze(0)
+            / 10.0,
         }
         for contrast in self.contrast:
             params[contrast.lower()] = torch.as_tensor(
@@ -196,6 +202,12 @@ class BrainWebPET(ImageDataset):
             params["lesion_mask"] = lesion_mask.unsqueeze(0)
 
         emission = torch.as_tensor(emission, dtype=torch.float32).unsqueeze(0)
+
+        # BrainWeb uses (C, D, H, W), while PET and parallelproj use
+        # (C, H, W, D), with scanner depth along the last axis.
+        emission = emission.movedim(1, -1).contiguous()
+        for key in params:
+            params[key] = params[key].movedim(1, -1).contiguous()
 
         if self.transform is not None:
             for key in params:
