@@ -134,11 +134,12 @@ dinv.utils.plot(
 # For example, you could try applying the Deep Image Prior :footcite:p:`ulyanov2018deep,park2020joint`:
 #
 # ::
-#     model = dinv.models.DeepImagePrior(
-#         dinv.models.ConvDecoder(img_size=mask.shape[1:]),
-#         img_size=(256, 4, 4),
-#         iterations=1000,
-#     ).to(device)
+#
+#         model = dinv.models.DeepImagePrior(
+#             dinv.models.ConvDecoder(img_size=mask.shape[1:]),
+#             img_size=(256, 4, 4),
+#             iterations=1000,
+#         ).to(device)
 #
 #
 # Instead of training models from scratch, you could also fine-tune a foundation model such as :class:`deepinv.models.RAM`
