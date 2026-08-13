@@ -2031,8 +2031,8 @@ def test_wiener_deconvolution(device):
     # The clamp changes the result only where a zero NSR coincides with a spectral
     # null of the operator: without it gamma is infinite, so prox_l2's 1 / gamma
     # term vanishes and the scaling reduces to |H(f)|^2.  This section therefore
-    # builds a 12x9 operator, whose dimensions are multiples of 3 and so produce
-    # nulls, rather than reusing the 16x10 operator above.
+    # builds its own 12x9 operator, whose dimensions are multiples of 3 and so
+    # produce nulls, instead of reusing the 16x10 operator above.
     null_h, null_w = 12, 9
     physics_null = dinv.physics.BlurFFT(
         img_size=(1, null_h, null_w), filter=box, device=device

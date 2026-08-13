@@ -392,7 +392,7 @@ class WienerDeconvolution(Reconstructor):
         # frequency" and is handled entry by entry by the clamp in
         # _lambda_to_gamma.  The two are not interchangeable: at a spectral
         # null the clamp caps gamma at 1e9, leaving prox_l2 to divide by
-        # |H(f)|^2 + 1e-9, rather than dropping the component as A_dagger does.
+        # |H(f)|^2 + 1e-9, whereas A_dagger drops the component entirely.
         lambda_reg: float | Tensor = self.lambda_reg
         if not isinstance(lambda_reg, Tensor) or lambda_reg.dim() == 0:
             # Scalar: a float, or a 0-dim tensor holding a single value.
