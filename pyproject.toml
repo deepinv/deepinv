@@ -215,7 +215,7 @@ deepinv = { path = ".", editable = true}
 
 [tool.pixi.environments]
 # gpu environments
-default   = { features = ["gpu"], solve-group = "gpu" }
+# default   = { features = ["gpu"], solve-group = "gpu" }
 test      = { features = ["gpu", "test"], solve-group = "gpu" }
 full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training"], solve-group = "gpu" }
 docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312"], solve-group = "gpu-docs" }
