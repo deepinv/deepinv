@@ -51,6 +51,7 @@ Source = "https://github.com/deepinv/deepinv"
 Tracker = "https://github.com/deepinv/deepinv/issues"
 
 # Define groups of optional pypi dependencies. This is use by pip, uv, and pixi. 
+# https://pixi.prefix.dev/latest/python/pyproject_toml/#optional-dependencies
 # It can be overridden with conda dependencies below using [tool.pixi.feature.*.dependencies] sections.
 [project.optional-dependencies]
 test = [
@@ -197,6 +198,9 @@ array-api-compat = "*"
 sigpy = "*"
 parallelproj = ">=1.10.0,<2.0.0"
 # spyrit is PyPI-only, stays in optional deps
+
+[tool.pixi.feature.physics.pypi-dependencies]
+zea = ">=0.1.0"
 
 [tool.pixi.feature.physics-gpu.dependencies]
 astra-toolbox = ">=2.2.0,!=2.3.0"
