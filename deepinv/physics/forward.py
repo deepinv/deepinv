@@ -1220,12 +1220,14 @@ class DecomposablePhysics(LinearPhysics):
         :return: (:class:`torch.Tensor`) estimated signal tensor
 
         """
-        # The 1 / gamma * z term vanishes when z is None or zero, and is
-        # therefore skipped.  LinearPhysics.prox_l2 accepts the same inputs and
-        # normalises them with torch.full_like, but that approach cannot be used
-        # here: subclasses such as BlurFFT use rfft, so gamma is a half-spectrum
-        # of width W//2+1 while a materialised z has full width W, and the
-        # product fails to broadcast before the addition is reached.
+        # The 1 / gamma * z term is omitted when z is a zero scalar, where it
+        # contributes nothing, and when z is None, which means "no z" as it
+        # does in LinearPhysics.prox_l2.  That method accepts the same inputs
+        # and normalises them with torch.full_like, but materialising z is not
+        # an option here: subclasses such as BlurFFT use rfft, so gamma is a
+        # half-spectrum of width W//2+1 while a materialised z has full width
+        # W, and the product fails to broadcast before the addition is
+        # reached.
         if z is None or (isinstance(z, (int, float)) and z == 0):
             b = self.A_adjoint(y)
         else:
