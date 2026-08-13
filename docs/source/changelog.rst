@@ -17,7 +17,7 @@ New Features
 - Add support for :func:`Liu-Jia padding <deepinv.physics.functional.liu_jia_pad>` (:gh:`934` by `Jérémy Scanvic`_)
 - Add support for TV-L1 priors :class:`deepinv.optim.TVL1Prior` (:gh:`1236` by `Sarra Amiri`_)
 - Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
-- Add :class:`deepinv.models.WienerDeconvolution` and Wiener filtering through ``BlurFFT.A_dagger(wiener=True)`` (:gh:`1315` by `Ashish Verma`_)
+- Add :class:`deepinv.models.WienerDeconvolution` for closed-form Wiener deconvolution (:gh:`1315` by `Ashish Verma`_)
 
 Changed
 ^^^^^^^

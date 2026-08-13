@@ -59,14 +59,14 @@ As with the standard least-squares solution, if the forward operator has a close
 Wiener Deconvolution
 ^^^^^^^^^^^^^^^^^^^^
 
-When the forward operator is a circular convolution, :class:`deepinv.physics.BlurFFT` is diagonalised by the Fourier transform, and the damped least-squares problem above has the classical Wiener filter as its closed-form solution:
+When the forward operator :math:`A` is a circular convolution, :class:`deepinv.physics.BlurFFT` is diagonalized by the Fourier transform, so the damped least-squares problem above has a closed-form solution. Letting the damping vary with frequency gives the Wiener filter:
 
 .. math::
 
     \hat{X}(f) = \frac{H^*(f)}{\lvert H(f) \rvert^2 + \lambda(f)} \, Y(f)
 
-where :math:`H` is the transfer function of the blur, and :math:`\lambda` plays the role of a noise-to-signal power ratio :math:`S_n(f)/S_x(f)`: small where the signal dominates, large where the measurement is mostly noise.
-Because the regularization is applied in the Fourier domain, :math:`\lambda` may vary with frequency, which the constant :math:`\ell_2` damping above cannot express.
+where :math:`\hat{X}` and :math:`Y` are the Fourier transforms of the reconstruction and the measurement, :math:`H` is the transfer function of the blur, and :math:`\lambda` acts as a noise-to-signal power ratio :math:`S_n(f)/S_x(f)`. The ratio is small where the signal dominates and large where the measurement is mostly noise.
+The regularization acts in the Fourier domain, so :math:`\lambda` can take a different value at each frequency, which the constant :math:`\ell_2` damping above cannot express.
 
 This is available as a :class:`deepinv.models.Reconstructor`:
 
@@ -74,10 +74,6 @@ This is available as a :class:`deepinv.models.Reconstructor`:
     >>> y = physics(x)
     >>> model = dinv.models.WienerDeconvolution(lambda_reg=0.01, prior="laplacian")
     >>> x_hat = model(y, physics)
-
-or directly on the physics operator, in the same way as filtered back-projection in tomography:
-
-    >>> x_hat = physics.A_dagger(y, wiener=True, lambda_reg=0.01)
 
 The ``prior`` argument controls how :math:`\lambda` depends on frequency. With ``"flat"`` (or ``None``) it is constant, which recovers the damped least-squares solution above. With ``"laplacian"`` it is weighted by the power spectrum of a Laplacian filter, penalizing high frequencies more strongly. Passing a tensor for ``lambda_reg`` instead supplies the noise-to-signal ratio at every frequency directly.
 See :class:`deepinv.models.WienerDeconvolution` for details.
