@@ -1987,10 +1987,10 @@ def test_wiener_deconvolution(device):
     impulse = torch.zeros(1, 1, 3, 3, device=device)
     impulse[0, 0, 1, 1] = 1.0
 
-    # A 3x3 box filter has exact spectral nulls exactly when a grid dimension is
-    # a multiple of 3.  The pseudo-inverse-limit section below requires an
-    # operator without them, so neither dimension here is; the clamp section
-    # requires one with them and builds its own.
+    # A 3x3 box filter has spectral nulls exactly when a grid dimension is a
+    # multiple of 3.  16 and 10 avoid that, because the pseudo-inverse-limit
+    # section below needs an operator with no nulls.  The clamp section needs
+    # the opposite and builds its own 12x9 operator.
     blur_h, blur_w = 16, 10
     blur = dinv.physics.BlurFFT(img_size=(1, blur_h, blur_w), filter=box, device=device)
     # Denoising expressed as a deconvolution: a unit-impulse filter gives A = I
@@ -2004,9 +2004,9 @@ def test_wiener_deconvolution(device):
     # --- Shape and device are preserved across priors, batches and channels ---
     # The Laplacian gamma is (1, 1, H, W // 2 + 1) and broadcasts against a mask
     # of (1, C, H, W // 2 + 1, 2), so a broadcast error would surface in the batch
-    # and channel dimensions.  The Laplacian kernel is allocated on
-    # physics.mask.device and a tensor lambda_reg may start anywhere, so the
-    # device fixture exercises both allocation paths.
+    # and channel dimensions.  The Laplacian kernel takes its device from
+    # physics.mask, while a tensor lambda_reg carries whichever device the
+    # caller built it on, so the device fixture exercises both paths.
     batch, channels = 4, 3
     physics_3ch = dinv.physics.BlurFFT(
         img_size=(channels, blur_h, blur_w), filter=box, device=device
@@ -2030,8 +2030,9 @@ def test_wiener_deconvolution(device):
     # --- Zero entries in a tensor lambda_reg are clamped, not divided by zero ---
     # The clamp changes the result only where a zero NSR coincides with a spectral
     # null of the operator: without it gamma is infinite, so prox_l2's 1 / gamma
-    # term vanishes and the scaling reduces to |H(f)|^2.  Hence the grid sized to
-    # give the box filter exact nulls, unlike the one used elsewhere here.
+    # term vanishes and the scaling reduces to |H(f)|^2.  This section therefore
+    # builds a 12x9 operator, whose dimensions are multiples of 3 and so produce
+    # nulls, rather than reusing the 16x10 operator above.
     null_h, null_w = 12, 9
     physics_null = dinv.physics.BlurFFT(
         img_size=(1, null_h, null_w), filter=box, device=device
@@ -2053,8 +2054,8 @@ def test_wiener_deconvolution(device):
     # --- A frequency-dependent NSR attenuates high frequencies more than low ---
     # This is the Wiener smoothing behaviour requested in issue #897 ("Wiener
     # filtering from pre-computed PSDs"), which Denoising physics cannot express.
-    # A low NSR marks a frequency where the measurement is reliable, a high one
-    # a frequency dominated by noise.
+    # A low NSR marks a frequency where the measurement is reliable; a high NSR
+    # marks a frequency dominated by noise.
     nsr = torch.full((1, 1, dn_h, dn_w // 2 + 1), 0.01, device=device)
     nsr[..., dn_w // 4 :] = 100.0
     model = dinv.models.WienerDeconvolution(lambda_reg=nsr)
@@ -2073,14 +2074,14 @@ def test_wiener_deconvolution(device):
 
     # --- prior applies to a scalar or 0-dim lambda_reg, and is ignored above rank 0 ---
     # The rank test is on dimension, not type: a 0-dim tensor holds a single
-    # value, so it must behave exactly like the float, prior included.  A tensor
-    # of rank >= 1 is the frequency-dependent NSR and supplies lambda(f) itself,
-    # leaving prior nothing to set.
+    # value, so it must behave exactly like the equivalent float, including how
+    # prior is applied.  A tensor of rank >= 1 is the frequency-dependent NSR
+    # and supplies lambda(f) itself, leaving prior nothing to set.
     x = torch.randn(1, 1, blur_h, blur_w, device=device)
     y = blur.A(x)
     lambda_tensor = torch.ones(1, 1, blur_h, blur_w // 2 + 1, device=device) / 3.0
     for prior in [None, "laplacian"]:
-        # Rank 0: identical to the float of the same value, prior included.
+        # Rank 0: same result as the equivalent float.
         with torch.no_grad():
             x_float = dinv.models.WienerDeconvolution(lambda_reg=0.5, prior=prior)(
                 y, blur
