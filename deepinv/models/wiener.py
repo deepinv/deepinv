@@ -387,15 +387,19 @@ class WienerDeconvolution(Reconstructor):
             )
 
         # --- lambda_reg = 0 means no regularisation: the pseudo-inverse ---
-        # A per-frequency lambda_reg is never treated as "no regularisation",
-        # even when all of its entries are zero.  A zero entry is meaningful on
-        # its own, marking a frequency with no noise, and is handled per-entry
-        # by the clamp in _lambda_to_gamma.  bool() is needed because
-        # torch.tensor(0.0) == 0 evaluates to a tensor.
+        # Only a scalar lambda_reg can mean this.  A tensor of rank >= 1 is a
+        # per-frequency NSR, where a zero entry means "no noise at this
+        # frequency" and is handled entry by entry by the clamp in
+        # _lambda_to_gamma.  The two are not interchangeable: at a spectral
+        # null the clamp caps gamma at 1e9, leaving prox_l2 to divide by
+        # |H(f)|^2 + 1e-9, rather than dropping the component as A_dagger does.
         lambda_reg: float | Tensor = self.lambda_reg
-        per_frequency = isinstance(lambda_reg, Tensor) and lambda_reg.dim() > 0
-        if not per_frequency and bool(lambda_reg == 0):
-            return physics.A_dagger(y)
+        if not isinstance(lambda_reg, Tensor) or lambda_reg.dim() == 0:
+            # Scalar: a float, or a 0-dim tensor holding a single value.
+            # float() is safe on both, and would raise on a rank >= 1 tensor,
+            # which the enclosing test has already excluded.
+            if float(lambda_reg) == 0.0:
+                return physics.A_dagger(y)
 
         # --- Convert lambda_reg (regularisation weight) into the gamma
         #     expected by prox_l2 ---
