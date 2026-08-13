@@ -23,8 +23,8 @@ where the measurement is mostly noise.
 The regularization acts in the Fourier domain, so :math:`\lambda` can take a
 different value at each frequency. This example compares the three ways of
 specifying :math:`\lambda` in :class:`deepinv.models.WienerDeconvolution`: a
-constant, a Laplacian prior, and a per-frequency ratio computed from the power
-spectra of the signal and the noise. It closes with the special case of
+constant, a Laplacian prior, and a ratio computed from the power spectra of the
+signal and the noise. It closes with the special case of
 denoising, where :math:`A` is the identity and a constant :math:`\lambda` can
 only rescale the image.
 """
@@ -152,13 +152,15 @@ print(f"Best constant lambda: {best_lambda:g} ({max(psnr_flat):.2f} dB)")
 #
 # .. math::
 #
-#     \lambda(f) = \lambda \left( \lvert H_L(f) \rvert^2 + \epsilon \right)
+#     \lambda(f) = \lambda \left( \lvert H_L(f) \rvert^2 + \varepsilon \right)
 #
 # where :math:`H_L` is the transfer function of a discrete Laplacian filter.
-# The constant :math:`\epsilon` is added because :math:`\lvert H_L(f) \rvert^2`
-# vanishes at zero frequency. By Parseval's theorem the penalty is then
-# :math:`\lambda ( \lVert L x \rVert^2 + \epsilon \lVert x \rVert^2 ) / 2`, which
-# penalizes high frequencies more strongly than low ones. This is the default.
+# The constant :math:`\varepsilon` is added because
+# :math:`\lvert H_L(f) \rvert^2` vanishes at zero frequency. By Parseval's
+# theorem the penalty is then
+# :math:`\lambda ( \lVert L x \rVert^2 + \varepsilon \lVert x \rVert^2 ) / 2`,
+# which penalizes high frequencies more strongly than low ones. This is the
+# default.
 
 # Reconstruct with the Laplacian prior at the best constant lambda
 model = dinv.models.WienerDeconvolution(lambda_reg=best_lambda, prior="laplacian")
@@ -181,8 +183,8 @@ dinv.utils.plot(
 )
 
 # %%
-# A per-frequency noise-to-signal ratio
-# -------------------------------------
+# A ratio computed from the power spectra
+# ---------------------------------------
 # A tensor passed as ``lambda_reg`` specifies :math:`\lambda(f)` directly, allowing
 # an arbitrary dependence on frequency that neither a constant nor the Laplacian
 # prior can represent. Setting the tensor to the ratio of the noise and signal
