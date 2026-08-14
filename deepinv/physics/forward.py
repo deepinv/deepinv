@@ -723,17 +723,17 @@ class LinearPhysics(Physics):
         )
 
         if u is not None:
-            u_in = randn_like(u)
-        else:
-            if img_size is None:
-                if self.img_size is not None:
-                    img_size = self.img_size
-                else:
-                    raise ValueError(
-                        "Either img_size or u must be provided for the adjointness test."
-                    )
-            # note: this does not support tensor lists
-            u_in = torch.randn((num_samples,) + img_size, device=device)
+            img_size = u.shape[1:]
+        elif img_size is None:
+            if self.img_size is not None:
+                img_size = self.img_size
+            else:
+                raise ValueError(
+                    "Either img_size or u must be provided for the adjointness test."
+                )
+
+        # note: this does not support tensor lists
+        u_in = torch.randn((num_samples,) + img_size, device=device)
 
         Au = self.A(u_in, **kwargs)
 

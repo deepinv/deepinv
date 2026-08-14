@@ -741,6 +741,26 @@ def test_operators_adjointness(name, device, rng):
     assert error2 < 1e-3
 
 
+@pytest.mark.parametrize("num_samples", [1, 3])
+@pytest.mark.parametrize("name", ["deblur_valid", "pansharpen_valid"])
+def test_adjointness_test(name, num_samples, device, rng):
+    # test that the adjointness test works for multiple samples
+    physics, imsize, _, dtype = find_operator(name, device)
+
+    x = torch.randn((1,) + imsize, device=device, dtype=dtype, generator=rng)
+
+    # test with x input
+    assert physics.adjointness_test(x, num_samples=num_samples, device=device) < 1e-3
+
+    # test with img_size input
+    assert (
+        physics.adjointness_test(
+            img_size=imsize, num_samples=num_samples, device=device
+        )
+        < 1e-3
+    )
+
+
 LIST_DOWN_OP = [
     "down_resolution_circular",
     "down_resolution_reflect",
