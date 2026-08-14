@@ -62,6 +62,18 @@ class TensorList:
         """
         return TensorList([xi.abs() for xi in self.x])
 
+    def clamp(self, min=None, max=None):
+        r"""
+        Returns a TensorList with each tensor clamped between ``min`` and ``max``.
+        """
+        return TensorList([xi.clamp(min=min, max=max) for xi in self.x])
+
+    def clip(self, min=None, max=None):
+        r"""
+        Alias for :meth:`clamp`.
+        """
+        return self.clamp(min=min, max=max)
+
     def max(self):
         r"""
         Returns a TensorList with the maximum value of each tensor.
@@ -189,7 +201,7 @@ class TensorList:
     def __sub__(self, other):
         r"""
 
-        Substract two TensorLists. The sizes of the tensor lists must match.
+        Subtract two TensorLists. The sizes of the tensor lists must match.
 
         """
         if not isinstance(other, list) and not isinstance(other, TensorList):

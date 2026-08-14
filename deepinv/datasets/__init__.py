@@ -21,3 +21,5 @@ from .utils import download_archive
 from .satellite import NBUDataset
 from .base import ImageDataset, check_dataset, TensorDataset, ImageFolder
 from .skmtea import SKMTEASliceDataset
+from .brainweb_pet import BrainWebPET
+from .brainweb_mri import BrainWebMRI

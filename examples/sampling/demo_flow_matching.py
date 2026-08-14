@@ -54,7 +54,7 @@ from deepinv.models import MMSE
 # %% Define the closed-form MMSE denoiser
 # -----------------------------
 #
-# We start by working with the closed-form MMSE denoser.  It is calculated by computing the distance between the input image and all the points of the dataset.
+# We start by working with the closed-form MMSE denoiser.  It is calculated by computing the distance between the input image and all the points of the dataset.
 # This can be quite long to compute for large images and large datasets.  In this toy example, we use the validation set of MNIST.
 # When using this closed-form MMSE denoiser, the sampling is guaranteed to output an image of the dataset.
 

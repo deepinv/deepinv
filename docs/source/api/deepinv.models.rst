@@ -30,6 +30,7 @@ Classical Denoisers
    deepinv.models.BilateralFilter
    deepinv.models.MedianFilter
    deepinv.models.TVDenoiser
+   deepinv.models.TVL1Denoiser
    deepinv.models.TGVDenoiser
    deepinv.models.WaveletDenoiser
    deepinv.models.WaveletDictDenoiser
