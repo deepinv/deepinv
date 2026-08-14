@@ -120,32 +120,43 @@ provides a container for storing the output of the solver.
 Posterior sampling
 ~~~~~~~~~~~~~~~~~~
 
-In the case of posterior sampling, we need simply to replace the (unconditional) score function :math:`\nabla \log p_t(x_t)`
-by the conditional score function :math:`\nabla \log p_t(x_t|y)`. The conditional score can be decomposed using the Bayes' rule:
+In the case of posterior sampling, we replace the unconditional score function :math:`\nabla \log p_t(x_t)`
+by the conditional score function :math:`\nabla \log p_t(x_t|y)`. For simplicity, we use the Variance-Exploding
+parametrization :math:`s(t)=1`, so that :math:`x_t=x_0+\sigma_t\omega`. Bayes' rule gives
 
 .. math::
-    \nabla_{x_t} \log p_t(x_t | y) &= \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t \left(y \vert x_t \right) \\
-                            &= \nabla_{x_t} \log p_t(x_t) + \frac{1}{s_t} \nabla_{\hat x_t} \log \hat p_t \left(y \vert \hat x_{t} = \frac{x_t}{s(t)} = x_0 + \sigma(t) \omega \right).
+    \nabla_{x_t} \log p_t(x_t | y)
+    = \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t \left(y \vert x_t \right).
 
-where :math:`\hat p_t` stands for the distribution of the unscaled data :math:`x_t / s(t)`.
 The first term is the unconditional score function and can be approximated by using a denoiser as explained previously.
-The second term is the conditional score function, which is untractable:
+The second term is the likelihood score, which is generally intractable:
 
 .. math::
 
-  \hat p_t(y | \hat x_t) = \int p(y|x_0) p(x_0 | \hat x_t = x_0 + \sigma(t) \omega) dx_0 .
+  p_t(y | x_t) = \int p(y|x_0) p(x_0 | x_t) dx_0 .
 
-This likelihood term :math:`\log \hat p_t`, that we call noisy data-fidelity term, can be approximated in different ways.
+This likelihood term :math:`\log p_t(y|x_t)`, which we call the noisy data-fidelity term, can be approximated in different ways.
 We implement the following noisy data-fidelity terms, which inherit from the :class:`deepinv.sampling.NoisyDataFidelity` base class.
+See :ref:`sphx_glr_auto_examples_sampling_demo_noisy_data_fidelity.py` for a side-by-side explanation and implementation example.
 
 .. list-table:: Noisy data-fidelity terms
    :header-rows: 1
 
    * - **Class**
-     - :math:`\nabla_{\hat x_t} \log \hat p_t(y| \hat x_t = x + \sigma_t \omega)`
+     - :math:`-\nabla_{x_t} \log p_t(y|x_t)`
+     - **Requirements and implementation**
 
    * - :class:`deepinv.sampling.DPSDataFidelity`
-     - :math:`\nabla_{\hat x_t} \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{\hat x_t}{\sigma_t}} - y \|`
+     - :math:`\lambda\nabla_{x_t} \| \forw{\denoiser{x_t}{\sigma_t}} - y \|`
+     - Differentiable physics; backpropagates through the denoiser and forward operator.
+
+   * - :class:`deepinv.sampling.PiGDMDataFidelity`
+     - :math:`\lambda J_D^\top A^\top (r_t^2 A A^\top + \mathrm{Id})^{-1} (A\denoiser{x_t}{\sigma_t} - y)`, with :math:`r_t^2=\sigma_t^2/(1+\sigma_t^2)`
+     - Linear physics; uses an exact spectral inverse for decomposable operators and conjugate gradient otherwise.
+
+   * - :class:`deepinv.sampling.MomentMatchingDataFidelity`
+     - :math:`\lambda J_D^\top A^\top (A J_D^\top A^\top + \mathrm{Id})^{-1} (A\denoiser{x_t}{\sigma_t} - y)`
+     - Linear physics; uses denoiser vector-Jacobian products within a conjugate-gradient solve.
 
 
 .. _diffusion_custom:
