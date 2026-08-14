@@ -9,9 +9,13 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: "PR number to test"
+        description: "PR number"
         required: true
-        type: number
+        type: string
+      pr_sha:
+        description: "Exact PR commit to test"
+        required: true
+        type: string
 
 jobs:
   test:
@@ -28,11 +32,10 @@ jobs:
       TORCH_HOME: "/local/jtachell/.cache/torch"
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Check out exact PR commit
+        uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.sha
-                  || (inputs.pr_number && format('refs/pull/{0}/head', inputs.pr_number))
-                  || github.sha }}
+            ref: ${{ inputs.pr_sha }}
 
       # When testing a PR, restore the pixi.lock + .testmondata + .coverage triple solved on
       # main as a SINGLE cache entry (atomic, no lock/testmondata mismatch) so

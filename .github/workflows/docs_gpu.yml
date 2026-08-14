@@ -11,7 +11,11 @@ on:
       pr_number:
         description: "PR number to test"
         required: true
-        type: number
+        type: string
+      pr_sha:
+        description: "Exact PR commit to test"
+        required: true
+        type: string
 
 jobs:
   gpu-docs:
@@ -29,11 +33,10 @@ jobs:
       HOME: "/local/jtachell"
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Check out exact PR commit
+        uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.sha
-                  || (inputs.pr_number && format('refs/pull/{0}/head', inputs.pr_number))
-                  || github.sha }}
+            ref: ${{ inputs.pr_sha }}
 
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
