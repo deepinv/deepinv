@@ -2,20 +2,17 @@ r"""
 Test-time tuning physics parameters with no reference metrics
 ====================================================================================================
 
-Many reconstruction models expose a hyperparameter that has to be matched to the problem at hand:
-a denoiser needs the noise level :math:`\sigma`, a deblurring model needs the blur kernel.
-In a benchmark this parameter is easy to pick,
-because the ground truth :math:`x` is available and we can simply maximize the PSNR. In a real
-deployment the ground truth is precisely what we are trying to recover, so that criterion is not
-available and the parameter is usually left at a hand-tuned default.
+In blind inverse problems, some parameters of the physics are unknown at test time.
+Running non-blind models requires knowing these parameters, which are often hard to estimate.
+For example, a denoiser needs the noise level :math:`\sigma`, a deblurring model needs the blur kernel.
 
-*No-reference* (or blind) image quality metrics offer a way out. They score a single image
-:math:`\hat{x}` without ever seeing a reference, so they can be evaluated at test time on the
+*No-reference* (or blind) image quality metrics offer an approach for tuning these parameters without ground truth.
+They score a single image :math:`\hat{x}` without ever seeing a reference, so they can be evaluated at test time on the
 reconstruction itself. If such a metric is a good proxy for reconstruction quality, we can sweep
 the unknown parameter, score each candidate reconstruction, and keep the best one, entirely
 without ground truth.
 
-We take two problems where we *do* know the right answer,
+We take two problems where we *do* know the right physics parameter,
 hide it from the model, and check whether each no-reference metric recovers it:
 
 1. **Denoising.** We corrupt an image with Gaussian noise of :math:`\sigma = 0.1` and reconstruct
@@ -29,20 +26,19 @@ hide it from the model, and check whether each no-reference metric recovers it:
 We score every reconstruction with the five no-reference metrics of the library:
 
 - :class:`deepinv.loss.metric.BRISQUE` :footcite:p:`mittal2012no`, which scores how far the image
-  departs from the natural scene statistics of pristine photographs, using a regressor trained on
+  departs from the natural scene statistics of high quality photographs, using a regressor trained on
   human quality ratings. Lower is better.
 - :class:`deepinv.loss.metric.NIMA` :footcite:p:`talebi2018nima`, which predicts the distribution
   of human opinion scores with a convolutional network. Higher is better. We use the ``technical``
   head, which is trained to rate distortion rather than aesthetic appeal.
 - :class:`deepinv.loss.metric.NIQE` :footcite:p:`mittal2012making`, which measures the distance
-  between the local statistics of the image and a model fitted on pristine images. Lower is better.
+  between the local statistics of the image and a model fitted on high quality images. Lower is better.
 - :class:`deepinv.loss.metric.SharpnessIndex` :footcite:p:`blanchet2012sharpness,leclaire2015sharpness`,
   which measures sharpness through the global phase coherence of the image. Higher is better.
 - :class:`deepinv.loss.metric.BlurStrength` :footcite:p:`crete2007blur`, which estimates blur from
   how much the image changes when it is deliberately blurred further. Lower is better.
 
-PSNR against the ground truth is also reported, but only as an oracle: it is the answer the
-no-reference metrics are trying to reproduce without looking at :math:`x`.
+We also report the oracle PSNR against the ground truth for reference.
 """
 
 # %%
@@ -51,14 +47,15 @@ no-reference metrics are trying to reproduce without looking at :math:`x`.
 # We use a single high-resolution natural image. All five no-reference metrics were designed for
 # natural photographs, so this is the regime where they are best behaved.
 #
-# Note the ``denominator=1/255`` passed to :class:`deepinv.loss.metric.NIQE`: the published NIQE
-# weights were fitted on images in the :math:`[0, 255]` range, and this rescales our :math:`[0, 1]`
-# images accordingly. BRISQUE and NIMA handle this internally through their ``max_pixel`` argument.
-#
 # Every metric is also constructed with ``center_crop=-16``, which discards a 16 pixel band around
 # the image before scoring it. Reconstructions are systematically worse near the borders, where the
-# model has no neighbouring pixels to rely on. We apply the same crop to the oracle PSNR so
-# that every metric, blind or not, is scored on the same region.
+# model has no neighbouring pixels to rely on.
+#
+# .. note::
+#      ``denominator=1/255`` passed to :class:`deepinv.loss.metric.NIQE`: the published NIQE
+#      weights were fitted on images in the :math:`[0, 255]` range, and this rescales our :math:`[0, 1]`
+#      images accordingly. BRISQUE and NIMA handle this internally through their ``max_pixel`` argument.
+#
 
 import torch
 import matplotlib.pyplot as plt
@@ -185,31 +182,32 @@ plot_sweep(
 # Experiment 2: deblurring with an unknown kernel width
 # -----------------------------------------------------
 # We blur the image with a Gaussian kernel of width :math:`\sigma = 2` (plus a little noise) and
-# reconstruct with RAM, telling it four different candidate kernel widths. Assuming too small a
+# reconstruct with RAM with the 4 candidate kernels. Assuming too small a
 # kernel leaves the image blurry, assuming too large a kernel makes the model over-sharpen and
 # introduces ringing and other artifacts.
 
 blur_true = 2.0
-noise_model = dinv.physics.GaussianNoise(sigma=0.01)
 
+blur_physics = dinv.physics.BlurFFT(
+    img_size=x.shape[1:],
+    filter=dinv.physics.functional.gaussian_blur(sigma=(blur_true, blur_true)),
+    device=device,
+    noise_model=dinv.physics.GaussianNoise(sigma=0.01),
+)
 
-def blur_physics(blur_sigma: float) -> dinv.physics.BlurFFT:
-    return dinv.physics.BlurFFT(
-        img_size=x.shape[1:],
-        filter=dinv.physics.functional.gaussian_blur(sigma=(blur_sigma, blur_sigma)),
-        device=device,
-        noise_model=noise_model,
-    )
-
-
-torch.manual_seed(0)  # fix the noise realization so the sweep is reproducible
-y = blur_physics(blur_true)(x)
+# fix the noise realization so the sweep is reproducible
+torch.manual_seed(0)
+y = blur_physics(x)
 
 model = dinv.models.RAM(device=device)
 blur_sigmas = [1.0, 2.0, 3.0, 4.0]
 
 with torch.no_grad():
-    deblurred = {s: model(y, blur_physics(s)) for s in blur_sigmas}
+    deblurred = {}
+    for s in blur_sigmas:
+        # update physics to use the candidate kernel width, and run RAM
+        blur_physics.update(filter=dinv.physics.functional.gaussian_blur(sigma=(s, s)))
+        deblurred[s] = model(y, blur_physics)
 
 plot(
     [x, y] + list(deblurred.values()),
@@ -221,7 +219,7 @@ plot(
 # %%
 # Sweeping the kernel width
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
-# This problem separates the metrics much more clearly, and it is much harder. The oracle PSNR
+# This problem is much harder. The oracle PSNR
 # peaks sharply at the true :math:`\sigma = 2` and collapses on either side, losing close to 20 dB
 # by :math:`\sigma = 4`. NIMA is the only metric that recovers it.
 #
