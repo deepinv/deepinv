@@ -19,6 +19,7 @@ from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 import inspect
+import time
 
 
 @dataclass
@@ -657,8 +658,9 @@ class Trainer:
         Get the samples for the online measurements.
 
         In this setting, a new sample is generated at each iteration by calling the physics operator.
-        This function returns a dictionary containing necessary data for the model inference. It needs to contain
-        the measurement, the ground truth, and the current physics operator, but can also contain additional data.
+        This function returns a tuple `(x, y, physics)` for the model inference.
+
+        Assumes the dataloader returns ground truth `x`, or tuples of (`x`, `params`). Note that `params` are ignored if a physics generator is provided.
 
         :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
@@ -674,7 +676,7 @@ class Trainer:
                 params = data[1]
             else:
                 warnings.warn(
-                    "Generating online measurements from data x but dataloader returns tuples (x, ...). Discarding all data after x."
+                    f"Generating online measurements requires dataloader to return tensor `x` or (tensor `x`, dict `params`) but got ({type(x)}, {type(data[1])}, ...). Discarding all data after `x`."
                 )
         else:
             x = data
@@ -703,9 +705,7 @@ class Trainer:
         Get the samples for the offline measurements.
 
         In this setting, samples have been generated offline and are loaded from the dataloader.
-        This function returns a tuple containing necessary data for the model inference. It needs to contain
-        the measurement, the ground truth, and the current physics operator, but can also contain additional data
-        (you can override this function to add custom data).
+        This function returns a tuple `(x, y, physics)` for the model inference. You can override this function to add custom data.
 
         If the dataloader returns 3-tuples, this is assumed to be ``(x, y, params)`` where
         ``params`` is a dict of physics generator params. These params are then used to update
@@ -1168,10 +1168,10 @@ class Trainer:
         r"""
         Save the model.
 
-        It saves the model every ``ckp_interval`` epochs.
+        It saves the model every ``ckp_interval`` epochs in ``save_path/filename``.
 
+        :param str filename: checkpoint filename.
         :param int epoch: Current epoch.
-        :param None, float eval_metrics: Evaluation metrics across epochs.
         :param dict state: custom objects to save with model
         """
         if state is None:
@@ -1507,7 +1507,12 @@ class Trainer:
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
         :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If
             ``None``, uses the metrics provided during Trainer initialization.
-        :returns: dict of metrics results with means and stds.
+        :returns: dict of metrics, timings (in sec) and peak GPU memory usage (in GB) results with means and stds.
+
+        .. note::
+
+                Timings correspond to total time for `test` to run, which also includes time to load data and compute metrics.
+                Therefore, the reported runtime will be greater than just model inference timings.
         """
         if metrics is not None:
             self.metrics = metrics
@@ -1527,7 +1532,6 @@ class Trainer:
         self.mlflow_setup = {}
         self.log_train_batch = False
         self.setup_train(train=False)
-
         self.save_folder_im = save_path
 
         self.reset_metrics()
@@ -1543,6 +1547,12 @@ class Trainer:
 
         batches = min([len(loader) - loader.drop_last for loader in test_dataloader])
 
+        # reset peak GPU memory usage counter
+        if torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats()
+            torch.cuda.synchronize()
+
+        perf_counter_start = time.perf_counter()
         for i in (
             progress_bar := tqdm(
                 range(batches),
@@ -1590,5 +1600,21 @@ class Trainer:
                 out[name + "_vals"] = l.vals
             if self.verbose:
                 print(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
+
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+
+        perf_counter_end = time.perf_counter()
+        elapsed_time = perf_counter_end - perf_counter_start
+
+        # add runtime info
+        out["runtime"] = elapsed_time
+        if torch.cuda.is_available():
+            # report in GB
+            out["peak_gpu_memory_usage"] = (
+                torch.cuda.max_memory_allocated() / (1024**3)
+                if torch.cuda.is_available()
+                else None
+            )
 
         return out

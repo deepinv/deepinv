@@ -1,5 +1,6 @@
 import pytest
 import torch
+import warnings
 from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.optim import DataFidelity, PDCP
@@ -273,6 +274,32 @@ def test_zero_prior():
         x = torch.randn((3,), dtype=torch.float64)
         xhat = optimalgo(x, physics)
         assert torch.allclose(xhat, x)
+
+
+def test_tvprior_gradient(device):
+    """Test the TVPrior gradient against autodiff away from constant regions."""
+    prior = dinv.optim.TVPrior()
+    x = torch.tensor(
+        [[[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]]],
+        dtype=torch.float64,
+        device=device,
+    )
+    # The image is zero except for the center pixel, so that we have both
+    # zero finite difference everywhere except for the center pixel
+    x.requires_grad_()
+
+    grad_value = prior.grad(x)
+    grad_autodiff = torch.func.grad(lambda z: prior.fn(z)[0])(x)
+
+    nonzero_diff = torch.zeros_like(x, dtype=torch.bool)
+    nonzero_diff[..., 1, 1] = True
+    zero_diff = ~nonzero_diff
+
+    assert (~zero_diff[nonzero_diff]).all()
+    assert torch.allclose(grad_value[nonzero_diff], grad_autodiff[nonzero_diff])
+    assert torch.isnan(grad_autodiff[zero_diff]).all()
+    assert torch.isfinite(grad_value[zero_diff]).all()
+    assert torch.isfinite(grad_value).all()
 
 
 def test_data_fidelity_amplitude_loss(device):
@@ -560,6 +587,8 @@ def get_prior(prior_name, device="cpu"):
         prior = dinv.optim.prior.TVPrior()
     elif prior_name == "SmoothedTVPrior":
         prior = dinv.optim.prior.SmoothedTVPrior()
+    elif prior_name == "TVL1Prior":
+        prior = dinv.optim.prior.TVL1Prior()
     elif "wavelet" in prior_name.lower():
         pytest.importorskip(
             "ptwt",
@@ -590,6 +619,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "Tikhonov",
         "TVPrior",
         "SmoothedTVPrior",
+        "TVL1Prior",
         "WaveletPrior",
         "WaveletDictPrior",
         "ZeroPrior",
@@ -907,36 +937,133 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     )  # Optimality condition
 
 
-# Specific test for MLEM because the data-fidelity can only be the Poisson likelihood,
-# contrary to e.g mirror descent which can be tested on L2
-def test_MLEM(imsize, dummy_dataset, device):
-    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
-    test_sample = next(iter(dataloader)).to(device)
-
-    physics = dinv.physics.Blur(
-        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
-        device=device,
-        noise_model=dinv.physics.PoissonNoise(gain=1 / 60),
-        padding="circular",
+# Specific test for MLEM / OSEM because the data-fidelity can only be the Poisson
+# likelihood, contrary to e.g. mirror descent which can be tested on L2.
+@pytest.mark.parametrize(
+    "algorithm, pre_split, num_subsets, normalize",
+    [
+        (dinv.optim.MLEM, False, None, False),
+        (dinv.optim.OSEM, False, 2, False),
+        (dinv.optim.OSEM, True, 2, False),
+        (dinv.optim.OSEM, False, 1, False),
+        (dinv.optim.OSEM, False, 2, True),
+        (dinv.optim.OSEM, True, 2, True),
+    ],
+)
+@pytest.mark.parametrize(
+    "physics_class",
+    [
+        dinv.physics.Tomography,
+        dinv.physics.TomographyWithAstra,
+        dinv.physics.PET,
+    ],
+)
+def test_MLEM_OSEM(
+    algorithm,
+    pre_split,
+    num_subsets,
+    normalize,
+    physics_class,
+    device,
+):
+    imsize = (1, 16, 16)
+    if physics_class is dinv.physics.PET:
+        pytest.importorskip("parallelproj")
+        imsize = (1, 8, 8)
+        physics = physics_class(img_size=imsize[-2:], normalize=False, device=device)
+        physics.background.fill_(0.4)
+        if normalize:
+            physics.normalize = True
+            physics.operator_norm.fill_(2.0)
+    elif physics_class is dinv.physics.TomographyWithAstra:
+        pytest.importorskip("astra")
+        if device.type != "cuda":
+            pytest.skip("TomographyWithAstra requires CUDA")
+        physics = physics_class(
+            img_size=imsize[-2:],
+            angles=8,
+            n_detector_pixels=imsize[-1],
+            device=device,
+            normalize=normalize,
+        )
+    else:
+        physics = physics_class(
+            img_width=imsize[-1],
+            angles=8,
+            device=device,
+            circle=True,
+            normalize=normalize,
+            parallel_computation=False,
+        )
+    x_true = torch.ones((1, *imsize), device=device)
+    y = physics.A(x_true, add_background=physics_class is dinv.physics.PET).clamp(
+        min=1e-6
     )
-    y = physics(test_sample)
+    x_init = (
+        x_true
+        if physics_class is dinv.physics.PET
+        else physics.A_adjoint(y).clamp(min=1e-6)
+    )
+    algorithm_kwargs = {}
+    gain = 0.1 if physics_class is dinv.physics.PET else 1.0
+    bkg = physics.background / gain if physics_class is dinv.physics.PET else 1e-6
+    data_fidelity = dinv.optim.PoissonLikelihood(gain=gain, bkg=bkg)
+    full_y, full_physics = y, physics
 
-    data_fidelity = dinv.optim.PoissonLikelihood()
+    if algorithm is dinv.optim.OSEM:
+        if pre_split:
+            y = dinv.physics.split_measurements(y, physics, num_subsets)
+            physics = dinv.physics.split_physics(physics, num_subsets, device=device)
+            y = list(y)
+        else:
+            algorithm_kwargs["num_subsets"] = num_subsets
 
-    # without prior MLEM does not converge in residual, but it does in cost
-    optimalgo = dinv.optim.MLEM(
+    model = algorithm(
         data_fidelity=data_fidelity,
         prior=dinv.optim.prior.ZeroPrior(),
-        lambda_reg=1.0,
-        max_iter=1000,
+        max_iter=1 if physics_class is dinv.physics.PET else 500,
         crit_conv="cost",
         thres_conv=1e-4,
-        verbose=True,
         early_stop=True,
+        **algorithm_kwargs,
     )
-    x = optimalgo(y, physics)
 
-    assert optimalgo.has_converged
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "error", message="Subsetted physics cannot be normalized.*"
+        )
+        x_hat, metrics = model(y, physics, init=x_init, compute_metrics=True)
+    if physics_class is not dinv.physics.PET:
+        assert model.has_converged
+    if algorithm is dinv.optim.OSEM:
+        if pre_split:
+            with pytest.raises(ValueError, match="must match"):
+                model(y[:-1], physics, init=x_init)
+        else:
+            with pytest.raises(
+                TypeError, match="requires measurements as a torch.Tensor"
+            ):
+                model(
+                    list(dinv.physics.split_measurements(y, physics, num_subsets)),
+                    physics,
+                )
+
+        if physics_class is dinv.physics.PET and normalize:
+            expected_backgrounds = dinv.physics.split_measurements(
+                full_physics.background, full_physics, num_subsets
+            )
+            subset_data_fidelities = model.data_fidelity[0].data_fidelity_list
+            for subset_data_fidelity, expected_background in zip(
+                subset_data_fidelities, expected_backgrounds, strict=True
+            ):
+                assert torch.allclose(
+                    subset_data_fidelity.bkg,
+                    expected_background / subset_data_fidelity.gain,
+                )
+
+    expected_data_fidelity = data_fidelity
+    expected_cost = expected_data_fidelity(x_hat, full_y, full_physics)
+    assert metrics["cost"][0][-1] == pytest.approx(expected_cost.item())
 
 
 def test_patch_prior(imsize, dummy_dataset, device):

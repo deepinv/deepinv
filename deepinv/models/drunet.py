@@ -302,7 +302,7 @@ def sequential(*args):
 # Useful blocks
 # https://github.com/xinntao/BasicSR
 # --------------------------------
-# conv + normaliation + relu (conv)
+# conv + normalization + relu (conv)
 # (PixelUnShuffle)
 # (ConditionalBatchNorm2d)
 # concat (ConcatBlock)
@@ -318,7 +318,7 @@ def sequential(*args):
 
 
 # --------------------------------------------
-# return nn.Sequantial of (Conv + BN + ReLU)
+# return nn.Sequential of (Conv + BN + ReLU)
 # --------------------------------------------
 def conv(
     in_channels=64,
