@@ -109,6 +109,8 @@ physics = [
 
 # optional dependencies for specific datasets
 dataset = [
+    "brainweb==1.7.0",
+    "brainweb-dl>=0.4.6",
     "datasets>=3.5.0",
     "pandas",
     "pydicom",
@@ -172,7 +174,12 @@ scipy = "*"
 nibabel = "*"
 rasterio = "*"
 pydicom = "*"
-# mat73 is PyPI-only, stays in optional deps
+# brainweb, brainweb-dl and mat73 are PyPI-only, stay in optional deps
+
+[tool.pixi.feature.dataset.pypi-dependencies]
+brainweb = "==1.7.0"
+brainweb-dl = ">=0.4.6"
+
 
 [tool.pixi.feature.denoisers.dependencies]
 scipy = "*"

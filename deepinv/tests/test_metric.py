@@ -14,6 +14,7 @@ FULL_REFERENCE_METRICS = [
     "MSE1",
     "MSE2",
     "NMSE",
+    "NRMSE",
     "PSNR",
     "SNR",
     "SSIM",
@@ -51,6 +52,8 @@ def choose_full_reference_metric(metric_name, device, **kwargs) -> metric.Metric
         return dinv.loss.MSE(**kwargs)
     elif metric_name == "NMSE":
         return metric.NMSE(**kwargs)
+    elif metric_name == "NRMSE":
+        return metric.NRMSE(**kwargs)
     elif metric_name == "MAE":
         return metric.MAE(**kwargs)
     elif metric_name == "PSNR":
