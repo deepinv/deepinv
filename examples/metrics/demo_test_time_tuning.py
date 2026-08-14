@@ -38,23 +38,14 @@ We score every reconstruction with the five no-reference metrics of the library:
 - :class:`deepinv.loss.metric.BlurStrength` :footcite:p:`crete2007blur`, which estimates blur from
   how much the image changes when it is deliberately blurred further. Lower is better.
 
-We also report the oracle PSNR against the ground truth for reference.
 """
 
 # %%
 # Setup
 # -----
-# We use a single high-resolution natural image. All five no-reference metrics were designed for
-# natural photographs, so this is the regime where they are best behaved.
+# We use natural images which is what the above no-reference metrics were designed for.
 #
-# Every metric is also constructed with ``center_crop=-16``, which discards a 16 pixel band around
-# the image before scoring it. Reconstructions are systematically worse near the borders, where the
-# model has no neighbouring pixels to rely on.
-#
-# .. note::
-#      ``denominator=1/255`` passed to :class:`deepinv.loss.metric.NIQE`: the published NIQE
-#      weights were fitted on images in the :math:`[0, 255]` range, and this rescales our :math:`[0, 1]`
-#      images accordingly. BRISQUE and NIMA handle this internally through their ``max_pixel`` argument.
+# Every metric is also constructed with ``center_crop=-16`` to disregard edge effects.
 #
 
 import torch
@@ -70,69 +61,15 @@ x = dinv.utils.load_example(
     "div2k_valid_hr_0877.png", img_size=256, resize_mode="crop"
 ).to(device)
 
-# discard a 16 pixel border, so that boundary artifacts do not drive the metrics
 crop = -16
 
-metrics = {
-    "BRISQUE": dinv.loss.metric.BRISQUE(device=device, center_crop=crop),
-    "NIMA": dinv.loss.metric.NIMA(variant="technical", device=device, center_crop=crop),
-    "NIQE": dinv.loss.metric.NIQE(denominator=1 / 255, device=device, center_crop=crop),
-    "SharpnessIndex": dinv.loss.metric.SharpnessIndex(center_crop=crop),
-    "BlurStrength": dinv.loss.metric.BlurStrength(center_crop=crop),
-}
-psnr = dinv.loss.metric.PSNR(center_crop=crop)
-
-# %%
-# A helper to sweep and plot
-# --------------------------
-# ``evaluate`` scores a set of candidate reconstructions with every metric, and ``plot_sweep``
-# draws one panel per metric. In each panel the dashed vertical line marks the true parameter
-# (which the model is not told), and the highlighted point marks the parameter that metric would
-# select. A metric is useful for test-time tuning exactly when the two coincide.
-
-
-def evaluate(reconstructions: dict) -> dict:
-    r"""Score each reconstruction with PSNR and every no-reference metric."""
-    scores = {"PSNR (oracle)": [float(psnr(xh, x)) for xh in reconstructions.values()]}
-    for name, m in metrics.items():
-        scores[name] = [float(m(xh)) for xh in reconstructions.values()]
-    return scores
-
-
-def plot_sweep(params: list, scores: dict, true_param: float, xlabel: str, title: str):
-    r"""Plot each metric against the swept parameter, marking its selected value."""
-    fig, axs = plt.subplots(2, 3, figsize=(13, 7))
-
-    for ax, (name, values) in zip(axs.ravel(), scores.items(), strict=True):
-        # PSNR and NIMA are higher-is-better, the other metrics are lower-is-better
-        lower_better = metrics[name].lower_better if name in metrics else False
-        best = min(
-            range(len(values)), key=lambda i: values[i] if lower_better else -values[i]
-        )
-
-        ax.plot(params, values, "o-", color="tab:blue")
-        ax.axvline(
-            true_param, color="k", linestyle="--", linewidth=1, label="true value"
-        )
-        ax.plot(
-            params[best],
-            values[best],
-            "*",
-            color="tab:red",
-            markersize=18,
-            label="selected",
-        )
-
-        direction = "lower is better" if lower_better else "higher is better"
-        outcome = "matches truth" if params[best] == true_param else "misses truth"
-        ax.set_title(f"{name} ({direction})\n{outcome}", fontsize=10)
-        ax.set_xlabel(xlabel)
-        ax.set_xticks(params)
-        ax.legend(fontsize=8)
-
-    fig.suptitle(title)
-    plt.tight_layout()
-    plt.show()
+metrics = [
+    dinv.loss.metric.BRISQUE(device=device, center_crop=crop),
+    dinv.loss.metric.NIMA(variant="technical", device=device, center_crop=crop),
+    dinv.loss.metric.NIQE(denominator=1 / 255, device=device, center_crop=crop),
+    dinv.loss.metric.SharpnessIndex(center_crop=crop),
+    dinv.loss.metric.BlurStrength(center_crop=crop),
+]
 
 
 # %%
@@ -151,32 +88,42 @@ y = physics(x)
 denoiser = dinv.models.DRUNet(pretrained="download", device=device)
 sigmas = [0.05, 0.1, 0.15, 0.2]
 
-with torch.no_grad():
-    denoised = {s: denoiser(y, s) for s in sigmas}
+denoised = []
+for s in sigmas:
+    with torch.no_grad():
+        denoised.append(denoiser(y, s))
 
 plot(
-    [x, y] + list(denoised.values()),
+    [x, y] + denoised,
     titles=["ground truth", rf"noisy ($\sigma={sigma_true}$)"]
     + [rf"DRUNet $\sigma={s}$" for s in sigmas],
     rescale_mode="clip",
 )
 
 # %%
-# Sweeping the noise level
-# ~~~~~~~~~~~~~~~~~~~~~~~~
-# The oracle PSNR peaks at the true :math:`\sigma = 0.1`, as expected. BRISQUE, NIMA and the
-# sharpness index agree with it. NIQE and BlurStrength instead both prefer :math:`\sigma = 0.05`,
-# the under-smoothed reconstruction.
-#
+# Plot the no-reference metrics as a function of the assumed noise level
 
-scores_denoising = evaluate(denoised)
-plot_sweep(
-    sigmas,
-    scores_denoising,
-    sigma_true,
-    xlabel=r"assumed noise level $\sigma$",
-    title=rf"Denoising: selecting the noise level without ground truth (true $\sigma={sigma_true}$)",
-)
+plt.figure(figsize=(12, 8))
+
+with torch.no_grad():
+    for i, metric in enumerate(metrics):
+        scores = []
+        for x_hat in denoised:
+            scores.append(metric(x_hat).item())
+
+        name = metric.__class__.__name__
+        plt.subplot(2, 3, i + 1)
+        plt.plot(sigmas, scores, marker="o", label=name)
+        plt.title(
+            f"{name} ({'lower is better' if metric.lower_better else 'higher is better'})"
+        )
+        plt.xlabel(rf"assumed noise $\sigma$")
+        plt.axvline(x=sigma_true, color="red", linestyle="--", alpha=0.5)
+        plt.ylabel(f"score")
+        plt.grid()
+
+plt.tight_layout()
+plt.show()
 
 # %%
 # Experiment 2: deblurring with an unknown kernel width
@@ -203,37 +150,43 @@ model = dinv.models.RAM(device=device)
 blur_sigmas = [1.0, 2.0, 3.0, 4.0]
 
 with torch.no_grad():
-    deblurred = {}
+    deblurred = []
     for s in blur_sigmas:
         # update physics to use the candidate kernel width, and run RAM
         blur_physics.update(filter=dinv.physics.functional.gaussian_blur(sigma=(s, s)))
-        deblurred[s] = model(y, blur_physics)
+        deblurred.append(model(y, blur_physics))
 
 plot(
-    [x, y] + list(deblurred.values()),
+    [x, y] + deblurred,
     titles=["ground truth", rf"blurred ($\sigma={blur_true}$)"]
     + [rf"RAM $\sigma={s}$" for s in blur_sigmas],
     rescale_mode="clip",
 )
 
 # %%
-# Sweeping the kernel width
-# ~~~~~~~~~~~~~~~~~~~~~~~~~
-# This problem is much harder. The oracle PSNR
-# peaks sharply at the true :math:`\sigma = 2` and collapses on either side, losing close to 20 dB
-# by :math:`\sigma = 4`. NIMA is the only metric that recovers it.
-#
-# The other four all prefer an over-estimated kernel, and they fail in the same direction: NIQE and
-# the sharpness index pick :math:`\sigma = 3`, BRISQUE and the blur strength pick :math:`\sigma = 4`.
+# Plot the no-reference metrics as a function of the assumed blur
 
-scores_deblurring = evaluate(deblurred)
-plot_sweep(
-    blur_sigmas,
-    scores_deblurring,
-    blur_true,
-    xlabel=r"assumed blur width $\sigma$",
-    title=rf"Deblurring: selecting the kernel width without ground truth (true $\sigma={blur_true}$)",
-)
+plt.figure(figsize=(12, 8))
+
+with torch.no_grad():
+    for i, metric in enumerate(metrics):
+        scores = []
+        for x_hat in denoised:
+            scores.append(metric(x_hat).item())
+
+        name = metric.__class__.__name__
+        plt.subplot(2, 3, i + 1)
+        plt.plot(blur_sigmas, scores, marker="o", label=name)
+        plt.title(
+            f"{name} ({'lower is better' if metric.lower_better else 'higher is better'})"
+        )
+        plt.xlabel(rf"assumed blur $\sigma$")
+        plt.axvline(x=blur_true, color="red", linestyle="--", alpha=0.5)
+        plt.ylabel(f"score")
+        plt.grid()
+
+plt.tight_layout()
+plt.show()
 
 # %%
 # :References:
