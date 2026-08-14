@@ -1,5 +1,5 @@
 r"""
-Test-time tuning physics parameters with no reference metrics
+Blind inverse problems with no reference metrics
 ====================================================================================================
 
 In blind inverse problems, some parameters of the physics are unknown at test time.
