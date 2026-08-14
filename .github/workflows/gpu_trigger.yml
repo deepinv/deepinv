@@ -25,14 +25,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Get PR number
+    #   - name: Get PR number
+    #     id: pr
+    #     run: |
+    #       if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+    #         echo "pr_number=${{ github.event.inputs.pr_number }}" >> $GITHUB_OUTPUT
+    #       else
+    #         echo "pr_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+    #       fi
+
+      - name: Get PR metadata
         id: pr
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "pr_number=${{ github.event.inputs.pr_number }}" >> $GITHUB_OUTPUT
-          else
-            echo "pr_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
-          fi
+        uses: actions/github-script@v7
+        env:
+            MANUAL_PR_NUMBER: ${{ inputs.pr_number }}
+        with:
+            script: |
+                const pullNumber =
+                    context.eventName === "workflow_dispatch"
+                    ? Number(process.env.MANUAL_PR_NUMBER)
+                    : context.issue.number;
+
+                const { data: pr } = await github.rest.pulls.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: pullNumber
+                });
+
+                core.info(`PR number: ${pullNumber}`);
+                core.info(`PR head branch: ${pr.head.ref}`);
+                core.info(`PR head SHA: ${pr.head.sha}`);
+                core.info(`PR head repository: ${pr.head.repo.full_name}`);
+
+                core.setOutput("number", String(pullNumber));
+                core.setOutput("head_ref", pr.head.ref);
+                core.setOutput("head_sha", pr.head.sha);
+                core.setOutput("head_repo", pr.head.repo.full_name);
 
       - name: Verify commenter permissions
         if: github.event_name == 'issue_comment'
@@ -62,19 +90,27 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           reactions: rocket
 
-      - name: Trigger GPU Tests
+      - name: Trigger GPU Tests from PR branch
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: test_gpu.yml
-          ref: ${{ github.event.pull_request.head.ref }}
-          inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
+          ref: ${{ steps.pr.outputs.head_ref }}
+          inputs: >-
+            {
+                "pr_number": "${{ steps.pr.outputs.number }}",
+                "pr_sha": "${{ steps.pr.outputs.head_sha }}"
+            }
 
       - name: Trigger GPU Docs Check
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: docs_gpu.yml
-          ref: main
-          inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
+          ref: ${{ steps.pr.outputs.head_ref }}
+          inputs: >-
+            {
+              "pr_number": "${{ steps.pr.outputs.number }}",
+              "pr_sha": "${{ steps.pr.outputs.head_sha }}"
+            }
 
   post-comment:
     needs: trigger-gpu-workflows
