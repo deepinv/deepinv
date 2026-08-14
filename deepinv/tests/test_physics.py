@@ -726,7 +726,7 @@ def test_operators_adjointness(name, device, rng):
         dtype = torch.cfloat
 
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
-    error = physics.adjointness_test(x).abs()
+    error = physics.adjointness_test(x)
     assert error < 1e-3
 
     if (
@@ -1451,7 +1451,7 @@ def test_tomography(
     ).unsqueeze(0)
 
     if adjoint_via_backprop:
-        assert physics.adjointness_test(x).abs() < 1e-3
+        assert physics.adjointness_test(x) < 1e-3
 
     if normalize:
         assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
@@ -1565,7 +1565,7 @@ def test_downsampling_imsize(imsize, channels, device, factor, downsampling):
         imsize[0] * factor,
         imsize[1] * factor,
     )
-    assert physics.adjointness_test(x).abs() < 1e-3
+    assert physics.adjointness_test(x) < 1e-3
 
 
 def test_mri_fft():
