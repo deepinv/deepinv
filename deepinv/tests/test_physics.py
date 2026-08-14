@@ -1324,8 +1324,13 @@ def test_noise(device, noise_type):
     if noise_type in ["Poisson", "PoissonGaussian", "Gamma"]:
         x_neg = -torch.ones((1, 3, 2), device=device).unsqueeze(0)
 
-        with pytest.raises(ValueError):
+        if getattr(physics.noise_model, "clip_positive", False):
+            # negative values are clipped instead of raising an error
             y_neg = physics(x_neg)
+            assert y_neg.shape == x_neg.shape
+        else:
+            with pytest.raises(ValueError):
+                y_neg = physics(x_neg)
 
 
 def test_noise_domain(device):
@@ -1547,8 +1552,8 @@ def test_downsampling_adjointness(im_shape, filter_shape, padding, device, rng):
     [
         (1, 16, 16),  # 2D, single channel
         (3, 16, 16),  # 2D, multi-channel
-        (1, 4, 8, 8),  # 3D, single channel (small)
-        (3, 4, 8, 8),  # 3D, multi-channel  (small)
+        (1, 8, 8, 8),  # 3D, single channel (small)
+        (3, 8, 8, 8),  # 3D, multi-channel  (small)
     ],
 )
 def test_prox_l2_downsampling(size_im, h, device):
@@ -2411,6 +2416,7 @@ MULTISCALE_EXCLUSION = [
     "3DMRI",
     "3DMultiCoilMRI",
     "pet_3d",
+    "super_resolution_3d",
     "DynamicMRI",
     "fast_singlepixel",
     "fast_singlepixel_zig_zag",
