@@ -35,7 +35,7 @@ jobs:
       - name: Check out exact PR commit
         uses: actions/checkout@v5
         with:
-            ref: ${{ inputs.pr_sha }}
+          ref: ${{ inputs.pr_sha }}
 
       # When testing a PR, restore the pixi.lock + .testmondata + .coverage triple solved on
       # main as a SINGLE cache entry (atomic, no lock/testmondata mismatch) so
