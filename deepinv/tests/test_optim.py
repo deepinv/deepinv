@@ -618,11 +618,8 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "L12Prior",
         "Tikhonov",
         "TVPrior",
-<<<<<<< HEAD
         "SmoothedTVPrior",
         "TVL1Prior",
-=======
->>>>>>> e4dc8b2d (removing test of recovery coefficient as it breaks)
         "WaveletPrior",
         "WaveletDictPrior",
         "ZeroPrior",
