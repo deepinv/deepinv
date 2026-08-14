@@ -27,14 +27,10 @@ class ArtifactRemoval(Reconstructor):
         approach :footcite:t:`jin2017deep` where a deep network :math:`\phi`
         is used to improve the filtered back projection :math:`A^{\dagger}y`.
 
-    .. deprecated:: 0.2.2
-
-       The ``pinv`` parameter is deprecated and might be removed in future versions. Use ``mode`` instead.
 
     :param deepinv.models.Denoiser, torch.nn.Module backbone_net: Base denoiser network :math:`\phi`
         (see :ref:`denoisers` for available architectures).
     :param str mode: Reconstruction mode. Options are 'direct', 'adjoint' or 'pinv'.
-    :param bool pinv: (deprecated) if ``True`` uses pseudo-inverse :math:`A^{\dagger}y` instead of the default transpose.
     :param torch.device device: cpu or gpu.
     """
 
@@ -42,16 +38,11 @@ class ArtifactRemoval(Reconstructor):
         self,
         backbone_net: Denoiser,
         mode: str = "adjoint",
-        pinv: bool = False,
         ckpt_path: str = None,
         device: torch.device | str = None,
     ):
         super(ArtifactRemoval, self).__init__()
-        self.pinv = pinv
         self.backbone_net = backbone_net
-
-        if self.pinv:
-            mode = "pinv"
         self.mode = mode.lower()
 
         if ckpt_path is not None:

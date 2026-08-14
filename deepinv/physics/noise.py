@@ -119,7 +119,7 @@ class NoiseModel(nn.Module):
                 if (
                     value is not None
                     and hasattr(self, key)
-                    and isinstance(value, (torch.Tensor, float))
+                    and isinstance(value, (torch.Tensor, float, int))
                 ):
                     self.register_buffer(key, self._float_to_tensor(value))
 
@@ -264,74 +264,7 @@ class GaussianNoise(NoiseModel):
         :math:`\sigma = \sqrt{\sigma_1^2 + \sigma_2^2}`
 
         :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.
-        """
-        if not isinstance(other, GaussianNoise):
-            raise TypeError(
-                f"GaussianNoise Add Operator is unsupported for type {type(other)}"
-            )
-        return GaussianNoise(sigma=(self.sigma**2 + other.sigma**2) ** (0.5))
-
-    def __mul__(self, other):
-        r"""
-        Element-wise multiplication of a GaussianNoise via `*` operator.
-
-        0) If `other` is a :class:`NoiseModel`, then applies the multiplication from `NoiseModel`.
-
-        1) If `other` is a :class:`float`, then the standard deviation of the GaussianNoise is multiplied by `other`.
-
-            | :math:`x=[x_1, ..., x_b]` a batch of images.
-            | :math:`\lambda` a float.
-            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
-
-        2) If `other` is a :class:`torch.Tensor`, then the standard deviation of the GaussianNoise is multiplied by `other`.
-
-            | :math:`x=[x_1, ..., x_b]` a batch of images.
-            | :math:`other=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.
-            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
-
-        :param float or torch.Tensor other: Scaling factor for the GaussianNoise's standard deviation.
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.
-        """
-        if isinstance(other, NoiseModel):  # standard NoiseModel multiplication
-            return super().__mul__(other)
-        elif isinstance(other, float) or isinstance(
-            other, torch.Tensor
-        ):  # should be a float or a torch.Tensor
-            if isinstance(self.sigma, torch.Tensor) and self.sigma.dim() > 0:
-                self.sigma = self.sigma.reshape(
-                    (self.sigma.size(0),) + (1,) * (other.dim() - 1)
-                )
-            return GaussianNoise(sigma=self.sigma * other)
-        else:
-            raise NotImplementedError(
-                "Multiplication with type {} is not supported.".format(type(other))
-            )
-
-    def __rmul__(self, other):
-        r"""
-        Commutativity of the __mul__ operator.
-
-        :param float or torch.Tensor other: Scaling factor for the GaussianNoise's standard deviation.
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.
-        """
-        if not isinstance(other, NoiseModel):
-            return self.__mul__(other)
-        else:
-            raise NotImplementedError(
-                "Multiplication (noise_model * gaussian_noise) with type {} is not supported.".format(
-                    type(other)
-                )
-            )
-
-    def __add__(self, other):
-        r"""
-        Sum of 2 gaussian noises via + operator.
-
-        :math:`\sigma = \sqrt{\sigma_1^2 + \sigma_2^2}`
-
-        :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.
+        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linear operators.
         """
         if not isinstance(other, GaussianNoise):
             raise TypeError(
@@ -498,6 +431,11 @@ class PoissonNoise(NoiseModel):
         Poisson noise is only defined for non-negative inputs.
         When used in combination with physics operators that can produce negative outputs (such as :class:`deepinv.physics.BlurFFT`), it is recommended to set ``clip_positive=True`` to avoid runtime errors.
 
+    .. tip::
+
+        All :ref:`pretrained denoisers <denoisers>` in the library can be re-used for Poisson denoising
+        using the :class:`Anscombe transform <deepinv.models.AnscombeDenoiser>`.
+
     |sep|
 
     :Examples:
@@ -631,6 +569,10 @@ class PoissonGaussianNoise(NoiseModel):
         If :math:`\gamma=0`, the model will clamp the input to a small value
         to avoid division by zero, i.e., :math:`\gamma=\max(\gamma, \text{min\_gain})`.
 
+    .. tip::
+
+        All :ref:`pretrained denoisers <denoisers>` in the library can be re-used for Poisson-Gaussian denoising
+        using the :class:`Anscombe transform <deepinv.models.AnscombeDenoiser>`.
 
     :param Union[float, torch.Tensor] gain: gain of the noise.
     :param Union[float, torch.Tensor] sigma: Standard deviation of the noise.
@@ -772,12 +714,12 @@ class UniformNoise(NoiseModel):
 
 class LogPoissonNoise(NoiseModel):
     r"""
-    Log-Poisson noise :math:`y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu x) N_0)}{N_0})`.
+    Log-Poisson noise :math:`y = -\frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu x) N_0)}{N_0})`.
 
     This noise model is mostly used for modelling the noise for (low dose) computed tomography measurements.
-    Here, N0 describes the average number of measured photons. It acts as a noise-level parameter, where a
-    larger value of N0 corresponds to a lower strength of the noise.
-    The value mu acts as a normalization constant of the forward operator. Consequently it should be chosen antiproportionally to the image size.
+    Here, :math:`N_0` describes the average number of measured photons. It acts as a noise-level parameter, where a
+    larger value of :math:`N_0` corresponds to a lower strength of the noise.
+    The value :math:`\mu` acts as a normalization constant of the forward operator. Consequently, it should be chosen antiproportionally to the image size.
 
     For more details on the interpretation of the parameters for CT measurements, we refer to the paper :footcite:t:`leuschner2021lodopab`.
 

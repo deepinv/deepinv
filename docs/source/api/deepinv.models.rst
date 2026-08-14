@@ -30,6 +30,7 @@ Classical Denoisers
    deepinv.models.BilateralFilter
    deepinv.models.MedianFilter
    deepinv.models.TVDenoiser
+   deepinv.models.TVL1Denoiser
    deepinv.models.TGVDenoiser
    deepinv.models.WaveletDenoiser
    deepinv.models.WaveletDictDenoiser
@@ -66,7 +67,10 @@ Deep Architectures
    deepinv.models.NCSNpp
    deepinv.models.DScCP
    deepinv.models.RAM
+   deepinv.models.DEAL
    deepinv.models.ArtifactRemoval
+   deepinv.models.SRResNet
+   deepinv.models.FFDNet
 
 Model Utils
 -----------
@@ -82,6 +86,7 @@ Model Utils
    deepinv.models.TimeAgnosticNet
    deepinv.models.TimeAveragingNet
    deepinv.models.Client
+   deepinv.models.AnscombeDenoiser
 
 .. autosummary::
    :toctree: stubs
@@ -89,6 +94,8 @@ Model Utils
    :nosignatures:
 
    deepinv.models.complex.to_complex_denoiser
+   deepinv.models.generalized_anscombe_transform
+   deepinv.models.inverse_generalized_anscombe_transform
    deepinv.models.initialize_2d_from_3d
 
 
