@@ -347,6 +347,9 @@ class PET(LinearPhysics):
             n = len(self.img_size)
             is_image_space = tuple(attenuation.shape[-n:]) == tuple(self.img_size)
             if is_image_space:
+                # Add missing batch and channel dimensions before projection.
+                while attenuation.ndim < n + 2:
+                    attenuation = attenuation.unsqueeze(0)
                 if self.is_2d:
                     attenuation = attenuation.unsqueeze(-1)
 
