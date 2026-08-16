@@ -8,9 +8,10 @@ mosaiced measurements using various reconstruction algorithms.
 Snapshot multispectral cameras cover the sensor with a mosaic of spectral filters (multispectral filter array),
 so that each pixel records only one band. Demosaicing recovers every band at the full sensor resolution.
 
-Demosaicing is a critical part of any ISP pipeline, and using better algorithms results in higher quality images for downstream tasks.
+Demosaicing is a critical part of any image signal processing (ISP) pipeline, and using better algorithms results in higher quality images for downstream tasks.
 
 We use raw oral-tissue data from the MODID dataset :footcite:p:`chand2024modid` acquired in-vivo for screening of oral diseases such as oral squamous cell carcinoma.
+See `original data source <https://datadryad.org/dataset/doi:10.5061/dryad.nvx0k6dxw>`_.
 The data is unprocessed from an imec CMV2K-SSM4x4-VIS CMOS sensor covering 16 bands from 460 to 600 nm before any corrections.
 The sensor uses a sequential 4x4 MSFA i.e. 16 bands.
 """
