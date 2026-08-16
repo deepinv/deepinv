@@ -20,6 +20,7 @@ New Features
 - Add utilities for subsetted tomography physics :func:`deepinv.physics.split_physics` and :func:`deepinv.physics.split_measurements` (:gh:`1255` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.loss.metric.NRMSE` metric (:gh:`1255` by `Thibaut Modrzyk`_)
 - Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
+- Add :class:`deepinv.loss.metric.BRISQUE` and :class:`deepinv.loss.metric.NIMA` no-reference image quality metrics (:gh:`1310` by `Julian Tachella`_)
 - Add :class:`deepinv.datasets.BrainWebPET` (:gh:`1286` by `Thibaut Modrzyk`_)
 
 Changed
@@ -42,6 +43,7 @@ Fixed
 - Fix :func:`deepinv.transform.rotate_via_shear` for angles outside :math:`[0, 2pi)` (:gh:`1236` by `Sarra Amiri`_)
 - Fix inversion in :class:`deepinv.transform.Reflect` (:gh:`1236` by `Sarra Amiri`_)
 - (Breaking) Have `x_shift` represent horizontal shifts and `y_shift` vertical shifts in :class:`deepinv.transform.Shift` (:gh:`1236` by `Sarra Amiri`_)
+- Force trainer non_blocking_transfers=False on MPS and CPU (:gh:`1311` by `Andrew Wang`_)
 
 
 v0.4.1
