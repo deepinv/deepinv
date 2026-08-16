@@ -97,7 +97,7 @@ denoisers = [
 
 # optional dependencies for advanced forward operators
 physics-gpu = [
-    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'"
+    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'" 
 ]
 
 physics = [
@@ -105,6 +105,7 @@ physics = [
     "torchkbnufft",
     "array_api_compat",
     "sigpy",
+    "zea>=0.1.0",
 ]
 
 # optional dependencies for specific datasets
@@ -174,11 +175,11 @@ scipy = "*"
 nibabel = "*"
 rasterio = "*"
 pydicom = "*"
-# brainweb, brainweb-dl and mat73 are PyPI-only, stay in optional deps
 
 [tool.pixi.feature.dataset.pypi-dependencies]
 brainweb = "==1.7.0"
 brainweb-dl = ">=0.4.6"
+zea = ">=0.1.0"
 
 
 [tool.pixi.feature.denoisers.dependencies]
@@ -263,7 +264,7 @@ select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004"
 
 [tool.ruff.lint.flake8-tidy-imports]
 # Modules that slow down startup and should be imported lazily
-banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft"]
+banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft", "zea"]
 
 # Deprecated functions that should be replaced
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
