@@ -34,6 +34,8 @@ NO_REFERENCE_METRICS = [
     "SharpnessIndex1",
     "SharpnessIndex2",
     "NIQE",
+    "BRISQUE",
+    "NIMA",
 ]
 FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr", "signal_noise_ratio"]
 
@@ -92,6 +94,12 @@ def choose_no_reference_metric(metric_name, device, **kwargs) -> metric.Metric:
             **kwargs,
             device=device,
         )
+    elif metric_name == "BRISQUE":
+        return metric.BRISQUE(**kwargs, device=device)
+    elif metric_name == "NIMA":
+        # the technical head is the distortion-sensitive one; the aesthetic head can
+        # reward mild blur, so it is not monotonic under the degradations tested here
+        return metric.NIMA(variant="technical", **kwargs, device=device)
     elif metric_name == "QNR":
         return metric.QNR()
     elif metric_name == "BlurStrength":
@@ -230,8 +238,8 @@ def test_no_reference_metrics(
     }
 
     if (
-        metric_name == "NIQE" and channels == 2
-    ):  # NIQE only acts on 1- and 3-channel images.
+        metric_name in ("NIQE", "BRISQUE") and channels == 2
+    ):  # NIQE and BRISQUE only act on 1- and 3-channel images.
         return
 
     m = choose_no_reference_metric(metric_name, device, **metric_kwargs)
@@ -581,6 +589,66 @@ def test_niqe_other_implementations():
             f"{fname}: deepinv={result_dinv:.4f}, basicsr={refs['basicsr']:.4f}, "
             f"diff={abs(result_dinv - refs['basicsr']):.4f}"
         )
+
+
+def test_brisque_reference(test_image):
+    # Note reference value from original pybrisque implementation (https://github.com/bukalapak/pybrisque) on the same image.
+    brisque = metric.BRISQUE()
+    assert abs(brisque(test_image).item() - 20.2606) < 1e-2
+
+    # float64 reproduces the reference implementation to much higher precision
+    brisque = metric.BRISQUE(dtype=torch.float64)
+    assert abs(brisque(test_image).item() - 20.2606) < 1e-3
+
+    # the metric is invariant to the intensity scale, up to max_pixel
+    brisque = metric.BRISQUE(max_pixel=255)
+    assert abs(brisque(test_image * 255).item() - 20.2606) < 1e-2
+
+
+def test_brisque_input_validation():
+    brisque = metric.BRISQUE()
+    with pytest.raises(ValueError, match="expects batched, 2D data"):
+        brisque(torch.rand(1, 1, 64))
+    with pytest.raises(ValueError, match="only operates on 1- or 3-channel"):
+        brisque(torch.rand(1, 4, 64, 64))
+
+
+@pytest.mark.parametrize("variant", ("aesthetic", "technical"))
+def test_nima(variant, test_image):
+    nima = metric.NIMA(variant=variant)
+
+    # the head predicts a distribution over the 10 score bins
+    dist = nima.distribution(test_image)
+    assert dist.shape == torch.Size([1, 10])
+    assert torch.allclose(dist.sum(dim=1), torch.ones(1), atol=1e-5)
+
+    # the score is the mean of that distribution, so it lies between 1 and 10
+    score = nima(test_image)
+    assert score.shape == torch.Size([1])
+    assert 1 <= score.item() <= 10
+    assert torch.allclose(score, dist @ torch.arange(1.0, 11.0), atol=1e-5)
+
+    # higher is better, and both heads penalise added noise
+    assert not nima.lower_better
+    noisy = (test_image + 0.15 * torch.randn_like(test_image)).clamp(0, 1)
+    assert nima(noisy).item() < score.item()
+
+    # 1-channel input is accepted, and batching does not change per-image scores
+    assert nima(test_image.mean(1, keepdim=True)).shape == torch.Size([1])
+    batch = torch.cat([test_image, noisy])
+    assert torch.allclose(
+        nima(batch), torch.cat([nima(test_image), nima(noisy)]), atol=1e-5
+    )
+
+
+def test_nima_input_validation():
+    nima = metric.NIMA()
+    with pytest.raises(ValueError, match="expects batched, 2D data"):
+        nima(torch.rand(1, 3, 64))
+    with pytest.raises(ValueError, match="only operates on 1- or 3-channel"):
+        nima(torch.rand(1, 4, 64, 64))
+    with pytest.raises(ValueError, match="variant must be one of"):
+        metric.NIMA(variant="artistic")
 
 
 def test_gmsd():
