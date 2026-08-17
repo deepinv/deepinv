@@ -179,7 +179,7 @@ def batch_as_dict(
             ):
                 out = {"x": x}
 
-            if isinstance(second, dict):
+            if isinstance(second, dict) and len(second) > 0:
                 out["params"] = second
             else:
                 out["y"] = second
@@ -191,7 +191,8 @@ def batch_as_dict(
                 out = {"x": x}
 
             out["y"] = y
-            out["params"] = params
+            if len(params) > 0:
+                out["params"] = params
 
         else:
             raise RuntimeError(

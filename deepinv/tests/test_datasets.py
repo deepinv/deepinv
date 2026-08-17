@@ -41,9 +41,8 @@ from deepinv.datasets import (
     ImageFolder,
     SKMTEASliceDataset,
     RandomPatchSampler,
-    check_dataset,
-    batch_as_dict,
 )
+from deepinv.datasets.base import check_dataset, batch_as_dict
 from deepinv.datasets.utils import (
     download_archive,
     extract_zipfile,
@@ -377,13 +376,20 @@ def test_hdf5dataset(
     idx = 0
     entry = dataset[idx]
     entry = batch_as_dict(entry)
-    assert (
-        set(entry) == {"x", "y", "params"}
-        if load_physics_generator_params
-        else {"x", "y"}
-    ), f"Dataset should return dict with keys 'x', 'y', and 'params' but got {set(entry)}."
+    
+    if not unsupervised:
+        assert "x" in entry, "Supervised dataset should return x."
+    else:
+        assert "x" not in entry, "Unsupervised dataset should not return x."
+    
+    assert "y" in entry, "Dataset should return y."
+    
+    if load_physics_generator_params:
+        assert "params" in entry, "Dataset should return params when load_physics_generator_params is True."
+    else:
+        assert "params" not in entry, "Dataset should not return params when load_physics_generator_params is False."
 
-    x, y, params = entry["x"], entry["y"], entry.get("params", {})
+    x, y, params = entry.get("x", None), entry["y"], entry.get("params", {})
 
     # Make the case disjunction at the start to simplify the logic
     split_name = split if split is not None else ("train" if train else "test")
@@ -393,7 +399,7 @@ def test_hdf5dataset(
 
     data_dtype = complex_dtype if complex_data else dtype
 
-    if not torch.isnan(x).all():
+    if x is not None:
         assert torch.allclose(
             x,
             torch.full((1, 4, 4), expected_value_x, dtype=data_dtype),
@@ -469,10 +475,10 @@ def test_hdf5dataset_generate_dataset(
     img_size = (1, 4, 4)
     with dataset_output_context(use_dict_output):
         train_dataset = MyDataset(
-            torch.zeros(1, *img_size), use_dict_output=use_dict_output
+            {"x": torch.zeros(1, *img_size)} if use_dict_output else torch.zeros(1, *img_size), use_dict_output=use_dict_output
         )
         test_dataset = MyDataset(
-            torch.ones(1, *img_size), use_dict_output=use_dict_output
+             {"x": torch.zeros(1, *img_size)} if use_dict_output else torch.zeros(1, *img_size), use_dict_output=use_dict_output
         )
 
     base_physics = Inpainting(img_size, mask=0.5)
@@ -505,12 +511,15 @@ def test_hdf5dataset_generate_dataset(
             load_physics_generator_params=True,
             use_dict_output=use_dict_output,
         )
-    check_dataset_format(
-        train_ds,
-        length=1,
-        dtype=None if stacked else (dict if use_dict_output else tuple),
-        allow_non_tensor=False,
-    )
+
+    # check_dataset_format runs a Trainer with `online_measurements=True` so ground-truth `x` is required
+    if supervised:
+        check_dataset_format(
+            train_ds,
+            length=1,
+            dtype=None if stacked else (dict if use_dict_output else tuple),
+            allow_non_tensor=False,
+        )
     batch = train_ds[0]
     batch = batch_as_dict(batch)
     y_train, params_train = batch["y"], batch.get("params", {})
@@ -532,7 +541,7 @@ def test_hdf5dataset_generate_dataset(
 
     if physgen is None:
         assert (
-            "params" not in batch
+            len(params_train) == 0
         ), "Params should be empty when no generator is used."
     else:
         assert "mask" in params_train, "Params should contain mask when generator used."
@@ -548,12 +557,15 @@ def test_hdf5dataset_generate_dataset(
             load_physics_generator_params=True,
             use_dict_output=use_dict_output,
         )
-    check_dataset_format(
-        test_ds,
-        length=1,
-        dtype=None if stacked else (dict if use_dict_output else tuple),
-        allow_non_tensor=False,
-    )
+    
+    # check_dataset_format runs a Trainer with `online_measurements=True` so ground-truth `x` is required
+    if supervised:
+        check_dataset_format(
+            test_ds,
+            length=1,
+            dtype=None if stacked else (dict if use_dict_output else tuple),
+            allow_non_tensor=False,
+        )
     batch = test_ds[0]
     batch = batch_as_dict(batch)
     y_test, params_test = batch["y"], batch.get("params", {})
@@ -572,7 +584,7 @@ def test_hdf5dataset_generate_dataset(
 
     if physgen is None:
         assert (
-            "params" not in batch
+            len(params_test) == 0
         ), "Params should be empty when no generator is used."
     else:
         assert "mask" in params_test, "Params should contain mask when generator used."
