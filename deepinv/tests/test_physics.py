@@ -244,6 +244,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             attenuation=attenuation,
         )
         assert not torch.allclose(p.attenuation, torch.ones_like(p.attenuation))
+        p.update(attenuation=torch.ones_like(p.attenuation))
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
         params = ["background", "attenuation"]

@@ -356,9 +356,9 @@ class PET(LinearPhysics):
                 proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
                 if self.is_2d:
                     proj_att = proj_att.squeeze(-1)
-                self.attenuation = torch.exp(-proj_att)
+                self.attenuation = torch.exp(-proj_att).to(self.scanner.dev)
             else:
-                self.attenuation = attenuation
+                self.attenuation = attenuation.to(self.scanner.dev)
 
             if self.normalize:
                 self.operator_norm = torch.ones(1, device=self.attenuation.device)
@@ -368,7 +368,7 @@ class PET(LinearPhysics):
                     verbose=False,
                 )
         if background is not None:
-            self.background = background
+            self.background = background.to(self.scanner.dev)
 
 
 class LinearSingleChannelOperator(torch.autograd.Function):
