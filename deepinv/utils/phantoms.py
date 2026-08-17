@@ -225,6 +225,8 @@ def generate_pet_phantom(
         img_shape = img_shape + (32,)
     else:
         keep_center_slice = False
+        # Move depth to last for phantom construction.
+        img_shape = img_shape[1:] + img_shape[:1]
 
     D, H, W = img_shape
     od, oh, ow = [oversampling_factor * x for x in img_shape]
@@ -311,6 +313,9 @@ def generate_pet_phantom(
     if keep_center_slice:
         x_em = x_em[..., x_em.size(-1) // 2]
         x_att = x_att[..., x_att.size(-1) // 2]
+    else:
+        x_em = x_em.movedim(-1, 0)
+        x_att = x_att.movedim(-1, 0)
 
     # add batch + channel
     x_em = x_em.unsqueeze(0).unsqueeze(0)

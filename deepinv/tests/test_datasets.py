@@ -1605,7 +1605,7 @@ def test_brainweb_pet(tmp_path, lesion_diameters):
     emission, params = dataset[0]
 
     assert len(dataset) == 1
-    assert emission.shape == (1, 344, 344, 127)
+    assert emission.shape == (1, 127, 344, 344)
     assert emission.shape == params["attenuation"].shape == params["t1"].shape
     assert emission.shape == params["t2"].shape
     assert emission.dtype == torch.float32

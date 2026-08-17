@@ -72,7 +72,7 @@ class PET(LinearPhysics):
         See `parallelproj` `docs <https://parallelproj.readthedocs.io/>`_ for more details.
 
     :param tuple img_size: shape of the input 2D ``(H, W)`` images or 3D
-        ``(H, W, D)`` volumes, where ``D`` is the scanner depth.
+        ``(D, H, W)`` volumes, where ``D`` is the scanner depth.
     :param tuple voxel_size: voxel size in mm. Default is 2 x 2 x 2 mm.
     :param float fwhm_data_mm: full width at half maximum (FWHM) of the Gaussian blur :math:`g`. It has a crucial impact on the maximum achievable resolution,
         which is typically a fraction of the FWHM.
@@ -87,7 +87,7 @@ class PET(LinearPhysics):
     :param torch.Tensor background: background sinogram :math:`b`, i.e. the expected number of background events in each LOR, with shape `(num_lors,)`
     :param torch.Tensor attenuation: attenuation map. Can be provided either in **image space** as :math:`\mu`
         (linear attenuation coefficients in :math:`\mathrm{mm}^{-1}`, shape
-        ``(H, W)`` for 2D or ``(H, W, D)`` for 3D—typically from an auxiliary CT scan),
+        ``(H, W)`` for 2D or ``(D, H, W)`` for 3D—typically from an auxiliary CT scan),
         or in **sinogram/projection space** as :math:`c=\exp(-H\mu)`. The space is inferred automatically
         by comparing the spatial dimensions of the tensor against `img_size`: if they match, image space is assumed
         and the attenuation is projected; otherwise, sinogram space is assumed and the tensor is used directly.
@@ -135,7 +135,7 @@ class PET(LinearPhysics):
                 img_size = img_size[1:]
         if not isinstance(img_size, tuple) or not len(img_size) in (2, 3):
             raise ValueError(
-                "img_size must be a tuple of length 2 or 3, e.g. (H, W) or (H, W, D)"
+                "img_size must be a tuple of length 2 or 3, e.g. (H, W) or (D, H, W)"
             )
 
         try:  # avoids doctest failing when parallelproj prints banner
@@ -160,10 +160,15 @@ class PET(LinearPhysics):
         self.radial_trim = radial_trim
 
         if len(img_size) == 2:
-            img_size = img_size + (1,)
+            parallelproj_img_size = img_size + (1,)
             self.is_2d = True
         else:
+            parallelproj_img_size = img_size[1:] + img_size[:1]
             self.is_2d = False
+
+        parallelproj_voxel_size = (
+            voxel_size if self.is_2d else voxel_size[1:] + voxel_size[:1]
+        )
 
         if scanner is None:
             scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
@@ -182,7 +187,10 @@ class PET(LinearPhysics):
             views = torch.as_tensor(views, device=device, dtype=torch.int64)
 
         self.proj = parallelproj.RegularPolygonPETProjector(
-            lor_desc, img_shape=img_size, voxel_size=voxel_size, views=views
+            lor_desc,
+            img_shape=parallelproj_img_size,
+            voxel_size=parallelproj_voxel_size,
+            views=views,
         )
         # store the views as a buffer but does not add it to state dict since its part
         # of parallelproj
@@ -193,7 +201,7 @@ class PET(LinearPhysics):
             background = background.to(device)
         else:
             background = (
-                self.proj(torch.zeros(img_size, device=device))
+                self.proj(torch.zeros(parallelproj_img_size, device=device))
                 .unsqueeze(0)
                 .unsqueeze(0)
             )
@@ -208,7 +216,8 @@ class PET(LinearPhysics):
             fwhm_data_mm, device=device, dtype=self.proj.voxel_size.dtype
         )
         self.res_model = parallelproj.GaussianFilterOperator(
-            img_size, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
+            parallelproj_img_size,
+            sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size),
         )
         self.pet_lin_op = parallelproj.CompositeLinearOperator(
             (self.proj, self.res_model)
@@ -235,7 +244,7 @@ class PET(LinearPhysics):
         Apply the linear operator :math:`Ax=c \circ H(g*x)` to a signal :math:`x`
 
         :param torch.Tensor x: input image or volume of shape ``(B, 1, H, W)``
-            for 2D or ``(B, 1, H, W, D)`` for 3D, where ``B`` is the batch size
+            for 2D or ``(B, 1, D, H, W)`` for 3D, where ``B`` is the batch size
             and ``D`` is the scanner depth.
         :param torch.Tensor add_background: whether to add background :math:`b`. By default, no background is added.
         :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator.
@@ -253,6 +262,8 @@ class PET(LinearPhysics):
         if self.is_2d:
             x = x.unsqueeze(-1)
             attenuation = attenuation.unsqueeze(-1)
+        else:
+            x = x.movedim(-3, -1)
 
         out = LinearSingleChannelOperator.apply(x, self.pet_lin_op) * attenuation
         if self.is_2d:
@@ -289,6 +300,8 @@ class PET(LinearPhysics):
         )
         if self.is_2d:
             out = out.squeeze(-1)
+        else:
+            out = out.movedim(-1, -3)
         return out
 
     def plot_geometry(self):
@@ -353,6 +366,8 @@ class PET(LinearPhysics):
             if is_image_space:
                 if self.is_2d:
                     attenuation = attenuation.unsqueeze(-1)
+                else:
+                    attenuation = attenuation.movedim(-3, -1)
 
                 proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
                 if self.is_2d:
