@@ -377,11 +377,22 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         with self.metadata_cache_manager(root, defaultdict(list)) as samples:
             if len(samples) == 0:
                 for fname in tqdm(all_fnames):
-                    metadata = self._retrieve_metadata(fname)
-                    for slice_ind in range(metadata["num_slices"]):
-                        samples[str(fname)].append(
-                            self.SliceSampleID(fname, slice_ind, metadata)
+                    try:
+                        metadata = self._retrieve_metadata(fname)
+                        for slice_ind in range(metadata["num_slices"]):
+                            samples[str(fname)].append(
+                                self.SliceSampleID(fname, slice_ind, metadata)
+                            )
+                            if self.target_root is not None:
+                                _ = self._retrieve_metadata(
+                                    self.target_root / fname.name
+                                )
+
+                    except OSError:  # pragma: no cover
+                        warnings.warn(
+                            f"Corrupted volume {Path(fname).name} detected in FastMRI dataset. Skipping..."
                         )
+                        continue
 
             self.samples = samples
 

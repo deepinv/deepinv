@@ -27,3 +27,5 @@ from .base import (
     batch_as_dict,
 )
 from .skmtea import SKMTEASliceDataset
+from .brainweb_pet import BrainWebPET
+from .brainweb_mri import BrainWebMRI
