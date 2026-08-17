@@ -279,7 +279,7 @@ dinv.datasets.download_archive(
 )
 
 dataset = dinv.datasets.FastMRISliceDataset(
-    dinv.utils.get_cache_home() / "brain", slice_index="middle"
+    dinv.utils.get_cache_home() / "brain", slice_index="middle", use_dict_output=True
 )
 
 batch = next(iter(DataLoader(dataset)))
@@ -322,6 +322,7 @@ dataset = dinv.datasets.FastMRISliceDataset(
         estimate_coil_maps=True,
         acs=15,  # Num. low frequency, fix to 15
     ),
+    use_dict_output=True,
 )
 
 batch = next(iter(DataLoader(dataset)))
@@ -352,6 +353,7 @@ dataset = dinv.datasets.FastMRISliceDataset(
         estimate_coil_maps=False,  # Set to true if coil maps are not already set in physics.
         # This will use ACS size from mask generator. If mask generator is None, then try find ACS size from metadata.
     ),
+    use_dict_output=True,
 )
 
 # %%
@@ -496,6 +498,7 @@ dataset = dinv.datasets.CMRxReconSliceDataset(
     dinv.utils.get_cache_home() / "CMRxRecon",
     mask_generator=physics_generator,
     mask_dir=None,
+    use_dict_output=True,
 )
 
 batch = next(iter(DataLoader(dataset)))
