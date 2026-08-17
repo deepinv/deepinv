@@ -115,10 +115,16 @@ def test_generate_dataset_physics_generator(
     )
 
     train_dataset = dinv.datasets.HDF5Dataset(
-        path=f"{tmp_path}/dinv_dataset0.h5", train=True, use_dict_output=True
+        path=f"{tmp_path}/dinv_dataset0.h5",
+        load_physics_generator_params=True,
+        train=True,
+        use_dict_output=True,
     )
     test_dataset = dinv.datasets.HDF5Dataset(
-        path=f"{tmp_path}/dinv_dataset0.h5", train=False, use_dict_output=True
+        path=f"{tmp_path}/dinv_dataset0.h5",
+        load_physics_generator_params=True,
+        train=False,
+        use_dict_output=True,
     )
 
     if physics_combo == "single_physics_no_gen":
@@ -170,7 +176,8 @@ def test_generate_dataset_physics_generator(
     # test dataloader
     b = 3
     batch = next(iter(DataLoader(train_dataset, batch_size=b)))
-    x, y, params = batch["x"], batch["y"], batch["params"]
+    # "params" not in batch for '*_no_gen' configs
+    x, y, params = batch["x"], batch["y"], batch.get("params", {})
 
     for t in [x, y] + list(params.values()):
         assert t.shape[0] == b
