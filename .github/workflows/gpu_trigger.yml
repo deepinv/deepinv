@@ -49,9 +49,7 @@ jobs:
                 core.info(`PR head repository: ${pr.head.repo.full_name}`);
 
                 core.setOutput("number", String(pullNumber));
-                core.setOutput("head_ref", pr.head.ref);
                 core.setOutput("head_sha", pr.head.sha);
-                core.setOutput("head_repo", pr.head.repo.full_name);
 
       - name: Verify commenter permissions
         if: github.event_name == 'issue_comment'
@@ -85,7 +83,7 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: test_gpu.yml
-          ref: ${{ steps.pr.outputs.head_ref }}
+          ref: ${{ steps.pr.outputs.head_sha }}
           inputs: >-
             {
                 "pr_number": "${{ steps.pr.outputs.number }}",
@@ -96,7 +94,7 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: docs_gpu.yml
-          ref: ${{ steps.pr.outputs.head_ref }}
+          ref: ${{ steps.pr.outputs.head_sha }}
           inputs: >-
             {
               "pr_number": "${{ steps.pr.outputs.number }}",
