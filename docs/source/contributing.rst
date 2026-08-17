@@ -51,6 +51,7 @@ Want to solve an issue or contribute something new to DeepInverse? Never contrib
 
 The first steps of contributing to any open-source project is the same. Follow these `step-by-step instructions on the GitHub website <https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project>`_
 to: fork your own copy of `DeepInverse <https://github.com/deepinv/deepinv>`_, clone it to your computer, create a branch, write code, commit and push your code.
+Make sure you follow the DeepInverse :ref:`style guide <style_guides>`, so that your contribution maintains our high standard of code and docs.
 
 .. note::
   LLM usage is ok, but for first-time contributors, we request that their contributions are mainly human-written and will not accept PRs generated 100% by AI. See our :ref:`LLM policy <llm-policy>`.
@@ -107,6 +108,7 @@ Alternatively, use Python's built-in ``venv`` module and ``pip``:
 Tests are crucial for checking your code will always behave as intended, and we encourage you to follow a test-driven development methodology. Tests can consist of:
 
 - Unit tests (e.g. check each method's return values and shapes);
+- Performance tests (e.g. an algorithm performs as well as expected on a dataset, it converges etc.);
 - Integration tests (e.g. end-to-end behavior, interface with other classes).
 
 How to write and run tests:
@@ -172,6 +174,7 @@ Code quality is important to us. We require that your code is compliant with PEP
 2. Run ``black .`` in the root directory of your repository. This will automatically fix all formatting issues.
 3. Run ``ruff check``, which will check all linting options we've enabled. If it fails, follow the suggestions to make a fix!
 4. Push your code. The automatic checkers will run in GitHub actions, along with other actions that we have in place.
+5. Ensure you follow our :ref:`style guide <code_quality_guide>`
 
 .. _log_changes:
 
@@ -253,13 +256,9 @@ Please follow these guidelines:
 
 - Favour concise docs, and prioritise readability over completeness. Write in concise technical English, not prose. For example:
 
-  .. code-block:: rest
-
       Acquisition angles in degrees. Returns ``None`` for vector-based geometries, for which the acquisition trajectory is fully described by `self.projection_geometry["Vectors"]`.
 
   can be much more concisely written as:
-
-  .. code-block:: rest
 
       Astra projection geometry angles tensor in degrees. If Astra vector geom, return None.
 
@@ -322,7 +321,7 @@ Below is a minimal working example of a typical docstring that includes all thes
         def __init__(self, in_channels: int, out_channels: int, pretrained: bool = None):
             pass
 
-**Guidelines are similar for examples.**
+**Guidelines are similar for examples.** A good example should teach the user why and how they should use a particular functionality.
 
 - If you introduce a reconstruction method, detail the algorithm, cite it and link to the original code;
 - Reuse existing DeepInverse loaders, transforms, solvers, plotting functions, and example assets as much as possible;
@@ -331,7 +330,7 @@ Below is a minimal working example of a typical docstring that includes all thes
 
 For example, here's a first paragraph from a **bad** example:
 
-.. code-block:: rst
+
   Many reconstruction models expose a hyperparameter that has to be matched to the problem at hand:
   a denoiser needs the noise level :math:`\sigma`, a deblurring model needs the blur kernel.
   In a benchmark this parameter is easy to pick,
@@ -346,10 +345,23 @@ Furthermore, a technical subtlety is that physics parameters are more clearly ex
 This is a DeepInverse opinionation that this paragraph has conveyed.
 Here's a better version:
 
-.. code-block:: rst
+
   In blind inverse problems, one often needs to estimate physics parameters such as noise level :math:`\sigma` or blur kernel.
   When ground truth :math:`x` is available, we can simply maximize the PSNR: see :ref:`sphx_glr_auto_examples_blind-inverse-problems_demo_optimizing_physics_parameter.py` for an example.
   However, in real applications :math:`x` is not available. 
+
+.. _code_quality_guide:
+
+Code quality
+~~~~~~~~~~~~
+
+- **Naming**: classes use ``CapWords`` without underscores. Functions, methods, parameters, and variables use ``snake_case``. Private helpers and implementation details begin with ``_``.
+- **Cleanliness**: no global constants unless absolutely necessary; no unnecessary private single-use funcs; inline comments should only be used for describing non-obvious functionality, pitfalls or edge cases.
+- **Typing**: use concise modern typing as much as possible, but prefer readability over completeness. Where adding typing or more specific types would hurt readability, don't add it;
+- **Tests**: prefer adding a method / class to an existing generic test through a registry rather than a new standalone test;
+- **Tests**: the purpose of tests is that it checks the code does what it claims, not that the code executes without raising errors.
+  Therefore, adding an optimisation method requires to check that it converges to the limit point; adding a neural network from an external library should check metric on a dataset, etc. Limit cases should be added and checked (e.g. non standard tensor shapes, etc).
+  Note that in most cases, such checks are already implemented (see above), but it's to the user to check that sufficient tests are checked.
 
 General technical details
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -364,17 +376,6 @@ General technical details
 - `nn.Modules` like physics should not possess device and dtype attributes; only tensors, parameters and buffers have devices and dtypes;
 - No mutable default arguments such as dicts;
 - Every operation should be batched.
-
-Code quality
-~~~~~~~~~~~~
-
-- **Naming**: classes use ``CapWords`` without underscores. Functions, methods, parameters, and variables use ``snake_case``. Private helpers and implementation details begin with ``_``.
-- **Cleanliness**: no global constants unless absolutely necessary; no unnecessary private single-use funcs; inline comments should only be used for describing non-obvious functionality, pitfalls or edge cases.
-- **Typing**: use concise modern typing as much as possible, but prefer readability over completeness. Where adding typing or more specific types would hurt readability, don't add it;
-- **Tests**: prefer adding a method / class to an existing generic test through a registry rather than a new standalone test;
-- **Tests**: the purpose of tests is that it checks the code does what it claims, not that the code executes without raising errors.
-  Therefore, adding an optimisation method requires to check that it converges to the limit point; adding a neural network from an external library should check metric on a dataset, etc. Limit cases should be added and checked (e.g. non standard tensor shapes, etc).
-  Note that in most cases, such checks are already implemented (see above), but it's to the user to check that sufficient tests are checked.
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
