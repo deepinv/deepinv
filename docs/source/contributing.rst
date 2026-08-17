@@ -376,6 +376,7 @@ General technical details
 - `nn.Modules` like physics should not possess device and dtype attributes; only tensors, parameters and buffers have devices and dtypes;
 - No mutable default arguments such as dicts;
 - Every operation should be batched.
+- If you propose a new technical convention, add it to this list so that future contributors and reviewers don't forget it!
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
