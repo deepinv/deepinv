@@ -39,7 +39,7 @@ import torch
 from torchvision.transforms import Compose, CenterCrop
 
 from deepinv.datasets.utils import ToComplex, Rescale, download_archive
-from deepinv.datasets.base import ImageDataset, extract_x_tensor
+from deepinv.datasets.base import ImageDataset, batch_as_dict
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.generator.mri import BaseMaskGenerator, ceildiv
 from deepinv.physics.mri import MultiCoilMRI
@@ -556,7 +556,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         transform = Compose(transform)
 
         xs = [
-            transform(extract_x_tensor(self.__getitem__(i))).squeeze(0)
+            transform(batch_as_dict(self.__getitem__(i))["x"]).squeeze(0)
             for i in tqdm(range(self.__len__()))
         ]
 

@@ -31,7 +31,6 @@ Contents:
 import deepinv as dinv
 import torch, torchvision
 from torch.utils.data import DataLoader
-from deepinv.datasets.base import unpack_batch
 
 device = dinv.utils.get_device()
 rng = torch.Generator(device=device).manual_seed(0)
@@ -141,8 +140,11 @@ test_dataset = dinv.datasets.HDF5Dataset(
 train_dataloader = DataLoader(train_dataset)
 iterator = iter(train_dataloader)
 
-x0, y0, params0 = unpack_batch(next(iterator))
-x1, y1, params1 = unpack_batch(next(iterator))
+batch0 = next(iterator)
+batch1 = next(iterator)
+
+x0, y0, params0 = batch0["x"], batch0["y"], batch0["params"]
+x1, y1, params1 = batch1["x"], batch1["y"], batch1["params"]
 
 dinv.utils.plot(
     {
@@ -280,9 +282,8 @@ dataset = dinv.datasets.FastMRISliceDataset(
     dinv.utils.get_cache_home() / "brain", slice_index="middle"
 )
 
-x, y, _ = unpack_batch(next(iter(DataLoader(dataset))))
-x = x.to(device)
-y = y.to(device)
+batch = next(iter(DataLoader(dataset)))
+x, y = batch["x"].to(device), batch["y"].to(device)
 
 img_size, kspace_shape = x.shape[-2:], y.shape[-2:]
 n_coils = y.shape[2]
@@ -323,7 +324,8 @@ dataset = dinv.datasets.FastMRISliceDataset(
     ),
 )
 
-x, y, params = unpack_batch(next(iter(DataLoader(dataset))))
+batch = next(iter(DataLoader(dataset)))
+x, y, params = batch["x"].to(device), batch["y"].to(device), batch["params"]
 
 physics.update(**params)
 
@@ -464,8 +466,8 @@ dinv.datasets.download_archive(
 dataset = dinv.datasets.CMRxReconSliceDataset(
     dinv.utils.get_cache_home() / "CMRxRecon", use_dict_output=True
 )
-
-x, y, params = unpack_batch(next(iter(DataLoader(dataset))))
+batch = next(iter(DataLoader(dataset)))
+x, y, params = batch["x"].to(device), batch["y"].to(device), batch["params"]
 
 print(f"""
     Ground truth: {x.shape} (B, C, T, H, W)
@@ -496,7 +498,8 @@ dataset = dinv.datasets.CMRxReconSliceDataset(
     mask_dir=None,
 )
 
-x, y, params = unpack_batch(next(iter(DataLoader(dataset))))
+batch = next(iter(DataLoader(dataset)))
+x, y, params = batch["x"].to(device), batch["y"].to(device), batch["params"]
 
 x = x.to(device)
 y = y.to(device)

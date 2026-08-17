@@ -13,7 +13,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader, Subset, Dataset
 from deepinv.utils.tensorlist import TensorList
 from deepinv.physics import StackedPhysics
-from deepinv.datasets.base import ImageDataset, extract_x_tensor
+from deepinv.datasets.base import ImageDataset, batch_as_dict
 from deepinv.utils.decorators import _deprecate_attribute
 
 if TYPE_CHECKING:
@@ -333,6 +333,8 @@ class HDF5Dataset(ImageDataset):
         the selected split. If forward operator parameters are available, it
         returns ``(x, y, params)`` where ``params`` is a dict of parameters.
 
+        If ``self.use_dict_output=True``, the output is a dict with keys "x", "y", and "params" instead of a tuple. If the ground truth is not present in the dataset, the key "x" is omitted from the dict.
+
         The method returns a scalar NaN tensor as the ground truth when none is
         present in the dataset, in accordance with the conventions of the
         library (see :ref:`datasets user guide <datasets>`).
@@ -381,7 +383,7 @@ class HDF5Dataset(ImageDataset):
             params = None
 
         if self.use_dict_output:
-            out = {"x": x, "y": y}
+            out = {"x": x, "y": y} if not torch.isnan(x).all() else {"y": y}
             if params is not None:
                 out["params"] = params
 
@@ -462,8 +464,12 @@ def collate(dataset: Dataset) -> Callable[[list[Any]], Tensor] | None:
             ) -> Tensor:
                 tensors = []
                 for sample in batch:
-                    img = extract_x_tensor(sample)
-                    if not isinstance(img, Image.Image):  # pragma: no cover
+                    if isinstance(sample, Image.Image):
+                        img = sample
+                    elif isinstance(sample, (list, tuple)):
+                        # only keeping the first element is same behavior as when dataset returns list of tensors!
+                        img = sample[0]
+                    else:  # pragma: no cover
                         raise ValueError(
                             f"generate_dataset expects datasets to consistently return a (list of) Tensor, Array, or PIL images. Detected use of PIL in a sample, but received a new item of type {type(sample)}."
                         )
@@ -637,11 +643,9 @@ def generate_dataset(
         ) -> int:
             """Process one batch for a given split and return updated index."""
 
-            x = (
-                x_batch.get("x")
-                if isinstance(x_batch, dict)
-                else extract_x_tensor(x_batch)
-            )
+            x_batch = batch_as_dict(x_batch)
+            x = x_batch.get("x", None)
+
             if x is None:
                 raise ValueError(
                     "generate_dataset requires the input dataset to provide ground-truth images under the key 'x'."

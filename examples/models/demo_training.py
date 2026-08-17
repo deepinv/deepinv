@@ -20,7 +20,6 @@ on an inpainting task on the Urban100 dataset of natural images.
 
 import deepinv as dinv
 import torch
-from deepinv.datasets.base import unpack_batch
 
 device = dinv.utils.get_device()
 rng = torch.Generator(device=device).manual_seed(0)
@@ -76,7 +75,8 @@ test_dataloader = torch.utils.data.DataLoader(
 # Visualize a data sample:
 #
 
-x, y, _ = unpack_batch(next(iter(test_dataloader)))
+batch = next(iter(test_dataloader))
+x, y = batch["x"], batch["y"]
 dinv.utils.plot({"Ground truth": x, "Measurement": y, "Mask": physics.mask})
 
 

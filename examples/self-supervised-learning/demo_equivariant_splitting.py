@@ -24,7 +24,6 @@ from torchvision import transforms
 import os
 
 import deepinv as dinv
-from deepinv.datasets.base import unpack_batch
 
 # %%
 # Setup random seeds, paths and device
@@ -119,9 +118,8 @@ test_dataloader = DataLoader(
 # ------------------------
 #
 
-x, y, _ = unpack_batch(test_dataset[0])
-x, y = x.unsqueeze(0), y.unsqueeze(0)
-x, y = x.to(device), y.to(device)
+batch = test_dataset[0]
+x, y = batch["x"].unsqueeze(0).to(device), batch["y"].unsqueeze(0).to(device)
 
 psnr_fn = dinv.metric.PSNR()
 psnr_y = psnr_fn(y, x).item()

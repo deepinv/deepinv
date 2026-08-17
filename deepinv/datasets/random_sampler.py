@@ -169,7 +169,7 @@ class RandomPatchSampler(ImageDataset):
                 out["y"] = y
         else:
             out = (x, y) if self.y_dir else x
-        
+
         return out
 
     def _fix_ch(self, v: torch.Tensor) -> torch.Tensor:

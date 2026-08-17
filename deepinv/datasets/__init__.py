@@ -24,7 +24,6 @@ from .base import (
     check_dataset,
     TensorDataset,
     ImageFolder,
-    unpack_batch,
-    extract_x_tensor,
+    batch_as_dict,
 )
 from .skmtea import SKMTEASliceDataset

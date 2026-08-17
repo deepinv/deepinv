@@ -39,6 +39,8 @@ from deepinv.datasets import (
     ImageFolder,
     SKMTEASliceDataset,
     RandomPatchSampler,
+    check_dataset,
+    batch_as_dict,
 )
 from deepinv.datasets.utils import (
     download_archive,
@@ -50,7 +52,6 @@ from deepinv.datasets.utils import (
     ToComplex,
 )
 from deepinv.utils.io import load_mat
-from deepinv.datasets.base import check_dataset, unpack_batch, extract_x_tensor
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
 from deepinv.physics.generator import (
@@ -204,11 +205,12 @@ def check_dataset_format(
             ), f"Dataset should return data of type {dtype} but got type {type(dataset[0])}."
 
     if shape is not None:
-        x = extract_x_tensor(dataset[0])
+        batch = dataset[0]
+        batch = batch_as_dict(batch)
 
         assert (
-            x.shape == shape
-        ), f"Dataset should return data of shape {shape} but got shape {x.shape}"
+            batch["x"].shape == shape
+        ), f"Dataset should return data of shape {shape} but got shape {batch['x'].shape}"
 
 
 class MyDataset(ImageDataset):
@@ -372,20 +374,15 @@ def test_hdf5dataset(
     # Test HDF5Dataset.__getitem__
     idx = 0
     entry = dataset[idx]
-    expected_entry_length = 3 if load_physics_generator_params else 2
-    if use_dict_output:
-        assert (
-            set(entry) == {"x", "y", "params"}
-            if load_physics_generator_params
-            else {"x", "y"}
-        ), f"Dataset should return dict with keys 'x', 'y', and 'params' but got {set(entry)}."
+    entry = batch_as_dict(entry)
+    assert (
+        set(entry) == {"x", "y", "params"}
+        if load_physics_generator_params
+        else {"x", "y"}
+    ), f"Dataset should return dict with keys 'x', 'y', and 'params' but got {set(entry)}."
 
-    else:
-        assert (
-            len(entry) == expected_entry_length
-        ), f"Dataset entry should have length {expected_entry_length} but got {len(entry)}."
+    x, y, params = entry["x"], entry["y"], entry.get("params", {})
 
-    x, y, params = unpack_batch(entry)
     # Make the case disjunction at the start to simplify the logic
     split_name = split if split is not None else ("train" if train else "test")
     expected_value_x = SPLIT_NAMES.index(split_name) * 3 + 0
@@ -512,12 +509,14 @@ def test_hdf5dataset_generate_dataset(
         dtype=None if stacked else (dict if use_dict_output else tuple),
         allow_non_tensor=False,
     )
-    x_train, y_train, params_train = unpack_batch(train_ds[0])
+    batch = train_ds[0]
+    batch = batch_as_dict(batch)
+    y_train, params_train = batch["y"], batch.get("params", {})
 
     if supervised:
-        assert not torch.isnan(x_train).all(), "Supervised train split should have x."
+        assert "x" in batch, "Supervised train split should have x."
     else:
-        assert torch.isnan(x_train).all(), "Unsupervised train split should have NaN x."
+        assert "x" not in batch, "Unsupervised train split should not have x."
 
     if stacked:
         assert isinstance(
@@ -530,7 +529,9 @@ def test_hdf5dataset_generate_dataset(
         ), "Unstacked physics should return Tensor."
 
     if physgen is None:
-        assert params_train == {}, "Params should be empty when no generator is used."
+        assert (
+            "params" not in batch
+        ), "Params should be empty when no generator is used."
     else:
         assert "mask" in params_train, "Params should contain mask when generator used."
         assert params_train["mask"].shape == img_size
@@ -551,8 +552,11 @@ def test_hdf5dataset_generate_dataset(
         dtype=None if stacked else (dict if use_dict_output else tuple),
         allow_non_tensor=False,
     )
-    x_test, y_test, params_test = unpack_batch(test_ds[0])
-    assert not torch.isnan(x_test).all(), "Test split should have x."
+    batch = test_ds[0]
+    batch = batch_as_dict(batch)
+    y_test, params_test = batch["y"], batch.get("params", {})
+
+    assert "x" in batch, "Test split should have x."
 
     if stacked:
         assert isinstance(
@@ -565,7 +569,9 @@ def test_hdf5dataset_generate_dataset(
         ), "Unstacked physics should return Tensor."
 
     if physgen is None:
-        assert params_test == {}, "Params should be empty when no generator is used."
+        assert (
+            "params" not in batch
+        ), "Params should be empty when no generator is used."
     else:
         assert "mask" in params_test, "Params should contain mask when generator used."
         assert params_test["mask"].shape == img_size
@@ -613,8 +619,9 @@ def test_generate_dataset(tmp_path, use_dict_output):
 
         hdf_ds = HDF5Dataset(hdf_path, use_dict_output=use_dict_output)
         for sample_hdf, sample in zip(hdf_ds, ds, strict=True):
-            sample = ToTensor()(extract_x_tensor(sample))
-            sample_hdf = unpack_batch(sample_hdf)[0]
+            sample = batch_as_dict(sample)
+            sample = ToTensor()(sample["x"])
+            sample_hdf = batch_as_dict(sample_hdf)["x"]
             assert sample_hdf.equal(
                 sample
             ), "Ground-truth from HDF5 does not match original dataset, despite going through the same preprocessing."
@@ -1004,7 +1011,9 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering, use_dict_output)
             skip_check=True,
         )
 
-    x, y, _ = unpack_batch(dataset[0])
+    batch = dataset[0]
+    batch = batch_as_dict(batch)
+    x, y = batch["x"], batch["y"]
     data_points = [(x, y), dataset.get_item(1, 1, frames)]
 
     # totensor is None
@@ -1182,9 +1191,6 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units, use_dict_outpu
 
     for totensor in [ToTensor(), None]:
         with dataset_output_context(use_dict_output):
-            dtype = image_output_type(
-                use_dict_output, totensor, paired=False, untransformed_type=np.ndarray
-            )
             check_dataset_format(
                 LidcIdriSliceDataset(
                     root=mock_lidc_idri,
@@ -1238,8 +1244,10 @@ def test_load_nbu_dataset(download_nbu, use_dict_output):
             dtype=dict if use_dict_output else Tensor,
             shape=(4, 256, 256),
         )
+        batch = dataset[0]
+        batch = batch_as_dict(batch)
         assert torch.all(
-            (0 <= extract_x_tensor(dataset[0])) & (extract_x_tensor(dataset[0]) <= 1)
+            (0 <= batch["x"]) & (batch["x"] <= 1)
         ), "Dataset image should be Tensor between 0-1."
 
         # Check pan band
@@ -1284,13 +1292,13 @@ def test_load_nbu_dataset(download_nbu, use_dict_output):
             allow_non_tensor=True,
         )
 
-    x, y, params = unpack_batch(dataset[0])
-    if use_dict_output:
-        assert x is None
-    else:
-        assert math.isnan(x)
+    batch = dataset[0]
+    batch = batch_as_dict(batch)
+    y = batch["y"]
+
+    assert "x" not in batch
     assert y.shape == (4, 256, 256)
-    assert params == {}, "Params should be empty when no generator is used."
+    assert "params" not in batch, "Params should be empty when no generator is used."
 
 
 @pytest.fixture
@@ -1326,7 +1334,9 @@ def test_SimpleFastMRISliceDataset(download_simplefastmri, use_dict_output):
         dtype=dict if use_dict_output else Tensor,
         shape=(2, 320, 320),
     )
-    assert not torch.all(extract_x_tensor(dataset[0]) == extract_x_tensor(dataset[1]))
+    batch0, batch1 = dataset[0], dataset[1]
+    batch0, batch1 = batch_as_dict(batch0), batch_as_dict(batch1)
+    assert not torch.all(batch0["x"] == batch1["x"])
 
 
 @pytest.fixture
@@ -1388,8 +1398,13 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
         dataset, length=n_slices, dtype=dict if use_dict_output else tuple, shape=None
     )
 
-    target1, kspace1, _ = unpack_batch(dataset[0])
-    target2, kspace2, _ = unpack_batch(dataset[1])
+    batch1 = dataset[0]
+    batch1 = batch_as_dict(batch1)
+    target1, kspace1 = batch1["x"], batch1["y"]
+
+    batch2 = dataset[1]
+    batch2 = batch_as_dict(batch2)
+    target2, kspace2 = batch2["x"], batch2["y"]
 
     assert target1.shape == (1, *img_size)
     assert kspace1.shape == (2, n_coils, *kspace_shape)
@@ -1455,7 +1470,11 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
             metadata_cache_file="fastmrislicedataset_cache.pkl",
             use_dict_output=use_dict_output,
         )
-    x, y, params = unpack_batch(dataset[0])
+
+    batch = dataset[0]
+    batch = batch_as_dict(batch)
+    y, params = batch["y"], batch["params"]
+
     assert torch.all(y * params["mask"] == y)
     assert 0.24 < params["mask"].mean() < 0.26
     assert params["coil_maps"].shape == (n_coils, *kspace_shape)
@@ -1564,8 +1583,13 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
 
     check_dataset_format(dataset, length=3, dtype=dict if use_dict_output else tuple)
 
-    target1, kspace1, params1 = unpack_batch(dataset[0])
-    target2, kspace2, params2 = unpack_batch(dataset[1])
+    batch1 = dataset[0]
+    batch1 = batch_as_dict(batch1)
+    batch2 = dataset[1]
+    batch2 = batch_as_dict(batch2)
+
+    target1, kspace1, params1 = batch1["x"], batch1["y"], batch1["params"]
+    target2, kspace2, params2 = batch2["x"], batch2["y"], batch2["params"]
 
     assert target1.shape == kspace1.shape == (2, *img_size)
     assert not torch.all(target1 == target2)
@@ -1577,7 +1601,9 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     )  # masked has correct acc (< 0.25 due to padding)
 
     # Test reproducibility
-    _, _, params1_again = unpack_batch(dataset[0])
+    batch1_again = dataset[0]
+    batch1_again = batch_as_dict(batch1_again)
+    params1_again = batch1_again["params"]
     assert torch.all(params1_again["mask"] == params1["mask"])
 
     # Loaded kspace is directly compatible with deepinv physics
@@ -1593,7 +1619,9 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
         metadata_cache_file="cmrxreconslicedataset_cache.pkl",
         apply_mask=True,
     )
-    target1, kspace1, params1 = unpack_batch(dataset[0])
+    batch1 = dataset[0]
+    batch1 = batch_as_dict(batch1)
+    kspace1, params1 = batch1["y"], batch1["params"]
     assert torch.all(kspace1 * params1["mask"] == kspace1)  # kspace already masked
     assert (
         0.1 < params1["mask"].mean() < 0.26
@@ -1605,7 +1633,9 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
         metadata_cache_file="cmrxreconslicedataset_cache.pkl",
         apply_mask=False,
     )
-    target1, kspace1, _ = unpack_batch(dataset[0])
+    batch1 = dataset[0]
+    batch1 = batch_as_dict(batch1)
+    kspace1 = batch1["y"]
     assert (kspace1 == 0).sum() == 0
 
 
@@ -1650,8 +1680,10 @@ def test_SKMTEASliceDataset(download_SKMTEA, device, use_dict_output):
         load_metadata_from_cache=True,
     )
     assert len(dataset) == 2
+
     batch = next(iter(DataLoader(dataset)))
-    x, y, params = unpack_batch(batch)
+    batch = batch_as_dict(batch)
+    x, y, params = batch["x"], batch["y"], batch["params"]
     assert x.shape == (1, 2, *img_size)
     assert y.shape == (1, 2, n_coils, *img_size)
     assert params["mask"].shape == (1, 1, *img_size)
@@ -1816,9 +1848,11 @@ def test_RandomPatchSampler(make_data, use_dict_output):
             use_dict_output=use_dict_output,
         )
         assert len(ds) == 2
-        x = extract_x_tensor(next(iter(ds)))
+
+        batch = next(iter(ds))
+        batch = batch_as_dict(batch)
         assert (
-            x.shape == (1,) + tuple(c["patch"])
+            batch["x"].shape == (1,) + tuple(c["patch"])
             if c["ch_axis"] is None
             else (c["expected"])
         )
@@ -1831,10 +1865,12 @@ def test_RandomPatchSampler(make_data, use_dict_output):
             loader=c.get("loader", None),
             use_dict_output=use_dict_output,
         )
-        x, y, params = unpack_batch(next(iter(ds)))
+        batch = next(iter(ds))
+        batch = batch_as_dict(batch)
+        x, y = batch["x"], batch["y"]
         assert x.shape == c["expected"]
         assert y.shape == c["expected"]
-        assert params == {}
+        assert "params" not in batch
 
     # check if x is nan behaviour happens
     c0 = make_data[0]
@@ -1847,13 +1883,12 @@ def test_RandomPatchSampler(make_data, use_dict_output):
         use_dict_output=use_dict_output,
     )
     assert len(ds) == 2
-    x, y, params = unpack_batch(next(iter(ds)))
 
-    if use_dict_output:
-        assert x is None
-    else:
-        assert math.isnan(x)
-    assert params == {}
+    batch = next(iter(ds))
+    batch = batch_as_dict(batch)
+    assert "x" not in batch
+    assert "y" in batch
+    assert "params" not in batch
 
 
 @pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])

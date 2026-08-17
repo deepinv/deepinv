@@ -251,7 +251,11 @@ class FMD(ImageDataset):
         if self.target_transform is not None:
             clean_img = self.target_transform(clean_img)
 
-        return {"x": clean_img, "y": noisy_img} if self.use_dict_output else (clean_img, noisy_img)
+        return (
+            {"x": clean_img, "y": noisy_img}
+            if self.use_dict_output
+            else (clean_img, noisy_img)
+        )
 
     @staticmethod
     def _is_dataset_missing_at(path: str) -> bool:

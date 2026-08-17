@@ -8,7 +8,7 @@ from deepinv.loss.metric.metric import Metric
 from deepinv.physics.functional.convolution import conv2d
 from deepinv.physics.functional.imresize import imresize_matlab
 from deepinv.models.utils import load_state_dict_from_url, get_weights_url
-from deepinv.datasets.base import extract_x_tensor
+from deepinv.datasets.base import batch_as_dict
 
 
 class LPIPS(Metric):
@@ -440,8 +440,9 @@ class NIQE(Metric):
 
             all_feats = []
 
-            for i, x in zip(range(len(dataset)), dataset, strict=False):
-                x = extract_x_tensor(x)
+            for i, batch in zip(range(len(dataset)), dataset, strict=False):
+                batch = batch_as_dict(batch)
+                x = batch["x"]
 
                 if x.ndim == 2:
                     x = x.unsqueeze(0)

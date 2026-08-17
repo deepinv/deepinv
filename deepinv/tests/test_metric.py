@@ -494,7 +494,7 @@ class _MockDataset(torch.utils.data.Dataset):
         resolution: int,
         num_channels: int,
         dtype=torch.dtype,
-        use_dict_output: bool = False,
+        use_dict_output: bool = True,
     ):
         super().__init__()
         self.resolution = resolution
@@ -515,8 +515,7 @@ class _MockDataset(torch.utils.data.Dataset):
 
 @pytest.mark.parametrize("n_channels", (1, 3))
 @pytest.mark.parametrize("dtype", (torch.float16, torch.float32, torch.float64))
-@pytest.mark.parametrize("use_dict_output", [True, False])
-def test_niqe_fit(n_channels: int, dtype: torch.dtype, use_dict_output: bool):
+def test_niqe_fit(n_channels: int, dtype: torch.dtype):
     # General Note: Testing whether weights created are useful is too complex here.
     # Therefore, we simply use dummy inputs to confirm
     # (i) Errors are raised on certain inputs
@@ -537,7 +536,6 @@ def test_niqe_fit(n_channels: int, dtype: torch.dtype, use_dict_output: bool):
         resolution=31,
         num_channels=n_channels,
         dtype=dtype,
-        use_dict_output=use_dict_output,
     )
     with pytest.raises(RuntimeError) as exc_info:
         mu, cov = niqe.create_weights(low_res_ds)
@@ -551,7 +549,6 @@ def test_niqe_fit(n_channels: int, dtype: torch.dtype, use_dict_output: bool):
         resolution=40,
         num_channels=n_channels,
         dtype=dtype,
-        use_dict_output=use_dict_output,
     )
     mu, cov = niqe.create_weights(ds, sharpness_threshold=0.1)
     assert mu.shape == torch.Size([36]) and cov.shape == torch.Size([36, 36])

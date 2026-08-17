@@ -25,7 +25,6 @@ import torch
 import matplotlib.pyplot as plt
 
 import deepinv as dinv
-from deepinv.datasets.base import unpack_batch
 
 device = dinv.utils.get_device()
 
@@ -153,7 +152,8 @@ test_dataloader = torch.utils.data.DataLoader(
 # Visualise a data sample:
 #
 
-x, y, _ = unpack_batch(next(iter(test_dataloader)))
+batch = next(iter(test_dataloader))
+x, y = batch["x"], batch["y"]
 dinv.utils.plot({"Ground truth": x, "LR measurement": y}, rescale_mode="clip")
 
 # %%

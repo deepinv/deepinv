@@ -37,7 +37,7 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
     batch = dataset.__getitem__(0)
     error_tuple = f"Dataset {dataset} should return either non-nan image `x`, or tuples of either length 2 of 3 of (x, y) or (x, params), or (x, y, params), where x, y are images (either Tensor, TensorList, or nan) and params is a dict"
 
-    error_dict = f"Dataset {dataset} should return a dict with at least one of the keys 'x' or 'y', where x, y are images (either Tensor, TensorList) and params is a dict"
+    error_dict = f"Dataset {dataset} should return a dict with at least one of the keys 'x' or 'y', where x, y are images (either Tensor, TensorList). The dict can also contain a 'params' key, where params is a dict of parameters passed to a physics."
 
     def warn_core_types(x):
         if (
@@ -73,7 +73,7 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
         elif isinstance(y_or_params, dict) and any(
             not isinstance(k, str) for k in y_or_params
         ):
-            raise RuntimeError(f"{error_dict}, but params dict has non-string keys.")
+            raise RuntimeError(f"{error_tuple}, but params dict has non-string keys.")
 
         warn(
             "The tuple format for dataset outputs is deprecated and will be removed in a future version."
@@ -102,7 +102,7 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
                 f"{error_tuple}, but index 2 of returned tuple is not dict but of type {type(params)}."
             )
         elif any(not isinstance(k, str) for k in params):
-            raise RuntimeError(f"{error_dict}, but params dict has non-string keys.")
+            raise RuntimeError(f"{error_tuple}, but params dict has non-string keys.")
 
         warn(
             "The tuple format for dataset outputs is deprecated and will be removed in a future version."
@@ -153,56 +153,52 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
         raise RuntimeError(f"{error_dict}, but returned batch of type {type(batch)}.")
 
 
-def unpack_batch(
-    batch: Tensor | TensorList | tuple | list | dict,
-) -> tuple[Tensor | TensorList | float | None, Tensor | TensorList | None, dict]:
-    """Normalize a dataset batch (tuple or dict format) into a canonical ``(x, y, params)`` triple. Used in :class:`deepinv.Trainer` to unpack batches from the dataloader.
+def batch_as_dict(
+    batch: Tensor | tuple | list | dict,
+) -> dict:
+    """Packs a dataset batch (tuple or dict format) into a canonical dict with keys "x", "y", and "params"."""
 
-    Accepts any of the batch shapes documented in :func:`check_dataset`: a bare image
-    (``x``), a tuple/list (``(x,)``, ``(x, y)``, ``(x, params)``, ``(x, y, params)``), or a
-    (nested) dict with optional ``"x"``, ``"y"``, ``"params"`` keys.
-
-    :param batch: a single batch as returned by a dataset's `__getitem__` (or by a
-        `torch.utils.data.DataLoader` wrapping such a dataset).
-    :return: tuple ``(x, y, params)`` where `x` is `None` if absent (the dict-format equivalent
-        of the tuple-format convention for ground-truth-free datasets), `y` is `None` if absent, and
-        `params` is `{}` if absent.
-    """
+    # If the batch is already a dict, return it as is
     if isinstance(batch, dict):
-        return batch.get("x", None), batch.get("y", None), batch.get("params", {})
+        return batch
 
-    if isinstance(batch, (tuple, list)):
+    elif isinstance(batch, Tensor):
+        out = {"x": batch}
+
+    elif isinstance(batch, (tuple, list)):
         if len(batch) == 1:
-            return batch[0], None, {}
+            out = {"x": batch[0]}
+
         elif len(batch) == 2:
             x, second = batch
+            out = {}
+            if (
+                isinstance(x, Tensor)
+                and not torch.isnan(x).all()
+                or isinstance(x, (PIL_Image, ndarray))
+            ):
+                out = {"x": x}
+
             if isinstance(second, dict):
-                return x, None, second
-            return x, second, {}
+                out["params"] = second
+            else:
+                out["y"] = second
+
         elif len(batch) == 3:
-            return batch[0], batch[1], batch[2]
+            x, y, params = batch
+            out = {}
+            if not torch.isnan(x).all():
+                out = {"x": x}
+
+            out["y"] = y
+            out["params"] = params
+
         else:
             raise RuntimeError(
                 f"Batch should be a tensor, or tuple/list of length 1 to 3, or dict, but got tuple/list of length {len(batch)}."
             )
 
-    return batch, None, {}
-
-
-def extract_x_tensor(batch: Tensor | TensorList | tuple | list | dict) -> Tensor:
-    """Utility function to handle tuple / dict output format in dataset. Extract the primary data tensor from a batch, discarding any `y`/`params`.
-
-    Useful for dataloader consumers (e.g. patch-based denoisers) that only need a single
-    tensor, whatever the batch shape (bare tensor, tuple/list, or dict).
-
-    :param batch: a single batch as returned by a dataset's `__getitem__` (or by a
-        `torch.utils.data.DataLoader` wrapping such a dataset).
-    """
-    if isinstance(batch, dict):
-        return batch.get("x", batch.get("y"))
-    if isinstance(batch, (tuple, list)):
-        return batch[0]
-    return batch
+    return out
 
 
 class ImageDataset(Dataset):
