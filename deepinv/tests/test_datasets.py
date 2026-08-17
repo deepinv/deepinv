@@ -178,7 +178,10 @@ def check_dataset_format(
 
             except ValueError as e:
                 # We may be checking paired unsup dataset, in which case training is ok to fail
-                if "Online measurements can't be used if x is all NaN" not in str(e):
+                if (
+                    "Dataloader must return ground truth `x` for online measurements."
+                    not in str(e)
+                ):
                     raise
 
     if length is not None:
@@ -377,6 +380,8 @@ def test_hdf5dataset(
     entry = dataset[idx]
     entry = batch_as_dict(entry)
 
+    x, y, params = entry.get("x", None), entry["y"], entry.get("params", {})
+
     if not unsupervised:
         assert "x" in entry, "Supervised dataset should return x."
     else:
@@ -384,16 +389,14 @@ def test_hdf5dataset(
 
     assert "y" in entry, "Dataset should return y."
 
-    if load_physics_generator_params:
+    if load_physics_generator_params and with_params:
         assert (
             "params" in entry
-        ), "Dataset should return params when load_physics_generator_params is True."
+        ), "Dataset should return params when load_physics_generator_params is True and dataset contains params entries."
     else:
         assert (
             "params" not in entry
-        ), "Dataset should not return params when load_physics_generator_params is False."
-
-    x, y, params = entry.get("x", None), entry["y"], entry.get("params", {})
+        ), "Dataset should not return params when load_physics_generator_params is False or dataset does not contain params entries."
 
     # Make the case disjunction at the start to simplify the logic
     split_name = split if split is not None else ("train" if train else "test")
@@ -525,15 +528,12 @@ def test_hdf5dataset_generate_dataset(
             load_physics_generator_params=True,
             use_dict_output=use_dict_output,
         )
-
-    # check_dataset_format runs a Trainer with `online_measurements=True` so ground-truth `x` is required
-    if supervised:
-        check_dataset_format(
-            train_ds,
-            length=1,
-            dtype=None if stacked else (dict if use_dict_output else tuple),
-            allow_non_tensor=False,
-        )
+    check_dataset_format(
+        train_ds,
+        length=1,
+        dtype=None if stacked else (dict if use_dict_output else tuple),
+        allow_non_tensor=False,
+    )
     batch = train_ds[0]
     batch = batch_as_dict(batch)
     y_train, params_train = batch["y"], batch.get("params", {})
@@ -1306,6 +1306,7 @@ def test_load_nbu_dataset(download_nbu, use_dict_output):
             dtype=dict if use_dict_output else Tensor,
             shape=(4, 256, 256),
         )
+
         dataset = ImageFolder(
             download_nbu,
             y_path="gaofen-1/MS_256/*.mat",

@@ -384,7 +384,7 @@ class HDF5Dataset(ImageDataset):
 
         if self.use_dict_output:
             out = {"x": x, "y": y} if not torch.isnan(x).all() else {"y": y}
-            if params is not None:
+            if params is not None and len(params) > 0:
                 out["params"] = params
 
         else:
@@ -460,7 +460,7 @@ def collate(dataset: Dataset) -> Callable[[list[Any]], Tensor] | None:
         if isinstance(example_output, Image.Image):
 
             def collate_pillow(
-                batch: list[Image.Image | list[Image.Image]],
+                batch: list[Image.Image | list[Image.Image] | dict[str, Image.Image]],
             ) -> Tensor:
                 tensors = []
                 for sample in batch:
@@ -469,6 +469,9 @@ def collate(dataset: Dataset) -> Callable[[list[Any]], Tensor] | None:
                     elif isinstance(sample, (list, tuple)):
                         # only keeping the first element is same behavior as when dataset returns list of tensors!
                         img = sample[0]
+                    elif isinstance(sample, dict):
+                        # Assuming the dictionary has a key for the image
+                        img = sample.get("x", sample.get("y"))
                     else:  # pragma: no cover
                         raise ValueError(
                             f"generate_dataset expects datasets to consistently return a (list of) Tensor, Array, or PIL images. Detected use of PIL in a sample, but received a new item of type {type(sample)}."

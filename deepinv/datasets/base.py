@@ -162,7 +162,7 @@ def batch_as_dict(
     if isinstance(batch, dict):
         return batch
 
-    elif isinstance(batch, Tensor):
+    elif isinstance(batch, (TensorList, Tensor, PIL_Image, ndarray)):
         out = {"x": batch}
 
     elif isinstance(batch, (tuple, list)):
@@ -172,10 +172,12 @@ def batch_as_dict(
         elif len(batch) == 2:
             x, second = batch
             out = {}
+
+            # NOTE: Kohler dataset can return a tuple of list of PIL_Image, hence accepts list as valid type
             if (
                 isinstance(x, Tensor)
                 and not torch.isnan(x).all()
-                or isinstance(x, (PIL_Image, ndarray))
+                or isinstance(x, (TensorList, PIL_Image, ndarray, list))
             ):
                 out = {"x": x}
 
@@ -187,7 +189,13 @@ def batch_as_dict(
         elif len(batch) == 3:
             x, y, params = batch
             out = {}
-            if not torch.isnan(x).all():
+
+            # NOTE: Kohler dataset can return a tuple of list of PIL_Image, hence accepts list as valid type
+            if (
+                isinstance(x, Tensor)
+                and not torch.isnan(x).all()
+                or isinstance(x, (TensorList, PIL_Image, ndarray, list))
+            ):
                 out = {"x": x}
 
             out["y"] = y
@@ -540,7 +548,8 @@ class ImageFolder(ImageDataset):
             if y is not None:
                 out["y"] = y
 
-            out["params"] = params
+            if len(params) > 0:
+                out["params"] = params
 
             return out
 

@@ -722,7 +722,7 @@ class Trainer:
         data = next(iterators[g])
         data = batch_as_dict(data)
 
-        if y not in data:
+        if "y" not in data:
             raise ValueError(
                 "If online_measurements=False, the dataloader should output a dict with key 'y' (and optionally 'x' or 'params')"
             )
