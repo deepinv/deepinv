@@ -21,7 +21,10 @@ class ShiftTime(Transform):
         super().__init__(*args, **kwargs)
         self.flatten_video_input = False
         self.padding = padding
-        assert self.padding in ("reflect", "wrap"), "padding must be reflect or wrap."
+        if padding not in ("reflect", "wrap"):  # pragma: no cover
+            raise ValueError(
+                f"padding must be one of ('reflect', 'wrap'), got {padding}"
+            )
 
     def roll_reflect_1d(self, x: torch.Tensor, by: int = 0, dim: int = 0):
         """Roll in one dimension with reflect padding.

@@ -23,3 +23,31 @@ def _as_pair(value: int | float | tuple | list) -> tuple[int, int]:
         raise TypeError(
             f"Expected int, float, or tuple/list, got {type(value).__name__}"
         )
+
+
+def _as_sequence(val):
+    r"""
+    Ensure value is a sequence. If the input is a single int or float, it is converted to a tuple of length 1.
+    """
+    if isinstance(val, (int, float)):
+        return (val,)
+    if isinstance(val, (tuple, list)):
+        return tuple(val)
+    raise TypeError(f"Expected int/float or sequence for parameter, got {type(val)}.")
+
+
+def _check_pairwise_leq(mins, maxs, name_mins: str, name_maxs: str):
+    r"""
+    Check that each component of `mins` is less than or equal to the corresponding component of `maxs`.
+    Raises a ValueError with a descriptive message if any component violates the constraint.
+    """
+    if len(mins) != len(maxs):
+        raise ValueError(
+            f"{name_mins} and {name_maxs} must have the same length. Got {len(mins)} and {len(maxs)}."
+        )
+
+    for m, M in zip(mins, maxs, strict=True):
+        if m > M:
+            raise ValueError(
+                f"Each component of {name_mins} should be less than or equal to the corresponding component of {name_maxs}. Got {name_mins} = {mins} and {name_maxs} = {maxs}."
+            )

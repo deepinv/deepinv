@@ -113,6 +113,25 @@ class TestTomographyWithAstra:
                 device=device,
             )
 
+        assert physics.img_size == img_size
+        assert physics.n_detector_pixels == n_detector_pixels
+        assert physics.detector_spacing == (1.0 if is_2d else (1.0, 1.0))
+        assert physics.pixel_spacing == ((1.0, 1.0) if is_2d else (1.0, 1.0, 1.0))
+        assert physics.bounding_box == (
+            (-img_size[-1] / 2, img_size[-1] / 2, -img_size[-2] / 2, img_size[-2] / 2)
+            if is_2d
+            else (
+                -img_size[-1] / 2,
+                img_size[-1] / 2,
+                -img_size[-2] / 2,
+                img_size[-2] / 2,
+                -img_size[-3] / 2,
+                img_size[-3] / 2,
+            )
+        )
+        assert physics.geometry_type == geometry_type
+        assert physics.geometry_vectors is None
+
         x = torch.rand(1, channels, *img_size, device=device)
 
         if device != "cuda":
@@ -201,6 +220,16 @@ class TestTomographyWithAstra:
                 else (64, 48, 32)
             )
         assert physics.num_angles == 32 if cubic else 64
+        expected_angles = torch.linspace(
+            *(0, 180) if geometry_type == "parallel" else (0, 360),
+            steps=num_angles + 1,
+            device=device,
+        )[:-1]
+        assert torch.allclose(physics.angles, expected_angles)
+        assert physics.angular_range == (
+            expected_angles.min().item(),
+            expected_angles.max().item(),
+        )
         assert physics.xray_transform.object_cell_volume == pytest.approx(1.0)
         assert physics.xray_transform.detector_cell_u_length == pytest.approx(1.0)
         assert physics.xray_transform.detector_cell_v_length == pytest.approx(1.0)

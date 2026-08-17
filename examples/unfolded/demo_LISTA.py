@@ -71,8 +71,10 @@ test_base_dataset = datasets.MNIST(
 num_workers = 4 if torch.cuda.is_available() else 0
 
 # Generate the compressed sensing measurement operator with 5x under-sampling factor.
-physics = dinv.physics.CompressedSensing(
-    m=157, img_size=(n_channels, img_size, img_size), fast=True, device=device
+physics = dinv.physics.StructuredRandom(
+    img_size=(n_channels, img_size, img_size),
+    output_size=(n_channels, 13, 13),
+    device=device,
 )
 my_dataset_name = "demo_LISTA"
 n_images_max = (
@@ -109,8 +111,8 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # where :math:`\lambda` is the regularization parameter.
 # The proximal gradient iteration (see also :class:`deepinv.optim.optim_iterators.PGDIteration`) is defined as
 #
-#   .. math::
-#           x_{k+1} = \text{prox}_{\gamma \lambda g}(x_k - \gamma A^T (Ax_k - y))
+# .. math::
+#         x_{k+1} = \text{prox}_{\gamma \lambda g}(x_k - \gamma A^T (Ax_k - y))
 #
 # where :math:`\gamma` is the stepsize and :math:`\text{prox}_{g}` is the proximity operator of :math:`g(x) = \|Wx\|_1`
 # which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.optim.WaveletPrior`).

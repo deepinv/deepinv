@@ -74,19 +74,19 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
 
    * - :func:`deepinv.physics.functional.IRadon`
      - Computes the inverse Radon transform, reconstructing an image from projection data as in CT scan reconstruction.
-  
+
    * - :func:`deepinv.physics.functional.dct`
      - Computes the 1D Discrete Cosine Transform (DCT), commonly used in signal processing and data compression.
 
    * - :func:`deepinv.physics.functional.idct`
      - Computes the inverse 1D Discrete Cosine Transform (IDCT), reconstructing the original signal from its DCT coefficients.
-    
+
    * - :func:`deepinv.physics.functional.dct_2d`
      - Computes the 2D Discrete Cosine Transform (DCT), commonly used in image compression and signal processing.
-  
+
    * - :func:`deepinv.physics.functional.idct_2d`
      - Computes the inverse 2D Discrete Cosine Transform (IDCT), reconstructing the original image from its DCT coefficients.
-    
+
    * - :func:`deepinv.physics.functional.XrayTransform`
      - X-ray Transform operator with ``astra-toolbox`` backend. Computes forward projection and backprojection used in CT reconstruction.
 
@@ -105,3 +105,23 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
    * - :func:`deepinv.physics.functional.random_choice`
      - Randomly selects elements from a given input tensor based on specified probabilities, useful for stochastic sampling in various applications.
 
+   * - :func:`deepinv.physics.functional.gaussian_blur`
+     - Generates a Gaussian blur kernel in 1D, 2D or 3D, commonly used to model point spread functions.
+
+   * - :func:`deepinv.physics.functional.bilinear_filter`
+     - Generates a bilinear filter kernel, often used for image resizing and interpolation.
+
+   * - :func:`deepinv.physics.functional.bicubic_filter`
+     - Generates a bicubic filter kernel, providing smoother results than bilinear filtering for image resizing.
+
+   * - :func:`deepinv.physics.functional.sinc_filter`
+     - Generates a sinc filter kernel, used for ideal low-pass filtering in signal processing and image resampling.
+
+   * - :func:`deepinv.physics.functional.liu_jia_pad`
+     - Pads an image to make it have smooth circular boundaries for use in spectral deconvolution, reducing ringing artifacts in the deblurred outputs.
+
+   * - :func:`deepinv.physics.split_measurements`
+     - Splits tomography measurements into interleaved angular / vector subsets.
+
+   * - :func:`deepinv.physics.split_physics`
+     - Builds stacked tomography physics with one operator per interleaved angular / vector subset.

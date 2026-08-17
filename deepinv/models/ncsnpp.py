@@ -99,7 +99,6 @@ class NCSNpp(Denoiser):
     ):
         super().__init__()
         model_type = model_type.lower()
-        assert model_type in ["ncsn", "ddpm"]
         if model_type == "ncsn":
             embedding_type = "fourier"
             channel_mult_noise = 2
@@ -112,9 +111,22 @@ class NCSNpp(Denoiser):
             encoder_type = "standard"
             decoder_type = "standard"
             resample_filter = [1, 1]
-        assert embedding_type in ["fourier", "positional"]
-        assert encoder_type in ["standard", "skip", "residual"]
-        assert decoder_type in ["standard", "skip"]
+        else:  # pragma: no cover
+            raise ValueError(
+                f'model_type must be one of ["ncsn", "ddpm"], got {model_type}'
+            )
+        if embedding_type not in ["fourier", "positional"]:  # pragma: no cover
+            raise ValueError(
+                f'embedding_type must be one of ["fourier", "positional"], got {embedding_type}'
+            )
+        if encoder_type not in ["standard", "skip", "residual"]:  # pragma: no cover
+            raise ValueError(
+                f'encoder_type must be one of ["standard", "skip", "residual"], got {encoder_type}'
+            )
+        if decoder_type not in ["standard", "skip"]:  # pragma: no cover
+            raise ValueError(
+                f'decoder_type must be one of ["standard", "skip"], got {decoder_type}'
+            )
         self.precondition_type = precondition_type.lower()
         self.label_dropout = label_dropout
         emb_channels = model_channels * channel_mult_emb

@@ -27,14 +27,14 @@ expertise, have a search in our `issues <https://github.com/deepinv/deepinv/issu
 .. list-table::
    :widths: 25 25 25 25
 
-   * - `optimization <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+optim>`_ 
-     - `training <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+trainer>`_ 
-     - `datasets <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+dataset>`_ 
-     - `losses <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+loss>`_ 
-   * - `diffusion <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+diffusion>`_ 
-     - `mri <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+mri>`_ 
-     - `tomography <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+tomography>`_ 
-     - `docs <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+docs>`_ 
+   * - `optimization <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+optim>`_
+     - `training <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+trainer>`_
+     - `datasets <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+dataset>`_
+     - `losses <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+loss>`_
+   * - `diffusion <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+diffusion>`_
+     - `mri <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+mri>`_
+     - `tomography <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+tomography>`_
+     - `docs <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+docs>`_
 
 
 How to Contribute
@@ -51,16 +51,56 @@ Want to solve an issue or contribute something new to DeepInverse? Never contrib
 The first steps of contributing to any open-source project is the same. Follow these `step-by-step instructions on the GitHub website <https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project>`_
 to: fork your own copy of `DeepInverse <https://github.com/deepinv/deepinv>`_, clone it to your computer, create a branch, write code, commit and push your code.
 
+.. note::
+  LLM usage is ok, but for first-time contributors, we request that their contributions are mainly human-written and will not accept PRs generated 100% by AI. See our :ref:`LLM policy <llm-policy>`.
+
 Once you've opened a (draft) pull request (PR) in GitHub with your contribution, you should be able to see it under `Pull Requests <https://github.com/deepinv/deepinv/pulls>`_.
 You're ready to move on!
 
 .. note::
 
-  Our maintainers will then try to assist you by working directly on your PR. Do not hesitate to ask questions or to leave comments directly on the Pull Request page. 
+  Our maintainers will then try to assist you by working directly on your PR. Do not hesitate to ask questions or to leave comments directly on the Pull Request page.
+
+2. Install DeepInverse
+~~~~~~~~~~~~~~~~~~~~~~
+
+From the root of your cloned repository, install ``deepinv`` in editable mode so
+that your local changes are used when you run code. Choose one of the following
+installation methods.
+
+Some contributions require software beyond Python packages. This is, for
+instance, the case for :class:`PET physics <deepinv.physics.PET>`. 
+If you want to contribute related features, use the repository's full `Pixi <https://pixi.sh>`_ development environment:
+
+.. code-block:: bash
+
+    pixi install -e full
+
+Run commands in this environment with ``pixi run -e full``, for example
+``pixi run -e full python -m pytest deepinv/tests``.
+
+For contributions requiring only Python packages, `uv <https://docs.astral.sh/uv/>`_
+can create a virtual environment and install the development dependencies:
+
+.. code-block:: bash
+
+    uv venv
+    uv pip install -e ".[test,dataset,denoisers,doc,lint,training]"
+
+Run commands in this environment with ``uv run --no-sync``, for example
+``uv run --no-sync python -m pytest deepinv/tests``.
+
+Alternatively, use Python's built-in ``venv`` module and ``pip``:
+
+.. code-block:: bash
+
+    python -m venv .venv
+    source .venv/bin/activate
+    python -m pip install -e ".[test,dataset,denoisers,doc,lint,training]"
 
 .. _write_tests:
 
-2. Write tests
+3. Write tests
 ~~~~~~~~~~~~~~
 
 Tests are crucial for checking your code will always behave as intended, and we encourage you to follow a test-driven development methodology. Tests can consist of:
@@ -70,20 +110,14 @@ Tests are crucial for checking your code will always behave as intended, and we 
 
 How to write and run tests:
 
-1. Install `deepinv` in editable mode so that all your changes are used when you run code:
-
-.. code-block:: bash
-
-    pip install -e .[test,dataset,denoisers,doc,lint,training]
-
-2. Write your tests in ``deepinv/tests``. Check out the existing tests to see examples of where you could insert your tests. We use ``pytest`` and ``unittest.mock``.
+1. Write your tests in ``deepinv/tests``. Check out the existing tests to see examples of where you could insert your tests. We use ``pytest`` and ``unittest.mock``.
 
 .. hint::
 
   If you've contributed a new class (e.g. dataset, physics etc.), you should add it to any existing tests, e.g. those that check physics adjointness, dataset return format, etc.
 
-3. Check your tests pass locally by running ``python -m pytest deepinv/tests`` in the root directory after making the desired changes. Learn more `here <https://realpython.com/pytest-python-testing/>`__. You can also run specific tests by providing the path to the test file, e.g. ``python -m pytest deepinv/tests/test_physics.py``, or even to a specific test function, e.g. ``python -m pytest -k "test_operators_adjointness" deepinv/tests/test_physics.py``.
-4. Push your code to your PR. A maintainer will run the tests on CPU and GPU in the CI, and you will see the results in the `Test PR...` GitHub action.
+2. Check your tests pass locally by running ``python -m pytest deepinv/tests`` in the root directory after making the desired changes. Learn more `here <https://realpython.com/pytest-python-testing/>`__. You can also run specific tests by providing the path to the test file, e.g. ``python -m pytest deepinv/tests/test_physics.py``, or even to a specific test function, e.g. ``python -m pytest -k "test_operators_adjointness" deepinv/tests/test_physics.py``.
+3. Push your code to your PR. A maintainer will run the tests on CPU and GPU in the CI, and you will see the results in the `Test PR...` GitHub action.
 
 .. note::
   Your code coverage will automatically be checked using ``codecov``.
@@ -93,16 +127,16 @@ How to write and run tests:
 
 .. _write_docs:
 
-3. Write docs
+4. Write docs
 ~~~~~~~~~~~~~
 
 Writing good documentation is also crucial for helping other users use your code. This is how:
 
 1. Write good quality `docstrings <https://realpython.com/how-to-write-docstrings-in-python/>`_ for each new class, method or function. Have a look at any other class or method in DeepInverse to see examples! Please follow our :ref:`docstring guidelines below <docstring_guidelines>`.
-2. If you wrote a new class or function, add it to the lists in the `API reference <https://deepinv.github.io/deepinv/API.html>`_ and `User Guide <https://deepinv.github.io/deepinv/user_guide.html>`_. For API, add to the appropriate `.rst` file `here <https://github.com/deepinv/deepinv/tree/main/docs/source/api>`__. For User Guide, `here <https://github.com/deepinv/deepinv/tree/main/docs/source/user_guide>`__.
-3. Want to share more about your new feature? Consider writing an `example <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ in `examples/`!
+2. If you wrote a new class or function, add it to the lists in the `API reference <https://deepinv.org/API.html>`_ and `User Guide <https://deepinv.org/user_guide.html>`_. For API, add to the appropriate `.rst` file `here <https://github.com/deepinv/deepinv/tree/main/docs/source/api>`__. For User Guide, `here <https://github.com/deepinv/deepinv/tree/main/docs/source/user_guide>`__.
+3. Want to share more about your new feature? Consider writing an `example <https://deepinv.org/auto_examples/index.html>`_ in `examples/`!
 4. Check that your documentation is correct by building the docs locally. First `cd docs`, then we use `sphinx <https://www.sphinx-doc.org/en/master/usage/installation.html>`_ to build:
-  
+
 .. list-table::
    :widths: 40 50
    :header-rows: 1
@@ -120,7 +154,7 @@ Writing good documentation is also crucial for helping other users use your code
    * - ``make clean-win``
      - Cleans the documentation files (Windows OS)
 
-.. caution:: 
+.. caution::
   Note that if the build process fails, supplementary additional libraries may need to be manually installed (e.g. ``sphinx-gallery``): please follow instructions in the log.
 
 .. tip::
@@ -128,7 +162,7 @@ Writing good documentation is also crucial for helping other users use your code
 
 .. _code_quality:
 
-4. Code quality
+5. Code quality
 ~~~~~~~~~~~~~~~
 
 Code quality is important to us. We require that your code is compliant with PEP8, the `black <https://black.readthedocs.io>`_ style and `ruff <https://docs.astral.sh/ruff/>`_ checkers:
@@ -140,11 +174,11 @@ Code quality is important to us. We require that your code is compliant with PEP
 
 .. _log_changes:
 
-5. Log your changes
+6. Log your changes
 ~~~~~~~~~~~~~~~~~~~
 
-We keep a summary of all changes in the `changelog.rst <https://deepinv.github.io/deepinv/changelog.html>`_ file in the documentation.
-We separate contributions into three categories: **Added** for new features, **Changed** for changes in existing features, and **Fixed** for bug fixes. 
+We keep a summary of all changes in the `changelog.rst <https://deepinv.org/changelog.html>`_ file in the documentation.
+We separate contributions into three categories: **Added** for new features, **Changed** for changes in existing features, and **Fixed** for bug fixes.
 To do so, you should first add your GitHub information at the end of the file following the format:
 
 .. code-block:: rest
@@ -159,7 +193,9 @@ This line should follow the format:
   - <description of your contribution> (:gh:`<pull request number>` by `<your name>`_)
 
 
-6. Interact with reviewers
+You also need to summarise your changes in the Pull Request description, and tick whether you used LLM tools to generate the code. See :ref:`LLM policy <llm-policy>` for more details.
+
+7. Interact with reviewers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You're done! A maintainer will see your PR and will interact with you. They may suggest changes. It is your responsibility to make all requested fixes!
@@ -174,9 +210,21 @@ Finding help
 .. tip::
 
   **Run into a problem, don't know where to start, or got a question/suggestion?**
-  
-  Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_, open an `issue <https://github.com/deepinv/deepinv/issues>`_, or 
+
+  Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_, open an `issue <https://github.com/deepinv/deepinv/issues>`_, or
   send an email to a `maintainer <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_ and we'll help you out.
+
+.. _llm-policy:
+
+LLM policy
+~~~~~~~~~~
+
+DeepInverse allows contributions where code is partially written by an LLM. However, we require that a human contributes both during code writing, and during PR submission and review. Why?
+
+1. Community: easy-fixable issues are for humans, not bots, and humans keep the project alive;
+2. Review: PR review works because reviewers trust authors and their intentions, and don't always have to resort to line-by-line reviews of code that no human has read before.
+
+Therefore, DeepInverse does not welcome PRs a) consisting fully of LLM-generated code, or b) that are submitted by an AI agent, or an agent acting on behalf of a human, especially for first time contributors. DeepInverse maintainers may close a PR if they suspect that the PR is AI-generated. Therefore, to help maintainers trust that you are a human coder, we request that, when submitting a PR, you tick whether an LLM or AI agent helped you write the code, or generated it fully, and/or submitted the PR.
 
 .. _docstring_guidelines:
 
@@ -246,12 +294,23 @@ Below is a minimal working example of a typical docstring that includes all thes
         def __init__(self, in_channels: int, out_channels: int, pretrained: bool = None):
             pass
 
+Backwards Compatibility
+------------------------
+
+If you propose breaking changes, you must prevent your contribution breaking existing user workflows. To do this, you must start by deprecating the former behavior with an opt-in way to switch to the new behavior. After a delay deemed sufficient, we finally drop support for the deprecated feature. We update :ref:`the changelog <log_changes>` at both stages with the new deprecations and dropped features in order to help users with the migration process.
+
+Even though we generally try to avoid unexpected breaking changes, the library is at an early stage of development and we tolerate them in certain cases. Specifically, we allow them when the benefits are considered to far outweigh the negative consequences, especially when proper deprecation would take a lot more effort than the change itself.
+
+As a contributor making a new pull request, it might be tricky to determine a suitable way to handle potential breaking changes. Please do not let this delay your submission needlessly. The maintainers acknowledge this and will provide the necessary guidance when reviewing your changes.
+
+A number of deprecation helpers are featured in the library internals, located in ``deepinv/utils/decorators.py``. Deprecating classes, functions and methods is handled by ``_deprecated_class``, ``_deprecated_func`` and ``_deprecated_func_replaced_by``. Deprecating function and method arguments is handled by ``_deprecated_argument`` and ``_deprecated_alias``. Finally, deprecating attributes is handled by ``_deprecate_attribute``. We also generally endorse the recommendations from `scikit-learn's contributing guide <https://scikit-learn.org/dev/developers/contributing.html#maintaining-backwards-compatibility>`_.
+
 Contributing new physics
 -------------------------
 
-Adding a physical operator follows the general contribution guidelines. Specifically, your constribution must include proper :ref:`tests <write_tests>` and :ref:`documentation <write_docs>`, as well as meet our :ref:`code quality standards <code_quality>`. Additionally, the provided code is expected to follow specific design rules to ensure seamless integration into the codebase, this means:
+Adding a physical operator follows the general contribution guidelines. Specifically, your contribution must include proper :ref:`tests <write_tests>` and :ref:`documentation <write_docs>`, as well as meet our :ref:`code quality standards <code_quality>`. Additionally, the provided code is expected to follow specific design rules to ensure seamless integration into the codebase, this means:
 
-- Implementing a new class that inherits from the appropriate physics base class. Refer to the design outlined in `Bring your own physics <https://deepinv.github.io/deepinv/auto_examples/basics/demo_custom_physics.html>`_ for guidance.
+- Implementing a new class that inherits from the appropriate physics base class. Refer to the design outlined in `Bring your own physics <https://deepinv.org/auto_examples/basics/demo_custom_physics.html>`_ for guidance.
 
 - Registering the physics in the appropriate test suite and verifying that the tests pass -- when inheriting from :class:`deepinv.physics.LinearPhysics`, it involves the following modifications to `deepinv/tests/test_physics.py`:
 
@@ -261,7 +320,7 @@ Adding a physical operator follows the general contribution guidelines. Specific
 
   3. If applicable, write the tests specific to your physics, e.g., if it has a specific behavior that is not covered by the existing tests, see `test_MRI` in `here <https://github.com/deepinv/deepinv/blob/main/deepinv/tests/test_physics.py>`_ for an example
 
-- Completing the `API reference <https://deepinv.github.io/deepinv/api/deepinv.physics.html>`__ and `User Guide <https://deepinv.github.io/deepinv/user_guide/physics/physics.html>`__ with the new operator, and checking that the documentation builds correctly.
+- Completing the `API reference <https://deepinv.org/api/deepinv.physics.html>`__ and `User Guide <https://deepinv.org/user_guide/physics/physics.html>`__ with the new operator, and checking that the documentation builds correctly.
 
 Refer to these pull requests for examples of contributing new physics:
 
@@ -274,7 +333,7 @@ Refer to these pull requests for examples of contributing new physics:
 Contributing new datasets
 --------------------------
 
-In order to contribute a new dataset, you must provide tests alongisde it to check that it functions as expected. The DeepInverse code base is regularly tested on automatic continuous integration (CI) servers in order to ensure that the code works the way it is supposed to. Unfortunately, the CI servers have limited resources and they can generally not host the datasets.
+In order to contribute a new dataset, you must provide tests alongside it to check that it functions as expected. The DeepInverse code base is regularly tested on automatic continuous integration (CI) servers in order to ensure that the code works the way it is supposed to. Unfortunately, the CI servers have limited resources and they can generally not host the datasets.
 
 We get around this by mocking datasets in the tests. First, write the tests and the implementation, and make sure that the tests pass locally, on the real data. Then, write `mocking code <https://en.wikipedia.org/wiki/Mock_object>`_, code that intercepts calls to input/output (IO) related functions, e.g. `os.listdir`, and make them return a hard coded value, thereby making execution go as if the data was there. For more details and examples, see `this pull request <https://github.com/deepinv/deepinv/pull/490>`_.
 

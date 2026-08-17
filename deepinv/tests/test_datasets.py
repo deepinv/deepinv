@@ -1,4 +1,5 @@
 import shutil, os
+import sys
 import math
 from typing import NamedTuple, Sequence, Mapping
 from pathlib import Path
@@ -15,6 +16,8 @@ import h5py
 
 import deepinv as dinv
 from deepinv.datasets import (
+    BrainWebPET,
+    BrainWebMRI,
     DIV2K,
     Urban100HR,
     Set14HR,
@@ -40,6 +43,9 @@ from deepinv.datasets import (
 )
 from deepinv.datasets.utils import (
     download_archive,
+    extract_zipfile,
+    extract_tarball,
+    extract_rarfile,
     Crop,
     Rescale,
     ToComplex,
@@ -381,7 +387,14 @@ def test_hdf5dataset(
         ), "Transform should be called if and only if it is supervised."
 
     # Test HDF5Dataset.unsupervised
-    assert dataset.unsupervised == unsupervised, "Dataset supervision label mismatch."
+    # Verify that it is deprecated properly
+    with pytest.warns(
+        DeprecationWarning, match="The attribute 'unsupervised' is deprecated"
+    ) as record:
+        # Verify that it gives the right value
+        assert (
+            dataset.unsupervised == unsupervised
+        ), "Dataset supervision label mismatch."
 
     # Test HDF5Dataset.close
     if close:
@@ -937,7 +950,7 @@ def mock_lidc_idri():
         )
         pytest.importorskip(
             "pydicom",
-            reason="This test requires pandas. It should be "
+            reason="This test requires pydicom. It should be "
             "installed with `pip install pydicom`",
         )
         import pandas as pd
@@ -1563,3 +1576,106 @@ def test_RandomPatchSampler(make_data):
     assert len(ds) == 2
     x, y = next(iter(ds))
     assert math.isnan(x)
+
+
+@pytest.mark.parametrize("lesion_diameters", [None, [15, 7]])
+def test_brainweb_pet(tmp_path, lesion_diameters):
+    brainweb = pytest.importorskip("brainweb")
+
+    class RandomFDG(brainweb.FDG):
+        greyMatter = lambda: 120.0
+
+    dataset = BrainWebPET(
+        root=tmp_path,
+        subject_ids=4,
+        pet_class=RandomFDG,
+        contrast=["T1", "T2"],
+        random_degradations_kwargs={
+            "petNoise": 0.0,
+            "t1Noise": 0.0,
+            "t2Noise": 0.0,
+            "petSigma": 0.0,
+            "t1Sigma": 0.0,
+            "t2Sigma": 0.0,
+        },
+        lesion_diameters=lesion_diameters,
+        lesion_kwargs={"intensity": [1000, 2000], "blur": [0, 0], "thresh": 30},
+        seed=0,
+    )
+    emission, params = dataset[0]
+
+    assert len(dataset) == 1
+    assert emission.shape == params["attenuation"].shape == params["t1"].shape
+    assert emission.shape == params["t2"].shape
+    assert emission.dtype == torch.float32
+    pet_class = dataset.brainweb_kwargs["PetClass"]
+    assert issubclass(pet_class, RandomFDG)
+    assert pet_class.greyMatter == 120.0
+    assert ("lesion_mask" in params) == bool(lesion_diameters)
+    if lesion_diameters:
+        assert torch.unique(params["lesion_mask"]).tolist() == [0, 1, 2]
+
+
+def test_brainweb_mri(tmp_path):
+    pytest.importorskip("brainweb_dl")
+    default_dataset = BrainWebMRI(root=tmp_path)
+    assert default_dataset.subject_ids == [4, 5, 6, 18, 20, 38, *range(41, 55)]
+
+    dataset = BrainWebMRI(
+        root=tmp_path,
+        subject_ids=4,
+        transform=lambda x: x / x.max(),
+    )
+    volume = dataset[0]
+
+    assert len(dataset) == 1
+    assert volume.shape == (1, 181, 256, 256)
+    assert volume.dtype == torch.float32
+    assert volume.min() == 0
+    assert volume.max() == 1
+
+    cached_dataset = BrainWebMRI(root=tmp_path, subject_ids=4, download=False)
+    assert cached_dataset[0].shape == (1, 181, 256, 256)
+
+    for subject_id, contrast, filename in [
+        (4, "T1", "subject04_t1w.nii.gz"),
+        (4, "T2", "brainweb_s04_fuzzy.nii.gz"),
+    ]:
+        with pytest.raises(FileNotFoundError, match=filename):
+            BrainWebMRI(
+                root=tmp_path / "missing",
+                subject_ids=subject_id,
+                contrast=contrast,
+                download=False,
+            )[0]
+
+
+@pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])
+def test_extract_archive(tmp_path, kind):
+    mocker = MagicMock()
+    mocker.__enter__.return_value = mocker
+    getattr(mocker, "getmembers" if kind == "tarball" else "infolist").return_value = [
+        "a.txt",
+        "b.txt",
+    ]
+
+    if kind == "zipfile":
+        with patch(
+            "deepinv.datasets.utils.zipfile.ZipFile", return_value=mocker
+        ) as cls:
+            extract_zipfile("archive.zip", tmp_path)
+        cls.assert_called_once_with("archive.zip", "r")
+
+    elif kind == "tarball":
+        with patch("deepinv.datasets.utils.tarfile.open", return_value=mocker) as fn:
+            extract_tarball("archive.tar", tmp_path)
+        fn.assert_called_once_with("archive.tar", "r:*")
+
+    elif kind == "rarfile":
+        mock_module = MagicMock()
+        mock_module.RarFile.return_value = mocker
+        with patch.dict(sys.modules, {"rarfile": mock_module}):
+            extract_rarfile("archive.rar", tmp_path)
+        mock_module.RarFile.assert_called_once_with("archive.rar")
+
+    assert mocker.extract.call_count == 2

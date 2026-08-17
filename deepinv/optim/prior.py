@@ -6,10 +6,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from deepinv.optim.potential import Potential
-from deepinv.models.tv import TVDenoiser
+from deepinv.models.tv import TVDenoiser, TVL1Denoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from deepinv.models.utils import load_state_dict_from_url, get_weights_url
+from deepinv.models.utils import get_weights_url, load_state_dict_from_url
 
 if TYPE_CHECKING:
     from deepinv.optim import Prior
@@ -19,7 +19,7 @@ class Prior(Potential):
     r"""
     Prior term :math:`\reg{x}`.
 
-    This is the base class for the prior term :math:`\reg{x}`. As a child class from the Poential class, it comes with methods for computing
+    This is the base class for the prior term :math:`\reg{x}`. As a child class from the Potential class, it comes with methods for computing
     :math:`\operatorname{prox}_{g}` and :math:`\nabla \regname`.
     To implement a custom prior, for an explicit prior, overwrite :math:`\regname` (do not forget to specify
     `self.explicit_prior = True`)
@@ -386,6 +386,7 @@ class WaveletPrior(Prior):
                 non_linearity=self.non_linearity,
                 is_complex=self.is_complex,
                 wvdim=self.wvdim,
+                mode=self.mode,
             )
         elif type(self.wv) == list:
             self.WaveletDenoiser = WaveletDictDenoiser(
@@ -395,6 +396,7 @@ class WaveletPrior(Prior):
                 non_linearity=self.non_linearity,
                 is_complex=self.is_complex,
                 wvdim=self.wvdim,
+                mode=self.mode,
             )
         else:
             raise ValueError(
@@ -538,6 +540,75 @@ class TVPrior(Prior):
         :return: (:class:`torch.Tensor`) adjoint of the finite differences of x.
         """
         return self.TVModel.nabla_adjoint(x)
+
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Computes a subgradient of the total variation prior:
+
+        .. math::
+            \partial g_\sigma (x) = -\mathrm{div}\left(\frac{Dx}{|D x|}\right)
+
+        where :math:`D` is the finite differences linear operator and :math:`\mathrm{div}` is its adjoint, the divergence operator.
+
+        At locations where the finite difference vanishes, the zero element
+        of the subdifferential is selected.
+
+        :param torch.Tensor x: Variable :math:`x` at which the subgradient is computed.
+        :return: (:class:`torch.Tensor`) subgradient at :math:`x`.
+        """
+        dx = self.nabla(x)
+        norm_dx = torch.linalg.vector_norm(dx, dim=-1, keepdim=True)
+
+        nonzero = norm_dx > 0
+
+        # Do not evaluate an unsafe division by zero
+        safe_norm = torch.where(nonzero, norm_dx, torch.ones_like(norm_dx))
+        normalized_dx = torch.where(
+            nonzero,
+            dx / safe_norm,
+            torch.zeros_like(dx),
+        )
+
+        return self.nabla_adjoint(normalized_dx)
+
+
+class TVL1Prior(TVPrior):
+    r"""
+    Total Variation (TV) prior with an L1 norm.
+
+    This prior computes the isotropic total variation regularization term.
+
+    The prior is defined as:
+
+    .. math::
+
+        \mathrm{TV}(x) = \sum_i \|\nabla x_i\|_1
+
+    where :math:`\nabla x` denotes the discrete gradient of x.
+
+    :param float def_crit: default convergence criterion for the inner solver of the TV denoiser; default value: 1e-8.
+    :param int n_it_max: maximal number of iterations for the inner solver of the TV denoiser; default value: 1000.
+    """
+
+    def __init__(self, def_crit=1e-8, n_it_max=1000, *args, **kwargs):
+        super().__init__(def_crit=def_crit, n_it_max=n_it_max, *args, **kwargs)
+        self.TVModel = TVL1Denoiser(crit=def_crit, n_it_max=n_it_max)
+
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Computes the regularizer
+
+        .. math::
+            \reg{x} = \|Dx\|_{1}
+
+
+        where D is the finite differences linear operator.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
+        """
+        y = torch.sum(torch.abs(self.nabla(x)), dim=-1)
+        return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
 
 
 class PatchPrior(Prior):
@@ -858,8 +929,14 @@ class PatchNR(Prior):
             self.normalizing_flow = normalizing_flow
         if pretrained:
             if pretrained == "PatchNR_lodopab_small2":
-                assert patch_size == 3
-                assert channels == 1
+                if patch_size != 3:  # pragma: no cover
+                    raise ValueError(
+                        f"PatchNR_lodopab_small requires patch_size 3, but got {patch_size}"
+                    )
+                if channels != 1:  # pragma: no cover
+                    raise ValueError(
+                        f"PatchNR_lodopab_small requires channels 1, but got {channels}"
+                    )
                 file_name = "PatchNR_lodopab_small2.pt"
                 url = get_weights_url(model_name="demo", file_name=file_name)
                 weights = load_state_dict_from_url(

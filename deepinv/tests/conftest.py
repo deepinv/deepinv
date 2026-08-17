@@ -3,9 +3,90 @@ import pytest
 import torch
 
 import deepinv as dinv
+from deepinv.utils import DownloadError
 from dummy import DummyCircles
 
 import importlib
+
+# Tag stored on a TestReport's ``user_properties`` when we reclassify a
+# download failure as a skip. We attach it to the report (rather than to
+# ``config.stash``) so it survives the worker → controller serialization
+# performed by ``pytest-xdist``: ``pytest_runtest_makereport`` runs on the
+# worker, but ``pytest_terminal_summary`` runs on the controller, and only
+# data living on the report itself crosses that boundary.
+_DEEPINV_DOWNLOAD_ERROR_PROP = "deepinv_download_error"
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """Convert failures caused by transient network errors into skips.
+
+    Detects any test (or fixture) failure whose exception is a
+    :class:`deepinv.utils.DownloadError`. Those are raised explicitly by the
+    deepinv download helpers (:func:`deepinv.utils.load_url`,
+    :func:`deepinv.datasets.utils.download_archive`, …) when a remote server
+    returns a network-level error (e.g. a HuggingFace 429 rate-limit). The
+    test is reported as skipped instead of failed, and tagged on the report
+    object so the terminal-summary hook can print it as its own section —
+    even under pytest-xdist where the hook runs on the controller and the
+    classification runs on the worker.
+    """
+    outcome = yield
+    report = outcome.get_result()
+
+    # `call` covers test-body failures; `setup` covers fixture failures (which
+    # pytest reports as ERROR, not FAILED). We need to intercept both because
+    # downloads typically happen inside session-scoped fixtures.
+    if (
+        report.when not in ("call", "setup")
+        or not report.failed
+        or call.excinfo is None
+    ):
+        return
+
+    if not call.excinfo.errisinstance(DownloadError):
+        return
+
+    typename = call.excinfo.typename
+    msg = str(call.excinfo.value)
+
+    # user_properties is part of TestReport and is preserved by
+    # pytest-xdist's report (de)serialization, so the controller sees it.
+    report.user_properties.append((_DEEPINV_DOWNLOAD_ERROR_PROP, (typename, msg)))
+
+    report.outcome = "skipped"
+    report.longrepr = f"Skipped due to network error ({typename}): {call.excinfo.value}"
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    """Print tests skipped due to network errors as their own summary section.
+
+    Reads tags off TestReport.user_properties so the section works both
+    with and without pytest-xdist: under xdist, the controller's
+    ``terminalreporter.stats`` is populated from worker reports.
+    """
+    records = []
+    for report in terminalreporter.stats.get("skipped", []):
+        # Reports from pytest-xdist or pytest internals may not always carry
+        # user_properties (e.g. synthetic reports for collection-time skips).
+        for name, value in getattr(report, "user_properties", None) or ():
+            if name == _DEEPINV_DOWNLOAD_ERROR_PROP:
+                # JSON roundtrip via xdist turns tuples into lists; unpack
+                # either form.
+                typename, msg = value
+                records.append((report.nodeid, typename, msg))
+                break
+
+    if not records:
+        return
+
+    terminalreporter.write_sep("=", "Failed examples due to download errors")
+    for nodeid, exc_type, exc_msg in records:
+        terminalreporter.write_line(f"{nodeid}")
+        terminalreporter.write_line(f"    {exc_type}: {exc_msg}")
+    terminalreporter.write_line(
+        f"({len(records)} test(s) skipped because of transient network errors)"
+    )
 
 
 @pytest.fixture(

@@ -34,6 +34,8 @@ from .metric import (
     MAE,
     NIQE,
     LPIPS,
+    BRISQUE,
+    NIMA,
     QNR,
     cal_mse,
     cal_psnr,

@@ -18,7 +18,6 @@ Please refer to the :ref:`user guide <trainer>` for more information.
    :template: myfunc_template.rst
    :nosignatures:
 
-    deepinv.train
     deepinv.test
 
 Adversarial Training
