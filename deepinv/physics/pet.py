@@ -344,6 +344,7 @@ class PET(LinearPhysics):
         :param torch.Tensor background: If not `None`, update the background :math:`b`.
         """
         if attenuation is not None:
+            attenuation = attenuation.to(self.scanner.dev)
             n = len(self.img_size)
             is_image_space = tuple(attenuation.shape[-n:]) == tuple(self.img_size)
             if is_image_space:
@@ -356,9 +357,9 @@ class PET(LinearPhysics):
                 proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
                 if self.is_2d:
                     proj_att = proj_att.squeeze(-1)
-                self.attenuation = torch.exp(-proj_att).to(self.scanner.dev)
+                self.attenuation = torch.exp(-proj_att)
             else:
-                self.attenuation = attenuation.to(self.scanner.dev)
+                self.attenuation = attenuation
 
             if self.normalize:
                 self.operator_norm = torch.ones(1, device=self.attenuation.device)
