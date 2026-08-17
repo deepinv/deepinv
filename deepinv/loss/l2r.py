@@ -244,8 +244,8 @@ class Learning2RecorruptLoss(Loss):
         r"""
         Trainable recorruption network used by Learning to Recorrupt (L2R).
 
-        Given a random input tensor :math:`w` and measurement :math:`y`, this module 
-        outputs :math:`h(w, y)`, an additive perturbation used to build 
+        Given a random input tensor :math:`w` and measurement :math:`y`, this module
+        outputs :math:`h(w, y)`, an additive perturbation used to build
         re-corrupted measurements :math:`y_1 = y + \alpha h(w, y)`.
 
         The perturbation is defined as:
@@ -253,20 +253,21 @@ class Learning2RecorruptLoss(Loss):
         .. math::
             h(w, y) = G_y \cdot \bigl(k * \text{BN}(\mathrm{net}(w))\bigr)
 
-        where :math:`G_y` is the modulation gain defined by the ``multiplicative`` flag:
+        where :math:`G_y` is the modulation gain defined by the
+        ``multiplicative`` flag:
 
         .. math::
-            G_y = 
-            \begin{cases} 
+            G_y =
+            \begin{cases}
             \sqrt{y} & \text{if } \mathrm{multiplicative} = \text{True} \\
             1 & \text{if } \mathrm{multiplicative} = \text{False}
             \end{cases}
 
-        The term :math:`\mathrm{net}` is the selected network (identity, monotonic MLP, 
-        or MLP) applied pointwise to flattened entries of :math:`w`, and :math:`\text{BN}` 
-        is a 1D batch normalization. A learnable scaling/filtering is applied via 
-        kernel :math:`k` (scalar if ``kernel_size=1``, spatial convolution otherwise).
-
+        The term :math:`\mathrm{net}` is the selected network (identity, monotonic
+        MLP, or MLP) applied pointwise to flattened entries of :math:`w`, and
+        :math:`\text{BN}` is a 1D batch normalization. A learnable
+        scaling/filtering is applied via kernel :math:`k` (scalar if
+        ``kernel_size=1``, spatial convolution otherwise).
 
         :param int depth: Depth of the internal model definition.
         :param int hidden_features: Number of hidden features in the model.

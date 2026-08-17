@@ -34,11 +34,8 @@ and optimize it through the adversarial objective
 where :math:`R` is the denoiser. The denoiser is encouraged to align predictions
 with noisy observations and reduce noise correlation with the input noisy image,
 while the re-corruption model is trained to maximize this noise correlation. The
-central idea is that the re-corruptor architecture should be expressive enough to capture the unknown noise distribution.
-should be rich enough to capture the unknown noise distribution.
-
-To build measurements, we choose a noise model in the physics simulator. By default,
-this demo uses Poisson noise, but you can switch to Gaussian noise by changing ``noise_name``.
+central idea is that the re-corruptor architecture should be expressive enough
+to capture the unknown noise distribution.
 """
 
 from pathlib import Path
@@ -90,8 +87,9 @@ test_dataset = datasets.MNIST(
 # Generate a dataset of noisy images
 # --------------------------------------------------------------------------------------------------
 #
-# We use Poisson noise by default to generate noisy measurements.
-# You can switch to Gaussian noise by setting ``noise_name = "gaussian"``.
+# To build the measurements, we choose a noise model in the physics simulator.
+# We use Poisson noise by default, but you can switch to Gaussian noise by setting
+# ``noise_name = "gaussian"``.
 #
 # .. note::
 #
@@ -154,6 +152,12 @@ model = dinv.models.ArtifactRemoval(
 # Set up the training parameters and re-corruption network
 # -------------------------------------------------------------------------------------------
 # We set :class:`deepinv.loss.l2r.Learning2RecorruptLoss` as the training loss.
+# The :class:`deepinv.loss.Learning2RecorruptLoss.RecorruptorNet` used here applies a
+# pointwise monotonic MLP to Gaussian noise, followed by batch normalization and a
+# learnable scaling kernel. Here, ``multiplicative=True`` additionally modulates the
+# output by :math:`\sqrt{y}` to model signal-dependent noise. These options can all
+# be changed, or a custom re-corruptor implementing ``forward(w, y)`` can be passed
+# to the loss.
 #
 # .. note::
 #
@@ -184,7 +188,8 @@ loss = Learning2RecorruptLoss(
     recorruptor_lr=1e-3,
     recorruptor=recorruptor,
 )
-model = loss.adapt_model(model).to(device)  # important step!
+# Adapt explicitly before loading the pretrained wrapped-model checkpoint.
+model = loss.adapt_model(model).to(device)
 
 
 # choose optimizer and scheduler
