@@ -14,6 +14,7 @@ from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
 from deepinv.utils.tensorlist import TensorList
+from deepinv.utils.nn import devices_equal
 from deepinv.datasets.base import check_dataset
 from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
@@ -216,7 +217,7 @@ class Trainer:
 
     :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction. Default is ``False``.
     :param str, Reconstructor no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
-        ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the
+        ``'prox_l2'``, or ``'y'``. Default is ``'A_adjoint'``. The user can also provide a custom method by overriding the
         :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method. Default is ``'A_adjoint'``.
 
     |sep|
@@ -255,8 +256,9 @@ class Trainer:
 
     :param bool mlflow_vis: Logs data onto MLflow, see https://mlflow.org/ for more details. Default is ``False``.
     :param dict mlflow_setup: Dictionary with the setup for mlflow, see https://www.mlflow.org/docs/latest/python_api/mlflow.html#mlflow.start_run for more details. Default is ``{}``.
-    :param bool non_blocking_transfers: Use non-blocking host-to-device transfers for data loading. Default is ``True``.
-        It is advised to enable pinned memory in the dataloader when using this option for best performance.
+    :param bool non_blocking_transfers: Use non-blocking host-to-device transfers for data loading. Default is ``True`` only when device is cuda. If device is not cuda, then this is forced to `False`.
+        See `PyTorch docs <https://docs.pytorch.org/tutorials/intermediate/pinmem_nonblock.html>`_ for more details.
+        It is advised to enable `pin_memory=True` in the dataloader when using this option for best performance.
 
     """
 
@@ -304,9 +306,7 @@ class Trainer:
     verbose_individual_losses: bool = None
     show_progress_bar: bool = True
     freq_update_progress_bar: int = 1
-    non_blocking_transfers: bool = (
-        True  # Use non-blocking host-to-device transfers when DataLoader has pin_memory=True: https://docs.pytorch.org/tutorials/intermediate/pinmem_nonblock.html
-    )
+    non_blocking_transfers: bool = True
 
     def __post_init__(self):
         if self.display_losses_eval is not None:
@@ -326,6 +326,12 @@ class Trainer:
             )
         # Cache flag for whether model.forward accepts 'update_parameters'
         self._model_accepts_update_parameters = False
+
+        if self.non_blocking_transfers and not devices_equal(self.device, "cuda"):
+            warnings.warn(
+                "non_blocking_transfers=True can only be used when device is cuda. Setting non_blocking_transfers=False..."
+            )
+            self.non_blocking_transfers = False
 
     def setup_train(self, train: bool = True, **kwargs):
         r"""
@@ -352,7 +358,7 @@ class Trainer:
                 # Suggest enabling pinned memory to make non-blocking H2D copies effective on CUDA
                 if (
                     self.non_blocking_transfers
-                    and torch.cuda.is_available()
+                    and devices_equal(self.device, "cuda")
                     and hasattr(loader, "pin_memory")
                     and not loader.pin_memory
                 ):

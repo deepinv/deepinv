@@ -177,6 +177,7 @@ test(
     physics=p,
     device=device,
     plot_images=plot_images,
+    no_learning_method="A_dagger",
     save_folder=RESULTS_DIR / method / operation / dataset_name,
     plot_convergence_metrics=plot_convergence_metrics,
     verbose=True,

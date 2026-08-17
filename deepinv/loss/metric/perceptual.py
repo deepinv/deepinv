@@ -549,6 +549,565 @@ class NIQE(Metric):
         return self.mu_p, self.cov_p
 
 
+class BRISQUE(Metric):
+    r"""
+    Blind/Referenceless Image Spatial QUality Evaluator (BRISQUE) metric.
+
+    Calculates the BRISQUE score :math:`\text{BRISQUE}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
+    It is a no-reference image quality metric introduced by :footcite:t:`mittal2012no`,
+    which quantifies how far an image departs from the natural scene statistics of
+    pristine natural images. Lower is better, with scores roughly in :math:`[0, 100]`.
+
+    BRISQUE works with images of 1 or 3 channels. If the image has 3 channels,
+    it is assumed to be RGB and converted to relative luminance, then, at two scales, the mean
+    subtracted contrast normalized (MSCN) coefficients
+
+    .. math::
+
+        \hat{x}_{ij} = \frac{x_{ij} - \mu_{ij}}{\sigma_{ij} + 1}
+
+    are computed with a :math:`7\times 7` Gaussian window. A generalized Gaussian is fitted
+    to the MSCN coefficients and asymmetric generalized Gaussians are fitted to their four
+    neighbouring products, yielding 36 features which are mapped to a quality score by a
+    support vector regressor pre-trained on the `LIVE IQA dataset <https://live.ece.utexas.edu/research/quality/subjective.htm>`_.
+
+    This is a PyTorch translation of the implementation
+    (https://github.com/dsoellinger/blind_image_quality_toolbox). The pre-trained support vector
+    regressor is the one released with the original MATLAB implementation, and weights
+    were downloaded from https://github.com/dsoellinger/blind_image_quality_toolbox/blob/master/%2Bbrisque/allmodel.
+
+    .. note::
+
+        The features and the regressor were fitted on images in the :math:`[0, 255]` range.
+        Inputs are internally rescaled from ``[0, max_pixel]`` to :math:`[0, 255]`,
+        so make sure ``max_pixel`` matches the intensity scale of your data.
+
+    .. note::
+
+        By default, no reduction is performed in the batch dimension.
+
+    :param str, pathlib.Path, None weights_path: path to the support vector regressor weights.
+        If ``'download'`` (default), the weights released with the original implementation are downloaded.
+    :param float max_pixel: maximum pixel value of the input images, used to rescale them to
+        the :math:`[0, 255]` range expected by the regressor. Default: 1.
+    :param torch.device, str device: device on which the regressor weights are stored. Default: ``'cpu'``.
+    :param torch.dtype dtype: dtype used for the feature computation (the regressor is always evaluated
+        in ``float64``). Default: ``torch.float32``.
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
+
+    |sep|
+
+    :Example:
+
+    >>> from deepinv.loss.metric import BRISQUE
+    >>> m = BRISQUE()
+    >>> x_net = torch.rand(2, 3, 32, 32)  # batch of 2 RGB images in [0, 1]
+    >>> m(x_net).shape
+    torch.Size([2])
+
+    """
+
+    # min and max of each of the 36 features, used to scale them to [-1, 1] before
+    # feeding them to the support vector regressor (from the original implementation).
+    feature_range = (
+        (0.338, 10),
+        (0.017204, 0.806612),
+        (0.236, 1.642),
+        (-0.123884, 0.20293),
+        (0.000155, 0.712298),
+        (0.001122, 0.470257),
+        (0.244, 1.641),
+        (-0.123586, 0.179083),
+        (0.000152, 0.710456),
+        (0.000975, 0.470984),
+        (0.249, 1.555),
+        (-0.135687, 0.100858),
+        (0.000174, 0.684173),
+        (0.000913, 0.534174),
+        (0.258, 1.561),
+        (-0.143408, 0.100486),
+        (0.000179, 0.685696),
+        (0.000888, 0.536508),
+        (0.471, 3.264),
+        (0.012809, 0.703171),
+        (0.218, 1.046),
+        (-0.094876, 0.187459),
+        (1.5e-05, 0.442057),
+        (0.001272, 0.40803),
+        (0.222, 1.042),
+        (-0.115772, 0.162604),
+        (1.6e-05, 0.444362),
+        (0.001374, 0.40243),
+        (0.227, 0.996),
+        (-0.117188, 0.098323),
+        (3e-05, 0.531903),
+        (0.001122, 0.369589),
+        (0.228, 0.99),
+        (-0.12243, 0.098658),
+        (2.8e-05, 0.530092),
+        (0.001118, 0.370399),
+    )
+
+    def __init__(
+        self,
+        weights_path: str | Path | None = "download",
+        max_pixel: float = 1.0,
+        device: str | torch.device = "cpu",
+        dtype: torch.dtype = torch.float32,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.lower_better = True
+        self.max_pixel = max_pixel
+        self.dtype = dtype
+
+        if str(weights_path) == "download":
+            params = load_state_dict_from_url(
+                get_weights_url("demo", "brisque_weights.pt"),
+                map_location=lambda storage, loc: storage,
+                file_name="brisque_weights.pt",
+                weights_only=True,
+            )
+        else:
+            params = torch.load(weights_path, weights_only=True)
+
+        # epsilon-SVR with RBF kernel, evaluated in float64 for reproducibility
+        self.register_buffer(
+            "support_vectors",
+            params["support_vectors"].to(device=device, dtype=torch.float64),
+            persistent=False,
+        )
+        self.register_buffer(
+            "dual_coef",
+            params["dual_coef"].to(device=device, dtype=torch.float64),
+            persistent=False,
+        )
+        self.register_buffer(
+            "svr_rho",
+            params["rho"].to(device=device, dtype=torch.float64),
+            persistent=False,
+        )
+        self.register_buffer(
+            "svr_gamma",
+            params["gamma"].to(device=device, dtype=torch.float64),
+            persistent=False,
+        )
+        self.register_buffer(
+            "feature_min",
+            torch.tensor([r[0] for r in self.feature_range], device=device).to(dtype),
+            persistent=False,
+        )
+        self.register_buffer(
+            "feature_max",
+            torch.tensor([r[1] for r in self.feature_range], device=device).to(dtype),
+            persistent=False,
+        )
+
+        # candidate shape parameters of the (asymmetric) generalized Gaussian and the
+        # associated moment ratios, tabulated once and looked up by the fits below
+        gam = 0.2 + 1e-3 * torch.arange(9801, device=device, dtype=torch.float64)
+        self.register_buffer("gamma_grid", gam.to(dtype), persistent=False)
+        self.register_buffer(
+            "ggd_ratio",
+            (
+                self._gamma_fn(1.0 / gam)
+                * self._gamma_fn(3.0 / gam)
+                / self._gamma_fn(2.0 / gam) ** 2
+            ).to(dtype),
+            persistent=False,
+        )
+        self.register_buffer(
+            "aggd_ratio",
+            (
+                self._gamma_fn(2.0 / gam) ** 2
+                / (self._gamma_fn(1.0 / gam) * self._gamma_fn(3.0 / gam))
+            ).to(dtype),
+            persistent=False,
+        )
+
+    def _gauss_kernel(self, device: torch.device) -> torch.Tensor:
+        r"""Separable :math:`7\times 7` Gaussian window with :math:`\sigma=7/6`, as in the original implementation."""
+        sigma = 7 / 6
+        ax = torch.arange(-3, 4, device=device, dtype=self.dtype)
+        k = torch.exp(-(ax**2) / (2 * sigma * sigma))
+        k = k / k.sum()
+        return torch.outer(k, k).view(1, 1, 7, 7)
+
+    @staticmethod
+    def _gamma_fn(x: torch.Tensor) -> torch.Tensor:
+        return torch.exp(torch.lgamma(x))
+
+    def estimate_ggd_param(
+        self, vecs: torch.Tensor, eps: float = 1e-12
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        r"""
+        Fit a generalized Gaussian distribution to each row by moment matching.
+
+        :param torch.Tensor vecs: `(B, N)` tensor of samples.
+        :param float eps: stabilizer used in the denominators.
+        :return: tuple of `(B,)` tensors with the shape parameter and the standard deviation.
+        """
+        sigma_sq = (vecs**2).mean(dim=1)
+        mean_abs = vecs.abs().mean(dim=1)
+        rho = sigma_sq / torch.clamp(mean_abs**2, min=eps)
+
+        idx = (rho.unsqueeze(1) - self.ggd_ratio.unsqueeze(0)).abs().argmin(dim=1)
+        return self.gamma_grid[idx], sigma_sq.sqrt()
+
+    def estimate_aggd_param(
+        self, vecs: torch.Tensor, eps: float = 1e-12
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        r"""
+        Fit an asymmetric generalized Gaussian distribution to each row by moment matching.
+
+        :param torch.Tensor vecs: `(B, N)` tensor of samples.
+        :param float eps: stabilizer used in the denominators.
+        :return: tuple of `(B,)` tensors with the shape parameter, the left and the right standard deviations.
+        """
+        neg, pos = vecs < 0, vecs > 0
+        left_std = (
+            (vecs**2 * neg).sum(dim=1) / torch.clamp(neg.sum(dim=1), min=1)
+        ).sqrt()
+        right_std = (
+            (vecs**2 * pos).sum(dim=1) / torch.clamp(pos.sum(dim=1), min=1)
+        ).sqrt()
+
+        gamma_hat = left_std / torch.clamp(right_std, min=eps)
+        rhat = vecs.abs().mean(dim=1) ** 2 / torch.clamp((vecs**2).mean(dim=1), min=eps)
+        rhat_norm = (
+            rhat
+            * (gamma_hat**3 + 1)
+            * (gamma_hat + 1)
+            / torch.clamp((gamma_hat**2 + 1) ** 2, min=eps)
+        )
+
+        idx = ((self.aggd_ratio.unsqueeze(0) - rhat_norm.unsqueeze(1)) ** 2).argmin(
+            dim=1
+        )
+        return self.gamma_grid[idx], left_std, right_std
+
+    def features(self, x_net: torch.Tensor) -> torch.Tensor:
+        r"""
+        Compute the 36 natural scene statistics features of BRISQUE.
+
+        :param torch.Tensor x_net: `(B, 1, H, W)` single-channel images in the `[0, 255]` range.
+        :return: `(B, 36)` tensor of features.
+        """
+        B = x_net.shape[0]
+        kernel = self._gauss_kernel(x_net.device)
+        feats = []
+
+        for scale in range(2):
+            # local mean and standard deviation, zero padded as in the original implementation
+            mu = F.conv2d(F.pad(x_net, (3, 3, 3, 3)), kernel)
+            sigma = F.conv2d(F.pad(x_net * x_net, (3, 3, 3, 3)), kernel)
+            sigma = (sigma - mu * mu).abs().sqrt()
+            structdis = (x_net - mu) / (sigma + 1)
+
+            alpha, overallstd = self.estimate_ggd_param(structdis.reshape(B, -1))
+            feats += [alpha, overallstd**2]
+
+            for dr, dc in ((0, 1), (1, 0), (1, 1), (-1, 1)):
+                shifted = torch.roll(structdis, shifts=(dr, dc), dims=(2, 3))
+                pair = (structdis * shifted).reshape(B, -1)
+                alpha, left_std, right_std = self.estimate_aggd_param(pair)
+                const = (self._gamma_fn(1 / alpha) / self._gamma_fn(3 / alpha)).sqrt()
+                mean_param = (
+                    (right_std - left_std)
+                    * (self._gamma_fn(2 / alpha) / self._gamma_fn(1 / alpha))
+                    * const
+                )
+                feats += [alpha, mean_param, left_std**2, right_std**2]
+
+            if scale == 0:
+                # nearest-neighbour downsampling by a factor 2, as in the original implementation
+                x_net = x_net[:, :, ::2, ::2]
+
+        return torch.stack(feats, dim=1)
+
+    def metric(self, x_net: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        """
+        Compute the BRISQUE score for a batch of images.
+
+        :param torch.Tensor x_net: `(B, C, H, W)` input tensors with C=1 or 3 channels.
+        :return: `(B,)` tensor of BRISQUE scores.
+        """
+        if x_net.ndim != 4:
+            raise ValueError(
+                f"BRISQUE expects batched, 2D data of shape (B, C, H, W), but got tensor with {x_net.ndim} dimensions (shape: {x_net.shape})."
+            )
+
+        C = x_net.shape[1]
+        if C not in (1, 3):
+            raise ValueError(
+                f"BRISQUE only operates on 1- or 3-channel images, but got {C}-channel input."
+            )
+
+        x_net = x_net.to(self.dtype)
+
+        if C == 3:  # RGB to relative luminance
+            x_net = (
+                0.2989 * x_net[:, [0]] + 0.5870 * x_net[:, [1]] + 0.1140 * x_net[:, [2]]
+            )
+
+        # the features were fitted on images in the [0, 255] range
+        x_net = x_net * (255.0 / self.max_pixel)
+
+        feats = self.features(x_net)
+        scaled = -1 + 2 * (feats - self.feature_min) / (
+            self.feature_max - self.feature_min
+        )
+
+        # epsilon-SVR decision function with RBF kernel
+        scaled = scaled.to(torch.float64)
+        sq_dist = (
+            torch.cdist(
+                scaled,
+                self.support_vectors,
+                compute_mode="donot_use_mm_for_euclid_dist",
+            )
+            ** 2
+        )
+        return (
+            torch.exp(-self.svr_gamma * sq_dist) @ self.dual_coef - self.svr_rho
+        ).float()
+
+
+class _DepthwiseSeparable(torch.nn.Module):
+    r"""Depthwise separable block of MobileNetV1, matching ``tf.keras.applications.mobilenet``,
+    see https://www.tensorflow.org/api_docs/python/tf/keras/applications/MobileNet.
+    """
+
+    def __init__(self, in_channels: int, out_channels: int, stride: int):
+        super().__init__()
+        self.stride = stride
+        self.dw = torch.nn.Conv2d(
+            in_channels,
+            in_channels,
+            3,
+            stride=stride,
+            padding=1 if stride == 1 else 0,
+            groups=in_channels,
+            bias=False,
+        )
+        self.dw_bn = torch.nn.BatchNorm2d(in_channels, eps=1e-3)
+        self.pw = torch.nn.Conv2d(in_channels, out_channels, 1, bias=False)
+        self.pw_bn = torch.nn.BatchNorm2d(out_channels, eps=1e-3)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.stride == 2:
+            # Keras pads asymmetrically before a 'valid' strided convolution
+            x = F.pad(x, (0, 1, 0, 1))
+        x = F.relu6(self.dw_bn(self.dw(x)))
+        return F.relu6(self.pw_bn(self.pw(x)))
+
+
+class _MobileNetV1(torch.nn.Module):
+    r"""
+    MobileNetV1 (width multiplier 1) with a NIMA classification head :cite:p:`howard2017mobilenets`:
+
+    Layer-for-layer equivalent of ``tf.keras.applications.mobilenet.MobileNet`` with
+    ``include_top=False, pooling='avg'`` followed by a dense softmax layer, so that the
+    Keras weights released by idealo can be loaded directly.
+
+    :param int n_classes: number of score bins of the head. Default: 10.
+    """
+
+    # (out_channels, stride) of the 13 depthwise separable blocks
+    blocks_config = (
+        (64, 1),
+        (128, 2),
+        (128, 1),
+        (256, 2),
+        (256, 1),
+        (512, 2),
+        (512, 1),
+        (512, 1),
+        (512, 1),
+        (512, 1),
+        (512, 1),
+        (1024, 2),
+        (1024, 1),
+    )
+
+    def __init__(self, n_classes: int = 10):
+        super().__init__()
+        self.conv1 = torch.nn.Conv2d(3, 32, 3, stride=2, bias=False)
+        self.bn1 = torch.nn.BatchNorm2d(32, eps=1e-3)
+
+        in_channels = 32
+        blocks = []
+        for out_channels, stride in self.blocks_config:
+            blocks.append(_DepthwiseSeparable(in_channels, out_channels, stride))
+            in_channels = out_channels
+        self.blocks = torch.nn.ModuleList(blocks)
+
+        # the dropout of the original model is inactive at evaluation time
+        self.head = torch.nn.Linear(in_channels, n_classes)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = F.relu6(self.bn1(self.conv1(F.pad(x, (0, 1, 0, 1)))))
+        for block in self.blocks:
+            x = block(x)
+        x = x.mean(dim=(2, 3))  # global average pooling
+        return self.head(x).softmax(dim=1)
+
+
+class NIMA(Metric):
+    r"""
+    Neural Image Assessment (NIMA) metric.
+
+    Calculates the NIMA score :math:`\text{NIMA}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
+    It is a no-reference image quality metric introduced by :footcite:t:`talebi2018nima`,
+    which predicts the distribution of human opinion scores an image would receive.
+
+    A convolutional network outputs a probability :math:`p_i` for each of the 10 score bins,
+    and the metric returns the mean opinion score
+
+    .. math::
+
+        \text{NIMA}(\hat{x}) = \sum_{i=1}^{10} i \, p_i \in [1, 10],
+
+    where higher is better. Use :func:`distribution <deepinv.loss.metric.NIMA.distribution>`
+    to obtain the full predicted distribution, whose spread indicates how much raters would disagree.
+
+    Two pre-trained heads are available, selected with ``variant``:
+
+    - ``'aesthetic'`` (default), trained on the AVA dataset :cite:p:`murray2012ava`, which rates the aesthetic appeal of an image;
+    - ``'technical'``, trained on the TID2013 dataset :cite:p:`ponomarenko2015image`, which rates the amount of distortion in an image
+
+    This is adapted from the ``image-quality-assessment`` implementation in
+    (https://github.com/idealo/image-quality-assessment), which we gratefully acknowledge.
+    The MobileNet backbone and both heads use their released weights, converted to PyTorch.
+
+
+    .. warning::
+
+        The network expects :math:`224\times 224` inputs, so images are bilinearly resized before
+        being scored, without preserving the aspect ratio, as in the original implementation.
+
+    .. note::
+
+        Single-channel images are replicated over three channels, as the network expects RGB input.
+
+    .. note::
+
+        By default, no reduction is performed in the batch dimension.
+
+    :param str variant: which pre-trained head to use, either `'aesthetic'` or `'technical'`. Default: ``'aesthetic'``.
+    :param str, pathlib.Path, None weights_path: path to the network weights. If ``'download'`` (default),
+        the weights of the chosen ``variant`` are downloaded.
+    :param float max_pixel: maximum pixel value of the input images, used to rescale them to the
+        :math:`[-1, 1]` range expected by the network. Default: 1.
+    :param torch.device, str device: device on which the network is stored. Default: ``'cpu'``.
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
+
+    |sep|
+
+    :Example:
+
+    >>> from deepinv.loss.metric import NIMA
+    >>> m = NIMA()
+    >>> x_net = torch.rand(2, 3, 64, 64)  # batch of 2 RGB images in [0, 1]
+    >>> m(x_net).shape
+    torch.Size([2])
+
+    """
+
+    def __init__(
+        self,
+        variant: str = "aesthetic",
+        weights_path: str | Path | None = "download",
+        max_pixel: float = 1.0,
+        device: str | torch.device = "cpu",
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.lower_better = False
+        self.max_pixel = max_pixel
+
+        variants = ("aesthetic", "technical")
+        if variant not in variants:
+            raise ValueError(f"variant must be one of {variants}, but got {variant}.")
+        self.variant = variant
+
+        if weights_path == "download":
+            file_name = f"nima_mobilenet_{variant}_weights.pt"
+            params = load_state_dict_from_url(
+                get_weights_url("demo", file_name),
+                map_location=lambda storage, loc: storage,
+                file_name=file_name,
+                weights_only=True,
+            )
+        else:
+            params = torch.load(weights_path, weights_only=True)
+
+        self.net = _MobileNetV1()
+        self.net.load_state_dict(params)
+        self.net.eval().requires_grad_(False)
+        self.net.to(device)
+
+        self.register_buffer(
+            "score_bins",
+            torch.arange(1, 11, device=device, dtype=torch.float32),
+            persistent=False,
+        )
+
+    def distribution(self, x_net: torch.Tensor) -> torch.Tensor:
+        r"""
+        Predict the distribution of human opinion scores of a batch of images.
+
+        Resizes to the network input size and rescale to :math:`[-1, 1]`.
+
+        :param torch.Tensor x_net: `(B, C, H, W)` input tensors with C=1 or 3 channels.
+        :return: `(B, 10)` tensor of probabilities, where entry :math:`i` is the predicted
+            probability that a rater would give the image a score of :math:`i+1`.
+        """
+        if x_net.ndim != 4:
+            raise ValueError(
+                f"NIMA expects batched, 2D data of shape (B, C, H, W), but got tensor with {x_net.ndim} dimensions (shape: {x_net.shape})."
+            )
+
+        C = x_net.shape[1]
+        if C not in (1, 3):
+            raise ValueError(
+                f"NIMA only operates on 1- or 3-channel images, but got {C}-channel input."
+            )
+        if C == 1:
+            x_net = x_net.expand(-1, 3, -1, -1)
+
+        if x_net.shape[-2:] != (224, 224):
+            x_net = F.interpolate(
+                x_net, size=(224, 224), mode="bilinear", align_corners=False
+            )
+
+        x_net = 2 * x_net / self.max_pixel - 1
+        return self.net(x_net)
+
+    def metric(self, x_net: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        """
+        Compute the mean opinion score of a batch of images.
+
+        :param torch.Tensor x_net: `(B, C, H, W)` input tensors with C=1 or 3 channels.
+        :return: `(B,)` tensor of NIMA scores, between 1 and 10, higher is better.
+        """
+        return self.distribution(x_net) @ self.score_bins
+
+
 class BlurStrength(Metric):
     r"""
     No-reference blur strength metric for batched images.
