@@ -333,6 +333,7 @@ class GaussianMixtureModel(nn.Module):
         """
         if data_init:
             from deepinv.datasets.base import batch_as_dict
+
             batch = next(iter(dataloader))
             batch = batch_as_dict(batch)
 
@@ -378,7 +379,7 @@ class GaussianMixtureModel(nn.Module):
         :param bool verbose: Output progress information in the console
         """
         from deepinv.datasets.base import batch_as_dict
-        
+
         objective = 0
         weights_new = torch.zeros_like(self._weights)
         mu_new = torch.zeros_like(self.mu)

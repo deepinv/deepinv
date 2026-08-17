@@ -376,18 +376,22 @@ def test_hdf5dataset(
     idx = 0
     entry = dataset[idx]
     entry = batch_as_dict(entry)
-    
+
     if not unsupervised:
         assert "x" in entry, "Supervised dataset should return x."
     else:
         assert "x" not in entry, "Unsupervised dataset should not return x."
-    
+
     assert "y" in entry, "Dataset should return y."
-    
+
     if load_physics_generator_params:
-        assert "params" in entry, "Dataset should return params when load_physics_generator_params is True."
+        assert (
+            "params" in entry
+        ), "Dataset should return params when load_physics_generator_params is True."
     else:
-        assert "params" not in entry, "Dataset should not return params when load_physics_generator_params is False."
+        assert (
+            "params" not in entry
+        ), "Dataset should not return params when load_physics_generator_params is False."
 
     x, y, params = entry.get("x", None), entry["y"], entry.get("params", {})
 
@@ -475,10 +479,20 @@ def test_hdf5dataset_generate_dataset(
     img_size = (1, 4, 4)
     with dataset_output_context(use_dict_output):
         train_dataset = MyDataset(
-            {"x": torch.zeros(1, *img_size)} if use_dict_output else torch.zeros(1, *img_size), use_dict_output=use_dict_output
+            (
+                {"x": torch.zeros(1, *img_size)}
+                if use_dict_output
+                else torch.zeros(1, *img_size)
+            ),
+            use_dict_output=use_dict_output,
         )
         test_dataset = MyDataset(
-             {"x": torch.zeros(1, *img_size)} if use_dict_output else torch.zeros(1, *img_size), use_dict_output=use_dict_output
+            (
+                {"x": torch.zeros(1, *img_size)}
+                if use_dict_output
+                else torch.zeros(1, *img_size)
+            ),
+            use_dict_output=use_dict_output,
         )
 
     base_physics = Inpainting(img_size, mask=0.5)
@@ -557,7 +571,7 @@ def test_hdf5dataset_generate_dataset(
             load_physics_generator_params=True,
             use_dict_output=use_dict_output,
         )
-    
+
     # check_dataset_format runs a Trainer with `online_measurements=True` so ground-truth `x` is required
     if supervised:
         check_dataset_format(
