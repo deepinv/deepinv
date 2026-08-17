@@ -156,10 +156,7 @@ class SimpleFastMRISliceDataset(ImageDataset):
         if self.transform is not None:
             x = self.transform(x)
 
-        if self.use_dict_output:
-            return {"x": x}
-        else:
-            return x
+        return {"x": x} if self.use_dict_output else x
 
     def __len__(self):
         return len(self.x)

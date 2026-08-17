@@ -197,12 +197,9 @@ class Kohler(ImageDataset):
             trajectory_index = index // 12 + 1
         else:
             raise ValueError(f"Unsupported ordering: {self.ordering}")
-        out = self.get_item(printout_index, trajectory_index, frames=self.frames)
+        x, y = self.get_item(printout_index, trajectory_index, frames=self.frames)
 
-        if self.use_dict_output:
-            out = {"x": out[0], "y": out[1]}
-
-        return out
+        return {"x": x, "y": y} if self.use_dict_output else (x, y)
 
     # While users might sometimes want to thoroughly compare their own
     # deblurred images to all the sharp frames (about 200 per blurry shot),

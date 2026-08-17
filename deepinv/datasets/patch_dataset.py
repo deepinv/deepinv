@@ -55,6 +55,4 @@ class PatchDataset(TiledMixin2d, ImageDataset):
             patch = self.transform(patch)
         x = patch.reshape(self.shape) if self.shape else patch
 
-        out = {"x": x} if self.use_dict_output else x
-
-        return out
+        return {"x": x} if self.use_dict_output else x

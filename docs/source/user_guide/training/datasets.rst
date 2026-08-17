@@ -28,11 +28,7 @@ or any combination of these, in one of the following ways:
 
   If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`
 
-Alternatively, all datasets accept a ``use_dict_output=True`` constructor argument, which makes them return a dict
-``{"x": x, "y": y, "params": params}`` instead of a tuple, with any key omitted if not applicable (e.g. `x` is omitted rather
-than set to `torch.nan` if your dataset is ground-truth-free). This is recommended for better readability and flexibility, and
-is understood everywhere a dataset is consumed in ``deepinv`` (e.g. :class:`deepinv.Trainer`). It defaults to `False` for
-backward compatibility with the tuple format above.
+Alternatively, set `use_dict_output=True` (default False) in the dataset which makes them return a dict of the format `{"x": x, "y": y, "params": params}` with any key omitted if not applicable. This dict format is recommended over tuple for better readability and flexibility.
 
 >>> import torch
 >>> from deepinv.datasets import TensorDataset

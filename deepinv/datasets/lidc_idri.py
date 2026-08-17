@@ -173,6 +173,4 @@ class LidcIdriSliceDataset(ImageDataset):
         if self.transform is not None:
             slice_array = self.transform(slice_array)
 
-        out = {"x": slice_array} if self.use_dict_output else slice_array
-
-        return out
+        return {"x": slice_array} if self.use_dict_output else slice_array

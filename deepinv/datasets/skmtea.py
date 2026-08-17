@@ -200,18 +200,8 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
         y = y.moveaxis(-1, 1)  # (1, H, W, N) -> (1, N, H, W) complex
         y = self.from_torch_complex(y)  # (1, N, H, W) complex -> (1, 2, N, H, W) real
         y = y.squeeze(0) * mask.unsqueeze(0)
-
-        if self.use_dict_output:
-            out = {
-                "x": self.from_torch_complex(x).squeeze(0),
-                "y": y,
-                "params": {"mask": mask, "coil_maps": maps.moveaxis(-1, 1).squeeze(0)},
-            }
-        else:
-            out = (
-                self.from_torch_complex(x).squeeze(0),
-                y,
-                {"mask": mask, "coil_maps": maps.moveaxis(-1, 1).squeeze(0)},
-            )
-
-        return out
+        
+        x = self.from_torch_complex(x).squeeze(0)
+        params = {"mask": mask, "coil_maps": maps.moveaxis(-1, 1).squeeze(0)}
+        
+        return {"x": x, "y": y, "params": params} if self.use_dict_output else (x, y, params)
