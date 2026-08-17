@@ -27,23 +27,20 @@ import matplotlib.pyplot as plt
 import parallelproj
 import torch
 from array_api_compat import torch as torch_compat
+from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.datasets import BrainWebPET
 from deepinv.physics import PET
 
-
 # %%
-# Load a BrainWeb volume with five lesions
-# -----------------------------------------
+# Load a BrainWeb volume
+# ----------------------
 #
-# All lesions have the same activity and increasing diameters, allowing us to
-# study recovery coefficient as a function of lesion size. ``BrainWebPET``
-# returns PET-ready arrays in ``(C, H, W, D)`` order, so only a batch dimension
-# is added.
+# ``BrainWebPET`` follows the ``(C, D, H, W)`` volume order. A data loader adds
+# the leading batch dimension expected by the physics and reconstruction code.
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-lesion_diameters = [5, 8, 11, 14, 17]  # mm
 volume_size = (120, 120, 120)
 
 
@@ -55,7 +52,23 @@ def center_crop_3d(volume):
     return volume[(..., *crop_slices)]
 
 
-dataset = BrainWebPET(
+dataset = BrainWebPET(subject_ids=4, transform=center_crop_3d)
+dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
+x, params = next(iter(dataloader))
+x = x.to(device)
+
+dinv.utils.plot_ortho3D(x, titles="BrainWeb PET activity")
+
+
+# %%
+# Add hot lesions
+# ---------------
+#
+# All lesions have the same activity and increasing diameters, allowing us to
+# study recovery coefficient as a function of lesion size.
+
+lesion_diameters = [5, 8, 11, 14, 17]  # mm
+lesion_dataset = BrainWebPET(
     subject_ids=4,
     transform=center_crop_3d,
     lesion_diameters=lesion_diameters,
@@ -66,22 +79,14 @@ dataset = BrainWebPET(
     },
     seed=0,
 )
-emission, params = dataset[0]
-x = emission.unsqueeze(0).to(device)
-attenuation = params["attenuation"].unsqueeze(0).to(device)
-lesion_mask = params["lesion_mask"].unsqueeze(0).to(device)
+lesion_dataloader = DataLoader(lesion_dataset, batch_size=1, shuffle=False)
+x, params = next(iter(lesion_dataloader))
+x = x.to(device)
+attenuation = params["attenuation"].to(device)
+lesion_mask = params["lesion_mask"].to(device)
 
-# Display the three orthogonal middle slices of the ground-truth activity.
-middle_h, middle_w, middle_d = (size // 2 for size in x.shape[-3:])
-dinv.utils.plot(
-    [
-        x[..., middle_d],
-        x[:, :, middle_h, :, :].transpose(-2, -1),
-        x[:, :, :, middle_w, :].transpose(-2, -1),
-    ],
-    ["Axial", "Coronal", "Sagittal"],
-    figsize=(9, 4),
-    cbar=True,
+dinv.utils.plot_ortho3D(
+    [x, attenuation, lesion_mask], titles=["Emission Map", "Attenuation", "Lesions"]
 )
 
 
@@ -98,21 +103,22 @@ dinv.utils.plot(
 # view at lower sampling resolution. The background is generated as an
 # independent Poisson realization, as in the general 3D PET demo.
 
-gain = 1 / 1000
+gain = 1 / 20
 scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
     torch_compat,
     dev=device,
+    num_sides=34,
     num_lor_endpoints_per_side=8,
-    lor_spacing=8.0625,
+    lor_spacing=8,
 )
 physics = PET(
     img_size=x.shape[2:],
-    voxel_size=(2.0863, 2.0863, 2.03125),
+    voxel_size=(2, 2, 2),
     scanner=scanner,
-    fwhm_data_mm=4.3,
+    fwhm_data_mm=3.0,
     gain=gain,
-    normalize=False,
-    normalize_counts=False,
+    normalize=True,
+    normalize_counts=True,
     device=device,
 )
 
@@ -141,8 +147,28 @@ data_fidelity = dinv.optim.PoissonLikelihood(
     denormalize=True,
 )
 rdp = dinv.optim.RDP(gamma=2.0)
-lambda_reg = 0.03
+lambda_reg = 0.05
 nrmse = dinv.metric.NRMSE()
+
+
+def reconstruction_nrmse(_metrics, _x_prev, x_cur):
+    return nrmse(x_cur.unsqueeze(0), x).item()
+
+
+def poisson_nll(_metrics, _x_prev, x_cur):
+    return data_fidelity(x_cur.unsqueeze(0), y, physics).item()
+
+
+def penalized_poisson_nll(_metrics, _x_prev, x_cur):
+    x_cur = x_cur.unsqueeze(0)
+    return (data_fidelity(x_cur, y, physics) + lambda_reg * rdp(x_cur)).item()
+
+
+metrics = {
+    "nrmse": reconstruction_nrmse,
+    "poisson_nll": poisson_nll,
+    "penalized_poisson_nll": penalized_poisson_nll,
+}
 
 
 # %%
@@ -153,7 +179,7 @@ nrmse = dinv.metric.NRMSE()
 # preserves large early updates and gradually suppresses subset limit cycles.
 
 num_subsets = 8
-num_iter = 10
+num_iter = 7
 initialization = torch.ones_like(x)
 stepsize = [1.0 / (1.0 + 0.2 * k) for k in range(num_iter)]
 
@@ -161,13 +187,7 @@ osem = dinv.optim.OSEM(
     data_fidelity=data_fidelity,
     num_subsets=num_subsets,
     max_iter=num_iter,
-    custom_metrics={
-        "nrmse": lambda _values, _x_prev, x_cur: nrmse(x_cur.unsqueeze(0), x).item(),
-        "penalized_poisson": lambda _values, _x_prev, x_cur: (
-            data_fidelity(x_cur.unsqueeze(0), y, physics)
-            + lambda_reg * rdp(x_cur.unsqueeze(0))
-        ).item(),
-    },
+    custom_metrics=metrics,
 )
 bsrem = dinv.optim.BSREM(
     data_fidelity=data_fidelity,
@@ -176,12 +196,7 @@ bsrem = dinv.optim.BSREM(
     num_subsets=num_subsets,
     stepsize=stepsize,
     max_iter=num_iter,
-    custom_metrics={
-        "nrmse": lambda _values, _x_prev, x_cur: nrmse(x_cur.unsqueeze(0), x).item(),
-        "poisson": lambda _values, _x_prev, x_cur: data_fidelity(
-            x_cur.unsqueeze(0), y, physics
-        ).item(),
-    },
+    custom_metrics=metrics,
 )
 
 x_osem, metrics_osem = osem(y, physics, init=initialization, compute_metrics=True)
@@ -197,11 +212,12 @@ nrmse_bsrem = nrmse(x_bsrem, x).item()
 #
 # We display the middle axial slice of each volume.
 
+middle_d = x.shape[2] // 2
 dinv.utils.plot(
     [
-        x[..., middle_d],
-        x_osem[..., middle_d],
-        x_bsrem[..., middle_d],
+        x[:, :, middle_d],
+        x_osem[:, :, middle_d],
+        x_bsrem[:, :, middle_d],
     ],
     ["Ground truth", "OSEM", "BSREM-RDP"],
     subtitles=[
@@ -218,31 +234,50 @@ dinv.utils.plot(
 
 
 # %%
-# Evolution of reconstruction quality and objectives
+# NRMSE along the iterates
+# ------------------------
+
+iterations = range(1, num_iter + 1)
+fig, axis = plt.subplots(figsize=(6, 4))
+axis.plot(iterations, metrics_osem["nrmse"][0], label="OSEM")
+axis.plot(iterations, metrics_bsrem["nrmse"][0], label="BSREM-RDP")
+axis.set_xlabel("Epoch")
+axis.set_ylabel("NRMSE")
+axis.legend()
+fig.tight_layout()
+
+
+# %%
+# Poisson negative log-likelihood along the iterates
 # --------------------------------------------------
 
-fig, axes = plt.subplots(1, 3, figsize=(14, 4))
-iterations = range(1, num_iter + 1)
+fig, axis = plt.subplots(figsize=(6, 4))
+axis.plot(iterations, metrics_osem["poisson_nll"][0], label="OSEM")
+axis.plot(iterations, metrics_bsrem["poisson_nll"][0], label="BSREM-RDP")
+axis.set_xlabel("Epoch")
+axis.set_ylabel("Poisson NLL")
+axis.legend()
+fig.tight_layout()
 
-axes[0].plot(iterations, metrics_osem["nrmse"][0], label="OSEM")
-axes[0].plot(iterations, metrics_bsrem["nrmse"][0], label="BSREM-RDP")
-axes[0].set_ylabel("NRMSE")
 
-axes[1].plot(iterations, metrics_osem["cost"][0], label="OSEM")
-axes[1].plot(iterations, metrics_bsrem["poisson"][0], label="BSREM-RDP")
-axes[1].set_ylabel("Poisson NLL")
+# %%
+# Penalized objective along the iterates
+# --------------------------------------
 
-axes[2].plot(
+fig, axis = plt.subplots(figsize=(6, 4))
+axis.plot(
     iterations,
-    metrics_osem["penalized_poisson"][0],
+    metrics_osem["penalized_poisson_nll"][0],
     label="OSEM",
 )
-axes[2].plot(iterations, metrics_bsrem["cost"][0], label="BSREM-RDP")
-axes[2].set_ylabel("Poisson NLL + RDP")
-
-for axis in axes:
-    axis.set_xlabel("Epoch")
-    axis.legend()
+axis.plot(
+    iterations,
+    metrics_bsrem["penalized_poisson_nll"][0],
+    label="BSREM-RDP",
+)
+axis.set_xlabel("Epoch")
+axis.set_ylabel("Poisson NLL + RDP")
+axis.legend()
 fig.tight_layout()
 
 
