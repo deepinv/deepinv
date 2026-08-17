@@ -3,9 +3,156 @@ import torch
 import deepinv.physics.functional as dF
 from functools import partial
 import deepinv as dinv
+from deepinv.utils import TensorList
 
 # Some global constants
 ALL_CONV_PADDING = ("valid", "circular", "zeros", "replicate", "reflect")
+
+
+@pytest.mark.parametrize(
+    "physics_class",
+    [
+        dinv.physics.Tomography,
+        dinv.physics.TomographyWithAstra,
+        dinv.physics.PET,
+    ],
+)
+def test_tomography_subsets(physics_class, device):
+    if physics_class is dinv.physics.PET:
+        pytest.importorskip("parallelproj")
+        physics = dinv.physics.PET(img_size=(8, 8), normalize=False, device=device)
+        physics.background.fill_(3.0)
+        physics.normalize = True
+        physics.operator_norm.fill_(2.0)
+
+        subset_physics = dinv.physics.split_physics(
+            physics, num_subsets=2, device=device
+        )
+        x = torch.ones((1, 1, *physics.img_size), device=device)
+        y = physics.A(x, add_background=True)
+        y_subsets = dinv.physics.split_measurements(y, physics, num_subsets=2)
+
+        assert all(torch.all(subset.background == 3.0) for subset in subset_physics)
+        for subset_y, subset in zip(y_subsets, subset_physics, strict=True):
+            assert torch.allclose(
+                subset.A(x, add_background=True),
+                subset_y,
+            )
+        return
+
+    if physics_class is dinv.physics.TomographyWithAstra:
+        pytest.importorskip("astra")
+        if device.type != "cuda":
+            pytest.skip("TomographyWithAstra requires CUDA")
+
+    img_width = 16
+    num_angles = 8
+    num_subsets = 4
+
+    if physics_class is dinv.physics.Tomography:
+        physics = physics_class(
+            img_width=img_width,
+            angles=num_angles,
+            device=device,
+            circle=True,
+            normalize=False,
+            parallel_computation=False,
+        )
+        normalized_physics = physics_class(
+            img_width=img_width,
+            angles=num_angles,
+            device=device,
+            circle=True,
+            normalize=True,
+            parallel_computation=False,
+        )
+    else:
+        physics = physics_class(
+            img_size=(img_width, img_width),
+            angles=num_angles,
+            n_detector_pixels=img_width,
+            device=device,
+            normalize=False,
+        )
+        normalized_physics = physics_class(
+            img_size=(img_width, img_width),
+            angles=num_angles,
+            n_detector_pixels=img_width,
+            device=device,
+            normalize=True,
+        )
+
+    x = torch.rand(
+        (1, 1, img_width, img_width),
+        generator=torch.Generator(device).manual_seed(0),
+        device=device,
+    )
+    y = physics.A(x)
+
+    angles = torch.arange(num_angles, device=device)
+    geometry_vectors = torch.arange(num_angles * 12, device=device).reshape(
+        num_angles, 12
+    )
+
+    angle_indices = dinv.physics.get_subset_tensor(angles, num_subsets)
+    vector_indices = dinv.physics.get_subset_tensor(geometry_vectors, num_subsets)
+    assert len(angle_indices) == num_subsets
+    assert len(vector_indices) == num_subsets
+    expected_indices = torch.tensor([[0, 4], [1, 5], [2, 6], [3, 7]], device=device)
+    assert torch.equal(torch.stack(angle_indices), expected_indices)
+    assert torch.equal(torch.stack(vector_indices), expected_indices)
+
+    y_subsets = dinv.physics.split_measurements(y, physics, num_subsets)
+    subset_physics = dinv.physics.split_physics(physics, num_subsets, device=device)
+
+    assert isinstance(y_subsets, TensorList)
+    assert isinstance(subset_physics, dinv.physics.StackedLinearPhysics)
+    assert len(y_subsets) == num_subsets
+    assert len(subset_physics) == num_subsets
+
+    stacked_y = subset_physics.A(x)
+    for i, idx in enumerate(angle_indices):
+        angle_dim = -1 if physics_class is dinv.physics.Tomography else -2
+        expected_y = y.index_select(angle_dim, idx)
+        expected_angles = physics.angles.index_select(0, idx.to(physics.angles.device))
+
+        assert torch.allclose(y_subsets[i], expected_y)
+        assert torch.allclose(stacked_y[i], expected_y, atol=1e-5)
+        assert torch.allclose(subset_physics[i].angles, expected_angles)
+
+    assert torch.allclose(
+        subset_physics.A_adjoint(y_subsets), physics.A_adjoint(y), atol=1e-5
+    )
+    assert torch.allclose(
+        subset_physics.compute_sqnorm(x, max_iter=20, verbose=False),
+        physics.compute_sqnorm(x, max_iter=20, verbose=False),
+        rtol=1e-5,
+    )
+
+    normalized_subset_physics = dinv.physics.split_physics(
+        normalized_physics, num_subsets, device=device
+    )
+    normalized_y = normalized_physics.A(x)
+    normalized_y_subsets = dinv.physics.split_measurements(
+        normalized_y, normalized_physics, num_subsets
+    )
+    normalized_stacked_y = normalized_subset_physics.A(x)
+
+    for i, idx in enumerate(angle_indices):
+        expected_y = normalized_y.index_select(angle_dim, idx)
+        assert torch.allclose(normalized_y_subsets[i], expected_y)
+        assert torch.allclose(normalized_stacked_y[i], expected_y, atol=1e-5)
+
+    assert all(
+        subset.normalize
+        and torch.equal(subset.operator_norm, normalized_physics.operator_norm)
+        for subset in normalized_subset_physics
+    )
+    assert torch.allclose(
+        normalized_subset_physics.A_adjoint(normalized_y_subsets),
+        normalized_physics.A_adjoint(normalized_y),
+        atol=1e-5,
+    )
 
 
 @pytest.mark.parametrize("B", [1, 2])

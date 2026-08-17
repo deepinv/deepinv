@@ -8,4 +8,5 @@ from .gradient_descent import GDIteration, MDIteration
 from .spectral_methods import SMIteration
 from .sirt import SIRTIteration
 from .mlem import MLEMIteration
+from .osem import OSEMIteration
 from .blind_rl import BlindRLIteration

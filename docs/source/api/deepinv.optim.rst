@@ -36,6 +36,7 @@ Base Class
    deepinv.optim.PDCP
    deepinv.optim.SIRT
    deepinv.optim.MLEM
+   deepinv.optim.OSEM
    deepinv.optim.BlindRL
 
 
@@ -166,6 +167,7 @@ Iterators
    deepinv.optim.optim_iterators.PMDIteration
    deepinv.optim.optim_iterators.SMIteration
    deepinv.optim.optim_iterators.MLEMIteration
+   deepinv.optim.optim_iterators.OSEMIteration
    deepinv.optim.optim_iterators.BlindRLIteration
    deepinv.optim.optim_iterators.SIRTIteration
 

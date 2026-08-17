@@ -272,6 +272,9 @@ Some predefined optimizers are provided:
    * - :class:`deepinv.optim.MLEM`
      - | :math:`x_{k+1} = \frac{x_k}{A^{\top} 1} \odot A^{\top} \frac{y}{A x_k}`
 
+   * - :class:`deepinv.optim.OSEM`
+     - | :math:`x_{k,l+1} = \frac{x_{k,l}}{A_l^{\top} 1} \odot A_l^{\top} \frac{y_l}{A_l x_{k,l}}`
+
    * - :class:`deepinv.optim.BlindRL`
      - | :math:`h_{k+1} = \Pi_{\Delta}\left(\frac{h_k}{A_{x_k}^{\top} 1} \odot A_{x_k}^{\top} \frac{y}{A_{x_k} h_k}\right)`
        | :math:`x_{k+1} = \frac{x_k}{A_{h_{k+1}}^{\top} 1} \odot A_{h_{k+1}}^{\top} \frac{y}{A_{h_{k+1}} x_k}`

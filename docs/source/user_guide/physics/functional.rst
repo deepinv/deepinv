@@ -120,6 +120,12 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
    * - :func:`deepinv.physics.functional.liu_jia_pad`
      - Pads an image to make it have smooth circular boundaries for use in spectral deconvolution, reducing ringing artifacts in the deblurred outputs.
 
+   * - :func:`deepinv.physics.split_measurements`
+     - Splits tomography measurements into interleaved angular / vector subsets.
+
+   * - :func:`deepinv.physics.split_physics`
+     - Builds stacked tomography physics with one operator per interleaved angular / vector subset.
+
    * - :func:`deepinv.physics.functional.conv_filter_transpose2d`
      - Computes the adjoint of 2D convolution with respect to its filter more efficiently than :func:`deepinv.physics.functional.conv_transpose2d` when only the filter adjoint is needed.
 

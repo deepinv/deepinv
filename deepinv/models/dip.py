@@ -12,13 +12,6 @@ if TYPE_CHECKING:
     from deepinv.physics import Physics
 
 
-def add_module(self, module):
-    self.add_module(str(len(self) + 1), module)
-
-
-torch.nn.Module.add = add_module
-
-
 class ConvDecoder(nn.Module):
     r"""
     Convolutional decoder network. Supports 2D and 3D data, depending on img_size & in_size
@@ -73,8 +66,8 @@ class ConvDecoder(nn.Module):
         # hidden layers
         self.net = nn.Sequential()
         for i in range(layers - 1):
-            self.net.add(nn.Upsample(size=hidden_size[i], mode="nearest"))
-            self.net.add(
+            self.net.append(nn.Upsample(size=hidden_size[i], mode="nearest"))
+            self.net.append(
                 conv(
                     channels,
                     channels,
@@ -84,10 +77,10 @@ class ConvDecoder(nn.Module):
                     bias=True,
                 )
             )
-            self.net.add(nn.ReLU())
-            self.net.add(batchnorm(channels, affine=True))
+            self.net.append(nn.ReLU())
+            self.net.append(batchnorm(channels, affine=True))
         # final layer
-        self.net.add(
+        self.net.append(
             conv(
                 channels,
                 channels,
@@ -97,9 +90,9 @@ class ConvDecoder(nn.Module):
                 bias=True,
             )
         )
-        self.net.add(nn.ReLU())
-        self.net.add(batchnorm(channels, affine=True))
-        self.net.add(conv(channels, output_channels, 1, 1, padding=0, bias=True))
+        self.net.append(nn.ReLU())
+        self.net.append(batchnorm(channels, affine=True))
+        self.net.append(conv(channels, output_channels, 1, 1, padding=0, bias=True))
 
     def forward(self, x: torch.Tensor, scale_out: float = 1) -> torch.Tensor:
         r"""
