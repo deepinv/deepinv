@@ -14,7 +14,6 @@ from deepinv.optim.linear import (
     lsqr,
     least_squares_implicit_backward,
 )
-from deepinv.datasets.base import batch_as_dict
 
 if TYPE_CHECKING:
     from deepinv.optim.data_fidelity import DataFidelity
@@ -333,7 +332,7 @@ class GaussianMixtureModel(nn.Module):
         :param bool verbose: Output progress information in the console
         """
         if data_init:
-
+            from deepinv.datasets.base import batch_as_dict
             batch = next(iter(dataloader))
             batch = batch_as_dict(batch)
 
@@ -378,7 +377,8 @@ class GaussianMixtureModel(nn.Module):
         :param torch.data.Dataloader dataloader: containing the data
         :param bool verbose: Output progress information in the console
         """
-
+        from deepinv.datasets.base import batch_as_dict
+        
         objective = 0
         weights_new = torch.zeros_like(self._weights)
         mu_new = torch.zeros_like(self.mu)
