@@ -381,7 +381,10 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
                                     self.target_root / fname.name
                                 )
 
-                    except OSError:  # corrupted vol
+                    except OSError:  # pragma: no cover
+                        warnings.warn(
+                            f"Corrupted volume {Path(fname).name} detected in FastMRI dataset. Skipping..."
+                        )
                         continue
 
             self.samples = samples
