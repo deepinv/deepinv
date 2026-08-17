@@ -1921,30 +1921,36 @@ def test_RandomPatchSampler(make_data, use_dict_output):
 
 
 @pytest.mark.parametrize("lesion_diameters", [None, [15, 7]])
-def test_brainweb_pet(tmp_path, lesion_diameters):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_brainweb_pet(tmp_path, lesion_diameters, use_dict_output):
     brainweb = pytest.importorskip("brainweb")
 
     class RandomFDG(brainweb.FDG):
         greyMatter = lambda: 120.0
 
-    dataset = BrainWebPET(
-        root=tmp_path,
-        subject_ids=4,
-        pet_class=RandomFDG,
-        contrast=["T1", "T2"],
-        random_degradations_kwargs={
-            "petNoise": 0.0,
-            "t1Noise": 0.0,
-            "t2Noise": 0.0,
-            "petSigma": 0.0,
-            "t1Sigma": 0.0,
-            "t2Sigma": 0.0,
-        },
-        lesion_diameters=lesion_diameters,
-        lesion_kwargs={"intensity": [1000, 2000], "blur": [0, 0], "thresh": 30},
-        seed=0,
-    )
-    emission, params = dataset[0]
+    with dataset_output_context(use_dict_output):
+        dataset = BrainWebPET(
+            root=tmp_path,
+            subject_ids=4,
+            pet_class=RandomFDG,
+            contrast=["T1", "T2"],
+            random_degradations_kwargs={
+                "petNoise": 0.0,
+                "t1Noise": 0.0,
+                "t2Noise": 0.0,
+                "petSigma": 0.0,
+                "t1Sigma": 0.0,
+                "t2Sigma": 0.0,
+            },
+            lesion_diameters=lesion_diameters,
+            lesion_kwargs={"intensity": [1000, 2000], "blur": [0, 0], "thresh": 30},
+            seed=0,
+            use_dict_output=use_dict_output,
+        )
+
+    batch = dataset[0]
+    batch = batch_as_dict(batch)
+    emission, params = batch["x"], batch["params"]
 
     assert len(dataset) == 1
     assert emission.shape == params["attenuation"].shape == params["t1"].shape
@@ -1958,38 +1964,51 @@ def test_brainweb_pet(tmp_path, lesion_diameters):
         assert torch.unique(params["lesion_mask"]).tolist() == [0, 1, 2]
 
 
-def test_brainweb_mri(tmp_path):
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_brainweb_mri(tmp_path, use_dict_output):
     pytest.importorskip("brainweb_dl")
-    default_dataset = BrainWebMRI(root=tmp_path)
+    default_dataset = BrainWebMRI(root=tmp_path, use_dict_output=True)
     assert default_dataset.subject_ids == [4, 5, 6, 18, 20, 38, *range(41, 55)]
 
-    dataset = BrainWebMRI(
-        root=tmp_path,
-        subject_ids=4,
-        transform=lambda x: x / x.max(),
-    )
-    volume = dataset[0]
+    with dataset_output_context(use_dict_output):
+        dataset = BrainWebMRI(
+            root=tmp_path,
+            subject_ids=4,
+            transform=lambda x: x / x.max(),
+            use_dict_output=use_dict_output,
+        )
+        batch = dataset[0]
+        batch = batch_as_dict(batch)
+        volume = batch["x"]
 
-    assert len(dataset) == 1
-    assert volume.shape == (1, 181, 256, 256)
-    assert volume.dtype == torch.float32
-    assert volume.min() == 0
-    assert volume.max() == 1
+        assert len(dataset) == 1
+        assert volume.shape == (1, 181, 256, 256)
+        assert volume.dtype == torch.float32
+        assert volume.min() == 0
+        assert volume.max() == 1
 
-    cached_dataset = BrainWebMRI(root=tmp_path, subject_ids=4, download=False)
-    assert cached_dataset[0].shape == (1, 181, 256, 256)
+        cached_dataset = BrainWebMRI(
+            root=tmp_path,
+            subject_ids=4,
+            download=False,
+            use_dict_output=use_dict_output,
+        )
+        batch = cached_dataset[0]
+        batch = batch_as_dict(batch)
+        assert batch["x"].shape == (1, 181, 256, 256)
 
-    for subject_id, contrast, filename in [
-        (4, "T1", "subject04_t1w.nii.gz"),
-        (4, "T2", "brainweb_s04_fuzzy.nii.gz"),
-    ]:
-        with pytest.raises(FileNotFoundError, match=filename):
-            BrainWebMRI(
-                root=tmp_path / "missing",
-                subject_ids=subject_id,
-                contrast=contrast,
-                download=False,
-            )[0]
+        for subject_id, contrast, filename in [
+            (4, "T1", "subject04_t1w.nii.gz"),
+            (4, "T2", "brainweb_s04_fuzzy.nii.gz"),
+        ]:
+            with pytest.raises(FileNotFoundError, match=filename):
+                BrainWebMRI(
+                    root=tmp_path / "missing",
+                    subject_ids=subject_id,
+                    contrast=contrast,
+                    download=False,
+                    use_dict_output=use_dict_output,
+                )[0]
 
 
 @pytest.mark.parametrize("kind", ["zipfile", "tarball", "rarfile"])
