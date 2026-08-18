@@ -40,6 +40,7 @@ Full Reference Metrics
     deepinv.loss.metric.CosineSimilarity
     deepinv.loss.metric.GMSD
     deepinv.loss.metric.RecoveryCoefficient
+    deepinv.loss.metric.NRMSE
 
 No Reference Metrics
 --------------------
@@ -51,6 +52,8 @@ No Reference Metrics
    :nosignatures:
 
     deepinv.loss.metric.NIQE
+    deepinv.loss.metric.BRISQUE
+    deepinv.loss.metric.NIMA
     deepinv.loss.metric.QNR
     deepinv.loss.metric.BlurStrength
     deepinv.loss.metric.SharpnessIndex

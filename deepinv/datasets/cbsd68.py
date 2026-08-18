@@ -8,7 +8,7 @@ from .utils import resolve_root
 
 
 class CBSD68(ImageDataset):
-    """Dataset for `CBSBD68 <https://paperswithcode.com/dataset/cbsd68>`_.
+    """Dataset for `CBSD68 <https://paperswithcode.com/dataset/cbsd68>`_.
 
     Color BSD68 dataset for image restoration benchmarks is part of The Berkeley Segmentation Dataset and Benchmark from :footcite:t:`martin2001database`.
     It is used for measuring image restoration algorithms performance. It contains 68 images.
@@ -20,7 +20,7 @@ class CBSD68(ImageDataset):
                        -- dataset_info.json
                        -- state.json
 
-    This dataset wraps the huggingface version of the dataset.
+    This dataset wraps the HuggingFace version of the dataset.
     HF source : https://huggingface.co/datasets/deepinv/CBSD68
 
     .. note::
@@ -43,13 +43,13 @@ class CBSD68(ImageDataset):
 
         >>> import shutil
         >>> from deepinv.datasets import CBSD68
-        >>> dataset = CBSD68(root="CBSB68", download=True)  # download raw data at root and load dataset
+        >>> dataset = CBSD68(root="CBSD68", download=True)  # download raw data at root and load dataset
         Dataset has been successfully downloaded.
         >>> print(dataset.check_dataset_exists())                # check that raw data has been downloaded correctly
         True
         >>> print(len(dataset))                                  # check that we have 68 images
         68
-        >>> shutil.rmtree("CBSB68")                         # remove raw data from disk
+        >>> shutil.rmtree("CBSD68")                         # remove raw data from disk
 
     .. note::
 

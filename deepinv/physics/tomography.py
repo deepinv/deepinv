@@ -134,19 +134,17 @@ class Tomography(LinearPhysics):
         super().__init__(device=device, **kwargs)
 
         if isinstance(angles, int):
-            theta = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1].to(
+            angles = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1].to(
                 device
             )
         elif isinstance(angles, (list, tuple, ndarray)):
-            theta = torch.tensor(angles).to(device)
-        elif isinstance(angles, torch.Tensor):
-            theta = angles
-        else:
+            angles = torch.tensor(angles).to(device)
+        elif not isinstance(angles, torch.Tensor):
             raise ValueError(
                 f"angles must be int, float, iterable or Tensor, but got {type(angles)}"
             )
 
-        self.register_buffer("theta", theta)
+        self.register_buffer("angles", angles)
         self.fan_beam = fan_beam
         self.adjoint_via_backprop = adjoint_via_backprop
         if fan_beam or adjoint_via_backprop:
@@ -163,7 +161,7 @@ class Tomography(LinearPhysics):
         self.dtype = dtype
         self.radon = Radon(
             img_width,
-            theta,
+            angles,
             circle=circle,
             parallel_computation=parallel_computation,
             fan_beam=fan_beam,
@@ -174,7 +172,7 @@ class Tomography(LinearPhysics):
         if not self.fan_beam:
             self.iradon = IRadon(
                 img_width,
-                theta,
+                angles,
                 circle=circle,
                 parallel_computation=parallel_computation,
                 device=device,
@@ -206,6 +204,36 @@ class Tomography(LinearPhysics):
             self.normalize = True
 
         self.to(device)
+
+    @property
+    def theta(self) -> torch.Tensor:
+        warn(
+            "The attribute `theta` is deprecated and will be removed in a "
+            "future version. Use `angles` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.angles
+
+    @theta.setter
+    def theta(self, value: torch.Tensor) -> None:
+        warn(
+            "The attribute `theta` is deprecated and will be removed in a "
+            "future version. Use `angles` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.angles = value
+
+    @theta.deleter
+    def theta(self) -> None:
+        warn(
+            "The attribute `theta` is deprecated and will be removed in a "
+            "future version. Use `angles` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        del self.angles
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward projection.
@@ -519,7 +547,9 @@ class TomographyWithAstra(LinearPhysics):
             if n_detector_pixels is None
             else n_detector_pixels
         )
-        self.geometry_type = geometry_type
+        self.geometry_parameters = (
+            None if geometry_parameters is None else dict(geometry_parameters)
+        )
 
         if isinstance(angles, int):
             angles = torch.linspace(*angular_range, steps=angles + 1)[:-1]
@@ -548,7 +578,6 @@ class TomographyWithAstra(LinearPhysics):
             geometry_parameters=geometry_parameters,
             geometry_vectors=geometry_vectors,
         )
-
         self.xray_transform = XrayTransform(
             object_geometry=self.object_geometry,
             projection_geometry=self.projection_geometry,
@@ -565,13 +594,16 @@ class TomographyWithAstra(LinearPhysics):
 
         self.normalize = False
         if normalize:
-            self.operator_norm = self.compute_norm(
-                torch.randn(
-                    self.img_size,
-                    generator=torch.Generator(device).manual_seed(0),
-                    device=device,
-                )[None, None],
-                squared=False,
+            self.register_buffer(
+                "operator_norm",
+                self.compute_norm(
+                    torch.randn(
+                        self.img_size,
+                        generator=torch.Generator(device).manual_seed(0),
+                        device=device,
+                    )[None, None],
+                    squared=False,
+                ),
             )
             self.normalize = True
 
@@ -585,8 +617,85 @@ class TomographyWithAstra(LinearPhysics):
             return self.xray_transform.range_shape
 
     @property
+    def geometry_type(self) -> str:
+        """The geometry type represented by the X-ray transform."""
+        geometry_type = self.xray_transform.projection_geometry["type"]
+        if geometry_type.startswith("parallel"):
+            return "parallel"
+        return "fanbeam" if self.is_2d else "conebeam"
+
+    @property
+    def detector_spacing(self) -> float | tuple[float, float]:
+        """The detector-cell spacing represented by the X-ray transform."""
+        if self.is_2d:
+            return self.xray_transform.detector_cell_u_length
+        return (
+            self.xray_transform.detector_cell_v_length,
+            self.xray_transform.detector_cell_u_length,
+        )
+
+    @property
+    def pixel_spacing(self) -> tuple[float, ...]:
+        """The reconstruction-cell spacing represented by the X-ray transform."""
+        geometry = self.xray_transform.object_geometry
+        spacing = (
+            (geometry["option"]["WindowMaxX"] - geometry["option"]["WindowMinX"])
+            / geometry["GridColCount"],
+            (geometry["option"]["WindowMaxY"] - geometry["option"]["WindowMinY"])
+            / geometry["GridRowCount"],
+        )
+        if self.is_2d:
+            return spacing
+        return spacing + (
+            (geometry["option"]["WindowMaxZ"] - geometry["option"]["WindowMinZ"])
+            / geometry["GridSliceCount"],
+        )
+
+    @property
+    def bounding_box(self) -> tuple[float, ...]:
+        """The reconstruction bounding box represented by the X-ray transform."""
+        geometry = self.xray_transform.object_geometry["option"]
+        bounding_box = (
+            geometry["WindowMinX"],
+            geometry["WindowMaxX"],
+            geometry["WindowMinY"],
+            geometry["WindowMaxY"],
+        )
+        if self.is_2d:
+            return bounding_box
+        return bounding_box + (geometry["WindowMinZ"], geometry["WindowMaxZ"])
+
+    @property
+    def angular_range(self) -> tuple[float, float] | None:
+        """The angular range represented by the X-ray transform in degrees."""
+        angles = self.angles
+        if angles is None:
+            return None
+        return (angles.min().item(), angles.max().item())
+
+    @property
     def num_angles(self) -> int:
         return self.xray_transform.range_shape[1]
+
+    @property
+    def angles(self) -> torch.Tensor | None:
+        """Astra projection geometry angles tensor in degrees, or ``None`` for vector geometries."""
+
+        # The type ends with "_vec" for vector-based geometries
+        if "vec" in self.projection_geometry["type"]:
+            return None
+        return -torch.rad2deg(
+            torch.as_tensor(
+                self.projection_geometry["ProjectionAngles"], device=self.device
+            )
+        )
+
+    @property
+    def geometry_vectors(self) -> torch.Tensor | None:
+        """Astra projection geometry vectors, or ``None`` for angle geometries."""
+        if "vec" not in self.projection_geometry["type"]:
+            return None
+        return torch.as_tensor(self.projection_geometry["Vectors"], device=self.device)
 
     def fbp_weighting(self, sinogram: torch.Tensor) -> torch.Tensor:
         r"""Scales the computation by the inverse number of views and

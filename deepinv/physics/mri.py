@@ -194,7 +194,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         The dataset loads pairs of RSS images and multicoil kspace ``(x, y)`` where ``x = MultiCoilMRI().A_adjoint(y, rss=True, crop=True)``.
 
     :param torch.Tensor mask: binary sampling mask which should have shape (H,W), (C,H,W), (B,C,H,W), or (B,C,...,H,W). If None, generate mask of ones with ``img_size``.
-    :param torch.Tensor, str coil_maps: either ``Tensor``, integer, or ``None``. If complex valued (i.e. of complex dtype) coil sensitvity maps which should have shape (H,W), (N,H,W), (B,N,H,W) or (B,N,...,H,W).
+    :param torch.Tensor, str coil_maps: either ``Tensor``, integer, or ``None``. If complex valued (i.e. of complex dtype) coil sensitivity maps which should have shape (H,W), (N,H,W), (B,N,H,W) or (B,N,...,H,W).
         If None, generate flat coil maps of ones with ``img_size``. If integer, simulate birdcage coil maps with integer number of coils (this requires ``sigpy`` installed).
     :param tuple img_size: if ``mask`` or ``coil_maps`` not specified, flat ``mask`` or ``coil_maps`` of ones are created using ``img_size``,
         where ``img_size`` can be of any shape specified above. If ``mask`` or ``coil_maps`` provided, ``img_size`` is ignored.
@@ -376,7 +376,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
         if self.coil_maps is not None and self.coil_maps.shape[2:] != self.img_size[1:]:
             warn(
-                f"After updating parameters, img_size {self.img_size} in MultiCoilMRI is incompatible with coil_maps shape {coil_maps.shape} in the spatial dims."
+                f"After updating parameters, img_size {self.img_size} in MultiCoilMRI is incompatible with coil_maps shape {self.coil_maps.shape} in the spatial dims."
             )
 
     @staticmethod
@@ -417,7 +417,10 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
     @staticmethod
     def estimate_coil_maps(
-        y: Tensor, calib_size: int = 24, use_cupy: bool = False
+        y: Tensor,
+        calib_size: int = 24,
+        use_cupy: bool = False,
+        espirit_crop: float = 0.95,
     ) -> Tensor:
         """Estimate coil sensitivity maps using ESPIRiT.
 
@@ -430,6 +433,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
         :param int calib_size: optional square auto-calibration size in pixels, used by `sigpy`.
         :param bool use_cupy: whether to attempt to use cupy for GPU acceleration.
+        :param float espirit_crop: optionally set crop argument of ESPIRiT algorithm, defaults to 0.95.
         :return: torch.Tensor of coil maps of complex dtype and shape [B,N,...,H,W]
         """
         try:
@@ -461,7 +465,11 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             cupy_maps = cp.stack(
                 [
                     EspiritCalib(
-                        yb, calib_size, show_pbar=False, device=cupy_y.device
+                        yb,
+                        calib_size,
+                        show_pbar=False,
+                        crop=espirit_crop,
+                        device=cupy_y.device,
                     ).run()
                     for yb in cupy_y
                 ]
@@ -472,7 +480,13 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             device = sp.Device(-1)
             maps = np.stack(
                 [
-                    EspiritCalib(yb, calib_size, show_pbar=False, device=device).run()
+                    EspiritCalib(
+                        yb,
+                        calib_size,
+                        show_pbar=False,
+                        crop=espirit_crop,
+                        device=device,
+                    ).run()
                     for yb in complex_y.numpy(force=True)
                 ]
             )

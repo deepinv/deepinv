@@ -6,7 +6,7 @@ DeepInverse Tutorial @ MICCAI 2026
 ==================================
 
 Welcome to the DeepInverse tutorial at `International Conference on Medical Image Computing and Computer Assisted Intervention (MICCAI) <https://conferences.miccai.org/2026/en/default.asp>`_,
-Strasbourg, **Sept 27th 2026**.
+Strasbourg, **Day 1 (Sunday 27th September 2026), 10:30-12:30 CEST, Stuttgart room, Floor U**.
 
 **Title**: "DeepInverse: a hands-on tutorial for medical image reconstruction with AI"
 

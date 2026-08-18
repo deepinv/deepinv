@@ -68,7 +68,7 @@ filter_torch = dinv.physics.functional.gaussian_blur(sigma=(3, 3))
 noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 
-# The BlurFFT instance from physics enables to compute efficently backward operators with Fourier transform.
+# The BlurFFT instance from physics enables to compute efficiently backward operators with Fourier transform.
 p = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
     filter=filter_torch,

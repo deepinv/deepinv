@@ -15,7 +15,7 @@ class DiscriminatorMetric:
 
     The loss function is composed following LSGAN from :footcite:t:`mao2017least`.
 
-    This can be overriden to provide any flavour of discriminator metric, e.g. NSGAN, WGAN, LSGAN etc.
+    This can be overridden to provide any flavour of discriminator metric, e.g. NSGAN, WGAN, LSGAN etc.
 
     See :footcite:t:`lucic2018gans` for a comparison.
 
