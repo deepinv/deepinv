@@ -185,18 +185,29 @@ fig.tight_layout()
 plt.show()
 
 # %%
-# Worse denoising on MRI crelative to other images
-# ------------------------------------------------
-# The PSNR improvement over the noisy measurement is significantly lower for the MRI image than others.
-# The MRI measurement was degraded by Rician noise, which 
-# significcantly changes the expected value of background (intensity 0) signal. Gaussian noise and Gaussian-Poisson noise 
-# do not change the expected value for intensity 0, and log poisson changes it less at the chosen configuration.
-# As noise2void only had access to a single image, it has no way of knowing that the background pixels are supposed to be 0
-# and instead estimates the expected value of background pixels. 
-# We show this by calculating the mean and standard deviation of the first three rows of the CT and MRI images, where the latter has
-# higher mean.
- 
+# Why MRI is denoised less well than the other modalities
+# -------------------------------------------------------
+# The PSNR gain over the measurement is much smaller for MRI than for the other images.
+# The reason is that Rician noise is *biased*: it shifts the expected value of a
+# zero-intensity pixel away from zero. Gaussian and Poisson-Gaussian noise leave that
+# expectation untouched, and log-Poisson perturbs it only mildly at the settings used here.
+#
+# Because Noise2Void only ever sees a single noisy image, it has no way of knowing that the
+# background is meant to be zero. It faithfully estimates the expected value of the *noisy*
+# background, and therefore inherits the bias.
+#
+# We can see this on the first three pixel rows, a flat background region in both the CT and
+# the MRI image. Adding the noise barely moves the CT mean, but lifts the MRI mean by an order
+# of magnitude more, and Noise2Void reproduces that offset rather than removing it.
 
+for name in ["CT", "MRI (magnitude)"]:
+    print(name)
+    for key, label in zip(cols, labels, strict=False):
+        background = results[name][key][..., :3, :]
+        print(
+            f"  {label:16s} mean = {background.mean().item():.4f}"
+            f"  std = {background.std().item():.4f}"
+        )
 
 # %%
 # Loss curves
