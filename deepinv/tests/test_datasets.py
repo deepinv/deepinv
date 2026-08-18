@@ -381,7 +381,14 @@ def test_hdf5dataset(
         ), "Transform should be called if and only if it is supervised."
 
     # Test HDF5Dataset.unsupervised
-    assert dataset.unsupervised == unsupervised, "Dataset supervision label mismatch."
+    # Verify that it is deprecated properly
+    with pytest.warns(
+        DeprecationWarning, match="The attribute 'unsupervised' is deprecated"
+    ) as record:
+        # Verify that it gives the right value
+        assert (
+            dataset.unsupervised == unsupervised
+        ), "Dataset supervision label mismatch."
 
     # Test HDF5Dataset.close
     if close:

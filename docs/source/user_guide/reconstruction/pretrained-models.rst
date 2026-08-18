@@ -56,6 +56,10 @@ These models can be set-up in one line and perform inference in another line:
      - :ref:`Diffusion <diffusion>` w/ pretrained denoiser
      - General
      - Slow
+   * - :class:`SRResNet <deepinv.models.SRResNet>`
+     - Feedforward
+     - :class:`Super-resolution <deepinv.physics.Downsampling>`
+     - Fast
    * - :ref:`Pretrained denoisers <pretrained-weights>`
      - Feedforward
      - Denoising

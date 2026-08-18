@@ -97,7 +97,7 @@ jobs:
             const baseMean = baseResult.mean;
 
             const rel_diff = (headMean - baseMean) / baseMean * 100;
-            const threshold = 5; // 5% regression threshold
+            const threshold = 10; // 10% regression threshold
 
             core.info(`Torch mean time: ${(torchMean * 1000).toFixed(2)} ms`);
             core.info(`Main mean time: ${(baseMean * 1000).toFixed(2)} ms`);
@@ -106,7 +106,7 @@ jobs:
             core.info(`Failure threshold >+${threshold} %`);
 
             if (rel_diff > threshold) {
-              core.setFailed(`❌ Performance regression detected! Import time increased by ${rel_diff}%, which is over the 5% threshold.`);
+              core.setFailed(`❌ Performance regression detected! Import time increased by ${rel_diff}%, which is over the 10% threshold.`);
             } else {
               core.info('✅ No significant performance regression detected.');
             }

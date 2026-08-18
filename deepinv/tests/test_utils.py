@@ -1085,6 +1085,28 @@ def test_io_np():
     ).shape == (217, 181)
 
 
+def test_load_url_is_cached(tmp_path, monkeypatch):
+    url = "https://example.com/sample.bin"
+    data = b"cached-content"
+
+    monkeypatch.setattr(deepinv.io, "get_cache_home", lambda: tmp_path)
+
+    response = mock.MagicMock()
+    response.iter_content.return_value = [data]
+    response.raise_for_status.return_value = None
+    response.__enter__.return_value = response
+    response.__exit__.return_value = None
+
+    with patch.object(deepinv.io.requests, "get", return_value=response) as mock_get:
+        file1 = deepinv.utils.load_url(url)
+        file2 = deepinv.utils.load_url(url)
+
+    assert mock_get.call_count == 1
+    assert file1.getvalue() == data
+    assert file2.getvalue() == data
+    assert any((tmp_path / "url_cache").iterdir())
+
+
 def test_io_raster():
     pytest.importorskip(
         "rasterio",
@@ -1136,6 +1158,34 @@ def test_io_blosc2():
 
         out_memmap = deepinv.io.load_blosc2(pathlib.Path("fake.b2"), as_memmap=True)
         assert out_memmap is mock_arr
+
+
+def test_io_tiff(tmp_path):
+    tifffile = pytest.importorskip(
+        "tifffile",
+        reason="This test requires tifffile. It should be "
+        "installed with `pip install tifffile`",
+    )
+
+    # 2D integer image is normalized to [0, 1] and gets a channel + batch dim
+    gray = np.array([[0, 255], [128, 64]], dtype=np.uint8)
+    tifffile.imwrite(tmp_path / "gray.tif", gray)
+    x = deepinv.io.load_tiff(tmp_path / "gray.tif")
+    assert x.shape == (1, 1, 2, 2)
+    assert x.max() <= 1.0 and x.min() >= 0.0
+    assert torch.allclose(
+        x, torch.from_numpy(gray.astype(np.float64) / 255).reshape(x.shape)
+    )
+
+    # 3D (H, W, C) image is converted to channel-first (1, C, H, W)
+    rgb = np.zeros((4, 5, 3), dtype=np.uint16)
+    tifffile.imwrite(tmp_path / "rgb.tif", rgb)
+    x = deepinv.io.load_tiff(tmp_path / "rgb.tif")
+    assert x.shape == (1, 3, 4, 5)
+
+    # dtype argument casts the output tensor
+    x = deepinv.io.load_tiff(tmp_path / "gray.tif", dtype=torch.float32)
+    assert x.dtype == torch.float32
 
 
 PATCH_CONFIGS = [
