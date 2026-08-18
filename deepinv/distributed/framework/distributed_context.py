@@ -14,10 +14,10 @@ class DistributedContext:
     Context manager for distributed computing.
 
     Handles:
-      - Initialization/destruction of the process group (if `RANK` / `WORLD_SIZE` environment variables exist)
-      - Backend choice: NCCL when one-GPU-per-process per node, else Gloo.
-      - Device selection based on `LOCAL_RANK` and visible GPUs
-      - Sharding helpers and tiny communication helpers
+    - Initialization/destruction of the process group (if `RANK` / `WORLD_SIZE` environment variables exist)
+    - Backend choice: NCCL when one-GPU-per-process per node, else Gloo.
+    - Device selection based on `LOCAL_RANK` and visible GPUs
+    - Sharding helpers and tiny communication helpers
 
     .. note::
         The world size refers to the total number of processes (usually one per GPU).

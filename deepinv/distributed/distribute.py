@@ -273,8 +273,8 @@ def _distribute_base_optim(
     r"""
     In-place distribute a :class:`deepinv.optim.BaseOptim` unfolded model.
 
-    Uses the structured interface of :class:`~deepinv.optim.BaseOptim` directly —
-    rather than an opaque module walk — to distribute each component precisely:
+    Uses the structured interface of :class:`~deepinv.optim.BaseOptim` directly
+    to distribute each component precisely:
 
     - ``model.data_fidelity`` (``nn.ModuleList``): each
       :class:`~deepinv.optim.DataFidelity` entry is replaced with a

@@ -35,7 +35,6 @@ from deepinv.models.drunet import DRUNet
 from deepinv.optim import L2, L1, PGD
 from deepinv.optim.data_fidelity import StackedPhysicsDataFidelity
 from deepinv.optim.prior import PnP
-
 from deepinv.distributed.framework import (
     DistributedContext,
     DistributedStackedLinearPhysics,
@@ -46,6 +45,7 @@ from deepinv.distributed.distribute import (
     distribute,
     _distribute_base_optim,
 )
+from deepinv.distributed.strategies import create_strategy
 
 # =============================================================================
 # Test Infrastructure: Multi-GPU and CPU Support
@@ -1732,10 +1732,6 @@ def _test_physics_backward_worker(rank, world_size, args):
             loss_dist = sum([yi.sum() for yi in y_dist])
             loss_dist.backward()
 
-        # Aggregate gradients from all ranks IS NOW AUTOMATIC via DistributedGradientSync!
-        # if ctx.use_dist:
-        #      dist.all_reduce(x.grad, op=dist.ReduceOp.SUM)
-
         grad_dist = x.grad.clone()
 
         # 2. Reference Forward
@@ -2383,18 +2379,7 @@ def _test_processor_backward_worker(rank, world_size, args):
         local_weight_grad = denoiser.conv.weight.grad
         local_bias_grad = denoiser.conv.bias.grad
 
-        # Gradient reduction is now AUTOMATIC via DistributedParameterSync!
-        # if ctx.use_dist:
-        #    # Reduce gradients to see if they match the global run
-        #    dist.all_reduce(local_weight_grad, op=dist.ReduceOp.SUM)
-        #    dist.all_reduce(local_bias_grad, op=dist.ReduceOp.SUM)
-
-        # Now local_weight_grad contains the SUM of gradients from all ranks.
-        # This should match the gradient if we ran the whole thing on one GPU.
-
         # Let's compute the Single-GPU reference locally
-        from deepinv.distributed.strategies import create_strategy
-
         strategy = create_strategy(x_ref.shape, patch_size=8, overlap=2)
         # All patches
         num_patches = strategy.get_num_patches()

@@ -25,14 +25,14 @@ class DistributedDataFidelity(torch.nn.Module):
 
     The key operations are:
 
-        - ``fn(x, y, physics)``: Computes the data fidelity :math:`\sum_i d(A_i(x), y_i)`
-        - ``grad(x, y, physics)``: Computes the gradient :math:`\sum_i A_i^T \nabla d(A_i(x), y_i)`
+    - ``fn(x, y, physics)``: Computes the data fidelity :math:`\sum_i d(A_i(x), y_i)`
+    - ``grad(x, y, physics)``: Computes the gradient :math:`\sum_i A_i^T \nabla d(A_i(x), y_i)`
 
     Both operations use an efficient pattern:
 
-        1. Compute local forward operations :math:`A_i`
-        2. Apply distance function and compute gradients locally
-        3. Perform a single reduction across ranks
+    1. Compute local forward operations :math:`A_i`
+    2. Apply distance function and compute gradients locally
+    3. Perform a single reduction across ranks
 
     :param DistributedContext ctx: distributed context manager.
     :param DataFidelity | Callable data_fidelity: either a DataFidelity instance
@@ -192,9 +192,9 @@ class DistributedDataFidelity(torch.nn.Module):
 
         This is computed efficiently by:
 
-            1. Each rank computes :math:`A_i(x)` for its local operators
-            2. Each rank computes :math:`\sum_{i \in \text{local}} d(A_i(x), y_i)`
-            3. Results are reduced across all ranks
+        1. Each rank computes :math:`A_i(x)` for its local operators
+        2. Each rank computes :math:`\sum_{i \in \text{local}} d(A_i(x), y_i)`
+        3. Results are reduced across all ranks
 
         :param torch.Tensor x: input signal at which to evaluate the data fidelity.
         :param list[torch.Tensor] y: measurements (TensorList or list of tensors).
@@ -239,10 +239,10 @@ class DistributedDataFidelity(torch.nn.Module):
 
         This is computed efficiently by:
 
-            1. Each rank computes :math:`A_i(x)` for its local operators
-            2. Each rank computes :math:`\nabla d(A_i(x), y_i)` for its local operators
-            3. Each rank computes :math:`\sum_{i \in \text{local}} \frac{\partial A_i}{\partial \x} \nabla d(A_i(x), y_i)` using A_vjp_local
-            4. Results are reduced across all ranks
+        1. Each rank computes :math:`A_i(x)` for its local operators
+        2. Each rank computes :math:`\nabla d(A_i(x), y_i)` for its local operators
+        3. Each rank computes :math:`\sum_{i \in \text{local}} \frac{\partial A_i}{\partial \x} \nabla d(A_i(x), y_i)` using A_vjp_local
+        4. Results are reduced across all ranks
 
         :param torch.Tensor x: input signal at which to compute the gradient.
         :param list[torch.Tensor] y: measurements (TensorList or list of tensors).

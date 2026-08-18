@@ -19,21 +19,35 @@ class DistributedProcessing(torch.nn.Module):
 
     This class enables distributed processing of large signals (images, volumes, etc.) by:
 
-        1. Splitting the signal into patches using a chosen strategy
-        2. Distributing patches across multiple processes/GPUs
-        3. Processing each patch independently using a provided processor function
-        4. Combining processed patches back into the full signal with proper overlap handling
+    1. Splitting the signal into patches using a chosen strategy
+    2. Distributing patches across multiple processes/GPUs
+    3. Processing each patch independently using a provided processor function
+    4. Combining processed patches back into the full signal with proper overlap handling
 
     The processor can be any callable that operates on tensors (e.g., denoisers, priors,
     neural networks, etc.). The class handles all distributed coordination automatically.
 
     |sep|
 
-    **Example use cases:**
+    **Example:**
 
-        - Distributed denoising of large images/volumes
-        - Applying neural network priors across multiple GPUs
-        - Processing signals too large to fit on a single device
+    .. code-block:: python
+
+        import torch
+        from deepinv.distributed import DistributedContext
+        from deepinv.distributed.framework import DistributedProcessing
+
+        x = torch.randn(1, 3, 1024, 1024)
+
+        with DistributedContext() as ctx:
+            processor = torch.nn.Identity()
+            distributed_processor = DistributedProcessing(
+                ctx,
+                processor,
+                strategy_kwargs={"patch_size": 256, "overlap": 32},
+                max_batch_size=1,
+            )
+            output = distributed_processor(x.to(ctx.device))
 
     :param DistributedContext ctx: distributed context manager.
     :param Callable[[torch.Tensor], torch.Tensor] processor: processing function to apply to signal patches.
@@ -46,14 +60,12 @@ class DistributedProcessing(torch.nn.Module):
     :param int | None max_batch_size: maximum number of patches to process in a single batch.
         If ``None``, all local patches are batched together. Set to ``1`` for sequential processing
         (useful for memory-constrained scenarios). Higher values increase throughput but require more memory. Default is `None`.
-    :param str checkpoint_batches: activation checkpointing mode for patch-batches during backward.
-        Checkpointing saves memory by recomputing activations related to the patch-batches during the backward pass instead of storing them.
-        Supported values are ``'auto'``, ``'always'`` and ``'never'``.
-
-        - ``'auto'`` (default): enable checkpointing only when gradients are enabled and there are multiple local patch-batches.
-        - ``'always'``: always checkpoint patch-batches when gradients are enabled.
-        - ``'never'``: disable checkpointing.
-
+    :param str checkpoint_batches: activation checkpointing mode for patch batches
+        during the backward pass. Checkpointing saves memory by recomputing
+        activations instead of storing them. Use ``"auto"`` (default) to enable it
+        only when gradients are enabled and there are multiple local patch batches,
+        ``"always"`` to enable it whenever gradients are enabled, or ``"never"``
+        to disable it.
     :param bool checkpoint_use_reentrant: reentrant mode passed to :func:`torch.utils.checkpoint.checkpoint`.
         Default is ``False`` (recommended by PyTorch).
     :param bool checkpoint_preserve_rng_state: whether to preserve RNG state across forward recomputation when
@@ -173,12 +185,12 @@ class DistributedProcessing(torch.nn.Module):
 
         This method orchestrates the complete distributed processing pipeline:
 
-            1. Extracts local patches from the input signal using the strategy
-            2. Applies batching as defined by the strategy and max_batch_size
-            3. Applies the processor function to each batch of patches
-            4. Unpacks batched results back to individual patches
-            5. Reduces patches back to the output signal using the strategy's blending
-            6. All-reduces the final result across ranks to combine overlapping regions
+        1. Extracts local patches from the input signal using the strategy
+        2. Applies batching as defined by the strategy and max_batch_size
+        3. Applies the processor function to each batch of patches
+        4. Unpacks batched results back to individual patches
+        5. Reduces patches back to the output signal using the strategy's blending
+        6. All-reduces the final result across ranks to combine overlapping regions
 
         :param torch.Tensor x: input signal to process.
         :param bool gather: whether to gather results across ranks. If False, returns local contribution.

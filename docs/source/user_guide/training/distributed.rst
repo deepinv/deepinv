@@ -77,7 +77,7 @@ communication needed by the forward pass and by backpropagation.
 .. note::
 
     See :ref:`sphx_glr_auto_examples_distributed_demo_unrolled_distributed.py`
-    for a complete example training an unfolded DRS model.
+    for a complete example training an unfolded model.
 
 
 When to Use It

@@ -17,7 +17,6 @@ The framework provides an API centered around two key functions:
     
     - *Multiple physics operators* with individual measurements need to be processed in parallel
     - *Large images or volumes* are too large to be processed in a single device's memory
-    - *Denoising priors* need to be applied to large images or volumes using spatial tiling
     - You want to *accelerate reconstruction* by leveraging multiple devices
 
 

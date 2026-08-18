@@ -14,7 +14,7 @@ This example shows how to combine:
 Each GPU (rank) processes different parts/operators of the same image. This is not
 standard data-parallel training (e.g., via :class:`torch.nn.parallel.DistributedDataParallel`) over different images.
 
-Usage
+**Usage:**
 
 .. code-block:: bash
 
@@ -26,6 +26,10 @@ Usage
     # Multi-process (2 ranks)
     python -m torch.distributed.run --nproc_per_node=2 examples/distributed/demo_unrolled_distributed.py
 """
+
+# %%
+# Import modules
+# -----------------------------------------------------------------------------
 
 import os
 
@@ -41,15 +45,22 @@ from deepinv.models import DRUNet
 from deepinv.optim import DRS
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.physics import Denoising, GaussianNoise, stack
+from deepinv.physics import GaussianNoise, stack
+from deepinv.physics.blur import Blur
+from deepinv.physics.functional import gaussian_blur
 from deepinv.utils import get_data_home
 from deepinv.utils.plotting import plot, plot_curves
 from deepinv.utils.tensorlist import TensorList
 
 # %%
-# Helper functions
+# Dataset and Dataloader preparation helper functions
 # -----------------------------------------------------------------------------
-# These functions assist with data collation, device management, and dataset preparation.
+# In this example, we use the Urban100 dataset to generate measurements for
+# training and validation. For every clean image, :func:`deepinv.datasets.generate_dataset`
+# creates two blurred and noisy measurements. Only rank 0 downloads and generates
+# the dataset; the other ranks wait until both HDF5 files have been closed before
+# opening them.
+#
 
 
 def collate_batch(batch):
@@ -58,32 +69,21 @@ def collate_batch(batch):
         x, y = batch[0]
         if x.ndim == 3:
             x = x.unsqueeze(0)
-        if isinstance(y, TensorList):
-            y = TensorList([m.unsqueeze(0) if m.ndim == 3 else m for m in y])
-        elif isinstance(y, (list, tuple)):
-            y = [m.unsqueeze(0) if m.ndim == 3 else m for m in y]
-        elif y.ndim == 3:
-            y = y.unsqueeze(0)
+        y = TensorList([m.unsqueeze(0) if m.ndim == 3 else m for m in y])
         return x, y
 
     xs = [x for x, _ in batch]
     ys = [y for _, y in batch]
     x_batch = torch.stack(xs, dim=0)
 
-    if isinstance(ys[0], TensorList):
-        n_ops = len(ys[0])
-        return x_batch, TensorList(
-            [torch.stack([yy[i] for yy in ys], dim=0) for i in range(n_ops)]
-        )
-    if isinstance(ys[0], (list, tuple)):
-        n_ops = len(ys[0])
-        return x_batch, [torch.stack([yy[i] for yy in ys], dim=0) for i in range(n_ops)]
-    return x_batch, torch.stack(ys, dim=0)
+    n_ops = len(ys[0])
+    return x_batch, TensorList(
+        [torch.stack([yy[i] for yy in ys], dim=0) for i in range(n_ops)]
+    )
 
 
 def prepare_dataset(
     ctx: DistributedContext,
-    *,
     seed: int,
     crop_size: int,
     train_images: int,
@@ -97,11 +97,23 @@ def prepare_dataset(
     Important: all ranks iterate over the same batches since distribution is over
     image content/operators, not over different images.
     """
-    noise_levels = (0.06, 0.08)
-    physics_list = []
-    for i, sigma in enumerate(noise_levels):
-        torch.manual_seed(seed + i)
-        physics_list.append(Denoising(noise_model=GaussianNoise(sigma=sigma)))
+    blur_rngs = [
+        torch.Generator(device=ctx.device).manual_seed(seed + i) for i in range(2)
+    ]
+    physics_list = [
+        Blur(
+            filter=gaussian_blur(sigma=(1.5, 1.5), device=str(ctx.device)),
+            padding="circular",
+            device=ctx.device,
+            noise_model=GaussianNoise(sigma=0.03, rng=blur_rngs[0]),
+        ),
+        Blur(
+            filter=gaussian_blur(sigma=(2.0, 2.0), device=str(ctx.device)),
+            padding="circular",
+            device=ctx.device,
+            noise_model=GaussianNoise(sigma=0.05, rng=blur_rngs[1]),
+        ),
+    ]
     stacked_physics = stack(*physics_list)
 
     data_root = get_data_home() / "Urban100"
@@ -114,15 +126,14 @@ def prepare_dataset(
             transforms.ToTensor(),
         ]
     )
-    base_dataset = dinv.datasets.Urban100HR(
-        root=str(data_root), download=True, transform=transform
-    )
-
-    max_images = min(len(base_dataset), train_images + val_images)
-    train_base = Subset(base_dataset, list(range(train_images)))
-    val_base = Subset(base_dataset, list(range(train_images, max_images)))
-
     if ctx.rank == 0:
+        base_dataset = dinv.datasets.Urban100HR(
+            root=str(data_root), download=True, transform=transform
+        )
+        max_images = min(len(base_dataset), train_images + val_images)
+        train_base = Subset(base_dataset, list(range(train_images)))
+        val_base = Subset(base_dataset, list(range(train_images, max_images)))
+
         generate_dataset(
             train_dataset=train_base,
             physics=stacked_physics,
@@ -141,6 +152,11 @@ def prepare_dataset(
             train_datapoints=len(val_base),
             num_workers=num_workers,
         )
+
+    # generate_dataset closes each HDF5 file before returning. The data directory
+    # must be on storage shared by all ranks. ctx.barrier() ensures that all ranks wait
+    # until the HDF5 files are closed before opening them.
+    ctx.barrier()
 
     train_ds = HDF5Dataset(
         path=str(data_root / f"{dataset_name}_train0.h5"), train=True
@@ -174,7 +190,7 @@ def prepare_dataset(
 # -----------------------------------------------------------------------------
 # Settings for training and distributed processing.
 # patch_size and overlap control the size of the image patches that each rank processes, and how much they overlap with each other.
-
+#
 # .. note::
 #     The following settings are for demonstration purposes. We recommend training for more epochs to get better results.
 
@@ -194,17 +210,19 @@ num_workers = 4 if torch.cuda.is_available() else 0
 patch_size = crop_size // 2
 overlap = max(8, patch_size // 8)
 
-torch.manual_seed(seed)
+_ = torch.manual_seed(seed)
 
 
 # %%
 # Build distributed physics/model and train with deepinv.Trainer
 # -----------------------------------------------------------------------------
 # The distributed framework allows to distribute unfolded network with a few simple steps:
+#
 # - Initialize the distributed context
 # - Prepare the physics, model, trainer and dataloaders
-# - call :func:`deepinv.distributed.distribute` to distribute the physics and model across ranks
+# - Call :func:`deepinv.distributed.distribute` to distribute the physics and model across ranks
 # - Train with :class:`deepinv.Trainer` as usual.
+#
 # The framework takes care of synchronizing the forward/backward passes across ranks, and communicating the necessary information between them.
 
 
@@ -223,7 +241,7 @@ with DistributedContext(seed=seed, seed_offset=False) as ctx:
         val_images=val_images,
         batch_size=batch_size,
         num_workers=num_workers,
-        dataset_name="urban100_drs_unfolded",
+        dataset_name="urban100_drs_blur_noise",
     )
 
     # Distribute the stacked physics across ranks.
@@ -298,9 +316,7 @@ with DistributedContext(seed=seed, seed_offset=False) as ctx:
     with torch.no_grad():
         demo_rec_after = model(demo_y, distributed_physics)
 
-    # %%
     # Display training summary and qualitative result (rank 0 only)
-    # -------------------------------------------------------------------------
 
     if ctx.rank == 0:
         train_history = trainer.train_metrics_history.get("PSNR", [])
@@ -315,7 +331,7 @@ with DistributedContext(seed=seed, seed_offset=False) as ctx:
             [demo_x, demo_y[0], demo_rec_before, demo_rec_after],
             titles=[
                 "Ground truth",
-                "One noisy measurement",
+                "Blurred noisy measurement",
                 "Before training",
                 "After training",
             ],

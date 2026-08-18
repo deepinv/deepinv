@@ -460,8 +460,8 @@ def gather_tensorlist_concatenated(
     Best for: Medium to large tensors where minimizing communication calls matters.
 
     Communication pattern:
-        - 1 call to :func:`torch.distributed.all_gather_object` for metadata (lightweight)
-        - 1 call to :func:`torch.distributed.all_gather` for concatenated tensor data (efficient)
+    - 1 call to :func:`torch.distributed.all_gather_object` for metadata (lightweight)
+    - 1 call to :func:`torch.distributed.all_gather` for concatenated tensor data (efficient)
 
     :param list[int] local_indices: indices owned by this rank
     :param list[torch.Tensor] local_results: local tensor results
@@ -607,9 +607,9 @@ def gather_tensorlist_broadcast(
     with communication (each operator can be broadcast as soon as it's ready).
 
     Use cases:
-        - Different physics operators produce vastly different measurement sizes
-        - Streaming/pipelined execution where operators complete at different times
-        - Very large tensors where memory for concatenation is prohibitive
+    - Different physics operators produce vastly different measurement sizes
+    - Streaming/pipelined execution where operators complete at different times
+    - Very large tensors where memory for concatenation is prohibitive
 
     Communication pattern: num_operators broadcasts (can be overlapped with computation)
 

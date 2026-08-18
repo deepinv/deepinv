@@ -16,8 +16,6 @@ from deepinv.distributed.framework.distributed_context import DistributedContext
 
 class DistributedStackedPhysics(Physics):
     r"""
-    Holds only local physics operators. Exposes fast local and compatible global APIs.
-
     This class distributes a *collection* of physics operators across multiple processes,
     where each process owns a subset of the operators.
 
@@ -29,7 +27,7 @@ class DistributedStackedPhysics(Physics):
         single monolithic physics operator across ranks.
 
     If your forward model is a single operator that can be decomposed into multiple
-    sub-operators, it is up to you to perform that decomposition (e.g., build a
+    sub-operators, you can build any custom decomposition (e.g., build a
     :class:`deepinv.physics.StackedPhysics`) and then pass that collection to
     :class:`DistributedStackedPhysics` via the ``factory`` argument.
 
@@ -241,8 +239,8 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
 
     All linear operations (`A_adjoint`, `A_vjp`, etc.) support a `reduce_op` parameter:
 
-        - If `reduce_op='sum'` (default): The method computes the global result by performing a single all-reduce across all ranks.
-        - If `reduce_op=None`: The method computes only the local contribution from operators owned by this rank, without any inter-rank communication. This is useful for deferring reductions in custom algorithms. Beware, using `reduce_op=None` may lead to errors or incorrect results if the full global operation is required (e.g., for correct gradients in training) and should be used with caution.
+    - If `reduce_op='sum'` (default): The method computes the global result by performing a single all-reduce across all ranks.
+    - If `reduce_op=None`: The method computes only the local contribution from operators owned by this rank, without any inter-rank communication. This is useful for deferring reductions in custom algorithms. Beware, using `reduce_op=None` may lead to errors or incorrect results if the full global operation is required (e.g., for correct gradients in training) and should be used with caution.
 
     :param DistributedContext ctx: distributed context manager.
     :param int num_operators: total number of physics operators to distribute.
@@ -439,18 +437,18 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         r"""
         Distributed pseudoinverse computation. This method provides two strategies:
 
-            1. **Local approximation** (`local_only=True`, default): Each rank computes the pseudoinverse
-            of its local operators independently, then averages the results with a single reduction.
-            This is efficient (minimal communication) but **provides only an approximation**.
-            In other words, for stacked operators this computes
+        1. **Local approximation** (`local_only=True`, default): Each rank computes the pseudoinverse
+        of its local operators independently, then averages the results with a single reduction.
+        This is efficient (minimal communication) but **provides only an approximation**.
+        In other words, for stacked operators this computes
 
-            .. math::
+        .. math::
 
-                A^\dagger y = \frac{1}{n} \sum_i A_i^\dagger y_i
+            A^\dagger y = \frac{1}{n} \sum_i A_i^\dagger y_i
 
-            2. **Global computation** (`local_only=False`): Uses the full least squares solver
-            with distributed :meth:`A_adjoint_A` and :meth:`A_A_adjoint` operations.
-            This computes the exact pseudoinverse but requires communication at every iteration.
+        2. **Global computation** (`local_only=False`): Uses the full least squares solver
+        with distributed :meth:`A_adjoint_A` and :meth:`A_A_adjoint` operations.
+        This computes the exact pseudoinverse but requires communication at every iteration.
 
         :param TensorList | list[torch.Tensor] y: measurements to invert.
         :param str solver: least squares solver to use (only for `local_only=False`).
@@ -516,16 +514,16 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
 
         This method provides two strategies:
 
-            1. **Local approximation** (`local_only=True`, default): Each rank computes the norm
-            of its local operators independently, then a single max-reduction provides an upper bound.
-            This is efficient (minimal communication) and valid for conservative estimates.
-            For stacked operators :math:`A = [A_1; A_2; \ldots; A_n]`, we have
-            :math:`\|A\|^2 \leq \sum_i \|A_i\|^2`, and we use :math:`\max_i \|A_i\|^2` as
-            a conservative upper bound.
+        1. **Local approximation** (`local_only=True`, default): Each rank computes the norm
+        of its local operators independently, then a single max-reduction provides an upper bound.
+        This is efficient (minimal communication) and valid for conservative estimates.
+        For stacked operators :math:`A = [A_1; A_2; \ldots; A_n]`, we have
+        :math:`\|A\|^2 \leq \sum_i \|A_i\|^2`, and we use :math:`\max_i \|A_i\|^2` as
+        a conservative upper bound.
 
-            2. **Global computation** (`local_only=False`): Uses the full distributed :meth:`A_adjoint_A`
-            with communication at every power iteration. This computes the exact norm but is
-            communication-intensive.
+        2. **Global computation** (`local_only=False`): Uses the full distributed :meth:`A_adjoint_A`
+        with communication at every power iteration. This computes the exact norm but is
+        communication-intensive.
 
         :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate.
         :param int max_iter: maximum number of iterations for power method. Default is `50`.
