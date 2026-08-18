@@ -1378,7 +1378,7 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
                 expected_grad[idx_flat],
                 rtol=5e-2,
                 atol=5e-2,
-                msg=f"Gradient w.r.t physics parameter {k} does not match finite difference gradient. Between {implicit_grad.view(-1)[idx_flat]} and {expected_grad[idx_flat]}.",
+                msg=lambda default: f"Gradient w.r.t physics parameter {k} does not match finite difference gradient. " + default,
             )
 
     torch.use_deterministic_algorithms(prev_deterministic)
