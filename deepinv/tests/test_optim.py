@@ -1265,7 +1265,6 @@ def test_correct_global_phase(device):
         ), f"correct_global_phase failed for shape {shape}"
 
 
-@pytest.mark.parametrize("batch_size", [2])
 @pytest.mark.parametrize(
     "physics_name",
     [
@@ -1274,12 +1273,12 @@ def test_correct_global_phase(device):
     ],
 )
 @pytest.mark.parametrize("solver", solvers)
-def test_least_squares_implicit_backward(device, solver, physics_name, batch_size):
+def test_least_squares_implicit_backward(device, solver, physics_name):
     # Check that the backward gradient matches the finite difference gradient
-    prev_deterministic = torch.are_deterministic_algorithms_enabled()
-    torch.use_deterministic_algorithms(True)
-
+    batch_size = 2
     dtype = torch.float64
+    torch.manual_seed(2341)
+
     physics, img_size, _, _, params = find_operator(
         physics_name, device=device, get_physics_param=True
     )
