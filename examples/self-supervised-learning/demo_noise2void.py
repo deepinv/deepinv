@@ -7,9 +7,10 @@ using the Noise2Void loss :footcite:p:`krull2019noise2void`.
 
 Noise2Void masks a random subset of the input pixels and asks the network to predict them
 from their neighbourhood only. Because the network never sees the pixel it has to predict,
-it cannot learn the identity, and the best it can do is to predict the (noise-free) signal,
-provided the noise is pixel-wise independent. Notably, the loss makes no assumption on the
-*distribution* of the noise, only on its independence, so the very same recipe works for
+it cannot learn the identity. If the noise is assumed pixel-wise independent, the model cannot estimate the noise, 
+and only provides an estimate of the signal.
+
+The loss makes no assumption on the *distribution* of the noise, only on its independence, so the very same recipe works for
 Gaussian, Poisson-Gaussian, log-Poisson or Rician noise.
 
 We illustrate this by fitting one network per image on four modalities
@@ -96,7 +97,7 @@ ITERS = 10000 if str(device) != "cpu" else 100
 
 
 def train_noise2void(y, physics, iters=ITERS, lr=1e-4):
-    """Fit a fresh Noise2Void network on a single noisy image."""
+    """Fit a network on a single noisy image."""
     model = dinv.models.UNet(
         batch_norm=False, scales=3, channels_per_scale=[16, 32, 64], device=device
     )
@@ -153,7 +154,7 @@ for name, r in results.items():
 # Results
 # -------
 # Finally we compare, for each modality, the ground truth, the measurement, the Noise2Void
-# reconstruction and the Gaussian smoother, with the PSNR reported in the titles.
+# reconstruction and the Gaussian smoother.
 
 cols = ["x", "y", "x_hat", "x_filt"]
 labels = ["clean", "measurement", "noise2void", "gaussian filter"]
@@ -182,6 +183,20 @@ for row, (name, r) in zip(axs, results.items(), strict=False):
     )
 fig.tight_layout()
 plt.show()
+
+# %%
+# Worse denoising on MRI crelative to other images
+# ------------------------------------------------
+# The PSNR improvement over the noisy measurement is significantly lower for the MRI image than others.
+# The MRI measurement was degraded by Rician noise, which 
+# significcantly changes the expected value of background (intensity 0) signal. Gaussian noise and Gaussian-Poisson noise 
+# do not change the expected value for intensity 0, and log poisson changes it less at the chosen configuration.
+# As noise2void only had access to a single image, it has no way of knowing that the background pixels are supposed to be 0
+# and instead estimates the expected value of background pixels. 
+# We show this by calculating the mean and standard deviation of the first three rows of the CT and MRI images, where the latter has
+# higher mean.
+ 
+
 
 # %%
 # Loss curves
