@@ -253,13 +253,21 @@ class DistributedDataFidelity(torch.nn.Module):
         :return: gradient with same shape as x.
         """
 
+        # Reuse the local A(x) computed by _apply_op. Calling fidelity.grad here
+        # would make linear L2 evaluate A.T(A(x)) - A.T(y), adding a second
+        # adjoint per operator and iteration, which can be expensive in a distributed setting.
         def _local_grad_op(idx, data, **kw):
             Ax_i, y_i = data
             grad_d = self._get_fidelity(idx).d.grad(Ax_i, y_i, *args, **kw)
             return physics.local_physics[idx].A_vjp(x, grad_d, **kw)
 
         return self._apply_op(
-            local_op=_local_grad_op, x=x, y=y, physics=physics, gather=gather, **kwargs
+            local_op=_local_grad_op,
+            x=x,
+            y=y,
+            physics=physics,
+            gather=gather,
+            **kwargs,
         )
 
     def prox(
