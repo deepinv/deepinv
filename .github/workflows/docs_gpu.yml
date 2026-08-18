@@ -33,10 +33,11 @@ jobs:
       HOME: "/local/jtachell"
 
     steps:
-      - name: Check out exact PR commit
+      - name: Check out main or PR commit
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.pr_sha }}
+          # `github.sha` is the commit that triggered the workflow, which is the latest commit on main for schedule/push events
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_sha || github.sha }}
 
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3

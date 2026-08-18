@@ -32,10 +32,11 @@ jobs:
       TORCH_HOME: "/local/jtachell/.cache/torch"
 
     steps:
-      - name: Check out exact PR commit
+      - name: Check out main or PR commit
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.pr_sha }}
+          # `github.sha` is the commit that triggered the workflow, which is the latest commit on main for schedule/push events
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_sha || github.sha }}
 
       # When testing a PR, restore the pixi.lock + .testmondata + .coverage triple solved on
       # main as a SINGLE cache entry (atomic, no lock/testmondata mismatch) so
