@@ -972,7 +972,8 @@ class SwinIR(Denoiser):
                         + str(pretrained_noise_level)
                         + ".pth"
                     )
-
+                else: # pragma: no cover
+                    raise ValueError(f'pretrained is set to download, but in_chans is {in_chans}. pretrained nets are only available for in_chans 1 and 3')
                 pretrained_weights = load_state_dict_from_url(
                     weights_url, map_location=lambda storage, loc: storage
                 )
