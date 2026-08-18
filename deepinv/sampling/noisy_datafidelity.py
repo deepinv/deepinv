@@ -52,7 +52,7 @@ class NoisyDataFidelity(DataFidelity):
         """
         return (
             physics.A_adjoint(u)
-            if isinstance(physics, dinv.physics.LinearPhysics)
+            if getattr(physics, "linear", False)
             else physics.A_dagger(u)
         )
 

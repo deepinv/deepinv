@@ -2,8 +2,10 @@ from __future__ import annotations
 import torch
 import torch.nn.functional as F
 import math
+import warnings
 
-from deepinv.physics import Physics, LinearPhysics, Inpainting
+from deepinv.physics import Physics, Inpainting
+from deepinv.physics.forward import _linear_alias_metaclass
 from deepinv.physics.blur import Upsampling, Blur, BlurFFT
 from typing import Sequence  # noqa: F401
 
@@ -43,8 +45,12 @@ class PhysicsMultiScaler(Physics):
         dtype: torch.dtype | None = None,
         **kwargs,
     ):
-        # NOTE: `device` is passed to super().__init__ (even if Physics does not use it) for proper variable propagation during Method Resolution Order (MRO: https://docs.python.org/3/howto/mro.html) when inherited jointly with another class, e.g., with LinearPhysics
-        super().__init__(noise_model=physics.noise_model, device=device, **kwargs)
+        super().__init__(
+            noise_model=physics.noise_model,
+            device=device,
+            linear=getattr(physics, "linear", False),
+            **kwargs,
+        )
         self.base = physics
         self.factors = factors
         self.img_size = img_size
@@ -113,12 +119,120 @@ class PhysicsMultiScaler(Physics):
     def update_parameters(self, **kwargs):
         self.base.update_parameters(**kwargs)
 
+    def A_adjoint(self, y: torch.Tensor, scale: int | None = None, **kwargs):
+        r"""
+        Computes the adjoint of the multi-scale linear operator :math:`A`.
 
-class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
+        Only available when ``self.linear=True``, i.e. when the wrapped physics is linear.
+        """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.A_adjoint requires the wrapped physics to have linear=True."
+            )
+        self.set_scale(scale)
+        y = self.base.A_adjoint(y, **kwargs)
+        if self.scale == 0:
+            return y
+        else:
+            return self.upsamplings[self.scale - 1].A_adjoint(y)
+
+    def A_dagger(self, y: torch.Tensor, scale: int | None = None, **kwargs):
+        r"""
+        Computes the pseudo-inverse of the linear operator :math:`A`.
+
+        If the scale is set to 0, it uses the base physics pseudo-inverse, which might have a more efficient implementation.
+
+        Only available when ``self.linear=True``, i.e. when the wrapped physics is linear.
+
+        :param torch.Tensor y: measurements tensor
+        :return: (:class:`torch.Tensor`) estimated signal tensor
+        """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.A_dagger requires the wrapped physics to have linear=True."
+            )
+        self.set_scale(scale)
+        if self.scale == 0:
+            # use efficient implementation if available (eg SVD-based)
+            return self.base.A_dagger(y, **kwargs)
+        else:
+            return super().A_dagger(y, **kwargs)
+
+    def prox_l2(
+        self,
+        z,
+        y,
+        gamma,
+        solver="CG",
+        max_iter=None,
+        tol=None,
+        verbose=False,
+        scale=None,
+        **kwargs,
+    ):
+        r"""
+        Computes proximal operator of :math:`f(x) = \frac{1}{2}\|Ax-y\|^2`, i.e.,
+
+        .. math::
+
+            \underset{x}{\arg\min} \; \frac{\gamma}{2}\|Ax-y\|^2 + \frac{1}{2}\|x-z\|^2
+
+        If the scale is set to 0, it uses the base physics proximal operator, which might have a more efficient implementation.
+
+        Only available when ``self.linear=True``, i.e. when the wrapped physics is linear.
+
+        :param torch.Tensor y: measurements tensor
+        :param torch.Tensor z: signal tensor
+        :param float gamma: hyperparameter of the proximal operator
+        :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.linear.least_squares` for details
+        :param int max_iter: maximum number of iterations for iterative solvers
+        :param float tol: tolerance for iterative solvers
+        :param bool verbose: whether to print information during the solver execution
+        :param int scale: scale at which to apply the physics operator
+        :return: (:class:`torch.Tensor`) estimated signal tensor
+
+        """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.prox_l2 requires the wrapped physics to have linear=True."
+            )
+        self.set_scale(scale)
+        if self.scale == 0:
+            return self.base.prox_l2(
+                z,
+                y,
+                gamma,
+                solver=solver,
+                max_iter=max_iter,
+                tol=tol,
+                verbose=verbose,
+                **kwargs,
+            )
+        else:
+            return super().prox_l2(
+                z,
+                y,
+                gamma,
+                solver=solver,
+                max_iter=max_iter,
+                tol=tol,
+                verbose=verbose,
+                **kwargs,
+            )
+
+
+class LinearPhysicsMultiScaler(
+    PhysicsMultiScaler, metaclass=_linear_alias_metaclass(PhysicsMultiScaler)
+):
     r"""
-    Multi-scale wrapper for linear physics operators.
+    Deprecated alias of :class:`deepinv.physics.PhysicsMultiScaler`.
 
-    See :class:`PhysicsMultiScaler` for details.
+    .. deprecated::
+
+        :class:`deepinv.physics.PhysicsMultiScaler` now supports linear physics operators directly
+        (its linearity, ``physics.linear``, is derived automatically from the wrapped physics). This
+        class is kept only for backward compatibility (including ``isinstance`` checks against it)
+        and will be removed in a future version.
 
     :Examples:
 
@@ -149,6 +263,13 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
         device: str | torch.device = "cpu",
         **kwargs,
     ):
+        warnings.warn(
+            "LinearPhysicsMultiScaler is deprecated and will be removed in a future version. "
+            "Use PhysicsMultiScaler (or to_multiscale()) instead — linearity is now derived "
+            "automatically from the wrapped physics via `.linear`.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(
             physics=physics,
             img_size=img_size,
@@ -157,86 +278,6 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
             device=device,
             **kwargs,
         )
-
-    def A_adjoint(self, y: torch.Tensor, scale: int | None = None, **kwargs):
-        self.set_scale(scale)
-        y = self.base.A_adjoint(y, **kwargs)
-        if self.scale == 0:
-            return y
-        else:
-            return self.upsamplings[self.scale - 1].A_adjoint(y)
-
-    def A_dagger(self, y: torch.Tensor, scale: int | None = None, **kwargs):
-        r"""
-        Computes the pseudo-inverse of the linear operator :math:`A`.
-
-        If the scale is set to 0, it uses the base physics pseudo-inverse, which might have a more efficient implementation.
-
-        :param torch.Tensor y: measurements tensor
-        :return: (:class:`torch.Tensor`) estimated signal tensor
-        """
-        self.set_scale(scale)
-        if self.scale == 0:
-            # use efficient implementation if available (eg SVD-based)
-            return self.base.A_dagger(y, **kwargs)
-        else:
-            return self.super().A_dagger(y, **kwargs)
-
-    def prox_l2(
-        self,
-        z,
-        y,
-        gamma,
-        solver="CG",
-        max_iter=None,
-        tol=None,
-        verbose=False,
-        scale=None,
-        **kwargs,
-    ):
-        r"""
-        Computes proximal operator of :math:`f(x) = \frac{1}{2}\|Ax-y\|^2`, i.e.,
-
-        .. math::
-
-            \underset{x}{\arg\min} \; \frac{\gamma}{2}\|Ax-y\|^2 + \frac{1}{2}\|x-z\|^2
-
-        If the scale is set to 0, it uses the base physics proximal operator, which might have a more efficient implementation.
-
-        :param torch.Tensor y: measurements tensor
-        :param torch.Tensor z: signal tensor
-        :param float gamma: hyperparameter of the proximal operator
-        :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.linear.least_squares` for details
-        :param int max_iter: maximum number of iterations for iterative solvers
-        :param float tol: tolerance for iterative solvers
-        :param bool verbose: whether to print information during the solver execution
-        :param int scale: scale at which to apply the physics operator
-        :return: (:class:`torch.Tensor`) estimated signal tensor
-
-        """
-        self.set_scale(scale)
-        if self.scale == 0:
-            return self.base.prox_l2(
-                z,
-                y,
-                gamma,
-                solver=solver,
-                max_iter=max_iter,
-                tol=tol,
-                verbose=verbose,
-                **kwargs,
-            )
-        else:
-            return super().prox_l2(
-                z,
-                y,
-                gamma,
-                solver=solver,
-                max_iter=max_iter,
-                tol=tol,
-                verbose=verbose,
-                **kwargs,
-            )
 
 
 def coarse_blur_filter(
@@ -278,7 +319,7 @@ def coarse_blur_filter(
     return coarse_filter
 
 
-class BlurMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
+class BlurMultiScaler(LinearPhysicsMultiScaler):
     r"""
     Multi-scale wrapper for blur physics operators. This particular class handles A_adjoint_A with a particular implementation for each scale.
 
@@ -342,7 +383,7 @@ class BlurMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         return physics.A_adjoint_A(x) / factor**2
 
 
-class BlurFFTMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
+class BlurFFTMultiScaler(LinearPhysicsMultiScaler):
     r"""
     Multi-scale wrapper for BlurFFT operators. This particular class handles A_adjoint_A with a particular implementation for each scale.
 
@@ -412,7 +453,7 @@ class BlurFFTMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         return physics.A_adjoint_A(x) / factor**2
 
 
-class InpaintingMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
+class InpaintingMultiScaler(LinearPhysicsMultiScaler):
     r"""
     Multi-scale wrapper for inpainting/demosaicing operators. This particular class handles A_adjoint_A with a particular implementation for each scale.
 
@@ -552,24 +593,20 @@ def to_multiscale(
         return InpaintingMultiScaler(
             physics, img_size, factors=factors, device=device, dtype=dtype
         )
-    elif isinstance(physics, LinearPhysics):
-        return LinearPhysicsMultiScaler(
-            physics, img_size, factors=factors, device=device, dtype=dtype
-        )
     else:
         return PhysicsMultiScaler(
             physics, img_size, factors=factors, device=device, dtype=dtype
         )
 
 
-class PhysicsCropper(LinearPhysics):
+class PhysicsCropper(Physics):
     r"""
     Cropping for linear physics operators.
 
     Given a linear physics operator :math:`A`, this operator instantiates a new operator :math:`\tilde{A} = A \circ C` where :math:`C` is a cropping operator that crops the input tensor.
     The adjoint operator is defined as :math:`\tilde{A}^{\top} = C^{\top} \circ A^{\top}` and :math:`C^{\top}` is a padding operator that pads the input tensor to the original size.
 
-    :param deepinv.physics.LinearPhysics physics: base linear physics operator.
+    :param deepinv.physics.Physics physics: base linear physics operator (``physics.linear`` should be `True`).
     :param tuple crop: padding to apply to the input tensor, e.g., `(pad_height, pad_width)` or `(pad_z, pad_height, pad_weight)` where `pad_z` is either channel or depth dimension pad.
     :param torch.device, str device: cpu or cuda, every registered buffer and module parameters are recursively pushed onto the device during initialization.
 
@@ -581,7 +618,11 @@ class PhysicsCropper(LinearPhysics):
         crop,
         device: torch.device | str = "cpu",
     ):
-        super().__init__(noise_model=physics.noise_model, device=device)
+        super().__init__(
+            noise_model=physics.noise_model,
+            device=device,
+            linear=getattr(physics, "linear", False),
+        )
         self.base = physics
         self.crop = crop
         if len(self.crop) not in (2, 3):

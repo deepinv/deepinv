@@ -314,7 +314,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         return "FD" * math.floor(n_layers) + "F" * (n_layers % 1 == 0.5)
 
 
-class PtychographyLinearOperator(LinearPhysics):
+class PtychographyLinearOperator(Physics):
     r"""
     Forward linear operator for phase retrieval in ptychography.
 
@@ -345,7 +345,7 @@ class PtychographyLinearOperator(LinearPhysics):
         device="cpu",
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(linear=True, **kwargs)
 
         self.img_size = img_size
 

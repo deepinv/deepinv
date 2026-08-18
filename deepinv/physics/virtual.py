@@ -1,9 +1,9 @@
 import torch
-from deepinv.physics.forward import LinearPhysics
+from deepinv.physics.forward import Physics
 from deepinv.transform.base import Transform
 
 
-class VirtualLinearPhysics(LinearPhysics):
+class VirtualLinearPhysics(Physics):
     r"""
     Virtual linear operator
 
@@ -27,13 +27,13 @@ class VirtualLinearPhysics(LinearPhysics):
 
         The adjoint and pseudo-inverse might be incorrect if the transformation is not invertible, for instance due to boundary effects.
 
-    :param LinearPhysics physics: linear physics operator :math:`\tilde{A}`.
+    :param Physics physics: linear physics operator :math:`\tilde{A}` (``physics.linear`` should be `True`).
     :param Transform transform: transformation :math:`T_g`
     :param dict g_params: parameters of the transformation :math:`g`.
     """
 
-    def __init__(self, *, physics: LinearPhysics, transform: Transform, g_params: dict):
-        super().__init__()
+    def __init__(self, *, physics: Physics, transform: Transform, g_params: dict):
+        super().__init__(linear=True)
         self.physics = physics
         self.T = lambda x: transform.transform(x, **g_params)
         self.T_inv = lambda x: transform.inverse(x, **g_params)

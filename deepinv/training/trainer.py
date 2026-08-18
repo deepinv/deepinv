@@ -956,31 +956,38 @@ class Trainer:
         """
 
         y = y.to(self.device)
+        physics_ = (
+            physics.module if isinstance(physics, torch.nn.DataParallel) else physics
+        )
+
+        def _not_implemented():
+            return ValueError(
+                f"No learning reconstruction method {self.no_learning_method} not recognized or physics does not implement it"
+            )
+
         if isinstance(self.no_learning_method, Reconstructor):
             x_nl = self.no_learning_method(y, physics)
-        elif self.no_learning_method == "A_adjoint" and hasattr(physics, "A_adjoint"):
-            if isinstance(physics, torch.nn.DataParallel):
-                x_nl = physics.module.A_adjoint(y)
-            else:
-                x_nl = physics.A_adjoint(y)
-        elif self.no_learning_method == "A_dagger" and hasattr(physics, "A_dagger"):
-            if isinstance(physics, torch.nn.DataParallel):
-                x_nl = physics.module.A_dagger(y)
-            else:
-                x_nl = physics.A_dagger(y)
-        elif self.no_learning_method == "prox_l2" and hasattr(physics, "prox_l2"):
+        elif self.no_learning_method == "A_adjoint":
+            try:
+                x_nl = physics_.A_adjoint(y)
+            except (AttributeError, NotImplementedError):
+                raise _not_implemented()
+        elif self.no_learning_method == "A_dagger":
+            try:
+                x_nl = physics_.A_dagger(y)
+            except (AttributeError, NotImplementedError):
+                raise _not_implemented()
+        elif self.no_learning_method == "prox_l2":
             # this is a regularized version of the pseudo-inverse, with an l2 regularization
             # with parameter set to 5.0 for a mild regularization
-            if isinstance(physics, torch.nn.DataParallel):
-                x_nl = physics.module.prox_l2(0.0, y, 5.0)
-            else:
-                x_nl = physics.prox_l2(0.0, y, 5.0)
+            try:
+                x_nl = physics_.prox_l2(0.0, y, 5.0)
+            except (AttributeError, NotImplementedError):
+                raise _not_implemented()
         elif self.no_learning_method == "y":
             x_nl = y
         else:
-            raise ValueError(
-                f"No learning reconstruction method {self.no_learning_method} not recognized or physics does not implement it"
-            )
+            raise _not_implemented()
 
         return x_nl
 

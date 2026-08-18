@@ -2,7 +2,7 @@ from __future__ import annotations
 import torch
 from deepinv.optim.linear import least_squares
 from dataclasses import dataclass
-from deepinv.physics.forward import Physics, LinearPhysics
+from deepinv.physics.forward import Physics
 
 
 def hankel1(n, x):
@@ -226,7 +226,7 @@ class Scattering(Physics):
 
         :param torch.Tensor x: Scattering potential of size `(B,1,H,W)`.
         """
-        norm = self.compute_norm(x).sqrt()
+        norm = self.compute_sqnorm(x).sqrt()
         self.incident_field /= norm
         if hasattr(self.noise_model, "sigma"):
             self.noise_model.sigma /= norm
@@ -516,7 +516,7 @@ class Scattering(Physics):
         return x
 
 
-class BornOperator(LinearPhysics):
+class BornOperator(Physics):
     r"""
     Linear operator implementing the Born approximation for the scattering problem.
 
@@ -549,7 +549,7 @@ class BornOperator(LinearPhysics):
         img_width: int,
         verbose: bool = False,
     ):
-        super().__init__()
+        super().__init__(linear=True)
         self.register_buffer("total_field", total_field)
         green_operator = self.compute_operator(
             receivers,

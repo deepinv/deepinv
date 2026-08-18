@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from deepinv.physics.forward import DecomposablePhysics, LinearPhysics
+from deepinv.physics.forward import DecomposablePhysics, Physics
 from deepinv.utils.mixins import MRIMixin, TimeMixin
 
 
@@ -163,7 +163,7 @@ class MRI(MRIMixin, DecomposablePhysics):
         super().update_parameters(mask=mask, **kwargs)
 
 
-class MultiCoilMRI(MRIMixin, LinearPhysics):
+class MultiCoilMRI(MRIMixin, Physics):
     r"""
     Multi-coil 2D or 3D MRI operator.
 
@@ -229,7 +229,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         device: torch.device | str = torch.device("cpu"),
         **kwargs,
     ):
-        super().__init__(device=device, **kwargs)
+        super().__init__(device=device, linear=True, **kwargs)
         self.img_size = img_size
         self.three_d = three_d
 
@@ -336,7 +336,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
         :param torch.Tensor mask: optionally set the mask on-the-fly.
         :param torch.Tensor coil_maps: optionally set the mask on-the-fly.
-        :param dict kwargs: kwargs to pass to base :meth:`deepinv.physics.LinearPhysics.A_dagger`.
+        :param dict kwargs: kwargs to pass to base :meth:`deepinv.physics.Physics.A_dagger`.
         :returns: (:class:`torch.Tensor`) image with shape `(B,2,...,H,W)`
         """
         self.update_parameters(mask=mask, coil_maps=coil_maps)
