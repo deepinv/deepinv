@@ -15,6 +15,8 @@ NOISES = [
     "SaltPepper",
     "RicianNoise",
     "Laplace",
+    "Gamma",
+    "FisherTippett",
 ]
 
 
@@ -49,6 +51,10 @@ def choose_noise(noise_type, rng):
         noise_model = dinv.physics.RicianNoise(sigma=sigma, rng=rng)
     elif noise_type == "Laplace":
         noise_model = dinv.physics.LaplaceNoise(b=sigma, rng=rng)
+    elif noise_type == "Gamma":
+        noise_model = dinv.physics.GammaNoise(l=gain, rng=rng)
+    elif noise_type == "FisherTippett":
+        noise_model = dinv.physics.FisherTippettNoise(l=gain, rng=rng)
     else:
         raise Exception("Noise model not found")
 
@@ -64,7 +70,7 @@ def test_concatenation(device, rng, dtype):
             noise_model_1 = choose_noise(name_1, rng=rng)
             noise_model_2 = choose_noise(name_2, rng=rng)
             noise_model = noise_model_1 * noise_model_2
-            x = torch.rand(imsize, device=device, dtype=dtype)
+            x = torch.rand(imsize, device=device, dtype=dtype) + 0.1
             y = noise_model(x)
             assert y.shape == torch.Size(imsize)
 
@@ -74,7 +80,7 @@ def test_concatenation(device, rng, dtype):
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_rng(name, device, rng, dtype):
     imsize = (1, 3, 7, 16)
-    x = torch.rand(imsize, device=device, dtype=dtype)
+    x = torch.rand(imsize, device=device, dtype=dtype) + 0.1
     noise_model = choose_noise(name, rng=rng)
     y_1 = noise_model(x, seed=0)
     y_2 = noise_model(x, seed=1)
