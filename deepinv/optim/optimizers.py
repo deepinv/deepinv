@@ -2668,6 +2668,11 @@ class BSREM(OSEM):
         schedule containing at least ``max_iter`` entries. Default: ``1.0``.
     :param float eps: positive value used for safe divisions and the positivity
         projection. Default: ``1e-6``.
+    :param float sensitivity_threshold: relative sensitivity threshold defining
+        the reconstruction support. Voxels whose average sensitivity is at most
+        this fraction of the maximum sensitivity are fixed to ``eps``. This
+        prevents unstable inverse-sensitivity scaling outside the field of view.
+        Default: ``1e-2``.
     :param int max_iter: maximum number of BSREM epochs. Default: ``100``.
     :param str crit_conv: convergence criterion. Default: ``"residual"``.
     :param float thres_conv: convergence threshold. Default: ``1e-5``.
@@ -2695,6 +2700,7 @@ class BSREM(OSEM):
         num_subsets: int = 2,
         stepsize: float | Iterable[float] = 1.0,
         eps: float = 1e-6,
+        sensitivity_threshold: float = 1e-2,
         max_iter: int = 100,
         crit_conv: str = "residual",
         thres_conv: float = 1e-5,
@@ -2719,6 +2725,8 @@ class BSREM(OSEM):
     ):
         if eps <= 0:
             raise ValueError("eps must be positive.")
+        if not 0 <= sensitivity_threshold < 1:
+            raise ValueError("sensitivity_threshold must be in [0, 1).")
         if g_param is None and sigma_denoiser is not None:
             g_param = sigma_denoiser
         if params_algo is None:
@@ -2748,7 +2756,11 @@ class BSREM(OSEM):
             params_algo=params_algo,
             **kwargs,
         )
-        iterator = BSREMIteration(cost_fn=cost_fn, eps=eps)
+        iterator = BSREMIteration(
+            cost_fn=cost_fn,
+            eps=eps,
+            sensitivity_threshold=sensitivity_threshold,
+        )
         iterator.has_cost = self.has_cost
         self.fixed_point.iterator = iterator
 

@@ -100,10 +100,10 @@ dinv.utils.plot_ortho3D(
 # extent covers the nonzero part of the 120-voxel crop much more closely. To
 # limit GPU memory, we halve the number of endpoints per polygon side and
 # double their spacing, preserving approximately the same transaxial field of
-# view at lower sampling resolution. The background is generated as an
-# independent Poisson realization, as in the general 3D PET demo.
+# view at lower sampling resolution. We specify the acquisition noise through
+# a total prompt-count budget and a background-to-signal ratio. This makes the
+# noise level independent of the normalization of the forward operator.
 
-gain = 1 / 20
 scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
     torch_compat,
     dev=device,
@@ -116,7 +116,7 @@ physics = PET(
     voxel_size=(2, 2, 2),
     scanner=scanner,
     fwhm_data_mm=3.0,
-    gain=gain,
+    gain=1.0,
     normalize=True,
     normalize_counts=True,
     device=device,
@@ -124,10 +124,34 @@ physics = PET(
 
 physics.update(attenuation=attenuation)
 expected_signal = physics.A(x)
-expected_background = torch.ones_like(expected_signal) * x.max() * 0.05
-background = physics.generate_background(expected_background)
+
+# Simulate a moderate low-count acquisition. The spatially uniform background
+# is a simple approximation of random and scattered coincidences. Its total
+# expected number of events is 30% of the expected true coincidences.
+target_prompt_counts = 5e6
+background_to_signal_ratio = 0.3
+expected_background = torch.full_like(
+    expected_signal,
+    background_to_signal_ratio * expected_signal.mean(),
+)
+gain = (expected_signal.sum() + expected_background.sum()).item() / target_prompt_counts
+physics.noise_model.update_parameters(gain=gain)
+
+# The background is the expected additive rate known by the reconstruction.
+# The prompt sinogram is then drawn once from the combined signal and
+# background rate.
+background = expected_background
 physics.update(background=background)
+torch.manual_seed(0)
 y = physics(x)
+
+realized_prompt_counts = round((y / gain).sum().item())
+print(
+    f"Expected prompt counts: {target_prompt_counts:,}; "
+    f"realized: {realized_prompt_counts:,}; "
+    f"background fraction: "
+    f"{background_to_signal_ratio / (1 + background_to_signal_ratio):.1%}"
+)
 
 # Plot one sinogram plane after adding attenuation and background.
 dinv.utils.plot(
@@ -147,7 +171,11 @@ data_fidelity = dinv.optim.PoissonLikelihood(
     denormalize=True,
 )
 rdp = dinv.optim.RDP(gamma=2.0)
-lambda_reg = 0.05
+lambda_reg = 0.003
+# BSREM applies its update in normalized measurement units, whereas the
+# objective above is evaluated in count units. Scaling the algorithmic weight
+# by the gain makes both formulations have the same stationary points.
+bsrem_lambda_reg = gain * lambda_reg
 nrmse = dinv.metric.NRMSE()
 
 
@@ -176,26 +204,32 @@ metrics = {
 # -----------------------------------
 #
 # BSREM accepts a relaxation schedule directly. This diminishing schedule
-# preserves large early updates and gradually suppresses subset limit cycles.
+# uses a conservative initial update and suppresses subset limit cycles more
+# rapidly for this low-count acquisition.
 
 num_subsets = 8
-num_iter = 7
+osem_iter = 6
+bsrem_iter = 25
 initialization = torch.ones_like(x)
-stepsize = [1.0 / (1.0 + 0.2 * k) for k in range(num_iter)]
+initial_relaxation = 0.5
+relaxation_decay = 0.5
+stepsize = [
+    initial_relaxation / (1.0 + relaxation_decay * k) for k in range(bsrem_iter)
+]
 
 osem = dinv.optim.OSEM(
     data_fidelity=data_fidelity,
     num_subsets=num_subsets,
-    max_iter=num_iter,
+    max_iter=osem_iter,
     custom_metrics=metrics,
 )
 bsrem = dinv.optim.BSREM(
     data_fidelity=data_fidelity,
     prior=rdp,
-    lambda_reg=lambda_reg,
+    lambda_reg=bsrem_lambda_reg,
     num_subsets=num_subsets,
     stepsize=stepsize,
-    max_iter=num_iter,
+    max_iter=bsrem_iter,
     custom_metrics=metrics,
 )
 
@@ -237,10 +271,11 @@ dinv.utils.plot(
 # NRMSE along the iterates
 # ------------------------
 
-iterations = range(1, num_iter + 1)
+osem_epochs = range(1, len(metrics_osem["nrmse"][0]) + 1)
+bsrem_epochs = range(1, len(metrics_bsrem["nrmse"][0]) + 1)
 fig, axis = plt.subplots(figsize=(6, 4))
-axis.plot(iterations, metrics_osem["nrmse"][0], label="OSEM")
-axis.plot(iterations, metrics_bsrem["nrmse"][0], label="BSREM-RDP")
+axis.plot(osem_epochs, metrics_osem["nrmse"][0], label="OSEM")
+axis.plot(bsrem_epochs, metrics_bsrem["nrmse"][0], label="BSREM-RDP")
 axis.set_xlabel("Epoch")
 axis.set_ylabel("NRMSE")
 axis.legend()
@@ -248,36 +283,27 @@ fig.tight_layout()
 
 
 # %%
-# Poisson negative log-likelihood along the iterates
-# --------------------------------------------------
+# Reconstruction objectives along the iterates
+# ---------------------------------------------
 
-fig, axis = plt.subplots(figsize=(6, 4))
-axis.plot(iterations, metrics_osem["poisson_nll"][0], label="OSEM")
-axis.plot(iterations, metrics_bsrem["poisson_nll"][0], label="BSREM-RDP")
-axis.set_xlabel("Epoch")
-axis.set_ylabel("Poisson NLL")
-axis.legend()
-fig.tight_layout()
-
-
-# %%
-# Penalized objective along the iterates
-# --------------------------------------
-
-fig, axis = plt.subplots(figsize=(6, 4))
-axis.plot(
-    iterations,
-    metrics_osem["penalized_poisson_nll"][0],
+fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+axes[0].plot(
+    range(1, len(metrics_osem["poisson_nll"][0]) + 1),
+    metrics_osem["poisson_nll"][0],
     label="OSEM",
 )
-axis.plot(
-    iterations,
+axes[0].set_title("OSEM")
+axes[0].set_xlabel("Epoch")
+axes[0].set_ylabel("Poisson NLL")
+
+axes[1].plot(
+    range(1, len(metrics_bsrem["penalized_poisson_nll"][0]) + 1),
     metrics_bsrem["penalized_poisson_nll"][0],
     label="BSREM-RDP",
 )
-axis.set_xlabel("Epoch")
-axis.set_ylabel("Poisson NLL + RDP")
-axis.legend()
+axes[1].set_title("BSREM-RDP")
+axes[1].set_xlabel("Epoch")
+axes[1].set_ylabel("Poisson NLL + $\\lambda$ RDP")
 fig.tight_layout()
 
 
@@ -310,3 +336,5 @@ fig.tight_layout()
 # :References:
 #
 # .. footbibliography::
+
+# %%

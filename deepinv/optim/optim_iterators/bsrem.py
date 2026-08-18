@@ -18,9 +18,16 @@ class BSREMIteration(OptimIterator):
     See :class:`deepinv.optim.BSREM` for the update equations and references.
     """
 
-    def __init__(self, eps: float = 1e-6, cost_fn=None, **kwargs):
+    def __init__(
+        self,
+        eps: float = 1e-6,
+        sensitivity_threshold: float = 1e-2,
+        cost_fn=None,
+        **kwargs,
+    ):
         super().__init__(cost_fn=cost_fn, **kwargs)
         self.eps = eps
+        self.sensitivity_threshold = sensitivity_threshold
 
     def forward(
         self,
@@ -40,6 +47,9 @@ class BSREMIteration(OptimIterator):
         num_subsets = len(physics)
         average_sensitivity = sum(sensitivities) / num_subsets
         preconditioner_denominator = average_sensitivity.clamp(min=self.eps)
+        sensitivity_support = average_sensitivity > (
+            self.sensitivity_threshold * average_sensitivity.amax()
+        )
 
         for cur_y, cur_physics, cur_sensitivity in zip(
             y, physics, sensitivities, strict=True
@@ -57,13 +67,22 @@ class BSREMIteration(OptimIterator):
                 * cur_prior.grad(x, cur_params["g_param"])
                 / num_subsets
             )
-            preconditioner = x / preconditioner_denominator
-            x = (
+            preconditioner = torch.where(
+                sensitivity_support,
+                x / preconditioner_denominator,
+                torch.zeros_like(x),
+            )
+            candidate = (
                 x
                 - cur_params["stepsize"]
                 * preconditioner
                 * (data_gradient + prior_gradient)
             ).clamp(min=self.eps)
+            x = torch.where(
+                sensitivity_support,
+                candidate,
+                torch.full_like(candidate, self.eps),
+            )
 
         F = (
             self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
