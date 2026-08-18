@@ -320,8 +320,8 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
     num_steps = 3
     rng = torch.Generator(device)
     # Set up solvers
-    timesteps = torch.linspace(0.99, 0.001, num_steps)
-    solver = solver_class(timesteps=timesteps, rng=rng)
+    timesteps = torch.linspace(0.99, 0.001, num_steps, device=device)
+    solver = solver_class(timesteps=timesteps, rng=rng, )
 
     if sde_class == EDMDiffusionSDE:
         sigma_t = lambda t: 100 * t**2
@@ -352,7 +352,7 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
     posterior = PosteriorDiffusion(
         data_fidelity=DPSDataFidelity(denoiser=denoiser),
         sde=sde,
-        denoiser=NCSNpp(),
+        denoiser=NCSNpp(device=device),
         solver=EulerSolver(timesteps=timesteps, rng=rng),
         dtype=torch.float64,
         device=device,
@@ -360,14 +360,14 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
     physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=0.5, device=device)
     y = physics(x)
 
-    x_hat_1 = posterior(
+    x_hat = posterior(
         y,
         physics,
         x_init=(2, 3, 64, 64),
         seed=111,
     )
     # Test output shape
-    assert x_hat_1.shape == (2, 3, 64, 64)
+    assert x_hat.shape == (2, 3, 64, 64)
 
 
 @torch.no_grad()

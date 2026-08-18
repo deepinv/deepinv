@@ -152,7 +152,7 @@ class NCSNpp(Denoiser):
         self.map_noise = (
             PositionalEmbedding(num_channels=noise_channels, endpoint=True)
             if embedding_type == "positional"
-            else FourierEmbedding(num_channels=noise_channels)
+            else FourierEmbedding(num_channels=noise_channels, device=device)
         )
         self.map_label = (
             Linear(in_features=label_dim, out_features=noise_channels)
