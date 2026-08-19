@@ -909,18 +909,6 @@ class _DEALImpl(nn.Module):
         x = self.spline3(self.scaling * x)
         return torch.clip(x, 1e-2, 1)
 
-    def K(self, x: torch.Tensor, idx: list[int] | None = None) -> torch.Tensor:
-        """Apply the weighted regularization operator."""
-        return torch.sqrt(self.lmbda) * self.W1(x) * self.mask[idx]
-
-    def Kt(self, y: torch.Tensor, idx: list[int] | None = None) -> torch.Tensor:
-        """Apply the adjoint of the weighted regularization operator."""
-        return torch.sqrt(self.lmbda) * self.W1.transpose(y * self.mask[idx])
-
-    def KtK(self, x: torch.Tensor, idx: list[int] | None = None) -> torch.Tensor:
-        """Apply the normal operator associated with the regularizer."""
-        return self.Kt(self.K(x, idx), idx)
-
     def cal_mask(self, x: torch.Tensor) -> torch.Tensor:
         """Compute the spatially varying DEAL mask."""
         x1 = self.M1(x)
