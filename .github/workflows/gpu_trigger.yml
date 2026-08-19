@@ -83,7 +83,7 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: test_gpu.yml
-          ref: ${{ steps.pr.outputs.head_sha }}
+          ref: main
           inputs: >-
             {
                 "pr_number": "${{ steps.pr.outputs.number }}",
@@ -94,7 +94,7 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: docs_gpu.yml
-          ref: ${{ steps.pr.outputs.head_sha }}
+          ref: main
           inputs: >-
             {
               "pr_number": "${{ steps.pr.outputs.number }}",
