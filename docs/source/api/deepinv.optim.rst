@@ -36,6 +36,7 @@ Base Class
    deepinv.optim.PDCP
    deepinv.optim.SIRT
    deepinv.optim.MLEM
+   deepinv.optim.OSEM
 
 
 Bilevel learning (MAID)
@@ -222,6 +223,7 @@ Iterators
    deepinv.optim.optim_iterators.PMDIteration
    deepinv.optim.optim_iterators.SMIteration
    deepinv.optim.optim_iterators.MLEMIteration
+   deepinv.optim.optim_iterators.OSEMIteration
    deepinv.optim.optim_iterators.SIRTIteration
 
 
