@@ -22,6 +22,12 @@ New Features
 - Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
 - Add :class:`deepinv.loss.metric.BRISQUE` and :class:`deepinv.loss.metric.NIMA` no-reference image quality metrics (:gh:`1310` by `Julian Tachella`_)
 - Add :class:`deepinv.datasets.BrainWebPET` (:gh:`1286` by `Thibaut Modrzyk`_)
+- Add batched lower-level solves for :class:`deepinv.optim.bilevel.MAID` with hypergradient accumulation and memory-aware batch sizing (``BatchedCRR``, ``BatchedMinibatchOracle``) (:gh:`1318` by `Mohammad Sadegh Salehi`_)
+- Add ``auto_initial_accuracy`` to choose the initial lower-level accuracy from the problem's initial residual (:gh:`1318` by `Mohammad Sadegh Salehi`_)
+- Add an isotropic TV baseline for prior comparisons (:mod:`deepinv.optim.bilevel.tv_baseline`) (:gh:`1318` by `Mohammad Sadegh Salehi`_)
+- Make :class:`deepinv.optim.bilevel.MAID` prior-agnostic: a regulariser supplies only a per-sample energy and every derivative is obtained by autograd (``ParametricPrior``, ``BatchedPriorProblem``), with learned total variation and an input-convex network alongside the convex ridge regulariser (:gh:`1318` by `Mohammad Sadegh Salehi`_)
+- Add ``auto_initial_step`` to scale the initial step size to the hypergradient, which varies by four orders of magnitude between priors (:gh:`1318` by `Mohammad Sadegh Salehi`_)
+- Report :class:`deepinv.optim.bilevel.MAID` progress via ``verbose`` / ``show_progress_bar`` (:gh:`1318` by `Mohammad Sadegh Salehi`_)
 
 Changed
 ^^^^^^^
@@ -29,6 +35,7 @@ Changed
 - Extend :func:`DST-I <deepinv.physics.functional.dst1>` to make it n-dimensional and add an option to have it compute the regular DST-I instead of the non-standard sign-flipped orthogonal variant (:gh:`934` by `Jérémy Scanvic`_)
 - Extend: :class:`deepinv.optim.MLEM` now supports :class:`deepinv.physics.PET` (:gh:`1255` by `Thibaut Modrzyk`_)
 - (Breaking) Make :class:`deepinv.optim.TVPrior()` compute an explicit choice of subgradient instead of using autodiff. (:gh:`1271` by `Thibaut Modrzyk`_)
+- Make lower-level tolerances per-element and dtype-aware, enabling float32 on CUDA and MPS (:gh:`1318` by `Mohammad Sadegh Salehi`_)
 
 Fixed
 ^^^^^
@@ -688,3 +695,4 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
+.. _Mohammad Sadegh Salehi: https://github.com/MohammadSadeghSalehi

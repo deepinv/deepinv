@@ -184,6 +184,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
    user_guide/reconstruction/denoisers
    user_guide/reconstruction/deep-reconstructors
    user_guide/reconstruction/optimization
+   user_guide/reconstruction/bilevel
    user_guide/reconstruction/iterative
    user_guide/reconstruction/sampling
    user_guide/reconstruction/unfolded

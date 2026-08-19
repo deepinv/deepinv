@@ -39,6 +39,63 @@ Base Class
    deepinv.optim.OSEM
 
 
+Bilevel learning (MAID)
+-----------------------
+.. userguide:: bilevel
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.bilevel.MAID
+   deepinv.optim.bilevel.MAIDConfig
+   deepinv.optim.bilevel.HypergradientOracle
+   deepinv.optim.bilevel.TikhonovWeightOracle
+   deepinv.optim.bilevel.TikhonovWeightProblem
+   deepinv.optim.bilevel.SmoothHypergradientOracle
+   deepinv.optim.bilevel.GoalOrientedSmoothOracle
+   deepinv.optim.bilevel.GoalOrientedEstimator
+   deepinv.optim.bilevel.SaddleHypergradientOracle
+   deepinv.optim.bilevel.QuadraticBilevelLS
+   deepinv.optim.bilevel.NonQuadraticBilevel
+   deepinv.optim.bilevel.QuadraticSaddleProblem
+   deepinv.optim.bilevel.ParametricPrior
+   deepinv.optim.bilevel.ConvexRidgePrior2
+   deepinv.optim.bilevel.LearnedTVPrior
+   deepinv.optim.bilevel.ICNNPrior
+   deepinv.optim.bilevel.BatchedPriorProblem
+   deepinv.optim.bilevel.BatchedCRR
+   deepinv.optim.bilevel.BatchedMinibatchOracle
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.optim.bilevel.auto_initial_accuracy
+   deepinv.optim.bilevel.auto_initial_step
+   deepinv.optim.bilevel.auto_batch_size
+   deepinv.optim.bilevel.available_memory
+   deepinv.optim.bilevel.measure_sample_bytes
+   deepinv.optim.bilevel.ParametricPrior
+   deepinv.optim.bilevel.ConvexRidgePrior2
+   deepinv.optim.bilevel.LearnedTVPrior
+   deepinv.optim.bilevel.ICNNPrior
+   deepinv.optim.bilevel.BatchedPriorProblem
+   deepinv.optim.bilevel.BatchedCRR
+   deepinv.optim.bilevel.BatchedMinibatchOracle
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.optim.bilevel.auto_initial_accuracy
+   deepinv.optim.bilevel.auto_initial_step
+   deepinv.optim.bilevel.auto_batch_size
+
+
 Potentials
 ----------
 .. userguide:: potentials
