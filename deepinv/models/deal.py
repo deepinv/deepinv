@@ -103,7 +103,6 @@ class DEAL(Reconstructor):
         pretrained: str = "pretrained",
         inner_iter: int = 200,
         outer_iter: int = 60,
-
     ) -> None:
         super().__init__()
 
@@ -116,7 +115,9 @@ class DEAL(Reconstructor):
         self.inner_iter = inner_iter
         self.outer_iter = outer_iter
 
-        self.model = _DEALImpl(color=color, inner_iter=self.inner_iter, outer_iter=self.outer_iter).to(device)
+        self.model = _DEALImpl(
+            color=color, inner_iter=self.inner_iter, outer_iter=self.outer_iter
+        ).to(device)
 
         if pretrained is None:
             state = None
@@ -815,7 +816,9 @@ class _DEALImpl(nn.Module):
     :class:`DEAL` wrapper.
     """
 
-    def __init__(self, color: bool, inner_iter: int = 200, outer_iter: int = 60) -> None:
+    def __init__(
+        self, color: bool, inner_iter: int = 200, outer_iter: int = 60
+    ) -> None:
         super().__init__()
 
         self.kernel_size = 9
@@ -1037,7 +1040,7 @@ class _DEALImpl(nn.Module):
         if self.training:
             self.c_k_list = []
             grad_steps = 1
-            n_out = int(torch.randint(14, self.outer_iter-1, (1, 1)).item())
+            n_out = int(torch.randint(14, self.outer_iter - 1, (1, 1)).item())
             n_in = self.inner_iter // 4
             eps_in = 1e-4
             eps_out = 1e-4
