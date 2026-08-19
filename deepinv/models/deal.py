@@ -85,8 +85,9 @@ class DEAL(Reconstructor):
         ``'pretrained'``, or ``None``. If ``None``, no pretrained weights are
         loaded. If ``'download'`` or ``'pretrained'``, the official DEAL
         pretrained weights are downloaded and loaded.
-    :param int cg_max_iter: maximum number of inner fixed-point iterations and conjugate gradient
+    :param int inner_iter: maximum number of iterations of the conjugate gradient
         algorithm.
+    :param int outer_iter: maximum number of inner fixed-point iterations and conjugate gradient
     """
 
     def __init__(
@@ -100,7 +101,8 @@ class DEAL(Reconstructor):
         device: str | None = None,
         clamp_output: bool = True,
         pretrained: str = "pretrained",
-        cg_max_iter: int = 200,
+        inner_iter: int = 200,
+        outer_iter: int = 60,
 
     ) -> None:
         super().__init__()
@@ -111,9 +113,10 @@ class DEAL(Reconstructor):
         self.auto_scale = auto_scale
         self.target_y_std = target_y_std
         self.clamp_output = clamp_output
-        self.cg_max_iter = cg_max_iter
+        self.inner_iter = inner_iter
+        self.outer_iter = outer_iter
 
-        self.model = _DEALImpl(color=color, max_iter=self.cg_max_iter).to(device)
+        self.model = _DEALImpl(color=color, inner_iter=self.inner_iter, outer_iter=self.outer_iter).to(device)
 
         if pretrained is None:
             state = None
@@ -812,7 +815,7 @@ class _DEALImpl(nn.Module):
     :class:`DEAL` wrapper.
     """
 
-    def __init__(self, color: bool, max_iter: int = 200) -> None:
+    def __init__(self, color: bool, inner_iter: int = 200, outer_iter: int = 60) -> None:
         super().__init__()
 
         self.kernel_size = 9
@@ -885,7 +888,8 @@ class _DEALImpl(nn.Module):
             clamp=False,
         )
 
-        self.max_iter = max_iter
+        self.inner_iter = inner_iter
+        self.outer_iter = outer_iter
 
     def cal_lambda(self, sigma: torch.Tensor) -> None:
         """Compute the regularization parameter from the noise level."""
@@ -1033,15 +1037,15 @@ class _DEALImpl(nn.Module):
         if self.training:
             self.c_k_list = []
             grad_steps = 1
-            n_out = int(torch.randint(14, 59, (1, 1)).item())
-            n_in = 50
+            n_out = int(torch.randint(14, self.outer_iter-1, (1, 1)).item())
+            n_in = self.inner_iter // 4
             eps_in = 1e-4
             eps_out = 1e-4
             eps_bck = 1e-4
         else:
             grad_steps = 0
-            n_out = 60
-            n_in = self.max_iter
+            n_out = self.outer_iter
+            n_in = self.inner_iter
             eps_in = 1e-6
             eps_out = 1e-5
 
