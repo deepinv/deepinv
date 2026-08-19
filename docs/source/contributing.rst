@@ -235,7 +235,7 @@ Therefore, DeepInverse does not welcome PRs a) consisting fully of LLM-generated
 Contributing style guides
 -------------------------
 
-The DeepInverse community maintains a high, opionionated standard of code and docs in order to provide a didactic library that leads the field of imaging, rather than a collection of code files.
+The DeepInverse community maintains a high, opinionated standard of code and documentation in order to provide a didactic library that leads the field of imaging, rather than a collection of code files.
 All contributors are responsible for using their human judgement to uphold this standard, which is especially important in the era of LLM coding.
 The purpose of this style guide is to help any devs (experienced, new, maintainers, LLMs, agents) always stick with best practice while contributing **and** reviewing.
 
@@ -254,13 +254,15 @@ Please follow these guidelines:
 
 - Only include technical implementation details that help the user understand how to use the code, put them lower in the docstring. Omit details that are not immediately important.
 
-- Favour concise docs, and prioritise readability over completeness. Write in concise technical English, not prose. For example:
+- Write docs extremely concisely, and prioritise readability over completeness. State facts once only and don't repeat points. Write in concise technical English, not prose. Don't break lines unnecessarily. For example:
 
       Acquisition angles in degrees. Returns ``None`` for vector-based geometries, for which the acquisition trajectory is fully described by `self.projection_geometry["Vectors"]`.
 
   can be much more concisely written as:
 
       Astra projection geometry angles tensor in degrees. If Astra vector geom, return None.
+
+- Only write inline comments where absolutely necessary, where it is non-trivial to understand code behaviour.
 
 - Properly describe each parameter and return, along with a type annotations for each `:param` field, as shown below:
 
@@ -275,7 +277,7 @@ Please follow these guidelines:
 
 - Use `:math:` for inline LaTeX-style mathematics, and `.. math::` for block equations.
 
-- To include remarks, warnings, or tips, use the `.. note::` directive.
+- To include remarks, warnings, or tips, use the `.. note::`, `.. warning::` or `.. tip::`  directives.
 
 - Link objects with Sphinx roles such as `:class:`, `:func:`, `:meth:`, and `:ref:`.
 
@@ -363,13 +365,18 @@ Code quality
   Therefore, adding an optimisation method requires to check that it converges to the limit point; adding a neural network from an external library should check metric on a dataset, etc. Limit cases should be added and checked (e.g. non standard tensor shapes, etc).
   Note that in most cases, such checks are already implemented (see above), but it's to the user to check that sufficient tests are checked.
 
+Code scope
+~~~~~~~~~~
+
+- Implement the minimal change that fully satisfies the behavior described in a Pull Request (PR) description or an issue;
+- **Pull Request length**: keep PRs under 3000 lines, especially for first-time contributors. Instead, submit large feature contributions incrementally.
+
 General technical details
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Implement the minimal change that fully satisfies the behavior described in a PR description or an issue;
 - Reuse existing abstractions in DeepInverse as much as possible to help modularity;
 - Anticipate potential future abstractions. For instance, if you propose a modification for some specific 1D application, try to open to door to 1D globally;
-- Avoid adding new dependencies unless the feature genuinely requires it;
+- Avoid adding new dependencies unless the feature genuinely requires it. Import optional dependencies with a try-except block, with a message `to use ..., x is required. Install it using...`;
 - Preserve backward compatibility and avoid breaking changes;
 - Cite code whenever possible; see citation instructions :ref:`above <docstring_guidelines>`;
 - When copying code from external codebases, seek permission from the original author and include a `third-party licence <https://github.com/deepinv/deepinv/tree/main/deepinv/models/third_party>`_;
@@ -378,16 +385,30 @@ General technical details
 - Every operation should be batched.
 - If you propose a new technical convention, add it to this list so that future contributors and reviewers don't forget it!
 
+.. _backward_compatibility:
+
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-If you propose breaking changes, you must prevent your contribution breaking existing user workflows. To do this, you must start by deprecating the former behavior with an opt-in way to switch to the new behavior. After a delay deemed sufficient, we finally drop support for the deprecated feature. We update :ref:`the changelog <log_changes>` at both stages with the new deprecations and dropped features in order to help users with the migration process.
+If you propose breaking changes, you must prevent your contribution breaking existing user workflows. To do this:
+
+- Start by deprecating the former behavior with an opt-in way to switch to the new behavior.
+- Keep the old functionality as default, and add a deprecation notice in the docstring.
+- Also add a deprecation warning in the code using one of our existing deprecation helpers in ``deepinv/utils/decorators.py``:
+
+  - ``_deprecated_class``: deprecate a class.
+  - ``_deprecated_func``, ``_deprecated_func_replaced_by``: deprecate a function/method.
+  - ``_deprecated_argument``, ``_deprecated_alias``: deprecate an argument of a function/method.
+  - ``_deprecate_attribute``: deprecate an attribute.
+
+- After a delay deemed sufficient, finally drop support for the deprecated feature. 
+- Update :ref:`the changelog <log_changes>` at both stages with the new deprecations and dropped features in order to help users with the migration process.
 
 Even though we generally try to avoid unexpected breaking changes, the library is at an early stage of development and we tolerate them in certain cases. Specifically, we allow them when the benefits are considered to far outweigh the negative consequences, especially when proper deprecation would take a lot more effort than the change itself.
 
 As a contributor making a new pull request, it might be tricky to determine a suitable way to handle potential breaking changes. Please do not let this delay your submission needlessly. The maintainers acknowledge this and will provide the necessary guidance when reviewing your changes.
 
-A number of deprecation helpers are featured in the library internals, located in ``deepinv/utils/decorators.py``. Deprecating classes, functions and methods is handled by ``_deprecated_class``, ``_deprecated_func`` and ``_deprecated_func_replaced_by``. Deprecating function and method arguments is handled by ``_deprecated_argument`` and ``_deprecated_alias``. Finally, deprecating attributes is handled by ``_deprecate_attribute``. We also generally endorse the recommendations from `scikit-learn's contributing guide <https://scikit-learn.org/dev/developers/contributing.html#maintaining-backwards-compatibility>`_.
+We also generally endorse the recommendations from `scikit-learn's contributing guide <https://scikit-learn.org/dev/developers/contributing.html#maintaining-backwards-compatibility>`_.
 
 Contributing new physics
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -429,10 +450,12 @@ How to review PRs
 
 Reviewing PRs is a brilliant way to contribute to the DeepInverse community. Anyone can review PRs, especially if it covers your area of expertise. Here's a checklist for reviewers for all PRs:
 
+- You have written your review `courteously, respectfully and constructively <https://google.github.io/eng-practices/review/reviewer/comments.html>`_.
 - Check that mathematical, methodological or algorithmic contributions are technically correct and match their relevant scientific publications;
 - Check that the author has followed the steps of the :ref:`contributing guide <step_by_step_contribute>`, including adding tests, appropriate docstrings, API and User Guide documentation, examples, and changelog;
-- Check that the contribution is allowed under the :ref:`LLM policy <llm-policy>`;
+- Check that the contribution is allowed under the :ref:`LLM policy <llm-policy>`. If not, close the PR;
 - Check that the new code and documentation meets the :ref:`DeepInverse style guides <style_guides>` to ensure we maintain our high standard of code and docs.
+- Check the code satisfies :ref:`backward compatibility <backward_compatibility>`. If compatibility must be broken, suggest ways to deprecate rather than immediately breaking existing user code.
 
 Thank you for reviewing PRs!
 
