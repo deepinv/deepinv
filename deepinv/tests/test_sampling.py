@@ -321,7 +321,10 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
     rng = torch.Generator(device)
     # Set up solvers
     timesteps = torch.linspace(0.99, 0.001, num_steps, device=device)
-    solver = solver_class(timesteps=timesteps, rng=rng, )
+    solver = solver_class(
+        timesteps=timesteps,
+        rng=rng,
+    )
 
     if sde_class == EDMDiffusionSDE:
         sigma_t = lambda t: 100 * t**2

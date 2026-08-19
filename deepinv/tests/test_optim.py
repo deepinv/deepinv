@@ -17,7 +17,6 @@ from deepinv.optim.optim_iterators import GDIteration
 from deepinv.tests.test_physics import find_operator
 from deepinv.optim.linear import least_squares, least_squares_implicit_backward
 
-from functools import partial
 import copy
 
 
@@ -1302,10 +1301,21 @@ def test_least_squares_implicit_backward(device, solver, physics_name):
     gamma_ = gamma.detach().clone().requires_grad_(True)
 
     with torch.enable_grad():
-        res_implicit = least_squares_implicit_backward(physics, y, z, init, gamma, eps=1e-6, tol=1e-3, max_iter=50).sum()
+        res_implicit = least_squares_implicit_backward(
+            physics, y, z, init, gamma, eps=1e-6, tol=1e-3, max_iter=50
+        ).sum()
         res_implicit.backward()
 
-        res = least_squares(A=physics.A, AT=physics.A_adjoint, y=y_, z=z_, init=init, gamma=gamma_, tol=1e-3, max_iter=50).sum()
+        res = least_squares(
+            A=physics.A,
+            AT=physics.A_adjoint,
+            y=y_,
+            z=z_,
+            init=init,
+            gamma=gamma_,
+            tol=1e-3,
+            max_iter=50,
+        ).sum()
         res.backward()
 
         assert z_.grad is not None and y_.grad is not None and gamma_.grad is not None
@@ -1385,7 +1395,8 @@ def test_least_squares_implicit_backward(device, solver, physics_name):
                 expected_grad[idx_flat],
                 rtol=5e-2,
                 atol=5e-2,
-                msg=lambda default: f"Gradient w.r.t physics parameter {k} does not match finite difference gradient. " + default,
+                msg=lambda default: f"Gradient w.r.t physics parameter {k} does not match finite difference gradient. "
+                + default,
             )
 
 
