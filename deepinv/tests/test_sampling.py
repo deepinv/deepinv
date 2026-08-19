@@ -1,3 +1,4 @@
+import gc
 import pytest
 import torch.nn
 import numpy as np
@@ -290,7 +291,6 @@ def test_build_algo(algo, imsize, device):
     assert f.mean_has_converged and f.var_has_converged and mean_ok and var_ok
 
 
-@pytest.mark.slow
 @torch.no_grad()
 @pytest.mark.parametrize(
     "sde_class",
@@ -317,7 +317,7 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
     ).to(device)
 
     # Set up the SDEs
-    num_steps = 3
+    num_steps = 2
     rng = torch.Generator(device)
     # Set up solvers
     timesteps = torch.linspace(0.99, 0.001, num_steps, device=device)
@@ -368,6 +368,10 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
     )
     # Test output shape
     assert x_hat.shape == (2, 3, 64, 64)
+
+    del denoiser
+    gc.collect()
+    torch.cuda.empty_cache()
 
 
 @torch.no_grad()
