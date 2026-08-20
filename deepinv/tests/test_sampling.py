@@ -372,6 +372,7 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
     # Test output shape
     assert x_hat.shape == (2, 3, 64, 64)
 
+    # pytest seems to not clean objects properly, which can cause OOM errors.
     del denoiser
     gc.collect()
     torch.cuda.empty_cache()
