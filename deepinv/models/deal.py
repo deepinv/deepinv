@@ -891,6 +891,7 @@ class _DEALImpl(nn.Module):
             clamp=False,
         )
 
+        self.max_iter = 1000
         self.inner_iter = inner_iter
         self.outer_iter = outer_iter
 
@@ -1113,7 +1114,7 @@ class _DEALImpl(nn.Module):
                 c_k = Ht(y) * 0
             c_k_old = c_k.clone()
 
-            for m in range(1000):
+            for m in range(self.max_iter):
                 if path:
                     c_ks.append(c_k)
 
@@ -1124,7 +1125,7 @@ class _DEALImpl(nn.Module):
                     A=A_op,
                     b=b,
                     init=c_k_old,
-                    max_iter=1000,
+                    max_iter=self.max_iter,
                     tol=eps_in,
                     eps=1e-8,
                 )
@@ -1137,7 +1138,7 @@ class _DEALImpl(nn.Module):
                         "CG Number:",
                         m,
                         "CG iterations:",
-                        1000,
+                        self.max_iter,
                         "Outer residual:",
                         res,
                     )
