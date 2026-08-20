@@ -395,13 +395,14 @@ def test_diffusion_reproducibility(load_example_image, device, rng, sde_class):
 
     sigma_t = lambda t: 100 * t**2
     scale_t = lambda t: 1 / (1 + sigma_t(t) ** 2) ** 0.5
+    kwargs = (
+        {"sigma_t": sigma_t, "scale_t": scale_t} if sde_class == EDMDiffusionSDE else {}
+    )
     sde = sde_class(
         denoiser=denoiser,
         solver=solver,
         device=device,
-        **(
-            {"sigma_t": sigma_t, "scale_t": scale_t} if sde_class == EDMDiffusionSDE else {}
-        ),
+        **kwargs,
     )
     x = load_example_image(
         "celeba_example.jpg",
