@@ -355,8 +355,8 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
         posterior = PosteriorDiffusion(
             data_fidelity=DPSDataFidelity(denoiser=denoiser),
             sde=sde,
-            denoiser=NCSNpp(device=device),
-            solver=EulerSolver(timesteps=timesteps, rng=rng),
+            denoiser=denoiser,
+            solver=solver,
             dtype=torch.float64,
             device=device,
         )
@@ -368,6 +368,7 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
             physics,
             x_init=(2, 3, 64, 64),
             seed=111,
+            **kwargs,
         )
         # Test output shape
         assert x_hat.shape == (2, 3, 64, 64)
