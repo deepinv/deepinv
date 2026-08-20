@@ -304,78 +304,78 @@ def test_build_algo(algo, imsize, device):
 @pytest.mark.parametrize("solver_class", [EulerSolver, HeunSolver])
 @pytest.mark.parametrize("denoiser_class", [NCSNpp, ADMUNet, DRUNet])
 def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class):
+    try:
+        if denoiser_class == ADMUNet:
+            kwargs = dict(class_labels=torch.eye(1000, device=device)[0:1])
+        else:
+            kwargs = dict()
+        denoiser = denoiser_class(pretrained="download").to(device)
+        x = load_example_image(
+            "celeba_example.jpg",
+            img_size=64,
+            resize_mode="resize",
+        ).to(device)
 
-    if denoiser_class == ADMUNet:
-        kwargs = dict(class_labels=torch.eye(1000, device=device)[0:1])
-    else:
-        kwargs = dict()
-    denoiser = denoiser_class(pretrained="download").to(device)
-    x = load_example_image(
-        "celeba_example.jpg",
-        img_size=64,
-        resize_mode="resize",
-    ).to(device)
+        # Set up the SDEs
+        num_steps = 2
+        rng = torch.Generator(device)
+        # Set up solvers
+        timesteps = torch.linspace(0.99, 0.001, num_steps, device=device)
+        solver = solver_class(
+            timesteps=timesteps,
+            rng=rng,
+        )
 
-    # Set up the SDEs
-    num_steps = 2
-    rng = torch.Generator(device)
-    # Set up solvers
-    timesteps = torch.linspace(0.99, 0.001, num_steps, device=device)
-    solver = solver_class(
-        timesteps=timesteps,
-        rng=rng,
-    )
+        if sde_class == EDMDiffusionSDE:
+            sigma_t = lambda t: 100 * t**2
+            scale_t = lambda t: 1 / (1 + sigma_t(t) ** 2) ** 0.5
+            sde = sde_class(
+                sigma_t=sigma_t,
+                scale_t=scale_t,
+                denoiser=denoiser,
+                solver=solver,
+                device=device,
+            )
+        else:
+            sde = sde_class(
+                denoiser=denoiser,
+                solver=solver,
+                device=device,
+            )
+        # Test generation
+        sample, _trajectory = sde.sample(
+            (2, 3, 64, 64),
+            seed=10,
+            get_trajectory=True,
+            **kwargs,
+        )
+        assert sample.shape == (2, 3, 64, 64)
 
-    if sde_class == EDMDiffusionSDE:
-        sigma_t = lambda t: 100 * t**2
-        scale_t = lambda t: 1 / (1 + sigma_t(t) ** 2) ** 0.5
-        sde = sde_class(
-            sigma_t=sigma_t,
-            scale_t=scale_t,
-            denoiser=denoiser,
-            solver=solver,
+        # Test posterior sampling
+        posterior = PosteriorDiffusion(
+            data_fidelity=DPSDataFidelity(denoiser=denoiser),
+            sde=sde,
+            denoiser=NCSNpp(device=device),
+            solver=EulerSolver(timesteps=timesteps, rng=rng),
+            dtype=torch.float64,
             device=device,
         )
-    else:
-        sde = sde_class(
-            denoiser=denoiser,
-            solver=solver,
-            device=device,
+        physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=0.5, device=device)
+        y = physics(x)
+
+        x_hat = posterior(
+            y,
+            physics,
+            x_init=(2, 3, 64, 64),
+            seed=111,
         )
-    # Test generation
-    sample, _trajectory = sde.sample(
-        (2, 3, 64, 64),
-        seed=10,
-        get_trajectory=True,
-        **kwargs,
-    )
-    assert sample.shape == (2, 3, 64, 64)
-
-    # Test posterior sampling
-    posterior = PosteriorDiffusion(
-        data_fidelity=DPSDataFidelity(denoiser=denoiser),
-        sde=sde,
-        denoiser=NCSNpp(device=device),
-        solver=EulerSolver(timesteps=timesteps, rng=rng),
-        dtype=torch.float64,
-        device=device,
-    )
-    physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=0.5, device=device)
-    y = physics(x)
-
-    x_hat = posterior(
-        y,
-        physics,
-        x_init=(2, 3, 64, 64),
-        seed=111,
-    )
-    # Test output shape
-    assert x_hat.shape == (2, 3, 64, 64)
-
-    # pytest seems to not clean objects properly, which can cause OOM errors.
-    del denoiser
-    gc.collect()
-    torch.cuda.empty_cache()
+        # Test output shape
+        assert x_hat.shape == (2, 3, 64, 64)
+    finally:
+        # pytest seems to not clean objects properly, which can cause OOM errors.
+        del denoiser, sde, posterior
+        gc.collect()
+        torch.cuda.empty_cache()
 
 
 @torch.no_grad()
