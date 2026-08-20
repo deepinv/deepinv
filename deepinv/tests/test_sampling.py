@@ -379,6 +379,67 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
 
 
 @torch.no_grad()
+@pytest.mark.parametrize(
+    "sde_class",
+    [
+        FlowMatching,
+        VarianceExplodingDiffusion,
+        VariancePreservingDiffusion,
+        EDMDiffusionSDE,
+    ],
+)
+def test_diffusion_reproducibility(load_example_image, device, rng, sde_class):
+    timesteps = torch.linspace(0.99, 0.001, 2, device=device)
+    denoiser = NCSNpp(pretrained="download").to(device)
+    solver = EulerSolver(timesteps=timesteps, rng=rng)
+
+    sigma_t = lambda t: 100 * t**2
+    scale_t = lambda t: 1 / (1 + sigma_t(t) ** 2) ** 0.5
+    sde = sde_class(
+        denoiser=denoiser,
+        solver=solver,
+        device=device,
+        **(
+            {"sigma_t": sigma_t, "scale_t": scale_t} if sde_class == EDMDiffusionSDE else {}
+        ),
+    )
+    x = load_example_image(
+        "celeba_example.jpg",
+        img_size=64,
+        resize_mode="resize",
+    ).to(device)
+    physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=0.5, device=device)
+    y = physics(x)
+
+    # Test posterior sampling
+    posterior = PosteriorDiffusion(
+        data_fidelity=DPSDataFidelity(denoiser=denoiser),
+        sde=sde,
+        denoiser=denoiser,
+        solver=solver,
+        dtype=torch.float64,
+        device=device,
+    )
+
+    x_hat_1 = posterior(
+        y,
+        physics,
+        x_init=(2, 3, 64, 64),
+        seed=111,
+    )
+    # Test output shape
+    assert x_hat_1.shape == (2, 3, 64, 64)
+    # Test reproducibility
+    x_hat_2 = posterior(
+        y,
+        physics,
+        x_init=(2, 3, 64, 64),
+        seed=111,
+    )
+    assert torch.nn.functional.mse_loss(x_hat_1, x_hat_2, reduction="mean") < 1e-2
+
+
+@torch.no_grad()
 def test_noisy_data_fidelity(device):
     from deepinv.sampling import DPSDataFidelity, NoisyDataFidelity
     import itertools
