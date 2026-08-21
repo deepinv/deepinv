@@ -1,0 +1,80 @@
+.. |plusminus| unicode:: U+00B1 .. plus-minus sign
+
+.. _cbsd68_gaussian_denoising:
+
+CBSD68 gaussian denoising
+=========================
+
+- *Dataset*: :sclass:`deepinv.datasets.CBSD68`
+
+- *Physics*: :sclass:`deepinv.physics.Denoising`
+
+- *Noise model*: :sclass:`deepinv.physics.GaussianNoise`
+
+- *sigma*: 0.1
+
+- *img_size*: 256
+
+Run this benchmark with
+
+.. code-block:: python
+
+   from deepinv_bench import run_benchmark
+   my_solver = lambda y, physics: ...  # your solver here
+   results = run_benchmark(my_solver, "cbsd68_gaussian_denoising")
+
+
+.. warning::
+
+    Runtimes are only indicative and may vary depending on various factors which are not controlled in the benchmark.
+
+
+.. list-table::
+   :class: sortable-table
+   :header-rows: 1
+
+   * - solver_name
+     - PSNR
+     - LPIPS
+   * - `Restormer <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/restormer.py>`_
+     - 32.25 |plusminus| 2.31
+     - 0.09 |plusminus| 0.04
+   * - `SwinIR <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/swinir.py>`_
+     - 32.22 |plusminus| 2.29
+     - 0.09 |plusminus| 0.04
+   * - `DRUNet <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/drunet.py>`_
+     - 32.16 |plusminus| 2.29
+     - 0.10 |plusminus| 0.04
+   * - `GSDRUNet <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/gsdrunet.py>`_
+     - 32.06 |plusminus| 2.25
+     - 0.09 |plusminus| 0.03
+   * - `DiffUNet <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/diffunet.py>`_
+     - 32.03 |plusminus| 2.29
+     - 0.10 |plusminus| 0.05
+   * - `RAM <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/ram.py>`_
+     - 31.97 |plusminus| 2.25
+     - 0.10 |plusminus| 0.04
+   * - `NCSNpp <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/ncsnpp.py>`_
+     - 31.90 |plusminus| 2.19
+     - 0.11 |plusminus| 0.05
+   * - `DScCP <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/dsccp.py>`_
+     - 30.94 |plusminus| 1.97
+     - 0.12 |plusminus| 0.05
+   * - `SCUNet <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/scunet.py>`_
+     - 30.89 |plusminus| 2.20
+     - 0.14 |plusminus| 0.07
+   * - `DnCNN <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/dncnn.py>`_
+     - 30.39 |plusminus| 1.62
+     - 0.14 |plusminus| 0.05
+   * - `TGVDenoiser <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/tgv_denoiser.py>`_
+     - 28.06 |plusminus| 2.06
+     - 0.24 |plusminus| 0.06
+   * - `TVDenoiser <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/tv_denoiser.py>`_
+     - 27.64 |plusminus| 2.52
+     - 0.26 |plusminus| 0.08
+   * - `BilateralFilter <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/bilateral_filter.py>`_
+     - 26.68 |plusminus| 1.47
+     - 0.44 |plusminus| 0.08
+   * - `WaveletDenoiser <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/cbsd68_gaussian_denoising/solvers/wavelet_denoiser.py>`_
+     - 25.19 |plusminus| 0.89
+     - 0.32 |plusminus| 0.10

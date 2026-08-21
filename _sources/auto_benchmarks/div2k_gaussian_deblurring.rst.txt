@@ -1,0 +1,61 @@
+.. |plusminus| unicode:: U+00B1 .. plus-minus sign
+
+.. _div2k_gaussian_deblurring:
+
+DIV2K Gaussian Deblurring
+=========================
+
+- *Dataset*: :sclass:`deepinv.datasets.DIV2K`
+
+- *Physics*: :sclass:`deepinv.physics.Blur`
+
+- *Noise model*: :sclass:`deepinv.physics.GaussianNoise`
+
+- *sigma*: 0.05
+
+- *sigma_blur*: 2
+
+- *img_size*: 256
+
+Run this benchmark with
+
+.. code-block:: python
+
+   from deepinv_bench import run_benchmark
+   my_solver = lambda y, physics: ...  # your solver here
+   results = run_benchmark(my_solver, "div2k_gaussian_deblurring")
+
+
+.. warning::
+
+    Runtimes are only indicative and may vary depending on various factors which are not controlled in the benchmark.
+
+
+.. list-table::
+   :class: sortable-table
+   :header-rows: 1
+
+   * - solver_name
+     - PSNR
+     - LPIPS
+   * - `RAM <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_gaussian_deblurring/solvers/ram.py>`_
+     - 25.62 |plusminus| 2.54
+     - 0.27 |plusminus| 0.11
+   * - `DPIR[sigma=0.1] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_gaussian_deblurring/solvers/dpir.py>`_
+     - 24.42 |plusminus| 2.48
+     - 0.42 |plusminus| 0.12
+   * - `DiffPIR[denoiser=DRUNet,zeta=0.45] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_gaussian_deblurring/solvers/diffpir.py>`_
+     - 24.15 |plusminus| 2.40
+     - 0.33 |plusminus| 0.11
+   * - `DiffPIR[denoiser=DiffUNet,zeta=0.45] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_gaussian_deblurring/solvers/diffpir.py>`_
+     - 24.01 |plusminus| 2.40
+     - 0.28 |plusminus| 0.10
+   * - `DPIR[sigma=0.2] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_gaussian_deblurring/solvers/dpir.py>`_
+     - 23.17 |plusminus| 2.32
+     - 0.50 |plusminus| 0.12
+   * - `DPS[denoiser=DRUNet,max_iter=1000] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_gaussian_deblurring/solvers/dps.py>`_
+     - 22.15 |plusminus| 2.24
+     - 0.51 |plusminus| 0.13
+   * - `DPS[denoiser=DiffUNet,max_iter=1000] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_gaussian_deblurring/solvers/dps.py>`_
+     - 20.74 |plusminus| 2.64
+     - 0.52 |plusminus| 0.16

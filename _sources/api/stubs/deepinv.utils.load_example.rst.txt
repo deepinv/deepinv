@@ -1,0 +1,9 @@
+﻿load\_example
+=============
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_example
+
+.. minigallery:: deepinv.utils.load_example
+    :add-heading: Examples using ``load_example``:

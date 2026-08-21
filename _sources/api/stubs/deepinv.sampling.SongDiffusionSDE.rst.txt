@@ -1,0 +1,15 @@
+﻿SongDiffusionSDE
+================
+
+.. currentmodule:: deepinv.sampling
+
+.. autoclass:: SongDiffusionSDE
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.sampling.SongDiffusionSDE:
+
+.. minigallery:: deepinv.sampling.SongDiffusionSDE
+    :add-heading: Examples using ``SongDiffusionSDE``:
