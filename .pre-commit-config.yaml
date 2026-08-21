@@ -22,11 +22,3 @@ repos:
       rev: v0.15.20
       hooks:
           - id: ruff-check
-          # - id: ruff-format  # 56 modified files
-    # - repo: https://github.com/adamchainz/blacken-docs  # 17 modified files
-    #   rev: "1.20.0"
-    #   hooks:
-    #     - id: blacken-docs
-    #       args: [-l 140]
-    #       additional_dependencies:
-    #       - black==26.5.1

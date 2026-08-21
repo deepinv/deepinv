@@ -76,8 +76,7 @@ doc = [
 
 lint = [
     "black",
-    "ruff",
-    "pre-commit",
+    "ruff"
 ]
 
 # optional dependencies for specific denoisers, or transforms
