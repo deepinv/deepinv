@@ -438,9 +438,16 @@ class PositionalEmbedding(torch.nn.Module):
 
 
 class FourierEmbedding(torch.nn.Module):
-    def __init__(self, num_channels: int, scale: int = 16):
+    def __init__(
+        self,
+        num_channels: int,
+        scale: int = 16,
+        device: torch.device | str = "cpu",
+    ):
         super().__init__()
-        self.register_buffer("freqs", torch.randn(num_channels // 2) * scale)
+        self.register_buffer(
+            "freqs", torch.randn(num_channels // 2, device=device) * scale
+        )
 
     def forward(self, x: Tensor):
         x = x.outer((2 * np.pi * self.freqs).to(x.dtype))
