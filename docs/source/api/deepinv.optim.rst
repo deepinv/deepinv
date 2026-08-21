@@ -37,6 +37,7 @@ Base Class
    deepinv.optim.SIRT
    deepinv.optim.MLEM
    deepinv.optim.OSEM
+   deepinv.optim.BSREM
 
 
 Potentials
@@ -89,6 +90,7 @@ Priors
    deepinv.optim.L1Prior
    deepinv.optim.WaveletPrior
    deepinv.optim.TVPrior
+   deepinv.optim.RDP
    deepinv.optim.TVL1Prior
    deepinv.optim.PatchPrior
    deepinv.optim.L12Prior
@@ -167,6 +169,7 @@ Iterators
    deepinv.optim.optim_iterators.SMIteration
    deepinv.optim.optim_iterators.MLEMIteration
    deepinv.optim.optim_iterators.OSEMIteration
+   deepinv.optim.optim_iterators.BSREMIteration
    deepinv.optim.optim_iterators.SIRTIteration
 
 
