@@ -454,7 +454,7 @@ class Blur(LinearPhysics):
     where :math:`*` denotes convolution and :math:`w` is a filter.
 
     :param torch.Tensor filter: Tensor of size (b, 1, h, w) or (b, c, h, w) in 2D; (b, 1, d, h, w) or (b, c, d, h, w) in 3D,
-        containing the blur filter, e.g., :func:`deepinv.physics.functional.gaussian_blur`.
+        containing the blur filter, e.g., :func:`deepinv.physics.functional.gaussian_blur`. If ``None``, a filter must be passed to the physics before calling it . (default is ``None``)
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image. (default is ``'valid'``).
@@ -501,8 +501,7 @@ class Blur(LinearPhysics):
         device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
-        super().__init__(**kwargs)
-        self.device = device
+        super().__init__(**kwargs, device=device)
         self.padding = padding
         assert (
             isinstance(filter, Tensor) or filter is None
@@ -532,6 +531,9 @@ class Blur(LinearPhysics):
         """
         self.update_parameters(filter=filter, **kwargs)
 
+        if self.filter is None:
+            raise ValueError("self.filter is None, provide a filter when calling A.")
+
         dim = (
             x.dim() - 2
         )  # get the spatial dimensions to select the right convolution function
@@ -551,6 +553,11 @@ class Blur(LinearPhysics):
         :raises ValueError: if the input tensor does not have 4 or 5 dimensions.
         """
         self.update_parameters(filter=filter, **kwargs)
+
+        if self.filter is None:
+            raise ValueError(
+                "self.filter is None, provide a filter when calling A_adjoint."
+            )
 
         dim = (
             y.dim() - 2
@@ -583,7 +590,7 @@ class BlurFFT(DecomposablePhysics):
 
     :param tuple img_size: Input image size in the form `(C, H, W)`.
     :param torch.Tensor filter: torch.Tensor of size `(1, c, h, w)` containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
-        :func:`deepinv.physics.functional.gaussian_blur`.
+        :func:`deepinv.physics.functional.gaussian_blur`. If ``None``, a filter must be passed to the physics before calling it . (default is ``None``)
     :param torch.device, str device: Device on which the physics' buffers will be created. If a buffer is updated via ``physics.update_parameters()``, if not None, it will be automatically casted to the device of the replaced buffer, else, use the device of the provided value. To change the device of all buffers, please use ``physics.to(device)``.
 
     |sep|
@@ -629,10 +636,20 @@ class BlurFFT(DecomposablePhysics):
         self.to(device)
 
     def A(self, x: Tensor, filter: Tensor | None = None, **kwargs) -> Tensor:
+
+        if self.filter is None and filter is None:
+            raise ValueError("self.filter is None, provide a filter when calling A.")
+
         # updating the parameters is already handled in DecomposablePhysics.A
         return super().A(x, filter=filter)
 
     def A_adjoint(self, x: Tensor, filter: Tensor | None = None, **kwargs) -> Tensor:
+
+        if self.filter is None and filter is None:
+            raise ValueError(
+                "self.filter is None, provide a filter when calling A_adjoint."
+            )
+
         # updating the parameters is already handled in DecomposablePhysics.A_adjoint
         return super().A_adjoint(x, filter=filter)
 
@@ -697,6 +714,8 @@ class BlurFFT(DecomposablePhysics):
 
         :param torch.Tensor filter: New filter to be applied to the input image.
         """
+
+        device = None
 
         # self.filter can be None after initialization
         if self.filter is None:
