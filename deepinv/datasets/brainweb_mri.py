@@ -28,6 +28,7 @@ class BrainWebMRI(ImageDataset):
     :param bool download: Download missing subjects. Defaults to `True`.
     :param collections.abc.Callable, None transform: Optional volume transform.
     :param str, pathlib.Path, None root: Root directory of dataset. Directory path from where we load and save the dataset.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
     """
 
     def __init__(
@@ -37,7 +38,9 @@ class BrainWebMRI(ImageDataset):
         download: bool = True,
         root: str | Path | None = None,
         transform: Callable | None = None,
+        use_dict_output: bool = False,
     ) -> None:
+        super().__init__(use_dict_output=use_dict_output)
         try:
             from brainweb_dl import get_mri
         except ImportError as error:  # pragma: no cover
@@ -77,4 +80,6 @@ class BrainWebMRI(ImageDataset):
             brainweb_dir=self.root,
         )
         volume = torch.from_numpy(volume).to(torch.float32).unsqueeze(0) / 4095
-        return self.transform(volume) if self.transform is not None else volume
+        volume = self.transform(volume) if self.transform is not None else volume
+
+        return {"x": volume} if self.use_dict_output else volume

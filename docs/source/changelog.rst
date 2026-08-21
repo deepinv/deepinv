@@ -22,6 +22,7 @@ New Features
 - Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
 - Add :class:`deepinv.loss.metric.BRISQUE` and :class:`deepinv.loss.metric.NIMA` no-reference image quality metrics (:gh:`1310` by `Julian Tachella`_)
 - Add :class:`deepinv.datasets.BrainWebPET` (:gh:`1286` by `Thibaut Modrzyk`_)
+- Add ``use_dict_output`` option to every dataset class, returning a dict ``{"x", "y", "params"}`` instead of a tuple; propagate support to all deepinv internals (:gh:`1244` by `Romain Vo`_)
 
 Changed
 ^^^^^^^
