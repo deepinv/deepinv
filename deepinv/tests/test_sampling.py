@@ -438,7 +438,7 @@ def test_diffusion_reproducibility(load_example_image, device, rng, sde_class):
         x_init=(2, 3, 64, 64),
         seed=111,
     )
-    assert torch.nn.functional.mse_loss(x_hat_1, x_hat_2, reduction="mean") < 1e-2
+    torch.testing.assert_close(x_hat_1, x_hat_2, rtol=1e-2, atol=1e-2)
 
 
 @torch.no_grad()
