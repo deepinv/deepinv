@@ -172,6 +172,15 @@ Code quality is important to us. We require that your code is compliant with PEP
 3. Run ``ruff check``, which will check all linting options we've enabled. If it fails, follow the suggestions to make a fix!
 4. Push your code. The automatic checkers will run in GitHub actions, along with other actions that we have in place.
 
+Alternatively, you can install `pre-commit <https://pre-commit.com/>`_ with:
+
+.. code-block:: bash
+
+    pip install pre-commit
+    pre-commit install
+
+This runs `ruff` and `black` alongside other tests every time you create a commit.
+
 .. _log_changes:
 
 6. Log your changes
