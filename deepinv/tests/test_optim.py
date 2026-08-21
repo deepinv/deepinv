@@ -370,6 +370,45 @@ OPTIM_ALGO_PARAMS = [
 ]
 
 
+def test_fixed_point_backtracking(device):
+    stepsize = 4.0
+    iteration_indices = []
+
+    def iterator(X, *args):
+        x = X["est"][0] + stepsize
+        return {"est": (x,), "cost": None}
+
+    iterator.cost_fn = None
+
+    def backtracking_check(X_prev, X):
+        nonlocal stepsize
+        if stepsize > 1.0:
+            stepsize *= 0.5
+            return False
+        return True
+
+    fixed_point = dinv.optim.FixedPoint(
+        iterator=iterator,
+        update_params_fn=lambda it: iteration_indices.append(it),
+        init_iterate_fn=lambda init, **kwargs: {"est": (init,), "cost": None},
+        init_metrics_fn=lambda X, **kwargs: [],
+        update_metrics_fn=lambda m, _, X, **kwargs: m + [X["est"][0].clone()],
+        backtracking_check_fn=backtracking_check,
+        max_iter=2,
+        early_stop=False,
+        backtracking_config=dinv.optim.BacktrackingConfig(max_iter=20),
+    )
+    x0 = torch.zeros(1, device=device)
+
+    X, metrics = fixed_point(init=x0, compute_metrics=True)
+
+    assert torch.equal(X["est"][0], torch.full_like(x0, 2.0))
+    assert iteration_indices == [0, 0, 0, 1]
+    assert len(metrics) == fixed_point.max_iter
+    assert torch.equal(torch.stack(metrics), x0.new_tensor([[1.0], [2.0]]))
+    assert stepsize == 1.0
+
+
 @pytest.mark.parametrize(
     "name_algo, and_acc",
     OPTIM_ALGO_PARAMS,
