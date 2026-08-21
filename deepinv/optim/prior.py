@@ -615,8 +615,6 @@ class SmoothedTVPrior(TVPrior):
 
     def __init__(self, eps: float = 1e-5, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if eps <= 0:
-            raise ValueError(f"eps must be strictly positive , got {eps}")
         self.eps = eps
 
     def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
@@ -653,7 +651,7 @@ class SmoothedTVPrior(TVPrior):
 
     def prox(self, x, *args, **kwargs):
         raise NotImplementedError(
-            "Use .grad() instead -prox isn't implemented for this class."
+            "The proximal operator is not implemented for this class. Use .grad() instead."
         )
 
 
