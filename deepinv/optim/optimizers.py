@@ -4,6 +4,7 @@ import warnings
 from collections.abc import Iterable
 from types import MappingProxyType
 import torch
+import deepinv as dinv
 from deepinv.optim import optim_iterators as _optim_iterators
 from deepinv.optim.optim_iterators import (
     OptimIterator,
@@ -19,6 +20,7 @@ from deepinv.optim.optim_iterators import (
     MLEMIteration,
     OSEMIteration,
     SIRTIteration,
+    BlindRLIteration,
 )
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import ZeroPrior, Prior
@@ -2612,6 +2614,261 @@ class OSEM(BaseOptim):
                 for subset_y, subset_physic in zip(y, physics, strict=True)
             ]
         return super().forward(y, physics, sensitivities=sensitivities, *args, **kwargs)
+
+
+class BlindRL(BaseOptim):
+    r"""
+    Blind Richardson-Lucy deconvolution for Poisson inverse problems.
+
+    This algorithm alternates multiplicative MLEM updates for the image
+    :math:`x` and the blur kernel :math:`k` under the model
+
+    .. math::
+        y \sim \operatorname{Poisson}(k * x).
+
+    The updates are given by:
+
+     .. math::
+
+        h^{(k+1)}
+        =
+        \Pi_{\Delta}\left[
+        \frac{h^{(k)}}{A_{x^{(k)}}^\top \mathbf{1}}
+        \odot
+        A_{x^{(k)}}^\top\left(\frac{y}{A_{x^{(k)}} h^{(k)}}\right)
+        \right],
+
+     and:
+
+     .. math::
+
+        x^{(k+1)}
+        =
+        \frac{x^{(k)}}{A_{h^{(k+1)}}^\top \mathbf{1}}
+        \odot
+        A_{h^{(k+1)}}^\top\left(\frac{y}{A_{h^{(k+1)}} x^{(k)}}\right).
+
+    where the kernel is constrained to be nonnegative and, by default, normalized to
+    unit sum by the \Pi_{\Delta} operation after each kernel update.
+
+    Image and kernel priors can be used.
+    The regularized algorithm is implemented using the the One-Step-Late (OSL) heuristic
+    of Green :footcite:t:`greenUseEmAlgorithm1990`.
+    The kernel and image updates then become:
+
+    .. math::
+
+        h^{(k+1)}
+        =
+        \Pi_{\Delta}\left[
+        \frac{h^{(k)}}{A_{x^{(k)}}^\top \mathbf{1}
+        + \lambda_h \nabla R_h(h^{(k)})}
+        \odot
+        A_{x^{(k)}}^\top\left(\frac{y}{A_{x^{(k)}} h^{(k)}}\right)
+        \right].
+
+    .. math::
+
+        x^{(k+1)}
+        =
+        \frac{x^{(k)}}{A_{h^{(k+1)}}^\top \mathbf{1}
+        + \lambda_x \nabla R_x(x^{(k)})}
+        \odot
+        A_{h^{(k+1)}}^\top\left(\frac{y}{A_{h^{(k+1)}} x^{(k)}}\right),
+
+    .. note::
+
+        The parameter ``use_fft`` enables to swap standard convolutions used to update
+        the image and the kernel for FFT based convolutions, which significantly speeds
+        up the algorithm when using a large image and estimating a large kernel.
+        The speedup is particularly important for kernels bigger than 30x30.
+        For small kernels (<15x15) and images (<128x128), it is more efficient to use
+        standard convolutions.
+
+
+    :param deepinv.optim.Prior x_prior: optional image prior. Default: ``None``.
+    :param deepinv.optim.Prior k_prior: optional kernel prior. Default: ``None``.
+    :param float lambda_reg_x: image regularization parameter. Default: ``0.0``.
+    :param float lambda_reg_k: kernel regularization parameter. Default: ``0.0``.
+    :param float g_param: parameter for the image prior. Default: ``None``.
+    :param float g_param_kernel: parameter for the kernel prior. Default: ``None``.
+    :param int x_steps: number of inner image updates per iteration. Default: ``1``.
+    :param int k_steps: number of inner kernel updates per iteration. Default: ``1``.
+    :param int, tuple[int, int] kernel_size: spatial size of the default uniform
+        kernel. An explicit kernel in ``init`` overrides this size. Default: ``(17, 17)``.
+    :param bool normalize_kernel: whether to normalize the kernel to unit sum.
+        Default: ``True``.
+    :param bool use_fft: whether to use the FFT implementation of the filter
+        adjoint in kernel updates. Default: ``False``.
+    :param float eps: numerical stability constant. Default: ``1e-15``.
+    :param int max_iter: number of alternating BlindRL iterations. Default: ``100``.
+    :param tuple[torch.Tensor, torch.Tensor] init: initial image and blur kernel
+        ``(x0, k0)``. If ``None``, ``x0`` is initialized with ``y`` and ``k0``
+        with a uniform kernel of the same size as ``kernel_size``.
+    :param Callable cost_fn: optional cost function. If omitted, the Poisson
+        negative log-likelihood plus explicit image and kernel priors is used.
+    :param dict params_algo: optionally provide BlindRL parameters directly.
+    """
+
+    def __init__(
+        self,
+        x_prior: Prior | list[Prior] = None,
+        k_prior: Prior = None,
+        lambda_reg_x: float = 0.0,
+        lambda_reg_k: float = 0.0,
+        g_param: float = None,
+        g_param_kernel: float = None,
+        x_steps: int = 1,
+        k_steps: int = 1,
+        kernel_size: int | tuple[int, int] = (17, 17),
+        normalize_kernel: bool = True,
+        use_fft: bool = False,
+        eps: float = 1e-15,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        init: tuple[torch.Tensor, torch.Tensor] = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        unfold: bool = False,
+        DEQ: DEQConfig | bool = None,
+        anderson_acceleration: AndersonAccelerationConfig | bool = False,
+        **kwargs,
+    ):
+        if unfold or DEQ or anderson_acceleration:
+            raise NotImplementedError(
+                "BlindRL currently does not support unfold, DEQ or "
+                "Anderson acceleration."
+            )
+        if isinstance(kernel_size, int):
+            kernel_size = (kernel_size, kernel_size)
+        if len(kernel_size) != 2 or any(size <= 0 for size in kernel_size):
+            raise ValueError("kernel_size must contain two positive integers.")
+        self.kernel_size = tuple(kernel_size)
+        self.init = init
+
+        if params_algo is None:
+            params_algo = {
+                "lambda_reg_x": lambda_reg_x,
+                "lambda_reg_k": lambda_reg_k,
+                "g_param": g_param,
+                "g_param_kernel": g_param_kernel,
+                "x_steps": x_steps,
+                "k_steps": k_steps,
+            }
+
+        self.eps = eps
+        k_prior_for_cost = ZeroPrior() if k_prior is None else k_prior
+
+        if cost_fn is None:
+
+            def cost_fn(x, data_fidelity, prior, cur_params, y, physics):
+                cost = data_fidelity(x, y, physics)
+                lambda_x = cur_params.get("lambda_reg_x", 0.0)
+                lambda_k = cur_params.get("lambda_reg_k", 0.0)
+                if prior is not None and prior.explicit_prior:
+                    cost = cost + lambda_x * prior(x, cur_params.get("g_param", None))
+                if k_prior_for_cost.explicit_prior:
+                    cost = cost + lambda_k * k_prior_for_cost(
+                        physics.filter,
+                        cur_params.get("g_param_kernel", None),
+                    )
+                return cost
+
+        super(BlindRL, self).__init__(
+            BlindRLIteration(
+                k_prior=k_prior,
+                normalize_kernel=normalize_kernel,
+                use_fft=use_fft,
+                eps=eps,
+                cost_fn=cost_fn,
+            ),
+            data_fidelity=PoissonLikelihood(),
+            prior=x_prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            get_output=lambda X: X["est"][0],
+            unfold=False,
+            **kwargs,
+        )
+        # BlindRL defines a Poisson cost even when the image prior is implicit.
+        self.has_cost = True
+        self.fixed_point.iterator.has_cost = True
+
+    def forward(
+        self,
+        y: torch.Tensor,
+        x_gt: torch.Tensor = None,
+        compute_metrics: bool = False,
+        **kwargs,
+    ):
+        r"""
+        Runs Blind Richardson-Lucy deconvolution.
+
+        :return: ``(x, k)`` if ``compute_metrics`` is ``False``. Otherwise,
+            returns ``((x, k), metrics)``.
+        """
+        if self.init is None:
+            x = y
+            k = torch.ones((1, 1, *self.kernel_size), device=x.device, dtype=x.dtype)
+            k = k / (self.kernel_size[0] * self.kernel_size[1])
+        else:
+            x, k = self.init
+
+        if y.dim() != 4 or x.dim() != 4:
+            raise ValueError(
+                "BlindRL currently supports 2D images shaped (B, C, H, W)."
+            )
+        if y.shape != x.shape:
+            raise ValueError(
+                "y and x should have the same shape. "
+                f"Got y={tuple(y.shape)} and x={tuple(x.shape)}."
+            )
+        if k.dim() != 4:
+            raise ValueError(
+                "The blur kernel must be a 4D tensor shaped (B or 1, C or 1, H, W)."
+            )
+
+        k = k.to(device=x.device, dtype=x.dtype)
+        if k.shape[0] not in (1, x.shape[0]) or k.shape[1] not in (1, x.shape[1]):
+            raise ValueError(
+                "The kernel batch and channel sizes must be 1 or match x. "
+                f"Got kernel shape {tuple(k.shape)} and x shape {tuple(x.shape)}."
+            )
+        if k.shape[0] == 1 and x.shape[0] > 1:
+            k = k.expand(x.shape[0], -1, -1, -1).contiguous()
+        if k.shape[1] == x.shape[1]:
+            k = k.mean(dim=1, keepdim=True)
+
+        physics = dinv.physics.Blur(filter=k, padding="circular", device=x.device)
+        output = super().forward(
+            y,
+            physics,
+            init=(x, k),
+            x_gt=x_gt,
+            compute_metrics=compute_metrics,
+            **kwargs,
+        )
+        if compute_metrics:
+            x, metrics = output
+            return (x, physics.filter), metrics
+        return output, physics.filter
 
 
 class SIRT(BaseOptim):
