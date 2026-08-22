@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add ultrafast ultrasound physics (:class:`deepinv.physics.UltrafastUltrasound` base and :class:`deepinv.physics.UltrasoundPlaneWave`) for ultrasound plane-wave imaging with Delay-and-Sum adjoint. Supports demodulated IQ and RF signals, nearest / linear / Keys cubic interpolation, and rect / Hann / Hamming / Tukey (roll = 0.25) transmit and receive apodization windows. Includes a tour example (:file:`examples/physics/demo_ultrasound_tour.py`) (by `Adrien Besson`_)
 - Add :class:`deepinv.loss.metric.RecoveryCoefficient` Recovery Coefficient (RC) metric to evaluate reconstructed activity relative to ground truth within a mask, with dtype-aware numerical stability and a dedicated loss transformation for training (:gh:`1228` by `Kushagra Shukla`_)
 - Add 2D and 3D :class:`deepinv.physics.PET` (:gh:`1099` by `Julian Tachella`_)
 - Add support for multi-channel (chromatic) diffraction PSFs in :class:`deepinv.physics.generator.DiffractionBlurGenerator` with physically consistent wavelength scaling of the pupil cut-off frequency and Zernike coefficients.  (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
@@ -688,5 +689,5 @@ Changed
 .. _Baptiste Legouix: https://github.com/blegouix
 .. _Kaibo Tang: https://github.com/kvttt
 .. _Irène Waldspurger: https://github.com/IWalds
-.. _Kushagra Shukla: https://github.com/Kushagra481
-.. _Sarra Amiri: https://github.com/amirisarra18-jpg
+==== BASE ====
+==== BASE ====
