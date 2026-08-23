@@ -111,8 +111,8 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # where :math:`\lambda` is the regularization parameter.
 # The proximal gradient iteration (see also :class:`deepinv.optim.optim_iterators.PGDIteration`) is defined as
 #
-#   .. math::
-#           x_{k+1} = \text{prox}_{\gamma \lambda g}(x_k - \gamma A^T (Ax_k - y))
+# .. math::
+#         x_{k+1} = \text{prox}_{\gamma \lambda g}(x_k - \gamma A^T (Ax_k - y))
 #
 # where :math:`\gamma` is the stepsize and :math:`\text{prox}_{g}` is the proximity operator of :math:`g(x) = \|Wx\|_1`
 # which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.optim.WaveletPrior`).

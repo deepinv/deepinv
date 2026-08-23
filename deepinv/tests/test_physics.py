@@ -236,11 +236,15 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             "installed with `conda install -c conda-forge parallelproj`",
         )
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
+        attenuation = torch.full(img_size, 0.01, device=device)
         p = dinv.physics.PET(
             img_size,
             normalize=True,
             device=device,
+            attenuation=attenuation,
         )
+        assert not torch.allclose(p.attenuation, torch.ones_like(p.attenuation))
+        p.update(attenuation=torch.ones_like(p.attenuation))
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
         params = ["background", "attenuation"]

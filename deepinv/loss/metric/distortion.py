@@ -140,6 +140,44 @@ class NMSE(MSE):
         return cal_mse(x_net, x) / norm
 
 
+class NRMSE(NMSE):
+    r"""
+    Normalized Root Mean Squared Error metric.
+
+    Calculates
+
+    .. math::
+
+        \operatorname{NRMSE}(\hat{x},x)
+        = \frac{\|\hat{x}-x\|_2}{\|x\|_2}
+        = \sqrt{\operatorname{NMSE}(\hat{x},x)},
+
+    where :math:`\hat{x}=\inverse{y}`.
+
+    .. note::
+
+        By default, no reduction is performed in the batch dimension.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import NRMSE
+    >>> m = NRMSE()
+    >>> x_net = x = torch.ones(3, 2, 8, 8)
+    >>> m(x_net, x)
+    tensor([0., 0., 0.])
+
+    :param str method: normalisation method. Currently only supports ``l2``.
+    :param bool complex_abs: perform complex magnitude before passing data to metric function.
+    :param str reduction: method used to reduce scores over the batch dimension.
+    :param str norm_inputs: optional input normalization.
+    :param int, tuple[int], None center_crop: optional spatial center crop.
+    """
+
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
+        return super().metric(x_net, x, *args, **kwargs).sqrt()
+
+
 class SSIM(Metric):
     r"""
     Structural Similarity Index (SSIM) metric using torchmetrics.
