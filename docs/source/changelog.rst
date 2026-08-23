@@ -36,6 +36,7 @@ Changed
 - Extend: :class:`deepinv.optim.MLEM` now supports :class:`deepinv.physics.PET` (:gh:`1255` by `Thibaut Modrzyk`_)
 - (Breaking) Make :class:`deepinv.optim.TVPrior()` compute an explicit choice of subgradient instead of using autodiff. (:gh:`1271` by `Thibaut Modrzyk`_)
 - Make lower-level tolerances per-element and dtype-aware, enabling float32 on CUDA and MPS (:gh:`1318` by `Mohammad Sadegh Salehi`_)
+- Extend: :class:`deepinv.models.DEAL` now accepts two new arguments: `inner_iter` and `outer_iter`. (:gh:`1335` by `PAUL BERNARD`)
 
 Fixed
 ^^^^^
