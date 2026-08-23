@@ -598,7 +598,9 @@ class Trainer:
         except (ValueError, TypeError, AttributeError):
             self._model_accepts_update_parameters = False
 
-        self.scaler = GradScaler(device=self.device.type, enabled=self.mixed_precision == torch.float16)
+        self.scaler = GradScaler(
+            device=self.device.type, enabled=self.mixed_precision == torch.float16
+        )
 
     def load_model(
         self, ckpt_pretrained: str | Path = None, strict: bool = True
