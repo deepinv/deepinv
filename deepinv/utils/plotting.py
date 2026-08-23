@@ -191,7 +191,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
 @torch.no_grad()
 def preprocess_img(
     im,
-    rescale_mode="min_max",
+    rescale_mode: str | None = "min_max",
     *,
     vmin: float | None = None,
     vmax: float | None = None,
@@ -202,8 +202,8 @@ def preprocess_img(
 
     Real and complex images are transformed into images with values between
     zero and one by first applying the modulus function for complex images, and
-    then by normalizing the resulting images between zero and one using min-max
-    normalization ``min_max`` or clipping ``clip``.
+    then, when ``rescale_mode`` is not ``None``, by normalizing the resulting images
+    between zero and one using min-max normalization ``min_max`` or clipping ``clip``.
 
     .. note::
 
@@ -211,7 +211,8 @@ def preprocess_img(
         representation of complex images and are processed accordingly.
 
     :param torch.Tensor im: the batch of images to preprocess, it is expected to be of shape (B, C, *).
-    :param str rescale_mode: the normalization mode, either 'min_max' or 'clip'.
+    :param str, None rescale_mode: the normalization mode, either ``'min_max'``, ``'clip'``, or ``None``.
+        If ``None``, the image values are not rescaled.
     :param float, None vmin: minimum value for clipping when using 'clip' rescaling.
     :param float, None vmax: maximum value for clipping when using 'clip' rescaling.
     :param bool return_scale: if ``True``, also return the per-element ``(vmin_orig, vmax_orig)``
@@ -242,13 +243,25 @@ def preprocess_img(
             if not isinstance(mins, list):
                 mins, maxs = [mins], [maxs]
             scales = list(zip(mins, maxs, strict=True))
-        else:  # clip
+        elif rescale_mode == "clip":
             v0 = vmin if vmin is not None else 0.0
             v1 = vmax if vmax is not None else 1.0
             scales = [(v0, v1)] * im.shape[0]
+        else: # rescale_mode is None
+            v0 = 0.0
+            v1 = 1.0
+            scales = [(v0, v1)] * im.shape[0]
 
-    # Normalize signal between 0 and 1
-    im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
+    if rescale_mode is None and (vmin is not None or vmax is not None):
+        warn(
+            "The vmin and vmax arguments are used only when using 'clip' rescaling.",
+            UserWarning,
+            stacklevel=2,
+        )
+
+    if rescale_mode is not None:
+        # Normalize signal between 0 and 1
+        im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
 
     if return_scale:
         return im, scales
@@ -290,7 +303,7 @@ def plot(
     save_dir: str | Path | None = None,
     tight: bool = True,
     max_imgs: int = 4,
-    rescale_mode: str = "min_max",
+    rescale_mode: str | None = "min_max",
     show: bool = True,
     close: bool = False,
     figsize: tuple[int, int] | None = None,
@@ -357,8 +370,9 @@ def plot(
     :param None, str, pathlib.Path save_dir: path to save the plots as individual images.
     :param bool tight: use tight layout.
     :param int max_imgs: maximum number of images to plot.
-    :param str rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
-        their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
+    :param str, None rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
+        their min and max values), ``'clip'`` (images are clipped and rescaled between 0 and 1),
+        or ``None`` (images are not rescaled and are displayed using a fixed range of 0 to 1).
     :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
     :param bool close: close the image plot. Under the hood, this calls the ``plt.close()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
@@ -389,6 +403,7 @@ def plot(
         `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
     """
     import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize
 
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
@@ -448,10 +463,13 @@ def plot(
         plt.suptitle(suptitle, wrap=True)
         fig.subplots_adjust(top=0.75)
 
+    if rescale_mode is None:
+        imshow_kwargs.setdefault("norm", Normalize(0.0, 1.0, clip=True))
+
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
             im = axs[r, i].imshow(
-                img, cmap=cmap, interpolation=interpolation, **imshow_kwargs
+                img, cmap=cmap, interpolation=interpolation, **imshow_kwargs,
             )
             if cbar:
                 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -527,6 +545,7 @@ def plot(
                     img.squeeze(0).permute(1, 2, 0).cpu().numpy(),
                     cmap=cmap,
                     interpolation=interpolation,
+                    norm=imshow_kwargs.get("norm") if rescale_mode is None else None,
                 )
 
                 h, w = img.shape[2], img.shape[3]

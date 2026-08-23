@@ -278,6 +278,87 @@ def test_plot(
         else:
             assert axs is None
 
+@pytest.mark.parametrize("vmin, vmax, expected_clim",
+    [
+        (0.0,  1.0,  (0.25, 0.75)),
+        (0.25, 0.75, (0.0, 1.0)),
+    ],
+)
+def test_plot_clip_rescale_mode(vmin, vmax, expected_clim):
+    image = torch.tensor(
+        [[[0.25, 0.5],
+          [0.5, 0.75]]]
+    )
+
+    axs = deepinv.utils.plotting.plot(
+        image,
+        rescale_mode="clip",
+        vmin=vmin,
+        vmax=vmax,
+        show=False,
+        return_axs=True,
+    )
+    plotted_image = axs[0, 0].images[0]
+
+    assert plotted_image.get_clim() == pytest.approx(expected_clim, abs=1e-5)
+
+
+@pytest.mark.parametrize("image",
+    [
+        torch.tensor( [[[ 0.25, 0.5], [0.5, 1.25]]] ),
+        torch.tensor( [[[-0.25, 0.5], [0.5, 0.75]]] ),
+    ]
+)
+def test_plot_rescale_mode_none(image):
+    axs = deepinv.utils.plotting.plot(
+        image,
+        rescale_mode=None,
+        show=False,
+        return_axs=True,
+    )
+    plotted_image = axs[0, 0].images[0]
+
+    assert np.allclose(plotted_image.get_array(), image.squeeze().numpy(), atol=1e-5)
+    assert plotted_image.get_clim() == pytest.approx((0.0, 1.0), abs=1e-5)
+    assert plotted_image.norm.clip
+
+@pytest.mark.parametrize( "vmin, vmax", [ (0.25, None), (None, 0.75), (0.25, 0.75), ], )
+def test_plot_rescale_mode_none_vmin_vmax_warning(vmin, vmax):
+    image = torch.tensor(
+        [[[0.25, 0.5],
+          [0.5, 0.75]]]
+    )
+
+    with pytest.warns(
+        UserWarning,
+        match="vmin and vmax arguments are used only when using 'clip' rescaling",
+    ):
+        deepinv.utils.plotting.plot(
+            image,
+            rescale_mode=None,
+            vmin=vmin,
+            vmax=vmax,
+            show=False,
+        )
+
+def test_plot_rescale_mode_none_inset():
+    image = torch.tensor(
+        [[[-0.25, 0.5],
+          [0.75, 1.25]]]
+    )
+
+    axs = deepinv.utils.plotting.plot(
+        image,
+        rescale_mode=None,
+        plot_inset=True,
+        show=False,
+        return_axs=True,
+    )
+    inset_image = axs[0, 0].child_axes[0].images[0]
+
+    assert inset_image.get_clim() == pytest.approx((0.0, 1.0), abs=1e-5)
+    assert inset_image.norm.clip
+
 
 @pytest.mark.parametrize("n_plots", [1, 2, 3])
 @pytest.mark.parametrize("titles", [None, "Dummy plot"])
