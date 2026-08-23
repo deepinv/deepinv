@@ -294,6 +294,7 @@ def test_plot_clip_rescale_mode(vmin, vmax, expected_clim):
         rescale_mode="clip",
         vmin=vmin,
         vmax=vmax,
+        cbar=True,
         show=False,
         return_axs=True,
     )
@@ -313,6 +314,7 @@ def test_plot_rescale_mode_none(image):
     axs = deepinv.utils.plotting.plot(
         image,
         rescale_mode=None,
+        cbar=True,
         show=False,
         return_axs=True,
     )
