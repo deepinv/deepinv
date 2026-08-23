@@ -617,6 +617,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "L1Prior",
         "L12Prior",
         "Tikhonov",
+        "SmoothedTVPrior",
         "TVPrior",
         "TVL1Prior",
         "WaveletPrior",

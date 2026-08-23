@@ -612,6 +612,16 @@ class TVL1Prior(TVPrior):
 
 
 class SmoothedTVPrior(TVPrior):
+    r"""
+    Smoothed total variation prior :math:`g(x) = \sum_i \sqrt{\|(Dx)_i\|_2^2 + \varepsilon^2}
+    A differentiable approximation of :class:`TVPrior`, where the non-smooth
+    :math:`\ell_2` norm is replaced by a smoothed version parameterized by :math:`\varepsilon`.
+    Since this prior is differentiable everywhere, it is intended to be used with
+    gradient-based algorithms via :meth:`grad`, not proximal algorithms — calling
+    :meth:`prox` raises :class:`NotImplementedError`.
+
+    :param float eps: smoothing parameter :math:`\varepsilon > 0`. Default: ``1e-5``.
+    """
 
     def __init__(self, eps: float = 1e-5, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -627,7 +637,7 @@ class SmoothedTVPrior(TVPrior):
         where D is the finite differences linear operator, and the 2-norm is taken on the dimension of
         the differences.
 
-        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :param torch.Tensor x: Variable :math:`x` at which decompositionhe prior is computed.
         :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
         """
         eps = torch.as_tensor(self.eps, dtype=x.dtype, device=x.device)
