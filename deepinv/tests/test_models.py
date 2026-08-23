@@ -157,6 +157,7 @@ def choose_denoiser(name, imsize):
             auto_scale=False,
             color=(imsize[0] == 3),
             pretrained=None,
+            inner_iter=3,  # no performance test, so we can keep that value low
         )
     elif name == "ram":
         out = dinv.models.RAM()
