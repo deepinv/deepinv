@@ -247,7 +247,7 @@ def preprocess_img(
             v0 = vmin if vmin is not None else 0.0
             v1 = vmax if vmax is not None else 1.0
             scales = [(v0, v1)] * im.shape[0]
-        else: # rescale_mode is None
+        else:  # rescale_mode is None
             v0 = 0.0
             v1 = 1.0
             scales = [(v0, v1)] * im.shape[0]
@@ -469,7 +469,10 @@ def plot(
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
             im = axs[r, i].imshow(
-                img, cmap=cmap, interpolation=interpolation, **imshow_kwargs,
+                img,
+                cmap=cmap,
+                interpolation=interpolation,
+                **imshow_kwargs,
             )
             if cbar:
                 from mpl_toolkits.axes_grid1 import make_axes_locatable
