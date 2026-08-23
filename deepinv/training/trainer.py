@@ -314,6 +314,7 @@ class Trainer:
     mixed_precision: bool | str = False
 
     def __post_init__(self):
+        self.device = torch.device(self.device)
         if self.display_losses_eval is not None:
             warnings.warn(
                 "Argument 'display_losses_eval' is deprecated and will be removed in a future version. "
