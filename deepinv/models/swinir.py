@@ -768,12 +768,15 @@ class SwinIR(Denoiser):
         Default: '1conv'.
     :param str, None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be initialized at
         random using PyTorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from
-        the authors' online repository https://github.com/JingyunLiang/SwinIR/releases/tag/v0.0 (only available for the
-        default architecture). Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
-        Default: 'download'.
+        the authors' online repository https://github.com/JingyunLiang/SwinIR/releases/tag/v0.0. Downloading is only
+        available for two architectures: the denoising net (``upscale=1``, default architecture, ``in_chans`` 1 or 3)
+        and the lightweight super-resolution net (``upscale=2``, ``in_chans=3``, ``img_size=64``, ``embed_dim=60``,
+        ``depths=(6, 6, 6, 6)``, ``num_heads=(6, 6, 6, 6)``, ``upsampler='pixelshuffledirect'``). Finally,
+        ``pretrained`` can also be set as a path to the user's own pretrained weights. Default: 'download'.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param int pretrained_noise_level: The noise level of the pretrained model to be downloaded (in 0-255 scale). This
-        value is directly concatenated to the download url; should be chosen in the set {15, 25, 50}. Default: 15.
+    :param int pretrained_noise_level: The noise level of the pretrained denoising model to be downloaded (in 0-255
+        scale). This value is directly concatenated to the download url; should be chosen in the set {15, 25, 50}.
+        Only used when ``upscale=1``. Default: 15.
     """
 
     def __init__(
@@ -948,32 +951,54 @@ class SwinIR(Denoiser):
 
         if pretrained is not None:
             if pretrained == "download":
-                assert img_size == 128
+                base_url = (
+                    "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/"
+                )
                 assert in_chans in [1, 3]
-                assert upscale == 1
                 assert window_size == 8
                 assert img_range == 1.0
-                assert embed_dim == 180
                 assert mlp_ratio == 2
-                assert upsampler == ""
                 assert resi_connection == "1conv"
-                assert list(depths) == [6, 6, 6, 6, 6, 6]
-                assert list(num_heads) == [6, 6, 6, 6, 6, 6]
 
-                if in_chans == 1:
+                if upscale == 1:
+                    # denoising
+                    assert img_size == 128
+                    assert embed_dim == 180
+                    assert upsampler == ""
+                    assert list(depths) == [6, 6, 6, 6, 6, 6]
+                    assert list(num_heads) == [6, 6, 6, 6, 6, 6]
+
+                    if in_chans == 1:
+                        weights_url = (
+                            base_url
+                            + "004_grayDN_DFWB_s128w8_SwinIR-M_noise"
+                            + str(pretrained_noise_level)
+                            + ".pth"
+                        )
+                    elif in_chans == 3:
+                        weights_url = (
+                            base_url
+                            + "005_colorDN_DFWB_s128w8_SwinIR-M_noise"
+                            + str(pretrained_noise_level)
+                            + ".pth"
+                        )
+                    else: # pragma: no cover
+                        raise ValueError(f'pretrained is set to download, but in_chans is {in_chans}. pretrained nets are only available for in_chans 1 and 3')
+                elif upscale == 2:
+                    # lightweight super-resolution
+                    assert img_size == 64
+                    assert embed_dim == 60
+                    assert upsampler == "pixelshuffledirect"
+                    assert list(depths) == [6, 6, 6, 6]
+                    assert list(num_heads) == [6, 6, 6, 6]
+
+                    if in_chans != 3: # pragma: no cover
+                        raise ValueError(f'pretrained is set to download with upscale 2, but in_chans is {in_chans}. pretrained super-resolution nets are only available for in_chans 3')
                     weights_url = (
-                        "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/004_grayDN_DFWB_s128w8_SwinIR-M_noise"
-                        + str(pretrained_noise_level)
-                        + ".pth"
+                        base_url + "002_lightweightSR_DIV2K_s64w8_SwinIR-S_x2.pth"
                     )
-                elif in_chans == 3:
-                    weights_url = (
-                        "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/005_colorDN_DFWB_s128w8_SwinIR-M_noise"
-                        + str(pretrained_noise_level)
-                        + ".pth"
-                    )
-                else: # pragma: no cover
-                    raise ValueError(f'pretrained is set to download, but in_chans is {in_chans}. pretrained nets are only available for in_chans 1 and 3')
+                else:
+                    raise ValueError(f'pretrained is set to download, but upscale is {upscale}. pretrained nets are only available for upscale 1 (denoising) and 2 (lightweight super-resolution)')
                 pretrained_weights = load_state_dict_from_url(
                     weights_url, map_location=lambda storage, loc: storage
                 )
