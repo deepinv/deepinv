@@ -354,6 +354,17 @@ class Trainer:
             raise ValueError(
                 f"mixed_precision must be a str, bool, or torch.dtype, but got {self.mixed_precision} of type {type(self.mixed_precision)}"
             )
+        if self.mixed_precision and self.device.type != "cuda":
+            warnings.warn(
+                "Trainer running with AMP, but not training on CUDA device. Performance speedup not guaranteed."
+            )
+        if self.mixed_precision:
+            warnings.warn(
+                "Trainer running with AMP. This is not expected to work with models in complex dtypes."
+            )
+            warnings.warn(
+                "Trainer running with AMP. This is an experimental feature, if issues are encountered, we appreciate bug reports."
+            )
 
     def setup_train(self, train: bool = True, **kwargs):
         r"""
@@ -1401,17 +1412,6 @@ class Trainer:
         :returns: The trained model.
         """
         self.setup_train()
-        if self.mixed_precision and self.device.type != "cuda":
-            warnings.warn(
-                "Trainer running with AMP, but not training on CUDA device. Performance speedup not guaranteed."
-            )
-        if self.mixed_precision:
-            warnings.warn(
-                "Trainer running with AMP. This is not expected to work with models in complex dtypes."
-            )
-            warnings.warn(
-                "Trainer running with AMP. This is an experimental feature, if issues are encountered, we appreciate bug reports."
-            )
         stop_flag = False
         for epoch in range(self.epoch_start, self.epochs):
             self.reset_metrics()
