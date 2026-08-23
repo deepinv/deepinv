@@ -72,7 +72,7 @@ class Trainer:
         `y=physics(x)`. If `False` (default), the measurements are loaded from the training dataset.
     :param str, torch.device device: Device on which to run the training (e.g., 'cuda', 'mps' or 'cpu'). Default is first 'cuda' and second 'mps' if available, otherwise 'cpu'.
     :param bool, str mixed_precision: Mixed precision to use. If False, standard float32 training is performed. If True, defaults to float16.
-        If a string, that dtype will be used (only 'float16' and 'bfloat16' are supported.) Mixed-precision is only used for training steps, not eval or test.
+        If a string, that dtype will be used (only 'float16' / 'fp16' and 'bfloat16' / 'bf16' are supported.) Mixed-precision is only used for training steps, not eval or test.
 
     |sep|
 
@@ -332,13 +332,15 @@ class Trainer:
         # Cache flag for whether model.forward accepts 'update_parameters'
         self._model_accepts_update_parameters = False
         if isinstance(self.mixed_precision, str):
-            if self.mixed_precision not in ["float16", "bfloat16"]:
+            if self.mixed_precision not in ["float16", "bfloat16", "fp16", "bf16"]:
                 raise ValueError(
                     f'Mixed precision only supports "float16" and "bfloat16", got {self.mixed_precision}. For full float32 training, simply pass mixed_precision=False.'
                 )
             self.mixed_precision = {
                 "float16": torch.float16,
+                "fp16": torch.float16,
                 "bfloat16": torch.bfloat16,
+                "bf16": torch.bfloat16,
             }[self.mixed_precision]
         if isinstance(
             self.mixed_precision, torch.dtype
