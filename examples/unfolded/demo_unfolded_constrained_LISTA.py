@@ -127,13 +127,9 @@ test_dataloader = DataLoader(
 # We unfold the Chambolle-Pock algorithm as follows:
 #
 #      .. math::
-#          \begin{equation*}
-#          \begin{aligned}
 #          u_{k+1} &= \operatorname{prox}_{\sigma d^*}(u_k + \sigma A z_k) \\
 #          x_{k+1} &= \operatorname{D_{\sigma}}(x_k-\tau A^\top u_{k+1}) \\
 #          z_{k+1} &= 2x_{k+1} -x_k \\
-#          \end{aligned}
-#          \end{equation*}
 #
 # where :math:`\operatorname{D_{\sigma}}` is a wavelet denoiser with thresholding parameters :math:`\sigma`.
 #
