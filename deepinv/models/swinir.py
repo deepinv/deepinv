@@ -769,9 +769,11 @@ class SwinIR(Denoiser):
     :param str, None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be initialized at
         random using PyTorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from
         the authors' online repository https://github.com/JingyunLiang/SwinIR/releases/tag/v0.0. Downloading is only
-        available for two architectures: the denoising net (``upscale=1``, default architecture, ``in_chans`` 1 or 3)
-        and the lightweight super-resolution net (``upscale=2``, ``in_chans=3``, ``img_size=64``, ``embed_dim=60``,
-        ``depths=(6, 6, 6, 6)``, ``num_heads=(6, 6, 6, 6)``, ``upsampler='pixelshuffledirect'``). Finally,
+        available for three architectures: the denoising net (``upscale=1``, default architecture, ``in_chans`` 1 or
+        3), the lightweight super-resolution net (``upscale=2``, ``in_chans=3``, ``img_size=64``, ``embed_dim=60``,
+        ``depths=(6, 6, 6, 6)``, ``num_heads=(6, 6, 6, 6)``, ``upsampler='pixelshuffledirect'``) and the classical
+        super-resolution net (``upscale=2``, ``in_chans=3``, ``img_size=64``, ``embed_dim=180``,
+        ``depths=(6, 6, 6, 6, 6, 6)``, ``num_heads=(6, 6, 6, 6, 6, 6)``, ``upsampler='pixelshuffle'``). Finally,
         ``pretrained`` can also be set as a path to the user's own pretrained weights. Default: 'download'.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int pretrained_noise_level: The noise level of the pretrained denoising model to be downloaded (in 0-255
@@ -982,23 +984,43 @@ class SwinIR(Denoiser):
                             + str(pretrained_noise_level)
                             + ".pth"
                         )
-                    else: # pragma: no cover
-                        raise ValueError(f'pretrained is set to download, but in_chans is {in_chans}. pretrained nets are only available for in_chans 1 and 3')
+                    else:  # pragma: no cover
+                        raise ValueError(
+                            f"pretrained is set to download, but in_chans is {in_chans}. pretrained nets are only available for in_chans 1 and 3"
+                        )
                 elif upscale == 2:
-                    # lightweight super-resolution
+                    # super-resolution
                     assert img_size == 64
-                    assert embed_dim == 60
-                    assert upsampler == "pixelshuffledirect"
-                    assert list(depths) == [6, 6, 6, 6]
-                    assert list(num_heads) == [6, 6, 6, 6]
 
-                    if in_chans != 3: # pragma: no cover
-                        raise ValueError(f'pretrained is set to download with upscale 2, but in_chans is {in_chans}. pretrained super-resolution nets are only available for in_chans 3')
-                    weights_url = (
-                        base_url + "002_lightweightSR_DIV2K_s64w8_SwinIR-S_x2.pth"
-                    )
+                    if in_chans != 3:  # pragma: no cover
+                        raise ValueError(
+                            f"pretrained is set to download with upscale 2, but in_chans is {in_chans}. pretrained super-resolution nets are only available for in_chans 3"
+                        )
+
+                    if upsampler == "pixelshuffledirect":
+                        # lightweight super-resolution
+                        assert embed_dim == 60
+                        assert list(depths) == [6, 6, 6, 6]
+                        assert list(num_heads) == [6, 6, 6, 6]
+                        weights_url = (
+                            base_url + "002_lightweightSR_DIV2K_s64w8_SwinIR-S_x2.pth"
+                        )
+                    elif upsampler == "pixelshuffle":
+                        # classical super-resolution
+                        assert embed_dim == 180
+                        assert list(depths) == [6, 6, 6, 6, 6, 6]
+                        assert list(num_heads) == [6, 6, 6, 6, 6, 6]
+                        weights_url = (
+                            base_url + "001_classicalSR_DF2K_s64w8_SwinIR-M_x2.pth"
+                        )
+                    else:  # pragma: no cover
+                        raise ValueError(
+                            f"pretrained is set to download with upscale 2, but upsampler is {upsampler!r}. pretrained super-resolution nets are only available for upsampler 'pixelshuffle' (classical) and 'pixelshuffledirect' (lightweight)"
+                        )
                 else:
-                    raise ValueError(f'pretrained is set to download, but upscale is {upscale}. pretrained nets are only available for upscale 1 (denoising) and 2 (lightweight super-resolution)')
+                    raise ValueError(
+                        f"pretrained is set to download, but upscale is {upscale}. pretrained nets are only available for upscale 1 (denoising) and 2 (lightweight super-resolution)"
+                    )
                 pretrained_weights = load_state_dict_from_url(
                     weights_url, map_location=lambda storage, loc: storage
                 )
