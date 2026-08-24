@@ -106,6 +106,11 @@ class Trainer:
 
         Custom metrics can also be used in the exact same way as custom losses.
 
+    .. note::
+
+        When ``optimizer_step_multidataset=True`` and ``grad_clip`` is performed, mixed-precision with ``float16`` will clip the gradient from each dataset separately ``clip(g1) + clip(g2)``,
+        while in other modes, the sum of all gradients is clipped ``clip(g1 + g2)``. Therefore, different behavior is possible in this setting between ``float16`` and other precision modes.
+
     |sep|
 
     :Evaluation:
