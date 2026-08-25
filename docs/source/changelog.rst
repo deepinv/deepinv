@@ -16,6 +16,7 @@ New Features
 - Add :func:`deepinv.utils.plot_napari` to interactively view 2D images/3D vols with napari (:gh:`1249` by `Andrew Wang`_)
 - Add support for :func:`Liu-Jia padding <deepinv.physics.functional.liu_jia_pad>` (:gh:`934` by `Jérémy Scanvic`_)
 - Add support for TV-L1 priors :class:`deepinv.optim.TVL1Prior` (:gh:`1236` by `Sarra Amiri`_)
+- Add support for mixed-precision (float16 and bfloat16) to the trainer (:gh:`1208` by `Vicky De Ridder`_)
 - Add :class:`deepinv.optim.OSEM` algorithm for tomographic reconstruction and update PET demos to showcase OSEM (:gh:`1255` by `Thibaut Modrzyk`_)
 - Add utilities for subsetted tomography physics :func:`deepinv.physics.split_physics` and :func:`deepinv.physics.split_measurements` (:gh:`1255` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.loss.metric.NRMSE` metric (:gh:`1255` by `Thibaut Modrzyk`_)

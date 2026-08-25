@@ -6,7 +6,9 @@ import os
 import numpy as np
 from tqdm import tqdm
 import torch
+from torch.amp import GradScaler, autocast
 from pathlib import Path
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
@@ -70,6 +72,8 @@ class Trainer:
     :param bool online_measurements: Generate new measurements `y` in an online manner at each iteration by calling
         `y=physics(x)`. If `False` (default), the measurements are loaded from the training dataset.
     :param str, torch.device device: Device on which to run the training (e.g., 'cuda', 'mps' or 'cpu'). Default is first 'cuda' and second 'mps' if available, otherwise 'cpu'.
+    :param bool, str mixed_precision: Mixed precision to use. If False, standard float32 training is performed. If True, defaults to float16.
+        If a string, that dtype will be used (only 'float16' / 'fp16' and 'bfloat16' / 'bf16' are supported.) Mixed-precision is only used for training steps, not eval or test.
 
     |sep|
 
@@ -101,6 +105,11 @@ class Trainer:
         e.g., self-supervised losses will not make use of ``x``.
 
         Custom metrics can also be used in the exact same way as custom losses.
+
+    .. note::
+
+        When ``optimizer_step_multidataset=True`` and ``grad_clip`` is performed, mixed-precision with ``float16`` will clip the gradient from each dataset separately ``clip(g1) + clip(g2)``,
+        while in other modes, the sum of all gradients is clipped ``clip(g1 + g2)``. Therefore, different behavior is possible in this setting between ``float16`` and other precision modes.
 
     |sep|
 
@@ -306,9 +315,11 @@ class Trainer:
     verbose_individual_losses: bool = None
     show_progress_bar: bool = True
     freq_update_progress_bar: int = 1
+    mixed_precision: bool | str = False
     non_blocking_transfers: bool = True
 
     def __post_init__(self):
+        self.device = torch.device(self.device)
         if self.display_losses_eval is not None:
             warnings.warn(
                 "Argument 'display_losses_eval' is deprecated and will be removed in a future version. "
@@ -326,6 +337,40 @@ class Trainer:
             )
         # Cache flag for whether model.forward accepts 'update_parameters'
         self._model_accepts_update_parameters = False
+        if isinstance(self.mixed_precision, str):
+            if self.mixed_precision not in ["float16", "bfloat16", "fp16", "bf16"]:
+                raise ValueError(
+                    f'Mixed precision only supports "float16" and "bfloat16", got {self.mixed_precision}. For full float32 training, simply pass mixed_precision=False.'
+                )
+            self.mixed_precision = {
+                "float16": torch.float16,
+                "fp16": torch.float16,
+                "bfloat16": torch.bfloat16,
+                "bf16": torch.bfloat16,
+            }[self.mixed_precision]
+        if isinstance(
+            self.mixed_precision, torch.dtype
+        ) and self.mixed_precision not in [torch.float16, torch.bfloat16]:
+            raise ValueError(
+                f"For mixed-precision training, only float16 and bfloat16 are supported, but got torch dtype {self.mixed_precision}"
+            )
+        if isinstance(self.mixed_precision, bool) and self.mixed_precision:
+            self.mixed_precision = torch.float16  # Default AMP dtype
+        if not isinstance(self.mixed_precision, (bool, torch.dtype)):
+            raise ValueError(
+                f"mixed_precision must be a str, bool, or torch.dtype, but got {self.mixed_precision} of type {type(self.mixed_precision)}"
+            )
+        if self.mixed_precision and self.device.type != "cuda":
+            warnings.warn(
+                "Trainer running with AMP, but not training on CUDA device. Performance speedup not guaranteed."
+            )
+        if self.mixed_precision:
+            warnings.warn(
+                "Trainer running with AMP. This is not expected to work with models in complex dtypes."
+            )
+            warnings.warn(
+                "Trainer running with AMP. This is an experimental feature, if issues are encountered, we appreciate bug reports."
+            )
 
         if self.non_blocking_transfers and not devices_equal(self.device, "cuda"):
             warnings.warn(
@@ -565,6 +610,10 @@ class Trainer:
         except (ValueError, TypeError, AttributeError):
             self._model_accepts_update_parameters = False
 
+        self.scaler = GradScaler(
+            device=self.device.type, enabled=self.mixed_precision == torch.float16
+        )
+
     def load_model(
         self, ckpt_pretrained: str | Path = None, strict: bool = True
     ) -> dict:
@@ -641,6 +690,7 @@ class Trainer:
         grad_norm = None
         if self.grad_clip is not None:
             # Total norm as a single vector over all parameters
+            self.scaler.unscale_(self.optimizer)
             grad_norm = torch.nn.utils.clip_grad_norm_(
                 self.model.parameters(), self.grad_clip
             )
@@ -649,6 +699,7 @@ class Trainer:
             if grad_norm is not None:
                 grad_norm = grad_norm.pow(2).sum().sqrt().item()
             else:
+                self.scaler.unscale_(self.optimizer)
                 grads = [
                     param.grad.detach().flatten()
                     for param in self.model.parameters()
@@ -658,6 +709,11 @@ class Trainer:
             self.check_grad_val.update(grad_norm)
 
         return grad_norm
+
+    def get_autocast_context(self):
+        if self.mixed_precision in [torch.float16, torch.bfloat16]:
+            return autocast(device_type=self.device.type, dtype=self.mixed_precision)
+        return nullcontext()
 
     def get_samples_online(self, iterators, g):
         r"""
@@ -809,7 +865,9 @@ class Trainer:
 
         if train:
             self.model.train()
-            return self.model(y, physics, **kwargs)
+            with self.get_autocast_context():
+                x_net = self.model(y, physics, **kwargs)
+            return x_net
         else:
             self.model.eval()
             with torch.no_grad():
@@ -826,7 +884,9 @@ class Trainer:
 
             return x_net
 
-    def compute_loss(self, physics, x, y, train=True, epoch: int = None, step=False):
+    def compute_loss(
+        self, physics, x, y, train: bool = True, epoch: int = None, step: bool = False
+    ):
         r"""
         Compute the loss and perform the backward pass.
 
@@ -854,14 +914,25 @@ class Trainer:
             # Compute the losses
             loss_total = 0
             for k, l in enumerate(self.losses):
-                loss = l(
-                    x=x,
-                    x_net=x_net,
-                    y=y,
-                    physics=physics,
-                    model=self.model,
-                    epoch=epoch,
-                )
+                if train:  # we only do mixed precision when training
+                    with self.get_autocast_context():
+                        loss = l(
+                            x=x,
+                            x_net=x_net,
+                            y=y,
+                            physics=physics,
+                            model=self.model,
+                            epoch=epoch,
+                        )
+                else:
+                    loss = l(
+                        x=x,
+                        x_net=x_net,
+                        y=y,
+                        physics=physics,
+                        model=self.model,
+                        epoch=epoch,
+                    )
                 loss_total += loss.mean()
                 meters = (
                     self.logs_losses_train[k] if train else self.logs_losses_eval[k]
@@ -878,14 +949,22 @@ class Trainer:
             x_net = None
 
         if train:
-            loss_total.backward()  # Backward the total loss
+            self.scaler.scale(loss_total).backward()  # Backward the total loss
 
-            norm = self.check_clip_grad()
-            if norm is not None:
-                logs["gradient_norm"] = self.check_grad_val.avg
+            # GradScaler forbids calling unscale_() more than once per optimizer between step() calls.
+            defer_clip = (
+                self.scaler.is_enabled()
+                and self.optimizer_step_multi_dataset
+                and not step
+            )
+            if not defer_clip:
+                norm = self.check_clip_grad()
+                if norm is not None:
+                    logs["gradient_norm"] = self.check_grad_val.avg
 
             if step:
-                self.optimizer.step()  # Optimizer step
+                self.scaler.step(self.optimizer)  # Optimizer step
+                self.scaler.update()
 
         return loss_total, x_net, logs
 
@@ -1003,9 +1082,9 @@ class Trainer:
         self,
         epoch,
         progress_bar,
-        train_ite=None,
-        train=True,
-        last_batch=False,
+        train_ite: int = None,
+        train: bool = True,
+        last_batch: bool = False,
         update_progress_bar=False,
     ):
         r"""
@@ -1064,7 +1143,13 @@ class Trainer:
             self.log_metrics_mlops(logs, step=train_ite, train=train)
 
         if train and self.optimizer_step_multi_dataset:
-            self.optimizer.step()  # Optimizer step
+            if self.scaler.is_enabled():
+                # Gradients from all datasets have now been accumulated
+                norm = self.check_clip_grad()
+                if norm is not None:
+                    logs["gradient_norm"] = self.check_grad_val.avg
+            self.scaler.step(self.optimizer)  # Optimizer step
+            self.scaler.update()
 
         if last_batch:
             if self.verbose and not self.show_progress_bar:
@@ -1341,7 +1426,6 @@ class Trainer:
         :returns: The trained model.
         """
         self.setup_train()
-
         stop_flag = False
         for epoch in range(self.epoch_start, self.epochs):
             self.reset_metrics()
