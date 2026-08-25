@@ -83,7 +83,6 @@ This is particular useful when dealing with blind inverse problems or parameter 
 
    * - Ultrafast Ultrasound
      -
-       | :class:`deepinv.physics.UltrafastUltrasound` (base)
        | :class:`deepinv.physics.UltrasoundPlaneWave`
      -
 
