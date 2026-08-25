@@ -1605,9 +1605,11 @@ def test_brainweb_pet(tmp_path, lesion_diameters):
     emission, params = dataset[0]
 
     assert len(dataset) == 1
+    assert emission.shape == (1, 127, 344, 344)
     assert emission.shape == params["attenuation"].shape == params["t1"].shape
     assert emission.shape == params["t2"].shape
     assert emission.dtype == torch.float32
+    assert params["attenuation"].max().item() == pytest.approx(0.013)
     pet_class = dataset.brainweb_kwargs["PetClass"]
     assert issubclass(pet_class, RandomFDG)
     assert pet_class.greyMatter == 120.0

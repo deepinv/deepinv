@@ -18,6 +18,7 @@ from deepinv.optim.optim_iterators import (
     MDIteration,
     MLEMIteration,
     OSEMIteration,
+    BSREMIteration,
     SIRTIteration,
 )
 from deepinv.optim.fixed_point import FixedPoint
@@ -2612,6 +2613,187 @@ class OSEM(BaseOptim):
                 for subset_y, subset_physic in zip(y, physics, strict=True)
             ]
         return super().forward(y, physics, sensitivities=sensitivities, *args, **kwargs)
+
+
+class BSREM(OSEM):
+    r"""
+    Block Sequential Regularized Expectation Maximization (BSREM).
+
+    BSREM is a relaxed ordered-subsets algorithm for minimizing the penalized
+    Poisson negative log-likelihood
+
+    .. math::
+
+        \min_{x \geq 0}\; f(x) + \lambda \reg{x}.
+
+    With :math:`L` subsets, one epoch applies the following update for
+    :math:`l=1,\ldots,L` :footcite:p:`ahnGloballyConvergentImage2003`:
+
+    .. math::
+
+        x_{k,l+1} = \mathcal{P}_{+}\left[x_{k,l}
+        - \alpha_k \frac{x_{k,l}}{p} \odot
+        \left(\nabla f_l(x_{k,l})
+        + \frac{\lambda}{L}\nabla \reg{x_{k,l}}\right)\right],
+
+    where :math:`p=A^T\mathbf{1}/L`, :math:`\alpha_k` is the relaxation
+    (step-size), and :math:`\mathcal{P}_{+}` clamps the iterate to the positive
+    orthant. For the Poisson likelihood,
+
+    .. math::
+
+        \nabla f_l(x) = A_l^T\mathbf{1}
+        - A_l^T\left(\frac{y_l}{A_lx+b_l}\right).
+
+    A diminishing relaxation schedule can be supplied as an iterable, for
+    example ``stepsize=[1 / (1 + 0.1 * k) for k in range(max_iter)]``.
+    A scalar applies the same relaxation to every epoch.
+
+    Full tomography/PET measurements and physics are split internally using
+    :func:`deepinv.physics.split_measurements` and
+    :func:`deepinv.physics.split_physics`, while matching pre-split inputs are
+    also accepted.
+
+    :param int num_subsets: number of ordered subsets. Default: ``2``.
+    :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data
+        fidelity used to evaluate the objective. If ``None``, defaults to
+        :class:`deepinv.optim.PoissonLikelihood`.
+    :param deepinv.optim.Prior, list[Prior] prior: differentiable prior term.
+        If ``None``, no regularization is applied. Default: ``None``.
+    :param float lambda_reg: regularization parameter :math:`\lambda`.
+        Default: ``1.0``.
+    :param float g_param: parameter passed to the prior. Default: ``None``.
+    :param float sigma_denoiser: alias for ``g_param``. Default: ``None``.
+    :param float, collections.abc.Iterable[float] stepsize: scalar relaxation or
+        schedule containing at least ``max_iter`` entries. Default: ``1.0``.
+    :param float eps: positive value used for safe divisions and the positivity
+        projection. Default: ``1e-6``.
+    :param float sensitivity_threshold: relative sensitivity threshold defining
+        the reconstruction support. Voxels whose average sensitivity is at most
+        this fraction of the maximum sensitivity are fixed to ``eps``. This
+        prevents unstable inverse-sensitivity scaling outside the field of view.
+        Default: ``1e-2``.
+    :param int max_iter: maximum number of BSREM epochs. Default: ``100``.
+    :param str crit_conv: convergence criterion. Default: ``"residual"``.
+    :param float thres_conv: convergence threshold. Default: ``1e-5``.
+    :param bool early_stop: stop when the convergence criterion is met.
+        Default: ``False``.
+    :param dict custom_metrics: custom metrics computed after every epoch.
+        Default: ``None``.
+    :param Callable custom_init: custom initialization function. Default:
+        ``None``.
+    :param bool unfold: whether to unfold the algorithm. Default: ``False``.
+    :param list trainable_params: algorithm parameters to train when unfolded.
+        Default: ``None``.
+    :param Callable cost_fn: custom objective function. Default: ``None``.
+    :param dict params_algo: optional algorithm parameters. This overrides
+        ``stepsize``, ``lambda_reg``, and ``g_param``.
+    """
+
+    def __init__(
+        self,
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        num_subsets: int = 2,
+        stepsize: float | Iterable[float] = 1.0,
+        eps: float = 1e-6,
+        sensitivity_threshold: float = 1e-2,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float | Iterable[float]] = None,
+        **kwargs,
+    ):
+        if eps <= 0:
+            raise ValueError("eps must be positive.")
+        if not 0 <= sensitivity_threshold < 1:
+            raise ValueError("sensitivity_threshold must be in [0, 1).")
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+        if params_algo is None:
+            params_algo = {
+                "stepsize": stepsize,
+                "lambda": lambda_reg,
+                "g_param": g_param,
+            }
+
+        super().__init__(
+            data_fidelity=data_fidelity,
+            prior=prior,
+            lambda_reg=lambda_reg,
+            g_param=g_param,
+            sigma_denoiser=sigma_denoiser,
+            num_subsets=num_subsets,
+            eps=eps,
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            cost_fn=cost_fn,
+            params_algo=params_algo,
+            **kwargs,
+        )
+        iterator = BSREMIteration(
+            cost_fn=cost_fn,
+            eps=eps,
+            sensitivity_threshold=sensitivity_threshold,
+        )
+        iterator.has_cost = self.has_cost
+        self.fixed_point.iterator = iterator
+
+    def forward(
+        self,
+        y: torch.Tensor | TensorList | list[torch.Tensor],
+        physics: Physics | StackedLinearPhysics,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, dict]:
+        r"""
+        Run BSREM with full or pre-split measurements and physics.
+
+        :param torch.Tensor, deepinv.utils.TensorList, list[torch.Tensor] y: Full measurement tensor, or pre-split measurements when ``physics`` is a :class:`deepinv.physics.StackedLinearPhysics`.
+        :param deepinv.physics.Physics physics: Full tomography/PET physics or pre-split :class:`deepinv.physics.StackedLinearPhysics`.
+        :return: Reconstructed image, and optionally the metrics dictionary when ``compute_metrics=True``.
+        """
+        from deepinv.physics.forward import StackedLinearPhysics
+        from deepinv.physics.functional.tomography_subsets import (
+            split_measurements,
+            split_physics,
+        )
+
+        if not isinstance(physics, StackedLinearPhysics):
+            if not isinstance(y, torch.Tensor):
+                raise TypeError(
+                    "A full deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, or deepinv.physics.PET requires measurements as a torch.Tensor. To provide pre-split measurements, first use deepinv.physics.functional.tomography_subsets.split_physics to create the matching physics subsets."
+                )
+            full_physics = physics
+            physics = split_physics(full_physics, self.num_subsets, device=y.device)
+            y = split_measurements(y, full_physics, self.num_subsets)
+
+        return super().forward(y, physics, *args, **kwargs)
 
 
 class SIRT(BaseOptim):

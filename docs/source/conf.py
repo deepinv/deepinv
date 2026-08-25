@@ -317,7 +317,11 @@ class MySortKey(_SortKey):
 
 
 # List of files that require a GPU to run (regex patterns)
-gpu_dependent_files = [".*demo_astra_tomography\.py", ".*demo_custom_niqe\.py"]
+gpu_dependent_files = [
+    ".*demo_astra_tomography\\.py",
+    ".*demo_custom_niqe\\.py",
+    ".*demo_pet_brainweb_3d\\.py",
+]
 # Create the ignore pattern based on GPU availability,
 ignore_pattern = (
     "|".join(gpu_dependent_files + [r"__init__\.py"])
