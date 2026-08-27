@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Iterable, Sequence
+from typing import Iterable
 from warnings import warn
 
 import math
@@ -12,53 +12,94 @@ from deepinv.physics.forward import LinearPhysics
 
 
 class UltrafastUltrasound(LinearPhysics):
-    r"""Abstract base class for pulse-echo ultrafast ultrasound imaging
-    operators
+    r"""
+    2D Pulse-echo ultrafast ultrasound imaging operator (abstract base class).
+
+    Models the linear operator mapping a tissue reflectivity map :math:`x` to the per-channel element raw data :math:`y`
+
+    .. math::
+        y = \forw{x} = \left( h \ast_t G \right) \left( x \right)
+
+    as a quadratic Radon transform :math:`G` , i.e. a set of projections of :math:`x` along conics whose shape is set by the transmit/receive configuration,
+    followed by a convolution with the pulse-echo impulse response :math:`h`.
+
+    For each transmit event :math:`k`, receive element :math:`i` and time sample :math:`t_n`, the per-channel element raw data sample is
+
+    .. math::
+        y_{k,i,n} = \left[h \ast_t G(x)\right]_{k,i,n}, \qquad
+        \left[G(x)\right]_{k,i,n} = \sum_{j} a_{k,i}(\mathbf{r}_j)\, K\!\big(f_s\,(t_n - \tau_{k,i}(\mathbf{r}_j))\big)\, \varphi_{k,i}(\mathbf{r}_j)\, x_j,
+
+    where :math:`\mathbf{r}_j = (x_j, z_j)` is the position of pixel :math:`j`,
+    :math:`\tau_{k,i}` is the round-trip time-of-flight,
+    :math:`a_{k,i}` is the product of transmit and receive apodizations, :math:`K` is a 1D interpolation kernel, and
+    :math:`\varphi_{k,i}` the IQ modulation phase.
+
+    The adjoint :meth:`A_adjoint` follows the same formalism with a time-reversed pulse and the transpose quadratic Radon transform :math:`G^\top`
+
+    .. math::
+        \left[A^\top y\right]_j = \left[G^\top \! \left(\tilde{h} \ast_t y\right)\right]_j, \qquad
+        \left[G^\top y\right]_j = \sum_{k,i,n} a_{k,i}(\mathbf{r}_j)\, K\!\big(f_s\,(t_n - \tau_{k,i}(\mathbf{r}_j))\big)\, \overline{\varphi_{k,i}(\mathbf{r}_j)}\, y_{k,i,n},
+
+    where :math:`\tilde{h}(t) = h(-t)` is the time-reversed pulse and :math:`\overline{\varphi_{k,i}}` the conjugate modulation phase.
+
+    Signals are batched real tensors whose layout depends on `signal_kind`: in `"iq"` mode :math:`x` has shape `(B, 2, Z, X)` with an `(I, Q)` channel pair on dim 1
+    and :math:`y` has shape `(B, 2, n_transmits, n_elements, n_samples)`; in `"rf"` mode both have a single channel.
 
     .. note::
+        This class is not meant to be instantiated directly. Subclass it to implement a new transmit scheme
+        by overriding :meth:`transmit_delay` and :meth:`transmit_apod`, and handle operator normalization
+        at the end of `__init__` (see :class:`UltrasoundPlaneWave` for a reference implementation).
 
-        This class is **not meant to be instantiated directly** — it only
-        defines the transmit-mode-independent core (receive delay and
-        apodization, IQ demodulation phase, interpolation, and the outer
-        loops) and leaves the transmit scheme abstract. End users should
-        use the concrete :class:`UltrasoundPlaneWave` operator for steered
-        plane-wave imaging. Subclass this class only to implement a new
-        transmit scheme (focused, diverging, Hadamard-coded, ...).
+    .. seealso::
+        :class:`deepinv.physics.UltrasoundPlaneWave` for the ready-to-use plane-wave operator, and :class:`deepinv.physics.LinearPhysics` for the linear operator interface.
 
-    Mathematically, concrete subclasses realize a quadratic Radon transform
-    :math:`A` which projects an object :math:`x` along conics whose shapes
-    depend on the transmit and receive configuration of the experiment
+    :param tuple[int, int] img_size: spatial image size `(Z, X)` in pixels.
+    :param torch.Tensor element_positions: receive element positions in meters, shape `(n_elements, 2)` with columns `(x, z)`.
+    :param int n_transmits: number of transmit events.
+    :param int n_samples: number of time samples per channel.
+    :param float sampling_frequency: sampling frequency in Hz.
+    :param float sound_speed: speed of sound in m/s. (default: `1540`)
+    :param torch.Tensor pixel_grid: optional pixel positions in meters, shape `(Z, X, 2)` with columns `(x, z)`. If `None`, built from `pixel_size` and `pixel_origin`. (default: `None`)
+    :param tuple[float, float] pixel_size: pixel spacing `(dz, dx)` in meters. (default: half a wavelength :math:`c / (2 f_{\mathrm{demod}})` along both axes)
+    :param tuple[float, float] pixel_origin: grid origin `(z0, x0)` in meters. (default: `(0, x_aperture_center)`)
+    :param float, torch.Tensor t0: acquisition-start offset :math:`t_0` in seconds, scalar or per-transmit tensor of shape `(n_transmits,)`. (default: `0.0`)
+    :param float demodulation_frequency: demodulation frequency in Hz, required in `"iq"` mode and ignored in `"rf"` mode. (default: `None`)
+    :param float f_number: receive f-number defining the aperture half-width :math:`|x_i - x_j| \le z_j / f_\#` at each pixel. `None` disables receive apodization. (default: `None`)
+    :param str rx_apod_window: receive apodization window inside the f-number aperture, one of `"rect"`, `"hann"`, `"hamming"`, `"tukey0.25"`. Ignored if `f_number` is `None`. (default: `"rect"`)
+    :param str tx_apod_window: transmit apodization window, one of `"rect"`, `"hann"`, `"hamming"`, `"tukey0.25"`. `None` disables transmit apodization. (default: `None`)
+    :param str interp: interpolation kernel :math:`K`, one of `"nearest"`, `"linear"`, `"keys"`. (default: `"linear"`)
+    :param str signal_kind: signal representation, `"iq"` or `"rf"`. (default: `"iq"`)
+    :param torch.Tensor pulse: optional 1D pulse-echo impulse response :math:`h`, normalized to unit :math:`\ell_2` norm and convolved along the time axis in both :meth:`A` and :meth:`A_adjoint`. (default: `None`)
+    :param torch.device, str device: device for buffers. (default: `"cpu"`)
+    :param torch.dtype dtype: real dtype; `float32` uses internal `complex64`, `float64` uses `complex128`. (default: `torch.float32`)
+    :param kwargs: additional arguments passed to :class:`deepinv.physics.LinearPhysics`.
 
-    .. math::
-        y = \forw{x}
+    |sep|
 
-    where, for each transmit event :math:`k` and receive element :math:`i`,
-    the channel-data sample at time :math:`t_n = n / f_s` is
+    :Examples:
 
-    .. math::
+        Defining a new transmit scheme. Only the transmit delays and apodization need to be implemented:
 
-        y_{k,i,n} = \sum_{j} a_{k,i}(\mathbf{r}_j)\,
-            K\!\big(f_s (t_n - \tau_{k,i}(\mathbf{r}_j))\big)\,
-            \varphi_{k,i}(\mathbf{r}_j)\, x_j.
+        >>> import deepinv as dinv
+        >>> class MyCustomUltrafastUltrasound(dinv.physics.UltrafastUltrasound):  # doctest: +SKIP
+        ...     def __init__(self, *args, normalize=True, **kwargs):
+        ...         super().__init__(*args, **kwargs)
+        ...         # register any transmit-mode-specific buffers here, then normalize
+        ...         self.normalize = False
+        ...         if normalize:
+        ...             x = torch.randn((1, self.n_channels, *self.img_size_spatial))
+        ...             self.register_buffer(
+        ...                 "operator_norm",
+        ...                 self.compute_norm(x, squared=False, verbose=False),
+        ...             )
+        ...             self.normalize = True
+        ...     def transmit_delay(self):
+        ...         ...  # (n_transmits, Z*X) delays in seconds
+        ...     def transmit_apod(self):
+        ...         return None  # or (n_transmits, Z*X) weights
 
-    Here :math:`\tau_{k,i} = \tau_{\mathrm{tx},k} + \tau_{\mathrm{rx},i}` is
-    the round-trip delay, :math:`a_{k,i}` combines transmit and receive
-    apodizations, :math:`K(\cdot)` is the interpolation kernel, and
-    :math:`\varphi_{k,i} = \exp(-i 2\pi f_{\mathrm{demod}}(\tau_{k,i} - 2 z_j / c))`
-    is the IQ demodulation phase (equal to :math:`1` in ``"rf"`` mode).
-
-    A concrete subclass supplies the transmit scheme by overriding
-    :meth:`transmit_delay` (returns transmit delays of shape
-    ``(n_transmits, Z*X)`` in seconds) and :meth:`transmit_apod` (returns
-    ``None`` or a per-pixel weight tensor of the same shape). The base
-    ``__init__`` accepts the shared measurement parameters
-    (``img_size``, ``element_positions``, ``n_transmits``, ``n_samples``,
-    ``sampling_frequency``, ``sound_speed``, ``signal_kind``,
-    ``normalize``, ...) — see :class:`UltrasoundPlaneWave` for the full
-    list of shared kwargs and their defaults.
     """
 
-    _VALID_INTERP = ("nearest", "linear", "keys")
     _VALID_WINDOWS = ("rect", "hann", "hamming", "tukey0.25")
     _VALID_SIGNAL_KINDS = ("iq", "rf")
 
@@ -74,7 +115,7 @@ class UltrafastUltrasound(LinearPhysics):
         pixel_size: tuple[float, float] | None = None,
         pixel_origin: tuple[float, float] | None = None,
         t0: float | Tensor = 0.0,
-        fdemod: float = 5e6,
+        demodulation_frequency: float | None = None,
         f_number: float | None = None,
         rx_apod_window: str = "rect",
         tx_apod_window: str | None = None,
@@ -85,24 +126,31 @@ class UltrafastUltrasound(LinearPhysics):
         dtype: torch.dtype = torch.float32,
         **kwargs,
     ):
+        if signal_kind == "iq" and demodulation_frequency is None:
+            raise ValueError("demodulation_frequency must be provided in 'iq' mode.")
         if sound_speed <= 0.0:
             raise ValueError(
-                f"sound_speed must be strictly positive, got {sound_speed}.")
+                f"sound_speed must be strictly positive, got {sound_speed}."
+            )
         if interp not in self._VALID_INTERP:
             raise ValueError(
-                f"interp must be one of {self._VALID_INTERP}, got {interp!r}.")
+                f"interp must be one of {self._VALID_INTERP}, got {interp!r}."
+            )
         if signal_kind not in self._VALID_SIGNAL_KINDS:
             raise ValueError(
                 f"signal_kind must be one of {self._VALID_SIGNAL_KINDS}, "
-                f"got {signal_kind!r}.")
+                f"got {signal_kind!r}."
+            )
         if rx_apod_window not in self._VALID_WINDOWS:
             raise ValueError(
                 f"rx_apod_window must be one of {self._VALID_WINDOWS}, "
-                f"got {rx_apod_window!r}.")
+                f"got {rx_apod_window!r}."
+            )
         if tx_apod_window is not None and tx_apod_window not in self._VALID_WINDOWS:
             raise ValueError(
                 f"tx_apod_window must be None or one of {self._VALID_WINDOWS}, "
-                f"got {tx_apod_window!r}.")
+                f"got {tx_apod_window!r}."
+            )
 
         Z, X = int(img_size[0]), int(img_size[1])
 
@@ -110,37 +158,44 @@ class UltrafastUltrasound(LinearPhysics):
         if ele_pos.ndim != 2 or ele_pos.shape[1] != 2:
             raise ValueError(
                 "element_positions must have shape (n_elements, 2), got "
-                f"{tuple(ele_pos.shape)}.")
+                f"{tuple(ele_pos.shape)}."
+            )
 
         if pixel_grid is not None:
             grid = torch.as_tensor(pixel_grid, dtype=dtype)
             if grid.shape != (Z, X, 2):
                 raise ValueError(
                     "pixel_grid must have shape (Z, X, 2), got "
-                    f"{tuple(grid.shape)} for img_size=({Z}, {X}).")
+                    f"{tuple(grid.shape)} for img_size=({Z}, {X})."
+                )
         else:
             if pixel_size is None:
-                ref_freq = fdemod if fdemod > 0.0 else sampling_frequency
+                ref_freq = (
+                    demodulation_frequency
+                    if demodulation_frequency is not None
+                    and demodulation_frequency > 0.0
+                    else sampling_frequency
+                )
                 lam = sound_speed / ref_freq
                 pixel_size = (lam / 2.0, lam / 2.0)
             dz, dx = float(pixel_size[0]), float(pixel_size[1])
             if pixel_origin is None:
-                x_center = 0.5 * (ele_pos[:, 0].min() +
-                                  ele_pos[:, 0].max()).item()
+                x_center = 0.5 * (ele_pos[:, 0].min() + ele_pos[:, 0].max()).item()
                 pixel_origin = (0.0, x_center - dx * (X - 1) / 2.0)
             z0, x0 = float(pixel_origin[0]), float(pixel_origin[1])
             z_axis = z0 + dz * torch.arange(Z, dtype=dtype)
             x_axis = x0 + dx * torch.arange(X, dtype=dtype)
             zz, xx = torch.meshgrid(z_axis, x_axis, indexing="ij")
-            grid = torch.stack([xx, zz], dim=-1)  # (Z, X, 2), columns (x, z)
+            grid = torch.stack([xx, zz], dim=-1)
 
         t0_tensor = torch.as_tensor(t0, dtype=dtype)
         if t0_tensor.ndim == 0:
             t0_tensor = t0_tensor.expand(n_transmits).clone()
-        elif t0_tensor.shape != (n_transmits, ):
+        elif t0_tensor.shape != (n_transmits,):
             raise ValueError(
                 f"t0 must be scalar or shape ({n_transmits},), got "
-                f"{tuple(t0_tensor.shape)}.")
+                f"{tuple(t0_tensor.shape)}."
+            )
 
         n_channels = 2 if signal_kind == "iq" else 1
         super().__init__(
@@ -158,7 +213,9 @@ class UltrafastUltrasound(LinearPhysics):
         self.n_samples = int(n_samples)
         self.fs = float(sampling_frequency)
         self.c = float(sound_speed)
-        self.fdemod = float(fdemod)
+        self.demodulation_frequency = (
+            None if demodulation_frequency is None else float(demodulation_frequency)
+        )
         self.f_number = None if f_number is None else float(f_number)
         self.rx_apod_window = rx_apod_window
         self.tx_apod_window = tx_apod_window
@@ -166,8 +223,9 @@ class UltrafastUltrasound(LinearPhysics):
         self.signal_kind = signal_kind
         self.n_channels = n_channels
         self.dtype = dtype
-        self._complex_dtype = (torch.complex128
-                               if dtype == torch.float64 else torch.complex64)
+        self._complex_dtype = (
+            torch.complex128 if dtype == torch.float64 else torch.complex64
+        )
 
         if pulse is not None:
             h = torch.as_tensor(pulse, dtype=self.dtype)
@@ -176,15 +234,65 @@ class UltrafastUltrasound(LinearPhysics):
         else:
             self.pulse_echo_ir = None
 
+    @property
+    def image_shape(self) -> tuple[int, int]:
+        """Spatial image shape ``(Z, X)`` in pixels."""
+        return self.img_size_spatial
+
+    @property
+    def image_grid(self) -> Tensor:
+        """Pixel positions in meters, shape ``(Z, X, 2)`` with columns ``(x, z)``."""
+        return self.pixel_grid
+
+    @property
+    def measurement_shape(self) -> tuple[int, int, int, int]:
+        """Per-sample measurement shape ``(n_channels, n_transmits, n_elements, n_samples)``."""
+        return (self.n_channels, self.n_transmits, self.num_elements, self.n_samples)
+
+    @property
+    def num_elements(self) -> int:
+        """Number of receive elements."""
+        return int(self.element_positions.shape[0])
+
+    @property
+    def num_transmits(self) -> int:
+        """Number of transmit events."""
+        return self.n_transmits
+
+    @property
+    def num_samples(self) -> int:
+        """Number of time samples per channel."""
+        return self.n_samples
+
+    @property
+    def pixel_spacing(self) -> tuple[float, float]:
+        """Pixel spacing ``(dz, dx)`` in meters, inferred from :attr:`image_grid`."""
+        grid = self.pixel_grid
+        dz = (grid[1, 0, 1] - grid[0, 0, 1]).item() if grid.shape[0] > 1 else 0.0
+        dx = (grid[0, 1, 0] - grid[0, 0, 0]).item() if grid.shape[1] > 1 else 0.0
+        return (dz, dx)
+
+    @property
+    def wavelength(self) -> float:
+        r"""Nominal wavelength :math:`\lambda = c / f_{\mathrm{demod}}` in meters (falls back to :math:`c / f_s` if ``demodulation_frequency`` is ``None``)."""
+        ref_freq = (
+            self.demodulation_frequency
+            if self.demodulation_frequency is not None
+            else self.fs
+        )
+        return self.c / ref_freq
+
     def transmit_delay(self) -> Tensor:
         """Transmit delay ``(n_transmits, Z*X)`` in seconds. Subclass hook."""
         raise NotImplementedError(
-            "Subclass must implement transmit_delay for its transmit mode.")
+            "Subclass must implement transmit_delay for its transmit mode."
+        )
 
     def transmit_apod(self) -> Tensor | None:
         """Transmit apodization ``(n_transmits, Z*X)`` or ``None``. Subclass hook."""
         raise NotImplementedError(
-            "Subclass must implement transmit_apod for its transmit mode.")
+            "Subclass must implement transmit_apod for its transmit mode."
+        )
 
     def _receive_delay(self) -> Tensor:
         r"""Receive delay ``(n_elements, Z*X)`` in seconds.
@@ -192,19 +300,13 @@ class UltrafastUltrasound(LinearPhysics):
         :math:`\tau_{\mathrm{rx}}(x, z; x_e, z_e) = \|(x,z) - (x_e, z_e)\|/c`.
         """
         grid = self.pixel_grid.reshape(-1, 2)
-        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:,
-                                                              0].unsqueeze(1)
-        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:,
-                                                              1].unsqueeze(1)
+        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:, 0].unsqueeze(1)
+        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:, 1].unsqueeze(1)
         return torch.hypot(dx, dz) / self.c
 
     @staticmethod
     def _window_shape(u: Tensor, kind: str) -> Tensor:
-        """Compute a normalized apodization window at positions ``u`` in [-1, 1].
-
-        The mask enforcing ``|u| <= 1`` is applied by the caller; this helper
-        just returns the analytical window shape.
-        """
+        """Compute a normalized apodization window at normalized positions ``u`` in [-1, 1]."""
         pi = math.pi
         if kind == "rect":
             return torch.ones_like(u)
@@ -223,17 +325,11 @@ class UltrafastUltrasound(LinearPhysics):
         raise ValueError(f"Unknown window kind: {kind}")
 
     def _receive_apod(self) -> Tensor | None:
-        r"""Receive-side aperture apodization ``(n_elements, Z*X)`` or ``None``.
+        r"""Receive-side aperture apodization
 
         Combines the f-number cone (aperture half-width
         :math:`w = z_p / f_\#` at each pixel depth) with a tapered window
-        applied to the normalized position :math:`u = (x_e - x_p) / w \in [-1, 1]`:
-
-        - ``rect``: :math:`\mathbf{1}_{|u|\le 1}`.
-        - ``hann``: :math:`0.5 (1 + \cos(\pi u))\,\mathbf{1}_{|u|\le 1}`.
-        - ``hamming``: :math:`(0.54 + 0.46\cos(\pi u))\,\mathbf{1}_{|u|\le 1}`.
-        - ``tukey`` with shape :math:`\alpha`: unit in the flat region
-          :math:`|u|\le 1-\alpha` and a raised-cosine taper at the edges.
+        applied to the normalized position :math:`u = (x_e - x_p) / w \in [-1, 1]`.
 
         Elements very close to the pixel in :math:`x` (``|dx| <= min_width``,
         a guard against divide-by-zero at boresight) always receive weight 1.
@@ -249,10 +345,8 @@ class UltrafastUltrasound(LinearPhysics):
         else:
             min_width = 1e-3
 
-        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:,
-                                                              0].unsqueeze(1)
-        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:,
-                                                              1].unsqueeze(1)
+        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:, 0].unsqueeze(1)
+        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:, 1].unsqueeze(1)
 
         w_half = torch.abs(dz) / self.f_number
         eps = torch.full_like(dx, torch.finfo(self.pixel_grid.dtype).eps)
@@ -265,42 +359,11 @@ class UltrafastUltrasound(LinearPhysics):
         apod = torch.where(near_axis, torch.ones_like(apod), apod)
         return apod.to(self.pixel_grid.dtype)
 
-    def _normalize(self, normalize: bool | None) -> None:
-        r"""Compute the operator norm and enable normalization of :meth:`A`
-        and :meth:`A_adjoint`. Mirrors the pattern of
-        :class:`deepinv.physics.Tomography`.
-
-        Concrete subclasses call this once at the end of their ``__init__``,
-        after registering all transmit-mode-specific buffers so that the
-        power iteration inside :meth:`compute_norm` sees the full operator.
-        """
-        if normalize is None:
-            warn("The default value of `normalize` is not specified and will "
-                 "be automatically set to `True`. Set `normalize` explicitly "
-                 "to `True` or `False` to avoid this warning.")
-            normalize = True
-        self.normalize = False
-        if normalize:
-            device = self.pixel_grid.device
-            x = torch.randn(
-                (1, self.n_channels, *self.img_size_spatial),
-                generator=torch.Generator(device).manual_seed(0),
-                device=device,
-                dtype=self.dtype,
-            )
-            self.register_buffer(
-                "operator_norm",
-                self.compute_norm(x, squared=False, verbose=False),
-            )
-            self.normalize = True
-
     def A(self, x: Tensor, **kwargs) -> Tensor:
-        r"""Forward operator :math:`y = A x` (Besson kernel).
+        r"""Forward operator :math:`y = \forw{x} = \left(h \ast G\right) \left(x\right)`.
 
-        :param torch.Tensor x: image ``(B, 2, Z, X)`` in IQ mode, or
-            ``(B, 1, Z, X)`` in RF mode.
-        :return: measurement ``(B, 2, n_transmits, n_elements, n_samples)`` or
-            ``(B, 1, n_transmits, n_elements, n_samples)`` respectively.
+        :param torch.Tensor x: tissue reflectivity map of shape `(B, 2, Z, X)` in `"iq"` mode or `(B, 1, Z, X)` in `"rf"` mode.
+        :return: channel data of shape `(B, C, n_transmits, n_elements, n_samples)`, divided by the operator norm if `normalize=True`.
         """
         B = x.shape[0]
         Z, X = self.img_size_spatial
@@ -315,8 +378,9 @@ class UltrafastUltrasound(LinearPhysics):
         is_iq = self.signal_kind == "iq"
 
         if is_iq:
-            x_flat = torch.view_as_complex(x.moveaxis(
-                1, -1).contiguous()).reshape(B, Z * X)
+            x_flat = torch.view_as_complex(x.moveaxis(1, -1).contiguous()).reshape(
+                B, Z * X
+            )
             out_dtype = self._complex_dtype
         else:
             x_flat = x[:, 0].reshape(B, Z * X)
@@ -328,30 +392,32 @@ class UltrafastUltrasound(LinearPhysics):
         apod_tx_all = self.transmit_apod()  # (n_t, Z*X) or None
         z_pix = self.pixel_grid.reshape(-1, 2)[:, 1] if is_iq else None
 
-        y_out = torch.zeros((B, n_t, n_e, n_s),
-                            dtype=out_dtype,
-                            device=x.device)
+        y_out = torch.zeros((B, n_t, n_e, n_s), dtype=out_dtype, device=x.device)
         for k in range(n_t):
             tau_tx_k = tau_tx_all[k]  # (Z*X,)
             tau_full = tau_tx_k.unsqueeze(0) + tau_rx + self.t0[k]
 
             if is_iq:
-                phase_arg = 2.0 * math.pi * self.fdemod * (
-                    tau_full - 2.0 * z_pix / self.c)
+                phase_arg = (
+                    2.0
+                    * math.pi
+                    * self.demodulation_frequency
+                    * (tau_full - 2.0 * z_pix / self.c)
+                )
                 weight = torch.exp(
-                    torch.complex(torch.zeros_like(phase_arg), -phase_arg))
+                    torch.complex(torch.zeros_like(phase_arg), -phase_arg)
+                )
                 if apod_rx is not None:
                     weight = weight * apod_rx
             else:
-                weight = apod_rx if apod_rx is not None else torch.ones_like(
-                    tau_full)
+                weight = apod_rx if apod_rx is not None else torch.ones_like(tau_full)
 
             if apod_tx_all is not None:
                 weight = weight * apod_tx_all[k].unsqueeze(0)
 
             s_k = tau_full * self.fs
             contrib = x_flat.unsqueeze(1) * weight.unsqueeze(0)
-            y_out[:, k] = self._scatter_interp_1d(s_k, contrib, n_s)
+            y_out[:, k] = self._interp1d_adjoint(s_k, contrib, n_s)
 
         if self.pulse_echo_ir is not None:
             y_flat = y_out.reshape(-1, 1, n_s)
@@ -361,21 +427,20 @@ class UltrafastUltrasound(LinearPhysics):
             if is_iq:
                 y_real = y_flat.real
                 y_imag = y_flat.imag
-                y_real_padded = torch.nn.functional.pad(
-                    y_real, (pad_left, pad_right))
-                y_imag_padded = torch.nn.functional.pad(
-                    y_imag, (pad_left, pad_right))
+                y_real_padded = torch.nn.functional.pad(y_real, (pad_left, pad_right))
+                y_imag_padded = torch.nn.functional.pad(y_imag, (pad_left, pad_right))
                 conv_real = torch.nn.functional.conv1d(
-                    y_real_padded, self.pulse_echo_ir.view(1, 1, -1))
+                    y_real_padded, self.pulse_echo_ir.view(1, 1, -1)
+                )
                 conv_imag = torch.nn.functional.conv1d(
-                    y_imag_padded, self.pulse_echo_ir.view(1, 1, -1))
-                y_out = torch.complex(conv_real,
-                                      conv_imag).reshape(B, n_t, n_e, n_s)
+                    y_imag_padded, self.pulse_echo_ir.view(1, 1, -1)
+                )
+                y_out = torch.complex(conv_real, conv_imag).reshape(B, n_t, n_e, n_s)
             else:
-                y_padded = torch.nn.functional.pad(y_flat,
-                                                   (pad_left, pad_right))
+                y_padded = torch.nn.functional.pad(y_flat, (pad_left, pad_right))
                 conv = torch.nn.functional.conv1d(
-                    y_padded, self.pulse_echo_ir.view(1, 1, -1))
+                    y_padded, self.pulse_echo_ir.view(1, 1, -1)
+                )
                 y_out = conv.reshape(B, n_t, n_e, n_s)
 
         if is_iq:
@@ -387,12 +452,10 @@ class UltrafastUltrasound(LinearPhysics):
         return out
 
     def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
-        r"""Adjoint operator :math:`x = A^\top y` — Delay-and-Sum beamforming.
+        r"""Adjoint operator :math:`x = A^\top y = G^\top \! \left(\tilde{h} \ast_t y\right)`
 
-        :param torch.Tensor y: measurement of shape
-            ``(B, 2, n_transmits, n_elements, n_samples)`` in IQ mode, or
-            ``(B, 1, n_transmits, n_elements, n_samples)`` in RF mode.
-        :return: image ``(B, 2, Z, X)`` or ``(B, 1, Z, X)`` respectively.
+        :param torch.Tensor y: channel data of shape `(B, 2, n_transmits, n_elements, n_samples)` in `"iq"` mode or `(B, 1, n_transmits, n_elements, n_samples)` in `"rf"` mode.
+        :return: beamformed image of shape `(B, 2, Z, X)` or `(B, 1, Z, X)` respectively, divided by the operator norm if `normalize=True`.
         """
         B = y.shape[0]
         Z, X = self.img_size_spatial
@@ -412,19 +475,17 @@ class UltrafastUltrasound(LinearPhysics):
             L_k = self.pulse_echo_ir.numel()
             pad_left = L_k // 2
             pad_right = L_k - 1 - pad_left
-            # Adjoint padding is reversed: (pad_right, pad_left)
-            y_padded = torch.nn.functional.pad(y_flat_conv,
-                                               (pad_right, pad_left))
+            y_padded = torch.nn.functional.pad(y_flat_conv, (pad_right, pad_left))
             conv = torch.nn.functional.conv1d(
-                y_padded,
-                self.pulse_echo_ir.view(1, 1, -1).flip(-1))
+                y_padded, self.pulse_echo_ir.view(1, 1, -1).flip(-1)
+            )
             y = conv.reshape(B, self.n_channels, n_t, n_e, n_s)
 
         if is_iq:
             y_flat = torch.view_as_complex(y.moveaxis(1, -1).contiguous())
             out_dtype = self._complex_dtype
         else:
-            y_flat = y[:, 0]  # (B, n_t, n_e, n_s) real
+            y_flat = y[:, 0]
             out_dtype = self.dtype
 
         tau_rx = self._receive_delay()
@@ -439,21 +500,25 @@ class UltrafastUltrasound(LinearPhysics):
             tau_full = tau_tx_k.unsqueeze(0) + tau_rx + self.t0[k]
 
             if is_iq:
-                phase_arg = 2.0 * math.pi * self.fdemod * (
-                    tau_full - 2.0 * z_pix / self.c)
+                phase_arg = (
+                    2.0
+                    * math.pi
+                    * self.demodulation_frequency
+                    * (tau_full - 2.0 * z_pix / self.c)
+                )
                 weight = torch.exp(
-                    torch.complex(torch.zeros_like(phase_arg), phase_arg))
+                    torch.complex(torch.zeros_like(phase_arg), phase_arg)
+                )
                 if apod_rx is not None:
                     weight = weight * apod_rx
             else:
-                weight = apod_rx if apod_rx is not None else torch.ones_like(
-                    tau_full)
+                weight = apod_rx if apod_rx is not None else torch.ones_like(tau_full)
 
             if apod_tx_all is not None:
                 weight = weight * apod_tx_all[k].unsqueeze(0)
 
             s_k = tau_full * self.fs
-            gathered = self._gather_interp_1d(y_flat[:, k], s_k)
+            gathered = self._interp1d(y_flat[:, k], s_k)
             x_out = x_out + (gathered * weight.unsqueeze(0)).sum(dim=1)
 
         if is_iq:
@@ -467,25 +532,19 @@ class UltrafastUltrasound(LinearPhysics):
     def _interp_taps(self, s: Tensor, n_samples: int) -> tuple[Tensor, Tensor]:
         r"""Returns interpolation weights and indices for the configured interpolation at a given sample position.
 
-        The interpolation kernel :math:`K(t)` at signed distance ``t`` from
-        each tap is: :math:`1` for ``nearest`` (single nearest tap);
-        :math:`\max(1 - |t|, 0)` for ``linear``;
-        Keys 4-tap cubic convolution with :math:`a=-1/2` for ``keys``.
-        Out-of-range taps are zeroed.
-
         :param torch.Tensor s: fractional sample positions, shape ``S``.
         :param int n_samples: length of the time axis.
-        :return: ``indices`` of shape ``(K, *S)`` (long, clamped) and
-            ``weights`` of shape ``(K, *S)`` (float, OOB neighbors zeroed),
+        :return: ``indices`` of shape ``(K, *S)`` and
+            ``weights`` of shape ``(K, *S)``,
             where ``K`` is 1 for ``nearest``, 2 for ``linear``, 4 for ``keys``.
         """
         if self.interp == "nearest":
-            offsets = (0, )
-            s_ref = torch.floor(s + 0.5)  # round half up
+            offsets = (0,)
+            s_ref = torch.floor(s + 0.5)
         elif self.interp == "linear":
             offsets = (0, 1)
             s_ref = torch.floor(s)
-        else:  # "keys"
+        else:
             offsets = (-1, 0, 1, 2)
             s_ref = torch.floor(s)
 
@@ -512,30 +571,29 @@ class UltrafastUltrasound(LinearPhysics):
             w = torch.where(valid, w, torch.zeros_like(w))
             indices_list.append(idx_clamped)
             weights_list.append(w)
-        return torch.stack(indices_list, dim=0), torch.stack(weights_list,
-                                                             dim=0)
+        return torch.stack(indices_list, dim=0), torch.stack(weights_list, dim=0)
 
-    def _scatter_interp_1d(self, s: Tensor, contrib: Tensor,
-                           n_samples: int) -> Tensor:
-        """Splat ``contrib`` into a length-``n_samples`` axis at fractional ``s``.
+    def _interp1d_adjoint(self, s: Tensor, contrib: Tensor, n_samples: int) -> Tensor:
+        """Adjoint of :meth:`_interp1d`. Scatter-add the input ``contrib`` onto a
+        length-``n_samples`` time axis at fractional positions ``s``.
 
         :param torch.Tensor s: fractional sample positions, shape ``(n_e, N)``.
-        :param torch.Tensor contrib: complex contributions, shape ``(B, n_e, N)``.
-        :return: complex tensor of shape ``(B, n_e, n_samples)``.
+        :param torch.Tensor contrib: contributions to accumulate, shape ``(B, n_e, N)``.
+        :return: tensor of shape ``(B, n_e, n_samples)``, same dtype as ``contrib``.
         """
         B, n_e, N = contrib.shape
         indices, weights = self._interp_taps(s, n_samples)
-        out = torch.zeros((B, n_e, n_samples),
-                          dtype=contrib.dtype,
-                          device=contrib.device)
+        out = torch.zeros(
+            (B, n_e, n_samples), dtype=contrib.dtype, device=contrib.device
+        )
         for k in range(indices.shape[0]):
             idx_b = indices[k].unsqueeze(0).expand(B, n_e, N)
             w_c = weights[k].to(contrib.dtype)
             out = out.scatter_add(2, idx_b, contrib * w_c)
         return out
 
-    def _gather_interp_1d(self, y_ke: Tensor, s: Tensor) -> Tensor:
-        """Performs interpolation of ``y_ke`` at fractional positions ``s``.
+    def _interp1d(self, y_ke: Tensor, s: Tensor) -> Tensor:
+        """Interpolate ``y_ke`` along the time axis at fractional positions ``s``.
 
         :param torch.Tensor y_ke: complex tensor of shape ``(B, n_e, n_samples)``.
         :param torch.Tensor s: fractional sample positions ``(n_e, N)``.
@@ -554,121 +612,46 @@ class UltrafastUltrasound(LinearPhysics):
 
 
 class UltrasoundPlaneWave(UltrafastUltrasound):
-    r"""Ultrafast plane-wave (PW) ultrasound imaging operator, following the
-    matrix-free parameterization of :footcite:t:`besson2018ultrafast`.
+    r"""
+    2D plane-wave (PW) ultrafast ultrasound imaging operator.
 
-    
-    Mathematically, it is described as a linear operator :math:`A` mapping a reflectivity image
-    :math:`x` to transducer measurements :math:`y`
+    Specializes :class:`UltrafastUltrasound` to plane-wave transmits: for a steering angle :math:`\theta_k`, the quadratic Radon transform :math:`G` in
 
     .. math::
-        y = \forw{x}
+        y = \forw{x} = \left(h \ast_t G\right)(x)
 
-    where :math:`y` gathers, for each steered plane-wave angle :math:`\theta_k`
-    and receive element :math:`i`, the samples recorded at time
-    :math:`t_n = n / f_s`. The adjoint :meth:`A_adjoint` is delay-and-sum
-    (DAS) beamforming coherently compounded over transmit angles and receive
-    elements, following the PyTorch DAS conventions of
-    :footcite:t:`hyun2021deep`. The operator is parameterized by the transmit
-    and receive delays
+    projects :math:`x` along parabolas with focus :math:`\mathbf{r}_i` (receive element position) and directrix perpendicular to :math:`(\sin\theta_k, \cos\theta_k)` (eccentricity 1), with round-trip time-of-flight
 
     .. math::
+        \tau_{k,i}(\mathbf{r}) = \frac{x \sin\theta_k + z \cos\theta_k}{c} + \frac{\|\mathbf{r} - \mathbf{r}_i\|}{c}.
 
-        \tau_{\mathrm{tx}}(x, z; \theta_k) = \frac{x \sin\theta_k + z \cos\theta_k}{c},
-        \qquad
-        \tau_{\mathrm{rx}}(x, z; x_e, z_e) = \frac{\sqrt{(x-x_e)^2 + (z-z_e)^2}}{c},
+    The adjoint :math:`A^\top = G^\top (\tilde{h} \ast_t \cdot)` is delay-and-sum beamforming coherently compounded over angles and elements.
+    See :class:`UltrafastUltrasound` for the full definition of :math:`G` (apodization, interpolation, modulation phase) and the adjoint.
 
-    and by an interpolation kernel :math:`K` chosen via ``interp``:
-
-    * ``"linear"``. (default)
-        Triangular kernel :math:`K(t) = \max(1 - |t|, 0)`.
-    * ``"nearest"``.
-        Nearest-neighbor kernel :math:`K(t) = \mathbf{1}_{|t| < 0.5}`.
-    * ``"keys"``.
-        4-tap Keys cubic convolution :footcite:t:`keys1981cubic` with
-        :math:`a = -1/2`, equivalent to MATLAB's ``imresize('bicubic')``.
-
-    Signals are represented as batched real tensors, with layout depending
-    on ``signal_kind``:
-
-    * ``"iq"``. (default)
-        Image ``x`` of shape ``(B, 2, Z, X)`` and measurement ``y`` of shape
-        ``(B, 2, n_angles, n_elements, n_samples)``, with an ``(I, Q)``
-        channel pair on dim 1 and IQ demodulation-phase compensation
-        :math:`\varphi = \exp(-i 2\pi f_{\mathrm{demod}}(\tau - 2 z / c))`
-        applied on the forward path (and its conjugate on the adjoint).
-    * ``"rf"``.
-        Single-channel RF signals: image ``x`` of shape ``(B, 1, Z, X)``
-        and measurement ``y`` of shape
-        ``(B, 1, n_angles, n_elements, n_samples)``. No phase compensation
-        is applied and ``fdemod`` is ignored.
-
-    .. note::
-
-        The scatter step used in the forward pass calls ``scatter_add`` on a
-        freshly-zeroed tensor. On CUDA this op is nondeterministic unless
-        global determinism is enabled via
-        ``torch.use_deterministic_algorithms(True)`` and
-        ``CUBLAS_WORKSPACE_CONFIG``. Adjointness is exact in ``float64`` and
-        agrees with DAS at the interpolation-kernel level.
 
     .. warning::
+        By default, `normalize` is set to `True` if not specified; leaving it unset issues a warning. Normalization affects reconstruction dynamics, which may not be suitable for real-world applications.
 
-        By default, ``normalize`` is set to ``True`` if not specified.
-        Initializing the operator without specifying the normalization
-        behavior will issue a warning. Note that normalizing the operator
-        affects the reconstruction dynamics, which may not always be
-        suitable for real-world applications.
-
-    :param tuple img_size: spatial image size ``(Z, X)`` in pixels.
-    :param int, Iterable[float], torch.Tensor angles: transmit steering
-        angles in radians. If ``int``, angles are sampled uniformly and
-        symmetrically in ``[-16°, 16°]``.
-    :param torch.Tensor element_positions: receive element positions in
-        meters, shape ``(n_elements, 2)`` with columns ``(x, z)``.
-    :param int n_samples: number of RF time samples per channel.
-    :param float sampling_frequency: RF sampling frequency :math:`f_s` in Hz.
-    :param float sound_speed: speed of sound in m/s. (default: 1540)
-    :param torch.Tensor pixel_grid: optional pixel grid of shape
-        ``(Z, X, 2)`` in meters, with columns ``(x, z)``. If ``None``, a
-        grid is built from ``pixel_size`` and ``pixel_origin``. (default: ``None``)
-    :param tuple pixel_size: optional pixel spacing ``(dz, dx)`` in meters.
-        (default: half the wavelength :math:`c / (2 f_{\mathrm{demod}})` along both axes)
-    :param tuple pixel_origin: optional grid origin ``(z0, x0)`` in meters.
-        (default: ``(0, x_aperture_center)``)
-    :param float, torch.Tensor t0: acquisition-start offset, scalar or
-        per-angle tensor of shape ``(n_angles,)``. The sample index of a
-        pixel is :math:`s = (\tau_{\mathrm{tx}} + \tau_{\mathrm{rx}} + t_0)\, f_s`.
-        (default: ``0.0``)
-    :param float fdemod: demodulation frequency in Hz used for IQ phase
-        compensation. Ignored when ``signal_kind="rf"``. (default: 5e6)
-    :param float f_number: receive f-number defining the aperture half-width
-        :math:`|x_e - x_p| \le z_p / f_\#` used for per-pixel apodization.
-        ``None`` disables receive apodization entirely. (default: ``None``)
-    :param str rx_apod_window: shape of the receive apodization window
-        applied inside the f-number aperture. One of ``"rect"``, ``"hann"``,
-        ``"hamming"``, ``"tukey0.25"``. Ignored when ``f_number`` is
-        ``None``. (default: ``"rect"``)
-    :param str tx_apod_window: optional shape of the transmit apodization
-        window applied to the aperture-projected pixel position. One of
-        ``"rect"``, ``"hann"``, ``"hamming"``, ``"tukey0.25"``. ``None``
-        disables transmit apodization. (default: ``None``)
-    :param str interp: interpolation kernel used for both scatter (forward)
-        and gather (adjoint). One of ``"nearest"``, ``"linear"``,
-        ``"keys"``. (default: ``"linear"``)
-    :param str signal_kind: signal representation. One of ``"iq"`` or
-        ``"rf"``. (default: ``"iq"``)
-    :param torch.Tensor pulse: optional pulse-echo impulse response applied
-        by convolution along the time axis on both forward and adjoint.
-        (default: ``None``)
-    :param bool normalize: If ``True`` :func:`A <deepinv.physics.UltrasoundPlaneWave.A>`
-        and :func:`A_adjoint <deepinv.physics.UltrasoundPlaneWave.A_adjoint>`
-        are normalized so that the operator has unit norm. (default: ``True``)
-    :param torch.device, str device: device for buffers and modules.
-        (default: ``"cpu"``)
-    :param torch.dtype dtype: real dtype; ``float32`` uses internal
-        ``complex64``, ``float64`` uses internal ``complex128``.
-        (default: ``torch.float32``)
+    :param tuple[int, int] img_size: spatial image size `(Z, X)` in pixels.
+    :param Iterable[float], torch.Tensor angles: transmit steering angles in radians.
+    :param torch.Tensor element_positions: receive element positions in meters, shape `(n_elements, 2)` with columns `(x, z)`.
+    :param int n_samples: number of time samples per channel.
+    :param float sampling_frequency: sampling frequency in Hz.
+    :param float sound_speed: speed of sound :math:`c` in m/s. (default: `1540`)
+    :param torch.Tensor pixel_grid: optional pixel positions in meters, shape `(Z, X, 2)` with columns `(x, z)`. If `None`, built from `pixel_size` and `pixel_origin`. (default: `None`)
+    :param tuple[float, float] pixel_size: pixel spacing `(dz, dx)` in meters. (default: half a wavelength :math:`c / (2 f_{\mathrm{demod}})` along both axes)
+    :param tuple[float, float] pixel_origin: grid origin `(z0, x0)` in meters. (default: `(0, x_aperture_center)`)
+    :param float, torch.Tensor t0: acquisition-start offset :math:`t_0` in seconds, scalar or per-angle tensor of shape `(n_angles,)`. (default: `0.0`)
+    :param float demodulation_frequency: demodulation frequency in Hz, required in `"iq"` mode and ignored in `"rf"` mode. (default: `None`)
+    :param float f_number: receive f-number defining the aperture half-width :math:`|x_i - x_j| \le z_j / f_\#` at each pixel. `None` disables receive apodization. (default: `None`)
+    :param str rx_apod_window: receive apodization window inside the f-number aperture, one of `"rect"`, `"hann"`, `"hamming"`, `"tukey0.25"`. Ignored if `f_number` is `None`. (default: `"rect"`)
+    :param str tx_apod_window: transmit apodization window, one of `"rect"`, `"hann"`, `"hamming"`, `"tukey0.25"`. `None` disables transmit apodization. (default: `None`)
+    :param str interp: interpolation kernel. One of `"nearest"`, `"linear"`, `"keys"`. See :class:`UltrafastUltrasound` for kernel definitions. (default: `"linear"`)
+    :param str signal_kind: signal representation, `"iq"` or `"rf"`. (default: `"iq"`)
+    :param torch.Tensor pulse: optional 1D pulse-echo impulse response :math:`h`, normalized to unit :math:`\ell_2` norm and convolved along the time axis in both :meth:`A` and :meth:`A_adjoint`. (default: `None`)
+    :param bool normalize: if `True`, :meth:`A` and :meth:`A_adjoint` are divided by the operator's spectral norm so it has unit norm. (default: `True`)
+    :param torch.device, str device: device for buffers. (default: `"cpu"`)
+    :param torch.dtype dtype: real dtype; `float32` uses internal `complex64`, `float64` uses `complex128`. (default: `torch.float32`)
 
     |sep|
 
@@ -687,11 +670,11 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
             ... )
             >>> physics = UltrasoundPlaneWave(
             ...     img_size=(32, 32),
-            ...     angles=3,
+            ...     angles=torch.linspace(-0.28, 0.28, 3),
             ...     element_positions=ele_pos,
             ...     n_samples=256,
             ...     sampling_frequency=40e6,
-            ...     fdemod=5e6,
+            ...     demodulation_frequency=5e6,
             ...     normalize=False,
             ... )
             >>> x = torch.randn(1, 2, 32, 32)
@@ -707,7 +690,7 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
 
             >>> physics_rf = UltrasoundPlaneWave(
             ...     img_size=(32, 32),
-            ...     angles=3,
+            ...     angles=torch.linspace(-0.28, 0.28, 3),
             ...     element_positions=ele_pos,
             ...     n_samples=256,
             ...     sampling_frequency=40e6,
@@ -722,7 +705,7 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
     def __init__(
         self,
         img_size: tuple[int, int],
-        angles: int | Iterable[float] | Tensor,
+        angles: Iterable[float] | Tensor,
         element_positions: Tensor,
         n_samples: int,
         sampling_frequency: float,
@@ -731,7 +714,7 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
         pixel_size: tuple[float, float] | None = None,
         pixel_origin: tuple[float, float] | None = None,
         t0: float | Tensor = 0.0,
-        fdemod: float = 5e6,
+        demodulation_frequency: float | None = None,
         f_number: float | None = None,
         rx_apod_window: str = "rect",
         tx_apod_window: str | None = None,
@@ -743,20 +726,16 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
         dtype: torch.dtype = torch.float32,
         **kwargs,
     ):
-        if isinstance(angles, int):
-            half = math.radians(16.0)
-            theta = torch.linspace(-half, half, steps=angles, dtype=dtype)
-        elif isinstance(angles, (list, tuple, ndarray)):
+        if isinstance(angles, (list, tuple, ndarray)):
             theta = torch.tensor(angles, dtype=dtype)
         elif isinstance(angles, torch.Tensor):
             theta = angles.to(dtype=dtype)
         else:
             raise ValueError(
-                f"angles must be int, iterable or Tensor, but got {type(angles)}"
+                f"angles must be an iterable or Tensor, but got {type(angles)}"
             )
         if theta.ndim != 1:
-            raise ValueError(
-                f"angles must be 1-D, got shape {tuple(theta.shape)}.")
+            raise ValueError(f"angles must be 1-D, got shape {tuple(theta.shape)}.")
         n_transmits = theta.numel()
 
         super().__init__(
@@ -770,7 +749,7 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
             pixel_size=pixel_size,
             pixel_origin=pixel_origin,
             t0=t0,
-            fdemod=fdemod,
+            demodulation_frequency=demodulation_frequency,
             f_number=f_number,
             rx_apod_window=rx_apod_window,
             tx_apod_window=tx_apod_window,
@@ -783,7 +762,49 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
         )
         self.register_buffer("theta", theta.contiguous())
         self.to(device)
-        self._normalize(normalize)
+
+        if normalize is None:
+            warn(
+                "The default value of `normalize` is not specified and will "
+                "be automatically set to `True`. Set `normalize` explicitly "
+                "to `True` or `False` to avoid this warning."
+            )
+            normalize = True
+        self.normalize = False
+        if normalize:
+            grid_device = self.pixel_grid.device
+            x = torch.randn(
+                (1, self.n_channels, *self.img_size_spatial),
+                generator=torch.Generator(grid_device).manual_seed(0),
+                device=grid_device,
+                dtype=self.dtype,
+            )
+            self.register_buffer(
+                "operator_norm",
+                self.compute_norm(x, squared=False, verbose=False),
+            )
+            self.normalize = True
+
+    @property
+    def angles(self) -> Tensor:
+        """Transmit steering angles in radians, shape ``(n_angles,)``."""
+        return self.theta
+
+    @property
+    def angles_deg(self) -> Tensor:
+        """Transmit steering angles in degrees, shape ``(n_angles,)``."""
+        return torch.rad2deg(self.theta)
+
+    @property
+    def num_angles(self) -> int:
+        """Number of transmit steering angles (alias of :attr:`num_transmits`)."""
+        return self.n_transmits
+
+    @property
+    def angular_range(self) -> tuple[float, float]:
+        """Min/max steering angle in degrees, as ``(theta_min, theta_max)``."""
+        deg = self.angles_deg
+        return (deg.min().item(), deg.max().item())
 
     def transmit_delay(self) -> Tensor:
         r"""Plane-wave transmit delay ``(n_angles, Z*X)`` in seconds.
@@ -798,9 +819,9 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
         return (x * sin_t + z * cos_t) / self.c
 
     def transmit_apod(self) -> Tensor | None:
-        r"""Plane-wave transmit apodization ``(n_angles, Z*X)`` or ``None``.
+        r"""Plane-wave transmit apodization ``(n_angles, Z*X)``.
 
-        Plane-wave transmit apodization: for each transmit angle :math:`\theta_k`
+        For each transmit angle :math:`\theta_k`
         each pixel is projected back onto the aperture line,
         :math:`x_{\text{proj}} = x_p - z_p \tan\theta_k`. Pixels whose
         projection falls outside the aperture (with a 20% margin) are
