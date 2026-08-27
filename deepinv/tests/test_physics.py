@@ -315,12 +315,13 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             element_positions=ele_pos,
             n_samples=128,
             sampling_frequency=20e6,
-            fdemod=5e6,
+            demodulation_frequency=5e6,
             pixel_size=pixel_size,
             normalize=True,
             device=device,
         )
-        p = dinv.physics.UltrasoundPlaneWave(angles=3, **common)
+        angles = torch.deg2rad(torch.linspace(-16.0, 16.0, 3))
+        p = dinv.physics.UltrasoundPlaneWave(angles=angles, **common)
         params = []
     elif name == "composition":
         img_size = (3, 16, 16) if imsize is None else imsize
@@ -2474,6 +2475,7 @@ MULTISCALE_EXCLUSION = [
     "fast_singlepixel_old_sequency",
     "fast_singlepixel_cake_cutting",
     "fast_singlepixel_xy",
+    "ultrasound_planewave",
 ]
 
 
@@ -2812,7 +2814,7 @@ def _picmus_like_config(dtype=torch.float32):
         element_positions=ele_pos,
         n_samples=384,
         sampling_frequency=20.832e6,
-        fdemod=5.208e6,
+        demodulation_frequency=5.208e6,
         sound_speed=1540.0,
         pixel_size=(lam / 2.0, lam / 2.0),
         normalize=False,
@@ -2849,7 +2851,7 @@ def _reference_cubdl_das(cfg, y_iq):
     n_s = cfg["n_samples"]
     fs = cfg["sampling_frequency"]
     c = cfg["sound_speed"]
-    fdemod = cfg["fdemod"]
+    fdemod = cfg["demodulation_frequency"]
 
     # Build the same pixel grid as the physics under test (cfg supplies it).
     dz, dx = cfg["pixel_size"]
@@ -3028,10 +3030,10 @@ def test_ultrasound_planewave_nearest_matches_rounded_gather(device, rng):
     grid = physics.pixel_grid.reshape(-1, 2)
     xg, zg = grid[:, 0], grid[:, 1]
     ele_pos = physics.element_positions
-    angles = physics.theta
+    angles = physics.angles
     fs = physics.fs
     c = physics.c
-    fdemod = physics.fdemod
+    fdemod = physics.demodulation_frequency
     y_iq = y[0, 0] + 1j * y[0, 1]  # (n_a, n_e, n_s) complex
     x_c = torch.zeros(Z * X, dtype=torch.complex128, device=device)
     for k in range(n_a):
@@ -3091,8 +3093,8 @@ def test_ultrasound_planewave_keys_matches_kernel(device, rng):
     grid = physics.pixel_grid.reshape(-1, 2)
     xg, zg = grid[:, 0], grid[:, 1]
     ele_pos = physics.element_positions
-    angles = physics.theta
-    fs, c, fdemod = physics.fs, physics.c, physics.fdemod
+    angles = physics.angles
+    fs, c, fdemod = physics.fs, physics.c, physics.demodulation_frequency
     n_s = cfg["n_samples"]
     y_iq = y[0, 0] + 1j * y[0, 1]
     x_c = torch.zeros(Z * X, dtype=torch.complex128, device=device)
@@ -3225,7 +3227,7 @@ def test_ultrasound_planewave_rf_matches_iq_zero_imag(device, rng):
         **cfg, signal_kind="rf", device=device
     )
     physics_iq = dinv.physics.UltrasoundPlaneWave(
-        **{**cfg, "fdemod": 0.0}, signal_kind="iq", device=device
+        **{**cfg, "demodulation_frequency": 0.0}, signal_kind="iq", device=device
     )
 
     x_rf = torch.randn(
