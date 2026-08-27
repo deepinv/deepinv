@@ -72,7 +72,6 @@ class UltrafastUltrasound(LinearPhysics):
     :param torch.Tensor pulse: optional 1D pulse-echo impulse response :math:`h`, normalized to unit :math:`\ell_2` norm and convolved along the time axis in both :meth:`A` and :meth:`A_adjoint`. (default: `None`)
     :param torch.device, str device: device for buffers. (default: `"cpu"`)
     :param torch.dtype dtype: real dtype; `float32` uses internal `complex64`, `float64` uses `complex128`. (default: `torch.float32`)
-    :param kwargs: additional arguments passed to :class:`deepinv.physics.LinearPhysics`.
 
     |sep|
 
@@ -102,6 +101,7 @@ class UltrafastUltrasound(LinearPhysics):
 
     _VALID_WINDOWS = ("rect", "hann", "hamming", "tukey0.25")
     _VALID_SIGNAL_KINDS = ("iq", "rf")
+    _VALID_INTERP = ("nearest", "linear", "keys")
 
     def __init__(
         self,
@@ -124,7 +124,6 @@ class UltrafastUltrasound(LinearPhysics):
         pulse: Tensor | None = None,
         device: torch.device | str = "cpu",
         dtype: torch.dtype = torch.float32,
-        **kwargs,
     ):
         if signal_kind == "iq" and demodulation_frequency is None:
             raise ValueError("demodulation_frequency must be provided in 'iq' mode.")
@@ -201,7 +200,6 @@ class UltrafastUltrasound(LinearPhysics):
         super().__init__(
             img_size=(n_channels, Z, X),
             device=device,
-            **kwargs,
         )
 
         self.register_buffer("element_positions", ele_pos.contiguous())
@@ -240,11 +238,6 @@ class UltrafastUltrasound(LinearPhysics):
         return self.img_size_spatial
 
     @property
-    def image_grid(self) -> Tensor:
-        """Pixel positions in meters, shape ``(Z, X, 2)`` with columns ``(x, z)``."""
-        return self.pixel_grid
-
-    @property
     def measurement_shape(self) -> tuple[int, int, int, int]:
         """Per-sample measurement shape ``(n_channels, n_transmits, n_elements, n_samples)``."""
         return (self.n_channels, self.n_transmits, self.num_elements, self.n_samples)
@@ -266,7 +259,7 @@ class UltrafastUltrasound(LinearPhysics):
 
     @property
     def pixel_spacing(self) -> tuple[float, float]:
-        """Pixel spacing ``(dz, dx)`` in meters, inferred from :attr:`image_grid`."""
+        """Pixel spacing ``(dz, dx)`` in meters, inferred from :attr:`pixel_grid`."""
         grid = self.pixel_grid
         dz = (grid[1, 0, 1] - grid[0, 0, 1]).item() if grid.shape[0] > 1 else 0.0
         dx = (grid[0, 1, 0] - grid[0, 0, 0]).item() if grid.shape[1] > 1 else 0.0
@@ -724,7 +717,6 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
         normalize: bool | None = None,
         device: torch.device | str = "cpu",
         dtype: torch.dtype = torch.float32,
-        **kwargs,
     ):
         if isinstance(angles, (list, tuple, ndarray)):
             theta = torch.tensor(angles, dtype=dtype)
@@ -758,9 +750,8 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
             pulse=pulse,
             device=device,
             dtype=dtype,
-            **kwargs,
         )
-        self.register_buffer("theta", theta.contiguous())
+        self.register_buffer("angles", theta.contiguous())
         self.to(device)
 
         if normalize is None:
@@ -786,16 +777,6 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
             self.normalize = True
 
     @property
-    def angles(self) -> Tensor:
-        """Transmit steering angles in radians, shape ``(n_angles,)``."""
-        return self.theta
-
-    @property
-    def angles_deg(self) -> Tensor:
-        """Transmit steering angles in degrees, shape ``(n_angles,)``."""
-        return torch.rad2deg(self.theta)
-
-    @property
     def num_angles(self) -> int:
         """Number of transmit steering angles (alias of :attr:`num_transmits`)."""
         return self.n_transmits
@@ -803,8 +784,52 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
     @property
     def angular_range(self) -> tuple[float, float]:
         """Min/max steering angle in degrees, as ``(theta_min, theta_max)``."""
-        deg = self.angles_deg
+        deg = torch.rad2deg(self.angles)
         return (deg.min().item(), deg.max().item())
+
+    def select_transmits(
+        self, indices: Iterable[int] | Tensor
+    ) -> "UltrasoundPlaneWave":
+        """Return a new operator restricted to a subset of transmit angles.
+
+        Useful for angle-subset splitting in self-supervised losses such as
+        :class:`deepinv.loss.Noise2InverseLoss`.
+
+        :param indices: 1-D iterable of angle indices to keep.
+        :return: a new :class:`UltrasoundPlaneWave` sharing element positions,
+            pixel grid, and acquisition parameters, with sliced ``angles`` and
+            ``t0``.
+        """
+        idx = torch.as_tensor(list(indices), dtype=torch.long)
+        pulse = (
+            self.pulse_echo_ir.detach().clone()
+            if self.pulse_echo_ir is not None
+            else None
+        )
+        return UltrasoundPlaneWave(
+            img_size=self.img_size_spatial,
+            angles=self.angles[idx].detach().clone(),
+            element_positions=self.element_positions.detach().clone(),
+            n_samples=self.n_samples,
+            sampling_frequency=self.fs,
+            sound_speed=self.c,
+            pixel_grid=self.pixel_grid.detach().clone(),
+            t0=self.t0[idx].detach().clone(),
+            demodulation_frequency=self.demodulation_frequency,
+            f_number=self.f_number,
+            rx_apod_window=self.rx_apod_window,
+            tx_apod_window=self.tx_apod_window,
+            interp=self.interp,
+            signal_kind=self.signal_kind,
+            pulse=pulse,
+            normalize=self.normalize,
+            device=self.pixel_grid.device,
+            dtype=self.dtype,
+        )
+
+    def select_angles(self, indices: Iterable[int] | Tensor) -> "UltrasoundPlaneWave":
+        """Alias for :meth:`select_transmits`."""
+        return self.select_transmits(indices)
 
     def transmit_delay(self) -> Tensor:
         r"""Plane-wave transmit delay ``(n_angles, Z*X)`` in seconds.
@@ -814,8 +839,8 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
         grid = self.pixel_grid.reshape(-1, 2)
         x = grid[:, 0]
         z = grid[:, 1]
-        sin_t = torch.sin(self.theta).unsqueeze(-1)
-        cos_t = torch.cos(self.theta).unsqueeze(-1)
+        sin_t = torch.sin(self.angles).unsqueeze(-1)
+        cos_t = torch.cos(self.angles).unsqueeze(-1)
         return (x * sin_t + z * cos_t) / self.c
 
     def transmit_apod(self) -> Tensor | None:
@@ -833,7 +858,7 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
         grid = self.pixel_grid.reshape(-1, 2)
         x = grid[:, 0].unsqueeze(0)
         z = grid[:, 1].unsqueeze(0)
-        tan_t = torch.tan(self.theta).unsqueeze(-1)
+        tan_t = torch.tan(self.angles).unsqueeze(-1)
         x_proj = x - z * tan_t
         x_min = self.element_positions[:, 0].min() * 1.2
         x_max = self.element_positions[:, 0].max() * 1.2
