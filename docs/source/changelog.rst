@@ -8,7 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Add ultrafast ultrasound physics (:class:`deepinv.physics.UltrafastUltrasound` base and :class:`deepinv.physics.UltrasoundPlaneWave`) for ultrasound plane-wave imaging with Delay-and-Sum adjoint. Supports demodulated IQ and RF signals, nearest / linear / Keys cubic interpolation, and rect / Hann / Hamming / Tukey (roll = 0.25) transmit and receive apodization windows. Includes a tour example (:file:`examples/physics/demo_ultrasound_tour.py`) (by `Adrien Besson`_)
+- Add ultrafast ultrasound physics (:class:`deepinv.physics.UltrafastUltrasound` base and :class:`deepinv.physics.UltrasoundPlaneWave`) for ultrasound plane-wave imaging. Includes a tour example (:file:`examples/physics/demo_ultrasound_tour.py`) (by `Adrien Besson`_)
 - Add pretrained SwinIR weights for 2x super-resolution (:gh:`1304` by `Vicky De Ridder`_)
 - Add :class:`deepinv.sampling.PiGDMDataFidelity`, :class:`deepinv.sampling.MomentMatchingDataFidelity`, :class:`deepinv.sampling.ALDDataFidelity`, :class:`deepinv.sampling.ScoreSDEDataFidelity` and :class:`deepinv.sampling.ILVRDataFidelity` noisy data-fidelity terms for diffusion posterior sampling, with a new example ``demo_noisy_data_fidelity.py`` (:gh:`1279` by `Samuel Hurault`_)
 - Publish the docs in ``llms.txt`` format using the `sphinx-llm <https://github.com/NVIDIA/sphinx-llm>`_ extension (:gh:`1362` by `Julian Tachella`_)
@@ -723,3 +723,4 @@ Changed
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
 .. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou
+.. _Adrien Besson: https://github.com/AdriBesson
