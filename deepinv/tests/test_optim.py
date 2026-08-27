@@ -1524,3 +1524,45 @@ def test_sirt(device):
 
         assert sirt.has_converged
         assert x_sirt is not None
+
+
+def test_backtracking_does_not_consume_global_iterations():
+    """Rejected backtracking trials must not count against ``max_iter``.
+
+    A failed sufficient-decrease check discards the trial iterate and shrinks
+    the stepsize, so it belongs to the search for one iteration rather than
+    being an iteration itself. Counting it stops the algorithm before it has
+    taken ``max_iter`` steps: on this problem the iterate never leaves its
+    initialisation. See https://github.com/deepinv/deepinv/issues/1272.
+    """
+    physics = dinv.physics.LinearPhysics(A=lambda x: x, A_adjoint=lambda x: x)
+    y = torch.ones(1, 1, 1, 1)
+    model = dinv.optim.GD(
+        data_fidelity=dinv.optim.L2(),
+        stepsize=4.0,
+        max_iter=2,
+        backtracking=dinv.optim.BacktrackingConfig(gamma=0.1, eta=0.5, max_iter=20),
+    )
+    x = model(y, physics, init=torch.zeros_like(y))
+    # Two accepted iterations at the backtracked stepsize reach the minimiser
+    # of 0.5 ||x - y||^2, which is y itself.
+    assert torch.allclose(x, y), f"iterate never advanced, got {x.item()}"
+
+
+def test_backtracking_failure_limit_reports_cleanly():
+    """Exhausting the backtracking budget must stop, not raise.
+
+    The stopping message previously interpolated an attribute that is never
+    defined, so this path raised AttributeError instead of terminating.
+    """
+    physics = dinv.physics.LinearPhysics(A=lambda x: x, A_adjoint=lambda x: x)
+    y = torch.ones(1, 1, 1, 1)
+    model = dinv.optim.GD(
+        data_fidelity=dinv.optim.L2(),
+        stepsize=1e6,
+        max_iter=50,
+        backtracking=dinv.optim.BacktrackingConfig(gamma=0.1, eta=0.5, max_iter=2),
+        verbose=True,
+    )
+    x = model(y, physics, init=torch.zeros_like(y))
+    assert torch.isfinite(x).all()

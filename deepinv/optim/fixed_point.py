@@ -321,10 +321,19 @@ class FixedPoint(nn.Module):
         if self.anderson_acceleration_config is not None:
             self.init_anderson_acceleration(X)
 
-        for it in tqdm(
-            range(self.max_iter),
+        # ``it`` counts accepted iterations only. A failed backtracking check
+        # rejects the trial iterate and adjusts the stepsize instead, so it is
+        # part of the search for one iteration rather than an iteration in its
+        # own right. Counting it against ``max_iter`` both stops the algorithm
+        # early and hands ``single_iteration`` an index that runs ahead of the
+        # iterate it labels. Consecutive failures remain bounded by
+        # ``backtracking_config.max_iter``, so the loop still terminates.
+        it = 0
+        progress_bar = tqdm(
+            total=self.max_iter,
             disable=(not self.verbose or not self.show_progress_bar),
-        ):
+        )
+        while it < self.max_iter:
             X_prev = X
             X = self.single_iteration(X, it, *args, **kwargs)
 
@@ -337,13 +346,17 @@ class FixedPoint(nn.Module):
                     else None
                 )
 
-                # Convergence check
-                if (
+                # Convergence check, evaluated at the index of the iteration
+                # that has just been accepted.
+                converged = (
                     self.early_stop
                     and self.check_conv_fn is not None
                     and it > 1
                     and self.check_conv_fn(it, X_prev, X)
-                ):
+                )
+                it += 1
+                progress_bar.update(1)
+                if converged:
                     break
 
             else:
@@ -354,9 +367,10 @@ class FixedPoint(nn.Module):
                     if self.verbose:
                         print(
                             f"[Stopping] Reached maximum number of failed backtracking checks "
-                            f"({self.max_iter_backtracking})."
+                            f"({self.backtracking_config.max_iter})."
                         )
                     break
+        progress_bar.close()
 
         return X, metrics
 
