@@ -29,7 +29,7 @@ Changed
 - Extend :func:`DST-I <deepinv.physics.functional.dst1>` to make it n-dimensional and add an option to have it compute the regular DST-I instead of the non-standard sign-flipped orthogonal variant (:gh:`934` by `Jérémy Scanvic`_)
 - Extend: :class:`deepinv.optim.MLEM` now supports :class:`deepinv.physics.PET` (:gh:`1255` by `Thibaut Modrzyk`_)
 - (Breaking) Make :class:`deepinv.optim.TVPrior()` compute an explicit choice of subgradient instead of using autodiff. (:gh:`1271` by `Thibaut Modrzyk`_)
-- Extend: :class:`deepinv.models.DEAL` now accepts two new arguments: `inner_iter` and `outer_iter`. (:gh:`1335` by `PAUL BERNARD`)
+- Extend: :class:`deepinv.models.DEAL` now accepts two new arguments: `inner_iter` and `outer_iter`. (:gh:`1335` by `Paul Bernard`_)
 
 Fixed
 ^^^^^
@@ -45,7 +45,7 @@ Fixed
 - Fix inversion in :class:`deepinv.transform.Reflect` (:gh:`1236` by `Sarra Amiri`_)
 - (Breaking) Have `x_shift` represent horizontal shifts and `y_shift` vertical shifts in :class:`deepinv.transform.Shift` (:gh:`1236` by `Sarra Amiri`_)
 - Force trainer non_blocking_transfers=False on MPS and CPU (:gh:`1311` by `Andrew Wang`_)
-- Fix :class:`deepinv.physics.PET` incorrect device attribution of attenuation and background on update and incorrect handling of batched attenuation 
+- Fix :class:`deepinv.physics.PET` incorrect device attribution of attenuation and background on update and incorrect handling of batched attenuation  (:gh:`1331` by `Thibaut Modrzyk`_)
 
 
 v0.4.1
