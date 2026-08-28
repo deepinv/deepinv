@@ -2,7 +2,6 @@ from __future__ import annotations
 import os
 import csv
 from datetime import datetime
-import platform
 import numpy as np
 from deepinv.utils.decorators import _deprecated_class, _deprecated_func
 
@@ -92,10 +91,9 @@ class ProgressMeter:
 def get_timestamp() -> str:
     """Get current timestamp string.
 
-    :return str: timestamp, with separators determined by system.
+    :return str: timestamp.
     """
-    sep = "_" if platform.system() == "Windows" else ":"
-    return datetime.now().strftime(f"%y-%m-%d-%H{sep}%M{sep}%S")
+    return datetime.now().strftime(f"%Y%m%d_%H%M%S")
 
 
 @_deprecated_class
