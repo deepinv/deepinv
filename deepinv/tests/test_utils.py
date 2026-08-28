@@ -428,16 +428,20 @@ def test_deprecated_alias():
 def test_phantom_datasets(size, n_data, transform, length, dataset_name):
     if dataset_name == "random":
         dataset = deepinv.utils.RandomPhantomDataset(
-            size=size, n_data=n_data, transform=transform, length=length
+            size=size,
+            n_data=n_data,
+            transform=transform,
+            length=length,
+            use_dict_output=True,
         )
     elif dataset_name == "shepplogan":
         dataset = deepinv.utils.SheppLoganDataset(
-            size=size, n_data=n_data, transform=transform
+            size=size, n_data=n_data, transform=transform, use_dict_output=True
         )
     check_dataset_format(
         dataset,
         length=length if dataset_name != "shepplogan" else 1,
-        dtype=torch.Tensor,
+        dtype=dict,
         shape=(n_data, size, size),
     )
 
