@@ -280,7 +280,7 @@ def test_plot(
 
 
 @pytest.mark.parametrize(
-    "vmin, vmax, expected_clim",
+    "vmin, vmax, expected_clip",
     [
         (0.0, 1.0, (0.25, 0.75)),
         (0.25, 0.75, (0.0, 1.0)),
