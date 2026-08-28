@@ -23,7 +23,7 @@ class LidcIdriSliceDataset(ImageDataset):
 
     .. warning::
         To download the raw dataset, you will need to install the `NBIA Data Retriever <https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images>`_,
-        then download the manifest file (.tcia file)`here <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_, and open it by double clicking.
+        then download the manifest file (.tcia file) `here <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_, and open it by double clicking.
 
 
     **Raw data file structure:** ::
