@@ -127,7 +127,7 @@ Physics generators inherit from the :class:`deepinv.physics.generator.PhysicsGen
     >>> import deepinv as dinv
     >>>
     >>> x = torch.rand((1, 1, 8, 8))
-    >>> physics = dinv.physics.Blur(filter=dinv.physics.functional.blur.gaussian_blur(sigma=.2))
+    >>> physics = dinv.physics.Blur(filter=dinv.physics.functional.blur.gaussian_blur(sigma=(0.2, 0.2)))
     >>> y = physics(x) # compute with Gaussian blur
     >>> generator = dinv.physics.generator.MotionBlurGenerator(psf_size=(3, 3))
     >>> params = generator.step(x.size(0)) # params = {'filter': torch.tensor(...)}
