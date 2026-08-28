@@ -284,7 +284,8 @@ model = trainer.train()
 #
 trainer.test(test_dataloader)
 
-test_sample = next(iter(test_dataloader))
+batch = next(iter(test_dataloader))
+test_sample = batch["x"]
 model.eval()
 test_sample = test_sample.to(device)
 
