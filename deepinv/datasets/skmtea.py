@@ -110,12 +110,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
         if filter_id is not None:
             self.samples = list(filter(filter_id, self.samples))
 
-        # NOTE: skip FastMRISliceDataset.__init__ (next in MRO) since it would
-        # re-scan `root` using FastMRI's own file/metadata format; SKMTEASliceDataset
-        # already builds `self.samples` itself above using its own format.
         self.use_dict_output = use_dict_output
-
-        # Putting warning here since not triggered on ImageDataset.__init__
         if not self.use_dict_output:
             warn(
                 "The tuple format for dataset outputs is deprecated and will be removed in a future version."

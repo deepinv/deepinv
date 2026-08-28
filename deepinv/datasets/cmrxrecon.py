@@ -165,12 +165,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
             self.samples = samples
 
-        # NOTE: skip FastMRISliceDataset.__init__ (next in MRO) since it would
-        # re-scan `root` using FastMRI's own file/metadata format; CMRxRecon
-        # already builds `all_fnames` and `self.samples` itself above using its own format.
         self.use_dict_output = use_dict_output
-
-        # Putting warning here since not triggered on ImageDataset.__init__
         if not self.use_dict_output:
             warn(
                 "The tuple format for dataset outputs is deprecated and will be removed in a future version."
