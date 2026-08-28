@@ -85,7 +85,9 @@ def dataset_output_context(use_dict_output):
     if use_dict_output:
         yield
     else:
-        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+        with pytest.warns(
+            DeprecationWarning, match="tuple format for dataset outputs is deprecated"
+        ):
             yield
 
 
@@ -118,7 +120,8 @@ def check_dataset_format(
     :param bool skip_check: skip ImageDataset checks.
     """
     if not skip_check:
-        check_dataset(dataset, allow_non_tensor=allow_non_tensor)
+        with dataset_output_context(use_dict_output=dataset.use_dict_output):
+            check_dataset(dataset, allow_non_tensor=allow_non_tensor)
 
     if dtype in (
         Tensor,
@@ -147,16 +150,17 @@ def check_dataset_format(
             model = DummyModel()
             physics = Physics()
             try:
-                _ = Trainer(
-                    model,
-                    physics,
-                    optimizer=None,
-                    train_dataloader=dataloader,
-                    online_measurements=True,
-                    save_path=None,
-                    compare_no_learning=False,
-                    metrics=None,
-                ).setup_train(train=True)
+                with dataset_output_context(use_dict_output=dataset.use_dict_output):
+                    _ = Trainer(
+                        model,
+                        physics,
+                        optimizer=None,
+                        train_dataloader=dataloader,
+                        online_measurements=True,
+                        save_path=None,
+                        compare_no_learning=False,
+                        metrics=None,
+                    ).setup_train(train=True)
 
                 class DummyMetric(Metric):
                     def __init__(self):
@@ -167,14 +171,15 @@ def check_dataset_format(
 
                 # We must switch any physics calculations as the data being checked here can be arbitrary
                 # e.g. ints, which is currently not supported by PyTorch https://github.com/pytorch/pytorch/issues/58734
-                _ = trainer_test(
-                    model,
-                    dataloader,
-                    physics,
-                    online_measurements=True,
-                    compare_no_learning=False,
-                    metrics=DummyMetric(),
-                )
+                with dataset_output_context(use_dict_output=dataset.use_dict_output):
+                    _ = trainer_test(
+                        model,
+                        dataloader,
+                        physics,
+                        online_measurements=True,
+                        compare_no_learning=False,
+                        metrics=DummyMetric(),
+                    )
 
             except ValueError as e:
                 # We may be checking paired unsup dataset, in which case training is ok to fail
@@ -232,7 +237,7 @@ class MyDataset(ImageDataset):
 def test_base_dataset():
     x, y, params = Tensor([0]), Tensor([0]), {"a": Tensor([0])}
     bad = "hello"
-    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+    with dataset_output_context(use_dict_output=False):
         check_dataset(MyDataset(x))
         check_dataset(MyDataset([x, y]))
         check_dataset(MyDataset([torch.nan, y]))
@@ -261,7 +266,7 @@ def test_base_dataset():
         [x],
     ):
         with pytest.raises(RuntimeError):
-            check_dataset(MyDataset(bad_dataset_input))
+            check_dataset(MyDataset(bad_dataset_input, use_dict_output=True))
 
     for bad_dict_input in (
         {"params": params},  # neither x nor y
@@ -667,14 +672,15 @@ def test_tensordataset(use_dict_output):
     )
     bad = np.zeros((1, 3, 4, 4))
 
-    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+    with dataset_output_context(use_dict_output=False):
         _ = TensorDataset(x=x)
         _ = TensorDataset(x=x, y=y)
         _ = TensorDataset(y=y)
         _ = TensorDataset(x=x, y=y, params=params)
         _ = TensorDataset(x=x, params=params)
 
-    dataset = TensorDataset(y=y, params=params, use_dict_output=use_dict_output)
+    with dataset_output_context(use_dict_output):
+        dataset = TensorDataset(y=y, params=params, use_dict_output=use_dict_output)
 
     if use_dict_output:
         assert set(dataset[0]) == {"y", "params"}
@@ -694,8 +700,8 @@ def test_tensordataset(use_dict_output):
         {"y": bad},
         {"x": x, "y": torch.cat([y, y])},  # Batch size mismatch
     ):
-        with pytest.raises(ValueError):
-            _ = TensorDataset(**bad_dataset_input)
+        with pytest.raises(ValueError), dataset_output_context(use_dict_output):
+            _ = TensorDataset(use_dict_output=use_dict_output, **bad_dataset_input)
 
 
 def get_transforms(transform_name, shape):
@@ -1457,7 +1463,8 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
     assert target1.unsqueeze(0).shape == mag1.shape
 
     # Test save simple dataset
-    subset = dataset.save_simple_dataset(f"{download_fastmri}/temp_simple.pt")
+    with dataset_output_context(use_dict_output):
+        subset = dataset.save_simple_dataset(f"{download_fastmri}/temp_simple.pt")
     check_dataset_format(
         subset,
         length=n_slices,
@@ -1868,14 +1875,15 @@ def test_RandomPatchSampler(make_data, use_dict_output):
     # (i) formats on 3D, (ii) 2D&channels, (iii) 4D no-channels
     for c in make_data:
         # x-only
-        ds = RandomPatchSampler(
-            x_dir=c["x"],
-            patch_size=c["patch"],
-            file_format=c["fmt"],
-            ch_axis=c["ch_axis"],
-            loader=c.get("loader", None),
-            use_dict_output=use_dict_output,
-        )
+        with dataset_output_context(use_dict_output):
+            ds = RandomPatchSampler(
+                x_dir=c["x"],
+                patch_size=c["patch"],
+                file_format=c["fmt"],
+                ch_axis=c["ch_axis"],
+                loader=c.get("loader", None),
+                use_dict_output=use_dict_output,
+            )
         assert len(ds) == 2
 
         batch = next(iter(ds))
@@ -1885,15 +1893,16 @@ def test_RandomPatchSampler(make_data, use_dict_output):
             if c["ch_axis"] is None
             else (c["expected"])
         )
-        ds = RandomPatchSampler(
-            x_dir=c["x"],
-            y_dir=c["y"],
-            patch_size=c["patch"],
-            file_format=c["fmt"],
-            ch_axis=c["ch_axis"],
-            loader=c.get("loader", None),
-            use_dict_output=use_dict_output,
-        )
+        with dataset_output_context(use_dict_output):
+            ds = RandomPatchSampler(
+                x_dir=c["x"],
+                y_dir=c["y"],
+                patch_size=c["patch"],
+                file_format=c["fmt"],
+                ch_axis=c["ch_axis"],
+                loader=c.get("loader", None),
+                use_dict_output=use_dict_output,
+            )
         batch = next(iter(ds))
         batch = batch_as_dict(batch)
         x, y = batch["x"], batch["y"]
@@ -1903,14 +1912,15 @@ def test_RandomPatchSampler(make_data, use_dict_output):
 
     # check if x is nan behaviour happens
     c0 = make_data[0]
-    ds = RandomPatchSampler(
-        y_dir=c0["y"],
-        patch_size=c0["patch"],
-        file_format=c0["fmt"],
-        ch_axis=c0["ch_axis"],
-        loader=c0.get("loader", None),
-        use_dict_output=use_dict_output,
-    )
+    with dataset_output_context(use_dict_output):
+        ds = RandomPatchSampler(
+            y_dir=c0["y"],
+            patch_size=c0["patch"],
+            file_format=c0["fmt"],
+            ch_axis=c0["ch_axis"],
+            loader=c0.get("loader", None),
+            use_dict_output=use_dict_output,
+        )
     assert len(ds) == 2
 
     batch = next(iter(ds))
