@@ -292,6 +292,7 @@ examples_order = {
         "demo_physics_tour.py",
         "demo_blur_tour.py",
         "demo_mri_tour.py",
+        "demo_ultrasound_tour.py",
     ],
 }
 
