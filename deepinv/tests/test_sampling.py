@@ -384,20 +384,14 @@ VE_VP_SDE_CLASSES = [VarianceExplodingDiffusion, VariancePreservingDiffusion]
 
 @pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)
 @pytest.mark.parametrize("t", [0.2, 0.5, 0.8, 0.95])
-def test_sigma_prime_matches_finite_difference(sde_class, t):
-    """`sigma_prime_t` must be the derivative of `sigma_t`, on either branch."""
+def test_sigma_scale_prime_matches_finite_difference(sde_class, t):
+    """`sigma_prime_t`, `scale_prime_t` must match finite difference"""
     sde = sde_class(dtype=torch.float64)
     h = 1e-6
+    # For sigma
     fd = (float(sde.sigma_t(t + h)) - float(sde.sigma_t(t - h))) / (2 * h)
     assert float(sde.sigma_prime_t(t)) == pytest.approx(fd, rel=1e-4)
-
-
-@pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)
-@pytest.mark.parametrize("t", [0.2, 0.5, 0.8, 0.95])
-def test_scale_prime_matches_finite_difference(sde_class, t):
-    """`scale_prime_t` must be the derivative of `scale_t`, on either branch."""
-    sde = sde_class(dtype=torch.float64)
-    h = 1e-6
+    # For scale
     fd = (float(sde.scale_t(t + h)) - float(sde.scale_t(t - h))) / (2 * h)
     assert float(sde.scale_prime_t(t)) == pytest.approx(fd, rel=1e-4, abs=1e-9)
 
@@ -418,6 +412,7 @@ def test_sample_init_uses_given_time_step(sde_class, rng, device):
         expected = float(sde.sigma_t(t) * sde.scale_t(t))
         assert float(init.std()) == pytest.approx(expected, rel=5e-2)
 
+    # Default sample must be at time T
     rng.manual_seed(0)
     default = sde.sample_init(shape, rng=rng)
     rng.manual_seed(0)

@@ -124,8 +124,7 @@ class BaseSDE(nn.Module):
 
         :param shape: The shape of the the sample, of the form `(B, C, H, W)`.
         :param torch.Generator rng: Random number generator for reproducibility.
-        :param torch.Tensor, float t: the time at which the state is drawn, which should be the
-            time the solver starts from. If `None`, defaults to the end time `T` of the forward SDE.
+        :param torch.Tensor, float t: the time at which the state is drawn. If `None`, defaults to the end time `T`.
         """
         raise NotImplementedError
 
@@ -485,7 +484,10 @@ class EDMDiffusionSDE(DiffusionSDE):
         return score
 
     def sample_init(
-        self, shape, rng: torch.Generator = None, t: Tensor | float = None
+        self,
+        shape: list | tuple | torch.Size,
+        rng: torch.Generator = None,
+        t: Tensor | float = None,
     ) -> torch.Tensor:
         r"""
         Sample from the initial distribution of the reverse-time diffusion SDE, which is a Gaussian with zero mean and covariance matrix :math:` s(t)^2 \sigma(t)^2 \operatorname{Id}`.
@@ -500,8 +502,7 @@ class EDMDiffusionSDE(DiffusionSDE):
 
         :param tuple shape: The shape of the sample to generate
         :param torch.Generator rng: Random number generator for reproducibility
-        :param torch.Tensor, float t: the time at which the state is drawn. If `None`, defaults to
-            the end time `T` of the forward SDE.
+        :param torch.Tensor, float t: the time at which the state is drawn. If `None`, defaults to end time `T`
         :return: A sample from the prior distribution
         :rtype: torch.Tensor
         """
