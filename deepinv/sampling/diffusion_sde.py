@@ -14,15 +14,7 @@ from deepinv.models.wrapper import MinusOneOneDenoiserWrapper
 
 
 def _first_time_step(solver: BaseSDESolver, timesteps=None):
-    r"""
-    The time at which the solver starts, i.e. the time the initial state must be drawn at.
-
-    :param deepinv.sampling.BaseSDESolver solver: the solver used for sampling.
-    :param torch.Tensor, numpy.ndarray, list timesteps: the time steps given to the solver, if any.
-        If `None`, the solver's own time steps are used.
-
-    :return: the first time step, or `None` if it cannot be determined.
-    """
+    """The time at which the solver starts"""
     if timesteps is None:
         timesteps = getattr(solver, "timesteps", None)
     if timesteps is None or len(timesteps) == 0:
