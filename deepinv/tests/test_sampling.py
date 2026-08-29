@@ -16,6 +16,7 @@ from deepinv.sampling import (
     VariancePreservingDiffusion,
     EDMDiffusionSDE,
     FlowMatching,
+    SongDiffusionSDE,
     PosteriorDiffusion,
     DPSDataFidelity,
     EulerSolver,
@@ -394,6 +395,42 @@ def test_sigma_scale_prime_matches_finite_difference(sde_class, t):
     # For scale
     fd = (float(sde.scale_t(t + h)) - float(sde.scale_t(t - h))) / (2 * h)
     assert float(sde.scale_prime_t(t)) == pytest.approx(fd, rel=1e-4, abs=1e-9)
+
+
+@pytest.mark.parametrize("t", [0.2, 0.5, 0.8, 0.95])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        dict(beta_t=lambda t: 1.0 + 0 * t, B_t=lambda t: t, xi_t=lambda t: 2 * t),
+        dict(xi_t=lambda t: 2 * t, variance_exploding=True),
+        dict(beta_t=lambda t: 0.1 + 19.9 * t, variance_preserving=True),
+    ],
+    ids=["general", "variance_exploding", "variance_preserving"],
+)
+def test_song_sde_realises_its_own_sde(kwargs, t):
+    """`SongDiffusionSDE` must realise `dx = -beta/2 x dt + sqrt(xi) dw`, on every branch.
+
+    EDM realises the diffusion as `g = s sqrt(2 sigma sigma')`, so `g^2` must come back as
+    `xi(t)`; that holds only if `sigma^2 = int_0^t xi/s^2` and `sigma' = xi / (2 s^2 sigma)`.
+    """
+    sde = SongDiffusionSDE(dtype=torch.float64, **kwargs)
+    xi_t = kwargs["xi_t"] if "xi_t" in kwargs else kwargs["beta_t"]
+
+    h = 1e-6
+    fd = (float(sde.sigma_t(t + h)) - float(sde.sigma_t(t - h))) / (2 * h)
+    assert float(sde.sigma_prime_t(t)) == pytest.approx(fd, rel=1e-4)
+
+    g_squared = float(sde.forward_diffusion(t) ** 2)
+    assert g_squared == pytest.approx(float(xi_t(torch.tensor(t))), rel=1e-3)
+
+
+@pytest.mark.parametrize("t", [0.2, 0.5, 0.8, 0.95])
+def test_song_vp_matches_ddpm_noise_level(t):
+    """On the VP branch, `sigma_t` must be the DDPM noise level of `alpha_bar = scale_t^2`."""
+    sde = VariancePreservingDiffusion(dtype=torch.float64)
+    alpha_bar = float(sde.scale_t(t)) ** 2
+    ddpm_sigma = ((1 - alpha_bar) / alpha_bar) ** 0.5
+    assert float(sde.sigma_t(t)) == pytest.approx(ddpm_sigma, rel=1e-9)
 
 
 @pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)

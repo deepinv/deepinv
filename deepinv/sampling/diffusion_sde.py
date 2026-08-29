@@ -528,7 +528,12 @@ class SongDiffusionSDE(EDMDiffusionSDE):
     Compared to the EDM formulation in :class:`deepinv.sampling.EDMDiffusionSDE`, the scale :math:`s(t)` and noise :math:`\sigma(t)` schedulers are defined with respect to :math:`\beta(t)` and :math:`\xi(t)` as follows:
 
     .. math::
-        s(t) = \exp\left(-\int_0^t \beta(s) ds\right), \quad \sigma(t) = \sqrt{2 \int_0^t \frac{\xi(s)}{s(s)^2} ds}.
+        s(t) = \exp\left(-\int_0^t \beta(s) ds\right), \quad \sigma(t) = \sqrt{\int_0^t \frac{\xi(s)}{s(s)^2} ds}.
+
+    These are the schedules for which the EDM diffusion coefficient :math:`s(t) \sqrt{2 \sigma(t) \sigma'(t)}`
+    reduces to :math:`\sqrt{\xi(t)}`, i.e. for which the process above is the one that is realised.
+    On the variance-preserving branch the integral has the closed form :math:`\sigma(t)^2 = 1/s(t)^2 - 1`,
+    which is the DDPM noise level :math:`\sqrt{1 - \bar\alpha(t)} / \sqrt{\bar\alpha(t)}` for :math:`\bar\alpha = s^2`.
 
     Common choices include the variance-preserving formulation :math:`\beta(t) = \xi(t)` and the variance-exploding formulation :math:`\beta(t) = 0`.
 
@@ -611,17 +616,11 @@ class SongDiffusionSDE(EDMDiffusionSDE):
                 integral = trapz_torch(
                     integrand, torch.tensor(0.0, device=t.device), t, n_steps
                 )
-                return (2 * integral).sqrt()
+                return integral.sqrt()
 
         def sigma_prime_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
-            if variance_preserving:
-                # sigma = sqrt(1 / s^2 - 1)
-                # sigma' = beta / (2 s^2 sigma).
-                return xi_t(t) / (2 * scale_t(t) ** 2 * sigma_t(t))
-            # sigma = sqrt(2 \int_0^t xi / s^2)
-            # sigma' = xi / (s^2 sigma).
-            return xi_t(t) / (scale_t(t) ** 2 * sigma_t(t))
+            return xi_t(t) / (2 * scale_t(t) ** 2 * sigma_t(t))
 
         super().__init__(
             sigma_t=sigma_t,
