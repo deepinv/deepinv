@@ -188,6 +188,8 @@ Functional
    deepinv.physics.functional.bicubic_filter
    deepinv.physics.functional.sinc_filter
    deepinv.physics.functional.liu_jia_pad
+   deepinv.physics.functional.conv_filter_transpose2d
+   deepinv.physics.functional.conv_filter_transpose2d_fft
 
 
 .. autosummary::
