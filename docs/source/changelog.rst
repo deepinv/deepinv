@@ -23,6 +23,7 @@ New Features
 - Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
 - Add :class:`deepinv.loss.metric.BRISQUE` and :class:`deepinv.loss.metric.NIMA` no-reference image quality metrics (:gh:`1310` by `Julian Tachella`_)
 - Add :class:`deepinv.datasets.BrainWebPET` (:gh:`1286` by `Thibaut Modrzyk`_)
+- Add :class:`deepinv.models.WienerDeconvolution` for closed-form Wiener deconvolution (:gh:`1315` by `Ashish Verma`_)
 
 Changed
 ^^^^^^^
@@ -690,3 +691,4 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
+.. _Ashish Verma: https://github.com/ashishv-git
