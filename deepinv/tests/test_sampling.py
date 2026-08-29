@@ -16,7 +16,6 @@ from deepinv.sampling import (
     VariancePreservingDiffusion,
     EDMDiffusionSDE,
     FlowMatching,
-    SongDiffusionSDE,
     PosteriorDiffusion,
     DPSDataFidelity,
     EulerSolver,

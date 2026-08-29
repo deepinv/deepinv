@@ -530,10 +530,8 @@ class SongDiffusionSDE(EDMDiffusionSDE):
     .. math::
         s(t) = \exp\left(-\int_0^t \beta(s) ds\right), \quad \sigma(t) = \sqrt{\int_0^t \frac{\xi(s)}{s(s)^2} ds}.
 
-    These are the schedules for which the EDM diffusion coefficient :math:`s(t) \sqrt{2 \sigma(t) \sigma'(t)}`
-    reduces to :math:`\sqrt{\xi(t)}`, i.e. for which the process above is the one that is realised.
-    On the variance-preserving branch the integral has the closed form :math:`\sigma(t)^2 = 1/s(t)^2 - 1`,
-    which is the DDPM noise level :math:`\sqrt{1 - \bar\alpha(t)} / \sqrt{\bar\alpha(t)}` for :math:`\bar\alpha = s^2`.
+    These are the schedules for which the EDM diffusion coefficient :math:`s(t) \sqrt{2 \sigma(t) \sigma'(t)}` reduces to :math:`\sqrt{\xi(t)}`.
+    For variance-preserving, it has the closed form :math:`\sigma(t)^2 = 1/s(t)^2 - 1`, which is the DDPM noise level :math:`\sqrt{1 - \bar\alpha(t)} / \sqrt{\bar\alpha(t)}` for :math:`\bar\alpha = s^2`.
 
     Common choices include the variance-preserving formulation :math:`\beta(t) = \xi(t)` and the variance-exploding formulation :math:`\beta(t) = 0`.
 
