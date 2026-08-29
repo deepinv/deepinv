@@ -10,7 +10,7 @@ from deepinv.training.trainer import Trainer
 from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import GaussianNoise, PoissonNoise
-from deepinv.datasets.base import ImageDataset
+from deepinv.datasets.base import ImageDataset, batch_as_dict
 from unittest.mock import patch
 import math
 import io
@@ -1143,7 +1143,9 @@ def test_trainer_speed(device):  # pragma: no cover
     )
 
     def do_epoch():
-        for x in dataloader:
+        for batch in dataloader:
+            batch = batch_as_dict(batch)
+            x = batch["x"]
             x = x.to(device)
             y = physics(x)
             x_hat = model(y, physics=physics)
