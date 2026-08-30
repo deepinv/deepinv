@@ -242,17 +242,15 @@ def _reshape_batch_parameter(
     parameter: torch.Tensor | float, reference: torch.Tensor
 ) -> torch.Tensor:
     """Reshape a scalar or batch-wise parameter for tensor broadcasting."""
-    dtype = reference.real.dtype if reference.is_complex() else reference.dtype
-    parameter = torch.as_tensor(parameter, device=reference.device, dtype=dtype)
+    parameter = torch.as_tensor(
+        parameter,
+        device=reference.device,
+        dtype=reference.real.dtype,
+    )
     if parameter.numel() == 1:
         return parameter.squeeze()
-    if (
-        parameter.shape[0] == reference.shape[0]
-        and all(size == 1 for size in parameter.shape[1:])
-        and parameter.ndim < reference.ndim
-    ):
-        return parameter.view(parameter.shape[0], *([1] * (reference.ndim - 1)))
-    return parameter
+    shape = [reference.shape[0]] + [1] * (reference.ndim - 1)
+    return parameter.reshape(shape)
 
 
 class PiGDMDataFidelity(NoisyDataFidelity):
@@ -265,23 +263,19 @@ class PiGDMDataFidelity(NoisyDataFidelity):
 
     .. math::
 
-        p(x_0|x_t)
-        \approx \mathcal N\!\left(
-            x_0;D(x_t,\sigma_t),\Sigma_t(x_t)
-        \right),
-        \qquad
-        \Sigma_t(x_t)=r_t^2\mathrm{Id},
-        \qquad
-        r_t^2=\frac{\sigma_t^2}{1+\sigma_t^2}.
+        p(x_0|x_t) \approx \mathcal{N} \left( x_0;D(x_t,\sigma_t),\Sigma_t(x_t) \right),
+        \qquad \Sigma_t(x_t)=r_t^2\mathrm{Id},
+        \qquad r_t^2=\frac{\sigma_t^2}{1+\sigma_t^2}.
 
-    For a linear forward operator and normalized Gaussian measurement noise,
+    For a linear forward operator and Gaussian measurement noise with standard
+    deviation :math:`\sigma_y`,
     integrating this approximation gives a Gaussian approximation of
     :math:`p_t(y|x_t)`. Its negative log-likelihood gradient is
 
     .. math::
 
        -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top
-        \left(r_t^2 A A^\top + \mathrm{Id}\right)^{-1}
+        \left(r_t^2 A A^\top + \sigma_y^2\mathrm{Id}\right)^{-1}
         \left(A D(x_t, \sigma_t) - y\right).
 
     Here :math:`D` is a denoiser and :math:`J_D` is its Jacobian. The parameter
@@ -289,6 +283,8 @@ class PiGDMDataFidelity(NoisyDataFidelity):
     data-fidelity term. The inverse is evaluated
     exactly for :class:`deepinv.physics.DecomposablePhysics` operators and
     approximated with conjugate gradient for other linear operators.
+    The measurement noise level :math:`\sigma_y` is read from
+    ``physics.noise_model.sigma``.
 
     :param deepinv.models.Denoiser denoiser: Denoiser network. It may be left as
         ``None`` when the data fidelity is passed to
@@ -313,10 +309,6 @@ class PiGDMDataFidelity(NoisyDataFidelity):
     ):
         super().__init__(weight=weight)
         self.denoiser = denoiser
-        if clip is not None:
-            if len(clip) != 2:  # pragma: no cover
-                raise ValueError(f"clip must be None or length 2, but got {clip}")
-            clip = sorted(clip)
         self.clip = clip
         self.cg_max_iter = cg_max_iter
         self.cg_tol = cg_tol
@@ -327,29 +319,37 @@ class PiGDMDataFidelity(NoisyDataFidelity):
         physics: Physics,
         u: torch.Tensor,
         r_t2: torch.Tensor | float,
+        sigma_y: torch.Tensor | float,
     ) -> torch.Tensor:
         r"""
-        Apply :math:`(r_t^2 A A^\top + \mathrm{Id})^{-1}` to ``u``.
+        Apply
+        :math:`(r_t^2 A A^\top + \sigma_y^2\mathrm{Id})^{-1}` to ``u``.
 
         :param deepinv.physics.Physics physics: Linear physics operator.
         :param torch.Tensor u: Tensor in the measurement space.
         :param torch.Tensor, float r_t2: PiGDM covariance parameter
             :math:`r_t^2`.
+        :param torch.Tensor, float sigma_y: Measurement noise standard deviation
+            :math:`\sigma_y`.
         :return: Solution in the measurement space.
         """
         if isinstance(physics, dinv.physics.DecomposablePhysics):
             transformed_u = physics.U_adjoint(u)
-            r_t2 = _reshape_batch_parameter(r_t2, transformed_u)
+            r_t2 = self.denoiser._handle_sigma(r_t2, reference_tensor=transformed_u)
+            sigma_y = self.denoiser._handle_sigma(
+                sigma_y, reference_tensor=transformed_u
+            )
             singular_values = physics.mask.to(
                 device=transformed_u.device, dtype=transformed_u.dtype
             )
-            denominator = 1.0 + r_t2 * singular_values.conj() * singular_values
+            denominator = sigma_y**2 + r_t2 * singular_values.conj() * singular_values
             return physics.U(transformed_u / denominator)
 
-        r_t2 = _reshape_batch_parameter(r_t2, u)
+        r_t2 = self.denoiser._handle_sigma(r_t2, reference_tensor=u)
+        sigma_y = self.denoiser._handle_sigma(sigma_y, reference_tensor=u)
 
         def operator(v):
-            return v + r_t2 * physics.A_A_adjoint(v)
+            return sigma_y**2 * v + r_t2 * physics.A_A_adjoint(v)
 
         return conjugate_gradient(
             operator,
@@ -381,29 +381,26 @@ class PiGDMDataFidelity(NoisyDataFidelity):
             raise ValueError("PiGDMDataFidelity only supports linear physics.")
         if self.denoiser is None:
             raise ValueError("PiGDMDataFidelity requires a denoiser.")
-
         input_dtype = x.dtype
-        with torch.enable_grad():
-            x_denoiser = x.detach().to(torch.float32)
-            if isinstance(sigma, torch.Tensor):
-                sigma = sigma.to(device=x.device, dtype=torch.float32)
-            denoised, denoiser_vjp = torch.func.vjp(
-                lambda z: self.denoiser(z, sigma, *args, **kwargs),
-                x_denoiser,
-            )
-            if self.clip is not None:
-                denoised = torch.clip(denoised, self.clip[0], self.clip[1])
-            measurement = physics.A(denoised)
-            difference = measurement - y.to(
-                device=measurement.device, dtype=measurement.dtype
-            )
-            sigma_t = torch.as_tensor(
-                sigma, device=difference.device, dtype=difference.dtype
-            )
-            r_t2 = sigma_t.square() / (1.0 + sigma_t.square())
-            inverse_difference = self.solve_inverse(physics, difference, r_t2)
-            adjoint = physics.A_adjoint(inverse_difference).to(denoised.dtype)
-            gradient = denoiser_vjp(adjoint)[0]
+        x_denoiser = x.detach().to(torch.float32)
+        sigma_denoiser = self.denoiser._handle_sigma(sigma, reference_tensor=x_denoiser)
+        if not isinstance(physics.noise_model, dinv.physics.GaussianNoise):
+            raise ValueError("This data fidelity requires Gaussian measurement noise.")
+        sigma_y = physics.noise_model.sigma
+        denoised, denoiser_vjp = torch.func.vjp(
+            lambda z: self.denoiser(z, sigma_denoiser, *args, **kwargs),
+            x_denoiser,
+        )
+        if self.clip is not None:
+            denoised = torch.clip(denoised, self.clip[0], self.clip[1])
+        measurement = physics.A(denoised)
+        difference = measurement - y.to(
+            device=measurement.device, dtype=measurement.dtype
+        )
+        r_t2 = sigma**2 / (1.0 + sigma**2)
+        inverse_difference = self.solve_inverse(physics, difference, r_t2, sigma_y)
+        adjoint = physics.A_adjoint(inverse_difference).to(denoised.dtype)
+        gradient = denoiser_vjp(adjoint)[0]
 
         return (self.weight * gradient).to(input_dtype)
 
@@ -418,17 +415,18 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
 
     .. math::
 
-        p(x_0|x_t)
-        \approx \mathcal N\!\left(
-            x_0;D(x_t,\sigma_t),\Sigma_t(x_t)
-        \right).
+        p(x_0|x_t) \approx \mathcal{N} \left(
+        x_0;D(x_t,\sigma_t),\Sigma_t(x_t) \right),
+        \qquad
+        \Sigma_t(x_t)=\sigma_t^2J_D(x_t,\sigma_t)^\top.
 
     The resulting negative log-likelihood gradient is
 
     .. math::
 
         -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top
-        \left(A J_D(x_t, \sigma_t)^\top A^\top + \mathrm{Id}\right)^{-1}
+        \left(\sigma_t^2 A J_D(x_t, \sigma_t)^\top A^\top
+        + \sigma_y^2\mathrm{Id}\right)^{-1}
         \left(A D(x_t, \sigma_t) - y\right).
 
     The parameter :math:`\lambda`, exposed as ``weight``, controls the scale of
@@ -436,6 +434,8 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
     vector-Jacobian products, without
     materializing the denoiser Jacobian, and the measurement-space system is
     approximated with conjugate gradient.
+    The measurement noise level :math:`\sigma_y` is read from
+    ``physics.noise_model.sigma``.
 
     .. note::
 
@@ -500,34 +500,37 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
             raise ValueError("MomentMatchingDataFidelity requires a denoiser.")
 
         input_dtype = x.dtype
-        with torch.enable_grad():
-            x_denoiser = x.detach().to(torch.float32)
-            if isinstance(sigma, torch.Tensor):
-                sigma = sigma.to(device=x.device, dtype=torch.float32)
-            denoised, denoiser_vjp = torch.func.vjp(
-                lambda z: self.denoiser(z, sigma, *args, **kwargs),
-                x_denoiser,
-            )
-            if self.clip is not None:
-                denoised = torch.clip(denoised, self.clip[0], self.clip[1])
-            measurement = physics.A(denoised)
-            difference = measurement - y.to(
-                device=measurement.device, dtype=measurement.dtype
-            )
+        x_denoiser = x.detach().to(torch.float32)
+        if not isinstance(physics.noise_model, dinv.physics.GaussianNoise):
+            raise ValueError("This data fidelity requires Gaussian measurement noise.")
+        sigma_y = physics.noise_model.sigma
+        sigma_denoiser = self.denoiser._handle_sigma(sigma, reference_tensor=x_denoiser)
+        denoised, denoiser_vjp = torch.func.vjp(
+            lambda z: self.denoiser(z, sigma_denoiser, *args, **kwargs),
+            x_denoiser,
+        )
+        if self.clip is not None:
+            denoised = torch.clip(denoised, self.clip[0], self.clip[1])
+        measurement = physics.A(denoised)
+        difference = measurement - y.to(
+            device=measurement.device, dtype=measurement.dtype
+        )
+        sigma_y = self.denoiser._handle_sigma(sigma_y, reference_tensor=difference)
+        sigma_t = self.denoiser._handle_sigma(sigma, reference_tensor=difference)
 
-            def operator(v):
-                adjoint = physics.A_adjoint(v).to(denoised.dtype)
-                covariance_product = denoiser_vjp(adjoint)[0]
-                return v + physics.A(covariance_product)
+        def operator(v):
+            adjoint = physics.A_adjoint(v).to(denoised.dtype)
+            covariance_product = denoiser_vjp(adjoint)[0]
+            return sigma_y**2 * v + sigma_t**2 * physics.A(covariance_product)
 
-            inverse_difference = conjugate_gradient(
-                operator,
-                difference,
-                max_iter=self.cg_max_iter,
-                tol=self.cg_tol,
-                verbose=self.verbose,
-            )
-            adjoint = physics.A_adjoint(inverse_difference).to(denoised.dtype)
-            gradient = denoiser_vjp(adjoint)[0]
+        inverse_difference = conjugate_gradient(
+            operator,
+            difference,
+            max_iter=self.cg_max_iter,
+            tol=self.cg_tol,
+            verbose=self.verbose,
+        )
+        adjoint = physics.A_adjoint(inverse_difference).to(denoised.dtype)
+        gradient = denoiser_vjp(adjoint)[0]
 
         return (self.weight * gradient).to(input_dtype)

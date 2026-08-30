@@ -425,7 +425,9 @@ def test_noisy_data_fidelity(device):
     denoiser = dinv.models.DRUNet(pretrained="download").to(device)
     x = torch.rand(2, 3, 64, 64, device=device)
     physics = dinv.physics.Blur(
-        filter=dinv.physics.functional.gaussian_blur(sigma=(3, 3)), device=device
+        filter=dinv.physics.functional.gaussian_blur(sigma=(3, 3)),
+        noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+        device=device,
     )
     y = physics(x)
     sigma = 0.1
