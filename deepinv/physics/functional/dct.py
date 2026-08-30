@@ -98,7 +98,7 @@ def idct(x, norm=None):
 
 def dct_2d(x, norm=None):
     r"""
-    2-dimentional Discrete Cosine Transform, Type II (a.k.a. the DCT)
+    2-dimensional Discrete Cosine Transform, Type II (a.k.a. the DCT)
 
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html

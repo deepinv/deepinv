@@ -69,6 +69,7 @@ Operators
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
    deepinv.physics.Scattering
+   deepinv.physics.to_multiscale
 
 
 Generators
@@ -112,6 +113,9 @@ Generators
    deepinv.physics.phase_retrieval.build_probe
    deepinv.physics.phase_retrieval.generate_shifts
    deepinv.physics.scattering.circular_sensors
+   deepinv.physics.functional.tomography_subsets.get_subset_tensor
+   deepinv.physics.split_measurements
+   deepinv.physics.split_physics
 
 Noise distributions
 -------------------
@@ -183,6 +187,7 @@ Functional
    deepinv.physics.functional.bilinear_filter
    deepinv.physics.functional.bicubic_filter
    deepinv.physics.functional.sinc_filter
+   deepinv.physics.functional.liu_jia_pad
 
 
 .. autosummary::

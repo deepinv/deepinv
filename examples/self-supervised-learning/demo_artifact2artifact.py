@@ -42,7 +42,6 @@ device = dinv.utils.get_device()
 # Load data
 # ---------
 #
-
 # In this example, we use a mini demo subset of the single-coil `FastMRI dataset <https://fastmri.org/>`_
 # as the base image dataset, consisting of knees of size 320x320, and then resized to 128x128 for speed.
 #
@@ -181,7 +180,7 @@ model = MoDL().to(device)
 #
 # Perform loss on all collected lines by setting ``dynamic_model`` to
 # False. Then adapt model to perform Artifact2Artifact. We set
-# ``split_size=1`` to mean that each Artifact chunk containes only 1
+# ``split_size=1`` to mean that each Artifact chunk contains only 1
 # frame.
 #
 

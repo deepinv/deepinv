@@ -236,11 +236,15 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             "installed with `conda install -c conda-forge parallelproj`",
         )
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
+        attenuation = torch.full(img_size, 0.01, device=device)
         p = dinv.physics.PET(
             img_size,
             normalize=True,
             device=device,
+            attenuation=attenuation,
         )
+        assert not torch.allclose(p.attenuation, torch.ones_like(p.attenuation))
+        p.update(attenuation=torch.ones_like(p.attenuation))
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
         params = ["background", "attenuation"]
@@ -803,7 +807,7 @@ def test_upsampling(device, rng, name, kernel):
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operator_multiscale_wrapper(name, device, rng):
     r"""
-    Tests if a linear physics operator can be wrapped with a multiscale wrapper.
+    Tests if a linear physics operator can be wrapped with a multi-scale wrapper.
     """
 
     # defining a list of exceptions to skip  # TODO: fix for those?
@@ -846,7 +850,7 @@ def test_operator_multiscale_wrapper(name, device, rng):
         factors=[2, 4, 8],
         dtype=dtype,
         device=device,
-    )  # define a multiscale physics with base img size (1, 32, 32)
+    )  # define a multi-scale physics with base img size (1, 32, 32)
     y = new_physics(x, scale=scale)
     Aty = new_physics.A_adjoint(y, scale=scale)
 
@@ -1880,6 +1884,70 @@ def test_device_consistency(name):
                     assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5
 
 
+def get_all_tensor_attrs(module, prefix=""):
+    """
+    Get all tensor attributes of a module.
+    """
+    tensor_attrs = {}
+
+    def full_name(name):
+        return f"{prefix}.{name}" if prefix else name
+
+    # Registered parameters
+    for name, parameter in module._parameters.items():
+        if parameter is not None:
+            tensor_attrs[full_name(name)] = parameter
+
+    # Persistent registered buffers
+    for name, buffer in module._buffers.items():
+        if buffer is not None and name not in module._non_persistent_buffers_set:
+            tensor_attrs[full_name(name)] = buffer
+
+    # Unregistered tensor attributes.
+    # Including these preserves the test's ability to detect tensors that
+    # should potentially have been registered.
+    for name, attr in vars(module).items():
+        if isinstance(attr, torch.Tensor):
+            tensor_attrs[full_name(name)] = attr
+
+    # Recurse through registered submodules
+    for name, submodule in module._modules.items():
+        if submodule is not None:
+            tensor_attrs.update(
+                get_all_tensor_attrs(
+                    submodule,
+                    prefix=full_name(name),
+                )
+            )
+
+    return tensor_attrs
+
+
+def test_get_all_tensor_attrs_is_not_vacuous():
+    """
+    Test that the get_all_tensor_attrs behaves as expected.
+    """
+
+    class TestModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.register_buffer("buffer", torch.ones(1))
+            self.parameter = torch.nn.Parameter(torch.ones(1))
+            self.unregistered_tensor = torch.ones(1)
+
+        @property
+        def tensor_property(self):
+            return torch.ones(1)
+
+    attrs = get_all_tensor_attrs(TestModule())
+
+    assert set(attrs) == {
+        "buffer",
+        "parameter",
+        "unregistered_tensor",
+    }
+
+
 @pytest.mark.parametrize("name", OPERATORS)
 def test_physics_state_dict(name, device):
     r"""
@@ -1889,33 +1957,6 @@ def test_physics_state_dict(name, device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts state dict is saved.
     """
-
-    def get_all_tensor_attrs(module, prefix=""):
-        tensor_attrs = {}
-
-        # Check direct attributes
-        for name in dir(module):
-            try:
-                attr = getattr(module, name)
-            except Exception:
-                continue  # skip attributes that raise exceptions on access
-
-            full_name = f"{prefix}.{name}" if prefix else name
-            if (
-                isinstance(attr, torch.Tensor)
-                and name not in module._non_persistent_buffers_set
-            ):
-                tensor_attrs[full_name] = attr
-            elif isinstance(attr, torch.nn.ModuleList):
-                for i, submodule in enumerate(attr):
-                    tensor_attrs.update(
-                        get_all_tensor_attrs(submodule, prefix=f"{full_name}.{i}")
-                    )
-            elif isinstance(attr, torch.nn.Module):
-                # Recurse into submodules
-                tensor_attrs.update(get_all_tensor_attrs(attr, prefix=full_name))
-
-        return tensor_attrs
 
     physics, imsize, _, dtype = find_operator(name, device)
     if name == "radio":
@@ -2343,6 +2384,107 @@ def test_physics_warn_extra_kwargs():
         UserWarning, match="Arguments {'sigma': 0.5} are passed to Denoising"
     ):
         dinv.physics.Denoising(sigma=0.5)
+
+
+MULTISCALE_EXCLUSION = [
+    # three dimensional signals are currently not supported
+    "3Ddeblur_valid",
+    "3Ddeblur_circular",
+    "3DMRI",
+    "3DMultiCoilMRI",
+    "pet_3d",
+    "DynamicMRI",
+    "fast_singlepixel",
+    "fast_singlepixel_zig_zag",
+    "fast_singlepixel_old_sequency",
+    "fast_singlepixel_cake_cutting",
+    "fast_singlepixel_xy",
+]
+
+
+@pytest.mark.parametrize(
+    "name", [op for op in OPERATORS if op not in MULTISCALE_EXCLUSION]
+)
+def test_multiscale_coarse_adjointness(name, device):
+    if (
+        "MRI" in name
+        or "cassi" in name
+        or "pet_2d" == name
+        or "ptychography_linear" == name
+        or "hyperspectral_unmixing" == name
+        or "composition2" == name
+    ):
+        physics, imsize, _, dtype = find_operator(name, device)
+    else:
+        # make sure the imsize is large enough for multi-scale tests
+        imsize = (3, 16, 16)
+        physics, imsize, _, dtype = find_operator(name, device, imsize=imsize)
+
+    if not isinstance(physics, dinv.physics.LinearPhysics):
+        pytest.skip("Skip " + name + " : not LinearPhysics")
+
+    p_coarse = dinv.physics.to_multiscale(
+        physics, imsize, factors=(2,), device=device, dtype=dtype
+    )
+    p_coarse.set_scale(1)
+
+    assert isinstance(
+        p_coarse, dinv.physics.LinearPhysics
+    ), "Coarse physics is not LinearPhysics despite base physics being LinearPhysics"
+
+    x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x_coarse = p_coarse.downsample(x)
+
+    error = p_coarse.adjointness_test(x_coarse).abs()
+    assert error < 1e-3
+
+
+@pytest.mark.parametrize(
+    "name", [op for op in OPERATORS if op not in MULTISCALE_EXCLUSION]
+)
+def test_multiscale_A_adjoint_A(name, device):
+    if (
+        "MRI" in name
+        or "cassi" in name
+        or "pet_2d" == name
+        or "ptychography_linear" == name
+        or "hyperspectral_unmixing" == name
+        or "composition2" == name
+    ):
+        physics, imsize, _, dtype = find_operator(name, device)
+    else:
+        # make sure the imsize is large enough for multi-scale tests
+        imsize = (3, 16, 16)
+        physics, imsize, _, dtype = find_operator(name, device, imsize=imsize)
+
+    if not isinstance(physics, dinv.physics.LinearPhysics):
+        pytest.skip("Skip " + name + " : not LinearPhysics")
+
+    p_coarse = dinv.physics.to_multiscale(
+        physics, imsize, factors=(2,), device=device, dtype=dtype
+    )
+    p_coarse.set_scale(1)
+
+    assert isinstance(
+        p_coarse, dinv.physics.LinearPhysics
+    ), "Coarse physics is not LinearPhysics despite base physics being LinearPhysics"
+
+    x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x_coarse = p_coarse.downsample(x)
+
+    A = p_coarse.A
+    A_adj = p_coarse.A_adjoint
+    A_adj_A = p_coarse.A_adjoint_A
+
+    def op_cmp(xc):
+        return A_adj(A(xc)) - A_adj_A(xc)
+
+    physics_cmp = dinv.physics.LinearPhysics(
+        img_size=imsize, A=op_cmp, A_adjoint=op_cmp
+    )
+
+    error = physics_cmp.compute_norm(x_coarse).abs()
+    assert error < 0.2
 
 
 def test_automatic_A_adjoint(device):

@@ -26,6 +26,7 @@ from conftest import non_blocking_plots  # noqa: F401
 from deepinv.tests.test_datasets import check_dataset_format
 from deepinv.utils import image_to_patches, patches_to_image
 from deepinv.datasets import PatchDataset
+from deepinv.datasets.base import batch_as_dict
 
 
 @pytest.fixture
@@ -167,10 +168,14 @@ def test_tensorlist_methods(tensorlist):
             and p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
         ]
 
+        # torch.Tensor.clamp/clip requires at least one of min or max, even
+        # though both are optional in its signature.
+        kwargs = {"min": 0.0, "max": 1.0} if method_name in ("clamp", "clip") else {}
+
         # Test that the method does not raise any exception
         # NOTE: We run the method on a copy of the object to avoid side effects
         x_copy = copy.deepcopy(x)
-        _ = getattr(x_copy, method_name)(*args)
+        _ = getattr(x_copy, method_name)(*args, **kwargs)
 
 
 @pytest.mark.parametrize("shape", [(1, 1, 3, 3), (1, 1, 5, 5)])
@@ -423,16 +428,20 @@ def test_deprecated_alias():
 def test_phantom_datasets(size, n_data, transform, length, dataset_name):
     if dataset_name == "random":
         dataset = deepinv.utils.RandomPhantomDataset(
-            size=size, n_data=n_data, transform=transform, length=length
+            size=size,
+            n_data=n_data,
+            transform=transform,
+            length=length,
+            use_dict_output=True,
         )
     elif dataset_name == "shepplogan":
         dataset = deepinv.utils.SheppLoganDataset(
-            size=size, n_data=n_data, transform=transform
+            size=size, n_data=n_data, transform=transform, use_dict_output=True
         )
     check_dataset_format(
         dataset,
         length=length if dataset_name != "shepplogan" else 1,
-        dtype=torch.Tensor,
+        dtype=dict,
         shape=(n_data, size, size),
     )
 
@@ -746,9 +755,10 @@ def test_ProgressMeter(
         for _ in range(n_updates):
             meter.update(rng.random())
 
-    progress = deepinv.utils.ProgressMeter(
-        num_epochs, meters, surfix=surfix, prefix=prefix
-    )
+    with pytest.warns(DeprecationWarning):
+        progress = deepinv.utils.ProgressMeter(
+            num_epochs, meters, surfix=surfix, prefix=prefix
+        )
 
     stdout_buf = io.StringIO()
     with contextlib.redirect_stdout(stdout_buf):
@@ -869,7 +879,7 @@ def test_normalize_signals(batch_size, img_size, mode, seed):
                 target_c = max(0, min(1, inp_c))
                 assert (
                     out_c == target_c
-                ), "The distance between the input and ouput constants is not minimal."
+                ), "The distance between the input and output constants is not minimal."
     elif mode == "clip":
         # Check that the input is clipped between zero and one
         assert torch.all(
@@ -1262,7 +1272,9 @@ def test_patch_dataset_matches_patchify(B, C, H, W, patch_size, stride):
     """PatchDataset items are consistent with image_to_patches output."""
     torch.manual_seed(42)
     imgs = torch.randn(B, C, H, W)
-    ds = PatchDataset(imgs, patch_size=patch_size, stride=stride, shape=None)
+    ds = PatchDataset(
+        imgs, patch_size=patch_size, stride=stride, shape=None, use_dict_output=True
+    )
     patches = image_to_patches(imgs, patch_size=patch_size, stride=stride)
     num_rows, num_cols = patches.shape[2], patches.shape[3]
     num_pch = num_rows * num_cols
@@ -1272,14 +1284,20 @@ def test_patch_dataset_matches_patchify(B, C, H, W, patch_size, stride):
         for i in range(num_rows):
             for j in range(num_cols):
                 p = i * num_cols + j
-                assert torch.equal(ds[b * num_pch + p], patches[b, :, i, j])
+
+                batch = ds[b * num_pch + p]
+                batch = batch_as_dict(batch)
+                assert torch.equal(batch["x"], patches[b, :, i, j])
 
 
 def test_patch_dataset_shape_flat():
     """With shape=(-1,), each item is flattened."""
     imgs = torch.randn(2, 3, 12, 12)
-    ds = PatchDataset(imgs, patch_size=4, stride=2, shape=(-1,))
-    assert ds[0].shape == (3 * 4 * 4,)
+    ds = PatchDataset(imgs, patch_size=4, stride=2, shape=(-1,), use_dict_output=True)
+    batch = ds[0]
+    batch = batch_as_dict(batch)
+
+    assert batch["x"].shape == (3 * 4 * 4,)
 
 
 def test_patch_dataset_transform():
@@ -1287,8 +1305,35 @@ def test_patch_dataset_transform():
     torch.manual_seed(0)
     imgs = torch.randn(1, 1, 8, 8)
     transform = lambda x: x * 2 + 1
-    ds = PatchDataset(imgs, patch_size=4, stride=4, transform=transform, shape=None)
-    ds_raw = PatchDataset(imgs, patch_size=4, stride=4, shape=None)
+    ds = PatchDataset(
+        imgs,
+        patch_size=4,
+        stride=4,
+        transform=transform,
+        shape=None,
+        use_dict_output=True,
+    )
+    ds_raw = PatchDataset(
+        imgs, patch_size=4, stride=4, shape=None, use_dict_output=True
+    )
 
     for i in range(len(ds)):
-        assert torch.equal(ds[i], ds_raw[i] * 2 + 1)
+        batch, batch_raw = ds[i], ds_raw[i]
+        batch, batch_raw = batch_as_dict(batch), batch_as_dict(batch_raw)
+        assert torch.equal(batch["x"], batch_raw["x"] * 2 + 1)
+
+
+@pytest.mark.parametrize(
+    "a,b,expected",
+    [
+        ("cpu", "cpu", True),
+        ("cpu", torch.device("cpu"), True),
+        ("cuda", "cuda:0", True),
+        ("cuda:0", torch.device("cuda"), True),
+        ("cuda:1", "cuda:0", False),
+        ("cuda", "mps", False),
+        ("mps:0", "mps", True),
+    ],
+)
+def test_devices_equal(a, b, expected):
+    assert deepinv.utils.devices_equal(a, b) == expected
