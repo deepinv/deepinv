@@ -131,7 +131,7 @@ class DPSDataFidelity(NoisyDataFidelity):
 
     def __init__(
         self,
-        denoiser: Denoiser = None,
+        denoiser: Denoiser | None = None,
         weight: float = 1.0,
         clip: tuple = None,
         *args,
@@ -300,7 +300,7 @@ class PiGDMDataFidelity(NoisyDataFidelity):
 
     def __init__(
         self,
-        denoiser: Denoiser = None,
+        denoiser: Denoiser | None = None,
         weight: float = 1.0,
         clip: tuple = None,
         cg_max_iter: int = 3,
@@ -457,7 +457,7 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
 
     def __init__(
         self,
-        denoiser: Denoiser = None,
+        denoiser: Denoiser | None = None,
         weight: float = 1.0,
         clip: tuple = None,
         cg_max_iter: int = 3,
