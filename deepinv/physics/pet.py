@@ -344,9 +344,13 @@ class PET(LinearPhysics):
         :param torch.Tensor background: If not `None`, update the background :math:`b`.
         """
         if attenuation is not None:
+            attenuation = attenuation.to(self.scanner.dev)
             n = len(self.img_size)
             is_image_space = tuple(attenuation.shape[-n:]) == tuple(self.img_size)
             if is_image_space:
+                # Add missing batch and channel dimensions before projection.
+                while attenuation.ndim < n + 2:
+                    attenuation = attenuation.unsqueeze(0)
                 if self.is_2d:
                     attenuation = attenuation.unsqueeze(-1)
 
@@ -365,7 +369,7 @@ class PET(LinearPhysics):
                     verbose=False,
                 )
         if background is not None:
-            self.background = background
+            self.background = background.to(self.scanner.dev)
 
 
 class LinearSingleChannelOperator(torch.autograd.Function):
