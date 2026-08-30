@@ -212,9 +212,9 @@ def preprocess_img(
 
     :param torch.Tensor im: the batch of images to preprocess, it is expected to be of shape (B, C, *).
     :param str, None rescale_mode: the normalization mode, either ``'min_max'``, ``'clip'``, or ``None``.
-        If ``None``, the image values are not rescaled.
-    :param float, None vmin: minimum value for clipping when using 'clip' rescaling.
-    :param float, None vmax: maximum value for clipping when using 'clip' rescaling.
+        With ``None``, image values are clipped to ``[vmin, vmax]`` without being rescaled.
+    :param float, None vmin: minimum clipping bound when using ``'clip'`` or ``None``. Defaults to 0.
+    :param float, None vmax: maximum clipping bound when using ``'clip'`` or ``None``. Defaults to 1.
     :param bool return_scale: if ``True``, also return the per-element ``(vmin_orig, vmax_orig)``
         tuples representing the true data range **before** normalization, as a list of length B.
         For ``'min_max'`` mode these are the per-element min/max values; for ``'clip'`` mode
@@ -231,6 +231,9 @@ def preprocess_img(
     # NOTE: Why is it needed?
     im = im.type(torch.float32)
 
+    v0 = vmin if vmin is not None else 0.0
+    v1 = vmax if vmax is not None else 1.0
+
     # Capture true data range before normalization
     scales = []
     if return_scale:
@@ -243,23 +246,13 @@ def preprocess_img(
             if not isinstance(mins, list):
                 mins, maxs = [mins], [maxs]
             scales = list(zip(mins, maxs, strict=True))
-        elif rescale_mode == "clip":
-            v0 = vmin if vmin is not None else 0.0
-            v1 = vmax if vmax is not None else 1.0
-            scales = [(v0, v1)] * im.shape[0]
-        else:  # rescale_mode is None
-            v0 = 0.0
-            v1 = 1.0
+        elif rescale_mode in ("clip", None):
             scales = [(v0, v1)] * im.shape[0]
 
-    if rescale_mode is None and (vmin is not None or vmax is not None):
-        warn(
-            "The vmin and vmax arguments are used only when using 'clip' rescaling.",
-            UserWarning,
-            stacklevel=2,
-        )
-
-    if rescale_mode is not None:
+    if rescale_mode is None:
+        # clip without rescaling
+        im = im.clamp(min=v0, max=v1)
+    else:
         # Normalize signal between 0 and 1
         im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
 
@@ -371,8 +364,9 @@ def plot(
     :param bool tight: use tight layout.
     :param int max_imgs: maximum number of images to plot.
     :param str, None rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
-        their min and max values), ``'clip'`` (images are clipped and rescaled between 0 and 1),
-        or ``None`` (images are not rescaled and are displayed using a fixed range of 0 to 1).
+        their minimum and maximum values), ``'clip'`` (images are clipped to ``[vmin, vmax]`` and then rescaled between
+        0 and 1), or ``None`` (images are clipped to ``[vmin, vmax]`` without rescaling and displayed using ``norm`` or,
+        by default, a fixed range of ``[0, 1]``).
     :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
     :param bool close: close the image plot. Under the hood, this calls the ``plt.close()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
@@ -463,26 +457,32 @@ def plot(
         plt.suptitle(suptitle, wrap=True)
         fig.subplots_adjust(top=0.75)
 
-    if rescale_mode is None:
-        imshow_kwargs.setdefault("norm", Normalize(0.0, 1.0, clip=True))
+    norm = imshow_kwargs.pop("norm", None)
 
+    if rescale_mode is None and norm is None:
+        norm = Normalize(0.0, 1.0, clip=True)
+
+    mpl_images = []
     for i, row_imgs in enumerate(imgs):
+        mpl_row_images = []
         for r, img in enumerate(row_imgs):
-            im = axs[r, i].imshow(
+            mpl_img = axs[r, i].imshow(
                 img,
                 cmap=cmap,
                 interpolation=interpolation,
+                norm=norm,
                 **imshow_kwargs,
             )
+            mpl_row_images.append(mpl_img)
             if cbar:
                 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
                 divider = make_axes_locatable(axs[r, i])
                 cax = divider.append_axes("right", size="5%", pad=0.05)
-                colbar = fig.colorbar(im, cax=cax, orientation="vertical")
+                colbar = fig.colorbar(mpl_img, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
                 # Relabel ticks with the true (pre-normalisation) data values
-                if img_scales[i]:
+                if img_scales[i] and rescale_mode is not None:
                     vmin_true, vmax_true = img_scales[i][r]
                     ticks = colbar.get_ticks()
                     true_labels = [
@@ -504,6 +504,8 @@ def plot(
                     spine.set_visible(False)
             else:
                 axs[r, i].axis("off")
+
+        mpl_images.append(mpl_row_images)
 
     if cbar:
         plt.subplots_adjust(hspace=0.2, wspace=0.2)
@@ -548,7 +550,7 @@ def plot(
                     img.squeeze(0).permute(1, 2, 0).cpu().numpy(),
                     cmap=cmap,
                     interpolation=interpolation,
-                    norm=imshow_kwargs.get("norm") if rescale_mode is None else None,
+                    norm=norm,
                 )
 
                 h, w = img.shape[2], img.shape[3]
@@ -606,14 +608,13 @@ def plot(
             plt.savefig(save_dir / "images.svg", dpi=dpi)
 
         # Save individual images for each column
-        for i, row_imgs in enumerate(imgs):
+        for i, mpl_row_images in enumerate(mpl_images):
             row_dirname = titles[i] if titles is not None else str(i)
             save_dir_i = Path(save_dir) / Path(row_dirname)
             save_dir_i.mkdir(parents=True, exist_ok=True)
-            for r, img in enumerate(row_imgs):
-                # plt.imsave fails if img is not C-contiguous
-                img = np.ascontiguousarray(img)
-                plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
+            for r, mpl_image in enumerate(mpl_row_images):
+                mpl_image.write_png(save_dir_i / (str(r) + ".png"))
+
     if show:
         plt.show()
     if close:
