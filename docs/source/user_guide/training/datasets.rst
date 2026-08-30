@@ -62,6 +62,19 @@ We provide dataset classes for you to easily load in your own data:
    * - :class:`deepinv.datasets.RandomPatchSampler`
      - Dataset that randomly samples a patch from a larger nD image at each iteration, accepts a ground-truth directory or measurement directory. If both are provided, filenames and shapes must match for each pair.
 
+Phantom Datasets
+----------------
+
+Synthetic phantom datasets return `x` only, generated on the fly rather than loaded from disk.
+
+.. list-table:: Phantom Datasets Overview
+   :header-rows: 1
+
+   * - **Dataset**
+     - **Description**
+   * - :class:`deepinv.utils.phantoms.NEMAIECPhantomDataset`
+     - Single NEMA IEC body phantom (six spheres of increasing diameter on a ring, with a uniform background and a central cold "lung" insert), commonly used as an image-quality phantom in PET and SPECT. See :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for details.
+
 .. _generating-datasets:
 
 Generating Datasets
