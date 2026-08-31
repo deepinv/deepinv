@@ -120,7 +120,11 @@ si_ram = si(x_ram).item()
 si_dpir = si(x_dpir).item()
 
 dinv.utils.plot(
-    {"Blurry": y[..., 200:400, 300:500], "RAM": x_ram[..., 200:400, 300:500], "DPIR": x_dpir[..., 200:400, 300:500]},
+    {
+        "Blurry": y[..., 200:400, 300:500],
+        "RAM": x_ram[..., 200:400, 300:500],
+        "DPIR": x_dpir[..., 200:400, 300:500],
+    },
     subtitles=[
         f"SI: {si_blurry:.0f} \n BS: {bs_blurry:.3f}",
         f"SI: {si_ram:.0f} \n BS: {bs_ram:.3f}",
