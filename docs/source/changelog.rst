@@ -14,7 +14,7 @@ Changed
 
 Fixed
 ^^^^^
-- Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` (:gh:`1348` by `Delphine Doutsas`_)
+- Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)
 
 
 v0.4.2
