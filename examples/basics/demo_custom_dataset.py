@@ -168,7 +168,7 @@ path = dinv.datasets.generate_dataset(
 )
 dinv.test(
     model,
-    DataLoader(dinv.datasets.HDF5Dataset(path)),
+    DataLoader(dinv.datasets.HDF5Dataset(path, use_dict_output=True)),
     physics,
     plot_images=True,
     device=device,
