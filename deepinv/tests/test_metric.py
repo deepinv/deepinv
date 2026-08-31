@@ -500,21 +500,28 @@ def test_snr(power_signal, power_noise):
 
 class _MockDataset(torch.utils.data.Dataset):
     def __init__(
-        self, num_samples: int, resolution: int, num_channels: int, dtype=torch.dtype
+        self,
+        num_samples: int,
+        resolution: int,
+        num_channels: int,
+        dtype=torch.dtype,
+        use_dict_output: bool = True,
     ):
         super().__init__()
         self.resolution = resolution
         self.n_samples = num_samples
         self.num_channels = num_channels
         self.dtype = dtype
+        self.use_dict_output = use_dict_output
 
     def __len__(self):
         return self.n_samples
 
     def __getitem__(self, index):
-        return torch.rand(
+        image = torch.rand(
             (self.num_channels, self.resolution, self.resolution), dtype=self.dtype
         )
+        return {"x": image} if self.use_dict_output else image
 
 
 @pytest.mark.parametrize("n_channels", (1, 3))
@@ -536,7 +543,10 @@ def test_niqe_fit(n_channels: int, dtype: torch.dtype):
     )
     # Test fail on too low resolution
     low_res_ds = _MockDataset(
-        num_samples=1, resolution=31, num_channels=n_channels, dtype=dtype
+        num_samples=1,
+        resolution=31,
+        num_channels=n_channels,
+        dtype=dtype,
     )
     with pytest.raises(RuntimeError) as exc_info:
         mu, cov = niqe.create_weights(low_res_ds)
@@ -546,7 +556,10 @@ def test_niqe_fit(n_channels: int, dtype: torch.dtype):
     )
 
     ds = _MockDataset(
-        num_samples=2, resolution=40, num_channels=n_channels, dtype=dtype
+        num_samples=2,
+        resolution=40,
+        num_channels=n_channels,
+        dtype=dtype,
     )
     mu, cov = niqe.create_weights(ds, sharpness_threshold=0.1)
     assert mu.shape == torch.Size([36]) and cov.shape == torch.Size([36, 36])
