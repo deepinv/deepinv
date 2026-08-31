@@ -2,7 +2,7 @@ from __future__ import annotations
 import torch
 from deepinv.optim import DataFidelity, Distance
 import deepinv as dinv
-from deepinv.physics import Physics
+from deepinv.physics import Physics, DecomposablePhysics
 from deepinv.models import Denoiser
 
 
@@ -220,3 +220,99 @@ class DPSDataFidelity(NoisyDataFidelity):
             return out, x0_t
         else:
             return out
+
+
+class DDRMDataFidelity(NoisyDataFidelity):
+    r"""
+    Denoising Diffusion Restoration Model sampling data-fidelity term.
+
+    This corresponds to the :math:`p(y|x_t)` approximation proposed in ``.
+
+    .. math::
+            \nabla_x \log p_t(y|x) = \nabla_x \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|
+
+    where :math:`\sigma = \sigma(t)` is the noise level, :math:`m` is the number of measurements (size of :math:`y`),
+    and :math:`\lambda` controls the strength of the approximation.
+    """
+
+    def __init__(
+        self,
+        denoiser: Denoiser = None,
+        # sigma_y: float = None,
+        weight: float = 1.0,
+        clip: tuple = None,
+        eps: float = 1e-8,
+        *args,
+        **kwargs,
+    ):
+        super().__init__()
+        self.d = dinv.optim.L2Distance()
+        self.denoiser = denoiser
+        # self.sigma_y = sigma_y
+        self.clip = clip
+        self.weight = weight
+        self.eps = eps
+        if clip is not None:
+            if len(clip) != 2:  # pragma: no cover
+                raise ValueError(f"clip must be None or length 2, but got {clip}")
+            clip = sorted(clip)
+
+    def _get_sigma_y(self, physics):
+        if not isinstance(
+            physics.noise_model,
+            dinv.physics.GaussianNoise,
+        ):
+            raise TypeError("DDRM requires a Gaussian noise model.")
+
+        return physics.noise_model.sigma
+
+    def grad(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: DecomposablePhysics,
+        sigma,
+        *args,
+        get_model_outputs=False,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+
+        sigma_y = self._get_sigma_y(physics)
+        # 1. get x_0
+        x0_t = self.denoiser(x, sigma, *args, **kwargs)
+
+        # 2. residual in SVD
+        residual = physics.U_adjoint(physics.A(x0_t) - y)
+
+        # 3. the pseduo inverse
+        s = physics.mask
+        denom = torch.abs(sigma_y**2 - sigma**2 * s**2)
+        inv_denom = torch.where(denom > self.eps, 1.0 / denom, 0.0)
+
+        # 4. the weighted grad
+        weighted_residual = inv_denom * residual
+        grad = physics.A_adjoint(physics.U(weighted_residual))
+
+        grad = self.weight * grad
+
+        if get_model_outputs:
+            return grad, x0_t.detach()
+
+        return grad
+
+    def precond(
+        self, x: torch.Tensor, physics: Physics, *args, **kwargs
+    ) -> torch.Tensor:
+        raise NotImplementedError
+
+    # def _get_sigma_y(
+    #         self,
+    #         physics: Physics,
+    #         ref: torch.Tensor,
+    # ) -> torch.Tensor:
+    #     sigma_y = torch.as_tensor(sigma_y, device=ref.device, dtype=ref.dtype)
+
+    #     return sigma_y
+
+    def forward():
+        pass
