@@ -608,28 +608,61 @@ class FourierPtychographyLinearOperator(LinearPhysics):
         self.include_ifft = include_ifft
 
     def op_fft2(self, y, norm="ortho"):
+        r"""
+        Applies a 2D Fourier transform to the input tensor.
+
+        :param torch.Tensor y: input tensor.
+        :param str norm: normalization mode. Default is 'ortho'.
+        :return: (:class:`torch.Tensor`) Fourier transformed tensor.
+        """
         if self.include_fft:
             return torch.fft.fftshift(torch.fft.fft2(y, norm=norm), dim=(-2, -1))
         else:
             return y
 
     def op_ifft2(self, x, norm="ortho"):
+        r"""
+        Applies a 2D inverse Fourier transform to the input tensor.
+
+        :param torch.Tensor x: input tensor.
+        :param str norm: normalization mode. Default is 'ortho'.
+        :return: (:class:`torch.Tensor`) inverse Fourier transformed tensor.
+        """
         if self.include_ifft:
             return torch.fft.ifft2(torch.fft.ifftshift(x, dim=(-2, -1)), norm=norm)
         else:
             return x
 
     def A(self, x, **kwargs):
+        r"""
+        Applies the forward operator to the input image.
+
+        :param torch.Tensor x: input image tensor.
+        :return: (:class:`torch.Tensor`) transformed tensor after shifting and probe multiplication.
+        """
         fx = self.op_fft2(x)
         crop = self.shift_index(fx, self.shifts)
         return self.norm * self.op_ifft2(self.probe * crop).to(torch.complex64)
 
     def A_adjoint(self, y, **kwargs):
+        r"""
+        Applies the adjoint operator to the input measurements.
+
+        :param torch.Tensor y: measurements tensor.
+        :return: (:class:`torch.Tensor`) reconstructed image tensor.
+        """
         crop = self.probe.conj() * self.op_fft2(y)
         Tx2 = self.op_ifft2(self.shift_and_pad(crop, -self.shifts))
         return self.norm * Tx2.sum(dim=1, keepdim=True)
 
     def shift_index(self, x, shifts):
+        r"""
+        Shifts and centrale crop the input tensor in the Fourier domain.
+
+        :param torch.Tensor x: input tensor.
+        :param torch.Tensor shifts: tensor of 2D shift positions.
+        :return: (:class:`torch.Tensor`) cropped and shifted tensor.
+        """
         B, C_img, H, W = x.shape
         cy, cx = self.cy, self.cx
         my, mx = self.my, self.mx
@@ -652,6 +685,13 @@ class FourierPtychographyLinearOperator(LinearPhysics):
         return x[b_idx, c_idx, src_y, src_x]
 
     def shift_and_pad(self, crop, shifts):
+        r"""
+        Pads and shift a cropped tensor back to the original image size.
+
+        :param torch.Tensor crop: cropped input tensor.
+        :param torch.Tensor shifts: tensor of 2D shift positions.
+        :return: (:class:`torch.Tensor`) shifted and padded tensor.
+        """
         B, C_img, h_crop, w_crop = crop.shape
         H, W = self.img_size[-2], self.img_size[-1]
         cy, cx = self.cy, self.cx
@@ -713,6 +753,8 @@ class MultiplexedPtychography(PhaseRetrieval):
         ledidx=None,
         led_intensity=torch.ones(1, 1, 1, 1),
         normalize=True,
+        include_fft=True,
+        include_ifft=True,
         device="cpu",
         **kwargs,
     ):
@@ -723,6 +765,8 @@ class MultiplexedPtychography(PhaseRetrieval):
             probe=probe,
             shifts=shifts,
             normalize=normalize,
+            include_fft=include_fft,
+            include_ifft=include_ifft,
             device=device,
         )
         super().__init__(B, **kwargs)
@@ -752,19 +796,22 @@ class MultiplexedPtychography(PhaseRetrieval):
         self.to(device)
 
     def A(self, x, **kwargs):
+        r"""
+        Applies the multiplexed forward operator to the input image.
+
+        :param torch.Tensor x: input image tensor.
+        :return: (:class:`torch.Tensor`) multiplexed intensity measurements.
+        """
         y = super().A(x, **kwargs) * self.led_intensity  # led_intensity de dim (1, y.size(1), 1, 1)
         B, _, H, W = y.shape
 
-        # 2. Associer chaque index aplati à son canal de destination (C)
         c_indices = torch.repeat_interleave(
             torch.arange(self.Nimg, device=y.device), self.lengths
         )
         idx_expanded = c_indices.view(1, -1, 1, 1).expand(B, -1, H, W)
 
-        # 3. Extraire les valeurs (Shape: B, total_n, H, W)
         gathered = y[:, self.flat_idx, :, :]
 
-        # 4. Agréger par canal (somme) puis diviser pour obtenir la moyenne (Shape: B, C, H, W)
         out = torch.zeros((B, self.Nimg, H, W), dtype=y.dtype, device=y.device)
         out.scatter_add_(1, idx_expanded, gathered)
 
@@ -772,6 +819,12 @@ class MultiplexedPtychography(PhaseRetrieval):
         return y
 
     def A_adjoint(self, y, **kwargs):
+        r"""
+        Applies the adjoint of the multiplexed operator to the measurements.
+
+        :param torch.Tensor y: multiplexed measurements tensor.
+        :return: (:class:`torch.Tensor`) reconstructed image tensor.
+        """
         y2 = torch.zeros(
             y.size(0),
             self.shifts.size(1),
@@ -780,20 +833,22 @@ class MultiplexedPtychography(PhaseRetrieval):
             device=y.device,
         )
 
-        # 2. Répétition variable par canal (B, total_n, H, W)
         y_repeated = torch.repeat_interleave(y, self.lengths, dim=1)
-
-        # 3. Normalisation par 1/n_i
-
         y_normalized = y_repeated * self.norm_factors
 
-        # 4. Accumulation aux indices correspondants
         y2.index_add_(1, self.flat_idx, y_normalized)
 
         y2 = y2 * self.led_intensity
         return super().A_adjoint(y2)
 
     def A_vjp(self, x, v):
+        r"""
+        Computes the product between a vector and the Jacobian of the forward operator.
+
+        :param torch.Tensor x: signal/image.
+        :param torch.Tensor v: vector.
+        :return: (:class:`torch.Tensor`) the VJP product.
+        """
         v2 = torch.zeros(
             v.size(0),
             self.shifts.size(1),
@@ -812,6 +867,11 @@ class MultiplexedPtychography(PhaseRetrieval):
         return super().A_vjp(x, v2)
 
     def update_parameters(self, **kwargs):
+        r"""
+        Updates the parameters of the operator.
+
+        :param dict kwargs: updated parameters.
+        """
         self.B.update_parameters(**kwargs)
         ledidx = kwargs.get("ledidx")
         if ledidx is not None:
