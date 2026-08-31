@@ -202,7 +202,7 @@ dps = dinv.sampling.DPSDataFidelity(denoiser=denoiser, weight=dps_weight)
 # :class:`deepinv.sampling.PiGDMDataFidelity`; increasing it strengthens the
 # data-fidelity contribution relative to the unconditional prior score.
 
-pigdm_weight = 20
+pigdm_weight = 1
 pigdm = dinv.sampling.PiGDMDataFidelity(
     denoiser=denoiser,
     weight=pigdm_weight,
@@ -250,7 +250,7 @@ pigdm = dinv.sampling.PiGDMDataFidelity(
 # data-fidelity contribution more influence relative to the unconditional
 # prior score.
 
-moment_matching_weight = 20
+moment_matching_weight = 1
 moment_matching = dinv.sampling.MomentMatchingDataFidelity(
     denoiser=denoiser,
     weight=moment_matching_weight,
