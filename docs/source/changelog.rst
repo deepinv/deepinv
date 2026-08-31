@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Publish the docs in ``llms.txt`` format, i.e. a markdown copy of every page plus the ``llms.txt`` index and ``llms-full.txt``, using the `sphinx-llm <https://github.com/NVIDIA/sphinx-llm>`_ extension (by `Julian Tachella`_)
 
 Changed
 ^^^^^^^

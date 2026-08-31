@@ -53,6 +53,7 @@ extensions = [
     "sphinx_sitemap",
     "sphinxcontrib.bibtex",
     "matplotlib.sphinxext.plot_directive",
+    "sphinx_llm.txt",
 ]
 
 extlinks = {
@@ -199,7 +200,7 @@ cuda_available = torch.cuda.is_available()
 
 
 def add_references_block_to_examples():
-    print("🔧 add_references_block_to_examples() called")
+    print("add_references_block_to_examples() called")
     for root, _, files in os.walk("../../examples"):
         for fname in files:
             if not fname.endswith(".py"):
@@ -350,6 +351,32 @@ sphinx_gallery_conf = {
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),
 }
+
+#### llms.txt generation (sphinx-llm) ####
+# Writes a markdown copy of every page next to the html, plus the llms.txt
+# index and the llms-full.txt concatenation, following the llms.txt standard.
+llms_txt_description = (
+    "DeepInverse is an open-source PyTorch-based library for solving imaging "
+    "inverse problems with deep learning. It provides imaging operators, "
+    "pretrained reconstruction networks and denoisers, plug-and-play and "
+    "unfolded optimization, sampling algorithms, training losses and datasets."
+)
+# Emit absolute links, as expected of an llms.txt served from the published site.
+# No trailing slash: sphinx-markdown-builder joins this with "/" + path.
+markdown_http_base = html_baseurl.rstrip("/")
+# The markdown pages are rendered by a second sphinx-build over the same source
+# directory. Sphinx-Gallery writes its generated rst into ``source/auto_examples``,
+# so running that sub-build concurrently with the main one would make the two
+# clobber each other: build it after the html build instead.
+llms_txt_build_parallel = False
+# The sub-build is tagged ``sphinx_llm_markdown`` by the extension. Never execute
+# the gallery examples there: they are already run by the html build and their
+# outputs (figures, timings) are not part of the markdown output anyway. The value
+# is a str, like the sphinx-gallery default, so that its config type check passes.
+if tags.has("sphinx_llm_markdown"):  # noqa: F821 (``tags`` is injected by Sphinx)
+    plot_gallery = "False"
+# Sphinx-Gallery bookkeeping pages, of no use to a reader.
+llms_txt_exclude = ["sg_execution_times", "**/sg_execution_times"]
 
 # Custom sort key above throws new warning in Sphinx 7.3.0, so ignore this. See https://github.com/sphinx-doc/sphinx/issues/12300
 suppress_warnings = ["config.cache"]
