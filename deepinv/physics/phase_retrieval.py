@@ -544,20 +544,22 @@ class FourierPtychographyLinearOperator(LinearPhysics):
     Forward linear operator for Fourier ptychography.
 
     Models the imaging process of Fourier ptychography, where a complex object is reconstructed from multiple low-resolution intensity measurements acquired under different illumination angles.
-    Mathematically, this is equivalent to shifting a pupil (probe) function in the Fourier domain of the object, applying it, and inverse Fourier transforming to the spatial domain.
+    Mathematically, this is equivalent to shifting a probe function in the Fourier domain of the object, applying it, and inverse Fourier transforming to the spatial domain.
 
     .. math::
 
         B = \left[ \begin{array}{c} B_1 \\ B_2 \\ \vdots \\ B_{n_{\text{img}}} \end{array} \right],
-        B_l = F^{-1} \text{diag}(p) T_l F, \quad l = 1, \dots, n_{\text{img}},
+        B_l = F^{-1} P T_l F, \quad l = 1, \dots, n_{\text{img}},
 
-    where :math:`F` is the 2D Fourier transform, :math:`\text{diag}(p)` is the pupil (probe) function :math:`p`, and :math:`T_l` is a 2D shift in the Fourier domain.
+    where :math:`F` is the 2D Fourier transform, :math:`P` is the probe function, and :math:`T_l` is a 2D shift in the Fourier domain.
 
-    :param tuple img_size: Shape of the input image (high-resolution object), typically ``(batch_size, channels, height, width)``.
-    :param tuple measure_size: Shape of the measurements (low-resolution acquisitions).
+    :param tuple img_size: Shape of the input image (high-resolution object), typically ``(channels, height, width)``.
+    :param tuple measurement_size: Shape of the measurements (low-resolution acquisitions).
     :param torch.Tensor probe: A 4D tensor representing the pupil (probe) function.
     :param torch.Tensor shifts: A 3D tensor of shape ``(B, n_img, 2)`` corresponding to the ``n_img`` Fourier shift positions.
-    :param float norm: Normalization factor for the linear operator to adjust its spectral norm.
+    :param bool normalize: Normalization factor for the linear operator to adjust its norm.
+    :param bool include_fft:
+    :param bool include_ifft:
     :param torch.device, str device: Device "cpu" or "gpu".
     """
 
@@ -697,7 +699,7 @@ class MultiplexedPtychography(PhaseRetrieval):
     :param torch.Tensor probe: A tensor representing the pupil (probe) function.
     :param torch.Tensor shifts: A 3D tensor of shape ``(B, n_img, 2)`` corresponding to the Fourier shift positions.
     :param list[torch.Tensor], torch.Tensor ledidx: Indices of the LEDs multiplexed into each measurement.
-    :param float, torch.Tensor led_intensity: Scaling factor :math:`s` applied to the measurements.
+    :param float, torch.Tensor led_intensity: Intensity :math:`s_l` for each LED.
     :param float norm: Normalization factor for the underlying linear operator.
     :param torch.device, str device: Device "cpu" or "gpu".
     """
