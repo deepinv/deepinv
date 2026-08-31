@@ -3,9 +3,10 @@ import torch
 import torch.nn as nn
 
 from deepinv.utils.patch_extractor import image_to_patches
+from deepinv.models.physics_estimator import PhysicsEstimator
 
 
-class WaveletNoiseEstimator(nn.Module):
+class WaveletNoiseEstimator(PhysicsEstimator):
     r"""
     Wavelet Gaussian noise level estimator.
 
@@ -86,7 +87,8 @@ class WaveletNoiseEstimator(nn.Module):
         return self.estimate_noise(x)
 
 
-class PatchCovarianceNoiseEstimator(nn.Module):
+
+class PatchCovarianceNoiseEstimator(PhysicsEstimator):
     r"""
     Patch Covariance Gaussian noise level estimator.
 
@@ -175,3 +177,36 @@ class PatchCovarianceNoiseEstimator(nn.Module):
         :return: (:class:`torch.Tensor`) estimated noise level
         """
         return self.estimate_noise(x)
+
+
+class PoissonGaussianEstimator(PhysicsEstimator):
+    r"""
+    Poisson-Gaussian noise level estimator.
+    """
+
+    def __init__(self, backbone_net: nn.Module, act: nn.Module = None, eps = 1e-5, noise_map: bool = True):
+        super(PoissonGaussianEstimator, self).__init__()
+
+        self.backbone_net = backbone_net
+        self.eps = eps
+        self.noise_map = noise_map
+
+        if act is None:
+            self.act = lambda x: x.abs()
+        
+
+    def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
+        r"""
+        Forward pass.
+
+        :param torch.Tensor x: input image
+        :return: (:class:`dict`) estimated gaussian noise level and gain
+        """
+
+        params = self.backbone_net(x)
+        params = self.act(params) + self.eps
+        if not self.noise_map:
+            params = params.mean(dim=(-2, -1), keepdim=True)
+
+        sigma, gain = params.chunk(2, dim=1)
+        return {"sigma": sigma, "gain": gain}

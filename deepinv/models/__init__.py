@@ -53,7 +53,11 @@ from .anscombe import (
 from .poisson2sparse import ConvLista, Poisson2Sparse
 from .kernel_network import KernelIdentificationNetwork
 from .bilateral import BilateralFilter
-from .noise_level_estimation import WaveletNoiseEstimator, PatchCovarianceNoiseEstimator
+from .noise_level_estimation import (
+    WaveletNoiseEstimator, 
+    PatchCovarianceNoiseEstimator,
+    PoissonGaussianEstimator
+)
 from .srresnet import SRResNet
 from .ffdnet import FFDNet
 

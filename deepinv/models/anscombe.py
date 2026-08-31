@@ -82,7 +82,8 @@ def inverse_generalized_anscombe_transform(
 
 
 def check_nonnegative(value, name):
-    if (isinstance(value, torch.Tensor) and torch.any(value < 0)) or value < 0:
+    invalid = torch.any(value < 0) if isinstance(value, torch.Tensor) else value < 0
+    if invalid:
         raise ValueError(f"{name} should be positive. Got {value}.")
 
 
