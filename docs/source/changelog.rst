@@ -23,6 +23,7 @@ New Features
 - Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
 - Add :class:`deepinv.loss.metric.BRISQUE` and :class:`deepinv.loss.metric.NIMA` no-reference image quality metrics (:gh:`1310` by `Julian Tachella`_)
 - Add :class:`deepinv.datasets.BrainWebPET` (:gh:`1286` by `Thibaut Modrzyk`_)
+- Add ``mask_first`` option to :class:`deepinv.physics.SpaceVaryingBlur` and :func:`deepinv.physics.functional.product_convolution2d` (:gh:`1338` by `Julian Tachella`_)
 
 Changed
 ^^^^^^^
@@ -34,6 +35,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fix the ``mask_first=False`` pretrained :class:`deepinv.models.KernelIdentificationNetwork` (:gh:`1338` by `Julian Tachella`_)
 - Deprecate the `theta` attribute from :class:`deepinv.physics.Tomography` (:gh:`1262` by `Matthieu Terris`_)
 - Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
 - Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
