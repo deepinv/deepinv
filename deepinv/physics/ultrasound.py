@@ -126,30 +126,26 @@ class UltrafastUltrasound(LinearPhysics):
         dtype: torch.dtype = torch.float32,
     ):
         if signal_kind == "iq" and demodulation_frequency is None:
-            raise ValueError("demodulation_frequency must be provided in 'iq' mode.")
+            raise ValueError(
+                "demodulation_frequency must be provided in 'iq' mode.")
         if sound_speed <= 0.0:
             raise ValueError(
-                f"sound_speed must be strictly positive, got {sound_speed}."
-            )
+                f"sound_speed must be strictly positive, got {sound_speed}.")
         if interp not in self._VALID_INTERP:
             raise ValueError(
-                f"interp must be one of {self._VALID_INTERP}, got {interp!r}."
-            )
+                f"interp must be one of {self._VALID_INTERP}, got {interp!r}.")
         if signal_kind not in self._VALID_SIGNAL_KINDS:
             raise ValueError(
                 f"signal_kind must be one of {self._VALID_SIGNAL_KINDS}, "
-                f"got {signal_kind!r}."
-            )
+                f"got {signal_kind!r}.")
         if rx_apod_window not in self._VALID_WINDOWS:
             raise ValueError(
                 f"rx_apod_window must be one of {self._VALID_WINDOWS}, "
-                f"got {rx_apod_window!r}."
-            )
+                f"got {rx_apod_window!r}.")
         if tx_apod_window is not None and tx_apod_window not in self._VALID_WINDOWS:
             raise ValueError(
                 f"tx_apod_window must be None or one of {self._VALID_WINDOWS}, "
-                f"got {tx_apod_window!r}."
-            )
+                f"got {tx_apod_window!r}.")
 
         Z, X = int(img_size[0]), int(img_size[1])
 
@@ -157,29 +153,26 @@ class UltrafastUltrasound(LinearPhysics):
         if ele_pos.ndim != 2 or ele_pos.shape[1] != 2:
             raise ValueError(
                 "element_positions must have shape (n_elements, 2), got "
-                f"{tuple(ele_pos.shape)}."
-            )
+                f"{tuple(ele_pos.shape)}.")
 
         if pixel_grid is not None:
             grid = torch.as_tensor(pixel_grid, dtype=dtype)
             if grid.shape != (Z, X, 2):
                 raise ValueError(
                     "pixel_grid must have shape (Z, X, 2), got "
-                    f"{tuple(grid.shape)} for img_size=({Z}, {X})."
-                )
+                    f"{tuple(grid.shape)} for img_size=({Z}, {X}).")
         else:
             if pixel_size is None:
-                ref_freq = (
-                    demodulation_frequency
-                    if demodulation_frequency is not None
-                    and demodulation_frequency > 0.0
-                    else sampling_frequency
-                )
+                ref_freq = (demodulation_frequency
+                            if demodulation_frequency is not None
+                            and demodulation_frequency > 0.0 else
+                            sampling_frequency)
                 lam = sound_speed / ref_freq
                 pixel_size = (lam / 2.0, lam / 2.0)
             dz, dx = float(pixel_size[0]), float(pixel_size[1])
             if pixel_origin is None:
-                x_center = 0.5 * (ele_pos[:, 0].min() + ele_pos[:, 0].max()).item()
+                x_center = 0.5 * (ele_pos[:, 0].min() +
+                                  ele_pos[:, 0].max()).item()
                 pixel_origin = (0.0, x_center - dx * (X - 1) / 2.0)
             z0, x0 = float(pixel_origin[0]), float(pixel_origin[1])
             z_axis = z0 + dz * torch.arange(Z, dtype=dtype)
@@ -190,11 +183,10 @@ class UltrafastUltrasound(LinearPhysics):
         t0_tensor = torch.as_tensor(t0, dtype=dtype)
         if t0_tensor.ndim == 0:
             t0_tensor = t0_tensor.expand(n_transmits).clone()
-        elif t0_tensor.shape != (n_transmits,):
+        elif t0_tensor.shape != (n_transmits, ):
             raise ValueError(
                 f"t0 must be scalar or shape ({n_transmits},), got "
-                f"{tuple(t0_tensor.shape)}."
-            )
+                f"{tuple(t0_tensor.shape)}.")
 
         n_channels = 2 if signal_kind == "iq" else 1
         super().__init__(
@@ -211,9 +203,8 @@ class UltrafastUltrasound(LinearPhysics):
         self.n_samples = int(n_samples)
         self.fs = float(sampling_frequency)
         self.c = float(sound_speed)
-        self.demodulation_frequency = (
-            None if demodulation_frequency is None else float(demodulation_frequency)
-        )
+        self.demodulation_frequency = (None if demodulation_frequency is None
+                                       else float(demodulation_frequency))
         self.f_number = None if f_number is None else float(f_number)
         self.rx_apod_window = rx_apod_window
         self.tx_apod_window = tx_apod_window
@@ -221,9 +212,8 @@ class UltrafastUltrasound(LinearPhysics):
         self.signal_kind = signal_kind
         self.n_channels = n_channels
         self.dtype = dtype
-        self._complex_dtype = (
-            torch.complex128 if dtype == torch.float64 else torch.complex64
-        )
+        self._complex_dtype = (torch.complex128
+                               if dtype == torch.float64 else torch.complex64)
 
         if pulse is not None:
             h = torch.as_tensor(pulse, dtype=self.dtype)
@@ -240,7 +230,8 @@ class UltrafastUltrasound(LinearPhysics):
     @property
     def measurement_shape(self) -> tuple[int, int, int, int]:
         """Per-sample measurement shape ``(n_channels, n_transmits, n_elements, n_samples)``."""
-        return (self.n_channels, self.n_transmits, self.num_elements, self.n_samples)
+        return (self.n_channels, self.n_transmits, self.num_elements,
+                self.n_samples)
 
     @property
     def num_elements(self) -> int:
@@ -261,31 +252,39 @@ class UltrafastUltrasound(LinearPhysics):
     def pixel_spacing(self) -> tuple[float, float]:
         """Pixel spacing ``(dz, dx)`` in meters, inferred from :attr:`pixel_grid`."""
         grid = self.pixel_grid
-        dz = (grid[1, 0, 1] - grid[0, 0, 1]).item() if grid.shape[0] > 1 else 0.0
-        dx = (grid[0, 1, 0] - grid[0, 0, 0]).item() if grid.shape[1] > 1 else 0.0
+        dz = (grid[1, 0, 1] -
+              grid[0, 0, 1]).item() if grid.shape[0] > 1 else 0.0
+        dx = (grid[0, 1, 0] -
+              grid[0, 0, 0]).item() if grid.shape[1] > 1 else 0.0
         return (dz, dx)
 
     @property
     def wavelength(self) -> float:
         r"""Nominal wavelength :math:`\lambda = c / f_{\mathrm{demod}}` in meters (falls back to :math:`c / f_s` if ``demodulation_frequency`` is ``None``)."""
-        ref_freq = (
-            self.demodulation_frequency
-            if self.demodulation_frequency is not None
-            else self.fs
-        )
+        ref_freq = (self.demodulation_frequency
+                    if self.demodulation_frequency is not None else self.fs)
         return self.c / ref_freq
 
-    def transmit_delay(self) -> Tensor:
-        """Transmit delay ``(n_transmits, Z*X)`` in seconds. Subclass hook."""
-        raise NotImplementedError(
-            "Subclass must implement transmit_delay for its transmit mode."
-        )
+    def transmit_delay(self, k: int | None = None) -> Tensor:
+        """Transmit delay in seconds. Subclass hook.
 
-    def transmit_apod(self) -> Tensor | None:
-        """Transmit apodization ``(n_transmits, Z*X)`` or ``None``. Subclass hook."""
+        :param int k: if ``None`` (default), return the full ``(n_transmits, Z*X)``
+            tensor; if an integer, return the ``(Z*X,)`` delay for transmit ``k``.
+            :meth:`A` and :meth:`A_adjoint` call the per-transmit form to keep
+            peak memory independent of ``n_transmits``.
+        """
         raise NotImplementedError(
-            "Subclass must implement transmit_apod for its transmit mode."
-        )
+            "Subclass must implement transmit_delay for its transmit mode.")
+
+    def transmit_apod(self, k: int | None = None) -> Tensor | None:
+        """Transmit apodization. Subclass hook.
+
+        :param int k: if ``None`` (default), return the full
+            ``(n_transmits, Z*X)`` tensor (or ``None``); if an integer, return
+            the ``(Z*X,)`` apodization for transmit ``k`` (or ``None``).
+        """
+        raise NotImplementedError(
+            "Subclass must implement transmit_apod for its transmit mode.")
 
     def _receive_delay(self) -> Tensor:
         r"""Receive delay ``(n_elements, Z*X)`` in seconds.
@@ -293,8 +292,10 @@ class UltrafastUltrasound(LinearPhysics):
         :math:`\tau_{\mathrm{rx}}(x, z; x_e, z_e) = \|(x,z) - (x_e, z_e)\|/c`.
         """
         grid = self.pixel_grid.reshape(-1, 2)
-        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:, 0].unsqueeze(1)
-        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:, 1].unsqueeze(1)
+        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:,
+                                                              0].unsqueeze(1)
+        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:,
+                                                              1].unsqueeze(1)
         return torch.hypot(dx, dz) / self.c
 
     @staticmethod
@@ -338,8 +339,10 @@ class UltrafastUltrasound(LinearPhysics):
         else:
             min_width = 1e-3
 
-        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:, 0].unsqueeze(1)
-        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:, 1].unsqueeze(1)
+        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:,
+                                                              0].unsqueeze(1)
+        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:,
+                                                              1].unsqueeze(1)
 
         w_half = torch.abs(dz) / self.f_number
         eps = torch.full_like(dx, torch.finfo(self.pixel_grid.dtype).eps)
@@ -371,42 +374,38 @@ class UltrafastUltrasound(LinearPhysics):
         is_iq = self.signal_kind == "iq"
 
         if is_iq:
-            x_flat = torch.view_as_complex(x.moveaxis(1, -1).contiguous()).reshape(
-                B, Z * X
-            )
+            x_flat = torch.view_as_complex(x.moveaxis(
+                1, -1).contiguous()).reshape(B, Z * X)
             out_dtype = self._complex_dtype
         else:
             x_flat = x[:, 0].reshape(B, Z * X)
             out_dtype = self.dtype
 
-        tau_rx = self._receive_delay()  # (n_e, Z*X)
-        tau_tx_all = self.transmit_delay()  # (n_t, Z*X)
-        apod_rx = self._receive_apod()  # (n_e, Z*X) or None
-        apod_tx_all = self.transmit_apod()  # (n_t, Z*X) or None
+        tau_rx = self._receive_delay()
+        apod_rx = self._receive_apod()
         z_pix = self.pixel_grid.reshape(-1, 2)[:, 1] if is_iq else None
 
-        y_out = torch.zeros((B, n_t, n_e, n_s), dtype=out_dtype, device=x.device)
+        y_out = torch.zeros((B, n_t, n_e, n_s),
+                            dtype=out_dtype,
+                            device=x.device)
         for k in range(n_t):
-            tau_tx_k = tau_tx_all[k]  # (Z*X,)
+            tau_tx_k = self.transmit_delay(k=k)
+            apod_tx_k = self.transmit_apod(k=k)
             tau_full = tau_tx_k.unsqueeze(0) + tau_rx + self.t0[k]
 
             if is_iq:
-                phase_arg = (
-                    2.0
-                    * math.pi
-                    * self.demodulation_frequency
-                    * (tau_full - 2.0 * z_pix / self.c)
-                )
+                phase_arg = (2.0 * math.pi * self.demodulation_frequency *
+                             (tau_full - 2.0 * z_pix / self.c))
                 weight = torch.exp(
-                    torch.complex(torch.zeros_like(phase_arg), -phase_arg)
-                )
+                    torch.complex(torch.zeros_like(phase_arg), -phase_arg))
                 if apod_rx is not None:
                     weight = weight * apod_rx
             else:
-                weight = apod_rx if apod_rx is not None else torch.ones_like(tau_full)
+                weight = apod_rx if apod_rx is not None else torch.ones_like(
+                    tau_full)
 
-            if apod_tx_all is not None:
-                weight = weight * apod_tx_all[k].unsqueeze(0)
+            if apod_tx_k is not None:
+                weight = weight * apod_tx_k.unsqueeze(0)
 
             s_k = tau_full * self.fs
             contrib = x_flat.unsqueeze(1) * weight.unsqueeze(0)
@@ -420,20 +419,21 @@ class UltrafastUltrasound(LinearPhysics):
             if is_iq:
                 y_real = y_flat.real
                 y_imag = y_flat.imag
-                y_real_padded = torch.nn.functional.pad(y_real, (pad_left, pad_right))
-                y_imag_padded = torch.nn.functional.pad(y_imag, (pad_left, pad_right))
+                y_real_padded = torch.nn.functional.pad(
+                    y_real, (pad_left, pad_right))
+                y_imag_padded = torch.nn.functional.pad(
+                    y_imag, (pad_left, pad_right))
                 conv_real = torch.nn.functional.conv1d(
-                    y_real_padded, self.pulse_echo_ir.view(1, 1, -1)
-                )
+                    y_real_padded, self.pulse_echo_ir.view(1, 1, -1))
                 conv_imag = torch.nn.functional.conv1d(
-                    y_imag_padded, self.pulse_echo_ir.view(1, 1, -1)
-                )
-                y_out = torch.complex(conv_real, conv_imag).reshape(B, n_t, n_e, n_s)
+                    y_imag_padded, self.pulse_echo_ir.view(1, 1, -1))
+                y_out = torch.complex(conv_real,
+                                      conv_imag).reshape(B, n_t, n_e, n_s)
             else:
-                y_padded = torch.nn.functional.pad(y_flat, (pad_left, pad_right))
+                y_padded = torch.nn.functional.pad(y_flat,
+                                                   (pad_left, pad_right))
                 conv = torch.nn.functional.conv1d(
-                    y_padded, self.pulse_echo_ir.view(1, 1, -1)
-                )
+                    y_padded, self.pulse_echo_ir.view(1, 1, -1))
                 y_out = conv.reshape(B, n_t, n_e, n_s)
 
         if is_iq:
@@ -468,10 +468,11 @@ class UltrafastUltrasound(LinearPhysics):
             L_k = self.pulse_echo_ir.numel()
             pad_left = L_k // 2
             pad_right = L_k - 1 - pad_left
-            y_padded = torch.nn.functional.pad(y_flat_conv, (pad_right, pad_left))
+            y_padded = torch.nn.functional.pad(y_flat_conv,
+                                               (pad_right, pad_left))
             conv = torch.nn.functional.conv1d(
-                y_padded, self.pulse_echo_ir.view(1, 1, -1).flip(-1)
-            )
+                y_padded,
+                self.pulse_echo_ir.view(1, 1, -1).flip(-1))
             y = conv.reshape(B, self.n_channels, n_t, n_e, n_s)
 
         if is_iq:
@@ -482,33 +483,28 @@ class UltrafastUltrasound(LinearPhysics):
             out_dtype = self.dtype
 
         tau_rx = self._receive_delay()
-        tau_tx_all = self.transmit_delay()
         apod_rx = self._receive_apod()
-        apod_tx_all = self.transmit_apod()
         z_pix = self.pixel_grid.reshape(-1, 2)[:, 1] if is_iq else None
 
         x_out = torch.zeros((B, Z * X), dtype=out_dtype, device=y.device)
         for k in range(n_t):
-            tau_tx_k = tau_tx_all[k]
+            tau_tx_k = self.transmit_delay(k=k)
+            apod_tx_k = self.transmit_apod(k=k)
             tau_full = tau_tx_k.unsqueeze(0) + tau_rx + self.t0[k]
 
             if is_iq:
-                phase_arg = (
-                    2.0
-                    * math.pi
-                    * self.demodulation_frequency
-                    * (tau_full - 2.0 * z_pix / self.c)
-                )
+                phase_arg = (2.0 * math.pi * self.demodulation_frequency *
+                             (tau_full - 2.0 * z_pix / self.c))
                 weight = torch.exp(
-                    torch.complex(torch.zeros_like(phase_arg), phase_arg)
-                )
+                    torch.complex(torch.zeros_like(phase_arg), phase_arg))
                 if apod_rx is not None:
                     weight = weight * apod_rx
             else:
-                weight = apod_rx if apod_rx is not None else torch.ones_like(tau_full)
+                weight = apod_rx if apod_rx is not None else torch.ones_like(
+                    tau_full)
 
-            if apod_tx_all is not None:
-                weight = weight * apod_tx_all[k].unsqueeze(0)
+            if apod_tx_k is not None:
+                weight = weight * apod_tx_k.unsqueeze(0)
 
             s_k = tau_full * self.fs
             gathered = self._interp1d(y_flat[:, k], s_k)
@@ -532,7 +528,7 @@ class UltrafastUltrasound(LinearPhysics):
             where ``K`` is 1 for ``nearest``, 2 for ``linear``, 4 for ``keys``.
         """
         if self.interp == "nearest":
-            offsets = (0,)
+            offsets = (0, )
             s_ref = torch.floor(s + 0.5)
         elif self.interp == "linear":
             offsets = (0, 1)
@@ -564,9 +560,11 @@ class UltrafastUltrasound(LinearPhysics):
             w = torch.where(valid, w, torch.zeros_like(w))
             indices_list.append(idx_clamped)
             weights_list.append(w)
-        return torch.stack(indices_list, dim=0), torch.stack(weights_list, dim=0)
+        return torch.stack(indices_list, dim=0), torch.stack(weights_list,
+                                                             dim=0)
 
-    def _interp1d_adjoint(self, s: Tensor, contrib: Tensor, n_samples: int) -> Tensor:
+    def _interp1d_adjoint(self, s: Tensor, contrib: Tensor,
+                          n_samples: int) -> Tensor:
         """Adjoint of :meth:`_interp1d`. Scatter-add the input ``contrib`` onto a
         length-``n_samples`` time axis at fractional positions ``s``.
 
@@ -576,9 +574,9 @@ class UltrafastUltrasound(LinearPhysics):
         """
         B, n_e, N = contrib.shape
         indices, weights = self._interp_taps(s, n_samples)
-        out = torch.zeros(
-            (B, n_e, n_samples), dtype=contrib.dtype, device=contrib.device
-        )
+        out = torch.zeros((B, n_e, n_samples),
+                          dtype=contrib.dtype,
+                          device=contrib.device)
         for k in range(indices.shape[0]):
             idx_b = indices[k].unsqueeze(0).expand(B, n_e, N)
             w_c = weights[k].to(contrib.dtype)
@@ -727,7 +725,8 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
                 f"angles must be an iterable or Tensor, but got {type(angles)}"
             )
         if theta.ndim != 1:
-            raise ValueError(f"angles must be 1-D, got shape {tuple(theta.shape)}.")
+            raise ValueError(
+                f"angles must be 1-D, got shape {tuple(theta.shape)}.")
         n_transmits = theta.numel()
 
         super().__init__(
@@ -755,11 +754,9 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
         self.to(device)
 
         if normalize is None:
-            warn(
-                "The default value of `normalize` is not specified and will "
-                "be automatically set to `True`. Set `normalize` explicitly "
-                "to `True` or `False` to avoid this warning."
-            )
+            warn("The default value of `normalize` is not specified and will "
+                 "be automatically set to `True`. Set `normalize` explicitly "
+                 "to `True` or `False` to avoid this warning.")
             normalize = True
         self.normalize = False
         if normalize:
@@ -788,8 +785,7 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
         return (deg.min().item(), deg.max().item())
 
     def select_transmits(
-        self, indices: Iterable[int] | Tensor
-    ) -> "UltrasoundPlaneWave":
+            self, indices: Iterable[int] | Tensor) -> "UltrasoundPlaneWave":
         """Return a new operator restricted to a subset of transmit angles.
 
         Useful for angle-subset splitting in self-supervised losses such as
@@ -801,11 +797,8 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
             ``t0``.
         """
         idx = torch.as_tensor(list(indices), dtype=torch.long)
-        pulse = (
-            self.pulse_echo_ir.detach().clone()
-            if self.pulse_echo_ir is not None
-            else None
-        )
+        pulse = (self.pulse_echo_ir.detach().clone()
+                 if self.pulse_echo_ir is not None else None)
         return UltrasoundPlaneWave(
             img_size=self.img_size_spatial,
             angles=self.angles[idx].detach().clone(),
@@ -827,24 +820,33 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
             dtype=self.dtype,
         )
 
-    def select_angles(self, indices: Iterable[int] | Tensor) -> "UltrasoundPlaneWave":
+    def select_angles(
+            self, indices: Iterable[int] | Tensor) -> "UltrasoundPlaneWave":
         """Alias for :meth:`select_transmits`."""
         return self.select_transmits(indices)
 
-    def transmit_delay(self) -> Tensor:
-        r"""Plane-wave transmit delay ``(n_angles, Z*X)`` in seconds.
+    def transmit_delay(self, k: int | None = None) -> Tensor:
+        r"""Plane-wave transmit delay in seconds.
 
         :math:`\tau_{\mathrm{tx}}(x, z; \theta_k) = (x \sin\theta_k + z \cos\theta_k)/c`.
+
+        :param int k: if ``None`` (default), returns ``(n_angles, Z*X)``; if an
+            integer, returns ``(Z*X,)`` for angle ``k`` only. The per-transmit
+            form is used by :meth:`A` / :meth:`A_adjoint` to keep memory
+            independent of ``n_angles``.
         """
         grid = self.pixel_grid.reshape(-1, 2)
         x = grid[:, 0]
         z = grid[:, 1]
-        sin_t = torch.sin(self.angles).unsqueeze(-1)
-        cos_t = torch.cos(self.angles).unsqueeze(-1)
-        return (x * sin_t + z * cos_t) / self.c
+        if k is None:
+            sin_t = torch.sin(self.angles).unsqueeze(-1)
+            cos_t = torch.cos(self.angles).unsqueeze(-1)
+            return (x * sin_t + z * cos_t) / self.c
+        theta_k = self.angles[k]
+        return (x * torch.sin(theta_k) + z * torch.cos(theta_k)) / self.c
 
-    def transmit_apod(self) -> Tensor | None:
-        r"""Plane-wave transmit apodization ``(n_angles, Z*X)``.
+    def transmit_apod(self, k: int | None = None) -> Tensor | None:
+        r"""Plane-wave transmit apodization.
 
         For each transmit angle :math:`\theta_k`
         each pixel is projected back onto the aperture line,
@@ -852,18 +854,27 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
         projection falls outside the aperture (with a 20% margin) are
         masked to zero. A tapered window is applied to the normalized position
         inside the aperture, matching :attr:`tx_apod_window`.
+
+        :param int k: if ``None`` (default), returns ``(n_angles, Z*X)`` (or
+            ``None``); if an integer, returns ``(Z*X,)`` for angle ``k``
+            (or ``None``).
         """
         if self.tx_apod_window is None:
             return None
         grid = self.pixel_grid.reshape(-1, 2)
-        x = grid[:, 0].unsqueeze(0)
-        z = grid[:, 1].unsqueeze(0)
-        tan_t = torch.tan(self.angles).unsqueeze(-1)
-        x_proj = x - z * tan_t
         x_min = self.element_positions[:, 0].min() * 1.2
         x_max = self.element_positions[:, 0].max() * 1.2
         x_center = 0.5 * (x_min + x_max)
         x_half = 0.5 * (x_max - x_min)
+        if k is None:
+            x = grid[:, 0].unsqueeze(0)
+            z = grid[:, 1].unsqueeze(0)
+            tan_t = torch.tan(self.angles).unsqueeze(-1)
+        else:
+            x = grid[:, 0]
+            z = grid[:, 1]
+            tan_t = torch.tan(self.angles[k])
+        x_proj = x - z * tan_t
         u = (x_proj - x_center) / x_half
         inside = torch.abs(u) <= 1.0
         window = self._window_shape(u, self.tx_apod_window)
