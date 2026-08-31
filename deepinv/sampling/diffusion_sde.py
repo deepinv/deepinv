@@ -13,12 +13,12 @@ from deepinv.sampling.utils import trapz_torch
 from deepinv.models.wrapper import MinusOneOneDenoiserWrapper
 
 
-def _first_time_step(solver: BaseSDESolver, timesteps=None):
+def _first_time_step(sde: BaseSDE, solver: BaseSDESolver, timesteps=None):
     """The time at which the solver starts"""
     if timesteps is None:
         timesteps = getattr(solver, "timesteps", None)
     if timesteps is None or len(timesteps) == 0:
-        return None
+        return getattr(sde, "T", None)
     return timesteps[0]
 
 
@@ -80,7 +80,7 @@ class BaseSDE(nn.Module):
             x_init = self.sample_init(
                 x_init,
                 rng=self.solver.rng,
-                t=_first_time_step(self.solver, kwargs.get("timesteps", None)),
+                t=_first_time_step(self, self.solver, kwargs.get("timesteps", None)),
             )
         solution = self.solver.sample(
             self, x_init, *args, **kwargs, get_trajectory=get_trajectory
@@ -993,7 +993,7 @@ class PosteriorDiffusion(Reconstructor):
         :return: the generated sample (:class:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns a tuple (:class:`torch.Tensor`, :class:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
         """
         self.solver.rng_manual_seed(seed)
-        t_init = _first_time_step(self.solver, timesteps)
+        t_init = _first_time_step(self.sde, self.solver, timesteps)
         if isinstance(x_init, (tuple, list, torch.Size)):
             x_init = self.sde.sample_init(x_init, rng=self.solver.rng, t=t_init)
         elif x_init is None:
