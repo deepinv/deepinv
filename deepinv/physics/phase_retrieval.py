@@ -547,14 +547,13 @@ class FourierPtychographyLinearOperator(LinearPhysics):
             measure_size=None,
             probe=None,
             shifts=None,
-            norm=1,
+            normalize=True,
             device="cpu",
             **kwargs,
     ):
         super().__init__(**kwargs)
 
         self.img_size = img_size
-        self.norm = norm
         if shifts.ndim != 3:
             raise ValueError("shifts must be a 3D tensor of shape (B, n_img, 2)")
         self.register_buffer("shifts", shifts)
@@ -571,6 +570,13 @@ class FourierPtychographyLinearOperator(LinearPhysics):
         self.cx = cx
         self.my = my
         self.mx = mx
+
+        if normalize:
+            probe_sq = (self.probe.abs() ** 2).expand(1, self.shifts.size(1), -1, -1)
+            overlap_img = self.shift_and_pad(probe_sq, -self.shifts).sum(dim=1, keepdim=True)
+            self.norm = 1.0 / torch.sqrt(overlap_img.max()).item()
+        else:
+            self.norm= 1.0
 
     def op_fft2(self, y, norm='ortho'):
         return torch.fft.fftshift(torch.fft.fft2(y, norm=norm), dim=(-2, -1))
@@ -649,7 +655,7 @@ class MultiplexPtychography(PhaseRetrieval):
             shifts=None,
             ledidx=None,
             scale=1,
-            norm=1,
+            normalize=True,
             device="cpu",
             **kwargs,
     ):
@@ -659,7 +665,7 @@ class MultiplexPtychography(PhaseRetrieval):
             measure_size=measure_size,
             probe=probe,
             shifts=shifts,
-            norm=norm,
+            normalize=normalize,
             device=device,
         )
         super().__init__(B, **kwargs)
@@ -677,9 +683,6 @@ class MultiplexPtychography(PhaseRetrieval):
         self.register_buffer('flat_idx', torch.cat([idx for idx in ledidx]).to(device))
         self.register_buffer('norm_factors',
                              torch.repeat_interleave(1.0 / self.lengths, self.lengths).view(1, -1, 1, 1))
-
-        # self.lengths = torch.tensor([idx.numel() for idx in self.ledidx], device=shifts.device)
-        # self.flat_idx = torch.cat([idx for idx in ledidx]).to(device)
 
         Nimg = len(ledidx)
         self.Nimg = Nimg
