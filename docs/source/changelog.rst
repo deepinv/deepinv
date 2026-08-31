@@ -61,9 +61,7 @@ Fixed
 - (Breaking) Have `x_shift` represent horizontal shifts and `y_shift` vertical shifts in :class:`deepinv.transform.Shift` (:gh:`1236` by `Sarra Amiri`_)
 - Force trainer non_blocking_transfers=False on MPS and CPU (:gh:`1311` by `Andrew Wang`_)
 - Fix :class:`deepinv.physics.PET` incorrect device attribution of attenuation and background on update and incorrect handling of batched attenuation  (:gh:`1331` by `Thibaut Modrzyk`_)
-
-
-
+- Fix the channel description in NBUDataset documentation (:gh:`` by dldou)
 
 v0.4.1
 ------
