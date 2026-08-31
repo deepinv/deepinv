@@ -392,7 +392,7 @@ class PtychographyLinearOperator(LinearPhysics):
         :return: Reconstructed image tensor.
         """
         op_ifft2 = partial(torch.fft.ifft2, norm="ortho")
-        return (self.probe * op_ifft2(y)).sum(dim=1).unsqueeze(1)
+        return (self.probe.conj() * op_ifft2(y)).sum(dim=1).unsqueeze(1)
 
     def shift(self, x, x_shift, y_shift, pad_zeros=True):
         """
