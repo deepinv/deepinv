@@ -548,6 +548,8 @@ class FourierPtychographyLinearOperator(LinearPhysics):
             probe=None,
             shifts=None,
             normalize=True,
+            include_fft=True,
+            include_ifft=True,
             device="cpu",
             **kwargs,
     ):
@@ -578,11 +580,20 @@ class FourierPtychographyLinearOperator(LinearPhysics):
         else:
             self.norm= 1.0
 
+        self.include_fft = include_fft
+        self.include_ifft = include_ifft
+
     def op_fft2(self, y, norm='ortho'):
-        return torch.fft.fftshift(torch.fft.fft2(y, norm=norm), dim=(-2, -1))
+        if self.include_fft:
+            return torch.fft.fftshift(torch.fft.fft2(y, norm=norm), dim=(-2, -1))
+        else:
+            return y
 
     def op_ifft2(self, x, norm='ortho'):
-        return torch.fft.ifft2(torch.fft.ifftshift(x, dim=(-2, -1)), norm=norm)
+        if self.include_ifft:
+            return torch.fft.ifft2(torch.fft.ifftshift(x, dim=(-2, -1)), norm=norm)
+        else:
+            return x
 
     def A(self, x, **kwargs):
         fx = self.op_fft2(x)
