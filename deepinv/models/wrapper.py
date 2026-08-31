@@ -377,7 +377,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
     """
     Wraps a `HuggingFace diffusers <https://huggingface.co/docs/diffusers/index>`_ model as a DeepInv Denoiser.
 
-    :param str mode_id: Diffusers model id or HuggingFace hub repository id. For example, 'google/ddpm-cat-256'.
+    :param str model_id: Diffusers model id or HuggingFace hub repository id. For example, 'google/ddpm-cat-256'.
         The id must work with `DiffusionPipeline`.
         See `Diffusers Documentation <https://huggingface.co/docs/diffusers/v0.35.1/en/api/pipelines/overview#diffusers.DiffusionPipeline>`_.
     :param bool clip_output: Whether to clip the output to the model range. Default is `True`.
@@ -398,7 +398,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         >>> from deepinv.models import DiffusersDenoiserWrapper
         >>> import torch
         >>> device = dinv.utils.get_device(verbose=False)
-        >>> denoiser = DiffusersDenoiserWrapper(mode_id='google/ddpm-cat-256', device=device)
+        >>> denoiser = DiffusersDenoiserWrapper(model_id='google/ddpm-cat-256', device=device)
         >>> x = dinv.utils.load_example(
         ...         "cat.jpg",
         ...         img_size=256,
@@ -415,31 +415,32 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
 
     def __init__(
         self,
-        mode_id: str = None,
+        model_id: str = None,
         clip_output: bool = True,
+        pipeline_name: str = "DiffusionPipeline",
         dtype: torch.dtype = torch.float32,
         device: str | torch.device = "cpu",
         *args,
         **kwargs,
     ):
-        if mode_id is None:  # pragma: no cover
+        if model_id is None:  # pragma: no cover
             raise ValueError(
-                "mode_id is None, Provide a diffusers model id. E.g., 'google/ddpm-cat-256'"
+                "model_id is None, Provide a diffusers model id. E.g., 'google/ddpm-cat-256'"
             )
 
         try:
             from diffusers import (
-                DiffusionPipeline,
                 DDPMScheduler,
                 PNDMScheduler,
                 DDIMScheduler,
             )
+            pipeline_class = getattr(__import__("diffusers"), pipeline_name)
         except ImportError:  # pragma: no cover
             raise ImportError(
                 "diffusers is not installed. Please install it via 'pip install diffusers'."
             )
 
-        pipeline = DiffusionPipeline.from_pretrained(mode_id, torch_dtype=dtype).to(
+        pipeline = pipeline_class.from_pretrained(model_id, torch_dtype=dtype).to(
             device
         )
 
@@ -496,6 +497,10 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
             *args,
             **kwargs,
         )
+
+        self.vae =  getattr(pipeline, "vae", None)
+        self.text_encoder = getattr(pipeline, "text_encoder", None)
+        self.tokenizer = getattr(pipeline, "tokenizer", None)
 
         self.scheduler = scheduler
 
@@ -671,6 +676,9 @@ class MinusOneOneDenoiserWrapper(nn.Module):
         self.model = model
         self.xmin = xmin
         self.xmax = xmax
+        for attribute in dir(model):
+            if not hasattr(self, attribute):
+                setattr(self, attribute, getattr(model, attribute))
 
     def forward(self, x: Tensor, sigma: Tensor, *args, **kwargs) -> Tensor:
         # Scale from [-1, 1] to [xmin, xmax], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs

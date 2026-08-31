@@ -210,6 +210,8 @@ class DPSDataFidelity(NoisyDataFidelity):
         if isinstance(sigma, torch.Tensor):
             sigma = sigma.to(torch.float32)
         x0_t = self.denoiser(x.to(torch.float32), sigma, *args, **kwargs)
+        if self.denoiser.vae is not None:
+            x0_t = self.denoiser.vae.decode(x0_t)
 
         if self.clip is not None:
             x0_t = torch.clip(x0_t, self.clip[0], self.clip[1])  # optional

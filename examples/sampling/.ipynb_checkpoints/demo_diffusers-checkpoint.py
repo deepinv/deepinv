@@ -16,7 +16,7 @@ import torch
 import deepinv as dinv
 from deepinv.models.wrapper import DiffusersDenoiserWrapper
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 dtype = torch.float32
 figsize = 2.5
 
@@ -31,7 +31,7 @@ from deepinv.optim import ZeroFidelity
 
 # We can wrap any diffusers model as a DeepInv denoiser using one line of code:
 denoiser = DiffusersDenoiserWrapper(
-    model_id="sd-legacy/stable-diffusion-v1-5", pipeline_name="StableDiffusionPipeline", device=device
+    model_id="google/ddpm-ema-celebahq-256", device=device
 )
 
 # Load an example image
@@ -41,32 +41,17 @@ x = dinv.utils.load_example(
     resize_mode="resize",
 ).to(device)
 
-tokenizer = denoiser.tokenizer
-text_encoder = denoiser.text_encoder
+# Add noise and test the denoiser
+sigma = 0.1
+x_noisy = x + sigma * torch.randn_like(x)
+with torch.no_grad():
+    x_denoised = denoiser(x_noisy, sigma=sigma)
 
-# Define the prompt
-prompt = ["a photo of a cat"]
-
-# Encode the prompt to conditioning embeddings
-text_inputs = tokenizer(
-    prompt, 
-    padding="max_length", 
-    max_length=tokenizer.model_max_length,
-    return_tensors="pt"
+dinv.utils.plot(
+    [x, x_noisy, x_denoised],
+    figsize=(figsize * 3, figsize),
+    titles=["Original image", "Noisy image", "Denoised image"],
 )
-text_embeddings = text_encoder(text_inputs.input_ids.to(device))[0]
-
-# # Add noise and test the denoiser
-# sigma = 0.1
-# x_noisy = x + sigma * torch.randn_like(x)
-# with torch.no_grad():
-#     x_denoised = denoiser(x_noisy, sigma=sigma)
-
-# dinv.utils.plot(
-#     [x, x_noisy, x_denoised],
-#     figsize=(figsize * 3, figsize),
-#     titles=["Original image", "Noisy image", "Denoised image"],
-# )
 
 # %% Unconditional image generation
 # ---------------------------------
@@ -83,7 +68,6 @@ solver = EulerSolver(timesteps=timesteps, rng=rng)
 sde = VarianceExplodingDiffusion(
     device=device,
     dtype=dtype,
-    alpha=0,
 )
 
 model = PosteriorDiffusion(
@@ -100,10 +84,9 @@ model = PosteriorDiffusion(
 sample, trajectory = model(
     y=None,
     physics=None,
-    x_init=(1, 4, 64, 64),
+    x_init=(1, 3, 256, 256),
     seed=42,
     get_trajectory=True,
-    encoder_hidden_states=text_embeddings,
 )
 dinv.utils.plot(
     sample,
