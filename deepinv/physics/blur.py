@@ -748,12 +748,14 @@ class FactorTimesBlurFFT(BlurFFT):
 
     :param float factor: the factor you multiply with
     """
+
     def __init__():
         super().__init__()
 
     def forward(self, x: Tensor, filter: Tensor | None = None, **kwargs) -> Tensor:
         out = 2 * x
         return out
+
 
 class SpaceVaryingBlur(LinearPhysics):
     r"""
