@@ -88,12 +88,6 @@ def choose_denoiser(name, imsize):
             reason="This test requires bm3d. It should be "
             "installed with `pip install bm3d`",
         )
-    if name in ("swinir", "scunet"):
-        pytest.importorskip(
-            "timm",
-            reason="This test requires timm. It should be "
-            "installed with `pip install timm`",
-        )
 
     if name == "unet":
         out = dinv.models.UNet(in_channels=imsize[0], out_channels=imsize[0])
@@ -1328,9 +1322,9 @@ def test_dsccp_net(device, n_channels, spatials):
 
 def test_denoiser_perf(device, load_example_image):
     pytest.importorskip(
-        "timm",
-        reason="This test requires timm. It should be "
-        "installed with `pip install timm`",
+        "diffusers",
+        reason="This test requires diffusers. It should be "
+        "installed with `pip install diffusers`",
     )
     # Load 2 example images
     x1 = load_example_image(
@@ -1618,12 +1612,6 @@ def test_client_mocked(return_metadata):
 @pytest.mark.parametrize("upscale", [None, 1, 2])
 @pytest.mark.parametrize("upsampler", [None, "pixelshuffle"])
 def test_swinir_upsample_without_upsampler(upscale, upsampler):
-    pytest.importorskip(
-        "timm",
-        reason="This test requires timm. It should be "
-        "installed with `pip install timm`",
-    )
-
     kwargs = {}
 
     if upscale is not None:
@@ -1913,18 +1901,46 @@ def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
 
 @pytest.mark.parametrize("upscale_factor", [2, 4])
 @pytest.mark.parametrize("n_channels", [1, 3])
-@pytest.mark.parametrize("model", ["srresnet"])
-def test_super_resolution_nets(upscale_factor, n_channels, model):
+@pytest.mark.parametrize(
+    "model, option",
+    [
+        ("srresnet", {}),
+        ("swinir", {"upsampler": "pixelshuffle"}),
+        ("swinir", {"upsampler": "pixelshuffledirect"}),
+        ("swinir", {"upsampler": "nearest+conv"}),
+    ],
+    ids=[
+        "srresnet",
+        "swinir-pixelshuffle",
+        "swinir-pixelshuffledirect",
+        "swinir-nearest+conv",
+    ],
+)
+def test_super_resolution_nets(upscale_factor, n_channels, model, option):
     if model == "srresnet":
-        super_resolver = dinv.models.SRResNet(
-            num_blocks=2,
-            im_c=n_channels,
-            feats=4,
-            upscale=upscale_factor,
-            final_kernel_size=3,
-        )
+        kwargs = {
+            "num_blocks": 2,
+            "im_c": n_channels,
+            "feats": 4,
+            "upscale": upscale_factor,
+            "final_kernel_size": 3,
+        }
+        model_cls = dinv.models.SRResNet
+    elif model == "swinir":
+        kwargs = {
+            "upscale": upscale_factor,
+            "in_chans": n_channels,
+            "embed_dim": 6,
+            "depths": (2, 2),
+            "num_heads": (2, 2),
+            "window_size": 4,
+            "img_size": 8,
+            "pretrained": None,
+        } | option
+        model_cls = dinv.models.SwinIR
     else:
         raise RuntimeError(f"Unknown super-resolution model {model}")
+    super_resolver = model_cls(**kwargs)
     test_input = torch.ones([2, n_channels, 8, 8])
     model_output = super_resolver(
         test_input, physics=dinv.physics.Downsampling(filter=None)

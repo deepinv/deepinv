@@ -8,9 +8,11 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add pretrained SwinIR weights for 2x super-resolution (:gh:`1304` by `Vicky De Ridder`_)
 
 Changed
 ^^^^^^^
+- Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 
 Fixed
 ^^^^^
