@@ -112,7 +112,7 @@ class BaseSDE(nn.Module):
         t: Tensor | float = None,
     ) -> torch.Tensor:
         r"""
-        Sample from the distribution of the forward diffusion at time `t`.
+        Sample from the initial distribution of the SDE.
 
         :param shape: The shape of the the sample, of the form `(B, C, H, W)`.
         :param torch.Generator rng: Random number generator for reproducibility.
@@ -486,11 +486,8 @@ class EDMDiffusionSDE(DiffusionSDE):
 
         .. note::
 
-            The state must be drawn at the time the solver starts from, which is not necessarily
-            the end time :math:`T` of the forward SDE: solving from `timesteps[0] < T` while
-            drawing at :math:`T` silently starts the trajectory from a mis-scaled state.
-            The samplers pass the solver's first time step here; when calling this method
-            directly, set `t` accordingly.
+            The state is drawn at the time the solver starts from, which is `timestep[0]` of the solver, which is not necessarily the end time :math:`T` of the forward SDE.
+            The `timesteps` of the solver must be decreasing.
 
         :param tuple shape: The shape of the sample to generate
         :param torch.Generator rng: Random number generator for reproducibility
@@ -528,7 +525,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
     Compared to the EDM formulation in :class:`deepinv.sampling.EDMDiffusionSDE`, the scale :math:`s(t)` and noise :math:`\sigma(t)` schedulers are defined with respect to :math:`\beta(t)` and :math:`\xi(t)` as follows:
 
     .. math::
-        s(t) = \exp\left(-\int_0^t \beta(s) ds\right), \quad \sigma(t) = \sqrt{\int_0^t \frac{\xi(s)}{s(s)^2} ds}.
+        s(t) = \exp\left(-0.5 \int_0^t \beta(s) ds\right), \quad \sigma(t) = \sqrt{\int_0^t \frac{\xi(s)}{s(s)^2} ds}.
 
     These are the schedules for which the EDM diffusion coefficient :math:`s(t) \sqrt{2 \sigma(t) \sigma'(t)}` reduces to :math:`\sqrt{\xi(t)}`.
     For variance-preserving, it has the closed form :math:`\sigma(t)^2 = 1/s(t)^2 - 1`, which is the DDPM noise level :math:`\sqrt{1 - \bar\alpha(t)} / \sqrt{\bar\alpha(t)}` for :math:`\bar\alpha = s^2`.
