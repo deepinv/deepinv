@@ -14,6 +14,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fix :func: `deepinv.physics.PtychographyLinearOperator.A_adjoint` corrected to consider conjugate of the probe (:gh:`1353` by `Shantanu Kodgirwar`_)
 
 
 v0.4.2
