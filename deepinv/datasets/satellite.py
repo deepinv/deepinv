@@ -33,7 +33,7 @@ class NBUDataset(ImageDataset):
         When there are 4 channels, they correspond to the blue, green, red, and near-infrared bands.
         When there are 8 channels, they correspond to the coastal, blue, green, yellow, red, red-edge, near-infrared 1,
         and near-infrared 2 bands.
-        See <https://www.pgc.umn.edu/guides/delivery-docs/pgc-commercial-satellite-imagery-documentation/> for more details.
+        See `this <https://www.pgc.umn.edu/guides/delivery-docs/pgc-commercial-satellite-imagery-documentation/>`_ for more details.
 
     For pan-sharpening problems, you can return pan-sharpening measurements by using ``return_pan=True``,
     outputting a :class:`deepinv.utils.TensorList` of ``(MS, PAN)`` where ``PAN`` are 1024x1024 panchromatic images.
