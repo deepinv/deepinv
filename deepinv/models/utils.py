@@ -555,8 +555,11 @@ def trunc_normal_(
     a: float = -2.0,
     b: float = 2.0,
 ) -> torch.Tensor:
-    # taken / based on the timm code.
-    # Cut & paste from PyTorch official master until it's in a few official releases - RW
+    """Truncated normal distribution for network parameter initialization.
+
+    This code was taken and modified from `timm <https://github.com/huggingface/pytorch-image-models/tree/main>`_ .
+    To avoid having it as an additional dependency.
+    """
     # Method based on https://people.sc.fsu.edu/~jburkardt/presentations/truncated_normal.pdf
     with torch.no_grad():
 
@@ -594,7 +597,9 @@ def _drop_path(
     scale_by_keep: bool = True,
 ) -> torch.Tensor:
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
-    Taken from timm
+
+    This code was taken and modified from `timm <https://github.com/huggingface/pytorch-image-models/tree/main>`_ .
+    To avoid having it as an additional dependency.
     """
     if drop_prob == 0.0 or not training:
         return x

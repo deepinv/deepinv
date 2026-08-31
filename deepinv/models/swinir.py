@@ -769,12 +769,15 @@ class SwinIR(Denoiser):
     :param str, None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be initialized at
         random using PyTorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from
         the authors' online repository https://github.com/JingyunLiang/SwinIR/releases/tag/v0.0. Downloading is only
-        available for three architectures: the denoising net (``upscale=1``, default architecture, ``in_chans`` 1 or
-        3), the lightweight super-resolution net (``upscale=2``, ``in_chans=3``, ``img_size=64``, ``embed_dim=60``,
-        ``depths=(6, 6, 6, 6)``, ``num_heads=(6, 6, 6, 6)``, ``upsampler='pixelshuffledirect'``) and the classical
-        super-resolution net (``upscale=2``, ``in_chans=3``, ``img_size=64``, ``embed_dim=180``,
-        ``depths=(6, 6, 6, 6, 6, 6)``, ``num_heads=(6, 6, 6, 6, 6, 6)``, ``upsampler='pixelshuffle'``). Finally,
-        ``pretrained`` can also be set as a path to the user's own pretrained weights. Default: 'download'.
+        available for the following three architectures:
+
+        - **Denoising net**: ``upscale=1``, ``in_chans`` 1 or 3
+        - **Lightweight super-resolution net**: ``upscale=2``, ``in_chans=3``, ``img_size=64``, ``embed_dim=60``,
+          ``depths=(6, 6, 6, 6)``, ``num_heads=(6, 6, 6, 6)``, ``upsampler='pixelshuffledirect'``
+        - **Classical super-resolution net**: ``upscale=2``, ``in_chans=3``, ``img_size=64``, ``embed_dim=180``,
+          ``depths=(6, 6, 6, 6, 6, 6)``, ``num_heads=(6, 6, 6, 6, 6, 6)``, ``upsampler='pixelshuffle'``
+
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights. Default: 'download'.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int pretrained_noise_level: The noise level of the pretrained denoising model to be downloaded (in 0-255
         scale). Must be one of {15, 25, 50}.
