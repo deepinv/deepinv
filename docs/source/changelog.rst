@@ -14,7 +14,7 @@ Changed
 
 Fixed
 ^^^^^
-- Fix description of channels in sattelite/NBUDataset (:gh:`1348` by dldou) 
+- Fix description of channels in :class:`deepinv.datasets.NBUDataset` (:gh:`1348` by `Delphine Doutsas`_)
 
 
 v0.4.2
