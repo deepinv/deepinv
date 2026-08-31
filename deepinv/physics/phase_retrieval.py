@@ -537,3 +537,208 @@ def generate_shifts(
     return torch.concatenate(
         [x_shifts.reshape(n_img, 1), y_shifts.reshape(n_img, 1)], dim=1
     )
+
+
+class FourierPtychographyLinearOperator(LinearPhysics):
+
+    def __init__(
+            self,
+            img_size=None,
+            measure_size=None,
+            probe=None,
+            shifts=None,
+            norm=1,
+            device="cpu",
+            **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.img_size = img_size
+        self.norm = norm
+        if shifts.ndim != 3:
+            raise ValueError("shifts must be a 3D tensor of shape (B, n_img, 2)")
+        self.register_buffer("shifts", shifts)
+
+        if probe.ndim != 4:
+            raise ValueError("probe must be a 4D tensor of shape (B, 1, H, W)")
+
+        self.register_buffer("probe", probe)
+        self.to(device)
+
+        cy, cx = img_size[-2] // 2, img_size[-1] // 2
+        my, mx = measure_size[-2] // 2, measure_size[-1] // 2
+        self.cy = cy
+        self.cx = cx
+        self.my = my
+        self.mx = mx
+
+    def op_fft2(self, y, norm='ortho'):
+        return torch.fft.fftshift(torch.fft.fft2(y, norm=norm), dim=(-2, -1))
+
+    def op_ifft2(self, x, norm='ortho'):
+        return torch.fft.ifft2(torch.fft.ifftshift(x, dim=(-2, -1)), norm=norm)
+
+    def A(self, x, **kwargs):
+        fx = self.op_fft2(x)
+        crop = self.shift_index(fx, self.shifts)
+        return self.norm * self.op_ifft2(self.probe * crop).to(torch.complex64)
+
+    def A_adjoint(self, y, **kwargs):
+        crop = self.probe.conj() * self.op_fft2(y)
+        Tx2 = self.op_ifft2(self.shift_and_pad(crop, -self.shifts))
+        return self.norm * Tx2.sum(dim=1, keepdim=True)
+
+    def shift_index(self, x, shifts):
+        B, C_img, H, W = x.shape
+        cy, cx = self.cy, self.cx
+        my, mx = self.my, self.mx
+        N_crops = shifts.size(1)
+
+        crop_y, crop_x = torch.meshgrid(
+            torch.arange(cy - my, cy + my, device=x.device),
+            torch.arange(cx - mx, cx + mx, device=x.device),
+            indexing='ij'
+        )
+
+        dy = shifts[:, :, 0].view(B, N_crops, 1, 1)
+        dx = shifts[:, :, 1].view(B, N_crops, 1, 1)
+
+        src_y = (crop_y.view(1, 1, 2 * my, 2 * mx) - dy) % H
+        src_x = (crop_x.view(1, 1, 2 * my, 2 * mx) - dx) % W
+
+        b_idx = torch.arange(B, device=x.device).view(B, 1, 1, 1)
+        c_idx = torch.arange(C_img, device=x.device).view(1, C_img, 1, 1)
+        return x[b_idx, c_idx, src_y, src_x]
+
+    def shift_and_pad(self, crop, shifts):
+        B, C_img, h_crop, w_crop = crop.shape
+        H, W = self.img_size[-2], self.img_size[-1]
+        cy, cx = self.cy, self.cx
+        my, mx = self.my, self.mx
+        N_crops = shifts.size(1)
+
+        grid_y = torch.arange(H, device=crop.device).view(1, 1, H, 1)
+        grid_x = torch.arange(W, device=crop.device).view(1, 1, 1, W)
+
+        dy = shifts[:, :, 0].view(B, N_crops, 1, 1)
+        dx = shifts[:, :, 1].view(B, N_crops, 1, 1)
+
+        src_y = grid_y - dy - (cy - my)
+        src_x = grid_x - dx - (cx - mx)
+
+        mask = (src_y >= 0) & (src_y < 2 * my) & (src_x >= 0) & (src_x < 2 * mx)
+
+        src_y_c = src_y.clamp(0, 2 * my - 1)
+        src_x_c = src_x.clamp(0, 2 * mx - 1)
+
+        b_idx = torch.arange(B, device=crop.device).view(B, 1, 1, 1)
+        c_idx = torch.arange(C_img, device=crop.device).view(1, C_img, 1, 1)
+
+        out = crop[b_idx, c_idx, src_y_c, src_x_c]
+        out = torch.where(mask, out, torch.tensor(0.0, dtype=out.dtype, device=out.device))
+        return out
+
+
+class MultiplexPtychography(PhaseRetrieval):
+
+    def __init__(
+            self,
+            img_size=None,
+            measure_size=None,
+            probe=None,
+            shifts=None,
+            ledidx=None,
+            scale=1,
+            norm=1,
+            device="cpu",
+            **kwargs,
+    ):
+
+        B = FourierPtychographyLinearOperator(
+            img_size=img_size,
+            measure_size=measure_size,
+            probe=probe,
+            shifts=shifts,
+            norm=norm,
+            device=device,
+        )
+        super().__init__(B, **kwargs)
+        self.register_buffer("probe", B.probe)
+        self.register_buffer("shifts", B.shifts)
+        if isinstance(ledidx, torch.Tensor):
+            self.register_buffer("ledidx", ledidx)
+        else:
+            self.ledidx = ledidx
+        self.register_buffer("scale", scale)
+        self.img_size = img_size
+        self.measure_size = measure_size
+        # 1. Aplatir les index et calculer la taille de chaque groupe
+        self.register_buffer('lengths', torch.tensor([idx.numel() for idx in ledidx], device=device))
+        self.register_buffer('flat_idx', torch.cat([idx for idx in ledidx]).to(device))
+        self.register_buffer('norm_factors',
+                             torch.repeat_interleave(1.0 / self.lengths, self.lengths).view(1, -1, 1, 1))
+
+        # self.lengths = torch.tensor([idx.numel() for idx in self.ledidx], device=shifts.device)
+        # self.flat_idx = torch.cat([idx for idx in ledidx]).to(device)
+
+        Nimg = len(ledidx)
+        self.Nimg = Nimg
+
+        self.name = f"Ptychography_PRV2"
+        self.to(device)
+
+    def A(self, x, **kwargs):
+        y = super().A(x, **kwargs) * self.scale  # scale de dim (1, y.size(1), 1, 1)
+        B, _, H, W = y.shape
+
+        # 2. Associer chaque index aplati à son canal de destination (C)
+        c_indices = torch.repeat_interleave(torch.arange(self.Nimg, device=y.device), self.lengths)
+        idx_expanded = c_indices.view(1, -1, 1, 1).expand(B, -1, H, W)
+
+        # 3. Extraire les valeurs (Shape: B, total_n, H, W)
+        gathered = y[:, self.flat_idx, :, :]
+
+        # 4. Agréger par canal (somme) puis diviser pour obtenir la moyenne (Shape: B, C, H, W)
+        out = torch.zeros((B, self.Nimg, H, W), dtype=y.dtype, device=y.device)
+        out.scatter_add_(1, idx_expanded, gathered)
+
+        y = out / self.lengths.view(1, self.Nimg, 1, 1)
+        return y
+
+    def A_adjoint(self, y, **kwargs):
+        y2 = torch.zeros(y.size(0), self.shifts.size(1), *self.measure_size[-2:], dtype=y.dtype, device=y.device)
+
+        # 2. Répétition variable par canal (B, total_n, H, W)
+        y_repeated = torch.repeat_interleave(y, self.lengths, dim=1)
+
+        # 3. Normalisation par 1/n_i
+
+        y_normalized = y_repeated * self.norm_factors
+
+        # 4. Accumulation aux indices correspondants
+        y2.index_add_(1, self.flat_idx, y_normalized)
+
+        y2 = y2 * self.scale
+        return super().A_adjoint(y2)
+
+    def A_vjp(self, x, v):
+        v2 = torch.zeros(v.size(0), self.shifts.size(1), *self.measure_size[-2:], dtype=v.dtype, device=v.device)
+
+        v_normalized = torch.repeat_interleave(v, self.lengths, dim=1) * self.norm_factors
+
+        v2.index_add_(1, self.flat_idx, v_normalized)
+        v2 = v2 * self.scale
+
+        return super().A_vjp(x, v2)
+
+    def update_parameters(self, **kwargs):
+        self.B.update_parameters(**kwargs)
+        ledidx = kwargs.get('ledidx')
+        if ledidx is not None:
+            device = ledidx[0].device
+            lengths = torch.tensor([idx.numel() for idx in ledidx], device=device)
+            flat_idx = torch.cat([idx for idx in ledidx]).to(device)
+            self.ledidx = ledidx
+            super().update_parameters(lengths=lengths, flat_idx=flat_idx, **kwargs)
+        else:
+            super().update_parameters(**kwargs)
