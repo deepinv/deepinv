@@ -664,21 +664,19 @@ class FourierPtychographyLinearOperator(LinearPhysics):
         :return: (:class:`torch.Tensor`) cropped and shifted tensor.
         """
         B, C_img, H, W = x.shape
-        cy, cx = self.cy, self.cx
-        my, mx = self.my, self.mx
         N_crops = shifts.size(1)
 
         crop_y, crop_x = torch.meshgrid(
-            torch.arange(cy - my, cy + my, device=x.device),
-            torch.arange(cx - mx, cx + mx, device=x.device),
+            torch.arange(self.cy - self.my, self.cy + self.my, device=x.device),
+            torch.arange(self.cx - self.mx, self.cx + self.mx, device=x.device),
             indexing="ij",
         )
 
         dy = shifts[:, :, 0].view(B, N_crops, 1, 1)
         dx = shifts[:, :, 1].view(B, N_crops, 1, 1)
 
-        src_y = (crop_y.view(1, 1, 2 * my, 2 * mx) - dy) % H
-        src_x = (crop_x.view(1, 1, 2 * my, 2 * mx) - dx) % W
+        src_y = (crop_y.view(1, 1, 2 * self.my, 2 * self.mx) - dy) % H
+        src_x = (crop_x.view(1, 1, 2 * self.my, 2 * self.mx) - dx) % W
 
         b_idx = torch.arange(B, device=x.device).view(B, 1, 1, 1)
         c_idx = torch.arange(C_img, device=x.device).view(1, C_img, 1, 1)
@@ -694,8 +692,6 @@ class FourierPtychographyLinearOperator(LinearPhysics):
         """
         B, C_img, h_crop, w_crop = crop.shape
         H, W = self.img_size[-2], self.img_size[-1]
-        cy, cx = self.cy, self.cx
-        my, mx = self.my, self.mx
         N_crops = shifts.size(1)
 
         grid_y = torch.arange(H, device=crop.device).view(1, 1, H, 1)
@@ -704,13 +700,13 @@ class FourierPtychographyLinearOperator(LinearPhysics):
         dy = shifts[:, :, 0].view(B, N_crops, 1, 1)
         dx = shifts[:, :, 1].view(B, N_crops, 1, 1)
 
-        src_y = grid_y - dy - (cy - my)
-        src_x = grid_x - dx - (cx - mx)
+        src_y = grid_y - dy - (self.cy - self.my)
+        src_x = grid_x - dx - (self.cx - self.mx)
 
-        mask = (src_y >= 0) & (src_y < 2 * my) & (src_x >= 0) & (src_x < 2 * mx)
+        mask = (src_y >= 0) & (src_y < 2 * self.my) & (src_x >= 0) & (src_x < 2 * self.mx)
 
-        src_y_c = src_y.clamp(0, 2 * my - 1)
-        src_x_c = src_x.clamp(0, 2 * mx - 1)
+        src_y_c = src_y.clamp(0, 2 * self.my - 1)
+        src_x_c = src_x.clamp(0, 2 * self.mx - 1)
 
         b_idx = torch.arange(B, device=crop.device).view(B, 1, 1, 1)
         c_idx = torch.arange(C_img, device=crop.device).view(1, C_img, 1, 1)
