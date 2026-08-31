@@ -50,7 +50,7 @@ class FFDNet(Denoiser):
         norm = {
             "instance_norm": nn.InstanceNorm2d,
             "batch_norm": nn.BatchNorm2d,
-            None: nn.Identity(),
+            None: nn.Identity,
         }[norm]
         blocks = []
         blocks.append(
