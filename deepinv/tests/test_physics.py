@@ -81,6 +81,7 @@ OPERATORS = [
     "2DParallelBeamCT",
     "2DFanBeamCT",
     "VirtualLinearPhysics",
+    "TwoTimesPhysics"
 ]
 
 NONLINEAR_OPERATORS = [
@@ -555,6 +556,17 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         dtype = torch.complex64
         norm = 1.32
         p = dinv.physics.PtychographyLinearOperator(
+            img_size=img_size,
+            probe=None,
+            shifts=None,
+            device=device,
+        )
+        params = ["probe", "shifts"]
+    elif name == "TwoTimesPhysics":
+        img_size = (1, 32, 32) if imsize is None else imsize
+        dtype = torch.complex64
+        norm = 1.32
+        p = dinv.physics.TwoTimesPhysics(
             img_size=img_size,
             probe=None,
             shifts=None,
