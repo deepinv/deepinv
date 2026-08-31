@@ -779,7 +779,7 @@ class MultiplexedPtychography(PhaseRetrieval):
         self.register_buffer("led_intensity", led_intensity)
         self.img_size = img_size
         self.measurement_size = measurement_size
-        # 1. Aplatir les index et calculer la taille de chaque groupe
+
         self.register_buffer(
             "lengths", torch.tensor([idx.numel() for idx in ledidx], device=device)
         )
