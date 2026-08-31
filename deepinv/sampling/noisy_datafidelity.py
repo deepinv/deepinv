@@ -238,21 +238,6 @@ class DPSDataFidelity(NoisyDataFidelity):
             return out
 
 
-def _reshape_batch_parameter(
-    parameter: torch.Tensor | float, reference: torch.Tensor
-) -> torch.Tensor:
-    """Reshape a scalar or batch-wise parameter for tensor broadcasting."""
-    parameter = torch.as_tensor(
-        parameter,
-        device=reference.device,
-        dtype=reference.real.dtype,
-    )
-    if parameter.numel() == 1:
-        return parameter.squeeze()
-    shape = [reference.shape[0]] + [1] * (reference.ndim - 1)
-    return parameter.reshape(shape)
-
-
 class PiGDMDataFidelity(NoisyDataFidelity):
     r"""
     Pseudoinverse-guided diffusion model (PiGDM) data-fidelity term.
@@ -359,6 +344,7 @@ class PiGDMDataFidelity(NoisyDataFidelity):
             verbose=self.verbose,
         )
 
+    @torch.no_grad()
     def grad(
         self,
         x: torch.Tensor,
@@ -475,6 +461,7 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
         self.cg_tol = cg_tol
         self.verbose = verbose
 
+    @torch.no_grad()
     def grad(
         self,
         x: torch.Tensor,
