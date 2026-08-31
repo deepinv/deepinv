@@ -544,7 +544,7 @@ class FourierPtychographyLinearOperator(LinearPhysics):
     def __init__(
         self,
         img_size=None,
-        measure_size=None,
+        measurement_size=None,
         probe=None,
         shifts=None,
         normalize=True,
@@ -567,7 +567,7 @@ class FourierPtychographyLinearOperator(LinearPhysics):
         self.to(device)
 
         cy, cx = img_size[-2] // 2, img_size[-1] // 2
-        my, mx = measure_size[-2] // 2, measure_size[-1] // 2
+        my, mx = measurement_size[-2] // 2, measurement_size[-1] // 2
         self.cy = cy
         self.cx = cx
         self.my = my
@@ -665,11 +665,11 @@ class MultiplexPtychography(PhaseRetrieval):
     def __init__(
         self,
         img_size=None,
-        measure_size=None,
+        measurement_size=None,
         probe=None,
         shifts=None,
         ledidx=None,
-        scale=torch.ones(1, 1, 1, 1),
+        led_intensity=torch.ones(1, 1, 1, 1),
         normalize=True,
         device="cpu",
         **kwargs,
@@ -677,7 +677,7 @@ class MultiplexPtychography(PhaseRetrieval):
 
         B = FourierPtychographyLinearOperator(
             img_size=img_size,
-            measure_size=measure_size,
+            measurement_size=measurement_size,
             probe=probe,
             shifts=shifts,
             normalize=normalize,
@@ -690,9 +690,9 @@ class MultiplexPtychography(PhaseRetrieval):
             self.register_buffer("ledidx", ledidx)
         else:
             self.ledidx = ledidx
-        self.register_buffer("scale", scale)
+        self.register_buffer("led_intensity", led_intensity)
         self.img_size = img_size
-        self.measure_size = measure_size
+        self.measurement_size = measurement_size
         # 1. Aplatir les index et calculer la taille de chaque groupe
         self.register_buffer(
             "lengths", torch.tensor([idx.numel() for idx in ledidx], device=device)
@@ -710,7 +710,7 @@ class MultiplexPtychography(PhaseRetrieval):
         self.to(device)
 
     def A(self, x, **kwargs):
-        y = super().A(x, **kwargs) * self.scale  # scale de dim (1, y.size(1), 1, 1)
+        y = super().A(x, **kwargs) * self.led_intensity  # led_intensity de dim (1, y.size(1), 1, 1)
         B, _, H, W = y.shape
 
         # 2. Associer chaque index aplati à son canal de destination (C)
@@ -733,7 +733,7 @@ class MultiplexPtychography(PhaseRetrieval):
         y2 = torch.zeros(
             y.size(0),
             self.shifts.size(1),
-            *self.measure_size[-2:],
+            *self.measurement_size[-2:],
             dtype=y.dtype,
             device=y.device,
         )
@@ -748,14 +748,14 @@ class MultiplexPtychography(PhaseRetrieval):
         # 4. Accumulation aux indices correspondants
         y2.index_add_(1, self.flat_idx, y_normalized)
 
-        y2 = y2 * self.scale
+        y2 = y2 * self.led_intensity
         return super().A_adjoint(y2)
 
     def A_vjp(self, x, v):
         v2 = torch.zeros(
             v.size(0),
             self.shifts.size(1),
-            *self.measure_size[-2:],
+            *self.measurement_size[-2:],
             dtype=v.dtype,
             device=v.device,
         )
@@ -765,7 +765,7 @@ class MultiplexPtychography(PhaseRetrieval):
         )
 
         v2.index_add_(1, self.flat_idx, v_normalized)
-        v2 = v2 * self.scale
+        v2 = v2 * self.led_intensity
 
         return super().A_vjp(x, v2)
 
