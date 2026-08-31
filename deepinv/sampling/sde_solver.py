@@ -281,7 +281,7 @@ class HeunSolver(BaseSDESolver):
     
     .. note::
     
-        You can either provide the `timesteps` argument directly, or specify `t_start`, `t_end`, and `num_steps` to generate the time steps automatically. If both are provided, the `timesteps` argument will take precedence.
+        You can either provide the `timesteps` argument directly, or specify `t_start`, `t_end`, and `num_steps` to generate the time steps automatically (linearly with constant stepsize). If both are provided, the `timesteps` argument will take precedence.
     """
 
     def __init__(
