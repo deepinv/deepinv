@@ -27,7 +27,7 @@ class NBUDataset(ImageDataset):
     """NBU remote sensing multispectral satellite imagery dataset.
 
     Returns ``Cx256x256`` multispectral (MS) satellite images of urban scenes from 6 different satellites.
-    with ``C=4`` for ``"gaofen-1"`` and ``C=8`` for the rest.
+    with ``C=4`` for ``"gaofen-1"``, ``Ikonos``, ``QuickBird``, ``GF-1``, ``WorldView-4`` and ``C=8`` for the rest.
 
     For pan-sharpening problems, you can return pan-sharpening measurements by using ``return_pan=True``,
     outputting a :class:`deepinv.utils.TensorList` of ``(MS, PAN)`` where ``PAN`` are 1024x1024 panchromatic images.
