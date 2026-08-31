@@ -214,7 +214,7 @@ def preprocess_img(
     :param str, None rescale_mode: the normalization mode, either ``'min_max'``, ``'clip'``, or ``None``.
         With ``None``, image values are clipped to ``[vmin, vmax]`` without being rescaled.
     :param float, None vmin: minimum clipping bound when using `rescale_mode=`'clip'`` or ``rescale_mode=None``. Defaults to 0.
-    :param float, None vmax: maximum clipping bound when using ``'clip'`` or ``None``. Defaults to 1.
+    :param float, None vmax: maximum clipping bound when using ``rescale_mode='clip'`` or ``rescale_mode=None``. Defaults to 1.
     :param bool return_scale: if ``True``, also return the per-element ``(vmin_orig, vmax_orig)``
         tuples representing the true data range **before** normalization, as a list of length B.
         For ``'min_max'`` mode these are the per-element min/max values; for ``'clip'`` mode
