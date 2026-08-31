@@ -5,6 +5,7 @@ from .utils import (
     get_weights_url,
     conv_nd,
     fix_dim,
+    batchnorm_nd,
     initialize_3d_from_2d,
     load_state_dict_from_url,
 )
@@ -19,6 +20,7 @@ class DnCNN(Denoiser):
     convolutional layers with ReLU activation functions. The number of layers can be specified by the user. Unlike the
     original paper, this implementation does not include batch normalization layers.
 
+
     The network can be initialized with pretrained weights, which can be downloaded from an online repository. The
     pretrained weights are trained with the default parameters of the network, i.e. 20 layers, 64 channels and biases.
 
@@ -27,6 +29,7 @@ class DnCNN(Denoiser):
     :param int depth: number of convolutional layers
     :param bool bias: use bias in the convolutional layers
     :param int nf: number of channels per convolutional layer
+    :param bool batch_norm: apply batch normalization after each intermediate convolutional layer
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (only available for architecture with depth 20, 64 channels and biases).
@@ -48,14 +51,17 @@ class DnCNN(Denoiser):
         nf: int = 64,
         pretrained: str | None = "download",
         pretrained_2d_isotropic: bool = False,
-        device: torch.device | str = "cpu",
+                device: torch.device | str = "cpu",
         dim: int | str = 2,
+        batch_norm: bool = False,
     ):
         super(DnCNN, self).__init__()
 
         dim = fix_dim(dim)
 
         conv = conv_nd(dim)
+        
+        batchnorm = batchnorm_nd(dim)
 
         self.depth = depth
 
@@ -71,11 +77,18 @@ class DnCNN(Denoiser):
         self.out_conv = conv(
             nf, out_channels, kernel_size=3, stride=1, padding=1, bias=bias
         )
-
+        self.bn_list = nn.ModuleList(
+            [batchnorm(nf) if batch_norm else nn.Identity() for _ in range(self.depth - 2)]
+        )
         self.nl_list = nn.ModuleList([nn.ReLU() for _ in range(self.depth - 1)])
 
         if pretrained is not None:
             if pretrained.startswith("download"):
+                if batch_norm:
+                    raise ValueError(
+                        "No pretrained batch-normalized DnCNN weights are available for download. "
+                        "Set `pretrained=None` or provide a path to compatible pretrained weights."
+                    )
                 if dim == 3 and pretrained in (
                     "download",
                     "download_lipschitz",
@@ -133,6 +146,7 @@ class DnCNN(Denoiser):
 
         for i in range(self.depth - 2):
             x_l = self.conv_list[i](x1)
+            x_l = self.bn_list[i](x_l)
             x1 = self.nl_list[i + 1](x_l)
 
         return self.out_conv(x1) + x
