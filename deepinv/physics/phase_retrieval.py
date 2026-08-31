@@ -802,7 +802,9 @@ class MultiplexedPtychography(PhaseRetrieval):
         :param torch.Tensor x: input image tensor.
         :return: (:class:`torch.Tensor`) multiplexed intensity measurements.
         """
-        y = super().A(x, **kwargs) * self.led_intensity  # led_intensity de dim (1, y.size(1), 1, 1)
+        y = (
+            super().A(x, **kwargs) * self.led_intensity
+        )  # led_intensity de dim (1, y.size(1), 1, 1)
         B, _, H, W = y.shape
 
         c_indices = torch.repeat_interleave(
