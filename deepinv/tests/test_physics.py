@@ -81,6 +81,7 @@ OPERATORS = [
     "2DParallelBeamCT",
     "2DFanBeamCT",
     "VirtualLinearPhysics",
+    "Fourier_ptychography_linear",
 ]
 
 NONLINEAR_OPERATORS = [
@@ -95,6 +96,7 @@ PHASE_RETRIEVAL_OPERATORS = [
     "random_phase_retrieval",
     "structured_random_phase_retrieval",
     "ptychography",
+    "multiplexed_ptychography",
 ]
 
 NOISES = [
@@ -565,6 +567,29 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = ["probe", "shifts"]
+    elif name == "Fourier_ptychography_linear":
+        img_size = (1, 32, 32)
+        dtype = torch.complex64
+        N_shift = 14
+        measure_size = (N_shift, 16, 16)
+        radius = 4
+        y, x_coord = torch.meshgrid(
+            torch.arange(measure_size[1]), torch.arange(measure_size[2]), indexing="ij"
+        )
+        center_y, center_x = measure_size[1] // 2, measure_size[2] // 2
+        mask = ((y - center_y) ** 2 + (x_coord - center_x) ** 2) <= radius**2
+        probe = mask[None, None].to(torch.complex64).to(device)
+        shifts = torch.randint(
+            -10, 10, (1, N_shift, 2), generator=torch.Generator().manual_seed(0)
+        )
+        p = dinv.physics.FourierPtychographyLinearOperator(
+            img_size=img_size,
+            measure_size=(N_shift, 16, 16),
+            probe=probe,
+            shifts=shifts,
+            device=device,
+        )
+        params = ["probe", "shifts"]
     else:
         raise Exception("The inverse problem chosen doesn't exist")
 
@@ -673,6 +698,27 @@ def find_phase_retrieval_operator(name, device):
         img_size = (1, 10, 10)
         p = dinv.physics.StructuredRandomPhaseRetrieval(
             img_size=img_size, output_size=img_size, n_layers=2, device=device
+        )
+    elif name == "multiplexed_ptychography":
+        img_size = (1, 32, 32)
+        N_shift = 14
+        measure_size = (N_shift, 16, 16)
+        radius = 4
+
+        y, x_coord = torch.meshgrid(
+            torch.arange(measure_size[1]), torch.arange(measure_size[2]), indexing="ij"
+        )
+        center_y, center_x = measure_size[1] // 2, measure_size[2] // 2
+        mask = ((y - center_y) ** 2 + (x_coord - center_x) ** 2) <= radius**2
+        probe = mask[None, None].to(torch.complex64)
+        shifts = torch.randint(-10, 10, (1, N_shift, 2))
+        p = dinv.physics.MultiplexPtychography(
+            img_size=img_size,
+            measure_size=(N_shift, 16, 16),
+            probe=probe,
+            shifts=shifts,
+            ledidx=torch.arange(0, N_shift, 1).view(N_shift, 1),
+            device=device,
         )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
@@ -815,7 +861,6 @@ def test_operator_multiscale_wrapper(name, device, rng):
         "pansharpen",  # shape handling
         "radio",  # data type (complex)
         "3d",  # shape handling
-        "ptychography",  # ?
         "composition2",  # shape handling
         "dynamicmri",  # shape handling
         "complex_compressed_sensing",  # data type (complex)
@@ -2111,7 +2156,7 @@ def test_adjoint_autograd(name, device):
     # Compute Df^\top(z) using autograd where f(z) = A^\top z.
     y.requires_grad_()
     z = torch.randn_like(x, device=device, dtype=dtype)
-    l = (z * A_adjoint(y)).sum()
+    l = (z.conj() * A_adjoint(y)).sum().real
     l.backward()
     # \delta y := \delta_y <z, A^\top y> = Az
     delta_y = y.grad
