@@ -67,6 +67,7 @@ Operators
    deepinv.physics.SpatialUnwrapping
    deepinv.physics.StructuredRandomPhaseRetrieval
    deepinv.physics.Ptychography
+   deepinv.physics.MultiplexedPtychography
    deepinv.physics.PtychographyLinearOperator
    deepinv.physics.Scattering
    deepinv.physics.to_multiscale

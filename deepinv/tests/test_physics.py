@@ -712,7 +712,7 @@ def find_phase_retrieval_operator(name, device):
         mask = ((y - center_y) ** 2 + (x_coord - center_x) ** 2) <= radius**2
         probe = mask[None, None].to(torch.complex64)
         shifts = torch.randint(-10, 10, (1, N_shift, 2))
-        p = dinv.physics.MultiplexPtychography(
+        p = dinv.physics.MultiplexedPtychography(
             img_size=img_size,
             measure_size=(N_shift, 16, 16),
             probe=probe,

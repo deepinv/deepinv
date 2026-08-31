@@ -540,6 +540,26 @@ def generate_shifts(
 
 
 class FourierPtychographyLinearOperator(LinearPhysics):
+    r"""
+    Forward linear operator for Fourier ptychography.
+
+    Models the imaging process of Fourier ptychography, where a complex object is reconstructed from multiple low-resolution intensity measurements acquired under different illumination angles.
+    Mathematically, this is equivalent to shifting a pupil (probe) function in the Fourier domain of the object, applying it, and inverse Fourier transforming to the spatial domain.
+
+    .. math::
+
+        B = \left[ \begin{array}{c} B_1 \\ B_2 \\ \vdots \\ B_{n_{\text{img}}} \end{array} \right],
+        B_l = F^{-1} \text{diag}(p) T_l F, \quad l = 1, \dots, n_{\text{img}},
+
+    where :math:`F` is the 2D Fourier transform, :math:`\text{diag}(p)` is the pupil (probe) function :math:`p`, and :math:`T_l` is a 2D shift in the Fourier domain.
+
+    :param tuple img_size: Shape of the input image (high-resolution object), typically ``(batch_size, channels, height, width)``.
+    :param tuple measure_size: Shape of the measurements (low-resolution acquisitions).
+    :param torch.Tensor probe: A 4D tensor representing the pupil (probe) function.
+    :param torch.Tensor shifts: A 3D tensor of shape ``(B, n_img, 2)`` corresponding to the ``n_img`` Fourier shift positions.
+    :param float norm: Normalization factor for the linear operator to adjust its spectral norm.
+    :param torch.device, str device: Device "cpu" or "gpu".
+    """
 
     def __init__(
         self,
@@ -660,7 +680,27 @@ class FourierPtychographyLinearOperator(LinearPhysics):
         return out
 
 
-class MultiplexPtychography(PhaseRetrieval):
+class MultiplexedPtychography(PhaseRetrieval):
+    r"""
+    Multiplexed Fourier Ptychography forward operator.
+
+    Corresponding to the phase retrieval operator:
+
+    .. math::
+
+         y_i = \cdot \frac{1}{|L_i|} \sum_{l \in L_i} \left| s_l B_l x \right|^2
+
+    where :math:`B` is the linear forward operator defined by a :class:`deepinv.physics.FourierPtychographyLinearOperator` object. The measurements are summed according to specific LED patterns where :math:`L_i` represents the set of LED indices multiplexed into the :math:`i`-th measurement, and :math:`s_l` is the intensity of each LED.
+
+    :param tuple img_size: Shape of the input image.
+    :param tuple measure_size: Shape of the measurements.
+    :param torch.Tensor probe: A tensor representing the pupil (probe) function.
+    :param torch.Tensor shifts: A 3D tensor of shape ``(B, n_img, 2)`` corresponding to the Fourier shift positions.
+    :param list[torch.Tensor], torch.Tensor ledidx: Indices of the LEDs multiplexed into each measurement.
+    :param float, torch.Tensor led_intensity: Scaling factor :math:`s` applied to the measurements.
+    :param float norm: Normalization factor for the underlying linear operator.
+    :param torch.device, str device: Device "cpu" or "gpu".
+    """
 
     def __init__(
         self,
