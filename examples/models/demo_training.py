@@ -44,7 +44,7 @@ physics = dinv.physics.Inpainting((1, 64, 64), mask=0.8, device=device, rng=rng)
 from torchvision.transforms import Compose, ToTensor, Resize, CenterCrop, Grayscale
 
 dataset = dinv.datasets.Urban100HR(
-    ".",
+    dinv.utils.get_cache_home() / "datasets" / "Urban100",
     download=True,
     transform=Compose([ToTensor(), Grayscale(), Resize(256), CenterCrop(64)]),
 )
@@ -63,17 +63,20 @@ dataset_path = dinv.datasets.generate_dataset(
 )
 
 train_dataloader = torch.utils.data.DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=True), shuffle=True
+    dinv.datasets.HDF5Dataset(dataset_path, train=True, use_dict_output=True),
+    shuffle=True,
 )
 test_dataloader = torch.utils.data.DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=False), shuffle=False
+    dinv.datasets.HDF5Dataset(dataset_path, train=False, use_dict_output=True),
+    shuffle=False,
 )
 
 # %%
 # Visualize a data sample:
 #
 
-x, y = next(iter(test_dataloader))
+batch = next(iter(test_dataloader))
+x, y = batch["x"], batch["y"]
 dinv.utils.plot({"Ground truth": x, "Measurement": y, "Mask": physics.mask})
 
 

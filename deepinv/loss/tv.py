@@ -16,7 +16,7 @@ class TVLoss(Loss):
     def __init__(self, weight: float = 1.0):
         super(TVLoss, self).__init__()
         self.tv_loss_weight = weight
-        self.name = "tv"
+        self._name = "tv"
 
     def forward(self, x_net: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""

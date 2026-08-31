@@ -64,11 +64,11 @@ dataset = load_dataset(dataset_name, transform=val_transform)
 
 
 # Generate a Gaussian blur filter.
-filter_torch = dinv.physics.blur.gaussian_blur(sigma=(3, 3))
+filter_torch = dinv.physics.functional.gaussian_blur(sigma=(3, 3))
 noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 
-# The BlurFFT instance from physics enables to compute efficently backward operators with Fourier transform.
+# The BlurFFT instance from physics enables to compute efficiently backward operators with Fourier transform.
 p = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
     filter=filter_torch,
@@ -168,7 +168,9 @@ plot_images = True  # plot results
 plot_convergence_metrics = True  # compute performance and convergence metrics along the algorithm, curves saved in RESULTS_DIR
 
 
-dataset = dinv.datasets.HDF5Dataset(path=deepinv_dataset_path, train=True)
+dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_dataset_path, train=True, use_dict_output=True
+)
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )

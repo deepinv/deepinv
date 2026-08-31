@@ -40,7 +40,7 @@ def open_m4raw(fname: str) -> torch.Tensor:
     return x
 
 
-DATA_DIR = dinv.utils.get_data_home() / "m4raw" / "motion"
+DATA_DIR = dinv.utils.get_cache_home() / "m4raw" / "motion"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 dinv.utils.download_example("demo_m4raw_inter-scan_motion_0.h5", DATA_DIR)

@@ -10,10 +10,10 @@ from torch import Tensor
 import torch.nn as nn
 from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
+from deepinv.utils.nn import devices_equal
 from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_backward
-from deepinv.utils.compat import zip_strict
+
 from deepinv.physics.functional import power_method
-import warnings
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -312,7 +312,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
             # NOTE: Attribute resolution can be dynamic and return new objects,
             # preventing the algorithm from terminating. To avoid that, we use
-            # insepct.getattr_static. We don't use inspect.getmembers_static
+            # inspect.getattr_static. We don't use inspect.getmembers_static
             # because it was only introduced in Python 3.11 and we currently
             # support Python 3.9 onwards.
             for attr in dir(node):
@@ -485,7 +485,8 @@ class LinearPhysics(Physics):
         :return: device of the physics parameters.
         """
         warnings.warn(
-            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version. To move the module's buffers/parameters to a different device, use the `to()` method."
+            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version. To move the module's buffers/parameters to a different device, use the `to()` method.",
+            DeprecationWarning,
         )
 
         return self._device_holder.device
@@ -498,7 +499,8 @@ class LinearPhysics(Physics):
         :param device: device to which the physics parameters will be moved.
         """
         warnings.warn(
-            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version, i.e. doing `physics.device = device` will no longer work and throw an `AttributeError`. Use `physics.to(device)` instead."
+            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version, i.e. doing `physics.device = device` will no longer work and throw an `AttributeError`. Use `physics.to(device)` instead.",
+            DeprecationWarning,
         )
 
         self.to(value)
@@ -522,7 +524,7 @@ class LinearPhysics(Physics):
             if self.img_size is None:
                 raise ValueError(
                     "img_size must be set for using the automatic A_adjoint implementation."
-                    "Set img_size in the constructor of the LinearPhyics class or pass it as a keyword argument."
+                    "Set img_size in the constructor of the LinearPhysics class or pass it as a keyword argument."
                 )
             else:
                 tensor_size = (y.shape[0],) + self.img_size
@@ -561,7 +563,7 @@ class LinearPhysics(Physics):
         A helper function that computes :math:`A^{\top}Ax`.
 
         This function can speed up computation when :math:`A^{\top}A` is available in closed form.
-        Otherwise it just cals :func:`deepinv.physics.Physics.A` and :func:`deepinv.physics.LinearPhysics.A_adjoint`.
+        Otherwise it just calls :func:`deepinv.physics.Physics.A` and :func:`deepinv.physics.LinearPhysics.A_adjoint`.
 
         :param torch.Tensor x: signal/image.
         :return: (:class:`torch.Tensor`) the product :math:`A^{\top}Ax`.
@@ -707,7 +709,7 @@ class LinearPhysics(Physics):
             V = [randn_like(au) for au in Au]
             Atv = self.A_adjoint(V, **kwargs)
             s1 = 0
-            for au, v in zip_strict(Au, V):
+            for au, v in zip(Au, V, strict=True):
                 s1 += (v.conj() * au).flatten().sum()
 
         else:
@@ -995,8 +997,8 @@ class DecomposablePhysics(LinearPhysics):
 
         A = U\text{diag}(s)V^{\top} \in \mathbb{R}^{m\times n}
 
-    where :math:`U\in\mathbb{C}^{n\times n}` and :math:`V\in\mathbb{C}^{m\times m}`
-    are orthonormal linear transformations and :math:`s\in\mathbb{R}_{+}^{n}` are the singular values.
+    where :math:`U\in\mathbb{C}^{m\times m}` and :math:`V\in\mathbb{C}^{n\times n}`
+    are orthonormal linear transformations and :math:`\text{diag}(s)\in\mathbb{R}_{+}^{m \times n}` is the possibly rectangular singular values matrix.
 
     :param None | Callable U: orthonormal transformation. If `None` (default), it is set to the identity function.
     :param None | Callable V_adjoint: transpose of V. If `None` (default), it is set to the identity function.
@@ -1054,12 +1056,10 @@ class DecomposablePhysics(LinearPhysics):
     ):
         super().__init__(device=device, **kwargs)
 
-        assert not (
-            U is None and not (U_adjoint is None)
-        ), "U must be provided if U_adjoint is provided."
-        assert not (
-            V_adjoint is None and not (V is None)
-        ), "V_adjoint must be provided if V is provided."
+        if U is None and not (U_adjoint is None):  # pragma: no cover
+            raise ValueError("U must be provided if U_adjoint is provided.")
+        if V_adjoint is None and not (V is None):  # pragma: no cover
+            raise ValueError("V_adjoint must be provided if V is provided.")
 
         # set to identity if not provided
         self._V_adjoint = (lambda x: x) if V_adjoint is None else V_adjoint
@@ -1290,7 +1290,7 @@ class Denoising(DecomposablePhysics):
             noise_model = GaussianNoise(sigma=0.1)
 
         if noise_model.rng is not None:
-            if noise_model.rng.device != device:
+            if not devices_equal(noise_model.rng.device, device):
                 warnings.warn(
                     f"argument `device`={device} is different from the random generator device of the noise model, `noise_model.rng.device`={noise_model.rng.device}. This will likely lead to errors during execution. The device argument will be ignored in favor of `noise_model.rng.device`={noise_model.rng.device}."
                 )
@@ -1500,6 +1500,13 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
             self.reduction = lambda x: x
         else:
             raise ValueError("reduction must be either sum, mean or none.")
+
+        if reduction != "sum":
+            warnings.warn(
+                f"Using `reduction={reduction}` is deprecated and will be removed in a future version. Using `reduction={reduction}` breaks the adjointness property of the operator, and can lead to suboptimal performance of certain algorithms. Use `reduction='sum'` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
     def A_adjoint(self, y: TensorList, **kwargs) -> torch.Tensor:
         r"""

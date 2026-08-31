@@ -84,7 +84,7 @@ f = dinv.models.DeepImagePrior(
     learning_rate=lr,
     iterations=iterations,
     verbose=True,
-    input_size=[channels] + in_size,
+    img_size=[channels] + in_size,
 ).to(device)
 
 # %%

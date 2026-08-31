@@ -40,6 +40,10 @@ These models can be set-up in one line and perform inference in another line:
      - :ref:`Plug-and-play <iterative>` w/ pretrained denoiser
      - General
      - Medium
+   * - :class:`DEAL <deepinv.models.DEAL>`
+     - Iterative
+     - General; physics must be linear
+     - Fast
    * - :class:`DDRM <deepinv.sampling.DDRM>`
      - :ref:`Diffusion <diffusion>` w/ pretrained denoiser
      - General; physics must be decomposable
@@ -52,6 +56,10 @@ These models can be set-up in one line and perform inference in another line:
      - :ref:`Diffusion <diffusion>` w/ pretrained denoiser
      - General
      - Slow
+   * - :class:`SRResNet <deepinv.models.SRResNet>`
+     - Feedforward
+     - :class:`Super-resolution <deepinv.physics.Downsampling>`
+     - Fast
    * - :ref:`Pretrained denoisers <pretrained-weights>`
      - Feedforward
      - Denoising
@@ -124,21 +132,25 @@ Click on the model name to learn more about the type of model and use `pretraine
    * - :class:`deepinv.models.EPLLDenoiser`
      - Denoiser
      - Weights estimated with deepinv on 50 mio patches from the training/validation images from BSDS500 for grayscale and color images.
-       Code for generating the weights for the example :ref:`patch-prior-demo` is contained within the demo.
+       Code for generating the weights for the example :ref:`sphx_glr_auto_examples_optimization_demo_epll.py` is contained within the demo.
    * - :class:`deepinv.models.Restormer`
      - Denoiser
      - Weights from `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_:
        `Restormer weights <https://github.com/swz30/Restormer/tree/main>`_,
-       also available on the `deepinverse Restormer HuggingfaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
+       also available on the `deepinverse Restormer HuggingFaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
    * - :class:`deepinv.models.PromptIR`
      - Reconstructor & Denoiser
      - Weights from `PromptIR: Prompting for All-in-One Blind Image Restoration <https://arxiv.org/abs/2306.13090>`_:
        `PromptIR weights <https://github.com/va1shn9v/PromptIR>`_,
-       also available on the `deepinverse Promptir HuggingfaceHub <https://huggingface.co/deepinv/promptir/tree/main>`_.
+       also available on the `deepinverse Promptir HuggingFaceHub <https://huggingface.co/deepinv/promptir/tree/main>`_.
    * - :class:`deepinv.models.RAM`
      - Reconstructor & Denoiser
-     - Weights from `Terris et al. <https://github.com/matthieutrs/ram>`_ :footcite:p:`terris2025reconstruct`. Pretrained weights from `RAM HuggingfaceHub <https://huggingface.co/mterris/ram>`_.
+     - Weights from `Terris et al. <https://github.com/matthieutrs/ram>`_ :footcite:p:`terris2025reconstruct`. Pretrained weights from `RAM HuggingFaceHub <https://huggingface.co/mterris/ram>`_.
    * - :class:`deepinv.models.KernelIdentificationNetwork`
      - Kernel identification
      - Weights from `Carbajal et al. <https://github.com/GuillermoCarbajal/J-MKPD>`_ trained on the task of identifying blur kernels from space-varying blurred images.
-       Pretrained weights from `deepinverse HuggingfaceHub <https://huggingface.co/deepinv/kernel_identification>`_.
+       Pretrained weights from `deepinverse HuggingFaceHub <https://huggingface.co/deepinv/kernel_identification>`_.
+   * - :class:`deepinv.models.DEAL`
+     - Reconstructor
+     - Weights from `Pourya et al. <https://arxiv.org/abs/2502.04079>`_ trained on grayscale and color denoising.
+       Pretrained weights from `DEAL github repository <https://github.com/mehrsapo/DEAL/tree/main>`_.

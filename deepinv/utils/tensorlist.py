@@ -1,6 +1,5 @@
 import torch
 import warnings
-from deepinv.utils.compat import zip_strict
 
 
 class TensorList:
@@ -62,6 +61,18 @@ class TensorList:
         Returns a TensorList with the absolute value of each tensor.
         """
         return TensorList([xi.abs() for xi in self.x])
+
+    def clamp(self, min=None, max=None):
+        r"""
+        Returns a TensorList with each tensor clamped between ``min`` and ``max``.
+        """
+        return TensorList([xi.clamp(min=min, max=max) for xi in self.x])
+
+    def clip(self, min=None, max=None):
+        r"""
+        Alias for :meth:`clamp`.
+        """
+        return self.clamp(min=min, max=max)
 
     def max(self):
         r"""
@@ -137,7 +148,9 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi + other for xi in self.x])
         else:
-            return TensorList([xi + otheri for xi, otheri in zip_strict(self.x, other)])
+            return TensorList(
+                [xi + otheri for xi, otheri in zip(self.x, other, strict=True)]
+            )
 
     def __mul__(self, other):
         r"""
@@ -148,7 +161,9 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi * other for xi in self.x])
         else:
-            return TensorList([xi * otheri for xi, otheri in zip_strict(self.x, other)])
+            return TensorList(
+                [xi * otheri for xi, otheri in zip(self.x, other, strict=True)]
+            )
 
     def __rmul__(self, other):
         r"""
@@ -159,7 +174,9 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi * other for xi in self.x])
         else:
-            return TensorList([xi * otheri for xi, otheri in zip_strict(self.x, other)])
+            return TensorList(
+                [xi * otheri for xi, otheri in zip(self.x, other, strict=True)]
+            )
 
     def __truediv__(self, other):
         r"""
@@ -170,7 +187,9 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi / other for xi in self.x])
         else:
-            return TensorList([xi / otheri for xi, otheri in zip_strict(self.x, other)])
+            return TensorList(
+                [xi / otheri for xi, otheri in zip(self.x, other, strict=True)]
+            )
 
     def __neg__(self):
         r"""
@@ -182,13 +201,15 @@ class TensorList:
     def __sub__(self, other):
         r"""
 
-        Substract two TensorLists. The sizes of the tensor lists must match.
+        Subtract two TensorLists. The sizes of the tensor lists must match.
 
         """
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi - other for xi in self.x])
         else:
-            return TensorList([xi - otheri for xi, otheri in zip_strict(self.x, other)])
+            return TensorList(
+                [xi - otheri for xi, otheri in zip(self.x, other, strict=True)]
+            )
 
     def conj(self):
         r"""

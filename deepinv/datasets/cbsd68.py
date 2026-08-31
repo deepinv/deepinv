@@ -4,10 +4,11 @@ from PIL import Image
 
 from deepinv.datasets.utils import calculate_md5
 from deepinv.datasets.base import ImageDataset
+from .utils import resolve_root
 
 
 class CBSD68(ImageDataset):
-    """Dataset for `CBSBD68 <https://paperswithcode.com/dataset/cbsd68>`_.
+    """Dataset for `CBSD68 <https://paperswithcode.com/dataset/cbsd68>`_.
 
     Color BSD68 dataset for image restoration benchmarks is part of The Berkeley Segmentation Dataset and Benchmark from :footcite:t:`martin2001database`.
     It is used for measuring image restoration algorithms performance. It contains 68 images.
@@ -19,7 +20,7 @@ class CBSD68(ImageDataset):
                        -- dataset_info.json
                        -- state.json
 
-    This dataset wraps the huggingface version of the dataset.
+    This dataset wraps the HuggingFace version of the dataset.
     HF source : https://huggingface.co/datasets/deepinv/CBSD68
 
     .. note::
@@ -33,6 +34,7 @@ class CBSD68(ImageDataset):
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
     :param bool rotate: If set to ``True`` images are rotated to have all the same orientation. This can be important to use a torch dataloader.
         Default at False.
+    :param bool use_dict_output: whether to return output as a dict with key ``"x"`` instead of an image (default ``False``).
 
     |sep|
 
@@ -42,13 +44,13 @@ class CBSD68(ImageDataset):
 
         >>> import shutil
         >>> from deepinv.datasets import CBSD68
-        >>> dataset = CBSD68(root="CBSB68", download=True)  # download raw data at root and load dataset
+        >>> dataset = CBSD68(root="CBSD68", download=True)  # download raw data at root and load dataset
         Dataset has been successfully downloaded.
         >>> print(dataset.check_dataset_exists())                # check that raw data has been downloaded correctly
         True
         >>> print(len(dataset))                                  # check that we have 68 images
         68
-        >>> shutil.rmtree("CBSB68")                         # remove raw data from disk
+        >>> shutil.rmtree("CBSD68")                         # remove raw data from disk
 
     .. note::
 
@@ -61,11 +63,13 @@ class CBSD68(ImageDataset):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         download: bool = False,
         transform: Callable = None,
         rotate=False,
+        use_dict_output: bool = False,
     ) -> None:
+        super().__init__(use_dict_output=use_dict_output)
         try:
             from datasets import load_dataset as load_dataset_hf, load_from_disk
         except ImportError:  # pragma: no cover
@@ -73,7 +77,7 @@ class CBSD68(ImageDataset):
                 "The library 'datasets' is required to for the CBSD68 dataset. Install it using pip install datasets"
             )
 
-        self.root = root
+        self.root = resolve_root(root, "CBSD68")
         self.transform = transform
         self.rotate = rotate
 
@@ -116,7 +120,8 @@ class CBSD68(ImageDataset):
 
         if self.transform is not None:
             img = self.transform(img)
-        return img
+
+        return {"x": img} if self.use_dict_output else img
 
     def check_dataset_exists(self) -> bool:
         """Verify that the HuggingFace dataset folder exists and contains the raw data file.

@@ -11,7 +11,7 @@ Operators
 Operators describe the forward model :math:`z = A(x,\theta)`, where
 :math:`x` is the input image and :math:`\theta` are the parameters of the operator.
 The parameters :math:`\theta` can be sampled using random generators, which are available for some specific classes.
-Using automatic differentiation, we can compute derivatives w.r.t to both the input :math:`x` or the parameters :math:`\theta`. 
+Using automatic differentiation, we can compute derivatives w.r.t both the input :math:`x` or the parameters :math:`\theta`. 
 This is particular useful when dealing with blind inverse problems or parameter estimation.
 
 .. tip::
@@ -49,14 +49,15 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Upsampling`
        | :class:`deepinv.physics.DownsamplingMatlab`
      -
+       | :class:`GaussianBlurGenerator <deepinv.physics.generator.GaussianBlurGenerator>`
        | :class:`MotionBlurGenerator <deepinv.physics.generator.MotionBlurGenerator>`
        | :class:`DownsamplingGenerator <deepinv.physics.generator.DownsamplingGenerator>`
        | :class:`DiffractionBlurGenerator <deepinv.physics.generator.DiffractionBlurGenerator>`
        | :class:`ProductConvolutionBlurGenerator <deepinv.physics.generator.ProductConvolutionBlurGenerator>`
        | :class:`TiledBlurGenerator <deepinv.physics.generator.TiledBlurGenerator>`
        | :class:`ConfocalBlurGenerator3D <deepinv.physics.generator.ConfocalBlurGenerator3D>`
-       | :class:`gaussian_blur <deepinv.physics.blur.gaussian_blur>`, :class:`sinc_filter <deepinv.physics.blur.sinc_filter>`
-       | :class:`bilinear_filter <deepinv.physics.blur.bilinear_filter>`, :class:`bicubic_filter <deepinv.physics.blur.bicubic_filter>`
+       | :class:`gaussian_blur <deepinv.physics.functional.gaussian_blur>`, :class:`sinc_filter <deepinv.physics.functional.sinc_filter>`
+       | :class:`bilinear_filter <deepinv.physics.functional.bilinear_filter>`, :class:`bicubic_filter <deepinv.physics.functional.bicubic_filter>`
        | :class:`Zernike <deepinv.physics.generator.Zernike>` 
 
    * - Magnetic Resonance Imaging (MRI)
@@ -77,6 +78,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
      -
        | :class:`deepinv.physics.Tomography`
        | :class:`deepinv.physics.TomographyWithAstra`
+       | :class:`deepinv.physics.PET`
      -
 
    * - Remote Sensing & Multispectral
@@ -177,7 +179,7 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
      - :math:`y\sim\text{Laplace}(z, b)`
 
    * - :class:`deepinv.physics.LogPoissonNoise`
-     - :math:`y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu z) N_0)}{N_0})`
+     - :math:`y = -\frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu z) N_0)}{N_0})`
 
    * - :class:`deepinv.physics.UniformNoise`
      - :math:`y\sim \mathcal{U}(z-a, z+b)`

@@ -1,17 +1,16 @@
 from __future__ import annotations
-from typing import Sequence, Any, Union
+from typing import Sequence, Any
 import torch
 import torch.nn as nn
 from torch import Tensor
 from .base import Denoiser
+from deepinv.utils.decorators import _deprecated_func_replaced_by
 
 # Coeffs is, depending on the dimension:
 # 2D: [Tensor, list[Tensor], list[Tensor]]
 # 3D: [Tensor, dict[str, Tensor], dict[str, Tensor]]
 
-Wavcoef = Union[
-    list[Union[Tensor, list[Tensor]]], list[Union[Tensor, dict[str, Tensor]]]
-]
+Wavcoef = list[Tensor | list[Tensor]] | list[Tensor | dict[str, Tensor]]
 
 
 def _get_axes(is_complex: bool, dimension: int) -> tuple[int, ...]:
@@ -306,6 +305,9 @@ class WaveletDenoiser(Denoiser):
                 out[i, topk_indices] = x_flat[i, topk_indices]
             return torch.reshape(out, x.shape)
 
+    @_deprecated_func_replaced_by(
+        replacement="deepinv.models.WaveletDenoiser.threshold_func", since="0.4.2"
+    )
     def thresold_func(self, x: Tensor, ths: float | int | Tensor) -> Tensor:
         return self.threshold_func(x, ths)
 
@@ -321,6 +323,9 @@ class WaveletDenoiser(Denoiser):
             y = self.hard_threshold_topk(x, ths)
         return y
 
+    @_deprecated_func_replaced_by(
+        replacement="deepinv.models.WaveletDenoiser.threshold_2D", since="0.4.2"
+    )
     def thresold_2D(self, coeffs: Wavcoef, ths: float | int | Tensor) -> Wavcoef:
         return self.threshold_2D(coeffs, ths)
 
@@ -439,21 +444,25 @@ class WaveletDenoiser(Denoiser):
         if ths.size(1) == 1:
             return [ths[:, 0]] * numel
         else:
-            assert ths.size(1) == self.level
+            if ths.size(1) != self.level:  # pragma: no cover
+                raise ValueError(
+                    f"Expected tensor of shape (B, {self.level}, ...), got {ths.shape}"
+                )
             return [ths[:, level - 2]] * numel
 
     def _reshape_ths_three_dim(self, ths: Tensor, level: int) -> Tensor | list[Tensor]:
         numel = 3 if self.dimension == 2 else 7
         if ths.size(1) == 1:
             ths = ths.expand(-1, self.level, -1)
-        assert (
-            ths.size(1) == self.level
-        ), f"Expected tensor of shape (B, {self.level}, {numel}), got {ths.shape}"
+        if ths.size(1) != self.level:  # pragma: no cover
+            raise ValueError(
+                f"Expected tensor of shape (B, {self.level}, {numel}), got {ths.shape}"
+            )
         if ths.size(-1) == numel:
             return ths.permute(2, 0, 1)[..., level - 2]
         elif ths.size(-1) == 1:
             return self._reshape_ths_two_dim(ths[..., 0], level)
-        else:
+        else:  # pragma: no cover
             raise ValueError(
                 f"Expected tensor of shape (B, {self.level}, {numel}), got {ths.shape}"
             )
@@ -475,7 +484,7 @@ class WaveletDenoiser(Denoiser):
         :param torch.Tensor x: noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
         :param int, float, torch.Tensor ths: thresholding parameter :math:`\gamma`.
             If `ths` is a tensor, it should be of shape
-            ``(B,)`` (same coefficent for all levels), ``(B, n_levels-1)`` (one coefficient per level),
+            ``(B,)`` (same coefficient for all levels), ``(B, n_levels-1)`` (one coefficient per level),
             or ``(B, n_levels-1, 3)`` (one coefficient per subband and per level). `B` should be the same as the batch size of the input or `1`.
             If ``non_linearity`` equals ``"soft"`` or ``"hard"``, ``ths`` serves as a (soft or hard)
             thresholding parameter for the wavelet coefficients. If ``non_linearity`` equals ``"topk"``,
@@ -530,6 +539,7 @@ class WaveletDictDenoiser(Denoiser):
     :param torch.device, str device: cpu or gpu.
     :param int max_iter: number of iterations of the optimization algorithm (default: 10).
     :param str non_linearity: "soft", "hard" or "topk" thresholding (default: "soft")
+    :param str mode: padding mode, "reflect", "zero", "constant", "periodic", "symmetric" (default: "zero")
     :param int wvdim: dimension of the wavelet transform (either 2 or 3) (default: 2).
     :param bool is_complex: whether the input is complex-valued (default: False).
     """
@@ -540,6 +550,7 @@ class WaveletDictDenoiser(Denoiser):
         list_wv: Sequence[str] = ("db8", "db4"),
         max_iter: int = 10,
         non_linearity: str = "soft",
+        mode: str = "zero",
         wvdim: int = 2,
         is_complex: bool = False,
         device: str | torch.device = "cpu",
@@ -556,6 +567,7 @@ class WaveletDictDenoiser(Denoiser):
                     wvdim=wvdim,
                     device=device,
                     is_complex=is_complex,
+                    mode=mode,
                 )
                 for wv in list_wv
             ]
@@ -592,5 +604,7 @@ class WaveletDictDenoiser(Denoiser):
         """
         vec = []
         for p in self.list_prox:
-            vec += p.psi(x, wavelet=p.wv, level=p.level, dimension=p.dimension)
+            vec += p.psi(
+                x, wavelet=p.wv, level=p.level, dimension=p.dimension, mode=p.mode
+            )
         return vec

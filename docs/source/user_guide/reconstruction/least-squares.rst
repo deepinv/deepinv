@@ -21,7 +21,7 @@ This solution can be computed using the :meth:`A_dagger <deepinv.physics.Physics
     >>> import deepinv as dinv
     >>> from deepinv.utils import load_example
     >>> x = load_example("butterfly.png")
-    >>> physics = dinv.physics.Blur(filter=dinv.physics.blur.gaussian_blur(2), noise_model=dinv.physics.GaussianNoise(sigma=0.01))
+    >>> physics = dinv.physics.Blur(filter=dinv.physics.functional.gaussian_blur(sigma=(2, 2)), noise_model=dinv.physics.GaussianNoise(sigma=0.01))
     >>> y = physics(x)
     >>> x_hat = physics.A_dagger(y)
 

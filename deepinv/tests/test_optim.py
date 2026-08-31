@@ -1,5 +1,6 @@
 import pytest
 import torch
+import warnings
 from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.optim import DataFidelity, PDCP
@@ -14,9 +15,8 @@ from deepinv.optim.data_fidelity import (
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optim_iterators import GDIteration
 from deepinv.tests.test_physics import find_operator
-from deepinv.optim.utils import least_squares_implicit_backward
+from deepinv.optim.linear import least_squares, least_squares_implicit_backward
 
-from functools import partial
 import copy
 
 
@@ -275,6 +275,32 @@ def test_zero_prior():
         assert torch.allclose(xhat, x)
 
 
+def test_tvprior_gradient(device):
+    """Test the TVPrior gradient against autodiff away from constant regions."""
+    prior = dinv.optim.TVPrior()
+    x = torch.tensor(
+        [[[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]]],
+        dtype=torch.float64,
+        device=device,
+    )
+    # The image is zero except for the center pixel, so that we have both
+    # zero finite difference everywhere except for the center pixel
+    x.requires_grad_()
+
+    grad_value = prior.grad(x)
+    grad_autodiff = torch.func.grad(lambda z: prior.fn(z)[0])(x)
+
+    nonzero_diff = torch.zeros_like(x, dtype=torch.bool)
+    nonzero_diff[..., 1, 1] = True
+    zero_diff = ~nonzero_diff
+
+    assert (~zero_diff[nonzero_diff]).all()
+    assert torch.allclose(grad_value[nonzero_diff], grad_autodiff[nonzero_diff])
+    assert torch.isnan(grad_autodiff[zero_diff]).all()
+    assert torch.isfinite(grad_value[zero_diff]).all()
+    assert torch.isfinite(grad_value).all()
+
+
 def test_data_fidelity_amplitude_loss(device):
     r"""
     Tests if the gradient computed with grad_d method of amplitude loss is consistent with the autograd gradient.
@@ -442,7 +468,7 @@ def test_denoiser(imsize, dummy_dataset, device):
     dataloader = DataLoader(
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
     )  # 1. Generate a dummy dataset
-    test_sample = next(iter(dataloader))
+    test_sample = next(iter(dataloader))["x"]
 
     physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
     y = physics(test_sample).type(test_sample.dtype).to(device)
@@ -479,11 +505,11 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
-    test_sample = next(iter(dataloader)).to(device)
+    test_sample = next(iter(dataloader))["x"].to(device)
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
         padding="circular",
     )
@@ -558,6 +584,8 @@ def get_prior(prior_name, device="cpu"):
         prior = dinv.optim.prior.Tikhonov()
     elif prior_name == "TVPrior":
         prior = dinv.optim.prior.TVPrior()
+    elif prior_name == "TVL1Prior":
+        prior = dinv.optim.prior.TVL1Prior()
     elif "wavelet" in prior_name.lower():
         pytest.importorskip(
             "ptwt",
@@ -587,6 +615,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "L12Prior",
         "Tikhonov",
         "TVPrior",
+        "TVL1Prior",
         "WaveletPrior",
         "WaveletDictPrior",
         "ZeroPrior",
@@ -595,11 +624,11 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         dataloader = DataLoader(
             dummy_dataset, batch_size=1, shuffle=False, num_workers=0
         )
-        test_sample = next(iter(dataloader)).to(device)
+        test_sample = next(iter(dataloader))["x"].to(device)
 
         # 2. Set a physical experiment (here, deblurring)
         physics = dinv.physics.Blur(
-            dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+            dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
             padding="circular",
             device=device,
         )
@@ -675,11 +704,11 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
-    test_sample = next(iter(dataloader)).to(device)
+    test_sample = next(iter(dataloader))["x"].to(device)
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
     )
     y = physics(test_sample)
@@ -717,11 +746,11 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 def test_dpir(imsize, dummy_dataset, device):
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
-    test_sample = next(iter(dataloader)).to(device)
+    test_sample = next(iter(dataloader))["x"].to(device)
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
         device=device,
         noise_model=dinv.physics.GaussianNoise(0.1),
         padding="circular",
@@ -904,19 +933,143 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     )  # Optimality condition
 
 
-def test_patch_prior(imsize, dummy_dataset, device):
-    pytest.importorskip(
-        "FrEIA",
-        reason="This test requires FrEIA. It should be "
-        "installed with `pip install FrEIA",
+# Specific test for MLEM / OSEM because the data-fidelity can only be the Poisson
+# likelihood, contrary to e.g. mirror descent which can be tested on L2.
+@pytest.mark.parametrize(
+    "algorithm, pre_split, num_subsets, normalize",
+    [
+        (dinv.optim.MLEM, False, None, False),
+        (dinv.optim.OSEM, False, 2, False),
+        (dinv.optim.OSEM, True, 2, False),
+        (dinv.optim.OSEM, False, 1, False),
+        (dinv.optim.OSEM, False, 2, True),
+        (dinv.optim.OSEM, True, 2, True),
+    ],
+)
+@pytest.mark.parametrize(
+    "physics_class",
+    [
+        dinv.physics.Tomography,
+        dinv.physics.TomographyWithAstra,
+        dinv.physics.PET,
+    ],
+)
+def test_MLEM_OSEM(
+    algorithm,
+    pre_split,
+    num_subsets,
+    normalize,
+    physics_class,
+    device,
+):
+    imsize = (1, 16, 16)
+    if physics_class is dinv.physics.PET:
+        pytest.importorskip("parallelproj")
+        imsize = (1, 8, 8)
+        physics = physics_class(img_size=imsize[-2:], normalize=False, device=device)
+        physics.background.fill_(0.4)
+        if normalize:
+            physics.normalize = True
+            physics.operator_norm.fill_(2.0)
+    elif physics_class is dinv.physics.TomographyWithAstra:
+        pytest.importorskip("astra")
+        if device.type != "cuda":
+            pytest.skip("TomographyWithAstra requires CUDA")
+        physics = physics_class(
+            img_size=imsize[-2:],
+            angles=8,
+            n_detector_pixels=imsize[-1],
+            device=device,
+            normalize=normalize,
+        )
+    else:
+        physics = physics_class(
+            img_width=imsize[-1],
+            angles=8,
+            device=device,
+            circle=True,
+            normalize=normalize,
+            parallel_computation=False,
+        )
+    x_true = torch.ones((1, *imsize), device=device)
+    y = physics.A(x_true, add_background=physics_class is dinv.physics.PET).clamp(
+        min=1e-6
     )
+    x_init = (
+        x_true
+        if physics_class is dinv.physics.PET
+        else physics.A_adjoint(y).clamp(min=1e-6)
+    )
+    algorithm_kwargs = {}
+    gain = 0.1 if physics_class is dinv.physics.PET else 1.0
+    bkg = physics.background / gain if physics_class is dinv.physics.PET else 1e-6
+    data_fidelity = dinv.optim.PoissonLikelihood(gain=gain, bkg=bkg)
+    full_y, full_physics = y, physics
+
+    if algorithm is dinv.optim.OSEM:
+        if pre_split:
+            y = dinv.physics.split_measurements(y, physics, num_subsets)
+            physics = dinv.physics.split_physics(physics, num_subsets, device=device)
+            y = list(y)
+        else:
+            algorithm_kwargs["num_subsets"] = num_subsets
+
+    model = algorithm(
+        data_fidelity=data_fidelity,
+        prior=dinv.optim.prior.ZeroPrior(),
+        max_iter=1 if physics_class is dinv.physics.PET else 500,
+        crit_conv="cost",
+        thres_conv=1e-4,
+        early_stop=True,
+        **algorithm_kwargs,
+    )
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "error", message="Subsetted physics cannot be normalized.*"
+        )
+        x_hat, metrics = model(y, physics, init=x_init, compute_metrics=True)
+    if physics_class is not dinv.physics.PET:
+        assert model.has_converged
+    if algorithm is dinv.optim.OSEM:
+        if pre_split:
+            with pytest.raises(ValueError, match="must match"):
+                model(y[:-1], physics, init=x_init)
+        else:
+            with pytest.raises(
+                TypeError, match="requires measurements as a torch.Tensor"
+            ):
+                model(
+                    list(dinv.physics.split_measurements(y, physics, num_subsets)),
+                    physics,
+                )
+
+        if physics_class is dinv.physics.PET and normalize:
+            expected_backgrounds = dinv.physics.split_measurements(
+                full_physics.background, full_physics, num_subsets
+            )
+            subset_data_fidelities = model.data_fidelity[0].data_fidelity_list
+            for subset_data_fidelity, expected_background in zip(
+                subset_data_fidelities, expected_backgrounds, strict=True
+            ):
+                assert torch.allclose(
+                    subset_data_fidelity.bkg,
+                    expected_background / subset_data_fidelity.gain,
+                )
+
+    expected_data_fidelity = data_fidelity
+    expected_cost = expected_data_fidelity(x_hat, full_y, full_physics)
+    assert metrics["cost"][0][-1] == pytest.approx(expected_cost.item())
+
+
+def test_patch_prior(imsize, dummy_dataset, device):
     torch.manual_seed(0)
 
     dataloader = DataLoader(
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
     )  # 1. Generate a dummy dataset
     # gray-valued
-    test_sample = next(iter(dataloader)).mean(1, keepdim=True).to(device)
+    test_sample = next(iter(dataloader))["x"].mean(1, keepdim=True).to(device)
 
     with torch.enable_grad():
         physics = dinv.physics.Denoising(
@@ -1092,7 +1245,25 @@ def test_condition_number(device):
     assert rel_error < 0.1
 
 
-@pytest.mark.parametrize("batch_size", [2])
+def test_correct_global_phase(device):
+    shapes_and_dims = [
+        ((2, 3, 64), (-1,)),  # 1D signals
+        ((2, 3, 8, 8), (-2, -1)),  # 2D signals
+        ((2, 3, 4, 8, 8), (-3, -2, -1)),  # 3D signals
+    ]
+    for shape, dim in shapes_and_dims:
+        global_phase_shape = shape[: -len(dim)] + (1,) * len(dim)
+        x1 = torch.randn(shape, device=device, dtype=torch.complex64)
+        x2 = x1 * torch.rand(global_phase_shape, device=device)
+        x2 = x2 * torch.exp(1j * torch.rand(global_phase_shape, device=device))
+        x2 = dinv.optim.phase_retrieval.correct_global_phase(
+            x2, x1, correct_magnitude=True, dim=dim, verbose=False
+        )
+        assert torch.allclose(
+            x1, x2, atol=1e-6
+        ), f"correct_global_phase failed for shape {shape}"
+
+
 @pytest.mark.parametrize(
     "physics_name",
     [
@@ -1101,12 +1272,12 @@ def test_condition_number(device):
     ],
 )
 @pytest.mark.parametrize("solver", solvers)
-def test_least_squares_implicit_backward(device, solver, physics_name, batch_size):
+def test_least_squares_implicit_backward(device, solver, physics_name):
     # Check that the backward gradient matches the finite difference gradient
-    prev_deterministic = torch.are_deterministic_algorithms_enabled()
-    torch.use_deterministic_algorithms(True)
-
+    batch_size = 2
     dtype = torch.float64
+    torch.manual_seed(2341)
+
     physics, img_size, _, _, params = find_operator(
         physics_name, device=device, get_physics_param=True
     )
@@ -1122,17 +1293,36 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
     gamma = (
         torch.rand((batch_size,), dtype=dtype, device=device, requires_grad=True) + 0.1
     )
+    gamma.retain_grad()
     init = torch.zeros_like(z).requires_grad_(False)
 
-    # This check can be quite slow since it needs to compute finite differences in all directions
-    # So we limit the number of iterations and allow a higher tolerance
-    assert torch.autograd.gradcheck(
-        partial(least_squares_implicit_backward, max_iter=20),
-        (physics, y, z, init, gamma),
-        eps=1e-6,
-        atol=1e-2,
-        rtol=1e-2,
-    )
+    y_ = y.detach().clone().requires_grad_(True)
+    z_ = z.detach().clone().requires_grad_(True)
+    gamma_ = gamma.detach().clone().requires_grad_(True)
+
+    with torch.enable_grad():
+        res_implicit = least_squares_implicit_backward(
+            physics, y, z, init, gamma, eps=1e-6, tol=1e-3, max_iter=50
+        ).sum()
+        res_implicit.backward()
+
+        res = least_squares(
+            A=physics.A,
+            AT=physics.A_adjoint,
+            y=y_,
+            z=z_,
+            init=init,
+            gamma=gamma_,
+            tol=1e-3,
+            max_iter=50,
+        ).sum()
+        res.backward()
+
+        assert z_.grad is not None and y_.grad is not None and gamma_.grad is not None
+        assert z.grad is not None and y.grad is not None and gamma.grad is not None
+        torch.testing.assert_close(z.grad, z_.grad, rtol=1e-2, atol=1e-2)
+        torch.testing.assert_close(y.grad, y_.grad, rtol=1e-2, atol=1e-2)
+        torch.testing.assert_close(gamma.grad, gamma_.grad, rtol=5e-2, atol=5e-2)
 
     # ------------------------------------------------------------
     # Check gradients physics parameters
@@ -1205,7 +1395,148 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
                 expected_grad[idx_flat],
                 rtol=5e-2,
                 atol=5e-2,
-                msg=f"Gradient w.r.t physics parameter {k} does not match finite difference gradient. Between {implicit_grad.view(-1)[idx_flat]} and {expected_grad[idx_flat]}.",
+                msg=lambda default: f"Gradient w.r.t physics parameter {k} does not match finite difference gradient. "
+                + default,
             )
 
-    torch.use_deterministic_algorithms(prev_deterministic)
+
+def test_least_squares_implicit_backward_nonleaf_buffer_grad(device):
+    """Compare explicit vs implicit gradient on an intermediate non-leaf physics buffer."""
+    torch.manual_seed(0)
+    dtype = torch.float64
+
+    batch_size = 2
+    dim = 12
+
+    class DummyPhysics(dinv.physics.LinearPhysics):
+        def __init__(self, mat):
+            super().__init__()
+            self.register_buffer("mat", mat)
+
+        def A(self, x):
+            return x @ self.mat.transpose(0, 1)
+
+        def A_adjoint(self, y):
+            return y @ self.mat
+
+    mat = torch.randn((dim, dim), device=device, dtype=dtype)
+    physics = DummyPhysics(mat)
+
+    x = torch.randn((batch_size, dim), device=device, dtype=dtype)
+    y = physics.A(x)
+    y = y + 0.01 * torch.randn_like(y)
+    z = physics.A_adjoint(y)
+
+    # Tiny dummy net that outputs an operator matrix from measurements.
+    kernel_net = torch.nn.Sequential(
+        torch.nn.Linear(dim, 2 * dim),
+        torch.nn.Tanh(),
+        torch.nn.Linear(2 * dim, dim * dim),
+    ).to(device=device, dtype=dtype)
+
+    # Explicit gradient (reference)
+    physics.implicit_backward_solver = False
+    for p in kernel_net.parameters():
+        p.grad = None
+    mat_hat = kernel_net(y).mean(dim=0).view(dim, dim)
+
+    physics.update_parameters(mat=mat_hat)
+    x_hat = physics.prox_l2(z, y, solver="CG", tol=1e-6, max_iter=50, gamma=1e-3)
+    loss = (x_hat - x).pow(2).mean()
+    physics.mat.retain_grad()
+    loss.backward()
+    explicit_grad = physics.mat.grad.detach().clone()
+
+    # Implicit gradient
+    physics.implicit_backward_solver = True
+    for p in kernel_net.parameters():
+        p.grad = None
+
+    mat_hat = kernel_net(y).mean(dim=0).view(dim, dim)
+    physics.update_parameters(mat=mat_hat)
+    x_hat = physics.prox_l2(z, y, solver="CG", tol=1e-6, max_iter=50, gamma=1e-3)
+    loss = (x_hat - x).pow(2).mean()
+    loss.backward()
+    implicit_grad = physics.mat.grad.detach().clone()
+
+    torch.testing.assert_close(
+        implicit_grad,
+        explicit_grad,
+        rtol=1e-4,
+        atol=1e-4,
+        msg=f"Implicit gradient {implicit_grad} does not match explicit gradient {explicit_grad}",
+    )
+
+
+def test_sirt(device):
+    # Tests that the SIRT algorithm converges to the least-squares solution for a linear inverse problem.
+
+    # 2D test
+    test_sample = torch.ones((1, 1, 16, 16)).to(device)
+    physics = dinv.physics.Tomography(
+        angles=180,
+        img_width=test_sample.shape[-1],
+        normalize=True,
+    )
+
+    y = physics(test_sample)
+
+    # SIRT algorithm
+    sirt = dinv.optim.SIRT(
+        data_fidelity=L2(),
+        max_iter=500,
+        crit_conv="residual",
+        thres_conv=1e-5,
+        verbose=False,
+        early_stop=True,
+    )
+
+    x_sirt = sirt(y, physics)
+
+    assert sirt.has_converged
+    assert x_sirt is not None
+
+    # Check that the change in physics is taken into account
+    x_sirt = sirt(y, physics)
+
+    physics_modified = dinv.physics.Tomography(
+        angles=120,
+        img_width=test_sample.shape[-1],
+        normalize=True,
+    )
+
+    y_modified = physics_modified(test_sample)
+    x_sirt_modified = sirt(y_modified, physics_modified)
+
+    assert sirt.has_converged
+    assert x_sirt_modified is not None
+
+    pytest.importorskip(
+        "astra",
+        reason="This test requires the Astra toolbox. It should be installed with `pip install astra-toolbox`",
+    )
+
+    # 3D test with Astra
+    if device.type != "cpu":
+        test_sample = torch.ones((1, 1, 16, 16, 16)).to(device)
+        physics = dinv.physics.TomographyWithAstra(
+            img_size=(16, 16, 16),
+            angles=180,
+            angular_range=(0, 360),
+            n_detector_pixels=16,
+            normalize=True,
+        )
+        y = physics(test_sample)
+        sirt = dinv.optim.SIRT(
+            data_fidelity=L2(),
+            max_iter=500,
+            crit_conv="residual",
+            thres_conv=1e-5,
+            verbose=False,
+            early_stop=True,
+        )
+
+        x_sirt = sirt(y, physics)
+
+        assert sirt.has_converged
+        assert x_sirt is not None

@@ -46,7 +46,7 @@ class BilateralFilter(Denoiser):
         sigma_r: float | Tensor = 1,
         window_size: int = 5,
         **kwargs,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Apply a bilateral filter to the input x.
 

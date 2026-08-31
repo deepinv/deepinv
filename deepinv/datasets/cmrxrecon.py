@@ -19,6 +19,7 @@ from deepinv.utils.io import load_mat
 from deepinv.utils.mixins import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
 from deepinv.physics.noise import NoiseModel
+from .utils import resolve_root
 
 
 class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
@@ -65,14 +66,14 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     Example:
 
     >>> from deepinv.datasets import CMRxReconSliceDataset, download_archive
-    >>> from deepinv.utils import get_image_url, get_data_home
+    >>> from deepinv.utils import get_image_url, get_cache_home
     >>> from torch.utils.data import DataLoader
     >>> download_archive(
     ...     get_image_url("CMRxRecon.zip"),
-    ...     get_data_home() / "CMRxRecon.zip",
+    ...     get_cache_home() / "CMRxRecon.zip",
     ...     extract=True,
     ... )
-    >>> dataset = CMRxReconSliceDataset(get_data_home() / "CMRxRecon")
+    >>> dataset = CMRxReconSliceDataset(get_cache_home() / "CMRxRecon")
     >>> x, y, params = next(iter(DataLoader(dataset)))
     >>> x.shape # (B, C, T, H, W)
     torch.Size([1, 2, 12, 512, 256])
@@ -95,11 +96,12 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     :param Callable transform: optional transform to apply to the target image sequences before padding or physics is applied.
     :param tuple pad_size: tuple of 2 ints (W, H) for all images to be padded to, if ``None``, no padding.
     :param deepinv.physics.NoiseModel noise_model: optional noise model to apply to unpadded kspace.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
     """
 
     def __init__(
         self,
-        root: str | Path,
+        root: str | Path = None,
         data_dir: str | Path = "SingleCoil/Cine/TrainingSet/FullSample",
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
@@ -110,9 +112,9 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         transform: Callable | None = None,
         pad_size: tuple[int, int] = (512, 256),
         noise_model: NoiseModel = None,
+        use_dict_output: bool = False,
     ):
-
-        self.root = Path(root)
+        self.root = resolve_root(root, "CMRxReconSlice")
         self.data_dir = data_dir
         self.mask_dir = mask_dir
         self.transform = transform
@@ -163,6 +165,16 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
             self.samples = samples
 
+        self.use_dict_output = use_dict_output
+        if not self.use_dict_output:
+            warn(
+                "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs."
+                "The default is currently `False` for backward compatibility, but will be switched to `True` in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
     def _loadmat(self, fname: str | Path | os.PathLike) -> ndarray:
         """Load matrix from MATLAB 7.3 file and parse headers."""
         return next(
@@ -192,7 +204,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         )
 
     def __getitem__(self, i: int) -> tuple[Tensor, Tensor, dict[str, Tensor]]:
-        """Get ith data sampe.
+        """Get ith data sample.
 
         :param int i: dataset index to get
         :return: tuple of ground truth ``x``, measurement ``y`` and params dict containing mask ``{'mask': mask}``
@@ -245,8 +257,9 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         # Pad
         if self.pad_size is not None:
-            w, h = (self.pad_size[0] - target.shape[-2]), (
-                self.pad_size[1] - target.shape[-1]
+            w, h = (
+                (self.pad_size[0] - target.shape[-2]),
+                (self.pad_size[1] - target.shape[-1]),
             )
             target = F.pad(target, (h // 2, h // 2, w // 2, w // 2))
             mask = F.pad(mask, (h // 2, h // 2, w // 2, w // 2))
@@ -261,6 +274,17 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         if self.apply_mask:
             kspace = kspace * mask + 0.0
-            return target, kspace.float(), {"mask": mask.float()}
+            params = {"mask": mask.float()}
         else:
-            return target, kspace.float()
+            params = None
+
+        if self.use_dict_output:
+            out = {"x": target, "y": kspace.float()}
+            if params is not None:
+                out["params"] = params
+            return out
+
+        if params is not None:
+            return target, kspace.float(), params
+
+        return target, kspace.float()

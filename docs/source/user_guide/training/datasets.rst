@@ -28,7 +28,16 @@ or any combination of these, in one of the following ways:
 
   If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`
 
-If you have your own dataset (e.g. a PyTorch `Dataset`), check that it is compatible using the function :func:`deepinv.datasets.check_dataset` 
+Alternatively, set `use_dict_output=True` (default False) in the dataset which makes them return a dict of the format `{"x": x, "y": y, "params": params}` with any key omitted if not applicable. This dict format is recommended over tuple for better readability and flexibility.
+
+>>> import torch
+>>> from deepinv.datasets import TensorDataset
+>>> x, y = torch.rand(1, 3, 8, 8), torch.rand(1, 3, 8, 8)
+>>> dataset = TensorDataset(x=x, y=y, use_dict_output=True)
+>>> dataset[0].keys()
+['x', 'y']
+
+If you have your own dataset (e.g. a PyTorch `Dataset`), check that it is compatible using the function :func:`deepinv.datasets.check_dataset`
 (e.g. to be used with :class:`deepinv.Trainer` or :class:`deepinv.test`).
 
 .. seealso::
@@ -73,11 +82,10 @@ For example, here we generate a dataset of inpainting measurements from the :cla
 
     >>> import deepinv as dinv
     >>> from torchvision.transforms import ToTensor, Compose, CenterCrop
-    >>> save_dir = dinv.utils.get_data_home() / 'set14'
+    >>> save_dir = dinv.utils.get_cache_home() / 'set14'
     >>> 
     >>> # Define base train dataset
-    >>> dataset = dinv.datasets.Set14HR(save_dir, download=True, transform=Compose([CenterCrop(128), ToTensor()])) # doctest: +ELLIPSIS
-    ...
+    >>> dataset = dinv.datasets.Set14HR(save_dir, download=True, transform=Compose([CenterCrop(128), ToTensor()]))
     >>> 
     >>> # Define forward operator
     >>> physics = dinv.physics.Inpainting(img_size=(3, 128, 128), mask=0.8, noise_model=dinv.physics.GaussianNoise(sigma=.05))
@@ -220,6 +228,18 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
      - 510 images across 6 satellites
      - Cx256x256 multispectral (C=4 or 8) and 1x1024x1024 panchromatic
      - Multispectral satellite images of urban scenes from 6 different satellites.
+
+   * - :class:`BrainWebPET <deepinv.datasets.BrainWebPET>`
+     - `(x, params)`
+     - 20 synthetic brain volumes
+     - 1x127x344x344 voxels
+     - Synthetic PET emission volumes with attenuation maps and optional MRI contrasts from the BrainWeb dataset.
+
+   * - :class:`BrainWebMRI <deepinv.datasets.BrainWebMRI>`
+     - `x`
+     - 20 MRI brain volumes
+     - 1x181x217x181 voxels
+     - 3D MRI volumes with T1, T2, T2* or PD contrast.
 
 
 .. _data-transforms:

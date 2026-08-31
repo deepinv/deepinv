@@ -5,19 +5,11 @@ import numpy as np
 from tqdm import tqdm
 from .base import Reconstructor
 from .utils import conv_nd, batchnorm_nd
-from deepinv.utils.decorators import _deprecated_alias
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
-
-
-def add_module(self, module):
-    self.add_module(str(len(self) + 1), module)
-
-
-torch.nn.Module.add = add_module
 
 
 class ConvDecoder(nn.Module):
@@ -36,7 +28,6 @@ class ConvDecoder(nn.Module):
     """
 
     #  Code adapted from https://github.com/MLI-lab/ConvDecoder/tree/master by Darestani and Heckel.
-    @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         img_size: tuple[int, ...],
@@ -64,7 +55,7 @@ class ConvDecoder(nn.Module):
         # compute up-sampling factor from one layer to another
         scales = tuple(
             (out_s / in_s) ** (1.0 / (layers - 1))
-            for out_s, in_s in zip(out_size, in_size)
+            for out_s, in_s in zip(out_size, in_size, strict=True)
         )
 
         hidden_size = [
@@ -75,8 +66,8 @@ class ConvDecoder(nn.Module):
         # hidden layers
         self.net = nn.Sequential()
         for i in range(layers - 1):
-            self.net.add(nn.Upsample(size=hidden_size[i], mode="nearest"))
-            self.net.add(
+            self.net.append(nn.Upsample(size=hidden_size[i], mode="nearest"))
+            self.net.append(
                 conv(
                     channels,
                     channels,
@@ -86,10 +77,10 @@ class ConvDecoder(nn.Module):
                     bias=True,
                 )
             )
-            self.net.add(nn.ReLU())
-            self.net.add(batchnorm(channels, affine=True))
+            self.net.append(nn.ReLU())
+            self.net.append(batchnorm(channels, affine=True))
         # final layer
-        self.net.add(
+        self.net.append(
             conv(
                 channels,
                 channels,
@@ -99,9 +90,9 @@ class ConvDecoder(nn.Module):
                 bias=True,
             )
         )
-        self.net.add(nn.ReLU())
-        self.net.add(batchnorm(channels, affine=True))
-        self.net.add(conv(channels, output_channels, 1, 1, padding=0, bias=True))
+        self.net.append(nn.ReLU())
+        self.net.append(batchnorm(channels, affine=True))
+        self.net.append(conv(channels, output_channels, 1, 1, padding=0, bias=True))
 
     def forward(self, x: torch.Tensor, scale_out: float = 1) -> torch.Tensor:
         r"""
@@ -147,7 +138,6 @@ class DeepImagePrior(Reconstructor):
     :param bool re_init: If ``True``, re-initialize the network parameters before each reconstruction.
     """
 
-    @_deprecated_alias(input_size="img_size")
     def __init__(
         self,
         generator: nn.Module,

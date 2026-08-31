@@ -17,6 +17,14 @@ class TestTomographyWithAstra:
     def dummy_projection(self, x: torch.Tensor, out: torch.Tensor) -> None:
         out[:] = 1.0
 
+    def dummy_create_projector(
+        self,
+        type: str,
+        projection_geometry: dict[str, float],
+        object_geometry: dict[str, float],
+    ) -> int:
+        return 1
+
     @pytest.mark.parametrize("normalize", [True, False, None])
     @pytest.mark.parametrize("fbp", [True, False])
     @pytest.mark.parametrize(
@@ -28,9 +36,10 @@ class TestTomographyWithAstra:
             (False, "conebeam"),
         ],
     )
+    @pytest.mark.parametrize("cubic", [True, False])
     @pytest.mark.parametrize("channels", [1, 3])
     def test_tomography_with_astra_logic(
-        self, is_2d, geometry_type, normalize, fbp, monkeypatch, channels
+        self, is_2d, geometry_type, normalize, fbp, monkeypatch, cubic, channels, device
     ):
         r"""
         Tests tomography operator with astra backend which does not have a numerically precise adjoint.
@@ -39,17 +48,18 @@ class TestTomographyWithAstra:
         :param str geometry_type: In 2D, expects ``parallel`` or ``fanbeam``. In 3D expects ``parallel`` or ``conebeam``.
         :param bool normalize: Initializes the operator with ``normalize=normalize``.
         :param bool fbp: Whether or not to approximate the pseudo-inverse with filtered back-projection.
+        :param bool cubic: Whether or not the input image is cubic (i.e. has the same size in all dimensions).
         :param int channels: Number of input channels. The tomography operator is applied per channel.
+        :param str device: The device to run the test on.
         """
 
-        pytest.importorskip(
+        astra = pytest.importorskip(
             "astra",
             reason="This test requires astra-toolbox. It should be "
             "installed with `conda install -c astra-toolbox -c nvidia astra-toolbox`",
         )
 
-        device = dinv.utils.get_device(verbose=False)
-        if str(device) != "cuda":
+        if "cuda" not in str(device):
             monkeypatch.setattr(
                 target=dinv.physics.functional.XrayTransform,
                 name="_forward_projection",
@@ -65,10 +75,15 @@ class TestTomographyWithAstra:
                 name="compute_norm",
                 value=self.dummy_compute_norm,
             )
+            monkeypatch.setattr(
+                target=astra,
+                name="create_projector",
+                value=self.dummy_create_projector,
+            )
 
         ## Test 2d transforms
         if is_2d:
-            img_size = (16, 16)
+            img_size = (16, 16) if cubic else (32, 16)
             n_detector_pixels = 2 * img_size[0]
             num_angles = 2 * img_size[0]
             physics = dinv.physics.TomographyWithAstra(
@@ -83,8 +98,8 @@ class TestTomographyWithAstra:
 
         else:
             ## Test 3d transforms
-            img_size = (16, 16, 16)
-            n_detector_pixels = (32, 32)
+            img_size = (16, 16, 16) if cubic else (32, 24, 16)
+            n_detector_pixels = (32, 32) if cubic else (64, 48)
             num_angles = 2 * img_size[0]
             physics = dinv.physics.TomographyWithAstra(
                 img_size=img_size,
@@ -97,6 +112,25 @@ class TestTomographyWithAstra:
                 normalize=normalize,
                 device=device,
             )
+
+        assert physics.img_size == img_size
+        assert physics.n_detector_pixels == n_detector_pixels
+        assert physics.detector_spacing == (1.0 if is_2d else (1.0, 1.0))
+        assert physics.pixel_spacing == ((1.0, 1.0) if is_2d else (1.0, 1.0, 1.0))
+        assert physics.bounding_box == (
+            (-img_size[-1] / 2, img_size[-1] / 2, -img_size[-2] / 2, img_size[-2] / 2)
+            if is_2d
+            else (
+                -img_size[-1] / 2,
+                img_size[-1] / 2,
+                -img_size[-2] / 2,
+                img_size[-2] / 2,
+                -img_size[-3] / 2,
+                img_size[-3] / 2,
+            )
+        )
+        assert physics.geometry_type == geometry_type
+        assert physics.geometry_vectors is None
 
         x = torch.rand(1, channels, *img_size, device=device)
 
@@ -162,14 +196,40 @@ class TestTomographyWithAstra:
 
         ## --- Test geometry properties ---
         if is_2d:
-            assert physics.measurement_shape == (32, 32)
-            assert physics.xray_transform.domain_shape == (1, 16, 16)
-            assert physics.xray_transform.range_shape == (1, 32, 32)
+            assert physics.measurement_shape == (32, 32) if cubic else (32, 16)
+            assert (
+                physics.xray_transform.domain_shape == (1, 16, 16)
+                if cubic
+                else (1, 32, 16)
+            )
+            assert (
+                physics.xray_transform.range_shape == (1, 32, 32)
+                if cubic
+                else (1, 32, 16)
+            )
         else:
-            assert physics.measurement_shape == (32, 32, 32)
-            assert physics.xray_transform.domain_shape == (16, 16, 16)
-            assert physics.xray_transform.range_shape == (32, 32, 32)
-        assert physics.num_angles == 32
+            assert physics.measurement_shape == (32, 32, 32) if cubic else (64, 48, 32)
+            assert (
+                physics.xray_transform.domain_shape == (16, 16, 16)
+                if cubic
+                else (32, 24, 16)
+            )
+            assert (
+                physics.xray_transform.range_shape == (32, 32, 32)
+                if cubic
+                else (64, 48, 32)
+            )
+        assert physics.num_angles == 32 if cubic else 64
+        expected_angles = torch.linspace(
+            *(0, 180) if geometry_type == "parallel" else (0, 360),
+            steps=num_angles + 1,
+            device=device,
+        )[:-1]
+        assert torch.allclose(physics.angles, expected_angles)
+        assert physics.angular_range == (
+            expected_angles.min().item(),
+            expected_angles.max().item(),
+        )
         assert physics.xray_transform.object_cell_volume == pytest.approx(1.0)
         assert physics.xray_transform.detector_cell_u_length == pytest.approx(1.0)
         assert physics.xray_transform.detector_cell_v_length == pytest.approx(1.0)
