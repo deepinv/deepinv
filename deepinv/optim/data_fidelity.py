@@ -84,6 +84,53 @@ class DataFidelity(Potential):
         """
         return self.d.grad(u, y, *args, **kwargs)
 
+    def prox(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        gamma: float = 1.0,
+        stepsize_inter: float = 1.0,
+        max_iter_inter: int = 50,
+        tol_inter: float = 1e-3,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Proximal operator of :math:`\gamma \datafid{x}{y}`
+
+        Compute the proximal operator of the fidelity term :math:`\operatorname{prox}_{\gamma \datafidname}`, i.e.
+
+        .. math::
+
+           \operatorname{prox}_{\gamma \datafidname}(x) = \underset{u}{\text{argmin}} \gamma d(\forw{u},y)+\frac{1}{2}\|u-x\|_2^2
+
+
+        .. warning::
+
+            If the proximity operator is not available in closed form, this function will use a
+            gradient descent method to compute the proximity operator, which may be slow and not guaranteed to converge.
+
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :param float gamma: step size for the proximity operator.
+        :param float stepsize_inter: step size for the internal optimization.
+        :param int max_iter_inter: maximum number of iterations for the internal optimization.
+        :param float tol_inter: tolerance for the internal optimization.
+        :return: (:class:`torch.Tensor`) proximity operator computed in :math:`x`.
+        """
+        return super().prox(
+            x=x,
+            y=y,
+            physics=physics,
+            gamma=gamma,
+            stepsize_inter=stepsize_inter,
+            max_iter_inter=max_iter_inter,
+            tol_inter=tol_inter,
+            **kwargs,
+        )
+
     def prox_d(self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`.
@@ -530,7 +577,7 @@ class ItohFidelity(L2):
 
         .. math::
 
-           \operatorname{prox}_{\gamma \datafidname} = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|Du-w_{t}(Dy)\|_2^2+\frac{1}{2}\|u-x\|_2^2
+           \operatorname{prox}_{\gamma \datafidname}(x) = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|Du-w_{t}(Dy)\|_2^2+\frac{1}{2}\|u-x\|_2^2
 
         using the DCT-based closed-form solution of :footcite:t:`ramirez2024phase` as follows
 
