@@ -51,7 +51,7 @@ class DnCNN(Denoiser):
         nf: int = 64,
         pretrained: str | None = "download",
         pretrained_2d_isotropic: bool = False,
-                device: torch.device | str = "cpu",
+        device: torch.device | str = "cpu",
         dim: int | str = 2,
         batch_norm: bool = False,
     ):
@@ -60,7 +60,7 @@ class DnCNN(Denoiser):
         dim = fix_dim(dim)
 
         conv = conv_nd(dim)
-        
+
         batchnorm = batchnorm_nd(dim)
 
         self.depth = depth
@@ -78,7 +78,10 @@ class DnCNN(Denoiser):
             nf, out_channels, kernel_size=3, stride=1, padding=1, bias=bias
         )
         self.bn_list = nn.ModuleList(
-            [batchnorm(nf) if batch_norm else nn.Identity() for _ in range(self.depth - 2)]
+            [
+                batchnorm(nf) if batch_norm else nn.Identity()
+                for _ in range(self.depth - 2)
+            ]
         )
         self.nl_list = nn.ModuleList([nn.ReLU() for _ in range(self.depth - 1)])
 
