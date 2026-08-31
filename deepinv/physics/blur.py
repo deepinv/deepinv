@@ -737,6 +737,24 @@ class BlurFFT(DecomposablePhysics):
         super().update_parameters(**filter_parameters)
 
 
+class FactorTimesBlurFFT(BlurFFT):
+    r"""
+    Two Times Blur operation.
+
+    ..math::
+        y = w * (w * x)
+
+    where :math:`*` denotes convolution and :math:`w` is a filter.
+
+    :param float factor: the factor you multiply with
+    """
+    def __init__():
+        super().__init__()
+
+    def forward(self, x: Tensor, filter: Tensor | None = None, **kwargs) -> Tensor:
+        out = 2 * x
+        return out
+
 class SpaceVaryingBlur(LinearPhysics):
     r"""
     Space varying blur via product-convolution.
