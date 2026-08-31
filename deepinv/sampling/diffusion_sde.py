@@ -1043,7 +1043,12 @@ class PosteriorDiffusion(Reconstructor):
             ):
                 # For EDM, we can compute the score from model output directly, avoid redundant computation
                 data_fid_grad, model_output = self.data_fidelity.grad(
-                    (x / scale), y, physics=physics, sigma=sigma, get_model_outputs=True
+                    (x / scale),
+                    y,
+                    physics=physics,
+                    sigma=sigma,
+                    get_model_outputs=True,
+                    **kwargs,
                 )
                 score = self.sde._score_from_model_output(
                     x, model_output, sigma, scale
