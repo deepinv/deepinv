@@ -318,7 +318,6 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             x = self.rss(x, multicoil=True)  # [B,1,...,H,W]
         else:
             # Use conj as coil maps are elementwise multiplication
-            print('DEBUG: self.coil_maps.shape = ', self.coil_maps.shape, ' FiMy.shape = ', FiMy.shape)
             SiFiMy = torch.sum(torch.conj(self.coil_maps) * FiMy, dim=1)  # [B,...,H,W]
             x = self.from_torch_complex(SiFiMy)  # [B,2,...,H,W]
 
