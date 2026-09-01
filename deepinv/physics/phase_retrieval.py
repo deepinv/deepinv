@@ -558,8 +558,8 @@ class FourierPtychographyLinearOperator(LinearPhysics):
     :param torch.Tensor probe: A 4D tensor representing the pupil (probe) function.
     :param torch.Tensor shifts: A 3D tensor of shape ``(B, n_img, 2)`` corresponding to the ``n_img`` Fourier shift positions.
     :param bool normalize: Normalization factor for the linear operator to adjust its norm.
-    :param bool include_fft:
-    :param bool include_ifft:
+    :param bool include_fft: If ``True``, applies the 2D FFT in :meth:`op_fft2`; if ``False``, the input is assumed to already be in the Fourier domain.
+    :param bool include_ifft: If ``True``, applies the 2D inverse FFT in :meth:`op_ifft2`; if ``False``, the output remains in the Fourier domain.
     :param torch.device, str device: Device "cpu" or "gpu".
     """
 
@@ -697,8 +697,8 @@ class FourierPtychographyLinearOperator(LinearPhysics):
         grid_y = torch.arange(H, device=crop.device).view(1, 1, H, 1)
         grid_x = torch.arange(W, device=crop.device).view(1, 1, 1, W)
 
-        dy = shifts[:, :, 0].view(B, N_crops, 1, 1)
-        dx = shifts[:, :, 1].view(B, N_crops, 1, 1)
+        dy = shifts[:, :, 0].view(1, N_crops, 1, 1).expand(B, N_crops, 1, 1)
+        dx = shifts[:, :, 1].view(1, N_crops, 1, 1).expand(B, N_crops, 1, 1)
 
         src_y = grid_y - dy - (self.cy - self.my)
         src_x = grid_x - dx - (self.cx - self.mx)
@@ -738,7 +738,9 @@ class MultiplexedPtychography(PhaseRetrieval):
     :param torch.Tensor shifts: A 3D tensor of shape ``(B, n_img, 2)`` corresponding to the Fourier shift positions.
     :param list[torch.Tensor], torch.Tensor ledidx: Indices of the LEDs multiplexed into each measurement.
     :param float, torch.Tensor led_intensity: Intensity :math:`s_l` for each LED.
-    :param float norm: Normalization factor for the underlying linear operator.
+    :param float normalize: Normalization factor for the linear operator to adjust its norm.
+    :param bool include_fft: If ``True``, applies the 2D FFT in :meth:`op_fft2`; if ``False``, the input is assumed to already be in the Fourier domain.
+    :param bool include_ifft: If ``True``, applies the 2D inverse FFT in :meth:`op_ifft2`; if ``False``, the output remains in the Fourier domain.
     :param torch.device, str device: Device "cpu" or "gpu".
     """
 
