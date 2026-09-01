@@ -129,13 +129,16 @@ def load_raw(
         mosaic = raw.raw_image_visible
         h, w = mosaic.shape
         mosaic = mosaic[: h - h % ph, : w - w % pw]
-        # (H, W) -> (1, 1, H, W)
-        mosaic = torch.from_numpy(np.ascontiguousarray(mosaic)).to(dtype)[None, None]
+
+        mosaic = np.ascontiguousarray(mosaic, dtype=np.int32)
+        mosaic = torch.from_numpy(mosaic).to(dtype)[None, None]
 
         color_desc = raw.color_desc.decode()
+        black_pc = list(raw.black_level_per_channel)
+
         white_pc = getattr(raw, "camera_white_level_per_channel", None)
         if not white_pc or all(v == 0 for v in white_pc):
-            white_pc = [int(raw.white_level)] * int(raw.num_colors)
+            white_pc = [int(raw.white_level)] * len(black_pc)
 
         sizes = raw.sizes
         meta = {
@@ -145,7 +148,7 @@ def load_raw(
             ],
             "color_description": color_desc,
             "num_colors": int(raw.num_colors),
-            "black_level_per_channel": list(raw.black_level_per_channel),
+            "black_level_per_channel": black_pc,
             "camera_white_level_per_channel": list(white_pc),
             "camera_whitebalance": list(raw.camera_whitebalance),
             "daylight_whitebalance": list(raw.daylight_whitebalance),
