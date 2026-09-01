@@ -31,22 +31,49 @@ class TimeMixin:
 
         Lets non-dynamic algorithms process dynamic data by treating time frames as batches.
 
-        :param x: input tensor of shape (B, C, T, H, W)
-        :return: output tensor of shape (B*T, C, H, W)
+        :param x: input tensor of shape (B, C, T, H, W),
+            (B, C, T, D, H, W), or (B, C, N, T, D, H, W)
+        :return: output tensor of shape (B*T, C, H, W),
+            (B*T, C, D, H, W), or (B*T, C, N, D, H, W)
         """
-        B, C, T, H, W = x.shape
-        return x.permute(0, 2, 1, 3, 4).reshape(B * T, C, H, W)
+        if x.ndim not in (5, 6, 7):
+            raise ValueError(
+                f"Expected a 5D, 6D, or 7D tensor, but got shape {tuple(x.shape)}."
+            )
+
+        time_dim = 3 if x.ndim == 7 else 2
+        batch_size, time_size = x.shape[0], x.shape[time_dim]
+        return x.movedim(time_dim, 1).reshape(
+            batch_size * time_size, *x.shape[1:time_dim], *x.shape[time_dim + 1 :]
+        )
 
     @staticmethod
     def unflatten(x: torch.Tensor, batch_size=1) -> torch.Tensor:
         """Creates new time dim from batch dim. Opposite of ``flatten``.
 
-        :param x: input tensor of shape (B*T, C, H, W)
+        :param x: input tensor of shape (B*T, C, H, W),
+            (B*T, C, D, H, W), or (B*T, C, N, D, H, W)
         :param int batch_size: batch size, defaults to 1
-        :return: output tensor of shape (B, C, T, H, W)
+        :return: output tensor of shape (B, C, T, H, W),
+            (B, C, T, D, H, W), or (B, C, N, T, D, H, W)
         """
-        BT, C, H, W = x.shape
-        return x.reshape(batch_size, BT // batch_size, C, H, W).permute(0, 2, 1, 3, 4)
+        if x.ndim not in (4, 5, 6):
+            raise ValueError(
+                f"Expected a 4D, 5D, or 6D tensor, but got shape {tuple(x.shape)}."
+            )
+        if batch_size <= 0:
+            raise ValueError(f"batch_size must be positive, but got {batch_size}.")
+        if x.shape[0] % batch_size != 0:
+            raise ValueError(
+                f"Leading dimension {x.shape[0]} is not divisible by batch_size "
+                f"{batch_size}."
+            )
+
+        time_size = x.shape[0] // batch_size
+        time_dim = 3 if x.ndim == 6 else 2
+        return x.reshape(batch_size, time_size, *x.shape[1:]).movedim(
+            1, time_dim
+        )
 
     @staticmethod
     def flatten_C(x: torch.Tensor) -> torch.Tensor:
