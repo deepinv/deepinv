@@ -20,7 +20,6 @@ class DnCNN(Denoiser):
     convolutional layers with ReLU activation functions. The number of layers can be specified by the user. Unlike the
     original paper, this implementation does not include batch normalization layers.
 
-
     The network can be initialized with pretrained weights, which can be downloaded from an online repository. The
     pretrained weights are trained with the default parameters of the network, i.e. 20 layers, 64 channels and biases.
 
