@@ -106,7 +106,8 @@ class DPSDataFidelity(NoisyDataFidelity):
             \nabla_x \log p_t(y|x) = \nabla_x \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|
 
     where :math:`\sigma = \sigma(t)` is the noise level, :math:`m` is the number of measurements (size of :math:`y`),
-    and :math:`\lambda` controls the strength of the approximation.
+    and :math:`\lambda` controls the strength of the approximation. This class also works for latent diffusion models, for which it would implement
+    the LDPS algorithm.
 
     .. seealso::
         This class can be used for building custom DPS-based diffusion models.
@@ -211,7 +212,16 @@ class DPSDataFidelity(NoisyDataFidelity):
             sigma = sigma.to(torch.float32)
         x0_t = self.denoiser(x.to(torch.float32), sigma, *args, **kwargs)
         if self.denoiser.vae is not None:
-            x0_t = self.denoiser.vae.decode(x0_t)
+            x0_t_dec = self.denoiser._decode(x0_t)
+
+            #x0_t_dec = (x0_t_dec / 2 + 0.5).clamp(0, 1)
+
+            out = (self.d(physics.A(x0_t_dec), y) * y.numel() / y.size(0)).sqrt() * self.weight
+
+            if get_model_outputs:
+                return out, x0_t
+            else:
+                return out
 
         if self.clip is not None:
             x0_t = torch.clip(x0_t, self.clip[0], self.clip[1])  # optional
@@ -222,3 +232,129 @@ class DPSDataFidelity(NoisyDataFidelity):
             return out, x0_t
         else:
             return out
+
+
+class PSLDDataFidelity(DPSDataFidelity):
+    r"""
+    Posterior Sampling with Latent Diffusion (PSLD) data-fidelity term.
+
+    This implements the likelihood approximation from
+    `Posterior Sampling with Latent Diffusion Models
+    <https://arxiv.org/abs/2307.00619>`_, combining latent DPS with a
+    latent-space gluing term:
+
+    .. math::
+            \omega \|A\mathcal{D}(\hat z_0)-y\|
+            +
+            \gamma \|\hat z_0-\mathcal{E}(A^\top y +
+            (I-A^\top A)\mathcal{D}(\hat z_0))\|.
+
+    :param deepinv.models.Denoiser denoiser: Latent diffusion denoiser with VAE.
+    :param float omega: Weight of the measurement term. Default to 1.0.
+    :param float gamma: Weight of the gluing term. Default to 0.1.
+    """
+
+    def __init__(
+        self,
+        denoiser: Denoiser = None,
+        weight: float = 1.0,       # omega: measurement term
+        gamma: float = 0.1,        # gluing term
+        squared_glue: bool = True,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            denoiser=denoiser,
+            weight=weight,
+            clip=None,
+        )
+
+        self.gamma = gamma
+        self.squared_glue = squared_glue
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma,
+        *args,
+        get_model_outputs=False,
+        **kwargs,
+    ):
+        if not isinstance(physics, dinv.physics.LinearPhysics):
+            raise ValueError("PSLD requires a linear physics operator.")
+
+        if self.denoiser.vae is None:
+            raise ValueError("PSLD requires a latent model with a VAE.")
+
+        if isinstance(sigma, torch.Tensor):
+            sigma = sigma.to(torch.float32)
+
+        # SD1.5 state is already in latent coordinates:
+        # do NOT apply the [0,1] -> [-1,1] image conversion.
+        kwargs.setdefault("input_in_minus_one_one", True)
+
+        # Tweedie / denoised latent:
+        z0_hat = self.denoiser(
+            x.to(torch.float32),
+            sigma,
+            *args,
+            **kwargs,
+        )
+
+        # Decode to image space
+        x0_hat = self.denoiser._decode(z0_hat)
+
+        # -------------------------------------------------
+        # 1. Vanilla latent DPS term
+        #
+        #       || A D(z0_hat) - y ||
+        # -------------------------------------------------
+        residual = physics.A(x0_hat) - y
+
+        measurement_loss = (
+            residual.flatten(1).norm(dim=1).mean()
+            * self.weight
+        )
+
+        # -------------------------------------------------
+        # 2. PSLD gluing term
+        #
+        # A^T y + (I - A^T A)x
+        #
+        # = x + A^T(y - Ax)
+        # -------------------------------------------------
+        x_glued = x0_hat + physics.A_adjoint(
+            y - physics.A(x0_hat)
+        )
+
+        # Re-encode projected image
+        z_glued = self.denoiser._encode(
+            x_glued,
+            dtype=z0_hat.dtype,
+        )
+
+        latent_residual = z0_hat - z_glued
+
+        if self.squared_glue:
+            glue_loss = (
+                latent_residual.square()
+                .flatten(1)
+                .sum(dim=1)
+                .mean()
+            )
+        else:
+            glue_loss = (
+                latent_residual
+                .flatten(1)
+                .norm(dim=1)
+                .mean()
+            )
+
+        loss = measurement_loss + self.gamma * glue_loss
+
+        if get_model_outputs:
+            return loss, z0_hat
+
+        return loss

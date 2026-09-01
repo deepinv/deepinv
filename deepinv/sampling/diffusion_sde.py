@@ -581,7 +581,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
 
         def sigma_prime_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
-            return (xi_t(t) / (scale_t(t) ** 2)) * (1 / sigma_t(t))
+            return 0.5 * (xi_t(t) / (scale_t(t) ** 2)) * (1 / sigma_t(t))
 
         super().__init__(
             sigma_t=sigma_t,
@@ -962,7 +962,7 @@ class PosteriorDiffusion(Reconstructor):
             if physics is not None:
                 if self.sde.denoiser.vae is not None:
                     x_init = self.sde.sample_init(
-                        self.sde.denoiser.vae.encode(2*physics.A_dagger(y)-1).latent_dist.sample().shape, rng=self.solver.rng
+                        self.sde.denoiser.vae._encode(physics.A_dagger(y)).shape, rng=self.solver.rng
                     )
                 else:
                     x_init = self.sde.sample_init(
@@ -1010,7 +1010,9 @@ class PosteriorDiffusion(Reconstructor):
         sample = solution.sample
 
         if self.sde.denoiser.vae is not None:
-            sample = self.sde.denoiser.vae.decode(sample / self.sde.denoiser.vae.config.scaling_factor).sample
+            #sample = self.sde.denoiser.vae.decode(sample / self.sde.denoiser.vae.config.scaling_factor).sample
+            sample = self.sde.denoiser._decode(sample)
+            #sample = (sample / 2 + 0.5).clamp(0, 1)
 
         if get_trajectory:
             return sample, solution.trajectory

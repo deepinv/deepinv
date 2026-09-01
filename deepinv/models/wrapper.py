@@ -327,13 +327,16 @@ class ScoreModelWrapper(Denoiser):
         device = x.device
         dtype = x.dtype
 
+        guidance_scale = kwargs.pop("guidance_scale", 1.0)
+        using_guidance = "encoder_hidden_states" in kwargs
+        batch_size = x.shape[0] # if not using_guidance else x.shape[0] * 2
         if sigma is None:  # pragma: no cover
             raise ValueError("A noise level sigma must be provided.")
 
         # Handle sigma
         sigma = self._handle_sigma(
             sigma,
-            batch_size=x.shape[0],
+            batch_size=batch_size,
             ndim=x.ndim,
             device=device,
             dtype=dtype,
@@ -354,10 +357,17 @@ class ScoreModelWrapper(Denoiser):
         else:
             t_model = timestep
         # UNet forward
-        pred = self.model(x, t_model, *args, **kwargs)
+        if using_guidance:
+            x_cfg = torch.cat([x] * 2, dim=0)
+            pred = self.model(x_cfg, t_model, *args, **kwargs)
+        else:
+            pred = self.model(x, t_model, *args, **kwargs)
         if isinstance(pred, (list, tuple)):
             pred = pred[0]  # take the first output if multiple outputs are returned
         pred = pred.to(dtype)
+        if using_guidance:
+            noise_pred_uncond, noise_pred_text = pred.chunk(2)
+            pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
 
         # Convert model output to x0 depending on prediction type
         x0 = self._pred_to_x0(pred, x, sigma, scale)
@@ -503,6 +513,38 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         self.tokenizer = getattr(pipeline, "tokenizer", None)
 
         self.scheduler = scheduler
+
+    def _decode(self, z):
+        """Scaled SD latent -> image in [0,1]."""
+        if self.vae is not None:
+            vae = self.vae
+            scale = vae.config.scaling_factor
+            vae_dtype = next(vae.parameters()).dtype
+
+            x = vae.decode(
+                (z / scale).to(vae_dtype)
+            ).sample
+
+            # VAE output [-1,1] -> DeepInverse image convention [0,1]
+            return x / 2 + 0.5
+        return z  # Fallback: return the latent as is if no VAE is present
+
+    def _encode(self, x, dtype):
+        """Image in [0,1] -> scaled SD latent."""
+        if self.vae is not None:
+            vae = self.vae
+            scale = vae.config.scaling_factor
+            vae_dtype = next(vae.parameters()).dtype
+
+            # [0,1] -> VAE convention [-1,1]
+            x = 2 * x - 1
+
+            z = vae.encode(
+                x.to(vae_dtype)
+            ).latent_dist.mode()
+
+            return (z * scale).to(dtype)
+        return x  # Fallback: return the image as is if no VAE is present
 
     def forward(
         self,
