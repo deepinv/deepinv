@@ -1,16 +1,22 @@
 from __future__ import annotations
-from functools import partial
+
 import math
-import torch
-import numpy as np
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from functools import partial
 from typing import Any
+
+import numpy as np
+import torch
+import torch.nn.functional as F
+
 from deepinv.optim.phase_retrieval import spectral_methods
 from deepinv.physics.compressed_sensing import CompressedSensing
-from deepinv.physics.forward import Physics, LinearPhysics
+from deepinv.physics.forward import LinearPhysics, Physics
 from deepinv.physics.structured_random import (
+    StructuredRandom,
     compare,
     generate_diagonal,
-    StructuredRandom,
 )
 
 
@@ -314,14 +320,94 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         return "FD" * math.floor(n_layers) + "F" * (n_layers % 1 == 0.5)
 
 
+@dataclass(frozen=True)
+class PtychographyGeometry(ABC):
+    """Base ptychography geometry that takes the experimental setup into account.
+    All distances are in metres."""
+
+    wavelength: float
+    sample_detector_distance: float
+    detector_shape: tuple[int, int]  # (height, width)
+    detector_pixel_size: tuple[float, float]  # effective (dy, dx)
+
+    @property
+    @abstractmethod
+    def object_pixel_size(self) -> tuple[float, float]:
+        """Pixel size in the object plane."""
+
+    @property
+    def detector_extent(self) -> tuple[float, float]:
+        height, width = self.detector_shape
+        pixel_height, pixel_width = self.detector_pixel_size
+        return height * pixel_height, width * pixel_width
+
+    def object_extent(self, object_shape: tuple[int, int]) -> tuple[float, float]:
+        height, width = object_shape
+        pixel_height, pixel_width = self.object_pixel_size
+        return height * pixel_height, width * pixel_width
+
+
+@dataclass(frozen=True)
+class FarFieldPtychographyGeometry(PtychographyGeometry):
+    r"""
+    Fraunhofer ptychography geometry.
+
+    The object-plane pixel size is determined from the detector sampling by
+
+    .. math::
+
+        \Delta_o = \frac{\lambda z}{N \Delta_d},
+
+    where :math:`\lambda` is the wavelength, :math:`z` is the
+    sample-to-detector distance, :math:`N` is the number of detector
+    pixels along a spatial dimension, :math:`\Delta_d` is the detector
+    pixel size, and :math:`\Delta_o` is the resulting object-plane pixel
+    size along that dimension. All distances are in metres.
+    """
+
+    @property
+    def object_pixel_size(self) -> tuple[float, float]:
+        height, width = self.detector_shape
+        detector_dy, detector_dx = self.detector_pixel_size
+        scale = self.wavelength * self.sample_detector_distance
+        return (
+            scale / (height * detector_dy),
+            scale / (width * detector_dx),
+        )
+
+
+@dataclass(frozen=True)
+class NearFieldPtychographyGeometry(PtychographyGeometry):
+    r"""
+    Near-field ptychography geometry using same-grid propagation.
+
+    Same-grid Fresnel or angular-spectrum propagation preserves the transverse
+    sampling grid, so
+
+    .. math::
+
+        \Delta_o = \Delta_d,
+
+    where :math:`\Delta_d` is the detector pixel size and
+    :math:`\Delta_o` is the object-plane pixel size along the same spatial
+    dimension. All distances are in metres.
+    """
+
+    @property
+    def object_pixel_size(self) -> tuple[float, float]:
+        return self.detector_pixel_size
+
+
 class PtychographyLinearOperator(LinearPhysics):
     r"""
     Forward linear operator for phase retrieval in ptychography.
 
     Models multiple applications of the shifted probe and Fourier transform on an input image.
 
-    This operator performs multiple 2D Fourier transforms on the probe function applied to the shifted input image according to specific offsets, and concatenates them.
-    The probe function is applied element by element to the input image.
+    This operator extracts a probe-sized patch of the object at every scan
+    position, multiplies it element-wise by the probe, and concatenates the 2D
+    Fourier transforms of the resulting exit waves. The object can therefore
+    be larger than the probe, as in a real ptychography experiment.
 
     .. math::
 
@@ -330,10 +416,19 @@ class PtychographyLinearOperator(LinearPhysics):
 
     where :math:`F` is the 2D Fourier transform, :math:`\text{diag}(p)` is associated with the probe :math:`p` and :math:`T_l` is a 2D shift.
 
-    :param tuple img_size: Shape of the input image (height, width).
-    :param None, torch.Tensor probe: A tensor of shape ``img_size`` representing the probe function. If ``None``, a disk probe is generated with :func:`deepinv.physics.phase_retrieval.build_probe` with disk shape and radius 10.
+    :param tuple img_size: Shape ``(C, H, W)`` of the input object.
+    :param None, torch.Tensor probe: A tensor of shape ``(C, H_p, W_p)``
+        representing the probe function, where ``H_p <= H`` and ``W_p <= W``.
+        Each diffraction pattern has spatial shape ``(H_p, W_p)``. If ``None``,
+        a disk probe is generated with :func:`deepinv.physics.phase_retrieval.build_probe`
+        using the detector shape when ``geometry`` is provided, or ``img_size``
+        otherwise.
     :param None, torch.Tensor shifts: A 2D array of shape ``(N, 2)`` corresponding to the ``N`` shift positions for the probe. If ``None``, shifts are generated with :func:`deepinv.physics.phase_retrieval.generate_shifts` with ``N=25``.
     :param torch.device, str device: Device "cpu" or "gpu".
+    :param None, PtychographyGeometry geometry: Optional physical geometry
+        associated with the dimensionless FFT operator. Currently only
+        :class:`FarFieldPtychographyGeometry` is supported. Its detector shape
+        must match the spatial shape of the probe and diffraction patterns.
 
     """
 
@@ -343,11 +438,22 @@ class PtychographyLinearOperator(LinearPhysics):
         probe=None,
         shifts=None,
         device="cpu",
+        geometry: PtychographyGeometry | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
         self.img_size = img_size
+        self.geometry = geometry
+
+        # this would be removed if the near-field propagator
+        if geometry is not None and not isinstance(
+            geometry, FarFieldPtychographyGeometry
+        ):
+            raise NotImplementedError(
+                "PtychographyLinearOperator currently supports only "
+                "FarFieldPtychographyGeometry."
+            )
 
         if shifts is None:
             self.n_img = 25
@@ -358,17 +464,44 @@ class PtychographyLinearOperator(LinearPhysics):
         self.register_buffer("shifts", shifts)
 
         if probe is None:
+            probe_size = (
+                (img_size[0], *geometry.detector_shape)
+                if geometry is not None
+                else img_size
+            )
             probe = build_probe(
-                img_size=img_size, type="disk", probe_radius=10, device=device
+                img_size=probe_size, type="disk", probe_radius=10, device=device
+            )
+
+        if probe.ndim != 3 or probe.shape[0] != img_size[0]:
+            raise ValueError(
+                "probe must have shape (C, H_p, W_p) with the same number of "
+                f"channels as img_size; got probe.shape={tuple(probe.shape)} "
+                f"and img_size={tuple(img_size)}."
+            )
+        if probe.shape[-2] > img_size[-2] or probe.shape[-1] > img_size[-1]:
+            raise ValueError(
+                "The probe spatial dimensions must not exceed the object spatial "
+                f"dimensions; got probe.shape={tuple(probe.shape)} and "
+                f"img_size={tuple(img_size)}."
+            )
+        if geometry is not None and geometry.detector_shape != tuple(probe.shape[-2:]):
+            raise ValueError(
+                f"geometry.detector_shape={geometry.detector_shape} must match "
+                f"the probe and FFT output shape {tuple(probe.shape[-2:])}."
             )
 
         self.register_buffer("init_probe", probe.clone())
+        self.probe_is_object_sized = tuple(probe.shape[-2:]) == tuple(img_size[-2:])
 
         probe = probe / self.get_overlap_img(self.shifts).mean().sqrt()
-        probe = torch.cat(
-            [self.shift(probe, x_shift, y_shift) for x_shift, y_shift in self.shifts],
-            dim=0,
-        ).unsqueeze(0)
+        if self.probe_is_object_sized:
+            scan_probes = [
+                self.shift(probe, x_shift, y_shift) for x_shift, y_shift in self.shifts
+            ]
+        else:
+            scan_probes = [probe for _ in self.shifts]
+        probe = torch.stack(scan_probes, dim=1)
 
         self.register_buffer("probe", probe)
         self.to(device)
@@ -381,8 +514,17 @@ class PtychographyLinearOperator(LinearPhysics):
         :param torch.Tensor x: Input image tensor.
         :return: Concatenated Fourier transformed tensors after applying shifted probes.
         """
+        if x.ndim == len(self.img_size):
+            x = x.unsqueeze(0)
         op_fft2 = partial(torch.fft.fft2, norm="ortho")
-        return op_fft2(self.probe * x)
+        if self.probe_is_object_sized:
+            return op_fft2(self.probe * x)
+
+        exit_waves = []
+        for i, (x_shift, y_shift) in enumerate(self.shifts):
+            object_patch = self.extract_patch(x, x_shift, y_shift)
+            exit_waves.append(self.probe[:, i] * object_patch)
+        return op_fft2(torch.cat(exit_waves, dim=1))
 
     def A_adjoint(self, y, **kwargs):
         """
@@ -392,7 +534,43 @@ class PtychographyLinearOperator(LinearPhysics):
         :return: Reconstructed image tensor.
         """
         op_ifft2 = partial(torch.fft.ifft2, norm="ortho")
-        return (self.probe.conj() * op_ifft2(y)).sum(dim=1).unsqueeze(1)
+        exit_waves = op_ifft2(y)
+        if self.probe_is_object_sized:
+            return (self.probe.conj() * exit_waves).sum(dim=1).unsqueeze(1)
+
+        x = torch.zeros(
+            (y.shape[0], *self.img_size), dtype=exit_waves.dtype, device=y.device
+        )
+        for i, (x_shift, y_shift) in enumerate(self.shifts):
+            object_patch = self.probe[:, i].conj() * exit_waves[:, i].unsqueeze(1)
+            x = x + self.place_patch(object_patch, x_shift, y_shift)
+        return x
+
+    def extract_patch(self, x, x_shift, y_shift):
+        """Extract a probe-sized object patch, padding outside the object with zeros."""
+        object_height, object_width = self.img_size[-2:]
+        probe_height, probe_width = self.init_probe.shape[-2:]
+        top = (object_height - probe_height) // 2
+        left = (object_width - probe_width) // 2
+        x = self.shift(x, -x_shift, -y_shift)
+        return x[..., top : top + probe_height, left : left + probe_width]
+
+    def place_patch(self, patch, x_shift, y_shift):
+        """Apply the adjoint of :meth:`extract_patch` to a probe-sized patch."""
+        object_height, object_width = self.img_size[-2:]
+        probe_height, probe_width = patch.shape[-2:]
+        top = (object_height - probe_height) // 2
+        left = (object_width - probe_width) // 2
+        patch = F.pad(
+            patch,
+            (
+                left,
+                object_width - probe_width - left,
+                top,
+                object_height - probe_height - top,
+            ),
+        )
+        return self.shift(patch, x_shift, y_shift)
 
     def shift(self, x, x_shift, y_shift, pad_zeros=True):
         """
@@ -424,9 +602,14 @@ class PtychographyLinearOperator(LinearPhysics):
         :param torch.Tensor shifts: Tensor of probe shifts.
         :return: Tensor representing the overlap image.
         """
-        overlap_img = torch.zeros_like(self.init_probe, dtype=torch.float32)
+        overlap_img = torch.zeros(
+            self.img_size,
+            dtype=torch.float32,
+            device=self.init_probe.device,
+        )
+        probe_intensity = torch.abs(self.init_probe) ** 2
         for x_shift, y_shift in shifts:
-            overlap_img += torch.abs(self.shift(self.init_probe, x_shift, y_shift)) ** 2
+            overlap_img += self.place_patch(probe_intensity, x_shift, y_shift)
         return overlap_img
 
 
@@ -442,25 +625,39 @@ class Ptychography(PhaseRetrieval):
 
     where :math:`B` is the linear forward operator defined by a :class:`deepinv.physics.PtychographyLinearOperator` object.
 
-    :param tuple img_size: Shape of the input image.
-    :param None, torch.Tensor probe: A tensor of shape ``img_size`` representing the probe function.
-        If None, a disk probe is generated with ``deepinv.physics.phase_retrieval.build_probe`` function.
+    :param tuple img_size: Shape ``(C, H, W)`` of the input object.
+    :param None, torch.Tensor probe: Probe of shape ``(C, H_p, W_p)``. Its
+        spatial shape determines the diffraction-pattern shape and may be
+        smaller than the object. If ``None``, a disk probe is generated.
     :param None, torch.Tensor shifts: A 2D array of shape (``n_img``, 2) corresponding to the shifts for the probe.
         If None, shifts are generated with ``deepinv.physics.phase_retrieval.generate_shifts`` function.
     :param torch.device, str device: Device "cpu" or "gpu".
+    :param None, PtychographyGeometry geometry: Optional physical geometry
+        associated with the dimensionless FFT operator. Currently only
+        :class:`FarFieldPtychographyGeometry` is supported. If ``None``, the
+        operator retains its existing pixel-based interpretation.
 
     |sep|
 
     :Examples:
 
-    >>> from deepinv.physics import Ptychography
+    >>> from deepinv.physics import FarFieldPtychographyGeometry, Ptychography
     >>> import torch
-    >>> img_size = (1, 64, 64)  # input image
-    >>> physics = Ptychography(img_size=img_size)
+    >>> img_size = (1, 64, 64)  # object shape
+    >>> detector_shape = (32, 32)  # probe and diffraction-pattern shape
+    >>> geometry = FarFieldPtychographyGeometry(
+    ...     wavelength=632.8e-9,
+    ...     sample_detector_distance=5e-2,
+    ...     detector_shape=detector_shape,
+    ...     detector_pixel_size=(36e-6, 36e-6),
+    ... )
+    >>> physics = Ptychography(img_size=img_size, geometry=geometry)
+    >>> physics.geometry is geometry
+    True
     >>> x = torch.randn(img_size, dtype=torch.cfloat)
     >>> y = physics(x)  # Apply the Ptychography forward operator
-    >>> print(y.shape) # 25 probe positions by default
-    torch.Size([1, 25, 64, 64])
+    >>> print(y.shape)  # 25 probe positions by default
+    torch.Size([1, 25, 32, 32])
     """
 
     def __init__(
@@ -469,6 +666,7 @@ class Ptychography(PhaseRetrieval):
         probe=None,
         shifts=None,
         device="cpu",
+        geometry: PtychographyGeometry | None = None,
         **kwargs,
     ):
         B = PtychographyLinearOperator(
@@ -476,6 +674,7 @@ class Ptychography(PhaseRetrieval):
             probe=probe,
             shifts=shifts,
             device=device,
+            geometry=geometry,
         )
         self.probe = B.probe
         self.shifts = B.shifts
@@ -483,6 +682,11 @@ class Ptychography(PhaseRetrieval):
         super().__init__(B, **kwargs)
         self.name = f"Ptychography_PR"
         self.to(device)
+
+    @property
+    def geometry(self) -> PtychographyGeometry | None:
+        """Physical geometry associated with the linear ptychography operator."""
+        return self.B.geometry
 
 
 def build_probe(img_size, type="disk", probe_radius=10, device="cpu"):
