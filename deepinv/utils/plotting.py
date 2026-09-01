@@ -320,7 +320,7 @@ def plot(
     extract_size: float = 0.2,
     inset_loc: tuple | list = (0.0, 0.5),
     inset_size: float = 0.4,
-    norm: plt.colors.Norm | None = None,
+    norm=None,
     **imshow_kwargs,
 ):
     r"""
@@ -396,9 +396,9 @@ def plot(
     :param float inset_size: size of inset to be plotted on image. Defaults to 0.4.
     :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` calls. See
         `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
-    :param plt.colors.Norm, None norm: Map the colormap from norm object passed as argument. When `rescale_mode=None`
-        and `norm=None`, defaults to `Normalize(0.0, 1.0, clip=True)`.
+    :param matplotlib.pyplot.colors.Norm, None norm: Map the colormap from norm object passed as argument. When `rescale_mode=None` and `norm=None`, defaults to `Normalize(0.0, 1.0, clip=True)`.
     """
+    import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
 
     # Use the matplotlib config from deepinv
