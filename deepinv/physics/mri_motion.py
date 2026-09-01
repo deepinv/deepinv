@@ -12,10 +12,7 @@ from deepinv.transform import Transform
 class MotionTrajectory(torch.nn.Module):
     r"""Container for time-varying MRI motion parameters.
 
-    Parameters are registered as buffers, so they follow device transfers and
-    are included in the physics state dictionary. Each parameter must have
-    leading dimensions ``(B,T)``; singleton batch or time dimensions may be
-    broadcast by :class:`TimeVaryingMotion`.
+    TODO
 
     :param params: mapping from parameter names to tensors of shape ``(B,T,...)``.
     """
@@ -49,6 +46,8 @@ class MotionTrajectory(torch.nn.Module):
 
 class TimeVaryingMotion(torch.nn.Module, ABC):
     r"""Base class for deterministic time-varying MRI motion.
+
+    TODO
 
     Implementations operate on dynamic images of shape ``(B,C,T,...)`` and
     must provide both the forward motion :math:`G_t` and its mathematical
@@ -104,10 +103,7 @@ class TransformMotion(TimeVaryingMotion):
     image. Existing transforms otherwise interpret multiple parameters as
     multiple transformations of the whole batch.
 
-    ``adjoint="inverse"`` is explicit because inverse and adjoint coincide only
-    for unitary transforms, such as circular integer shifts, reflections, and
-    exact right-angle rotations. Interpolated geometric transforms require a
-    dedicated :class:`TimeVaryingMotion` implementation with a true adjoint.
+    TODO
 
     :param Transform transform: deterministic DeepInv transform with
         ``n_trans=1`` and constant output shape.
