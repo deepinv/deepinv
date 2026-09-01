@@ -41,6 +41,8 @@ OPERATORS = [
     "space_deblur_reflect",
     "space_deblur_replicate",
     "space_deblur_constant",
+    "space_deblur_maskafter_valid",
+    "space_deblur_maskafter_circular",
     "tiled_space_deblur_valid",
     "hyperspectral_unmixing",
     "3Ddeblur_valid",
@@ -236,11 +238,15 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             "installed with `conda install -c conda-forge parallelproj`",
         )
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
+        attenuation = torch.full(img_size, 0.01, device=device)
         p = dinv.physics.PET(
             img_size,
             normalize=True,
             device=device,
+            attenuation=attenuation,
         )
+        assert not torch.allclose(p.attenuation, torch.ones_like(p.attenuation))
+        p.update(attenuation=torch.ones_like(p.attenuation))
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
         params = ["background", "attenuation"]
@@ -396,6 +402,16 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         h = dinv.physics.functional.bilinear_filter(factor=2).unsqueeze(0).to(device)
         h /= torch.sum(h)
         h = torch.cat([h, h], dim=2)
+        # if the masks are applied after the convolutions with 'valid' padding,
+        # they live on the (smaller) convolution output
+        mask_first = "maskafter" not in name
+        if not mask_first and padding == "valid":
+            mult_size = (
+                img_size[-2] - h.shape[-2] + 1,
+                img_size[-1] - h.shape[-1] + 1,
+            )
+        else:
+            mult_size = tuple(img_size[-2:])
         p = dinv.physics.SpaceVaryingBlur(
             filters=h,
             multipliers=torch.ones(
@@ -404,11 +420,12 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
                     img_size[0],
                     2,
                 )
-                + img_size[-2:],
+                + mult_size,
                 device=device,
             ).to(device)
             * 0.5,
             padding=padding,
+            mask_first=mask_first,
             device=device,
         )
         params = ["filters", "multipliers"]

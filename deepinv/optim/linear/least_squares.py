@@ -129,7 +129,7 @@ def least_squares(
             **kwargs,
         )
 
-    elif solver in _SQUARE_SOLVERS:  # square solvers (CG, BiCGStab, minres)
+    elif solver in SQUARE_SOLVERS:  # square solvers (CG, BiCGStab, minres)
 
         Aty = AT(y)
 

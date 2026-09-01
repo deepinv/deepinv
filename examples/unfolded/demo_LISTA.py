@@ -93,8 +93,12 @@ generated_datasets_path = dinv.datasets.generate_dataset(
     dataset_filename=str(my_dataset_name),
 )
 
-train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
+train_dataset = dinv.datasets.HDF5Dataset(
+    path=generated_datasets_path, train=True, use_dict_output=True
+)
+test_dataset = dinv.datasets.HDF5Dataset(
+    path=generated_datasets_path, train=False, use_dict_output=True
+)
 
 # %%
 # Define the unfolded Proximal Gradient algorithm.
@@ -111,8 +115,8 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # where :math:`\lambda` is the regularization parameter.
 # The proximal gradient iteration (see also :class:`deepinv.optim.optim_iterators.PGDIteration`) is defined as
 #
-#   .. math::
-#           x_{k+1} = \text{prox}_{\gamma \lambda g}(x_k - \gamma A^T (Ax_k - y))
+# .. math::
+#         x_{k+1} = \text{prox}_{\gamma \lambda g}(x_k - \gamma A^T (Ax_k - y))
 #
 # where :math:`\gamma` is the stepsize and :math:`\text{prox}_{g}` is the proximity operator of :math:`g(x) = \|Wx\|_1`
 # which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.optim.WaveletPrior`).
@@ -255,7 +259,7 @@ model = trainer.train()
 
 trainer.test(test_dataloader)
 
-test_sample, _ = next(iter(test_dataloader))
+test_sample = next(iter(test_dataloader))["x"]
 model.eval()
 test_sample = test_sample.to(device)
 
