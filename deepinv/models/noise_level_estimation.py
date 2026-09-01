@@ -191,7 +191,7 @@ class PoissonGaussianEstimator(PhysicsEstimator):
     Poisson-Gaussian noise level estimator.
     """
 
-    def __init__(self, backbone_net: nn.Module, act: nn.Module = None, eps = 1e-5, noise_map: bool = True):
+    def __init__(self, backbone_net: nn.Module, act: nn.Module = None, eps = 1e-4, noise_map: bool = True):
         super(PoissonGaussianEstimator, self).__init__()
 
         self.backbone_net = backbone_net
@@ -200,7 +200,6 @@ class PoissonGaussianEstimator(PhysicsEstimator):
 
         if act is None:
             self.act = lambda x: x.abs()
-        
 
     def forward(
         self, x: torch.Tensor, physics=None

@@ -78,14 +78,14 @@ test = fixed_loader(x_test, physics, False)
 
 # Step 1: estimate sigma and gain ------------------------------------------------
 estimator = dinv.models.PoissonGaussianEstimator(
-    dinv.models.DnCNN(1, 2, depth=3, nf=18, pretrained=None, device=device),
+    dinv.models.DnCNN(1, 2, depth=3, nf=8, pretrained=None, device=device),
     noise_map=False,
 ).to(device)
 pge_loss = dinv.loss.CramerGaussianLoss(
     gaussian_estimator=dinv.models.WaveletNoiseEstimator(),
 )
 estimator, pge_trainer = fit(
-    estimator, physics, pge_loss, train, test, epochs, 1e-3, clip=0.1
+    estimator, physics, pge_loss, train, test, epochs, 1e-4, clip=0.1
 )
 estimator.requires_grad_(False).eval()
 
