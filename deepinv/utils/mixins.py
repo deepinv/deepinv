@@ -26,36 +26,51 @@ class TimeMixin:
     """
 
     @staticmethod
-    def flatten(x: torch.Tensor) -> torch.Tensor:
+    def flatten(x: torch.Tensor, time_dim: int = 2) -> torch.Tensor:
         """Flatten time dim into batch dim.
 
         Lets non-dynamic algorithms process dynamic data by treating time frames as batches.
 
         :param x: input tensor of shape (B, C, T, H, W),
-            (B, C, T, D, H, W), or (B, C, N, T, D, H, W)
+            (B, C, T, D, H, W), (B, C, N, T, H, W), or
+            (B, C, N, T, D, H, W)
+        :param int time_dim: index of the time dimension, defaults to 2
         :return: output tensor of shape (B*T, C, H, W),
-            (B*T, C, D, H, W), or (B*T, C, N, D, H, W)
+            (B*T, C, D, H, W), (B*T, C, N, H, W), or
+            (B*T, C, N, D, H, W)
         """
         if x.ndim not in (5, 6, 7):
             raise ValueError(
                 f"Expected a 5D, 6D, or 7D tensor, but got shape {tuple(x.shape)}."
             )
 
-        time_dim = 3 if x.ndim == 7 else 2
+        if not -x.ndim <= time_dim < x.ndim:
+            raise ValueError(
+                f"time_dim must identify a non-batch dimension of a {x.ndim}D "
+                f"tensor, but got {time_dim}."
+            )
+        time_dim %= x.ndim
+        if time_dim == 0:
+            raise ValueError("time_dim cannot refer to the batch dimension.")
         batch_size, time_size = x.shape[0], x.shape[time_dim]
-        return x.movedim(time_dim, 1).reshape(
-            batch_size * time_size, *x.shape[1:time_dim], *x.shape[time_dim + 1 :]
-        )
+        x = x.movedim(time_dim, 1)
+        return x.reshape(batch_size * time_size, *x.shape[2:])
 
     @staticmethod
-    def unflatten(x: torch.Tensor, batch_size=1) -> torch.Tensor:
+    def unflatten(
+        x: torch.Tensor, batch_size: int = 1, time_dim: int = 2
+    ) -> torch.Tensor:
         """Creates new time dim from batch dim. Opposite of ``flatten``.
 
         :param x: input tensor of shape (B*T, C, H, W),
-            (B*T, C, D, H, W), or (B*T, C, N, D, H, W)
+            (B*T, C, D, H, W), (B*T, C, N, H, W), or
+            (B*T, C, N, D, H, W)
         :param int batch_size: batch size, defaults to 1
+        :param int time_dim: desired index of the restored time dimension,
+            defaults to 2
         :return: output tensor of shape (B, C, T, H, W),
-            (B, C, T, D, H, W), or (B, C, N, T, D, H, W)
+            (B, C, T, D, H, W), (B, C, N, T, H, W), or
+            (B, C, N, T, D, H, W)
         """
         if x.ndim not in (4, 5, 6):
             raise ValueError(
@@ -69,8 +84,16 @@ class TimeMixin:
                 f"{batch_size}."
             )
 
+        output_ndim = x.ndim + 1
+        if not -output_ndim <= time_dim < output_ndim:
+            raise ValueError(
+                f"time_dim must identify a non-batch dimension of the "
+                f"{output_ndim}D output tensor, but got {time_dim}."
+            )
+        time_dim %= output_ndim
+        if time_dim == 0:
+            raise ValueError("time_dim cannot refer to the batch dimension.")
         time_size = x.shape[0] // batch_size
-        time_dim = 3 if x.ndim == 6 else 2
         return x.reshape(batch_size, time_size, *x.shape[1:]).movedim(
             1, time_dim
         )

@@ -1018,8 +1018,8 @@ def test_dynamic_multicoil_mri_adjoint(batch_size, device):
     assert physics.A(x).shape == (
         batch_size,
         channels,
-        time,
         coils,
+        time,
         height,
         width,
     )
@@ -1037,15 +1037,15 @@ def test_dynamic_multicoil_mri_rss(mag, device):
     coil_images = torch.randn(
         batch_size,
         channels,
-        time,
         coils,
+        time,
         height,
         width,
         device=device,
     )
 
     actual = physics.rss(coil_images, mag=mag)
-    expected = coil_images.pow(2).sum(dim=3)
+    expected = coil_images.pow(2).sum(dim=2)
     if mag:
         expected = expected.sum(dim=1, keepdim=True)
     expected = expected.sqrt()
@@ -1056,6 +1056,90 @@ def test_dynamic_multicoil_mri_rss(mag, device):
     x = torch.randn(batch_size, channels, time, height, width, device=device)
     rss_adjoint = physics.A_adjoint(physics.A(x), rss=True)
     assert rss_adjoint.shape == (batch_size, 1, time, height, width)
+
+
+def test_dynamic_multicoil_mri_volumetric(device):
+    batch_size, channels, coils, time, depth, height, width = 2, 2, 3, 4, 5, 6, 7
+    x = torch.randn(
+        batch_size, channels, time, depth, height, width, device=device
+    )
+    mask = torch.randint(
+        0,
+        2,
+        (batch_size, channels, time, depth, height, width),
+        device=device,
+    )
+    coil_maps = torch.randn(
+        batch_size,
+        coils,
+        depth,
+        height,
+        width,
+        device=device,
+        dtype=torch.complex64,
+    )
+    physics = DynamicMultiCoilMRI(
+        mask=mask, coil_maps=coil_maps, three_d=True, device=device
+    )
+
+    Ax = physics.A(x)
+    y = torch.randn_like(Ax)
+    Aty = physics.A_adjoint(y)
+
+    assert Ax.shape == (
+        batch_size,
+        channels,
+        coils,
+        time,
+        depth,
+        height,
+        width,
+    )
+    assert Aty.shape == x.shape
+    assert torch.allclose(
+        torch.vdot(Ax.flatten(), y.flatten()),
+        torch.vdot(x.flatten(), Aty.flatten()),
+        rtol=1e-5,
+        atol=1e-5,
+    )
+
+    coil_images = torch.randn_like(Ax)
+    rss = physics.rss(coil_images)
+    expected_rss = coil_images.pow(2).sum(dim=(1, 2), keepdim=True).sqrt()
+    expected_rss = expected_rss.squeeze(dim=2)
+    assert rss.shape == (batch_size, 1, time, depth, height, width)
+    assert torch.allclose(rss, expected_rss)
+    assert physics.A_adjoint(Ax, rss=True).shape == rss.shape
+    static_from_dynamic = physics.to_static(device=device)
+    assert static_from_dynamic.img_size == mask.shape[-3:]
+    assert static_from_dynamic.mask.shape == mask.amax(dim=2).shape
+
+    static = MultiCoilMRI(
+        mask=mask.amax(dim=2),
+        coil_maps=coil_maps,
+        three_d=True,
+        device=device,
+    )
+    x_static = torch.randn(
+        batch_size, channels, depth, height, width, device=device
+    )
+    sequential_mask = torch.zeros_like(mask)
+    selected_depth = torch.arange(time, device=device).remainder(depth)
+    for t, d in enumerate(selected_depth):
+        sequential_mask[:, :, t, d] = 1
+    sequential = SequentialMultiCoilMRI(
+        mask=sequential_mask,
+        coil_maps=coil_maps,
+        three_d=True,
+        device=device,
+    )
+    static.update(mask=sequential_mask.amax(dim=2))
+    assert torch.allclose(
+        sequential.A_adjoint(sequential.A(x_static)),
+        static.A_adjoint(static.A(x_static)),
+        rtol=1e-5,
+        atol=1e-5,
+    )
 
 
 @pytest.mark.parametrize("batch_size", [1, 2])
@@ -1087,12 +1171,12 @@ def test_sequential_multicoil_mri_matches_static(batch_size, device):
     assert y_dynamic.shape == (
         batch_size,
         channels,
-        time,
         coils,
+        time,
         height,
         width,
     )
-    assert torch.allclose(y_dynamic.sum(dim=2), y_static, atol=1e-6)
+    assert torch.allclose(y_dynamic.sum(dim=3), y_static, atol=1e-6)
     assert torch.allclose(x_dynamic, x_static, rtol=1e-5, atol=1e-5)
     assert torch.allclose(
         dynamic.A_adjoint(y_dynamic, keep_time_dim=True).sum(dim=2),

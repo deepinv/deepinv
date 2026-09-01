@@ -707,7 +707,7 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
     for :math:`n=1,\dots,N` coils and :math:`t=1, \dots, T` timesteps where :math:`y_{n, t}` are measurements from the cth coil at time `t`, :math:`\text{diag}(p)` is the acceleration mask, :math:`F` is the Fourier transform and :math:`\text{diag}(s_n)` is the nth coil sensitivity.
 
     The input image has shape ``(B, 2, T, H, W)`` and the output k-space has
-    shape ``(B, 2, T, N, H, W)``, where ``N`` is the number of coils. Static
+    shape ``(B, 2, N, T, H, W)``, where ``N`` is the number of coils. Static
     coil sensitivity maps are applied independently to every time frame.
 
     :param torch.Tensor mask: dynamic mask with shape ``(B, 2, T, H, W)`` or
@@ -766,7 +766,7 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
         :param torch.Tensor x: input tensor with shape ``(B, 2, T, H, W)`` or ``(B, 2, T, D, H, W)``
         :param torch.Tensor mask: input temporal mask with shape ``(B, 2, T, H, W)`` or ``(B, 2, T, D, H, W)``
         :param torch.Tensor coil_maps: complex coil maps with shape ``(B,N,H,W)``.
-        :returns: (:class:`torch.Tensor`) output tensor with shape ``(B, 2, T, N, H, W)`` or ``(B, 2, T, N, D, H, W)``
+        :returns: (:class:`torch.Tensor`) output tensor with shape ``(B, 2, N, T, H, W)`` or ``(B, 2, N, T, D, H, W)``
         """
         mask = self.check_mask(self.mask if mask is None else mask).to(x.device)
         mask = mask.expand_as(x)
@@ -786,6 +786,7 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
                 check_coil_maps=False,
             ),
             batch_size=x.shape[0],
+            time_dim=3,
         )
         self.update_parameters(
             mask=mask,
@@ -813,7 +814,7 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
 
         Optionally update MRI mask or coil sensitivity maps on the fly.
 
-        :param torch.Tensor y: input tensor with shape ``(B, 2, T, H, W)`` or ``(B, 2, T, D, H, W)``
+        :param torch.Tensor y: input tensor with shape ``(B, 2, N, T, H, W)`` or ``(B, 2, N, T, D, H, W)``
         :param torch.Tensor mask: input temporal mask with shape ``(B, 2, T, H, W)``
         :param torch.Tensor coil_map: complex coil maps with shape ``(B,N,H,W)``.
         :returns: (:class:`torch.Tensor`) output tensor with shape ``(B, 2, T, H, W)`` or ``(B, 2, T, D, H, W)``
@@ -824,11 +825,11 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
             y.device
         )
         self.coil_maps = coil_maps
-        flat_coil_maps = self._flatten_coil_maps(y.shape[0], y.shape[2])
+        flat_coil_maps = self._flatten_coil_maps(y.shape[0], y.shape[3])
 
         x = self.unflatten(
             super().A_adjoint(
-                self.flatten(y),
+                self.flatten(y, time_dim=3),
                 mask=self.flatten(mask),
                 coil_maps=flat_coil_maps,
                 check_mask=False,
@@ -854,15 +855,19 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
     ) -> Tensor:
         r"""Perform root-sum-square reconstruction frame by frame.
 
+        .. math::
+
+                \operatorname{RSS}(x)_{t} = \sqrt{\sum_{n=1}^N |x_{n, t}|^2}
+
         :param torch.Tensor x: dynamic coil images with shape
-            ``(B,2,T,N,H,W)`` or ``(B,2,T,N,D,H,W)``.
+            ``(B,2,N,T,H,W)`` or ``(B,2,N,T,D,H,W)``.
         :param bool multicoil: reduce over the coil dimension, defaults to
             ``True``.
         :param bool mag: reduce over the real/imaginary dimension, defaults to
             ``True``.
         :param bool three_d: validate 3D spatial inputs. Defaults to the
             physics' ``three_d`` setting.
-        :return: RSS images with shape ``(B,1,T,H,W)`` when ``mag=True``.
+        :return: RSS images with shape ``(B,1,T,H,W)`` (or ``(B,1,T,D,H,W)``) when ``mag=True``.
 
         Internally, :meth:`MultiCoilMRI.A_adjoint` calls this method with time
         already flattened into the batch dimension. Those static-shaped inputs
@@ -878,7 +883,7 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
         batch_size = x.shape[0]
         return self.unflatten(
             super().rss(
-                self.flatten(x),
+                self.flatten(x, time_dim=3),
                 multicoil=multicoil,
                 mag=mag,
                 three_d=three_d,
@@ -918,7 +923,7 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
         mask = self.mask.amax(dim=2) if mask is None else mask
         return MultiCoilMRI(
             mask=mask,
-            img_size=mask.shape[-2:],
+            img_size=mask.shape[-3:] if self.three_d else mask.shape[-2:],
             coil_maps=self.coil_maps,
             device=device,
             three_d=self.three_d,
@@ -930,7 +935,9 @@ class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
 
     The input image has shape ``(B,2,H,W)``. It is repeated across the time
     dimension and sampled with a dynamic mask, producing measurements of shape
-    ``(B,2,T,N,H,W)``. The adjoint sums the frame-wise adjoints over time.
+    ``(B,2,N,T,H,W)``. The adjoint sums the frame-wise adjoints over time.
+    Volumetric inputs analogously map ``(B,2,D,H,W)`` to
+    ``(B,2,N,T,D,H,W)``.
     """
 
     def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
