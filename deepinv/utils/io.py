@@ -99,9 +99,9 @@ def load_raw(
 
     :param str, pathlib.Path fname: path to the raw file.
     :param torch.dtype dtype: dtype of the returned tensor.
-    :return: tuple ``(mosaic, meta)`` where ``mosaic`` is a :class:`torch.Tensor`
-        of shape `(1, 1, H, W)` and ``meta`` is a ``dict`` of ISP hyper-parameters
-        keyed by ``cfa_pattern``, ``cfa_colors``, ``color_description``,
+    :return: tuple ``(y, meta)`` where ``y`` is a :class:`torch.Tensor`
+        of shape `(1, 1, H, W)` and ``meta`` is a ``dict`` of ISP metadata
+        with keys ``cfa_pattern``, ``cfa_colors``, ``color_description``,
         ``num_colors``, ``black_level_per_channel``,
         ``camera_white_level_per_channel``, ``camera_whitebalance``,
         ``daylight_whitebalance``, ``color_matrix``, ``rgb_xyz_matrix``,
