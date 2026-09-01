@@ -14,7 +14,6 @@ import torchvision.transforms as T
 import torchvision.transforms.functional as F
 
 from PIL import Image
-import matplotlib.pyplot as plt
 
 from deepinv.utils.signals import normalize_signal, complex_abs
 
