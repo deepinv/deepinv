@@ -8,7 +8,10 @@ from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor, Denoiser
 from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
-from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity, DPSDataFidelity
+from deepinv.sampling.noisy_datafidelity import (
+    NoisyDataFidelity,
+    DPSDataFidelity,
+)
 from deepinv.sampling.utils import trapz_torch
 from deepinv.models.wrapper import MinusOneOneDenoiserWrapper
 
@@ -962,7 +965,8 @@ class PosteriorDiffusion(Reconstructor):
             if physics is not None:
                 if self.sde.denoiser.vae is not None:
                     x_init = self.sde.sample_init(
-                        self.sde.denoiser.vae._encode(physics.A_dagger(y)).shape, rng=self.solver.rng
+                        self.sde.denoiser._encode(physics.A_dagger(y)).shape,
+                        rng=self.solver.rng,
                     )
                 else:
                     x_init = self.sde.sample_init(
@@ -1010,9 +1014,7 @@ class PosteriorDiffusion(Reconstructor):
         sample = solution.sample
 
         if self.sde.denoiser.vae is not None:
-            #sample = self.sde.denoiser.vae.decode(sample / self.sde.denoiser.vae.config.scaling_factor).sample
-            sample = self.sde.denoiser._decode(sample)
-            #sample = (sample / 2 + 0.5).clamp(0, 1)
+            sample = self.sde.denoiser._decode(sample).clamp(0, 1)
 
         if get_trajectory:
             return sample, solution.trajectory

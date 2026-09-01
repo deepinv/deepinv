@@ -100,22 +100,24 @@ class DPSDataFidelity(NoisyDataFidelity):
     r"""
     Diffusion posterior sampling data-fidelity term.
 
-    This corresponds to the :math:`p(y|x_t)` approximation proposed in `Diffusion Posterior Sampling for General Noisy Inverse Problems <https://arxiv.org/abs/2209.14687>`_.
+    This corresponds to the :math:`p(y|x_t)` approximation proposed in
+    `Diffusion Posterior Sampling for General Noisy Inverse Problems
+    <https://arxiv.org/abs/2209.14687>`_.
 
     .. math::
-            \nabla_x \log p_t(y|x) = \nabla_x \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|
+            \nabla_x \log p_t(y|x)
+            \approx
+            -\lambda \nabla_x
+            \|\forw{\denoiser{x}{\sigma}} - y\|.
 
-    where :math:`\sigma = \sigma(t)` is the noise level, :math:`m` is the number of measurements (size of :math:`y`),
-    and :math:`\lambda` controls the strength of the approximation. This class also works for latent diffusion models, for which it would implement
-    the LDPS algorithm.
+    This class also supports latent diffusion models, corresponding to LDPS.
 
-    .. seealso::
-        This class can be used for building custom DPS-based diffusion models.
-        A self-contained implementation of the original DPS algorithm can be find in :class:`deepinv.sampling.DPS`.
-
-    :param deepinv.models.Denoiser denoiser: Denoiser network
-    :param float weight: Weighting factor for the data fidelity term. Default to 1.0 .
-    :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.
+    :param deepinv.models.Denoiser denoiser: Denoiser network.
+    :param float weight: Weight of the data-fidelity term. Default to 1.0.
+    :param tuple[float] clip: Optional clipping interval for the denoised output.
+    :param sde: SDE used for sampling. If provided together with ``timesteps``,
+        the gradient is compensated to reproduce the discrete DPS update.
+    :param torch.Tensor timesteps: Solver timesteps.
     """
 
     def __init__(
@@ -123,21 +125,81 @@ class DPSDataFidelity(NoisyDataFidelity):
         denoiser: Denoiser = None,
         weight: float = 1.0,
         clip: tuple = None,
+        sde=None,
+        timesteps=None,
         *args,
         **kwargs,
     ):
         super().__init__()
+
         self.d = dinv.optim.L2Distance()
         self.denoiser = denoiser
-        if clip is not None:
-            if len(clip) != 2:  # pragma: no cover
-                raise ValueError(f"clip must be None or length 2, but got {clip}")
-            clip = sorted(clip)
-        self.clip = clip
         self.weight = weight
 
+        if clip is not None:
+            if len(clip) != 2:
+                raise ValueError(f"clip must be None or length 2, but got {clip}")
+            clip = sorted(clip)
+
+        self.clip = clip
+
+        # --------------------------------------------------
+        # Optional compensation of the SDE/Euler weighting.
+        #
+        # Reverse-SDE Euler sampling later multiplies the
+        # likelihood gradient by
+        #
+        #   dt * (1 + alpha(t))/2 * g(t)^2
+        #
+        # so we divide by that factor here to recover the
+        # original discrete DPS correction.
+        # --------------------------------------------------
+
+        self._sigmas = None
+        self._sde_step_weights = None
+
+        if sde is not None and timesteps is not None:
+            with torch.no_grad():
+
+                timesteps = timesteps.to(
+                    device=sde.device,
+                    dtype=sde.dtype,
+                )
+
+                t_cur = timesteps[:-1]
+                dt = torch.abs(timesteps[1:] - timesteps[:-1])
+
+                self._sigmas = torch.stack([sde.sigma_t(t) for t in t_cur]).flatten()
+
+                self._sde_step_weights = torch.stack(
+                    [
+                        dti * (1 + sde.alpha(t)) / 2 * sde.forward_diffusion(t) ** 2
+                        for t, dti in zip(t_cur, dt, strict=True)
+                    ]
+                ).flatten()
+
+    def _sde_step_weight(self, sigma):
+        """Return the Euler/SDE weight associated with ``sigma``."""
+
+        if self._sde_step_weights is None:
+            return None
+
+        sigma = torch.as_tensor(
+            sigma,
+            device=self._sigmas.device,
+            dtype=self._sigmas.dtype,
+        ).flatten()[0]
+
+        idx = torch.argmin(torch.abs(self._sigmas - sigma))
+
+        return self._sde_step_weights[idx]
+
     def precond(
-        self, x: torch.Tensor, physics: Physics, *args, **kwargs
+        self,
+        x: torch.Tensor,
+        physics: Physics,
+        *args,
+        **kwargs,
     ) -> torch.Tensor:
         raise NotImplementedError
 
@@ -151,17 +213,11 @@ class DPSDataFidelity(NoisyDataFidelity):
         get_model_outputs=False,
         **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
-        r"""
-        :param torch.Tensor x: Current iterate.
-        :param torch.Tensor y: Input data.
-        :param deepinv.physics.Physics physics: physics model
-        :param float sigma: Standard deviation of the noise.
-        :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.
 
-        :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) score term (and denoised output if `get_model_outputs` is `True`).
-        """
         with torch.enable_grad():
-            x.requires_grad_(True)
+
+            x = x.detach().requires_grad_(True)
+
             out = self.forward(
                 x,
                 y,
@@ -171,20 +227,33 @@ class DPSDataFidelity(NoisyDataFidelity):
                 get_model_outputs=get_model_outputs,
                 **kwargs,
             )
-            # In case we also want the denoised output
-            if get_model_outputs:
-                l2_loss = out[0]
-            else:
-                l2_loss = out
 
-            grad_outputs = torch.ones_like(l2_loss)
-        norm_grad = torch.autograd.grad(
-            outputs=l2_loss, inputs=x, grad_outputs=grad_outputs
-        )[0]
+            loss = out[0] if get_model_outputs else out
+
+            grad = torch.autograd.grad(
+                outputs=loss,
+                inputs=x,
+                grad_outputs=torch.ones_like(loss),
+            )[0]
+
+        # --------------------------------------------------
+        # Cancel the additional SDE + Euler weighting.
+        # --------------------------------------------------
+
+        step_weight = self._sde_step_weight(sigma)
+
+        if step_weight is not None:
+            step_weight = step_weight.to(
+                device=grad.device,
+                dtype=grad.dtype,
+            )
+
+            grad = grad / step_weight.clamp_min(torch.finfo(grad.dtype).eps)
+
         if get_model_outputs:
-            return norm_grad, out[1].detach()
-        else:
-            return norm_grad
+            return grad, out[1].detach()
+
+        return grad
 
     def forward(
         self,
@@ -195,53 +264,50 @@ class DPSDataFidelity(NoisyDataFidelity):
         *args,
         get_model_outputs=False,
         **kwargs,
-    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
-        r"""
-        Returns the loss term :math:`\frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|`.
-
-        :param torch.Tensor x: input image
-        :param torch.Tensor y: measurements
-        :param deepinv.physics.Physics physics: forward operator
-        :param float sigma: standard deviation of the noise.
-        :param bool get_model_outputs: If `True`, also return the denoised output along with the loss. Default to `False`.
-
-        :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) loss term (and denoised output if `get_model_outputs` is `True`).
-        """
+    ):
 
         if isinstance(sigma, torch.Tensor):
             sigma = sigma.to(torch.float32)
-        x0_t = self.denoiser(x.to(torch.float32), sigma, *args, **kwargs)
+
+        x0_t = self.denoiser(
+            x.to(torch.float32),
+            sigma,
+            *args,
+            **kwargs,
+        )
+
+        # LDPS
         if self.denoiser.vae is not None:
-            x0_t_dec = self.denoiser._decode(x0_t)
 
-            #x0_t_dec = (x0_t_dec / 2 + 0.5).clamp(0, 1)
+            x0_t_dec = self.denoiser._decode(x0_t).clamp(0, 1)
 
-            out = (self.d(physics.A(x0_t_dec), y) * y.numel() / y.size(0)).sqrt() * self.weight
+            residual = physics.A(x0_t_dec) - y
 
-            if get_model_outputs:
-                return out, x0_t
-            else:
-                return out
+            loss = residual.flatten(1).norm(dim=1).mean() * self.weight
 
-        if self.clip is not None:
-            x0_t = torch.clip(x0_t, self.clip[0], self.clip[1])  # optional
+        # DPS in image space
+        else:
 
-        out = (self.d(physics.A(x0_t), y) * y.numel() / y.size(0)).sqrt() * self.weight
+            if self.clip is not None:
+                x0_t = torch.clip(
+                    x0_t,
+                    self.clip[0],
+                    self.clip[1],
+                )
+
+            residual = physics.A(x0_t) - y
+
+            loss = residual.flatten(1).norm(dim=1).mean() * self.weight
 
         if get_model_outputs:
-            return out, x0_t
-        else:
-            return out
+            return loss, x0_t
+
+        return loss
 
 
 class PSLDDataFidelity(DPSDataFidelity):
     r"""
     Posterior Sampling with Latent Diffusion (PSLD) data-fidelity term.
-
-    This implements the likelihood approximation from
-    `Posterior Sampling with Latent Diffusion Models
-    <https://arxiv.org/abs/2307.00619>`_, combining latent DPS with a
-    latent-space gluing term:
 
     .. math::
             \omega \|A\mathcal{D}(\hat z_0)-y\|
@@ -250,33 +316,52 @@ class PSLDDataFidelity(DPSDataFidelity):
             (I-A^\top A)\mathcal{D}(\hat z_0))\|.
 
     :param deepinv.models.Denoiser denoiser: Latent diffusion denoiser with VAE.
+    :param sde: Diffusion SDE used for sampling.
+    :param torch.Tensor timesteps: Solver timesteps.
     :param float omega: Weight of the measurement term. Default to 1.0.
     :param float gamma: Weight of the gluing term. Default to 0.1.
     """
 
     def __init__(
         self,
-        denoiser: Denoiser = None,
-        weight: float = 1.0,       # omega: measurement term
-        gamma: float = 0.1,        # gluing term
-        squared_glue: bool = True,
-        *args,
-        **kwargs,
+        denoiser: Denoiser,
+        sde,
+        timesteps,
+        omega: float = 1.0,
+        gamma: float = 0.1,
     ):
         super().__init__(
             denoiser=denoiser,
-            weight=weight,
+            weight=1.0,
             clip=None,
         )
 
+        self.omega = omega
         self.gamma = gamma
-        self.squared_glue = squared_glue
+
+        # Precompute the extra factor introduced by one Euler SDE step:
+        #
+        #   dt * (1 + alpha(t))/2 * g(t)^2
+        #
+        # score() is evaluated at timesteps[:-1].
+        with torch.no_grad():
+            t_cur = timesteps[:-1].to(sde.device, sde.dtype)
+            dt = torch.abs(timesteps[1:] - timesteps[:-1]).to(sde.device, sde.dtype)
+
+            self._sigmas = torch.stack([sde.sigma_t(t) for t in t_cur]).flatten()
+
+            self._sde_step_weights = torch.stack(
+                [
+                    dti * (1 + sde.alpha(t)) / 2 * sde.forward_diffusion(t) ** 2
+                    for t, dti in zip(t_cur, dt, strict=True)
+                ]
+            ).flatten()
 
     def forward(
         self,
-        x: torch.Tensor,
-        y: torch.Tensor,
-        physics: Physics,
+        x,
+        y,
+        physics,
         sigma,
         *args,
         get_model_outputs=False,
@@ -289,45 +374,28 @@ class PSLDDataFidelity(DPSDataFidelity):
             raise ValueError("PSLD requires a latent model with a VAE.")
 
         if isinstance(sigma, torch.Tensor):
-            sigma = sigma.to(torch.float32)
+            sigma = sigma.float()
 
-        # SD1.5 state is already in latent coordinates:
-        # do NOT apply the [0,1] -> [-1,1] image conversion.
         kwargs.setdefault("input_in_minus_one_one", True)
 
-        # Tweedie / denoised latent:
+        # Denoised latent
         z0_hat = self.denoiser(
-            x.to(torch.float32),
+            x.float(),
             sigma,
             *args,
             **kwargs,
         )
 
-        # Decode to image space
+        # Decode into image space
         x0_hat = self.denoiser._decode(z0_hat)
 
-        # -------------------------------------------------
-        # 1. Vanilla latent DPS term
-        #
-        #       || A D(z0_hat) - y ||
-        # -------------------------------------------------
+        # Measurement term
         residual = physics.A(x0_hat) - y
 
-        measurement_loss = (
-            residual.flatten(1).norm(dim=1).mean()
-            * self.weight
-        )
+        measurement_loss = residual.flatten(1).norm(dim=1).mean()
 
-        # -------------------------------------------------
-        # 2. PSLD gluing term
-        #
-        # A^T y + (I - A^T A)x
-        #
-        # = x + A^T(y - Ax)
-        # -------------------------------------------------
-        x_glued = x0_hat + physics.A_adjoint(
-            y - physics.A(x0_hat)
-        )
+        # x* = A^T y + (I - A^T A) x
+        x_glued = x0_hat + physics.A_adjoint(y - physics.A(x0_hat))
 
         # Re-encode projected image
         z_glued = self.denoiser._encode(
@@ -335,26 +403,62 @@ class PSLDDataFidelity(DPSDataFidelity):
             dtype=z0_hat.dtype,
         )
 
-        latent_residual = z0_hat - z_glued
+        glue_loss = (z0_hat - z_glued).flatten(1).norm(dim=1).mean()
 
-        if self.squared_glue:
-            glue_loss = (
-                latent_residual.square()
-                .flatten(1)
-                .sum(dim=1)
-                .mean()
-            )
-        else:
-            glue_loss = (
-                latent_residual
-                .flatten(1)
-                .norm(dim=1)
-                .mean()
-            )
-
-        loss = measurement_loss + self.gamma * glue_loss
+        loss = self.omega * measurement_loss + self.gamma * glue_loss
 
         if get_model_outputs:
             return loss, z0_hat
 
         return loss
+
+    def grad(
+        self,
+        x,
+        y,
+        physics,
+        sigma,
+        *args,
+        get_model_outputs=False,
+        **kwargs,
+    ):
+        with torch.enable_grad():
+            x = x.detach().requires_grad_(True)
+
+            out = self.forward(
+                x,
+                y,
+                physics,
+                sigma,
+                *args,
+                get_model_outputs=get_model_outputs,
+                **kwargs,
+            )
+
+            loss = out[0] if get_model_outputs else out
+
+            grad = torch.autograd.grad(
+                loss,
+                x,
+                grad_outputs=torch.ones_like(loss),
+            )[0]
+
+        # Cancel the coefficient introduced later by:
+        #
+        # reverse drift:
+        #   (1 + alpha(t))/2 * g(t)^2
+        #
+        # Euler:
+        #   * dt
+        #
+        step_weight = self._sde_step_weight(sigma).to(
+            device=grad.device,
+            dtype=grad.dtype,
+        )
+
+        grad = grad / step_weight
+
+        if get_model_outputs:
+            return grad, out[1].detach()
+
+        return grad

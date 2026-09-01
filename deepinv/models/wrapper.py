@@ -329,7 +329,7 @@ class ScoreModelWrapper(Denoiser):
 
         guidance_scale = kwargs.pop("guidance_scale", 1.0)
         using_guidance = "encoder_hidden_states" in kwargs
-        batch_size = x.shape[0] # if not using_guidance else x.shape[0] * 2
+        batch_size = x.shape[0]  # if not using_guidance else x.shape[0] * 2
         if sigma is None:  # pragma: no cover
             raise ValueError("A noise level sigma must be provided.")
 
@@ -367,7 +367,9 @@ class ScoreModelWrapper(Denoiser):
         pred = pred.to(dtype)
         if using_guidance:
             noise_pred_uncond, noise_pred_text = pred.chunk(2)
-            pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+            pred = noise_pred_uncond + guidance_scale * (
+                noise_pred_text - noise_pred_uncond
+            )
 
         # Convert model output to x0 depending on prediction type
         x0 = self._pred_to_x0(pred, x, sigma, scale)
@@ -444,6 +446,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
                 PNDMScheduler,
                 DDIMScheduler,
             )
+
             pipeline_class = getattr(__import__("diffusers"), pipeline_name)
         except ImportError:  # pragma: no cover
             raise ImportError(
@@ -508,11 +511,58 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
             **kwargs,
         )
 
-        self.vae =  getattr(pipeline, "vae", None)
+        self.device = device
+        self.vae = getattr(pipeline, "vae", None)
+        if self.vae is None:
+            self.vae = getattr(pipeline, "vqvae", None)
         self.text_encoder = getattr(pipeline, "text_encoder", None)
+        if self.text_encoder is None:
+            self.text_encoder = getattr(pipeline, "bert", None)
+
         self.tokenizer = getattr(pipeline, "tokenizer", None)
 
         self.scheduler = scheduler
+
+    def encode_text(self, prompt: str | list[str]):
+        """
+        Encode text prompts into conditional and unconditional embeddings for CFG.
+        """
+
+        if self.text_encoder is None or self.tokenizer is None:
+            raise ValueError("Text encoder or tokenizer is not available.")
+
+        if isinstance(prompt, str):
+            prompt = [prompt]
+
+        max_length = getattr(
+            self.text_encoder.config,
+            "max_position_embeddings",
+            self.tokenizer.model_max_length,
+        )
+
+        inputs = self.tokenizer(
+            prompt,
+            padding="max_length",
+            max_length=max_length,
+            truncation=True,
+            return_tensors="pt",
+        )
+
+        uncond_inputs = self.tokenizer(
+            [""] * len(prompt),
+            padding="max_length",
+            max_length=max_length,
+            truncation=True,
+            return_tensors="pt",
+        )
+
+        text_embeddings = self.text_encoder(inputs.input_ids.to(self.device))[0]
+
+        uncond_embeddings = self.text_encoder(uncond_inputs.input_ids.to(self.device))[
+            0
+        ]
+
+        return torch.cat([uncond_embeddings, text_embeddings], dim=0)
 
     def _decode(self, z):
         """Scaled SD latent -> image in [0,1]."""
@@ -521,9 +571,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
             scale = vae.config.scaling_factor
             vae_dtype = next(vae.parameters()).dtype
 
-            x = vae.decode(
-                (z / scale).to(vae_dtype)
-            ).sample
+            x = vae.decode((z / scale).to(vae_dtype)).sample
 
             # VAE output [-1,1] -> DeepInverse image convention [0,1]
             return x / 2 + 0.5
@@ -539,9 +587,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
             # [0,1] -> VAE convention [-1,1]
             x = 2 * x - 1
 
-            z = vae.encode(
-                x.to(vae_dtype)
-            ).latent_dist.mode()
+            z = vae.encode(x.to(vae_dtype)).latent_dist.mode()
 
             return (z * scale).to(dtype)
         return x  # Fallback: return the image as is if no VAE is present
@@ -566,6 +612,8 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
 
         :returns: (:class:`torch.Tensor`) the denoised output.
         """
+        if "prompt" in kwargs:
+            kwargs["encoder_hidden_states"] = self.encode_text(kwargs.pop("prompt", ""))
 
         return super().forward(x, sigma, *args, return_dict=False, **kwargs)
 
