@@ -418,10 +418,10 @@ def test_mri_generator(
 
 
 @pytest.mark.parametrize("reverse", [False, True])
-@pytest.mark.parametrize("spatial_cls", [EquispacedMaskGenerator, GaussianMaskGenerator])
-def test_sequential_mask_generator(
-    reverse, spatial_cls, batch_size, device, rng
-):
+@pytest.mark.parametrize(
+    "spatial_cls", [EquispacedMaskGenerator, GaussianMaskGenerator]
+)
+def test_sequential_mask_generator(reverse, spatial_cls, batch_size, device, rng):
     channels, height, width = 2, 8, 32
     spatial = spatial_cls(
         (channels, height, width),
@@ -448,9 +448,7 @@ def test_sequential_mask_generator(
     assert torch.equal(temporal_mask.amax(dim=2), static_mask)
     line_samples = temporal_mask.sum(dim=(-2, -1))
     assert torch.all((line_samples == height) | (line_samples == 0))
-    assert torch.equal(
-        (line_samples[:, 0] != 0).sum(dim=-1), selected_per_batch
-    )
+    assert torch.equal((line_samples[:, 0] != 0).sum(dim=-1), selected_per_batch)
 
     nonempty = line_samples[0, 0] != 0
     columns = temporal_mask[0, 0, nonempty, 0].argmax(dim=-1)

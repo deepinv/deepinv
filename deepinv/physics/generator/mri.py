@@ -160,9 +160,7 @@ class SequentialMaskGenerator(PhysicsGenerator):
     True
     """
 
-    def __init__(
-        self, spatial_generator: BaseMaskGenerator, reverse: bool = False
-    ):
+    def __init__(self, spatial_generator: BaseMaskGenerator, reverse: bool = False):
         if spatial_generator.T != 0:
             raise ValueError(
                 "spatial_generator must generate a static mask from img_size "

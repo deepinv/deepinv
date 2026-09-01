@@ -45,9 +45,7 @@ def test_time_mixin_flatten_unflatten(shape, flat_shape, time_dim):
 
     assert flattened.shape == flat_shape
     assert torch.equal(
-        TimeMixin.unflatten(
-            flattened, batch_size=shape[0], time_dim=time_dim
-        ),
+        TimeMixin.unflatten(flattened, batch_size=shape[0], time_dim=time_dim),
         x,
     )
 

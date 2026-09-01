@@ -94,9 +94,7 @@ class TimeMixin:
         if time_dim == 0:
             raise ValueError("time_dim cannot refer to the batch dimension.")
         time_size = x.shape[0] // batch_size
-        return x.reshape(batch_size, time_size, *x.shape[1:]).movedim(
-            1, time_dim
-        )
+        return x.reshape(batch_size, time_size, *x.shape[1:]).movedim(1, time_dim)
 
     @staticmethod
     def flatten_C(x: torch.Tensor) -> torch.Tensor:

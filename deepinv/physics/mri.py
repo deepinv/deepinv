@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 
 from deepinv.physics.forward import DecomposablePhysics, LinearPhysics
+from deepinv.physics.mri_motion import MotionTrajectory, TimeVaryingMotion
 from deepinv.utils.mixins import MRIMixin, TimeMixin
 
 
@@ -722,9 +723,11 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
                 f"with image batch size {batch_size}."
             )
         coil_maps = self.coil_maps.expand(batch_size, *self.coil_maps.shape[1:])
-        return coil_maps[:, None].expand(
-            batch_size, time_size, *coil_maps.shape[1:]
-        ).reshape(batch_size * time_size, *coil_maps.shape[1:])
+        return (
+            coil_maps[:, None]
+            .expand(batch_size, time_size, *coil_maps.shape[1:])
+            .reshape(batch_size * time_size, *coil_maps.shape[1:])
+        )
 
     def update_parameters(
         self,
@@ -745,9 +748,7 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
             mask = self.check_mask(mask)
         if coil_maps is not None and check_coil_maps:
             coil_maps = self.check_coil_maps(coil_maps, three_d=self.three_d)
-        LinearPhysics.update_parameters(
-            self, mask=mask, coil_maps=coil_maps, **kwargs
-        )
+        LinearPhysics.update_parameters(self, mask=mask, coil_maps=coil_maps, **kwargs)
         if self.mask is not None:
             self.img_size = self.mask.shape[1:]
 
@@ -771,9 +772,7 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
         mask = self.check_mask(self.mask if mask is None else mask).to(x.device)
         mask = mask.expand_as(x)
         coil_maps = self.coil_maps if coil_maps is None else coil_maps
-        coil_maps = self.check_coil_maps(coil_maps, three_d=self.three_d).to(
-            x.device
-        )
+        coil_maps = self.check_coil_maps(coil_maps, three_d=self.three_d).to(x.device)
         self.coil_maps = coil_maps
         flat_coil_maps = self._flatten_coil_maps(x.shape[0], x.shape[2])
 
@@ -821,9 +820,7 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
         """
         mask = self.check_mask(self.mask if mask is None else mask).to(y.device)
         coil_maps = self.coil_maps if coil_maps is None else coil_maps
-        coil_maps = self.check_coil_maps(coil_maps, three_d=self.three_d).to(
-            y.device
-        )
+        coil_maps = self.check_coil_maps(coil_maps, three_d=self.three_d).to(y.device)
         self.coil_maps = coil_maps
         flat_coil_maps = self._flatten_coil_maps(y.shape[0], y.shape[3])
 
@@ -876,9 +873,7 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
         three_d = self.three_d if three_d is None else three_d
         dynamic_ndim = 7 if three_d else 6
         if x.ndim != dynamic_ndim:
-            return super().rss(
-                x, multicoil=multicoil, mag=mag, three_d=three_d
-            )
+            return super().rss(x, multicoil=multicoil, mag=mag, three_d=three_d)
 
         batch_size = x.shape[0]
         return self.unflatten(
@@ -943,9 +938,75 @@ class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
     ``(B,2,N,T,H,W)``. The adjoint sums the frame-wise adjoints over time.
     Volumetric inputs analogously map ``(B,2,D,H,W)`` to
     ``(B,2,N,T,D,H,W)``.
+
+    :param TimeVaryingMotion motion: optional deterministic motion operator.
+    :param motion_params: optional motion parameters with leading dimensions
+        ``(B,T)``. Parameters are stored as buffers.
     """
 
-    def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
+    def __init__(
+        self,
+        *args,
+        motion: TimeVaryingMotion = None,
+        motion_params: dict[str, Tensor] = None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        if motion is not None and not isinstance(motion, TimeVaryingMotion):
+            raise TypeError("motion must be an instance of TimeVaryingMotion.")
+        if motion is None and motion_params:
+            raise ValueError("motion_params were provided without a motion operator.")
+        self.motion = motion
+        self.motion_trajectory = MotionTrajectory(motion_params).to(self.mask.device)
+        if self.motion is not None:
+            self.motion.to(self.mask.device)
+
+    def update_parameters(
+        self,
+        mask: Tensor = None,
+        coil_maps: Tensor = None,
+        motion_params: dict[str, Tensor] = None,
+        **kwargs,
+    ):
+        """Update MRI and stored motion parameters."""
+        super().update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
+        if motion_params is not None:
+            if self.motion is None and motion_params:
+                raise ValueError(
+                    "motion_params were provided without a motion operator."
+                )
+            self.motion_trajectory = MotionTrajectory(motion_params).to(
+                self.mask.device
+            )
+
+    def _resolve_motion_params(
+        self,
+        motion_params: dict[str, Tensor] | MotionTrajectory | None,
+        batch_size: int,
+        time_size: int,
+        device: torch.device,
+    ) -> dict[str, Tensor]:
+        if self.motion is None:
+            if motion_params is not None:
+                raise ValueError(
+                    "motion_params were provided without a motion operator."
+                )
+            return {}
+        if isinstance(motion_params, MotionTrajectory):
+            motion_params = motion_params.as_dict()
+        elif motion_params is None:
+            motion_params = self.motion_trajectory.as_dict()
+        return self.motion.check_params(
+            motion_params, batch_size, time_size, device=device
+        )
+
+    def A(
+        self,
+        x: Tensor,
+        mask: Tensor = None,
+        motion_params: dict[str, Tensor] | MotionTrajectory = None,
+        **kwargs,
+    ) -> Tensor:
         r"""
         Forward operator.
 
@@ -954,13 +1015,21 @@ class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
         :return torch.Tensor y: temporal measurements of shape ``(B,2,N,T, ...)``
         """
         mask = self.mask if mask is None else self.check_mask(mask)
-        return super().A(self.repeat(x, mask), mask=mask, **kwargs)
+        x = self.repeat(x, mask)
+        if self.motion is not None:
+            params = self._resolve_motion_params(
+                motion_params, x.shape[0], x.shape[2], x.device
+            )
+            x = self.motion(x, params=params)
+        return super().A(x, mask=mask, **kwargs)
 
     def A_adjoint(
         self,
         y: Tensor,
         mask: Tensor = None,
+        motion_params: dict[str, Tensor] | MotionTrajectory = None,
         keep_time_dim: bool = False,
+        blind: bool = False,
         **kwargs,
     ) -> Tensor:
         r"""
@@ -968,4 +1037,9 @@ class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
         TODO
         """
         x = super().A_adjoint(y, mask=mask, **kwargs)
+        if self.motion is not None and not blind:
+            params = self._resolve_motion_params(
+                motion_params, x.shape[0], x.shape[2], x.device
+            )
+            x = self.motion.adjoint(x, params=params)
         return x if keep_time_dim else x.sum(dim=2)
