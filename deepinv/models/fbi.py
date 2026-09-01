@@ -86,7 +86,7 @@ class _First(nn.Module):
         super().__init__()
         self.new1 = _MaskedConv(cin, cout, MASKS[0])
         self.residual_module = _Residual(cout)
-        self.activation_new1 = nn.PReLU(cin, 0)
+        self.activation_new1 = nn.PReLU(1, 0)
 
     def forward(self, x):
         raw = self.activation_new1(self.new1(x))
@@ -111,11 +111,22 @@ class _Next(nn.Module):
 
 
 class PGENet(nn.Module):
-    """U-Net used by the pretrained PGE estimator.
+    r"""
+    PGE-Net for Poisson--Gaussian noise parameter estimation.
 
-    Defaults reproduce the supplied checkpoint: three scales, additive skips,
-    transposed-convolution upsampling, two squared output maps, and the
-    ``(sigma, gain)`` channel order expected by ``PoissonGaussianEstimator``.
+    This compact U-Net returns spatial Gaussian standard-deviation and Poisson
+    gain maps in ``(sigma, gain)`` channel order. By default, the output is
+    squared to ensure nonnegative estimates. The model can be wrapped with
+    :class:`deepinv.models.PoissonGaussianEstimator` to obtain noise parameters.
+
+    :param int out_channels: Number of output channels. Default: 2.
+    :param int in_channels: Number of input channels. Default: 1.
+    :param int depth: Number of U-Net scales. Default: 3.
+    :param int start_filts: Number of features at the first scale. Default: 64.
+    :param str merge_mode: Skip-connection mode, either ``"add"`` or
+        ``"concat"``. Default: ``"add"``.
+    :param bool square_output: If ``True``, square the output maps. Default:
+        ``True``.
     """
 
     def __init__(
@@ -162,6 +173,12 @@ class PGENet(nn.Module):
         return x
 
     def forward(self, x, **kwargs):
+        r"""Estimate spatial Poisson--Gaussian noise parameters.
+
+        :param torch.Tensor x: Input image of shape ``(B, C, H, W)``.
+        :return: (:class:`torch.Tensor`) Parameter maps in ``(sigma, gain)``
+            channel order.
+        """
         factor = 2 ** len(self.up_convs)
         divisible = all(size % factor == 0 for size in x.shape[-2:])
         return (
@@ -170,26 +187,50 @@ class PGENet(nn.Module):
 
 
 class FBINet(Denoiser):
-    """Native FBI denoiser compatible with ``core.models.New_model`` weights."""
+    r"""
+    FBI-Net blind-spot denoiser.
+
+    This denoiser uses masked convolutions and predicts a pixel-wise slope and
+    intercept for each input channel. With ``affine=True``, the input is
+    normalized per channel, denoised using the affine parameters, and rescaled
+    to its original range.
+
+    :param int in_channels: Number of input channels. Default: 1.
+    :param int out_channels: Number of output channels. Default: ``None``, which
+        sets the output channels to ``in_channels * 2`` if ``affine=True`, or ``in_channels`` if ``affine=False``.
+    :param int layers: Number of masked-convolution stages. Default: 17.
+    :param int filters: Number of features in each stage. Default: 64.
+    :param float sigmoid_value: Maximum scale of the predicted affine slope.
+        Default: 0.1.
+    :param bool affine: Apply affine denoising and input rescaling. Default:
+        ``True``.
+    """
 
     def __init__(
         self,
+        in_channels=1,
+        out_channels=None,
         layers=17,
         filters=64,
         sigmoid_value=0.1,
         affine=True,
     ):
         super().__init__()
+
+        if out_channels is None:
+            out_channels = in_channels * 2 if affine else in_channels
+
         self.num_layers = layers
         self.affine = affine
+        self.in_channels = in_channels
         self.sigmoid_value = sigmoid_value
-        self.new1 = _First(1, filters)
+        self.new1 = _First(in_channels, filters)
         self.new2 = _Next(filters, second=True)
         for i in range(layers - 2):
             self.add_module(f"new_{i}", _Next(filters))
         self.residual_module = _Residual(filters)
         self.activation = nn.PReLU(filters, 0)
-        self.output_layer = Conv2d(filters, 2, 1)
+        self.output_layer = Conv2d(filters, out_channels, 1)
 
         if not (affine):
             print(
@@ -213,14 +254,22 @@ class FBINet(Denoiser):
         )
 
         if self.affine:
-            out = torch.cat((self.sigmoid_value * out[:, :1].sigmoid(), out[:, 1:]), 1)
+            slope, intercept = out.chunk(2, dim=1)
+            out = torch.cat((self.sigmoid_value * slope.sigmoid(), intercept), 1)
         return out
 
     def forward(self, z, sigma=None, **kwargs):
+        r"""Denoise an image.
+
+        :param torch.Tensor z: Noisy input of shape ``(B, C, H, W)``.
+        :param float, torch.Tensor sigma: Noise level, unused by this model.
+        :return: (:class:`torch.Tensor`) Denoised image.
+        """
 
         zn = z
         if self.affine:
-            lo, scale = z.amin(), (z.amax() - z.amin()).clamp_min(1e-8)
+            lo = z.amin(dim=(-2, -1), keepdim=True)
+            scale = (z.amax(dim=(-2, -1), keepdim=True) - lo).clamp_min(1e-8)
             zn = (z - lo) / scale
 
         out = self._forward(zn)

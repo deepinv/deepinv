@@ -3,7 +3,10 @@ from .base import Denoiser
 
 
 def generalized_anscombe_transform(
-    x: torch.Tensor, gain: float | torch.Tensor, sigma: float | torch.Tensor, normalize: float = False,
+    x: torch.Tensor,
+    gain: float | torch.Tensor,
+    sigma: float | torch.Tensor,
+    normalize: float = False,
 ):
     r"""
     Generalized Anscombe Transform (GAT)
@@ -41,7 +44,10 @@ def generalized_anscombe_transform(
 
 
 def inverse_generalized_anscombe_transform(
-    x: torch.Tensor, gain: float | torch.Tensor, sigma: float | torch.Tensor, normalize: float = False
+    x: torch.Tensor,
+    gain: float | torch.Tensor,
+    sigma: float | torch.Tensor,
+    normalize: float = False,
 ):
     r"""
     Inverse Generalized Anscombe Transform (IGAT)
