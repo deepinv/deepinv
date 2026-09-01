@@ -125,12 +125,12 @@ def load_raw(
         ph, pw = pattern.shape
 
         # trim visible sensor area so CFA tiles it evenly
-        mosaic = raw.raw_image_visible
-        h, w = mosaic.shape
-        mosaic = mosaic[: h - h % ph, : w - w % pw]
+        x = raw.raw_image_visible
+        h, w = x.shape
+        x = x[: h - h % ph, : w - w % pw]
 
-        mosaic = np.ascontiguousarray(mosaic, dtype=np.int32)
-        mosaic = torch.from_numpy(mosaic).to(dtype)[None, None]
+        x = np.ascontiguousarray(x, dtype=np.int32)
+        x = torch.from_numpy(x).to(dtype)[None, None]
 
         color_desc = raw.color_desc.decode()
         black_pc = list(raw.black_level_per_channel)
@@ -162,7 +162,7 @@ def load_raw(
             "raw_type": raw.raw_type.name,
         }
 
-    return mosaic, meta
+    return x, meta
 
 
 def load_torch(
