@@ -571,12 +571,12 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         img_size = (1, 32, 32)
         dtype = torch.complex64
         N_shift = 14
-        measure_size = (N_shift, 16, 16)
+        measurement_size = (N_shift, 16, 16)
         radius = 4
         y, x_coord = torch.meshgrid(
-            torch.arange(measure_size[1]), torch.arange(measure_size[2]), indexing="ij"
+            torch.arange(measurement_size[1]), torch.arange(measurement_size[2]), indexing="ij"
         )
-        center_y, center_x = measure_size[1] // 2, measure_size[2] // 2
+        center_y, center_x = measurement_size[1] // 2, measurement_size[2] // 2
         mask = ((y - center_y) ** 2 + (x_coord - center_x) ** 2) <= radius**2
         probe = mask[None, None].to(torch.complex64).to(device)
         shifts = torch.randint(
@@ -584,7 +584,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )
         p = dinv.physics.FourierPtychographyLinearOperator(
             img_size=img_size,
-            measure_size=(N_shift, 16, 16),
+            measurement_size=(N_shift, 16, 16),
             probe=probe,
             shifts=shifts,
             device=device,
@@ -702,19 +702,19 @@ def find_phase_retrieval_operator(name, device):
     elif name == "multiplexed_ptychography":
         img_size = (1, 32, 32)
         N_shift = 14
-        measure_size = (N_shift, 16, 16)
+        measurement_size = (N_shift, 16, 16)
         radius = 4
 
         y, x_coord = torch.meshgrid(
-            torch.arange(measure_size[1]), torch.arange(measure_size[2]), indexing="ij"
+            torch.arange(measurement_size[1]), torch.arange(measurement_size[2]), indexing="ij"
         )
-        center_y, center_x = measure_size[1] // 2, measure_size[2] // 2
+        center_y, center_x = measurement_size[1] // 2, measurement_size[2] // 2
         mask = ((y - center_y) ** 2 + (x_coord - center_x) ** 2) <= radius**2
         probe = mask[None, None].to(torch.complex64)
         shifts = torch.randint(-10, 10, (1, N_shift, 2))
         p = dinv.physics.MultiplexedPtychography(
             img_size=img_size,
-            measure_size=(N_shift, 16, 16),
+            measurement_size=(N_shift, 16, 16),
             probe=probe,
             shifts=shifts,
             ledidx=torch.arange(0, N_shift, 1).view(N_shift, 1),
