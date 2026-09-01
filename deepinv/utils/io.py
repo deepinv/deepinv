@@ -125,7 +125,7 @@ def load_raw(
             )
         ph, pw = pattern.shape
 
-        # visible sensor area, trimmed so the CFA block tiles it evenly
+        # trim visible sensor area so CFA tiles it evenly
         mosaic = raw.raw_image_visible
         h, w = mosaic.shape
         mosaic = mosaic[: h - h % ph, : w - w % pw]
