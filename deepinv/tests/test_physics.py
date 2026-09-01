@@ -1026,6 +1026,38 @@ def test_dynamic_multicoil_mri_adjoint(batch_size, device):
     assert torch.allclose(lhs, rhs, rtol=1e-5, atol=1e-5)
 
 
+@pytest.mark.parametrize("mag", [False, True])
+def test_dynamic_multicoil_mri_rss(mag, device):
+    batch_size, channels, time, coils, height, width = 2, 2, 3, 4, 7, 8
+    mask = torch.ones(batch_size, channels, time, height, width, device=device)
+    coil_maps = torch.randn(
+        batch_size, coils, height, width, device=device, dtype=torch.complex64
+    )
+    physics = DynamicMultiCoilMRI(mask=mask, coil_maps=coil_maps, device=device)
+    coil_images = torch.randn(
+        batch_size,
+        channels,
+        time,
+        coils,
+        height,
+        width,
+        device=device,
+    )
+
+    actual = physics.rss(coil_images, mag=mag)
+    expected = coil_images.pow(2).sum(dim=3)
+    if mag:
+        expected = expected.sum(dim=1, keepdim=True)
+    expected = expected.sqrt()
+
+    assert actual.shape == expected.shape
+    assert torch.allclose(actual, expected)
+
+    x = torch.randn(batch_size, channels, time, height, width, device=device)
+    rss_adjoint = physics.A_adjoint(physics.A(x), rss=True)
+    assert rss_adjoint.shape == (batch_size, 1, time, height, width)
+
+
 @pytest.mark.parametrize("batch_size", [1, 2])
 def test_sequential_multicoil_mri_matches_static(batch_size, device):
     channels, time, coils, height, width = 2, 4, 3, 7, 8

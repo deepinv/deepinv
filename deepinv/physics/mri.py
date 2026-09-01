@@ -845,6 +845,47 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
         )
         return x
 
+    def rss(
+        self,
+        x: Tensor,
+        multicoil: bool = True,
+        mag: bool = True,
+        three_d: bool | None = None,
+    ) -> Tensor:
+        r"""Perform root-sum-square reconstruction frame by frame.
+
+        :param torch.Tensor x: dynamic coil images with shape
+            ``(B,2,T,N,H,W)`` or ``(B,2,T,N,D,H,W)``.
+        :param bool multicoil: reduce over the coil dimension, defaults to
+            ``True``.
+        :param bool mag: reduce over the real/imaginary dimension, defaults to
+            ``True``.
+        :param bool three_d: validate 3D spatial inputs. Defaults to the
+            physics' ``three_d`` setting.
+        :return: RSS images with shape ``(B,1,T,H,W)`` when ``mag=True``.
+
+        Internally, :meth:`MultiCoilMRI.A_adjoint` calls this method with time
+        already flattened into the batch dimension. Those static-shaped inputs
+        are delegated directly to the parent implementation.
+        """
+        three_d = self.three_d if three_d is None else three_d
+        dynamic_ndim = 7 if three_d else 6
+        if x.ndim != dynamic_ndim:
+            return super().rss(
+                x, multicoil=multicoil, mag=mag, three_d=three_d
+            )
+
+        batch_size = x.shape[0]
+        return self.unflatten(
+            super().rss(
+                self.flatten(x),
+                multicoil=multicoil,
+                mag=mag,
+                three_d=three_d,
+            ),
+            batch_size=batch_size,
+        )
+
     def check_mask(self, mask: Tensor = None, **kwargs) -> Tensor:
         r"""
         Checks that mask can be broadcast in the (B, 2, T, ...) convention.
