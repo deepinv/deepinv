@@ -739,8 +739,8 @@ class MultiplexedPtychography(PhaseRetrieval):
     :param list[torch.Tensor], torch.Tensor ledidx: Indices of the LEDs multiplexed into each measurement.
     :param float, torch.Tensor led_intensity: Intensity :math:`s_l` for each LED.
     :param float normalize: Normalization factor for the linear operator to adjust its norm.
-    :param bool include_fft: If ``True``, applies the 2D FFT in :meth:`op_fft2`; if ``False``, the input is assumed to already be in the Fourier domain.
-    :param bool include_ifft: If ``True``, applies the 2D inverse FFT in :meth:`op_ifft2`; if ``False``, the output remains in the Fourier domain.
+    :param bool include_fft: If ``True``, applies the 2D FFT in :meth:`deepinv.physics.FourierPtychographyLinearOperator.op_fft2`; if ``False``, the input is assumed to already be in the Fourier domain.
+    :param bool include_ifft: If ``True``, applies the 2D inverse FFT in :meth:`deepinv.physics.FourierPtychographyLinearOperator.op_ifft2`; if ``False``, the output remains in the Fourier domain.
     :param torch.device, str device: Device "cpu" or "gpu".
     """
 
