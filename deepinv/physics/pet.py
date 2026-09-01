@@ -7,8 +7,7 @@ import contextlib
 import io
 
 if TYPE_CHECKING:
-    import parallelproj
-
+    from parallelproj import pet_scanners, pet_lors, projectors, operators
 
 class PET(LinearPhysics):
     r"""
@@ -115,7 +114,7 @@ class PET(LinearPhysics):
         img_size: tuple,
         voxel_size: tuple = (2, 2, 2),
         fwhm_data_mm: float | tuple = 4.0,
-        scanner: None | parallelproj.pet_scanners.ModularizedPETScannerGeometry = None,
+        scanner: None | pet_scanners.ModularizedPETScannerGeometry = None,
         radial_trim: int = 3,
         gain: float = 1.0,
         normalize: bool = False,
@@ -138,7 +137,7 @@ class PET(LinearPhysics):
 
         try:  # avoids doctest failing when parallelproj prints banner
             with contextlib.redirect_stdout(io.StringIO()):
-                import parallelproj
+                from parallelproj import pet_scanners, pet_lors, projectors, operators
                 from array_api_compat import torch as torch_compat
         except ImportError:
             raise ImportError(
@@ -164,22 +163,22 @@ class PET(LinearPhysics):
             self.is_2d = False
 
         if scanner is None:
-            scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
+            scanner = pet_scanners.DemoPETScannerGeometry(
                 torch_compat, dev=device, num_rings=1 if self.is_2d else 16
             )
         self.scanner = scanner
 
         # setup the LOR descriptor that defines the sinogram
-        lor_desc = parallelproj.RegularPolygonPETLORDescriptor(
+        lor_desc = pet_lors.RegularPolygonPETLORDescriptor(
             scanner,
             radial_trim=radial_trim,
-            sinogram_order=parallelproj.SinogramSpatialAxisOrder.RVP,
+            sinogram_order=pet_lors.SinogramSpatialAxisOrder.RVP,
         )
 
         if views is not None:
             views = torch.as_tensor(views, device=device, dtype=torch.int64)
 
-        self.proj = parallelproj.RegularPolygonPETProjector(
+        self.proj = projectors.RegularPolygonPETProjector(
             lor_desc, img_shape=img_size, voxel_size=voxel_size, views=views
         )
         # store the views as a buffer but does not add it to state dict since its part
@@ -205,10 +204,10 @@ class PET(LinearPhysics):
         fwhm_data_mm = torch.as_tensor(
             fwhm_data_mm, device=device, dtype=self.proj.voxel_size.dtype
         )
-        self.res_model = parallelproj.GaussianFilterOperator(
+        self.res_model = operators.GaussianFilterOperator(
             img_size, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
         )
-        self.pet_lin_op = parallelproj.CompositeLinearOperator(
+        self.pet_lin_op = operators.CompositeLinearOperator(
             (self.proj, self.res_model)
         )
 
@@ -249,7 +248,6 @@ class PET(LinearPhysics):
         if self.is_2d:
             x = x.unsqueeze(-1)
             attenuation = attenuation.unsqueeze(-1)
-
         out = LinearSingleChannelOperator.apply(x, self.pet_lin_op) * attenuation
         if self.is_2d:
             out = out.squeeze(-1)
@@ -353,7 +351,8 @@ class PET(LinearPhysics):
                     attenuation = attenuation.unsqueeze(0)
                 if self.is_2d:
                     attenuation = attenuation.unsqueeze(-1)
-
+                
+                attenuation = attenuation.contiguous() # paralleproj_core requires contiguous tensors
                 proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
                 if self.is_2d:
                     proj_att = proj_att.squeeze(-1)
@@ -379,7 +378,7 @@ class LinearSingleChannelOperator(torch.autograd.Function):
 
     @staticmethod
     def forward(
-        ctx, x: torch.Tensor, operator: parallelproj.LinearOperator
+        ctx, x: torch.Tensor, operator: operators.LinearOperator
     ) -> torch.Tensor:
         r"""
         Forward pass for a mini-batch of 3D images using a linear operator.
