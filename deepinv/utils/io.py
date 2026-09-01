@@ -115,8 +115,7 @@ def load_raw(
             "load_raw requires rawpy, which is not installed. Please install it with `pip install rawpy`."
         )
 
-    fname = str(fname) if isinstance(fname, Path) else fname
-    with rawpy.imread(fname) as raw:
+    with rawpy.imread(str(fname)) as raw:
         pattern = np.asarray(raw.raw_pattern)
         if pattern.shape != (2, 2):
             raise ValueError(
