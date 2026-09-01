@@ -672,8 +672,8 @@ class FourierPtychographyLinearOperator(LinearPhysics):
             indexing="ij",
         )
 
-        dy = shifts[:, :, 0].view(B, N_crops, 1, 1)
-        dx = shifts[:, :, 1].view(B, N_crops, 1, 1)
+        dy = shifts[:, :, 0].view(1, N_crops, 1, 1).expand(B, N_crops, 1, 1)
+        dx = shifts[:, :, 1].view(1, N_crops, 1, 1).expand(B, N_crops, 1, 1)
 
         src_y = (crop_y.view(1, 1, 2 * self.my, 2 * self.mx) - dy) % H
         src_x = (crop_x.view(1, 1, 2 * self.my, 2 * self.mx) - dx) % W
