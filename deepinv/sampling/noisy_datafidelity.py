@@ -224,21 +224,30 @@ class DPSDataFidelity(NoisyDataFidelity):
 
 class DDRMDataFidelity(NoisyDataFidelity):
     r"""
-    Denoising Diffusion Restoration Model sampling data-fidelity term.
+    Denoising Diffusion Restoration Model (DDRM) data-fidelity term.
 
-    This corresponds to the :math:`p(y|x_t)` approximation proposed in ``.
+    This corresponds to the closed-form approximation of the measurement term for a decomposable linear operator :math: `A=U\Sigma V^\top`
+    see `Denoising Diffusion Restoration Models <https://arxiv.org/abs/2201.11793>` and also `<https://arxiv.org/pdf/2410.00083>`.
 
-    .. math::
-            \nabla_x \log p_t(y|x) = \nabla_x \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|
+    .. math ::
+        V\Sigma^\top 
+        \left|\sigma_y^2 I-\sigma_t^2\Sigma\Sigma^\top \right|^\dagger
+        \left(
+            \Sigma V^\top \denoiser{x_t}{\sigma_t} - U^\top y
+        \right),
 
-    where :math:`\sigma = \sigma(t)` is the noise level, :math:`m` is the number of measurements (size of :math:`y`),
-    and :math:`\lambda` controls the strength of the approximation.
+    where :math:`\sigma_t = \sigma(t)` is the diffusion model noise level, and :math:`\sigma_y` is the noise level for the measurement (std).
+
+    :param deepinv.models.Denoiser denoiser: Denoiser network
+    :param float weight: Weighting factor for the data fidelity term. Default to 1.0 .
+    :param float eps: Numerical threshold used when computing the pseudoinverse of the spectral weighting term. 
+        Values with absolute magnitude below `eps` are treated as zero. Default to 1e-8.
+    :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.
     """
 
     def __init__(
         self,
         denoiser: Denoiser = None,
-        # sigma_y: float = None,
         weight: float = 1.0,
         clip: tuple = None,
         eps: float = 1e-8,
@@ -248,36 +257,39 @@ class DDRMDataFidelity(NoisyDataFidelity):
         super().__init__()
         self.d = dinv.optim.L2Distance()
         self.denoiser = denoiser
-        # self.sigma_y = sigma_y
         self.clip = clip
         self.weight = weight
         self.eps = eps
         if clip is not None:
             if len(clip) != 2:  # pragma: no cover
                 raise ValueError(f"clip must be None or length 2, but got {clip}")
-            clip = sorted(clip)
-
-    def _get_sigma_y(self, physics):
-        if not isinstance(
-            physics.noise_model,
-            dinv.physics.GaussianNoise,
-        ):
-            raise TypeError("DDRM requires a Gaussian noise model.")
-
-        return physics.noise_model.sigma
+            clip = sorted(clip)    
 
     def grad(
         self,
         x: torch.Tensor,
         y: torch.Tensor,
         physics: DecomposablePhysics,
-        sigma,
+        sigma: float,
         *args,
         get_model_outputs=False,
         **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+        r"""
+        :param torch.Tensor x: Current iterate.
+        :param torch.Tensor y: Input corrupted observation.
+        :param deepinv.physics.DecomposablePhysics physics: decomposable physics model.
+        :param float sigma: Standard deviation of the noise of the model.
+        :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.
 
-        sigma_y = self._get_sigma_y(physics)
+        :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) score term (and denoised output if `get_model_outputs` is `True`).
+        """
+
+        if hasattr(physics.noise_model, "sigma"):
+            sigma_y = physics.noise_model.sigma
+        else:
+            sigma_y = 0.01
+        
         # 1. get x_0
         x0_t = self.denoiser(x, sigma, *args, **kwargs)
 
@@ -300,19 +312,16 @@ class DDRMDataFidelity(NoisyDataFidelity):
 
         return grad
 
-    def precond(
-        self, x: torch.Tensor, physics: Physics, *args, **kwargs
-    ) -> torch.Tensor:
-        raise NotImplementedError
 
-    # def _get_sigma_y(
-    #         self,
-    #         physics: Physics,
-    #         ref: torch.Tensor,
-    # ) -> torch.Tensor:
-    #     sigma_y = torch.as_tensor(sigma_y, device=ref.device, dtype=ref.dtype)
-
-    #     return sigma_y
-
-    def forward():
-        pass
+    def forward(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma,
+        *args,
+        **kwargs,
+    ):
+        raise NotImplementedError(
+            "DDRMDataFidelity is defined directly through its closed-form approximation."
+        )
