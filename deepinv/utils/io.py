@@ -87,7 +87,7 @@ def load_raw(
     r"""Loads any RAW image file as a torch tensor along with a metadata dictionary.
 
     Reads any proprietary raw files supported by `LibRaw <https://www.libraw.org>`
-    through `rawpy` bindings and returns the visible sensor array as a single-channel tensor of shape `(1, 1, H, W)`
+    using `rawpy`. Returns the sensor image as a tensor of shape `(1, 1, H, W)`
     along with a dictionary of ISP hyper-parameters.
 
     .. note::
