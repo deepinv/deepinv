@@ -88,7 +88,7 @@ def load_raw(
 
     Reads any proprietary raw files supported by `LibRaw <https://www.libraw.org>`
     using `rawpy`. Returns the sensor image as a tensor of shape `(1, 1, H, W)`
-    along with a dictionary of ISP hyper-parameters.
+    along with a dict of ISP metadata.
 
     .. note::
         Only :math:`2\times 2` Bayer sensors are supported for now; non-Bayer CFAs
