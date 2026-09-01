@@ -933,6 +933,11 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
 class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
     r"""Sequential multi-coil MRI of a static image.
 
+    The temporality is applied as a transform to the image.
+
+    .. math::
+        y_{n, t} = \text{diag}(p_t) F \text{diag}(s_n) T(x)
+
     The input image has shape ``(B,2,H,W)``. It is repeated across the time
     dimension and sampled with a dynamic mask, producing measurements of shape
     ``(B,2,N,T,H,W)``. The adjoint sums the frame-wise adjoints over time.
@@ -941,6 +946,13 @@ class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
     """
 
     def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
+        r"""
+        Forward operator.
+
+        :param torch.Tensor x: input image of shape (B, 2, N, ...)
+        :param torch.Tensor mask: mask of shape (B, 2, T, ...)
+        :return torch.Tensor y: temporal measurements of shape ``(B,2,N,T, ...)``
+        """
         mask = self.mask if mask is None else self.check_mask(mask)
         return super().A(self.repeat(x, mask), mask=mask, **kwargs)
 
@@ -951,5 +963,9 @@ class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
         keep_time_dim: bool = False,
         **kwargs,
     ) -> Tensor:
+        r"""
+        Adjoint operator.
+        TODO
+        """
         x = super().A_adjoint(y, mask=mask, **kwargs)
         return x if keep_time_dim else x.sum(dim=2)
