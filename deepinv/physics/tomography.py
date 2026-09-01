@@ -659,9 +659,6 @@ class TomographyWithAstra(LinearPhysics):
         :param torch.device | str device: The operator only supports CUDA computation. (default: ``torch.device('cuda')``)
         :return: (:class:`deepinv.physics.TomographyWithAstra`) the tomography operator.
         """
-        self = cls.__new__(cls)
-        LinearPhysics.__init__(self, device=device, **kwargs)
-
         if object_geometry is None or projection_geometry is None:
             raise ValueError(
                 "`object_geometry` and `projection_geometry` must both be specified."
@@ -699,6 +696,9 @@ class TomographyWithAstra(LinearPhysics):
                 f"TomographyWithAstra only supports CUDA Tensors and CUDA operations, got device={device}",
                 RuntimeWarning,
             )
+
+        self = cls.__new__(cls)
+        LinearPhysics.__init__(self, device=device, **kwargs)
 
         self.object_geometry = object_geometry
         self.projection_geometry = projection_geometry
