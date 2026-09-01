@@ -3,7 +3,7 @@ from .base import Denoiser
 
 
 def generalized_anscombe_transform(
-    x: torch.Tensor, gain: float | torch.Tensor, sigma: float | torch.Tensor
+    x: torch.Tensor, gain: float | torch.Tensor, sigma: float | torch.Tensor, normalize: float = False,
 ):
     r"""
     Generalized Anscombe Transform (GAT)
@@ -27,6 +27,7 @@ def generalized_anscombe_transform(
     :param torch.Tensor x: tensor corrupted with Poisson-Gaussian noise
     :param float | torch.Tensor gain: Gain of the Poisson distribution :math:`\gamma`
     :param float | torch.Tensor sigma: Standard deviation of the Gaussian noise :math:`\sigma`
+    :param float normalize: Enable to return unitary variance GAT output, i.e., :math:`z = h(y)/\gamma`.
     :return torch.Tensor: Transformed measurements
     """
     check_nonnegative(gain, "gain")
@@ -34,11 +35,13 @@ def generalized_anscombe_transform(
 
     aux = gain * x + 3.0 / 8 * gain**2 + sigma**2
     out = aux.clamp_min(0).sqrt()
+    if normalize:
+        out = out / gain
     return 2.0 * out
 
 
 def inverse_generalized_anscombe_transform(
-    x: torch.Tensor, gain: float | torch.Tensor, sigma: float | torch.Tensor
+    x: torch.Tensor, gain: float | torch.Tensor, sigma: float | torch.Tensor, normalize: float = False
 ):
     r"""
     Inverse Generalized Anscombe Transform (IGAT)
@@ -65,12 +68,15 @@ def inverse_generalized_anscombe_transform(
     :param torch.Tensor x: Anscombe-transformed tensor.
     :param float | torch.Tensor gain: Gain of the Poisson distribution :math:`\gamma`
     :param float | torch.Tensor sigma: Standard deviation of the Gaussian noise :math:`\sigma`
+    :param float normalize: Enabled when the input is GAT unitary variance normalized (i.e., :math:`z = h(y)/\gamma`).
     :return torch.Tensor: Reconstructed measurements in the original domain
     """
     check_nonnegative(gain, "gain")
     check_nonnegative(sigma, "sigma")
 
-    x = x / gain
+    if not normalize:
+        x = x / gain
+
     return gain * (
         1 / 4 * x**2
         + 1 / 4 * (3 / 2) ** 0.5 * x ** (-1)

@@ -6,6 +6,13 @@ from deepinv.utils.patch_extractor import image_to_patches
 from deepinv.models.physics_estimator import PhysicsEstimator
 
 
+class _ParameterDict(dict):
+    """Dictionary of estimated parameters compatible with ``Trainer``."""
+
+    def detach(self):
+        return _ParameterDict({key: value.detach() for key, value in self.items()})
+
+
 class WaveletNoiseEstimator(PhysicsEstimator):
     r"""
     Wavelet Gaussian noise level estimator.
@@ -195,7 +202,9 @@ class PoissonGaussianEstimator(PhysicsEstimator):
             self.act = lambda x: x.abs()
         
 
-    def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, physics=None
+    ) -> dict[str, torch.Tensor]:
         r"""
         Forward pass.
 
@@ -209,4 +218,4 @@ class PoissonGaussianEstimator(PhysicsEstimator):
             params = params.mean(dim=(-2, -1), keepdim=True)
 
         sigma, gain = params.chunk(2, dim=1)
-        return {"sigma": sigma, "gain": gain}
+        return _ParameterDict(sigma=sigma, gain=gain)

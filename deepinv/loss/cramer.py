@@ -6,8 +6,11 @@ import torch.nn as nn
 
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
-from deepinv.models.noise_level_estimation import PatchCovarianceNoiseEstimator, WaveletNoiseEstimator
-from deepinv.models.anscombe import generalized_anscombe_transform, inverse_generalized_anscombe_transform
+from deepinv.models.noise_level_estimation import (
+    PatchCovarianceNoiseEstimator,
+    WaveletNoiseEstimator,
+)
+from deepinv.models.anscombe import generalized_anscombe_transform
 
 # Change this one line to select the estimator used by every experiment.
 NOISE_ESTIMATOR = WaveletNoiseEstimator
@@ -15,7 +18,7 @@ NOISE_ESTIMATOR = WaveletNoiseEstimator
 
 def estimate_noise(image, patch_size=8, stride=3, estimator=None):
     """Run the shared noise estimator, forwarding patch options when supported."""
-    estimator = (NOISE_ESTIMATOR() if estimator is None else estimator)
+    estimator = NOISE_ESTIMATOR() if estimator is None else estimator
     if isinstance(estimator, WaveletNoiseEstimator):
         return estimator(image)
     method = getattr(estimator, "estimate_noise", None)
@@ -48,14 +51,12 @@ class CramerGaussianLoss(Loss):
         self.gaussian_estimator = (
             NOISE_ESTIMATOR() if gaussian_estimator is None else gaussian_estimator
         )
-            
 
-    def forward(self, p_net, y, **kwargs):
+    def forward(self, x_net, y, **kwargs):
 
-        sigma, gain = p_net["sigma"], p_net["gain"]
-        gat_est = generalized_anscombe_transform(y, gain=gain, sigma=sigma)
-        gat_est = gat_est / gain
+        sigma, gain = x_net["sigma"], x_net["gain"]
+        gat_est = generalized_anscombe_transform(y, gain=gain, sigma=sigma, normalize=True)
         std_est = estimate_noise(
             gat_est, self.psize, self.stride, self.gaussian_estimator
         )
-        return self.metric(std_est,  torch.ones_like(std_est) )
+        return self.metric(std_est, torch.ones_like(std_est))

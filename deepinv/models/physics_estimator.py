@@ -9,8 +9,10 @@ class PhysicsEstimator(nn.Module):
 
     Provides a template for defining estimators that predict physics parameters from input images.
     """
-    
-    def __init__(self,):
+
+    def __init__(
+        self,
+    ):
         super(PhysicsEstimator, self).__init__()
 
     def forward(self, y: torch.Tensor) -> torch.Tensor | dict[str, torch.Tensor]:
