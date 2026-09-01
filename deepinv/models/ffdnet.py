@@ -17,23 +17,24 @@ class FFDNet(Denoiser):
 
     The network takes into account the noise level of the input image, which is encoded as an additional input channel.
 
-    Pretrained weights can be downloaded by setting ``pretrained='download'``. They can be initialized as:
+    By default, pretrained grayscale weights are downloaded (``pretrained='download'``). Pretrained weights are
+    also available for RGB images:
 
-    - **grayscale**: ``FFDNet(n_conv_layers=15, nf=64, img_channels=1, norm=None, last_conv_bias=True, pretrained='download')``
+    - **grayscale** (default): ``FFDNet(n_conv_layers=15, nf=64, img_channels=1, norm=None, last_conv_bias=True, pretrained='download')``
     - **color**: ``FFDNet(n_conv_layers=12, nf=96, img_channels=3, norm=None, last_conv_bias=True, pretrained='download')``
 
     :param int n_conv_layers: Number of convolutional layers used. Default: 15
     :param int nf: Number of channels per convolutional layer. Default: 64
     :param int img_channels: Number of channels of your input image. Default: 1 (greyscale)
     :param bool residual_denoising: Whether to use a residual connection between input image and the network output. Default: False
-    :param str norm: normalization to use in the convolutional layers. Choose from instance_norm, batch_norm, or None (no norm). Default: batch_norm
+    :param str norm: normalization to use in the convolutional layers. Choose from instance_norm, batch_norm, or None (no norm). Default: None
     :param bool orthogonal_init: Apply orthogonal initialization to the convolutional weights. Ignored if pretrained not None. Default: True
-    :param bool last_conv_bias: Set the learnable bias on or off on the final convolution. Default: False
+    :param bool last_conv_bias: Set the learnable bias on or off on the final convolution. Default: True
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized
         at random (or orthogonally, see ``orthogonal_init``). If ``pretrained='download'``, the original FFDNet
         weights are downloaded (only available for the two initializations listed above).
         ``pretrained`` can also be set as a path to the user's own pretrained weights.
-        See :ref:`pretrained-weights <pretrained-weights>` for more details. Default: None
+        See :ref:`pretrained-weights <pretrained-weights>` for more details. Default: 'download'
     :param torch.device, str device: Device to put the model on.
     """
 
@@ -43,10 +44,10 @@ class FFDNet(Denoiser):
         nf: int = 64,
         img_channels: int = 1,
         residual_denoising: bool = False,
-        norm: str | None = "batch_norm",
+        norm: str | None = None,
         orthogonal_init: bool = True,
-        last_conv_bias: bool = False,
-        pretrained: str | None = None,
+        last_conv_bias: bool = True,
+        pretrained: str | None = "download",
         device: str | torch.device = "cpu",
     ):
         super().__init__()

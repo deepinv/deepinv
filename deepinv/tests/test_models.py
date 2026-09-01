@@ -166,7 +166,9 @@ def choose_denoiser(name, imsize):
     elif name == "bilateral":
         out = dinv.models.BilateralFilter()
     elif name == "ffdnet":
-        out = dinv.models.FFDNet(img_channels=imsize[0], n_conv_layers=2, nf=16)
+        out = dinv.models.FFDNet(
+            img_channels=imsize[0], n_conv_layers=2, nf=16, pretrained=None
+        )
     else:
         raise Exception("Unknown denoiser")
 
