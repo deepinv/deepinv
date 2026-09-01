@@ -157,6 +157,12 @@ Writing good documentation is also crucial for helping other users use your code
    * - ``make clean-win``
      - Cleans the documentation files (Windows OS)
 
+.. note::
+  The docs are also published in `llms.txt <https://llmstxt.org/>`_ format, i.e. a markdown copy of every page
+  alongside the html, plus the ``llms.txt`` index and ``llms-full.txt``. Building these requires a second full
+  sphinx run, so it is only done for the deployment build of ``main``. Set ``DEEPINV_BUILD_LLMS_TXT=1`` before
+  any of the commands above if you need to check that output locally.
+
 .. caution::
   Note that if the build process fails, supplementary additional libraries may need to be manually installed (e.g. ``sphinx-gallery``): please follow instructions in the log.
 
