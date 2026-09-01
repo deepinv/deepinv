@@ -38,6 +38,8 @@ class CramerGaussianLoss(Loss):
     metric. The model output ``x_net`` must be a dictionary containing
     ``"sigma"`` and ``"gain"``.
 
+    The loss was first introduced in :footcite:t:`byun2021fbi` for blind Poisson--Gaussian noise parameter estimation.
+
     :param Metric, torch.nn.Module metric: Metric used to
         compare the estimated standard deviation with one. By default, uses MSE.
     :param torch.nn.Module gaussian_estimator: Differentiable Gaussian noise

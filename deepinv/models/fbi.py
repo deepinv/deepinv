@@ -114,6 +114,9 @@ class PGENet(nn.Module):
     r"""
     PGE-Net for Poisson--Gaussian noise parameter estimation.
 
+    This is the model for Poisson--Gaussian noise parameter estimation from :cite:`byun2021fbi`;
+    code is adapted from https://github.com/csm9493/FBI-Denoiser
+
     This compact U-Net returns spatial Gaussian standard-deviation and Poisson
     gain maps in ``(sigma, gain)`` channel order. By default, the output is
     squared to ensure nonnegative estimates. The model can be wrapped with
@@ -189,6 +192,9 @@ class PGENet(nn.Module):
 class FBINet(Denoiser):
     r"""
     FBI-Net blind-spot denoiser.
+
+    This is the model for Poisson--Gaussian blind denoising from :cite:`byun2021fbi`;
+    code is adapted from https://github.com/csm9493/FBI-Denoiser
 
     This denoiser uses masked convolutions and predicts a pixel-wise slope and
     intercept for each input channel. With ``affine=True``, the input is
