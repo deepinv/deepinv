@@ -587,7 +587,9 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         measurement_size = (N_shift, 16, 16)
         radius = 4
         y, x_coord = torch.meshgrid(
-            torch.arange(measurement_size[1]), torch.arange(measurement_size[2]), indexing="ij"
+            torch.arange(measurement_size[1]),
+            torch.arange(measurement_size[2]),
+            indexing="ij",
         )
         center_y, center_x = measurement_size[1] // 2, measurement_size[2] // 2
         mask = ((y - center_y) ** 2 + (x_coord - center_x) ** 2) <= radius**2
@@ -719,7 +721,9 @@ def find_phase_retrieval_operator(name, device):
         radius = 4
 
         y, x_coord = torch.meshgrid(
-            torch.arange(measurement_size[1]), torch.arange(measurement_size[2]), indexing="ij"
+            torch.arange(measurement_size[1]),
+            torch.arange(measurement_size[2]),
+            indexing="ij",
         )
         center_y, center_x = measurement_size[1] // 2, measurement_size[2] // 2
         mask = ((y - center_y) ** 2 + (x_coord - center_x) ** 2) <= radius**2

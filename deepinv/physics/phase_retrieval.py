@@ -703,7 +703,9 @@ class FourierPtychographyLinearOperator(LinearPhysics):
         src_y = grid_y - dy - (self.cy - self.my)
         src_x = grid_x - dx - (self.cx - self.mx)
 
-        mask = (src_y >= 0) & (src_y < 2 * self.my) & (src_x >= 0) & (src_x < 2 * self.mx)
+        mask = (
+            (src_y >= 0) & (src_y < 2 * self.my) & (src_x >= 0) & (src_x < 2 * self.mx)
+        )
 
         src_y_c = src_y.clamp(0, 2 * self.my - 1)
         src_x_c = src_x.clamp(0, 2 * self.mx - 1)
