@@ -697,8 +697,8 @@ class FourierPtychographyLinearOperator(LinearPhysics):
         grid_y = torch.arange(H, device=crop.device).view(1, 1, H, 1)
         grid_x = torch.arange(W, device=crop.device).view(1, 1, 1, W)
 
-        dy = shifts[:, :, 0].view(B, N_crops, 1, 1)
-        dx = shifts[:, :, 1].view(B, N_crops, 1, 1)
+        dy = shifts[:, :, 0].view(1, N_crops, 1, 1).expand(B, N_crops, 1, 1)
+        dx = shifts[:, :, 1].view(1, N_crops, 1, 1).expand(B, N_crops, 1, 1)
 
         src_y = grid_y - dy - (self.cy - self.my)
         src_x = grid_x - dx - (self.cx - self.mx)
