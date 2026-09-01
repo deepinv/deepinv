@@ -693,3 +693,215 @@ class SequentialMRI(DynamicMRI):
             return self.to_static(device=y.device).A_adjoint(
                 self.average(y, mask), mask=self.average(mask), **kwargs
             )
+
+
+class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
+    r"""Multi-coil MRI for dynamic 2D or 3D sequences.
+
+    The linear operator operates in 2D slices or 3D volumes and is defined as:
+
+    .. math::
+
+        y_{n, t} = \text{diag}(p) F \text{diag}(s_n) x_t
+
+    for :math:`n=1,\dots,N` coils and :math:`t=1, \dots, T` timesteps where :math:`y_{n, t}` are measurements from the cth coil at time `t`, :math:`\text{diag}(p)` is the acceleration mask, :math:`F` is the Fourier transform and :math:`\text{diag}(s_n)` is the nth coil sensitivity.
+
+    The input image has shape ``(B, 2, T, H, W)`` and the output k-space has
+    shape ``(B, 2, T, N, H, W)``, where ``N`` is the number of coils. Static
+    coil sensitivity maps are applied independently to every time frame.
+
+    :param torch.Tensor mask: dynamic mask with shape ``(B, 2, T, H, W)`` or
+        any broadcast-compatible shape accepted by :class:`MultiCoilMRI`.
+    :param torch.Tensor coil_maps: complex coil maps with shape ``(B,N,H,W)``.
+    """
+
+    def _flatten_coil_maps(self, batch_size: int, time_size: int) -> Tensor:
+        if self.coil_maps.shape[0] not in (1, batch_size):
+            raise ValueError(
+                f"Coil-map batch size {self.coil_maps.shape[0]} is incompatible "
+                f"with image batch size {batch_size}."
+            )
+        coil_maps = self.coil_maps.expand(batch_size, *self.coil_maps.shape[1:])
+        return coil_maps[:, None].expand(
+            batch_size, time_size, *coil_maps.shape[1:]
+        ).reshape(batch_size * time_size, *coil_maps.shape[1:])
+
+    def update_parameters(
+        self,
+        mask: Tensor = None,
+        coil_maps: Tensor = None,
+        check_mask: bool = True,
+        check_coil_maps: bool = True,
+        **kwargs,
+    ):
+        r"""Update parameters.
+
+        :param torch.Tensor mask: mask tensor with shape ``(B, 2, T, H, W)``.
+        :param torch.Tensor coil_maps: coil maps tensor with shape ``(B, N, H, W)``.
+        :param bool check_mask: if ``True``, check if ``mask`` is broadcast-compatible.
+        :param bool check_coil_maps: if ``True``, check if ``coil_maps`` is broadcast-compatible.
+        """
+        if mask is not None and check_mask:
+            mask = self.check_mask(mask)
+        if coil_maps is not None and check_coil_maps:
+            coil_maps = self.check_coil_maps(coil_maps, three_d=self.three_d)
+        LinearPhysics.update_parameters(
+            self, mask=mask, coil_maps=coil_maps, **kwargs
+        )
+        if self.mask is not None:
+            self.img_size = self.mask.shape[1:]
+
+    def A(
+        self,
+        x: Tensor,
+        mask: Tensor = None,
+        coil_maps: Tensor = None,
+        **kwargs,
+    ) -> Tensor:
+        r"""
+        Applies the linear forward operator.
+
+        Optionally update MRI mask or coil sensitivity maps on the fly.
+
+        :param torch.Tensor x: input tensor with shape ``(B, 2, T, H, W)`` or ``(B, 2, T, D, H, W)``
+        :param torch.Tensor mask: input temporal mask with shape ``(B, 2, T, H, W)`` or ``(B, 2, T, D, H, W)``
+        :param torch.Tensor coil_maps: complex coil maps with shape ``(B,N,H,W)``.
+        :returns: (:class:`torch.Tensor`) output tensor with shape ``(B, 2, T, N, H, W)`` or ``(B, 2, T, N, D, H, W)``
+        """
+        mask = self.check_mask(self.mask if mask is None else mask).to(x.device)
+        mask = mask.expand_as(x)
+        coil_maps = self.coil_maps if coil_maps is None else coil_maps
+        coil_maps = self.check_coil_maps(coil_maps, three_d=self.three_d).to(
+            x.device
+        )
+        self.coil_maps = coil_maps
+        flat_coil_maps = self._flatten_coil_maps(x.shape[0], x.shape[2])
+
+        y = self.unflatten(
+            super().A(
+                self.flatten(x),
+                mask=self.flatten(mask),
+                coil_maps=flat_coil_maps,
+                check_mask=False,
+                check_coil_maps=False,
+            ),
+            batch_size=x.shape[0],
+        )
+        self.update_parameters(
+            mask=mask,
+            coil_maps=coil_maps,
+            check_mask=False,
+            check_coil_maps=False,
+            **kwargs,
+        )
+        return y
+
+    def A_adjoint(
+        self,
+        y: Tensor,
+        mask: Tensor = None,
+        coil_maps: Tensor = None,
+        **kwargs,
+    ) -> Tensor:
+        r"""
+        Applies the adjoint forward operator.
+
+        Mathematically, the operator writes as
+
+        .. math::
+            A^{\top}y_t = \sum_{n=1}^{N} s_n F^{\top} \diag(p) y_{n, t}
+
+        Optionally update MRI mask or coil sensitivity maps on the fly.
+
+        :param torch.Tensor y: input tensor with shape ``(B, 2, T, H, W)`` or ``(B, 2, T, D, H, W)``
+        :param torch.Tensor mask: input temporal mask with shape ``(B, 2, T, H, W)``
+        :param torch.Tensor coil_map: complex coil maps with shape ``(B,N,H,W)``.
+        :returns: (:class:`torch.Tensor`) output tensor with shape ``(B, 2, T, H, W)`` or ``(B, 2, T, D, H, W)``
+        """
+        mask = self.check_mask(self.mask if mask is None else mask).to(y.device)
+        coil_maps = self.coil_maps if coil_maps is None else coil_maps
+        coil_maps = self.check_coil_maps(coil_maps, three_d=self.three_d).to(
+            y.device
+        )
+        self.coil_maps = coil_maps
+        flat_coil_maps = self._flatten_coil_maps(y.shape[0], y.shape[2])
+
+        x = self.unflatten(
+            super().A_adjoint(
+                self.flatten(y),
+                mask=self.flatten(mask),
+                coil_maps=flat_coil_maps,
+                check_mask=False,
+                check_coil_maps=False,
+                **kwargs,
+            ),
+            batch_size=y.shape[0],
+        )
+        self.update_parameters(
+            mask=mask,
+            coil_maps=coil_maps,
+            check_mask=False,
+            check_coil_maps=False,
+        )
+        return x
+
+    def check_mask(self, mask: Tensor = None, **kwargs) -> Tensor:
+        r"""
+        Checks that mask can be broadcast in the (B, 2, T, ...) convention.
+
+        :param torch.Tensor mask: mask of shape (B, 2, T, ...)
+        """
+        while mask is not None and mask.ndim < 5:
+            mask = mask.unsqueeze(0)
+        return super().check_mask(mask=mask, three_d=self.three_d)
+
+    def to_static(
+        self, mask: Tensor = None, device: str | torch.device = "cpu"
+    ) -> MultiCoilMRI:
+        r"""
+        Convert dynamic multi-coil MRI to static multi-coil MRI.
+
+        This conversion is performed by removing time dimension. The mask is built by retaining all the sampled locations across time, as
+
+        .. math::
+            \tilde{M} = \bigcup_t M_t = \operatorname{max}_t M_t
+
+
+        .. note::
+            The new operator cannot handle dynamic multi-coil MRI tensors.
+
+        :param torch.Tensor mask: mask of shape (B, 2, T, ...)
+        :param str device: device to convert to
+        :return MultiCoilMRI physucs: equivalent temporal dimension free MulicoilMRI physics
+        """
+        mask = self.mask.amax(dim=2) if mask is None else mask
+        return MultiCoilMRI(
+            mask=mask,
+            img_size=mask.shape[-2:],
+            coil_maps=self.coil_maps,
+            device=device,
+            three_d=self.three_d,
+        )
+
+
+class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
+    r"""Sequential multi-coil MRI of a static image.
+
+    The input image has shape ``(B,2,H,W)``. It is repeated across the time
+    dimension and sampled with a dynamic mask, producing measurements of shape
+    ``(B,2,T,N,H,W)``. The adjoint sums the frame-wise adjoints over time.
+    """
+
+    def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
+        mask = self.mask if mask is None else self.check_mask(mask)
+        return super().A(self.repeat(x, mask), mask=mask, **kwargs)
+
+    def A_adjoint(
+        self,
+        y: Tensor,
+        mask: Tensor = None,
+        keep_time_dim: bool = False,
+        **kwargs,
+    ) -> Tensor:
+        x = super().A_adjoint(y, mask=mask, **kwargs)
+        return x if keep_time_dim else x.sum(dim=2)

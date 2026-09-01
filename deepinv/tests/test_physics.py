@@ -11,7 +11,13 @@ import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
+from deepinv.physics.mri import (
+    MRI,
+    DynamicMRI,
+    MultiCoilMRI,
+    DynamicMultiCoilMRI,
+    SequentialMultiCoilMRI,
+)
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
 from deepinv.transform.rotate import Rotate
@@ -991,6 +997,82 @@ def test_decomposable(name, device, rng):
 @pytest.fixture
 def mri_img_size():
     return 1, 2, 3, 16, 16  # B, C, T, H, W
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_dynamic_multicoil_mri_adjoint(batch_size, device):
+    channels, time, coils, height, width = 2, 3, 4, 7, 8
+    x = torch.randn(batch_size, channels, time, height, width, device=device)
+    mask = torch.randint(
+        0, 2, (batch_size, channels, time, height, width), device=device
+    )
+    coil_maps = torch.randn(
+        batch_size, coils, height, width, device=device, dtype=torch.complex64
+    )
+    physics = DynamicMultiCoilMRI(mask=mask, coil_maps=coil_maps, device=device)
+    y = torch.randn_like(physics.A(x))
+
+    lhs = torch.vdot(physics.A(x).flatten(), y.flatten())
+    rhs = torch.vdot(x.flatten(), physics.A_adjoint(y).flatten())
+
+    assert physics.A(x).shape == (
+        batch_size,
+        channels,
+        time,
+        coils,
+        height,
+        width,
+    )
+    assert torch.allclose(lhs, rhs, rtol=1e-5, atol=1e-5)
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_sequential_multicoil_mri_matches_static(batch_size, device):
+    channels, time, coils, height, width = 2, 4, 3, 7, 8
+    x = torch.randn(batch_size, channels, height, width, device=device)
+    mask = torch.zeros(
+        batch_size, channels, time, height, width, device=device
+    )
+    mask[:, :, 0, :, 0] = 1
+    mask[:, :, 1, :, 2] = 1
+    mask[:, :, 2, :, 5] = 1
+    mask[:, :, 3, :, 7] = 1
+    coil_maps = torch.randn(
+        batch_size, coils, height, width, device=device, dtype=torch.complex64
+    )
+    dynamic = SequentialMultiCoilMRI(
+        mask=mask, coil_maps=coil_maps, device=device
+    )
+    static = MultiCoilMRI(
+        mask=mask.amax(dim=2), coil_maps=coil_maps, device=device
+    )
+
+    y_dynamic = dynamic.A(x)
+    y_static = static.A(x)
+    x_dynamic = dynamic.A_adjoint(y_dynamic)
+    x_static = static.A_adjoint(y_static)
+
+    assert y_dynamic.shape == (
+        batch_size,
+        channels,
+        time,
+        coils,
+        height,
+        width,
+    )
+    assert torch.allclose(y_dynamic.sum(dim=2), y_static, atol=1e-6)
+    assert torch.allclose(x_dynamic, x_static, rtol=1e-5, atol=1e-5)
+    assert torch.allclose(
+        dynamic.A_adjoint(y_dynamic, keep_time_dim=True).sum(dim=2),
+        x_dynamic,
+    )
+    y_probe = torch.randn_like(y_dynamic)
+    assert torch.allclose(
+        torch.vdot(dynamic.A(x).flatten(), y_probe.flatten()),
+        torch.vdot(x.flatten(), dynamic.A_adjoint(y_probe).flatten()),
+        rtol=1e-5,
+        atol=1e-5,
+    )
 
 
 @pytest.mark.parametrize("mri", [MRI, DynamicMRI, MultiCoilMRI])
