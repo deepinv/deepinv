@@ -3,6 +3,92 @@ import torch
 from torch import nn, einsum
 from typing import Callable, Any
 
+# ------------ Replacement "rearrange" function ----------
+# PanFormer code relies on one function from the einops library, not supported by deepinv
+
+def rearrange(tensor: torch.Tensor, pattern: str, **kwargs) -> torch.Tensor:
+    """
+    Replacement of einops "rearrange" function only using Pytorch. 
+    Only handles patterns needed in the rest of the file.
+
+    Args:
+        tensor (torch.Tensor): to be reshaped and permuted.
+        pattern (str): einops string pattern (4 supported)
+        **kwargs: Specific dimensions
+            h1 (int): height dimension 
+            h2 (int): height dimension 2
+            h (int): number of attention heads
+            w_h (int): window height
+            w_w (int): window width
+            nw_h (int): number of windows along height
+            nw_w (int): number of windows along width
+    """
+    pattern_clean = pattern.replace(" ", "")
+
+    if pattern_clean == "(h1w1)(h2w2)->h1w1h2w2":
+        if "h1" not in kwargs:
+            raise ValueError("L'argument 'h1' est requis pour ce pattern.")
+        
+        h1 = kwargs["h1"]
+        h2 = kwargs.get("h2", h1)
+        
+        if tensor.shape[0] % h1 != 0 or tensor.shape[1] % h2 != 0:
+            raise ValueError(f"Les dimensions {tensor.shape[:2]} ne sont pas divisibles par h1={h1}, h2={h2}")
+            
+        w1 = tensor.shape[0] // h1
+        w2 = tensor.shape[1] // h2
+        return tensor.view(h1, w1, h2, w2)
+
+    elif pattern_clean == "h1w1h2w2->(h1w1)(h2w2)":
+        h1, w1, h2, w2 = tensor.shape
+        return tensor.contiguous().view(h1 * w1, h2 * w2)
+
+    elif pattern_clean == "b(nw_hw_h)(nw_ww_w)(hd)->bh(nw_hnw_w)(w_hw_w)d":
+        b, H, W, total_dim = tensor.shape
+        
+        for key in ["h", "w_h", "w_w"]:
+            if key not in kwargs:
+                raise ValueError(f"Required argument: {key}.")
+                
+        h = kwargs["h"]
+        w_h = kwargs["w_h"]
+        w_w = kwargs["w_w"]
+        
+        if H % w_h != 0 or W % w_w != 0 or total_dim % h != 0:
+            raise ValueError("Spatial or channel dimensions are not multiple of the window or head sizes")
+            
+        nw_h = H // w_h
+        nw_w = W // w_w
+        d = total_dim // h
+
+        x = tensor.view(b, nw_h, w_h, nw_w, w_w, h, d)
+        x = x.permute(0, 5, 1, 3, 2, 4, 6).contiguous()
+        return x.view(b, h, nw_h * nw_w, w_h * w_w, d)
+
+    elif pattern_clean == "bh(nw_hnw_w)(w_hw_w)d->b(nw_hw_h)(nw_ww_w)(hd)":
+        b, h, num_windows, window_area, d = tensor.shape
+        #
+        for key in ["w_h", "w_w", "nw_h", "nw_w"]:
+            if key not in kwargs:
+                raise ValueError(f"Required argument: {key}.")
+        
+        w_h = kwargs["w_h"]
+        w_w = kwargs["w_w"]
+        nw_h = kwargs["nw_h"]
+        nw_w = kwargs["nw_w"]
+
+        if nw_h * nw_w != num_windows or w_h * w_w != window_area:
+            raise ValueError(f"Dimension mismatch: nw_h*nw_w={nw_h*nw_w} (expected {num_windows})")
+
+        x = tensor.view(b, h, nw_h, nw_w, w_h, w_w, d)
+        x = x.permute(0, 2, 4, 3, 5, 1, 6).contiguous()
+        return x.view(b, nw_h * w_h, nw_w * w_w, h * d)
+
+    else:
+        raise NotImplementedError(f"Unsupported pattern: {pattern}")
+
+
+
 # ----------- PanFormer ---------------
 # Code from cited repository
 
