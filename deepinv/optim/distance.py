@@ -28,7 +28,14 @@ class Distance(Potential):
         :param torch.Tensor x: Variable :math:`x`.
         :param torch.Tensor y: Observation :math:`y`.
         :return: (:class:`torch.Tensor`) distance :math:`\distance{x}{y}` of size `B` with `B` the size of the batch.
+        :raises NotImplementedError: if the distance was instantiated without a distance function ``d``.
         """
+        if self._fn is None:
+            raise NotImplementedError(
+                "This Distance was instantiated without a distance function `d`. "
+                "Pass a callable `d(x, y)` returning a tensor of size B (the batch size), "
+                "or use a subclass that defines it, e.g. deepinv.optim.L2."
+            )
         return self._fn(x, y, *args, **kwargs)
 
     def forward(

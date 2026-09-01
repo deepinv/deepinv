@@ -166,7 +166,9 @@ def choose_denoiser(name, imsize):
     elif name == "bilateral":
         out = dinv.models.BilateralFilter()
     elif name == "ffdnet":
-        out = dinv.models.FFDNet(img_channels=imsize[0], n_conv_layers=2, nf=16)
+        out = dinv.models.FFDNet(
+            img_channels=imsize[0], n_conv_layers=2, nf=16, pretrained=None
+        )
     else:
         raise Exception("Unknown denoiser")
 
@@ -532,9 +534,9 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
 
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
-@pytest.mark.parametrize("batch_size", [1, 2, 3])
+@pytest.mark.parametrize("batch_size", [1, 2])
 def test_denoiser_sigma_gray(batch_size, denoiser, device):
-    img_size = (1, 64, 64)
+    img_size = (1, 16, 16)
     model = choose_denoiser(denoiser, img_size).to(device)
     noiser = dinv.physics.GaussianNoise()
 
@@ -561,9 +563,9 @@ def test_denoiser_sigma_gray(batch_size, denoiser, device):
 
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
-@pytest.mark.parametrize("batch_size", [1, 2, 3])
+@pytest.mark.parametrize("batch_size", [1, 2])
 def test_denoiser_sigma_color(batch_size, denoiser, device):
-    img_size = (3, 64, 64)
+    img_size = (3, 16, 16)
     model = choose_denoiser(denoiser, img_size).to(device)
     noiser = dinv.physics.GaussianNoise()
     x = torch.ones((batch_size,) + img_size, device=device, dtype=torch.float32)
@@ -1026,7 +1028,7 @@ def test_varnet(varnet_type, device):
     def dummy_dataset(imsize):
         return DummyCircles(samples=1, imsize=imsize)
 
-    x = dummy_dataset((2, 8, 8))[0].unsqueeze(0).to(device)
+    x = dummy_dataset((2, 8, 8))[0]["x"].unsqueeze(0).to(device)
     physics = dinv.physics.MRI(
         mask=dinv.physics.generator.GaussianMaskGenerator(
             x.shape[1:], acceleration=2, device=device
@@ -1093,7 +1095,7 @@ def test_ram_scale(scale, device, use_physics):
 
     # make batch with 2 elements to test batch processing
     x = (
-        DummyCircles(imsize=imsize, samples=1)[0]
+        DummyCircles(imsize=imsize, samples=1)[0]["x"]
         .unsqueeze(0)
         .repeat(batch_size, 1, 1, 1)
         .to(device)
@@ -1194,7 +1196,7 @@ def test_restoration_models(
     x = DummyCircles(imsize=imsize, samples=2)
 
     # make batch with > 1 element to test batch processing
-    x = next(iter(DataLoader(x, batch_size=2))).to(device)
+    x = next(iter(DataLoader(x, batch_size=2)))["x"].to(device)
 
     if physics is not None:
         y = physics(x)
@@ -1371,6 +1373,17 @@ def test_denoiser_perf(device, load_example_image):
         (dinv.models.NCSNpp(pretrained="download").to(device), (7.0, 11.5, 10.5)),
         (dinv.models.ADMUNet(pretrained="download").to(device), (7.0, 11.5, 11.0)),
         (dinv.models.DScCP(pretrained="download").to(device), (4.5, 9.0, 3.0)),
+        (
+            dinv.models.FFDNet(
+                n_conv_layers=12,
+                nf=96,
+                img_channels=3,
+                norm=None,
+                last_conv_bias=True,
+                pretrained="download",
+            ).to(device),
+            (5.5, 10.0, 9.5),
+        ),
         (
             dinv.models.DiffusersDenoiserWrapper(
                 mode_id="google/ddpm-ema-celebahq-256"

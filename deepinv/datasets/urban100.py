@@ -11,7 +11,7 @@ from .utils import resolve_root
 
 
 class Urban100HR(ImageFolder):
-    """Dataset for Urban100 <https://paperswithcode.com/dataset/urban100>`_.
+    """Dataset for `Urban100 <https://paperswithcode.com/dataset/urban100>`_.
 
     The Urban100 dataset :footcite:p:`huang2015single` contains 100 images of urban scenes.
     It is commonly used as a test set to evaluate the performance of super-resolution models.
@@ -33,6 +33,7 @@ class Urban100HR(ImageFolder):
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param Callable transform:: (optional)  A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     |sep|
 
@@ -70,6 +71,7 @@ class Urban100HR(ImageFolder):
         root: str = None,
         download: bool = False,
         transform: Callable = None,
+        use_dict_output: bool = False,
     ) -> None:
         self.root = resolve_root(root, "Urban100")
         self.transform = transform
@@ -105,7 +107,9 @@ class Urban100HR(ImageFolder):
                 )
 
         # Initialize ImageFolder
-        super().__init__(self.root, transform=transform)
+        super().__init__(
+            self.root, transform=transform, use_dict_output=use_dict_output
+        )
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.
