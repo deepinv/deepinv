@@ -8,9 +8,11 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
 
 Changed
 ^^^^^^^
+- :class:`deepinv.models.FFDNet` default network parameters changed, to allow pretrained weights by default (:gh:`1357` by `Vicky De Ridder`_)
 
 Fixed
 ^^^^^
