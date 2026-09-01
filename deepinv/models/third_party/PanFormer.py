@@ -1,281 +1,35 @@
 import numpy as np
 import torch
 from torch import nn, einsum
-import torch.nn.functional as F
-from einops import rearrange
-from torchvision import models
-from logging import Logger
-from typing import Optional, Any
+from typing import Callable, Any
 
+# ----------- PanFormer ---------------
+# Code from cited repository
 
-def conv1x1(in_channels, out_channels, stride=1, padding=0, *args, **kwargs):
-    # type: (int, int, int, int, Any, Any) -> nn.Conv2d
-    return nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1,
-                     stride=stride, padding=padding, *args, **kwargs)
-
-
-def conv3x3(in_channels, out_channels, stride=1, padding=1, *args, **kwargs):
-    # type: (int, int, int, int, Any, Any) -> nn.Conv2d
+def conv3x3(in_channels: int, out_channels:int, stride: int=1, padding: int=1, *args, **kwargs)->nn.Conv2d:
     return nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3,
                      stride=stride, padding=padding, *args, **kwargs)
 
-
-def build_norm_layer(logger, n_feats, norm_type='BN', *args, **kwargs):
-    r""" build a normalization layer in [BatchNorm, InstanceNorm]
-    Args:
-        logger (Logger): logger
-        n_feats (int): output channel
-        norm_type (str): 'BN' or 'IN'
-    Returns:
-        nn.Module: expected normalization layer
-    """
-    if norm_type == 'BN':
-        return nn.BatchNorm2d(num_features=n_feats, *args, **kwargs)
-    elif norm_type == 'IN':
-        return nn.InstanceNorm2d(num_features=n_feats, *args, **kwargs)
-    else:
-        logger.error(f'no such type of norm_layer:{norm_type}')
-        raise SystemExit(f'no such type of norm_layer:{norm_type}')
-
-
-class ResBlock(nn.Module):
-    def __init__(self, logger, n_feats, norm_type='BN'):
-        # type: (Logger, int, Optional[str]) -> None
-        super(ResBlock, self).__init__()
-        self.basic = []
-        self.basic.append(conv3x3(n_feats, n_feats))
-        if norm_type is not None:
-            self.basic.append(build_norm_layer(logger, n_feats, norm_type))
-        self.basic.append(nn.ReLU(True))
-        self.basic.append(conv3x3(n_feats, n_feats))
-        if norm_type is not None:
-            self.basic.append(build_norm_layer(logger, n_feats, norm_type))
-        self.basic = nn.Sequential(*self.basic)
-
-    def forward(self, x):
-        return self.basic(x) + x
-
-
-class ResChAttnBlock(nn.Module):
-    r"""
-        Residual Channel Attention Block
-    """
-    def __init__(self, logger, n_feats, norm_type='BN'):
-        # type: (Logger, int, Optional[str]) -> None
-        super(ResChAttnBlock, self).__init__()
-        self.conv1_block = []
-        self.conv1_block.append(conv3x3(n_feats, n_feats))
-        if norm_type is not None:
-            self.conv1_block.append(build_norm_layer(logger, n_feats, norm_type))
-        self.conv1_block.append(nn.ReLU(True))
-        self.conv1_block.append(conv3x3(n_feats, n_feats))
-        if norm_type is not None:
-            self.conv1_block.append(build_norm_layer(logger, n_feats, norm_type))
-        self.conv1_block = nn.Sequential(*self.conv1_block)
-
-        self.global_avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.attn_block = []
-        self.attn_block.append(nn.Linear(n_feats, n_feats // 2))
-        self.attn_block.append(nn.ReLU(True))
-        self.attn_block.append(nn.Linear(n_feats // 2, n_feats))
-        self.attn_block.append(nn.Sigmoid())
-        self.attn_block = nn.Sequential(*self.attn_block)
-
-        self.conv2_block = []
-        self.conv2_block.append(conv3x3(n_feats * 2, n_feats))
-        if norm_type is not None:
-            self.conv2_block.append(build_norm_layer(logger, n_feats, norm_type))
-        self.conv2_block = nn.Sequential(*self.conv2_block)
-
-    def forward(self, x):
-        y = self.conv1_block(x)
-
-        attn = self.global_avg_pool(y)
-        attn = attn.squeeze(-1).squeeze(-1)
-        attn = self.attn_block(attn)
-        attn = attn.unsqueeze(-1).unsqueeze(-1)
-
-        return self.conv2_block(torch.cat([attn * y, y], dim=1)) + x
-
-
-class Pixel_Discriminator(nn.Module):
-    def __init__(self, logger, in_channels, n_feats, norm_type='BN'):
-        # type: (Logger, int, int, Optional[str]) -> None
-        super(Pixel_Discriminator, self).__init__()
-        self.netD = []
-        self.netD.append(conv1x1(in_channels, n_feats))  # 256 * 256 * 64
-        self.netD.append(nn.LeakyReLU(0.2, True))
-        self.netD.append(conv1x1(n_feats, n_feats * 2))  # 256 * 256 * 128
-        if norm_type is not None:
-            self.netD.append(build_norm_layer(logger, n_feats * 2, norm_type))
-        self.netD.append(nn.LeakyReLU(0.2, True))
-        self.netD.append(conv1x1(n_feats * 2, 1))  # 256 * 256 * 128
-        self.netD = nn.Sequential(*self.netD)
-
-    def forward(self, x):
-        return self.netD(x)
-
-
-class Patch_Discriminator(nn.Module):
-    def __init__(self, logger, in_channels, n_feats=64, n_layers=3, norm_type='BN'):
-        # type: (Logger, int, int, int, Optional[str]) -> None
-        r""" if n_layers=0, then use pixelGAN (rf=1)
-             else rf is 16 if n_layers=1
-                        34 if n_layers=2
-                        70 if n_layers=3
-                        142 if n_layers=4
-                        286 if n_layers=5
-                        574 if n_layers=6
-        """
-        super(Patch_Discriminator, self).__init__()
-        self.netD = []
-        self.netD.append(nn.Conv2d(in_channels, n_feats, 4, 2, 1))  # 256 * 256 * 64
-        self.netD.append(nn.LeakyReLU(0.2, True))
-
-        nf_mult = 1
-        for n in range(1, n_layers):
-            nf_mult_prev = nf_mult
-            nf_mult = min(2 ** n, 8)
-            self.netD.append(nn.Conv2d(n_feats * nf_mult_prev, n_feats * nf_mult, 4, 2, 1))
-            if norm_type is not None:
-                self.netD.append(build_norm_layer(logger, n_feats * nf_mult, norm_type))
-            self.netD.append(nn.LeakyReLU(0.2, True))
-
-        # N * N * (ndf*M)
-        nf_mult_prev = nf_mult
-        nf_mult = min(2 ** n_layers, 8)
-        self.netD.append(nn.Conv2d(n_feats * nf_mult_prev, n_feats * nf_mult, 4, 1, 1))  # (N-1) * (N-1) * (ndf*M*2)
-        if norm_type is not None:
-            self.netD.append(build_norm_layer(logger, n_feats * nf_mult, norm_type))
-        self.netD.append(nn.LeakyReLU(0.2, True))
-
-        self.netD.append(nn.Conv2d(n_feats * nf_mult, 1, 4, 1, 1))  # (N-2) * (N-2) * 1
-        self.netD = nn.Sequential(*self.netD)
-
-    def forward(self, x):
-        return self.netD(x)
-
-
-class MeanShift(nn.Conv2d):
-    def __init__(self, rgb_range, rgb_mean, rgb_std, sign=-1):
-        super(MeanShift, self).__init__(3, 3, kernel_size=1)
-        std = torch.Tensor(rgb_std)
-        self.weight.data = torch.eye(3).view(3, 3, 1, 1)
-        self.weight.data.div_(std.view(3, 1, 1, 1))
-        self.bias.data = sign * rgb_range * torch.Tensor(rgb_mean)
-        self.bias.data.div_(std)
-        # self.requires_grad = False
-        self.weight.requires_grad = False
-        self.bias.requires_grad = False
-
-
-class VGG_Feat(torch.nn.Module):
-    def __init__(self, requires_grad=True, rgb_range=1, shift_enable=True):
-        super(VGG_Feat, self).__init__()
-        self.shift_enable = shift_enable
-        # use vgg19 weights to initialize
-        vgg_pretrained_features = models.vgg19(pretrained=True).features
-
-        self.slice1 = torch.nn.Sequential()
-        self.slice2 = torch.nn.Sequential()
-        self.slice3 = torch.nn.Sequential()
-
-        # LTE 是pretrained vgg的各个阶段，不同级别的特征图，越靠后channel越大，H*W越小
-        for x in range(2):
-            self.slice1.add_module(str(x), vgg_pretrained_features[x])
-        for x in range(2, 7):
-            self.slice2.add_module(str(x), vgg_pretrained_features[x])
-        for x in range(7, 12):
-            self.slice3.add_module(str(x), vgg_pretrained_features[x])
-        if not requires_grad:
-            for param in self.slice1.parameters():
-                param.requires_grad = requires_grad
-            for param in self.slice2.parameters():
-                param.requires_grad = requires_grad
-            for param in self.slice3.parameters():
-                param.requires_grad = requires_grad
-
-        vgg_mean = (0.485, 0.456, 0.406)
-        vgg_std = (0.229 * rgb_range, 0.224 * rgb_range, 0.225 * rgb_range)
-        self.sub_mean = MeanShift(rgb_range, vgg_mean, vgg_std)
-
-    def forward(self, x):
-        if self.shift_enable:
-            x = self.sub_mean(x)
-
-        x = self.slice1(x)
-        x_lv1 = x
-        x = self.slice2(x)
-        x_lv2 = x
-        x = self.slice3(x)
-        x_lv3 = x
-        return x_lv1, x_lv2, x_lv3
-
-
-class VGG_Discriminator(nn.Module):
-    def __init__(self, in_channel=3, in_size=160):
-        super().__init__()
-        self.conv_head = nn.Sequential(
-            conv3x3(in_channel, 32),
-            nn.LeakyReLU(0.2, True),
-            conv3x3(32, 32, 2),
-            nn.LeakyReLU(0.2, True),
-            conv3x3(32, 64),
-            nn.LeakyReLU(0.2, True),
-            conv3x3(64, 64, 2),
-            nn.LeakyReLU(0.2, True),
-            conv3x3(64, 128),
-            nn.LeakyReLU(0.2, True),
-            conv3x3(128, 128, 2),
-            nn.LeakyReLU(0.2, True),
-            conv3x3(128, 256),
-            nn.LeakyReLU(0.2, True),
-            conv3x3(256, 256, 2),
-            nn.LeakyReLU(0.2, True),
-            conv3x3(256, 512),
-            nn.LeakyReLU(0.2, True),
-            conv3x3(512, 512, 2),
-            nn.LeakyReLU(0.2, True),
-        )
-
-        self.fc_tail = nn.Sequential(
-            nn.Linear((in_size // 32) ** 2 * 512, 1024),
-            nn.LeakyReLU(0.2, True),
-            nn.Linear(1024, 1),
-        )
-
-    def forward(self, x):
-        x = self.conv_head(x)
-        x = self.fc_tail(x.view(x.size(0), -1))
-        return x
-
-
-class SFTLayer(nn.Module):
-    def __init__(self, n_feats=32):
-        super(SFTLayer, self).__init__()
-
-        self.SFT_scale_conv0 = conv1x1(n_feats, n_feats//2)
-        self.SFT_scale_conv1 = conv1x1(n_feats//2, n_feats)
-        self.SFT_shift_conv0 = conv1x1(n_feats, n_feats//2)
-        self.SFT_shift_conv1 = conv1x1(n_feats//2, n_feats)
-
-    def forward(self, features, conditions):
-        scale = self.SFT_scale_conv1(F.leaky_relu(self.SFT_scale_conv0(conditions), 0.1, inplace=True))
-        shift = self.SFT_shift_conv1(F.leaky_relu(self.SFT_shift_conv0(conditions), 0.1, inplace=True))
-        return features * (scale + 1) + shift
-
-
 class CyclicShift(nn.Module):
-    def __init__(self, displacement):
+    """
+    Shifts a feature map circularly.
+    """
+    def __init__(self, displacement:int):
+        """
+        Args:
+            displacement: number of pixels to shift along both height and width.
+        """
         super().__init__()
         self.displacement = displacement
 
     def forward(self, x):
         return torch.roll(x, shifts=(self.displacement, self.displacement), dims=(1, 2))
 
-
 class Residual(nn.Module):
-    def __init__(self, fn):
+    """
+    Wrapper for (x+f(x)), f a function.
+    """
+    def __init__(self, fn:Callable):
         super().__init__()
         self.fn = fn
 
@@ -284,13 +38,17 @@ class Residual(nn.Module):
 
 
 class PreNorm(nn.Module):
-    def __init__(self, dim, fn):
+    """
+    
+    """
+    def __init__(self, dim, fn: Callable):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.fn = fn
 
     def forward(self, x, **kwargs):
         return self.fn(self.norm(x), **kwargs)
+
 
 
 class FeedForward(nn.Module):
@@ -328,6 +86,7 @@ def get_relative_distances(window_size):
     return distances
 
 
+    
 class WindowAttention(nn.Module):
     def __init__(self, dim, heads, head_dim, shifted, window_size, relative_pos_embedding, cross_attn):
         super().__init__()
@@ -445,6 +204,7 @@ class PatchMerging(nn.Module):
         return x  # [N, H//downscaling_factor, W//downscaling_factor, out_channels]
 
 
+
 class SwinModule(nn.Module):
     def __init__(self, in_channels, hidden_dimension, layers, downscaling_factor, num_heads, head_dim, window_size,
                  relative_pos_embedding, cross_attn):
@@ -492,9 +252,91 @@ class SwinModule(nn.Module):
             return x.permute(0, 3, 1, 2)
 
 
-if __name__ == '__main__':
-    x = torch.ones([1, 1, 64, 64])
-    print(x.shape)
-    vgg_feat = VGG_Feat()
-    x_lv1, x_lv2, x_lv3 = vgg_feat(x)
-    print(x_lv1.shape, x_lv2.shape, x_lv3.shape)
+class CrossSwinTransformer(nn.Module):
+    def __init__(self, cfg, logger, n_feats=64, n_heads=4, head_dim=16, win_size=4,
+                 n_blocks=3, cross_module=['pan', 'ms'], cat_feat=['pan', 'ms'], sa_fusion=False):
+        super().__init__()
+        self.cfg = cfg
+        self.n_blocks = n_blocks
+        self.cross_module = cross_module
+        self.cat_feat = cat_feat
+        self.sa_fusion = sa_fusion
+
+        pan_encoder = [
+            SwinModule(in_channels=1, hidden_dimension=n_feats, layers=2,
+                       downscaling_factor=2, num_heads=n_heads, head_dim=head_dim,
+                       window_size=win_size, relative_pos_embedding=True, cross_attn=False),
+            SwinModule(in_channels=n_feats, hidden_dimension=n_feats, layers=2,
+                       downscaling_factor=2, num_heads=n_heads, head_dim=head_dim,
+                       window_size=win_size, relative_pos_embedding=True, cross_attn=False),
+        ]
+        ms_encoder = [
+            SwinModule(in_channels=cfg.ms_chans, hidden_dimension=n_feats, layers=2,
+                       downscaling_factor=1, num_heads=n_heads, head_dim=head_dim,
+                       window_size=win_size, relative_pos_embedding=True, cross_attn=False),
+            SwinModule(in_channels=n_feats, hidden_dimension=n_feats, layers=2,
+                       downscaling_factor=1, num_heads=n_heads, head_dim=head_dim,
+                       window_size=win_size, relative_pos_embedding=True, cross_attn=False),
+        ]
+
+        if 'ms' in self.cross_module:
+            self.ms_cross_pan = nn.ModuleList()
+            for _ in range(n_blocks):
+                self.ms_cross_pan.append(SwinModule(in_channels=n_feats, hidden_dimension=n_feats, layers=2,
+                                                    downscaling_factor=1, num_heads=n_heads, head_dim=head_dim,
+                                                    window_size=win_size, relative_pos_embedding=True, cross_attn=True))
+        elif sa_fusion:
+            ms_encoder.append(SwinModule(in_channels=n_feats, hidden_dimension=n_feats, layers=2,
+                                         downscaling_factor=1, num_heads=n_heads, head_dim=head_dim,
+                                         window_size=win_size, relative_pos_embedding=True, cross_attn=False))
+
+        if 'pan' in self.cross_module:
+            self.pan_cross_ms = nn.ModuleList()
+            for _ in range(n_blocks):
+                self.pan_cross_ms.append(SwinModule(in_channels=n_feats, hidden_dimension=n_feats, layers=2,
+                                                    downscaling_factor=1, num_heads=n_heads, head_dim=head_dim,
+                                                    window_size=win_size, relative_pos_embedding=True, cross_attn=True))
+        elif sa_fusion:
+            pan_encoder.append(SwinModule(in_channels=n_feats, hidden_dimension=n_feats, layers=2,
+                                          downscaling_factor=1, num_heads=n_heads, head_dim=head_dim,
+                                          window_size=win_size, relative_pos_embedding=True, cross_attn=False))
+
+        self.HR_tail = nn.Sequential(
+            conv3x3(n_feats * len(cat_feat), n_feats * 4),
+            nn.PixelShuffle(2), nn.ReLU(True), conv3x3(n_feats, n_feats * 4),
+            nn.PixelShuffle(2), nn.ReLU(True), conv3x3(n_feats, n_feats),
+            nn.ReLU(True), conv3x3(n_feats, cfg.ms_chans))
+
+        self.pan_encoder = nn.Sequential(*pan_encoder)
+        self.ms_encoder = nn.Sequential(*ms_encoder)
+
+    def forward(self, pan, ms):
+        pan_feat = self.pan_encoder(pan)
+        ms_feat = self.ms_encoder(ms)
+
+        last_pan_feat = pan_feat
+        last_ms_feat = ms_feat
+        for i in range(self.n_blocks):
+            if 'pan' in self.cross_module:
+                pan_cross_ms_feat = self.pan_cross_ms[i](last_pan_feat, last_ms_feat)
+            if 'ms' in self.cross_module:
+                ms_cross_pan_feat = self.ms_cross_pan[i](last_ms_feat, last_pan_feat)
+            if 'pan' in self.cross_module:
+                last_pan_feat = pan_cross_ms_feat
+            if 'ms' in self.cross_module:
+                last_ms_feat = ms_cross_pan_feat
+
+        cat_list = []
+        if 'pan' in self.cat_feat:
+            cat_list.append(last_pan_feat)
+        if 'ms' in self.cat_feat:
+            cat_list.append(last_ms_feat)
+
+        output = self.HR_tail(torch.cat(cat_list, dim=1))
+
+        if self.cfg.norm_input:
+            output = torch.clamp(output, 0, 1)
+        else:
+            output = torch.clamp(output, 0, 2 ** self.cfg.bit_depth - .5)
+
+        return output
