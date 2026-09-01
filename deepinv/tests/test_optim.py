@@ -1121,13 +1121,10 @@ def test_datafid_stacking(imsize, device):
 
 solvers = ["CG", "BiCGStab", "lsqr", "minres", "lsmr"]
 # Physics that actually route A_dagger / prox_l2 through an iterative least-squares
-# solver (decomposable / closed-form physics such as inpainting are excluded here as
-# the solver argument is a no-op for them). deblur_circular is a *square*,
-# non-decomposable operator, exercising the regularized square-operator dispatch.
 least_squares_physics = [
     "super_resolution_circular",
     "deblur_valid",
-    "deblur_circular",
+    "deblur_circular", # tests square solvers
     "MultiCoilMRI",
 ]
 
@@ -1168,7 +1165,7 @@ def test_least_square_solvers(
 
     # x_hat minimizes ||A x - y||^2 + (1/gamma) ||x - z||^2, so check its (reference-free)
     # optimality condition A^T(A x_hat - y) + (1/gamma)(x_hat - z) = 0. This directly
-    # fails if gamma is not honored (i.e. if the solver instead solves A x = y).
+    # fails if gamma is not taken into account (i.e. if the solver instead solves A x = y).
     optimality = physics.A_adjoint(physics.A(x_hat) - y) + (1 / gamma) * (x_hat - z)
     scale = physics.A_adjoint(y) + (1 / gamma) * z
     assert (

@@ -15,8 +15,8 @@ from .utils import _as_dim_list, _resolve_stagtol
 
 # Solver registries: rectangular solvers take (A, AT, ...) and return (x, cond);
 # square solvers take (A=H, b, ...) and return x. See least_squares for dispatch.
-_RECTANGULAR_SOLVERS = {"lsqr": lsqr, "lsmr": lsmr}
-_SQUARE_SOLVERS = {
+RECTANGULAR_SOLVERS = {"lsqr": lsqr, "lsmr": lsmr}
+SQUARE_SOLVERS = {
     "CG": conjugate_gradient,
     "BiCGStab": bicgstab,
     "minres": minres,
@@ -49,7 +49,7 @@ def least_squares(
 
     - If `gamma=None` (:math:`\gamma = \infty`), it solves the unregularized least squares problem :math:`\min_x \|Ax-y\|^2`.
         - If :math:`A` is overcomplete (rows>=columns), it computes the least squares solution :math:`x = (A^{\top}A)^{-1}A^{\top}y`.
-        - If :math:`A` is undercomplete (columns>rows), it computes the minimum norm solution :math:`x = A^{\top}(AA^{\top})^{-1}y`. This is not the standard pseudo inverse but is often used and will raise a warning.
+        - If :math:`A` is undercomplete (columns>rows), it computes the minimum norm solution :math:`x = A^{\top}(AA^{\top})^{-1}y`. 
     - If :math:`0 < \gamma < \infty`, it computes the least squares solution :math:`x = (A^{\top}A + \frac{1}{\gamma}I)^{-1}(A^{\top}y + \frac{1}{\gamma}z)`.
 
     .. warning::
@@ -114,9 +114,9 @@ def least_squares(
                 "Continuing anyway..."
             )
 
-    if solver in _RECTANGULAR_SOLVERS:  # rectangular solvers (lsqr, lsmr)
+    if solver in RECTANGULAR_SOLVERS:  # rectangular solvers (lsqr, lsmr)
         eta = 1 / gamma if gamma_provided else None
-        x, _ = _RECTANGULAR_SOLVERS[solver](
+        x, _ = RECTANGULAR_SOLVERS[solver](
             A,
             AT,
             y,
@@ -185,7 +185,7 @@ def least_squares(
                     H = lambda x: ATA(x)
                     b = Aty
 
-        x = _SQUARE_SOLVERS[solver](
+        x = SQUARE_SOLVERS[solver](
             A=H,
             b=b,
             init=init,
