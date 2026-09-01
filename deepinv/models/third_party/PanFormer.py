@@ -1,3 +1,11 @@
+# This file is taken (with only mild modifications) from the PanFormer repository:
+# https://github.com/zhysora/PanFormer/blob/main/models/panformer.py &
+# https://github.com/zhysora/PanFormer/blob/main/models/common/modules.py
+# -----------------------------------------------------------------------------------
+# PanFormer: a Transformer Based Model for Pan-sharpening, https://arxiv.org/abs/2203.02916
+# Written by: Zhou, Huanyu & Liu, Qingjie & Wang, Yunhong
+# -----------------------------------------------------------------------------------
+
 import numpy as np
 import torch
 from torch import nn, einsum
@@ -27,13 +35,13 @@ def rearrange(tensor: torch.Tensor, pattern: str, **kwargs) -> torch.Tensor:
 
     if pattern_clean == "(h1w1)(h2w2)->h1w1h2w2":
         if "h1" not in kwargs:
-            raise ValueError("L'argument 'h1' est requis pour ce pattern.")
+            raise ValueError("Required argument 'h1'.")
         
         h1 = kwargs["h1"]
         h2 = kwargs.get("h2", h1)
         
         if tensor.shape[0] % h1 != 0 or tensor.shape[1] % h2 != 0:
-            raise ValueError(f"Les dimensions {tensor.shape[:2]} ne sont pas divisibles par h1={h1}, h2={h2}")
+            raise ValueError(f"Dimensions {tensor.shape[:2]} not divisible h1={h1}, h2={h2}")
             
         w1 = tensor.shape[0] // h1
         w2 = tensor.shape[1] // h2
@@ -108,7 +116,7 @@ class CyclicShift(nn.Module):
         super().__init__()
         self.displacement = displacement
 
-    def forward(self, x):
+    def forward(self, x:torch.Tensor)->torch.Tensor:
         return torch.roll(x, shifts=(self.displacement, self.displacement), dims=(1, 2))
 
 class Residual(nn.Module):
@@ -119,26 +127,29 @@ class Residual(nn.Module):
         super().__init__()
         self.fn = fn
 
-    def forward(self, x, **kwargs):
+    def forward(self, x:torch.Tensor, **kwargs)->torch.Tensor:
         return self.fn(x, **kwargs) + x
 
 
 class PreNorm(nn.Module):
     """
-    
+    Wrapper for layer normalization
     """
-    def __init__(self, dim, fn: Callable):
+    def __init__(self, dim: int, fn: Callable):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.fn = fn
 
-    def forward(self, x, **kwargs):
+    def forward(self, x:torch.Tensor, **kwargs)->torch.Tensor:
         return self.fn(self.norm(x), **kwargs)
 
 
 
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim):
+    """
+    MLP with GELU activation
+    """
+    def __init__(self, dim:int, hidden_dim:int):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(dim, hidden_dim),
@@ -146,11 +157,15 @@ class FeedForward(nn.Module):
             nn.Linear(hidden_dim, dim),
         )
 
-    def forward(self, x):
+    def forward(self, x:torch.Tensor)->torch.Tensor:
         return self.net(x)
 
 
-def create_mask(window_size, displacement, upper_lower, left_right):
+def create_mask(window_size:int, displacement:int, upper_lower:bool, left_right:bool)->torch.Tensor:
+    """
+    Creates an attention mask to prevent information from leaking across boundaries
+    Will be used when CyclicShift is applied
+    """
     mask = torch.zeros(window_size ** 2, window_size ** 2)
 
     if upper_lower:
@@ -166,7 +181,10 @@ def create_mask(window_size, displacement, upper_lower, left_right):
     return mask
 
 
-def get_relative_distances(window_size):
+def get_relative_distances(window_size:int)->torch.Tensor:
+    """
+    Computes the 2D distances between pixels within a window
+    """
     indices = torch.tensor(np.array([[x, y] for x in range(window_size) for y in range(window_size)]))
     distances = indices[None, :, :] - indices[:, None, :]
     return distances
@@ -174,7 +192,20 @@ def get_relative_distances(window_size):
 
     
 class WindowAttention(nn.Module):
-    def __init__(self, dim, heads, head_dim, shifted, window_size, relative_pos_embedding, cross_attn):
+    """
+    Layer that computes attention within window
+    """
+    def __init__(self, dim:int, heads:int, head_dim:int, shifted:bool, window_size:int, relative_pos_embedding: bool, cross_attn:bool):
+        """
+        Args:
+            dim: input channel dimension
+            heads: number of attention heads
+            head_dim: dimension of one attention head
+            shifted: to apply shift
+            window_size: spatial size of window
+            relative_pos_embedding: to inject spatial distance biases into the attention weights
+            cross_attn: to activate cross attention between two inputs x and y
+        """
         super().__init__()
         inner_dim = head_dim * heads
 
@@ -208,14 +239,13 @@ class WindowAttention(nn.Module):
 
         self.to_out = nn.Linear(inner_dim, dim)
 
-    def forward(self, x, y=None):
+    def forward(self, x:torch.Tensor, y:torch.Tensor=None)->torch.Tensor:
         if self.shifted:
             x = self.cyclic_shift(x)
             if self.cross_attn:
                 y = self.cyclic_shift(y)
 
         b, n_h, n_w, _, h = *x.shape, self.heads
-        # print('forward-x: ', x.shape)   # [N, H//downscaling_factor, W//downscaling_factor, hidden_dim]
         if not self.cross_attn:
             qkv = self.to_qkv(x).chunk(3, dim=-1)
             # [N, H//downscaling_factor, W//downscaling_factor, head_dim * head] * 3
@@ -229,9 +259,8 @@ class WindowAttention(nn.Module):
         q, k, v = map(
             lambda t: rearrange(t, 'b (nw_h w_h) (nw_w w_w) (h d) -> b h (nw_h nw_w) (w_h w_w) d',
                                 h=h, w_h=self.window_size, w_w=self.window_size), qkv)
-        # print('forward-q: ', q.shape)   # [N, num_heads, num_win, win_area, hidden_dim/num_heads]
-        # print('forward-k: ', k.shape)
-        # print('forward-v: ', v.shape)
+            # [N, num_heads, num_win, win_area, hidden_dim/num_heads]
+
 
         dots = einsum('b h w i d, b h w j d -> b h w i j', q, k) * self.scale  # q * k / sqrt(d)
 
@@ -258,7 +287,10 @@ class WindowAttention(nn.Module):
 
 
 class SwinBlock(nn.Module):
-    def __init__(self, dim, heads, head_dim, mlp_dim, shifted, window_size, relative_pos_embedding, cross_attn):
+    """
+    Encapsulation of one complete Transformer layer
+    """
+    def __init__(self, dim:int, heads:int, head_dim:int, mlp_dim:int, shifted:bool, window_size:int, relative_pos_embedding:bool, cross_attn:bool):
         super().__init__()
         self.attention_block = Residual(PreNorm(dim, WindowAttention(dim=dim,
                                                                      heads=heads,
@@ -269,20 +301,23 @@ class SwinBlock(nn.Module):
                                                                      cross_attn=cross_attn)))
         self.mlp_block = Residual(PreNorm(dim, FeedForward(dim=dim, hidden_dim=mlp_dim)))
 
-    def forward(self, x, y=None):
+    def forward(self, x:torch.Tensor, y:torch.Tensor=None)->torch.Tensor:
         x = self.attention_block(x, y=y)
         x = self.mlp_block(x)
         return x
 
 
 class PatchMerging(nn.Module):
-    def __init__(self, in_channels, out_channels, downscaling_factor):
+    """
+    Performs pooling: reduces spatial resolution while increasing channel count
+    """
+    def __init__(self, in_channels:int, out_channels:int, downscaling_factor:int):
         super().__init__()
         self.downscaling_factor = downscaling_factor
         self.patch_merge = nn.Unfold(kernel_size=downscaling_factor, stride=downscaling_factor, padding=0)
         self.linear = nn.Linear(in_channels * downscaling_factor ** 2, out_channels)
 
-    def forward(self, x):
+    def forward(self, x:torch.Tensor)->torch.Tensor:
         b, c, h, w = x.shape
         new_h, new_w = h // self.downscaling_factor, w // self.downscaling_factor
         x = self.patch_merge(x).view(b, -1, new_h, new_w).permute(0, 2, 3, 1)
@@ -292,17 +327,17 @@ class PatchMerging(nn.Module):
 
 
 class SwinModule(nn.Module):
-    def __init__(self, in_channels, hidden_dimension, layers, downscaling_factor, num_heads, head_dim, window_size,
-                 relative_pos_embedding, cross_attn):
+    def __init__(self, in_channels:int, hidden_dimension:int, layers:int, downscaling_factor: int, num_heads:int, head_dim:int, window_size:int,
+                 relative_pos_embedding:bool, cross_attn:bool):
         r"""
         Args:
-            in_channels(int): 输入通道数
-            hidden_dimension(int): 隐藏层维数，patch_partition提取patch时有个Linear学习的维数
-            layers(int): swin block数，必须为2的倍数，连续的，regular block和shift block
-            downscaling_factor: H,W上下采样倍数
-            num_heads: multi-attn 的 attn 头的个数
-            head_dim:   每个attn 头的维数
-            window_size:    窗口大小，窗口内进行attn运算
+            in_channels: number of input channels
+            hidden_dimension: hidden layer dimension 
+            layers: number of SwinBlocks; must be a multiple of 2, consisting of consecutive regular blocks and shifted blocks
+            downscaling_factor: spatial downsampling factor for height and width
+            num_heads: number of attention heads in the multi-head attention
+            head_dim:  dimension of each individual attention head
+            window_size: window size; the attention computation is restricted within this local window
         """
         super().__init__()
         assert layers % 2 == 0, 'Stage layers need to be divisible by 2 for regular and shifted block.'
@@ -321,7 +356,7 @@ class SwinModule(nn.Module):
                           cross_attn=cross_attn),
             ]))
 
-    def forward(self, x, y=None):
+    def forward(self, x:torch.Tensor, y: torch.Tensor=None)->torch.Tensor:
         if y is None:
             x = self.patch_partition(x)  # [N, H//downscaling_factor, W//downscaling_factor, hidden_dim]
             for regular_block, shifted_block in self.layers:
@@ -339,8 +374,20 @@ class SwinModule(nn.Module):
 
 
 class CrossSwinTransformer(nn.Module):
-    def __init__(self, cfg, logger, n_feats=64, n_heads=4, head_dim=16, win_size=4,
-                 n_blocks=3, cross_module=['pan', 'ms'], cat_feat=['pan', 'ms'], sa_fusion=False):
+    def __init__(self, cfg:Any, n_feats:int=64, n_heads:int=4, head_dim:int=16, win_size:int=4,
+                 n_blocks:int=3, cross_module:list=['pan', 'ms'], cat_feat:list=['pan', 'ms'], sa_fusion:bool=False):
+
+        """
+        Args:
+            cfg: configuration namespace; attributes:
+                - ms_chans(int): number of bands in the multispectral input
+                - norm_input(bool): if True, output is clamped to [0,1], else clamped using bit depth
+                - bit_depth(int): dynamic range of sensor
+            n_feats, n_heads, head_dim, win_size, n_blocks: structural hyperparameters
+            cross_module: fusion direction
+            cat_feat: features to concatenate before reconstruction
+            sa_fusion: to use self-attention fusion
+        """
         super().__init__()
         self.cfg = cfg
         self.n_blocks = n_blocks
@@ -396,7 +443,13 @@ class CrossSwinTransformer(nn.Module):
         self.pan_encoder = nn.Sequential(*pan_encoder)
         self.ms_encoder = nn.Sequential(*ms_encoder)
 
-    def forward(self, pan, ms):
+    def forward(self, pan: torch.Tensor, ms: torch.Tensor)->torch.Tensor:
+        """
+        Retrieves high resolution multispectral images
+        Args:
+            pan: high resolution panchromatic image (B, 1, H, W)
+            ms: low resolutioon multispectral image (B, self.cfg.ms_chans, H/4, W/4)
+        """
         pan_feat = self.pan_encoder(pan)
         ms_feat = self.ms_encoder(ms)
 
@@ -426,3 +479,4 @@ class CrossSwinTransformer(nn.Module):
             output = torch.clamp(output, 0, 2 ** self.cfg.bit_depth - .5)
 
         return output
+
