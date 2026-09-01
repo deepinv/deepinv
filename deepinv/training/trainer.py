@@ -17,7 +17,7 @@ from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.nn import devices_equal
-from deepinv.datasets.base import check_dataset
+from deepinv.datasets.base import check_dataset, batch_as_dict
 from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
@@ -722,35 +722,32 @@ class Trainer:
         In this setting, a new sample is generated at each iteration by calling the physics operator.
         This function returns a tuple `(x, y, physics)` for the model inference.
 
-        Assumes the dataloader returns ground truth `x`, or tuples of (`x`, `params`). Note that `params` are ignored if a physics generator is provided.
+        Assumes the dataloader returns ground truth `x`, or tuples of (`x`, `params`), or a dict with `"x"` key and optional `"params"` key. Note that `params` are ignored if a physics generator is provided.
 
         :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
         :returns: a tuple containing at least: the ground truth, the measurement, and the current physics operator.
         """
         data = next(iterators[g])
+        data = batch_as_dict(data)
 
-        params = {}
-        if isinstance(data, (tuple, list)):
-            x = data[0]
+        if "x" not in data:
+            raise ValueError(
+                "Dataloader must return ground truth `x` for online measurements."
+            )
 
-            if len(data) == 2 and isinstance(data[1], dict):
-                params = data[1]
-            else:
-                warnings.warn(
-                    f"Generating online measurements requires dataloader to return tensor `x` or (tensor `x`, dict `params`) but got ({type(x)}, {type(data[1])}, ...). Discarding all data after `x`."
-                )
-        else:
-            x = data
+        if "y" in data:
+            warnings.warn(
+                f"Generating online measurements requires dataloader to return tensor `x` or (tensor `x`, dict `params`) but got key 'y' in dataloader output. Discarding 'y' and using online measurements instead."
+            )
 
-        if torch.isnan(x).all():
-            raise ValueError("Online measurements can't be used if x is all NaN.")
+        x, params = data["x"], data.get("params", {})
 
         x = x.to(self.device, non_blocking=self.non_blocking_transfers)
         physics = self.physics[g]
 
         if self.physics_generator is not None:
-            if params:  # not empty params
+            if "params" in data:  # not empty params
                 warnings.warn(
                     "Physics generator is provided but dataloader also returns params. Ignoring params from dataloader."
                 )
@@ -771,42 +768,32 @@ class Trainer:
 
         If the dataloader returns 3-tuples, this is assumed to be ``(x, y, params)`` where
         ``params`` is a dict of physics generator params. These params are then used to update
-        the physics.
+        the physics. The dataloader batch can also be a dict with ``"x"``, ``"y"`` and optional
+        ``"params"`` keys (see :func:`deepinv.datasets.check_dataset`).
 
         :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
         :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
         """
         data = next(iterators[g])
-        if not isinstance(data, (tuple, list)) or len(data) < 2:
+        data = batch_as_dict(data)
+
+        if "y" not in data:
             raise ValueError(
-                "If online_measurements=False, the dataloader should output a tuple (x, y) or (x, y, params)"
+                "If online_measurements=False, the dataloader should output a dict with key 'y' (and optionally 'x' or 'params')"
             )
 
-        if len(data) == 2:
-            x, y, params = *data, None
-            if isinstance(y, dict):  # x,params offline
-                raise ValueError(
-                    "If online_measurements=False, measurements y must be provided as a tensor."
-                )
-        elif len(data) == 3:
-            x, y, params = data
-        else:
-            raise ValueError(
-                "Dataloader returns too many items. For offline learning, dataloader should either return (x, y) or (x, y, params)."
-            )
-
+        x, y, params = data.get("x", None), data["y"], data.get("params", None)
         batch_size_y = y[0].size(0) if isinstance(y, TensorList) else y.size(0)
-        batch_size_x = x[0].size(0) if isinstance(x, TensorList) else x.size(0)
 
-        if batch_size_x != batch_size_y:  # pragma: no cover
-            raise ValueError(
-                f"Data x, y must have same batch size, but got {batch_size_x}, {batch_size_y}"
-            )
+        if x is not None:
+            batch_size_x = x[0].size(0) if isinstance(x, TensorList) else x.size(0)
 
-        if torch.isnan(x).all() and x.ndim <= 1:
-            x = None  # Batch of NaNs -> no ground truth in deepinv convention
-        else:
+            if batch_size_x != batch_size_y:  # pragma: no cover
+                raise ValueError(
+                    f"Data x, y must have same batch size, but got {batch_size_x}, {batch_size_y}"
+                )
+
             x = x.to(self.device, non_blocking=self.non_blocking_transfers)
 
         y = y.to(self.device, non_blocking=self.non_blocking_transfers)

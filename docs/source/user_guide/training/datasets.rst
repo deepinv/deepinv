@@ -28,7 +28,16 @@ or any combination of these, in one of the following ways:
 
   If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`
 
-If you have your own dataset (e.g. a PyTorch `Dataset`), check that it is compatible using the function :func:`deepinv.datasets.check_dataset` 
+Alternatively, set `use_dict_output=True` (default False) in the dataset which makes them return a dict of the format `{"x": x, "y": y, "params": params}` with any key omitted if not applicable. This dict format is recommended over tuple for better readability and flexibility.
+
+>>> import torch
+>>> from deepinv.datasets import TensorDataset
+>>> x, y = torch.rand(1, 3, 8, 8), torch.rand(1, 3, 8, 8)
+>>> dataset = TensorDataset(x=x, y=y, use_dict_output=True)
+>>> dataset[0].keys()
+['x', 'y']
+
+If you have your own dataset (e.g. a PyTorch `Dataset`), check that it is compatible using the function :func:`deepinv.datasets.check_dataset`
 (e.g. to be used with :class:`deepinv.Trainer` or :class:`deepinv.test`).
 
 .. seealso::

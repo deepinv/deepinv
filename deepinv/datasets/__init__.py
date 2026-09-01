@@ -19,7 +19,13 @@ from .fmd import FMD
 from .kohler import Kohler
 from .utils import download_archive
 from .satellite import NBUDataset
-from .base import ImageDataset, check_dataset, TensorDataset, ImageFolder
+from .base import (
+    ImageDataset,
+    check_dataset,
+    TensorDataset,
+    ImageFolder,
+    batch_as_dict,
+)
 from .skmtea import SKMTEASliceDataset
 from .brainweb_pet import BrainWebPET
 from .brainweb_mri import BrainWebMRI

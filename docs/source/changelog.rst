@@ -8,6 +8,21 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
+
+Changed
+^^^^^^^
+- :class:`deepinv.models.FFDNet` default network parameters changed, to allow pretrained weights by default (:gh:`1357` by `Vicky De Ridder`_)
+
+Fixed
+^^^^^
+- Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)
+
+
+v0.4.2
+------
+New Features
+^^^^^^^^^^^^
 - Add :class:`deepinv.loss.metric.RecoveryCoefficient` Recovery Coefficient (RC) metric to evaluate reconstructed activity relative to ground truth within a mask, with dtype-aware numerical stability and a dedicated loss transformation for training (:gh:`1228` by `Kushagra Shukla`_)
 - Add 2D and 3D :class:`deepinv.physics.PET` (:gh:`1099` by `Julian Tachella`_)
 - Add support for multi-channel (chromatic) diffraction PSFs in :class:`deepinv.physics.generator.DiffractionBlurGenerator` with physically consistent wavelength scaling of the pupil cut-off frequency and Zernike coefficients.  (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
@@ -23,6 +38,8 @@ New Features
 - Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
 - Add :class:`deepinv.loss.metric.BRISQUE` and :class:`deepinv.loss.metric.NIMA` no-reference image quality metrics (:gh:`1310` by `Julian Tachella`_)
 - Add :class:`deepinv.datasets.BrainWebPET` (:gh:`1286` by `Thibaut Modrzyk`_)
+- Add ``mask_first`` option to :class:`deepinv.physics.SpaceVaryingBlur` and :func:`deepinv.physics.functional.product_convolution2d` (:gh:`1347` by `Julian Tachella`_)
+- Add ``use_dict_output`` option to every dataset class, returning a dict ``{"x", "y", "params"}`` instead of a tuple; propagate support to all deepinv internals (:gh:`1244` by `Romain Vo`_)
 
 Changed
 ^^^^^^^
@@ -30,10 +47,11 @@ Changed
 - Extend :func:`DST-I <deepinv.physics.functional.dst1>` to make it n-dimensional and add an option to have it compute the regular DST-I instead of the non-standard sign-flipped orthogonal variant (:gh:`934` by `Jérémy Scanvic`_)
 - Extend: :class:`deepinv.optim.MLEM` now supports :class:`deepinv.physics.PET` (:gh:`1255` by `Thibaut Modrzyk`_)
 - (Breaking) Make :class:`deepinv.optim.TVPrior()` compute an explicit choice of subgradient instead of using autodiff. (:gh:`1271` by `Thibaut Modrzyk`_)
-- Extend: :class:`deepinv.models.DEAL` now accepts two new arguments: `inner_iter` and `outer_iter`. (:gh:`1335` by `PAUL BERNARD`)
+- Extend: :class:`deepinv.models.DEAL` now accepts two new arguments: `inner_iter` and `outer_iter`. (:gh:`1335` by `Paul Bernard`_)
 
 Fixed
 ^^^^^
+- Fix the ``mask_first=False`` pretrained :class:`deepinv.models.KernelIdentificationNetwork` (:gh:`1347` by `Julian Tachella`_)
 - Deprecate the `theta` attribute from :class:`deepinv.physics.Tomography` (:gh:`1262` by `Matthieu Terris`_)
 - Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
 - Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
@@ -46,7 +64,9 @@ Fixed
 - Fix inversion in :class:`deepinv.transform.Reflect` (:gh:`1236` by `Sarra Amiri`_)
 - (Breaking) Have `x_shift` represent horizontal shifts and `y_shift` vertical shifts in :class:`deepinv.transform.Shift` (:gh:`1236` by `Sarra Amiri`_)
 - Force trainer non_blocking_transfers=False on MPS and CPU (:gh:`1311` by `Andrew Wang`_)
-- Fix :class:`deepinv.physics.PET` incorrect device attribution of attenuation and background on update and incorrect handling of batched attenuation 
+- Fix :class:`deepinv.physics.PET` incorrect device attribution of attenuation and background on update and incorrect handling of batched attenuation  (:gh:`1331` by `Thibaut Modrzyk`_)
+
+
 
 
 v0.4.1
@@ -690,3 +710,4 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
+.. _Delphine Doutsas: https://github.com/dldou
