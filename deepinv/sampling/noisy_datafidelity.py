@@ -284,7 +284,7 @@ class DDRMDataFidelity(NoisyDataFidelity):
         # 2. residual in SVD
         residual = physics.U_adjoint(physics.A(x0_t) - y)
 
-        # 3. the pseduo inverse
+        # 3. the pseudo inverse
         s = physics.mask
         denom = torch.abs(sigma_y**2 - sigma**2 * s**2)
         inv_denom = torch.where(denom > self.eps, 1.0 / denom, 0.0)
