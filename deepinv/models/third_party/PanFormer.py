@@ -480,3 +480,53 @@ class CrossSwinTransformer(nn.Module):
 
         return output
 
+# ---------------- DeepInverse compatible Wrapper -----------
+
+from deepinv.models import Reconstructor
+from deepinv.physics import Physics
+
+class PanFormer(Reconstructor):
+    """
+    DeepInverse Reconstructor wrapper for PanFormer.
+    """
+
+    def __init__(self, cfg:Any, n_feats:int=64, n_heads=8, head_dim=8, win_size=4, n_blocks=3, cross_module=['pan', 'ms'], cat_feat=['pan', 'ms']):
+        """
+        Args:
+            cfg: configuration namespace; attributes:
+                - ms_chans(int): number of bands in the multispectral input
+                - norm_input(bool): if True, output is clamped to [0,1], else clamped using bit depth
+                - bit_depth(int): dynamic range of sensor
+            n_feats, n_heads, head_dim, win_size, n_blocks: structural hyperparameters
+            cross_module: fusion direction
+            cat_feat: features to concatenate before reconstruction
+            sa_fusion: to use self-attention fusion
+        """
+        super().__init__()
+        backbone=CrossSwinTransformer(
+                    cfg=cfg,
+                    n_feats=n_feats,
+                    n_heads=n_heads,
+                    head_dim=head_dim,
+                    win_size=win_size,
+                    n_blocks=n_blocks,
+                    cross_module=cross_module,
+                    cat_feat=cat_feat
+                )
+        self.backbone = backbone
+        
+
+    def forward(self, y:tuple, physics:Physics=None, **kwargs)->torch.Tensor:
+        """
+        Args:
+            y : list, tuple/list (pan, ms) or dict ({'pan': pan, 'ms': ms}) of two torch.Tensor -> measurements (HR panchromatic and LR multispectral)
+            physics: 
+        """
+        if isinstance(y, (tuple, list)):
+            pan, ms = y[0], y[1]
+        elif isinstance(y, dict):
+            pan, ms = y['pan'], y['ms']
+        else:
+            raise ValueError("y must be a tuple/list (pan, ms) or a dict.")
+        
+        return self.backbone(pan, ms)
