@@ -95,6 +95,8 @@ jobs:
       - name: Build documentation with chosen examples
         env:
           SG_PATTERN: ${{ steps.get_pattern.outputs.SG_PATTERN }}
+          # Only generate llms.txt for push events to the main branch, not for PRs or other branches.
+          DEEPINV_BUILD_LLMS_TXT: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && '1' || '0' }}
         run: |
           echo "Running Sphinx with filename_pattern: $SG_PATTERN"
           pixi run -e docs sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"

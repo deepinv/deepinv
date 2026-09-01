@@ -68,6 +68,8 @@ jobs:
       - name: Build documentation chosen examples
         env:
           SG_PATTERN: ${{ steps.get_pattern.outputs.SG_PATTERN }}
+          # Never generate llms.txt, only on the GPU workflow
+          DEEPINV_BUILD_LLMS_TXT: '0'
         run: |
            echo "Running Sphinx with filename_pattern: $SG_PATTERN"
            pixi run -e docs-cpu sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
