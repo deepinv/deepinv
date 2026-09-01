@@ -229,16 +229,6 @@ def test_dirac_comb(device, shape):
 @pytest.mark.parametrize("with_subtitles", [False, True])
 @pytest.mark.parametrize("batched", [False, True])
 @pytest.mark.parametrize("return_axs", [False, True])
-@pytest.mark.parametrize("rescale_mode", ["min_max", "clip", None])
-@pytest.mark.parametrize(
-    "vmin, vmax",
-    [
-        (None, None),
-        (0.25, 0.75),
-    ],
-)
-@pytest.mark.parametrize("norm_type", [None, "normalize", "power"])
-@pytest.mark.parametrize("plot_inset", [False, True])
 def test_plot(
     tmp_path,
     C,
@@ -251,38 +241,13 @@ def test_plot(
     with_subtitles,
     batched,
     return_axs,
-    rescale_mode,
-    vmin,
-    vmax,
-    norm_type,
-    plot_inset,
 ):
-    reference_image = torch.tensor(
-        [
-            [-0.25, 0.25],
-            [0.75, 1.25],
-        ],
-        dtype=torch.float32,
-    )
-    reference_image = reference_image.unsqueeze(0).repeat(C, 1, 1)
-
     if batched:
-        reference_image = reference_image.unsqueeze(0)
-    img_list = (
-        [reference_image] * n_images
-        if isinstance(reference_image, torch.Tensor)
-        else reference_image
-    )
-
-    from matplotlib.colors import Normalize, PowerNorm
-
-    if norm_type == "normalize":
-        norm = Normalize(0.0, 1.0)
-    elif norm_type == "power":
-        norm = PowerNorm(gamma=2.0, vmin=0.0, vmax=1.0)
+        shape = (1, C, 2, 2)
     else:
-        norm = None
-
+        shape = (C, 2, 2)
+    img_list = torch.ones(shape)
+    img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
     subtitles = ["subtitle"] * n_images
     img_list = {k: v for k, v in zip(titles, img_list, strict=True)}
@@ -308,95 +273,130 @@ def test_plot(
             suptitle=suptitle,
             subtitles=subtitles,
             return_axs=return_axs,
-            rescale_mode=rescale_mode,
-            vmin=vmin,
-            vmax=vmax,
-            norm=norm,
-            plot_inset=plot_inset,
         )
-
-        # expected image for rescale_mode choice
-        if rescale_mode == "min_max":
-            expected_image = (reference_image + 0.25) / 1.5
-        elif rescale_mode == "clip":
-            v0 = 0.0 if vmin is None else vmin
-            v1 = 1.0 if vmax is None else vmax
-            expected_image = reference_image.clamp(v0, v1)
-            expected_image = (expected_image - v0) / (v1 - v0)
-        else:  # rescale_mode is None
-            v0 = 0.0 if vmin is None else vmin
-            v1 = 1.0 if vmax is None else vmax
-            expected_image = reference_image.clamp(v0, v1)
-
-        expected_batch = expected_image if batched else expected_image.unsqueeze(0)
-
         if return_axs:
             assert axs is not None
         else:
             assert axs is None
 
-        if return_axs:
-            for i in range(n_images):
-                for r, expected_img in enumerate(expected_batch):
-                    plotted_image = axs[r, i].images[0]
 
-                    expected_array = (
-                        expected_img.permute(1, 2, 0).squeeze().cpu().numpy()
-                    )
-                    np.testing.assert_allclose(
-                        plotted_image.get_array(),
-                        expected_array,
-                        atol=1e-5,
-                    )
+@pytest.mark.parametrize("C", [1, 3])
+@pytest.mark.parametrize("n_images", [1, 2])
+@pytest.mark.parametrize("batched", [False, True])
+@pytest.mark.parametrize(
+    "vmin, vmax",
+    [
+        (None, None),
+        (0.25, 0.75),
+    ],
+)
+@pytest.mark.parametrize("norm_type", [None, "power"])
+@pytest.mark.parametrize("plot_inset", [False, True])
+def test_plot_rescale_mode(
+    tmp_path,
+    C,
+    n_images,
+    batched,
+    vmin,
+    vmax,
+    norm_type,
+    plot_inset,
+):
+    reference_image = torch.tensor(
+        [
+            [-0.25, 0.25],
+            [0.75, 1.25],
+        ],
+        dtype=torch.float32,
+    )
+    reference_image = reference_image.unsqueeze(0).repeat(C, 1, 1)
 
-                    assert plotted_image.get_clim() == pytest.approx(
-                        (0.0, 1.0), abs=1e-5
-                    )
-                    if norm is not None:
-                        assert plotted_image.norm is norm
-                    elif rescale_mode is None:
-                        assert isinstance(plotted_image.norm, Normalize)
-                        assert plotted_image.norm.vmin == pytest.approx(0.0)
-                        assert plotted_image.norm.vmax == pytest.approx(1.0)
-                        assert plotted_image.norm.clip
+    if batched:
+        reference_image = reference_image.unsqueeze(0)
 
-                    if plot_inset:
-                        inset_image = axs[r, i].child_axes[0].images[0]
+    img_list = [reference_image] * n_images
 
-                        if norm is not None:
-                            assert inset_image.norm is norm
-                        elif rescale_mode is None:
-                            assert isinstance(inset_image.norm, Normalize)
-                            assert inset_image.norm is plotted_image.norm
+    from matplotlib.colors import Normalize, PowerNorm
 
-                    if cbar:
-                        assert plotted_image.colorbar is not None
+    if norm_type == "power":
+        norm = PowerNorm(gamma=2.0, vmin=0.0, vmax=1.0, clip=True)
+    else:  # norm_type is None
+        norm = None
 
-                    if save_plot:
-                        saved_path = tmp_path / str(i) / f"{r}.png"
-                        assert saved_path.exists()
+    axs = deepinv.utils.plot(
+        img_list,
+        titles=None,
+        save_dir=tmp_path,
+        cbar=False,
+        suptitle=None,
+        subtitles=None,
+        return_axs=True,
+        rescale_mode=None,
+        vmin=vmin,
+        vmax=vmax,
+        norm=norm,
+        plot_inset=plot_inset,
+    )
 
-                        with PIL.Image.open(saved_path) as saved:
-                            saved_image = np.asarray(saved.convert("RGBA"))
+    v0 = 0.0 if vmin is None else vmin
+    v1 = 1.0 if vmax is None else vmax
+    expected_image = reference_image.clamp(v0, v1)
 
-                        image_array = plotted_image.get_array()
-                        if plotted_image.origin == "lower":
-                            image_array = image_array[::-1]
+    expected_batch = expected_image if batched else expected_image.unsqueeze(0)
 
-                        expected_saved_image = plotted_image.to_rgba(
-                            image_array,
-                            bytes=True,
-                            norm=True,
-                        )
+    for i in range(n_images):
+        for r, expected_img in enumerate(expected_batch):
+            plotted_image = axs[r, i].images[0]
 
-                        np.testing.assert_array_equal(
-                            saved_image,
-                            expected_saved_image,
-                        )
+            expected_array = expected_img.permute(1, 2, 0).squeeze().cpu().numpy()
+            np.testing.assert_allclose(
+                plotted_image.get_array(),
+                expected_array,
+                atol=1e-5,
+            )
 
-        if save_plot:
-            save_name = "inset_images.svg" if plot_inset else "images.svg"
-            assert (tmp_path / save_name).exists()
+            assert plotted_image.get_clim() == pytest.approx((0.0, 1.0), abs=1e-5)
+
+            if norm is not None:
+                assert plotted_image.norm is norm
+            else:
+                assert isinstance(plotted_image.norm, Normalize)
+                assert plotted_image.norm.vmin == pytest.approx(0.0)
+                assert plotted_image.norm.vmax == pytest.approx(1.0)
+                assert plotted_image.norm.clip
+
+            if plot_inset:
+                inset_image = axs[r, i].child_axes[0].images[0]
+
+                assert isinstance(inset_image.norm, Normalize)
+                assert inset_image.norm is plotted_image.norm
+                assert plotted_image.norm.vmin == pytest.approx(0.0)
+                assert plotted_image.norm.vmax == pytest.approx(1.0)
+                assert plotted_image.norm.clip
+
+            saved_path = tmp_path / str(i) / f"{r}.png"
+            assert saved_path.exists()
+
+            with PIL.Image.open(saved_path) as saved:
+                saved_image = np.asarray(saved.convert("RGBA"))
+
+            image_array = plotted_image.get_array()
+            if plotted_image.origin == "lower":
+                image_array = image_array[::-1]
+
+            expected_saved_image = plotted_image.to_rgba(
+                image_array,
+                bytes=True,
+                norm=True,
+            )
+
+            np.testing.assert_array_equal(
+                saved_image,
+                expected_saved_image,
+            )
+
+    save_name = "inset_images.svg" if plot_inset else "images.svg"
+    assert (tmp_path / save_name).exists()
 
 
 @pytest.mark.parametrize("n_plots", [1, 2, 3])

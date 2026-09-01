@@ -14,6 +14,7 @@ import torchvision.transforms as T
 import torchvision.transforms.functional as F
 
 from PIL import Image
+import matplotlib.pyplot as plt
 
 from deepinv.utils.signals import normalize_signal, complex_abs
 
@@ -213,8 +214,8 @@ def preprocess_img(
     :param torch.Tensor im: the batch of images to preprocess, it is expected to be of shape (B, C, *).
     :param str, None rescale_mode: the normalization mode, either ``'min_max'``, ``'clip'``, or ``None``.
         With ``None``, image values are clipped to ``[vmin, vmax]`` without being rescaled.
-    :param float, None vmin: minimum clipping bound when using `rescale_mode=`'clip'`` or ``rescale_mode=None``. Defaults to 0.
-    :param float, None vmax: maximum clipping bound when using ``rescale_mode='clip'`` or ``rescale_mode=None``. Defaults to 1.
+    :param float, None vmin: minimum clipping bound when using ``'clip'`` or ``None``. Defaults to 0.
+    :param float, None vmax: maximum clipping bound when using ``'clip'`` or ``None``. Defaults to 1.
     :param bool return_scale: if ``True``, also return the per-element ``(vmin_orig, vmax_orig)``
         tuples representing the true data range **before** normalization, as a list of length B.
         For ``'min_max'`` mode these are the per-element min/max values; for ``'clip'`` mode
@@ -320,6 +321,7 @@ def plot(
     extract_size: float = 0.2,
     inset_loc: tuple | list = (0.0, 0.5),
     inset_size: float = 0.4,
+    norm: plt.colors.Norm | None = None,
     **imshow_kwargs,
 ):
     r"""
@@ -366,7 +368,7 @@ def plot(
     :param str, None rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
         their minimum and maximum values), ``'clip'`` (images are clipped to ``[vmin, vmax]`` and then rescaled between
         0 and 1), or ``None`` (images are clipped to ``[vmin, vmax]`` without rescaling and displayed using ``norm`` or,
-        by default, a fixed range of ``[0, 1]``).
+        by default, if norm is also ``None``, a fixed range of ``[0, 1]``).
     :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
     :param bool close: close the image plot. Under the hood, this calls the ``plt.close()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
@@ -395,8 +397,9 @@ def plot(
     :param float inset_size: size of inset to be plotted on image. Defaults to 0.4.
     :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` calls. See
         `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
+    :param plt.colors.Norm, None norm: Map the colormap from norm object passed as argument. When `rescale_mode=None`
+        and `norm=None`, defaults to `Normalize(0.0, 1.0, clip=True)`.
     """
-    import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
 
     # Use the matplotlib config from deepinv
@@ -456,8 +459,6 @@ def plot(
     if suptitle:
         plt.suptitle(suptitle, wrap=True)
         fig.subplots_adjust(top=0.75)
-
-    norm = imshow_kwargs.pop("norm", None)
 
     if rescale_mode is None and norm is None:
         norm = Normalize(0.0, 1.0, clip=True)
