@@ -49,7 +49,7 @@ def least_squares(
 
     - If `gamma=None` (:math:`\gamma = \infty`), it solves the unregularized least squares problem :math:`\min_x \|Ax-y\|^2`.
         - If :math:`A` is overcomplete (rows>=columns), it computes the least squares solution :math:`x = (A^{\top}A)^{-1}A^{\top}y`.
-        - If :math:`A` is undercomplete (columns>rows), it computes the minimum norm solution :math:`x = A^{\top}(AA^{\top})^{-1}y`. 
+        - If :math:`A` is undercomplete (columns>rows), it computes the minimum norm solution :math:`x = A^{\top}(AA^{\top})^{-1}y`.
     - If :math:`0 < \gamma < \infty`, it computes the least squares solution :math:`x = (A^{\top}A + \frac{1}{\gamma}I)^{-1}(A^{\top}y + \frac{1}{\gamma}z)`.
 
     .. warning::

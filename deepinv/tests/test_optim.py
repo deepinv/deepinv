@@ -1123,7 +1123,7 @@ solvers = ["CG", "BiCGStab", "lsqr", "minres", "lsmr"]
 least_squares_physics = [
     "super_resolution_circular",
     "deblur_valid",
-    "deblur_circular", # tests square solvers
+    "deblur_circular",  # tests square solvers
     "MultiCoilMRI",
 ]
 
