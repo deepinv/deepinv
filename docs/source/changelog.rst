@@ -20,7 +20,7 @@ v0.4.2
 ------
 New Features
 ^^^^^^^^^^^^
-- Add parameter `batch_norm` to :class: `DnCNN` (:gh: `1346` by `Alex Chudasama`_)
+- Add parameter `batch_norm` :class:`DnCNN` for optional building with batch norm (:gh: `1346` by `Alex Chudasama`_)
 - Add :class:`deepinv.loss.metric.RecoveryCoefficient` Recovery Coefficient (RC) metric to evaluate reconstructed activity relative to ground truth within a mask, with dtype-aware numerical stability and a dedicated loss transformation for training (:gh:`1228` by `Kushagra Shukla`_)
 - Add 2D and 3D :class:`deepinv.physics.PET` (:gh:`1099` by `Julian Tachella`_)
 - Add support for multi-channel (chromatic) diffraction PSFs in :class:`deepinv.physics.generator.DiffractionBlurGenerator` with physically consistent wavelength scaling of the pupil cut-off frequency and Zernike coefficients.  (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
