@@ -598,8 +598,6 @@ class DPS(PosteriorDiffusion):
         )
 
 
-
-
 class DDRM(PosteriorDiffusion):
 
     def __init__(
