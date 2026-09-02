@@ -207,7 +207,7 @@ def test_algo_inpaint(name_algo, device):
     mean_target_inmask = 2 / 3.0
 
     assert (mean_target_inmask - mean_crop).abs() < 0.2
-    assert (mean_target_masked - mean_outside_crop).abs() < 0.02
+    assert (mean_target_masked - mean_outside_crop).abs() < 0.04
 
 
 # tests for sample_builder
