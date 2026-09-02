@@ -1035,6 +1035,7 @@ class L12Prior(Prior):
         z = torch.nn.functional.relu(z - gamma) / (z + 1e-12)
         return z * x
 
+
 class WCRR3D(Prior):
     def __init__(
         self,
@@ -1042,11 +1043,11 @@ class WCRR3D(Prior):
         weak_convexity=1.0,
         tanh=False,
         nb_channels=[2, 4, 8, 16],  # channels per layer
-        filter_sizes=[3, 3, 3],      # 3D kernel sizes
+        filter_sizes=[3, 3, 3],  # 3D kernel sizes
         device="cuda" if torch.cuda.is_available() else "cpu",
         pretrained=None,
         rotations=True,
-        **kwargs
+        **kwargs,
     ):
         super(WCRR3D, self).__init__()
 
@@ -1076,9 +1077,11 @@ class WCRR3D(Prior):
         center = self.filter_size - 1
         for c in range(in_ch):
             self.dirac[0, c, center, center, center] = 1.0
-            
-        self.scaling = LinearSpline(N=self.nb_filters, K=12, sigma_min=0.01, sigma_max=0.1, eps=1e-5)
-        
+
+        self.scaling = LinearSpline(
+            N=self.nb_filters, K=12, sigma_min=0.01, sigma_max=0.1, eps=1e-5
+        )
+
         self.beta = nn.Parameter(torch.tensor(4.0, device=device))
 
         self.weak_cvx = weak_convexity
@@ -1090,7 +1093,6 @@ class WCRR3D(Prior):
 
         if pretrained:
             self.load_state_dict(torch.load(pretrained, map_location=device))
-            
 
     def smooth_l1(self, x):
         if self.tanh:
@@ -1124,48 +1126,75 @@ class WCRR3D(Prior):
             out = F.conv_transpose3d(out, filt.weight, padding=filt.padding)
         return out
 
-    def grad(self, x, sigma, *args, get_energy=False, **kwargs): # sigma --> 1D tensor with size equals the batch size of x
+    def grad(
+        self, x, sigma, *args, get_energy=False, **kwargs
+    ):  # sigma --> 1D tensor with size equals the batch size of x
 
         beta_sp = torch.exp(self.beta)
         scale_sp = self.scaling(sigma)
-        
+
         def grad_R(x):
             g = self.conv(x) * scale_sp
             if get_energy:
-                r = self.smooth_l1(beta_sp * g) / beta_sp - self.smooth_l1(g) * self.weak_cvx
+                r = (
+                    self.smooth_l1(beta_sp * g) / beta_sp
+                    - self.smooth_l1(g) * self.weak_cvx
+                )
                 r = r / scale_sp**2
                 r = r.sum(dim=(1, 2, 3, 4))
-            g = self.grad_smooth_l1(beta_sp * g) - self.grad_smooth_l1(g) * self.weak_cvx
+            g = (
+                self.grad_smooth_l1(beta_sp * g)
+                - self.grad_smooth_l1(g) * self.weak_cvx
+            )
             g = self.conv_transpose(g / scale_sp)
-            return (r,g) if get_energy else g
+            return (r, g) if get_energy else g
+
         if self.rotations:
-            x_DH = torch.rot90(x, k=1, dims=(-3,-2))
-            x_DW = torch.rot90(x, k=1, dims=(-3,-1))
-            x_HW = torch.rot90(x, k=1, dims=(-2,-1))
+            x_DH = torch.rot90(x, k=1, dims=(-3, -2))
+            x_DW = torch.rot90(x, k=1, dims=(-3, -1))
+            x_HW = torch.rot90(x, k=1, dims=(-2, -1))
             if get_energy:
-                grad_cost = grad_R(x)[1] + torch.rot90(grad_R(x_DH)[1], k=-1, dims=(-3,-2)) + torch.rot90(grad_R(x_DW)[1], k=-1, dims=(-3,-1)) + torch.rot90(grad_R(x_HW)[1], k=-1, dims=(-2,-1))
-                cost = grad_R(x)[0] + grad_R(x_DH)[0] + grad_R(x_DW)[0] + grad_R(x_HW)[0]
+                grad_cost = (
+                    grad_R(x)[1]
+                    + torch.rot90(grad_R(x_DH)[1], k=-1, dims=(-3, -2))
+                    + torch.rot90(grad_R(x_DW)[1], k=-1, dims=(-3, -1))
+                    + torch.rot90(grad_R(x_HW)[1], k=-1, dims=(-2, -1))
+                )
+                cost = (
+                    grad_R(x)[0] + grad_R(x_DH)[0] + grad_R(x_DW)[0] + grad_R(x_HW)[0]
+                )
             else:
-                grad_cost = grad_R(x) + torch.rot90(grad_R(x_DH), k=-1, dims=(-3,-2)) + torch.rot90(grad_R(x_DW), k=-1, dims=(-3,-1)) + torch.rot90(grad_R(x_HW), k=-1, dims=(-2,-1))
-            return (cost, grad_cost/4) if get_energy else grad_cost/4
+                grad_cost = (
+                    grad_R(x)
+                    + torch.rot90(grad_R(x_DH), k=-1, dims=(-3, -2))
+                    + torch.rot90(grad_R(x_DW), k=-1, dims=(-3, -1))
+                    + torch.rot90(grad_R(x_HW), k=-1, dims=(-2, -1))
+                )
+            return (cost, grad_cost / 4) if get_energy else grad_cost / 4
         return grad_R(x)
 
-    def fn(self, x, sigma, *args, **kwargs): # sigma --> 1D tensor with size equals the batch size of x
+    def fn(
+        self, x, sigma, *args, **kwargs
+    ):  # sigma --> 1D tensor with size equals the batch size of x
 
         beta_sp = torch.exp(self.beta)
         scale_sp = self.scaling(sigma)
-        
+
         def R(x):
             r = self.conv(x) * scale_sp
-            r = self.smooth_l1(beta_sp * r) / beta_sp - self.smooth_l1(r) * self.weak_cvx
+            r = (
+                self.smooth_l1(beta_sp * r) / beta_sp
+                - self.smooth_l1(r) * self.weak_cvx
+            )
             r = r / scale_sp**2
             return r.sum(dim=(1, 2, 3, 4))
+
         if self.rotations:
-            x_DH = torch.rot90(x, k=1, dims=(-3,-2))
-            x_DW = torch.rot90(x, k=1, dims=(-3,-1))
-            x_HW = torch.rot90(x, k=1, dims=(-2,-1))
+            x_DH = torch.rot90(x, k=1, dims=(-3, -2))
+            x_DW = torch.rot90(x, k=1, dims=(-3, -1))
+            x_HW = torch.rot90(x, k=1, dims=(-2, -1))
             cost = R(x) + R(x_DH) + R(x_DW) + R(x_HW)
-        return cost/4 if self.rotations else R(x)
-    
+        return cost / 4 if self.rotations else R(x)
+
     def prox(self, x, *args, **kwargs):
-            return "This method is not available for this prior."
+        return "This method is not available for this prior."
