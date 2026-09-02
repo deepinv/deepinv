@@ -720,7 +720,7 @@ class FourierPtychographyLinearOperator(LinearPhysics):
         return out
 
 
-class MultiplexedPtychography(PhaseRetrieval):
+class MultiplexedFourierPtychography(PhaseRetrieval):
     r"""
     Multiplexed Fourier Ptychography forward operator.
 
