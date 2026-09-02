@@ -728,7 +728,7 @@ class MultiplexedPtychography(PhaseRetrieval):
 
     .. math::
 
-         y_i = \cdot \frac{1}{|L_i|} \sum_{l \in L_i} \left| s_l B_l x \right|^2
+         y_i = \frac{1}{|\mathcal{L}_i|} \sum_{l \in \mathcal{L}_i} \left| s_l B_l x \right|^2
 
     where :math:`B` is the linear forward operator defined by a :class:`deepinv.physics.FourierPtychographyLinearOperator` object. The measurements are summed according to specific LED patterns where :math:`L_i` represents the set of LED indices multiplexed into the :math:`i`-th measurement, and :math:`s_l` is the intensity of each LED.
 
