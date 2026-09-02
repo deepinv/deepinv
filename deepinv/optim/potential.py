@@ -98,11 +98,7 @@ class Potential(nn.Module):
         """
         with torch.enable_grad():
             x = x.requires_grad_()
-            h = (
-                self.conjugate(x, *args, **kwargs)
-                if conjugate is None
-                else conjugate
-            )
+            h = self.conjugate(x, *args, **kwargs) if conjugate is None else conjugate
             grad = torch.autograd.grad(
                 h,
                 x,

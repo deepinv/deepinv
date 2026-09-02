@@ -78,7 +78,11 @@ def test_jacobian_spectral_values(toymatrix, reduction):
 
     # Nonec -> return all spectral norms
     reg_l2 = JacobianSpectralNorm(
-        max_iter=100, tol=1e-4, eval_mode=False, verbose=True, reduction=reduction,
+        max_iter=100,
+        tol=1e-4,
+        eval_mode=False,
+        verbose=True,
+        reduction=reduction,
         symmetric=True,
     )
     reg_FNE_l2 = FNEJacobianSpectralNorm(
