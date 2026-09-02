@@ -7,12 +7,9 @@ device = dinv.utils.get_device()
 dtype = torch.float32
 figsize = 2.5
 
-from deepinv.sampling import (
-    PosteriorDiffusion,
-    EulerSolver,
-    VariancePreservingDiffusion,
-)
+from deepinv.sampling import PosteriorDiffusion, EulerSolver, VariancePreservingDiffusion, VarianceExplodingDiffusion
 from deepinv.optim import ZeroFidelity
+
 
 # %%
 # ----------------------------------------------------
@@ -20,15 +17,11 @@ from deepinv.optim import ZeroFidelity
 # Let us first load a pretrained latent diffusion model from the HuggingFace Hub. Here, we use the `runwayml/stable-diffusion-v1-5` model.
 # This model is trained on 512x512 images.
 
-# We can wrap any diffusers model as a DeepInv denoiser using one line of code:
+# We can wrap any diffusers latent model as a DeepInv denoiser using one line of code:
 denoiser = DiffusersDenoiserWrapper(
-    model_id="runwayml/stable-diffusion-v1-5",
-    pipeline_name="DiffusionPipeline",
-    device=device,
-    clip_output=False,
+    model_id="runwayml/stable-diffusion-v1-5", pipeline_name="DiffusionPipeline", device=device, clip_output=False,
 )
 from diffusers import DDIMScheduler
-
 denoiser.scheduler = DDIMScheduler.from_config(denoiser.scheduler.config)
 
 # Load an example image
@@ -38,39 +31,8 @@ x = dinv.utils.load_example(
     resize_mode="resize",
 ).to(device)
 
-tokenizer = denoiser.tokenizer
-text_encoder = denoiser.text_encoder
-
 # Define the prompt
 prompt = ["a high resolution photo of a cat on a grass field, 4K, sharp"]
-
-# # Encode the prompt to conditioning embeddings
-# text_inputs = tokenizer(
-#     prompt,
-#     padding="max_length",
-#     max_length=tokenizer.model_max_length,
-#     truncation=True,
-#     return_tensors="pt"
-# )
-
-# # Empty prompt for unconditional guidance
-# uncond_inputs = tokenizer(
-#     [""] * len(prompt),
-#     padding="max_length",
-#     max_length=tokenizer.model_max_length,
-#     truncation=True,
-#     return_tensors="pt"
-# )
-
-# # Encode conditional prompt
-# text_embeddings = text_encoder(text_inputs.input_ids.to(device))[0]
-
-
-# # Encode unconditional prompt
-# uncond_embeddings = text_encoder(uncond_inputs.input_ids.to(device))[0]
-
-# # Concatenate unconditional and conditional embeddings for CFG
-# text_embeddings_cfg = torch.cat([uncond_embeddings, text_embeddings], dim=0)
 
 
 # %%
@@ -91,7 +53,7 @@ sde = VariancePreservingDiffusion(
     scaled_linear=True,
     device=device,
     dtype=dtype,
-    alpha=0,
+    alpha=0.5,
 )
 
 model = PosteriorDiffusion(
@@ -106,10 +68,7 @@ model = PosteriorDiffusion(
 )
 
 z = torch.randn(
-    1,
-    4,
-    64,
-    64,
+    1, 4, 64, 64,
     device=device,
     dtype=dtype,
 )
@@ -121,9 +80,9 @@ sample, trajectory = model(
     seed=42,
     get_trajectory=True,
     prompt=prompt,
-    input_in_minus_one_one=True,  # important
+    input_in_minus_one_one=True,   # important
     denoise_output=False,
-    guidance_scale=6,
+    guidance_scale = 6,
 )
 dinv.utils.plot(
     sample,
@@ -140,19 +99,11 @@ dinv.utils.plot(
 
 # Initialize the physics
 
-# mask = torch.ones_like(x)
-# mask[..., 70:150, 120:180] = 0
-# physics = dinv.physics.Inpainting(
-#     mask=mask,
-#     img_size=x.shape[1:],
-#     device=device,
-#     noise_model=dinv.physics.GaussianNoise(0.01),
-# )
-
-ksize = 3
-physics = dinv.physics.BlurFFT(
+mask = torch.ones_like(x)
+mask[..., 128:384, 128:384] = 0
+physics = dinv.physics.Inpainting(
+    mask=mask,
     img_size=x.shape[1:],
-    filter=dinv.physics.blur.gaussian_blur(sigma=(ksize, ksize)),
     device=device,
     noise_model=dinv.physics.GaussianNoise(0.01),
 )
@@ -161,27 +112,16 @@ y = physics(x)
 
 
 # %%
+# We first run LDPS to show how the posterior sampling can fail in certain scenarios.
 
 from deepinv.sampling import DPSDataFidelity
 
 num_steps = 500
-timesteps = torch.linspace(1, 0.001, num_steps)
 rng = torch.Generator(device)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 
-sde = VariancePreservingDiffusion(
-    beta_min=0.85,
-    beta_max=12.0,
-    scaled_linear=True,
-    device=device,
-    dtype=dtype,
-    alpha=0,
-)
-
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(
-        denoiser=denoiser, sde=sde, timesteps=timesteps, weight=1.0
-    ),
+    data_fidelity=DPSDataFidelity(denoiser=denoiser, sde=sde, timesteps=timesteps, original_algo=True, weight=1.0),
     denoiser=denoiser,
     sde=sde,
     solver=solver,
@@ -193,17 +133,8 @@ model = PosteriorDiffusion(
 
 
 # %%
-# Define the prompt
+# Define the prompt, which by default is set to be the null prompt
 prompt = [""]
-
-z = torch.randn(
-    1,
-    4,
-    64,
-    64,
-    device=device,
-    dtype=dtype,
-)
 
 posterior_sample = model(
     y=y,
@@ -211,9 +142,9 @@ posterior_sample = model(
     x_init=z,
     seed=15,
     prompt=prompt,
-    input_in_minus_one_one=True,  # important
+    input_in_minus_one_one=True,   # important
     denoise_output=False,
-    guidance_scale=1,
+    guidance_scale = 1,
 )
 dinv.utils.plot(
     [x, y, posterior_sample],
@@ -223,26 +154,16 @@ dinv.utils.plot(
 
 
 # %%
+# Next, we demonstrate posterior sampling using the PSLD data fidelity.
+
 from deepinv.sampling import PSLDDataFidelity
 
 num_steps = 500
-timesteps = torch.linspace(1, 0.001, num_steps)
 rng = torch.Generator(device)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 
-sde = VariancePreservingDiffusion(
-    beta_min=0.85,
-    beta_max=12.0,
-    scaled_linear=True,
-    device=device,
-    dtype=dtype,
-    alpha=0,
-)
-
 model = PosteriorDiffusion(
-    data_fidelity=PSLDDataFidelity(
-        denoiser=denoiser, sde=sde, timesteps=timesteps, omega=1.0, gamma=0.0
-    ),
+    data_fidelity=PSLDDataFidelity(denoiser=denoiser, sde=sde, timesteps=timesteps, omega=1.0, gamma=0.1),
     denoiser=denoiser,
     sde=sde,
     solver=solver,
@@ -254,17 +175,8 @@ model = PosteriorDiffusion(
 
 
 # %%
-# Define the prompt
+# Define the prompt, which by default is set to be the null prompt.
 prompt = [""]
-
-z = torch.randn(
-    1,
-    4,
-    64,
-    64,
-    device=device,
-    dtype=dtype,
-)
 
 posterior_sample = model(
     y=y,
@@ -272,14 +184,12 @@ posterior_sample = model(
     x_init=z,
     seed=15,
     prompt=prompt,
-    input_in_minus_one_one=True,  # important
+    input_in_minus_one_one=True,   # important
     denoise_output=False,
-    guidance_scale=1,
+    guidance_scale = 1,
 )
 dinv.utils.plot(
     [x, y, posterior_sample],
     titles=["Original image", "Measurement", "Posterior sample"],
     figsize=(figsize * 3, figsize),
 )
-
-# %%

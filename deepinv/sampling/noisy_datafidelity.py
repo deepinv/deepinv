@@ -111,9 +111,15 @@ class DPSDataFidelity(NoisyDataFidelity):
             \|\forw{\denoiser{x}{\sigma}} - y\|.
 
     This class also supports latent diffusion models, corresponding to LDPS.
+    By setting original_algo to True we can match the original discrete DPS algorithm
+    ignoring the additional SDE and Euler weighting introduced during sampling:
+
+    .. math::
+            \text{compensation} = \frac{1}{dt * (1 + \alpha(t))/2 * g(t)^2}
 
     :param deepinv.models.Denoiser denoiser: Denoiser network.
     :param float weight: Weight of the data-fidelity term. Default to 1.0.
+    :param bool original_algo: Whether to use the original DPS algorithm. Default to False.
     :param tuple[float] clip: Optional clipping interval for the denoised output.
     :param sde: SDE used for sampling. If provided together with ``timesteps``,
         the gradient is compensated to reproduce the discrete DPS update.
@@ -124,6 +130,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         self,
         denoiser: Denoiser = None,
         weight: float = 1.0,
+        original_algo: bool = False,
         clip: tuple = None,
         sde=None,
         timesteps=None,
@@ -135,6 +142,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         self.d = dinv.optim.L2Distance()
         self.denoiser = denoiser
         self.weight = weight
+        self.original_algo = original_algo
 
         if clip is not None:
             if len(clip) != 2:
@@ -143,22 +151,12 @@ class DPSDataFidelity(NoisyDataFidelity):
 
         self.clip = clip
 
-        # --------------------------------------------------
         # Optional compensation of the SDE/Euler weighting.
-        #
-        # Reverse-SDE Euler sampling later multiplies the
-        # likelihood gradient by
-        #
-        #   dt * (1 + alpha(t))/2 * g(t)^2
-        #
-        # so we divide by that factor here to recover the
-        # original discrete DPS correction.
-        # --------------------------------------------------
 
         self._sigmas = None
         self._sde_step_weights = None
 
-        if sde is not None and timesteps is not None:
+        if self.original_algo and sde is not None and timesteps is not None:
             with torch.no_grad():
 
                 timesteps = timesteps.to(
@@ -236,13 +234,11 @@ class DPSDataFidelity(NoisyDataFidelity):
                 grad_outputs=torch.ones_like(loss),
             )[0]
 
-        # --------------------------------------------------
-        # Cancel the additional SDE + Euler weighting.
-        # --------------------------------------------------
+        # Cancel the additional SDE + Euler weighting to match the paper algorithm.
+        if self.original_algo:
+            step_weight = self._sde_step_weight(sigma)
 
-        step_weight = self._sde_step_weight(sigma)
-
-        if step_weight is not None:
+        if self.original_algo and step_weight is not None:
             step_weight = step_weight.to(
                 device=grad.device,
                 dtype=grad.dtype,
@@ -277,15 +273,15 @@ class DPSDataFidelity(NoisyDataFidelity):
         )
 
         # LDPS
-        if self.denoiser.vae is not None:
+        if getattr(self.denoiser, "vae", None) is not None:
 
             x0_t_dec = self.denoiser._decode(x0_t).clamp(0, 1)
 
             residual = physics.A(x0_t_dec) - y
 
-            loss = residual.flatten(1).norm(dim=1).mean() * self.weight
+            loss = residual.flatten(1).norm(dim=1) * self.weight
 
-        # DPS in image space
+        # DPS in pixel space
         else:
 
             if self.clip is not None:
@@ -297,7 +293,7 @@ class DPSDataFidelity(NoisyDataFidelity):
 
             residual = physics.A(x0_t) - y
 
-            loss = residual.flatten(1).norm(dim=1).mean() * self.weight
+            loss = residual.flatten(1).norm(dim=1) * self.weight
 
         if get_model_outputs:
             return loss, x0_t
@@ -315,9 +311,16 @@ class PSLDDataFidelity(DPSDataFidelity):
             \gamma \|\hat z_0-\mathcal{E}(A^\top y +
             (I-A^\top A)\mathcal{D}(\hat z_0))\|.
 
+    By setting original_algo to True to match the original discrete PSLD algorithm,
+    this class compensates for the additional SDE and Euler weighting introduced during sampling:
+
+    .. math::
+            \text{compensation} = \frac{1}{dt * (1 + \alpha(t))/2 * g(t)^2}
+
     :param deepinv.models.Denoiser denoiser: Latent diffusion denoiser with VAE.
     :param sde: Diffusion SDE used for sampling.
     :param torch.Tensor timesteps: Solver timesteps.
+    :param bool original_algo: Whether to use the original DPS algorithm. Default to True.
     :param float omega: Weight of the measurement term. Default to 1.0.
     :param float gamma: Weight of the gluing term. Default to 0.1.
     """
@@ -327,6 +330,7 @@ class PSLDDataFidelity(DPSDataFidelity):
         denoiser: Denoiser,
         sde,
         timesteps,
+        original_algo: bool = True,
         omega: float = 1.0,
         gamma: float = 0.1,
     ):
@@ -336,26 +340,24 @@ class PSLDDataFidelity(DPSDataFidelity):
             clip=None,
         )
 
+        self.original_algo = original_algo
         self.omega = omega
         self.gamma = gamma
 
         # Precompute the extra factor introduced by one Euler SDE step:
-        #
-        #   dt * (1 + alpha(t))/2 * g(t)^2
-        #
-        # score() is evaluated at timesteps[:-1].
-        with torch.no_grad():
-            t_cur = timesteps[:-1].to(sde.device, sde.dtype)
-            dt = torch.abs(timesteps[1:] - timesteps[:-1]).to(sde.device, sde.dtype)
+        if self.original_algo:
+            with torch.no_grad():
+                t_cur = timesteps[:-1].to(sde.device, sde.dtype)
+                dt = torch.abs(timesteps[1:] - timesteps[:-1]).to(sde.device, sde.dtype)
 
-            self._sigmas = torch.stack([sde.sigma_t(t) for t in t_cur]).flatten()
+                self._sigmas = torch.stack([sde.sigma_t(t) for t in t_cur]).flatten()
 
-            self._sde_step_weights = torch.stack(
-                [
-                    dti * (1 + sde.alpha(t)) / 2 * sde.forward_diffusion(t) ** 2
-                    for t, dti in zip(t_cur, dt, strict=True)
-                ]
-            ).flatten()
+                self._sde_step_weights = torch.stack(
+                    [
+                        dti * (1 + sde.alpha(t)) / 2 * sde.forward_diffusion(t) ** 2
+                        for t, dti in zip(t_cur, dt, strict=True)
+                    ]
+                ).flatten()
 
     def forward(
         self,
@@ -370,7 +372,7 @@ class PSLDDataFidelity(DPSDataFidelity):
         if not isinstance(physics, dinv.physics.LinearPhysics):
             raise ValueError("PSLD requires a linear physics operator.")
 
-        if self.denoiser.vae is None:
+        if getattr(self.denoiser, "vae", None) is None:
             raise ValueError("PSLD requires a latent model with a VAE.")
 
         if isinstance(sigma, torch.Tensor):
@@ -392,7 +394,7 @@ class PSLDDataFidelity(DPSDataFidelity):
         # Measurement term
         residual = physics.A(x0_hat) - y
 
-        measurement_loss = residual.flatten(1).norm(dim=1).mean()
+        measurement_loss = residual.flatten(1).norm(dim=1)
 
         # x* = A^T y + (I - A^T A) x
         x_glued = x0_hat + physics.A_adjoint(y - physics.A(x0_hat))
@@ -403,7 +405,7 @@ class PSLDDataFidelity(DPSDataFidelity):
             dtype=z0_hat.dtype,
         )
 
-        glue_loss = (z0_hat - z_glued).flatten(1).norm(dim=1).mean()
+        glue_loss = (z0_hat - z_glued).flatten(1).norm(dim=1)
 
         loss = self.omega * measurement_loss + self.gamma * glue_loss
 
@@ -443,20 +445,14 @@ class PSLDDataFidelity(DPSDataFidelity):
                 grad_outputs=torch.ones_like(loss),
             )[0]
 
-        # Cancel the coefficient introduced later by:
-        #
-        # reverse drift:
-        #   (1 + alpha(t))/2 * g(t)^2
-        #
-        # Euler:
-        #   * dt
-        #
-        step_weight = self._sde_step_weight(sigma).to(
-            device=grad.device,
-            dtype=grad.dtype,
-        )
+        # Cancel the additional SDE + Euler weighting to match the paper algorithm.
+        if self.original_algo:
+            step_weight = self._sde_step_weight(sigma).to(
+                device=grad.device,
+                dtype=grad.dtype,
+            )
 
-        grad = grad / step_weight
+            grad = grad / step_weight
 
         if get_model_outputs:
             return grad, out[1].detach()

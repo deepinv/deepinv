@@ -963,7 +963,7 @@ class PosteriorDiffusion(Reconstructor):
             x_init = self.sde.sample_init(x_init, rng=self.solver.rng)
         elif x_init is None:
             if physics is not None:
-                if self.sde.denoiser.vae is not None:
+                if getattr(self.sde.denoiser, "vae", None) is not None:
                     x_init = self.sde.sample_init(
                         self.sde.denoiser._encode(physics.A_dagger(y)).shape,
                         rng=self.solver.rng,
@@ -1013,7 +1013,7 @@ class PosteriorDiffusion(Reconstructor):
         # Scale the output back to [0, 1]
         sample = solution.sample
 
-        if self.sde.denoiser.vae is not None:
+        if getattr(self.sde.denoiser, "vae", None) is not None:
             sample = self.sde.denoiser._decode(sample).clamp(0, 1)
 
         if get_trajectory:

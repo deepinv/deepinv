@@ -18,6 +18,7 @@ from deepinv.sampling import (
     FlowMatching,
     PosteriorDiffusion,
     DPSDataFidelity,
+    PSLDDataFidelity,
     EulerSolver,
     HeunSolver,
 )
@@ -372,6 +373,27 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
         )
         # Test output shape
         assert x_hat.shape == (2, 3, 64, 64)
+
+        posterior = PosteriorDiffusion(
+            data_fidelity=PSLDDataFidelity(denoiser=denoiser, sde=sde, timesteps=timesteps),
+            sde=sde,
+            denoiser=denoiser,
+            solver=solver,
+            dtype=torch.float64,
+            device=device,
+        )
+        physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=0.5, device=device)
+        y = physics(x)
+
+        x_hat = posterior(
+            y,
+            physics,
+            x_init=(2, 3, 64, 64),
+            seed=111,
+            **kwargs,
+        )
+        # Test output shape
+        assert x_hat.shape == (2, 3, 64, 64)
     finally:
         # pytest seems to not clean objects properly, which can cause OOM errors.
         del denoiser, sde, posterior
@@ -416,6 +438,32 @@ def test_diffusion_reproducibility(load_example_image, device, rng, sde_class):
     # Test posterior sampling
     posterior = PosteriorDiffusion(
         data_fidelity=DPSDataFidelity(denoiser=denoiser),
+        sde=sde,
+        denoiser=denoiser,
+        solver=solver,
+        dtype=torch.float64,
+        device=device,
+    )
+
+    x_hat_1 = posterior(
+        y,
+        physics,
+        x_init=(2, 3, 64, 64),
+        seed=111,
+    )
+    # Test output shape
+    assert x_hat_1.shape == (2, 3, 64, 64)
+    # Test reproducibility
+    x_hat_2 = posterior(
+        y,
+        physics,
+        x_init=(2, 3, 64, 64),
+        seed=111,
+    )
+    torch.testing.assert_close(x_hat_1, x_hat_2, rtol=1e-2, atol=1e-2)
+
+    posterior = PosteriorDiffusion(
+        data_fidelity=PSLDDataFidelity(denoiser=denoiser, sde=sde, timesteps=timesteps),
         sde=sde,
         denoiser=denoiser,
         solver=solver,
