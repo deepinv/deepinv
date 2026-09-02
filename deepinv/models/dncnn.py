@@ -29,7 +29,8 @@ class DnCNN(Denoiser):
     :param int depth: number of convolutional layers
     :param bool bias: use bias in the convolutional layers
     :param int nf: number of channels per convolutional layer
-    :param str norm: optionally apply batch normalization or instance normalization after each intermediate convolutional layer
+    :param str norm: Normalization applied after each intermediate convolutional layer. Use ``"batch_norm"`` for batch normalization, ``"instance_norm"`` for
+    instance normalization, or ``None`` for no normalization. Default: ``None``.
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (only available for architecture with depth 20, 64 channels and biases).
