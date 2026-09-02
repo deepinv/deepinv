@@ -12,6 +12,7 @@ New Features
 
 Changed
 ^^^^^^^
+- Improve graph management in :class:`deepinv.loss.JacobianSpectralNorm` to reduce memory usage during power iteration (by `Sebastian Neumayer`_)
 - :class:`deepinv.models.FFDNet` default network parameters changed, to allow pretrained weights by default (:gh:`1357` by `Vicky De Ridder`_)
 
 Fixed

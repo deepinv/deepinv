@@ -124,10 +124,14 @@ class JacobianSpectralNorm(Loss):
         def A(u, create_graph=False):
             v = torch.autograd.grad(
                 g, w, u, retain_graph=True, create_graph=create_graph
-            )[0]  # v = J u
+            )[
+                0
+            ]  # v = J u
             return torch.autograd.grad(
                 y, x, v, retain_graph=True, create_graph=create_graph
-            )[0]  # J^T J u
+            )[
+                0
+            ]  # J^T J u
 
         # Power iteration without building any graph
         with torch.no_grad():
