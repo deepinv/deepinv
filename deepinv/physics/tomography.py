@@ -15,7 +15,6 @@ from deepinv.physics.functional import (
     ApplyRadon,
     XrayTransform,
 )
-from deepinv.utils import devices_equal
 
 from deepinv.physics.functional.astra import (
     AutogradTransform,
@@ -669,7 +668,7 @@ class TomographyWithAstra(LinearPhysics):
                 "be 1. Use `is_2d=False` instead."
             )
 
-        if devices_equal(device, "cuda"):
+        if torch.device(device).type != "cuda":
             warn(
                 f"TomographyWithAstra only supports CUDA Tensors and CUDA operations, got device={device}",
                 RuntimeWarning,
