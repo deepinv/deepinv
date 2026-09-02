@@ -9,6 +9,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
+- Add co-design regularization support through :class:`deepinv.loss.CodesignRegularization` and :class:`deepinv.loss.BinaryRegularization`, together with an end-to-end co-design example, documentation, tests, and standardized mathematical notation. The example is listed after Blind Inverse Problems in the examples navigation (by `Jorge Bacca`_).
 
 Changed
 ^^^^^^^
@@ -711,3 +712,4 @@ Changed
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
 .. _Delphine Doutsas: https://github.com/dldou
+.. _Jorge Bacca: https://github.com/jorgebaccauis

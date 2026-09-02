@@ -349,7 +349,6 @@ sphinx_gallery_conf = {
     "subsection_order": ExplicitOrder(
         [
             "../../examples/basics",
-            "../../examples/co_design",
             "../../examples/models",
             "../../examples/physics",
             "../../examples/optimization",
@@ -357,6 +356,7 @@ sphinx_gallery_conf = {
             "../../examples/sampling",
             "../../examples/unfolded",
             "../../examples/blind-inverse-problems",
+            "../../examples/co_design",
             "../../examples/self-supervised-learning",
             "../../examples/transforms-equivariance",
             "../../examples/adversarial-learning",

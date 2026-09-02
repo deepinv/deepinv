@@ -9,25 +9,29 @@ Consider the forward model
 
 .. math::
 
-    y = \operatorname{noise}(\operatorname{forw}(x, \theta)),
+    y = \noise{\forw{x, \theta}}
 
-where :math:`A` is the physics operator, :math:`N` models the noise, and
-:math:`\theta` is the trainable physics parameter. The reconstructor is
-defined as
-
-.. math::
-
-    \hat{x} = R(y, A, \alpha).
-
-The goal is to learn :math:`\theta` jointly with the reconstructor by solving
+where :math:`N` is the noise model, :math:`\forw{\cdot, \theta}` is the
+forward operator, and :math:`\theta` is the trainable physics parameter.
+Following the standard DeepInverse notation, the reconstruction is written as
 
 .. math::
 
-    \min_{\theta,R} \frac{1}{2}
-    \left\|R(\operatorname{forw}(x, \theta)) - x\right\|^2
-    + \operatorname{Reg}(\theta),
+    \hat{x} = \inversef{y}{\forw{\cdot, \theta}}.
 
-where :math:`\operatorname{Reg}` is a regularizer for the physics parameter.
+The goal is to learn the physics parameter :math:`\theta` jointly with the
+reconstruction parameters :math:`\phi` by minimizing the reconstruction error
+
+.. math::
+
+    \min_{\theta,\phi}\; \frac{1}{2}
+    \left\|
+    \inversef{\noise{\forw{x, \theta}}}{\forw{\cdot, \theta}} - x
+    \right\|_2^2
+    + \lambda\,\Omega(\theta),
+
+where :math:`\Omega(\theta)` is a regularizer for the trainable physics
+parameter and :math:`\lambda` controls its strength.
 
 This example jointly trains the complete
 :class:`deepinv.physics.CompressedSensing` matrix and an
@@ -42,8 +46,6 @@ same end-to-end objective.
 from pathlib import Path
 
 import torch
-import torch.nn as nn
-from torch import Tensor
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 import matplotlib.pyplot as plt
@@ -269,7 +271,9 @@ selected_rows = [0, 65, 130, 195]
 
 fig, axes = plt.subplots(4, 2, figsize=(10, 12))
 
-for row_idx, (ax_init, ax_trained) in enumerate(zip(axes[:, 0], axes[:, 1])):
+for row_idx, (ax_init, ax_trained) in enumerate(
+    zip(axes[:, 0], axes[:, 1], strict=False)
+):
     measurement_idx = selected_rows[row_idx]
 
     # Initial pattern (left column).
@@ -334,3 +338,8 @@ axes[2].axis("off")
 
 fig.tight_layout()
 plt.show()
+
+# %%
+# :References:
+#
+# .. footbibliography::
