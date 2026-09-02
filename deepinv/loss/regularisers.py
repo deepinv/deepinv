@@ -116,48 +116,60 @@ class JacobianSpectralNorm(Loss):
 
         zold = torch.zeros_like(u)
 
-        for it in range(self.max_iter):
-            # Double backward trick. From https://gist.github.com/apaszke/c7257ac04cb8debb82221764f6d117ad
-            w = torch.ones_like(y, requires_grad=True)
+        # Double backward trick. From https://gist.github.com/apaszke/c7257ac04cb8debb82221764f6d117ad
+        # g = J^T w is linear in w, hence d<g, u>/dw = J u. The graph of g is built once and reused.
+        w = torch.ones_like(y, requires_grad=True)
+        g = torch.autograd.grad(y, x, w, create_graph=True)[0]
+
+        def A(u, create_graph=False):
             v = torch.autograd.grad(
-                torch.autograd.grad(y, x, w, create_graph=True),
-                w,
-                u,
-                create_graph=not self.eval,
-            )[
-                0
-            ]  # v = A(u)
+                g, w, u, retain_graph=True, create_graph=create_graph
+            )[0]  # v = J u
+            return torch.autograd.grad(
+                y, x, v, retain_graph=True, create_graph=create_graph
+            )[0]  # J^T J u
 
-            (v,) = torch.autograd.grad(y, x, v, retain_graph=True, create_graph=True)
+        # Power iteration without building any graph
+        with torch.no_grad():
+            for it in range(self.max_iter):
+                u_last = u
+                v = A(u)
 
-            # multiply corresponding batch elements
+                # multiply corresponding batch elements
+                z = (
+                    torch.linalg.vecdot(u.flatten(1, -1), v.flatten(1, -1), dim=-1)
+                    / torch.linalg.vector_norm(u, dim=tuple(range(1, u.dim()))) ** 2
+                )
+
+                if it > 0:
+                    rel_var = torch.linalg.vector_norm(z - zold)
+                    if rel_var < self.tol:
+                        if self.verbose:
+                            print(
+                                "Power iteration converged at iteration: ",
+                                it,
+                                ", val: ",
+                                z.sqrt().tolist(),
+                                ", relvar :",
+                                rel_var.item(),
+                            )
+                        break
+                zold = z.detach().clone()
+
+                u = v / torch.linalg.vector_norm(
+                    v, dim=tuple(range(1, v.dim())), keepdim=True
+                )
+
+        if not self.eval:
+            # Single differentiable pass with the (detached) converged vector.
+            # Exact to first order: the derivative of the singular vector does not
+            # contribute to the derivative of the Rayleigh quotient at its maximizer.
+            v = A(u_last, create_graph=True)
             z = (
-                torch.linalg.vecdot(u.flatten(1, -1), v.flatten(1, -1), dim=-1)
-                / torch.linalg.vector_norm(u, dim=tuple(range(1, u.dim()))) ** 2
+                torch.linalg.vecdot(u_last.flatten(1, -1), v.flatten(1, -1), dim=-1)
+                / torch.linalg.vector_norm(u_last, dim=tuple(range(1, u_last.dim())))
+                ** 2
             )
-
-            if it > 0:
-                rel_var = torch.linalg.vector_norm(z - zold)
-                if rel_var < self.tol and self.verbose:
-                    print(
-                        "Power iteration converged at iteration: ",
-                        it,
-                        ", val: ",
-                        z.sqrt().tolist(),
-                        ", relvar :",
-                        rel_var.item(),
-                    )
-                    break
-            zold = z.detach().clone()
-
-            u = v / torch.linalg.vector_norm(
-                v, dim=tuple(range(1, v.dim())), keepdim=True
-            )
-
-            if self.eval:
-                w.detach_()
-                v.detach_()
-                u.detach_()
 
         return self.reduction(z.view(-1).sqrt())
 
