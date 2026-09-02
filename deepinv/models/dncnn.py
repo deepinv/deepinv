@@ -53,12 +53,12 @@ class DnCNN(Denoiser):
         pretrained_2d_isotropic: bool = False,
         device: torch.device | str = "cpu",
         dim: int | str = 2,
-        norm: str | None = "batch_norm",
+        norm: str | None = None,
     ):
         super(DnCNN, self).__init__()
-        if norm not in ("batch_norm", "instance_norm", "layer_norm", None):
+        if norm not in ("batch_norm", "instance_norm", None):
             raise ValueError(
-                f"norm must be one of (batch_norm, instance_norm, layer_norm, None), got {norm}"
+                f"norm must be one of (batch_norm, instance_norm, None), got {norm}"
             )
         norm = {
             "batch_norm": batchnorm_nd(dim),
@@ -88,10 +88,11 @@ class DnCNN(Denoiser):
 
         if pretrained is not None:
             if pretrained.startswith("download"):
-                if norm:
+                if norm is not None:
                     raise ValueError(
-                        f"Pre-trained weights are only available for DnCNN without normalization layers."
-                        "Set `pretrained=None` or provide a path to compatible pretrained weights."
+                        "Pre-trained weights are only available for DnCNN when `norm=None`. "
+                        "Set `norm=None`, use `pretrained=None`, or provide a path to "
+                        "compatible pretrained weights."
                     )
                 if dim == 3 and pretrained in (
                     "download",
