@@ -2,6 +2,7 @@ from __future__ import annotations
 import torch
 import torch.utils.data as data
 from deepinv.models import Denoiser
+from deepinv.datasets.base import batch_as_dict
 from tqdm import tqdm
 import numpy as np
 
@@ -165,8 +166,8 @@ class MMSEFunction(torch.autograd.Function):
 
         pb = tqdm(dataloader, desc="MMSE Denoiser", disable=not verbose)
         for batch in pb:
-            if isinstance(batch, (list, tuple)):
-                batch = batch[0]
+            batch = batch_as_dict(batch)
+            batch = batch["x"]
             batch = batch.to(device=device, dtype=dtype, non_blocking=True)
             Bd = batch.size(0)
             batch = batch.view(Bd, -1)
@@ -245,8 +246,8 @@ class MMSEFunction(torch.autograd.Function):
 
         pb = tqdm(dataloader, desc="MMSE Backward", disable=not verbose)
         for batch in pb:
-            if isinstance(batch, (list, tuple)):
-                batch = batch[0]
+            batch = batch_as_dict(batch)
+            batch = batch["x"]
             batch = batch.to(device=device, dtype=dtype, non_blocking=True)
             Bd = batch.size(0)
             batch = batch.view(Bd, -1)
