@@ -148,6 +148,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         sigma,
         *args,
         get_model_outputs=False,
+        forward=None,
         **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         r"""
@@ -156,19 +157,24 @@ class DPSDataFidelity(NoisyDataFidelity):
         :param deepinv.physics.Physics physics: physics model
         :param float sigma: Standard deviation of the noise.
         :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.
+        :param forward: Precomputed forward output. Recomputed if ``None``.
 
         :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) score term (and denoised output if `get_model_outputs` is `True`).
         """
         with torch.enable_grad():
             x.requires_grad_(True)
-            out = self.forward(
-                x,
-                y,
-                physics,
-                sigma,
-                *args,
-                get_model_outputs=get_model_outputs,
-                **kwargs,
+            out = (
+                self.forward(
+                    x,
+                    y,
+                    physics,
+                    sigma,
+                    *args,
+                    get_model_outputs=get_model_outputs,
+                    **kwargs,
+                )
+                if forward is None
+                else forward
             )
             # In case we also want the denoised output
             if get_model_outputs:

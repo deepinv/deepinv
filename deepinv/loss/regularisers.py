@@ -21,10 +21,11 @@ class JacobianSpectralNorm(Loss):
 
     :param int max_iter: maximum number of iteration of the power method.
     :param float tol: tolerance for the convergence of the power method.
-    :param bool eval_mode: set to ``False`` if one does not want to backpropagate through the spectral norm (default), set to ``True`` otherwise.
+    :param bool eval_mode: if ``True``, do not build the graph needed to backpropagate through the spectral norm. Defaults to ``False``.
     :param bool verbose: whether to print computation details or not.
     :param str reduction: reduction in batch dimension. One of ["mean", "sum", "max"], operation to be performed after all spectral norms have been computed. If ``None``, a vector of length ``batch_size`` will be returned. Defaults to "max".
     :param int reduced_batchsize: if not `None`, the batch size will be reduced to this value for the computation of the spectral norm. Can be useful to reduce memory usage and computation time when the batch size is large.
+    :param bool symmetric: if ``True``, assume the Jacobian is symmetric and replace the Jacobian-vector product by a cheaper vector-Jacobian product (lower memory). Defaults to ``False``.
 
     |sep|
 
@@ -36,7 +37,7 @@ class JacobianSpectralNorm(Loss):
         >>> from deepinv.loss.regularisers import JacobianSpectralNorm
         >>> _ = torch.manual_seed(0)
         >>>
-        >>> reg_l2 = JacobianSpectralNorm(max_iter=100, tol=1e-5, eval_mode=False, verbose=True)
+        >>> reg_l2 = JacobianSpectralNorm(max_iter=100, tol=1e-5, eval_mode=False, verbose=False)
         >>> A = torch.diag(torch.Tensor(range(1, 51))).unsqueeze(0)  # creates a diagonal matrix with largest eigenvalue = 50
         >>> x = torch.randn((1, A.shape[1])).unsqueeze(0).requires_grad_()
         >>> out = x @ A
@@ -54,14 +55,16 @@ class JacobianSpectralNorm(Loss):
         verbose: bool = False,
         reduction: str = "max",
         reduced_batchsize: int = None,
+        symmetric: bool = False,
     ):
         super(JacobianSpectralNorm, self).__init__()
         self._name = "jsn"
         self.max_iter = max_iter
         self.tol = tol
-        self.eval = eval_mode
+        self.eval_mode = eval_mode
         self.verbose = verbose
         self.reduced_batchsize = reduced_batchsize
+        self.symmetric = symmetric
 
         self.reduction = lambda x: x
         if reduction is not None:
@@ -80,14 +83,13 @@ class JacobianSpectralNorm(Loss):
                     'Reduction should be "mean", "sum", "max", "none" or None.'
                 )
 
-    def _reduce_batch(self, x, y):
+    def _reduce_batch(self, y):
         """
-        Reduces the batch dimension of the input tensors x and y.
+        Reduces the batch dimension of the output tensor y.
         """
         if self.reduced_batchsize is not None:
-            x = x[: self.reduced_batchsize]
             y = y[: self.reduced_batchsize]
-        return x, y
+        return y
 
     def forward(self, y, x, **kwargs):
         """
@@ -103,49 +105,49 @@ class JacobianSpectralNorm(Loss):
         If x has multiple dimensions, it's assumed the first one corresponds to the batch dimension.
         """
 
-        x, y = self._reduce_batch(x, y)
-
         if x.shape[0] != y.shape[0]:  # pragma: no cover
             raise ValueError(
                 f"x and y should have the same number of instances. Got {x.shape[0]} vs. {y.shape[0]}"
             )
 
-        u = torch.randn_like(x)
-        # Normalize each batch element
-        u = u / torch.linalg.vector_norm(u, dim=tuple(range(1, u.dim())), keepdim=True)
+        # A slice of x is not part of the graph of y, so only y is reduced and the
+        # gradients w.r.t. x are restricted to the first k batch elements.
+        y = self._reduce_batch(y)
+        k = y.shape[0]
+        dims = tuple(range(1, x.dim()))
 
-        zold = torch.zeros_like(u)
+        def normalize(v):
+            return v / torch.linalg.vector_norm(v, dim=dims, keepdim=True)
 
-        # Double backward trick. From https://gist.github.com/apaszke/c7257ac04cb8debb82221764f6d117ad
-        # g = J^T w is linear in w, hence d<g, u>/dw = J u. The graph of g is built once and reused.
-        w = torch.ones_like(y, requires_grad=True)
-        g = torch.autograd.grad(y, x, w, create_graph=True)[0]
+        if not self.symmetric:
+            # Double backward trick. From https://gist.github.com/apaszke/c7257ac04cb8debb82221764f6d117ad
+            # g = J^T w is linear in w, hence d<g, u>/dw = J u. The graph of g is built once and reused.
+            w = torch.ones_like(y, requires_grad=True)
+            g = torch.autograd.grad(y, x, w, create_graph=True)[0][:k]
 
-        def A(u, create_graph=False):
-            v = torch.autograd.grad(
-                g, w, u, retain_graph=True, create_graph=create_graph
-            )[
-                0
-            ]  # v = J u
+        def JTv(v, create_graph=False):
             return torch.autograd.grad(
                 y, x, v, retain_graph=True, create_graph=create_graph
-            )[
-                0
-            ]  # J^T J u
+            )[0][:k]
 
-        # Power iteration without building any graph
+        def Ju(u):
+            # J u, which equals J^T u for a symmetric Jacobian
+            if self.symmetric:
+                return JTv(u)
+            return torch.autograd.grad(g, w, u, retain_graph=True)[0]
+
+        u = normalize(torch.randn_like(x[:k]))
+        zold = None
+
+        # Power iteration on J^T J without building any graph.
+        # For unit u, ||J u||^2 is the Rayleigh quotient of J^T J.
         with torch.no_grad():
             for it in range(self.max_iter):
                 u_last = u
-                v = A(u)
+                v = Ju(u)
+                z = torch.linalg.vector_norm(v, dim=dims) ** 2
 
-                # multiply corresponding batch elements
-                z = (
-                    torch.linalg.vecdot(u.flatten(1, -1), v.flatten(1, -1), dim=-1)
-                    / torch.linalg.vector_norm(u, dim=tuple(range(1, u.dim()))) ** 2
-                )
-
-                if it > 0:
+                if zold is not None:
                     rel_var = torch.linalg.vector_norm(z - zold)
                     if rel_var < self.tol:
                         if self.verbose:
@@ -158,24 +160,27 @@ class JacobianSpectralNorm(Loss):
                                 rel_var.item(),
                             )
                         break
-                zold = z.detach().clone()
+                zold = z
 
-                u = v / torch.linalg.vector_norm(
-                    v, dim=tuple(range(1, v.dim())), keepdim=True
-                )
+                u = normalize(JTv(v))
 
-        if not self.eval:
-            # Single differentiable pass with the (detached) converged vector.
+        if not self.eval_mode:
+            # Single differentiable pass with the (detached) converged pair u, v = J u.
             # Exact to first order: the derivative of the singular vector does not
             # contribute to the derivative of the Rayleigh quotient at its maximizer.
-            v = A(u_last, create_graph=True)
+            # 2 <u, J^T v> - ||v||^2 has the value and derivative of ||J u||^2 but needs
+            # a single vector-Jacobian product, so the double-backward graph can be freed.
+            if not self.symmetric:
+                del g, w
             z = (
-                torch.linalg.vecdot(u_last.flatten(1, -1), v.flatten(1, -1), dim=-1)
-                / torch.linalg.vector_norm(u_last, dim=tuple(range(1, u_last.dim())))
-                ** 2
+                2
+                * torch.linalg.vecdot(
+                    u_last.flatten(1), JTv(v, create_graph=True).flatten(1), dim=-1
+                )
+                - torch.linalg.vector_norm(v, dim=dims) ** 2
             )
 
-        return self.reduction(z.view(-1).sqrt())
+        return self.reduction(z.sqrt())
 
 
 class FNEJacobianSpectralNorm(Loss):
@@ -199,7 +204,7 @@ class FNEJacobianSpectralNorm(Loss):
 
     :param int max_iter: maximum number of iteration of the power method.
     :param float tol: tolerance for the convergence of the power method.
-    :param bool eval_mode: set to ``False`` if one does not want to backpropagate through the spectral norm (default), set to ``True`` otherwise.
+    :param bool eval_mode: if ``True``, do not build the graph needed to backpropagate through the spectral norm. Defaults to ``False``.
     :param bool verbose: whether to print computation details or not.
     :param str reduction: reduction in batch dimension. One of ["mean", "sum", "max"], operation to be performed after all spectral norms have been computed. If ``None``, a vector of length ``batch_size`` will be returned. Defaults to "max".
     :param int reduced_batchsize: if not `None`, the batch size will be reduced to this value for the computation of the spectral norm. Can be useful to reduce memory usage and computation time when the batch size is large.

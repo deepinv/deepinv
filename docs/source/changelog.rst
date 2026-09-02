@@ -9,14 +9,17 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
+- Add ``symmetric`` option to :class:`deepinv.loss.JacobianSpectralNorm` that replaces the Jacobian-vector product by a vector-Jacobian product for symmetric Jacobians, reducing memory usage (by `Sebastian Neumayer`_)
 
 Changed
 ^^^^^^^
-- Improve graph management in :class:`deepinv.loss.JacobianSpectralNorm` to reduce memory usage during power iteration (by `Sebastian Neumayer`_)
+- Use the standard stop-gradient trick in :class:`deepinv.loss.JacobianSpectralNorm` by running power iterations under ``torch.no_grad`` and retaining a single differentiable final pass (by `Sebastian Neumayer`_)
 - :class:`deepinv.models.FFDNet` default network parameters changed, to allow pretrained weights by default (:gh:`1357` by `Vicky De Ridder`_)
 
 Fixed
 ^^^^^
+- Fix ``reduced_batchsize`` in :class:`deepinv.loss.JacobianSpectralNorm` and :class:`deepinv.loss.FNEJacobianSpectralNorm`, which raised an error because the sliced input was not part of the graph (by `Sebastian Neumayer`_)
+- Fix :class:`deepinv.loss.JacobianSpectralNorm` shadowing ``torch.nn.Module.eval()`` with the ``eval_mode`` attribute (by `Sebastian Neumayer`_)
 - Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)
 
 
