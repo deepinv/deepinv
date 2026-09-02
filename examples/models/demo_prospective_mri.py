@@ -15,8 +15,6 @@ This example requires ISMRMRD. Install it with ``pip install ismrmrd``.
 # %%
 import torch
 import deepinv as dinv
-from ram_experiments.datasets.io import load_ismrmrd_raw
-from ram_experiments.physics.mri import phase_correct_maps
 
 device = dinv.utils.get_device()
 
@@ -28,7 +26,7 @@ device = dinv.utils.get_device()
 # k-space ``(1, 2, N, D, H, W)`` (N coils). We inverse-FFT the fully-sampled readout/slice dimension
 # ``D`` (``ifft_slice_dim=True``) and take the middle slice to obtain a 2D multi-coil k-space.
 
-y = load_ismrmrd_raw("/Volumes/E/ram-experiments/data/yu_melba/t2_space_fs_sag_cs7_iso.h5", ifft_slice_dim=True)
+y = dinv.io.load_ismrmrd_raw("/Volumes/E/ram-experiments/data/yu_melba/t2_space_fs_sag_cs7_iso.h5", ifft_slice_dim=True)
 y = y[..., y.shape[-1] // 2, :, :].to(device)  # middle slice -> (1, 2, N, H, W)
 
 # %%
@@ -45,16 +43,19 @@ coil_maps = dinv.physics.MultiCoilMRI.estimate_coil_maps(y, calib_size=24, espir
 
 M = dinv.utils.MRIMixin()
 y = y / torch.quantile(M.rss(M.kspace_to_im(y)), 0.99)
-physics = dinv.physics.MultiCoilMRI(mask=mask, coil_maps=coil_maps, device=device)
-with torch.no_grad():
-    physics.update(coil_maps=phase_correct_maps(physics.coil_maps, physics.A_adjoint(y)))
+physics = dinv.physics.MultiCoilMRI(mask=mask, coil_maps=coil_maps, device=device, noise_model=dinv.physics.GaussianNoise(sigma=0.02))
+    
 
 # %%
 # Reconstruct with RAM
 # --------------------
 
 model = dinv.models.RAM(device=device, pretrained=True)
-with torch.inference_mode():
-    x_ram = model(y, physics)
 
-dinv.utils.plot([physics.A_dagger(y), x_ram], titles=["zero-filled", "RAM"])
+with torch.no_grad():
+    x_zf = physics.A_adjoint(y)
+    physics.phase_correct_maps(x_zf)
+    x_ram = model(y, physics)
+    x_sense = physics.A_dagger(y)
+
+dinv.utils.plot([x_zf, x_sense, x_ram], titles=["Zero-filled", "SENSE", "RAM"])
