@@ -74,7 +74,7 @@ class FourierShift(Transform):
         while phase.ndim < x.ndim:
             phase = phase.unsqueeze(1)
         shifted = torch.fft.ifftn(
-            torch.fft.fftn(x, dim=(-2, -1)) * phase, # TODO enable thee_d
+            torch.fft.fftn(x, dim=(-2, -1)) * phase,  # TODO enable thee_d
             dim=(-2, -1),
         )
         if two_channel_complex:

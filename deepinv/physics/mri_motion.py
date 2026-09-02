@@ -144,9 +144,7 @@ class TimeVaryingMotion(LinearPhysics):
                 for name, value in self.named_buffers(recurse=False)
                 if name.startswith(self._motion_param_prefix)
             }
-        params = self.check_params(
-            motion_params, x.shape[0], x.shape[2], x.device
-        )
+        params = self.check_params(motion_params, x.shape[0], x.shape[2], x.device)
         if not params:
             raise ValueError("TimeVaryingMotion requires non-empty motion parameters.")
 

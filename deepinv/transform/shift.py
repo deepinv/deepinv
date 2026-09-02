@@ -76,9 +76,7 @@ class Shift(Transform):
             return torch.cat(
                 [
                     torch.roll(x[i : i + 1], [sy, sx], [-2, -1])
-                    for i, (sy, sx) in enumerate(
-                        zip(y_shift, x_shift, strict=True)
-                    )
+                    for i, (sy, sx) in enumerate(zip(y_shift, x_shift, strict=True))
                 ]
             )
 

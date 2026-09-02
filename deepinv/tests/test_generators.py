@@ -86,6 +86,7 @@ def test_brownian_motion_generator_reset_rng(device):
     for name in initial:
         assert torch.equal(initial[name], reset[name])
 
+
 # Inpainting/Splitting Generators
 INPAINTING_IMG_SIZES = [
     (2, 64, 40),

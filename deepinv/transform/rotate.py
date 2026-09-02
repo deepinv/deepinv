@@ -104,9 +104,7 @@ class Rotate(Transform):
                 dim=-1,
             ).reshape(-1, 2, 3)
             height, width = x.shape[-2:]
-            matrix = matrix.transpose(1, 2) / x.new_tensor(
-                [0.5 * width, 0.5 * height]
-            )
+            matrix = matrix.transpose(1, 2) / x.new_tensor([0.5 * width, 0.5 * height])
             base_grid = x.new_empty(1, height, width, 3)
             base_grid[..., 0] = torch.linspace(
                 -0.5 * width + 0.5,

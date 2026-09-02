@@ -1349,9 +1349,7 @@ def test_mri_motion_parameter_validation():
             coil_maps=torch.ones(1, 1, 4, 4, dtype=torch.complex64),
             motion_params={"theta": torch.zeros(1, 1)},
         )
-    motion = TimeVaryingMotion(
-        Shift(), motion_params={"theta": torch.zeros(1, 2)}
-    )
+    motion = TimeVaryingMotion(Shift(), motion_params={"theta": torch.zeros(1, 2)})
     motion.update(
         motion_params={
             "x_shift": torch.zeros(1, 2),
