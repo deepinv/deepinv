@@ -91,13 +91,13 @@ img_size = (128, 128, 24)
 voxel_size = (3, 3, 3)
 
 # number of sides of the polygon approximating a circle
-num_sides = 16 # dsa was 32
+num_sides = 32 # dsa was 32
 
 # number of detectors per polygon side
-num_lor_endpoints_per_side = 8 # dsa was 16 
+num_lor_endpoints_per_side = 16 # dsa was 16 
 
 # number of rings of detectors on the depth axes
-num_rings = 7
+num_rings = 8
 
 scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
     torch_compat,
@@ -110,8 +110,8 @@ scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
 
 # dsa tof 
 tof_info = parallelproj.tof.TOFParameters(
-    num_tofbins=5,
-    tofbin_width=80.0,
+    num_tofbins=23,
+    tofbin_width=20.0,
     sigma_tof=10.0,
     num_sigmas=3.0,
 )
