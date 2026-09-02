@@ -127,25 +127,6 @@ class TimeVaryingMotion(LinearPhysics):
                     value,
                 )
 
-    def _get_motion_params(self) -> dict[str, Tensor]:
-        """Return the stored motion parameter buffers."""
-        return {
-            name.removeprefix(self._motion_param_prefix): value
-            for name, value in self.named_buffers(recurse=False)
-            if name.startswith(self._motion_param_prefix)
-        }
-
-    def _resolve_params(
-        self,
-        motion_params: Mapping[str, Tensor] | None,
-        batch_size: int,
-        time_size: int,
-        device: torch.device,
-    ) -> dict[str, Tensor]:
-        if motion_params is None:
-            motion_params = self._get_motion_params()
-        return self.check_params(motion_params, batch_size, time_size, device)
-
     def _apply_motion(
         self,
         x: Tensor,
@@ -157,31 +138,27 @@ class TimeVaryingMotion(LinearPhysics):
                 "TimeVaryingMotion currently supports 2D dynamic images with "
                 f"shape (B,C,T,H,W), but got {tuple(x.shape)}."
             )
-        params = self._resolve_params(
+        if motion_params is None:
+            motion_params = {
+                name.removeprefix(self._motion_param_prefix): value
+                for name, value in self.named_buffers(recurse=False)
+                if name.startswith(self._motion_param_prefix)
+            }
+        params = self.check_params(
             motion_params, x.shape[0], x.shape[2], x.device
         )
         if not params:
             raise ValueError("TimeVaryingMotion requires non-empty motion parameters.")
 
         output = torch.empty_like(x)
-        for b in range(x.shape[0]):
-            for t in range(x.shape[2]):
-                frame_params = {
-                    name: value[b, t].reshape(1, *value.shape[2:])
-                    for name, value in params.items()
-                }
-                if inverse:
-                    frame_params = self.transform.invert_params(frame_params)
-                transformed = self.transform.transform(
-                    x[b : b + 1, :, t], **frame_params
-                )
-                if transformed.shape != x[b : b + 1, :, t].shape:
-                    raise RuntimeError(
-                        "The wrapped transform changed the image shape from "
-                        f"{tuple(x[b : b + 1, :, t].shape)} to "
-                        f"{tuple(transformed.shape)}."
-                    )
-                output[b : b + 1, :, t] = transformed
+        for t in range(x.shape[2]):
+            frame_params = {name: value[:, t] for name, value in params.items()}
+            if inverse:
+                frame_params = self.transform.invert_params(frame_params)
+            transformed = self.transform.transform(
+                x[:, :, t], batchwise=False, **frame_params
+            )
+            output[:, :, t] = transformed
         return output
 
     def A(

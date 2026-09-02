@@ -70,6 +70,7 @@ OPERATORS = [
     "fast_singlepixel_xy",
     "MRI",
     "DynamicMRI",
+    "TimeVaryingMotion",
     "MultiCoilMRI",
     "MultiCoilMRIBirdcage",
     "3DMRI",
@@ -201,6 +202,19 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )  # C,T,H,W where T is time
         p = DynamicMRI(img_size=img_size, device=device)
         params = ["mask"]
+    elif name == "TimeVaryingMotion":
+        img_size = (
+            (2, 3, 17, 11) if imsize is None else imsize
+        )  # C,T,H,W where T is time
+        p = TimeVaryingMotion(
+            Shift(),
+            motion_params={
+                "x_shift": torch.tensor([[0, 1, -1]], device=device),
+                "y_shift": torch.tensor([[1, 0, -1]], device=device),
+            },
+            device=device,
+        )
+        params = []
     elif name == "MultiCoilMRI":
         img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
         n_coils = 7
@@ -826,6 +840,7 @@ def test_operator_multiscale_wrapper(name, device, rng):
         "ptychography",  # ?
         "composition2",  # shape handling
         "dynamicmri",  # shape handling
+        "timevaryingmotion",  # shape handling
         "complex_compressed_sensing",  # data type (complex)
     ]
 
@@ -1190,7 +1205,7 @@ def test_time_varying_motion_matches_individual_shifts(device):
         "x_shift": torch.tensor([[0, 1, 2]], device=device),
         "y_shift": torch.tensor([[0], [1]], device=device),
     }
-    motion = TimeVaryingMotion(Shift())
+    motion, _, _, _ = find_operator("TimeVaryingMotion", device)
 
     actual = motion.A(x, motion_params=params)
     expected = torch.empty_like(x)
@@ -2748,6 +2763,7 @@ MULTISCALE_EXCLUSION = [
     "3DMultiCoilMRI",
     "pet_3d",
     "DynamicMRI",
+    "TimeVaryingMotion",
     "fast_singlepixel",
     "fast_singlepixel_zig_zag",
     "fast_singlepixel_old_sequency",

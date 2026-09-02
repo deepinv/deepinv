@@ -10,6 +10,8 @@ from deepinv.transform.base import Transform, TransformParam
 class FourierShift(Transform):
     r"""Continuous circular translations using the Fourier shift theorem.
 
+    TODO
+
     Unlike :class:`deepinv.transform.Shift`, which uses integer pixel rolls,
     this transform accepts floating-point translations. Under the periodic,
     band-limited discrete-image model, its inverse is its exact adjoint for
@@ -62,10 +64,17 @@ class FourierShift(Transform):
         fy = torch.fft.fftfreq(height, device=x.device, dtype=real_dtype)
         fx = torch.fft.fftfreq(width, device=x.device, dtype=real_dtype)
         phase = torch.exp(
-            -2j * torch.pi * (y_shift * fy[:, None] + x_shift * fx[None, :])
+            -2j
+            * torch.pi
+            * (
+                y_shift.flatten()[:, None, None] * fy[None, :, None]
+                + x_shift.flatten()[:, None, None] * fx[None, None, :]
+            )
         )
+        while phase.ndim < x.ndim:
+            phase = phase.unsqueeze(1)
         shifted = torch.fft.ifftn(
-            torch.fft.fftn(x, dim=(-2, -1)) * phase,
+            torch.fft.fftn(x, dim=(-2, -1)) * phase, # TODO enable thee_d
             dim=(-2, -1),
         )
         if two_channel_complex:
@@ -77,8 +86,20 @@ class FourierShift(Transform):
         x: torch.Tensor,
         x_shift: torch.Tensor | Iterable | TransformParam = tuple(),
         y_shift: torch.Tensor | Iterable | TransformParam = tuple(),
+        batchwise: bool = False,
         **kwargs,
     ) -> torch.Tensor:
+        if not batchwise:
+            # Pair shift i with image i; preserve B.
+            if len(x_shift) not in (1, len(x)) or len(y_shift) not in (1, len(x)):
+                raise ValueError(
+                    "x_shift and y_shift must contain one value or one value "
+                    "per batch element."
+                )
+            x_shift = x_shift.expand(len(x)) if len(x_shift) == 1 else x_shift
+            y_shift = y_shift.expand(len(x)) if len(y_shift) == 1 else y_shift
+            return self._shift(x, x_shift, y_shift)
+
         return torch.cat(
             [self._shift(x, sx, sy) for sx, sy in zip(x_shift, y_shift, strict=True)],
             dim=0,
