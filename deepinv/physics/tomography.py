@@ -439,8 +439,8 @@ class TomographyWithAstra(LinearPhysics):
         - ``(vx, vy, vz)``: the vertical unit vector of the detector.
 
         When specified, ``geometry_vectors`` overrides ``detector_spacing``, ``angles`` and ``geometry_parameters``. It is particularly useful to build the geometry for the `Walnut-CBCT dataset <https://zenodo.org/records/2686726>`_, where the acquisition parameters are provided via such vectors.
-    :param dict[str,Tensor], None object_geometry: Pre-created ``astra`` volume geometry, as returned by ``astra.create_vol_geom``. If specified, overrides ``img_size``, ``pixel_spacing`` and ``bounding_box``.
-    :param dict[str,Tensor], None projection_geometry: Pre-created ``astra`` projection geometry, as returned by ``astra.create_proj_geom``. If specified, overrides ``angles``, ``n_detector_pixels``, and ``geometry_parameters``.
+    :param dict, None object_geometry: Pre-created ``astra`` volume geometry, as returned by ``astra.create_vol_geom``. If specified, overrides ``img_size``, ``pixel_spacing`` and ``bounding_box``.
+    :param dict, None projection_geometry: Pre-created ``astra`` projection geometry, as returned by ``astra.create_proj_geom``. If specified, overrides ``angles``, ``n_detector_pixels``, and ``geometry_parameters``.
     :param bool is_2d: If ``True``, the operator is 2D, otherwise it is 3D. If ``object_geometry`` and ``projection_geometry`` are not specified, this argument is ignored and inferred from the ``img_size`` argument.
     :param bool normalize: If ``True`` :func:`A` and :func:`A_adjoint` are normalized so that the operator has unit norm. (default: ``True``)
     :param torch.device | str device: The operator only supports CUDA computation. (default: ``torch.device('cuda')``)
