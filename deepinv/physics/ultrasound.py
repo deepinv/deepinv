@@ -40,10 +40,16 @@ class UltrafastUltrasound(LinearPhysics):
         \left[A^\top y\right]_j = \left[G^\top \! \left(\tilde{h} \ast_t y\right)\right]_j, \qquad
         \left[G^\top y\right]_j = \sum_{k,i,n} a_{k,i}(\mathbf{r}_j)\, K\!\big(f_s\,(t_n - \tau_{k,i}(\mathbf{r}_j))\big)\, \overline{\varphi_{k,i}(\mathbf{r}_j)}\, y_{k,i,n},
 
-    where :math:`\tilde{h}(t) = h(-t)` is the time-reversed pulse and :math:`\overline{\varphi_{k,i}}` the conjugate modulation phase.
+    where :math:`\tilde{h}(t) = \overline{h(-t)}` is the time-reversed conjugated pulse and :math:`\overline{\varphi_{k,i}}` the conjugate modulation phase.
 
     Signals are batched real tensors whose layout depends on `signal_kind`: in `"iq"` mode :math:`x` has shape `(B, 2, Z, X)` with an `(I, Q)` channel pair on dim 1
     and :math:`y` has shape `(B, 2, n_transmits, n_elements, n_samples)`; in `"rf"` mode both have a single channel.
+
+    .. note::
+        The receive delays and apodization depend only on the pixel grid and the element positions, so they are computed once, on the first
+        :meth:`A` / :meth:`A_adjoint` call, and reused. They live in non-persistent buffers, hence follow `.to(device)` but stay out of `state_dict`,
+        and cost two `(n_elements, Z * X)` tensors. Mutating `pixel_grid` or `element_positions` in place after construction leaves them stale;
+        build a new operator instead.
 
     .. note::
         This class is not meant to be instantiated directly. Subclass it to implement a new transmit scheme
@@ -69,7 +75,7 @@ class UltrafastUltrasound(LinearPhysics):
     :param str tx_apod_window: transmit apodization window, one of `"rect"`, `"hann"`, `"hamming"`, `"tukey0.25"`. `None` disables transmit apodization. (default: `None`)
     :param str interp: interpolation kernel :math:`K`, one of `"nearest"`, `"linear"`, `"keys"`. (default: `"linear"`)
     :param str signal_kind: signal representation, `"iq"` or `"rf"`. (default: `"iq"`)
-    :param torch.Tensor pulse: optional 1D pulse-echo impulse response :math:`h`, normalized to unit :math:`\ell_2` norm and convolved along the time axis in both :meth:`A` and :meth:`A_adjoint`. (default: `None`)
+    :param torch.Tensor pulse: optional 1D pulse-echo impulse response :math:`h`, normalized to unit :math:`\ell_2` norm and convolved along the time axis in both :meth:`A` and :meth:`A_adjoint`. In `"iq"` mode it may be complex, i.e. the baseband response of a pulse that is not zero-phase or whose center frequency differs from `demodulation_frequency`; the adjoint then correlates with :math:`\overline{h}`. In `"rf"` mode it must be real. (default: `None`)
     :param torch.device, str device: device for buffers. (default: `"cpu"`)
     :param torch.dtype dtype: real dtype; `float32` uses internal `complex64`, `float64` uses `complex128`. (default: `torch.float32`)
 
@@ -215,8 +221,19 @@ class UltrafastUltrasound(LinearPhysics):
         self._complex_dtype = (torch.complex128
                                if dtype == torch.float64 else torch.complex64)
 
+        self.register_buffer("_tau_rx_cache", None, persistent=False)
+        self.register_buffer("_apod_rx_cache", None, persistent=False)
+
         if pulse is not None:
-            h = torch.as_tensor(pulse, dtype=self.dtype)
+            h = torch.as_tensor(pulse)
+            if h.is_complex():
+                if signal_kind != "iq":
+                    raise ValueError(
+                        "A complex pulse is only meaningful in 'iq' mode; in "
+                        "'rf' mode the impulse response must be real.")
+                h = h.to(self._complex_dtype)
+            else:
+                h = h.to(self.dtype)
             h = h / torch.linalg.norm(h)
             self.register_buffer("pulse_echo_ir", h.contiguous())
         else:
@@ -291,12 +308,16 @@ class UltrafastUltrasound(LinearPhysics):
 
         :math:`\tau_{\mathrm{rx}}(x, z; x_e, z_e) = \|(x,z) - (x_e, z_e)\|/c`.
         """
+        if self._tau_rx_cache is not None:
+            return self._tau_rx_cache
         grid = self.pixel_grid.reshape(-1, 2)
         dx = grid[:, 0].unsqueeze(0) - self.element_positions[:,
                                                               0].unsqueeze(1)
         dz = grid[:, 1].unsqueeze(0) - self.element_positions[:,
                                                               1].unsqueeze(1)
-        return torch.hypot(dx, dz) / self.c
+        tau_rx = torch.hypot(dx, dz) / self.c
+        self._tau_rx_cache = tau_rx
+        return tau_rx
 
     @staticmethod
     def _window_shape(u: Tensor, kind: str) -> Tensor:
@@ -330,6 +351,8 @@ class UltrafastUltrasound(LinearPhysics):
         """
         if self.f_number is None:
             return None
+        if self._apod_rx_cache is not None:
+            return self._apod_rx_cache
         grid = self.pixel_grid.reshape(-1, 2)
 
         if self.element_positions.shape[0] > 1:
@@ -353,7 +376,44 @@ class UltrafastUltrasound(LinearPhysics):
         apod = torch.where(inside, window, torch.zeros_like(window))
         near_axis = torch.abs(dx) <= min_width
         apod = torch.where(near_axis, torch.ones_like(apod), apod)
-        return apod.to(self.pixel_grid.dtype)
+        apod = apod.to(self.pixel_grid.dtype)
+        self._apod_rx_cache = apod
+        return apod
+
+    def _apply_pulse(self, sig: Tensor, adjoint: bool = False) -> Tensor:
+        r"""Convolve along the time axis with the pulse-echo impulse response.
+
+        Handles a real or complex :math:`h`; in the adjoint the kernel is
+        time-reversed *and* conjugated, since the adjoint of a convolution by
+        :math:`h` is a correlation with :math:`\overline{h}`.
+
+        :param torch.Tensor sig: real or complex signal of shape ``(N, 1, n_samples)``.
+        :param bool adjoint: if ``True``, apply :math:`\tilde{h}(t) = \overline{h(-t)}`.
+        :return: tensor of shape ``(N, 1, n_samples)``, same dtype as ``sig``.
+        """
+        h = self.pulse_echo_ir
+        L = h.numel()
+        pad_left, pad_right = L // 2, L - 1 - L // 2
+        if adjoint:
+            h = h.flip(-1).conj() if h.is_complex() else h.flip(-1)
+            pad_left, pad_right = pad_right, pad_left
+
+        def conv(real_sig: Tensor, real_kernel: Tensor) -> Tensor:
+            return torch.nn.functional.conv1d(
+                torch.nn.functional.pad(real_sig, (pad_left, pad_right)),
+                real_kernel.reshape(1, 1, -1),
+            )
+
+        if not sig.is_complex():
+            return conv(sig, h)
+        sig_r, sig_i = sig.real.contiguous(), sig.imag.contiguous()
+        if not h.is_complex():
+            return torch.complex(conv(sig_r, h), conv(sig_i, h))
+        h_r, h_i = h.real.contiguous(), h.imag.contiguous()
+        return torch.complex(
+            conv(sig_r, h_r) - conv(sig_i, h_i),
+            conv(sig_r, h_i) + conv(sig_i, h_r),
+        )
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
         r"""Forward operator :math:`y = \forw{x} = \left(h \ast G\right) \left(x\right)`.
@@ -412,29 +472,8 @@ class UltrafastUltrasound(LinearPhysics):
             y_out[:, k] = self._interp1d_adjoint(s_k, contrib, n_s)
 
         if self.pulse_echo_ir is not None:
-            y_flat = y_out.reshape(-1, 1, n_s)
-            L_k = self.pulse_echo_ir.numel()
-            pad_left = L_k // 2
-            pad_right = L_k - 1 - pad_left
-            if is_iq:
-                y_real = y_flat.real
-                y_imag = y_flat.imag
-                y_real_padded = torch.nn.functional.pad(
-                    y_real, (pad_left, pad_right))
-                y_imag_padded = torch.nn.functional.pad(
-                    y_imag, (pad_left, pad_right))
-                conv_real = torch.nn.functional.conv1d(
-                    y_real_padded, self.pulse_echo_ir.view(1, 1, -1))
-                conv_imag = torch.nn.functional.conv1d(
-                    y_imag_padded, self.pulse_echo_ir.view(1, 1, -1))
-                y_out = torch.complex(conv_real,
-                                      conv_imag).reshape(B, n_t, n_e, n_s)
-            else:
-                y_padded = torch.nn.functional.pad(y_flat,
-                                                   (pad_left, pad_right))
-                conv = torch.nn.functional.conv1d(
-                    y_padded, self.pulse_echo_ir.view(1, 1, -1))
-                y_out = conv.reshape(B, n_t, n_e, n_s)
+            y_out = self._apply_pulse(y_out.reshape(-1, 1, n_s)).reshape(
+                B, n_t, n_e, n_s)
 
         if is_iq:
             out = torch.view_as_real(y_out).moveaxis(-1, 1)
@@ -445,7 +484,7 @@ class UltrafastUltrasound(LinearPhysics):
         return out
 
     def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
-        r"""Adjoint operator :math:`x = A^\top y = G^\top \! \left(\tilde{h} \ast_t y\right)`
+        r"""Adjoint operator :math:`x = A^\top y = G^\top \! \left(\tilde{h} \ast_t y\right)`, with :math:`\tilde{h}(t) = \overline{h(-t)}`
 
         :param torch.Tensor y: channel data of shape `(B, 2, n_transmits, n_elements, n_samples)` in `"iq"` mode or `(B, 1, n_transmits, n_elements, n_samples)` in `"rf"` mode.
         :return: beamformed image of shape `(B, 2, Z, X)` or `(B, 1, Z, X)` respectively, divided by the operator norm if `normalize=True`.
@@ -462,25 +501,19 @@ class UltrafastUltrasound(LinearPhysics):
             )
         is_iq = self.signal_kind == "iq"
 
-        if self.pulse_echo_ir is not None:
-            n_s = y.shape[-1]
-            y_flat_conv = y.reshape(-1, 1, n_s)
-            L_k = self.pulse_echo_ir.numel()
-            pad_left = L_k // 2
-            pad_right = L_k - 1 - pad_left
-            y_padded = torch.nn.functional.pad(y_flat_conv,
-                                               (pad_right, pad_left))
-            conv = torch.nn.functional.conv1d(
-                y_padded,
-                self.pulse_echo_ir.view(1, 1, -1).flip(-1))
-            y = conv.reshape(B, self.n_channels, n_t, n_e, n_s)
-
         if is_iq:
             y_flat = torch.view_as_complex(y.moveaxis(1, -1).contiguous())
             out_dtype = self._complex_dtype
         else:
             y_flat = y[:, 0]
             out_dtype = self.dtype
+
+        # Applied on the complex signal, so that a complex pulse mixes I and Q.
+        if self.pulse_echo_ir is not None:
+            n_s = y_flat.shape[-1]
+            y_flat = self._apply_pulse(
+                y_flat.reshape(-1, 1, n_s), adjoint=True
+            ).reshape(B, n_t, n_e, n_s)
 
         tau_rx = self._receive_delay()
         apod_rx = self._receive_apod()
@@ -639,7 +672,7 @@ class UltrasoundPlaneWave(UltrafastUltrasound):
     :param str tx_apod_window: transmit apodization window, one of `"rect"`, `"hann"`, `"hamming"`, `"tukey0.25"`. `None` disables transmit apodization. (default: `None`)
     :param str interp: interpolation kernel. One of `"nearest"`, `"linear"`, `"keys"`. See :class:`UltrafastUltrasound` for kernel definitions. (default: `"linear"`)
     :param str signal_kind: signal representation, `"iq"` or `"rf"`. (default: `"iq"`)
-    :param torch.Tensor pulse: optional 1D pulse-echo impulse response :math:`h`, normalized to unit :math:`\ell_2` norm and convolved along the time axis in both :meth:`A` and :meth:`A_adjoint`. (default: `None`)
+    :param torch.Tensor pulse: optional 1D pulse-echo impulse response :math:`h`, normalized to unit :math:`\ell_2` norm and convolved along the time axis in both :meth:`A` and :meth:`A_adjoint`. In `"iq"` mode it may be complex, i.e. the baseband response of a pulse that is not zero-phase or whose center frequency differs from `demodulation_frequency`; the adjoint then correlates with :math:`\overline{h}`. In `"rf"` mode it must be real. (default: `None`)
     :param bool normalize: if `True`, :meth:`A` and :meth:`A_adjoint` are divided by the operator's spectral norm so it has unit norm. (default: `True`)
     :param torch.device, str device: device for buffers. (default: `"cpu"`)
     :param torch.dtype dtype: real dtype; `float32` uses internal `complex64`, `float64` uses `complex128`. (default: `torch.float32`)
