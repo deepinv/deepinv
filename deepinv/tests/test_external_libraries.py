@@ -3,21 +3,6 @@ import numpy as np
 import torch
 import pytest
 
-
-def assert_astra_geometries_close(actual: dict, expected: dict) -> None:
-    """Compare two ``astra`` geometry dicts, tolerating float32/float64 rounding.
-
-    :param dict actual: The geometry to check.
-    :param dict expected: The geometry it should describe.
-    """
-    assert set(actual) == set(expected)
-    for key, value in expected.items():
-        if isinstance(value, str):  # the geometry "type"
-            assert actual[key] == value
-        else:  # counts, spacings, the "option" sub-dict and the angles
-            assert actual[key] == pytest.approx(value)
-
-
 class TestTomographyWithAstra:
     def dummy_compute_norm(
         self,
@@ -331,6 +316,9 @@ class TestTomographyWithAstra:
             device=device,
         )
 
+        def assert_astra_geometries_close(actual, expected):
+            assert all(actual[k] == (v if isinstance(v, str) else pytest.approx(v)) for (k,v) in expected.items()) and set(actual) == set(expected)
+        
         assert_astra_geometries_close(
             physics_from_geometry.object_geometry, physics.object_geometry
         )
