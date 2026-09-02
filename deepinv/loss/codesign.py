@@ -5,7 +5,7 @@ from __future__ import annotations
 from torch import Tensor
 
 from deepinv.loss.loss import Loss
- 
+
 
 class CodesignRegularization(Loss):
     r"""
@@ -47,9 +47,7 @@ class CodesignRegularization(Loss):
             :class:`deepinv.Trainer`.
         """
         if physics is None:
-            raise ValueError(
-                "CodesignRegularization requires a physics operator."
-            )
+            raise ValueError("CodesignRegularization requires a physics operator.")
 
         return self.regularization(physics=physics, **kwargs)
 
@@ -114,7 +112,7 @@ class BinaryRegularization(CodesignRegularization):
         self.weight = weight
         self.weight_increase_factor = weight_increase_factor
         self.max_weight = max_weight
-        self.target_value = 1.0 / (m ** 0.5)
+        self.target_value = 1.0 / (m**0.5)
 
     def regularization(self, physics, **kwargs) -> Tensor:
         """Compute the binary regularization term for ``physics``."""

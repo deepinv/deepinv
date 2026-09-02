@@ -3,7 +3,7 @@ End-to-end co-design baseline
 =============================
 
 This example shows how to train the parameters of the physics and the
-reconstructor jointly using end-to-end training.
+reconstructor jointly using end-to-end training. :footcite:t:`arguello2023deep`
 
 Consider the forward model
 
@@ -52,7 +52,6 @@ import numpy as np
 
 import deepinv as dinv
 from deepinv.utils import get_cache_home
-
 
 # %%
 # Imports and setup
@@ -204,11 +203,10 @@ print("Initial reconstruction shape:", tuple(initial_reconstruction.shape))
 
 from deepinv.loss import BinaryRegularization
 
-
 # Define the combined loss function
 losses = [
     dinv.loss.SupLoss(metric=dinv.metric.MSE()),  # Supervised MSE loss
-    BinaryRegularization(m=num_measurements, weight=1e3)
+    BinaryRegularization(m=num_measurements, weight=1e3),
 ]
 
 # Save initial sensing matrix for later comparison
@@ -217,8 +215,8 @@ losses = [
 # Set up optimizer with different learning rates for different components
 optimizer = torch.optim.Adam(
     [
-        {"params": model.parameters(), "lr": 1e-3},      # Reconstruction network
-        {"params": [physics._A], "lr": 5e-2},             # Sensing matrix (slower learning)
+        {"params": model.parameters(), "lr": 1e-3},  # Reconstruction network
+        {"params": [physics._A], "lr": 5e-2},  # Sensing matrix (slower learning)
     ]
 )
 
@@ -278,9 +276,7 @@ for row_idx, (ax_init, ax_trained) in enumerate(zip(axes[:, 0], axes[:, 1])):
     initial_pattern = initial_matrix_np[measurement_idx].reshape(28, 28)
     initial_pattern = initial_pattern * (num_measurements**0.5)
     im_init = ax_init.imshow(initial_pattern, cmap="gray")
-    ax_init.set_title(
-        f"Initial Row {measurement_idx}", fontsize=10, fontweight="bold"
-    )
+    ax_init.set_title(f"Initial Row {measurement_idx}", fontsize=10, fontweight="bold")
     ax_init.axis("off")
     plt.colorbar(im_init, ax=ax_init, fraction=0.046, pad=0.04)
 
@@ -328,9 +324,7 @@ axes[0].imshow(sample_test[0, 0].cpu().numpy(), cmap="gray")
 axes[0].set_title("Original Image")
 axes[0].axis("off")
 
-axes[1].imshow(
-    physics.A_adjoint(measurement)[0, 0].detach().cpu().numpy(), cmap="gray"
-)
+axes[1].imshow(physics.A_adjoint(measurement)[0, 0].detach().cpu().numpy(), cmap="gray")
 axes[1].set_title("Measurement Adjoint (Zero-filled)")
 axes[1].axis("off")
 
@@ -340,4 +334,3 @@ axes[2].axis("off")
 
 fig.tight_layout()
 plt.show()
-

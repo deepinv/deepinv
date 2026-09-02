@@ -25,9 +25,9 @@ def test_binary_regularization_matches_penalty():
     regularization = BinaryRegularization(m=m, weight=weight)
 
     value = regularization(physics=physics)
-    expected = weight * (
-        (matrix - target).square() * (matrix + target).square()
-    ).mean(dim=1)
+    expected = weight * ((matrix - target).square() * (matrix + target).square()).mean(
+        dim=1
+    )
 
     assert torch.allclose(value, expected)
 
@@ -132,4 +132,3 @@ def test_binary_regularization_validates_physics_parameter():
 def test_binary_regularization_is_publicly_exported():
     assert dinv.loss.BinaryRegularization is BinaryRegularization
     assert dinv.loss.CodesignRegularization is CodesignRegularization
-

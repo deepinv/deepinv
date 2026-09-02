@@ -116,11 +116,11 @@ class CompressedSensing(LinearPhysics):
         _A = torch.randn(
             (m, n), device=device, dtype=dtype, generator=self.rng
         ) / np.sqrt(m)
-        #_A_dagger = torch.linalg.pinv(_A)
+        # _A_dagger = torch.linalg.pinv(_A)
 
         self.register_buffer("_A", _A)
-        #self.register_buffer("_A_dagger", _A_dagger)
-        #self.register_buffer("_A_adjoint", self._A.conj().T)
+        # self.register_buffer("_A_dagger", _A_dagger)
+        # self.register_buffer("_A_adjoint", self._A.conj().T)
         self.to(device=device, dtype=dtype)
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
@@ -151,4 +151,3 @@ class CompressedSensing(LinearPhysics):
         x = torch.einsum("im, nm->in", y, self._A.conj().T)  # x:(N, n, 1)
         x = x.view(N, C, H, W)
         return x
-
