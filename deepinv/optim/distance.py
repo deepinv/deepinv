@@ -257,7 +257,7 @@ class PoissonLikelihoodDistance(Distance):
             y = y / self.gain
         out = (
             x
-            - (1 / (self.gain * gamma))
+            + (1 / (self.gain * gamma))
             * ((x - (1 / (self.gain * gamma))).pow(2) + 4 * y / gamma).sqrt()
         )
         return out / 2
