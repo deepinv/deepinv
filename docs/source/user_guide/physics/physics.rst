@@ -116,7 +116,9 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`RandomPhaseRetrieval <deepinv.physics.RandomPhaseRetrieval>`
        | :class:`StructuredRandomPhaseRetrieval <deepinv.physics.StructuredRandomPhaseRetrieval>`
        | :class:`Ptychography <deepinv.physics.Ptychography>`
+       | :class:`MultiplexedFourierPtychography <deepinv.physics.MultiplexedFourierPtychography>`
        | :class:`PtychographyLinearOperator <deepinv.physics.PtychographyLinearOperator>`
+       | :class:`FourierPtychographyLinearOperator <deepinv.physics.FourierPtychographyLinearOperator>`
      - | :func:`build_probe <deepinv.physics.phase_retrieval.build_probe>`
        | :func:`generate_shifts <deepinv.physics.phase_retrieval.generate_shifts>`
 
