@@ -79,6 +79,96 @@ def load_tiff(fname: str | Path, dtype: torch.dtype | None = None) -> torch.Tens
     return x if dtype is None else x.to(dtype)
 
 
+def load_raw(
+    fname: str | Path,
+    dtype: torch.dtype = torch.float32,
+    **kwargs,
+) -> tuple[torch.Tensor, dict]:
+    r"""Loads any RAW image file as a torch tensor along with a metadata dictionary.
+
+    Reads any proprietary raw files supported by `LibRaw <https://www.libraw.org>`
+    using `rawpy` (ie ``.arw``, ``.cr2``/``.cr3``, ``.nef``, ``.raf``,
+    ``.orf``, ``.rw2``,``.pef``, ``.srw``,``.dng``...).
+    Returns the sensor image as a tensor of shape `(1, 1, H, W)`
+    along with a dict of ISP metadata.
+
+
+
+    .. note::
+        Only :math:`2\times 2` Bayer sensors are supported for now; non-Bayer CFAs
+        (e.g. X-Trans) will raise an error.
+
+    .. warning::
+        Requires `rawpy` to be installed. Install it with `pip install rawpy`.
+
+    :param str, pathlib.Path fname: path to the raw file.
+    :param torch.dtype dtype: dtype of the returned tensor.
+    :return: tuple ``(y, meta)`` where ``y`` is a :class:`torch.Tensor`
+        of shape `(1, 1, H, W)` and ``meta`` is a ``dict`` of ISP metadata
+        with keys ``cfa_pattern``, ``cfa_colors``, ``color_description``,
+        ``num_colors``, ``black_level_per_channel``,
+        ``camera_white_level_per_channel``, ``camera_whitebalance``,
+        ``daylight_whitebalance``, ``color_matrix``, ``rgb_xyz_matrix``,
+        ``tone_curve``, ``raw_shape``, ``visible_shape``, ``crop_margins``,
+        ``pixel_aspect``, ``flip`` and ``raw_type``.
+    """
+    try:
+        import rawpy
+    except ImportError:  # pragma: no cover
+        raise ImportError(
+            "load_raw requires rawpy, which is not installed. Please install it with `pip install rawpy`."
+        )
+
+    with rawpy.imread(str(fname)) as raw:
+        pattern = np.asarray(raw.raw_pattern)
+        if pattern.shape != (2, 2):
+            raise ValueError(
+                "load_raw only supports 2x2 Bayer CFA sensors for now, but got a "
+                f"raw_pattern of shape {tuple(pattern.shape)}."
+            )
+        ph, pw = pattern.shape
+
+        # trim visible sensor area so CFA tiles it evenly
+        x = raw.raw_image_visible
+        h, w = x.shape
+        x = x[: h - h % ph, : w - w % pw]
+
+        x = np.ascontiguousarray(x, dtype=np.int32)
+        x = torch.from_numpy(x).to(dtype)[None, None]
+
+        color_desc = raw.color_desc.decode()
+        black_pc = list(raw.black_level_per_channel)
+
+        white_pc = getattr(raw, "camera_white_level_per_channel", None)
+        if not white_pc or all(v == 0 for v in white_pc):
+            white_pc = [int(raw.white_level)] * len(black_pc)
+
+        sizes = raw.sizes
+        meta = {
+            "cfa_pattern": pattern,
+            "cfa_colors": [
+                [color_desc[int(pattern[i, j])] for j in range(pw)] for i in range(ph)
+            ],
+            "color_description": color_desc,
+            "num_colors": int(raw.num_colors),
+            "black_level_per_channel": black_pc,
+            "camera_white_level_per_channel": list(white_pc),
+            "camera_whitebalance": list(raw.camera_whitebalance),
+            "daylight_whitebalance": list(raw.daylight_whitebalance),
+            "color_matrix": np.asarray(raw.color_matrix, dtype=np.float64),
+            "rgb_xyz_matrix": np.asarray(raw.rgb_xyz_matrix, dtype=np.float64),
+            "tone_curve": np.asarray(raw.tone_curve),
+            "raw_shape": (sizes.raw_height, sizes.raw_width),
+            "visible_shape": (sizes.height, sizes.width),
+            "crop_margins": (sizes.top_margin, sizes.left_margin),
+            "pixel_aspect": float(sizes.pixel_aspect),
+            "flip": int(sizes.flip),
+            "raw_type": raw.raw_type.name,
+        }
+
+    return x, meta
+
+
 def load_torch(
     fname: str | Path, device: torch.device | str = None, **kwargs
 ) -> torch.Tensor:
