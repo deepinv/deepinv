@@ -7,9 +7,12 @@ device = dinv.utils.get_device()
 dtype = torch.float32
 figsize = 2.5
 
-from deepinv.sampling import PosteriorDiffusion, EulerSolver, VariancePreservingDiffusion, VarianceExplodingDiffusion
+from deepinv.sampling import (
+    PosteriorDiffusion,
+    EulerSolver,
+    VariancePreservingDiffusion,
+)
 from deepinv.optim import ZeroFidelity
-
 
 # %%
 # ----------------------------------------------------
@@ -19,9 +22,13 @@ from deepinv.optim import ZeroFidelity
 
 # We can wrap any diffusers latent model as a DeepInv denoiser using one line of code:
 denoiser = DiffusersDenoiserWrapper(
-    model_id="runwayml/stable-diffusion-v1-5", pipeline_name="DiffusionPipeline", device=device, clip_output=False,
+    model_id="runwayml/stable-diffusion-v1-5",
+    pipeline_name="DiffusionPipeline",
+    device=device,
+    clip_output=False,
 )
 from diffusers import DDIMScheduler
+
 denoiser.scheduler = DDIMScheduler.from_config(denoiser.scheduler.config)
 
 # Load an example image
@@ -68,7 +75,10 @@ model = PosteriorDiffusion(
 )
 
 z = torch.randn(
-    1, 4, 64, 64,
+    1,
+    4,
+    64,
+    64,
     device=device,
     dtype=dtype,
 )
@@ -80,9 +90,9 @@ sample, trajectory = model(
     seed=42,
     get_trajectory=True,
     prompt=prompt,
-    input_in_minus_one_one=True,   # important
+    input_in_minus_one_one=True,  # important
     denoise_output=False,
-    guidance_scale = 6,
+    guidance_scale=6,
 )
 dinv.utils.plot(
     sample,
@@ -121,7 +131,9 @@ rng = torch.Generator(device)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(denoiser=denoiser, sde=sde, timesteps=timesteps, original_algo=True, weight=1.0),
+    data_fidelity=DPSDataFidelity(
+        denoiser=denoiser, sde=sde, timesteps=timesteps, original_algo=True, weight=1.0
+    ),
     denoiser=denoiser,
     sde=sde,
     solver=solver,
@@ -142,9 +154,9 @@ posterior_sample = model(
     x_init=z,
     seed=15,
     prompt=prompt,
-    input_in_minus_one_one=True,   # important
+    input_in_minus_one_one=True,  # important
     denoise_output=False,
-    guidance_scale = 1,
+    guidance_scale=1,
 )
 dinv.utils.plot(
     [x, y, posterior_sample],
@@ -163,7 +175,9 @@ rng = torch.Generator(device)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 
 model = PosteriorDiffusion(
-    data_fidelity=PSLDDataFidelity(denoiser=denoiser, sde=sde, timesteps=timesteps, omega=1.0, gamma=0.1),
+    data_fidelity=PSLDDataFidelity(
+        denoiser=denoiser, sde=sde, timesteps=timesteps, omega=1.0, gamma=0.1
+    ),
     denoiser=denoiser,
     sde=sde,
     solver=solver,
@@ -184,9 +198,9 @@ posterior_sample = model(
     x_init=z,
     seed=15,
     prompt=prompt,
-    input_in_minus_one_one=True,   # important
+    input_in_minus_one_one=True,  # important
     denoise_output=False,
-    guidance_scale = 1,
+    guidance_scale=1,
 )
 dinv.utils.plot(
     [x, y, posterior_sample],

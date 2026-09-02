@@ -375,7 +375,9 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
         assert x_hat.shape == (2, 3, 64, 64)
 
         posterior = PosteriorDiffusion(
-            data_fidelity=PSLDDataFidelity(denoiser=denoiser, sde=sde, timesteps=timesteps),
+            data_fidelity=PSLDDataFidelity(
+                denoiser=denoiser, sde=sde, timesteps=timesteps
+            ),
             sde=sde,
             denoiser=denoiser,
             solver=solver,
