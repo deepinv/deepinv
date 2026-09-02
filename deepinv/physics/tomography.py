@@ -15,6 +15,8 @@ from deepinv.physics.functional import (
     ApplyRadon,
     XrayTransform,
 )
+from deepinv.utils import devices_equal
+
 from deepinv.physics.functional.astra import (
     AutogradTransform,
     create_projection_geometry,
@@ -593,9 +595,6 @@ class TomographyWithAstra(LinearPhysics):
     ) -> None:
         """Build the X-ray transform from the geometries and normalize the operator.
 
-        Shared by :func:`__init__` and :func:`from_astra_geometry`, which are only
-        responsible for setting ``object_geometry``, ``projection_geometry``,
-        ``img_size`` and ``is_2d``.
 
         :param bool, None normalize: If ``True`` :func:`A` and :func:`A_adjoint` are normalized so that the operator has unit norm.
         :param torch.device | str device: The device the operator is moved to.
@@ -648,9 +647,8 @@ class TomographyWithAstra(LinearPhysics):
         .. note::
 
             Both geometries must be 3D, even for a 2D acquisition.
-            Describe a 2D acquisition as a flat 3D one instead — a single slice imaged by
-            a single detector row — and set ``is_2d=True``, as it cannot be inferred from
-            the geometries.
+            For 2D, use one slice and set `is_2d=True`.
+
 
         :param dict object_geometry: An ``astra`` volume geometry, as returned by ``astra.create_vol_geom``.
         :param dict projection_geometry: An ``astra`` projection geometry, as returned by ``astra.create_proj_geom``.
@@ -659,39 +657,19 @@ class TomographyWithAstra(LinearPhysics):
         :param torch.device | str device: The operator only supports CUDA computation. (default: ``torch.device('cuda')``)
         :return: (:class:`deepinv.physics.TomographyWithAstra`) the tomography operator.
         """
-        if object_geometry is None or projection_geometry is None:
-            raise ValueError(
-                "`object_geometry` and `projection_geometry` must both be specified."
-            )
-
-        missing = {"GridSliceCount", "GridRowCount", "GridColCount"} - set(
-            object_geometry
-        )
-        if missing:
-            raise ValueError(
-                f"`object_geometry` is missing the keys {sorted(missing)}. It must be a 3D "
-                "astra volume geometry, even when `is_2d=True`."
-            )
-
-        missing = {"DetectorRowCount", "DetectorColCount"} - set(projection_geometry)
-        if missing:
-            raise ValueError(
-                f"`projection_geometry` is missing the keys {sorted(missing)}. It must be a 3D "
-                "astra projection geometry, even when `is_2d=True`."
-            )
 
         if is_2d and (
             object_geometry["GridSliceCount"] != 1
             or projection_geometry["DetectorRowCount"] != 1
         ):
             raise ValueError(
-                "`is_2d=True` describes a flat acquisition, but `object_geometry` has "
+                "`is_2d=True` but `object_geometry` has "
                 f"{object_geometry['GridSliceCount']} slices and `projection_geometry` has "
                 f"{projection_geometry['DetectorRowCount']} detector rows, which must both "
-                "be 1. Pass `is_2d=False` to keep the third dimension."
+                "be 1. Use `is_2d=False` instead."
             )
 
-        if torch.device(device).type != "cuda":
+        if devices_equal(device, "cuda"):
             warn(
                 f"TomographyWithAstra only supports CUDA Tensors and CUDA operations, got device={device}",
                 RuntimeWarning,
