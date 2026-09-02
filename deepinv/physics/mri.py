@@ -495,6 +495,24 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
         return torch_maps
 
+    def phase_correct_maps(self, x: torch.Tensor, smooth=0.05):
+        """Re-gauge coil maps to the smooth phase of some reasonably smooth-phased image.
+        
+        :param torch.Tensor x: some image with smooth phase maps e.g. `physics.A_adjoint(y)`.
+        :param float smooth: low-pass width applied to x_hat phase as a fraction of image size. Larger keeps only smoother phase.
+        :return: updated coil maps.
+        """
+        H, W = x.shape[-2:]
+        x = x.to(self.coil_maps.device)
+        ky = (torch.arange(H, device=x.device)[:, None] - H // 2).float()
+        kx = (torch.arange(W, device=x.device)[None, :] - W // 2).float()
+        lowpass = torch.exp(-((ky / (smooth * H)) ** 2 + (kx / (smooth * W)) ** 2))
+        spectrum = torch.fft.fftshift(torch.fft.fft2(self.to_torch_complex(x)))
+        smoothed = torch.fft.ifft2(torch.fft.ifftshift(spectrum * lowpass))
+
+        coil_maps = self.coil_maps * (smoothed / smoothed.abs().clamp_min(1e-8))
+        self.update(coil_maps=coil_maps)
+        return coil_maps
 
 class DynamicMRI(MRI, TimeMixin):
     r"""

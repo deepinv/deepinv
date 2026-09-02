@@ -93,6 +93,7 @@ denoisers = [
     "diffusers",
     "transformers",
     "numba>=0.60.0",
+    "direct-recon",
 ]
 
 # optional dependencies for advanced forward operators

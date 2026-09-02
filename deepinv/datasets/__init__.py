@@ -29,3 +29,4 @@ from .base import (
 from .skmtea import SKMTEASliceDataset
 from .brainweb_pet import BrainWebPET
 from .brainweb_mri import BrainWebMRI
+from .calgary import CalgarySliceDataset, CalgarySliceTransform
