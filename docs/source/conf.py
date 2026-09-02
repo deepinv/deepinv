@@ -349,6 +349,7 @@ sphinx_gallery_conf = {
     "subsection_order": ExplicitOrder(
         [
             "../../examples/basics",
+            "../../examples/co_design",
             "../../examples/models",
             "../../examples/physics",
             "../../examples/optimization",
