@@ -56,6 +56,7 @@ extensions = [
     "sphinxcontrib.bibtex",
     "matplotlib.sphinxext.plot_directive",
     "generate_benchmarks",
+    "sphinx_llm.txt",
 ]
 
 extlinks = {
@@ -218,7 +219,7 @@ cuda_available = torch.cuda.is_available()
 
 
 def add_references_block_to_examples():
-    print("🔧 add_references_block_to_examples() called")
+    print("add_references_block_to_examples() called")
     for root, _, files in os.walk("../../examples"):
         for fname in files:
             if not fname.endswith(".py"):
@@ -372,6 +373,31 @@ sphinx_gallery_conf = {
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),
 }
+
+
+# Writes a markdown copy of every page next to the html, plus the llms.txt
+# index and the llms-full.txt concatenation, following the llms.txt standard.
+# This needs a second full sphinx-build, so it is only turned
+# on for the build that is deployed to gh-pages (see .github/workflows/docs_gpu.yml).
+# Set DEEPINV_BUILD_LLMS_TXT=1 to generate it locally.
+llms_txt_enabled = os.environ.get("DEEPINV_BUILD_LLMS_TXT", "0") == "1"
+llms_txt_description = (
+    "DeepInverse is an open-source PyTorch-based library for solving imaging "
+    "inverse problems with deep learning. It provides imaging operators, "
+    "pretrained reconstruction networks and denoisers, plug-and-play and "
+    "unfolded optimization, sampling algorithms, training losses and datasets."
+)
+markdown_http_base = html_baseurl.rstrip("/")
+# build after the html build to make sure examples are rendered beforehand
+llms_txt_build_parallel = False
+if tags.has("sphinx_llm_markdown"):  # noqa: F821 (``tags`` is injected by Sphinx)
+    plot_gallery = "False"
+
+llms_txt_exclude = [
+    "sg_execution_times",
+    "**/sg_execution_times",
+    "user_guide/other/biblio",  # the biblio is not correctly read by sphinx-llm
+]
 
 # Custom sort key above throws new warning in Sphinx 7.3.0, so ignore this. See https://github.com/sphinx-doc/sphinx/issues/12300
 suppress_warnings = ["config.cache"]
