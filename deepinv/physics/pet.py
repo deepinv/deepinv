@@ -7,7 +7,8 @@ import contextlib
 import io
 
 if TYPE_CHECKING:
-    from parallelproj import pet_scanners, pet_lors, projectors, operators
+    from parallelproj import pet_scanners, operators
+
 
 class PET(LinearPhysics):
     r"""
@@ -207,9 +208,7 @@ class PET(LinearPhysics):
         self.res_model = operators.GaussianFilterOperator(
             img_size, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
         )
-        self.pet_lin_op = operators.CompositeLinearOperator(
-            (self.proj, self.res_model)
-        )
+        self.pet_lin_op = operators.CompositeLinearOperator((self.proj, self.res_model))
 
         self.normalize = normalize
 
@@ -277,8 +276,10 @@ class PET(LinearPhysics):
         if self.is_2d:
             y = y.unsqueeze(-1)
             attenuation = attenuation.unsqueeze(-1)
+
+        # operator.H returns an instance of AdjointLinearOperator with appropriate attributes.
         out = (
-            LinearSingleChannelOperator.apply(y * attenuation, self.pet_lin_op.H)  # operator.H returns an instance of AdjointLinearOperator with appropriate attributes.
+            LinearSingleChannelOperator.apply(y * attenuation, self.pet_lin_op.H)
             / self.operator_norm
         )
         if self.is_2d:
@@ -351,8 +352,9 @@ class PET(LinearPhysics):
                     attenuation = attenuation.unsqueeze(0)
                 if self.is_2d:
                     attenuation = attenuation.unsqueeze(-1)
-                
-                attenuation = attenuation.contiguous() # paralleproj_core requires contiguous tensors
+
+                # paralleproj_core requires contiguous tensors
+                attenuation = attenuation.contiguous()
                 proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
                 if self.is_2d:
                     proj_att = proj_att.squeeze(-1)
