@@ -382,11 +382,22 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
             clip_output=False,
         )
 
-        sde = sde_class(
-            denoiser=denoiser,
-            solver=solver,
-            device=device,
-        )
+        if sde_class == EDMDiffusionSDE:
+            sigma_t = lambda t: 100 * t**2
+            scale_t = lambda t: 1 / (1 + sigma_t(t) ** 2) ** 0.5
+            sde = sde_class(
+                sigma_t=sigma_t,
+                scale_t=scale_t,
+                denoiser=denoiser,
+                solver=solver,
+                device=device,
+            )
+        else:
+            sde = sde_class(
+                denoiser=denoiser,
+                solver=solver,
+                device=device,
+            )
 
         x = load_example_image(
             "celeba_example.jpg",
