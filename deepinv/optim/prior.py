@@ -10,7 +10,7 @@ from deepinv.models.tv import TVDenoiser, TVL1Denoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 import torch.nn.functional as F
 import torch.nn.utils.parametrize as P
-from deepinv_new.deepinv.utils import patch_extractor, LinearSpline, ZeroMean3D
+from deepinv.utils import patch_extractor, LinearSpline, ZeroMean3D
 from deepinv.models.utils import get_weights_url, load_state_dict_from_url
 
 if TYPE_CHECKING:
