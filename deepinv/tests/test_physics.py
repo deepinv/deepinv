@@ -580,7 +580,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = ["probe", "shifts"]
-    elif name == "Fourier_ptychography_linear":
+    elif name == "fourier_ptychography_linear":
         img_size = (1, 32, 32)
         dtype = torch.complex64
         N_shift = 14
