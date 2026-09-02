@@ -8,7 +8,9 @@ import torch.nn.functional as F
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser, TVL1Denoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
-from deepinv.utils import patch_extractor
+import torch.nn.functional as F
+import torch.nn.utils.parametrize as P
+from deepinv_new.deepinv.utils import patch_extractor, LinearSpline, ZeroMean3D
 from deepinv.models.utils import get_weights_url, load_state_dict_from_url
 
 if TYPE_CHECKING:
@@ -1032,3 +1034,138 @@ class L12Prior(Prior):
         # 1 - gamma/max(z, gamma) = relu(z - gamma) / z, adding 1e-12 to avoid division by 0
         z = torch.nn.functional.relu(z - gamma) / (z + 1e-12)
         return z * x
+
+class WCRR3D(Prior):
+    def __init__(
+        self,
+        *args,
+        weak_convexity=1.0,
+        tanh=False,
+        nb_channels=[2, 4, 8, 16],  # channels per layer
+        filter_sizes=[3, 3, 3],      # 3D kernel sizes
+        device="cuda" if torch.cuda.is_available() else "cpu",
+        pretrained=None,
+        rotations=True,
+        **kwargs
+    ):
+        super(WCRR3D, self).__init__()
+
+        self.nb_filters = nb_channels[-1]
+        self.filter_size = sum(filter_sizes) - len(filter_sizes) + 1
+
+        # Build a cascade of 3D convolutions
+        self.filters = nn.Sequential(
+            *[
+                nn.Conv3d(
+                    nb_channels[i],
+                    nb_channels[i + 1],
+                    filter_sizes[i],
+                    padding=filter_sizes[i] // 2,
+                    bias=False,
+                )
+                for i in range(len(filter_sizes))
+            ]
+        )
+        P.register_parametrization(self.filters[0], "weight", ZeroMean3D())
+
+        # 3D Dirac for Lipschitz estimation
+        sz = 2 * self.filter_size - 1
+        # infer input channels from first conv layer
+        in_ch = self.filters[0].in_channels
+        self.dirac = torch.zeros(1, in_ch, sz, sz, sz, device=device)
+        center = self.filter_size - 1
+        for c in range(in_ch):
+            self.dirac[0, c, center, center, center] = 1.0
+            
+        self.scaling = LinearSpline(N=self.nb_filters, K=12, sigma_min=0.01, sigma_max=0.1, eps=1e-5)
+        
+        self.beta = nn.Parameter(torch.tensor(4.0, device=device))
+
+        self.weak_cvx = weak_convexity
+        self.tanh = tanh
+        self.rotations = rotations
+        self.lip_available = False
+        self.lip = None
+        self.explicit_prior = True
+
+        if pretrained:
+            self.load_state_dict(torch.load(pretrained, map_location=device))
+            
+
+    def smooth_l1(self, x):
+        if self.tanh:
+            x_abs = torch.abs(x)
+            return torch.log((torch.exp(x - x_abs) + torch.exp(-x - x_abs)) / 2) + x_abs
+        return torch.clip(x**2, 0.0, 1.0) / 2 + torch.clip(torch.abs(x), 1.0) - 1.0
+
+    def grad_smooth_l1(self, x):
+        if self.tanh:
+            return torch.tanh(x)
+        return torch.clip(x, -1.0, 1.0)
+
+    def get_conv_lip(self):
+        if not self.lip_available:
+            imp = self.filters(self.dirac)
+            for filt in reversed(self.filters):
+                imp = F.conv_transpose3d(imp, filt.weight, padding=filt.padding)
+            lip = torch.fft.fftn(imp.float()).abs().max()
+            self.lip = lip.to(imp.dtype)
+            self.lip_available = True
+        return self.lip
+
+    def conv(self, x):
+        lip = torch.sqrt(self.get_conv_lip())
+        return self.filters(x / lip)
+
+    def conv_transpose(self, x):
+        lip = torch.sqrt(self.get_conv_lip())
+        out = x / lip
+        for filt in reversed(self.filters):
+            out = F.conv_transpose3d(out, filt.weight, padding=filt.padding)
+        return out
+
+    def grad(self, x, sigma, *args, get_energy=False, **kwargs): # sigma --> 1D tensor with size equals the batch size of x
+
+        beta_sp = torch.exp(self.beta)
+        scale_sp = self.scaling(sigma)
+        
+        def grad_R(x):
+            g = self.conv(x) * scale_sp
+            if get_energy:
+                r = self.smooth_l1(beta_sp * g) / beta_sp - self.smooth_l1(g) * self.weak_cvx
+                r = r / scale_sp**2
+                r = r.sum(dim=(1, 2, 3, 4))
+            g = self.grad_smooth_l1(beta_sp * g) - self.grad_smooth_l1(g) * self.weak_cvx
+            g = self.conv_transpose(g / scale_sp)
+            return (r,g) if get_energy else g
+        if self.rotations:
+            x_DH = torch.rot90(x, k=1, dims=(-3,-2))
+            x_DW = torch.rot90(x, k=1, dims=(-3,-1))
+            x_HW = torch.rot90(x, k=1, dims=(-2,-1))
+            if get_energy:
+                grad_cost = grad_R(x)[1] + torch.rot90(grad_R(x_DH)[1], k=-1, dims=(-3,-2)) + torch.rot90(grad_R(x_DW)[1], k=-1, dims=(-3,-1)) + torch.rot90(grad_R(x_HW)[1], k=-1, dims=(-2,-1))
+                cost = grad_R(x)[0] + grad_R(x_DH)[0] + grad_R(x_DW)[0] + grad_R(x_HW)[0]
+            else:
+                grad_cost = grad_R(x) + torch.rot90(grad_R(x_DH), k=-1, dims=(-3,-2)) + torch.rot90(grad_R(x_DW), k=-1, dims=(-3,-1)) + torch.rot90(grad_R(x_HW), k=-1, dims=(-2,-1))
+            return (cost, grad_cost/4) if get_energy else grad_cost/4
+        return grad_R(x)
+
+    def fn(self, x, sigma, *args, **kwargs): # sigma --> 1D tensor with size equals the batch size of x
+
+        beta_sp = torch.exp(self.beta)
+        scale_sp = self.scaling(sigma)
+        
+        def R(x):
+            r = self.conv(x) * scale_sp
+            r = self.smooth_l1(beta_sp * r) / beta_sp - self.smooth_l1(r) * self.weak_cvx
+            r = r / scale_sp**2
+            return r.sum(dim=(1, 2, 3, 4))
+        if self.rotations:
+            x_DH = torch.rot90(x, k=1, dims=(-3,-2))
+            x_DW = torch.rot90(x, k=1, dims=(-3,-1))
+            x_HW = torch.rot90(x, k=1, dims=(-2,-1))
+            cost = R(x) + R(x_DH) + R(x_DW) + R(x_HW)
+        return cost/4 if self.rotations else R(x)
+    
+    def prox(self, x, *args, **kwargs):
+            return "This method is not available for this prior."

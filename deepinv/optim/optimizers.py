@@ -2677,3 +2677,4 @@ class SIRT(BaseOptim):
             custom_init=custom_init,
             **kwargs,
         )
+        
