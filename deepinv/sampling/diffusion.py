@@ -13,7 +13,7 @@ from deepinv.sampling.diffusion_sde import (
     VariancePreservingDiffusion,
     VarianceExplodingDiffusion,
 )
-from deepinv.sampling.noisy_datafidelity import DPSDataFidelity, DDRMDataFidelity
+from deepinv.sampling.noisy_datafidelity import DPSDataFidelity
 
 from deepinv.sampling.sde_solver import EulerSolver
 
@@ -561,59 +561,6 @@ class DPS(PosteriorDiffusion):
         **kwargs,
     ):
         data_fidelity = DPSDataFidelity(
-            denoiser=denoiser, clip=[-1.0, 1.0], weight=weight
-        )
-
-        solver = EulerSolver(
-            timesteps=torch.linspace(1, 0.001, num_steps, device=device, dtype=dtype),
-            rng=rng,
-        )
-        if schedule.lower() == "vp":
-            sde = VariancePreservingDiffusion(
-                alpha=alpha,
-                device=device,
-                dtype=dtype,
-            )
-        elif schedule.lower() == "ve":
-            sde = VarianceExplodingDiffusion(
-                alpha=alpha,
-                device=device,
-                dtype=dtype,
-            )
-
-        else:
-            raise ValueError(
-                f"Only 'vp' and 've' schedules are supported, got {schedule}"
-            )
-
-        super().__init__(
-            sde=sde,
-            denoiser=denoiser,
-            data_fidelity=data_fidelity,
-            solver=solver,
-            verbose=verbose,
-            device=device,
-            dtype=dtype,
-            **kwargs,
-        )
-
-
-class DDRM(PosteriorDiffusion):
-
-    def __init__(
-        self,
-        denoiser: Denoiser,
-        schedule: str = "vp",
-        alpha: float = 1.0,
-        num_steps: int = 1000,
-        weight: float = 1.0,
-        verbose: bool = False,
-        device: str | torch.device = "cpu",
-        dtype=torch.float64,
-        rng: torch.Generator | None = None,
-        **kwargs,
-    ):
-        data_fidelity = DDRMDataFidelity(
             denoiser=denoiser, clip=[-1.0, 1.0], weight=weight
         )
 

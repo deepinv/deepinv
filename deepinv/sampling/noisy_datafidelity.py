@@ -230,7 +230,7 @@ class DDRMDataFidelity(NoisyDataFidelity):
     see `Denoising Diffusion Restoration Models <https://arxiv.org/abs/2201.11793>` and also `<https://arxiv.org/pdf/2410.00083>`.
 
     .. math ::
-        V\Sigma^\top 
+        V\Sigma^\top
         \left|\sigma_y^2 I-\sigma_t^2\Sigma\Sigma^\top \right|^\dagger
         \left(
             \Sigma V^\top \denoiser{x_t}{\sigma_t} - U^\top y
@@ -240,7 +240,7 @@ class DDRMDataFidelity(NoisyDataFidelity):
 
     :param deepinv.models.Denoiser denoiser: Denoiser network
     :param float weight: Weighting factor for the data fidelity term. Default to 1.0 .
-    :param float eps: Numerical threshold used when computing the pseudoinverse of the spectral weighting term. 
+    :param float eps: Numerical threshold used when computing the pseudoinverse of the spectral weighting term.
         Values with absolute magnitude below `eps` are treated as zero. Default to 1e-8.
     :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.
     """
@@ -263,7 +263,7 @@ class DDRMDataFidelity(NoisyDataFidelity):
         if clip is not None:
             if len(clip) != 2:  # pragma: no cover
                 raise ValueError(f"clip must be None or length 2, but got {clip}")
-            clip = sorted(clip)    
+            clip = sorted(clip)
 
     def grad(
         self,
@@ -289,7 +289,7 @@ class DDRMDataFidelity(NoisyDataFidelity):
             sigma_y = physics.noise_model.sigma
         else:
             sigma_y = 0.01
-        
+
         # 1. get x_0
         x0_t = self.denoiser(x, sigma, *args, **kwargs)
 
@@ -311,7 +311,6 @@ class DDRMDataFidelity(NoisyDataFidelity):
             return grad, x0_t.detach()
 
         return grad
-
 
     def forward(
         self,

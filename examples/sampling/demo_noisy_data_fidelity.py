@@ -163,7 +163,7 @@ dinv.utils.plot(
 # relative to the unconditional prior score: a larger value enforces the
 # measurements more strongly.
 
-dps_weight = 200
+dps_weight = 2
 dps = dinv.sampling.DPSDataFidelity(denoiser=denoiser, weight=dps_weight)
 
 # %%
@@ -178,7 +178,7 @@ dps = dinv.sampling.DPSDataFidelity(denoiser=denoiser, weight=dps_weight)
 #
 # .. math::
 #
-#       V\Sigma^\top 
+#       V\Sigma^\top
 #         \left|\sigma_y^2 I-\sigma_t^2\Sigma\Sigma^\top \right|^\dagger
 #         \left(
 #             \Sigma V^\top \denoiser{x_t}{\sigma_t} - U^\top y
@@ -186,10 +186,7 @@ dps = dinv.sampling.DPSDataFidelity(denoiser=denoiser, weight=dps_weight)
 #
 
 ddrm_weight = 4.0
-ddrm = dinv.sampling.DDRMDataFidelity(
-    denoiser=denoiser,
-    weight=ddrm_weight
-)
+ddrm = dinv.sampling.DDRMDataFidelity(denoiser=denoiser, weight=ddrm_weight)
 
 # # %%
 # # Moment Matching: retain a structured covariance
