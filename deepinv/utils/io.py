@@ -87,8 +87,12 @@ def load_raw(
     r"""Loads any RAW image file as a torch tensor along with a metadata dictionary.
 
     Reads any proprietary raw files supported by `LibRaw <https://www.libraw.org>`
-    using `rawpy`. Returns the sensor image as a tensor of shape `(1, 1, H, W)`
+    using `rawpy` (ie ``.arw``, ``.cr2``/``.cr3``, ``.nef``, ``.raf``,
+    ``.orf``, ``.rw2``,``.pef``, ``.srw``,``.dng``...).
+    Returns the sensor image as a tensor of shape `(1, 1, H, W)`
     along with a dict of ISP metadata.
+
+
 
     .. note::
         Only :math:`2\times 2` Bayer sensors are supported for now; non-Bayer CFAs
