@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import pytest
 
+
 class TestTomographyWithAstra:
     def dummy_compute_norm(
         self,
@@ -317,8 +318,11 @@ class TestTomographyWithAstra:
         )
 
         def assert_astra_geometries_close(actual, expected):
-            assert all(actual[k] == (v if isinstance(v, str) else pytest.approx(v)) for (k,v) in expected.items()) and set(actual) == set(expected)
-        
+            assert all(
+                actual[k] == (v if isinstance(v, str) else pytest.approx(v))
+                for (k, v) in expected.items()
+            ) and set(actual) == set(expected)
+
         assert_astra_geometries_close(
             physics_from_geometry.object_geometry, physics.object_geometry
         )
