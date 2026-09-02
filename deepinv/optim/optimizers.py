@@ -1093,7 +1093,7 @@ class ADMM(BaseOptim):
     If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     .. :hint:
-    If you are willing to solve Poisson inverse problems, you can use the :class:`deepinv.optim.PoissonADMM` class, which is better suited for this type of problem as the regular ADMM is not guaranteed to converge in this case.
+    If you are willing to solve Poisson inverse problems, you can use the :class:`deepinv.optim.PIDAL` class, which is better suited for this type of problem as the regular ADMM is not guaranteed to converge in this case.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
         Either a single instance (same data-fidelity for each iteration) or a list of instances of
@@ -2697,12 +2697,52 @@ class PIDAL(BaseOptim):
 
     .. math::
         x_{k+1} &= \underset{x}{\text{argmin}}\lbrace \frac{1}{2\gamma}\left\Vert Mx - z_{k} + u_{k}\right\Vert^2\rbrace \\
-        z_{k+1}^1 &= \operatorname{prox}_{\text{KL}(. | y)}(Ax_{k+1} + u_{k}^1) \\
+        z_{k+1}^1 &= \operatorname{prox}_{\text{KL}(. | y)}(Ax_{k+1} + u_{k}^1) \\AF
         z_{k+1}^2 &=  \operatorname{prox}_{\gamma \lambda \regname}(x_{k+1} + u_{k}^2) \\
         z_{k+1}^3 &= \text{max}(0, x_{k+1} + u_{k}^3) \\
         u_{k+1} &= u_{k} + Mx_{k+1} - z_{k+1}
     
     where :math:`\gamma>0` is a stepsize, :math:`M=\begin{bmatrix}A\\I\\I\end{bmatrix}` and :math:`z_{k} = \begin{bmatrix}z_{k}^1\\z_{k}^2\\z_{k}^3\end{bmatrix}`.
+
+    :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
+        Either a single instance (same data-fidelity for each iteration) or a list of instances of
+        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
+    :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}`.
+        Either a single instance (same prior for each iteration) or a list of instances of
+        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
+    :param float beta: ADMM relaxation parameter :math:`\beta`. Default: ``1.0``.
+    :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param list x_solver: list of solvers to be used for the primal variable update. Default: ``["CG"]``.
+    :param int x_max_iter: maximum number of iterations for the primal variable update. Default: ``100``.
+    :param float x_tol: tolerance for the primal variable update. Default: ``1e-5``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
+    :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
+    :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
+    :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
+    :param Callable custom_init:  Custom initialization of the algorithm.
+        The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
+        
+        - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+        - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+        - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+        
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
+        
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param Callable cost_fn: Custom user input cost function.    
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
+    :param dict params_algo: optionally, directly provide the ADMM parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `beta`.
 
     """
 
@@ -2713,9 +2753,9 @@ class PIDAL(BaseOptim):
         lambda_reg: float = 1.0,
         stepsize: float = 1.0,
         g_param: float = None,
-        f_solver: str = ["CG"],
-        f_max_iter: int = 100,
-        f_tol: float = 1e-5,
+        x_solver: list[str] = ["CG"],
+        x_max_iter: int = 100,
+        x_tol: float = 1e-5,
         sigma_denoiser: float = None,
         max_iter: int = 100,
         crit_conv: str = "residual",
@@ -2748,9 +2788,9 @@ class PIDAL(BaseOptim):
                 "lambda": lambda_reg,
                 "stepsize": stepsize,
                 "g_param": g_param,
-                "f_solver": f_solver,
-                "f_max_iter": f_max_iter,
-                "f_tol": f_tol,
+                "x_solver": x_solver,
+                "x_max_iter": x_max_iter,
+                "x_tol": x_tol,
             }
 
         if custom_init is None:
@@ -2759,18 +2799,12 @@ class PIDAL(BaseOptim):
 
                 x_init = physics.A_adjoint(y)
                 x_init = torch.ones_like(x_init)
-                # z_init_1 = torch.zeros_like(y)
-                # z_init_2 = torch.zeros_like(x_init)
-                # z_init_3 = torch.zeros_like(x_init)
-                # u_init_1 = torch.zeros_like(y)
-                # u_init_2 = torch.zeros_like(x_init)
-                # u_init_3 = torch.zeros_like(x_init)
-                z_init_1 = torch.ones_like(y)
-                z_init_2 = torch.ones_like(x_init)
-                z_init_3 = torch.ones_like(x_init)
-                u_init_1 = torch.ones_like(y)
-                u_init_2 = torch.ones_like(x_init)
-                u_init_3 = torch.ones_like(x_init)
+                z_init_1 = torch.zeros_like(y)
+                z_init_2 = torch.zeros_like(x_init)
+                z_init_3 = torch.zeros_like(x_init)
+                u_init_1 = torch.zeros_like(y)
+                u_init_2 = torch.zeros_like(x_init)
+                u_init_3 = torch.zeros_like(x_init)
 
                 return {"est": (x_init, (z_init_1, z_init_2, z_init_3), (u_init_1, u_init_2, u_init_3))}
 

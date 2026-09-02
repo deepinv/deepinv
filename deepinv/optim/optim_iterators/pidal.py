@@ -47,9 +47,9 @@ class PIDALIteration(OptimIterator):
                     y=z1 - u1,
                     gamma=0.25,
                     z=0.5 * (z2 - u2 + z3 - u3),
-                    solver=cur_params["f_solver"],
-                    max_iter=cur_params["f_max_iter"],
-                    tol=cur_params["f_tol"],
+                    solver=cur_params["x_solver"],
+                    max_iter=cur_params["x_max_iter"],
+                    tol=cur_params["x_tol"],
                     init=torch.ones_like(z2),
         )
 
@@ -103,6 +103,7 @@ class PIDALIteration(OptimIterator):
         u1 = u1 + physics.A(x) - z1
         u2 = u2 + x - z2
         u3 = u3 + x - z3
+        u = (u1, u2, u3)
 
         F = (
             self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)

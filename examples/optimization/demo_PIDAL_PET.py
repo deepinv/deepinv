@@ -1,65 +1,73 @@
+r"""
+PIDAL + TV prior for PET reconstruction
+======================================
+
+Demonstrates using the PIDAL (see :footcite:t:`figueiredo_restoration_2010`) scheme with a total-variation (TV) prior
+for positron emission tomography (PET) reconstruction on a simulated phantom.
+
+This method is an alternative to ADMM for non-denoising Poisson inverse problems as it provides a splitting procedure.
+
+
+"""
+
+# %%
 import deepinv as dinv
 from deepinv.utils.phantoms import generate_pet_phantom
 import torch
 
+# %%
+# Load PET phantom and attenuation map
+#
+
 img_size = (160, 160)
-voxel_size = (2.0, 2.0)
-
 device = "cuda" if torch.cuda.is_available() else "cpu"
+x, attenuation = generate_pet_phantom(img_size, device=device)
 
-gain = 0.01
+# %%
+# Create PET physics and simulate sinogram data
+#
 
+voxel_size = (2.0, 2.0)
+gain = 1.0
 physics = dinv.physics.PET(
     img_size=img_size,
     voxel_size=voxel_size,
     device=device,
     gain=gain,
-    normalize=True,
+    normalize=False,
 )
-
-x, attenuation = generate_pet_phantom(img_size, device=device)
 
 background = None
 physics.update(attenuation=attenuation, background=background)
 y = physics(x)
 
-prior = dinv.optim.prior.Tikhonov()
-
+# %%
+# Define PIDAL optimizer with TV prior
+pet_prior = dinv.optim.prior.TVPrior()
 data_fidelity = dinv.optim.PoissonLikelihood(
     gain=gain
 )
-
-# def custom_init(y, physics):
-
-#     x_init = x
-#     z_init_1 = torch.clone(y)
-#     z_init_2 = torch.clone(x_init)
-#     z_init_3 = torch.clone(x_init)
-#     u_init_1 = torch.clone(y)
-#     u_init_2 = torch.clone(x_init)
-#     u_init_3 = torch.clone(x_init)
-
-#     return {"est": (x_init, (z_init_1, z_init_2, z_init_3), (u_init_1, u_init_2, u_init_3))}
-
-
 pidal = dinv.optim.PIDAL(
     data_fidelity=data_fidelity,
-    prior=prior,
-    max_iter=10,
+    prior=pet_prior,
+    max_iter=50,
     stepsize=0.5,
-    # custom_init=custom_init,
-    # g_param=0.0
+    lambda_reg=1.0
 )
+
+# %%
+# Run PIDAL reconstruction
 
 x_pidal = pidal.forward(
     y=y,
     physics=physics
 )
 
+# %%
+# Display results
+
 dinv.utils.plot(
     [x, x_pidal],
     titles=["Ground truth", "PIDAL reconstruction"],
-    figsize=(8, 4),
-    rescale_mode="clip",
-    vmin=0,vmax=1
+    figsize=(8, 4)
 )
