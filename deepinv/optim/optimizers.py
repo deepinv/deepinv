@@ -1194,107 +1194,6 @@ class ADMM(BaseOptim):
             **kwargs,
         )
 
-class PIDAL(BaseOptim):
-
-    r"""
-    PIDAL (Poisson image deconvolution by augmented Lagrangian) module for solving the problem
-
-    .. math::
-        \begin{equation}
-        \label{eq:min_prob}
-        \tag{1}
-        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
-        \end{equation}
-
-    where :math:`\datafid{x}{y}` is A Poisson data-fidelity term and :math:`\reg{x}` is the regularization term. The iterations (see :footcite:t:`figueiredo_restoration_2010` for more details) are given by
-
-    .. math::
-        x_{k+1} &= \underset{x}{\text{argmin}}\lbrace \frac{1}{2\gamma}\left\Vert Mx - z_{k} + u_{k}\right\Vert^2\rbrace \\
-        z_{k+1}^1 &= \operatorname{prox}_{\text{KL}(. | y)}(Ax_{k+1} + u_{k}^1) \\
-        z_{k+1}^2 &=  \operatorname{prox}_{\gamma \lambda \regname}(x_{k+1} + u_{k}^2) \\
-        z_{k+1}^3 &= \text{max}(0, x_{k+1} + u_{k}^3) \\
-        u_{k+1} &= u_{k} + Mx_{k+1} - z_{k+1}
-    
-    where :math:`\gamma>0` is a stepsize, :math:`M=\begin{bmatrix}A\\I\\I\end{bmatrix}` and :math:`z_{k} = \begin{bmatrix}z_{k}^1\\z_{k}^2\\z_{k}^3\end{bmatrix}`.
-
-    """
-
-    def __init__(
-        self,
-        data_fidelity: PoissonLikelihood | list[PoissonLikelihood] = None,
-        prior: Prior | list[Prior] = None,
-        lambda_reg: float = 1.0,
-        stepsize: float = 1.0,
-        g_param: float = None,
-        f_solver: str = "CG",
-        f_solver_kwargs: dict = {},
-        f_max_iter: int = 100,
-        f_tol: float = 1e-5,
-        sigma_denoiser: float = None,
-        max_iter: int = 100,
-        crit_conv: str = "residual",
-        thres_conv: float = 1e-5,
-        early_stop: bool = False,
-        custom_metrics: dict[str, Metric] = None,
-        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
-        unfold: bool = False,
-        trainable_params: list[str] = None,
-        cost_fn: Callable[
-            [
-                torch.Tensor,
-                DataFidelity,
-                Prior,
-                dict[str, float],
-                torch.Tensor,
-                Physics,
-            ],
-            torch.Tensor,
-        ] = None,
-        params_algo: dict[str, float] = None,
-        **kwargs,
-    ):
-
-        if g_param is None and sigma_denoiser is not None:
-            g_param = sigma_denoiser
-
-        if params_algo is None:
-            params_algo = {
-                "lambda": lambda_reg,
-                "stepsize": stepsize,
-                "g_param": g_param,
-                "f_solver": f_solver,
-                "f_solver_kwargs": f_solver_kwargs,
-                "f_max_iter": f_max_iter,
-                "f_tol": f_tol,
-            }
-
-        if custom_init is None:
-
-            def custom_init(y, physics):
-
-                x_init = physics.A_adjoint(y)
-                z_init = torch.cat([x_init, torch.zeros_like(x_init), torch.zeros_like(x_init)], dim=2)
-                u_init = torch.zeros_like(z_init)
-
-                return {"est": (x_init, z_init, u_init)}
-
-
-        super(PIDAL, self).__init__(
-            PIDALIteration(cost_fn=cost_fn),
-            data_fidelity=data_fidelity,
-            prior=prior,
-            params_algo=params_algo,
-            max_iter=max_iter,
-            crit_conv=crit_conv,
-            thres_conv=thres_conv,
-            early_stop=early_stop,
-            custom_metrics=custom_metrics,
-            custom_init=custom_init,
-            unfold=unfold,
-            trainable_params=trainable_params,
-            **kwargs,
-        )
-
 class DRS(BaseOptim):
     r"""
     DRS module for solving the problem
@@ -2779,5 +2678,114 @@ class SIRT(BaseOptim):
             early_stop=early_stop,
             custom_metrics=custom_metrics,
             custom_init=custom_init,
+            **kwargs,
+        )
+
+class PIDAL(BaseOptim):
+
+    r"""
+    PIDAL (Poisson image deconvolution by augmented Lagrangian) module for solving the problem
+
+    .. math::
+        \begin{equation}
+        \label{eq:min_prob}
+        \tag{1}
+        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
+        \end{equation}
+
+    where :math:`\datafid{x}{y}` is A Poisson data-fidelity term and :math:`\reg{x}` is the regularization term. The iterations (see :footcite:t:`figueiredo_restoration_2010` for more details) are given by
+
+    .. math::
+        x_{k+1} &= \underset{x}{\text{argmin}}\lbrace \frac{1}{2\gamma}\left\Vert Mx - z_{k} + u_{k}\right\Vert^2\rbrace \\
+        z_{k+1}^1 &= \operatorname{prox}_{\text{KL}(. | y)}(Ax_{k+1} + u_{k}^1) \\
+        z_{k+1}^2 &=  \operatorname{prox}_{\gamma \lambda \regname}(x_{k+1} + u_{k}^2) \\
+        z_{k+1}^3 &= \text{max}(0, x_{k+1} + u_{k}^3) \\
+        u_{k+1} &= u_{k} + Mx_{k+1} - z_{k+1}
+    
+    where :math:`\gamma>0` is a stepsize, :math:`M=\begin{bmatrix}A\\I\\I\end{bmatrix}` and :math:`z_{k} = \begin{bmatrix}z_{k}^1\\z_{k}^2\\z_{k}^3\end{bmatrix}`.
+
+    """
+
+    def __init__(
+        self,
+        data_fidelity: PoissonLikelihood | list[PoissonLikelihood] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        stepsize: float = 1.0,
+        g_param: float = None,
+        f_solver: str = ["CG"],
+        f_max_iter: int = 100,
+        f_tol: float = 1e-5,
+        sigma_denoiser: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        **kwargs,
+    ):
+
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+                "f_solver": f_solver,
+                "f_max_iter": f_max_iter,
+                "f_tol": f_tol,
+            }
+
+        if custom_init is None:
+
+            def custom_init(y, physics):
+
+                x_init = physics.A_adjoint(y)
+                x_init = torch.ones_like(x_init)
+                # z_init_1 = torch.zeros_like(y)
+                # z_init_2 = torch.zeros_like(x_init)
+                # z_init_3 = torch.zeros_like(x_init)
+                # u_init_1 = torch.zeros_like(y)
+                # u_init_2 = torch.zeros_like(x_init)
+                # u_init_3 = torch.zeros_like(x_init)
+                z_init_1 = torch.ones_like(y)
+                z_init_2 = torch.ones_like(x_init)
+                z_init_3 = torch.ones_like(x_init)
+                u_init_1 = torch.ones_like(y)
+                u_init_2 = torch.ones_like(x_init)
+                u_init_3 = torch.ones_like(x_init)
+
+                return {"est": (x_init, (z_init_1, z_init_2, z_init_3), (u_init_1, u_init_2, u_init_3))}
+
+        super(PIDAL, self).__init__(
+            PIDALIteration(cost_fn=cost_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
+            unfold=unfold,
+            trainable_params=trainable_params,
             **kwargs,
         )

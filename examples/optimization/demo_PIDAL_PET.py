@@ -29,19 +29,26 @@ data_fidelity = dinv.optim.PoissonLikelihood(
     gain=gain
 )
 
-def custom_init(y, physics):
-    osem = dinv.optim.OSEM(
-        num_subsets=16,
-        max_iter=3
-    )
-    x0 = osem.forward(y=y, physics=physics)
-    z0 = torch.zeros_like(x0)
-    return x0, z0
+# def custom_init(y, physics):
+
+#     x_init = x
+#     z_init_1 = torch.clone(y)
+#     z_init_2 = torch.clone(x_init)
+#     z_init_3 = torch.clone(x_init)
+#     u_init_1 = torch.clone(y)
+#     u_init_2 = torch.clone(x_init)
+#     u_init_3 = torch.clone(x_init)
+
+#     return {"est": (x_init, (z_init_1, z_init_2, z_init_3), (u_init_1, u_init_2, u_init_3))}
 
 
 pidal = dinv.optim.PIDAL(
     data_fidelity=data_fidelity,
     prior=prior,
+    max_iter=10,
+    stepsize=0.5,
+    # custom_init=custom_init,
+    # g_param=0.0
 )
 
 x_pidal = pidal.forward(
@@ -52,5 +59,7 @@ x_pidal = pidal.forward(
 dinv.utils.plot(
     [x, x_pidal],
     titles=["Ground truth", "PIDAL reconstruction"],
-    figsize=(8, 4)
+    figsize=(8, 4),
+    rescale_mode="clip",
+    vmin=0,vmax=1
 )
