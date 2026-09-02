@@ -1,6 +1,6 @@
 r"""
-Reconstruct prospectively-undersampled raw multi-coil MRI with RAM
-==================================================================
+Reconstruct prospectively-undersampled raw multicoil MRI
+========================================================
 
 This example reconstructs real prospectively (compressed-sensing) undersampled 3D multi-coil
 brain k-space from Yu et al., stored as raw ISMRMRD, with the foundation model

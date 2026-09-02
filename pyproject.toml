@@ -124,6 +124,7 @@ dataset = [
     "tifffile",
     "rarfile",
     "napari[optional]",
+    "ismrmrd"
 ]
 
 # optional dependencies for training
