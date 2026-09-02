@@ -83,12 +83,12 @@ denoiser = NCSNpp(pretrained="download").to(device)
 # The reproducibility of the SDE Solver class can be controlled by providing the pseudo-random number generator.
 num_steps = 150
 rng = torch.Generator(device).manual_seed(42)
-timesteps = torch.linspace(1, 0.001, num_steps)
-solver = EulerSolver(timesteps=timesteps, rng=rng)
 sde = VarianceExplodingDiffusion(
+    T=1.0,
     device=device,
     dtype=dtype,
 )
+solver = EulerSolver(t_start=sde.T, t_end=0.001, num_steps=num_steps, rng=rng)
 
 # %%
 # Reverse-time SDE as sampling process
@@ -264,13 +264,13 @@ del trajectory  # clean memory
 sigma_max = 10.0
 rng = torch.Generator(device)
 dtype = torch.float32
-timesteps = torch.linspace(1, 0.001, 250)
-solver = EulerSolver(timesteps=timesteps, rng=rng)
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
 sde = VarianceExplodingDiffusion(
     sigma_max=sigma_max, alpha=0.75, device=device, dtype=dtype
 )
+solver = EulerSolver(t_start=sde.T, t_end=0.001, num_steps=250, rng=rng)
+
 
 x = dinv.utils.load_example(
     "butterfly.png",
