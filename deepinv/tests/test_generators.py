@@ -4,6 +4,7 @@ from deepinv.physics.generator import (
     RandomMaskGenerator,
     PolyOrderMaskGenerator,
     SequentialMaskGenerator,
+    BrownianMotionGenerator,
 )
 from deepinv.physics.generator.base import seed_from_string
 import pytest
@@ -47,6 +48,43 @@ MRI_GENERATORS = ["gaussian", "random", "uniform", "poly"]
 MRI_IMG_SIZES = [(H, W), (C, H, W), (C, T, H, W), (64, 64)]
 MRI_ACCELERATIONS = [4, 10, 12]
 MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
+
+
+def test_brownian_motion_generator(device):
+    generator = BrownianMotionGenerator(
+        n_frames=32,
+        dt=0.04,
+        rotation_sigma=0.4,
+        translation_sigma=(0.7, 0.9),
+        rotation_max=1.0,
+        translation_max=(2.5, 3.0),
+        device=device,
+        dtype=torch.float64,
+    )
+    params = generator.step(batch_size=2, seed=42)
+    repeated = generator.step(batch_size=2, seed=42)
+
+    assert set(params) == {"theta", "x_shift", "y_shift"}
+    for name, values in params.items():
+        assert values.shape == (2, 32)
+        assert values.device == device
+        assert values.dtype == torch.float64
+        assert torch.equal(values, repeated[name])
+        assert torch.equal(values[:, 0], torch.zeros(2, device=device))
+    assert params["theta"].abs().max() <= 1.0
+    assert params["x_shift"].abs().max() <= 2.5
+    assert params["y_shift"].abs().max() <= 3.0
+    assert torch.any(params["x_shift"] != params["x_shift"].round())
+
+
+def test_brownian_motion_generator_reset_rng(device):
+    generator = BrownianMotionGenerator(n_frames=8, device=device)
+    initial = generator.step(batch_size=1)
+    generator.step(batch_size=1)
+    generator.reset_rng()
+    reset = generator.step(batch_size=1)
+    for name in initial:
+        assert torch.equal(initial[name], reset[name])
 
 # Inpainting/Splitting Generators
 INPAINTING_IMG_SIZES = [

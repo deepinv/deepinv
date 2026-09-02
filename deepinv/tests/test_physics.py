@@ -18,7 +18,7 @@ from deepinv.physics.mri import (
     DynamicMultiCoilMRI,
     SequentialMultiCoilMRI,
 )
-from deepinv.physics.mri_motion import MotionTrajectory, TransformMotion
+from deepinv.physics.mri_motion import TimeVaryingMotion
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
 from deepinv.transform.rotate import Rotate
@@ -1183,16 +1183,16 @@ def test_sequential_multicoil_mri_matches_static(batch_size, device):
     )
 
 
-def test_transform_motion_matches_individual_shifts(device):
+def test_time_varying_motion_matches_individual_shifts(device):
     batch_size, channels, time, height, width = 2, 2, 3, 6, 7
     x = torch.randn(batch_size, channels, time, height, width, device=device)
     params = {
         "x_shift": torch.tensor([[0, 1, 2]], device=device),
         "y_shift": torch.tensor([[0], [1]], device=device),
     }
-    motion = TransformMotion(Shift())
+    motion = TimeVaryingMotion(Shift())
 
-    actual = motion(x, params)
+    actual = motion.A(x, motion_params=params)
     expected = torch.empty_like(x)
     for b in range(batch_size):
         for t in range(time):
@@ -1203,7 +1203,43 @@ def test_transform_motion_matches_individual_shifts(device):
             )
 
     assert torch.equal(actual, expected)
-    assert torch.equal(motion.adjoint(actual, params), x)
+    assert torch.equal(motion.A_adjoint(actual, motion_params=params), x)
+    motion.update(motion_params=params)
+    assert torch.equal(motion(x), expected)
+    assert "_motion_param_x_shift" in motion.state_dict()
+
+
+def test_sequential_multicoil_mri_brownian_subpixel_motion(device):
+    batch_size, channels, coils, time, height, width = 2, 2, 3, 5, 9, 11
+    x = torch.randn(batch_size, channels, height, width, device=device)
+    mask = torch.ones(batch_size, channels, time, height, width, device=device)
+    coil_maps = torch.randn(
+        batch_size, coils, height, width, device=device, dtype=torch.complex64
+    )
+    generator = dinv.physics.generator.BrownianMotionGenerator(
+        n_frames=time,
+        rotation_sigma=0.0,
+        translation_sigma=0.5,
+        device=device,
+    )
+    params = generator.step(batch_size=batch_size, seed=0)
+    physics = SequentialMultiCoilMRI(
+        mask=mask,
+        coil_maps=coil_maps,
+        motion=TimeVaryingMotion(dinv.transform.FourierShift()),
+        motion_params=params,
+        device=device,
+    )
+    Ax = physics.A(x)
+    y = torch.randn_like(Ax)
+
+    assert Ax.shape == (batch_size, channels, coils, time, height, width)
+    assert torch.allclose(
+        torch.vdot(Ax.flatten(), y.flatten()),
+        torch.vdot(x.flatten(), physics.A_adjoint(y).flatten()),
+        rtol=1e-5,
+        atol=2e-5,
+    )
 
 
 def test_sequential_multicoil_mri_motion_adjoint(device):
@@ -1222,7 +1258,7 @@ def test_sequential_multicoil_mri_motion_adjoint(device):
     physics = SequentialMultiCoilMRI(
         mask=mask,
         coil_maps=coil_maps,
-        motion=TransformMotion(Shift()),
+        motion=TimeVaryingMotion(Shift()),
         motion_params=params,
         device=device,
     )
@@ -1264,7 +1300,7 @@ def test_sequential_multicoil_mri_motion_update_and_override(device):
     physics = SequentialMultiCoilMRI(
         mask=mask,
         coil_maps=coil_maps,
-        motion=TransformMotion(Shift()),
+        motion=TimeVaryingMotion(Shift()),
         motion_params=zeros,
         device=device,
     )
@@ -1275,8 +1311,9 @@ def test_sequential_multicoil_mri_motion_update_and_override(device):
 
     assert not torch.equal(unshifted_measurements, shifted_measurements)
     assert torch.equal(physics.A(x, motion_params=zeros), unshifted_measurements)
-    assert "motion_trajectory.motion_param_x_shift" in physics.state_dict()
-    assert physics.motion_trajectory.as_dict()["x_shift"].device == device
+    param_name = "motion._motion_param_x_shift"
+    assert param_name in physics.state_dict()
+    assert physics.state_dict()[param_name].device == device
 
     with pytest.raises(ValueError, match="broadcast-compatible"):
         physics.A(
@@ -1290,15 +1327,24 @@ def test_sequential_multicoil_mri_motion_update_and_override(device):
 
 def test_mri_motion_parameter_validation():
     with pytest.raises(ValueError, match="leading dimensions"):
-        TransformMotion.check_params({"theta": torch.zeros(3)}, 1, 3)
+        TimeVaryingMotion.check_params({"theta": torch.zeros(3)}, 1, 3)
     with pytest.raises(ValueError, match="without a motion operator"):
         SequentialMultiCoilMRI(
             mask=torch.ones(1, 2, 1, 4, 4),
             coil_maps=torch.ones(1, 1, 4, 4, dtype=torch.complex64),
             motion_params={"theta": torch.zeros(1, 1)},
         )
-    trajectory = MotionTrajectory({"theta": torch.zeros(1, 2)})
-    assert torch.equal(trajectory.as_dict()["theta"], torch.zeros(1, 2))
+    motion = TimeVaryingMotion(
+        Shift(), motion_params={"theta": torch.zeros(1, 2)}
+    )
+    motion.update(
+        motion_params={
+            "x_shift": torch.zeros(1, 2),
+            "y_shift": torch.zeros(1, 2),
+        }
+    )
+    assert "_motion_param_theta" not in motion.state_dict()
+    assert "_motion_param_x_shift" in motion.state_dict()
 
 
 @pytest.mark.parametrize("mri", [MRI, DynamicMRI, MultiCoilMRI])

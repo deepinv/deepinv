@@ -276,3 +276,34 @@ def test_shift_time():
 
     assert torch.allclose(t1.identity(x), x)
     assert torch.allclose((t1 * t2).identity(x), x)
+
+
+def test_fourier_shift_fractional_inverse_and_adjoint(device):
+    x = torch.randn(2, 2, 15, 17, device=device)
+    y = torch.randn_like(x)
+    params = {
+        "x_shift": torch.tensor([1.25], device=device),
+        "y_shift": torch.tensor([-0.75], device=device),
+    }
+    transform = dinv.transform.FourierShift()
+
+    shifted = transform(x, **params)
+    assert torch.allclose(transform.inverse(shifted, **params), x, atol=2e-6)
+    assert torch.allclose(
+        torch.vdot(shifted.flatten(), y.flatten()),
+        torch.vdot(x.flatten(), transform.inverse(y, **params).flatten()),
+        atol=2e-5,
+        rtol=1e-5,
+    )
+
+
+def test_fourier_shift_matches_integer_roll(device):
+    x = torch.randn(1, 2, 15, 17, device=device)
+    shifted = dinv.transform.FourierShift()(
+        x,
+        x_shift=torch.tensor([2.0], device=device),
+        y_shift=torch.tensor([-1.0], device=device),
+    )
+    assert torch.allclose(
+        shifted, torch.roll(x, shifts=(-1, 2), dims=(-2, -1)), atol=2e-6
+    )
