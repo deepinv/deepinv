@@ -100,6 +100,18 @@ Network Regularization
     deepinv.loss.JacobianSpectralNorm
     deepinv.loss.FNEJacobianSpectralNorm
 
+Codesign Regularization
+-----------------------
+.. userguide:: codesign-regularization
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.loss.CodesignRegularization
+    deepinv.loss.BinaryRegularization
+
 
 Loss schedulers
 ---------------
