@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.sampling.PiGDMDataFidelity` and :class:`deepinv.sampling.MomentMatchingDataFidelity` noisy data-fidelity terms for diffusion posterior sampling, with a new example ``demo_noisy_data_fidelity.py`` (:gh:`1279` by `Samuel Hurault`_)
 
 Changed
 ^^^^^^^

@@ -522,3 +522,36 @@ def test_noisy_data_fidelity(device):
             assert output.shape == x.shape
         except NotImplementedError:
             pass
+        # Test that the denoised output can be returned along with the gradient
+        if data_fid_class is not NoisyDataFidelity:
+            grad, model_output = data_fid.grad(
+                x, y, physics, sigma, get_model_outputs=True
+            )
+            assert grad.shape == x.shape
+            assert model_output.shape == x.shape
+            torch.testing.assert_close(
+                grad, data_fid.grad(x, y, physics, sigma), rtol=1e-4, atol=1e-4
+            )
+
+
+@torch.no_grad()
+def test_pigdm_decomposable_physics(device):
+    """PiGDM uses an exact spectral inverse for decomposable physics.
+
+    The other branch, the conjugate-gradient fallback, is covered by
+    `test_noisy_data_fidelity`, which uses a non-decomposable `Blur`.
+    """
+    from deepinv.sampling import PiGDMDataFidelity
+
+    denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+    x = torch.rand(2, 3, 64, 64, device=device)
+    physics = dinv.physics.BlurFFT(
+        img_size=x.shape[1:],
+        filter=dinv.physics.functional.gaussian_blur(sigma=(3, 3)),
+        noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+        device=device,
+    )
+    assert isinstance(physics, dinv.physics.DecomposablePhysics)
+    y = physics(x)
+    data_fid = PiGDMDataFidelity(denoiser=denoiser)
+    assert data_fid.grad(x, y, physics, 0.1).shape == x.shape

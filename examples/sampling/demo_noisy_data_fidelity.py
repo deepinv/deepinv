@@ -195,8 +195,11 @@ dps = dinv.sampling.DPSDataFidelity(denoiser=denoiser, weight=dps_weight)
 #     \nabla_{x_t}\log p_t(x_t\mid y)
 #     \approx \nabla_{x_t}\log p_t(x_t)
 #       - \lambda J_D^\top A^\top
-#       (r_t^2 A A^\top + \mathrm I)^{-1}
-#       (A D_{\sigma_t}(x_t)-y).
+#       (r_t^2 A A^\top + \sigma_y^2\mathrm I)^{-1}
+#       (A D_{\sigma_t}(x_t)-y),
+#
+# where :math:`\sigma_y` is the standard deviation of the measurement noise,
+# read from ``physics.noise_model.sigma``.
 #
 # The inverse is evaluated exactly for
 # :class:`deepinv.physics.DecomposablePhysics` operators
@@ -243,7 +246,7 @@ pigdm = dinv.sampling.PiGDMDataFidelity(
 #     \nabla_{x_t}\log p_t(x_t\mid y)
 #     \approx \nabla_{x_t}\log p_t(x_t)
 #       - \lambda J_D^\top A^\top
-#       (A J_D^\top A^\top + \mathrm I)^{-1}
+#       (\sigma_t^2 A J_D A^\top + \sigma_y^2\mathrm I)^{-1}
 #       (A D_{\sigma_t}(x_t)-y).
 #
 # This can capture direction-dependent uncertainty, at the cost of solving a

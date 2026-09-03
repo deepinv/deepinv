@@ -138,12 +138,11 @@ class DPSDataFidelity(NoisyDataFidelity):
         **kwargs,
     ):
         super().__init__()
+        # this class defines its own residual norm in `forward`, the distance
+        # `d` of the parent class is therefore unused.
+        del self.d
         self.denoiser = denoiser
-        if clip is not None:
-            if len(clip) != 2:  # pragma: no cover
-                raise ValueError(f"clip must be None or length 2, but got {clip}")
-            clip = sorted(clip)
-        self.clip = clip
+        self.clip = sorted(clip) if clip is not None else None
         self.weight = weight
 
     def precond(
@@ -295,7 +294,7 @@ class PiGDMDataFidelity(NoisyDataFidelity):
     ):
         super().__init__(weight=weight)
         self.denoiser = denoiser
-        self.clip = clip
+        self.clip = sorted(clip) if clip is not None else None
         self.cg_max_iter = cg_max_iter
         self.cg_tol = cg_tol
         self.verbose = verbose
@@ -321,18 +320,16 @@ class PiGDMDataFidelity(NoisyDataFidelity):
         """
         if isinstance(physics, dinv.physics.DecomposablePhysics):
             transformed_u = physics.U_adjoint(u)
-            r_t2 = self.denoiser._handle_sigma(r_t2, reference_tensor=transformed_u)
-            sigma_y = self.denoiser._handle_sigma(
-                sigma_y, reference_tensor=transformed_u
-            )
+            r_t2 = Denoiser._handle_sigma(r_t2, reference_tensor=transformed_u)
+            sigma_y = Denoiser._handle_sigma(sigma_y, reference_tensor=transformed_u)
             singular_values = physics.mask.to(
                 device=transformed_u.device, dtype=transformed_u.dtype
             )
             denominator = sigma_y**2 + r_t2 * singular_values.conj() * singular_values
             return physics.U(transformed_u / denominator)
 
-        r_t2 = self.denoiser._handle_sigma(r_t2, reference_tensor=u)
-        sigma_y = self.denoiser._handle_sigma(sigma_y, reference_tensor=u)
+        r_t2 = Denoiser._handle_sigma(r_t2, reference_tensor=u)
+        sigma_y = Denoiser._handle_sigma(sigma_y, reference_tensor=u)
 
         def operator(v):
             return sigma_y**2 * v + r_t2 * physics.A_A_adjoint(v)
@@ -352,10 +349,10 @@ class PiGDMDataFidelity(NoisyDataFidelity):
         y: torch.Tensor,
         physics: Physics,
         sigma: torch.Tensor | float,
-        get_model_outputs: bool = False,
         *args,
+        get_model_outputs: bool = False,
         **kwargs,
-    ) -> torch.Tensor:
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         r"""
         Compute the PiGDM data-fidelity gradient.
 
@@ -379,7 +376,7 @@ class PiGDMDataFidelity(NoisyDataFidelity):
             raise ValueError("PiGDMDataFidelity requires a denoiser.")
         input_dtype = x.dtype
         x_denoiser = x.detach().to(torch.float32)
-        sigma_denoiser = self.denoiser._handle_sigma(sigma, reference_tensor=x_denoiser)
+        sigma_denoiser = Denoiser._handle_sigma(sigma, reference_tensor=x_denoiser)
         if not isinstance(physics.noise_model, dinv.physics.GaussianNoise):
             raise ValueError("This data fidelity requires Gaussian measurement noise.")
         sigma_y = physics.noise_model.sigma
@@ -417,14 +414,14 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
         p(x_0|x_t) \approx \mathcal{N} \left(
         x_0;D(x_t,\sigma_t),\Sigma_t(x_t) \right),
         \qquad
-        \Sigma_t(x_t)=\sigma_t^2J_D(x_t,\sigma_t)^\top.
+        \Sigma_t(x_t)=\sigma_t^2J_D(x_t,\sigma_t).
 
     The resulting negative log-likelihood gradient is
 
     .. math::
 
         -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top
-        \left(\sigma_t^2 A J_D(x_t, \sigma_t)^\top A^\top
+        \left(\sigma_t^2 A J_D(x_t, \sigma_t) A^\top
         + \sigma_y^2\mathrm{Id}\right)^{-1}
         \left(A D(x_t, \sigma_t) - y\right).
 
@@ -465,11 +462,7 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
     ):
         super().__init__(weight=weight)
         self.denoiser = denoiser
-        if clip is not None:
-            if len(clip) != 2:  # pragma: no cover
-                raise ValueError(f"clip must be None or length 2, but got {clip}")
-            clip = sorted(clip)
-        self.clip = clip
+        self.clip = sorted(clip) if clip is not None else None
         self.cg_max_iter = cg_max_iter
         self.cg_tol = cg_tol
         self.verbose = verbose
@@ -484,14 +477,14 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
         *args,
         get_model_outputs: bool = False,
         **kwargs,
-    ) -> torch.Tensor:
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         r"""
         Compute the moment-matching data-fidelity gradient.
 
          .. math::
 
                 -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top
-                \left(\sigma_t^2 A J_D(x_t, \sigma_t)^\top A^\top
+                \left(\sigma_t^2 A J_D(x_t, \sigma_t) A^\top
                 + \sigma_y^2\mathrm{Id}\right)^{-1}
                 \left(A D(x_t, \sigma_t) - y\right).
 
@@ -514,7 +507,7 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
         if not isinstance(physics.noise_model, dinv.physics.GaussianNoise):
             raise ValueError("This data fidelity requires Gaussian measurement noise.")
         sigma_y = physics.noise_model.sigma
-        sigma_denoiser = self.denoiser._handle_sigma(sigma, reference_tensor=x_denoiser)
+        sigma_denoiser = Denoiser._handle_sigma(sigma, reference_tensor=x_denoiser)
         denoised, denoiser_vjp = torch.func.vjp(
             lambda z: self.denoiser(z, sigma_denoiser, *args, **kwargs),
             x_denoiser,
@@ -525,8 +518,8 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
         difference = measurement - y.to(
             device=measurement.device, dtype=measurement.dtype
         )
-        sigma_y = self.denoiser._handle_sigma(sigma_y, reference_tensor=difference)
-        sigma_t = self.denoiser._handle_sigma(sigma, reference_tensor=difference)
+        sigma_y = Denoiser._handle_sigma(sigma_y, reference_tensor=difference)
+        sigma_t = Denoiser._handle_sigma(sigma, reference_tensor=difference)
 
         def operator(v):
             adjoint = physics.A_adjoint(v).to(denoised.dtype)
