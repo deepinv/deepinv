@@ -285,10 +285,11 @@ for name, data_fidelity in data_fidelities.items():
 
 dinv.utils.plot(
     {
-        f"{name} gradient magnitude": gradient.abs()
+        f"{name}": gradient.abs()
         for name, gradient in gradients.items()
     },
     figsize=(9, 3),
+    suptitle="Gradient magnitude"
 )
 
 # %%
