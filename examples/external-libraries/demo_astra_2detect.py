@@ -57,7 +57,7 @@ y = sino[:, :, ::3600 // n_angles].float().contiguous().to(device) # (1, 1, n_an
 
 # %%
 # Reconstruct with FBP and RAM:
-model = dinv.models.RAM(pretrained=True, device=device)
+model = dinv.models.RAM(pretrained="/lustre/fsn1/projects/rech/nyd/commun/ram_project/models/ram.pth.tar", device=device)
 with torch.no_grad():
     x_fbp = physics.A_dagger(y, fbp=True)
     scaling = x_fbp.max()
