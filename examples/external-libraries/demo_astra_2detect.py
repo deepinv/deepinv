@@ -84,7 +84,7 @@ class ModelWrapper(dinv.models.Reconstructor):
         self.scaling = scaling
 
     def forward(self, y, physics, **kwargs):
-        return model(y / self.scaling, physics) * self.scaling * physics.operator_norm
+        return self.model(y / self.scaling, physics) * self.scaling * physics.operator_norm
 
 # Wrap model to scale input and output
 model = ModelWrapper(model, scaling=x_fbp.max())
