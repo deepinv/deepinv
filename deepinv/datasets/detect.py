@@ -1,0 +1,75 @@
+from __future__ import annotations
+from pathlib import Path
+import numpy as np
+import torch
+from torch.utils.data import Dataset
+
+class DeteCTDataset(Dataset):
+    """2DeteCT dataset.
+
+    GT x = iterative recon of shape (1,1024,1024) from mode2 data.
+    y = real projection data, preprocessed (flat/dark-corrected, log-transformed) of shape (1,n_angles,956).
+    Identical loading to LION https://github.com/CambridgeCIA/LION/blob/main/LION/data_loaders/2deteCT    
+
+    :param root: root dir, should contain subfolders named `2DeteCT_slicesXXXX-YYYY` (+ `_RecSeg`)
+    :param str problem: benchmarking problem from 2DeteCT + https://www.aimsciences.org/article/doi/10.3934/ammc.2025001
+      - full: mode2 acquired data (3600 projections)
+      - sparse_view: mode2 acquired data then evenly subsampled
+      - limited_angle: mode2 acquired data then limited angles taken
+      - low_dose: mode1 acquired data
+      - beam_hardening: mode3 acquired data
+    :param int n_angles: kept projections for sparse_view/limited_angle.
+    :param str slice_ids: `all` (default, every slice found from 1-5000) or `train`/`val`/`test` (LION 3930/550/470 sample split).
+        NOTE: sequential, such that test set only requires downloading archive for slices 4001-5000.
+
+    TODO add download parameter/download instructions.
+    """
+    def __init__(self, root: str | Path, problem: str = "full", n_angles: int = None, slice_ids: int = "all"):
+        self.root = Path(root)
+        self.problem, self.n_angles = problem, n_angles
+        self.mode = {"low_dose": "mode1", "beam_hardening": "mode3"}.get(problem, "mode2")
+
+        lo, hi = {"all": (1, 5000), "train": (1, 3930), "val": (3931, 4480), "test": (4531, 5000)}[slice_ids]
+        self.slices = sorted(int(p.name[5:]) for p in self.root.glob("2DeteCT_slices*[0-9]/slice[0-9]*") if p.is_dir() and lo <= int(p.name[5:]) <= hi)
+
+    def __len__(self):
+        return len(self.slices)
+
+    def __getitem__(self, i):
+        import tifffile
+        slice_num = self.slices[i]
+        block_start = (slice_num - 1) // 1000 * 1000 + 1          # 1, 1001, ..., 4001
+        block = f"2DeteCT_slices{block_start}-{block_start + 999}"
+        stem = f"slice{slice_num:05d}"
+
+        # Taken from LION pre_process_2deteCT.pre_process_slice
+        mode_dir = self.root / block / stem / self.mode
+        sino = tifffile.imread(mode_dir / "sinogram.tif").astype(np.float32)   # (3601, 1912)
+        dark = tifffile.imread(mode_dir / "dark.tif").astype(np.float32)       # (1, 1912)
+        flat = 0.5 * (tifffile.imread(mode_dir / "flat1.tif").astype(np.float32) + tifffile.imread(mode_dir / "flat2.tif").astype(np.float32))
+
+        # detector-shift correction
+        if slice_num < 2830 or 5520 < slice_num < 5871:
+            from scipy.interpolate import interp1d
+            grid = np.arange(sino.shape[-1])
+            sino, flat, dark = (interp1d(grid, a, bounds_error=False, fill_value="extrapolate")(grid + 1) for a in (sino, flat, dark))
+        
+        # sum adjacent binned detector pixels, and drop the last projection (a repeat of the first)
+        sino = (sino[:, 0::2] + sino[:, 1::2])[:-1]              # (3600, 956)
+        dark = dark[0, 0::2] + dark[0, 1::2]                     # (956,)
+        flat = flat[0, 0::2] + flat[0, 1::2]
+
+        # Taken from LION deteCT.__load_and_preprocess_sinogram__
+        sino = (sino - dark) / (flat - dark)                    # flat/dark-field correction
+        sino = -np.log(np.clip(sino, 1e-6, None))               # Beer-Lambert
+        sino = sino[:, ::-1]                                    # flip detector
+
+        if self.problem == "sparse_view":
+            sino = sino[::3600 // self.n_angles]
+        elif self.problem == "limited_angle":
+            sino = sino[:self.n_angles]
+
+        # GT x = reference reconstruction (LION deteCT.__load_and_preprocess_reconstruction__)
+        x = tifffile.imread(self.root / (block + "_RecSeg") / stem / 'mode2' / "reconstruction.tif").astype(np.float32)
+
+        return torch.from_numpy(x).unsqueeze(0), torch.from_numpy(np.ascontiguousarray(sino, dtype=np.float32)).unsqueeze(0), {}
