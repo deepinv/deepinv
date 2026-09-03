@@ -10,7 +10,8 @@ class DeteCTDataset(Dataset):
 
     GT x = iterative recon of shape (1,1024,1024) from mode2 data.
     y = real projection data, preprocessed (flat/dark-corrected, log-transformed) of shape (1,n_angles,956).
-    Identical loading to LION https://github.com/CambridgeCIA/LION/blob/main/LION/data_loaders/2deteCT    
+    The dataset follows the same preprocessing steps as in LION https://github.com/CambridgeCIA/LION/blob/main/LION/data_loaders/2deteCT,
+    but adapted to `torch`.
 
     :param root: root dir, should contain subfolders named `2DeteCT_slicesXXXX-YYYY` (+ `_RecSeg`)
     :param str problem: benchmarking problem from 2DeteCT + https://www.aimsciences.org/article/doi/10.3934/ammc.2025001
@@ -48,13 +49,16 @@ class DeteCTDataset(Dataset):
         dark = load_tiff(data_dir / "dark.tif") # (1, 1, 1, 1912)
         flat = 0.5 * (load_tiff(data_dir / "flat1.tif") + load_tiff(data_dir / "flat2.tif"))
 
-        # detector-shift correction TODO
         if slice_num < 2830 or 5520 < slice_num < 5871:
-            from scipy.interpolate import interp1d
-            grid = np.arange(sino.shape[-1])
-            sino, flat, dark = (interp1d(grid, a, bounds_error=False, fill_value="extrapolate")(grid + 1) for a in (sino, flat, dark))
+            def detector_shift(a):
+                out = torch.empty_like(a)
+                out[..., :-1] = a[..., 1:]
+                out[..., -1] = 2 * a[..., -1] - a[..., -2]
+                return out
 
-        # sum adjacent binned detector pixels
+            sino, flat, dark = detector_shift(sino), detector_shift(flat), detector_shift(dark)
+
+        # Bin detector pixels
         sino = sino[..., 0::2] + sino[..., 1::2] # (1, 1, 3600, 956)
         dark = dark[..., 0::2] + dark[..., 1::2] # (1, 1, 1, 956)
         flat = flat[..., 0::2] + flat[..., 1::2]
@@ -62,13 +66,13 @@ class DeteCTDataset(Dataset):
         # Detector corrections:
         sino = (sino - dark) / (flat - dark) # flat/dark-field correction
         sino = -sino.clip(min=1e-6).log() # Beer-Lambert
-        sino = sino.flip(dims=(-1,)).contiguous().float() # flip detector
+        sino = sino.flip(dims=(-1,))# flip detector
 
         if self.problem == "sparse_view":
             sino = sino[:, :, ::3600 // self.n_angles] # (1, 1, n_angles, 956)
         elif self.problem == "limited_angle":
             sino = sino[:, :, :self.n_angles] # (1, 1, n_angles, 956)
 
-        x = load_tiff(self.root / (block + "_RecSeg") / stem / 'mode2' / "reconstruction.tif").float()
+        x = load_tiff(self.root / (block + "_RecSeg") / stem / 'mode2' / "reconstruction.tif")
 
-        return x.squeeze(0), sino.squeeze(0)
+        return x.squeeze(0).contiguous().float(), sino.squeeze(0).contiguous().float()

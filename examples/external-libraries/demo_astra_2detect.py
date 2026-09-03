@@ -124,6 +124,7 @@ physics.update(sigma=0.001 / model.scaling, gain=0.001 / model.scaling) # use es
 dataset = dinv.datasets.DeteCTDataset(root, problem="limited_angle", n_angles=n_angles, slice_ids='test')
 
 x, y = next(iter(torch.utils.data.DataLoader(dataset)))
+x, y = x.to(device), y.to(device)
 with torch.no_grad():
     x_fbp = fbp(y, physics)
     x_ram = model(y, physics)
@@ -149,6 +150,7 @@ physics.update(sigma=0.001 / model.scaling, gain=0.05 / model.scaling) # use est
 dataset = dinv.datasets.DeteCTDataset(root, problem="low_dose", slice_ids='test')
 
 x, y = next(iter(torch.utils.data.DataLoader(dataset)))
+x, y = x.to(device), y.to(device)
 with torch.no_grad():
     x_fbp = fbp(y, physics)
     x_ram = model(y, physics)
