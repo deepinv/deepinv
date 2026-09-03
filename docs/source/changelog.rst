@@ -9,11 +9,11 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add :class:`deepinv.sampling.PiGDMDataFidelity`, :class:`deepinv.sampling.MomentMatchingDataFidelity`, :class:`deepinv.sampling.ALDDataFidelity`, :class:`deepinv.sampling.ScoreSDEDataFidelity` and :class:`deepinv.sampling.ILVRDataFidelity` noisy data-fidelity terms for diffusion posterior sampling, with a new example ``demo_noisy_data_fidelity.py`` (:gh:`1279` by `Samuel Hurault`_)
+- Add :func:`deepinv.physics.TomographyWithAstra.from_astra_geometry` to build the operator directly from pre-created ``astra`` geometries (:gh:`1102` by `Margaret Duff`_)
+- Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
 
 Changed
 ^^^^^^^
-- Add a ``guidance`` option to :class:`deepinv.sampling.DPSDataFidelity`, selecting either the residual norm of the original paper (``"norm"``, the default, unchanged behaviour) or the Gaussian negative log-likelihood with annealed variance :math:`\sigma_y^2+\sigma_t^2` (``"annealed"``), for which ``weight`` is on the same scale as the other noisy data-fidelity terms (:gh:`1279` by `Samuel Hurault`_)
-- :meth:`deepinv.sampling.NoisyDataFidelity.forward` now raises a ``NotImplementedError`` instead of falling back to a plain :math:`\ell_2` distance: these terms are defined through their gradient, and the ``d`` argument of the constructor has been removed accordingly. The ``precond`` and ``diff`` methods have also been removed, each subclass now implementing ``grad`` directly (:gh:`1279` by `Samuel Hurault`_)
 
 Fixed
 ^^^^^
@@ -711,4 +711,5 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
+.. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou
