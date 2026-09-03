@@ -3,11 +3,11 @@ Noisy data-fidelity terms for diffusion posterior sampling
 ==========================================================
 
 This example compares three approximations of the measurement-matching term
-used by diffusion posterior samplers: 
+used by diffusion posterior samplers:
 
 - Diffusion Posterior Sampling (DPS) :footcite:t:`chung2022diffusion`,
 - Pseudoinverse-Guided Diffusion Models (PiGDM) :footcite:t:`song2023pseudoinverse`
-- Moment Matching :footcite:t:`rozet2024learning` 
+- Moment Matching :footcite:t:`rozet2024learning`
 
 These methods belong to the broader family of explicit posterior approximations reviewed in
 *A Survey on Diffusion Models for Inverse Problems*
@@ -284,12 +284,9 @@ for name, data_fidelity in data_fidelities.items():
     print(f"{name:>15s} gradient norm: {norm:.3e}")
 
 dinv.utils.plot(
-    {
-        f"{name}": gradient.abs()
-        for name, gradient in gradients.items()
-    },
+    {f"{name}": gradient.abs() for name, gradient in gradients.items()},
     figsize=(9, 3),
-    suptitle="Gradient magnitude"
+    suptitle="Gradient magnitude",
 )
 
 # %%
