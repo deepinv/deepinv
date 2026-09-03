@@ -248,6 +248,8 @@ def preprocess_img(
             scales = list(zip(mins, maxs, strict=True))
         elif rescale_mode in ("clip", None):
             scales = [(v0, v1)] * im.shape[0]
+        else:
+            raise ValueError(f"Unknown rescale_mode: {rescale_mode}")
 
     if rescale_mode is None:
         # clip without rescaling

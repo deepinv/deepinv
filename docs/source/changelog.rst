@@ -10,6 +10,7 @@ New Features
 ^^^^^^^^^^^^
 - Add :func:`deepinv.physics.TomographyWithAstra.from_astra_geometry` to build the operator directly from pre-created ``astra`` geometries (:gh:`1102` by `Margaret Duff`_)
 - Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
+- Add :func:`deepinv.utils.plot` to disable image rescaling with ``rescale_mode=None``. (:gh:`1339` by `Delphine Doutsas`_)
 
 Changed
 ^^^^^^^
@@ -42,7 +43,6 @@ New Features
 - Add :class:`deepinv.datasets.BrainWebPET` (:gh:`1286` by `Thibaut Modrzyk`_)
 - Add ``mask_first`` option to :class:`deepinv.physics.SpaceVaryingBlur` and :func:`deepinv.physics.functional.product_convolution2d` (:gh:`1347` by `Julian Tachella`_)
 - Add ``use_dict_output`` option to every dataset class, returning a dict ``{"x", "y", "params"}`` instead of a tuple; propagate support to all deepinv internals (:gh:`1244` by `Romain Vo`_)
-- Add :func:`deepinv.utils.plot` to disable image rescaling with ``rescale_mode=None``. (:gh:`1339` by dldou)
 
 Changed
 ^^^^^^^
@@ -68,7 +68,9 @@ Fixed
 - (Breaking) Have `x_shift` represent horizontal shifts and `y_shift` vertical shifts in :class:`deepinv.transform.Shift` (:gh:`1236` by `Sarra Amiri`_)
 - Force trainer non_blocking_transfers=False on MPS and CPU (:gh:`1311` by `Andrew Wang`_)
 - Fix :class:`deepinv.physics.PET` incorrect device attribution of attenuation and background on update and incorrect handling of batched attenuation  (:gh:`1331` by `Thibaut Modrzyk`_)
-- Fix the channel description in NBUDataset documentation (:gh:`` by dldou)
+
+
+
 
 v0.4.1
 ------
