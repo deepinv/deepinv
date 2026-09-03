@@ -89,7 +89,7 @@ class ModelWrapper(dinv.models.Reconstructor):
 # Wrap model to scale input and output
 model = ModelWrapper(model, scaling=x_fbp.max())
     
-physics.update(sigma=0.001 / model.scaling, gain=0.001 / model.scaling) # use estimated noise params
+physics.update(sigma=0.01 / model.scaling, gain=0.003 / model.scaling) # use estimated noise params
 
 with torch.no_grad():
     x_ram = model(y, physics)
@@ -119,7 +119,7 @@ dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, ra
 n_angles = 1200
 proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles[:n_angles].numpy(), sod, sdd - sod)
 physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_geometry=proj_geom, is_2d=True, normalize=True, device=device, noise_model=dinv.physics.PoissonGaussianNoise())
-physics.update(sigma=0.001 / model.scaling, gain=0.001 / model.scaling) # use estimated noise params
+physics.update(sigma=0.01 / model.scaling, gain=0.003 / model.scaling) # use estimated noise params
 
 dataset = dinv.datasets.DeteCTDataset(root, problem="limited_angle", n_angles=n_angles, slice_ids='test')
 
@@ -145,7 +145,7 @@ dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, ra
 
 proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles.numpy(), sod, sdd - sod)
 physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_geometry=proj_geom, is_2d=True, normalize=True, device=device, noise_model=dinv.physics.PoissonGaussianNoise())
-physics.update(sigma=0.001 / model.scaling, gain=0.05 / model.scaling) # use estimated higher noise params
+physics.update(sigma=0.01 / model.scaling, gain=0.1 / model.scaling) # use estimated higher noise params
 
 dataset = dinv.datasets.DeteCTDataset(root, problem="low_dose", slice_ids='test')
 
