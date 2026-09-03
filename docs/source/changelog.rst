@@ -8,12 +8,17 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :func:`deepinv.physics.TomographyWithAstra.from_astra_geometry` to build the operator directly from pre-created ``astra`` geometries (:gh:`1102` by `Margaret Duff`_)
+- Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
 
 Changed
 ^^^^^^^
+- :class:`deepinv.models.FFDNet` default network parameters changed, to allow pretrained weights by default (:gh:`1357` by `Vicky De Ridder`_)
+- :class:`deepinv.models.PanNet` upsampling preserves intensity properly now. Existing PanNet weights may not perform well, but retraining should give improved performance compared to old weights. (:gh:`1371` by `Vicky De Ridder`_)
 
 Fixed
 ^^^^^
+- Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)
 
 
 v0.4.2
@@ -35,6 +40,7 @@ New Features
 - Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
 - Add :class:`deepinv.loss.metric.BRISQUE` and :class:`deepinv.loss.metric.NIMA` no-reference image quality metrics (:gh:`1310` by `Julian Tachella`_)
 - Add :class:`deepinv.datasets.BrainWebPET` (:gh:`1286` by `Thibaut Modrzyk`_)
+- Add ``mask_first`` option to :class:`deepinv.physics.SpaceVaryingBlur` and :func:`deepinv.physics.functional.product_convolution2d` (:gh:`1347` by `Julian Tachella`_)
 - Add ``use_dict_output`` option to every dataset class, returning a dict ``{"x", "y", "params"}`` instead of a tuple; propagate support to all deepinv internals (:gh:`1244` by `Romain Vo`_)
 - Add :func:`deepinv.utils.plot` to disable image rescaling with ``rescale_mode=None``. (:gh:`1339` by dldou)
 
@@ -48,6 +54,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fix the ``mask_first=False`` pretrained :class:`deepinv.models.KernelIdentificationNetwork` (:gh:`1347` by `Julian Tachella`_)
 - Deprecate the `theta` attribute from :class:`deepinv.physics.Tomography` (:gh:`1262` by `Matthieu Terris`_)
 - Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
 - Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
@@ -704,4 +711,5 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
+.. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou

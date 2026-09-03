@@ -161,10 +161,10 @@ class PanNet(nn.Module):
         lr_highpass = self.highpass(lr)
         pan_highpass = self.highpass(pan)
 
-        lr_highpass_up = self.upsampler(lr_highpass)  # note fixed upsampler
+        lr_highpass_up = self.upsampler(lr_highpass) * self.scale_factor**2
 
         ms = torch.cat([pan_highpass, lr_highpass_up], dim=1)
 
-        output = self.net(ms) + self.upsampler(lr)
+        output = self.net(ms) + self.upsampler(lr) * self.scale_factor**2
 
         return output
