@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :func:`deepinv.physics.TomographyWithAstra.from_astra_geometry` to build the operator directly from pre-created ``astra`` geometries (:gh:`1102` by `Margaret Duff`_)
 - Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
 
 Changed
@@ -711,4 +712,5 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
+.. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou
