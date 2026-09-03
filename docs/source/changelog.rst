@@ -10,14 +10,18 @@ New Features
 ^^^^^^^^^^^^
 - Add :func:`deepinv.physics.TomographyWithAstra.from_astra_geometry` to build the operator directly from pre-created ``astra`` geometries (:gh:`1102` by `Margaret Duff`_)
 - Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
+- Add ``symmetric`` option to :class:`deepinv.loss.JacobianSpectralNorm` that replaces the Jacobian-vector product by a vector-Jacobian product for symmetric Jacobians, reducing memory usage (by `Sebastian Neumayer`_)
 
 Changed
 ^^^^^^^
+- Use the standard stop-gradient trick in :class:`deepinv.loss.JacobianSpectralNorm` by running power iterations under ``torch.no_grad`` and retaining a single differentiable final pass (by `Sebastian Neumayer`_)
 - :class:`deepinv.models.FFDNet` default network parameters changed, to allow pretrained weights by default (:gh:`1357` by `Vicky De Ridder`_)
 - :class:`deepinv.models.PanNet` upsampling preserves intensity properly now. Existing PanNet weights may not perform well, but retraining should give improved performance compared to old weights. (:gh:`1371` by `Vicky De Ridder`_)
 
 Fixed
 ^^^^^
+- Fix ``reduced_batchsize`` in :class:`deepinv.loss.JacobianSpectralNorm` and :class:`deepinv.loss.FNEJacobianSpectralNorm`, which raised an error because the sliced input was not part of the graph (by `Sebastian Neumayer`_)
+- Fix :class:`deepinv.loss.JacobianSpectralNorm` shadowing ``torch.nn.Module.eval()`` with the ``eval_mode`` attribute (by `Sebastian Neumayer`_)
 - Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)
 
 

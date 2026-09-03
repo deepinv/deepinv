@@ -55,34 +55,50 @@ class Potential(nn.Module):
             x.reshape(x.shape[0], -1) * z.reshape(z.shape[0], -1), dim=-1
         ).view(x.shape[0], 1)
 
-    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+    def grad(
+        self,
+        x: torch.Tensor,
+        *args,
+        forward: torch.Tensor = None,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Calculates the gradient of the potential term :math:`h` at :math:`x`.
         By default, the gradient is computed using automatic differentiation.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.Tensor, None forward: Precomputed :math:`h(x)` connected to
+            ``x``'s autograd graph. Recomputed if ``None``.
         :return: (torch.Tensor) gradient :math:`\nabla_x h`, computed in :math:`x`.
         """
         with torch.enable_grad():
             x = x.requires_grad_()
-            h = self.forward(x, *args, **kwargs)
+            h = self.forward(x, *args, **kwargs) if forward is None else forward
             grad = torch.autograd.grad(
                 h, x, torch.ones_like(h), create_graph=True, only_inputs=True
             )[0]
         return grad
 
-    def grad_conj(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+    def grad_conj(
+        self,
+        x: torch.Tensor,
+        *args,
+        conjugate: torch.Tensor = None,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Calculates the gradient of the convex conjugate potential :math:`h^*` at :math:`x`.
         If the potential is convex and differentiable, the gradient of the conjugate is the inverse of the gradient of the potential.
         By default, the gradient is computed using automatic differentiation.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.Tensor, None conjugate: Precomputed :math:`h^*(x)` connected
+            to ``x``'s autograd graph. Recomputed if ``None``.
         :return: (torch.Tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
         """
         with torch.enable_grad():
             x = x.requires_grad_()
-            h = self.conjugate(x, *args, **kwargs)
+            h = self.conjugate(x, *args, **kwargs) if conjugate is None else conjugate
             grad = torch.autograd.grad(
                 h,
                 x,
