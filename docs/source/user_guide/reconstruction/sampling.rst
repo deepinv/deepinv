@@ -146,6 +146,18 @@ See :ref:`sphx_glr_auto_examples_sampling_demo_noisy_data_fidelity.py` for a sid
      - :math:`-\nabla_{x_t} \log p_t(y|x_t)`
      - **Requirements and implementation**
 
+   * - :class:`deepinv.sampling.ALDDataFidelity`
+     - :math:`\lambda A^\top (A x_t - y) / (\sigma_y^2 + \gamma_t^2)`, with an annealing parameter :math:`\gamma_t` (default :math:`\gamma_t=\sigma_t`)
+     - No denoiser and no linear solve, so by far the cheapest; measures the mismatch at the noisy iterate :math:`x_t`.
+
+   * - :class:`deepinv.sampling.ScoreSDEDataFidelity`
+     - :math:`\lambda A^\top (A x_t - y_t) / (\sigma_y^2 + \gamma_t^2)`, with noised measurements :math:`y_t = y + \sigma_t\epsilon`
+     - Projection method assuming :math:`\sigma_t > \sigma_y`; no denoiser.
+
+   * - :class:`deepinv.sampling.ILVRDataFidelity`
+     - :math:`\lambda A^\dagger (A x_t - y_t) / (\sigma_y^2 + \gamma_t^2)`
+     - As above, lifted by the pseudo-inverse :math:`A^\dagger` instead of :math:`A^\top`.
+
    * - :class:`deepinv.sampling.DPSDataFidelity`
      - :math:`\lambda\nabla_{x_t} \| \forw{\denoiser{x_t}{\sigma_t}} - y \|`
      - Differentiable physics; backpropagates through the denoiser and forward operator.

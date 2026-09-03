@@ -11,6 +11,9 @@ from .sampling_iterators import (
 from . import diffusion_sde, sde_solver
 from .noisy_datafidelity import (
     NoisyDataFidelity,
+    ALDDataFidelity,
+    ScoreSDEDataFidelity,
+    ILVRDataFidelity,
     DPSDataFidelity,
     PiGDMDataFidelity,
     MomentMatchingDataFidelity,

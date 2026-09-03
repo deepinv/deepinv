@@ -2,16 +2,25 @@ r"""
 Noisy data-fidelity terms for diffusion posterior sampling
 ==========================================================
 
-This example compares three approximations of the measurement-matching term
-used by diffusion posterior samplers:
+This example compares six approximations of the measurement-matching term
+used by diffusion posterior samplers.
+
+Three of them measure the mismatch directly at the noisy iterate :math:`x_t`, and
+therefore need no denoiser evaluation at all:
+
+- Score-based Annealed Langevin Dynamics (Score-ALD) :footcite:t:`jalal2021robust`,
+- Score-SDE :footcite:t:`song2020score`,
+- Iterative Latent Variable Refinement (ILVR) :footcite:t:`choi2021ilvr`.
+
+The other three first denoise :math:`x_t`, and differ in how much of the
+conditional uncertainty they keep:
 
 - Diffusion Posterior Sampling (DPS) :footcite:t:`chung2022diffusion`,
-- Pseudoinverse-Guided Diffusion Models (PiGDM) :footcite:t:`song2023pseudoinverse`
-- Moment Matching :footcite:t:`rozet2024learning`
+- Pseudoinverse-Guided Diffusion Models (PiGDM) :footcite:t:`song2023pseudoinverse`,
+- Moment Matching :footcite:t:`rozet2024learning`.
 
-These methods belong to the broader family of explicit posterior approximations reviewed in
-*A Survey on Diffusion Models for Inverse Problems*
-:footcite:t:`daras2024survey`, which also presents other ways of incorporating
+We follow the presentation of *A Survey on Diffusion Models for Inverse Problems*
+:footcite:t:`daras2024survey`, which reviews these and other ways of incorporating
 measurements into diffusion models.
 
 Here, we focus on the noisy data-fidelity term itself. For a complete DPS
@@ -25,7 +34,7 @@ see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py`.
 # Posterior sampling and the intractable likelihood
 # -------------------------------------------------
 #
-# For simplicity, we use a Variance-Exploding (VE) diffusion, whose scaling is
+# We use a Variance-Exploding (VE) diffusion, whose scaling is
 # :math:`s(t)=1`:
 #
 # .. math::
@@ -91,6 +100,7 @@ see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py`.
 # forward operators, whereas the PiGDM and Moment Matching implementations
 # below require a linear operator.
 
+import matplotlib.pyplot as plt
 import torch
 
 import deepinv as dinv
@@ -134,6 +144,65 @@ dinv.utils.plot(
 )
 
 # %%
+# Score-ALD: guide with the noisy iterate itself
+# ----------------------------------------------
+#
+# The cheapest option is not to denoise at all. Score-ALD
+# :footcite:t:`jalal2021robust` evaluates the measurement mismatch directly at
+# :math:`x_t`, and compensates for the fact that :math:`x_t` is noisy by
+# inflating the measurement noise variance with an annealing parameter
+# :math:`\gamma_t`:
+#
+# .. math::
+#
+#     p_t(y\mid x_t)
+#     \approx \mathcal N\!\left(
+#         y; A x_t, (\sigma_y^2+\gamma_t^2)\mathrm I
+#     \right),
+#
+# which gives the guidance
+#
+# .. math::
+#
+#     \nabla_{x_t}\log p_t(x_t\mid y)
+#     \approx \nabla_{x_t}\log p_t(x_t)
+#       - \lambda \frac{A^\top (A x_t - y)}{\sigma_y^2+\gamma_t^2}.
+#
+# By default :math:`\gamma_t=\sigma_t`, so the guidance is weak early in the
+# diffusion, when :math:`x_t` is mostly noise, and strengthens as
+# :math:`\sigma_t\to 0`. Because that denominator already sets the scale,
+# ``weight=1`` is the natural choice here.
+
+ald = dinv.sampling.ALDDataFidelity(weight=1.0)
+
+# %%
+# Score-SDE and ILVR: noise the measurements instead
+# --------------------------------------------------
+#
+# Score-SDE :footcite:t:`song2020score` makes the same comparison, but first
+# lifts the measurements to the current noise level,
+#
+# .. math::
+#
+#     y_t = y + \sigma_t\epsilon,
+#     \qquad \epsilon\sim\mathcal N(0,\mathrm I),
+#
+# so that :math:`y_t` and :math:`A x_t` are corrupted by comparable amounts of
+# noise. ILVR :footcite:t:`choi2021ilvr` differs only in how the measurement
+# residual is lifted back to the image space: it uses the pseudo-inverse
+# :math:`A^\dagger` rather than the adjoint :math:`A^\top`,
+#
+# .. math::
+#
+#     \nabla_{x_t}\log p_t(x_t\mid y)
+#     \approx \nabla_{x_t}\log p_t(x_t)
+#       - \lambda \frac{A^\dagger (A x_t - y_t)}{\sigma_y^2+\gamma_t^2}.
+#
+
+score_sde = dinv.sampling.ScoreSDEDataFidelity(weight=1.0)
+ilvr = dinv.sampling.ILVRDataFidelity(weight=1.0)
+
+# %%
 # DPS: plug in the denoised posterior mean
 # ----------------------------------------
 #
@@ -166,9 +235,23 @@ dinv.utils.plot(
 # ``weight`` parameter. It controls the scale of the data-fidelity contribution
 # relative to the unconditional prior score: a larger value enforces the
 # measurements more strongly.
+#
+# The residual norm above carries no noise variance, so :math:`\lambda` has to
+# absorb a factor of order :math:`\|A D_{\sigma_t}(x_t)-y\|/\sigma_y^2`, in the
+# hundreds here. To keep ``weight`` on the same scale as the other terms, we use
+# ``guidance="annealed"``, which differentiates the Gaussian negative
+# log-likelihood with the annealed variance :math:`\sigma_y^2+\sigma_t^2` instead:
+#
+# .. math::
+#
+#     \nabla_{x_t}\log p_t(x_t\mid y)
+#     \approx \nabla_{x_t}\log p_t(x_t)
+#     - \lambda\nabla_{x_t}
+#       \frac{\left\|A D_{\sigma_t}(x_t)-y\right\|_2^2}{2(\sigma_y^2+\sigma_t^2)}.
+#
+# Pass ``guidance="norm"``(the default) for the residual norm of the original paper.
 
-dps_weight = 200
-dps = dinv.sampling.DPSDataFidelity(denoiser=denoiser, weight=dps_weight)
+dps = dinv.sampling.DPSDataFidelity(denoiser=denoiser, weight=1.0, guidance="annealed")
 
 # %%
 # PiGDM: use an isotropic covariance approximation
@@ -268,12 +351,34 @@ moment_matching = dinv.sampling.MomentMatchingDataFidelity(
 # Compare the guidance terms
 # --------------------------
 #
-# Calling ``grad`` is enough to compare the three approximations at the same
+# Calling ``grad`` is enough to compare the six approximations at the same
 # :math:`x_t`. Their scales are method-dependent, so ``weight`` should be
 # tuned separately in a reconstruction. The plot independently normalizes the
 # magnitude of each gradient to emphasize its spatial structure.
+#
+# The two families look different:
+#
+# Score-ALD, Score-SDE and ILVR compare the *noisy* iterate to the measurements.
+# Here :math:`x_t = x_0 + \sigma_t\omega` is built from the ground truth, so
+#
+# .. math::
+#
+#     A x_t - y = A(x_0 + \sigma_t\omega) - (A x_0 + \sigma_y\eta)
+#               = \sigma_t A\omega - \sigma_y\eta :
+#
+# the signal cancels exactly, and the residual is *pure noise*. Their guidance
+# maps therefore look like noise, and they vanish on the masked pixels, where
+# :math:`A^\top` and :math:`A^\dagger` are zero.
+#
+# DPS, PiGDM and Moment Matching instead compare a *denoised* estimate to the
+# measurements, so their residual reflects genuine reconstruction error rather
+# than the noise in :math:`x_t`. Backpropagating it through the denoiser spreads
+# the guidance over the whole image, including inside the mask.
 
 data_fidelities = {
+    "Score-ALD": ald,
+    "Score-SDE": score_sde,
+    "ILVR": ilvr,
     "DPS": dps,
     "PiGDM": pigdm,
     "Moment Matching": moment_matching,
@@ -288,7 +393,7 @@ for name, data_fidelity in data_fidelities.items():
 
 dinv.utils.plot(
     {f"{name}": gradient.abs() for name, gradient in gradients.items()},
-    figsize=(9, 3),
+    figsize=(15, 3),
     suptitle="Gradient magnitude",
 )
 
@@ -301,6 +406,9 @@ dinv.utils.plot(
 # diffusion, Euler solver, measurements, and random seed fixed, and change only
 # the noisy data-fidelity approximation. Using the same seed gives every method
 # the same initial noise and Brownian increments.
+#
+# All six use ``weight=1``: every term is normalized by a guidance strength of
+# order :math:`\sigma_y^2+\sigma_t^2`, so a single scale works for all of them.
 #
 # Moment Matching is considerably slower on CPU because every diffusion step
 # contains an inner conjugate-gradient solve. On CPU, we therefore display a
@@ -355,17 +463,36 @@ for name, data_fidelity in data_fidelities.items():
             denoise_output=True,
         ).clip(0.0, 1.0)
 
-dinv.utils.plot(
+# One row per family: the denoiser-free terms on top, the denoiser-based ones
+# below, each preceded by its reference image.
+rows = [
     {
         "Ground truth": x_true,
-        "Measurement": y,
         **{
-            f"{name} posterior sample": sample
-            for name, sample in posterior_samples.items()
+            name: posterior_samples[name] for name in ("Score-ALD", "Score-SDE", "ILVR")
         },
     },
-    figsize=(15, 3),
+    {
+        "Measurement": y,
+        **{
+            name: posterior_samples[name]
+            for name in ("DPS", "PiGDM", "Moment Matching")
+        },
+    },
+]
+
+fig, axs = plt.subplots(
+    len(rows), 4, figsize=(12, 6.5), squeeze=False, layout="compressed"
 )
+for row, images in zip(axs, rows, strict=True):
+    dinv.utils.plot(images, fig=fig, axs=row[None, :], show=False)
+plt.show()
+
+# %%
+# All six recover the masked region, at very different costs: Score-ALD,
+# Score-SDE and ILVR need no denoiser evaluation for the guidance term, DPS
+# needs one backward pass through the denoiser, and PiGDM and Moment Matching
+# need a linear solve on top.
 
 # %%
 # :References:

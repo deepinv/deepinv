@@ -486,6 +486,9 @@ def test_noisy_data_fidelity(device):
     from deepinv.sampling import (
         DPSDataFidelity,
         NoisyDataFidelity,
+        ALDDataFidelity,
+        ScoreSDEDataFidelity,
+        ILVRDataFidelity,
         PiGDMDataFidelity,
         MomentMatchingDataFidelity,
     )
@@ -493,6 +496,16 @@ def test_noisy_data_fidelity(device):
 
     all_data_fid_classes = [
         NoisyDataFidelity,
+        ALDDataFidelity,
+        ScoreSDEDataFidelity,
+        ILVRDataFidelity,
+        DPSDataFidelity,
+        PiGDMDataFidelity,
+        MomentMatchingDataFidelity,
+    ]
+    # Classes whose `grad` can also return the denoised output, which
+    # `deepinv.sampling.PosteriorDiffusion` reuses for the unconditional score.
+    model_output_classes = [
         DPSDataFidelity,
         PiGDMDataFidelity,
         MomentMatchingDataFidelity,
@@ -512,18 +525,10 @@ def test_noisy_data_fidelity(device):
             denoiser=denoiser,
             clip=clip,
         )
-        # Test forward pass
-        assert data_fid(x, y, physics, sigma).shape == torch.Size([x.size(0)])
         # Test grad pass
         assert data_fid.grad(x, y, physics, sigma).shape == x.shape
-        # Test preconditioning
-        try:
-            output = data_fid.precond(y, physics, sigma)
-            assert output.shape == x.shape
-        except NotImplementedError:
-            pass
         # Test that the denoised output can be returned along with the gradient
-        if data_fid_class is not NoisyDataFidelity:
+        if data_fid_class in model_output_classes:
             grad, model_output = data_fid.grad(
                 x, y, physics, sigma, get_model_outputs=True
             )
