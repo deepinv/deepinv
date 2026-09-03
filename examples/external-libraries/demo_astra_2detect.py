@@ -1,7 +1,12 @@
 # Reconstruct real CT sinograms with the 2DeteCT benchmark
 # ========================================================
-#  https://www.aimsciences.org/article/doi/10.3934/ammc.2025001
-# Requires tifffile and astra.
+# We demonstrate image reconstruction of acquired CT projection data in sparse-view, limited-angle
+# and low-dose CT acquisition scenarios.
+# The data is taken from the 2DeteCT benchmark and dataset TODO CITE https://www.aimsciences.org/article/doi/10.3934/ammc.2025001 https://www.nature.com/articles/s41597-023-02484-6
+# which is an industrial CT dataset of various materials acquired using a proprietary scanner from CWI.
+#
+# .. note::
+#   This example requires tifffile and astra. Install them with TODO
 
 import deepinv as dinv
 import torch
@@ -61,20 +66,45 @@ y = sino[:, :, ::3600 // n_angles].float().contiguous().to(device) # (1, 1, n_an
 # ----------------------------
 model = dinv.models.RAM(pretrained=False, device=device)
 model.load_state_dict(torch.load("/lustre/fsn1/projects/rech/nyd/commun/ram_project/models/ram.pth.tar", map_location=device, weights_only=True), strict=False)
+
+# FBP wrapper to rescale FBP output by operator norm for quantitative comparisons
+class FBPWrapper(dinv.models.Reconstructor):
+    def forward(self, y, physics, **kwargs):
+        return physics.A_dagger(y, fbp=True) * physics.operator_norm
+
+fbp = FBPWrapper()
+
 with torch.no_grad():
-    x_fbp = physics.A_dagger(y, fbp=True)
-    scaling = x_fbp.max()
-    physics.update(sigma=0.001 / scaling, gain=0.01 / scaling) # use estimated noise params
-    x_ram = model(y / scaling, physics) * scaling
+    x_fbp = fbp(y, physics)
 
-dinv.utils.plot({"Sparse-view sinogram": y, "FBP": x_fbp, "RAM": x_ram}, save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp.png")
+class ModelWrapper(dinv.models.Reconstructor):
+    def __init__(self, model, scaling):
+        super().__init__()
+        self.model = model
+        self.scaling = scaling
 
+    def forward(self, y, physics, **kwargs):
+        return model(y / self.scaling, physics) * self.scaling * physics.operator_norm
+
+# Wrap model to scale input and output
+model = ModelWrapper(model, scaling=x_fbp.max())
+    
+physics.update(sigma=0.001 / model.scaling, gain=0.001 / model.scaling) # use estimated noise params
+
+with torch.no_grad():
+    x_ram = model(y, physics)
+
+# Plot (rescale by FBP max to visualise intensities on same scale, and clip 0-1.)
+dinv.utils.plot({"Sparse-view sinogram": y / y.max(), "FBP": x_fbp / x_fbp.max(), "RAM": x_ram / x_fbp.max()}, rescale_mode="clip", save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp.png")
+
+# %%
 # For the full benchmark, use the dataset to load these measurements.
 # Note ground truth here = their proprietary reconstruction with all angles.
-# Note: for the full benchmark, make sure all test slices are in the folder. For the purposes of the demo, 
+# Note: for the full benchmark, make sure all test slices are in the folder. For the purposes of the demo, only a few slices are shown.
+# Note: FBP and RAM have different visual intensities since min_max rescale mode is used for plotting.
 dataset = dinv.datasets.DeteCTDataset(root, problem="sparse_view", n_angles=n_angles, slice_ids='test')
 
-print(dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger"))
+dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger")
 
 
 
@@ -84,14 +114,24 @@ print(dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(datas
 # -------------------------------
 # The physics reuses all other parameters, except different angles: we take the first 30% of angles,
 # defining a limited angle wedge.
+# Like before, we'll show how to reconstruct a single acquisition vs. test a full dataset.
 #
 n_angles = 1200
 proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles[:n_angles].numpy(), sod, sdd - sod)
-physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_geometry=proj_geom, is_2d=True, normalize=False, device=device, noise_model=dinv.physics.PoissonGaussianNoise(sigma=2, gain=0.001))
+physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_geometry=proj_geom, is_2d=True, normalize=False, device=device, noise_model=dinv.physics.PoissonGaussianNoise())
+physics.update(sigma=0.001 / model.scaling, gain=0.001 / model.scaling) # use estimated noise params
 
 dataset = dinv.datasets.DeteCTDataset(root, problem="limited_angle", n_angles=n_angles, slice_ids='test')
 
-print(dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger"))
+x, y = next(iter(torch.utils.data.DataLoader(dataset)))
+with torch.no_grad():
+    x_fbp = fbp(y, physics)
+    x_ram = model(y, physics)
+
+dinv.utils.plot({"All angles recon": x / x_fbp.max(), "Limited-angle sino": y / y.max(), "FBP": x_fbp / x_fbp.max(), "RAM": x_ram / x_fbp.max()}, rescale_mode="clip", save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp1.png")
+
+
+dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger")
 
 
 
@@ -104,7 +144,15 @@ print(dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(datas
 
 proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles.numpy(), sod, sdd - sod)
 physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_geometry=proj_geom, is_2d=True, normalize=False, device=device, noise_model=dinv.physics.PoissonGaussianNoise(sigma=27, gain=0.001))
+physics.update(sigma=0.001 / model.scaling, gain=0.05 / model.scaling) # use estimated higher noise params
 
 dataset = dinv.datasets.DeteCTDataset(root, problem="low_dose", slice_ids='test')
 
-print(dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger"))
+x, y = next(iter(torch.utils.data.DataLoader(dataset)))
+with torch.no_grad():
+    x_fbp = fbp(y, physics)
+    x_ram = model(y, physics)
+
+dinv.utils.plot({"All angles recon": x / x_fbp.max(), "Low-dose sino": y / y.max(), "FBP": x_fbp / x_fbp.max(), "RAM": x_ram / x_fbp.max()}, rescale_mode="clip", save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp2.png")
+
+dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger")
