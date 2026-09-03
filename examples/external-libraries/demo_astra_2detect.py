@@ -64,6 +64,10 @@ y = sino[:, :, ::3600 // n_angles].float().contiguous().to(device) # (1, 1, n_an
 # %%
 # Reconstruct with FBP and RAM
 # ----------------------------
+#
+# .. tip::
+#     Tune the sigma and gain parameters to tune the denoising strength.
+
 model = dinv.models.RAM(pretrained=False, device=device)
 model.load_state_dict(torch.load("/lustre/fsn1/projects/rech/nyd/commun/ram_project/models/ram.pth.tar", map_location=device, weights_only=True), strict=False)
 
@@ -143,6 +147,9 @@ dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, ra
 # Low-dose CT reconstruction
 # --------------------------
 # This corresponds to a different acquisition at a lower dose (3W instead of 90W).
+#
+# .. tip::
+#     Tune the sigma and gain parameters to tune the denoising strength.
 #
 
 proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles.numpy(), sod, sdd - sod)
