@@ -12,16 +12,16 @@ class NoisyDataFidelity(DataFidelity):
     Preconditioned data fidelity term for noisy data :math:`- \log p(y|x + \sigma(t) \omega)`
     with :math:`\omega\sim\mathcal{N}(0,\mathrm{I})`.
 
-    This is a base class for the conditional classes for approximating :math:`\log p_t(y|x_t)` used in diffusion
+    This is a base class for the conditional classes for approximating :math:`- \log p_t(y|x_t)` used in diffusion
     algorithms for inverse problems, in :class:`deepinv.sampling.PosteriorDiffusion`.
 
-    It comes with a `.grad` method computing the score :math:`\nabla_{x_t} \log p_t(y|x_t)`.
+    It comes with a `.grad` method computing the negative log-likelihood gradient :math:` - \nabla_{x_t} \log p_t(y|x_t)`.
 
     By default we have
 
     .. math::
 
-         \nabla_{x_t} \log p(y|x + \sigma(t) \omega) = P(\forw{x_t'}-y),
+         - \nabla_{x_t} \log p(y|x + \sigma(t) \omega) = P(\forw{x_t'}-y),
 
 
     where :math:`P` is a preconditioner and :math:`x_t'` is an estimation of the image :math:`x`.
@@ -138,7 +138,6 @@ class DPSDataFidelity(NoisyDataFidelity):
         **kwargs,
     ):
         super().__init__()
-        self.d = dinv.optim.L2Distance()
         self.denoiser = denoiser
         if clip is not None:
             if len(clip) != 2:  # pragma: no cover
@@ -157,16 +156,18 @@ class DPSDataFidelity(NoisyDataFidelity):
         x: torch.Tensor,
         y: torch.Tensor,
         physics: Physics,
-        sigma,
+        sigma: torch.Tensor | float,
         *args,
         get_model_outputs=False,
         **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         r"""
+        Computes the gradient :math:`-\nabla_{x_t} \log p_t(y|x_t) \approx \lambda \nabla_{x_t} \| \forw{\denoiser{x}{\sigma}} - y \|`.
+
         :param torch.Tensor x: Current iterate.
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: physics model
-        :param float sigma: Standard deviation of the noise.
+        :param float, torch.Tensor sigma: Standard deviation of the noise.
         :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.
 
         :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) score term (and denoised output if `get_model_outputs` is `True`).
@@ -202,7 +203,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         x: torch.Tensor,
         y: torch.Tensor,
         physics: Physics,
-        sigma,
+        sigma: torch.Tensor | float,
         *args,
         get_model_outputs=False,
         **kwargs,
@@ -214,7 +215,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         :param torch.Tensor x: input image
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
-        :param float sigma: standard deviation of the noise.
+        :param float, torch.Tensor sigma: standard deviation of the noise.
         :param bool get_model_outputs: If `True`, also return the denoised output along with the loss. Default to `False`.
 
         :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) loss term (and denoised output if `get_model_outputs` is `True`).
@@ -351,16 +352,25 @@ class PiGDMDataFidelity(NoisyDataFidelity):
         y: torch.Tensor,
         physics: Physics,
         sigma: torch.Tensor | float,
+        get_model_outputs: bool = False,
         *args,
         **kwargs,
     ) -> torch.Tensor:
         r"""
         Compute the PiGDM data-fidelity gradient.
 
+        .. math::
+
+               -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top
+                \left(r_t^2 A A^\top + \sigma_y^2\mathrm{Id}\right)^{-1}
+                \left(A D(x_t, \sigma_t) - y\right).
+
         :param torch.Tensor x: Current noisy iterate.
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Linear physics operator.
         :param torch.Tensor, float sigma: Diffusion noise standard deviation.
+        :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.
+
         :return: PiGDM gradient, with the same shape and dtype as ``x``.
         """
         if not isinstance(physics, dinv.physics.LinearPhysics):
@@ -388,7 +398,10 @@ class PiGDMDataFidelity(NoisyDataFidelity):
         adjoint = physics.A_adjoint(inverse_difference).to(denoised.dtype)
         gradient = denoiser_vjp(adjoint)[0]
 
-        return (self.weight * gradient).to(input_dtype)
+        if get_model_outputs:
+            return (self.weight * gradient).to(input_dtype), denoised.detach()
+        else:
+            return (self.weight * gradient).to(input_dtype)
 
 
 class MomentMatchingDataFidelity(NoisyDataFidelity):
@@ -469,15 +482,25 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
         physics: Physics,
         sigma: torch.Tensor | float,
         *args,
+        get_model_outputs: bool = False,
         **kwargs,
     ) -> torch.Tensor:
         r"""
         Compute the moment-matching data-fidelity gradient.
 
+         .. math::
+
+                -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top
+                \left(\sigma_t^2 A J_D(x_t, \sigma_t)^\top A^\top
+                + \sigma_y^2\mathrm{Id}\right)^{-1}
+                \left(A D(x_t, \sigma_t) - y\right).
+
         :param torch.Tensor x: Current noisy iterate.
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Linear physics operator.
         :param torch.Tensor, float sigma: Diffusion noise standard deviation.
+        :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.
+
         :return: Moment-matching gradient, with the same shape and dtype as
             ``x``.
         """
@@ -520,4 +543,7 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
         adjoint = physics.A_adjoint(inverse_difference).to(denoised.dtype)
         gradient = denoiser_vjp(adjoint)[0]
 
-        return (self.weight * gradient).to(input_dtype)
+        if get_model_outputs:
+            return (self.weight * gradient).to(input_dtype), denoised.detach()
+        else:
+            return (self.weight * gradient).to(input_dtype)
