@@ -26,7 +26,7 @@ angles = -torch.linspace(0, 2 * torch.pi, 3600 + 1)[:-1] + torch.pi
 
 # For sparse-view projection geometry, simply downsample angles:
 n_angles = 360
-proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles[::3600 // n_angles], sod, sdd - sod)
+proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles[::3600 // n_angles].numpy(), sod, sdd - sod)
 
 physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_geometry=proj_geom, is_2d=True, normalize=True, device=device, noise_model=dinv.physics.PoissonGaussianNoise())
 
@@ -66,10 +66,12 @@ with torch.no_grad():
 
 dinv.utils.plot({"Sparse-view sinogram": y, "FBP": x_fbp, "RAM": x_ram}, save_fn="$WORK/Repos/ram-experiments/temp.png")
 
-# For the full benchmark, use the dataset to load these measurements:
+# For the full benchmark, use the dataset to load these measurements.
+# Note ground truth here = their proprietary reconstruction with all angles.
+# Note: for the full benchmark, make sure all test slices are in the folder. For the purposes of the demo, 
 dataset = dinv.datasets.DeteCTDataset(root, problem="sparse_view", n_angles=n_angles, slice_ids='test')
 
-dinv.test(model, torch.utils.data.DataLoader(dataset), physics)
+print(dinv.test(model, torch.utils.data.DataLoader(dataset), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger"))
 
 
 
@@ -77,18 +79,19 @@ dinv.test(model, torch.utils.data.DataLoader(dataset), physics)
 # %% Limited-angle
 # The physics reuses all other parameters, except different angles. use the same data but a different set of angles.
 n_angles = 1200
-proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles[:n_angles], sod, sdd - sod)
+proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles[:n_angles].numpy(), sod, sdd - sod)
 physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_geometry=proj_geom, is_2d=True, normalize=False, device=device, noise_model=dinv.physics.PoissonGaussianNoise(sigma=2, gain=0.001))
 
-dataset = dinv.datasets.DeteCTDataset("/Volumes/E/ram-experiments/data/2DeteCT", problem="limited_angle", n_angles=n_angles, slice_ids='test')
+dataset = dinv.datasets.DeteCTDataset(root, problem="limited_angle", n_angles=n_angles, slice_ids='test')
 
+print(dinv.test(model, torch.utils.data.DataLoader(dataset), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger"))
 
 
 
 
 # %%
 # low dose. This corresponds to a different acquisition at a lower dose.
-proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles, sod, sdd - sod)
+proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles.numpy(), sod, sdd - sod)
 physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_geometry=proj_geom, is_2d=True, normalize=False, device=device, noise_model=dinv.physics.PoissonGaussianNoise(sigma=27, gain=0.001))
 
 dataset = dinv.datasets.DeteCTDataset(root, problem="low_dose", slice_ids='test')
