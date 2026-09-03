@@ -17,7 +17,7 @@
 #SBATCH --qos=qos_gpu-dev
 #SBATCH --time=02:00:00
 
-cd $WORK/Repos/ram-experiments
+cd $WORK/Repos/deepinv
 export PATH=$WORK/miniconda3/bin:$PATH
 eval "$($WORK/miniconda3/bin/conda shell.bash hook)"
 conda activate experiments
