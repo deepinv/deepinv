@@ -31,44 +31,130 @@ class Physics(torch.nn.Module):  # parent class for forward models
     and :math:`N:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting
     the measurements.
 
+    If :math:`A` is linear, set ``linear=True``. This unlocks a family of methods that are only
+    well-defined for linear operators: :meth:`A_adjoint`, :meth:`A_A_adjoint`, :meth:`A_adjoint_A`,
+    :meth:`adjointness_test`, :meth:`condition_number` and :meth:`prox_l2`, as well as
+    linear-operator-specific behavior of :meth:`A_vjp`, :meth:`A_dagger` and :meth:`compute_norm`/
+    :meth:`compute_sqnorm`. This functionality used to live on the (now deprecated)
+    :class:`deepinv.physics.LinearPhysics` class; it is now available directly on ``Physics`` by
+    setting ``linear=True``, which also makes ``isinstance(physics, LinearPhysics)`` return `True`
+    for backward compatibility.
+
     :param Callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
+        It is recommended to normalize it to have unit norm when ``linear=True``.
+    :param None, Callable A_adjoint: (only used if ``linear=True``) transpose of the forward operator, which
+        should verify the adjointness test. By default, it is set to `None`, which means that the adjoint is
+        computed automatically using :func:`deepinv.physics.adjoint_function`. This automatic adjoint is
+        computed using automatic differentiation, which is slower than a closed form adjoint, and can have a
+        larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size`
+        parameter. If you have a closed form for the adjoint, you can pass it as a callable function or
+        rewrite the class method.
     :param deepinv.physics.NoiseModel, Callable noise_model: function that adds noise to the measurements :math:`\noise{z}`.
         See the noise module for some predefined functions.
     :param Callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
         such as quantization or saturation, defined as a function :math:`\sensor{z}`, such that
         :math:`y=\sensor{\noise{\forw{x}}}`. By default, the `sensor_model` is set to the identity :math:`\sensor{z}=z`.
-    :param int max_iter: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
-        is used for computing it, and this parameter fixes the maximum number of gradient descent iterations.
-    :param float tol: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
-        is used for computing it, and this parameter fixes the absolute tolerance of the gradient descent algorithm.
-    :param str solver: least squares solver to use. Only gradient descent is available for non-linear operators.
+    :param tuple img_size: (only used if ``linear=True``, and only required if `A_adjoint` is not provided)
+        Size of the signal/image `x`, e.g. `(C, ...)` where `C` is the number of channels and `...` are the
+        spatial dimensions, used for the automatic adjoint computation.
+    :param int max_iter: If the operator does not have a closed form pseudoinverse, an iterative algorithm
+        is used for computing it, and this parameter fixes the maximum number of iterations.
+    :param float tol: If the operator does not have a closed form pseudoinverse, an iterative algorithm
+        is used for computing it, and this parameter fixes the tolerance of the algorithm.
+    :param str solver: least squares solver to use. Only gradient descent is available for non-linear
+        operators. Defaults to `'gradient_descent'` if ``linear=False``, `'lsqr'` if ``linear=True``. For
+        linear operators, choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'` (see
+        :func:`deepinv.optim.linear.least_squares` for more details).
+    :param bool implicit_backward_solver: (only used if ``linear=True``) If `True`, uses implicit
+        differentiation for computing gradients through :meth:`A_dagger` and :meth:`prox_l2`, using
+        :func:`deepinv.optim.linear.least_squares_implicit_backward` instead of
+        :func:`deepinv.optim.linear.least_squares`. This can significantly reduce memory consumption,
+        especially when using many iterations. If `False`, uses the standard autograd mechanism, which can
+        be memory-intensive. Default is `True`.
+    :param torch.device, str device: (only used if ``linear=True``) cpu or cuda, every registered buffer and
+        module parameters are recursively pushed onto the device during initialization.
+    :param bool linear: whether the forward operator :math:`A` is linear. Defaults to `False`.
     """
 
     def __init__(
         self,
         A: Callable = lambda x, **kwargs: x,
+        A_adjoint: Callable | None = None,
+        img_size: tuple | None = None,
         noise_model: NoiseModel | None = None,
         sensor_model: Callable = lambda x: x,
-        solver: str = "gradient_descent",
         max_iter: int = 50,
         tol: float = 1e-4,
+        solver: str | None = None,
+        implicit_backward_solver: bool = True,
+        device: torch.device | str = "cpu",
+        linear: bool = False,
         **kwargs,
     ):
         if noise_model is None:
             noise_model = ZeroNoise()
         super().__init__()
+        self.linear = linear
         self.noise_model = noise_model
         self.sensor_model = sensor_model
         self.forw = A
         self.SVD = False  # flag indicating SVD available
         self.max_iter = max_iter
         self.tol = tol
-        self.solver = solver
+        self.solver = solver or ("lsqr" if linear else "gradient_descent")
+
+        if linear:
+            self.A_adj = A_adjoint
+            self.img_size = img_size
+            self.implicit_backward_solver = implicit_backward_solver
+
+            _lstsq_conv_iter = 20  # heuristic number of iterations for convergence
+            if self.implicit_backward_solver and self.max_iter < _lstsq_conv_iter:
+                warnings.warn(
+                    "Using implicit_backward_solver with a low number of iterations may produce inaccurate gradients during the backward pass. If you are not doing backpropagation through `A_dagger` or `prox_l2`, ignore this message. If you are training unfolded models, consider increasing max_iter."
+                )
+
+            device_holder = torch.tensor(0.0, device=device)
+            self.register_buffer("_device_holder", device_holder, persistent=False)
+            # pushes all parameters/buffers to the specified device, including `noise_model`
+            self.to(device)
 
         if len(kwargs) > 0:
             warnings.warn(
                 f"Arguments {kwargs} are passed to {self.__class__.__name__} but are ignored."
             )
+
+    @property
+    def device(self) -> torch.device | str:
+        r"""
+        Returns the device where the physics parameters/buffers are stored.
+
+        Only available when ``linear=True``.
+
+        :return: device of the physics parameters.
+        """
+        warnings.warn(
+            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version. To move the module's buffers/parameters to a different device, use the `to()` method.",
+            DeprecationWarning,
+        )
+
+        return self._device_holder.device
+
+    @device.setter
+    def device(self, value: torch.device | str):
+        r"""
+        Sets the device where the physics parameters/buffers are stored.
+
+        Only available when ``linear=True``.
+
+        :param device: device to which the physics parameters will be moved.
+        """
+        warnings.warn(
+            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version, i.e. doing `physics.device = device` will no longer work and throw an `AttributeError`. Use `physics.to(device)` instead.",
+            DeprecationWarning,
+        )
+
+        self.to(value)
 
     def __mul__(self, other):
         r"""
@@ -80,11 +166,11 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: (:class:`deepinv.physics.Physics`) concatenated operator
 
         """
-
-        warnings.warn(
-            "You are composing two physics objects. The resulting physics will not retain the original attributes. "
-            "You may instead retrieve attributes of the original physics by indexing the resulting physics."
-        )
+        if not (self.linear and getattr(other, "linear", False)):
+            warnings.warn(
+                "You are composing two physics objects. The resulting physics will not retain the original attributes. "
+                "You may instead retrieve attributes of the original physics by indexing the resulting physics."
+            )
         return compose(other, self, max_iter=self.max_iter, tol=self.tol)
 
     def stack(self, other):
@@ -158,7 +244,109 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         return self.noise_model(x, **kwargs)
 
-    def A_dagger(self, y, x_init=None):
+    def A_adjoint(self, y, **kwargs):
+        r"""
+        Computes transpose of the forward operator :math:`\tilde{x} = A^{\top}y`.
+        If :math:`A` is linear, it should be the exact transpose of the forward matrix.
+
+        Only available when ``linear=True``.
+
+        .. note::
+
+            If the problem is non-linear, there is not a well-defined transpose operation,
+            but defining one can be useful for some reconstruction networks, such as :class:`deepinv.models.ArtifactRemoval`.
+            In that case, override this method in a subclass instead of relying on the default implementation.
+
+        :param torch.Tensor y: measurements.
+        :param None, torch.Tensor params: optional additional parameters for the adjoint operator.
+        :return: (:class:`torch.Tensor`) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
+
+        """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.A_adjoint is undefined because physics.linear=False. "
+                "Set linear=True, or override A_adjoint in a subclass if a custom transpose-like "
+                "operator makes sense for your non-linear physics."
+            )
+        if self.A_adj is None:
+            if self.img_size is None:
+                raise ValueError(
+                    "img_size must be set for using the automatic A_adjoint implementation."
+                    "Set img_size in the constructor of the Physics class or pass it as a keyword argument."
+                )
+            else:
+                tensor_size = (y.shape[0],) + self.img_size
+            return adjoint_function(self.A, tensor_size, device=y.device)(y, **kwargs)
+        else:
+            return self.A_adj(y, **kwargs)
+
+    def A_vjp(self, x, v):
+        r"""
+        Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` evaluated at :math:`x`, defined as:
+
+        .. math::
+
+            A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v.
+
+        If ``linear=True``, this is computed as :math:`A_{vjp}(x, v) = \conj{A} v = A^{\top}v`, i.e., it is
+        equal to :meth:`A_adjoint` and does not depend on :math:`x`. Otherwise, the Jacobian is computed using
+        automatic differentiation.
+
+        :param torch.Tensor x: signal/image.
+        :param torch.Tensor v: vector.
+        :return: (:class:`torch.Tensor`) the VJP product between :math:`v` and the Jacobian.
+        """
+        if self.linear:
+            return self.A_adjoint(v)
+        _, vjpfunc = torch.func.vjp(self.A, x)
+        return vjpfunc(v)[0]
+
+    def A_A_adjoint(self, y, **kwargs):
+        r"""
+        A helper function that computes :math:`A A^{\top}y`.
+
+        Only available when ``linear=True``.
+
+        This function can speed up computation when :math:`A A^{\top}` is available in closed form.
+        Otherwise it just calls :func:`deepinv.physics.Physics.A` and :func:`deepinv.physics.Physics.A_adjoint`.
+
+        :param torch.Tensor y: measurement.
+        :return: (:class:`torch.Tensor`) the product :math:`AA^{\top}y`.
+        """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.A_A_adjoint is undefined because physics.linear=False."
+            )
+        return self.A(self.A_adjoint(y, **kwargs), **kwargs)
+
+    def A_adjoint_A(self, x, **kwargs):
+        r"""
+        A helper function that computes :math:`A^{\top}Ax`.
+
+        Only available when ``linear=True``.
+
+        This function can speed up computation when :math:`A^{\top}A` is available in closed form.
+        Otherwise it just calls :func:`deepinv.physics.Physics.A` and :func:`deepinv.physics.Physics.A_adjoint`.
+
+        :param torch.Tensor x: signal/image.
+        :return: (:class:`torch.Tensor`) the product :math:`A^{\top}Ax`.
+        """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.A_adjoint_A is undefined because physics.linear=False."
+            )
+        return self.A_adjoint(self.A(x, **kwargs), **kwargs)
+
+    def A_dagger(
+        self,
+        y,
+        x_init=None,
+        solver="CG",
+        max_iter=None,
+        tol=None,
+        verbose=False,
+        **kwargs,
+    ):
         r"""
         Computes an inverse as:
 
@@ -166,38 +354,80 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
             x^* \in \underset{x}{\arg\min} \quad \|\forw{x}-y\|^2.
 
-        This function uses gradient descent to find the inverse. It can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
+        If ``linear=False``, this function uses gradient descent to find the inverse (it can be overwritten by
+        a more efficient pseudoinverse in cases where closed form formulas exist). If ``linear=True``, this
+        function uses a least squares solver instead (`x_init` is then ignored).
 
         :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :param None, torch.Tensor x_init: initial guess for the reconstruction. If `None` (default) it is set to the adjoint of the forward operator (it it exists) applied to the measurements :math:`y`, i.e., :math:`x_0 = A^{\top}y`.
+        :param None, torch.Tensor x_init: (only used if ``linear=False``) initial guess for the reconstruction.
+            If `None` (default) it is set to the adjoint of the forward operator (if it exists) applied to the
+            measurements :math:`y`, i.e., :math:`x_0 = A^{\top}y`.
+        :param str solver: (only used if ``linear=True``) least squares solver to use. Choose between `'CG'`,
+            `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.linear.least_squares` for more details.
         :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.
 
         """
-        if self.solver == "gradient_descent":
-            if x_init is None:
-                if hasattr(self, "A_adjoint"):
-                    x_init = self.A_adjoint(y)
-                else:
-                    raise ValueError(
-                        "x_init must be provided for gradient descent solver if the physics does not have"
-                        " A_adjoint defined."
-                    )
+        if not self.linear:
+            if self.solver == "gradient_descent":
+                if x_init is None:
+                    try:
+                        x_init = self.A_adjoint(y)
+                    except (AttributeError, NotImplementedError):
+                        raise ValueError(
+                            "x_init must be provided for gradient descent solver if the physics does not have"
+                            " A_adjoint defined."
+                        )
 
-            x = x_init
+                x = x_init
 
-            lr = 1e-1
-            loss = torch.nn.MSELoss()
-            for _ in range(self.max_iter):
-                x = x - lr * self.A_vjp(x, self.A(x) - y)
-                err = loss(self.A(x), y)
-                if err < self.tol:
-                    break
-        else:
-            raise NotImplementedError(
-                f"Solver {self.solver} not implemented for A_dagger"
+                lr = 1e-1
+                loss = torch.nn.MSELoss()
+                for _ in range(self.max_iter):
+                    x = x - lr * self.A_vjp(x, self.A(x) - y)
+                    err = loss(self.A(x), y)
+                    if err < self.tol:
+                        break
+            else:
+                raise NotImplementedError(
+                    f"Solver {self.solver} not implemented for A_dagger"
+                )
+
+            return x.clone()
+
+        if max_iter is not None:
+            self.max_iter = max_iter
+        if tol is not None:
+            self.tol = tol
+        if solver is not None:
+            self.solver = solver
+        if not self.implicit_backward_solver:
+            return least_squares(
+                self.A,
+                self.A_adjoint,
+                y,
+                parallel_dim=[0],
+                AAT=self.A_A_adjoint,
+                verbose=verbose,
+                ATA=self.A_adjoint_A,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                solver=self.solver,
+                **kwargs,
             )
-
-        return x.clone()
+        else:
+            return least_squares_implicit_backward(
+                self,
+                y,
+                z=None,
+                init=None,
+                parallel_dim=[0],
+                gamma=1e8,  # Large gamma to approximate A_dagger
+                verbose=verbose,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                solver=self.solver,
+                **kwargs,
+            )
 
     def set_ls_solver(self, solver, max_iter=None, tol=None):
         r"""
@@ -218,23 +448,6 @@ class Physics(torch.nn.Module):  # parent class for forward models
         if tol is not None:
             self.tol = tol
         self.solver = solver
-
-    def A_vjp(self, x, v):
-        r"""
-        Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` evaluated at :math:`x`, defined as:
-
-        .. math::
-
-            A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v.
-
-        By default, the Jacobian is computed using automatic differentiation.
-
-        :param torch.Tensor x: signal/image.
-        :param torch.Tensor v: vector.
-        :return: (:class:`torch.Tensor`) the VJP product between :math:`v` and the Jacobian.
-        """
-        _, vjpfunc = torch.func.vjp(self.A, x)
-        return vjpfunc(v)[0]
 
     def update(self, **kwargs):
         r"""
@@ -335,25 +548,280 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         return copy.deepcopy(self, memo=memo)
 
-    def compute_norm(self, x, verbose=True):
+    def compute_sqnorm(
+        self,
+        x0: torch.Tensor,
+        *,
+        max_iter: int = 100,
+        tol: float = 1e-3,
+        verbose: bool = True,
+        rng: torch.Generator | None = None,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
-        Computes an estimate of the operator norm of the forward operator :math:`\|A\|_2` at point `x`.
+        Computes the squared spectral :math:`\ell_2` norm of the operator :math:`A`.
 
-        This function uses the power method to compute the operator norm.
+        If ``linear=True``, this is equivalent to computing the spectral norm of :math:`A^{\top}A`, i.e.,
+        :math:`\|A^{\top}A\|_2`. If ``linear=False``, this is computed via :meth:`A_vjp` and :meth:`A_jvp`
+        (the latter must be implemented by the subclass).
 
-        :param torch.Tensor x: input tensor used to estimate the norm.
-        :param bool verbose: if `True`, prints the estimated norm.
-        :return: (:class:`torch.Tensor`) estimated operator norm.
+        Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
+
+        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
+        :param int max_iter: maximum number of iterations
+        :param float tol: relative variation criterion for convergence
+        :param bool verbose: print information
+        :param dict kwargs: optional parameters for the forward operator
+
+        :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
+        """
+        if self.linear:
+            if rng is None:
+                rng = torch.Generator(x0.device)
+            return power_method(
+                operator=self.A_adjoint_A,
+                x0=x0,
+                max_iter=max_iter,
+                tol=tol,
+                verbose=verbose,
+                **kwargs,
+            )
+        else:
+            linear_operator = lambda v: self.A_vjp(x0, self.A_jvp(x0, v))
+            return power_method(
+                linear_operator, x0, max_iter=max_iter, tol=tol, verbose=verbose
+            )
+
+    def compute_norm(
+        self,
+        x0: torch.Tensor,
+        max_iter: int = 100,
+        tol: float = 1e-3,
+        verbose: bool = True,
+        squared: bool = True,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator :math:`A`.
+
+        .. warning::
+
+            By default, for backward compatibility, this method computes the **squared** spectral norm of :math:`A`,
+            i.e., :math:`\|A^{\top}A\|_2`. This behavior is deprecated and will change in a future version.
+            Set ``squared=False`` to compute the non-squared spectral norm :math:`\|A\|_2`, or use
+            :meth:`compute_sqnorm` to explicitly compute the squared norm.
+
+        Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
+
+        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
+        :param int max_iter: maximum number of iterations
+        :param float tol: relative variation criterion for convergence
+        :param bool verbose: print information
+        :param bool squared: If ``True`` (default, deprecated), computes :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
+            Use :meth:`compute_sqnorm` instead.
+            If ``False``, computes :math:`\|A\|_2` (spectral norm of :math:`A`).
+        :param dict kwargs: optional parameters for the forward operator
+
+        :return: (torch.Tensor) spectral norm. If ``squared=True``, returns :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
+            If ``squared=False``, returns :math:`\|A\|_2` (spectral norm of :math:`A`).
+        """
+        if squared is True:
+            warnings.warn(
+                "Using `compute_norm(squared=True)` is deprecated. "
+                "Use `compute_sqnorm()` instead to compute the squared spectral norm (||A^T A||_2). "
+                "In a future version, `compute_norm()` will compute the non-squared spectral norm (||A||_2) by default.",
+                DeprecationWarning,
+                stacklevel=1,
+            )
+        elif squared is not False:
+            raise ValueError(f"squared must be True or False, got {squared}")
+
+        # Compute squared norm using compute_sqnorm
+        sqnorm = self.compute_sqnorm(
+            x0, max_iter=max_iter, tol=tol, verbose=verbose, **kwargs
+        )
+
+        # Return squared or non-squared norm based on parameter
+        if squared:
+            return sqnorm
+        else:
+            return sqnorm.sqrt()
+
+    def adjointness_test(self, u, **kwargs):
+        r"""
+        Numerically check that :math:`A^{\top}` is indeed the adjoint of :math:`A`.
+
+        Only available when ``linear=True``.
+
+        :param torch.Tensor u: initialization point of the adjointness test method
+
+        :return: (float) a quantity that should be theoretically 0. In practice, it should be of the order of the chosen dtype precision (i.e. single or double).
 
         """
-        linear_operator = lambda v: self.A_vjp(x, self.A_jvp(x, v))
-        norm = power_method(linear_operator, x, max_iter=100, tol=1e-6)
-        return norm
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.adjointness_test is undefined because physics.linear=False."
+            )
+        u_in = u  # .type(self.dtype)
+        Au = self.A(u_in, **kwargs)
+
+        if isinstance(Au, tuple) or isinstance(Au, list):
+            V = [randn_like(au) for au in Au]
+            Atv = self.A_adjoint(V, **kwargs)
+            s1 = 0
+            for au, v in zip(Au, V, strict=True):
+                s1 += (v.conj() * au).flatten().sum()
+
+        else:
+            v = randn_like(Au)
+            Atv = self.A_adjoint(v, **kwargs)
+
+            s1 = (v.conj() * Au).flatten().sum()
+
+        s2 = (Atv * u_in.conj()).flatten().sum()
+
+        return s1.conj() - s2
+
+    def condition_number(self, x, max_iter=500, tol=1e-6, verbose=False, **kwargs):
+        r"""
+        Computes an approximation of the condition number of the linear operator :math:`A`.
+
+        Only available when ``linear=True``.
+
+        Uses the LSQR algorithm, see :func:`deepinv.optim.linear.lsqr` for more details.
+
+        :param torch.Tensor x: Any input tensor (e.g. random)
+        :param int max_iter: maximum number of iterations
+        :param float tol: relative variation criterion for convergence
+        :param bool verbose: print information
+        :return: (:class:`torch.Tensor`) condition number of the operator
+        """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.condition_number is undefined because physics.linear=False."
+            )
+        y = self.A(x, **kwargs)
+        _, cond = lsqr(
+            self.A,
+            self.A_adjoint,
+            y,
+            max_iter=max_iter,
+            verbose=verbose,
+            tol=tol,
+            parallel_dim=None,
+            **kwargs,
+        )
+
+        return cond
+
+    def prox_l2(
+        self, z, y, gamma, solver="CG", max_iter=None, tol=None, verbose=False, **kwargs
+    ):
+        r"""
+        Computes proximal operator of :math:`f(x) = \frac{1}{2}\|Ax-y\|^2`, i.e.,
+
+        .. math::
+
+            \underset{x}{\arg\min} \; \frac{\gamma}{2}\|Ax-y\|^2 + \frac{1}{2}\|x-z\|^2
+
+        Only available when ``linear=True``.
+
+        :param torch.Tensor y: measurements tensor
+        :param torch.Tensor, float, int, None z: signal tensor
+        :param float gamma: hyperparameter of the proximal operator
+        :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.linear.least_squares` for details
+        :param int max_iter: maximum number of iterations for iterative solvers
+        :param float tol: tolerance for iterative solvers
+        :param bool verbose: whether to print information during the solver execution
+        :param int scale: scale at which to apply the physics operator
+        :return: (:class:`torch.Tensor`) estimated signal tensor
+
+        """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.prox_l2 is undefined because physics.linear=False."
+            )
+        if max_iter is not None:
+            self.max_iter = max_iter
+        if tol is not None:
+            self.tol = tol
+        if solver is not None:
+            self.solver = solver
+
+        if z is None or isinstance(z, float) or isinstance(z, int):
+            z = torch.full_like(
+                self.A_adjoint(y), fill_value=0.0 if z is None else float(z)
+            )
+
+        if not self.implicit_backward_solver:
+            return least_squares(
+                self.A,
+                self.A_adjoint,
+                y,
+                solver=solver,
+                gamma=gamma,
+                verbose=verbose,
+                init=z,
+                z=z,
+                parallel_dim=[0],
+                ATA=self.A_adjoint_A,
+                AAT=self.A_A_adjoint,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                **kwargs,
+            )
+        else:
+            return least_squares_implicit_backward(
+                self,
+                y,
+                z=z,
+                init=z,
+                solver=solver,
+                gamma=gamma,
+                verbose=verbose,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                parallel_dim=[0],
+                **kwargs,
+            )
 
 
-class LinearPhysics(Physics):
+def _linear_alias_metaclass(structural_cls):
+    r"""
+    Builds a metaclass whose ``isinstance()`` check reflects ``physics.linear`` instead of literal
+    inheritance from ``structural_cls``.
+
+    This is what lets classes like :class:`deepinv.physics.LinearPhysics` be deprecated (i.e. no
+    longer used internally as a real base class) while ``isinstance(physics, LinearPhysics)`` keeps
+    working for any :class:`deepinv.physics.Physics` instance with ``physics.linear=True``,
+    regardless of its concrete class.
+
+    .. note::
+
+        Only ``isinstance()`` is supported this way; ``issubclass()`` still reflects literal
+        inheritance, since nothing in the library relies on ``issubclass`` against these classes.
+    """
+
+    class _LinearAliasMeta(type):
+        def __instancecheck__(cls, instance):
+            return isinstance(instance, structural_cls) and bool(
+                getattr(instance, "linear", False)
+            )
+
+    return _LinearAliasMeta
+
+
+class LinearPhysics(Physics, metaclass=_linear_alias_metaclass(Physics)):
     r"""
     Parent class for linear operators.
+
+    .. deprecated::
+
+        ``LinearPhysics`` is deprecated and will be removed in a future version. Use
+        :class:`deepinv.physics.Physics` with ``linear=True`` instead, e.g. subclass
+        :class:`deepinv.physics.Physics` and pass ``linear=True`` to ``super().__init__()``.
+        ``isinstance(physics, LinearPhysics)`` keeps working for any ``Physics`` instance with
+        ``physics.linear=True``, so existing checks against this class remain valid.
 
     It describes the linear forward measurement process of the form
 
@@ -439,427 +907,16 @@ class LinearPhysics(Physics):
 
     """
 
-    def __init__(
-        self,
-        A=lambda x, **kwargs: x,
-        A_adjoint=None,
-        img_size=None,
-        noise_model=ZeroNoise(),
-        sensor_model=lambda x: x,
-        max_iter=50,
-        tol=1e-4,
-        solver="lsqr",
-        implicit_backward_solver: bool = True,
-        device: torch.device | str = "cpu",
-        **kwargs,
-    ):
-        super().__init__(
-            A=A,
-            noise_model=noise_model,
-            sensor_model=sensor_model,
-            max_iter=max_iter,
-            solver=solver,
-            tol=tol,
-            **kwargs,
-        )
-        self.A_adj = A_adjoint
-        self.img_size = img_size
-        self.implicit_backward_solver = implicit_backward_solver
-
-        _lstsq_conv_iter = 20  # heuristic number of iterations for convergence
-        if self.implicit_backward_solver and self.max_iter < _lstsq_conv_iter:
-            warnings.warn(
-                "Using implicit_backward_solver with a low number of iterations may produce inaccurate gradients during the backward pass. If you are not doing backpropagation through `A_dagger` or `prox_l2`, ignore this message. If you are training unfolded models, consider increasing max_iter."
-            )
-
-        device_holder = torch.tensor(0.0, device=device)
-        self.register_buffer("_device_holder", device_holder, persistent=False)
-        # pushes all parameters/buffers to the specified device, including `noise_model`
-        self.to(device)
-
-    @property
-    def device(self) -> torch.device | str:
-        r"""
-        Returns the device where the physics parameters/buffers are stored.
-
-        :return: device of the physics parameters.
-        """
+    def __init__(self, *args, **kwargs):
         warnings.warn(
-            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version. To move the module's buffers/parameters to a different device, use the `to()` method.",
+            "LinearPhysics is deprecated and will be removed in a future version. "
+            "Use Physics(..., linear=True) instead, or subclass Physics directly and pass "
+            "linear=True to super().__init__().",
             DeprecationWarning,
+            stacklevel=2,
         )
-
-        return self._device_holder.device
-
-    @device.setter
-    def device(self, value: torch.device | str):
-        r"""
-        Sets the device where the physics parameters/buffers are stored.
-
-        :param device: device to which the physics parameters will be moved.
-        """
-        warnings.warn(
-            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version, i.e. doing `physics.device = device` will no longer work and throw an `AttributeError`. Use `physics.to(device)` instead.",
-            DeprecationWarning,
-        )
-
-        self.to(value)
-
-    def A_adjoint(self, y, **kwargs):
-        r"""
-        Computes transpose of the forward operator :math:`\tilde{x} = A^{\top}y`.
-        If :math:`A` is linear, it should be the exact transpose of the forward matrix.
-
-        .. note::
-
-            If the problem is non-linear, there is not a well-defined transpose operation,
-            but defining one can be useful for some reconstruction networks, such as :class:`deepinv.models.ArtifactRemoval`.
-
-        :param torch.Tensor y: measurements.
-        :param None, torch.Tensor params: optional additional parameters for the adjoint operator.
-        :return: (:class:`torch.Tensor`) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
-
-        """
-        if self.A_adj is None:
-            if self.img_size is None:
-                raise ValueError(
-                    "img_size must be set for using the automatic A_adjoint implementation."
-                    "Set img_size in the constructor of the LinearPhysics class or pass it as a keyword argument."
-                )
-            else:
-                tensor_size = (y.shape[0],) + self.img_size
-            return adjoint_function(self.A, tensor_size, device=y.device)(y, **kwargs)
-        else:
-            return self.A_adj(y, **kwargs)
-
-    def A_vjp(self, x, v):
-        r"""
-        Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` evaluated at :math:`x`, defined as:
-
-        .. math::
-
-            A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v = \conj{A} v.
-
-        :param torch.Tensor x: signal/image.
-        :param torch.Tensor v: vector of the size of the measurements.
-        :return: (:class:`torch.Tensor`) the VJP product between :math:`v` and the Jacobian.
-        """
-        return self.A_adjoint(v)
-
-    def A_A_adjoint(self, y, **kwargs):
-        r"""
-        A helper function that computes :math:`A A^{\top}y`.
-
-        This function can speed up computation when :math:`A A^{\top}` is available in closed form.
-        Otherwise it just calls :func:`deepinv.physics.Physics.A` and :func:`deepinv.physics.LinearPhysics.A_adjoint`.
-
-        :param torch.Tensor y: measurement.
-        :return: (:class:`torch.Tensor`) the product :math:`AA^{\top}y`.
-        """
-        return self.A(self.A_adjoint(y, **kwargs), **kwargs)
-
-    def A_adjoint_A(self, x, **kwargs):
-        r"""
-        A helper function that computes :math:`A^{\top}Ax`.
-
-        This function can speed up computation when :math:`A^{\top}A` is available in closed form.
-        Otherwise it just calls :func:`deepinv.physics.Physics.A` and :func:`deepinv.physics.LinearPhysics.A_adjoint`.
-
-        :param torch.Tensor x: signal/image.
-        :return: (:class:`torch.Tensor`) the product :math:`A^{\top}Ax`.
-        """
-        return self.A_adjoint(self.A(x, **kwargs), **kwargs)
-
-    def __mul__(self, other, **kwargs):
-        r"""
-        Concatenates two linear forward operators :math:`A = A_1 \circ A_2` via the * operation
-
-        The resulting linear operator keeps the noise and sensor models of :math:`A_1`.
-
-        :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
-        :return: (:class:`deepinv.physics.LinearPhysics`) concatenated operator
-
-        """
-        return compose(other, self, max_iter=self.max_iter, tol=self.tol, **kwargs)
-
-    def stack(self, other):
-        r"""
-        Stacks forward operators :math:`A = \begin{bmatrix} A_1 \\ A_2 \end{bmatrix}`.
-
-        The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
-        each entry corresponds to the measurements of the corresponding operator.
-
-        .. note::
-
-            When using the ``stack`` operator between two noise objects, the operation will retain only the second
-            noise.
-
-        See :ref:`physics_combining` for more information.
-
-        :param deepinv.physics.Physics other: Physics operator :math:`A_2`
-        :return: (:class:`deepinv.physics.StackedPhysics`) stacked operator
-
-        """
-        return stack(self, other)
-
-    def compute_norm(
-        self,
-        x0: torch.Tensor,
-        max_iter: int = 100,
-        tol: float = 1e-3,
-        verbose: bool = True,
-        squared: bool = True,
-        **kwargs,
-    ) -> torch.Tensor:
-        r"""
-        Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator :math:`A`.
-
-        .. warning::
-
-            By default, for backward compatibility, this method computes the **squared** spectral norm of :math:`A`,
-            i.e., :math:`\|A^{\top}A\|_2`. This behavior is deprecated and will change in a future version.
-            Set ``squared=False`` to compute the non-squared spectral norm :math:`\|A\|_2`, or use
-            :meth:`compute_sqnorm` to explicitly compute the squared norm.
-
-        Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
-
-        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
-        :param int max_iter: maximum number of iterations
-        :param float tol: relative variation criterion for convergence
-        :param bool verbose: print information
-        :param bool squared: If ``True`` (default, deprecated), computes :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
-            Use :meth:`compute_sqnorm` instead.
-            If ``False``, computes :math:`\|A\|_2` (spectral norm of :math:`A`).
-        :param dict kwargs: optional parameters for the forward operator
-
-        :return: (torch.Tensor) spectral norm. If ``squared=True``, returns :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
-            If ``squared=False``, returns :math:`\|A\|_2` (spectral norm of :math:`A`).
-        """
-        if squared is True:
-            warnings.warn(
-                "Using `compute_norm(squared=True)` is deprecated. "
-                "Use `compute_sqnorm()` instead to compute the squared spectral norm (||A^T A||_2). "
-                "In a future version, `compute_norm()` will compute the non-squared spectral norm (||A||_2) by default.",
-                DeprecationWarning,
-                stacklevel=1,
-            )
-        elif squared is not False:
-            raise ValueError(f"squared must be True or False, got {squared}")
-
-        # Compute squared norm using compute_sqnorm
-        sqnorm = self.compute_sqnorm(
-            x0, max_iter=max_iter, tol=tol, verbose=verbose, **kwargs
-        )
-
-        # Return squared or non-squared norm based on parameter
-        if squared:
-            return sqnorm
-        else:
-            return sqnorm.sqrt()
-
-    def compute_sqnorm(
-        self,
-        x0: torch.Tensor,
-        *,
-        max_iter: int = 100,
-        tol: float = 1e-3,
-        verbose: bool = True,
-        rng: torch.Generator | None = None,
-        **kwargs,
-    ) -> torch.Tensor:
-        r"""
-        Computes the squared spectral :math:`\ell_2` norm of the operator :math:`A`.
-
-        This is equivalent to computing the spectral norm of :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|_2`.
-
-        Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
-
-        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
-        :param int max_iter: maximum number of iterations
-        :param float tol: relative variation criterion for convergence
-        :param bool verbose: print information
-        :param dict kwargs: optional parameters for the forward operator
-
-        :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
-        """
-        if rng is None:
-            rng = torch.Generator(x0.device)
-        return power_method(
-            operator=self.A_adjoint_A,
-            x0=x0,
-            max_iter=max_iter,
-            tol=tol,
-            verbose=verbose,
-            **kwargs,
-        )
-
-    def adjointness_test(self, u, **kwargs):
-        r"""
-        Numerically check that :math:`A^{\top}` is indeed the adjoint of :math:`A`.
-
-        :param torch.Tensor u: initialization point of the adjointness test method
-
-        :return: (float) a quantity that should be theoretically 0. In practice, it should be of the order of the chosen dtype precision (i.e. single or double).
-
-        """
-        u_in = u  # .type(self.dtype)
-        Au = self.A(u_in, **kwargs)
-
-        if isinstance(Au, tuple) or isinstance(Au, list):
-            V = [randn_like(au) for au in Au]
-            Atv = self.A_adjoint(V, **kwargs)
-            s1 = 0
-            for au, v in zip(Au, V, strict=True):
-                s1 += (v.conj() * au).flatten().sum()
-
-        else:
-            v = randn_like(Au)
-            Atv = self.A_adjoint(v, **kwargs)
-
-            s1 = (v.conj() * Au).flatten().sum()
-
-        s2 = (Atv * u_in.conj()).flatten().sum()
-
-        return s1.conj() - s2
-
-    def condition_number(self, x, max_iter=500, tol=1e-6, verbose=False, **kwargs):
-        r"""
-        Computes an approximation of the condition number of the linear operator :math:`A`.
-
-        Uses the LSQR algorithm, see :func:`deepinv.optim.linear.lsqr` for more details.
-
-        :param torch.Tensor x: Any input tensor (e.g. random)
-        :param int max_iter: maximum number of iterations
-        :param float tol: relative variation criterion for convergence
-        :param bool verbose: print information
-        :return: (:class:`torch.Tensor`) condition number of the operator
-        """
-        y = self.A(x, **kwargs)
-        _, cond = lsqr(
-            self.A,
-            self.A_adjoint,
-            y,
-            max_iter=max_iter,
-            verbose=verbose,
-            tol=tol,
-            parallel_dim=None,
-            **kwargs,
-        )
-
-        return cond
-
-    def prox_l2(
-        self, z, y, gamma, solver="CG", max_iter=None, tol=None, verbose=False, **kwargs
-    ):
-        r"""
-        Computes proximal operator of :math:`f(x) = \frac{1}{2}\|Ax-y\|^2`, i.e.,
-
-        .. math::
-
-            \underset{x}{\arg\min} \; \frac{\gamma}{2}\|Ax-y\|^2 + \frac{1}{2}\|x-z\|^2
-
-        :param torch.Tensor y: measurements tensor
-        :param torch.Tensor, float, int, None z: signal tensor
-        :param float gamma: hyperparameter of the proximal operator
-        :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.linear.least_squares` for details
-        :param int max_iter: maximum number of iterations for iterative solvers
-        :param float tol: tolerance for iterative solvers
-        :param bool verbose: whether to print information during the solver execution
-        :param int scale: scale at which to apply the physics operator
-        :return: (:class:`torch.Tensor`) estimated signal tensor
-
-        """
-        if max_iter is not None:
-            self.max_iter = max_iter
-        if tol is not None:
-            self.tol = tol
-        if solver is not None:
-            self.solver = solver
-
-        if z is None or isinstance(z, float) or isinstance(z, int):
-            z = torch.full_like(
-                self.A_adjoint(y), fill_value=0.0 if z is None else float(z)
-            )
-
-        if not self.implicit_backward_solver:
-            return least_squares(
-                self.A,
-                self.A_adjoint,
-                y,
-                solver=solver,
-                gamma=gamma,
-                verbose=verbose,
-                init=z,
-                z=z,
-                parallel_dim=[0],
-                ATA=self.A_adjoint_A,
-                AAT=self.A_A_adjoint,
-                max_iter=self.max_iter,
-                tol=self.tol,
-                **kwargs,
-            )
-        else:
-            return least_squares_implicit_backward(
-                self,
-                y,
-                z=z,
-                init=z,
-                solver=solver,
-                gamma=gamma,
-                verbose=verbose,
-                max_iter=self.max_iter,
-                tol=self.tol,
-                parallel_dim=[0],
-                **kwargs,
-            )
-
-    def A_dagger(
-        self, y, solver="CG", max_iter=None, tol=None, verbose=False, **kwargs
-    ):
-        r"""
-        Computes the solution in :math:`x` to :math:`y = Ax` using a least squares solver.
-
-        This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
-
-        :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.linear.least_squares` for more details.
-        :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.
-
-        """
-        if max_iter is not None:
-            self.max_iter = max_iter
-        if tol is not None:
-            self.tol = tol
-        if solver is not None:
-            self.solver = solver
-        if not self.implicit_backward_solver:
-            return least_squares(
-                self.A,
-                self.A_adjoint,
-                y,
-                parallel_dim=[0],
-                AAT=self.A_A_adjoint,
-                verbose=verbose,
-                ATA=self.A_adjoint_A,
-                max_iter=self.max_iter,
-                tol=self.tol,
-                solver=self.solver,
-                **kwargs,
-            )
-        else:
-            return least_squares_implicit_backward(
-                self,
-                y,
-                z=None,
-                init=None,
-                parallel_dim=[0],
-                gamma=1e8,  # Large gamma to approximate A_dagger
-                verbose=verbose,
-                max_iter=self.max_iter,
-                tol=self.tol,
-                solver=self.solver,
-                **kwargs,
-            )
+        kwargs["linear"] = True
+        super().__init__(*args, **kwargs)
 
 
 class ComposedPhysics(Physics):
@@ -873,6 +930,10 @@ class ComposedPhysics(Physics):
         \noise{\forw{x}} = N_k(A_k(\dots A_2(A_1(x))))
 
     where :math:`A_i(\cdot)` is the ith physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
+
+    The resulting operator's linearity (``self.linear``) is automatically derived as the conjunction of
+    the linearity of all composed operators, which in turn determines whether :meth:`A_adjoint` is
+    available.
 
     :param Iterable[deepinv.physics.Physics] physics: variable number of physics to compose.
     """
@@ -889,6 +950,7 @@ class ComposedPhysics(Physics):
             )
         self.noise_model = physics[-1].noise_model
         self.sensor_model = physics[-1].sensor_model
+        self.linear = all(getattr(p, "linear", False) for p in self.physics_list)
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
         r"""
@@ -904,6 +966,27 @@ class ComposedPhysics(Physics):
         for physics in self.physics_list:
             x = physics.A(x, **kwargs)
         return x
+
+    def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
+        r"""
+        Computes adjoint of composed operator
+
+        .. math::
+
+            x = A_1^{\top} A_2^{\top} \dots A_k^{\top} y
+
+        Only available when ``self.linear=True``, i.e. when every composed operator is linear.
+
+        :param torch.Tensor y: measurements
+        :return: signal/image
+        """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.A_adjoint requires all composed physics to have linear=True."
+            )
+        for physics in reversed(self.physics_list):
+            y = physics.A_adjoint(y, **kwargs)
+        return y
 
     def update_parameters(self, **kwargs):
         r"""
@@ -933,61 +1016,52 @@ class ComposedPhysics(Physics):
         return self.physics_list[item]
 
 
-class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
+class ComposedLinearPhysics(
+    ComposedPhysics, metaclass=_linear_alias_metaclass(ComposedPhysics)
+):
     r"""
-    Composes multiple linear physics operators into a single operator.
+    Deprecated alias of :class:`deepinv.physics.ComposedPhysics`.
 
-    The measurements produced by the resulting model are defined as
+    .. deprecated::
 
-    .. math::
+        Composing physics operators via :func:`deepinv.physics.compose` (or the ``*`` operator) now
+        always returns a :class:`deepinv.physics.ComposedPhysics` instance, whose linearity is
+        automatically derived from the composed operators (``physics.linear``). This class is kept
+        only for backward compatibility (including ``isinstance`` checks against it) and will be
+        removed in a future version.
 
-        \noise{\forw{x}} = N_k(A_k \dots A_2(A_1(x)))
-
-    where :math:`A_i(\cdot)` is the i-th physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
-
-    :param Iterable[deepinv.physics.LinearPhysics] physics: variable number of physics to compose.
+    :param Iterable[deepinv.physics.Physics] physics: variable number of physics to compose.
     """
 
-    def __init__(self, *physics: Iterable[LinearPhysics], **kwargs):
+    def __init__(self, *physics: Iterable[Physics], **kwargs):
+        warnings.warn(
+            "ComposedLinearPhysics is deprecated and will be removed in a future version. "
+            "Use ComposedPhysics (or compose()) instead — linearity is now derived automatically "
+            "from the composed operators via `.linear`.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(*physics, **kwargs)
 
-    def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
-        r"""
-        Computes adjoint of composed operator
 
-        .. math::
-
-            x = A_1^{\top} A_2^{\top} \dots A_k^{\top} y
-
-        :param torch.Tensor y: measurements
-        :return: signal/image
-        """
-        for physics in reversed(self.physics_list):
-            y = physics.A_adjoint(y, **kwargs)
-        return y
-
-
-def compose(*physics: Iterable[Physics | LinearPhysics], **kwargs):
+def compose(*physics: Iterable[Physics], **kwargs):
     r"""
     Composes multiple forward operators :math:`A = A_1\circ A_2\circ \dots \circ A_n`.
 
     The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
     each entry corresponds to the measurements of the corresponding operator.
 
-    :param Iterable[deepinv.physics.Physics | deepinv.physics.LinearPhysics] physics: Physics operators :math:`A_i` to be composed.
+    :param Iterable[deepinv.physics.Physics] physics: Physics operators :math:`A_i` to be composed.
     """
     if any(isinstance(phys, DecomposablePhysics) for phys in physics):
         warnings.warn(
             "At least one input physics is a DecomposablePhysics, but resulting physics will not be decomposable. `A_dagger` and `prox_l2` will fall back to approximate methods, which may impact performance."
         )
 
-    if all(isinstance(phys, LinearPhysics) for phys in physics):
-        return ComposedLinearPhysics(*physics, **kwargs)
-    else:
-        return ComposedPhysics(*physics, **kwargs)
+    return ComposedPhysics(*physics, **kwargs)
 
 
-class DecomposablePhysics(LinearPhysics):
+class DecomposablePhysics(Physics):
     r"""
     Parent class for linear operators with SVD decomposition.
 
@@ -1054,7 +1128,7 @@ class DecomposablePhysics(LinearPhysics):
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-        super().__init__(device=device, **kwargs)
+        super().__init__(device=device, linear=True, **kwargs)
 
         if U is None and not (U_adjoint is None):  # pragma: no cover
             raise ValueError("U must be provided if U_adjoint is provided.")
@@ -1362,7 +1436,7 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     return Adjoint.apply
 
 
-def stack(*physics: Physics | LinearPhysics):
+def stack(*physics: Physics):
     r"""
     Stacks multiple forward operators :math:`A = \begin{bmatrix} A_1(x) \\ A_2(x) \\ \vdots \\ A_n(x) \end{bmatrix}`.
 
@@ -1371,10 +1445,7 @@ def stack(*physics: Physics | LinearPhysics):
 
     :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be stacked.
     """
-    if all(isinstance(phys, LinearPhysics) for phys in physics):
-        return StackedLinearPhysics(physics)
-    else:
-        return StackedPhysics(physics)
+    return StackedPhysics(physics)
 
 
 class StackedPhysics(Physics):
@@ -1384,12 +1455,19 @@ class StackedPhysics(Physics):
     The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
     each entry corresponds to the measurements of the corresponding operator.
 
+    The resulting operator's linearity (``self.linear``) is automatically derived as the conjunction of
+    the linearity of all stacked operators, which in turn determines whether :meth:`A_adjoint` is
+    available.
+
     See :ref:`physics_combining` for more information.
 
     :param list[deepinv.physics.Physics] physics_list: list of physics operators to stack.
+    :param str reduction: (only relevant when the resulting operator is linear) how to combine
+        tensorlist outputs of adjoint operators into a single adjoint output. Choose between ``sum``,
+        ``mean`` or ``None``.
     """
 
-    def __init__(self, physics_list: list[Physics], **kwargs):
+    def __init__(self, physics_list: list[Physics], reduction="sum", **kwargs):
         super(StackedPhysics, self).__init__()
 
         self.physics_list = []
@@ -1398,6 +1476,23 @@ class StackedPhysics(Physics):
                 [physics]
                 if not isinstance(physics, StackedPhysics)
                 else physics.physics_list
+            )
+        self.linear = all(getattr(p, "linear", False) for p in self.physics_list)
+
+        if reduction == "sum":
+            self.reduction = sum
+        elif reduction == "mean":
+            self.reduction = lambda x: sum(x) / len(x)
+        elif reduction in ("none", None):
+            self.reduction = lambda x: x
+        else:
+            raise ValueError("reduction must be either sum, mean or none.")
+
+        if reduction != "sum":
+            warnings.warn(
+                f"Using `reduction={reduction}` is deprecated and will be removed in a future version. Using `reduction={reduction}` breaks the adjointness property of the operator, and can lead to suboptimal performance of certain algorithms. Use `reduction='sum'` instead.",
+                DeprecationWarning,
+                stacklevel=2,
             )
 
     def A(self, x: Tensor, **kwargs) -> TensorList:
@@ -1475,39 +1570,6 @@ class StackedPhysics(Physics):
         for physics in self.physics_list:
             physics.update_parameters(**kwargs)
 
-
-class StackedLinearPhysics(StackedPhysics, LinearPhysics):
-    r"""
-    Stacks multiple linear physics operators into a single operator.
-
-    The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
-    each entry corresponds to the measurements of the corresponding operator.
-
-    See :ref:`physics_combining` for more information.
-
-    :param list[deepinv.physics.Physics] physics_list: list of physics operators to stack.
-    :param str reduction: how to combine tensorlist outputs of adjoint operators into single
-        adjoint output. Choose between ``sum``, ``mean`` or ``None``.
-    """
-
-    def __init__(self, physics_list, reduction="sum", **kwargs):
-        super(StackedLinearPhysics, self).__init__(physics_list, **kwargs)
-        if reduction == "sum":
-            self.reduction = sum
-        elif reduction == "mean":
-            self.reduction = lambda x: sum(x) / len(x)
-        elif reduction in ("none", None):
-            self.reduction = lambda x: x
-        else:
-            raise ValueError("reduction must be either sum, mean or none.")
-
-        if reduction != "sum":
-            warnings.warn(
-                f"Using `reduction={reduction}` is deprecated and will be removed in a future version. Using `reduction={reduction}` breaks the adjointness property of the operator, and can lead to suboptimal performance of certain algorithms. Use `reduction='sum'` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
     def A_adjoint(self, y: TensorList, **kwargs) -> torch.Tensor:
         r"""
         Computes the adjoint of the stacked operator, defined as
@@ -1516,11 +1578,47 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
 
             A^{\top}y = \sum_{i=1}^{n} A_i^{\top}y_i.
 
+        Only available when ``self.linear=True``, i.e. when every stacked operator is linear.
+
         :param deepinv.utils.TensorList y: measurements
         """
+        if not self.linear:
+            raise NotImplementedError(
+                f"{type(self).__name__}.A_adjoint requires all stacked physics to have linear=True."
+            )
         return self.reduction(
             [
                 physics.A_adjoint(y[i], **kwargs)
                 for i, physics in enumerate(self.physics_list)
             ]
         )
+
+
+class StackedLinearPhysics(
+    StackedPhysics, metaclass=_linear_alias_metaclass(StackedPhysics)
+):
+    r"""
+    Deprecated alias of :class:`deepinv.physics.StackedPhysics`.
+
+    .. deprecated::
+
+        Stacking physics operators via :func:`deepinv.physics.stack` (or :meth:`Physics.stack`) now
+        always returns a :class:`deepinv.physics.StackedPhysics` instance, whose linearity is
+        automatically derived from the stacked operators (``physics.linear``). This class is kept
+        only for backward compatibility (including ``isinstance`` checks against it) and will be
+        removed in a future version.
+
+    :param list[deepinv.physics.Physics] physics_list: list of physics operators to stack.
+    :param str reduction: how to combine tensorlist outputs of adjoint operators into single
+        adjoint output. Choose between ``sum``, ``mean`` or ``None``.
+    """
+
+    def __init__(self, physics_list, reduction="sum", **kwargs):
+        warnings.warn(
+            "StackedLinearPhysics is deprecated and will be removed in a future version. "
+            "Use StackedPhysics (or stack()) instead — linearity is now derived automatically "
+            "from the stacked operators via `.linear`.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(physics_list, reduction=reduction, **kwargs)

@@ -1,10 +1,10 @@
 from __future__ import annotations
 from math import sqrt
 import torch
-from deepinv.physics.forward import LinearPhysics
+from deepinv.physics.forward import Physics
 
 
-class HyperSpectralUnmixing(LinearPhysics):
+class HyperSpectralUnmixing(Physics):
     r"""
     Hyperspectral Unmixing operator.
 
@@ -60,7 +60,9 @@ class HyperSpectralUnmixing(LinearPhysics):
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-        super(HyperSpectralUnmixing, self).__init__(device=device, **kwargs)
+        super(HyperSpectralUnmixing, self).__init__(
+            device=device, linear=True, **kwargs
+        )
 
         if M is None:
             # Simulate random normalized M

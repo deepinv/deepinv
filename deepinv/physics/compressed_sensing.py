@@ -1,5 +1,5 @@
 from __future__ import annotations
-from deepinv.physics.forward import LinearPhysics
+from deepinv.physics.forward import Physics
 from deepinv.utils.nn import devices_equal
 import torch
 import numpy as np
@@ -29,7 +29,7 @@ def dst1(x: Tensor) -> Tensor:
     return x.view(*x_shape)
 
 
-class CompressedSensing(LinearPhysics):
+class CompressedSensing(Physics):
     r"""
     Compressed Sensing forward operator. Creates a random sampling :math:`m \times n` matrix where :math:`n` is the
     number of elements of the signal, i.e., ``np.prod(img_size)`` and ``m`` is the number of measurements.
@@ -92,7 +92,7 @@ class CompressedSensing(LinearPhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(device=device, **kwargs)
+        super().__init__(device=device, linear=True, **kwargs)
         self.name = f"CS_m{m}"
         self.img_size = img_size
         self.channelwise = channelwise

@@ -1,11 +1,11 @@
 from deepinv.physics.noise import ZeroNoise
-from deepinv.physics.forward import StackedLinearPhysics
+from deepinv.physics.forward import StackedPhysics
 from deepinv.physics.blur import Downsampling
 from deepinv.physics.range import Decolorize
 from deepinv.utils.tensorlist import TensorList
 
 
-class Pansharpen(StackedLinearPhysics):
+class Pansharpen(StackedPhysics):
     r"""
     Pansharpening forward operator.
 

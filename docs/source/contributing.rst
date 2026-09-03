@@ -426,7 +426,7 @@ Adding a physical operator follows the general contribution guidelines. Specific
 
 - Implementing a new class that inherits from the appropriate physics base class. Refer to the design outlined in `Bring your own physics <https://deepinv.org/auto_examples/basics/demo_custom_physics.html>`_ for guidance.
 
-- Registering the physics in the appropriate test suite and verifying that the tests pass -- when inheriting from :class:`deepinv.physics.LinearPhysics`, it involves the following modifications to `deepinv/tests/test_physics.py`:
+- Registering the physics in the appropriate test suite and verifying that the tests pass -- when your operator is linear (i.e. you subclass :class:`deepinv.physics.Physics` and pass ``linear=True`` to ``super().__init__()``), it involves the following modifications to `deepinv/tests/test_physics.py`:
 
   1. Adding a new entry corresponding to your physics configuration to the list variable ``OPERATORS``
 

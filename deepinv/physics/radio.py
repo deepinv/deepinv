@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import Sequence
 import torch
-from deepinv.physics import LinearPhysics
+from deepinv.physics import Physics
 
 
-class RadioInterferometry(LinearPhysics):
+class RadioInterferometry(Physics):
     r"""
     Radio Interferometry measurement operator.
 
@@ -49,7 +49,7 @@ class RadioInterferometry(LinearPhysics):
     ):
         import torchkbnufft as tkbn
 
-        super(RadioInterferometry, self).__init__(device=device, **kwargs)
+        super(RadioInterferometry, self).__init__(device=device, linear=True, **kwargs)
 
         if dataWeight is None:
             dataWeight = torch.tensor([1.0], device=device)
