@@ -53,7 +53,7 @@ sino = (sino - dark) / (flat - dark) # flat/dark-field correction
 sino = -sino.clip(min=1e-6).log() # Beer-Lambert
 sino = sino.flip(dims=(-1,))
 
-y = sino[:, :, ::3600 // n_angles].contiguous().to(device) # (1, 1, n_angles, 956)
+y = sino[:, :, ::3600 // n_angles].float().contiguous().to(device) # (1, 1, n_angles, 956)
 
 # %%
 # Reconstruct with FBP and RAM:
@@ -71,7 +71,7 @@ dinv.utils.plot({"Sparse-view sinogram": y, "FBP": x_fbp, "RAM": x_ram}, save_fn
 # Note: for the full benchmark, make sure all test slices are in the folder. For the purposes of the demo, 
 dataset = dinv.datasets.DeteCTDataset(root, problem="sparse_view", n_angles=n_angles, slice_ids='test')
 
-print(dinv.test(model, torch.utils.data.DataLoader(dataset), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger"))
+print(dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger"))
 
 
 
@@ -84,7 +84,7 @@ physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_
 
 dataset = dinv.datasets.DeteCTDataset(root, problem="limited_angle", n_angles=n_angles, slice_ids='test')
 
-print(dinv.test(model, torch.utils.data.DataLoader(dataset), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger"))
+print(dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger"))
 
 
 
@@ -95,3 +95,5 @@ proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles.nump
 physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_geometry=proj_geom, is_2d=True, normalize=False, device=device, noise_model=dinv.physics.PoissonGaussianNoise(sigma=27, gain=0.001))
 
 dataset = dinv.datasets.DeteCTDataset(root, problem="low_dose", slice_ids='test')
+
+print(dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger"))
