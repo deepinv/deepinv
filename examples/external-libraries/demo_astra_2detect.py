@@ -34,8 +34,8 @@ physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_
 # %%
 # Load projection data
 # --------------------
-# Load sparse-view sinograms 
-# They're stored as tifffiles.
+# Load sparse-view sinograms, which are stored as `.tif`s.
+# We subsample 360 angles out of the total 3600 angles (i.e. 10x acceleration).
 
 root = Path("/lustre/fsn1/projects/rech/nyd/commun/ram_project/datasets/2DeteCT")# Path("/Volumes/E/ram-experiments/data/2DeteCT")
 data_dir = root / "2DeteCT_slices4001-5000/slice04001/mode2"
@@ -67,7 +67,7 @@ with torch.no_grad():
     physics.update(sigma=0.001 / scaling, gain=0.01 / scaling) # use estimated noise params
     x_ram = model(y / scaling, physics) * scaling
 
-dinv.utils.plot({"Sparse-view sinogram": y, "FBP": x_fbp, "RAM": x_ram}, save_fn="$WORK/Repos/ram-experiments/temp.png")
+dinv.utils.plot({"Sparse-view sinogram": y, "FBP": x_fbp, "RAM": x_ram}, save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp.png")
 
 # For the full benchmark, use the dataset to load these measurements.
 # Note ground truth here = their proprietary reconstruction with all angles.
@@ -82,7 +82,8 @@ print(dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(datas
 # %% 
 # Limited-angle CT reconstruction
 # -------------------------------
-# The physics reuses all other parameters, except different angles.
+# The physics reuses all other parameters, except different angles: we take the first 30% of angles,
+# defining a limited angle wedge.
 #
 n_angles = 1200
 proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles[:n_angles].numpy(), sod, sdd - sod)
