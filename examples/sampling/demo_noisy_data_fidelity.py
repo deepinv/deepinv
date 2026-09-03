@@ -249,7 +249,8 @@ ilvr = dinv.sampling.ILVRDataFidelity(weight=1.0)
 #     - \lambda\nabla_{x_t}
 #       \frac{\left\|A D_{\sigma_t}(x_t)-y\right\|_2^2}{2(\sigma_y^2+\sigma_t^2)}.
 #
-# Pass ``guidance="norm"``(the default) for the residual norm of the original paper.
+# Pass ``guidance="norm"`` (the default) for the residual norm of the original
+# paper.
 
 dps = dinv.sampling.DPSDataFidelity(denoiser=denoiser, weight=1.0, guidance="annealed")
 
