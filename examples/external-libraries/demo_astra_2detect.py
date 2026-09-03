@@ -99,12 +99,14 @@ dinv.utils.plot({"Sparse-view sinogram": y / y.max(), "FBP": x_fbp / x_fbp.max()
 
 # %%
 # For the full benchmark, use the dataset to load these measurements.
-# Note ground truth here = their proprietary reconstruction with all angles.
+# Note ground truth here = their proprietary reconstruction with all angles. Since it's arbitrary scale, we use PSNR after standardizing to its scale.
 # Note: for the full benchmark, make sure all test slices are in the folder. For the purposes of the demo, only a few slices are shown.
 # Note: FBP and RAM have different visual intensities since min_max rescale mode is used for plotting.
 dataset = dinv.datasets.DeteCTDataset(root, problem="sparse_view", n_angles=n_angles, slice_ids='test')
 
-dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger")
+metric = dinv.metric.PSNR(max_pixel=None, norm_inputs="standardize")
+
+dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=metric, device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger")
 
 
 
@@ -132,7 +134,7 @@ with torch.no_grad():
 dinv.utils.plot({"All angles recon": x / x_fbp.max(), "Limited-angle sino": y / y.max(), "FBP": x_fbp / x_fbp.max(), "RAM": x_ram / x_fbp.max()}, rescale_mode="clip", save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp1.png")
 
 
-dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger")
+dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=metric, device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger")
 
 
 
@@ -157,4 +159,4 @@ with torch.no_grad():
 
 dinv.utils.plot({"All angles recon": x / x_fbp.max(), "Low-dose sino": y / y.max(), "FBP": x_fbp / x_fbp.max(), "RAM": x_ram / x_fbp.max()}, rescale_mode="clip", save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp2.png")
 
-dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=[dinv.metric.PSNR(max_pixel=None)], device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger")
+dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(2))), physics, metrics=metric, device=device, plot_images=True, rescale_mode='min_max', no_learning_method="A_dagger")
