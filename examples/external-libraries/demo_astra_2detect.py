@@ -57,7 +57,7 @@ flat = flat[..., 0::2] + flat[..., 1::2]
 # Detector corrections:
 sino = (sino - dark) / (flat - dark) # flat/dark-field correction
 sino = -sino.clip(min=1e-6).log() # Beer-Lambert
-sino = sino.flip(dims=(-1,))
+sino = sino.flip(dims=(-1,)) # flip detector
 
 y = sino[:, :, ::3600 // n_angles].float().contiguous().to(device) # (1, 1, n_angles, 956)
 

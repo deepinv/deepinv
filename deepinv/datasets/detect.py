@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from deepinv.utils.io import load_tiff
 
 class DeteCTDataset(Dataset):
     """2DeteCT dataset.
@@ -24,7 +25,7 @@ class DeteCTDataset(Dataset):
 
     TODO add download parameter/download instructions.
     """
-    def __init__(self, root: str | Path, problem: str = "full", n_angles: int = None, slice_ids: int = "all"):
+    def __init__(self, root: str | Path, problem: str = "full", n_angles: int = 3600, slice_ids: int = "all"):
         self.root = Path(root)
         self.problem, self.n_angles = problem, n_angles
         self.mode = {"low_dose": "mode1", "beam_hardening": "mode3"}.get(problem, "mode2")
@@ -36,40 +37,38 @@ class DeteCTDataset(Dataset):
         return len(self.slices)
 
     def __getitem__(self, i):
-        import tifffile
         slice_num = self.slices[i]
         block_start = (slice_num - 1) // 1000 * 1000 + 1          # 1, 1001, ..., 4001
         block = f"2DeteCT_slices{block_start}-{block_start + 999}"
         stem = f"slice{slice_num:05d}"
 
-        # Taken from LION pre_process_2deteCT.pre_process_slice
-        mode_dir = self.root / block / stem / self.mode
-        sino = tifffile.imread(mode_dir / "sinogram.tif").astype(np.float32)   # (3601, 1912)
-        dark = tifffile.imread(mode_dir / "dark.tif").astype(np.float32)       # (1, 1912)
-        flat = 0.5 * (tifffile.imread(mode_dir / "flat1.tif").astype(np.float32) + tifffile.imread(mode_dir / "flat2.tif").astype(np.float32))
+        data_dir = self.root / block / stem / self.mode
 
-        # detector-shift correction
+        sino = load_tiff(data_dir / "sinogram.tif")[:, :, :-1] # (1, 1, 3600, 1912)
+        dark = load_tiff(data_dir / "dark.tif") # (1, 1, 1, 1912)
+        flat = 0.5 * (load_tiff(data_dir / "flat1.tif") + load_tiff(data_dir / "flat2.tif"))
+
+        # detector-shift correction TODO
         if slice_num < 2830 or 5520 < slice_num < 5871:
             from scipy.interpolate import interp1d
             grid = np.arange(sino.shape[-1])
             sino, flat, dark = (interp1d(grid, a, bounds_error=False, fill_value="extrapolate")(grid + 1) for a in (sino, flat, dark))
-        
-        # sum adjacent binned detector pixels, and drop the last projection (a repeat of the first)
-        sino = (sino[:, 0::2] + sino[:, 1::2])[:-1]              # (3600, 956)
-        dark = dark[0, 0::2] + dark[0, 1::2]                     # (956,)
-        flat = flat[0, 0::2] + flat[0, 1::2]
 
-        # Taken from LION deteCT.__load_and_preprocess_sinogram__
-        sino = (sino - dark) / (flat - dark)                    # flat/dark-field correction
-        sino = -np.log(np.clip(sino, 1e-6, None))               # Beer-Lambert
-        sino = sino[:, ::-1]                                    # flip detector
+        # sum adjacent binned detector pixels
+        sino = sino[..., 0::2] + sino[..., 1::2] # (1, 1, 3600, 956)
+        dark = dark[..., 0::2] + dark[..., 1::2] # (1, 1, 1, 956)
+        flat = flat[..., 0::2] + flat[..., 1::2]
+
+        # Detector corrections:
+        sino = (sino - dark) / (flat - dark) # flat/dark-field correction
+        sino = -sino.clip(min=1e-6).log() # Beer-Lambert
+        sino = sino.flip(dims=(-1,)).contiguous().float() # flip detector
 
         if self.problem == "sparse_view":
-            sino = sino[::3600 // self.n_angles]
+            sino = sino[:, :, ::3600 // self.n_angles] # (1, 1, n_angles, 956)
         elif self.problem == "limited_angle":
-            sino = sino[:self.n_angles]
+            sino = sino[:, :, :self.n_angles] # (1, 1, n_angles, 956)
 
-        # GT x = reference reconstruction (LION deteCT.__load_and_preprocess_reconstruction__)
-        x = tifffile.imread(self.root / (block + "_RecSeg") / stem / 'mode2' / "reconstruction.tif").astype(np.float32)
+        x = load_tiff(self.root / (block + "_RecSeg") / stem / 'mode2' / "reconstruction.tif").float()
 
-        return torch.from_numpy(x).unsqueeze(0), torch.from_numpy(np.ascontiguousarray(sino, dtype=np.float32)).unsqueeze(0), {}
+        return x.squeeze(0), sino.squeeze(0)
