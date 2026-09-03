@@ -3,9 +3,13 @@ Noisy data-fidelity terms for diffusion posterior sampling
 ==========================================================
 
 This example compares three approximations of the measurement-matching term
-used by diffusion posterior samplers: Diffusion Posterior Sampling (DPS) :footcite:t:`chung2022diffusion`,
-Pseudoinverse-Guided Diffusion Models (PiGDM) :footcite:t:`song2023pseudoinverse`, and Moment Matching :footcite:t:`rozet2024learning`. These
-methods belong to the broader family of explicit posterior approximations reviewed in
+used by diffusion posterior samplers: 
+
+- Diffusion Posterior Sampling (DPS) :footcite:t:`chung2022diffusion`,
+- Pseudoinverse-Guided Diffusion Models (PiGDM) :footcite:t:`song2023pseudoinverse`
+- Moment Matching :footcite:t:`rozet2024learning` 
+
+These methods belong to the broader family of explicit posterior approximations reviewed in
 *A Survey on Diffusion Models for Inverse Problems*
 :footcite:t:`daras2024survey`, which also presents other ways of incorporating
 measurements into diffusion models.
