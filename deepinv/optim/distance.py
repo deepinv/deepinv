@@ -228,9 +228,10 @@ class PoissonLikelihoodDistance(Distance):
         """
         if self.denormalize:
             y = y / self.gain
-        return (-y * torch.log(x / self.gain + self.bkg)).flatten().sum() + (
-            (x / self.gain) + self.bkg - y
-        ).reshape(x.shape[0], -1).sum(dim=1)
+        scaled_x = x / self.gain + self.bkg
+        return (
+            (-y * torch.log(scaled_x) + scaled_x - y).reshape(x.shape[0], -1).sum(dim=1)
+        )
 
     def grad(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
@@ -241,7 +242,7 @@ class PoissonLikelihoodDistance(Distance):
         """
         if self.denormalize:
             y = y / self.gain
-        return self.gain * (1 - y / (x / self.gain + self.bkg))
+        return (1 - y / (x / self.gain + self.bkg)) / self.gain
 
     def prox(
         self, x: torch.Tensor, y: torch.Tensor, *args, gamma: float = 1.0, **kwargs
@@ -255,12 +256,10 @@ class PoissonLikelihoodDistance(Distance):
         """
         if self.denormalize:
             y = y / self.gain
-        out = (
-            x
-            - (1 / (self.gain * gamma))
-            * ((x - (1 / (self.gain * gamma))).pow(2) + 4 * y / gamma).sqrt()
+        shift = x - gamma / self.gain + self.gain * self.bkg
+        return 0.5 * (shift + (shift.square() + 4 * gamma * y).sqrt()) - (
+            self.gain * self.bkg
         )
-        return out / 2
 
 
 class L1Distance(Distance):

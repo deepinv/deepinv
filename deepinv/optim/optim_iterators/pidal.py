@@ -1,13 +1,17 @@
 from __future__ import annotations
-import torch
-from .optim_iterator import OptimIterator, fStep, gStep
+
 from typing import TYPE_CHECKING
 
+import torch
+
 from deepinv.optim.linear import least_squares
+
+from .optim_iterator import OptimIterator
 
 if TYPE_CHECKING:
     from deepinv.optim import DataFidelity, Prior
     from deepinv.physics import Physics
+
 
 class PIDALIteration(OptimIterator):
     r"""
@@ -18,7 +22,7 @@ class PIDALIteration(OptimIterator):
 
     .. math::
         x_{k+1} &= \underset{x}{\text{argmin}}\lbrace \frac{1}{2\gamma}\left\Vert Mx - z_{k} + u_{k}\right\Vert^2\rbrace \\
-        z_{k+1}^1 &= \operatorname{prox}_{\text{KL}(. | y)}(Ax_{k+1} + u_{k}^1) \\
+        z_{k+1}^1 &= \operatorname{prox}_{\gamma\text{KL}(. | y)}(Ax_{k+1} + u_{k}^1) \\
         z_{k+1}^2 &=  \operatorname{prox}_{\gamma \lambda \regname}(x_{k+1} + u_{k}^2) \\
         z_{k+1}^3 &= \text{max}(0, x_{k+1} + u_{k}^3) \\
         u_{k+1} &= u_{k} + Mx_{k+1} - z_{k+1}
@@ -42,15 +46,15 @@ class PIDALIteration(OptimIterator):
         u1, u2, u3 = u
 
         return least_squares(
-                    A=lambda y: physics.A(y),
-                    AT=lambda x: physics.A_adjoint(x),
-                    y=z1 - u1,
-                    gamma=0.25,
-                    z=0.5 * (z2 - u2 + z3 - u3),
-                    solver=cur_params["f_solver"],
-                    max_iter=cur_params["f_max_iter"],
-                    tol=cur_params["f_tol"],
-                    init=torch.ones_like(z2),
+            A=physics.A,
+            AT=physics.A_adjoint,
+            y=z1 - u1,
+            gamma=0.5,
+            z=0.5 * (z2 - u2 + z3 - u3),
+            solver=cur_params["f_solver"],
+            max_iter=cur_params["f_max_iter"],
+            tol=cur_params["f_tol"],
+            init=z2,
         )
 
     def z_step(
@@ -61,16 +65,22 @@ class PIDALIteration(OptimIterator):
         cur_params: dict,
         cur_data_fidelity: DataFidelity,
         y: torch.Tensor,
-        physics: Physics
+        physics: Physics,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
         u1, u2, u3 = u
 
-        z1 = cur_data_fidelity.prox_d(physics.A(x) + u1, y,)
-        z2 = cur_prior.prox(x + u2, cur_params["g_param"], gamma=cur_params["lambda"] * cur_params["stepsize"])
+        z1 = cur_data_fidelity.prox_d(
+            physics.A(x) + u1, y, gamma=cur_params["stepsize"]
+        )
+        z2 = cur_prior.prox(
+            x + u2,
+            cur_params["g_param"],
+            gamma=cur_params["lambda"] * cur_params["stepsize"],
+        )
         z3 = torch.clamp(x + u3, min=0)
 
-        return (z1, z2, z3)
+        return z1, z2, z3
 
     def forward(
         self,
@@ -103,6 +113,7 @@ class PIDALIteration(OptimIterator):
         u1 = u1 + physics.A(x) - z1
         u2 = u2 + x - z2
         u3 = u3 + x - z3
+        u = (u1, u2, u3)
 
         F = (
             self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)

@@ -1194,6 +1194,7 @@ class ADMM(BaseOptim):
             **kwargs,
         )
 
+
 class DRS(BaseOptim):
     r"""
     DRS module for solving the problem
@@ -2681,8 +2682,8 @@ class SIRT(BaseOptim):
             **kwargs,
         )
 
-class PIDAL(BaseOptim):
 
+class PIDAL(BaseOptim):
     r"""
     PIDAL (Poisson image deconvolution by augmented Lagrangian) module for solving the problem
 
@@ -2697,7 +2698,7 @@ class PIDAL(BaseOptim):
 
     .. math::
         x_{k+1} &= \underset{x}{\text{argmin}}\lbrace \frac{1}{2\gamma}\left\Vert Mx - z_{k} + u_{k}\right\Vert^2\rbrace \\
-        z_{k+1}^1 &= \operatorname{prox}_{\text{KL}(. | y)}(Ax_{k+1} + u_{k}^1) \\
+        z_{k+1}^1 &= \operatorname{prox}_{\gamma\text{KL}(. | y)}(Ax_{k+1} + u_{k}^1) \\
         z_{k+1}^2 &=  \operatorname{prox}_{\gamma \lambda \regname}(x_{k+1} + u_{k}^2) \\
         z_{k+1}^3 &= \text{max}(0, x_{k+1} + u_{k}^3) \\
         u_{k+1} &= u_{k} + Mx_{k+1} - z_{k+1}
@@ -2713,7 +2714,7 @@ class PIDAL(BaseOptim):
         lambda_reg: float = 1.0,
         stepsize: float = 1.0,
         g_param: float = None,
-        f_solver: str = ["CG"],
+        f_solver: str = "CG",
         f_max_iter: int = 100,
         f_tol: float = 1e-5,
         sigma_denoiser: float = None,
@@ -2748,7 +2749,7 @@ class PIDAL(BaseOptim):
                 "lambda": lambda_reg,
                 "stepsize": stepsize,
                 "g_param": g_param,
-                "f_solver": f_solver,
+                "f_solver": [f_solver],
                 "f_max_iter": f_max_iter,
                 "f_tol": f_tol,
             }
@@ -2758,21 +2759,14 @@ class PIDAL(BaseOptim):
             def custom_init(y, physics):
 
                 x_init = physics.A_adjoint(y)
-                x_init = torch.ones_like(x_init)
-                # z_init_1 = torch.zeros_like(y)
-                # z_init_2 = torch.zeros_like(x_init)
-                # z_init_3 = torch.zeros_like(x_init)
-                # u_init_1 = torch.zeros_like(y)
-                # u_init_2 = torch.zeros_like(x_init)
-                # u_init_3 = torch.zeros_like(x_init)
-                z_init_1 = torch.ones_like(y)
-                z_init_2 = torch.ones_like(x_init)
-                z_init_3 = torch.ones_like(x_init)
-                u_init_1 = torch.ones_like(y)
-                u_init_2 = torch.ones_like(x_init)
-                u_init_3 = torch.ones_like(x_init)
+                z_init = (y.clone(), x_init.clone(), x_init.clone())
+                u_init = (
+                    torch.zeros_like(y),
+                    torch.zeros_like(x_init),
+                    torch.zeros_like(x_init),
+                )
 
-                return {"est": (x_init, (z_init_1, z_init_2, z_init_3), (u_init_1, u_init_2, u_init_3))}
+                return {"est": (x_init, z_init, u_init)}
 
         super(PIDAL, self).__init__(
             PIDALIteration(cost_fn=cost_fn),

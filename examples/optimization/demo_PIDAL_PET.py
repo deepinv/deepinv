@@ -1,3 +1,4 @@
+# %%
 import deepinv as dinv
 from deepinv.utils.phantoms import generate_pet_phantom
 import torch
@@ -15,6 +16,7 @@ physics = dinv.physics.PET(
     device=device,
     gain=gain,
     normalize=True,
+    normalize_counts=True,
 )
 
 x, attenuation = generate_pet_phantom(img_size, device=device)
@@ -23,43 +25,26 @@ background = None
 physics.update(attenuation=attenuation, background=background)
 y = physics(x)
 
-prior = dinv.optim.prior.Tikhonov()
+prior = dinv.optim.prior.TVPrior(n_it_max=200)
 
-data_fidelity = dinv.optim.PoissonLikelihood(
-    gain=gain
-)
-
-# def custom_init(y, physics):
-
-#     x_init = x
-#     z_init_1 = torch.clone(y)
-#     z_init_2 = torch.clone(x_init)
-#     z_init_3 = torch.clone(x_init)
-#     u_init_1 = torch.clone(y)
-#     u_init_2 = torch.clone(x_init)
-#     u_init_3 = torch.clone(x_init)
-
-#     return {"est": (x_init, (z_init_1, z_init_2, z_init_3), (u_init_1, u_init_2, u_init_3))}
+data_fidelity = dinv.optim.PoissonLikelihood(gain=gain)
 
 
 pidal = dinv.optim.PIDAL(
     data_fidelity=data_fidelity,
     prior=prior,
-    max_iter=10,
+    max_iter=100,
     stepsize=0.5,
-    # custom_init=custom_init,
-    # g_param=0.0
+    f_max_iter=10,
+    lambda_reg=0.03
 )
 
-x_pidal = pidal.forward(
-    y=y,
-    physics=physics
-)
+x_pidal = pidal.forward(y=y, physics=physics)
 
 dinv.utils.plot(
     [x, x_pidal],
     titles=["Ground truth", "PIDAL reconstruction"],
     figsize=(8, 4),
-    rescale_mode="clip",
-    vmin=0,vmax=1
 )
+
+# %%
