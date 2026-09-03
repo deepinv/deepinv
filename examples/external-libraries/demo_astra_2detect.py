@@ -1,4 +1,5 @@
 # Reconstruct real CT sinograms with the 2DeteCT benchmark
+# ========================================================
 #  https://www.aimsciences.org/article/doi/10.3934/ammc.2025001
 # Requires tifffile and astra.
 
@@ -10,8 +11,8 @@ from pathlib import Path
 device = dinv.utils.get_device()
 
 # %% 
-# Physics
-# -------
+# Model acquisition physics
+# -------------------------
 # Construct Astra geometry for fan-beam CT using values from LION. https://github.com/CambridgeCIA/LION
 # First construct object geometry (single-slice):
 obj_geom = astra.create_vol_geom(1024, 1024, 1, -513, 511, -513, 511, -0.5, 0.5)
@@ -31,8 +32,8 @@ proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles[::36
 physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_geometry=proj_geom, is_2d=True, normalize=True, device=device, noise_model=dinv.physics.PoissonGaussianNoise())
 
 # %%
-# Data
-# ----
+# Load projection data
+# --------------------
 # Load sparse-view sinograms 
 # They're stored as tifffiles.
 
@@ -56,8 +57,10 @@ sino = sino.flip(dims=(-1,))
 y = sino[:, :, ::3600 // n_angles].float().contiguous().to(device) # (1, 1, n_angles, 956)
 
 # %%
-# Reconstruct with FBP and RAM:
-model = dinv.models.RAM(pretrained="/lustre/fsn1/projects/rech/nyd/commun/ram_project/models/ram.pth.tar", device=device)
+# Reconstruct with FBP and RAM
+# ----------------------------
+model = dinv.models.RAM(pretrained=False, device=device)
+model.load_state_dict(torch.load("/lustre/fsn1/projects/rech/nyd/commun/ram_project/models/ram.pth.tar", map_location=device, weights_only=True), strict=False)
 with torch.no_grad():
     x_fbp = physics.A_dagger(y, fbp=True)
     scaling = x_fbp.max()
@@ -76,8 +79,11 @@ print(dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(datas
 
 
 
-# %% Limited-angle
-# The physics reuses all other parameters, except different angles. use the same data but a different set of angles.
+# %% 
+# Limited-angle CT reconstruction
+# -------------------------------
+# The physics reuses all other parameters, except different angles.
+#
 n_angles = 1200
 proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles[:n_angles].numpy(), sod, sdd - sod)
 physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_geometry=proj_geom, is_2d=True, normalize=False, device=device, noise_model=dinv.physics.PoissonGaussianNoise(sigma=2, gain=0.001))
@@ -90,7 +96,11 @@ print(dinv.test(model, torch.utils.data.DataLoader(torch.utils.data.Subset(datas
 
 
 # %%
-# low dose. This corresponds to a different acquisition at a lower dose.
+# Low-dose CT reconstruction
+# --------------------------
+# This corresponds to a different acquisition at a lower dose (3W instead of 90W).
+#
+
 proj_geom = astra.create_proj_geom("cone", det_pix, det_pix, 1, 956, angles.numpy(), sod, sdd - sod)
 physics = dinv.physics.TomographyWithAstra(object_geometry=obj_geom, projection_geometry=proj_geom, is_2d=True, normalize=False, device=device, noise_model=dinv.physics.PoissonGaussianNoise(sigma=27, gain=0.001))
 
