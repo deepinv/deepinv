@@ -212,6 +212,46 @@ def test_data_fidelity_l1(device):
     )
 
 
+@pytest.mark.parametrize("denormalize", [False, True])
+def test_data_fidelity_poisson(device, denormalize):
+    gain = 0.2
+    bkg = 0.4
+    gamma = 0.7
+    x = torch.tensor(
+        [[[[0.2, 0.5], [0.8, 1.1]]], [[[0.3, 0.6], [0.9, 1.2]]]],
+        device=device,
+        requires_grad=True,
+    )
+    counts = torch.tensor(
+        [[[[1.0, 2.0], [3.0, 4.0]]], [[[2.0, 3.0], [4.0, 5.0]]]],
+        device=device,
+    )
+    y = counts * gain if denormalize else counts
+    data_fidelity = dinv.optim.PoissonLikelihood(
+        gain=gain, bkg=bkg, denormalize=denormalize
+    )
+
+    loss = data_fidelity.d(x, y)
+    scaled_x = x / gain + bkg
+    expected_loss = (
+        (-counts * torch.log(scaled_x) + scaled_x - counts)
+        .reshape(x.shape[0], -1)
+        .sum(dim=1)
+    )
+    assert torch.allclose(loss, expected_loss)
+
+    expected_grad = (1 - counts / scaled_x) / gain
+    assert torch.allclose(data_fidelity.grad_d(x, y), expected_grad)
+    assert torch.allclose(torch.autograd.grad(loss.sum(), x)[0], expected_grad)
+
+    prox = data_fidelity.prox_d(x.detach(), y, gamma=gamma)
+    assert torch.allclose(
+        prox - x.detach() + gamma * data_fidelity.grad_d(prox, y),
+        torch.zeros_like(x),
+        atol=1e-5,
+    )
+
+
 def test_data_fidelity_zero(device):
     # Define two points
     x = torch.Tensor([[[1], [4], [-0.5]]]).to(device)
@@ -249,6 +289,27 @@ def test_data_fidelity_zero(device):
             y,
         ),
     )
+
+
+def test_pidal_closed_form_solution(device):
+    y = torch.tensor([[[[1.0, 2.0], [3.0, 4.0]]]], device=device)
+    physics = dinv.physics.Denoising()
+    lambda_reg = 0.2
+    model = dinv.optim.PIDAL(
+        data_fidelity=dinv.optim.PoissonLikelihood(denormalize=False),
+        prior=dinv.optim.prior.Tikhonov(),
+        lambda_reg=lambda_reg,
+        stepsize=0.7,
+        f_max_iter=5,
+        f_tol=1e-10,
+        max_iter=200,
+    )
+
+    x_hat = model(y, physics)
+    expected = (-1 + torch.sqrt(1 + 4 * lambda_reg * y)) / (2 * lambda_reg)
+
+    assert torch.all(x_hat >= 0)
+    assert torch.allclose(x_hat, expected, atol=1e-4, rtol=1e-4)
 
 
 def test_zero_prior():
