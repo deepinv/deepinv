@@ -58,3 +58,8 @@ from .srresnet import SRResNet
 from .ffdnet import FFDNet
 
 from .third_party import PromptIR
+
+from .vae import VAE
+from .cae import MbtCAE
+from .latent_optimizer import MAPzOptimizer, VBLEzOptimizer, VBLExzOptimizer
+
